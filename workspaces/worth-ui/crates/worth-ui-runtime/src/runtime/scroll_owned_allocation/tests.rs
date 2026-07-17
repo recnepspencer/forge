@@ -1,7 +1,7 @@
 use super::*;
 
 fn ordinary_activated_target() -> UiActivatedScrollOwner {
-    let (mut runtime, _, result, _, receipt, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
+    let (mut runtime, _, result, _, receipt, _, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let mut target = None;
     let _ = runtime.execute_framework_turn(|turn| {
         turn.scroll_offset(|source| target = source.acquire_host_owner(&result, &receipt).ok());
@@ -11,7 +11,7 @@ fn ordinary_activated_target() -> UiActivatedScrollOwner {
 
 #[test]
 fn pointer_rate_offsets_are_allocation_inert() {
-    let (mut runtime, _, result, _, receipt, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
+    let (mut runtime, _, result, _, receipt, _, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let mut target = None;
     let _ = runtime.execute_framework_turn(|turn| {
         turn.scroll_offset(|source| target = source.acquire_host_owner(&result, &receipt).ok());
@@ -56,7 +56,7 @@ fn pointer_rate_offsets_are_allocation_inert() {
 
 #[test]
 fn query_extent_owner_is_acquired_from_admitted_receipt() {
-    let (mut runtime, _, result, query, receipt, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
+    let (mut runtime, _, result, query, receipt, _, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let mut owner = None;
     let mut host_owner = None;
     let _ = runtime.execute_framework_turn(|turn| {
@@ -89,7 +89,7 @@ fn query_extent_owner_is_acquired_from_admitted_receipt() {
 
 #[test]
 fn unrelated_committed_receipt_cannot_smuggle_host_or_query_ownership() {
-    let (mut runtime, _, result, query, _, unrelated_receipt, _) =
+    let (mut runtime, _, result, query, _, unrelated_receipt, _, _) =
         crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let mut host = None;
     let mut query_owner = None;
@@ -137,7 +137,7 @@ fn non_finite_offset_denies_before_projection() {
 
 #[test]
 fn projection_generation_exhaustion_is_typed_and_does_not_replace_truth() {
-    let (mut runtime, _, result, _, receipt, _, _) =
+    let (mut runtime, _, result, _, receipt, _, _, _) =
         crate::runtime::tests::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let mut owner = None;
     let _ = runtime.execute_framework_turn(|turn| {

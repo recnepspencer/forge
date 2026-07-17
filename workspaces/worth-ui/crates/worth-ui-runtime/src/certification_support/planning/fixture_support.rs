@@ -1,21 +1,10 @@
-use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
-    WorthQuerySupportReport,
-};
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
-};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
-use crate::capability::{
-    QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
-    QueryResultShapeReference, QueryViewCapabilityReference, ViewBindingDescriptor,
-    ViewBindingFamily, ViewBindingId,
-};
+use crate::capability::{ViewBindingDescriptor, ViewBindingFamily, ViewBindingId};
 use crate::declaration::{
     UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementConstraintModifier,
     UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
@@ -96,38 +85,16 @@ pub(super) fn intrinsic_basis(
 }
 
 pub(super) fn query_app() -> WorthUiApp {
-    let support_report = WorthQuerySupportReport::runtime_backed_default();
-    let query_capability = support_report
-        .support_matrix()
-        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
-        .expect("suite query capability posture");
-    let query_composition = support_report
-        .query_composition_support_profile()
-        .expect("suite query composition profile");
-    let basis_support = discover_basis_lifecycle_support(BasisFamily::CurrentHead, "observation");
+    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
+        "workspace.view_binding.selection",
+    )
+    .expect("suite query definition should admit");
     WorthUi::app()
-        .register_view_binding(
-            ViewBindingDescriptor::query_owned(
-                ViewBindingId::new("workspace.view_binding.selection").expect("valid binding id"),
-                ViewBindingFamily::collection(),
-            )
-            .with_query_capability_posture(
-                QueryViewCapabilityReference::from_query_capability_descriptor(query_capability),
-            )
-            .with_query_composition_support(query_composition)
-            .with_view_shape(ViewShapeDescriptor::table())
-            .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                ResultShapeFamily::Collection,
-            ))
-            .with_basis_posture(QueryBasisPostureReference::from_basis_support_discovery(
-                &basis_support,
-            ))
-            .with_live_compatibility(QueryLiveCompatibility::from_subscription_posture(
-                QuerySubscriptionFamily::CollectionMembership,
-                QuerySubscriptionSupportPosture::RuntimeBackedCertified,
-            ))
-            .with_denial_presentation(QueryDenialPresentation::structured_status()),
-        )
+        .register_view_binding(ViewBindingDescriptor::from_definition(
+            ViewBindingId::new("workspace.view_binding.selection").expect("valid binding id"),
+            ViewBindingFamily::collection(),
+            definition,
+        ))
         .freeze()
 }
 
@@ -250,4 +217,38 @@ pub(super) fn snapshot_with_admitted_layout(
         app,
         admitted_nodes,
     )
+}
+
+pub(super) fn structural_touch_for_node(
+    app: &WorthUiApp,
+    graph_node_identity: UiGraphNodeIdentity,
+) -> crate::obligations::touch::UiGraphTouchDescriptor {
+    let declaration_identity = app
+        .graph()
+        .lookup()
+        .graph_node(graph_node_identity)
+        .expect("certification node remains in graph authority")
+        .value()
+        .declaration_identity()
+        .clone();
+    let artifact = app
+        .declaration_artifacts()
+        .iter()
+        .find(|artifact| artifact.identity() == &declaration_identity)
+        .expect("certification node retains declaration authority");
+    let origin = app
+        .graph()
+        .touches()
+        .declaration_change_receipt(artifact)
+        .expect("certification declaration admits structural change authority");
+    app.graph()
+        .touches()
+        .from_node(
+            origin,
+            crate::obligations::touch::UiGraphTouchTiming::PostMutation,
+            graph_node_identity,
+            crate::obligations::touch::UiGraphTouchAspects::new()
+                .structural(crate::obligations::touch::UiGraphTouchAspectPosture::Invalidated),
+        )
+        .expect("certification structural change admits a graph touch")
 }

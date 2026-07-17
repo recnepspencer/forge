@@ -28,8 +28,8 @@ impl WorthUiRetainedAllocationPlanningEvidenceRegistry {
 
         {
             let mut discarded_handles = self.discarded_handles.borrow_mut();
-            for handle_digest in handle_digests.iter().copied() {
-                discarded_handles.remove(&handle_digest);
+            for handle_digest in &handle_digests {
+                discarded_handles.remove(handle_digest);
             }
         }
 

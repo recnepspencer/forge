@@ -69,7 +69,7 @@ fn lower_node(
         ),
         WorthUiLegallyStructuredArtifactInputNode::Surface(surface_node) => {
             lower_surface_node(module_id, surface_node, context)
-                .map(WorthUiBoundArtifactInputNode::Surface)
+                .map(|node| WorthUiBoundArtifactInputNode::Surface(Box::new(node)))
         }
         WorthUiLegallyStructuredArtifactInputNode::Binding(binding_node) => {
             lower_binding_node(module_id, binding_node, context)

@@ -1,9 +1,9 @@
 use crate::runtime::WorthUiFileRustReplacementParityCounters;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiFileRustReplacementParityDenial {
     reason: WorthUiFileRustReplacementParityDenialReason,
-    counters: WorthUiFileRustReplacementParityCounters,
+    counters: Box<WorthUiFileRustReplacementParityCounters>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,14 +40,17 @@ impl WorthUiFileRustReplacementParityDenial {
         mut counters: WorthUiFileRustReplacementParityCounters,
     ) -> Self {
         counters.record_denial();
-        Self { reason, counters }
+        Self {
+            reason,
+            counters: Box::new(counters),
+        }
     }
 
-    pub fn reason(self) -> WorthUiFileRustReplacementParityDenialReason {
+    pub fn reason(&self) -> WorthUiFileRustReplacementParityDenialReason {
         self.reason
     }
 
-    pub fn counters(self) -> WorthUiFileRustReplacementParityCounters {
-        self.counters
+    pub fn counters(&self) -> WorthUiFileRustReplacementParityCounters {
+        *self.counters
     }
 }

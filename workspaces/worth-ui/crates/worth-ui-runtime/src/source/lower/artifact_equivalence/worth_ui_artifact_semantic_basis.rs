@@ -237,21 +237,13 @@ fn view_binding_reference_basis(view_binding: &WorthUiBoundViewBindingReference)
             view_binding.view_binding().id().as_str()
         ),
         format!(
-            "query_binding_key:{}",
-            view_binding.entry().query_binding_key().as_str()
+            "view_binding_identity:{}",
+            view_binding.entry().identity().as_u64()
         ),
-        format!(
-            "query_capability:{}",
-            query.query_capability().digest_basis()
-        ),
-        format!("query_profile:{}", query.query_composition_profile_digest()),
-        format!("view_shape:{:?}", query.view_shape()),
-        format!("result_shape:{}", query.result_shape().digest_basis()),
-        format!("basis_posture:{}", query.basis_posture().digest_basis()),
-        format!(
-            "live_compatibility:{}",
-            query.live_compatibility().digest_basis()
-        ),
+        format!("query_definition:{}", query.definition().digest().as_u64()),
+        format!("query_view:{}", query.definition().identity().as_str()),
+        format!("view_shape:{:?}", query.definition().shape()),
+        format!("lifecycle:{:?}", query.definition().lifecycle()),
         format!(
             "denial_presentation:{}",
             query.denial_presentation().digest_basis()

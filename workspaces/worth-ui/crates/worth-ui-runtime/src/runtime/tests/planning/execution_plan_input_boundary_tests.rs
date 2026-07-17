@@ -57,8 +57,14 @@ fn plan_input_preserves_query_owned_binding_handles() {
         query_identity.view_binding_id(),
         "workspace.view_binding.selection"
     );
-    assert!(!query_identity.query_capability_digest().is_empty());
-    assert!(!query_identity.result_shape_digest().is_empty());
+    assert_eq!(
+        query_identity.query_view_identity().as_str(),
+        "workspace.view_binding.selection"
+    );
+    assert_eq!(
+        query_identity.result_shape(),
+        worth_ui_query_binding::WorthUiQueryViewShape::Collection
+    );
 }
 
 #[test]
@@ -83,17 +89,26 @@ fn plan_input_preserves_query_owned_projection_and_recovery_posture() {
         .iter()
         .all(|input| input.query_binding_posture().is_some()));
     assert!(query_inputs.iter().all(|input| input
-        .query_projection_consumption_digest()
-        .is_some_and(|digest| !digest.is_empty())));
+        .query_binding_posture()
+        .is_some_and(|posture| posture.has_projection_consumption())));
     assert!(query_inputs.iter().all(|input| input
-        .query_async_result_state_digest()
-        .is_some_and(|digest| !digest.is_empty())));
+        .query_binding_posture()
+        .is_some_and(|posture| posture.has_async_result_state())));
     assert!(query_inputs.iter().all(|input| input
-        .query_recovery_digest()
-        .is_some_and(|digest| !digest.is_empty())));
-    assert!(query_inputs.iter().all(|input| input
-        .query_preservation_receipt()
-        .is_some_and(|receipt| receipt.starts_with("query-live-preserve:"))));
+        .query_binding_posture()
+        .is_some_and(|posture| posture.has_recovery())));
+    assert!(query_inputs.iter().all(|input| {
+        let Some(identity) = input.query_binding_identity() else {
+            return false;
+        };
+        let Some(posture) = input.query_binding_posture() else {
+            return false;
+        };
+        input.query_preservation_receipt().is_some_and(|receipt| {
+            receipt.binding_identity() == identity.canonical_identity()
+                && receipt.posture_identity() == posture.canonical_identity()
+        })
+    }));
 }
 
 #[test]

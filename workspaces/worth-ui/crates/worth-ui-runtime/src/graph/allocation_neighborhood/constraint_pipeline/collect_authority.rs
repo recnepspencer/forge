@@ -1,6 +1,6 @@
 use crate::evidence::{UiAllocationNeighborhood, UiMeasurementBasis};
 
-use super::types::ConstraintAuthorityContext;
+use super::admission_parts::ConstraintAuthorityContext;
 
 pub(super) fn collect_constraint_authority_context<'a>(
     _measurement_basis: &UiMeasurementBasis,

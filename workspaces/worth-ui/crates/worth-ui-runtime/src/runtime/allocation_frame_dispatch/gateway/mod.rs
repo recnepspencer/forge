@@ -7,8 +7,10 @@ mod query_projection;
 mod source_fact;
 mod state;
 
-pub(in crate::runtime::allocation_frame_dispatch) use admitted_source_submission::submit_admitted_source_fact;
 pub(super) use admitted_source_submission::UiAllocationFrameAdmissionAttempt;
+pub(in crate::runtime::allocation_frame_dispatch) use admitted_source_submission::{
+    submit_admitted_source_fact, UiAllocationFrameSourceSubmission,
+};
 
 pub(crate) use durable_resize::WorthUiDurableResizeSubmission;
 pub(crate) use host_measurement::WorthUiHostMeasurementSubmission;
@@ -22,6 +24,6 @@ pub use source_fact::{
 pub(crate) use state::UiAllocationFrameGatewayState;
 
 #[cfg(test)]
-mod query_test_support;
+pub(crate) mod query_test_support;
 #[cfg(test)]
 mod tests;

@@ -42,16 +42,19 @@ pub(super) fn submit_portal_observation_in(
             source
                 .collect_and_submit(
                     &PortalAnchorAdapter(rect),
-                    UiMeasurementRequestIdentity::new(981),
-                    UiMeasurementEvidenceFamily::PortalAnchorRect,
-                    crate::host::UiHostMeasurementNeed::PortalAnchorRect(
-                        UiPortalAnchorRectRequest::new(target),
-                    ),
-                    &report,
-                    generation,
-                    crate::host::UiHostMeasurementNormalizationContext::portal_anchor_logical_exact_in(
-                        posture, profile,
-                    ),
+                    crate::host::UiHostMeasurementCollectionInput {
+                        identity: UiMeasurementRequestIdentity::new(981),
+                        evidence_family: UiMeasurementEvidenceFamily::PortalAnchorRect,
+                        need: crate::host::UiHostMeasurementNeed::PortalAnchorRect(
+                            UiPortalAnchorRectRequest::new(target),
+                        ),
+                        capability_report: &report,
+                        evidence_generation: generation,
+                        normalization_context:
+                            crate::host::UiHostMeasurementNormalizationContext::portal_anchor_logical_exact_in(
+                                posture, profile,
+                            ),
+                    },
                 )
                 .expect("ordinary portal observation enters the allocation stream");
         });

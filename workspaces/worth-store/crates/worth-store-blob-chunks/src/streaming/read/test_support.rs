@@ -40,13 +40,15 @@ pub(crate) fn layout_runtime_case(
     let (allocation, envelopes) = allocation_receipt_and_envelope(window_bytes);
     let verified = BlobStreamingVerifiedRead::verify_bounded(
         request.clone(),
-        BlobStreamingReadWindow::bounded(window_bytes).unwrap(),
-        allocation,
-        envelopes,
-        admission(bytes.len() as u64),
-        quarantine_authority(case),
+        crate::BlobStreamingReadExecution::new(
+            BlobStreamingReadWindow::bounded(window_bytes).unwrap(),
+            allocation,
+            envelopes,
+            admission(bytes.len() as u64),
+            quarantine_authority(case),
+            CounterEvidenceStrength::Exact,
+        ),
         observations_for(bytes, chunk_size, window_bytes),
-        CounterEvidenceStrength::Exact,
     )
     .expect("streaming runtime case should verify through bounded production path");
     (published, visible, request, verified)

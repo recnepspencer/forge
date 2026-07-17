@@ -93,10 +93,10 @@ fn replacement_shutdown_and_epoch_exhaustion_are_terminal_typed_outcomes() {
         replacement_disposition.reason(),
         UiAllocationFramePauseReason::Replacement
     );
-    assert_eq!(
-        replacement_disposition.ingress(),
-        &[replacement_ingress.clone()]
-    );
+    assert!(replacement_disposition
+        .ingress()
+        .iter()
+        .eq(std::iter::once(&replacement_ingress)));
     assert_eq!(replacement_disposition.counters().ingress_count(), 1);
     assert_eq!(
         replacement_disposition.counters().canonical_drain_count(),

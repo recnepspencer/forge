@@ -11,5 +11,8 @@ worth-store-aspect-native.workspace = true
 worth-store-contracts.workspace = true
 sha2 = "0.10"
 
+[dev-dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+
 [lints]
 workspace = true

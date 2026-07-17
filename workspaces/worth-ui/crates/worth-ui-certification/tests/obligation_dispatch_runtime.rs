@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    WorthQuerySnapshotIdentity,
+};
 use worth_ui::facade::admission::UiAdmissionAggregation;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
     UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
-    WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
+    UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
+    UiGraphWorldProfile,
 };
 use worth_ui::facade::obligations::{
     UiObligationDispatchStopPosture, UiObligationFamily, UiObligationVerdictClass,
@@ -21,7 +24,7 @@ use worth_ui_dsl::{
 #[test]
 fn structural_selected_obligations_lower_to_stable_dispatch_and_success_verdicts() {
     let app = touch_app(UiGraphWorldProfile::hot_reload_candidate(
-        WorthQuerySessionLabel::scoped_strs("worth-ui", ["phase5", "hot-reload"])
+        UiGraphSessionLabel::new("worth-ui.phase5.hot-reload")
             .expect("hot-reload label should admit"),
     ));
     let graph = app.graph();
@@ -221,7 +224,7 @@ fn query_snapshot_world_profile(
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
-            &schema_basis_parts
+            schema_basis_parts
                 .into_iter()
                 .map(str::to_owned)
                 .collect::<Vec<_>>(),
@@ -229,6 +232,8 @@ fn query_snapshot_world_profile(
     )
     .expect("runtime current snapshot basis should resolve");
 
-    UiGraphWorldProfile::query_snapshot_basis(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query snapshot basis world should admit")
+    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }

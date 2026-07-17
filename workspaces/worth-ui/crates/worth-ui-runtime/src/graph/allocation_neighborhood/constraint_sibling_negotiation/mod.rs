@@ -239,5 +239,5 @@ impl UiSiblingNegotiationPeerContract {
     }
 }
 
-mod helpers;
-use helpers::*;
+mod peer_admission;
+use peer_admission::*;

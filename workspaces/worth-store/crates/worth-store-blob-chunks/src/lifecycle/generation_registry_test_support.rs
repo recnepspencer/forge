@@ -85,8 +85,7 @@ pub(crate) fn lifecycle_receipt_for_publication_with_bytes(
     bytes: &[u8],
 ) -> LifecycleReceipt {
     lifecycle_receipt_for_publication_with_identity(
-        case,
-        case,
+        PublicationIdentityCase::new(case, case),
         1,
         chunk_tree_root,
         logical_content_digest,
@@ -96,9 +95,20 @@ pub(crate) fn lifecycle_receipt_for_publication_with_bytes(
     )
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct PublicationIdentityCase<'a> {
+    case: &'a str,
+    object_case: &'a str,
+}
+
+impl<'a> PublicationIdentityCase<'a> {
+    pub(crate) const fn new(case: &'a str, object_case: &'a str) -> Self {
+        Self { case, object_case }
+    }
+}
+
 pub(crate) fn lifecycle_receipt_for_publication_with_identity(
-    case: &str,
-    object_case: &str,
+    identity_case: PublicationIdentityCase<'_>,
     generation_sequence: u64,
     chunk_tree_root: ChunkTreeRoot,
     logical_content_digest: LogicalContentDigest,
@@ -107,13 +117,12 @@ pub(crate) fn lifecycle_receipt_for_publication_with_identity(
     bytes: &[u8],
 ) -> LifecycleReceipt {
     let store_authority = BlobLifecycleStoreAuthority::from_current_store_authority(
-        current_authority(case, "lifecycle"),
+        current_authority(identity_case.case, "lifecycle"),
     );
     let lowering = store_authority.lowering_capability();
-    let scoped_chunk = scoped_chunk_with_bytes(case, bytes);
+    let scoped_chunk = scoped_chunk_with_bytes(identity_case.case, bytes);
     let declaration = declaration_with_identity(
-        case,
-        object_case,
+        identity_case,
         generation_sequence,
         chunk_tree_root,
         logical_content_digest,
@@ -212,8 +221,7 @@ pub(crate) fn current_authority(
 }
 
 fn declaration_with_identity(
-    case: &str,
-    object_case: &str,
+    identity_case: PublicationIdentityCase<'_>,
     generation_sequence: u64,
     chunk_tree_root: ChunkTreeRoot,
     logical_content_digest: LogicalContentDigest,
@@ -222,13 +230,21 @@ fn declaration_with_identity(
     authority_classification: BlobAuthorityClassification,
 ) -> BlobLifecycleDeclaration {
     BlobLifecycleDeclaration::new(
-        BlobObjectId::from_declared_digest(digest(&format!("sha256:{object_case}.object"))),
-        BlobGeneration::published(generation_sequence),
-        chunk_tree_root,
-        logical_content_digest,
+        crate::lifecycle::BlobLifecycleIdentityBasis::new(
+            BlobObjectId::from_declared_digest(digest(&format!(
+                "sha256:{}.object",
+                identity_case.object_case
+            ))),
+            BlobGeneration::published(generation_sequence),
+            chunk_tree_root,
+            logical_content_digest,
+        ),
         security_metadata,
         stored_digest,
-        AuthenticatedFrameDigest::from_declared_digest(digest(&format!("sha256:{case}.frame"))),
+        AuthenticatedFrameDigest::from_declared_digest(digest(&format!(
+            "sha256:{}.frame",
+            identity_case.case
+        ))),
         authority_classification,
     )
 }

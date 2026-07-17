@@ -189,7 +189,7 @@ fn diagnostics_never_depend_on_error_message_substrings() {
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &support_without_query,
         )
         .expect_err("unsupported Query lane denies");

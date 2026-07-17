@@ -30,18 +30,31 @@ pub struct WorthUiIdentityMatchNode {
     resize_shape_digest: Option<u64>,
 }
 
+pub(crate) struct WorthUiIdentityMatchNodeInput {
+    pub side: WorthUiIdentityMatchNodeSide,
+    pub handle: WorthUiArtifactHandle,
+    pub identity_basis: String,
+    pub authored_provenance_digest: u64,
+    pub stable_identity: bool,
+    pub durable_state_eligible: bool,
+    pub resize_contract_id: Option<MosaicSizingContractId>,
+    pub resize_permission: Option<MosaicResizePermission>,
+    pub resize_shape_digest: Option<u64>,
+}
+
 impl WorthUiIdentityMatchNode {
-    pub(crate) fn new(
-        side: WorthUiIdentityMatchNodeSide,
-        handle: WorthUiArtifactHandle,
-        identity_basis: String,
-        authored_provenance_digest: u64,
-        stable_identity: bool,
-        durable_state_eligible: bool,
-        resize_contract_id: Option<MosaicSizingContractId>,
-        resize_permission: Option<MosaicResizePermission>,
-        resize_shape_digest: Option<u64>,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiIdentityMatchNodeInput) -> Self {
+        let WorthUiIdentityMatchNodeInput {
+            side,
+            handle,
+            identity_basis,
+            authored_provenance_digest,
+            stable_identity,
+            durable_state_eligible,
+            resize_contract_id,
+            resize_permission,
+            resize_shape_digest,
+        } = input;
         let kind = WorthUiIdentityMatchNodeKind::from_artifact_kind(handle.kind());
         Self {
             side,

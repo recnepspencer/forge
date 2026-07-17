@@ -16,18 +16,31 @@ pub struct UiAllocationNeighborhoodIdentity {
     identity_digest: u64,
 }
 
+pub(super) struct UiAllocationNeighborhoodIdentityInput {
+    pub(super) root_graph_node_identity: UiGraphNodeIdentity,
+    pub(super) graph_generation: UiGraphGeneration,
+    pub(super) world_identity_digest: u64,
+    pub(super) graph_snapshot_authority_digest: u64,
+    pub(super) measurement_basis_identity_digest: u64,
+    pub(super) layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
+    pub(super) dependency_map_identity_digest: u64,
+    pub(super) neighborhood_class: UiAllocationNeighborhoodClass,
+    pub(super) member_identity_digests: Vec<u64>,
+}
+
 impl UiAllocationNeighborhoodIdentity {
-    pub(crate) fn new(
-        root_graph_node_identity: UiGraphNodeIdentity,
-        graph_generation: UiGraphGeneration,
-        world_identity_digest: u64,
-        graph_snapshot_authority_digest: u64,
-        measurement_basis_identity_digest: u64,
-        layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
-        dependency_map_identity_digest: u64,
-        neighborhood_class: UiAllocationNeighborhoodClass,
-        mut member_identity_digests: Vec<u64>,
-    ) -> Self {
+    pub(super) fn new(input: UiAllocationNeighborhoodIdentityInput) -> Self {
+        let UiAllocationNeighborhoodIdentityInput {
+            root_graph_node_identity,
+            graph_generation,
+            world_identity_digest,
+            graph_snapshot_authority_digest,
+            measurement_basis_identity_digest,
+            layout_operator_contract_identity,
+            dependency_map_identity_digest,
+            neighborhood_class,
+            mut member_identity_digests,
+        } = input;
         member_identity_digests.sort_unstable();
         let identity_digest = member_identity_digests.iter().fold(
             stable_text_digest("allocation-neighborhood-identity")

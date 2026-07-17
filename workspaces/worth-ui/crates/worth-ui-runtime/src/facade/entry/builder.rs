@@ -43,6 +43,12 @@ pub struct CapabilityRegistrationBuilder {
     diagnostic_richness: CapabilityDiagnosticRichness,
 }
 
+impl Default for CapabilityRegistrationBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CapabilityRegistrationBuilder {
     pub fn new() -> Self {
         Self {
@@ -162,7 +168,7 @@ impl CapabilityRegistrationBuilder {
     }
 
     /// Register a Query-owned view binding presentation capability.
-    pub fn register_view_binding(mut self, descriptor: ViewBindingDescriptor) -> Self {
+    pub(crate) fn register_view_binding(mut self, descriptor: ViewBindingDescriptor) -> Self {
         self.registration_candidates
             .push(descriptor.registration_candidate());
         self.view_binding_registry.push(descriptor);

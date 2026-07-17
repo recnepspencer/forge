@@ -8,11 +8,17 @@ use crate::facade::registry::{
     MosaicRegionKindDescriptor, MosaicSizingContractDescriptor, MosaicStateSlotDescriptor,
     NativeCapabilityDescriptor, PluginSlotDescriptor, RuntimeOutcomeProjectionDescriptor,
     SettingDescriptor, SurfaceDescriptor, TaskPresentationDescriptor, ThemeTokenDescriptor,
-    ViewBindingDescriptor,
+    WorthUiQueryViewRegistration,
 };
 use crate::facade::{WorthUiApp, WorthUiDslPackage};
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::{WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthUiQueryViewRegistrationError {
+    Binding(worth_ui_query_binding::WorthUiQueryBindingRegistrationDenial),
+    InvalidIdentity(crate::capability::CapabilityIdError),
+}
 
 /// Builder for a Worth UI application definition.
 pub struct WorthUiBuilder {
@@ -22,6 +28,7 @@ pub struct WorthUiBuilder {
     graph_world_profile: UiGraphWorldProfile,
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
     source_backed_declaration_witness: WorthUiSourceBackedDeclarationWitnessSlot,
+    query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
 }
 
 pub type WorthUiAppBuilder = WorthUiBuilder;
@@ -35,6 +42,7 @@ impl WorthUiBuilder {
             graph_world_profile: UiGraphWorldProfile::authoritative(),
             measurement_inspection_evidence: Vec::new(),
             source_backed_declaration_witness: WorthUiSourceBackedDeclarationWitnessSlot::Absent,
+            query_binding_plan: Default::default(),
         }
     }
 
@@ -138,9 +146,44 @@ impl WorthUiBuilder {
         self
     }
 
-    pub fn register_view_binding(mut self, descriptor: ViewBindingDescriptor) -> Self {
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn register_view_binding(
+        mut self,
+        descriptor: crate::facade::registry::ViewBindingDescriptor,
+    ) -> Self {
         self.inner = self.inner.register_view_binding(descriptor);
         self
+    }
+
+    /// Register an installed Query view as one coherent definition and
+    /// runtime-affine authority. Query posture cannot be assembled piecemeal.
+    pub fn register_query_view(
+        mut self,
+        registration: impl Into<WorthUiQueryViewRegistration>,
+    ) -> Result<Self, WorthUiQueryViewRegistrationError> {
+        let (view, visible_state_bindings, denial_presentation) = registration.into().into_parts();
+        let definition = view.definition().clone();
+        let id = crate::capability::ViewBindingId::new(definition.identity().as_str())
+            .map_err(WorthUiQueryViewRegistrationError::InvalidIdentity)?;
+        let family = match definition.shape() {
+            worth_ui_query_binding::WorthUiQueryViewShape::Collection => {
+                crate::capability::ViewBindingFamily::collection()
+            }
+            worth_ui_query_binding::WorthUiQueryViewShape::Detail => {
+                crate::capability::ViewBindingFamily::detail()
+            }
+        };
+        self.query_binding_plan = self
+            .query_binding_plan
+            .register_view(view)
+            .map_err(WorthUiQueryViewRegistrationError::Binding)?;
+        let descriptor = visible_state_bindings.into_iter().fold(
+            crate::capability::ViewBindingDescriptor::from_definition(id, family, definition)
+                .with_denial_presentation(denial_presentation),
+            crate::capability::ViewBindingDescriptor::with_visible_state_binding,
+        );
+        self.inner = self.inner.register_view_binding(descriptor);
+        Ok(self)
     }
 
     pub fn register_runtime_outcome_projection(
@@ -171,7 +214,7 @@ impl WorthUiBuilder {
             .inner
             .freeze_with_registration_report()
             .into_accepted_snapshot();
-        WorthUiApp::from_freeze_core(
+        WorthUiApp::from_freeze_core_with_query_binding(
             WorthUiCapabilityRegistrationFreezeCore::freeze_from_registration(
                 capability_snapshot,
                 self.dsl_package,
@@ -180,6 +223,7 @@ impl WorthUiBuilder {
                 self.measurement_inspection_evidence.into_boxed_slice(),
                 self.source_backed_declaration_witness.into_option(),
             ),
+            self.query_binding_plan,
         )
     }
 

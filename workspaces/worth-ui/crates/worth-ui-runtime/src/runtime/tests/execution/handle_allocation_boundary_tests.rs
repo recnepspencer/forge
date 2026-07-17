@@ -257,9 +257,11 @@ fn runtime_handle_allocation_for_lane_change() -> crate::runtime::WorthUiRuntime
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation_plan),
-            Some(&query_rebind_plan),
-            Some(&pending_execution_plan_lowering_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation_plan),
+                Some(&query_rebind_plan),
+                Some(&pending_execution_plan_lowering_input),
+            ),
         )
         .expect("lane-change activation staging succeeds");
     let measurement_basis = admitted_measurement_basis("handle-allocation.lane-change");

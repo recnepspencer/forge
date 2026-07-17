@@ -26,11 +26,13 @@ impl WorthUiRuntime {
             ) {
                 Ok(candidate) => candidate,
                 Err(candidate) => return crate::runtime::UiAllocationReceiptCommitOutcome::Denied(
-                    crate::runtime::UiAllocationReceiptCommitDenial::CandidatePlanningDenied(
+                    Box::new(crate::runtime::UiAllocationReceiptCommitDenial::CandidatePlanningDenied(
+                        Box::new(
                         crate::runtime::UiAllocationReceiptDenialReport::candidate_planning_denied(
                             &candidate,
                         ),
-                    ),
+                        ),
+                    )),
                 ),
             };
         self.allocation_receipt_ledger
@@ -48,6 +50,15 @@ impl WorthUiRuntime {
         .expect("detached receipt fixture cannot carry portal allocation authority");
         crate::runtime::allocation_receipt::detached_non_portal_receipt(candidate)
             .expect("admitted test planning must commit through the production receipt seam")
+    }
+
+    pub(crate) fn detached_allocation_lowering_input_for_test(
+        &self,
+        candidate: &UiAllocationCandidate,
+    ) -> crate::runtime::UiCommittedAllocationLoweringInput {
+        self.detached_allocation_receipt_for_test(candidate)
+            .lowering_input()
+            .expect("freshly committed test receipt must admit execution lowering")
     }
 
     pub(crate) fn plan_allocation_for_lowered_input_for_test(

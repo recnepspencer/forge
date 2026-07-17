@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 1 generic and domain Store certification suites."
 
 [dependencies]
+sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-analysis.workspace = true
@@ -17,6 +18,7 @@ worth-store-buffer-pool.workspace = true
 worth-store-claim-boundaries.workspace = true
 worth-store-compatibility.workspace = true
 worth-store-contracts.workspace = true
+worth-store-formal-models.workspace = true
 worth-store-maintenance.workspace = true
 worth-store-offline-verifier.workspace = true
 worth-store-operations = { workspace = true, features = ["certification-test-authority"] }
@@ -31,7 +33,7 @@ worth-store-lsm-authority.workspace = true
 worth-store-readiness.workspace = true
 worth-store-reclaim-policy.workspace = true
 worth-store-recovery-physics.workspace = true
-worth-store-replication.workspace = true
+worth-store-replication = { workspace = true, features = ["certification-test-authority"] }
 worth-store-security.workspace = true
 worth-store-subscription-support.workspace = true
 worth-store-test-support.workspace = true
@@ -51,7 +53,24 @@ worth-store-physical-backend = { workspace = true, features = ["certification-te
 worth-store-physical-certification = { workspace = true, features = ["certification-test-support"] }
 worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
 worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 serde_json = "1"
+
+[[test]]
+name = "protocol_model_authority_compile_fail"
+path = "tests/compile_fail/protocol_models/authority_inversion_runner.rs"
+
+[[test]]
+name = "s10_adoption_reverse_flow_compile_fail"
+path = "tests/compile_fail/operational_recovery/adoption_reverse_flow_runner.rs"
+
+[[test]]
+name = "s10_execution_matrix"
+path = "tests/scenarios/recovery/s10_execution_matrix/s10_execution_matrix.rs"
+
+[[test]]
+name = "s10_handoff_public_boundary_compile"
+path = "tests/compile_fail/operational_recovery/handoff_public_boundary_runner.rs"
 
 [[test]]
 name = "s4_5_actor_contract_lowering"

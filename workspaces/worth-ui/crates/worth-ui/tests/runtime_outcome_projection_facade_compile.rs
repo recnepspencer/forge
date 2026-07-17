@@ -1,9 +1,9 @@
 #[path = "trybuild_support.rs"]
 mod trybuild_support;
 #[test]
-fn compat_root_runtime_outcome_projection_registration_compiles() {
+fn ui_owned_runtime_outcome_projection_registration_compiles() {
     facade_compile_pass(
-        "tests/ui/facade/compat_pass/runtime_outcome_projection_registration_uses_only_facade.rs",
+        "tests/ui/facade/runtime_outcome_projection/pass/ui_owned_source_registration.rs",
     );
 }
 

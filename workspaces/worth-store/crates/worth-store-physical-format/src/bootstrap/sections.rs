@@ -22,10 +22,10 @@ impl PhysicalBootstrapCatalogOpenWitness {
     ) -> Result<Self, PhysicalBootstrapCatalogDenial> {
         if layout.root_manifest_candidates().is_empty() {
             return Err(PhysicalBootstrapCatalogDenial::ManifestDecodeDenied(
-                OfflineVerifierDenial::new(
+                Box::new(OfflineVerifierDenial::new(
                     OfflineVerifierDenialKind::MissingRootManifest,
                     OfflineVerifierCounterSnapshot::empty(),
-                ),
+                )),
             ));
         }
 

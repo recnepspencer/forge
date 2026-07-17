@@ -6,8 +6,8 @@ use crate::runtime::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiReloadStormCertificationDenial {
-    reason: WorthUiReloadStormCertificationDenialReason,
-    counters: WorthUiReloadLatencyCounters,
+    reason: Box<WorthUiReloadStormCertificationDenialReason>,
+    counters: Box<WorthUiReloadLatencyCounters>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -37,14 +37,17 @@ impl WorthUiReloadStormCertificationDenial {
         reason: WorthUiReloadStormCertificationDenialReason,
         counters: WorthUiReloadLatencyCounters,
     ) -> Self {
-        Self { reason, counters }
+        Self {
+            reason: Box::new(reason),
+            counters: Box::new(counters),
+        }
     }
 
     pub fn reason(&self) -> &WorthUiReloadStormCertificationDenialReason {
-        &self.reason
+        self.reason.as_ref()
     }
 
     pub fn counters(&self) -> WorthUiReloadLatencyCounters {
-        self.counters
+        *self.counters
     }
 }

@@ -20,7 +20,6 @@ use crate::host::{UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed};
 
 use crate::evidence::measurement::UiMeasurementResult;
 
-pub(crate) use super::query_context_test_support::display_field_projection_authority_outcome;
 pub(crate) use super::query_context_test_support::display_field_projection_consumption;
 pub(crate) use super::query_context_test_support::{
     display_field_projection_context, entity_identity_projection_context,
@@ -309,18 +308,12 @@ fn projection_host_need_from_request(request: &UiMeasurementRequest) -> UiHostMe
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::ViewportExtent => {
             UiHostMeasurementNeed::ViewportExtent(
-                request
-                    .viewport_extent_input()
-                    .expect("viewport request")
-                    .clone(),
+                *request.viewport_extent_input().expect("viewport request"),
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::PortalAnchorRect => {
             UiHostMeasurementNeed::PortalAnchorRect(
-                request
-                    .portal_anchor_rect_input()
-                    .expect("portal request")
-                    .clone(),
+                *request.portal_anchor_rect_input().expect("portal request"),
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::NativeControlIntrinsicSize => {
@@ -333,10 +326,9 @@ fn projection_host_need_from_request(request: &UiMeasurementRequest) -> UiHostMe
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::ScrollContainerViewport => {
             UiHostMeasurementNeed::ScrollContainerViewport(
-                request
+                *request
                     .scroll_container_viewport_input()
-                    .expect("scroll request")
-                    .clone(),
+                    .expect("scroll request"),
             )
         }
         other => panic!("projection test support does not model host need for {other:?}"),

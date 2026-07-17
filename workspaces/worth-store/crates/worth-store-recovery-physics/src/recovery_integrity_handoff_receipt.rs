@@ -160,7 +160,7 @@ impl RecoveryIntegrityHandoffReceipt {
             basis: evidence.certification_receipt().basis().clone(),
             category: evidence.category(),
             role: evidence.boundary_role(),
-            outcome: evidence.integrity_outcome().clone(),
+            outcome: *evidence.integrity_outcome(),
             locality: evidence.locality(),
             counters: evidence.counters(),
             physical_authority_basis: physical_authority_basis(evidence),

@@ -3,13 +3,12 @@ use super::pre_decode_physical_admission_test_support::{
 };
 use worth_store_physical_format::{
     AllocationClassKind, CheckpointAdjacencyPosture, ExtentGenerationCell, ManifestMembershipProof,
-    PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalExtentId, PhysicalFrameKind,
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
+    PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalCellReuseDomain, PhysicalExtentId,
+    PhysicalFrameKind, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
     PhysicalHeaderDecodeWitness, PhysicalManifestUniverseBuilder, PhysicalPageId, PhysicalPageKind,
-    PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAdmissionWitness,
-    PhysicalReferenceAuthority, PhysicalReferenceScope, PhysicalReferenceValidationWitness,
-    PhysicalRootManifest, PhysicalRootReference, PhysicalSegmentId, RootManifestIntegrityPosture,
-    SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
+    PhysicalRecordSlot, PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority,
+    PhysicalReferenceScope, PhysicalReferenceValidationWitness, PhysicalRootManifest,
+    PhysicalRootReference, PhysicalSegmentId, RootManifestIntegrityPosture, SlotGenerationCell,
 };
 use worth_store_physical_integrity::{
     ChecksumAlgorithmId, DeclaredPhysicalChecksum, IntegrityCheckedFrame, IntegrityCheckedPage,
@@ -25,11 +24,12 @@ pub(crate) fn with_checked_frame(
         let declaration =
             checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
+        let (kind, witness) = frame_fixture(payload, validation);
         let checked = admission
             .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
                 validation,
-                frame_witness(payload, validation),
-                PhysicalFrameKind::RecordFrame,
+                witness,
+                kind,
                 DeclaredPhysicalChecksum::new(crc32c(payload)),
             ))
             .unwrap();
@@ -227,25 +227,49 @@ pub(crate) fn free_space_slot_admission(
     PhysicalReferenceAuthority::for_canonical_physical_format().admit_free_space_reuse(cell)
 }
 
-fn frame_witness(
+fn frame_fixture(
     payload: &[u8],
     validation: PhysicalReferenceValidationWitness,
-) -> PhysicalHeaderDecodeWitness {
-    header_authority()
-        .decode_frame_header(
-            validation,
-            &frame_bytes(validation.owner().generation().get(), payload),
-            PhysicalFrameKind::RecordFrame,
-        )
+) -> (PhysicalFrameKind, PhysicalHeaderDecodeWitness) {
+    let owner = validation.owner();
+    let (kind, bytes) = match owner.domain() {
+        PhysicalCellReuseDomain::SlotAllocation => {
+            let cell = slot_cell(
+                owner.segment_id().expect("slot owner segment").get(),
+                owner.page_id().expect("slot owner page").get(),
+                u64::from(owner.slot().expect("slot owner slot").get()),
+                owner.generation().get(),
+            );
+            (
+                PhysicalFrameKind::RecordFrame,
+                crate::physical_fixture_encoding::record_frame_bytes(cell, payload),
+            )
+        }
+        PhysicalCellReuseDomain::ExtentAllocation => {
+            let cell = extent_cell(
+                owner.segment_id().expect("extent owner segment").get(),
+                owner.extent_id().expect("extent owner extent").get(),
+                owner.generation().get(),
+            );
+            (
+                PhysicalFrameKind::ExtentRecordFrame,
+                crate::physical_fixture_encoding::extent_frame_bytes(cell, payload),
+            )
+        }
+        _ => panic!("frame fixture requires slot or extent owner"),
+    };
+    let witness = header_authority()
+        .decode_frame_header(validation, &bytes, kind)
         .unwrap()
-        .witness()
+        .witness();
+    (kind, witness)
 }
 
 fn page_witness(payload: &[u8], cell: PageGenerationCell) -> PhysicalHeaderDecodeWitness {
     header_authority()
         .decode_page_header(
             cell,
-            &page_bytes(cell.generation().get(), payload),
+            &crate::physical_fixture_encoding::data_page_bytes(cell, payload),
             PhysicalPageKind::DataPage,
         )
         .unwrap()
@@ -256,31 +280,6 @@ fn header_authority() -> PhysicalHeaderAuthority {
     PhysicalHeaderAuthority::for_canonical_physical_format(
         PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     )
-}
-
-fn frame_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    write_header_tail(&mut bytes, generation, payload);
-    bytes
-}
-
-fn page_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    write_header_tail(&mut bytes, generation, payload);
-    bytes
-}
-
-fn write_header_tail(bytes: &mut Vec<u8>, generation: u64, payload: &[u8]) {
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
 }
 
 fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> SlotGenerationCell {

@@ -1,13 +1,15 @@
+use sha2::{Digest, Sha256};
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReference,
     PhysicalReferenceAuthority, PhysicalRootReference, PhysicalSegmentId,
 };
 
 use crate::{
-    CheckpointCandidate, CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange,
-    CheckpointManifest, CheckpointPageLsnFrontier, CheckpointRedoBoundary, CheckpointRootPosture,
-    CheckpointValidation, CheckpointValidationDenialKind, LogSequenceNumber, PageLsn,
-    SharpCheckpointCertificationMode,
+    verify_bounded_checkpoint_backup_artifact, BoundedCheckpointBackupDenial,
+    BoundedCheckpointBackupVerificationRequest, CheckpointBackupArtifact, CheckpointCandidate,
+    CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointManifest,
+    CheckpointPageLsnFrontier, CheckpointRedoBoundary, CheckpointRootPosture, CheckpointValidation,
+    CheckpointValidationDenialKind, LogSequenceNumber, PageLsn, SharpCheckpointCertificationMode,
 };
 
 #[test]
@@ -23,6 +25,69 @@ fn unlocated_candidate_cannot_be_validated() {
         denial.kind(),
         CheckpointValidationDenialKind::MissingCheckpointLocator
     );
+}
+
+#[test]
+fn backup_checkpoint_round_trips_through_the_owner_decoder() {
+    let checkpoint = CheckpointBackupArtifact::from_sharp_manifest(&manifest(1, 11, 10), 3, 10)
+        .expect("owner checkpoint artifact");
+    let mut bytes = Vec::new();
+    checkpoint.encode(&mut bytes).expect("checkpoint encoding");
+    let path = temporary_checkpoint_path("round-trip");
+    std::fs::write(&path, &bytes).expect("checkpoint media");
+    let request = checkpoint_request(&checkpoint, &bytes);
+
+    let observation = verify_bounded_checkpoint_backup_artifact(&path, request)
+        .expect("bounded owner verification");
+
+    assert_eq!(observation.page_count(), 1);
+    assert_eq!(observation.bytes_read(), bytes.len() as u64);
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn rehashed_checkpoint_row_corruption_fails_owner_integrity() {
+    let checkpoint = CheckpointBackupArtifact::from_sharp_manifest(&manifest(1, 11, 10), 3, 10)
+        .expect("owner checkpoint artifact");
+    let mut bytes = Vec::new();
+    checkpoint.encode(&mut bytes).expect("checkpoint encoding");
+    bytes[78] ^= 0x20;
+    let path = temporary_checkpoint_path("corrupt-row");
+    std::fs::write(&path, &bytes).expect("corrupt checkpoint media");
+
+    let denial =
+        verify_bounded_checkpoint_backup_artifact(&path, checkpoint_request(&checkpoint, &bytes))
+            .expect_err("outer digest cannot replace checkpoint owner integrity");
+
+    assert!(matches!(
+        denial,
+        BoundedCheckpointBackupDenial::InvalidPageFrontier
+            | BoundedCheckpointBackupDenial::InternalDigestMismatch
+    ));
+    let _ = std::fs::remove_file(path);
+}
+
+fn checkpoint_request<'a>(
+    checkpoint: &'a CheckpointBackupArtifact,
+    bytes: &[u8],
+) -> BoundedCheckpointBackupVerificationRequest<'a> {
+    BoundedCheckpointBackupVerificationRequest {
+        checkpoint_identity: checkpoint.checkpoint_identity(),
+        manifest_generation: checkpoint.manifest_generation(),
+        durable_checkpoint_lsn: checkpoint.durable_checkpoint_lsn(),
+        root_generation: checkpoint.root().generation().get(),
+        expected_bytes: bytes.len() as u64,
+        expected_digest: Sha256::digest(bytes).into(),
+        max_buffer_bytes: 256,
+    }
+}
+
+fn temporary_checkpoint_path(case: &str) -> std::path::PathBuf {
+    std::env::temp_dir().join(format!(
+        "worth-store-checkpoint-{case}-{}-{:?}.bin",
+        std::process::id(),
+        std::thread::current().id()
+    ))
 }
 
 fn manifest(start: u64, end: u64, redo: u64) -> CheckpointManifest {

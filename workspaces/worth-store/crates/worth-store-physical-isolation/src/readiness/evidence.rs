@@ -10,13 +10,16 @@ pub struct PhysicalIsolationEntryEvidence {
 }
 
 impl PhysicalIsolationEntryEvidence {
-    pub(crate) fn from_entry_identity(identity: &PhysicalIsolationEntryIdentity) -> Self {
-        Self {
-            foundational: PhysicalIsolationEntryFoundationalEvidence::lower(identity),
+    pub(crate) fn from_entry_identity(
+        identity: &PhysicalIsolationEntryIdentity,
+    ) -> Result<Self, worth_foundational::FoundationalBoundaryEvidenceProvenanceConstructionDenial>
+    {
+        Ok(Self {
+            foundational: PhysicalIsolationEntryFoundationalEvidence::lower(identity)?,
             proof_progression: PhysicalIsolationEntryProofProgression::from_identity(
                 identity.clone(),
             ),
-        }
+        })
     }
 
     pub const fn foundational(&self) -> &PhysicalIsolationEntryFoundationalEvidence {

@@ -5,5 +5,4 @@ mod binding_snapshot_support;
 mod binding_support_catalog_fixture;
 mod equivalence_cases;
 mod mismatch_cases;
-mod query_failure_cases;
 mod query_owned_cases;

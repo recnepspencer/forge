@@ -18,8 +18,8 @@ pub enum WorthUiCandidateAdmissionDenial {
     UnsupportedQuerySupport {
         receipt: WorthUiQuerySupportReceipt,
     },
-    QuerySupportReceiptChanged {
-        admitted_receipt_digest: u64,
-        current_receipt_digest: u64,
+    QuerySupportContractChanged {
+        admitted_contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
+        current_contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
     },
 }

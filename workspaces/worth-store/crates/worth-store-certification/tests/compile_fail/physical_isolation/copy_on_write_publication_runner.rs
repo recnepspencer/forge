@@ -17,19 +17,19 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
     vec![
         CompileFailFixture {
             name: "raw_intent_cannot_publish.rs",
-            expected_stderr: &["publish", "CopyOnWritePublicationPlan"],
+            expected_stderr: &["no function or associated item named `publish`"],
         },
         CompileFailFixture {
             name: "lowered_plan_cannot_publish.rs",
-            expected_stderr: &["publish", "CopyOnWritePublicationPlan"],
+            expected_stderr: &["no function or associated item named `publish`"],
         },
         CompileFailFixture {
             name: "checkpoint_receipt_cannot_publish.rs",
-            expected_stderr: &["publish", "CopyOnWritePublicationPlan"],
+            expected_stderr: &["no function or associated item named `publish`"],
         },
         CompileFailFixture {
             name: "foundational_evidence_cannot_publish.rs",
-            expected_stderr: &["publish", "CopyOnWritePublicationPlan"],
+            expected_stderr: &["no function or associated item named `publish`"],
         },
         CompileFailFixture {
             name: "raw_recovery_observation_cannot_publish.rs",

@@ -41,7 +41,7 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
 
     let denial = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &support_without_query,
         )
         .expect_err("unsupported lane denies before topology activation");
@@ -69,7 +69,7 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
     );
     let plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
             &admission,
         )
@@ -86,7 +86,7 @@ fn query_lane_node_without_query_owned_support_link_denies() {
 
     let denial = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&broken_planning),
+            &runtime.detached_allocation_lowering_input_for_test(&broken_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect_err("query-shaped node without Query support link denies");
@@ -109,7 +109,7 @@ fn topology_convenience_path_requires_lane_admission() {
 
     let denial = runtime
         .assemble_execution_plan_topology(
-            &runtime.detached_allocation_receipt_for_test(&broken_planning),
+            &runtime.detached_allocation_lowering_input_for_test(&broken_planning),
             &allocation,
         )
         .expect_err("public topology assembly cannot bypass lane admission");
@@ -338,14 +338,12 @@ fn query_bound_lane_support_links_are_preserved_not_reauthored() {
         let posture = input
             .query_binding_posture()
             .expect("query support link comes from Query posture");
+        assert_eq!(links.posture(), posture);
         assert_eq!(
-            links.support_admission_digest(),
-            posture.support_admission_digest()
-        );
-        assert_eq!(links.inspection_digest(), posture.inspection_digest());
-        assert_eq!(
-            links.projection_consumption_digest(),
-            posture.projection_consumption_digest()
+            links.binding_identity(),
+            input
+                .query_binding_identity()
+                .expect("query support link carries typed binding identity")
         );
         assert_eq!(links.required_surfaces(), input.query_required_surfaces());
     }

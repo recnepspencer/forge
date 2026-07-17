@@ -3,9 +3,8 @@ use worth_store_contracts::StableDigest;
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalChunkChecksumAuthority, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
-    PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalSegmentId, SlotAppendRequest,
-    StorePhysicalChunkWriteReceipt, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId,
+    SlotAppendRequest, StorePhysicalChunkWriteReceipt,
 };
 use worth_store_security::StoreTenantScope;
 
@@ -294,14 +293,14 @@ fn record_receipt(bytes: &[u8]) -> StorePhysicalChunkWriteReceipt {
     let slot_cell = generations
         .slot_cell(segment(7), page(11), slot(1))
         .with_slot_generation(generation(9));
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = page_bytes(page_cell, &[]);
     let append = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page),
             SlotAppendRequest::ordinary(slot_cell, bytes),
         )
         .unwrap();
-    let reopened_page = page_bytes(generation(5), append.page_payload());
+    let reopened_page = page_bytes(page_cell, append.page_payload());
     let validation = references
         .validate_page_slot(append.reference_admission(), slot_cell)
         .unwrap();
@@ -335,16 +334,18 @@ fn record_authority() -> PhysicalPageRecordAuthority {
     )
 }
 
-fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+fn page_bytes(cell: worth_store_physical_format::PageGenerationCell, payload: &[u8]) -> Vec<u8> {
+    let headers = PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    );
+    let mut bytes = Vec::with_capacity(
+        usize::from(worth_store_physical_format::PHYSICAL_HEADER_LENGTH) + payload.len(),
+    );
+    bytes.extend_from_slice(&headers.encode_page_header(
+        cell,
+        PhysicalPageKind::DataPage,
+        u32::try_from(payload.len()).expect("test payload length should fit the physical format"),
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

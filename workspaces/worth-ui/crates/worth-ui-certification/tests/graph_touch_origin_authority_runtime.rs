@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    WorthQuerySnapshotIdentity,
+};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass,
     UiGraphTouchTiming, UiGraphWorldProfile,
 };
@@ -134,14 +137,13 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity =
-        worth_ui::facade::graph::WorthQuerySnapshotIdentity::admit_external_token(
-            QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-        );
+    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
+        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
+    );
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
-            &schema_basis_parts
+            schema_basis_parts
                 .into_iter()
                 .map(str::to_owned)
                 .collect::<Vec<_>>(),
@@ -149,6 +151,8 @@ fn query_snapshot_world_profile(
     )
     .expect("runtime current snapshot basis should resolve");
 
-    UiGraphWorldProfile::query_snapshot_basis(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query snapshot basis world profile should admit matching report")
+    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }

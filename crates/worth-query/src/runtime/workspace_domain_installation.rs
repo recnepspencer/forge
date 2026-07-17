@@ -18,6 +18,21 @@ impl WorthQueryWorkspace {
         self.runtime.domain_installation_receipt(marker)
     }
 
+    /// Rebind a prior runtime-installed domain handle into this workspace.
+    ///
+    /// The workspace remains the owning runtime boundary; downstream
+    /// consumers never reconstruct installation generation or runtime
+    /// affinity from receipt fields.
+    pub fn rebind_domain<D: 'static>(
+        &self,
+        request: crate::domain_installation::WorthQueryDomainRebindRequest<D>,
+    ) -> Result<
+        crate::domain_installation::WorthQueryReboundDomainHandle<D>,
+        crate::domain_installation::WorthQueryDomainRebindDenial,
+    > {
+        self.runtime.rebind_domain(request)
+    }
+
     pub(crate) fn validate_installed_domain_witness<D: 'static>(
         &self,
         witness: &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,

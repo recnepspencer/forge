@@ -42,18 +42,20 @@ impl WorthUiRuntimeHandleAllocator {
         }
 
         Ok(WorthUiRuntimeHandleAllocation::new(
-            basis,
-            receipt,
-            allocation.family_widths,
-            allocation.counters,
-            allocation.runtime_handles,
-            allocation.component_handles,
-            allocation.command_handles,
-            allocation.token_handles,
-            allocation.child_range_handles,
-            allocation.view_binding_handles,
-            allocation.lane_handles,
-            allocation.state_slot_handles,
+            super::WorthUiRuntimeHandleAllocationInput {
+                basis,
+                receipt,
+                family_widths: allocation.family_widths,
+                counters: allocation.counters,
+                runtime_handles: allocation.runtime_handles,
+                component_handles: allocation.component_handles,
+                command_handles: allocation.command_handles,
+                token_handles: allocation.token_handles,
+                child_range_handles: allocation.child_range_handles,
+                view_binding_handles: allocation.view_binding_handles,
+                lane_handles: allocation.lane_handles,
+                state_slot_handles: allocation.state_slot_handles,
+            },
         ))
     }
 }

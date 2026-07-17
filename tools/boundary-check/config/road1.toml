@@ -1,6 +1,24 @@
 root_manifest = "Cargo.toml"
 forbidden_root_prefixes = ["cad/workspaces/"]
 
+[[dependency_denials]]
+workspace_manifest = "workspaces/worth-store/Cargo.toml"
+sources = [
+  "worth-store-authority",
+  "worth-store-blob-chunks",
+  "worth-store-layout-indexes",
+  "worth-store-offline-verifier",
+  "worth-store-physical-backend",
+  "worth-store-physical-format",
+  "worth-store-physical-integrity",
+  "worth-store-physical-isolation",
+  "worth-store-recovery-physics",
+  "worth-store-replication",
+  "worth-store-security",
+]
+forbidden_targets = ["worth-store-operations", "worth-store-operations-vocabulary"]
+guidance = "lower owner crates expose sealed observations, plans, and receipts; Operations orchestrates downward"
+
 [machine_authority]
 canonical_config = "tools/boundary-check/config/road1.toml"
 mirrored_docs = [
@@ -174,6 +192,12 @@ band = "cert"
 domains = ["replay", "scale", "approval", "perf", "workflows"]
 
 [rule_contracts]
+
+[rule_contracts.worth_ui_query_edge]
+workspace = "workspaces/worth-ui"
+engine_package = "worth-query"
+allowed_production_consumers = ["worth-ui-query-binding"]
+guidance = "Worth UI production code consumes Query only through worth-ui-query-binding; certification is the explicit hostile-world exception. Remove the direct dependency and accept binding-owned authority/value artifacts."
 
 [rule_contracts.query_audience]
 engine_package = "worth-query"

@@ -1,10 +1,14 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::{ProtectedReferenceRange, ReclaimCandidateSet, RootEpoch};
 
 use super::{HazardLeaseCounterSnapshot, HazardLeaseGeneration, HazardLeaseKind, HazardLeaseSlot};
 
+type LeaseKey = (HazardLeaseSlot, HazardLeaseGeneration);
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HazardLeaseEpochIndexSnapshot {
-    buckets: Vec<HazardLeaseEpochBucket>,
+    buckets: BTreeMap<u64, HazardLeaseEpochBucket>,
     counters: HazardLeaseCounterSnapshot,
     total_live_entries: usize,
 }
@@ -28,20 +32,14 @@ pub(crate) struct HazardLeaseEpochIndexEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) struct HazardLeaseEpochIndex {
-    buckets: Vec<HazardLeaseEpochBucket>,
+    buckets: BTreeMap<u64, HazardLeaseEpochBucket>,
     total_live_entries: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 struct HazardLeaseEpochBucket {
-    root_epoch: RootEpoch,
-    range_buckets: Vec<HazardLeaseRangeBucket>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct HazardLeaseRangeBucket {
-    range: ProtectedReferenceRange,
-    entries: Vec<HazardLeaseEpochIndexEntry>,
+    entries: BTreeMap<LeaseKey, HazardLeaseEpochIndexEntry>,
+    range_handles: BTreeMap<ProtectedReferenceRange, BTreeSet<LeaseKey>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,17 +52,12 @@ pub(crate) struct HazardLeaseOverlapScan {
 
 impl HazardLeaseEpochIndex {
     pub(crate) fn insert(&mut self, entry: HazardLeaseEpochIndexEntry) {
-        let Some(epoch_bucket) = self
+        let inserted = self
             .buckets
-            .iter_mut()
-            .find(|bucket| bucket.root_epoch.has_same_epoch_value(entry.root_epoch))
-        else {
-            self.buckets.push(HazardLeaseEpochBucket::from_entry(entry));
-            self.total_live_entries += 1;
-            return;
-        };
-        epoch_bucket.insert(entry);
-        self.total_live_entries += 1;
+            .entry(entry.root_epoch.get())
+            .or_default()
+            .insert(entry);
+        self.total_live_entries += usize::from(inserted);
     }
 
     pub(crate) fn remove(
@@ -73,20 +66,16 @@ impl HazardLeaseEpochIndex {
         slot: HazardLeaseSlot,
         generation: HazardLeaseGeneration,
     ) -> bool {
-        let Some(bucket_index) = self
-            .buckets
-            .iter()
-            .position(|bucket| bucket.root_epoch.has_same_epoch_value(root_epoch))
-        else {
+        let epoch = root_epoch.get();
+        let Some(bucket) = self.buckets.get_mut(&epoch) else {
             return false;
         };
-        let removed = self.buckets[bucket_index].remove(slot, generation);
-        if !removed {
+        if !bucket.remove((slot, generation)) {
             return false;
         }
         self.total_live_entries -= 1;
-        if self.buckets[bucket_index].is_empty() {
-            self.buckets.swap_remove(bucket_index);
+        if bucket.is_empty() {
+            self.buckets.remove(&epoch);
         }
         true
     }
@@ -104,49 +93,32 @@ impl HazardLeaseEpochIndex {
 }
 
 impl HazardLeaseEpochBucket {
-    fn from_entry(entry: HazardLeaseEpochIndexEntry) -> Self {
-        let mut bucket = Self {
-            root_epoch: entry.root_epoch,
-            range_buckets: Vec::new(),
-        };
-        bucket.insert(entry);
-        bucket
-    }
-
-    fn insert(&mut self, entry: HazardLeaseEpochIndexEntry) {
-        for range in entry.ranges.iter().copied() {
-            let Some(range_bucket) = self
-                .range_buckets
-                .iter_mut()
-                .find(|bucket| bucket.range == range)
-            else {
-                self.range_buckets.push(HazardLeaseRangeBucket {
-                    range,
-                    entries: vec![entry.clone()],
-                });
-                continue;
-            };
-            range_bucket.entries.push(entry.clone());
+    fn insert(&mut self, entry: HazardLeaseEpochIndexEntry) -> bool {
+        let key = (entry.slot, entry.generation);
+        if self.entries.contains_key(&key) {
+            return false;
         }
+        for range in entry.ranges.iter().copied() {
+            self.range_handles.entry(range).or_default().insert(key);
+        }
+        self.entries.insert(key, entry);
+        true
     }
 
-    fn remove(&mut self, slot: HazardLeaseSlot, generation: HazardLeaseGeneration) -> bool {
-        let mut removed = false;
-        let mut bucket_index = 0;
-        while bucket_index < self.range_buckets.len() {
-            let bucket = &mut self.range_buckets[bucket_index];
-            let before = bucket.entries.len();
-            bucket
-                .entries
-                .retain(|entry| entry.slot != slot || entry.generation != generation);
-            removed |= bucket.entries.len() != before;
-            if bucket.entries.is_empty() {
-                self.range_buckets.swap_remove(bucket_index);
-            } else {
-                bucket_index += 1;
+    fn remove(&mut self, key: LeaseKey) -> bool {
+        let Some(entry) = self.entries.remove(&key) else {
+            return false;
+        };
+        for range in entry.ranges {
+            let remove_bucket = self.range_handles.get_mut(&range).is_some_and(|handles| {
+                handles.remove(&key);
+                handles.is_empty()
+            });
+            if remove_bucket {
+                self.range_handles.remove(&range);
             }
         }
-        removed
+        true
     }
 
     fn first_overlap(
@@ -155,26 +127,24 @@ impl HazardLeaseEpochBucket {
         mut counters: HazardLeaseCounterSnapshot,
     ) -> HazardLeaseOverlapScan {
         let mut first_overlap = None;
-        let mut hazard_entries_touched = 0;
-        let mut touched_entries = Vec::new();
-        for range_bucket in &self.range_buckets {
+        let mut touched_entries = BTreeSet::new();
+        for (range, handles) in &self.range_handles {
             counters = counters.with_range_bucket_lookup();
             if !candidates
                 .candidate_ranges()
                 .iter()
-                .any(|candidate| range_bucket.range.intersects(*candidate))
+                .any(|candidate| range.intersects(*candidate))
             {
                 continue;
             }
-            for entry in &range_bucket.entries {
-                if touched_entries
-                    .iter()
-                    .any(|touched| *touched == (entry.slot, entry.generation))
-                {
+            for key in handles {
+                if !touched_entries.insert(*key) {
                     continue;
                 }
-                touched_entries.push((entry.slot, entry.generation));
-                hazard_entries_touched += 1;
+                let entry = self
+                    .entries
+                    .get(key)
+                    .expect("range handle always resolves to a canonical lease entry");
                 let intersection = candidates.ranges().bounded_intersection(&entry.ranges);
                 counters = counters.with_lookup(
                     entry.ranges.len() as u64,
@@ -195,42 +165,28 @@ impl HazardLeaseEpochBucket {
             counters,
             first_overlap,
             epoch_buckets_touched: 0,
-            hazard_entries_touched,
+            hazard_entries_touched: touched_entries.len() as u64,
         }
     }
 
     fn is_empty(&self) -> bool {
-        self.range_buckets.is_empty()
+        self.entries.is_empty()
     }
 }
 
 impl HazardLeaseEpochIndexSnapshot {
     pub(crate) fn first_overlap(&self, candidates: &ReclaimCandidateSet) -> HazardLeaseOverlapScan {
-        let mut counters = self.counters;
-        let mut first_overlap = None;
-        let mut epoch_buckets_touched = 0;
-        let mut hazard_entries_touched = 0;
-        for bucket in &self.buckets {
-            if !bucket
-                .root_epoch
-                .has_same_epoch_value(candidates.root_epoch())
-            {
-                continue;
-            }
-            epoch_buckets_touched += 1;
-            let overlap = bucket.first_overlap(candidates, counters);
-            counters = overlap.counters;
-            hazard_entries_touched += overlap.hazard_entries_touched;
-            if first_overlap.is_none() {
-                first_overlap = overlap.first_overlap;
-            }
-        }
-        HazardLeaseOverlapScan {
-            counters,
-            first_overlap,
-            epoch_buckets_touched,
-            hazard_entries_touched,
-        }
+        let Some(bucket) = self.buckets.get(&candidates.root_epoch().get()) else {
+            return HazardLeaseOverlapScan {
+                counters: self.counters,
+                first_overlap: None,
+                epoch_buckets_touched: 0,
+                hazard_entries_touched: 0,
+            };
+        };
+        let mut overlap = bucket.first_overlap(candidates, self.counters);
+        overlap.epoch_buckets_touched = 1;
+        overlap
     }
 
     pub const fn counters(&self) -> HazardLeaseCounterSnapshot {

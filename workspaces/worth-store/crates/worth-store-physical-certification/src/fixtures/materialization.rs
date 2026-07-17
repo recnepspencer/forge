@@ -1,11 +1,9 @@
 use worth_store_physical_format::{
     AllocationClassKind, FreeSpaceManifestEntry, OfflineManifestCodec, PersistedExtentBytes,
-    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalByteOrder,
-    PhysicalExtentId, PhysicalFormatVersion, PhysicalFrameKind, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
-    PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalRootReference, PhysicalSegmentId, PlatformPhysicalReplayArtifact, SlotAppendRequest,
-    PHYSICAL_HEADER_LENGTH,
+    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalExtentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
+    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalRootReference,
+    PhysicalSegmentId, PlatformPhysicalReplayArtifact, SlotAppendRequest,
 };
 
 use super::{FixtureScaleDeclaration, LargeStoreFixtureProfile, SyntheticFixtureAuthorityDenied};
@@ -131,11 +129,11 @@ fn build_persisted_layout(root_reference: PhysicalRootReference) -> PersistedPhy
         ))
         .page(PersistedPageBytes::new(
             cells.page_cell,
-            record_page_bytes(headers, byte_order, cells.page_cell, cells.slot_cell),
+            record_page_bytes(&headers, cells.page_cell, cells.slot_cell),
         ))
         .extent(PersistedExtentBytes::new(
             cells.extent_cell,
-            extent_record_bytes(byte_order, generation, b"fixture-large-record"),
+            extent_record_bytes(&headers, cells.extent_cell, b"fixture-large-record"),
         ))
         .build()
 }
@@ -197,13 +195,12 @@ impl PhysicalFixtureCells {
 }
 
 fn record_page_bytes(
-    headers: PhysicalHeaderAuthority,
-    byte_order: PhysicalByteOrder,
+    headers: &PhysicalHeaderAuthority,
     page_cell: worth_store_physical_format::PageGenerationCell,
     slot_cell: worth_store_physical_format::SlotGenerationCell,
 ) -> Vec<u8> {
-    let authority = PhysicalPageRecordAuthority::for_canonical_physical_format(headers);
-    let empty_page = page_bytes(byte_order, page_cell.generation(), &[]);
+    let authority = PhysicalPageRecordAuthority::for_canonical_physical_format(headers.clone());
+    let empty_page = page_bytes(headers, page_cell, &[]);
     let header = authority
         .decode_record_page_header(page_cell, &empty_page, PhysicalPageKind::DataPage)
         .unwrap();
@@ -213,55 +210,38 @@ fn record_page_bytes(
     let append = authority
         .append_record(payload, SlotAppendRequest::ordinary(slot_cell, b"fixture"))
         .unwrap();
-    page_bytes(byte_order, page_cell.generation(), append.page_payload())
+    page_bytes(headers, page_cell, append.page_payload())
 }
 
 fn page_bytes(
-    byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
+    headers: &PhysicalHeaderAuthority,
+    cell: worth_store_physical_format::PageGenerationCell,
     payload: &[u8],
 ) -> Vec<u8> {
-    let mut bytes = header_bytes(
-        byte_order,
-        PhysicalPageKind::DataPage.tag(),
-        generation,
-        payload.len(),
+    let mut bytes = Vec::with_capacity(
+        usize::from(worth_store_physical_format::PHYSICAL_HEADER_LENGTH) + payload.len(),
     );
+    bytes.extend_from_slice(&headers.encode_page_header(
+        cell,
+        PhysicalPageKind::DataPage,
+        u32::try_from(payload.len()).expect("fixture payload length should fit physical format"),
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }
 
 fn extent_record_bytes(
-    byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
+    headers: &PhysicalHeaderAuthority,
+    cell: worth_store_physical_format::ExtentGenerationCell,
     payload: &[u8],
 ) -> Vec<u8> {
-    let mut bytes = header_bytes(
-        byte_order,
-        PhysicalFrameKind::ExtentRecordFrame.tag(),
-        generation,
-        payload.len(),
+    let mut bytes = Vec::with_capacity(
+        usize::from(worth_store_physical_format::PHYSICAL_HEADER_LENGTH) + payload.len(),
     );
+    bytes.extend_from_slice(&headers.encode_extent_frame_header(
+        cell,
+        u32::try_from(payload.len()).expect("fixture payload length should fit physical format"),
+    ));
     bytes.extend_from_slice(payload);
-    bytes
-}
-
-fn header_bytes(
-    byte_order: PhysicalByteOrder,
-    tag: u8,
-    generation: PhysicalGeneration,
-    payload_len: usize,
-) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
-    bytes.push(tag);
-    bytes.extend_from_slice(
-        &byte_order.write_u16(PhysicalFormatVersion::initial_format_version().value()),
-    );
-    bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
-    bytes.extend_from_slice(&byte_order.write_u32(payload_len as u32));
-    bytes.extend_from_slice(&byte_order.write_u64(generation.get()));
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&byte_order.write_u32(0));
-    bytes.extend_from_slice(&byte_order.write_u64(0));
     bytes
 }

@@ -14,7 +14,9 @@ pub(crate) fn classify_orphan_reclaim_coverage(
     eligibility: ReclaimEligibilityProof,
 ) -> OrphanReclaimCase {
     match verify_reachability_removal_receipt(eligibility) {
-        Ok(receipt) => OrphanReclaimCase::CoverageAdmitted { receipt },
+        Ok(receipt) => OrphanReclaimCase::CoverageAdmitted {
+            receipt: Box::new(receipt),
+        },
         Err(_) => OrphanReclaimCase::DeniedMissingRemovalEvidence,
     }
 }

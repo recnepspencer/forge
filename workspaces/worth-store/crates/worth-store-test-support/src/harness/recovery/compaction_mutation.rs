@@ -138,14 +138,13 @@ fn stale_epoch_receipt() -> CompactionMutationLaneReceipt {
     let old_authority = physical_authority_from_complete_closeout();
     let reference = current_generation_page_reference(701);
     let expected_plan = admitted_compaction_plan_for(reference);
-    let receipt = CompactionMutationLaneReceipt::from_stale_epoch_admission_denial(
+    CompactionMutationLaneReceipt::from_stale_epoch_admission_denial(
         &expected_plan,
         inputs.new_root.epoch(),
         inputs.old_root.epoch(),
         stable_source_evidence(&old_authority, inputs.old_root, reference),
     )
-    .unwrap();
-    receipt
+    .unwrap()
 }
 
 fn backend_residue_receipt() -> CompactionMutationLaneReceipt {

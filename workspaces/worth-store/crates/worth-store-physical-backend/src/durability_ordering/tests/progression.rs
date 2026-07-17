@@ -82,10 +82,15 @@ fn missing_required_barrier_denies_before_durable_progression() {
             WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync),
             StoreDurabilityFileSyncKind::Fdatasync,
         )
+        .with_directory_sync_completed()
         .with_ordering_barrier_completed(),
     );
 
-    let denial = accepted.reach_durability_boundary(proof).unwrap_err();
+    let denial = accepted
+        .reach_durability_boundary(proof)
+        .unwrap()
+        .parent_namespace_durable()
+        .unwrap_err();
 
     assert_eq!(
         denial.kind(),

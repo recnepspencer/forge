@@ -10,6 +10,7 @@ pub use family::UiLayoutOperatorFamily;
 pub use planning_axis::{
     UiLayoutOperatorChildParticipationRule, UiLayoutOperatorCrossAxis, UiLayoutOperatorPrimaryAxis,
 };
+pub(crate) use planning_contract::UiLayoutOperatorPlanningContractInput;
 pub use planning_contract::{
     UiLayoutOperatorContainmentKind, UiLayoutOperatorPlanningContract,
     UiLayoutOperatorSlotParticipationKind,

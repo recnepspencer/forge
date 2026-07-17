@@ -10,7 +10,7 @@ pub struct CompactionCutoverDelta {
 impl CompactionCutoverDelta {
     const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
         super::CompactionOwnerCaseDeclaration::declared_by_owner(
-            super::CompactionOwnerCaseId::owned("physical.compaction.lower_rewrite"),
+            super::CompactionOwnerCaseId::LowerRewrite,
             super::CompactionCutoverState::PlanAdmitted,
             super::CompactionCutoverState::RewriteLowered,
         );

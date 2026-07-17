@@ -301,10 +301,12 @@ fn declaration_with_stored_digest_and_security(
     security_metadata: crate::BlobChunkSecurityMetadataWitness,
 ) -> BlobLifecycleDeclaration {
     BlobLifecycleDeclaration::new(
-        BlobObjectId::from_declared_digest(digest(&format!("sha256:{case}-object"))),
-        BlobGeneration::published(1),
-        ChunkTreeRoot::from_declared_digest(digest(&format!("sha256:{case}-root"))),
-        LogicalContentDigest::from_declared_digest(digest(&format!("sha256:{case}-logical"))),
+        crate::lifecycle::BlobLifecycleIdentityBasis::new(
+            BlobObjectId::from_declared_digest(digest(&format!("sha256:{case}-object"))),
+            BlobGeneration::published(1),
+            ChunkTreeRoot::from_declared_digest(digest(&format!("sha256:{case}-root"))),
+            LogicalContentDigest::from_declared_digest(digest(&format!("sha256:{case}-logical"))),
+        ),
         security_metadata,
         StoredChunkDigest::from_declared_digest(stored_digest),
         AuthenticatedFrameDigest::from_declared_digest(digest(&format!("sha256:{case}-frame"))),
@@ -335,7 +337,7 @@ fn current_authority(case: &str) -> worth_store_authority::StoreCurrentAuthority
 
     let key = aspects()
         .vocabulary()
-        .key(&format!("s7.lifecycle.{case}"))
+        .key(format!("s7.lifecycle.{case}"))
         .expect("aspect key");
     let contract: AspectContract = aspects()
         .contract()

@@ -1,7 +1,7 @@
 use worth_ui::facade::graph::{
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass,
-    UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
-    WorthQuerySessionLabel,
+    UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial,
+    UiGraphTouchOriginClass, UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming,
+    UiGraphWorldProfile,
 };
 
 #[path = "fixtures/graph_touch_support.rs"]
@@ -279,23 +279,23 @@ fn unavailable_target_classes_deny_instead_of_broadening_touch_authority() {
 fn touch_world_preserves_specialized_operating_world_families() {
     let worlds = [
         UiGraphWorldProfile::branch_session_label(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["branch", "touch"])
+            UiGraphSessionLabel::new("worth-ui.branch.touch")
                 .expect("branch session label should admit"),
         ),
         UiGraphWorldProfile::hot_reload_candidate(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["hot-reload", "touch"])
+            UiGraphSessionLabel::new("worth-ui.hot-reload.touch")
                 .expect("hot-reload session label should admit"),
         ),
         UiGraphWorldProfile::diagnostic(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["diagnostic", "touch"])
+            UiGraphSessionLabel::new("worth-ui.diagnostic.touch")
                 .expect("diagnostic session label should admit"),
         ),
         UiGraphWorldProfile::host_observation(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["host-observation", "touch"])
+            UiGraphSessionLabel::new("worth-ui.host-observation.touch")
                 .expect("host-observation session label should admit"),
         ),
         UiGraphWorldProfile::test_certification(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["test-certification", "touch"])
+            UiGraphSessionLabel::new("worth-ui.test-certification.touch")
                 .expect("test-certification session label should admit"),
         ),
     ];

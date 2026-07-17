@@ -8,7 +8,7 @@ pub enum WorthUiActivationStagingDenialReason {
     ExecutionPlanLoweringInputMismatch,
     ActiveArtifactDigestMismatch,
     CandidateArtifactDigestMismatch,
-    AdmittedQuerySupportReceiptChanged,
+    AdmittedQuerySupportContractChanged,
     ActiveRuntimeMutatedDuringStaging,
 }
 

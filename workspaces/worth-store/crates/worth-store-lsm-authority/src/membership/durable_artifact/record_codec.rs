@@ -146,10 +146,27 @@ pub(crate) fn persisted_artifact_matches(
     bytes: u64,
     expected: &[u8],
 ) -> bool {
-    bytes == expected.len() as u64
-        && std::fs::read(path)
-            .map(|persisted| persisted == expected)
-            .unwrap_or(false)
+    persisted_artifact_range_matches(path, 0, bytes, expected)
+}
+
+pub(crate) fn persisted_artifact_range_matches(
+    path: &std::path::Path,
+    offset: u64,
+    bytes: u64,
+    expected: &[u8],
+) -> bool {
+    use std::io::{Read, Seek, SeekFrom};
+
+    if bytes != expected.len() as u64 {
+        return false;
+    }
+    let mut persisted = vec![0; expected.len()];
+    std::fs::File::open(path)
+        .and_then(|mut file| {
+            file.seek(SeekFrom::Start(offset))?;
+            file.read_exact(&mut persisted)
+        })
+        .is_ok_and(|()| persisted == expected)
 }
 
 pub(crate) fn checksum(bytes: &[u8]) -> u64 {

@@ -254,7 +254,7 @@ fn cross_lane_parity(active_plan_digest: u64) -> WorthUiLaneParityCertification 
         0xA11CE,
         active_plan_digest,
         active_plan_digest,
-        0xC1055_1A9E,
+        0x000C_1055_1A9E,
     )
 }
 

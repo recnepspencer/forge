@@ -47,6 +47,8 @@ pub use generation_registry_denial::{
     reject_raw_generation_number_as_blob_identity, reject_semantic_reference_id_as_blob_identity,
     reject_terminal_projection_row_as_blob_identity, BlobGenerationRegistryDenial,
 };
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub(crate) use identity::BlobLifecycleIdentityBasis;
 pub use identity::{
     AuthenticatedFrameDigest, BlobAuthorityClassification, BlobGeneration,
     BlobLifecycleDeclaration, BlobObjectId, ChunkTreeRoot, LogicalContentDigest, StoredChunkDigest,

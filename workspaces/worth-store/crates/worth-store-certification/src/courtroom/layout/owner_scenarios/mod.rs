@@ -5,7 +5,7 @@ pub(crate) mod durable_observation;
 mod evolution;
 mod fixture_admission;
 mod integrity;
-mod maintenance;
+pub(crate) mod maintenance;
 mod materialization;
 mod planning;
 mod transcript;

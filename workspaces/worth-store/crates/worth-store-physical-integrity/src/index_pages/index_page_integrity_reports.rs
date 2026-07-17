@@ -37,7 +37,7 @@ impl IndexPageIntegrityReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DerivedDamageClassification {
     IntactIndexPage(IntactIndexPageBoundary),
-    RebuildableDerived(RebuildableDerivedDamage),
+    RebuildableDerived(Box<RebuildableDerivedDamage>),
     Indeterminate(IndeterminatePhysicalDamage),
     UnrecoverableAuthority(UnrecoverableAuthorityDamage),
 }

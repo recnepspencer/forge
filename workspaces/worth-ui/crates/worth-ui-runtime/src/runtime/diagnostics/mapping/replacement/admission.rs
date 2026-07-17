@@ -30,17 +30,17 @@ pub(super) fn candidate_admission_digest(denial: &WorthUiCandidateAdmissionDenia
             fold(0xA0_00_00_03, runtime_posture_digest(*posture))
         }
         WorthUiCandidateAdmissionDenial::DeferredQuerySupport { receipt } => {
-            fold(0xA0_00_00_04, receipt.receipt_digest())
+            fold(0xA0_00_00_04, receipt.contract_identity().as_u64())
         }
         WorthUiCandidateAdmissionDenial::UnsupportedQuerySupport { receipt } => {
-            fold(0xA0_00_00_05, receipt.receipt_digest())
+            fold(0xA0_00_00_05, receipt.contract_identity().as_u64())
         }
-        WorthUiCandidateAdmissionDenial::QuerySupportReceiptChanged {
-            admitted_receipt_digest,
-            current_receipt_digest,
+        WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
+            admitted_contract_identity,
+            current_contract_identity,
         } => fold(
-            fold(0xA0_00_00_06, *admitted_receipt_digest),
-            *current_receipt_digest,
+            fold(0xA0_00_00_06, admitted_contract_identity.as_u64()),
+            current_contract_identity.as_u64(),
         ),
     }
 }

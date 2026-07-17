@@ -34,17 +34,20 @@ pub(super) fn index_artifact_nodes(
                 continue;
             }
             reject_position_only_repeated_template_identity(node, identity_seed, side, *counters)?;
-            let match_node = WorthUiIdentityMatchNode::new(
-                side,
-                node.handle().clone(),
-                identity_seed.basis().to_owned(),
-                node.authored_provenance_digest(),
-                identity_seed.is_stable(),
-                durable_state_is_eligible(node_durable_state_eligibility(node)),
-                node_resize_contract_id(node),
-                node_resize_permission(node),
-                node_resize_shape_digest(node),
-            );
+            let match_node =
+                WorthUiIdentityMatchNode::new(super::super::WorthUiIdentityMatchNodeInput {
+                    side,
+                    handle: node.handle().clone(),
+                    identity_basis: identity_seed.basis().to_owned(),
+                    authored_provenance_digest: node.authored_provenance_digest(),
+                    stable_identity: identity_seed.is_stable(),
+                    durable_state_eligible: durable_state_is_eligible(
+                        node_durable_state_eligibility(node),
+                    ),
+                    resize_contract_id: node_resize_contract_id(node),
+                    resize_permission: node_resize_permission(node),
+                    resize_shape_digest: node_resize_shape_digest(node),
+                });
             insert_indexed_identity_node(
                 &mut index,
                 side,
@@ -82,7 +85,7 @@ fn reject_position_only_repeated_template_identity(
                     node.handle().module_id().as_str(),
                     node.handle().node_index()
                 ),
-                counters,
+                counters: Box::new(counters),
             },
         )
     } else {
@@ -140,7 +143,7 @@ fn classify_same_side_identity_kind_alignment(
                 second_kind: next.kind(),
                 first_node_summary: previous.node.node_summary(),
                 second_node_summary: next.node_summary(),
-                counters: *counters,
+                counters: Box::new(*counters),
             })
         }
         WorthUiIdentityMatchNodeSide::Candidate => {
@@ -150,7 +153,7 @@ fn classify_same_side_identity_kind_alignment(
                 second_kind: next.kind(),
                 first_node_summary: previous.node.node_summary(),
                 second_node_summary: next.node_summary(),
-                counters: *counters,
+                counters: Box::new(*counters),
             })
         }
     }

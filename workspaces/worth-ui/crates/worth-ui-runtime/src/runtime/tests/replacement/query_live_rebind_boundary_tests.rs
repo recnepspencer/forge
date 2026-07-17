@@ -4,8 +4,8 @@ use super::query_binding::{
     WorthUiQueryBindingPosture,
 };
 use super::query_binding_comparison_test_support::{
-    basis_drift_query_app, denial_presentation_drift_query_app, phase11_pipeline, query_artifact,
-    standard_query_app,
+    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
+    query_artifact, standard_query_app,
 };
 use crate::runtime::{
     WorthUiNodeReplacementPlan, WorthUiQueryBindingDriftDenialKind,
@@ -32,9 +32,14 @@ fn same_query_binding_basis_preserves_live_binding() {
                 preservation.identity().view_binding_id(),
                 "workspace.view_binding.selection"
             );
-            assert!(preservation
-                .preservation_receipt()
-                .contains("query-live-preserve"));
+            assert_eq!(
+                preservation.preservation_receipt().binding_identity(),
+                preservation.identity().canonical_identity()
+            );
+            assert_eq!(
+                preservation.preservation_receipt().posture_identity(),
+                preservation.preserved_posture().canonical_identity()
+            );
         }
         other => panic!("same basis should preserve live binding, got {other:?}"),
     }
@@ -44,9 +49,9 @@ fn same_query_binding_basis_preserves_live_binding() {
 }
 
 #[test]
-fn query_basis_drift_requires_rebind_or_denial() {
+fn query_lifecycle_drift_requires_rebind_or_denial() {
     let active_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
     let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
@@ -64,12 +69,12 @@ fn query_basis_drift_requires_rebind_or_denial() {
             );
             assert!(rebind
                 .required_query_surfaces()
-                .contains(&WorthUiQueryRebindRequiredSurface::BasisCapabilityLifecycle));
+                .contains(&WorthUiQueryRebindRequiredSurface::LiveViewsAndLivePromotion));
         }
         WorthUiQueryLiveRebindOutcome::Deny(denial) => {
             assert!(!denial.drift_families().is_empty());
         }
-        other => panic!("basis drift cannot preserve stale live binding: {other:?}"),
+        other => panic!("lifecycle drift cannot preserve stale live binding: {other:?}"),
     }
     assert_eq!(rebind_plan.counters().preserved_binding_count(), 0);
 }
@@ -102,9 +107,9 @@ fn ui_local_subscription_recovery_path_rejected() {
 }
 
 #[test]
-fn stale_query_subscription_handle_cannot_be_preserved_after_basis_drift() {
+fn stale_query_subscription_handle_cannot_be_preserved_after_lifecycle_drift() {
     let active_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
     let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
@@ -216,17 +221,7 @@ fn posture_with_support_status(
     posture: &WorthUiQueryBindingPosture,
     support_status: WorthUiQuerySupportStatus,
 ) -> WorthUiQueryBindingPosture {
-    WorthUiQueryBindingPosture::new(
-        support_status,
-        posture.support_admission_digest().to_owned(),
-        posture.basis_capability_digest().to_owned(),
-        posture.live_compatibility_digest().to_owned(),
-        posture.async_result_state_digest().to_owned(),
-        posture.recovery_digest().to_owned(),
-        posture.inspection_digest().to_owned(),
-        posture.projection_consumption_digest().to_owned(),
-        posture.denial_presentation_digest().to_owned(),
-    )
+    posture.with_query_support_status_for_test(support_status)
 }
 
 #[test]
@@ -294,7 +289,7 @@ fn stale_comparison_cannot_drive_live_rebind_planning() {
 }
 
 #[test]
-fn changed_admitted_query_support_receipt_cannot_drive_live_rebind_planning() {
+fn changed_admitted_query_support_contract_cannot_drive_live_rebind_planning() {
     let app = standard_query_app();
     let active = query_artifact(&app, "workspace.view_binding.selection");
     let candidate = query_artifact(&app, "workspace.view_binding.selection");
@@ -302,17 +297,18 @@ fn changed_admitted_query_support_receipt_cannot_drive_live_rebind_planning() {
     let comparison = runtime
         .compare_query_bindings(&plan, &narrowing, &admitted)
         .expect("comparison succeeds");
-    let stale_admitted = admitted.with_admitted_query_support_receipt_digest_for_test(u64::MAX);
+    let stale_admitted =
+        admitted.with_admitted_query_contract_for_test("stale-live-rebind-contract");
 
     let denial = runtime
         .plan_query_live_rebinds(&comparison, &plan, &narrowing, &stale_admitted)
         .expect_err("changed admitted receipt denies");
 
     match denial {
-        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportReceiptChanged {
-            admitted_receipt_digest,
-            current_receipt_digest,
-        } => assert_ne!(admitted_receipt_digest, current_receipt_digest),
+        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportContractChanged {
+            admitted_contract_identity,
+            current_contract_identity,
+        } => assert_ne!(admitted_contract_identity, current_contract_identity),
         other => panic!("unexpected denial: {other:?}"),
     }
 }

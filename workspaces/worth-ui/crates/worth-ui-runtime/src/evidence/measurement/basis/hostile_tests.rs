@@ -107,8 +107,7 @@ fn incompatible_world_is_reported_on_the_returned_basis_artifact() {
     );
 
     let compatibility = UiMeasurementGenerationCompatibility::IncompatibleWorld {
-        expected_query_basis_digest: receipt.query_basis_digest().into(),
-        observed_world_basis_digest: None,
+        reason: crate::evidence::UiQueryWorldCompatibilityFailure::QueryAuthorityUnavailable,
     };
     assert!(!basis.is_admitted());
     assert_eq!(basis.generation_compatibility(), &compatibility);

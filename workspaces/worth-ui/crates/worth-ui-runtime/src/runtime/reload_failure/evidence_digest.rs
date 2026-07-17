@@ -119,19 +119,20 @@ pub(crate) fn query_live_rebind_denial_digest(denial: &WorthUiQueryLiveRebindPla
                 ^ comparison_candidate_artifact_digest
                 ^ admitted_candidate_artifact_digest.rotate_left(11)
         }
-        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportReceiptChanged {
-            admitted_receipt_digest,
-            current_receipt_digest,
-        } => 0xE0_00_00_05 ^ admitted_receipt_digest ^ current_receipt_digest.rotate_left(11),
+        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportContractChanged {
+            admitted_contract_identity,
+            current_contract_identity,
+        } => {
+            0xE0_00_00_05
+                ^ admitted_contract_identity.as_u64()
+                ^ current_contract_identity.as_u64().rotate_left(11)
+        }
     }
 }
 
 pub(crate) fn query_binding_drift_denial_digest(denial: &WorthUiQueryBindingDriftDenial) -> u64 {
     0xE1_00_00_01
-        ^ stable_text_digest(denial.identity().view_binding_id())
-        ^ stable_text_digest(denial.identity().query_capability_digest()).rotate_left(7)
-        ^ stable_text_digest(denial.identity().query_composition_profile_digest()).rotate_left(13)
-        ^ stable_text_digest(denial.identity().result_shape_digest()).rotate_left(19)
+        ^ denial.identity().canonical_identity()
         ^ query_binding_posture_digest(denial.active_posture()).rotate_left(29)
         ^ query_binding_posture_digest(denial.candidate_posture()).rotate_left(37)
         ^ query_binding_drift_reason_digest(denial.reason()).rotate_left(43)
@@ -140,16 +141,7 @@ pub(crate) fn query_binding_drift_denial_digest(denial: &WorthUiQueryBindingDrif
 
 fn query_binding_posture_digest(posture: Option<&WorthUiQueryBindingPosture>) -> u64 {
     match posture {
-        Some(posture) => {
-            stable_text_digest(posture.support_admission_digest())
-                ^ stable_text_digest(posture.basis_capability_digest()).rotate_left(7)
-                ^ stable_text_digest(posture.live_compatibility_digest()).rotate_left(13)
-                ^ stable_text_digest(posture.async_result_state_digest()).rotate_left(19)
-                ^ stable_text_digest(posture.recovery_digest()).rotate_left(29)
-                ^ stable_text_digest(posture.inspection_digest()).rotate_left(37)
-                ^ stable_text_digest(posture.projection_consumption_digest()).rotate_left(43)
-                ^ stable_text_digest(posture.denial_presentation_digest()).rotate_left(53)
-        }
+        Some(posture) => posture.canonical_identity(),
         None => 0,
     }
 }
@@ -217,7 +209,7 @@ fn activation_staging_reason_digest(reason: WorthUiActivationStagingDenialReason
         WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch => 0xF2_00_00_04,
         WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch => 0xF2_00_00_05,
         WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch => 0xF2_00_00_06,
-        WorthUiActivationStagingDenialReason::AdmittedQuerySupportReceiptChanged => 0xF2_00_00_07,
+        WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged => 0xF2_00_00_07,
         WorthUiActivationStagingDenialReason::ActiveRuntimeMutatedDuringStaging => 0xF2_00_00_08,
     }
 }

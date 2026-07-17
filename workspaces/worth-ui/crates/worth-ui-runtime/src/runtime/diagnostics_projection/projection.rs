@@ -18,19 +18,31 @@ pub struct WorthUiDiagnosticsProjection {
     counters: WorthUiDiagnosticsProjectionCounters,
 }
 
+pub(crate) struct WorthUiDiagnosticsProjectionInput {
+    pub active_artifact_digest: u64,
+    pub active_plan_digest: u64,
+    pub projection_digest: u64,
+    pub rows: Vec<WorthUiRuntimeDiagnostic>,
+    pub reload_status: WorthUiReloadStatusSurface,
+    pub plan_inspection: WorthUiPlanInspectionSurface,
+    pub frame_costs: WorthUiFrameCostSurface,
+    pub query_status: WorthUiQueryStatusSurface,
+    pub counters: WorthUiDiagnosticsProjectionCounters,
+}
+
 impl WorthUiDiagnosticsProjection {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        active_artifact_digest: u64,
-        active_plan_digest: u64,
-        projection_digest: u64,
-        rows: Vec<WorthUiRuntimeDiagnostic>,
-        reload_status: WorthUiReloadStatusSurface,
-        plan_inspection: WorthUiPlanInspectionSurface,
-        frame_costs: WorthUiFrameCostSurface,
-        query_status: WorthUiQueryStatusSurface,
-        counters: WorthUiDiagnosticsProjectionCounters,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiDiagnosticsProjectionInput) -> Self {
+        let WorthUiDiagnosticsProjectionInput {
+            active_artifact_digest,
+            active_plan_digest,
+            projection_digest,
+            rows,
+            reload_status,
+            plan_inspection,
+            frame_costs,
+            query_status,
+            counters,
+        } = input;
         Self {
             active_artifact_digest,
             active_plan_digest,

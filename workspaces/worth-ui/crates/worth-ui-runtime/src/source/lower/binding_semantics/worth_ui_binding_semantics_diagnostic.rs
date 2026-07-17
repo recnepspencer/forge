@@ -31,14 +31,6 @@ pub(crate) enum WorthUiBindingDiagnosticCode {
     DeferredSemanticThemeTokenReference,
     UnsupportedSemanticThemeTokenReference,
     PlatformInternalSemanticThemeTokenReference,
-    LocalPseudoQueryClaimRejected,
-    MissingQueryCapabilityPosture,
-    MissingQueryCompositionSupportProfile,
-    MissingQueryViewShape,
-    MissingQueryResultShape,
-    MissingQueryBasisPosture,
-    MissingQueryLiveCompatibility,
-    MissingQueryDenialPresentation,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -47,7 +39,7 @@ pub(crate) struct WorthUiBindingDiagnostic {
     module_id: WorthUiSourceModuleId,
     authored_text: String,
     semantic_locus: String,
-    provenance: WorthUiArtifactInputProvenance,
+    provenance: Box<WorthUiArtifactInputProvenance>,
 }
 
 impl WorthUiBindingDiagnostic {
@@ -63,7 +55,7 @@ impl WorthUiBindingDiagnostic {
             module_id,
             authored_text: authored_text.into(),
             semantic_locus: semantic_locus.into(),
-            provenance,
+            provenance: Box::new(provenance),
         }
     }
 
@@ -113,7 +105,7 @@ fn stable_provenance_cmp(
             },
         ) => left_path
             .cmp(right_path)
-            .then_with(|| left_index.cmp(&right_index)),
+            .then_with(|| left_index.cmp(right_index)),
         #[cfg(any(test, feature = "certification-support"))]
         (WorthUiArtifactInputProvenance::ParsedSourceDeclaration { .. }, _) => Ordering::Less,
         #[cfg(any(test, feature = "certification-support"))]

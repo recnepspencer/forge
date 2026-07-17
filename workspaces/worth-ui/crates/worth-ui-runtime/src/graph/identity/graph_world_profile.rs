@@ -1,142 +1,153 @@
-use worth_query::facade::foundation::{ResolvedSnapshotBasis, SnapshotResolutionReport};
-use worth_query::facade::runtime::{BridgePreviewSessionIdentity, WorthQuerySessionLabel};
-
 use crate::declaration::stable_text_digest;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiGraphSessionLabel(Box<str>);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiPreviewSessionIdentity(Box<str>);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiGraphSessionIdentityError {
+    Empty,
+}
+
+impl UiGraphSessionLabel {
+    pub fn new(value: impl Into<String>) -> Result<Self, UiGraphSessionIdentityError> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err(UiGraphSessionIdentityError::Empty);
+        }
+        Ok(Self(value.into_boxed_str()))
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl UiPreviewSessionIdentity {
+    pub fn new(value: impl Into<String>) -> Result<Self, UiGraphSessionIdentityError> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err(UiGraphSessionIdentityError::Empty);
+        }
+        Ok(Self(value.into_boxed_str()))
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiGraphWorldProfile {
     Authoritative,
     PreviewSessionLabel {
-        session_label: WorthQuerySessionLabel,
+        session_label: UiGraphSessionLabel,
     },
     PreviewSessionIdentity {
-        preview_session_identity: BridgePreviewSessionIdentity,
+        preview_session_identity: UiPreviewSessionIdentity,
     },
     BranchSessionLabel {
-        session_label: WorthQuerySessionLabel,
+        session_label: UiGraphSessionLabel,
     },
     HotReloadCandidate {
-        session_label: WorthQuerySessionLabel,
+        session_label: UiGraphSessionLabel,
     },
     Diagnostic {
-        session_label: WorthQuerySessionLabel,
+        session_label: UiGraphSessionLabel,
     },
     HostObservation {
-        session_label: WorthQuerySessionLabel,
+        session_label: UiGraphSessionLabel,
     },
     TestCertification {
-        session_label: WorthQuerySessionLabel,
+        session_label: UiGraphSessionLabel,
     },
     QuerySnapshotBasis {
-        basis: ResolvedSnapshotBasis,
-        resolution_report: SnapshotResolutionReport,
+        prerequisites: Box<worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence>,
     },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum UiGraphWorldProfileError {
-    ResolutionReportMismatch,
+    InstalledQueryBasis {
+        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+    },
 }
 
 impl UiGraphWorldProfile {
     pub const fn authoritative() -> Self {
         Self::Authoritative
     }
-
-    pub fn preview_session_label(session_label: WorthQuerySessionLabel) -> Self {
+    pub fn preview_session_label(session_label: UiGraphSessionLabel) -> Self {
         Self::PreviewSessionLabel { session_label }
     }
-
-    pub fn preview_session_identity(
-        preview_session_identity: BridgePreviewSessionIdentity,
-    ) -> Self {
+    pub fn preview_session_identity(preview_session_identity: UiPreviewSessionIdentity) -> Self {
         Self::PreviewSessionIdentity {
             preview_session_identity,
         }
     }
-
-    pub fn branch_session_label(session_label: WorthQuerySessionLabel) -> Self {
+    pub fn branch_session_label(session_label: UiGraphSessionLabel) -> Self {
         Self::BranchSessionLabel { session_label }
     }
-
-    pub fn hot_reload_candidate(session_label: WorthQuerySessionLabel) -> Self {
+    pub fn hot_reload_candidate(session_label: UiGraphSessionLabel) -> Self {
         Self::HotReloadCandidate { session_label }
     }
-
-    pub fn diagnostic(session_label: WorthQuerySessionLabel) -> Self {
+    pub fn diagnostic(session_label: UiGraphSessionLabel) -> Self {
         Self::Diagnostic { session_label }
     }
-
-    pub fn host_observation(session_label: WorthQuerySessionLabel) -> Self {
+    pub fn host_observation(session_label: UiGraphSessionLabel) -> Self {
         Self::HostObservation { session_label }
     }
-
-    pub fn test_certification(session_label: WorthQuerySessionLabel) -> Self {
+    pub fn test_certification(session_label: UiGraphSessionLabel) -> Self {
         Self::TestCertification { session_label }
     }
-
     pub fn query_snapshot_basis(
-        basis: ResolvedSnapshotBasis,
-        resolution_report: SnapshotResolutionReport,
-    ) -> Result<Self, UiGraphWorldProfileError> {
-        if resolution_report.basis_digest() != basis.proof().digest()
-            || resolution_report.resolution_mode() != basis.resolution_mode()
-        {
-            return Err(UiGraphWorldProfileError::ResolutionReportMismatch);
+        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+    ) -> Self {
+        Self::QuerySnapshotBasis {
+            prerequisites: Box::new(prerequisites),
         }
-        Ok(Self::QuerySnapshotBasis {
-            basis,
-            resolution_report,
-        })
+    }
+    pub fn installed_query_basis(
+        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+    ) -> Self {
+        Self::InstalledQueryBasis { authority }
     }
 
     pub(crate) fn identity_digest(&self) -> u64 {
         match self {
             Self::Authoritative => stable_text_digest("graph-world:authoritative"),
             Self::PreviewSessionLabel { session_label } => {
-                stable_text_digest("graph-world:preview-label")
-                    ^ stable_text_digest(session_label.display()).rotate_left(13)
+                session_digest("preview-label", session_label.as_str())
             }
             Self::PreviewSessionIdentity {
                 preview_session_identity,
-            } => {
-                stable_text_digest("graph-world:preview-session")
-                    ^ stable_text_digest(
-                        preview_session_identity.terminal_projection_for_reporting(),
-                    )
-                    .rotate_left(19)
-            }
+            } => session_digest("preview-session", preview_session_identity.as_str()),
             Self::BranchSessionLabel { session_label } => {
-                stable_text_digest("graph-world:branch-label")
-                    ^ stable_text_digest(session_label.display()).rotate_left(23)
+                session_digest("branch-label", session_label.as_str())
             }
             Self::HotReloadCandidate { session_label } => {
-                stable_text_digest("graph-world:hot-reload-candidate")
-                    ^ stable_text_digest(session_label.display()).rotate_left(29)
+                session_digest("hot-reload-candidate", session_label.as_str())
             }
             Self::Diagnostic { session_label } => {
-                stable_text_digest("graph-world:diagnostic")
-                    ^ stable_text_digest(session_label.display()).rotate_left(31)
+                session_digest("diagnostic", session_label.as_str())
             }
             Self::HostObservation { session_label } => {
-                stable_text_digest("graph-world:host-observation")
-                    ^ stable_text_digest(session_label.display()).rotate_left(37)
+                session_digest("host-observation", session_label.as_str())
             }
             Self::TestCertification { session_label } => {
-                stable_text_digest("graph-world:test-certification")
-                    ^ stable_text_digest(session_label.display()).rotate_left(41)
+                session_digest("test-certification", session_label.as_str())
             }
-            Self::QuerySnapshotBasis {
-                basis,
-                resolution_report,
-            } => {
-                stable_text_digest("graph-world:query-basis")
-                    ^ stable_text_digest(
-                        basis.proof().identity().terminal_projection_for_reporting(),
-                    )
-                    .rotate_left(29)
-                    ^ stable_text_digest(resolution_report.basis_digest().as_str()).rotate_left(41)
+            Self::QuerySnapshotBasis { prerequisites } => {
+                let bytes = prerequisites
+                    .canonical_basis_digest()
+                    .value()
+                    .bytes()
+                    .to_owned();
+                bytes
+                    .iter()
+                    .take(8)
+                    .enumerate()
+                    .fold(0u64, |digest, (index, byte)| {
+                        digest | (u64::from(*byte) << (index * 8))
+                    })
             }
+            Self::InstalledQueryBasis { authority } => authority.identity().as_u64(),
         }
     }
 
@@ -162,14 +173,12 @@ impl UiGraphWorldProfile {
             Self::TestCertification { .. } => {
                 stable_text_digest("graph-world-family:test-certification")
             }
-            Self::QuerySnapshotBasis { basis, .. } => {
-                stable_text_digest("graph-world-family:query")
-                    ^ stable_text_digest(match basis.identity().authority_family() {
-                        worth_query::facade::foundation::BasisAuthorityFamily::Runtime => "runtime",
-                        worth_query::facade::foundation::BasisAuthorityFamily::Store => "store",
-                    })
-                    .rotate_left(11)
-            }
+            Self::QuerySnapshotBasis { .. } => stable_text_digest("graph-world-family:query"),
+            Self::InstalledQueryBasis { .. } => stable_text_digest("graph-world-family:query"),
         }
     }
+}
+
+fn session_digest(role: &str, identity: &str) -> u64 {
+    stable_text_digest(role) ^ stable_text_digest(identity).rotate_left(17)
 }

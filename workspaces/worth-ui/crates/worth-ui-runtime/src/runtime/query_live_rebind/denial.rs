@@ -38,9 +38,9 @@ pub enum WorthUiQueryLiveRebindPlanDenial {
         comparison_candidate_artifact_digest: u64,
         admitted_candidate_artifact_digest: u64,
     },
-    AdmittedQuerySupportReceiptChanged {
-        admitted_receipt_digest: u64,
-        current_receipt_digest: u64,
+    AdmittedQuerySupportContractChanged {
+        admitted_contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
+        current_contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
     },
 }
 

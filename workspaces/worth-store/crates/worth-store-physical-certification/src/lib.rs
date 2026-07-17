@@ -12,6 +12,23 @@ mod evidence;
 mod faults;
 mod fixtures;
 mod observation;
+mod operational_recovery_audit_driver;
+#[cfg(test)]
+mod operational_recovery_authorization_fixture;
+mod operational_recovery_control_driver;
+mod operational_recovery_control_transition;
+mod operational_recovery_driver;
+#[cfg(test)]
+mod operational_recovery_driver_tests;
+mod operational_recovery_rejoin_driver;
+#[cfg(test)]
+mod operational_recovery_replica_driver_fixture;
+#[cfg(test)]
+mod operational_recovery_replica_driver_tests;
+#[cfg(test)]
+mod operational_recovery_replica_promotion_driver_tests;
+mod operational_recovery_trace;
+mod operational_recovery_yieldpoint;
 mod oracles;
 mod physical_isolation_handoff;
 mod planning;
@@ -104,21 +121,23 @@ pub use evidence::{
     TerminalProjectionOnlyEvidenceDenied,
 };
 pub use faults::{
-    physical_isolation_stable_read_plan_fault_event, BlockedReclaimEvent, ByteCorruptionEvent,
-    CrashEvent, DelayedReleaseEvent, DroppedFlushEvent, ExecutedFaultDeliveryRecipe,
-    ExecutionReadyFaultDeliveryRecipe, ExecutionTimeReferenceDiscoveryEvent,
+    physical_isolation_stable_read_plan_fault_event, BlockedReclaimEvent,
+    BoundaryObservedFaultDeliveryRecipe, ByteCorruptionEvent, CrashEvent, DelayedReleaseEvent,
+    DroppedFlushEvent, ExecutionReadyFaultDeliveryRecipe, ExecutionTimeReferenceDiscoveryEvent,
     ExpectedFaultLocalization, FaultDeliveryAttempt, FaultDeliveryBoundaryProof,
     FaultDeliveryDenial, FaultDeliveryPlan, FaultDeliveryReceipt, FaultObservedBoundaryKind,
     IoStallEvent, LoweredFaultDeliveryRecipe, NoFaultControlEvent, NoFaultProductionBoundaryParity,
     ObservedFaultBoundary, PhysicalArtifactFaultLocus, PhysicalArtifactKind, PhysicalFaultEvent,
-    PhysicalFaultEventKind, PhysicalFaultFieldKind, PhysicalFaultOffset, ReorderedPersistenceEvent,
+    PhysicalFaultEventKind, PhysicalFaultFieldKind, PhysicalFaultOffset,
+    PhysicalStorageFaultExecution, PhysicalStorageFaultInjection, ReorderedPersistenceEvent,
     StaleGenerationEvent, TornWriteEvent, UnboundedReadPlanFootprintEvent,
 };
 pub use fixtures::{
-    FixtureAuthorityReceipt, FixtureCapabilityDeclaration, FixtureConstructionAuthority,
-    FixtureConstructionBasis, FixtureConstructionProofBasis, FixtureMutationBoundary,
-    FixtureMutationBoundarySet, FixtureNeedsBoundary, FixtureNeedsMaterialization,
-    FixtureProfileNonClaim, FixtureProvenance, FixtureScaleDeclaration, LargeStoreFixtureProfile,
+    FixtureActivityScale, FixtureAuthorityReceipt, FixtureCapabilityDeclaration,
+    FixtureConstructionAuthority, FixtureConstructionBasis, FixtureConstructionProofBasis,
+    FixtureMutationBoundary, FixtureMutationBoundarySet, FixtureNeedsBoundary,
+    FixtureNeedsMaterialization, FixtureProfileNonClaim, FixtureProvenance,
+    FixtureScaleDeclaration, FixtureStorageScale, LargeStoreFixtureProfile,
     PersistedStoreFixtureManifest, PhysicalArtifactFixtureCatalog, PhysicalFixtureBuilder,
     ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource,
     ProductionBackedPhysicalFixture, ResolvedFixtureConstructionRecipe, StoreFixtureAuthority,
@@ -139,7 +158,7 @@ pub use harness::blob::{
 };
 pub use observation::{
     CheckpointCrashReplayObservation, CheckpointInterlockObservation,
-    CompactionInterlockObservation, ExecutedPhysicalSimulationObservation,
+    CheckpointPublicationRecoveryExecution, CompactionInterlockObservation,
     IndependentVerifierObservation, IndependentVerifierObservationKind, ObservationDenial,
     ObservedPhysicalTrace, PhysicalIsolationCheckpointPublicationCrashLaneOutput,
     PhysicalIsolationCheckpointPublicationLaneBinding,
@@ -151,8 +170,17 @@ pub use observation::{
     PhysicalIsolationCompactionMutationObservationSet,
     PhysicalIsolationCompactionMutationReplayBinding,
     PhysicalIsolationCompactionMutationScheduledLaneOutput, PhysicalObservationBuilder,
+    PhysicalSimulationBoundaryObservation, PhysicalSimulationObservationBasis,
     PhysicalSimulationObserver, RecoveryOutcomeKind, RecoveryOutcomeObservation,
     ShortcutRejectionObservation, ShortcutRejectionObservationKind,
+};
+pub use operational_recovery_control_driver::DrivenOperationalControlStore;
+pub use operational_recovery_control_transition::OperationalRecoveryControlTransitionKind;
+pub use operational_recovery_driver::{
+    DrivenOperationalTransition, OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
+};
+pub use operational_recovery_trace::{
+    OperationalRecoveryDriverTrace, OperationalRecoveryTraceJoinDenial,
 };
 pub use oracles::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
@@ -237,12 +265,15 @@ pub use scenario::{
     PhysicalSimulationScenarioFamily, RecoveryCrashSeam, TerminalProjectionScenarioDenied,
 };
 pub use schedule::{
-    AdmittedScheduleOrderingAuthority, CounterMismatchSummary, OracleVerdictKind,
-    OracleVerdictSummary, PartialOrderReductionPosture, PhysicalActorId, PhysicalActorStep,
-    PhysicalActorStepSequence, PhysicalFaultLocus, PhysicalInterleavingSchedule, ReplaySeed,
-    ScheduleExplorationCost, ScheduleFailureClass, ScheduleOrderingAuthorityAttempt,
-    ScheduleOrderingAuthorityKind, ScheduleReplayDenial, ScheduleReplayIdentity,
-    ScheduleShrinkTrace, StateSpaceBudget,
+    execute_physical_schedule, explore_physical_interleavings, AdmittedScheduleOrderingAuthority,
+    CounterMismatchSummary, OracleVerdictKind, OracleVerdictSummary, PartialOrderReductionPosture,
+    PhysicalActorId, PhysicalActorStep, PhysicalActorStepSequence, PhysicalActorStorageExecution,
+    PhysicalFaultLocus, PhysicalInterleavingSchedule, PhysicalScheduleExecution,
+    PhysicalScheduleExecutionError, PhysicalScheduleExploration,
+    PhysicalScheduleOwnerEvidenceDenial, PhysicalScheduleOwnerExecution, PhysicalScheduleOwnerKind,
+    ReplaySeed, ScheduleExplorationCompletion, ScheduleExplorationCost, ScheduleFailureClass,
+    ScheduleFailureSignature, ScheduleOrderingAuthorityAttempt, ScheduleOrderingAuthorityKind,
+    ScheduleReplayDenial, ScheduleReplayIdentity, ScheduleShrinkTrace, StateSpaceBudget,
 };
 pub use security_scope_harness::{
     SecurityScopeFailureKind, SecurityScopeHarnessCounterSnapshot, SecurityScopeHarnessEvidence,

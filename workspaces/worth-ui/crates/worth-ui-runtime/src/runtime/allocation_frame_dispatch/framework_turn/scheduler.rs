@@ -119,12 +119,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::HostMeasurement,
-            source_identity.into(),
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::HostMeasurement,
+                source_identity: source_identity.into(),
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -140,12 +142,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::QueryProjection,
-            source_identity,
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::QueryProjection,
+                source_identity,
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -161,12 +165,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::Interaction,
-            source_identity.into(),
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::Interaction,
+                source_identity: source_identity.into(),
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -182,12 +188,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::DurableState,
-            source_identity.into(),
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::DurableState,
+                source_identity: source_identity.into(),
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -211,7 +219,7 @@ impl UiAllocationFrameIngressMailbox {
             };
             return UiAllocationFrameGatewayOutcome::source_admission_denied(
                 denial,
-                source_fact,
+                *source_fact,
                 self.dispatcher.counters(),
             );
         };
@@ -232,7 +240,9 @@ fn turn_outcome(
     counters: UiAllocationFrameDispatcherCounters,
 ) -> UiAllocationFrameTurnOutcome {
     match outcome.into_dispatched_frame() {
-        Ok(sealed_frame) => UiAllocationFrameTurnOutcome::DownstreamBackpressured { sealed_frame },
+        Ok(sealed_frame) => UiAllocationFrameTurnOutcome::DownstreamBackpressured {
+            sealed_frame: Box::new(sealed_frame),
+        },
         Err(UiAllocationFrameDispatchDenial::EmptyFrame) => {
             UiAllocationFrameTurnOutcome::NoAdmittedIngress { counters }
         }

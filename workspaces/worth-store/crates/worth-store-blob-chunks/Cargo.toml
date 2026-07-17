@@ -9,6 +9,7 @@ description = "Roadmap 2 S.7 native content-addressed blob and object chunk stor
 certification-test-authority = []
 
 [dependencies]
+sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
@@ -17,7 +18,6 @@ worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
 worth-store-authority.workspace = true
 worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
-worth-store-operations-vocabulary.workspace = true
 worth-store-physical-backend.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-physical-integrity.workspace = true
@@ -30,6 +30,7 @@ worth-store-tiering = { workspace = true, features = ["certification-test-author
 worth-store-wal.workspace = true
 
 [dev-dependencies]
+tempfile = "3"
 worth-store-physical-integrity = { workspace = true, features = ["test-support"] }
 worth-store-aspect-native.workspace = true
 worth-store-offline-verifier.workspace = true

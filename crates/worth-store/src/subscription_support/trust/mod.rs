@@ -8,6 +8,7 @@ mod failure;
 mod named_suite;
 mod performance;
 mod pipeline;
+mod receipt_bundle;
 mod receipts;
 mod reports;
 mod taxonomy;
@@ -76,12 +77,12 @@ pub use pipeline::{
     SupportTrustEquivalenceChecked, SupportTrustRequestAdmitted, SupportTrustRequestedUse,
     SupportTrustTranslatedInputs,
 };
+pub use receipt_bundle::SupportTrustReceiptBundle;
 pub use receipts::{
     SupportBasisReceipt, SupportCompatibilityReceipt, SupportCursorCheckpointReceipt,
     SupportFamilyRoleReceipt, SupportImportAdmissionReceipt, SupportMaintenanceReceipt,
     SupportOperationalVerdictReceipt, SupportPortabilityReceipt,
-    SupportResumeClassificationReceipt, SupportRetentionReceipt, SupportTrustReceiptBundle,
-    SupportTrustReceiptStatus,
+    SupportResumeClassificationReceipt, SupportRetentionReceipt, SupportTrustReceiptStatus,
 };
 pub use reports::{
     CertifiedSupportTrustReport, OperationalSupportTrustReport, SupportTrustCertificationStamp,

@@ -40,7 +40,7 @@ fn copy_on_write_publication_preserves_old_reachability_and_publishes_new_root()
         inputs.old_root.epoch().get()
     );
     assert_eq!(
-        receipt.epochs().root().new().get(),
+        receipt.epochs().root().new_epoch().get(),
         inputs.new_root.epoch().get()
     );
     assert_eq!(
@@ -48,7 +48,7 @@ fn copy_on_write_publication_preserves_old_reachability_and_publishes_new_root()
         inputs.old_root.manifest_epoch().get()
     );
     assert_eq!(
-        receipt.epochs().manifest().new().get(),
+        receipt.epochs().manifest().new_epoch().get(),
         inputs.new_root.manifest_epoch().get()
     );
     assert_eq!(
@@ -75,7 +75,9 @@ fn copy_on_write_publication_preserves_old_reachability_and_publishes_new_root()
         assert!(!outcome.mixed_tree());
     }
 
-    let foundational = receipt.lower_to_foundational_evidence();
+    let foundational = receipt
+        .lower_to_foundational_evidence()
+        .expect("publication receipt provenance is admissible");
     assert_eq!(
         foundational.executed_receipt().receipt_kind(),
         FoundationalBoundaryEvidenceReceiptKind::Execution

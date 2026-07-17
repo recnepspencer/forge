@@ -105,6 +105,12 @@ and the tree does not answer decisively, Road 1 is not closed.
   - projection consumption and retained/publication grammar live on `derived`
     surfaces
   - replay, reconstruction, and Consumer Kit hostile proof stay in `cert`
+- ordinary entry authority is one installed operating-world root; product
+  operation-family facades borrow typed views from it and cannot construct
+  independent runtimes or graph worlds
+- one logical graph is the default; a genuinely separate graph authority is
+  admitted only through a named installed participation adapter at the entry
+  boundary
 - Each milestone in this roadmap must leave a usable substrate for later roads,
   not a conceptual placeholder.
 - This roadmap is allowed to create new crates and workspaces where the
@@ -582,6 +588,10 @@ It closes four questions at once:
 - where do domain capability contributions get lowered?
 - where is the last place Query imports are allowed before ordinary work enters
   the runtime?
+- what portable contract lets a genuinely separate graph authority participate
+  without exposing a hidden application adapter?
+- what handle grammar guarantees every later operation family borrows one
+  installed operating-world root?
 
 It must ship:
 
@@ -590,6 +600,10 @@ It must ship:
 - typed declaration-lowering surfaces
 - graph touch obligation adoption surfaces
 - domain capability contribution adoption surfaces
+- graph-participation declaration and adapter-admission grammar with explicit
+  observation, effect, identity/lineage, cost, failure, and commit posture
+- one operating-world root handle grammar that operation-family entry facades
+  must borrow rather than construct
 - a support/admission matrix for which Query-native surfaces Road 1 is adopting
   now versus later
 
@@ -627,6 +641,10 @@ It must not try to:
 - own replay or certification
 - become a second meaning layer
 - leave Query surface commitments implicit
+- execute cross-graph work or imply atomicity before shared commit authority is
+  proven
+- expose generic callback adapters, raw provider handles, or application-owned
+  graph bridges
 
 Why it comes third:
 Entry and publication lanes should consume bridge surfaces, not copied strings
@@ -641,6 +659,9 @@ This milestone freezes the ordinary hot path:
 - rebuildable derived publication
 - explicit ordinary retained consumption
 - explicit cold fence against replay-shaped ordinary use
+- one installed operating-world root shared by every ordinary operation family
+- explicit installed graph participation only where a real independent
+  authority boundary exists
 
 It closes the question "what is the normal way work enters and later gets
 consumed?"
@@ -648,6 +669,10 @@ consumed?"
 It must ship:
 
 - one ordinary entry lane for the exemplar family
+- one authority-bearing operating-world root from which the exemplar entry lane
+  is borrowed
+- one same-graph composition proof requiring no adapter and one separate-graph
+  adapter specimen proving explicit atomic-or-compensated posture
 - one derived publication lane for the exemplar family
 - one retained ordinary-consumption path that does not reopen replay
 - one explicit cold certification path that may reopen replay
@@ -699,6 +724,9 @@ It must not try to:
 - solve large domain workflows
 - add broad certification suites beyond what the hot/cold fence needs
 - treat replay as ordinary infrastructure
+- let an operation-family crate, app, or UI construct an alternate root
+- let graphs communicate through raw calls, shared identifiers, digests,
+  hidden event buses, or application-owned adapters
 
 Why it comes fourth:
 By this point the platform knows what things mean and how Query names them; now

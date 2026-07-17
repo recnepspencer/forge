@@ -4,6 +4,7 @@ use super::{
     RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
 };
 use crate::{CurrentPhysicalRoot, PhysicalReadPlanReleaseReceipt};
+use worth_store_physical_backend::StorageBoundaryExecutionIdentity;
 use worth_store_physical_format::RootPublicationValidationWitness;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +40,7 @@ pub struct PhysicalPublicationReceipt {
     release_posture: PhysicalPublicationReleasePosture,
     free_reuse: Option<CrashStableFreeReusePosture>,
     counters: PhysicalPublicationCounterSnapshot,
+    storage_boundary_execution: Option<StorageBoundaryExecutionIdentity>,
 }
 
 impl PhysicalPublicationCounterSnapshot {
@@ -120,6 +122,7 @@ impl PhysicalPublicationReceipt {
         release_posture: PhysicalPublicationReleasePosture,
         free_reuse: Option<CrashStableFreeReusePosture>,
         counters: PhysicalPublicationCounterSnapshot,
+        storage_boundary_execution: Option<StorageBoundaryExecutionIdentity>,
     ) -> Self {
         Self {
             old_root: intent.old_root(),
@@ -132,6 +135,7 @@ impl PhysicalPublicationReceipt {
             release_posture,
             free_reuse,
             counters,
+            storage_boundary_execution,
         }
     }
 
@@ -175,7 +179,18 @@ impl PhysicalPublicationReceipt {
         self.counters
     }
 
-    pub fn lower_to_foundational_evidence(&self) -> PhysicalPublicationFoundationalEvidence {
+    pub const fn storage_boundary_execution_identity(
+        &self,
+    ) -> Option<StorageBoundaryExecutionIdentity> {
+        self.storage_boundary_execution
+    }
+
+    pub fn lower_to_foundational_evidence(
+        &self,
+    ) -> Result<
+        PhysicalPublicationFoundationalEvidence,
+        worth_foundational::FoundationalBoundaryEvidenceProvenanceConstructionDenial,
+    > {
         PhysicalPublicationFoundationalEvidence::lower(self)
     }
 

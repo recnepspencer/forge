@@ -8,7 +8,7 @@ use super::{
     FixtureMutationBoundarySet, FixtureScaleDeclaration, LargeStoreFixtureProfile,
     PersistedStoreFixtureManifest, PhysicalArtifactFixtureCatalog,
     ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource,
-    ProductionBackedPhysicalFixture, SyntheticFixtureAuthorityDenied,
+    ProductionBackedPhysicalFixture, ReopenedFixtureManifestParts, SyntheticFixtureAuthorityDenied,
 };
 
 pub struct PhysicalFixtureBuilder;
@@ -80,8 +80,11 @@ impl FixtureReadyBuilder {
     }
 
     pub fn and_reopen_through_physical_authority(
-        self,
+        mut self,
     ) -> Result<ProductionBackedPhysicalFixture, SyntheticFixtureAuthorityDenied> {
+        self.capability_declarations
+            .sort_unstable_by_key(FixtureCapabilityDeclaration::mutation_boundary);
+        self.capability_declarations.dedup();
         let report = canonical_offline_verifier().verify(&self.layout)?;
         let receipt = FixtureAuthorityReceipt::from_reopened_layout(
             self.profile,
@@ -93,16 +96,17 @@ impl FixtureReadyBuilder {
             FixtureMutationBoundarySet::from_capabilities(&self.capability_declarations)
                 .expect("FixtureReadyBuilder always contains at least one boundary");
         let catalog = PhysicalArtifactFixtureCatalog::from_reopened_layout(&self.layout, &report);
-        let manifest = PersistedStoreFixtureManifest::from_reopened_fixture(
-            self.name,
-            self.profile,
-            self.scale,
-            self.source,
-            semantic_fixture_digest(&self.layout, &report),
-            catalog,
-            self.capability_declarations,
-            boundaries,
-        );
+        let manifest =
+            PersistedStoreFixtureManifest::from_reopened_fixture(ReopenedFixtureManifestParts {
+                name: self.name,
+                profile: self.profile,
+                scale: self.scale,
+                source: self.source,
+                semantic_digest: semantic_fixture_digest(&self.layout, &report),
+                artifact_catalog: catalog,
+                capability_declarations: self.capability_declarations,
+                mutation_boundaries: boundaries,
+            });
         Ok(ProductionBackedPhysicalFixture::from_manifest_and_receipt(
             manifest,
             receipt,

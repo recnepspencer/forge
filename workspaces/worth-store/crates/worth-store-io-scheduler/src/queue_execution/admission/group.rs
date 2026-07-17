@@ -20,8 +20,8 @@ pub struct QueueGroupingRejected {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum QueueGroupingOutcome {
-    Grouped(QueueGroupedReadyPlans),
-    Denied(QueueGroupingRejected),
+    Grouped(Box<QueueGroupedReadyPlans>),
+    Denied(Box<QueueGroupingRejected>),
 }
 
 pub fn group_ready_queue_pair(
@@ -31,34 +31,34 @@ pub fn group_ready_queue_pair(
     if first.backend_profile() != second.backend_profile()
         || first.backend_evidence_class() != second.backend_evidence_class()
     {
-        return QueueGroupingOutcome::Denied(QueueGroupingRejected {
+        return QueueGroupingOutcome::Denied(Box::new(QueueGroupingRejected {
             first,
             second,
             denial: QueueGroupingDenial::BackendCapabilityMismatch,
-        });
+        }));
     }
     if first.work().secure_io() != second.work().secure_io() {
-        return QueueGroupingOutcome::Denied(QueueGroupingRejected {
+        return QueueGroupingOutcome::Denied(Box::new(QueueGroupingRejected {
             first,
             second,
             denial: QueueGroupingDenial::SecureIoReceiptMismatch,
-        });
+        }));
     }
     match first
         .grouping_basis()
         .compatible_with(second.grouping_basis())
     {
-        Ok(()) => QueueGroupingOutcome::Grouped(QueueGroupedReadyPlans {
+        Ok(()) => QueueGroupingOutcome::Grouped(Box::new(QueueGroupedReadyPlans {
             replay_identities: [first.replay_identity(), second.replay_identity()],
             first,
             second,
             grouped_writes: 2,
-        }),
-        Err(denial) => QueueGroupingOutcome::Denied(QueueGroupingRejected {
+        })),
+        Err(denial) => QueueGroupingOutcome::Denied(Box::new(QueueGroupingRejected {
             first,
             second,
             denial,
-        }),
+        })),
     }
 }
 

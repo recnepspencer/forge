@@ -2,7 +2,7 @@ mod dispatcher;
 mod epoch;
 mod framework_turn;
 pub(in crate::runtime) use framework_turn::UiAllocationTransactionAuthority;
-mod gateway;
+pub(crate) mod gateway;
 mod ingress;
 mod lifecycle;
 mod mailbox;

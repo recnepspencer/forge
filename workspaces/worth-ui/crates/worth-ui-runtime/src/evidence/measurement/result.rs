@@ -41,6 +41,20 @@ pub struct UiMeasurementResult {
     host_source_order: u64,
 }
 
+pub(crate) struct UiHostMeasurementResultInput {
+    pub(crate) request_identity: UiMeasurementRequestIdentity,
+    pub(crate) request_shape_digest: u64,
+    pub(crate) evidence_category: UiMeasurementEvidenceCategory,
+    pub(crate) evidence_generation: UiEvidenceAuthorityGeneration,
+    pub(crate) unit_posture: UiMeasurementUnitPosture,
+    pub(crate) coordinate_space: UiMeasurementCoordinateSpace,
+    pub(crate) rounding_posture: UiMeasurementRoundingPosture,
+    pub(crate) assumption_profile: UiHostMeasurementAssumptionProfile,
+    pub(crate) value: UiMeasurementValue,
+    pub(crate) portal_anchor_target_identity:
+        Option<worth_ui_host_contract::UiPortalAnchorTargetIdentity>,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct UiCurrentMeasurementResult<'a> {
     result: &'a UiMeasurementResult,
@@ -66,18 +80,19 @@ impl UiMeasurementValue {
 }
 
 impl UiMeasurementResult {
-    pub(crate) fn new_from_host_lane(
-        request_identity: UiMeasurementRequestIdentity,
-        request_shape_digest: u64,
-        evidence_category: UiMeasurementEvidenceCategory,
-        evidence_generation: UiEvidenceAuthorityGeneration,
-        unit_posture: UiMeasurementUnitPosture,
-        coordinate_space: UiMeasurementCoordinateSpace,
-        rounding_posture: UiMeasurementRoundingPosture,
-        assumption_profile: UiHostMeasurementAssumptionProfile,
-        value: UiMeasurementValue,
-        portal_anchor_target_identity: Option<worth_ui_host_contract::UiPortalAnchorTargetIdentity>,
-    ) -> Self {
+    pub(crate) fn new_from_host_lane(input: UiHostMeasurementResultInput) -> Self {
+        let UiHostMeasurementResultInput {
+            request_identity,
+            request_shape_digest,
+            evidence_category,
+            evidence_generation,
+            unit_posture,
+            coordinate_space,
+            rounding_posture,
+            assumption_profile,
+            value,
+            portal_anchor_target_identity,
+        } = input;
         Self {
             request_identity,
             request_shape_digest,

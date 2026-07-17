@@ -10,7 +10,8 @@ use worth_store_recovery_physics::{RecoveryEvidenceLineagePosture, RecoveryEvide
 #[test]
 fn recovery_lineage_materializes_distinct_provenance_postures() {
     let source = evidence_support::verifier_disagreement_source();
-    let lineage = RecoveryEvidenceLineageReport::from_source(&source);
+    let lineage = RecoveryEvidenceLineageReport::from_source(&source)
+        .expect("recovery evidence lineage is admissible");
 
     for posture in [
         RecoveryEvidenceLineagePosture::ReplayDerived,

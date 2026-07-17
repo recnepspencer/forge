@@ -10,7 +10,7 @@ use super::{
 
 #[derive(Debug)]
 enum ReplayAdmissionCase {
-    Admitted(crate::BaselineLsmReplayAdmission),
+    Admitted(Box<crate::BaselineLsmReplayAdmission>),
     Denied(LsmMaintenanceAdmissionDenied),
 }
 
@@ -31,7 +31,7 @@ impl LsmReplayMaintenanceAdmissionOutcome {
     ) -> Self {
         Self {
             case: match result {
-                Ok(value) => ReplayAdmissionCase::Admitted(value),
+                Ok(value) => ReplayAdmissionCase::Admitted(Box::new(value)),
                 Err(denial) => ReplayAdmissionCase::Denied(denial),
             },
         }
@@ -52,7 +52,7 @@ impl LsmReplayMaintenanceAdmissionOutcome {
         self,
     ) -> Result<crate::BaselineLsmReplayAdmission, LsmMaintenanceAdmissionDenied> {
         match self.case {
-            ReplayAdmissionCase::Admitted(value) => Ok(value),
+            ReplayAdmissionCase::Admitted(value) => Ok(*value),
             ReplayAdmissionCase::Denied(denial) => Err(denial),
         }
     }

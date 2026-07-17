@@ -79,14 +79,8 @@ fn every_lower_authority_source_has_a_specific_security_scope_denial() {
 #[test]
 fn phase_required_vocabulary_families_are_distinct_and_exercised() {
     assert_ne!(StoreKeyScope::TenantEnvelope, StoreKeyScope::PageEnvelope);
-    assert_eq!(
-        StoreKeyVersionPosture::Current.is_admissible_for_platform_lane(),
-        true
-    );
-    assert_eq!(
-        StoreKeyVersionPosture::Unsupported.is_admissible_for_platform_lane(),
-        false
-    );
+    assert!(StoreKeyVersionPosture::Current.is_admissible_for_platform_lane());
+    assert!(!StoreKeyVersionPosture::Unsupported.is_admissible_for_platform_lane());
     assert_ne!(
         StoreKeyVersionPosture::Unsupported,
         StoreKeyVersionPosture::Unavailable
@@ -116,7 +110,7 @@ fn phase_required_vocabulary_families_are_distinct_and_exercised() {
     let result = StoreSecurityResultVocabulary::AuthenticityObservedResult;
     let witness_term = StoreSecurityWitnessVocabularyTerm::KeyScopeWitness;
     let evidence = StoreSecurityEvidenceVocabulary::PublishableBoundaryEvidence;
-    let readiness_term = StoreSecurityReadinessVocabularyTerm::S11SecurityFoundationReadiness;
+    let readiness_term = StoreSecurityReadinessVocabularyTerm::SecurityFoundationReadiness;
 
     assert_eq!(
         requirement,
@@ -136,7 +130,7 @@ fn phase_required_vocabulary_families_are_distinct_and_exercised() {
     );
     assert_eq!(
         readiness_term,
-        StoreSecurityReadinessVocabularyTerm::S11SecurityFoundationReadiness
+        StoreSecurityReadinessVocabularyTerm::SecurityFoundationReadiness
     );
 }
 

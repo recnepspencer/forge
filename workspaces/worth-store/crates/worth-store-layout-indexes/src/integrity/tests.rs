@@ -2,7 +2,8 @@ use crate::integrity::{layout_corruption, LayoutCorruptionView};
 use crate::layout_declarations;
 use worth_store_contracts::DurableArtifactFamilyId;
 use worth_store_recovery_physics::{
-    CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
+    CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
+    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
     PersistedRecoveryArtifactMaterialization, RecoveryOfflineVerifier, RecoveryProfileId,
     WalRedoFrameMaterialization,
 };
@@ -41,12 +42,8 @@ pub(super) fn offline_admission(
             format!("checkpoint-{seed}"),
             format!("root-{seed}"),
             19,
-            "checkpoint",
-            1,
-            4096,
-            1,
-            4096,
-            1,
+            CheckpointManifestSourceMaterialization::new("checkpoint", 1),
+            CheckpointManifestBudgetMaterialization::new(4096, 1, 4096, 1),
         ),
         WalRedoFrameMaterialization::new(
             format!("wal-{seed}"),

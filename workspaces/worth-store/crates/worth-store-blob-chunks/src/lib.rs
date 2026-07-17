@@ -17,6 +17,7 @@
 //! `#[doc(hidden)]` compile-fail modules re-exported below.
 #![forbid(unsafe_code)]
 
+mod backup_verification;
 mod capsule_readiness;
 mod chunk_identity;
 mod chunk_integrity;
@@ -45,6 +46,11 @@ mod streaming;
 #[cfg(any(test, feature = "certification-test-authority"))]
 mod test_support;
 
+pub use backup_verification::{
+    verify_bounded_blob_backup_artifact, verify_bounded_blob_backup_artifact_from_reader,
+    BlobBackupChunkArtifact, BoundedBlobBackupDenial, BoundedBlobBackupObservation,
+    BoundedBlobBackupVerificationRequest,
+};
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use closeout_bundle::ExecutedBlobLifecycleEvidenceBundle;
 #[cfg(test)]
@@ -115,6 +121,11 @@ pub mod blob_retention_reclaim_compile_fail;
 #[path = "compile_fail/streaming_read.rs"]
 #[doc(hidden)]
 pub mod blob_streaming_read_compile_fail;
+mod operational_repair;
 #[path = "compile_fail/security_metadata.rs"]
 #[doc(hidden)]
 pub mod security_metadata_compile_fail;
+pub use operational_repair::{
+    BlobRepairConsequence, BlobRepairConsequenceDenial, BlobRepairConsequenceOwner,
+    BlobRepairConsequencePlan, BlobRepairConsequenceReceipt,
+};

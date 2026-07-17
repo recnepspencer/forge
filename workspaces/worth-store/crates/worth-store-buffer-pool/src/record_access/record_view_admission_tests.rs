@@ -7,7 +7,7 @@ use crate::{
 use worth_store_physical_format::{
     FramedRecordView, PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
+    PhysicalPageRecordAuthority, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalSegmentId, SlotAppendRequest, SlotGenerationCell,
     PHYSICAL_HEADER_LENGTH,
 };
@@ -253,14 +253,14 @@ fn framed_record(
     let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = page_cell(&generations, 5, page_value);
     let slot_cell = slot_cell(&generations, generation_value, page_value);
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = page_bytes(page_cell, &[]);
     let append = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page),
             SlotAppendRequest::ordinary(slot_cell, payload),
         )
         .unwrap();
-    let reopened_page = page_bytes(generation(5), append.page_payload());
+    let reopened_page = page_bytes(page_cell, append.page_payload());
     let reopened_page = Box::leak(reopened_page.into_boxed_slice());
     let validation = references
         .validate_page_slot(append.reference_admission(), slot_cell)
@@ -319,16 +319,16 @@ fn slot_cell(
         .with_slot_generation(generation(slot_generation))
 }
 
-fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
+fn page_bytes(cell: PageGenerationCell, payload: &[u8]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(worth_store_physical_format::PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+    let headers = PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    );
+    bytes.extend_from_slice(&headers.encode_page_header(
+        cell,
+        worth_store_physical_format::PhysicalPageKind::DataPage,
+        payload.len().try_into().expect("bounded fixture payload"),
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

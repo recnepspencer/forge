@@ -75,8 +75,9 @@ fn execute_persistence(
     {
         return Err(LsmMembershipDenial::StoreBindingMismatch);
     }
-    if !crate::membership::durable_artifact::persisted_artifact_matches(
+    if !crate::membership::durable_artifact::persisted_artifact_range_matches(
         &record.persisted_path,
+        record.persisted_offset,
         record.persisted_bytes,
         &crate::membership::durable_artifact::lsm_membership_record_bytes(
             &record.envelope,
@@ -103,6 +104,7 @@ fn same_persisted_record(left: &LsmMembershipRecord, right: &LsmMembershipRecord
     left.envelope == right.envelope
         && left.durable_scope == right.durable_scope
         && left.key == right.key
+        && left.persisted_offset == right.persisted_offset
         && left.persisted_bytes == right.persisted_bytes
         && std::fs::canonicalize(&left.persisted_path).ok()
             == std::fs::canonicalize(&right.persisted_path).ok()

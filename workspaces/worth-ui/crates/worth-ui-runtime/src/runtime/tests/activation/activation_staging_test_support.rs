@@ -2,11 +2,24 @@ use super::durable_state_inventory_test_support::platform_inventory;
 use super::query_binding_comparison_test_support::{query_artifact, standard_query_app};
 use crate::facade::WorthUiApp;
 use crate::runtime::{
-    WorthUiActivationStagingDenial, WorthUiAdmittedReplacementCandidate,
-    WorthUiDurableStateReconciliationPlan, WorthUiNodeReplacementPlan, WorthUiPendingActivation,
-    WorthUiPendingExecutionPlanLoweringInput, WorthUiQueryLiveRebindPlan,
-    WorthUiReplacementImpactClassification, WorthUiRuntimeImpactNarrowing,
+    WorthUiActivationStagingDenial, WorthUiActivationStagingPlans,
+    WorthUiAdmittedReplacementCandidate, WorthUiDurableStateReconciliationPlan,
+    WorthUiNodeReplacementPlan, WorthUiPendingActivation, WorthUiPendingExecutionPlanLoweringInput,
+    WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification,
+    WorthUiRuntimeImpactNarrowing,
 };
+
+fn staging_plans<'a>(
+    reconciliation_plan: Option<&'a WorthUiDurableStateReconciliationPlan>,
+    query_rebind_plan: Option<&'a WorthUiQueryLiveRebindPlan>,
+    pending_execution_plan_lowering_input: Option<&'a WorthUiPendingExecutionPlanLoweringInput>,
+) -> WorthUiActivationStagingPlans<'a> {
+    WorthUiActivationStagingPlans::new(
+        reconciliation_plan,
+        query_rebind_plan,
+        pending_execution_plan_lowering_input,
+    )
+}
 
 pub(crate) fn activation_staging_inputs() -> ActivationStagingInputs {
     let app = standard_query_app();
@@ -89,9 +102,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect("activation staging succeeds");
         (self.app, self.runtime, pending)
@@ -110,9 +125,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect("activation staging succeeds");
         (self.runtime, pending)
@@ -125,9 +142,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect("activation staging succeeds")
     }
@@ -139,9 +158,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect_err("activation staging denies")
     }
@@ -153,9 +174,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                None,
-                Some(&self.query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    None,
+                    Some(&self.query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect_err("missing reconciliation denies")
     }
@@ -167,9 +190,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                None,
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    None,
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect_err("missing query rebind denies")
     }
@@ -184,9 +209,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect_err("stale reconciliation denies")
     }
@@ -201,9 +228,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                Some(query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect_err("stale query rebind denies")
     }
@@ -218,9 +247,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 node_plan,
-                Some(&self.reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                Some(&self.pending_execution_plan_lowering_input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    Some(&self.pending_execution_plan_lowering_input),
+                ),
             )
             .expect_err("stale node plan denies")
     }
@@ -232,9 +263,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                None,
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    None,
+                ),
             )
             .expect_err("missing plan lowering input denies")
     }
@@ -249,9 +282,11 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                Some(&self.reconciliation_plan),
-                Some(&self.query_rebind_plan),
-                Some(input),
+                staging_plans(
+                    Some(&self.reconciliation_plan),
+                    Some(&self.query_rebind_plan),
+                    Some(input),
+                ),
             )
             .expect_err("stale plan lowering input denies")
     }

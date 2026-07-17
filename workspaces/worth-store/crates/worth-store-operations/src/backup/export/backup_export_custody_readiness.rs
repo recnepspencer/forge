@@ -1,18 +1,19 @@
 use worth_store_security::{
-    StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
+    StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
+    StoreAuthorityBoundSecurityScopeReceipt, StoreCustodyPosture, StoreKeyScope,
     StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
 use crate::{
     backup::export::backup_capsule_authenticity, BackupExportCustodyAdmission,
-    BackupExportCustodyCounterSnapshot, BackupExportCustodyDenial, S10BackupExportCustodyHandoff,
+    BackupExportCustodyCounterSnapshot, BackupExportCustodyDenial,
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BackupExportCustodyReadiness {
     mode: Option<crate::BackupExportCustodyMode>,
     identity: StoreSecurityScopeIdentity,
-    receipt: StoreSecurityScopeAdmissionReceipt,
+    authority_bound_receipt: StoreAuthorityBoundSecurityScopeReceipt,
     counters: BackupExportCustodyCounterSnapshot,
 }
 
@@ -26,16 +27,6 @@ impl BackupExportCustodyReadiness {
         Self::from_admitted_scope(security_scope, mode, counters)
     }
 
-    pub fn from_backup_repair_handoff(handoff: S10BackupExportCustodyHandoff) -> Self {
-        let readiness = handoff.into_readiness();
-        Self {
-            mode: readiness.mode(),
-            identity: readiness.identity(),
-            receipt: readiness.receipt(),
-            counters: readiness.counters(),
-        }
-    }
-
     pub(crate) fn from_admitted_scope(
         security_scope: StoreAdmittedSecurityScope,
         mode: Option<crate::BackupExportCustodyMode>,
@@ -47,10 +38,11 @@ impl BackupExportCustodyReadiness {
         reject_wrong_authenticity(identity, counters)?;
         reject_wrong_custody(identity, counters)?;
 
+        let authority_bound_receipt = security_scope.authority_bound_receipt();
         Ok(Self {
             mode,
             identity,
-            receipt: security_scope.receipt(),
+            authority_bound_receipt,
             counters,
         })
     }
@@ -81,7 +73,31 @@ impl BackupExportCustodyReadiness {
     }
 
     pub const fn receipt(&self) -> StoreSecurityScopeAdmissionReceipt {
-        self.receipt
+        self.authority_bound_receipt.receipt()
+    }
+
+    pub const fn authority_bound_receipt(&self) -> StoreAuthorityBoundSecurityScopeReceipt {
+        self.authority_bound_receipt
+    }
+
+    pub fn admit_blob_custody(
+        &self,
+    ) -> Result<
+        worth_store_blob_chunks::AdmittedBlobCustody,
+        worth_store_blob_chunks::BlobCustodyAdmissionDenial,
+    > {
+        let purpose = match self.mode {
+            Some(crate::BackupExportCustodyMode::Backup) => {
+                worth_store_blob_chunks::BlobCustodyPurpose::Backup
+            }
+            Some(crate::BackupExportCustodyMode::PointInTimeRecovery) => {
+                worth_store_blob_chunks::BlobCustodyPurpose::PointInTimeRecovery
+            }
+            Some(crate::BackupExportCustodyMode::Export) | None => {
+                worth_store_blob_chunks::BlobCustodyPurpose::Export
+            }
+        };
+        worth_store_blob_chunks::AdmittedBlobCustody::from_security_receipt(purpose, self.receipt())
     }
 }
 

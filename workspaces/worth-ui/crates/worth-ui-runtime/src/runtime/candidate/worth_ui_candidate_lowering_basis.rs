@@ -32,7 +32,11 @@ impl WorthUiCandidateLoweringBasis {
     pub(crate) fn basis_digest(self) -> u64 {
         0x6d33_39e2_1010_0003
             ^ self.snapshot_digest.rotate_left(7)
-            ^ self.query_support_receipt.receipt_digest().rotate_left(31)
+            ^ self
+                .query_support_receipt
+                .contract_identity()
+                .as_u64()
+                .rotate_left(31)
     }
 
     #[cfg(test)]

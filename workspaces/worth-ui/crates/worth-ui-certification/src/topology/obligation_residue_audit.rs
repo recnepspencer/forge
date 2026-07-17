@@ -141,9 +141,9 @@ fn is_test_file(path: &Path) -> bool {
 }
 
 fn obligation_declaration_authority_name(segments: &[String]) -> Option<&str> {
-    if !segments
+    if segments
         .first()
-        .is_some_and(|segment| segment == "worth_ui_dsl")
+        .is_none_or(|segment| segment != "worth_ui_dsl")
     {
         return None;
     }

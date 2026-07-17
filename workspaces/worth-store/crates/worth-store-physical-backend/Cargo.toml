@@ -7,6 +7,10 @@ description = "Roadmap 2 S.1 platform-grade physical backend facade."
 
 [dependencies]
 fs4 = "0.8"
+file-id = "0.2"
+getrandom = "0.4"
+sha2 = "0.10"
+tempfile = "3"
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true

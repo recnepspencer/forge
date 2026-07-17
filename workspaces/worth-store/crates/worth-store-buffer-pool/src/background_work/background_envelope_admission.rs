@@ -141,15 +141,7 @@ impl BackgroundEnvelopeAdmission {
                 BackgroundEnvelopeDenialKind::AllocationDenied(denial),
             )
         })?;
-        self.counters.record_admitted(
-            request.resident_frames(),
-            request.resident_bytes(),
-            request.bounded_pin_pages(),
-            request.allocation_bytes(),
-            request.copied_bytes(),
-            request.streaming_object_bytes(),
-            request.streaming_window_bytes(),
-        );
+        self.counters.record_admitted(request);
         Ok(AdmittedBackgroundEnvelope {
             work_class: request.work_class(),
             resident_frames: request.resident_frames(),

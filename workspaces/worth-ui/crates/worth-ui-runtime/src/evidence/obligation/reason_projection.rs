@@ -23,22 +23,39 @@ pub struct UiInspectionObligationReasonProjection {
     legality_reason: Option<UiInspectionObligationLegalityReason>,
 }
 
+pub(crate) struct UiInspectionObligationReasonProjectionInput {
+    pub(crate) handle_digest: u64,
+    pub(crate) graph_node_digest: u64,
+    pub(crate) touch_identity_digest: Option<u64>,
+    pub(crate) family: Option<UiInspectionObligationFamily>,
+    pub(crate) decision: UiInspectionObligationDecision,
+    pub(crate) dispatch_posture: Option<UiInspectionObligationDispatchPosture>,
+    pub(crate) verdict_class: Option<UiInspectionObligationVerdictClass>,
+    pub(crate) verdict_posture: Option<UiInspectionObligationVerdictPosture>,
+    pub(crate) denial_posture: Option<UiInspectionObligationDenialPosture>,
+    pub(crate) selection_reasons: Box<[UiInspectionObligationSelectionReason]>,
+    pub(crate) prerequisite_sources: Box<[UiInspectionEvidenceSource]>,
+    pub(crate) non_selection_reason: Option<UiInspectionObligationNonSelectionReason>,
+    pub(crate) legality_reason: Option<UiInspectionObligationLegalityReason>,
+}
+
 impl UiInspectionObligationReasonProjection {
-    pub(crate) fn new(
-        handle_digest: u64,
-        graph_node_digest: u64,
-        touch_identity_digest: Option<u64>,
-        family: Option<UiInspectionObligationFamily>,
-        decision: UiInspectionObligationDecision,
-        dispatch_posture: Option<UiInspectionObligationDispatchPosture>,
-        verdict_class: Option<UiInspectionObligationVerdictClass>,
-        verdict_posture: Option<UiInspectionObligationVerdictPosture>,
-        denial_posture: Option<UiInspectionObligationDenialPosture>,
-        selection_reasons: Box<[UiInspectionObligationSelectionReason]>,
-        prerequisite_sources: Box<[UiInspectionEvidenceSource]>,
-        non_selection_reason: Option<UiInspectionObligationNonSelectionReason>,
-        legality_reason: Option<UiInspectionObligationLegalityReason>,
-    ) -> Self {
+    pub(crate) fn new(input: UiInspectionObligationReasonProjectionInput) -> Self {
+        let UiInspectionObligationReasonProjectionInput {
+            handle_digest,
+            graph_node_digest,
+            touch_identity_digest,
+            family,
+            decision,
+            dispatch_posture,
+            verdict_class,
+            verdict_posture,
+            denial_posture,
+            selection_reasons,
+            prerequisite_sources,
+            non_selection_reason,
+            legality_reason,
+        } = input;
         Self {
             handle_digest,
             graph_node_digest,

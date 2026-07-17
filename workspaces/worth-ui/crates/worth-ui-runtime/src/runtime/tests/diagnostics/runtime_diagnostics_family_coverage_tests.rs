@@ -124,7 +124,8 @@ fn artifact_equivalence_report() -> WorthUiRuntimeDiagnosticReport {
         &runtime,
         artifact_from_modules(&app, [surface_module("workspace.surface.main")]),
     );
-    let stale_admitted = admitted.with_admitted_query_support_receipt_digest_for_test(u64::MAX);
+    let stale_admitted =
+        admitted.with_admitted_query_contract_for_test("stale-diagnostic-contract");
     let denial = runtime
         .compare_admitted_replacement(&stale_admitted)
         .expect_err("changed admission receipt denies before artifact comparison");
@@ -264,7 +265,7 @@ fn plan_inspection_report() -> WorthUiRuntimeDiagnosticReport {
         .expect("runtime handles allocate");
     let plan = runtime
         .assemble_execution_plan_topology(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
         )
         .expect("execution plan topology assembles");
@@ -316,7 +317,7 @@ fn lane_admission_report() -> WorthUiRuntimeDiagnosticReport {
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &support_without_query,
         )
         .expect_err("unsupported Query lane denies");

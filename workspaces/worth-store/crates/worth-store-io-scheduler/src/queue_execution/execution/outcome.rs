@@ -116,7 +116,7 @@ fn execute_ready_queue_plan_with_authoritative_group_count(
     let secondary_budget = secondary_plan
         .as_ref()
         .map(|plan| plan.admitted_budget())
-        .unwrap_or_else(crate::BackgroundResourceBudget::new);
+        .unwrap_or_default();
     let submitted = submitted_units(plan.admitted_budget()) + submitted_units(secondary_budget);
     if completion.posture().profile() != plan.backend_profile()
         || completion.posture().evidence_class() != plan.backend_evidence_class()
@@ -166,7 +166,7 @@ fn execute_queue_batch(
     let secondary_budget = secondary_plan
         .as_ref()
         .map(|plan| plan.admitted_budget())
-        .unwrap_or_else(crate::BackgroundResourceBudget::new);
+        .unwrap_or_default();
     let submitted = submitted_units(primary_budget) + submitted_units(secondary_budget);
     let read_ahead_limit =
         primary_budget.read_ahead_window() + secondary_budget.read_ahead_window();

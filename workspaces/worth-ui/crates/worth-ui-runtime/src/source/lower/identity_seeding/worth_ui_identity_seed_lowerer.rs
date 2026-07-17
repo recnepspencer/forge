@@ -119,13 +119,13 @@ fn lower_node(
                     crate::source::WorthUiDurableStateEligibility::Eligible { .. }
                 ),
             );
-            WorthUiIdentitySeededArtifactInputNode::Surface(
+            WorthUiIdentitySeededArtifactInputNode::Surface(Box::new(
                 WorthUiIdentitySeededArtifactInputSurfaceNode::new(
-                    surface_node.clone(),
+                    (**surface_node).clone(),
                     seed,
                     durable,
                 ),
-            )
+            ))
         }
         WorthUiBoundArtifactInputNode::Binding(binding_node) => {
             let seed = binding_seed(module_id, binding_node);

@@ -115,24 +115,9 @@ fn query_shaped_patch_posture_preserved_in_data_lane() {
 
     assert_eq!(posture.plan_index(), expected.plan_index());
     assert_eq!(posture.view_binding_id(), expected.view_binding_id());
-    assert_eq!(
-        posture.support_admission_digest(),
-        expected.support_admission_digest()
-    );
-    assert_eq!(
-        posture.live_compatibility_digest(),
-        expected.live_compatibility_digest()
-    );
-    assert_eq!(
-        posture.async_result_state_digest(),
-        expected.async_result_state_digest()
-    );
-    assert_eq!(posture.inspection_digest(), expected.inspection_digest());
-    assert_eq!(
-        posture.projection_consumption_digest(),
-        expected.projection_consumption_digest()
-    );
-    assert_eq!(posture.recovery_digest(), expected.recovery_digest());
+    assert_eq!(posture.binding_identity(), expected.binding_identity());
+    assert_eq!(posture.posture(), expected.posture());
+    assert_eq!(posture.required_surfaces(), expected.required_surfaces());
 }
 
 #[test]

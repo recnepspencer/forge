@@ -86,19 +86,19 @@ impl WorthUiHudPlanBuilder {
             &hooks,
         );
 
-        Ok(WorthUiHudPlan::new(
-            execution_plan.handle_receipt(),
-            lane_admission.support_digest(),
+        Ok(WorthUiHudPlan::new(super::WorthUiHudPlanInput {
+            handle_receipt: execution_plan.handle_receipt(),
+            support_digest: lane_admission.support_digest(),
             hud_plan_digest,
             frame_policy,
-            hud_rows.rows,
-            hud_rows.renderer_surface_admissions,
+            rows: hud_rows.rows,
+            renderer_surface_admissions: hud_rows.renderer_surface_admissions,
             command_plan_indexes,
             accessibility_plan_indexes,
             diagnostics_plan_indexes,
-            hooks,
+            overlay_hooks: hooks,
             counters,
-        ))
+        }))
     }
 }
 

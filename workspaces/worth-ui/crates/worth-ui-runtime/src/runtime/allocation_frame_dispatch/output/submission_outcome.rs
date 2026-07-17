@@ -9,8 +9,8 @@ use super::UiAllocationFrameDispatcherCounters;
 /// Self-describing result issued only by the allocation-frame linearizer.
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiAllocationFrameSubmissionOutcome {
-    ingress_key: UiAllocationFrameIngressKey,
-    counters: UiAllocationFrameDispatcherCounters,
+    ingress_key: Box<UiAllocationFrameIngressKey>,
+    counters: Box<UiAllocationFrameDispatcherCounters>,
     representation: UiAllocationFrameSubmissionRepresentation,
 }
 
@@ -126,22 +126,22 @@ impl UiAllocationFrameSubmissionOutcome {
         representation: UiAllocationFrameSubmissionRepresentation,
     ) -> Self {
         Self {
-            ingress_key,
-            counters,
+            ingress_key: Box::new(ingress_key),
+            counters: Box::new(counters),
             representation,
         }
     }
 
     pub fn ingress_key(&self) -> UiAllocationFrameIngressKey {
-        self.ingress_key.clone()
+        (*self.ingress_key).clone()
     }
 
     pub fn ingress_identity(&self) -> UiAllocationFrameIngressIdentity {
-        self.ingress_key.clone().ingress_identity()
+        self.ingress_key.ingress_identity()
     }
 
     pub fn counters(&self) -> UiAllocationFrameDispatcherCounters {
-        self.counters
+        *self.counters
     }
 
     pub fn is_queued(&self) -> bool {

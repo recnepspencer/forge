@@ -26,7 +26,7 @@ pub struct WorthUiRuntimeFrameworkLoop {
         Option<crate::runtime::UiNarrowedAllocationFramePlan>,
     pub(crate) allocation_source_order_ledger:
         crate::runtime::stream_policy::UiAllocationSourceOrderLedger,
-    pub(crate) query_binding: worth_ui_query_binding::WorthUiQueryBindingSubsystem,
+    pub(crate) query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     pub(crate) transient_interaction_admission:
         crate::runtime::replacement::state_inventory::WorthUiTransientInteractionAdmissionAuthority,
     pub(crate) host_measurement_source: Rc<RefCell<crate::host::UiHostMeasurementSourceAuthority>>,

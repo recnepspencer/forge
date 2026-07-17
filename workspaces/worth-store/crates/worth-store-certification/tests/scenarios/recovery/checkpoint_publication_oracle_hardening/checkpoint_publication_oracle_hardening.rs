@@ -7,9 +7,9 @@ use checkpoint_oracle_support::{
     lower_checkpoint_crash_replay_plan, lower_checkpoint_plan, production_fixture, schedule,
 };
 use worth_store_physical_certification::{
-    CrashRecoversOldOrNewNeverMixedOracle, ExecutedPhysicalSimulationObservation,
-    ExecutedTranscriptParts, NoMixedRootOracle, OldReaderSeesOldRootOracle, OracleDenial,
-    PhysicalCertificationEvidenceBundle, PhysicalProofOracleKind, PhysicalProofOracleVerdictKind,
+    CrashRecoversOldOrNewNeverMixedOracle, ExecutedTranscriptParts, NoMixedRootOracle,
+    OldReaderSeesOldRootOracle, OracleDenial, PhysicalCertificationEvidenceBundle,
+    PhysicalProofOracleKind, PhysicalProofOracleVerdictKind, PhysicalSimulationBoundaryObservation,
     PhysicalSimulationObserver, PostSwapReaderSeesNewRootOracle, ReusablePhysicalOracleFamily,
 };
 
@@ -234,9 +234,10 @@ fn support_attached_recovery_outcome_does_not_carry_checkpoint_crash_lane() {
 fn missing_checkpoint_or_compaction_observation_cannot_satisfy_reader_oracle() {
     let plan = lower_checkpoint_plan();
     let trace = PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(
+        .observe_boundary_observation(
             &plan,
-            &ExecutedPhysicalSimulationObservation::from_executed_plan(&plan).unwrap(),
+            &PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(&plan)
+                .unwrap(),
         )
         .unwrap()
         .complete()

@@ -24,7 +24,7 @@ pub(crate) fn construct_digest_collision_denial(
         crate::BlobChunkDedupeAdmissionDenial::DigestCollisionDenied {
             posture: BlobChunkDedupeCollisionPosture::DigestCollisionDenied,
             counters: receipt.counters(),
-            receipt,
+            receipt: Box::new(receipt),
         },
     )
 }

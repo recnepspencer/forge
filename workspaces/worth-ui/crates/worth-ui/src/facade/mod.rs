@@ -1,5 +1,3 @@
-#![allow(hidden_glob_reexports)]
-
 pub mod admission;
 pub mod app;
 mod compat;
@@ -18,9 +16,10 @@ pub mod obligations;
 pub mod query_binding;
 pub mod registry;
 mod runtime_handoff {}
+pub mod runtime;
 pub mod support;
 
 pub use compat::*;
 pub use inspection::{UiAuthoredSourceProvenanceRef, UiInspectionDeclarationIdentity};
 pub use support::*;
-pub use worth_ui_runtime::facade::*;
+pub use worth_ui_runtime::facade::runtime_exports::*;

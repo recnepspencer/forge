@@ -13,25 +13,20 @@ pub struct UiInspectionFacadeObservation {
 }
 
 impl UiInspectionFacadeObservation {
-    pub const fn new(
-        total_query_count: u64,
-        unsupported_query_count: u64,
-        support_report_count: u64,
-        rich_artifact_materialization_count: u64,
-        authored_lookup_count: u64,
-        graph_node_evidence_index_rebuild_count: u64,
-        graph_aspect_evidence_index_rebuild_count: u64,
-        log_emission_count: u64,
-    ) -> Self {
+    fn from_state(state: &WorthUiInspectionObservationState) -> Self {
         Self {
-            total_query_count,
-            unsupported_query_count,
-            support_report_count,
-            rich_artifact_materialization_count,
-            authored_lookup_count,
-            graph_node_evidence_index_rebuild_count,
-            graph_aspect_evidence_index_rebuild_count,
-            log_emission_count,
+            total_query_count: state.total_query_count.get(),
+            unsupported_query_count: state.unsupported_query_count.get(),
+            support_report_count: state.support_report_count.get(),
+            rich_artifact_materialization_count: state.rich_artifact_materialization_count.get(),
+            authored_lookup_count: state.authored_lookup_count.get(),
+            graph_node_evidence_index_rebuild_count: state
+                .graph_node_evidence_index_rebuild_count
+                .get(),
+            graph_aspect_evidence_index_rebuild_count: state
+                .graph_aspect_evidence_index_rebuild_count
+                .get(),
+            log_emission_count: state.log_emission_count.get(),
         }
     }
 
@@ -108,16 +103,7 @@ impl WorthUiInspectionObservationState {
     }
 
     pub(crate) fn snapshot(&self) -> UiInspectionFacadeObservation {
-        UiInspectionFacadeObservation::new(
-            self.total_query_count.get(),
-            self.unsupported_query_count.get(),
-            self.support_report_count.get(),
-            self.rich_artifact_materialization_count.get(),
-            self.authored_lookup_count.get(),
-            self.graph_node_evidence_index_rebuild_count.get(),
-            self.graph_aspect_evidence_index_rebuild_count.get(),
-            self.log_emission_count.get(),
-        )
+        UiInspectionFacadeObservation::from_state(self)
     }
 
     pub(crate) fn record_rich_artifact_materialization(&self) {

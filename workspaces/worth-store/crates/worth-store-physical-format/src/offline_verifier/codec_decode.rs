@@ -40,7 +40,7 @@ pub(crate) fn decode(
     })
 }
 
-fn decode_root(
+pub(crate) fn decode_root(
     byte_order: PhysicalByteOrder,
     bytes: &[u8],
     counters: OfflineVerifierCounterSnapshot,

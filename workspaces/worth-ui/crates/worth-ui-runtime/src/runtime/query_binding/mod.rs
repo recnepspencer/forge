@@ -14,4 +14,5 @@ pub use comparison::{
 pub(crate) use evidence::WorthUiQueryBindingEvidenceIndex;
 pub use identity::WorthUiQueryBindingIdentity;
 pub(crate) use planner::WorthUiQueryBindingComparisonPlanner;
+pub(crate) use posture::WorthUiQueryBindingPostureInput;
 pub use posture::{WorthUiQueryBindingPosture, WorthUiQueryBindingPostureDriftFamily};

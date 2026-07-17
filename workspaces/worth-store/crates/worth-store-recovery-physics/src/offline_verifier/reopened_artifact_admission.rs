@@ -115,8 +115,9 @@ fn replay_cursor_from_reopened_artifacts(
     if page_facts.is_empty() {
         return Err(ReopenedRecoveryArtifactAdmissionDenial::MissingCheckpointPageImage);
     }
-    RedoApplicationCursor::new(page_facts)
-        .map_err(ReopenedRecoveryArtifactAdmissionDenial::ReplayCursorDenied)
+    RedoApplicationCursor::new(page_facts).map_err(|denial| {
+        ReopenedRecoveryArtifactAdmissionDenial::ReplayCursorDenied(Box::new(denial))
+    })
 }
 
 fn reopened_page_fact(
@@ -183,5 +184,5 @@ pub enum ReopenedRecoveryArtifactAdmissionDenial {
     LiveRuntimeStateReuse,
     MissingCheckpointPageImage,
     InvalidPhysicalPageIdentity,
-    ReplayCursorDenied(RedoPlanningDenial),
+    ReplayCursorDenied(Box<RedoPlanningDenial>),
 }

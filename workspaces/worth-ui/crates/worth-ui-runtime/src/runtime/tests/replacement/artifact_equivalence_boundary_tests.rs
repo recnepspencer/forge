@@ -153,14 +153,16 @@ fn meaningful_artifact_difference_classified_before_impact_narrowing() {
 }
 
 #[test]
-fn changed_admission_receipt_rejected_before_artifact_comparison() {
+fn changed_admission_contract_rejected_before_artifact_comparison() {
     let app = WorthUi::app().freeze();
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let admitted = admitted_candidate(&app, &runtime, ["app/panels/inspector.wui"]);
-    let current_receipt_digest = admitted.report().query_support_receipt().receipt_digest();
-    let stale_admitted_receipt_digest = current_receipt_digest ^ 0x55aa;
-    let stale_admitted =
-        admitted.with_admitted_query_support_receipt_digest_for_test(stale_admitted_receipt_digest);
+    let current_contract_identity = admitted
+        .report()
+        .query_support_receipt()
+        .contract_identity();
+    let stale_admitted_contract_identity = query_contract_identity("stale-admission-contract");
+    let stale_admitted = admitted.with_admitted_query_contract_for_test("stale-admission-contract");
 
     let denial = runtime
         .compare_admitted_replacement(&stale_admitted)
@@ -169,9 +171,9 @@ fn changed_admission_receipt_rejected_before_artifact_comparison() {
     assert_eq!(
         denial,
         WorthUiRuntimeArtifactComparisonDenial::AdmissionReceiptChanged {
-            denial: WorthUiCandidateAdmissionDenial::QuerySupportReceiptChanged {
-                admitted_receipt_digest: stale_admitted_receipt_digest,
-                current_receipt_digest,
+            denial: WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
+                admitted_contract_identity: stale_admitted_contract_identity,
+                current_contract_identity,
             },
             counters: Default::default(),
         }
@@ -179,6 +181,17 @@ fn changed_admission_receipt_rejected_before_artifact_comparison() {
     assert_eq!(denial.counters().artifact_comparisons(), 0);
     assert_eq!(denial.counters().impact_narrowing_attempts(), 0);
     assert_eq!(denial.counters().plan_lowering_attempts(), 0);
+}
+
+fn query_contract_identity(
+    label: &str,
+) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
+    let definition =
+        worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(label)
+            .expect("test Query contract label admits");
+    worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
+        definition.digest()
+    ])
 }
 
 #[test]

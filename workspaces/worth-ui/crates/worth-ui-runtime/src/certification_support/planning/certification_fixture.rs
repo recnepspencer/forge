@@ -13,7 +13,7 @@ use super::fixture_support::{
     artifact_from_modules, capability_report, container_basis, control_app,
     declaration_identity_for, graph_node_identity_for_provenance, host_portal_anchor_result,
     host_scroll_viewport_result, intrinsic_basis, measurement_policy, peer_app, query_app,
-    snapshot_with_admitted_layout,
+    snapshot_with_admitted_layout, structural_touch_for_node,
 };
 use crate::runtime::WorthUiAllocationPlanning;
 
@@ -74,8 +74,10 @@ fn planning_scenario(
     crate::obligations::selection::UiSelectedObligationSet,
 ) {
     let generation = UiEvidenceAuthorityGeneration::new(17);
-    let (_, _, world_profile) = crate::evidence::measurement::projection::query_context_test_support::
-        display_field_projection_context(operator_token);
+    // Planning certification exercises UI allocation determinism, not Query
+    // construction. Query-hostile worlds are owned by worth-ui-certification;
+    // this production feature therefore carries no direct Query dependency.
+    let world_profile = crate::graph::UiGraphWorldProfile::authoritative();
     let (app, nodes, bounded) = match shape {
         CertificationScenarioShape::Control { nodes, bounded } => (
             control_app(world_profile, operator_token, nodes, bounded),
@@ -110,9 +112,7 @@ fn planning_scenario(
         }
         _ => container_basis(&app, root, generation, bounded),
     };
-    let touch = app
-        .try_query_touch_for_node(root)
-        .expect("certification planning root must admit a query touch");
+    let touch = structural_touch_for_node(&app, root);
     let selected = app.admission().select_obligations(&touch);
     (basis, snapshot, selected)
 }
@@ -236,9 +236,11 @@ fn stage_pending_activation(
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation),
-            Some(&query_rebind),
-            Some(&pending_input),
+            crate::runtime::WorthUiActivationStagingPlans {
+                reconciliation_plan: Some(&reconciliation),
+                query_rebind_plan: Some(&query_rebind),
+                pending_execution_plan_lowering_input: Some(&pending_input),
+            },
         )
         .expect("suite activation staging succeeds")
 }

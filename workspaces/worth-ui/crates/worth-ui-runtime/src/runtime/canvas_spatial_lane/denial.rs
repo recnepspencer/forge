@@ -23,14 +23,14 @@ pub enum WorthUiCanvasSpatialFrameDenialReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiCanvasSpatialPlanDenial {
     reason: WorthUiCanvasSpatialPlanDenialReason,
-    counters: WorthUiCanvasSpatialCounters,
+    counters: Box<WorthUiCanvasSpatialCounters>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiCanvasSpatialFrameDenial {
     reason: WorthUiCanvasSpatialFrameDenialReason,
     plan_index: Option<u32>,
-    counters: WorthUiCanvasSpatialCounters,
+    counters: Box<WorthUiCanvasSpatialCounters>,
 }
 
 impl WorthUiCanvasSpatialPlanDenial {
@@ -38,7 +38,10 @@ impl WorthUiCanvasSpatialPlanDenial {
         reason: WorthUiCanvasSpatialPlanDenialReason,
         counters: WorthUiCanvasSpatialCounters,
     ) -> Self {
-        Self { reason, counters }
+        Self {
+            reason,
+            counters: Box::new(counters),
+        }
     }
 
     pub fn reason(&self) -> WorthUiCanvasSpatialPlanDenialReason {
@@ -46,7 +49,7 @@ impl WorthUiCanvasSpatialPlanDenial {
     }
 
     pub fn counters(&self) -> WorthUiCanvasSpatialCounters {
-        self.counters
+        *self.counters
     }
 }
 
@@ -59,7 +62,7 @@ impl WorthUiCanvasSpatialFrameDenial {
         Self {
             reason,
             plan_index,
-            counters,
+            counters: Box::new(counters),
         }
     }
 
@@ -72,6 +75,6 @@ impl WorthUiCanvasSpatialFrameDenial {
     }
 
     pub fn counters(&self) -> WorthUiCanvasSpatialCounters {
-        self.counters
+        *self.counters
     }
 }

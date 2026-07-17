@@ -86,6 +86,19 @@ impl<S, D, De, St, R, F> TransitionOutcome<S, D, De, St, R, F> {
     }
 }
 
+impl<S, D> TransitionOutcome<S, D> {
+    pub fn into_result(self) -> Result<S, D> {
+        match self {
+            Self::Success(value) => Ok(value),
+            Self::Denied(denial) => Err(denial),
+            Self::Deferred(never)
+            | Self::Stale(never)
+            | Self::RebindRequired(never)
+            | Self::Failed(never) => match never {},
+        }
+    }
+}
+
 impl<S, D, De, St, R, F> From<SuccessfulTransitionOutcome<S>>
     for TransitionOutcome<S, D, De, St, R, F>
 {
@@ -154,5 +167,15 @@ mod tests {
         let widened: TransitionOutcome<u64, &'static str> = success.into();
 
         assert!(matches!(widened, TransitionOutcome::Success(9)));
+    }
+
+    #[test]
+    fn denial_only_outcome_projects_success_and_denial_without_category_loss() {
+        let success: DenialTransitionOutcome<u64, &'static str> = TransitionOutcome::success(13);
+        let denied: DenialTransitionOutcome<u64, &'static str> =
+            TransitionOutcome::denied("denied");
+
+        assert_eq!(success.into_result(), Ok(13));
+        assert_eq!(denied.into_result(), Err("denied"));
     }
 }

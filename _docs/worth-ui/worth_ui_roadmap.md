@@ -606,6 +606,12 @@ structural closeout bundle and 3.8 start-here capabilities).
 
 Detailed spec: [milestone-3.8.md](./milestone-3.8.md)
 
+**Status: Closed.** Phases 1-22 have landed. The post-Query-9.13 cutover closes
+installed-domain composition, declarative binding, native projection,
+identity, facade, and topology authority; the final phases close local
+inspection, freshness, counters, typed denials, hostile runtime integration,
+and anti-bypass certification.
+
 This slice closes committed allocation truth and churn-heavy measurement
 behavior after 3.6a and 3.6b planning semantics already exist **and after 3.7
 cleaned the runtime topology**. It also owns the runtime frame-dispatch
@@ -630,6 +636,16 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 
 **Must ship**
 
+- one runtime-installed Worth UI Query domain composition path and one
+  declarative binding definition; Query-free apps remain ceremony-free
+- `worth-ui-query-binding` as the enforced production Query/UI semantic edge,
+  with Worth UI runtime consuming binding-owned admitted artifacts rather than
+  Query topology directly
+- Foundational-native Query projection values carried into measurement and
+  allocation without local scalar, JSON, bit-pattern, or digest authority
+- deletion of consumer-local Query mirrors, manual Query identity hashing,
+  deprecated phase aliases, invalid public pseudo-Query constructors, and
+  bucket-shaped allocation topology
 - `UiAllocationReceipt`
 - allocation equivalence and reuse basis
 - runtime-owned frame epochs, sealed admitted stream frames, and one ordinary
@@ -650,6 +666,16 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 
 **Acceptance evidence**
 
+- an external consumer can install the Worth UI Query domain, derive and
+  register a measurement binding, consume native projection facts, enter the
+  allocation frame through one binding-owned settlement, and inspect the
+  result using only admitted facades
+- direct runtime Query dependencies, raw Query facade re-exports, copied digest
+  authority, and foreign or stale installed handles fail compiler, boundary, or
+  hostile certification checks before allocation work begins
+- the ordinary API is shorter than manual assembly: callers do not separately
+  wire Query capability, result shape, basis posture, live compatibility, or
+  composition digests
 - viewport resize enters as host observation, is admitted into a runtime-owned
   stream frame, and replans only the affected allocation neighborhood
 - mosaic resize and local composition allocation use the same measurement lane
@@ -663,7 +689,63 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 - new receipts attach to verified planning/measurement transitions, not host
   folklore or reconstructed booleans
 
+### Milestone 3.8.1: Runtime Authority Closure and Honest Composition Gate
+
+Detailed spec: [milestone-3.8.1.md](./milestone-3.8.1.md)
+
+**Status: Planned. Blocking prerequisite for Milestone 3.9.**
+
+This closure slice binds the artifact, declarations, committed graph, Query
+binding, capability snapshot, host session, runtime execution, and inspection
+surfaces into one application generation before execution-plan lowering builds
+on the 3.8 substrate.
+
+**Must ship**
+
+- one sealed prepared application authority and one active application session
+  that cannot be split into independently launchable runtime and inspection
+  truth
+- inseparable file- and Rust-authored candidate composition through
+  preparation and atomic replacement cutover
+- typed fallible freeze/preparation with no panic for publicly constructible
+  invalid declarations or graph topology
+- operational host-session authority; arbitrary per-turn adapter substitution
+  is mechanically unavailable
+- proof-bearing framework-turn transition planning and policy-family execution
+  beneath one thin close/pump owner
+- deletion of unreachable GPU/theme source and a mechanical production-source
+  reachability gate
+- hostile end-to-end and anti-bypass certification across application, Query,
+  host, allocation, replacement, and inspection generations
+
+**Must preserve**
+
+- canonical artifact meaning, Query-owned binding authority, runtime-owned UI
+  semantics, and host adapters limited to native mechanics
+- invalid replacement preservation of the last complete active generation
+- delta-bounded allocation work with explicit structural counters
+- Query-free and headless paths without unnecessary ceremony
+- no compatibility lane retaining artifact-only launch, split source ingress,
+  decorative host configuration, or infallible public freeze
+
+**Acceptance evidence**
+
+- mixed artifact/declaration/graph/Query/host/application generations are
+  unrepresentable or deny before mutation even when capability digests match
+- active runtime and active inspection report the same generation through
+  launch, ordinary frames, valid replacement, no-op replacement, and denied
+  replacement
+- public invalid input returns typed denial without unwind or partial authority
+  publication
+- framework-turn planning is mutation-free, execution is transactional, and
+  close/pump ownership remains exactly once
+- every production Rust source file participates in a declared compiled module
+  graph and all workspace quality/boundary/certification gates are green
+
 ### Milestone 3.9: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
+
+This slice begins only after Milestone 3.8.1 has closed the application,
+replacement, host-session, and framework-turn composition boundaries.
 
 This slice ensures execution consumes lowered plans instead of reconstructing
 strategy from graph or declaration artifacts every frame.

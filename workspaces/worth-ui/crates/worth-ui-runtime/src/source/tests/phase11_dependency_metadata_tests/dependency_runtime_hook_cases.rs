@@ -41,26 +41,28 @@ fn dependency_metadata_preserves_runtime_graph_hooks() {
         .runtime_hooks_for(&binding)
         .first()
         .expect("binding runtime hook");
-    assert_eq!(hook.kind(), WorthUiRuntimeDependencyHookKind::QueryLiveView);
+    assert_eq!(hook.kind(), WorthUiRuntimeDependencyHookKind::LiveView);
     assert_eq!(
         hook.view_binding_id().as_str(),
         "workspace.view_binding.selection"
     );
-    assert!(hook.query_capability().is_admitted());
-    assert!(hook.basis_posture().is_admitted());
-    assert!(hook.live_compatibility().is_admitted());
+    assert_eq!(
+        hook.definition().identity().as_str(),
+        "workspace.view_binding.selection"
+    );
+    assert_eq!(
+        hook.definition().lifecycle(),
+        worth_ui_query_binding::WorthUiQueryViewLifecycle::Snapshot
+    );
     assert_eq!(
         hook.denial_presentation(),
         &QueryDenialPresentation::structured_status()
     );
     assert_eq!(
-        hook.view_shape().family(),
-        worth_query::facade::runtime::ViewShapeFamily::Table
+        hook.definition().shape(),
+        worth_ui_query_binding::WorthUiQueryViewShape::Collection
     );
-    assert!(hook
-        .result_shape()
-        .family()
-        .eq(&worth_query::facade::foundation::ResultShapeFamily::Collection));
+    assert_eq!(hook.definition().required_facts().len(), 1);
 }
 
 #[test]

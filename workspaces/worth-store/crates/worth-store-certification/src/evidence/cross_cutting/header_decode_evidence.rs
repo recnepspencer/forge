@@ -201,9 +201,8 @@ mod tests {
     use super::*;
     use worth_store_physical_format::{
         PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
-        PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-        PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority,
-        PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+        PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalRecordSlot,
+        PhysicalReferenceAuthority, PhysicalSegmentId,
     };
 
     #[test]
@@ -245,7 +244,7 @@ mod tests {
         authority
             .decode_frame_header(
                 validated_slot_reference(),
-                &header_bytes(PhysicalFrameKind::RecordFrame.tag(), 3, b"abc"),
+                &crate::physical_fixture_encoding::record_frame_bytes(slot_cell(), b"abc"),
                 PhysicalFrameKind::RecordFrame,
             )
             .unwrap()
@@ -253,28 +252,17 @@ mod tests {
 
     fn validated_slot_reference() -> worth_store_physical_format::PhysicalReferenceValidationWitness
     {
-        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
         let references = PhysicalReferenceAuthority::for_canonical_physical_format();
-        let cell = generations
-            .slot_cell(segment(1), page(2), slot(3))
-            .with_slot_generation(generation(3));
+        let cell = slot_cell();
         references
             .validate_page_slot(references.admit_page_slot(cell), cell)
             .unwrap()
     }
 
-    fn header_bytes(kind_tag: u8, generation_value: u64, payload: &[u8]) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-        bytes.push(kind_tag);
-        bytes.extend_from_slice(&1u16.to_le_bytes());
-        bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-        bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-        bytes.extend_from_slice(&generation_value.to_le_bytes());
-        bytes.push(PhysicalPublicationState::Published.code());
-        bytes.extend_from_slice(&0u32.to_le_bytes());
-        bytes.extend_from_slice(&0u64.to_le_bytes());
-        bytes.extend_from_slice(payload);
-        bytes
+    fn slot_cell() -> worth_store_physical_format::SlotGenerationCell {
+        PhysicalGenerationAuthority::for_canonical_physical_format()
+            .slot_cell(segment(1), page(2), slot(3))
+            .with_slot_generation(generation(3))
     }
 
     fn segment(value: u64) -> PhysicalSegmentId {

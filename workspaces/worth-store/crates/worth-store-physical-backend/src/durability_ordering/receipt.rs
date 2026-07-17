@@ -2,8 +2,16 @@ use crate::{BackendTargetProfile, CapabilityEvidenceClass, WalDurabilityBarrierS
 
 use super::{
     StoreDurabilityCounterSnapshot, StoreDurabilityDenial, StoreDurabilityDenialKind,
-    StoreDurabilityExecutionProof, StoreDurabilityFileSyncKind, StoreDurabilityOperation,
-    StoreDurabilityPublicationKind, StoreDurabilityRequirement, StoreDurabilityState,
+    StoreDurabilityExecutionProof, StoreDurabilityOperation, StoreDurabilityPublicationKind,
+    StoreDurabilityRequirement, StoreDurabilityState,
+};
+
+#[path = "receipt/barrier_validation.rs"]
+mod barrier_validation;
+
+use barrier_validation::{
+    directory_barriers, file_barriers, file_sync_satisfies, missing_completed_step_denial,
+    operation_for, require_all_barriers, require_barrier_class,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,34 +31,8 @@ struct StoreDurabilityReceiptCore<S> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StoreDurabilityPersistedArtifact {
     path: std::path::PathBuf,
+    offset: u64,
     bytes: u64,
-}
-
-impl<S> StoreDurabilityReceiptCore<S> {
-    const fn new(
-        scope: S,
-        profile: BackendTargetProfile,
-        evidence_class: CapabilityEvidenceClass,
-        requirement: StoreDurabilityRequirement,
-        completed_barriers: WalDurabilityBarrierSet,
-        directory_sync_completed: bool,
-        rename_completed: bool,
-        ordering_barrier_completed: bool,
-        counters: StoreDurabilityCounterSnapshot,
-    ) -> Self {
-        Self {
-            scope,
-            profile,
-            evidence_class,
-            requirement,
-            completed_barriers,
-            directory_sync_completed,
-            rename_completed,
-            ordering_barrier_completed,
-            counters,
-            persisted_artifact: None,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -93,17 +75,18 @@ impl<S> StoreDurabilityWriteSubmitted<S> {
         counters: StoreDurabilityCounterSnapshot,
     ) -> Self {
         Self {
-            core: StoreDurabilityReceiptCore::new(
+            core: StoreDurabilityReceiptCore {
                 scope,
                 profile,
                 evidence_class,
                 requirement,
                 completed_barriers,
-                false,
-                false,
-                false,
+                directory_sync_completed: false,
+                rename_completed: false,
+                ordering_barrier_completed: false,
                 counters,
-            ),
+                persisted_artifact: None,
+            },
         }
     }
 
@@ -168,21 +151,12 @@ where
             ));
         }
         let completed_barriers = execution.completed_barriers();
-        if !completed_barriers.satisfies(self.core.requirement.required_barriers()) {
-            let missing = completed_barriers
-                .first_missing_from(self.core.requirement.required_barriers())
-                .expect("required barriers are not satisfied");
-            return Err(StoreDurabilityDenial::new(
-                StoreDurabilityDenialKind::MissingRequiredBarrier,
-                StoreDurabilityState::Denied,
-                operation_for(self.core.requirement),
-                self.core.profile,
-                CapabilityEvidenceClass::CertifiedBackendProfile,
-                self.core.evidence_class,
-                self.core.counters.with_denied_claim(),
-            )
-            .with_missing_barrier(missing));
-        }
+        require_barrier_class(
+            &self.core,
+            completed_barriers,
+            file_barriers(),
+            operation_for(self.core.requirement),
+        )?;
         Ok(StoreDurabilityBoundaryReached {
             core: StoreDurabilityReceiptCore {
                 completed_barriers,
@@ -192,6 +166,7 @@ where
                 counters: execution.apply_boundary_counters(self.core.counters),
                 persisted_artifact: Some(StoreDurabilityPersistedArtifact {
                     path: execution.persisted_path().to_path_buf(),
+                    offset: execution.persisted_offset(),
                     bytes: execution.persisted_bytes(),
                 }),
                 ..self.core
@@ -206,35 +181,6 @@ impl<S> StoreDurabilityWriteAccepted<S> {
     }
 }
 
-const fn operation_for(requirement: StoreDurabilityRequirement) -> StoreDurabilityOperation {
-    match requirement.publication() {
-        StoreDurabilityPublicationKind::WalFrame => StoreDurabilityOperation::WalPublication,
-        StoreDurabilityPublicationKind::Checkpoint => {
-            StoreDurabilityOperation::CheckpointPublication
-        }
-        StoreDurabilityPublicationKind::Manifest => StoreDurabilityOperation::ManifestPublication,
-    }
-}
-
-const fn file_sync_satisfies(
-    actual: StoreDurabilityFileSyncKind,
-    required: StoreDurabilityFileSyncKind,
-) -> bool {
-    matches!(
-        (actual, required),
-        (
-            StoreDurabilityFileSyncKind::Fsync,
-            StoreDurabilityFileSyncKind::Fsync
-        ) | (
-            StoreDurabilityFileSyncKind::Fsync,
-            StoreDurabilityFileSyncKind::Fdatasync
-        ) | (
-            StoreDurabilityFileSyncKind::Fdatasync,
-            StoreDurabilityFileSyncKind::Fdatasync
-        )
-    )
-}
-
 impl<S> StoreDurabilityBoundaryReached<S> {
     pub fn parent_namespace_durable(
         self,
@@ -246,6 +192,12 @@ impl<S> StoreDurabilityBoundaryReached<S> {
                 &self.core,
             ));
         }
+        require_barrier_class(
+            &self.core,
+            self.core.completed_barriers,
+            directory_barriers(),
+            StoreDurabilityOperation::DirectorySync,
+        )?;
         Ok(StoreDurabilityParentNamespaceDurable {
             core: StoreDurabilityReceiptCore {
                 counters: self.core.counters.with_directory_sync_completed(),
@@ -273,6 +225,7 @@ impl<S> StoreDurabilityBoundaryReached<S> {
                 &self.core,
             ));
         }
+        require_all_barriers(&self.core)?;
         Ok(StoreDurabilityOrderingBarrierDurable {
             core: StoreDurabilityReceiptCore {
                 counters: self.core.counters.with_ordering_barrier_completed(),
@@ -320,6 +273,7 @@ impl<S> StoreDurabilityParentNamespaceDurable<S> {
                 &self.core,
             ));
         }
+        require_all_barriers(&self.core)?;
         Ok(StoreDurabilityOrderingBarrierDurable {
             core: StoreDurabilityReceiptCore {
                 counters: self.core.counters.with_ordering_barrier_completed(),
@@ -344,6 +298,7 @@ impl<S> StoreDurabilityRenameDurable<S> {
                 &self.core,
             ));
         }
+        require_all_barriers(&self.core)?;
         Ok(StoreDurabilityOrderingBarrierDurable {
             core: StoreDurabilityReceiptCore {
                 counters: self.core.counters.with_ordering_barrier_completed(),
@@ -355,22 +310,6 @@ impl<S> StoreDurabilityRenameDurable<S> {
     pub const fn state(&self) -> StoreDurabilityState {
         StoreDurabilityState::RenameDurable
     }
-}
-
-fn missing_completed_step_denial<S>(
-    kind: StoreDurabilityDenialKind,
-    operation: StoreDurabilityOperation,
-    core: &StoreDurabilityReceiptCore<S>,
-) -> StoreDurabilityDenial {
-    StoreDurabilityDenial::new(
-        kind,
-        StoreDurabilityState::Denied,
-        operation,
-        core.profile,
-        CapabilityEvidenceClass::CertifiedBackendProfile,
-        core.evidence_class,
-        core.counters.with_denied_claim(),
-    )
 }
 
 impl<S> StoreDurabilityOrderingBarrierDurable<S> {
@@ -393,6 +332,10 @@ impl StoreDurabilityPersistedArtifact {
 
     pub const fn bytes(&self) -> u64 {
         self.bytes
+    }
+
+    pub const fn offset(&self) -> u64 {
+        self.offset
     }
 }
 

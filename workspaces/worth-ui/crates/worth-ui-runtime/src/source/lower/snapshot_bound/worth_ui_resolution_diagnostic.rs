@@ -30,7 +30,7 @@ pub(crate) struct WorthUiResolutionDiagnostic {
     code: WorthUiResolutionDiagnosticCode,
     module_id: WorthUiSourceModuleId,
     authored_text: String,
-    provenance: WorthUiArtifactInputProvenance,
+    provenance: Box<WorthUiArtifactInputProvenance>,
 }
 
 impl WorthUiResolutionDiagnostic {
@@ -44,7 +44,7 @@ impl WorthUiResolutionDiagnostic {
             code,
             module_id,
             authored_text: authored_text.into(),
-            provenance,
+            provenance: Box::new(provenance),
         }
     }
 

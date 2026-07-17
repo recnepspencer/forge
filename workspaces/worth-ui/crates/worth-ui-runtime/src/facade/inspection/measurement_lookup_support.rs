@@ -23,7 +23,7 @@ use crate::obligations::touch::{
 };
 
 pub(super) enum MeasurementInspectionOutcome {
-    Basis(UiMeasurementBasis),
+    Basis(Box<UiMeasurementBasis>),
     Denial(
         UiInspectionMeasurementDenialPosture,
         Option<UiInspectionMeasurementFailureSource>,
@@ -135,7 +135,7 @@ pub(super) fn admission_target_for_touch(
     {
         if let Ok(bound_target) = target
             .clone()
-            .with_query_prerequisites_from_query_authority(authority.authority())
+            .with_query_prerequisites_from_query_authority(authority)
         {
             target = bound_target;
         }
@@ -239,23 +239,12 @@ pub(super) enum QueryMeasurementInspectionOutcome {
 }
 
 fn project_query_basis_compatibility(
-    expected: &UiQueryMeasurementBasisAuthority,
-    observed: &UiQueryMeasurementBasisAuthority,
+    _expected: &UiQueryMeasurementBasisAuthority,
+    _observed: &UiQueryMeasurementBasisAuthority,
 ) -> UiInspectionMeasurementGenerationCompatibility {
     UiInspectionMeasurementGenerationCompatibility::IncompatibleWorld {
-        expected_query_basis_digest: query_basis_digest_from_authority(expected),
-        observed_world_basis_digest: Some(query_basis_digest_from_authority(observed)),
-    }
-}
-
-fn query_basis_digest_from_authority(authority: &UiQueryMeasurementBasisAuthority) -> Box<str> {
-    match authority {
-        UiQueryMeasurementBasisAuthority::AdmittedPrerequisites { basis_digest, .. } => {
-            basis_digest.as_str().into()
-        }
-        UiQueryMeasurementBasisAuthority::ProjectionConsumption { basis_digest, .. } => {
-            basis_digest.clone()
-        }
+        reason:
+            worth_ui_inspection::UiInspectionQueryWorldCompatibilityFailure::SnapshotBasisMismatch,
     }
 }
 

@@ -221,9 +221,11 @@ pub(crate) fn splitter_pending_activation_with_provenance(
             &impact,
             &narrowed,
             &node_plan,
-            Some(&reconciliation),
-            Some(&query_rebind),
-            Some(&lowering_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation),
+                Some(&query_rebind),
+                Some(&lowering_input),
+            ),
         )
         .expect("pending activation stages");
     let authored_provenance_digest = reconciliation

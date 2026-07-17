@@ -37,12 +37,14 @@ pub(crate) fn collect_measurement_via_host_lane_for_test(
     WorthUiHostMeasurementCollector::for_internal_proof()
         .collect(
             &ValueStubAdapter { value },
-            request.identity(),
-            evidence_family,
-            need,
-            report,
-            generation,
-            normalization_context,
+            crate::host::UiHostMeasurementCollectionInput {
+                identity: request.identity(),
+                evidence_family,
+                need,
+                capability_report: report,
+                evidence_generation: generation,
+                normalization_context,
+            },
         )
         .expect("test host lane collection should admit")
 }
@@ -59,17 +61,19 @@ pub(crate) fn collected_scroll_container_viewport_for_test(
     WorthUiHostMeasurementCollector::for_internal_proof()
         .collect(
             &CountingAdapter::new(),
-            UiMeasurementRequestIdentity::new(request_seed),
-            UiMeasurementEvidenceFamily::ScrollContainerViewport,
-            UiHostMeasurementNeed::ScrollContainerViewport(UiScrollContainerViewportRequest::new(
-                55,
-            )),
-            report,
-            generation,
-            normalization_context_for(
-                UiMeasurementEvidenceCategory::ScrollContainerViewport,
-                profile,
-            ),
+            crate::host::UiHostMeasurementCollectionInput {
+                identity: UiMeasurementRequestIdentity::new(request_seed),
+                evidence_family: UiMeasurementEvidenceFamily::ScrollContainerViewport,
+                need: UiHostMeasurementNeed::ScrollContainerViewport(
+                    UiScrollContainerViewportRequest::new(55),
+                ),
+                capability_report: report,
+                evidence_generation: generation,
+                normalization_context: normalization_context_for(
+                    UiMeasurementEvidenceCategory::ScrollContainerViewport,
+                    profile,
+                ),
+            },
         )
         .expect("scroll container host lane collection should admit")
 }

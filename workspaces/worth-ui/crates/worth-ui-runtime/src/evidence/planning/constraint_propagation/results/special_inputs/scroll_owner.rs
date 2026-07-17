@@ -64,23 +64,38 @@ pub struct UiConstraintScrollOwnerPlanningInputResult {
     identity_digest: u64,
 }
 
+pub(crate) struct UiConstraintScrollOwnerPlanningInput {
+    pub neighborhood_identity_digest: u64,
+    pub solve_order: UiScrollOwnerPlanningInputSolveOrder,
+    pub posture: UiScrollOwnerPlanningInputPosture,
+    pub source_evidence_identity_digest: Option<u64>,
+    pub source_generation_digest: Option<u64>,
+    pub unit_posture: Option<UiMeasurementUnitPosture>,
+    pub coordinate_space: Option<UiMeasurementCoordinateSpace>,
+    pub rounding_posture: Option<UiMeasurementRoundingPosture>,
+    pub planning_time_only: bool,
+    pub source_evidence: Vec<super::UiScrollOwnerSourceEvidence>,
+    pub source_admission_counters: UiScrollOwnerSourceAdmissionCounters,
+}
+
 impl UiConstraintScrollOwnerPlanningInputResult {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        mint_authority: &crate::graph::UiGraphConstraintMintAuthority,
-        neighborhood_identity_digest: u64,
-        solve_order: UiScrollOwnerPlanningInputSolveOrder,
-        posture: UiScrollOwnerPlanningInputPosture,
-        source_evidence_identity_digest: Option<u64>,
-        source_generation_digest: Option<u64>,
-        unit_posture: Option<UiMeasurementUnitPosture>,
-        coordinate_space: Option<UiMeasurementCoordinateSpace>,
-        rounding_posture: Option<UiMeasurementRoundingPosture>,
-        planning_time_only: bool,
-        mut source_evidence: Vec<super::UiScrollOwnerSourceEvidence>,
-        source_admission_counters: UiScrollOwnerSourceAdmissionCounters,
+        _mint_authority: &crate::graph::UiGraphConstraintMintAuthority,
+        input: UiConstraintScrollOwnerPlanningInput,
     ) -> Self {
-        let _ = mint_authority;
+        let UiConstraintScrollOwnerPlanningInput {
+            neighborhood_identity_digest,
+            solve_order,
+            posture,
+            source_evidence_identity_digest,
+            source_generation_digest,
+            unit_posture,
+            coordinate_space,
+            rounding_posture,
+            planning_time_only,
+            mut source_evidence,
+            source_admission_counters,
+        } = input;
         source_evidence.sort_unstable();
         source_evidence.dedup();
         let source_set_digest = source_evidence.iter().fold(

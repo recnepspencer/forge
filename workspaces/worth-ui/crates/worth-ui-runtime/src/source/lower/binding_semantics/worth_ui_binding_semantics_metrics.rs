@@ -28,9 +28,4 @@ impl WorthUiBindingSemanticsMetrics {
     pub(crate) fn families_scanned(&self) -> usize {
         self.families_scanned
     }
-
-    #[cfg(test)]
-    pub(crate) fn query_owned_semantic_checks(&self) -> usize {
-        self.query_owned_semantic_checks
-    }
 }

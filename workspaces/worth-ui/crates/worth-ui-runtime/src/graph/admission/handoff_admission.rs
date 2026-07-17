@@ -80,7 +80,6 @@ fn assemble_instantiation_plan(
 mod tests {
     use std::sync::Arc;
 
-    use worth_query::facade::foundation::QueryExternalIdentityToken;
     use worth_ui_dsl::{
         UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
         UiDslSourceProvenance, UiDslStructuralToken,
@@ -91,7 +90,7 @@ mod tests {
     use crate::facade::{WorthUi, WorthUiDslPackage};
     use crate::graph::{
         UiGraphInstantiationDenial, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
-        UiRuntimeInstanceBasisAdmission,
+        UiRuntimeDataInstanceKeyToken, UiRuntimeInstanceBasisAdmission,
     };
 
     #[test]
@@ -110,7 +109,7 @@ mod tests {
             .expect("bootstrap root page should lower to graph handoff");
         let runtime_basis = UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
             handoff.identity(),
-            QueryExternalIdentityToken::new(Arc::<str>::from("row:user-7")),
+            UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("row:user-7")),
         )
         .expect("internal typed runtime basis key should admit");
         let plan = admit_graph_handoffs(&[root_page_handoff, handoff], &[runtime_basis])
@@ -135,7 +134,7 @@ mod tests {
             .expect("control declaration should lower to graph handoff");
         let denial = UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
             handoff.identity(),
-            QueryExternalIdentityToken::new(Arc::<str>::from("position:0")),
+            UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("position:0")),
         )
         .expect_err("position-based runtime basis must deny before graph mutation");
 
@@ -165,19 +164,19 @@ mod tests {
                 .expect("unrelated declaration should lower to graph handoff");
         let orphan_basis = UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
             unrelated_handoff.identity(),
-            QueryExternalIdentityToken::new(Arc::<str>::from("row:other")),
+            UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("row:other")),
         )
         .expect("typed runtime basis key should admit");
 
         assert!(matches!(
-            admit_graph_handoffs(&[handoff.clone()], &[orphan_basis]),
+            admit_graph_handoffs(std::slice::from_ref(&handoff), &[orphan_basis]),
             Err(UiGraphInstantiationDenial::RuntimeBasisTargetsUnknownDeclaration { .. })
         ));
 
         let contradictory_handoffs = vec![handoff.clone(), handoff];
         let contradictory_basis = UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
             contradictory_handoffs[0].identity(),
-            QueryExternalIdentityToken::new(Arc::<str>::from("row:duplicate")),
+            UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("row:duplicate")),
         )
         .expect("typed runtime basis key should admit");
 

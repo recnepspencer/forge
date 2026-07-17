@@ -7,45 +7,50 @@ error[E0432]: unresolved import `worth_ui::facade::declaration::UiStructuralDecl
 error[E0624]: associated function `new` is private
  --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:9:56
   |
-9 |       let _semantics = UiDeclarationStructuralSemantics::new(
-  |                                                          ^^^ private associated function
+9 |     let _semantics = UiDeclarationStructuralSemantics::new(
+  |                                                        ^^^ private associated function
   |
- ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/structural_semantics/structural_semantics.rs
+ ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/structural_semantics/semantics.rs
   |
-  | /     pub(crate) fn new(
-  | |         family_kind: UiDeclarationFamilyKind,
-  | |         role: UiDeclarationStructuralRole,
-  | |         operator_kind: UiDeclarationPlanningOperatorKind,
-... |
-  | |         repetition_posture: UiDeclarationRepetitionPosture,
-  | |     ) -> Self {
-  | |_____________- private associated function defined here
+  |     pub(crate) fn new(input: UiDeclarationStructuralSemanticsInput) -> Self {
+  |     ----------------------------------------------------------------------- private associated function defined here
 
-error[E0061]: this function takes 8 arguments but 6 arguments were supplied
+error[E0061]: this function takes 1 argument but 6 arguments were supplied
   --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:9:22
    |
  9 |       let _semantics = UiDeclarationStructuralSemantics::new(
    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+10 |           UiDeclarationFamilyKind::Control,
+   |           -------------------------------- expected `UiDeclarationStructuralSemanticsInput`, found `UiDeclarationFamilyKind`
+11 |           UiDeclarationStructuralRole::Control,
+   |           ------------------------------------ unexpected argument #2 of type `UiDeclarationStructuralRole`
 12 | /         UiDeclarationContainmentIntent::DeclaredControlAttachment {
 13 | |             control_name: "save".into(),
 14 | |         },
-15 | |         UiDeclarationSlotParticipationIntent::None,
-   | |__________________________________________________- two arguments of type `worth_ui_runtime::declaration::structural_semantics::planning_operator_kind::UiDeclarationPlanningOperatorKind` and `Option<MosaicSizingContractId>` are missing
+   | |_________- unexpected argument #3 of type `UiDeclarationContainmentIntent`
+15 |           UiDeclarationSlotParticipationIntent::None,
+   |           ------------------------------------------ unexpected argument #4 of type `UiDeclarationSlotParticipationIntent`
+16 |           UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+   |           ------------------------------------------------------ unexpected argument #5 of type `UiDeclarationOrderingGuarantee`
+17 |           UiDeclarationRepetitionPosture::NotAdmitted,
+   |           ------------------------------------------- unexpected argument #6 of type `UiDeclarationRepetitionPosture`
    |
 note: associated function defined here
-  --> $WORKSPACE/crates/worth-ui-runtime/src/declaration/structural_semantics/structural_semantics.rs
+  --> $WORKSPACE/crates/worth-ui-runtime/src/declaration/structural_semantics/semantics.rs
    |
-   |     pub(crate) fn new(
+   |     pub(crate) fn new(input: UiDeclarationStructuralSemanticsInput) -> Self {
    |                   ^^^
-help: provide the arguments
+help: remove the extra arguments
    |
- 9 |     let _semantics = UiDeclarationStructuralSemantics::new(
-10 |         UiDeclarationFamilyKind::Control,
-11 |         UiDeclarationStructuralRole::Control,
-12 ~         /* worth_ui_runtime::declaration::structural_semantics::planning_operator_kind::UiDeclarationPlanningOperatorKind */,
-13 +         /* Option<MosaicSizingContractId> */,
-14 ~         UiDeclarationContainmentIntent::DeclaredControlAttachment {
+10 -         UiDeclarationFamilyKind::Control,
+11 -         UiDeclarationStructuralRole::Control,
+12 -         UiDeclarationContainmentIntent::DeclaredControlAttachment {
+13 -             control_name: "save".into(),
+14 -         },
+15 -         UiDeclarationSlotParticipationIntent::None,
+16 -         UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+17 -         UiDeclarationRepetitionPosture::NotAdmitted,
+10 +         /* worth_ui_runtime::declaration::structural_semantics::semantics::UiDeclarationStructuralSemanticsInput */,
    |
 
 error[E0624]: associated function `new` is private

@@ -1,13 +1,15 @@
 # Milestone 3.8 Engineering Spec: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
 
-> **Status:** Planned
+> **Status:** Closed — Phases 1-22 implemented and milestone-native hostile
+> certification complete
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/C:/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](./worth_ui_roadmap.md)
 >
 > **Primary prerequisites:**
 > `Milestone 3.6a Measurement Vocabulary, Basis Admission, And Host Evidence Boundaries`
 > `Milestone 3.6b Allocation Neighborhood Planning And Constraint Propagation`
 > `Milestone 3.7 Structural Runtime Cleanup And Boundary Closeout`
+> `Worth Query Milestone 9.13 Declarative Query Experience And Installed Domain Authority`
 >
 > **Follow-on sequence:** `Milestone 3.9 execution-plan lowering, equivalence, and frame-cost surfaces`
 >
@@ -25,6 +27,13 @@ and Query observations into sealed stream frames; classify those frames into
 typed invalidation families; replan only the affected allocation neighborhood;
 and commit explicit `UiAllocationReceipt` artifacts with declared freshness,
 identity, reuse, denial, and inspection posture.
+
+Because Query Milestone 9.13 changed the ordinary downstream contract while
+3.8 was in progress, completion also requires Worth UI to carry
+runtime-installed domain authority and Foundational-native projection values
+through one binding-owned edge. Updating imports without deleting
+consumer-local Query mirrors, reconstructed identity digests, or detached
+bootstrap paths does not satisfy this requirement.
 
 This milestone closes the first half of churn-heavy runtime geometry truth:
 
@@ -111,11 +120,16 @@ truth basis remains folklore.
   protects bounded breadth, locality, and explicit equivalence contracts. 3.8
   must prove neighborhood-bounded replanning and receipt reuse without
   heuristic debounce folklore.
+- `more_guidelines/dx_laws.md`
+  protects organized truth as developer experience. The correct Query-bound
+  UI path must be the shortest declarative path, invalid next acts must be
+  absent from autocomplete, and advanced evidence must remain inspectable
+  without making ordinary composition ceremonial.
 - `worth_ui_roadmap.md`
   protects sequence. 3.8 must consume cleaned 3.7 surfaces after 3.6a/3.6b
   planning exists and before 3.9 execution-plan lowering broadens runtime cost
   surfaces.
-- `workspaces/worth-ui/docs/WORTH_UI_README.md`
+- `workspaces/worth-ui/docs/worth-ui-readme.md`
   protects the actual Worth UI runtime stack. 3.8 must keep layout meaning in
   Worth UI runtime, host code in observation/mechanics lanes, and Query-backed
   facts in Query-owned public lanes.
@@ -133,12 +147,15 @@ truth basis remains folklore.
   correctness.
 - `crates/worth-query/docs/AI_README.md`
   protects Query-owned basis, projection consumption, inspection, and
-  cross-runtime explanation. 3.8 must consume
-  `consume_projection_facts(...)`, `workspace.inspect(...)`,
-  `ResolvedSnapshotBasis`, `SnapshotResolutionReport`,
-  `admit_causal_inspection`, and `request_causal_inspection` only through the
-  admitted Query/Worth binding seam when Query-backed content still affects
-  allocation truth.
+  cross-runtime explanation. 3.8 must consume installed-handle declarations,
+  `WorthQueryProjectionOutcome`, retained consumed-projection authority, and
+  `workspace.inspections().inspect(...)` only through the admitted Query/Worth
+  binding seam when Query-backed content still affects allocation truth.
+- `WORTH-query/milestone-9.13-closeout.md`
+  protects runtime-installed domain handles and Foundational-native values as
+  the only ordinary Query product path. 3.8 must preserve that authority
+  through UI binding, allocation ingestion, inspection, and rebind rather than
+  reconstructing it from reporting projections or local digests.
 
 ## Adversarial Constraint
 
@@ -194,11 +211,92 @@ The failure modes this milestone must prevent are:
 - 3.8 must consume the 3.7 cleaned facade/proof-flow shape and must not reopen
   broad root facades, dumping-ground modules, or certification support as
   production law.
+- `worth-ui-query-binding` is the single UI/Query semantic edge. It may retain
+  and narrow Query-owned authority into UI-specific admitted artifacts, but it
+  may not rebuild Query meaning, identity, basis, lifecycle, or value families.
+- A Query-enabled UI runtime must receive an installed, runtime-affine binding
+  capability. Generic bootstrap without installed authority is not a valid
+  Query-enabled production path.
+- Consumer-authored strings, terminal reporting projections, debug formatting,
+  and local hashes are never Query identity or admission authority.
+- Enforcement must stay narrow and generative: dependency direction,
+  constructor visibility, proof-carrying APIs, and a small number of sabotage
+  tests. The plan must not grow a bureaucratic file-by-file permission list.
 
 ## Contract Appendix
 
 This appendix freezes the minimum executable law that must exist before 3.8
 implementation broadens.
+
+### Post-9.13 Query Edge Law
+
+The ordinary production direction is:
+
+```text
+owning Query workspace
+-> runtime-installed Worth UI domain handle
+-> worth-ui-query-binding admitted declaration/consumption artifacts
+-> Worth UI runtime allocation and inspection consumers
+```
+
+The owning Query workspace installs `worth_ui_domain_package()` with
+`worth_ui_native_aspect_contracts()` and mints the runtime-affine installed
+handle. `worth-ui-query-binding` turns handle-bound declarations and consumed
+projection outcomes into UI-specific proof-bearing artifacts. Worth UI runtime
+consumes those artifacts; it does not independently interpret Query support,
+basis, result shape, live posture, or identity.
+
+The boundary is enforced by four load-bearing rules:
+
+1. production `worth-ui-runtime` does not depend directly on `worth-query`;
+2. Query-enabled runtime composition requires a binding artifact minted from
+   the installed Worth UI domain handle;
+3. no reporting projection, string, or consumer-local digest can satisfy an
+   API requiring Query authority or equivalence identity;
+4. certification may construct hostile Query worlds, but production and test
+   support cannot mint admitted UI binding authority.
+
+The enforcement source is the canonical workspace boundary configuration plus
+compiler visibility and compile-fail fixtures. Generated agent context may
+explain the edge, but no second handwritten allowlist may compete with the
+machine contract.
+
+### Agent Default Path And DX Target
+
+The exact final names may change during implementation; this grammar may not:
+
+```rust
+let mut query_workspace = app_query_runtime()
+    .aspect_contracts(worth_ui_native_aspect_contracts())?
+    .domain_package(worth_ui_domain_package())?
+    .workspace("worth-ui-app")?;
+
+let installed_ui = query_workspace.domain(WorthUiDomainEntry)?;
+
+let measurement_view = installed_ui
+    .measurements()?
+    .bind_ui_view(UiViewBindingIdentity::new("inspector.measurements")?)?;
+
+let app = WorthUi::builder()
+    .with_query_bindings(installed_ui.ui_bindings())
+    .register_view_binding(measurement_view)
+    .freeze()?;
+```
+
+The common path must express domain installation once, derive bindings from
+that installed capability, and register one coherent binding artifact. It must
+not require callers to separately assemble capability status, result-shape
+digest, basis posture, live compatibility, or composition-profile digest.
+
+Query-free Worth UI apps remain ceremony-free. They may use the ordinary
+builder without Query setup. The moment a Query-bound declaration is
+registered, however, freeze/launch must require the installed binding
+capability through type progression or a typed admission result. A runtime
+boolean or late panic is insufficient.
+
+Advanced callers may inspect the binding plan, consumed projection contract,
+invalidation footprint, and lifecycle posture before launch. That advanced
+surface is observation over the same artifact, not a second construction path.
 
 ### Receipt Commit Grammar
 
@@ -348,7 +446,8 @@ Ordinary law:
   `current`, `coalescing`, or `stale_but_bounded`
 - later execution lowering may consume only receipts whose companion report is
   `current` or `stale_but_bounded` under an admitted policy that explicitly
-  allows bounded lag
+  allows bounded lag; that allowance is carried by the report and cannot be
+  minted or widened by the consumer
 - `recompute_pending` is not an execution-lowering input
 
 `recompute_pending` lives on append-only report lineage artifacts, not by
@@ -379,11 +478,13 @@ Freshness posture transitions must be explicit:
 | `current` | admitted coalescing policy accepts delayed recompute | `coalescing` |
 | `current` | later basis/observation invalidates but bounded prior receipt remains paintable | `stale_but_bounded` |
 | `current` | replacement/remeasure required before next committed receipt | `recompute_pending` |
-| `coalescing` | committed recompute succeeds | `current` |
+| `coalescing` | admitted coalescing lag remains within its report-carried bound | `stale_but_bounded` |
 | `coalescing` | bounded lag exceeded before recompute | `recompute_pending` |
-| `stale_but_bounded` | committed recompute succeeds | `current` |
 | `stale_but_bounded` | bounded lag no longer admissible | `recompute_pending` |
-| `recompute_pending` | committed recompute succeeds | `current` |
+
+A successful recompute commits a new receipt and a new `current` report. It
+does not mutate a `coalescing`, `stale_but_bounded`, or `recompute_pending`
+report back to `current`; those report-lineage artifacts remain immutable.
 
 Partial reuse is admitted in one narrow form in 3.8:
 
@@ -749,7 +850,7 @@ Phase 11 tests asserting anchor identity must certify against this rule.
 
 ### Anti-Bypass Type Fence Law
 
-Anti-bypass is part of the appendix contract, not only Phase 15 certification.
+Anti-bypass is part of the appendix contract, not only Phase 22 certification.
 
 3.8 must enforce at least:
 
@@ -873,162 +974,140 @@ The law is:
   AI critique can evaluate alignment/spacing/symmetry from runtime semantics
   instead of screenshot-only reconstruction
 
-## Planned Structural Homes
+## Final Structural Homes
 
-3.8 is cross-cutting enough that it needs an explicit landing tree. Use this
-as the target skeleton unless a later structural QA pass approves a tighter
-equivalent.
+3.8 is cross-cutting enough that its final authority homes are recorded here.
+This is the implemented topology, with unchanged sibling surfaces elided.
 
 ```text
 workspaces/worth-ui/crates/
+  worth-ui-query-binding/
+    src/
+      installed_domain/
+        capability.rs
+        rebind.rs
+        workspace.rs
+      declaration/
+        binding_contract_identity.rs
+        definition.rs
+        identity.rs
+        installed_view.rs
+      consumption/
+        installed_projection.rs
+      prerequisites/
+        allocation/query_allocation_invalidation_basis.rs
+        basis/query_authority_handle.rs
+        basis/query_basis_authority.rs
+        basis/query_lane.rs
+        measurement/query_measurement_fact_receipt.rs
+        measurement/query_measurement_fact_settlement.rs
+      domain_marker.rs
+      domain_package.rs
+      installed_measurements.rs
+      native_aspect_contracts.rs
+
   worth-ui-runtime/
     src/
       graph/
         allocation_neighborhood/
           mod.rs
-          neighborhood_identity.rs
-          neighborhood_set.rs
-          widen_reason.rs
-          locality_proof.rs
-          viewport_family.rs
-          drag_resize_family.rs
-          scroll_family.rs
-          portal_family.rs
+          admission/
+            admitted_constraint_basis.rs
+            catalog_basis.rs
+            operator_contract.rs
+          membership/
+            equivalence.rs
+            membership.rs
+            membership_rule.rs
+          replan_selection/
+            consequences.rs
+            neighborhood_selection.rs
+            portal_consequence.rs
+            scroll_consequence.rs
+            selector.rs
+          constraint_authority/
+            ...admitted derivation and integration surfaces...
 
       runtime/
-        allocation_planning/
-          ...existing candidate-planning files only...
-
-        host_observation/
-          ...existing observation intake files...
-
-        replacement/
-          ...existing preservation / impact inputs...
-
         allocation_frame_dispatch/
-          mod.rs
-          lifecycle.rs
-          epoch.rs
-          mailbox.rs
-          collector.rs
-          sealed_frame.rs
-          submission_outcome.rs
-          dispatcher.rs
-          shutdown.rs
-          gateway/
-            mod.rs
-            host_measurement.rs
-            query_projection.rs
-            interaction.rs
-            durable_resize.rs
-
-        allocation_invalidation/
-          mod.rs
-          family.rs
-          classifier.rs
-          query_fact_change.rs
-          viewport_extent_change.rs
-          durable_resize_change.rs
-          resize_preview_delta.rs
-          content_growth_change.rs
-          scroll_extent_change.rs
-          portal_anchor_movement.rs
-          host_measurement_replacement.rs
-          denial.rs
-
-        allocation_stream_policy/
-          mod.rs
-          policy.rs
-          merge_table.rs
-          cadence.rs
-          legality.rs
-          viewport_policy.rs
-          drag_resize_policy.rs
-          typing_query_policy.rs
-          portal_scroll_policy.rs
+          ...frame lifecycle and capability-shaped gateways...
+        invalidation_narrowing/
+          ...typed classification, graph narrowing, and authority...
+        stream_policy/
+          ...cadence, ordering, composition, and closed families...
 
         allocation_receipt/
           mod.rs
-          receipt.rs
-          receipt_id.rs
-          receipt_commit.rs
-          receipt_report.rs
-          receipt_denial.rs
-          reuse.rs
-          partial_reuse.rs
-          structure_reuse_leaf_remeasure.rs
-          geometry_relationships.rs
-
-        allocation_freshness/
-          mod.rs
-          posture.rs
-          lag_policy.rs
-          consumer_legality.rs
-
-        allocation_counters/
-          mod.rs
-          counter_names.rs
-          counter_report.rs
-          boundedness.rs
+          committed_truth/
+            committed_allocation.rs
+            committed_evidence.rs
+            committed_lowering_input.rs
+            committed_receipt.rs
+            geometry_evidence.rs
+          ledger_lifecycle/
+            ledger_state.rs
+            receipt_ledger.rs
+            receipt_ledger_entry.rs
+          report_freshness/
+            allocation_counters.rs
+            consumer_admission.rs
+            receipt_generation.rs
+            receipt_identity.rs
+            receipt_report.rs
+          reuse/
+            preview_candidate.rs
+            preview_isolation.rs
+            receipt_budget.rs
+            reuse_verdict.rs
+          transaction/
+            denial_taxonomy.rs
+            receipt_commit.rs
+            replan_transaction.rs
+            transaction_outcome.rs
 
       evidence/
-        allocation/
-          mod.rs
-          invalidation_artifact.rs
-          neighborhood_selection_report.rs
-          reuse_decision.rs
-          freshness_report.rs
-          commit_denial.rs
-          counter_report.rs
-          geometry_evidence.rs
+        planning/
+          allocation_geometry_inspection.rs
+          denied_replan_inspection.rs
+          receipt_inspection.rs
 
   worth-ui-inspection/
     src/
       allocation/
         mod.rs
-        query.rs
-        receipt_inspection.rs
-        neighborhood_explanation.rs
-        freshness_inspection.rs
-        geometry_inspection.rs
-        critique_readiness.rs
+        attempt_projection.rs
+        evidence_ref.rs
+        geometry_projection.rs
+        receipt_projection.rs
 
   worth-ui-certification/
     src/
       allocation/
         mod.rs
-        locality_certification.rs
-        cadence_certification.rs
-        denial_certification.rs
-        freshness_certification.rs
-        anti_bypass_certification.rs
-        hostile_integration_certification.rs
-
-  worth-ui-test-support/
-    src/
-      allocation/
-        mod.rs
-        fixtures.rs
-        scenario_builders.rs
-        stream_generators.rs
-        oracle_helpers.rs
+        allocation_closeout_certification.rs
+      topology/
+        allocation_closeout_anti_bypass_audit.rs
 ```
 
 ### Directory Laws
 
 - `graph/allocation_neighborhood/` owns neighborhood identity, ordered-set
   shape, widen reasons, and locality proof only.
-- `runtime/allocation_invalidation/` owns family classification only.
+- `runtime/invalidation_narrowing/` owns typed family classification and
+  admitted graph-target narrowing only.
 - `runtime/allocation_frame_dispatch/` owns runtime lifecycle, transport
   capacity, epoch/sequence allocation, immutable sealing, and one-shot dispatch
   only; its `gateway/` children own capability-shaped source submission only.
-- `runtime/allocation_stream_policy/` owns cadence, ordering, and merge
+- `runtime/stream_policy/` owns cadence, ordering, and merge
   legality only; it returns a resolved frame plan and never closes frames or
   commits receipts.
-- `runtime/allocation_receipt/` owns committed receipt truth only.
-- `runtime/allocation_freshness/` owns freshness posture only.
-- `runtime/allocation_counters/` owns boundedness counters only.
-- `evidence/allocation/` owns typed evidence artifacts only.
+- `runtime/allocation_receipt/committed_truth/` owns committed receipt truth.
+- `runtime/allocation_receipt/report_freshness/` owns freshness admission and
+  allocation counter reports.
+- `runtime/allocation_receipt/transaction/` owns atomic transaction and typed
+  denial truth.
+- `evidence/planning/` projects runtime-owned receipt evidence into inspection
+  types; it does not own operational authority.
 - `worth-ui-inspection/src/allocation/` projects evidence; it does not mint it.
 - `worth-ui-certification/src/allocation/` proves behavior; it does not own it.
 - `worth-ui-test-support/src/allocation/` builds fixtures; it does not become a
@@ -1037,34 +1116,43 @@ workspaces/worth-ui/crates/
 ### Phase Mapping
 
 - Phase 1 and Phase 2 land primarily in `runtime/allocation_receipt/` and
-  `evidence/allocation/`
+  `evidence/planning/`
 - Phase 3 lands primarily in `runtime/allocation_frame_dispatch/`
 - Phase 4 lands primarily in `runtime/allocation_frame_dispatch/gateway/` and
   admitted host/Query/interaction boundary ports
-- Phase 5 lands primarily in `runtime/allocation_stream_policy/` and
-  `runtime/allocation_invalidation/` as a resolved frame plan with typed
+- Phase 5 lands primarily in `runtime/stream_policy/` and
+  `runtime/invalidation_narrowing/` as a resolved frame plan with typed
   invalidation artifacts only
-- Phase 6 lands primarily in `runtime/allocation_invalidation/` and admitted
+- Phase 6 lands primarily in `runtime/invalidation_narrowing/` and admitted
   graph/Query narrowing surfaces
 - Phase 7 lands primarily in `graph/allocation_neighborhood/`, planning, and
   the transaction-owned atomic allocation transition seam
-- Phase 8 lands primarily in `runtime/allocation_invalidation/viewport_extent_change.rs`
-  plus `runtime/allocation_stream_policy/viewport_policy.rs`
-- Phase 9 lands primarily in
-  `runtime/allocation_invalidation/durable_resize_change.rs`,
-  `runtime/allocation_invalidation/resize_preview_delta.rs`, and
-  `runtime/allocation_stream_policy/drag_resize_policy.rs`
-- Phase 10 lands primarily in
-  `runtime/allocation_invalidation/scroll_extent_change.rs` and
-  `graph/allocation_neighborhood/scroll_family.rs`
-- Phase 11 lands primarily in
-  `runtime/allocation_invalidation/portal_anchor_movement.rs` and
-  `graph/allocation_neighborhood/portal_family.rs`
-- Phase 12 lands primarily in `worth-ui-inspection/src/allocation/`
-- Phase 13 lands primarily in `runtime/allocation_freshness/`
-- Phase 14 lands primarily in `runtime/allocation_counters/` and
-  `evidence/allocation/counter_report.rs`
-- Phase 15 lands primarily in `worth-ui-certification/src/allocation/`
+- Phases 8 through 11 land in the typed viewport, drag-resize, scroll-owned,
+  and portal consequences below `runtime/invalidation_narrowing/`, with graph
+  locality owned by `graph/allocation_neighborhood/`.
+- Phase 12 lands in workspace boundary configuration, crate manifests,
+  `worth-ui-query-binding`, and Query-edge certification
+- Phase 13 lands in `worth-ui-query-binding/installed_domain/` plus Worth UI
+  builder, launch, replacement, and shutdown lifecycle propagation
+- Phase 14 lands in `worth-ui-query-binding/declaration/` plus the public
+  capability-registration facade
+- Phase 15 lands in `worth-ui-query-binding/consumption/` plus the allocation
+  frame Query gateway and measurement-fact consumers
+- Phase 16 deletes consumer-local Query mirrors and reconstructed identity
+  digests from runtime capability, source, replacement, and admission lanes
+- Phase 17 lands in the Worth UI public facade and
+  `workspaces/worth-ui/docs/worth-ui-readme.md`
+- Phase 18 restructures oversized allocation responsibility neighborhoods and
+  installs topology, naming, residue, and agent-context enforcement
+- Phase 19 lands primarily in `worth-ui-inspection/src/allocation/`
+- Phase 20 lands primarily in
+  `runtime/allocation_receipt/report_freshness/` and the execution-consumer
+  admission boundary
+- Phase 21 lands primarily in
+  `runtime/allocation_receipt/report_freshness/allocation_counters.rs`,
+  `runtime/allocation_receipt/transaction/denial_taxonomy.rs`, and the receipt
+  inspection projection
+- Phase 22 lands primarily in `worth-ui-certification/src/allocation/`
 
 ### Anti-Sprawl Rules
 
@@ -1076,6 +1164,15 @@ workspaces/worth-ui/crates/
 - Do not put production logic in inspection or certification modules.
 - Do not let `mod.rs`, `lib.rs`, or facade files carry classification, reuse,
   freshness, or counter logic.
+- Do not replace direct Query imports with binding-crate re-exports of the same
+  raw Query topology. The binding crate must publish UI-specific admitted
+  capabilities and outcomes.
+- Do not create `query_reference`, `query_support`, or `query_context` as bags
+  for locally mirrored Query state. Name the declaration, consumption,
+  lifecycle, or inspection responsibility instead.
+- Do not retain `helpers.rs`, `types.rs`, `model.rs`, or same-level directories
+  with more than ten production files when the contained authority or lifecycle
+  axes can be named honestly.
 
 ## Phase Plan
 
@@ -1108,7 +1205,7 @@ and portal churn from collapsing into one false "layout changed" lane.
 - `UiAllocationNeighborhood`
 - `UiMeasurementResult`
 - `UiHostObservation`
-- `workspace.inspect(...)`
+- Worth UI inspection facade
 
 **Warnings**
 - Do not let `plan_allocation(...)` output masquerade as already-committed
@@ -1168,9 +1265,9 @@ It must not be a host-shaped geometry dump.
 - `UiAllocationPlan`
 - `UiAllocationReceipt`
 - `UiMeasurementBasis`
-- `ResolvedSnapshotBasis`
-- `SnapshotResolutionReport`
-- `consume_projection_facts(...)`
+- `WorthUiQueryPrerequisiteEvidence`
+- `WorthUiQueryAuthorityHandle`
+- binding-owned consumed-projection settlement
 
 **Warnings**
 - Receipt identity that is too coarse will over-invalidate and destroy reuse.
@@ -1374,8 +1471,8 @@ Each stream family must declare:
 - `UiMeasurementRequest::viewport_extent(...)`
 - `UiMeasurementRequest::portal_anchor_rect(...)`
 - `UiMeasurementRequest::scroll_container_viewport(...)`
-- `consume_projection_facts(...)`
-- `workspace.inspect(...)`
+- `WorthUiQueryMeasurementFactSettlement`
+- Worth UI inspection facade
 
 **Warnings**
 - Generic debounce is not an acceptable semantic contract.
@@ -1452,9 +1549,8 @@ At minimum, 3.8 needs typed invalidation families for:
 - `UiHostObservation`
 - `UiMeasurementResult`
 - `UiMeasurementBasis`
-- `consume_projection_facts(...)`
-- `admit_causal_inspection(...)`
-- `request_causal_inspection(...)`
+- binding-owned consumed-projection settlement
+- `workspace.inspections().inspect(...)`
 
 **Warnings**
 - Family closure must happen before incremental replanning code lands, not
@@ -1528,7 +1624,7 @@ replacement/impact narrowing instead of inventing a second selection path.
 - `UiResolvedAllocationFramePlan`
 - `UiAllocationFrameTransitionOutcome`
 - identity-match report surfaces from replacement
-- `workspace.inspect(...)`
+- Worth UI inspection facade
 
 **Warnings**
 - Replan selection must not silently widen to page/root scope because the
@@ -1610,7 +1706,7 @@ recompute policy.
 - `UiMeasurementRequest::viewport_extent(...)`
 - `UiMeasurementBasis`
 - `runtime.plan_allocation(...)`
-- `workspace.inspect(...)`
+- Worth UI inspection facade
 
 **Warnings**
 - Viewport resize must not inherit splitter-drag durable mutation policy by
@@ -1673,7 +1769,7 @@ continuous-interaction cases.
 - `UiHostObservation`
 - `UiMeasurementBasis`
 - `runtime.plan_allocation(...)`
-- `workspace.inspect(...)`
+- Worth UI inspection facade
 
 **Warnings**
 - Preview motion must not overwrite durable resize state unless the declared
@@ -1802,7 +1898,7 @@ must remain mechanically explainable.
 - `UiHostObservation`
 - `UiMeasurementBasis`
 - `UiAllocationReceipt`
-- `request_causal_inspection(...)`
+- `workspace.inspections().inspect(...)`
 
 **Warnings**
 - Portal placement must not become adapter-owned because the anchor rect comes
@@ -1844,7 +1940,404 @@ must remain mechanically explainable.
   `Replan Unit And Neighborhood-Set Law`,
   `Generation, Concurrency, And Supersession Law`.
 
-### Phase 12: Allocation Inspection Surface
+### Phase 12: Query/UI Authority Map And Dependency Edge
+
+This phase freezes the post-9.13 authority map before any consumer API is
+rewritten. It makes the intended dependency direction executable and names the
+few places allowed to translate Query meaning into Worth UI meaning.
+
+**Relevant subsystems**
+- `workspaces/worth-ui/Cargo.toml` and crate manifests
+- `tools/boundary-check/config/road1.toml`
+- `workspaces/worth-ui/crates/worth-ui-query-binding/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/`
+- `workspaces/worth-ui/crates/worth-ui-certification/`
+
+**Relevant APIs**
+- `worth_query::facade::{domain, read, live, inspection, runtime}`
+- `WorthQueryInstalledDomainHandle<WorthUiDomainEntry>`
+- `WorthQueryProjectionOutcome`
+- current Worth UI Query-facing facade exports
+
+**Warnings**
+- Moving a direct Query import behind a binding-crate re-export is topology
+  laundering, not boundary closure.
+- Do not prohibit Foundational-native value types merely because Query also
+  uses them; the rule protects Query-owned authority and lifecycle, not textual
+  crate-name purity.
+- Certification needs explicit authority to construct hostile Query worlds,
+  but that exception must not leak into production or ordinary test support.
+- Avoid per-file allowlists. The enforceable unit is responsibility and crate
+  direction unless a narrower exception is structurally unavoidable.
+
+**Test requirements**
+- Adversarial topology test: production `worth-ui-runtime` and the public
+  `worth-ui` facade compile without a direct `worth-query` dependency, while
+  `worth-ui-query-binding` remains the only production Query consumer and
+  certification remains an explicit test-only exception.
+- Adversarial sabotage test: adding a direct runtime Query dependency, a raw
+  Query facade re-export, or a second Query translation crate fails the named
+  boundary checker and reports the allowed path.
+- Adversarial completeness test: every current production Query import is
+  classified as installed-domain declaration, projection consumption,
+  lifecycle, identity retention, inspection projection, or residue to delete;
+  no unclassified edge may survive the phase.
+
+**Engineering decisions**
+- Make `worth-ui-query-binding` the single semantic edge from Query into Worth
+  UI runtime.
+- Keep Query certification construction in `worth-ui-certification` behind
+  explicit test/certification posture rather than weakening the ordinary edge.
+- Generate per-crate agent context from the canonical boundary configuration
+  so agents see the legal dependency direction where they work.
+- Prefer a positive compile-pass transcript of the ordinary path plus a small
+  sabotage matrix over a growing blacklist of historical names.
+
+**Open questions**
+- None.
+
+### Phase 13: Installed Worth UI Domain Composition And Lifecycle
+
+This phase connects the 9.13 installed-domain capability to the real Worth UI
+builder and runtime lifecycle. Query-free UI remains simple; Query-enabled UI
+cannot launch from an authority-free bootstrap.
+
+The canonical artifact may retain stable binding declarations, but the active
+runtime must separately retain the runtime-affine installed capability and its
+installation generation. Semantic declaration identity and runtime authority
+are not interchangeable.
+
+**Relevant subsystems**
+- `workspaces/worth-ui/crates/worth-ui-query-binding/src/installed_domain/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/facade/entry/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/`
+- replacement, rebind, preservation, shutdown, and inspection lifecycle lanes
+
+**Relevant APIs**
+- `worth_ui_domain_package()`
+- `worth_ui_native_aspect_contracts()`
+- `WorthUiQueryExt`
+- proposed installed UI binding capability and builder attachment surface
+- `WorthUiBuilder::freeze(...)` and runtime launch progression
+
+**Warnings**
+- Do not make Worth UI mint Query runtime authority or own the Query workspace.
+  The owning Query workspace installs; Worth UI receives the admitted
+  capability.
+- Do not store a reporting domain key or installation-generation integer as a
+  substitute for the runtime-affine handle.
+- Do not make Query setup mandatory for Query-free apps.
+- Do not accept Query-bound declarations and defer missing installation to a
+  late panic or host callback.
+
+**Test requirements**
+- Adversarial lifecycle test: launch, replacement, rebind, preservation, and
+  shutdown all propagate the same installed capability; adding a new lifecycle
+  fork without propagation produces a compile failure or exhaustive-match
+  failure.
+- Adversarial authority test: foreign-runtime, stale-generation, wrong-world,
+  and detached diagnostic representations cannot activate Query-bound UI and
+  perform zero allocation planning or frame ingress work.
+- Adversarial parity test: Query-free apps retain the same builder ergonomics
+  and runtime behavior, while registering a Query-bound declaration without an
+  installed capability yields one typed, actionable admission result.
+
+**Engineering decisions**
+- Replace generic Query-enabled `WorthUiQueryBindingSubsystem::bootstrap()`
+  with construction that consumes a binding-owned installed capability.
+- Preserve an explicit Query-free runtime state rather than using `Option` as
+  an ambiguous authority marker throughout the runtime.
+- Carry runtime affinity and installation generation through one opaque
+  binding-owned artifact; do not duplicate those fields in UI runtime structs.
+- Make the builder error or typestate name the exact missing act: install the
+  Worth UI Query domain and attach its bindings.
+
+**Open questions**
+- The exact public type and method names remain implementation decisions. The
+  installed-authority grammar and lifecycle propagation are locked.
+
+### Phase 14: Declarative Query Binding Definition And Agent DX
+
+This phase replaces scattered Query posture assembly with one semantic binding
+definition. The common API states what UI view is desired; the binding layer
+derives capability, result-shape, basis, live, projection, invalidation, and
+lifecycle requirements from the installed declaration.
+
+**Relevant subsystems**
+- `workspaces/worth-ui/crates/worth-ui-query-binding/src/declaration/`
+- Worth UI view-binding capability registration
+- source lowering and canonical artifact binding declarations
+- public Worth UI facade compile transcripts
+
+**Relevant APIs**
+- installed-domain read/live declarations from `WorthUiQueryExt`
+- proposed `WorthUiQueryViewBinding` or equivalent semantic definition
+- `ViewBindingDescriptor`
+- `WorthUiBuilder::register_view_binding(...)`
+
+**Warnings**
+- A mega-builder with many optional `with_query_*` calls is the current wiring
+  model in a friendlier coat.
+- UI-owned presentation choices may accompany a binding, but they must not
+  redefine Query support, result, basis, live, or projection semantics.
+- Do not put runtime-affine authority into serializable canonical source
+  artifacts; bind stable declaration identity to installed runtime authority at
+  the admitted lifecycle boundary.
+- Avoid clever macros when ordinary definition functions and typed artifacts
+  provide sufficient inference and diagnostics.
+
+**Test requirements**
+- Adversarial convergence test: file-authored and Rust-authored definitions of
+  the same installed Query view lower to the same canonical UI binding identity,
+  consumption contract, invalidation footprint, and lifecycle requirement.
+- Adversarial construction test: callers cannot independently assemble or
+  mismatch capability status, result shape, basis posture, live compatibility,
+  or composition identity; invalid combinations are unrepresentable or fail at
+  the definition boundary.
+- Adversarial DX transcript: an external consumer installs the Worth UI domain,
+  derives one measurement view, registers it in one coherent call, inspects its
+  plan, and launches without deep imports or manual digest plumbing.
+
+**Engineering decisions**
+- Replace `QueryViewCapabilityReference`, `QueryResultShapeReference`,
+  `QueryBasisPostureReference`, and `QueryLiveCompatibility` as public assembly
+  inputs with one binding-owned admitted definition.
+- Use an object/spec shape for the view's UI presentation and a builder only
+  where Query proof progression genuinely occurs.
+- Make the ordinary definition expose an inspection surface for its declared
+  facts, invalidation scope, lifecycle, and expected value shape.
+- Write compiler errors and typed denials as routing help: they should name the
+  correct installed-domain or binding method rather than only say forbidden.
+
+**Open questions**
+- Exact final naming remains open until implementation validates inference and
+  autocomplete. The one-definition grammar is not open.
+
+### Phase 15: Native Projection Consumption And Allocation Handoff
+
+This phase carries Foundational-native values and the exact Query-minted
+projection authority through the UI binding edge into allocation ingress. The
+binding may refine native values into UI measurement meaning, but it may not
+stringify, reparse, or reconstruct value authority.
+
+**Relevant subsystems**
+- `workspaces/worth-ui/crates/worth-ui-query-binding/src/consumption/`
+- Query projection-consumption native views and refinement APIs
+- Worth UI measurement evidence and allocation frame Query gateway
+- scroll-owned content extent and Query-backed measurement invalidation
+
+**Relevant APIs**
+- `WorthQueryProjectionOutcome`
+- `WorthQueryConsumedProjectionAuthority`
+- Foundational `AspectValue`, `CanonicalF32`, and exact native refinements
+- `WorthUiQueryMeasurementFactSettlement`
+- `WorthUiQueryProjectionSubmission`
+
+**Warnings**
+- Float bits, JSON-shaped values, debug strings, or coarse local scalar enums
+  must not become an intermediate authority representation.
+- Projection warnings and partial settlement must remain attached to the same
+  consumed authority rather than being flattened into UI booleans.
+- Do not rescan all projected fields when the installed declaration names the
+  exact measurement facts required by the binding.
+- The allocation gateway accepts the binding-owned settlement; it does not
+  import Query types to interpret them again.
+
+**Test requirements**
+- Adversarial native-value parity test: scalar, struct, absence, and refinement
+  behavior observed through Worth UI matches the Query native projection view
+  exactly, including canonical float behavior and unsupported-family denial.
+- Adversarial authority-continuity test: the installed domain authority,
+  projection consumption authority, native value contract, settlement, and
+  allocation ingress remain one traceable chain; copied values or receipts
+  without the authority cannot enter the frame.
+- Adversarial boundedness test: consuming `k` declared measurement facts performs
+  `O(k)` refinement with exact counters and does not grow with unrelated rows,
+  fields, domains, or UI bindings.
+
+**Engineering decisions**
+- Store native canonical carriers, not representation bits or JSON-like
+  intermediates, wherever the value itself participates in UI meaning.
+- Let `worth-ui-query-binding` own the only Query-to-UI fact refinement and
+  settlement mapping.
+- Pass one opaque settlement into allocation frame dispatch; runtime policy may
+  classify its UI allocation consequences but may not reinterpret Query value
+  legality.
+- Retain exact warning, partial, source, basis, and contract evidence for local
+  inspection without making those projections new authority.
+
+**Open questions**
+- None.
+
+### Phase 16: Eliminate Query Mirrors And Reconstructed Digest Authority
+
+This phase deletes the pre-9.13 consumer-local Query model and replaces every
+operational use of formatted or rehashed Query identity with carried typed
+authority or a binding-owned canonical identity.
+
+UI-specific presentation and allocation classifications may remain when they
+express genuinely new UI meaning. A type survives only if deleting Query from
+its name would still leave an independently meaningful UI responsibility.
+
+**Relevant subsystems**
+- view-binding capability descriptors and source binding semantics
+- runtime dependency hooks, candidate admission, replacement, and rebind
+- measurement basis compatibility and projection receipt indexing
+- facade graph Query re-exports and inspection fingerprints
+
+**Relevant APIs**
+- current `Query*Reference` types
+- `WorthUiRuntimeDependencyHook::digest_basis()`
+- `WorthUiQuerySupportReceipt`
+- `UiQueryMeasurementBasisAuthority`
+- Query-owned typed identity, basis, contract, and receipt surfaces
+
+**Warnings**
+- Renaming a mirror or moving its hash into `worth-ui-query-binding` does not
+  remove competing authority.
+- Query reporting projections may be displayed and logged, but may not order,
+  admit, compare, reuse, rebind, or key operational state.
+- Do not delete legitimate UI-owned posture such as denial presentation or
+  allocation relevance merely because it is adjacent to Query.
+- A diagnostic fingerprint must be named and typed as diagnostic, and changing
+  it must have zero operational effect.
+
+**Test requirements**
+- Adversarial identity test: terminal reporting projections, debug formatting,
+  copied digest strings, and locally hashed Query metadata cannot satisfy
+  candidate admission, replacement equivalence, binding rebind, or allocation
+  authority requirements.
+- Adversarial derived-state test: all UI Query indexes, inspection summaries,
+  and diagnostic fingerprints can be destroyed and rebuilt from retained
+  binding authority and canonical UI artifacts without changing operational
+  outcomes.
+- Adversarial residue test: source scanning and API snapshots report zero
+  consumer-local Query mirror types, zero operational `digest_basis()` chains,
+  and zero local hashing of Query reporting projections.
+
+**Engineering decisions**
+- Remove the four current `Query*Reference` assembly types and replace their
+  operational consumers with the admitted binding definition from Phase 14.
+- Replace locally folded Query support receipts with typed binding contract
+  identity and posture carried from the binding edge.
+- Use typed `BasisDigest` or the stronger retained basis authority consistently;
+  do not keep parallel `Box<str>` basis variants.
+- Keep derived index keys visibly non-authoritative and require the retained
+  authority alongside them for every operational lookup result.
+
+**Open questions**
+- None.
+
+### Phase 17: Public Facade And Discovery Closure
+
+This phase makes the post-9.13 path the only path agents and application authors
+can discover. It removes public invalid constructors, stale aliases, and
+historical setup from ordinary documentation rather than teaching callers how
+to avoid them.
+
+**Relevant subsystems**
+- `workspaces/worth-ui/crates/worth-ui/src/facade/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/facade/`
+- external compile-pass and compile-fail transcripts
+- `workspaces/worth-ui/docs/worth-ui-readme.md`
+
+**Relevant APIs**
+- Worth UI builder and Query binding facade
+- `ViewBindingDescriptor`
+- runtime support inventory facade
+- installed-domain and native-value discovery examples
+
+**Warnings**
+- Documentation is not the enforcement layer, but stale discovery reliably
+  teaches agents to recreate deleted architecture.
+- Do not preserve public constructors solely so certification can prove that
+  their products are rejected; certification can use hostile fixtures outside
+  the ordinary facade.
+- Do not document historical methods as banned alternatives. Ordinary
+  discovery teaches only the current positive path.
+- Avoid giant facade barrels that merely conceal lower topology.
+
+**Test requirements**
+- Adversarial facade test: an external consumer can complete the installed
+  domain, declarative binding, native projection, allocation settlement, and
+  inspection journey using only admitted facade modules.
+- Adversarial prohibition test: the deprecated phase-specific support alias,
+  public pseudo-Query constructor, raw Query graph re-exports, and detached
+  Query bootstrap are absent from public API snapshots and fail compile probes.
+- Adversarial documentation test: every advertised stable example compiles,
+  every relative link resolves, and source scanning finds no legacy setup,
+  mirror-type, manual-digest, or JSON-shaped Query guidance.
+
+**Engineering decisions**
+- Remove `PHASE3_RUNTIME_SUPPORT_INVENTORY` and migrate all tests to the stable
+  inventory name.
+- Remove `local_pseudo_query_for_diagnostics` from the public production
+  descriptor; hostile construction belongs in certification support.
+- Expose one cohesive Query binding namespace from the Worth UI facade and keep
+  lower Query topology private.
+- Update the UI discovery document in the same change as the public cutover so
+  API and teaching cannot drift.
+
+**Open questions**
+- None.
+
+### Phase 18: Responsibility Topology And Agent Guardrails
+
+This phase makes the next correct edit spatially obvious. It restructures the
+allocation and Query-binding neighborhoods around authority and lifecycle, then
+installs narrow structural checks so the tree does not relapse under later 3.8
+and 3.13 work.
+
+**Relevant subsystems**
+- `runtime/allocation_receipt/`
+- `graph/allocation_neighborhood/`
+- `runtime/invalidation_narrowing/`
+- `worth-ui-query-binding/src/prerequisites/` and its post-cutover successors
+- Worth UI topology certification and generated agent context
+
+**Relevant APIs**
+- module/facade exports for allocation truth, transaction, reuse, and reports
+- neighborhood admission, constraint authority, and replan selection
+- boundary checker and structural inventory audits
+
+**Warnings**
+- File count alone is not the law. Split by receipt truth, transaction
+  lifecycle, reuse/freshness, neighborhood admission, constraint authority, and
+  replan selection because those responsibilities have distinct structural
+  fate.
+- Do not replace a flat directory with ceremonial folders that mix the same
+  axes again.
+- Structural checks should reject bucket names and boundary bypasses, not freeze
+  every current filename forever.
+- Generated agent context explains the canonical homes; it must not become a
+  second manually edited architecture document.
+
+**Test requirements**
+- Adversarial navigability test: each allocation/Query responsibility maps to
+  one production home, no immediate production directory exceeds ten files
+  without an explicit responsibility-based exemption, and no `helpers.rs`,
+  `types.rs`, `model.rs`, `common.rs`, or `support.rs` bucket remains.
+- Adversarial dependency test: moving receipt truth into planning, locality
+  proof into host code, Query translation into runtime, or production behavior
+  into inspection/certification fails the topology audit.
+- Adversarial deletion test: deprecated aliases, mirror types, and hostile-only
+  constructors can be deleted with their responsibility without preserving
+  fragments in unrelated modules.
+
+**Engineering decisions**
+- Organize allocation receipt code by committed truth, transaction, reuse,
+  report/freshness, and ledger lifecycle.
+- Organize allocation neighborhood code by admission, membership, constraint
+  authority, replan selection, and activation handoff.
+- Keep one canonical machine boundary contract and regenerate agent context
+  after topology changes.
+- Treat this phase as enabling infrastructure for Phases 19-22 and later 3.13,
+  not as an aesthetic cleanup pass.
+
+**Open questions**
+- None.
+
+### Phase 19: Allocation Inspection Surface
 
 This phase closes the local inspection surface needed to keep 3.8 from
 becoming an authority black box.
@@ -1868,10 +2361,9 @@ the default allocation debugger.
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/host/`
 
 **Relevant APIs**
-- `workspace.inspect(...)`
-- `admit_causal_inspection(...)`
-- `request_causal_inspection(...)`
-- `consume_projection_facts(...)`
+- Worth UI inspection facade
+- `workspace.inspections().inspect(...)`
+- `WorthUiQueryMeasurementFactSettlement`
 - `UiAllocationReceipt`
 
 **Warnings**
@@ -1889,7 +2381,7 @@ the default allocation debugger.
   invalidation artifact, neighborhood-selection artifact, and reuse/denial
   artifact.
 - Adversarial escalation-boundary test: ordinary receipt/report inspection
-  answers local allocation why without requiring `request_causal_inspection(...)`
+  answers local allocation why without requiring Query workspace inspection
   unless the question crosses runtime boundaries, and the ordinary response must
   include the exact local fields required by the inspection contract.
 - Adversarial critique-readiness test: AI-facing inspection can identify the
@@ -1909,7 +2401,7 @@ the default allocation debugger.
   `Allocation Inspection And Visual-Critique Readiness`,
   `Geometry Evidence Minimum Schema`.
 
-### Phase 13: Allocation Freshness And Lag Posture
+### Phase 20: Allocation Freshness And Lag Posture
 
 This phase closes the freshness contract for committed allocation truth.
 
@@ -1923,12 +2415,13 @@ This phase closes the freshness contract for committed allocation truth.
 **Relevant subsystems**
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/evidence/`
 - `workspaces/worth-ui/crates/worth-ui-inspection/`
-- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/report_freshness/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution/host_lanes/`
 
 **Relevant APIs**
 - `UiAllocationReceipt`
 - `UiAllocationReceiptReport`
-- `workspace.inspect(...)`
+- Worth UI inspection facade
 
 **Warnings**
 - Committed does not mean current.
@@ -1945,12 +2438,16 @@ This phase closes the freshness contract for committed allocation truth.
 - Adversarial consumer-boundary test: host paint and downstream execution obey
   the admitted freshness-consumption rules rather than sharing one permissive
   posture, with explicit assertions for which postures each consumer may and
-  may not consume.
+  may not consume. Topology assembly must accept
+  `UiCommittedAllocationLoweringInput`, never a raw receipt, so a caller cannot
+  bypass or widen freshness admission.
 
 **Engineering decisions**
 - Place freshness and lag posture on companion `UiAllocationReceiptReport`
   while leaving receipt identity, equivalence, and generation on
   `UiAllocationReceipt`.
+- Derive bounded-stale execution legality from the report-carried lag bound;
+  expose no public constructor or caller-supplied lag allowance.
 - Keep freshness as a typed runtime contract, not a presentation-layer summary.
 
 **Open questions**
@@ -1958,7 +2455,7 @@ This phase closes the freshness contract for committed allocation truth.
   `Receipt Identity, Freshness, And Partial Reuse`,
   `Preview Candidate Versus Committed Receipt Consumption`.
 
-### Phase 14: Allocation Counters And Denial Taxonomy
+### Phase 21: Allocation Counters And Denial Taxonomy
 
 This phase closes the boundedness proof and denial vocabulary for allocation
 churn.
@@ -1972,11 +2469,13 @@ churn.
 
 **Relevant subsystems**
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/evidence/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/report_freshness/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/transaction/`
 - `workspaces/worth-ui/crates/worth-ui-certification/`
 - `workspaces/worth-ui/crates/worth-ui-inspection/`
 
 **Relevant APIs**
-- `workspace.inspect(...)`
+- Worth UI inspection facade
 - `UiAllocationReceipt`
 - `UiAllocationReceiptReport`
 - `UiMeasurementResult`
@@ -1995,8 +2494,9 @@ churn.
   reuse, and churn-burst handling under hostile stream pressure, with exact
   counter names and per-scenario maximum values asserted.
 - Adversarial denial test: mandatory denial families surface as typed evidence
-  with stable identities and attached allocation causes, and certification must
-  assert zero generic fallback-denial artifacts.
+  with stable cause-sensitive identities and attached allocation causes;
+  distinct reuse-denial reasons must retain their exact reason and must not
+  collide. Certification must assert zero generic fallback-denial artifacts.
 
 **Engineering decisions**
 - Add allocation-specific denial taxonomy instead of generic measurement
@@ -2010,7 +2510,7 @@ churn.
   `Replan Unit And Neighborhood-Set Law`,
   `Complexity And Evidence-Cadence Envelope`.
 
-### Phase 15: Runtime Integration And Certification Closeout
+### Phase 22: Runtime Integration And Certification Closeout
 
 This phase closes the actual runtime path and certification program for 3.8.
 
@@ -2021,18 +2521,17 @@ the existing proof-flow grammar:
 `measurement basis admit -> neighborhood admit -> plan_allocation -> allocation receipt commit -> downstream execution consumers`
 
 **Relevant subsystems**
-- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/`
-- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/tests/activation/`
 - `workspaces/worth-ui/crates/worth-ui-certification/`
 - `workspaces/worth-ui/crates/worth-ui-test-support/`
 
 **Relevant APIs**
 - `runtime.plan_allocation(...)`
 - `UiAllocationReceipt`
-- `workspace.inspect(...)`
-- `consume_projection_facts(...)`
-- `admit_causal_inspection(...)`
-- `request_causal_inspection(...)`
+- Worth UI inspection facade
+- `WorthUiQueryMeasurementFactSettlement`
+- `workspace.inspections().inspect(...)`
 
 **Warnings**
 - Do not let certification support or test fixtures become the production lane.
@@ -2074,6 +2573,22 @@ the existing proof-flow grammar:
 
 ## Must Ship
 
+- one production installed-domain composition path from the owning Query
+  workspace into Worth UI builder, launch, replacement, rebind, and shutdown
+- one declarative Query view-binding definition that derives Query support,
+  result-shape, basis, live, projection, invalidation, and lifecycle posture
+  without scattered consumer assembly
+- `worth-ui-query-binding` as the mechanically enforced single production
+  semantic edge from Query into Worth UI runtime
+- Foundational-native projection values preserved through Query consumption,
+  UI measurement settlement, and allocation ingress without JSON, float-bit,
+  or coarse local value authority
+- zero consumer-local Query mirror types and zero operational identity derived
+  from reporting projections, debug formatting, or consumer-authored digests
+- current positive discovery and external compile transcripts for Query-free and
+  Query-enabled Worth UI composition
+- responsibility-shaped allocation and Query-binding topology with no bucket
+  modules or broad same-level production directories left for later agents
 - `UiAllocationReceipt` as a committed runtime truth artifact with explicit
   identity, generation, reuse, and denial posture
 - `UiAllocationReceiptReport` as the companion freshness, lag, widening,
@@ -2107,6 +2622,10 @@ the existing proof-flow grammar:
 
 ## Must Preserve
 
+- Query runtime installation, domain, basis, projection, lifecycle, and native
+  value authority without UI-local reinterpretation
+- ceremony-free Query-free Worth UI composition and one coherent declarative
+  act for Query-enabled composition
 - 3.7 cleaned facade/proof-flow topology and anti-bypass fences
 - host adapters as mechanics/observation only, never allocation-truth owners
 - Query-owned basis, inspection, and projection-consumption semantics
@@ -2123,6 +2642,20 @@ the existing proof-flow grammar:
 
 ## Acceptance Evidence
 
+- `worth-ui-runtime` has no direct production `worth-query` dependency, and a
+  sabotage dependency or raw Query facade re-export fails the canonical
+  boundary checker
+- a real external consumer installs the Worth UI Query domain, derives a
+  measurement binding from the installed handle, attaches it to a Worth UI app,
+  consumes native projection facts, enters allocation through the binding-owned
+  settlement, and inspects the resulting evidence without deep imports
+- foreign-runtime, stale-generation, copied-digest, reporting-projection, and
+  raw-native-value attempts perform zero UI allocation or replacement work
+- Query-free apps require no placeholder Query capability, while Query-bound
+  declarations cannot freeze or launch without the installed binding
+- residue certification reports zero Query mirror types, zero operational local
+  digest reconstruction, zero deprecated phase aliases, zero invalid public
+  pseudo-Query constructors, and zero bucket-named production modules
 - `UiAllocationReceipt` exists as a typed committed artifact and can be
   inspected without reading host-local geometry state
 - `commit_allocation_receipt(...)` or its final named seam is idempotent under
@@ -2144,9 +2677,9 @@ the existing proof-flow grammar:
   order; late ingress is assigned or denied by explicit epoch law
 - splitter drag preview can update continuously without rewriting durable
   resize truth every pointer delta unless the declared stream policy requires it
-- Query-backed content growth participates through
-  `consume_projection_facts(...)`, `workspace.inspect(...)`,
-  `ResolvedSnapshotBasis`, and `SnapshotResolutionReport` rather than local
+- Query-backed content growth participates through installed-handle
+  declarations, retained consumed-projection authority, binding-owned
+  measurement settlement, and Query workspace inspection rather than local
   pseudo-Query caches
 - ordinary receipt/report inspection can explain local reuse, widening,
   freshness, and denial without causal escalation
@@ -2155,15 +2688,46 @@ the existing proof-flow grammar:
   anchor posture, and allocation-local symmetry without reconstructing layout
   truth from host internals
 - cross-runtime explanations for allocation denial or widening can route
-  through `admit_causal_inspection(...)` and `request_causal_inspection(...)`
-  when ordinary receipt inspection is insufficient
+  through the Query workspace inspection capability when ordinary receipt
+  inspection is insufficient
 - certification asserts zero untyped invalidation paths, zero
   candidate-to-committed coercions, counted root-widen attempts, asserted
   neighborhood-set cardinality, and bounded receipt-commit cadence under
   hostile churn
 
+## Closeout Evidence
+
+- the complete `worth-ui-runtime` library suite passes all 818 tests
+- the milestone closeout suite proves local receipt and denied-attempt
+  inspection, all four freshness postures, distinct paint/execution admission,
+  mandatory boundedness counters, and the closed denial taxonomy
+- one combined hostile workbench drives typing, Query growth, resize preview,
+  durable resize, viewport observation, scroll observation, and portal movement
+  through production framework turns; replay is deterministic, every
+  transition remains exactly one neighborhood and one committed receipt, and
+  root-widen attempts remain zero
+- public certification consumes the runtime-origin fixture through
+  `worth-ui-test-support`, asserts exact receipt and neighborhood bounds, and
+  proves committed receipt execution consumption
+- allocation anti-bypass certification finds no host-owned receipt minting,
+  synthetic neighborhood construction, or consumer-owned allocation cache
+  authority
+- Road 1 boundary topology and generated agent-context checks pass, and every
+  Rust file changed by this closeout remains within the 400-line limit
+
 ## Sequencing Notes
 
+- Phases 1-11 were implemented before the Query 9.13 cutover. Phases 12-18 now
+  replace the interim consumer model, and Phases 19-22 close inspection,
+  freshness, boundedness, denial, integration, and certification.
+- Phases 12-18 are intentionally inserted before allocation inspection,
+  freshness, counters, and certification. Those later surfaces would otherwise
+  make pre-9.13 mirrors and reconstructed identity part of the durable 3.8
+  contract.
+- The 3.8 cutover closes the narrow Query authority required for committed
+  allocation truth. Milestone 3.13 still broadens general product-facing Query
+  bindings, collections, live surfaces, and richer UI posture; it must consume
+  this edge rather than reopen it.
 - This milestone belongs after 3.6a because committed allocation truth must
   consume admitted measurement basis instead of inventing a second evidence
   lane.

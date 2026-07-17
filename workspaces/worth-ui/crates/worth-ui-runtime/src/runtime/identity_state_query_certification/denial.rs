@@ -6,8 +6,8 @@ use crate::runtime::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiIdentityStateQueryCertificationDenial {
-    reason: WorthUiIdentityStateQueryCertificationDenialReason,
-    counters: WorthUiIdentityStateQueryCertificationCounters,
+    reason: Box<WorthUiIdentityStateQueryCertificationDenialReason>,
+    counters: Box<WorthUiIdentityStateQueryCertificationCounters>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -69,7 +69,10 @@ impl WorthUiIdentityStateQueryCertificationDenial {
         reason: WorthUiIdentityStateQueryCertificationDenialReason,
         counters: WorthUiIdentityStateQueryCertificationCounters,
     ) -> Self {
-        Self { reason, counters }
+        Self {
+            reason: Box::new(reason),
+            counters: Box::new(counters),
+        }
     }
 
     pub fn reason(&self) -> &WorthUiIdentityStateQueryCertificationDenialReason {
@@ -77,6 +80,6 @@ impl WorthUiIdentityStateQueryCertificationDenial {
     }
 
     pub fn counters(&self) -> WorthUiIdentityStateQueryCertificationCounters {
-        self.counters
+        *self.counters
     }
 }

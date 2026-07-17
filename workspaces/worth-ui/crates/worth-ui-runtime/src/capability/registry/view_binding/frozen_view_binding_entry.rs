@@ -1,19 +1,19 @@
-use super::{QueryViewBindingKey, ViewBindingDescriptor};
+use super::{ViewBindingDescriptor, WorthUiViewBindingIdentity};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FrozenViewBindingEntry {
     descriptor: ViewBindingDescriptor,
-    query_binding_key: QueryViewBindingKey,
+    identity: WorthUiViewBindingIdentity,
 }
 
 impl FrozenViewBindingEntry {
     pub(crate) fn new(
         descriptor: ViewBindingDescriptor,
-        query_binding_key: QueryViewBindingKey,
+        identity: WorthUiViewBindingIdentity,
     ) -> Self {
         Self {
             descriptor,
-            query_binding_key,
+            identity,
         }
     }
 
@@ -21,7 +21,7 @@ impl FrozenViewBindingEntry {
         &self.descriptor
     }
 
-    pub fn query_binding_key(&self) -> &QueryViewBindingKey {
-        &self.query_binding_key
+    pub fn identity(&self) -> WorthUiViewBindingIdentity {
+        self.identity
     }
 }

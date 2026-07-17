@@ -24,10 +24,10 @@ pub(crate) fn verify_ordinal_localization_eligibility(
     }
 }
 
-pub(crate) fn resolve_corrupt_chunk_leaf<'a>(
-    frontier: &'a BlobStreamingContentFrontier,
+pub(crate) fn resolve_corrupt_chunk_leaf(
+    frontier: &BlobStreamingContentFrontier,
     ordinal: BlobChunkOrdinal,
-) -> &'a crate::BlobChunkProofLeaf {
+) -> &crate::BlobChunkProofLeaf {
     frontier
         .proof_frontier()
         .ordered_leaves()

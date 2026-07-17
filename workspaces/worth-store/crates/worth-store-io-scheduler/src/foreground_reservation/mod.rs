@@ -19,6 +19,7 @@ mod test_authority;
 mod violation;
 
 pub use admission::admit_foreground_reservation;
+pub(crate) use capacity_admission::ForegroundReservationAdmissionBoundary;
 pub use capacity_admission::{
     admit_foreground_reservation_capacity, ForegroundReservationCapacityAdmission,
     ForegroundReservationCapacityAdmissionDenial, ForegroundReservationCapacityAdmissionRequest,
@@ -32,6 +33,7 @@ pub use fairness::{
     ForegroundFairnessDenial,
 };
 pub use lane::{ForegroundIoLaneKind, ForegroundLaneDeclaration};
+pub(crate) use receipt::ForegroundReservationBackendBasis;
 pub use receipt::{
     ForegroundReservationAdmissionOutcome, ForegroundReservationDenied, ForegroundReservationHeld,
     ForegroundReservationReceipt, ForegroundReservationStaleRebindRequired,

@@ -1,13 +1,13 @@
-mod aspect_contract;
 mod aspect_name;
 mod consumed;
+mod contract;
 mod coverage_report;
 mod denial;
 mod published;
 
-pub use aspect_contract::UiAspectContract;
 pub use aspect_name::{UiAspectFamily, UiAspectName, UiAspectSemanticSlice};
 pub use consumed::UiConsumedAspectContract;
+pub use contract::UiAspectContract;
 pub use coverage_report::{UiAspectCoverageEntry, UiAspectCoverageReport};
 pub(crate) use denial::UiAspectContractAdmission;
 pub use denial::UiAspectContractAdmissionDenial;

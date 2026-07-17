@@ -13,10 +13,10 @@ pub struct BlobResumeRootPublicationReadyReadmitted {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BlobResumeReplayOutcome {
-    RootPublicationReady(BlobResumeRootPublicationReadyReadmitted),
+    RootPublicationReady(Box<BlobResumeRootPublicationReadyReadmitted>),
     Unfinished {
         state: BlobResumeUnfinishedState,
-        checkpoint: BlobResumeCheckpoint,
+        checkpoint: Box<BlobResumeCheckpoint>,
         counters: BlobResumeCounterSnapshot,
     },
 }
@@ -148,13 +148,13 @@ fn readmit_checkpoint(
             let staging = checkpoint
                 .reachability_staging()
                 .ok_or(BlobResumeDenial::RootCandidateMismatch)?;
-            Ok(BlobResumeReplayOutcome::RootPublicationReady(
+            Ok(BlobResumeReplayOutcome::RootPublicationReady(Box::new(
                 BlobResumeRootPublicationReadyReadmitted {
                     source: persisted_source,
                     reachability_staging: staging.clone(),
                     counters: checkpoint.counters().replayed(),
                 },
-            ))
+            )))
         }
         BlobResumeCheckpointStateKind::BlobPublished => Ok(unfinished(
             BlobResumeUnfinishedState::BlobPublishedAwaitingSessionCloseout,
@@ -195,6 +195,6 @@ fn unfinished(
     BlobResumeReplayOutcome::Unfinished {
         state,
         counters: checkpoint.counters().replayed(),
-        checkpoint,
+        checkpoint: Box::new(checkpoint),
     }
 }

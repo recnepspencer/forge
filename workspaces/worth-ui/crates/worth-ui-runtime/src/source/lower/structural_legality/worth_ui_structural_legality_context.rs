@@ -33,6 +33,37 @@ pub(crate) type StateResolution = (
 );
 pub(crate) type SurfaceResolution = (AdmittedCapability<SurfaceId>, SurfaceDescriptor);
 
+const REGION_REFERENCE_CODES: [WorthUiStructuralLegalityDiagnosticCode; 4] = [
+    WorthUiStructuralLegalityDiagnosticCode::MissingMosaicRegionReference,
+    WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicRegionReference,
+    WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicRegionReference,
+    WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicRegionReference,
+];
+const PLACEMENT_REFERENCE_CODES: [WorthUiStructuralLegalityDiagnosticCode; 4] = [
+    WorthUiStructuralLegalityDiagnosticCode::MissingMosaicPlacementPolicyReference,
+    WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicPlacementPolicyReference,
+    WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicPlacementPolicyReference,
+    WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicPlacementPolicyReference,
+];
+const SIZING_REFERENCE_CODES: [WorthUiStructuralLegalityDiagnosticCode; 4] = [
+    WorthUiStructuralLegalityDiagnosticCode::MissingMosaicSizingContractReference,
+    WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicSizingContractReference,
+    WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicSizingContractReference,
+    WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicSizingContractReference,
+];
+const STATE_SLOT_REFERENCE_CODES: [WorthUiStructuralLegalityDiagnosticCode; 4] = [
+    WorthUiStructuralLegalityDiagnosticCode::MissingMosaicStateSlotReference,
+    WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicStateSlotReference,
+    WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicStateSlotReference,
+    WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicStateSlotReference,
+];
+const SURFACE_REFERENCE_CODES: [WorthUiStructuralLegalityDiagnosticCode; 4] = [
+    WorthUiStructuralLegalityDiagnosticCode::MissingStructuralSurfaceReference,
+    WorthUiStructuralLegalityDiagnosticCode::DeferredStructuralSurfaceReference,
+    WorthUiStructuralLegalityDiagnosticCode::UnsupportedStructuralSurfaceReference,
+    WorthUiStructuralLegalityDiagnosticCode::PlatformInternalStructuralSurfaceReference,
+];
+
 impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
     pub(crate) fn new(snapshot: &'snapshot CapabilitySnapshot) -> Self {
         Self {
@@ -81,10 +112,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
                 authored_text,
                 structural_locus,
                 provenance,
-                WorthUiStructuralLegalityDiagnosticCode::MissingMosaicRegionReference,
-                WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicRegionReference,
-                WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicRegionReference,
-                WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicRegionReference,
+                REGION_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -93,10 +121,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
             authored_text,
             structural_locus,
             provenance,
-            WorthUiStructuralLegalityDiagnosticCode::MissingMosaicRegionReference,
-            WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicRegionReference,
-            WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicRegionReference,
-            WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicRegionReference,
+            REGION_REFERENCE_CODES,
         ))
     }
 
@@ -140,10 +165,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
                 authored_text,
                 structural_locus,
                 provenance,
-                WorthUiStructuralLegalityDiagnosticCode::MissingMosaicPlacementPolicyReference,
-                WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicPlacementPolicyReference,
-                WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicPlacementPolicyReference,
-                WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicPlacementPolicyReference,
+                PLACEMENT_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -154,10 +176,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
             authored_text,
             structural_locus,
             provenance,
-            WorthUiStructuralLegalityDiagnosticCode::MissingMosaicPlacementPolicyReference,
-            WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicPlacementPolicyReference,
-            WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicPlacementPolicyReference,
-            WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicPlacementPolicyReference,
+            PLACEMENT_REFERENCE_CODES,
         ))
     }
 
@@ -197,10 +216,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
                 authored_text,
                 structural_locus,
                 provenance,
-                WorthUiStructuralLegalityDiagnosticCode::MissingMosaicSizingContractReference,
-                WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicSizingContractReference,
-                WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicSizingContractReference,
-                WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicSizingContractReference,
+                SIZING_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -209,10 +225,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
             authored_text,
             structural_locus,
             provenance,
-            WorthUiStructuralLegalityDiagnosticCode::MissingMosaicSizingContractReference,
-            WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicSizingContractReference,
-            WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicSizingContractReference,
-            WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicSizingContractReference,
+            SIZING_REFERENCE_CODES,
         ))
     }
 
@@ -252,10 +265,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
                 authored_text,
                 structural_locus,
                 provenance,
-                WorthUiStructuralLegalityDiagnosticCode::MissingMosaicStateSlotReference,
-                WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicStateSlotReference,
-                WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicStateSlotReference,
-                WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicStateSlotReference,
+                STATE_SLOT_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -266,10 +276,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
             authored_text,
             structural_locus,
             provenance,
-            WorthUiStructuralLegalityDiagnosticCode::MissingMosaicStateSlotReference,
-            WorthUiStructuralLegalityDiagnosticCode::DeferredMosaicStateSlotReference,
-            WorthUiStructuralLegalityDiagnosticCode::UnsupportedMosaicStateSlotReference,
-            WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicStateSlotReference,
+            STATE_SLOT_REFERENCE_CODES,
         ))
     }
 
@@ -309,10 +316,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
                 authored_text,
                 structural_locus,
                 provenance,
-                WorthUiStructuralLegalityDiagnosticCode::MissingStructuralSurfaceReference,
-                WorthUiStructuralLegalityDiagnosticCode::DeferredStructuralSurfaceReference,
-                WorthUiStructuralLegalityDiagnosticCode::UnsupportedStructuralSurfaceReference,
-                WorthUiStructuralLegalityDiagnosticCode::PlatformInternalStructuralSurfaceReference,
+                SURFACE_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -321,10 +325,7 @@ impl<'snapshot> WorthUiStructuralLegalityContext<'snapshot> {
             authored_text,
             structural_locus,
             provenance,
-            WorthUiStructuralLegalityDiagnosticCode::MissingStructuralSurfaceReference,
-            WorthUiStructuralLegalityDiagnosticCode::DeferredStructuralSurfaceReference,
-            WorthUiStructuralLegalityDiagnosticCode::UnsupportedStructuralSurfaceReference,
-            WorthUiStructuralLegalityDiagnosticCode::PlatformInternalStructuralSurfaceReference,
+            SURFACE_REFERENCE_CODES,
         ))
     }
 }
@@ -335,11 +336,9 @@ fn postured_diagnostic<T: CapabilitySupportId>(
     authored_text: &str,
     structural_locus: &str,
     provenance: &WorthUiArtifactInputProvenance,
-    missing_code: WorthUiStructuralLegalityDiagnosticCode,
-    deferred_code: WorthUiStructuralLegalityDiagnosticCode,
-    unsupported_code: WorthUiStructuralLegalityDiagnosticCode,
-    platform_internal_code: WorthUiStructuralLegalityDiagnosticCode,
+    diagnostic_codes: [WorthUiStructuralLegalityDiagnosticCode; 4],
 ) -> WorthUiStructuralLegalityDiagnostic {
+    let [missing_code, deferred_code, unsupported_code, platform_internal_code] = diagnostic_codes;
     diagnostic(
         match posture {
             Some(posture) if posture.is_deferred() => deferred_code,

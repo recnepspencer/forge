@@ -1,14 +1,14 @@
 use super::{
     CheckpointCrashReplayObservation, CheckpointInterlockObservation,
-    CompactionInterlockObservation, ObservationDenial, ObservedPhysicalTrace,
-    PhysicalIsolationCheckpointPublicationCrashLaneOutput,
+    CompactionInterlockObservation, ObservationDenial, ObservedPhysicalEvidence,
+    ObservedPhysicalTrace, PhysicalIsolationCheckpointPublicationCrashLaneOutput,
     PhysicalIsolationCheckpointPublicationScheduledLaneOutput,
     PhysicalIsolationCheckpointPublicationShortcutRejectionOutput,
     PhysicalIsolationCompactionMutationObservationSet,
 };
 use crate::{
-    BlobHarnessOracleObservation, ExecutedPhysicalSimulationObservation,
-    IndependentVerifierObservation, IoPressureOracleObservation, ObserverKind,
+    BlobHarnessOracleObservation, IndependentVerifierObservation, IoPressureOracleObservation,
+    ObserverKind, PhysicalSimulationBoundaryObservation, PhysicalSimulationObservationBasis,
     PhysicalSimulationPlan, ProductionBoundaryDriverTrace, RecoveryOutcomeObservation,
     ShortcutRejectionObservation,
 };
@@ -22,6 +22,7 @@ pub struct PhysicalSimulationObserver {
 pub struct PhysicalObservationBuilder<'plan> {
     observer: ObserverKind,
     plan: &'plan PhysicalSimulationPlan,
+    observation_basis: PhysicalSimulationObservationBasis,
     runtime_trace: Option<ProductionBoundaryDriverTrace>,
     independent_verifier: Option<IndependentVerifierObservation>,
     recovery_outcome: Option<RecoveryOutcomeObservation>,
@@ -69,6 +70,7 @@ impl PhysicalSimulationObserver {
         Ok(PhysicalObservationBuilder {
             observer: self.kind,
             plan,
+            observation_basis: PhysicalSimulationObservationBasis::DeclaredDriverShapeProbe,
             runtime_trace: None,
             independent_verifier: None,
             recovery_outcome: None,
@@ -82,19 +84,19 @@ impl PhysicalSimulationObserver {
         })
     }
 
-    pub fn observe_executed_plan<'plan>(
+    pub fn observe_boundary_observation<'plan>(
         self,
         plan: &'plan PhysicalSimulationPlan,
-        execution: &ExecutedPhysicalSimulationObservation,
+        observation: &PhysicalSimulationBoundaryObservation,
     ) -> Result<PhysicalObservationBuilder<'plan>, ObservationDenial> {
-        if execution.scenario_identity() != plan.scenario_identity()
-            || execution.plan_identity() != plan.identity()
+        if observation.scenario_identity() != plan.scenario_identity()
+            || observation.plan_identity() != plan.identity()
         {
             return Err(ObservationDenial::ExecutionReceiptPlanMismatch);
         }
-        Ok(self
-            .observe_plan(plan)?
-            .with_runtime_trace(execution.runtime_trace().clone()))
+        let mut builder = self.observe_plan(plan)?;
+        builder.observation_basis = observation.basis();
+        Ok(builder.with_runtime_trace(observation.runtime_trace().clone()))
     }
 }
 
@@ -226,16 +228,19 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
         Ok(ObservedPhysicalTrace::from_parts(
             self.observer,
             self.plan,
+            self.observation_basis,
             runtime_trace,
-            self.independent_verifier,
-            self.recovery_outcome,
-            self.checkpoint_crash_replay,
-            self.checkpoint_interlock,
-            self.compaction_interlock,
-            self.compaction_mutations,
-            self.io_pressure,
-            self.blob_harness,
-            self.shortcut_rejections,
+            ObservedPhysicalEvidence {
+                independent_verifier: self.independent_verifier,
+                recovery_outcome: self.recovery_outcome,
+                checkpoint_crash_replay: self.checkpoint_crash_replay,
+                checkpoint_interlock: self.checkpoint_interlock,
+                compaction_interlock: self.compaction_interlock,
+                compaction_mutations: self.compaction_mutations,
+                io_pressure: self.io_pressure,
+                blob_harness: self.blob_harness,
+                shortcut_rejections: self.shortcut_rejections,
+            },
         ))
     }
 }

@@ -2,8 +2,8 @@ use super::lane_meaning_parity_test_support::{
     plan_with_command_semantics_changed, query_preserving_lane_change_fixture,
 };
 use super::query_binding_comparison_test_support::{
-    basis_drift_query_app, denial_presentation_drift_query_app, phase11_pipeline, query_artifact,
-    standard_query_app,
+    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
+    query_artifact, standard_query_app,
 };
 use crate::runtime::{
     WorthUiCrossLaneSemanticAuthority, WorthUiCrossLaneSemanticFamily,
@@ -76,7 +76,7 @@ fn lane_report_does_not_guess_transition_lane_from_plan_partition_shape() {
 #[test]
 fn query_rebind_receipt_certifies_drift_without_hiding_digest_difference() {
     let active_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
     let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
@@ -185,7 +185,7 @@ fn visual_similarity_without_semantic_parity_does_not_certify_lane_transition() 
 #[test]
 fn lane_transition_with_changed_query_binding_denied_without_query_rebind() {
     let active_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
     let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
@@ -313,17 +313,7 @@ fn comparison_with_deferred_candidate_support(
 fn posture_with_deferred_support(
     posture: &WorthUiQueryBindingPosture,
 ) -> WorthUiQueryBindingPosture {
-    WorthUiQueryBindingPosture::new(
-        WorthUiQuerySupportStatus::Deferred,
-        posture.support_admission_digest().to_owned(),
-        posture.basis_capability_digest().to_owned(),
-        posture.live_compatibility_digest().to_owned(),
-        posture.async_result_state_digest().to_owned(),
-        posture.recovery_digest().to_owned(),
-        posture.inspection_digest().to_owned(),
-        posture.projection_consumption_digest().to_owned(),
-        posture.denial_presentation_digest().to_owned(),
-    )
+    posture.with_query_support_status_for_test(WorthUiQuerySupportStatus::Deferred)
 }
 
 fn all_lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacementPlan {
@@ -334,19 +324,21 @@ fn all_lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplace
         .map(|classification| {
             counters.record_transition(WorthUiNodeLifecycleTransition::LaneChange);
             WorthUiNodeReplacementClassification::new(
-                classification.identity_basis().to_owned(),
-                classification.authored_provenance_digest(),
-                WorthUiNodeLifecycleTransition::LaneChange,
-                classification.active_kind(),
-                classification.candidate_kind(),
-                classification.active_durable_state_eligible(),
-                classification.candidate_durable_state_eligible(),
-                classification.active_resize_contract_id().cloned(),
-                classification.candidate_resize_contract_id().cloned(),
-                classification.active_resize_permission().cloned(),
-                classification.candidate_resize_permission().cloned(),
-                classification.active_resize_shape_digest(),
-                classification.candidate_resize_shape_digest(),
+                crate::runtime::replacement::node_classification::WorthUiNodeReplacementClassificationInput {
+                    identity_basis: classification.identity_basis().to_owned(),
+                    authored_provenance_digest: classification.authored_provenance_digest(),
+                    transition: WorthUiNodeLifecycleTransition::LaneChange,
+                    active_kind: classification.active_kind(),
+                    candidate_kind: classification.candidate_kind(),
+                    active_durable_state_eligible: classification.active_durable_state_eligible(),
+                    candidate_durable_state_eligible: classification.candidate_durable_state_eligible(),
+                    active_resize_contract_id: classification.active_resize_contract_id().cloned(),
+                    candidate_resize_contract_id: classification.candidate_resize_contract_id().cloned(),
+                    active_resize_permission: classification.active_resize_permission().cloned(),
+                    candidate_resize_permission: classification.candidate_resize_permission().cloned(),
+                    active_resize_shape_digest: classification.active_resize_shape_digest(),
+                    candidate_resize_shape_digest: classification.candidate_resize_shape_digest(),
+                },
             )
         })
         .collect();

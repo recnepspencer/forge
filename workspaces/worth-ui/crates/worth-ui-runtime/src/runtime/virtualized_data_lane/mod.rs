@@ -22,6 +22,7 @@ pub use denial::{
     WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
 pub use frame_receipt::WorthUiVirtualizedDataFrameReceipt;
+pub(crate) use frame_receipt::WorthUiVirtualizedDataFrameReceiptInput;
 pub use frame_target::WorthUiVirtualizedDataFrameTarget;
 pub use lane::WorthUiVirtualizedDataLane;
 pub use plan::WorthUiVirtualizedDataPlan;

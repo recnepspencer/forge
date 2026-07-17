@@ -1,10 +1,10 @@
+use crate::header::encode_extent_frame_header;
 use crate::{
     ExtentGenerationCell, ExtentMembership, ExtentRecordCounterSnapshot, ExtentRecordDenial,
     ExtentRecordDenialKind, FramedRecordPayload, PhysicalByteOrder, PhysicalFrameKind,
-    PhysicalGeneration, PhysicalHeaderAuthority, PhysicalHeaderDecodeDenial,
-    PhysicalPublicationState, PhysicalReference, PhysicalReferenceAdmissionWitness,
-    PhysicalReferenceAuthority, PhysicalReferenceKind, PhysicalReferenceValidationWitness,
-    RecordPlacementClass, PHYSICAL_HEADER_LENGTH,
+    PhysicalHeaderAuthority, PhysicalHeaderDecodeDenial, PhysicalReference,
+    PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority, PhysicalReferenceKind,
+    PhysicalReferenceValidationWitness, RecordPlacementClass, PHYSICAL_HEADER_LENGTH,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,11 +29,8 @@ impl PhysicalExtentRecordAuthority {
         let counters = ExtentRecordCounterSnapshot::for_append_attempt().with_membership_check();
         let cell = admitted_large_record_membership(membership, counters)?;
         reject_membership_cell_mismatch(cell, request.extent_cell(), counters)?;
-        let frame_bytes = encode_extent_record_frame(
-            self.byte_order(),
-            request.extent_cell().generation(),
-            request.payload(),
-        );
+        let frame_bytes =
+            encode_extent_record_frame(self.byte_order(), request.extent_cell(), request.payload());
         let counters = counters.with_length_check();
         reject_extent_length_mismatch(membership, frame_bytes.len(), counters)?;
         let admission = self.references.admit_extent(request.extent_cell());
@@ -345,20 +342,15 @@ fn header_denial(
 
 fn encode_extent_record_frame(
     byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
+    owner: ExtentGenerationCell,
     payload: &[u8],
 ) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::ExtentRecordFrame.tag());
-    bytes.extend_from_slice(
-        &byte_order.write_u16(crate::PhysicalFormatVersion::initial_format_version().value()),
-    );
-    bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
-    bytes.extend_from_slice(&byte_order.write_u32(payload.len() as u32));
-    bytes.extend_from_slice(&byte_order.write_u64(generation.get()));
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&byte_order.write_u32(0));
-    bytes.extend_from_slice(&byte_order.write_u64(0));
+    bytes.extend_from_slice(&encode_extent_frame_header(
+        byte_order,
+        owner,
+        payload.len() as u32,
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

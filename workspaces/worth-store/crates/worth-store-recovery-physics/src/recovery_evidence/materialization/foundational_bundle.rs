@@ -74,7 +74,7 @@ impl FoundationalRecoveryEvidenceBundle {
         let report = RecoveryPhysicsReport::from_executed_source(source);
         let performance = RecoveryCounterPerformanceReceipt::from_source(source);
         let source_decisions = RecoverySourceDecisionReport::from_source(source);
-        let lineage = RecoveryEvidenceLineageReport::from_source(source);
+        let lineage = RecoveryEvidenceLineageReport::from_source(source)?;
         let proof_trace = ProofProgressionRecoveryTrace::from_source(source);
         let materialized = materialize_bundle(&receipt, &report, &performance);
         let canonical_basis = RecoveryEvidenceCanonicalBasis::full_from_evidence_surfaces(

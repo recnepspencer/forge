@@ -1,4 +1,4 @@
-use worth_store_operations_vocabulary::ImportPlacementPlan;
+use super::BlobImportPlacementPlan;
 
 use crate::{
     BlobChunkIdentity, BlobChunkSecurityMetadataWitness, BlobGeneration, BlobObjectId,
@@ -24,8 +24,21 @@ pub struct ImportedBlobWitness {
     authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
     reachable_chunks: Vec<BlobChunkIdentity>,
     stored_digest: StoredChunkDigest,
-    placement_plan: ImportPlacementPlan,
+    placement_plan: BlobImportPlacementPlan,
     counters: BlobImportReadmissionCounters,
+}
+
+pub(crate) struct ImportedBlobWitnessParts {
+    pub(super) object_id: BlobObjectId,
+    pub(super) generation: BlobGeneration,
+    pub(super) chunk_tree_root: ChunkTreeRoot,
+    pub(super) logical_content_digest: LogicalContentDigest,
+    pub(super) security_metadata: BlobChunkSecurityMetadataWitness,
+    pub(super) authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
+    pub(super) reachable_chunks: Vec<BlobChunkIdentity>,
+    pub(super) stored_digest: StoredChunkDigest,
+    pub(super) placement_plan: BlobImportPlacementPlan,
+    pub(super) counters: BlobImportReadmissionCounters,
 }
 
 impl BlobImportReadmissionReceipt {
@@ -55,29 +68,18 @@ impl BlobImportReadmissionReceipt {
 }
 
 impl ImportedBlobWitness {
-    pub(crate) fn new(
-        object_id: BlobObjectId,
-        generation: BlobGeneration,
-        chunk_tree_root: ChunkTreeRoot,
-        logical_content_digest: LogicalContentDigest,
-        security_metadata: BlobChunkSecurityMetadataWitness,
-        authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
-        reachable_chunks: Vec<BlobChunkIdentity>,
-        stored_digest: StoredChunkDigest,
-        placement_plan: ImportPlacementPlan,
-        counters: BlobImportReadmissionCounters,
-    ) -> Self {
+    pub(crate) fn new(parts: ImportedBlobWitnessParts) -> Self {
         Self {
-            object_id,
-            generation,
-            chunk_tree_root,
-            logical_content_digest,
-            security_metadata,
-            authority_identity,
-            reachable_chunks,
-            stored_digest,
-            placement_plan,
-            counters,
+            object_id: parts.object_id,
+            generation: parts.generation,
+            chunk_tree_root: parts.chunk_tree_root,
+            logical_content_digest: parts.logical_content_digest,
+            security_metadata: parts.security_metadata,
+            authority_identity: parts.authority_identity,
+            reachable_chunks: parts.reachable_chunks,
+            stored_digest: parts.stored_digest,
+            placement_plan: parts.placement_plan,
+            counters: parts.counters,
         }
     }
 
@@ -113,7 +115,7 @@ impl ImportedBlobWitness {
         &self.stored_digest
     }
 
-    pub const fn placement_plan(&self) -> ImportPlacementPlan {
+    pub const fn placement_plan(&self) -> BlobImportPlacementPlan {
         self.placement_plan
     }
 

@@ -6,7 +6,7 @@ use crate::membership::{
 
 #[derive(Debug)]
 enum SelectionCase {
-    Admitted(LsmCompactionMembership),
+    Admitted(Box<LsmCompactionMembership>),
     Denied(LsmMembershipDenial),
 }
 
@@ -25,7 +25,7 @@ impl LsmMembershipSelectionOutcome {
     fn issue(result: Result<LsmCompactionMembership, LsmMembershipDenial>) -> Self {
         Self {
             case: match result {
-                Ok(selected) => SelectionCase::Admitted(selected),
+                Ok(selected) => SelectionCase::Admitted(Box::new(selected)),
                 Err(denial) => SelectionCase::Denied(denial),
             },
         }
@@ -51,7 +51,7 @@ impl LsmMembershipSelectionOutcome {
 
     pub fn into_result(self) -> Result<LsmCompactionMembership, LsmMembershipDenial> {
         match self.case {
-            SelectionCase::Admitted(selected) => Ok(selected),
+            SelectionCase::Admitted(selected) => Ok(*selected),
             SelectionCase::Denied(denial) => Err(denial),
         }
     }

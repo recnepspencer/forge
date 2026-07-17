@@ -161,7 +161,7 @@ pub(crate) struct UiAllocationFrameTransitionOutcome {
 
 #[derive(Debug, PartialEq)]
 enum UiAllocationFrameTransitionRepresentation {
-    Dispatched(UiAdmittedAllocationStreamFrame),
+    Dispatched(Box<UiAdmittedAllocationStreamFrame>),
     Denied {
         denial: UiAllocationFrameDispatchDenial,
         counters: UiAllocationFrameDispatcherCounters,
@@ -174,7 +174,7 @@ impl UiAllocationFrameTransitionOutcome {
         frame: UiAdmittedAllocationStreamFrame,
     ) -> Self {
         Self {
-            representation: UiAllocationFrameTransitionRepresentation::Dispatched(frame),
+            representation: UiAllocationFrameTransitionRepresentation::Dispatched(Box::new(frame)),
         }
     }
 
@@ -216,7 +216,7 @@ impl UiAllocationFrameTransitionOutcome {
         self,
     ) -> Result<UiAdmittedAllocationStreamFrame, UiAllocationFrameDispatchDenial> {
         match self.representation {
-            UiAllocationFrameTransitionRepresentation::Dispatched(frame) => Ok(frame),
+            UiAllocationFrameTransitionRepresentation::Dispatched(frame) => Ok(*frame),
             UiAllocationFrameTransitionRepresentation::Denied { denial, .. } => Err(denial),
         }
     }

@@ -23,19 +23,19 @@ fn raw_planning_admission_visibility_violations(workspace_root: &Path) -> Vec<St
     let checks = [
         (
             workspace_root.join(
-                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/projection.rs",
+                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/activation_handoff/projection.rs",
             ),
             "pub fn admit_allocation_neighborhood(",
         ),
         (
             workspace_root.join(
-                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/projection.rs",
+                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/activation_handoff/projection.rs",
             ),
             "pub fn admit_allocation_neighborhood_from_graph(",
         ),
         (
             workspace_root.join(
-                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/constraint_projection.rs",
+                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/constraint_authority/admission/constraint_projection.rs",
             ),
             "pub fn admit_allocation_constraint_set(",
         ),
@@ -75,12 +75,14 @@ fn host_adapter_planning_semantics_violations(workspace_root: &Path) -> Vec<Stri
         .flat_map(|path| {
             let text = fs::read_to_string(&path).expect("host source should decode");
             forbidden_tokens.into_iter().filter_map(move |token| {
-                text.contains(token).then(|| {
-                    format!(
+                if text.contains(token) {
+                    Some(format!(
                         "{} reaches planning semantics through `{token}`; host adapters own native mechanics only",
                         path.display()
-                    )
-                })
+                    ))
+                } else {
+                    None
+                }
             })
         })
         .collect()

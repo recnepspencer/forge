@@ -23,7 +23,10 @@ fn page_local_frame_header_field_damage_denies_before_record_view() {
         bytes[start + 17] = 0xFF;
     });
     assert_nested_frame_header_damage(|bytes, start| {
-        bytes[start + 18] = 1;
+        bytes[start + 18] = bytes[start + 18].wrapping_add(1);
+    });
+    assert_nested_frame_header_damage(|bytes, start| {
+        bytes[start + 36] = 1;
     });
 }
 

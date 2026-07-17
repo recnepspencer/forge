@@ -21,9 +21,10 @@ pub use measurement::{
     UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
     UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
     UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
-    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
-    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
-    UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
+    UiInspectionMeasurementEvidenceViewInput, UiInspectionMeasurementFailureSource,
+    UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
+    UiInspectionMeasurementOwnershipPosture, UiInspectionMeasurementQueryFactFamily,
+    UiInspectionMeasurementQueryUnsupportedReason, UiInspectionQueryWorldCompatibilityFailure,
 };
 pub use scope_support_row::UiInspectionScopeSupportRow;
 pub use support_report::UiInspectionSupportReport;

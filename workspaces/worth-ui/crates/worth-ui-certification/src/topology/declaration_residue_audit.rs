@@ -13,7 +13,7 @@ use declaration_residue_ast::{
 
 const DECLARATION_SOURCE_REOPENING_ALLOWED_FILES: &[&str] = &[
     "crates/worth-ui-runtime/src/declaration/artifact/ui_declaration_lowering.rs",
-    "crates/worth-ui-runtime/src/declaration/aspect_contract/aspect_contract.rs",
+    "crates/worth-ui-runtime/src/declaration/aspect_contract/contract.rs",
     "crates/worth-ui-runtime/src/declaration/aspect_contract/aspect_name.rs",
     "crates/worth-ui-runtime/src/declaration/aspect_contract/consumed.rs",
     "crates/worth-ui-runtime/src/declaration/aspect_contract/published.rs",

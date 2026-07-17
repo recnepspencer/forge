@@ -84,12 +84,15 @@ fn query_live_rebind_digest(denial: &WorthUiQueryLiveRebindPlanDenial) -> u64 {
                 *admitted_candidate_artifact_digest,
             ],
         ),
-        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportReceiptChanged {
-            admitted_receipt_digest,
-            current_receipt_digest,
+        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportContractChanged {
+            admitted_contract_identity,
+            current_contract_identity,
         } => fold_all(
             0xB1_00_00_05,
-            [*admitted_receipt_digest, *current_receipt_digest],
+            [
+                admitted_contract_identity.as_u64(),
+                current_contract_identity.as_u64(),
+            ],
         ),
     }
 }
@@ -99,10 +102,7 @@ fn query_recovery_digest(denial: &WorthUiQueryBindingDriftDenial) -> u64 {
     let mut digest = fold_all(
         0xB2_00_00_01,
         [
-            stable_text_digest(identity.view_binding_id()),
-            stable_text_digest(identity.query_capability_digest()),
-            stable_text_digest(identity.query_composition_profile_digest()),
-            stable_text_digest(identity.result_shape_digest()),
+            identity.canonical_identity(),
             query_recovery_reason_digest(denial.reason()),
         ],
     );
@@ -136,14 +136,6 @@ fn query_drift_family_digest(family: crate::runtime::WorthUiQueryBindingPostureD
 
 fn fold_all<const N: usize>(seed: u64, values: [u64; N]) -> u64 {
     values.into_iter().fold(seed, fold)
-}
-
-fn stable_text_digest(text: &str) -> u64 {
-    text.as_bytes()
-        .iter()
-        .fold(0xCBF2_9CE4_8422_2325, |digest, byte| {
-            digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
-        })
 }
 
 fn fold(mut digest: u64, value: u64) -> u64 {

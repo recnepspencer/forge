@@ -18,7 +18,7 @@ pub(crate) fn collect_inspection_authority(graph_generation: u64) -> InspectionA
 
 pub(crate) enum RelevanceAdmissionDecision {
     Matched(UiInspectionRelevanceAdmission),
-    Denied(UiInspectionReceipt),
+    Denied(Box<UiInspectionReceipt>),
 }
 
 pub(crate) fn decide_relevance_admission(
@@ -29,11 +29,11 @@ pub(crate) fn decide_relevance_admission(
     if matches!(admission.outcome(), UiInspectionRelevanceOutcome::Matched) {
         RelevanceAdmissionDecision::Matched(admission)
     } else {
-        RelevanceAdmissionDecision::Denied(UiInspectionReceipt::from_relevance_admission(
+        RelevanceAdmissionDecision::Denied(Box::new(UiInspectionReceipt::from_relevance_admission(
             query,
             admission,
             authority.generation,
-        ))
+        )))
     }
 }
 
@@ -42,7 +42,7 @@ pub(crate) enum SupportAdmissionDecision {
         admission: UiInspectionRelevanceAdmission,
         support_report: UiInspectionSupportReport,
     },
-    Denied(UiInspectionReceipt),
+    Denied(Box<UiInspectionReceipt>),
 }
 
 pub(crate) fn decide_support_admission(
@@ -66,12 +66,12 @@ pub(crate) fn decide_support_admission(
             support_report,
         }
     } else {
-        SupportAdmissionDecision::Denied(UiInspectionReceipt::from_support(
+        SupportAdmissionDecision::Denied(Box::new(UiInspectionReceipt::from_support(
             query,
             admission,
             support_report,
             authority.generation,
-        ))
+        )))
     }
 }
 

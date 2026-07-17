@@ -8,12 +8,12 @@ use worth_store_physical_certification::{BlobHarnessProfile, BlobHarnessScenario
 #[test]
 fn blob_closeout_binds_executed_harness_evidence() {
     let sources = blob_harness_closeout_sources_for_certification(heavy_seed()).unwrap();
-    let closeout = evaluate_blob_closeout_request(BlobCloseoutRequest::Canonical(
+    let closeout = evaluate_blob_closeout_request(BlobCloseoutRequest::Canonical(Box::new(
         BlobCloseoutCertificationInput::from_executed_sources(
             sources,
             BlobCloseoutEvidencePolicy::counter_backed_foundational(),
         ),
-    ))
+    )))
     .unwrap();
 
     assert!(closeout

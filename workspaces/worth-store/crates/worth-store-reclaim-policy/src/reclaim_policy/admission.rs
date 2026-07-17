@@ -74,13 +74,15 @@ impl ReclaimPolicyAdmission {
         }
         counters = counters.with_non_claim_handoff().with_admitted();
         Ok(AdmittedReclaimPolicy::new(
-            authority.backend(),
-            region,
-            posture,
-            reachability.clone(),
-            security_scope,
-            permit,
-            request.handoff_policy(),
+            super::AdmittedReclaimPolicyBasis {
+                backend: authority.backend(),
+                region,
+                posture,
+                reachability: reachability.clone(),
+                security_scope,
+                permit,
+                handoff_policy: request.handoff_policy(),
+            },
             counters,
         ))
     }

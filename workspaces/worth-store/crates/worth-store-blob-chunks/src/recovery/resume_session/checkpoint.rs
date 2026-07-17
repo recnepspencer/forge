@@ -176,6 +176,37 @@ pub(super) fn checkpoint_identity(
     BlobResumeCheckpointIdentity::from_parts(session_id, record.payload_digest(), state)
 }
 
+pub(super) struct BlobResumePublicationProgress {
+    root_candidate: Option<BlobRootCandidateForPublication>,
+    reachability_staging: Option<BlobReachabilityStaging>,
+}
+
+impl BlobResumePublicationProgress {
+    pub(super) const fn none() -> Self {
+        Self {
+            root_candidate: None,
+            reachability_staging: None,
+        }
+    }
+
+    pub(super) fn root_candidate(root_candidate: BlobRootCandidateForPublication) -> Self {
+        Self {
+            root_candidate: Some(root_candidate),
+            reachability_staging: None,
+        }
+    }
+
+    pub(super) fn ready(
+        root_candidate: BlobRootCandidateForPublication,
+        reachability_staging: BlobReachabilityStaging,
+    ) -> Self {
+        Self {
+            root_candidate: Some(root_candidate),
+            reachability_staging: Some(reachability_staging),
+        }
+    }
+}
+
 pub(super) fn checkpoint_from_parts(
     admitted: BlobResumeSessionAdmitted,
     state: BlobResumeCheckpointStateKind,
@@ -183,8 +214,7 @@ pub(super) fn checkpoint_from_parts(
     latest_leaf: Option<BlobChunkProofLeaf>,
     physical_reference: Option<CurrentGenerationPhysicalReference>,
     frontier: Option<BlobStreamingContentFrontier>,
-    root_candidate: Option<BlobRootCandidateForPublication>,
-    reachability_staging: Option<BlobReachabilityStaging>,
+    publication: BlobResumePublicationProgress,
 ) -> BlobResumeCheckpoint {
     BlobResumeCheckpoint {
         session_id: admitted.session_id,
@@ -196,8 +226,8 @@ pub(super) fn checkpoint_from_parts(
         physical_reference,
         latest_leaf,
         frontier,
-        root_candidate,
-        reachability_staging,
+        root_candidate: publication.root_candidate,
+        reachability_staging: publication.reachability_staging,
         stale: false,
         counters: admitted.counters,
     }

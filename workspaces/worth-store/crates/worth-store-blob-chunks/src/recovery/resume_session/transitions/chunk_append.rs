@@ -3,7 +3,9 @@ use worth_store_wal::{BlobWalRecordEnvelope, BlobWalRecordKind};
 
 use crate::BlobChunkProofLeaf;
 
-use super::super::checkpoint::{checkpoint_from_parts, checkpoint_identity};
+use super::super::checkpoint::{
+    checkpoint_from_parts, checkpoint_identity, BlobResumePublicationProgress,
+};
 use super::super::states::{
     BlobResumeCheckpointStateKind, BlobResumeChunkAppendStarted, BlobResumeChunkBytesDurable,
     BlobResumeChunkIntegrityAdmitted,
@@ -74,8 +76,7 @@ impl BlobResumeChunkBytesDurable {
             None,
             Some(self.physical_reference),
             None,
-            None,
-            None,
+            BlobResumePublicationProgress::none(),
         )
     }
 

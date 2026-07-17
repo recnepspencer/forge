@@ -28,6 +28,8 @@ use worth_store_recovery_physics::{
     RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
 };
 
+pub(crate) const CERTIFICATION_INSPECTION_BYTE_LIMIT: u64 = 256;
+
 pub(crate) fn intact_readiness(label: &str) -> AdmittedRecoveryIntegrityInput {
     admit_recovery_handoff_payload(intact_handoff_payload(label))
 }
@@ -151,7 +153,13 @@ fn inspection_envelope_for_payload(payload: &[u8]) -> BoundedInspectionEnvelopeE
     let mut envelope = None;
     with_checked_page(payload, page_cell(1, 2, 7), |checked| {
         envelope = Some(
-            BoundedInspectionEnvelopeEvidence::from_checked_page(&checked, 128, 128, 128).unwrap(),
+            BoundedInspectionEnvelopeEvidence::from_checked_page(
+                &checked,
+                CERTIFICATION_INSPECTION_BYTE_LIMIT,
+                CERTIFICATION_INSPECTION_BYTE_LIMIT,
+                CERTIFICATION_INSPECTION_BYTE_LIMIT,
+            )
+            .unwrap(),
         );
     });
     envelope.unwrap()

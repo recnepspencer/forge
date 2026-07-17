@@ -32,7 +32,9 @@ pub use dependency::{
     UiMeasurementNeighborhoodClassHint,
 };
 pub use evidence_category::UiMeasurementEvidenceCategory;
-pub use generation_compatibility::UiMeasurementGenerationCompatibility;
+pub use generation_compatibility::{
+    UiMeasurementGenerationCompatibility, UiQueryWorldCompatibilityFailure,
+};
 pub(crate) use host_authority_witness::UiHostMeasurementAuthorityWitness;
 pub(crate) use host_request_shape_digest::host_measurement_request_shape_digest;
 pub use inputs::{
@@ -48,6 +50,7 @@ pub use projection::{
     consume_declared_measurement_projection_facts, UiProjectionFactReceipt,
     UiProjectionFactReceiptDenial,
 };
+pub(crate) use result::UiHostMeasurementResultInput;
 pub use result::{UiCurrentMeasurementResult, UiMeasurementResult, UiMeasurementValue};
 #[cfg(test)]
 pub(crate) use result_identity_digest::measurement_result_identity_digest;

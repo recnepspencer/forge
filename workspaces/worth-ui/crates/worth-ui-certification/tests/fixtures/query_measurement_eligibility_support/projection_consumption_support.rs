@@ -31,7 +31,7 @@ pub(super) fn measurement_projection_workspace(
         .expect("size aspect should admit");
     let mut workspace = in_memory_test_runtime()
         .with_schema(schema)
-        .workspace(&format!("worth-ui.phase5.query-measurement.{lane_label}"))
+        .workspace(format!("worth-ui.phase5.query-measurement.{lane_label}"))
         .expect("in-memory test backend should build a workspace");
     let write_receipt = workspace
         .insert("task", |task| {
@@ -99,11 +99,10 @@ fn consume_completion(
         schema_basis_authority,
     )
     .expect("runtime current snapshot basis should resolve from the ordinary read");
-    let world_profile = UiGraphWorldProfile::query_snapshot_basis(
-        basis.clone(),
-        snapshot_resolution_report(&basis),
-    )
-    .expect("query snapshot basis world should admit");
+    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    let world_profile = UiGraphWorldProfile::query_snapshot_basis(prerequisites);
     (world_profile, completion.consume_projection(projection))
 }
 

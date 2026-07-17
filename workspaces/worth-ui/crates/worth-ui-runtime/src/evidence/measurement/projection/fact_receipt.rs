@@ -1,9 +1,9 @@
-use worth_query::facade::foundation::BasisResolutionMode;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
+use worth_ui_query_binding::WorthUiQueryResolutionMode;
 use worth_ui_query_binding::{
-    WorthUiQueryBindingSubsystem, WorthUiQueryMeasurementFactFamily,
-    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactReceipt,
-    WorthUiQueryMeasurementFactReceiptError, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
+    WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError,
+    WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
 };
 
 use crate::declaration::{
@@ -27,7 +27,7 @@ pub enum UiProjectionFactReceiptDenial {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiProjectionFactObservation {
     family: WorthUiQueryMeasurementFactFamily,
-    extent_bits: u32,
+    extent: worth_foundational::CanonicalF32,
     identity_digest: u64,
 }
 
@@ -37,7 +37,7 @@ pub struct UiProjectionFactReceipt {
     authority_index_key: worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
     declaration_identity: UiDeclarationIdentity,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-    query_resolution_mode: BasisResolutionMode,
+    query_resolution_mode: WorthUiQueryResolutionMode,
     required_measurement_dependencies: Box<[UiDeclaredMeasurementEvidenceRequirement]>,
     required_query_fact_families: Box<[WorthUiQueryMeasurementFactFamily]>,
     required_query_fact_family_set_digest: u64,
@@ -52,10 +52,10 @@ impl UiProjectionFactObservation {
         let identity_digest = stable_text_digest("worth-ui.projection-fact-observation")
             ^ stable_text_digest(query_measurement_family_name(observation.family()))
                 .rotate_left(7)
-            ^ (observation.extent().to_bits() as u64).rotate_left(13);
+            ^ (u64::from(observation.extent().bits())).rotate_left(13);
         Self {
             family: observation.family(),
-            extent_bits: observation.extent().to_bits(),
+            extent: observation.extent(),
             identity_digest,
         }
     }
@@ -64,8 +64,8 @@ impl UiProjectionFactObservation {
         self.family
     }
 
-    pub fn extent(&self) -> f32 {
-        f32::from_bits(self.extent_bits)
+    pub fn extent(&self) -> worth_foundational::CanonicalF32 {
+        self.extent
     }
 
     pub fn identity_digest(&self) -> u64 {
@@ -91,42 +91,8 @@ impl UiProjectionFactReceipt {
         self.declaration_support_authority_generation
     }
 
-    pub fn query_basis_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .contract()
-            .basis_digest()
-            .unwrap_or_default()
-    }
-
-    pub fn query_resolution_mode(&self) -> &BasisResolutionMode {
-        &self.query_resolution_mode
-    }
-
-    pub fn projection_contract_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .contract()
-            .contract_digest()
-    }
-
-    pub fn projection_consumption_declaration_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .receipt()
-            .declaration_digest()
-    }
-
-    pub fn projection_consumption_receipt_digest(&self) -> &str {
-        self.query_authority.authority().receipt().receipt_digest()
-    }
-
-    pub fn projection_fact_set_digest(&self) -> &str {
-        self.query_authority.authority().receipt().fact_set_digest()
-    }
-
-    pub fn projection_source_identity(&self) -> &str {
-        self.query_authority.authority().source_identity().as_str()
+    pub fn query_resolution_mode(&self) -> WorthUiQueryResolutionMode {
+        self.query_resolution_mode
     }
 
     pub fn required_measurement_dependencies(&self) -> &[UiDeclaredMeasurementEvidenceRequirement] {
@@ -167,14 +133,15 @@ pub fn consume_declared_measurement_projection_facts(
 ) -> Result<UiProjectionFactReceipt, UiProjectionFactReceiptDenial> {
     let dependencies = declared_query_measurement_dependencies(measurement_policy)
         .ok_or(UiProjectionFactReceiptDenial::NoQueryMeasurementDependencies)?;
-    let query_receipt = WorthUiQueryBindingSubsystem::bootstrap()
-        .prerequisites()
+    let query_resolution_mode = query_prerequisites.resolution_mode();
+    let query_receipt = WorthUiQueryPrerequisiteBoundary::new()
         .measurement_fact_receipt_from_query_authority(query_prerequisites, query_authority.clone())
         .map_err(UiProjectionFactReceiptDenial::QueryFactReceipt)?;
     admit_declared_measurement_projection_fact_receipt(
         declaration_identity,
         declaration_support_authority_generation,
         dependencies,
+        query_resolution_mode,
         query_receipt,
     )
 }
@@ -183,6 +150,7 @@ pub(crate) fn admit_declared_measurement_projection_fact_receipt(
     declaration_identity: UiDeclarationIdentity,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     dependencies: UiDeclaredMeasurementQueryDependencySet,
+    query_resolution_mode: WorthUiQueryResolutionMode,
     query_receipt: WorthUiQueryMeasurementFactReceipt,
 ) -> Result<UiProjectionFactReceipt, UiProjectionFactReceiptDenial> {
     validate_consumed_query_fact_families(&dependencies, &query_receipt)?;
@@ -190,6 +158,7 @@ pub(crate) fn admit_declared_measurement_projection_fact_receipt(
         declaration_identity,
         declaration_support_authority_generation,
         dependencies,
+        query_resolution_mode,
         query_receipt,
     ))
 }
@@ -221,6 +190,7 @@ fn receipt_from_query_fact_receipt(
     declaration_identity: UiDeclarationIdentity,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     dependencies: UiDeclaredMeasurementQueryDependencySet,
+    query_resolution_mode: WorthUiQueryResolutionMode,
     query_receipt: WorthUiQueryMeasurementFactReceipt,
 ) -> UiProjectionFactReceipt {
     let query_authority = query_receipt.query_authority().clone();
@@ -244,11 +214,7 @@ fn receipt_from_query_fact_receipt(
         authority_index_key,
         declaration_identity,
         declaration_support_authority_generation,
-        query_resolution_mode: query_receipt
-            .prerequisites()
-            .resolution_report()
-            .resolution_mode()
-            .clone(),
+        query_resolution_mode,
         required_measurement_dependencies: dependencies
             .required_measurement_dependencies()
             .to_vec()

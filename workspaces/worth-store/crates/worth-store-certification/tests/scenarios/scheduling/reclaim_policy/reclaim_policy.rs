@@ -4,7 +4,8 @@ use worth_store_test_support::harness::physical_isolation::epoch_scope as suppor
 
 use worth_store_physical_format::{PhysicalReclaimRegion, ReclaimedByteInterpretation};
 use worth_store_physical_isolation::{
-    HazardLeaseTable, HazardLeaseTableCapacity, ReclaimDenial, ReclaimEligibilityProof,
+    BackupReachabilityLeaseIndexSnapshot, HazardLeaseTable, HazardLeaseTableCapacity,
+    ReclaimDenial, ReclaimEligibilityProof,
 };
 use worth_store_reclaim_policy::{
     ReclaimLaterHandoffPolicy, ReclaimPermit, ReclaimPolicyAdmission, ReclaimPolicyDenialKind,
@@ -109,6 +110,7 @@ fn reclaim_policy_denies_region_not_covered_by_physical_isolation_reachability_r
         world.executed_reachability(),
         HazardLeaseTable::with_capacity(HazardLeaseTableCapacity::bounded_slots(1).unwrap())
             .live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap();
     let removal = proof.admit_reachability_removal().unwrap();
@@ -135,6 +137,7 @@ fn reclaim_policy_denies_same_owner_region_reuse() {
         world.executed_reachability(),
         HazardLeaseTable::with_capacity(HazardLeaseTableCapacity::bounded_slots(1).unwrap())
             .live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap();
     let removal = proof.admit_reachability_removal().unwrap();
@@ -152,9 +155,12 @@ fn reclaim_policy_denies_same_owner_region_reuse() {
 #[test]
 fn reclaim_policy_denies_live_hazard_before_io_qos_admission_exists() {
     let world = S6ReclaimFixture::new(441);
-    let proof =
-        ReclaimEligibilityProof::admit(world.executed_reachability(), world.live_hazard_snapshot())
-            .unwrap();
+    let proof = ReclaimEligibilityProof::admit(
+        world.executed_reachability(),
+        world.live_hazard_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
+    )
+    .unwrap();
 
     assert!(matches!(
         proof.admit_reachability_removal().unwrap_err(),

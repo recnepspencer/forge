@@ -31,7 +31,9 @@ mod snapshot;
 mod topology;
 
 // --- admission (declaration → graph instantiation) ---
-pub(crate) use admission::admit_graph_handoffs;
+pub(crate) use admission::{
+    admit_graph_handoffs, UiGraphNodeInstantiationInput, UiGraphTopologySeedInput,
+};
 pub use admission::{
     UiGraphCoreIndexContributionSeed, UiGraphInstantiationDenial, UiGraphInstantiationLocalDenial,
     UiGraphInstantiationLocalDenialKind, UiGraphInstantiationPlan, UiGraphNodeInstantiationEntry,
@@ -66,10 +68,11 @@ pub use closeout::{
 
 // --- identity ---
 pub use identity::{
-    UiGraphGeneration, UiGraphGenerationRelation, UiGraphNodeIdentity, UiGraphSnapshotComparable,
-    UiGraphWorldDifferenceKind, UiGraphWorldProfile, UiGraphWorldProfileError,
-    UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
-    UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
+    UiGraphGeneration, UiGraphGenerationRelation, UiGraphNodeIdentity, UiGraphSessionIdentityError,
+    UiGraphSessionLabel, UiGraphSnapshotComparable, UiGraphWorldDifferenceKind,
+    UiGraphWorldProfile, UiPreviewSessionIdentity, UiRepeatedInstanceBasis,
+    UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind, UiRuntimeDataInstanceKeyKind,
+    UiRuntimeDataInstanceKeyToken,
 };
 
 // --- indexes / lookup ---
@@ -122,6 +125,7 @@ pub use participation::{
 };
 
 // --- snapshot ---
+pub(crate) use snapshot::UiGraphNodeInput;
 pub use snapshot::{
     UiGraphAttachmentPosture, UiGraphDeclarationCorrespondence, UiGraphNode, UiGraphSnapshot,
 };

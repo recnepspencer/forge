@@ -50,19 +50,24 @@ impl WorthUiRuntimeImpactNarrower {
         )?;
 
         Ok(WorthUiRuntimeImpactNarrowing::new(
-            classification.active_artifact_digest(),
-            classification.candidate_artifact_digest(),
-            affected_source_modules,
-            affected_handles.clone(),
-            affected_subtree_digests,
-            command_invalidations(classification, affected_handles.len()),
-            token_invalidations(classification, affected_handles.len()),
-            WorthUiAccessibilityInvalidation::unchanged(),
-            renderer_invalidations(&affected_handles),
-            query_dependency_invalidations,
-            lane_impact(classification),
-            basis.impact_metadata().full_artifact_handle_count(),
-            counters,
+            super::WorthUiRuntimeImpactNarrowingInput {
+                active_artifact_digest: classification.active_artifact_digest(),
+                candidate_artifact_digest: classification.candidate_artifact_digest(),
+                affected_source_modules,
+                affected_handles: affected_handles.clone(),
+                affected_subtree_digests,
+                command_binding_invalidations: command_invalidations(
+                    classification,
+                    affected_handles.len(),
+                ),
+                token_invalidations: token_invalidations(classification, affected_handles.len()),
+                accessibility_invalidation: WorthUiAccessibilityInvalidation::unchanged(),
+                renderer_resource_invalidations: renderer_invalidations(&affected_handles),
+                query_dependency_invalidations,
+                lane_impact: lane_impact(classification),
+                full_artifact_handle_count: basis.impact_metadata().full_artifact_handle_count(),
+                counters,
+            },
         ))
     }
 }

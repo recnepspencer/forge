@@ -79,7 +79,7 @@ pub struct IntegrityDiagnosticReport {
 impl IntegrityDiagnosticReport {
     pub fn from_executed_evidence(evidence: &PhysicalIntegrityEvidenceBundle) -> Self {
         Self {
-            outcome: evidence.integrity_outcome().clone(),
+            outcome: *evidence.integrity_outcome(),
             locality: evidence.locality(),
             basis: evidence.diagnostic_report().basis.clone(),
         }

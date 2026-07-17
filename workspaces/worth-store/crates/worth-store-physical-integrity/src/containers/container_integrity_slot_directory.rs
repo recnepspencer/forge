@@ -6,12 +6,13 @@ use crate::{
 };
 use worth_store_physical_format::{
     PageRecordCounterSnapshot, PageRecordDenial, PageRecordDenialKind, PhysicalByteOrder,
-    PhysicalRecordSlot, SlotDirectory, SlotDirectoryEntry, SlotDirectoryEntryState,
-    PHYSICAL_HEADER_LENGTH,
+    PhysicalGenerationOwner, PhysicalRecordSlot, SlotDirectory, SlotDirectoryEntry,
+    SlotDirectoryEntryState, PHYSICAL_HEADER_LENGTH,
 };
 
 pub(crate) fn inspect_record_slot_directory(
     page_body: &[u8],
+    page_owner: PhysicalGenerationOwner,
     mut counters: ContainerIntegrityCounters,
 ) -> Result<
     (SlotDirectoryIntegrityReport, ContainerIntegrityCounters),
@@ -37,7 +38,8 @@ pub(crate) fn inspect_record_slot_directory(
                 PageRecordCounterSnapshot::for_locate_attempt(),
             )
             .map_err(|denial| slot_directory_denial(denial, counters))?;
-        let (state_report, next_counters) = inspect_slot_state(page_body, entry, counters)?;
+        let (state_report, next_counters) =
+            inspect_slot_state(page_body, page_owner, entry, counters)?;
         counters = next_counters;
         match state_report {
             SlotStateInspection::Occupied => occupied_slots += 1,
@@ -56,13 +58,14 @@ pub(crate) fn inspect_record_slot_directory(
 
 fn inspect_slot_state(
     page_body: &[u8],
+    page_owner: PhysicalGenerationOwner,
     entry: SlotDirectoryEntry,
     counters: ContainerIntegrityCounters,
 ) -> Result<(SlotStateInspection, ContainerIntegrityCounters), PhysicalContainerIntegrityDenial> {
     match entry.state() {
         SlotDirectoryEntryState::Occupied => {
             let frame = frame_slice(page_body, entry, counters)?;
-            let counters = inspect_page_local_frame(frame, entry, counters)?;
+            let counters = inspect_page_local_frame(frame, page_owner, entry, counters)?;
             Ok((SlotStateInspection::Occupied, counters))
         }
         SlotDirectoryEntryState::Deleted
@@ -88,11 +91,11 @@ fn inspect_slot_state(
     }
 }
 
-fn frame_slice<'a>(
-    page_body: &'a [u8],
+fn frame_slice(
+    page_body: &[u8],
     entry: SlotDirectoryEntry,
     counters: ContainerIntegrityCounters,
-) -> Result<&'a [u8], PhysicalContainerIntegrityDenial> {
+) -> Result<&[u8], PhysicalContainerIntegrityDenial> {
     let start = entry.offset() as usize;
     let end = start.saturating_add(entry.frame_length() as usize);
     if start >= page_body.len() || end > page_body.len() {
@@ -109,6 +112,7 @@ fn frame_slice<'a>(
 
 fn inspect_page_local_frame(
     frame: &[u8],
+    page_owner: PhysicalGenerationOwner,
     entry: SlotDirectoryEntry,
     counters: ContainerIntegrityCounters,
 ) -> Result<ContainerIntegrityCounters, PhysicalContainerIntegrityDenial> {
@@ -128,7 +132,7 @@ fn inspect_page_local_frame(
             frame.len(),
         )));
     }
-    reject_page_local_frame_header_mismatch(frame, entry, counters)?;
+    reject_page_local_frame_header_mismatch(frame, page_owner, entry, counters)?;
     reject_page_local_frame_payload_length(frame, entry, counters)
 }
 

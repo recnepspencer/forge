@@ -5,7 +5,10 @@ use crate::graph::UiGraphNodeIdentity;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(super) struct UiMeasurementEvidenceIndex {
-    query_by_source: BTreeMap<Box<str>, Vec<super::UiQueryAllocationTargetMapping>>,
+    query_by_source: BTreeMap<
+        worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+        Vec<super::UiQueryAllocationTargetMapping>,
+    >,
     host_by_request: BTreeMap<worth_ui_host_contract::UiMeasurementRequestIdentity, usize>,
     durable_by_input: BTreeMap<u64, usize>,
 }
@@ -24,7 +27,7 @@ impl UiMeasurementEvidenceIndex {
                 );
                 let rows = index
                     .query_by_source
-                    .entry(mapping.source_identity().into())
+                    .entry(mapping.authority_index_key().clone())
                     .or_default();
                 if !rows.iter().any(|row| row == &mapping) {
                     rows.push(mapping);
@@ -50,10 +53,10 @@ impl UiMeasurementEvidenceIndex {
 
     pub(super) fn query_mappings(
         &self,
-        source_identity: &str,
+        authority_index_key: &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
     ) -> &[super::UiQueryAllocationTargetMapping] {
         self.query_by_source
-            .get(source_identity)
+            .get(authority_index_key)
             .map(Vec::as_slice)
             .unwrap_or_default()
     }
@@ -71,10 +74,17 @@ impl UiMeasurementEvidenceIndex {
 
     pub(super) fn query_rows(
         &self,
-    ) -> impl Iterator<Item = (&str, &super::UiQueryAllocationTargetMapping)> {
-        self.query_by_source.iter().flat_map(|(source, mappings)| {
-            mappings.iter().map(|mapping| (source.as_ref(), mapping))
-        })
+    ) -> impl Iterator<
+        Item = (
+            &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+            &super::UiQueryAllocationTargetMapping,
+        ),
+    > {
+        self.query_by_source
+            .iter()
+            .flat_map(|(authority, mappings)| {
+                mappings.iter().map(move |mapping| (authority, mapping))
+            })
     }
 
     pub(super) fn host_requests(

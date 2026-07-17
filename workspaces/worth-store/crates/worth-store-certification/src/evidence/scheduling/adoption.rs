@@ -287,7 +287,7 @@ fn residual_debt_rows_from_qualification(
         .filter_map(|kind| {
             let observed = row_kinds
                 .iter()
-                .filter(|kinds| kinds.iter().any(|candidate| *candidate == kind))
+                .filter(|kinds| kinds.contains(&kind))
                 .count();
             (observed > 0).then(|| S6ReadinessResidualDebtEvidenceRow::new(kind, observed))
         })

@@ -16,18 +16,29 @@ pub struct WorthUiPlanNodeInspection {
     provenance: WorthUiArtifactToPlanProvenance,
 }
 
+pub(crate) struct WorthUiPlanNodeInspectionInput {
+    pub plan_index: u32,
+    pub runtime_handle: WorthUiRuntimeHandle,
+    pub family: WorthUiPlanNodeFamily,
+    pub child_range: Option<WorthUiPlanChildRange>,
+    pub region_structure: Option<WorthUiPlanRegionStructure>,
+    pub egui_boundary: Option<WorthUiEguiPlanBoundary>,
+    pub render_resource_ref: Option<WorthUiRenderResourceRef>,
+    pub provenance: WorthUiArtifactToPlanProvenance,
+}
+
 impl WorthUiPlanNodeInspection {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        plan_index: u32,
-        runtime_handle: WorthUiRuntimeHandle,
-        family: WorthUiPlanNodeFamily,
-        child_range: Option<WorthUiPlanChildRange>,
-        region_structure: Option<WorthUiPlanRegionStructure>,
-        egui_boundary: Option<WorthUiEguiPlanBoundary>,
-        render_resource_ref: Option<WorthUiRenderResourceRef>,
-        provenance: WorthUiArtifactToPlanProvenance,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiPlanNodeInspectionInput) -> Self {
+        let WorthUiPlanNodeInspectionInput {
+            plan_index,
+            runtime_handle,
+            family,
+            child_range,
+            region_structure,
+            egui_boundary,
+            render_resource_ref,
+            provenance,
+        } = input;
         Self {
             plan_index,
             runtime_handle,

@@ -62,8 +62,8 @@ mod tests {
     use worth_store_contracts::{RoadmapScope, ROADMAP_2_S1_SCOPE};
     use worth_store_physical_format::{
         PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
-        PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-        PhysicalPublicationState, PhysicalRecordSlot, PhysicalReference,
+        PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalRecordSlot,
+        PhysicalReference,
         PhysicalReferenceAuthority, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
     };
 
@@ -166,15 +166,17 @@ mod tests {
     }
 
     fn header_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
+        let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+            .slot_cell(segment(1), page(1), slot(generation_value as u16))
+            .with_slot_generation(generation(generation_value));
+        let authority = PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+        );
         let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-        bytes.push(PhysicalFrameKind::RecordFrame.tag());
-        bytes.extend_from_slice(&1u16.to_le_bytes());
-        bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-        bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-        bytes.extend_from_slice(&generation_value.to_le_bytes());
-        bytes.push(PhysicalPublicationState::Published.code());
-        bytes.extend_from_slice(&0u32.to_le_bytes());
-        bytes.extend_from_slice(&0u64.to_le_bytes());
+        bytes.extend_from_slice(&authority.encode_record_frame_header(
+            cell,
+            payload.len().try_into().expect("bounded test payload"),
+        ));
         bytes.extend_from_slice(payload);
         bytes
     }

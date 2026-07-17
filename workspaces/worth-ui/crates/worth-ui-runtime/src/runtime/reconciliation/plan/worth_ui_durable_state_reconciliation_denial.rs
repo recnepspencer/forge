@@ -6,23 +6,23 @@ use crate::runtime::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiDurableStateReconciliationDenial {
     AmbiguousNodeReplacementPlan {
-        counters: WorthUiDurableStateReconciliationCounters,
+        counters: Box<WorthUiDurableStateReconciliationCounters>,
     },
     InventoryDigestMismatch {
         plan_active_artifact_digest: u64,
         inventory_active_artifact_digest: u64,
         plan_candidate_artifact_digest: u64,
         inventory_candidate_artifact_digest: u64,
-        counters: WorthUiDurableStateReconciliationCounters,
+        counters: Box<WorthUiDurableStateReconciliationCounters>,
     },
     MissingInventoryFamily {
         family_id: WorthUiDurableStateFamilyId,
-        counters: WorthUiDurableStateReconciliationCounters,
+        counters: Box<WorthUiDurableStateReconciliationCounters>,
     },
     UnsupportedCustomTransition {
         identity_basis: String,
         family_id: WorthUiDurableStateFamilyId,
         transition: WorthUiNodeLifecycleTransition,
-        counters: WorthUiDurableStateReconciliationCounters,
+        counters: Box<WorthUiDurableStateReconciliationCounters>,
     },
 }

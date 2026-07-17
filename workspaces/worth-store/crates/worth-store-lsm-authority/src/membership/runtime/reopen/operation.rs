@@ -10,7 +10,7 @@ use worth_store_wal::WalArtifactStoreDenial;
 
 #[derive(Debug)]
 enum OpenCase {
-    Admitted(LsmMembershipSession),
+    Admitted(Box<LsmMembershipSession>),
     Denied(LsmMembershipDenial),
 }
 
@@ -29,7 +29,7 @@ impl LsmMembershipOpenOutcome {
     fn issue(result: Result<LsmMembershipSession, LsmMembershipDenial>) -> Self {
         Self {
             case: match result {
-                Ok(session) => OpenCase::Admitted(session),
+                Ok(session) => OpenCase::Admitted(Box::new(session)),
                 Err(denial) => OpenCase::Denied(denial),
             },
         }
@@ -55,7 +55,7 @@ impl LsmMembershipOpenOutcome {
 
     pub fn into_result(self) -> Result<LsmMembershipSession, LsmMembershipDenial> {
         match self.case {
-            OpenCase::Admitted(session) => Ok(session),
+            OpenCase::Admitted(session) => Ok(*session),
             OpenCase::Denied(denial) => Err(denial),
         }
     }
@@ -106,6 +106,12 @@ const fn map_store_denial(denial: WalArtifactStoreDenial) -> LsmMembershipDenial
         WalArtifactStoreDenial::Io => LsmMembershipDenial::Io,
         WalArtifactStoreDenial::InvalidArtifactPath
         | WalArtifactStoreDenial::StoreBindingMismatch => LsmMembershipDenial::StoreBindingMismatch,
+        WalArtifactStoreDenial::InvalidFrame
+        | WalArtifactStoreDenial::DigestMismatch
+        | WalArtifactStoreDenial::NonContiguousLsn
+        | WalArtifactStoreDenial::ArtifactReadBudgetExceeded { .. } => {
+            LsmMembershipDenial::PersistedMembershipArtifactInvalid
+        }
     }
 }
 

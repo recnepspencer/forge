@@ -117,11 +117,11 @@ impl BlobGenerationRegistryAdmission {
         }
     }
 
-    pub fn publish<'a>(
+    pub fn publish(
         self,
-        registry: &'a mut BlobGenerationRegistry,
+        registry: &mut BlobGenerationRegistry,
         authority: BlobGenerationRegistryAuthority,
-    ) -> Result<&'a BlobGenerationRegistryEntry, BlobGenerationRegistryDenial> {
+    ) -> Result<&BlobGenerationRegistryEntry, BlobGenerationRegistryDenial> {
         registry.publish(self, authority)
     }
 

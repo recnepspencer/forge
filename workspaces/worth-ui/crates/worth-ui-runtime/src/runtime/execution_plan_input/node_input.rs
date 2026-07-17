@@ -15,7 +15,7 @@ pub struct WorthUiPlanNodeInput {
     query_binding_identity: Option<WorthUiQueryBindingIdentity>,
     query_binding_posture: Option<WorthUiQueryBindingPosture>,
     query_required_surfaces: Vec<WorthUiQueryRebindRequiredSurface>,
-    query_preservation_receipt: Option<String>,
+    query_preservation_receipt: Option<crate::runtime::WorthUiQueryBindingPreservationReceipt>,
     egui_boundary_input: Option<WorthUiEguiBoundaryInput>,
     topology_input: WorthUiPlanNodeTopologyInput,
 }
@@ -107,8 +107,10 @@ impl WorthUiPlanNodeInput {
         &self.query_required_surfaces
     }
 
-    pub fn query_preservation_receipt(&self) -> Option<&str> {
-        self.query_preservation_receipt.as_deref()
+    pub fn query_preservation_receipt(
+        &self,
+    ) -> Option<crate::runtime::WorthUiQueryBindingPreservationReceipt> {
+        self.query_preservation_receipt
     }
 
     pub fn egui_boundary_input(&self) -> Option<WorthUiEguiBoundaryInput> {
@@ -117,24 +119,6 @@ impl WorthUiPlanNodeInput {
 
     pub fn topology_input(&self) -> WorthUiPlanNodeTopologyInput {
         self.topology_input
-    }
-
-    pub fn query_projection_consumption_digest(&self) -> Option<&str> {
-        self.query_binding_posture
-            .as_ref()
-            .map(WorthUiQueryBindingPosture::projection_consumption_digest)
-    }
-
-    pub fn query_async_result_state_digest(&self) -> Option<&str> {
-        self.query_binding_posture
-            .as_ref()
-            .map(WorthUiQueryBindingPosture::async_result_state_digest)
-    }
-
-    pub fn query_recovery_digest(&self) -> Option<&str> {
-        self.query_binding_posture
-            .as_ref()
-            .map(WorthUiQueryBindingPosture::recovery_digest)
     }
 
     #[cfg(test)]
@@ -213,10 +197,10 @@ fn required_surfaces_for_query_rebind_entry(
 
 fn preservation_receipt_for_query_rebind_entry(
     entry: &WorthUiQueryLiveRebindEntry,
-) -> Option<String> {
+) -> Option<crate::runtime::WorthUiQueryBindingPreservationReceipt> {
     match entry.outcome() {
         WorthUiQueryLiveRebindOutcome::Preserve(preservation) => {
-            Some(preservation.preservation_receipt().to_owned())
+            Some(preservation.preservation_receipt())
         }
         _ => None,
     }

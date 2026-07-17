@@ -1,3 +1,5 @@
+use crate::BackendTargetProfile;
+
 use super::WalDurabilityBarrierSet;
 
 pub(crate) mod sealed {
@@ -23,6 +25,7 @@ pub enum BackendDurabilitySupport {
 
 pub trait BackendDurabilityProfile: sealed::Sealed + Copy + Clone + Eq + 'static {
     const ID: BackendDurabilityProfileId;
+    const TARGET: BackendTargetProfile;
     const REQUIRED_BARRIERS: WalDurabilityBarrierSet;
     const SUPPORT: BackendDurabilitySupport;
 }

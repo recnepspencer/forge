@@ -43,7 +43,7 @@ error[E0624]: associated function `admit` is private
 14 |     let _contract = UiAspectContract::admit(&fake_receipt);
    |                                       ^^^^^ private associated function
    |
-  ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/aspect_contract/aspect_contract.rs
+  ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/aspect_contract/contract.rs
    |
    |     pub(crate) fn admit(semantic_receipt: &UiDslLoweringReceipt) -> UiAspectContractAdmission {
    |     ----------------------------------------------------------------------------------------- private associated function defined here

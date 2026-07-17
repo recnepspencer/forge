@@ -90,7 +90,7 @@ pub enum BlobStreamingReadDenial {
     CorruptedChunk {
         ordinal: BlobChunkOrdinal,
         damage_case: BlobDamageCase,
-        diagnostics: BlobQuarantineDiagnostics,
+        diagnostics: Box<BlobQuarantineDiagnostics>,
         counters: BlobStreamingReadCounterSnapshot,
     },
     ColdChunkUnavailable {
@@ -101,7 +101,7 @@ pub enum BlobStreamingReadDenial {
         ordinal: BlobChunkOrdinal,
         counters: BlobStreamingReadCounterSnapshot,
     },
-    CorruptionReferenceEdgeMismatch(BlobCorruptionDenial),
+    CorruptionReferenceEdgeMismatch(Box<BlobCorruptionDenial>),
     LogicalContentDigestMismatch,
     ChunkTreeRootMismatch,
 }

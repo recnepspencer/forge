@@ -13,28 +13,39 @@ pub struct ReclaimCounterSnapshot {
     hazard_lookup_ranges: u64,
     range_comparisons: u64,
     overlapping_ranges: u64,
+    active_backup_leases: u64,
+    backup_artifacts_examined: u64,
+    backup_overlapping_artifacts: u64,
+}
+
+pub(crate) struct ReclaimCounterInputs {
+    pub(crate) candidate_ranges: u64,
+    pub(crate) live_hazard_entries: u64,
+    pub(crate) indexed_epoch_buckets_touched: u64,
+    pub(crate) indexed_hazard_entries_touched: u64,
+    pub(crate) hazard_counters: HazardLeaseCounterSnapshot,
+    pub(crate) active_backup_leases: u64,
+    pub(crate) backup_artifacts_examined: u64,
+    pub(crate) backup_overlapping_artifacts: u64,
 }
 
 impl ReclaimCounterSnapshot {
-    pub(crate) const fn from_inputs(
-        candidate_ranges: u64,
-        live_hazard_entries: u64,
-        indexed_epoch_buckets_touched: u64,
-        indexed_hazard_entries_touched: u64,
-        hazard_counters: HazardLeaseCounterSnapshot,
-    ) -> Self {
+    pub(crate) const fn from_inputs(inputs: ReclaimCounterInputs) -> Self {
         Self {
             executed_reachability_inputs: 1,
-            candidate_ranges,
+            candidate_ranges: inputs.candidate_ranges,
             blocked_reclaims: 0,
             eligible_reclaims: 0,
-            live_hazard_entries,
-            indexed_epoch_buckets_touched,
-            indexed_range_buckets_touched: hazard_counters.range_bucket_lookups(),
-            indexed_hazard_entries_touched,
-            hazard_lookup_ranges: hazard_counters.live_lookup_ranges(),
-            range_comparisons: hazard_counters.range_comparisons(),
-            overlapping_ranges: hazard_counters.overlapping_ranges(),
+            live_hazard_entries: inputs.live_hazard_entries,
+            indexed_epoch_buckets_touched: inputs.indexed_epoch_buckets_touched,
+            indexed_range_buckets_touched: inputs.hazard_counters.range_bucket_lookups(),
+            indexed_hazard_entries_touched: inputs.indexed_hazard_entries_touched,
+            hazard_lookup_ranges: inputs.hazard_counters.live_lookup_ranges(),
+            range_comparisons: inputs.hazard_counters.range_comparisons(),
+            overlapping_ranges: inputs.hazard_counters.overlapping_ranges(),
+            active_backup_leases: inputs.active_backup_leases,
+            backup_artifacts_examined: inputs.backup_artifacts_examined,
+            backup_overlapping_artifacts: inputs.backup_overlapping_artifacts,
         }
     }
 
@@ -90,5 +101,17 @@ impl ReclaimCounterSnapshot {
 
     pub const fn overlapping_ranges(self) -> u64 {
         self.overlapping_ranges
+    }
+
+    pub const fn active_backup_leases(self) -> u64 {
+        self.active_backup_leases
+    }
+
+    pub const fn backup_artifacts_examined(self) -> u64 {
+        self.backup_artifacts_examined
+    }
+
+    pub const fn backup_overlapping_artifacts(self) -> u64 {
+        self.backup_overlapping_artifacts
     }
 }

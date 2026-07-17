@@ -4,7 +4,7 @@ use super::event::PersistedMembershipActivation;
 use crate::membership::LsmMembershipDenial;
 
 const MAGIC: [u8; 8] = *b"FSLACTV\0";
-const VERSION: u16 = 1;
+const VERSION: u16 = 2;
 pub(super) const HEADER_BYTES: usize = 32;
 
 pub(crate) fn decode_activation(

@@ -12,15 +12,17 @@ pub(crate) fn diagnostic_codes(
         .collect()
 }
 
-pub(crate) fn diagnostic_topology(
-    diagnostics: &[CapabilityRegistrationDiagnostic],
-) -> Vec<(
+pub(crate) type CapabilityDiagnosticTopology = (
     CapabilityDiagnosticCode,
     Option<String>,
     Option<String>,
     Option<String>,
     Option<String>,
-)> {
+);
+
+pub(crate) fn diagnostic_topology(
+    diagnostics: &[CapabilityRegistrationDiagnostic],
+) -> Vec<CapabilityDiagnosticTopology> {
     diagnostics
         .iter()
         .map(|diagnostic| {

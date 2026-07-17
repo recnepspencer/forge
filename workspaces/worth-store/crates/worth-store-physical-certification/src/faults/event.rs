@@ -24,7 +24,7 @@ pub enum PhysicalFaultEventKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalFaultEvent {
-    Crash(CrashEvent),
+    Crash(Box<CrashEvent>),
     TornWrite(TornWriteEvent),
     DroppedFlush(DroppedFlushEvent),
     ReorderedPersistence(ReorderedPersistenceEvent),
@@ -113,7 +113,7 @@ pub struct NoFaultControlEvent {
 
 impl PhysicalFaultEvent {
     pub fn crash(event: CrashEvent) -> Self {
-        Self::Crash(event)
+        Self::Crash(Box::new(event))
     }
 
     pub fn torn_write(

@@ -52,16 +52,16 @@ impl StoreAccessPolicyProofAuthority {
             && extent_alignment.site() == PhysicalAlignmentSite::ExtentStart
             && extent_alignment.bytes() >= 4096
             && byte_length > 0
-            && byte_length % page_alignment.bytes() as u32 == 0)
-            .then(|| {
-                DirectIoAlignmentRequirement::page_and_sector(
-                    reference,
-                    lifecycle,
-                    byte_length,
-                    page_alignment,
-                    extent_alignment,
-                )
-            })
+            && byte_length.is_multiple_of(page_alignment.bytes() as u32))
+        .then(|| {
+            DirectIoAlignmentRequirement::page_and_sector(
+                reference,
+                lifecycle,
+                byte_length,
+                page_alignment,
+                extent_alignment,
+            )
+        })
     }
 
     pub fn mmap_posture(self) -> Option<MmapFaultPosture> {

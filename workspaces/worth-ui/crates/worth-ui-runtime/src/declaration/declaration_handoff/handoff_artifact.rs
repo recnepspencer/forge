@@ -83,6 +83,12 @@ impl UiDeclarationGraphHandoff {
         self.structural.repetition_posture()
     }
 
+    pub const fn structural_semantics(
+        &self,
+    ) -> &crate::declaration::UiDeclarationStructuralSemantics {
+        self.structural.semantics()
+    }
+
     pub const fn aspect_contract(&self) -> &UiAspectContract {
         self.aspect_contract.contract()
     }

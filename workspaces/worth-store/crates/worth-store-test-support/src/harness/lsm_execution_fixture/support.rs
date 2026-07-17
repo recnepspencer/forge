@@ -1,7 +1,8 @@
 pub(super) use super::durability::durable_record_binding_for_store;
 pub(super) use super::durability::{
-    begin_durability_fixture, durable_record, durable_record_binding, manifest_receipt,
-    manifest_receipt_for_artifact, wal_receipt, wal_scope,
+    begin_durability_fixture, durable_record, durable_record_binding,
+    durable_record_binding_with_lsn, manifest_receipt, manifest_receipt_for_artifact, wal_receipt,
+    wal_scope,
 };
 pub(super) use worth_store_security::{
     admitted_store_wal_checkpoint_security_scope_for_layout_partition_test, StoreKeyVersionPosture,

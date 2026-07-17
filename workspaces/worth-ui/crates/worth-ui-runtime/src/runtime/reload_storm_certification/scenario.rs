@@ -183,29 +183,25 @@ impl WorthUiReloadStormCandidateStep {
     }
 
     pub(crate) fn expected_provider_kind_matches(&self) -> bool {
-        match (self.kind, self.provider.kind()) {
+        matches!(
+            (self.kind, self.provider.kind()),
             (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::Filesystem,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::EditorBuffer,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::Generated,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::InMemory,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::RustAuthored,
                 WorthUiSourceProviderKind::RustAuthoredArtifact,
-            ) => true,
-            _ => false,
-        }
+            )
+        )
     }
 
     pub(crate) fn reuse_previous_receipt_probe(&self) -> bool {

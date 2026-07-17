@@ -1,6 +1,7 @@
 use crate::capability::{
-    CapabilitySnapshot, CapabilitySupportCatalog, RegisteredCapabilitySet, RegistrationCandidate,
-    COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
+    CapabilitySnapshot, CapabilitySnapshotFreezeInput, CapabilitySupportCatalog,
+    RegisteredCapabilitySet, RegistrationCandidate, COMMAND_FAMILY_NAME,
+    COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
     MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
     MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME, SURFACE_FAMILY_NAME,
     THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
@@ -13,26 +14,26 @@ pub(super) fn sample_snapshot_with_support_catalog(
     base: &CapabilitySnapshot,
     support_catalog: CapabilitySupportCatalog,
 ) -> CapabilitySnapshot {
-    CapabilitySnapshot::from_registered_capabilities_commands_command_projections_components_icons_surfaces_mosaic_regions_mosaic_placements_mosaic_sizing_mosaic_state_native_capabilities_plugin_slots_view_bindings_runtime_outcome_projections_settings_task_presentations_and_theme_tokens(
-        clone_registered_capabilities(base),
-        base.commands().clone(),
-        base.command_projections().clone(),
-        base.components().clone(),
-        base.icons().clone(),
-        base.surfaces().clone(),
-        base.mosaic_regions().clone(),
-        base.mosaic_placement_policies().clone(),
-        base.mosaic_sizing_contracts().clone(),
-        base.mosaic_state_slots().clone(),
-        base.native_capabilities().clone(),
-        base.plugin_slots().clone(),
-        base.view_bindings().clone(),
-        base.runtime_outcome_projections().clone(),
-        base.settings().clone(),
-        base.task_presentations().clone(),
-        base.theme_tokens().clone(),
+    CapabilitySnapshot::from_freeze_input(CapabilitySnapshotFreezeInput {
+        registered_capabilities: clone_registered_capabilities(base),
+        commands: base.commands().clone(),
+        command_projections: base.command_projections().clone(),
+        components: base.components().clone(),
+        icons: base.icons().clone(),
+        surfaces: base.surfaces().clone(),
+        mosaic_regions: base.mosaic_regions().clone(),
+        mosaic_placement_policies: base.mosaic_placement_policies().clone(),
+        mosaic_sizing_contracts: base.mosaic_sizing_contracts().clone(),
+        mosaic_state_slots: base.mosaic_state_slots().clone(),
+        native_capabilities: base.native_capabilities().clone(),
+        plugin_slots: base.plugin_slots().clone(),
+        view_bindings: base.view_bindings().clone(),
+        runtime_outcome_projections: base.runtime_outcome_projections().clone(),
+        settings: base.settings().clone(),
+        task_presentations: base.task_presentations().clone(),
+        theme_tokens: base.theme_tokens().clone(),
         support_catalog,
-    )
+    })
 }
 
 pub(super) fn sample_support_catalog_with_extra<const N: usize>(

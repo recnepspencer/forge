@@ -101,6 +101,16 @@ struct UiResolvedAllocationFrameCandidate {
     sources: Box<[UiAllocationFrameSourceFact]>,
 }
 
+struct UiAllocationFrameResolutionFailure {
+    epoch: crate::runtime::UiAllocationFrameEpoch,
+    duplicate_witness: UiAllocationFrameDuplicateWitness,
+    ingress: Box<[crate::runtime::UiAllocationFrameSourceFactPosture]>,
+    denial: UiAllocationFrameResolutionDenial,
+    order_verdicts: Box<[UiAllocationSourceOrderVerdict]>,
+    ingress_policy_verdicts: Box<[UiAllocationIngressPolicyVerdict]>,
+    payload_counters: UiAllocationStreamPolicyPayloadCounters,
+}
+
 pub(crate) fn consume_pending_frame(
     pending: &mut Option<UiPendingAllocationFrameHandoff>,
     order_ledger: &mut UiAllocationSourceOrderLedger,
@@ -124,7 +134,7 @@ pub(crate) fn consume_pending_frame(
                 sources,
             })
         }
-        Err((
+        Err(UiAllocationFrameResolutionFailure {
             epoch,
             duplicate_witness,
             ingress,
@@ -132,7 +142,7 @@ pub(crate) fn consume_pending_frame(
             order_verdicts,
             ingress_policy_verdicts,
             payload_counters,
-        )) => {
+        }) => {
             let evidence = UiAllocationStreamPolicyEvidenceOutcome::Denied(
                 UiAllocationStreamPolicyDenialEvidenceReceipt::new(
                     epoch,
@@ -154,18 +164,7 @@ pub(crate) fn consume_pending_frame(
 fn resolve_frame(
     frame: UiAdmittedAllocationStreamFrame,
     order_ledger: &UiAllocationSourceOrderLedger,
-) -> Result<
-    UiResolvedAllocationFrameCandidate,
-    (
-        crate::runtime::UiAllocationFrameEpoch,
-        UiAllocationFrameDuplicateWitness,
-        Box<[crate::runtime::UiAllocationFrameSourceFactPosture]>,
-        UiAllocationFrameResolutionDenial,
-        Box<[UiAllocationSourceOrderVerdict]>,
-        Box<[UiAllocationIngressPolicyVerdict]>,
-        UiAllocationStreamPolicyPayloadCounters,
-    ),
-> {
+) -> Result<UiResolvedAllocationFrameCandidate, UiAllocationFrameResolutionFailure> {
     let (epoch, entries, duplicate_witness) = frame.into_policy_input();
     let ingress = entries.view();
     let mut payload_counters = UiAllocationStreamPolicyPayloadCounters::default();
@@ -208,26 +207,32 @@ fn resolve_frame(
         families.push(family);
     }
     if let Some(denial) = classification_denial {
-        return Err((
+        return Err(UiAllocationFrameResolutionFailure {
             epoch,
             duplicate_witness,
-            denial_postures(ingress, &mut payload_counters),
+            ingress: denial_postures(ingress, &mut payload_counters),
             denial,
-            into_counted_box(order_verdicts, &mut payload_counters),
-            into_counted_box(ingress_policy_verdicts, &mut payload_counters),
+            order_verdicts: into_counted_box(order_verdicts, &mut payload_counters),
+            ingress_policy_verdicts: into_counted_box(
+                ingress_policy_verdicts,
+                &mut payload_counters,
+            ),
             payload_counters,
-        ));
+        });
     }
     if let Some(denial) = order_denial {
-        return Err((
+        return Err(UiAllocationFrameResolutionFailure {
             epoch,
             duplicate_witness,
-            denial_postures(ingress, &mut payload_counters),
+            ingress: denial_postures(ingress, &mut payload_counters),
             denial,
-            into_counted_box(order_verdicts, &mut payload_counters),
-            into_counted_box(ingress_policy_verdicts, &mut payload_counters),
+            order_verdicts: into_counted_box(order_verdicts, &mut payload_counters),
+            ingress_policy_verdicts: into_counted_box(
+                ingress_policy_verdicts,
+                &mut payload_counters,
+            ),
             payload_counters,
-        ));
+        });
     }
     let decision = super::composition::resolve_stream_families(&families, &mut payload_counters);
     let (receipt, cadence) = match decision {
@@ -238,15 +243,18 @@ fn resolve_frame(
             (receipt, UiAllocationFrameCadenceVerdict::PreviewOnly)
         }
         UiAllocationStreamCommitDecision::Denied(denial) => {
-            return Err((
+            return Err(UiAllocationFrameResolutionFailure {
                 epoch,
                 duplicate_witness,
-                denial_postures(ingress, &mut payload_counters),
-                UiAllocationFrameResolutionDenial::Policy(denial),
-                into_counted_box(order_verdicts, &mut payload_counters),
-                into_counted_box(ingress_policy_verdicts, &mut payload_counters),
+                ingress: denial_postures(ingress, &mut payload_counters),
+                denial: UiAllocationFrameResolutionDenial::Policy(denial),
+                order_verdicts: into_counted_box(order_verdicts, &mut payload_counters),
+                ingress_policy_verdicts: into_counted_box(
+                    ingress_policy_verdicts,
+                    &mut payload_counters,
+                ),
                 payload_counters,
-            ))
+            })
         }
     };
     let counters = UiAllocationFrameResolutionCounters {
@@ -263,18 +271,20 @@ fn resolve_frame(
     let ingress_policy_verdicts = into_counted_box(ingress_policy_verdicts, &mut payload_counters);
     let evidence = UiAllocationStreamPolicyEvidenceOutcome::Resolved(
         UiAllocationStreamPolicyEvidenceReceipt::new(
-            epoch,
-            into_counted_box(families, &mut payload_counters),
-            into_counted_box(order_verdicts, &mut payload_counters),
-            duplicate_witness,
-            invalidations,
-            policy,
-            intermediate_policy_verdicts,
-            policy_branches,
-            ingress_policy_verdicts,
-            cadence,
-            composition_counters,
-            payload_counters,
+            crate::evidence::UiAllocationStreamPolicyEvidenceInput {
+                epoch,
+                families: into_counted_box(families, &mut payload_counters),
+                order_verdicts: into_counted_box(order_verdicts, &mut payload_counters),
+                duplicate_witness,
+                invalidations,
+                policy,
+                intermediate: intermediate_policy_verdicts,
+                branches: policy_branches,
+                ingress_policy_verdicts,
+                cadence,
+                composition_counters,
+                payload_counters,
+            },
         ),
     );
     let sources = entries

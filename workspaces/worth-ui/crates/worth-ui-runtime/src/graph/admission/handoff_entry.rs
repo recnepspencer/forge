@@ -2,37 +2,37 @@ use crate::declaration::UiDeclarationGraphHandoff;
 use crate::graph::{
     UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphCoreIndexContributionSeed,
     UiGraphMountedReceiptAuthoritySeed, UiGraphNodeInstantiationEntry,
-    UiGraphParentResolutionClaim, UiGraphParticipationSeed, UiGraphTopologySeed,
-    UiRepeatedInstanceBasis,
+    UiGraphNodeInstantiationInput, UiGraphParentResolutionClaim, UiGraphParticipationSeed,
+    UiGraphTopologySeed, UiGraphTopologySeedInput, UiRepeatedInstanceBasis,
 };
 
 pub(super) fn construct_instantiation_entry(
     handoff: &UiDeclarationGraphHandoff,
     repeated_instance_basis: UiRepeatedInstanceBasis,
 ) -> UiGraphNodeInstantiationEntry {
-    UiGraphNodeInstantiationEntry::new(
-        handoff.identity().clone(),
-        handoff.authored_provenance_digest(),
-        handoff
+    UiGraphNodeInstantiationEntry::new(UiGraphNodeInstantiationInput {
+        declaration_identity: handoff.identity().clone(),
+        authored_provenance_digest: handoff.authored_provenance_digest(),
+        measurement_constraint_modifier: handoff
             .measurement_policy()
             .admitted()
             .and_then(|policy| policy.constraint_modifier()),
-        handoff.aspect_contract().clone(),
+        aspect_contract: handoff.aspect_contract().clone(),
         repeated_instance_basis,
-        UiGraphTopologySeed::new(
-            handoff.structural_digest(),
-            handoff.role(),
-            handoff.operator_kind(),
-            UiGraphContainmentClaim::from_declaration_intent(
+        topology_seed: UiGraphTopologySeed::new(UiGraphTopologySeedInput {
+            structural_digest: handoff.structural_digest(),
+            role: handoff.role(),
+            operator_kind: handoff.operator_kind(),
+            containment_claim: UiGraphContainmentClaim::from_declaration_intent(
                 handoff.containment_intent(),
                 handoff.mosaic_sizing_contract_id().cloned(),
             ),
-            parent_resolution_claim_for_handoff(handoff),
-            handoff.slot_participation_intent().clone(),
-            handoff.ordering_guarantee(),
-            handoff.repetition_posture(),
-        ),
-        UiGraphParticipationSeed::from_attachment_and_role(
+            parent_resolution_claim: parent_resolution_claim_for_handoff(handoff),
+            slot_participation_intent: handoff.slot_participation_intent().clone(),
+            ordering_guarantee: handoff.ordering_guarantee(),
+            repetition_posture: handoff.repetition_posture(),
+        }),
+        participation_seed: UiGraphParticipationSeed::from_attachment_and_role(
             handoff.query_binding().admitted().is_some(),
             handoff.service_usage().admitted().is_some(),
             matches!(
@@ -40,13 +40,13 @@ pub(super) fn construct_instantiation_entry(
                 crate::declaration::UiDeclarationStructuralRole::DiagnosticSurface
             ),
         ),
-        UiGraphAttachmentPosture::new(
+        attachment_posture: UiGraphAttachmentPosture::new(
             handoff.query_binding().admitted().is_some(),
             handoff.service_usage().admitted().is_some(),
         ),
-        UiGraphMountedReceiptAuthoritySeed::reserved(),
-        UiGraphCoreIndexContributionSeed::authoritative(),
-    )
+        mounted_receipt_seed: UiGraphMountedReceiptAuthoritySeed::reserved(),
+        core_index_contribution_seed: UiGraphCoreIndexContributionSeed::authoritative(),
+    })
 }
 
 fn parent_resolution_claim_for_handoff(

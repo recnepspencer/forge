@@ -189,8 +189,11 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
         artifact_from_file_provenance(&app, "app/graph_topology_authority.wui", 0)
             .graph_handoff()
             .expect("control declaration should lower to a sealed graph handoff");
-    let plan = UiGraphInstantiationPlan::admit_handoffs(&[control_handoff.clone()], &[])
-        .expect("zero-root topology should deny locally inside graph instantiation plan admission");
+    let plan =
+        UiGraphInstantiationPlan::admit_handoffs(std::slice::from_ref(&control_handoff), &[])
+            .expect(
+                "zero-root topology should deny locally inside graph instantiation plan admission",
+            );
 
     assert!(plan.node_entries().is_empty());
     assert_eq!(plan.local_denials().len(), 1);

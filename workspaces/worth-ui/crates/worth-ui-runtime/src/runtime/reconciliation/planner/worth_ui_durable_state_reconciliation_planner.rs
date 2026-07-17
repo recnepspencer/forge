@@ -67,7 +67,11 @@ fn reject_ambiguous_node_plan(
         Ok(())
     } else {
         counters.record_rejected_reconciliation();
-        Err(WorthUiDurableStateReconciliationDenial::AmbiguousNodeReplacementPlan { counters })
+        Err(
+            WorthUiDurableStateReconciliationDenial::AmbiguousNodeReplacementPlan {
+                counters: Box::new(counters),
+            },
+        )
     }
 }
 
@@ -88,7 +92,7 @@ fn reject_inventory_digest_mismatch(
                 inventory_active_artifact_digest: inventory.active_artifact_digest(),
                 plan_candidate_artifact_digest: node_plan.candidate_artifact_digest(),
                 inventory_candidate_artifact_digest: inventory.candidate_artifact_digest(),
-                counters,
+                counters: Box::new(counters),
             },
         )
     }
@@ -104,7 +108,7 @@ fn reject_missing_platform_families(
             return Err(
                 WorthUiDurableStateReconciliationDenial::MissingInventoryFamily {
                     family_id: family_id.clone(),
-                    counters: *counters,
+                    counters: Box::new(*counters),
                 },
             );
         }

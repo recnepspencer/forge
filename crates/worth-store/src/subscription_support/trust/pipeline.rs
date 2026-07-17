@@ -17,7 +17,8 @@ use super::failure::{SupportTrustFailure, SupportTrustFailureKind, SupportTrustR
 use super::performance::{
     SupportTrustDensityClass, SupportTrustEvidenceBudget, SupportTrustPerformancePlan,
 };
-use super::receipts::{SupportTrustReceiptBundle, SupportTrustReceiptStatus};
+use super::receipt_bundle::SupportTrustReceiptBundle;
+use super::receipts::SupportTrustReceiptStatus;
 use super::reports::{
     CertifiedSupportTrustReport, OperationalSupportTrustReport, SupportTrustCertificationStamp,
 };

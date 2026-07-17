@@ -1,3 +1,4 @@
+pub(crate) mod container_integrity;
 pub(crate) mod container_integrity_boundaries;
 pub(crate) mod container_integrity_counters;
 pub(crate) mod container_integrity_denials;

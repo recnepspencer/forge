@@ -769,6 +769,25 @@ Use this category when UI state depends on domain/runtime truth.
 Worth UI must not become a local Query clone. It consumes Query-owned artifacts
 through admitted binding/projection lanes.
 
+The ordinary application path is:
+
+```text
+install worth_ui_domain_package() in the Query runtime
+-> resolve workspace.worth_ui()
+-> derive measurement_view(...) or live_measurement_view(...)
+-> register_query_view(...) on WorthUi::app()
+-> execute through the installed view
+-> submit its projection outcome during the runtime framework turn
+```
+
+The installed view is one semantic object: it carries its UI definition and the
+exact runtime-affine Query domain authority. Application code does not assemble
+result shape, basis, lifecycle, capability status, or projection identity as
+independent fields.
+
+See [Query-backed UI views](./query-binding.md) for the public entry points and
+worked examples.
+
 UI query binding answers:
 
 ```text
@@ -818,6 +837,8 @@ Mistakes to avoid:
 - schema swaps handled by component conditionals
 - UI reading relational/bridge internals directly
 - reopening materialized facts instead of consuming projection receipts
+- constructing a detached `ViewBindingDescriptor` for Query-backed UI
+- registering a bare UI view definition without installed Query authority
 
 ---
 

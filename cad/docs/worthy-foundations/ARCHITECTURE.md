@@ -94,7 +94,7 @@ isolation; the grammar is what carries the laws.
 |---|---|---|
 | `schema` | shared truth grammar, contract nouns | Defines meaning; imports nothing in the tree |
 | `dsl` | language, parsing, lowering to declarations | Speaks intent; never executes it |
-| `entry` | Query-native runtime entry & orchestration | The only door into the runtime for ordinary work |
+| `entry` | Query-native runtime entry & orchestration | One installed operating-world root is the only authority-bearing door; operation-family entry facades borrow from it |
 | `resolver` | domain semantic decisions | Decides *what should be true*; may call solvers |
 | `solver` | pure computation kernels | Computes *what is true*; never touches the graph |
 | `derived` | published derived artifacts & products | Always rebuildable; never mints authority |
@@ -252,6 +252,14 @@ orientation doc (`AI_README`) owns the details.
 7. **Downstream proof goes through the Consumer Kit** - never local report
    structs, digest folklore, or fabricated receipts.
 8. **Replay and reconstruction are explicit, quarantined modes** (see fence 2).
+9. **One ordinary authority root.** Operation-family entry crates contribute
+   typed declarations and lowering, but every ordinary call borrows from one
+   installed operating-world root. No family, app, or UI constructs a second
+   runtime world.
+10. **Graph boundaries are explicit.** One logical graph is the default.
+    Genuinely separate graph authorities participate only through named,
+    sealed, runtime-affine adapters installed at the entry boundary; apps do
+    not bridge graphs directly.
 
 Constitutional split, made explicit:
 
@@ -283,6 +291,17 @@ neighborhoods, budget-honest denial - keys off *graph shape*.
 **The governing property:** the consequence set of any touch must be
 derivable from the schema, without discovery traversal. If consequences can
 only be found by walking, nothing downstream saves us.
+
+**The default graph posture:** one logical operating graph carries multiple
+domain schemas, aspects, partitions, and packs. Domain difference alone does
+not create a federation boundary. When provider, tenant, basis lifecycle,
+commit authority, or ownership is genuinely separate, that graph participates
+through an installed entry-boundary adapter. Cross-graph operations consume
+typed source projections and produce typed target effects through the one
+operating-world root. They are atomic only when the runtime proves shared
+commit authority; otherwise their declared contract exposes compensation,
+partial failure, and recovery. Raw graph calls, shared-ID joins, digest-based
+correspondence, and hidden event-bus bridges are forbidden.
 
 What is frozen now is not entity inventories. It is the **axes**: layers,
 edge classes, the partition spine, aspect discipline, and promotion. Domains
@@ -475,6 +494,12 @@ dedicated crates (or behind features) that **only `*-cert-*` crates may
 depend on**. An `entry` or `derived` crate importing a replay surface is a
 compile/CI failure, not a review comment.
 
+Ordinary idempotent retry, re-execution from installed intent, declared
+reversal, and compensation are not replay. They remain entry operations and do
+not expose the prior execution trace. Ordinary downstream stages consume typed
+derived publications through projection consumption; they never reopen an
+upstream trace to reproduce its output.
+
 **Plain English:** the ordinary lane consumes shaped truth; proving the truth
 is a quarantined mode. The three-minute-test failure becomes structurally
 unwritable.
@@ -658,6 +683,11 @@ Code:
 - No pseudo-Query layers, second admission paths, string-smuggled identity,
   flattened outcomes, or local status enums for states Query represents.
 - No replay or reconstruction imports outside `cert` (Fence 2).
+- No operation-family entry crate, app, or UI constructing an alternate
+  operating-world root or accepting raw runtime/graph handles as authority.
+- No hidden graph adapters, direct graph-to-graph calls, shared-ID authority,
+  or digest-authorized correspondence. Separate graph authority enters through
+  one named installed participation adapter and one bound operation.
 
 Graph:
 

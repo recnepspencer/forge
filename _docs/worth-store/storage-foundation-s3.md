@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_store_roadmap_2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_roadmap_2.md)
+> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
 >
 > **Primary prerequisite:** `S.2 Buffer Pool, Memory Budgets, And Zero-Copy Record Access`
 >
@@ -61,11 +61,11 @@ still say nothing about authenticity. S.3 keeps those meanings separate.
   protects visible, testable cost. S.3 must expose exact checked-byte,
   checked-page, checksum, skipped-decode, quarantine, and scrub-window counters
   at the boundaries that claim bounded physical integrity work.
-- `worth_store_roadmap_2.md`
+- `physical-database-roadmap.md`
   places S.3 after bounded residency and before WAL recovery. The roadmap
   requires damaged bytes to localize before logical decode and before recovery
   can trust physical records.
-- `worth_store_roadmap.md`
+- `runtime-integration-roadmap.md`
   keeps semantic durability above physical storage. S.3 may deny damaged bytes
   and classify physical trust, but it must not reinterpret transaction,
   branch, snapshot, subscription-support, or semantic artifact meaning.

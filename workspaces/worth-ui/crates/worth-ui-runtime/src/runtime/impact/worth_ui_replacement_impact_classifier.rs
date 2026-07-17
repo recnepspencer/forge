@@ -75,7 +75,7 @@ fn classify_meaningful_difference(
         .first_difference()
         .expect("meaningful comparison carries first difference")
     {
-        WorthUiArtifactDifference::NodeSemanticMismatch {
+        WorthUiArtifactDifference::NodeSemantics {
             module_id,
             node_kind,
             node_index,
@@ -89,14 +89,14 @@ fn classify_meaningful_difference(
             admitted,
             counters,
         ),
-        WorthUiArtifactDifference::NodeKindMismatch { .. } => {
+        WorthUiArtifactDifference::NodeKind { .. } => {
             Ok(WorthUiReplacementImpact::StructuralReplacement(
                 structural_scope_from_candidate(admitted, counters),
             ))
         }
-        WorthUiArtifactDifference::ModuleCountMismatch { .. }
-        | WorthUiArtifactDifference::ModuleOrderMismatch { .. }
-        | WorthUiArtifactDifference::ModuleNodeCountMismatch { .. } => {
+        WorthUiArtifactDifference::ModuleCount { .. }
+        | WorthUiArtifactDifference::ModuleOrder { .. }
+        | WorthUiArtifactDifference::ModuleNodeCount { .. } => {
             deny_broad_replacement_without_receipts(admitted, counters)
         }
     }
@@ -278,10 +278,9 @@ fn command_impact_for(
     impact: &WorthUiReplacementImpact,
     comparison: &WorthUiRuntimeArtifactComparison,
 ) -> WorthUiCommandImpact {
-    if surface_command_slot_difference(comparison) {
-        WorthUiCommandImpact::BindingOnly
-    } else if matches!(impact, WorthUiReplacementImpact::LocalSubtree(_))
-        && node_semantic_difference_kind(comparison) == Some(WorthUiArtifactNodeKind::Binding)
+    if surface_command_slot_difference(comparison)
+        || (matches!(impact, WorthUiReplacementImpact::LocalSubtree(_))
+            && node_semantic_difference_kind(comparison) == Some(WorthUiArtifactNodeKind::Binding))
     {
         WorthUiCommandImpact::BindingOnly
     } else {
@@ -292,7 +291,7 @@ fn command_impact_for(
 fn surface_command_slot_difference(comparison: &WorthUiRuntimeArtifactComparison) -> bool {
     matches!(
         comparison.artifact_equivalence().first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemanticMismatch {
+        Some(WorthUiArtifactDifference::NodeSemantics {
             semantic_delta: WorthUiArtifactSemanticDelta::SurfaceCommandSlotsChanged
                 | WorthUiArtifactSemanticDelta::SurfacePlacementAndCommandSlotsChanged,
             ..
@@ -317,7 +316,7 @@ fn node_semantic_difference_kind(
     comparison: &WorthUiRuntimeArtifactComparison,
 ) -> Option<WorthUiArtifactNodeKind> {
     match comparison.artifact_equivalence().first_difference() {
-        Some(WorthUiArtifactDifference::NodeSemanticMismatch { node_kind, .. }) => Some(*node_kind),
+        Some(WorthUiArtifactDifference::NodeSemantics { node_kind, .. }) => Some(*node_kind),
         _ => None,
     }
 }
@@ -332,13 +331,15 @@ fn classification(
     counters: WorthUiReplacementImpactCounters,
 ) -> WorthUiReplacementImpactClassification {
     WorthUiReplacementImpactClassification::new(
-        comparison.active_artifact_digest(),
-        comparison.candidate_artifact_digest(),
-        impact,
-        command_impact,
-        token_theme_impact,
-        accessibility_impact,
-        renderer_resource_impact,
-        counters,
+        super::WorthUiReplacementImpactClassificationInput {
+            active_artifact_digest: comparison.active_artifact_digest(),
+            candidate_artifact_digest: comparison.candidate_artifact_digest(),
+            impact,
+            command_impact,
+            token_theme_impact,
+            accessibility_impact,
+            renderer_resource_impact,
+            counters,
+        },
     )
 }

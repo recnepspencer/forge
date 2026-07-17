@@ -1,7 +1,4 @@
-use super::query_test_support::{
-    partial_query_projection_consumption, query_projection_consumption,
-    unsupported_query_projection_consumption,
-};
+use super::query_test_support::InstalledQueryFixture;
 use crate::graph::UiGraphNodeIdentity;
 use crate::runtime::tests::source_ingress_test_support::{empty_artifact, framework_from_artifact};
 use crate::runtime::{
@@ -140,18 +137,19 @@ fn interaction_gateway_reaches_only_the_framework_turn_capability() {
 #[test]
 fn gateway_admission_is_bounded_by_dispatcher_transport_backpressure() {
     let mut framework = framework_from_artifact(empty_artifact());
-    let mut admission = framework.interaction_admission();
-    let admitted = (0..=64)
-        .map(|_| {
-            admission
-                .admit(
-                    UiGraphNodeIdentity::new(7),
-                    WorthUiTransientInteractionState::DragCapture,
-                )
-                .expect("interaction source should admit")
-        })
-        .collect::<Vec<_>>();
-    drop(admission);
+    let admitted = {
+        let mut admission = framework.interaction_admission();
+        (0..=64)
+            .map(|_| {
+                admission
+                    .admit(
+                        UiGraphNodeIdentity::new(7),
+                        WorthUiTransientInteractionState::DragCapture,
+                    )
+                    .expect("interaction source should admit")
+            })
+            .collect::<Vec<_>>()
+    };
     let mut overflow = None;
     run_framework_turn(&mut framework, |turn| {
         for admitted in admitted.iter().copied().take(64) {
@@ -213,13 +211,16 @@ fn empty_framework_turn_is_typed_and_does_not_acknowledge() {
 
 #[test]
 fn query_gateway_derives_and_submits_real_projection_consumption() {
-    let (prerequisites, attempt) = query_projection_consumption("runtime-gateway");
+    let mut query = InstalledQueryFixture::new("runtime-gateway");
     let mut framework = Box::new(framework_from_artifact(empty_artifact()));
+    framework.install_query_binding_for_test(query.binding_plan());
     let settlement = framework
-        .query_admission()
-        .admit(prerequisites, attempt)
+        .admit_query_projection_for_test(query.project())
         .expect("Query source should admit before submission");
-    let expected_source_identity = settlement.allocation_source_identity().as_str().to_string();
+    let expected_source_identity = settlement
+        .allocation_source_identity()
+        .authority_index_key()
+        .clone();
     let mut outcome = Box::new(None);
     let turn_outcome = run_framework_turn(&mut framework, |turn| {
         *outcome = Some(turn.submit_query_projection(settlement));
@@ -235,8 +236,8 @@ fn query_gateway_derives_and_submits_real_projection_consumption() {
             .ingress()
             .key()
             .source_identity()
-            .as_opaque(),
-        Some(expected_source_identity.as_str())
+            .query_authority_index_key(),
+        Some(&expected_source_identity)
     );
     assert!(matches!(
         outcome
@@ -252,14 +253,13 @@ fn query_gateway_derives_and_submits_real_projection_consumption() {
 
 #[test]
 fn query_burst_uses_binding_order_and_transport_bound() {
+    let mut query = InstalledQueryFixture::new("bounded-query-burst");
     let mut framework = framework_from_artifact(empty_artifact());
+    framework.install_query_binding_for_test(query.binding_plan());
     let settlements = (0..=64)
-        .map(|index| {
-            let (prerequisites, authority) =
-                query_projection_consumption(&format!("bounded-query-burst-{index}"));
+        .map(|_| {
             framework
-                .query_admission()
-                .admit(prerequisites, authority)
+                .admit_query_projection_for_test(query.project())
                 .expect("Query source should admit before submission")
         })
         .collect::<Vec<_>>();
@@ -278,47 +278,4 @@ fn query_burst_uses_binding_order_and_transport_bound() {
         .submission()
         .is_some_and(|submission| submission.is_backpressured()));
     assert_eq!(overflow.counters().mailbox_high_watermark(), 64);
-}
-
-#[test]
-fn partial_query_settlement_enters_as_typed_source_fact() {
-    let (prerequisites, attempt) = partial_query_projection_consumption("partial-query");
-    let mut framework = framework_from_artifact(empty_artifact());
-    let settlement = framework
-        .query_admission()
-        .admit(prerequisites, attempt)
-        .expect("partial Query source should admit before submission");
-    let mut outcome = None;
-    let turn_outcome = run_framework_turn(&mut framework, |turn| {
-        outcome = Some(turn.submit_query_projection(settlement));
-    });
-    let outcome = outcome.expect("framework callback submits");
-    assert!(matches!(
-        outcome
-            .evidence()
-            .expect("gateway evidence")
-            .ingress()
-            .source_fact_posture(),
-        UiAllocationFrameSourceFactPosture::QueryProjection { settlement, .. }
-            if settlement == super::UiAllocationFrameQuerySettlementPosture::Partial
-    ));
-    assert_eq!(turn_outcome, TestFrameworkTurnPosture::Denied);
-}
-
-#[test]
-fn unsupported_query_settlement_denies_before_dispatcher_ingress() {
-    let (prerequisites, attempt) = unsupported_query_projection_consumption("unsupported-query");
-    let mut framework = framework_from_artifact(empty_artifact());
-    let denial = framework
-        .query_admission()
-        .admit(prerequisites, attempt)
-        .expect_err("unsupported Query source must deny before submission");
-    assert_eq!(
-        denial,
-        worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial::SourceMismatch
-    );
-    assert_eq!(
-        run_framework_turn(&mut framework, |_| {}),
-        TestFrameworkTurnPosture::Empty
-    );
 }

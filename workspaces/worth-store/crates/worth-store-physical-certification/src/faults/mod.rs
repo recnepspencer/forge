@@ -3,14 +3,16 @@ mod boundary;
 mod delivery;
 mod denial;
 mod event;
+mod injection;
 mod locus;
 mod scenario_fault;
 
 pub use attempts::FaultDeliveryAttempt;
 pub use boundary::{NoFaultProductionBoundaryParity, ObservedFaultBoundary};
 pub use delivery::{
-    ExecutedFaultDeliveryRecipe, ExecutionReadyFaultDeliveryRecipe, FaultDeliveryBoundaryProof,
-    FaultDeliveryPlan, FaultDeliveryReceipt, LoweredFaultDeliveryRecipe,
+    BoundaryObservedFaultDeliveryRecipe, ExecutionReadyFaultDeliveryRecipe,
+    FaultDeliveryBoundaryProof, FaultDeliveryPlan, FaultDeliveryReceipt,
+    LoweredFaultDeliveryRecipe,
 };
 pub use denial::{FaultDeliveryDenial, FaultObservedBoundaryKind};
 pub use event::{
@@ -19,6 +21,7 @@ pub use event::{
     PhysicalFaultEventKind, ReorderedPersistenceEvent, StaleGenerationEvent, TornWriteEvent,
     UnboundedReadPlanFootprintEvent,
 };
+pub use injection::{PhysicalStorageFaultExecution, PhysicalStorageFaultInjection};
 pub use locus::{
     ExpectedFaultLocalization, PhysicalArtifactFaultLocus, PhysicalArtifactKind,
     PhysicalFaultFieldKind, PhysicalFaultOffset,

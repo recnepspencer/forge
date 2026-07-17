@@ -1,11 +1,11 @@
-mod model;
+mod neighborhood_selection;
 mod portal_consequence;
 mod scroll_consequence;
 mod selector;
 
 pub(crate) use consequences::UiGraphReplanConsequences;
-pub(crate) use model::UiGraphReplanTransactionBasis;
-pub use model::{
+pub(crate) use neighborhood_selection::UiGraphReplanTransactionBasis;
+pub use neighborhood_selection::{
     UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet, UiReplanLocalityDenial,
     UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters, UiReplanOverlapDisposition,
     UiReplanRootPosture, UiReplanWidenReason,

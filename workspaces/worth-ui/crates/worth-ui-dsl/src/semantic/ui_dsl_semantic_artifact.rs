@@ -20,23 +20,39 @@ pub struct UiDslSemanticArtifact {
     renderer_label: Option<String>,
 }
 
+pub(crate) struct UiDslSemanticArtifactInput {
+    pub key: UiDslSemanticKey,
+    pub family: UiDslSemanticFamily,
+    pub provenance: UiDslSourceProvenance,
+    pub published_aspects: Vec<UiDslAspectName>,
+    pub consumed_aspects: Vec<UiDslAspectName>,
+    pub structural_tokens: Vec<UiDslStructuralToken>,
+    pub posture_tokens: Vec<UiDslPostureToken>,
+    pub support_tokens: Vec<UiDslSupportToken>,
+    pub authored_comments: Vec<String>,
+    pub formatting_profile: Option<String>,
+    pub parser_local_id: Option<String>,
+    pub diagnostic_label: Option<String>,
+    pub renderer_label: Option<String>,
+}
+
 impl UiDslSemanticArtifact {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        key: UiDslSemanticKey,
-        family: UiDslSemanticFamily,
-        provenance: UiDslSourceProvenance,
-        published_aspects: Vec<UiDslAspectName>,
-        consumed_aspects: Vec<UiDslAspectName>,
-        structural_tokens: Vec<UiDslStructuralToken>,
-        posture_tokens: Vec<UiDslPostureToken>,
-        support_tokens: Vec<UiDslSupportToken>,
-        authored_comments: Vec<String>,
-        formatting_profile: Option<String>,
-        parser_local_id: Option<String>,
-        diagnostic_label: Option<String>,
-        renderer_label: Option<String>,
-    ) -> Self {
+    pub(crate) fn new(input: UiDslSemanticArtifactInput) -> Self {
+        let UiDslSemanticArtifactInput {
+            key,
+            family,
+            provenance,
+            published_aspects,
+            consumed_aspects,
+            structural_tokens,
+            posture_tokens,
+            support_tokens,
+            authored_comments,
+            formatting_profile,
+            parser_local_id,
+            diagnostic_label,
+            renderer_label,
+        } = input;
         Self {
             key,
             family,

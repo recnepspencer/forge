@@ -14,31 +14,25 @@ pub struct ReadPlanCounterSnapshot {
 }
 
 impl ReadPlanCounterSnapshot {
-    pub const fn new(
-        protected_references: u64,
-        protected_ranges: u64,
-        latch_requirements: u64,
-        epoch_validations: u64,
-        retry_decisions: u64,
-        resident_bytes: u64,
-        release_obligations: u64,
-        reachability_barriers: u64,
-        scratch_capacity: u64,
-        scratch_allocations: u64,
-        allocation_events: u64,
+    pub(crate) fn from_plan(
+        footprint: &super::PhysicalReadPlanFootprint,
+        latch_plan: &crate::LatchAcquisitionPlan,
+        retry_posture: super::PhysicalReadPlanRetryPosture,
     ) -> Self {
+        let protected = footprint.protected();
+        let scratch_usage = protected.scratch_usage().with_latch_lowering();
         Self {
-            protected_references,
-            protected_ranges,
-            latch_requirements,
-            epoch_validations,
-            retry_decisions,
-            resident_bytes,
-            release_obligations,
-            reachability_barriers,
-            scratch_capacity,
-            scratch_allocations,
-            allocation_events,
+            protected_references: protected.references().len() as u64,
+            protected_ranges: protected.ranges().ranges().len() as u64,
+            latch_requirements: latch_plan.steps().len() as u64,
+            epoch_validations: 1 + protected.references().len() as u64,
+            retry_decisions: retry_posture.retry_decisions(),
+            resident_bytes: footprint.resident_bytes(),
+            release_obligations: protected.references().len() as u64,
+            reachability_barriers: 1,
+            scratch_capacity: scratch_usage.protected_reference_capacity() as u64,
+            scratch_allocations: scratch_usage.scratch_allocations(),
+            allocation_events: scratch_usage.allocation_events(),
         }
     }
 

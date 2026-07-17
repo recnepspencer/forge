@@ -14,7 +14,7 @@ pub use denial::{
 pub use entry::{WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome};
 pub use plan::{WorthUiQueryLiveRebindCounters, WorthUiQueryLiveRebindPlan};
 pub(crate) use planner::WorthUiQueryLiveRebindPlanner;
-pub use preservation::WorthUiQueryBindingPreservation;
+pub use preservation::{WorthUiQueryBindingPreservation, WorthUiQueryBindingPreservationReceipt};
 pub use rebind::{
     WorthUiQueryBindingRebind, WorthUiQueryBindingRebindReason, WorthUiQueryRebindRequiredSurface,
 };

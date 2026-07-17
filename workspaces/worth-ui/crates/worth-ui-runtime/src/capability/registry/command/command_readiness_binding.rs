@@ -1,105 +1,44 @@
-use worth_query::facade::foundation::{
-    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEntryReadinessStatus,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-};
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CommandReadinessStatus {
+    Admitted,
+    Deferred,
+    Unsupported,
+    InvalidBasis,
+}
 
-/// Structured command readiness metadata for later runtime projection.
+/// UI-owned command readiness meaning. Query adapters must translate at the
+/// binding edge; command registration never retains Query reports or digests.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CommandReadinessBinding {
-    source: CommandReadinessSource,
+    status: CommandReadinessStatus,
 }
 
 impl CommandReadinessBinding {
     pub fn always_admitted() -> Self {
         Self {
-            source: CommandReadinessSource::StaticStatus(
-                WorthQueryDeclarationEntryReadinessStatus::Admitted,
-            ),
+            status: CommandReadinessStatus::Admitted,
         }
     }
 
-    pub fn from_query_readiness_status(status: WorthQueryDeclarationEntryReadinessStatus) -> Self {
-        Self {
-            source: CommandReadinessSource::StaticStatus(status),
-        }
+    pub fn from_status(status: CommandReadinessStatus) -> Self {
+        Self { status }
     }
 
-    pub fn from_query_readiness_report<
-        D: WorthQueryDomainEntryMarker,
-        I: WorthQueryDeclarationInput<D>,
-    >(
-        report: &WorthQueryDeclarationEntryReadinessReport<D, I>,
-    ) -> Self {
-        Self {
-            source: CommandReadinessSource::QueryReport {
-                declaration_family_key: report.declaration_family_key(),
-                readiness_digest: report.readiness_digest().to_owned(),
-                strongest_status: strongest_readiness_status(report),
-            },
-        }
-    }
-
-    pub fn strongest_status(&self) -> WorthQueryDeclarationEntryReadinessStatus {
-        match &self.source {
-            CommandReadinessSource::StaticStatus(status) => *status,
-            CommandReadinessSource::QueryReport {
-                strongest_status, ..
-            } => *strongest_status,
-        }
+    pub fn strongest_status(&self) -> CommandReadinessStatus {
+        self.status
     }
 
     pub fn readiness_digest(&self) -> Option<&str> {
-        match &self.source {
-            CommandReadinessSource::StaticStatus(_) => None,
-            CommandReadinessSource::QueryReport {
-                readiness_digest, ..
-            } => Some(readiness_digest),
-        }
+        None
     }
 
     pub(crate) fn digest_basis(&self) -> String {
-        match &self.source {
-            CommandReadinessSource::StaticStatus(status) => {
-                format!("static:{}", status.as_str())
-            }
-            CommandReadinessSource::QueryReport {
-                declaration_family_key,
-                readiness_digest,
-                strongest_status,
-            } => format!(
-                "query:{declaration_family_key}:{}:{readiness_digest}",
-                strongest_status.as_str()
-            ),
+        match self.status {
+            CommandReadinessStatus::Admitted => "admitted",
+            CommandReadinessStatus::Deferred => "deferred",
+            CommandReadinessStatus::Unsupported => "unsupported",
+            CommandReadinessStatus::InvalidBasis => "invalid_basis",
         }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum CommandReadinessSource {
-    StaticStatus(WorthQueryDeclarationEntryReadinessStatus),
-    QueryReport {
-        declaration_family_key: &'static str,
-        readiness_digest: String,
-        strongest_status: WorthQueryDeclarationEntryReadinessStatus,
-    },
-}
-
-fn strongest_readiness_status<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>(
-    report: &WorthQueryDeclarationEntryReadinessReport<D, I>,
-) -> WorthQueryDeclarationEntryReadinessStatus {
-    report
-        .rows()
-        .iter()
-        .map(|row| row.status())
-        .max_by_key(|status| readiness_status_rank(*status))
-        .unwrap_or(WorthQueryDeclarationEntryReadinessStatus::InvalidBasis)
-}
-
-fn readiness_status_rank(status: WorthQueryDeclarationEntryReadinessStatus) -> u8 {
-    match status {
-        WorthQueryDeclarationEntryReadinessStatus::Admitted => 0,
-        WorthQueryDeclarationEntryReadinessStatus::Deferred => 1,
-        WorthQueryDeclarationEntryReadinessStatus::Unsupported => 2,
-        WorthQueryDeclarationEntryReadinessStatus::InvalidBasis => 3,
+        .to_owned()
     }
 }

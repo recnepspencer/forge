@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_store_roadmap_2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_roadmap_2.md)
+> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
 >
 > **Primary prerequisite:** `S.4.5 Physical Database Simulation Harness`
 >
@@ -66,7 +66,7 @@ honestly?
   protects visible cost. S.5 must expose exact latch attempts, latch waits,
   epoch retries, stale-plan denials, protected references, blocked reclaim,
   copied pages, publication swaps, and read-plan footprint counters.
-- `worth_store_roadmap_2.md`
+- `physical-database-roadmap.md`
   places S.5 after S.4 recovery and before S.6 I/O QoS. The roadmap requires
   stable physical reads under maintenance before the store can honestly claim
   foreground latency isolation under hardware-aware I/O pressure.

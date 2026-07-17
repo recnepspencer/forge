@@ -68,6 +68,32 @@ pub struct StoreSecurityScopeAdmissionReceipt {
     counters: StoreSecurityScopeAdmissionCounterSnapshot,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StoreAuthorityBoundSecurityScopeReceipt {
+    authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
+    receipt: StoreSecurityScopeAdmissionReceipt,
+}
+
+impl StoreAuthorityBoundSecurityScopeReceipt {
+    pub(crate) const fn new(
+        authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
+        receipt: StoreSecurityScopeAdmissionReceipt,
+    ) -> Self {
+        Self {
+            authority_identity,
+            receipt,
+        }
+    }
+
+    pub const fn authority_identity(self) -> worth_store_authority::StoreCurrentAuthorityIdentity {
+        self.authority_identity
+    }
+
+    pub const fn receipt(self) -> StoreSecurityScopeAdmissionReceipt {
+        self.receipt
+    }
+}
+
 impl StoreSecurityScopeAdmissionReceipt {
     pub(crate) const fn new(
         identity: StoreSecurityScopeIdentity,

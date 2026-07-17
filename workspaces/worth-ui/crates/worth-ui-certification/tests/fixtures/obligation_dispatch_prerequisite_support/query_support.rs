@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
-use worth_ui::facade::admission::UiAdmissionQueryBasis;
-use worth_ui::facade::graph::{
+use worth_query::facade::foundation::{
     snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
-    UiGraphTouchDescriptor, UiGraphWorldProfile, WorthQuerySnapshotIdentity,
+    WorthQuerySnapshotIdentity,
 };
+use worth_ui::facade::admission::UiAdmissionQueryBasis;
+use worth_ui::facade::graph::{UiGraphTouchDescriptor, UiGraphWorldProfile};
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem, WorthUiQueryCausalExplanationLane,
-    WorthUiQueryInspectionLane, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
+    WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
     WorthUiQueryProjectionConsumptionLane,
 };
 
@@ -22,7 +23,7 @@ pub fn query_snapshot_world_profile(
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
-            &schema_basis_parts
+            schema_basis_parts
                 .into_iter()
                 .map(str::to_owned)
                 .collect::<Vec<_>>(),
@@ -30,18 +31,17 @@ pub fn query_snapshot_world_profile(
     )
     .expect("runtime current snapshot basis should resolve");
 
-    UiGraphWorldProfile::query_snapshot_basis(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query snapshot basis world should admit")
+    let prerequisites = WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }
 
 pub fn query_prerequisites(
     touch: &UiGraphTouchDescriptor,
     query_basis: UiAdmissionQueryBasis,
 ) -> WorthUiQueryPrerequisiteEvidence {
-    let UiGraphWorldProfile::QuerySnapshotBasis {
-        basis,
-        resolution_report,
-    } = touch.world().world_profile()
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = touch.world().world_profile()
     else {
         panic!("query prerequisite tests require query snapshot worlds");
     };
@@ -74,11 +74,10 @@ pub fn query_prerequisites(
         }
     };
 
-    WorthUiQueryBindingSubsystem::bootstrap()
-        .prerequisites()
+    WorthUiQueryPrerequisiteBoundary::new()
         .assemble(
-            basis.clone(),
-            resolution_report.clone(),
+            prerequisites.basis().clone(),
+            prerequisites.resolution_report().clone(),
             basis_posture,
             WorthUiQueryProjectionConsumptionLane::ConsumeProjectionFacts,
             inspection_lane,

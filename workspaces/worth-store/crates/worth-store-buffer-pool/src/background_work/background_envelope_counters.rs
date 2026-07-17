@@ -149,25 +149,16 @@ impl BackgroundEnvelopeCounters {
         self.snapshot.allocation_bytes_requested += allocation;
     }
 
-    pub fn record_admitted(
-        &mut self,
-        resident_frames: u32,
-        resident_bytes: u64,
-        pinned_pages: u32,
-        allocation: u64,
-        copied: u64,
-        stream_object: u64,
-        stream_window: u64,
-    ) {
+    pub fn record_admitted(&mut self, request: BackgroundEnvelopeRequest) {
         self.snapshot.admitted += 1;
-        self.snapshot.resident_frames_admitted += resident_frames;
-        self.snapshot.resident_bytes_admitted += resident_bytes;
-        self.snapshot.pinned_pages_admitted += pinned_pages;
-        self.snapshot.allocation_bytes_admitted += allocation;
-        self.snapshot.allocation_bytes_allocated += allocation;
-        self.snapshot.copied_bytes += copied;
-        self.snapshot.streaming_object_bytes += stream_object;
-        self.snapshot.streaming_window_bytes += stream_window;
+        self.snapshot.resident_frames_admitted += request.resident_frames();
+        self.snapshot.resident_bytes_admitted += request.resident_bytes();
+        self.snapshot.pinned_pages_admitted += request.bounded_pin_pages();
+        self.snapshot.allocation_bytes_admitted += request.allocation_bytes();
+        self.snapshot.allocation_bytes_allocated += request.allocation_bytes();
+        self.snapshot.copied_bytes += request.copied_bytes();
+        self.snapshot.streaming_object_bytes += request.streaming_object_bytes();
+        self.snapshot.streaming_window_bytes += request.streaming_window_bytes();
     }
 
     pub fn record_denied(&mut self) {
@@ -190,3 +181,4 @@ impl BackgroundEnvelopeCounters {
         self.snapshot.indefinite_pin_denials += 1;
     }
 }
+use crate::BackgroundEnvelopeRequest;

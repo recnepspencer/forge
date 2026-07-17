@@ -2,6 +2,7 @@
 pub enum ProductionStorageBoundarySeam {
     WalAppendBeforeFlush,
     WalFlush,
+    DirectorySync,
     RootLoad,
     RootPublicationBeforeObserve,
     RootSwap,
@@ -10,6 +11,8 @@ pub enum ProductionStorageBoundarySeam {
     ReclaimEligibility,
     CheckpointManifestWrite,
     CompactionCutover,
+    ReplicationProgressSnapshotWrite,
+    ReplicationProgressSnapshotDurable,
     CrashSeam,
     FutureExtensionSlot,
 }
@@ -17,6 +20,7 @@ pub enum ProductionStorageBoundarySeam {
 pub const PHASE4_PRODUCTION_STORAGE_BOUNDARY_SEAMS: &[ProductionStorageBoundarySeam] = &[
     ProductionStorageBoundarySeam::WalAppendBeforeFlush,
     ProductionStorageBoundarySeam::WalFlush,
+    ProductionStorageBoundarySeam::DirectorySync,
     ProductionStorageBoundarySeam::RootLoad,
     ProductionStorageBoundarySeam::RootPublicationBeforeObserve,
     ProductionStorageBoundarySeam::RootSwap,
@@ -25,6 +29,8 @@ pub const PHASE4_PRODUCTION_STORAGE_BOUNDARY_SEAMS: &[ProductionStorageBoundaryS
     ProductionStorageBoundarySeam::ReclaimEligibility,
     ProductionStorageBoundarySeam::CheckpointManifestWrite,
     ProductionStorageBoundarySeam::CompactionCutover,
+    ProductionStorageBoundarySeam::ReplicationProgressSnapshotWrite,
+    ProductionStorageBoundarySeam::ReplicationProgressSnapshotDurable,
     ProductionStorageBoundarySeam::CrashSeam,
     ProductionStorageBoundarySeam::FutureExtensionSlot,
 ];
@@ -38,6 +44,7 @@ impl ProductionStorageBoundarySeam {
         match self {
             Self::WalAppendBeforeFlush => "wal-append-before-flush",
             Self::WalFlush => "wal-flush",
+            Self::DirectorySync => "directory-sync",
             Self::RootLoad => "root-load",
             Self::RootPublicationBeforeObserve => "root-publication-before-observe",
             Self::RootSwap => "root-swap",
@@ -46,6 +53,8 @@ impl ProductionStorageBoundarySeam {
             Self::ReclaimEligibility => "reclaim-eligibility",
             Self::CheckpointManifestWrite => "checkpoint-manifest-write",
             Self::CompactionCutover => "compaction-cutover",
+            Self::ReplicationProgressSnapshotWrite => "replication-progress-snapshot-write",
+            Self::ReplicationProgressSnapshotDurable => "replication-progress-snapshot-durable",
             Self::CrashSeam => "crash-seam",
             Self::FutureExtensionSlot => "future-extension-slot",
         }

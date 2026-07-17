@@ -193,14 +193,14 @@ impl WorthUiRuntime {
             step.provider().final_package_digest(),
         );
         *previous_binding = Some(binding);
-        Ok(WorthUiReloadStormIterationOutcome::Activated(
+        Ok(WorthUiReloadStormIterationOutcome::Activated(Box::new(
             WorthUiReloadStormSuccessfulIteration::new(
                 step.label(),
                 binding,
                 report,
                 self.inspect_active().active_plan_digest(),
             ),
-        ))
+        )))
     }
 
     fn lower_step_candidate(
@@ -208,7 +208,7 @@ impl WorthUiRuntime {
         step: &WorthUiReloadStormCandidateStep,
         snapshot: &CapabilitySnapshot,
         mut counters: WorthUiReloadLatencyCounters,
-    ) -> Result<WorthUiReplacementCandidate, WorthUiReloadStormCandidateLoweringFailure> {
+    ) -> Result<WorthUiReplacementCandidate, Box<WorthUiReloadStormCandidateLoweringFailure>> {
         let provider = step.provider().clone();
         let mut session = self.source_ingress(provider).start();
         let batch = match session.ingest(step.events()) {
@@ -221,11 +221,11 @@ impl WorthUiRuntime {
                     WorthUiReloadFailureStage::InvalidCandidate,
                     Some(step.provider().final_package_digest()),
                 ));
-                return Err(WorthUiReloadStormCandidateLoweringFailure {
+                return Err(Box::new(WorthUiReloadStormCandidateLoweringFailure {
                     candidate_denial_reason,
                     failure,
                     counters,
-                });
+                }));
             }
         };
         match batch.lower_to_candidate_submission(snapshot) {
@@ -240,11 +240,11 @@ impl WorthUiRuntime {
                     WorthUiReloadFailureStage::InvalidCandidate,
                     Some(step.provider().final_package_digest()),
                 ));
-                Err(WorthUiReloadStormCandidateLoweringFailure {
+                Err(Box::new(WorthUiReloadStormCandidateLoweringFailure {
                     candidate_denial_reason,
                     failure,
                     counters,
-                })
+                }))
             }
         }
     }

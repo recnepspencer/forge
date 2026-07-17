@@ -186,18 +186,20 @@ fn verify_with_admission(
     let (allocation, envelopes) = allocation_receipt_and_envelope(8);
     BlobStreamingVerifiedRead::verify_bounded(
         request(),
-        BlobStreamingReadWindow::bounded(8)?,
-        allocation,
-        envelopes,
-        admission,
-        BlobQuarantineAuthority::from_current_store_authority(
-            crate::lifecycle::generation_registry_test_support::current_authority(
-                "phase10.streaming.read.quarantine",
-                "quarantine",
+        crate::BlobStreamingReadExecution::new(
+            BlobStreamingReadWindow::bounded(8)?,
+            allocation,
+            envelopes,
+            admission,
+            BlobQuarantineAuthority::from_current_store_authority(
+                crate::lifecycle::generation_registry_test_support::current_authority(
+                    "phase10.streaming.read.quarantine",
+                    "quarantine",
+                ),
             ),
+            CounterEvidenceStrength::Exact,
         ),
         observations_for(b"abcdefghijkl", 8),
-        CounterEvidenceStrength::Exact,
     )
 }
 
@@ -208,18 +210,20 @@ fn verify_observations_with_window(
     let (allocation, envelopes) = allocation_receipt_and_envelope(window_bytes);
     BlobStreamingVerifiedRead::verify_bounded(
         request(),
-        BlobStreamingReadWindow::bounded(window_bytes)?,
-        allocation,
-        envelopes,
-        admission(),
-        BlobQuarantineAuthority::from_current_store_authority(
-            crate::lifecycle::generation_registry_test_support::current_authority(
-                "phase10.streaming.read.quarantine",
-                "quarantine",
+        crate::BlobStreamingReadExecution::new(
+            BlobStreamingReadWindow::bounded(window_bytes)?,
+            allocation,
+            envelopes,
+            admission(),
+            BlobQuarantineAuthority::from_current_store_authority(
+                crate::lifecycle::generation_registry_test_support::current_authority(
+                    "phase10.streaming.read.quarantine",
+                    "quarantine",
+                ),
             ),
+            CounterEvidenceStrength::Exact,
         ),
         observations,
-        CounterEvidenceStrength::Exact,
     )
 }
 

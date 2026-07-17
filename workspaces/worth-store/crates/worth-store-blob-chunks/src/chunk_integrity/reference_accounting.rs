@@ -59,13 +59,13 @@ impl BlobChunkReferenceAccountingRegistry {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobChunkReferenceAccountingDenial {
-    Dedupe(BlobChunkDedupeAdmissionDenial),
+    Dedupe(Box<BlobChunkDedupeAdmissionDenial>),
     Reachability(BlobReachabilityDenial),
 }
 
 impl From<BlobChunkDedupeAdmissionDenial> for BlobChunkReferenceAccountingDenial {
     fn from(value: BlobChunkDedupeAdmissionDenial) -> Self {
-        Self::Dedupe(value)
+        Self::Dedupe(Box::new(value))
     }
 }
 

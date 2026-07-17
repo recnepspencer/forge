@@ -205,7 +205,7 @@ pub(super) fn inspection_semantic_summary(
                         "{:?}:{}:{}",
                         link.role(),
                         link.view_binding().id().as_str(),
-                        link.query_capability().digest_basis()
+                        link.definition().digest().as_u64()
                     )
                 })
                 .collect::<Vec<_>>();

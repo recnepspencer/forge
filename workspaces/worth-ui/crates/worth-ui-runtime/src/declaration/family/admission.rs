@@ -304,7 +304,7 @@ where
         return Ok(absent);
     }
 
-    if matching.iter().any(|token| *token == standalone_token) {
+    if matching.contains(&standalone_token) {
         return Err(
             UiDeclarationFamilyAdmissionDenial::StructuralFamilyCannotClaimStandaloneRole {
                 family,

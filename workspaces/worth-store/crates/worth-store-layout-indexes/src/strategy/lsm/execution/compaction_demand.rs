@@ -27,12 +27,7 @@ impl AdmittedLsmCompactionDemand {
             .map_err(map_membership_denial)?;
         let expected_output =
             LsmMembershipArtifactDeclaration::compaction_output(output_append.scope());
-        if output_append.persisted_bytes() != expected_output.bytes().len() as u64
-            || std::fs::read(output_append.persisted_path())
-                .ok()
-                .as_deref()
-                != Some(expected_output.bytes())
-        {
+        if !output_append.persisted_payload_matches(expected_output.bytes()) {
             return Err(super::BaselineLsmExecutionAdmissionDenial::OutputPublicationMismatch);
         }
         let output = worth_store_lsm_authority::admit_lsm_replacement_output(

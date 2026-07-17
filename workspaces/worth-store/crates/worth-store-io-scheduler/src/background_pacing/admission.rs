@@ -119,7 +119,7 @@ fn throttled(
     admitted: BackgroundResourceBudget,
     throttled_units: BackgroundResourceBudget,
 ) -> BackgroundPacingOutcome {
-    BackgroundPacingOutcome::Throttled(BackgroundPacingThrottle::new(
+    BackgroundPacingOutcome::Throttled(Box::new(BackgroundPacingThrottle::new(
         request.capacity().pressure().class(),
         admitted,
         throttled_units,
@@ -129,7 +129,7 @@ fn throttled(
             admitted,
             throttled_units,
         ),
-    ))
+    )))
 }
 
 fn admitted_with_debt(
@@ -145,7 +145,7 @@ fn admitted_with_debt(
         debt_units,
         debt.kind(),
     );
-    BackgroundPacingOutcome::AdmittedWithDebt(BackgroundPacingAdmittedWithDebt::new(
+    BackgroundPacingOutcome::AdmittedWithDebt(Box::new(BackgroundPacingAdmittedWithDebt::new(
         BackgroundIdleCapacityLease::new(
             request.capacity().pressure().class(),
             admitted,
@@ -154,7 +154,7 @@ fn admitted_with_debt(
             counters,
             request.capacity().secure_io(),
         ),
-    ))
+    )))
 }
 
 fn violation(

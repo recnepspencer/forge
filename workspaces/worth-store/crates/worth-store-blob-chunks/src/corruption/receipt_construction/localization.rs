@@ -21,31 +21,35 @@ pub struct BlobCorruptedChunkLocalization {
     counters: BlobCorruptionCounterSnapshot,
 }
 
+pub(crate) struct BlobLocalizationReceiptInput {
+    pub(crate) damage_case: BlobDamageCase,
+    pub(crate) source: BlobCorruptionDetectionSource,
+    pub(crate) object_id: BlobObjectId,
+    pub(crate) generation: BlobGeneration,
+    pub(crate) ordinal: BlobChunkOrdinal,
+    pub(crate) stored_digest: StoredChunkDigest,
+    pub(crate) placement_class: BlobCorruptionPlacementClass,
+    pub(crate) sharing_scope: BlobCorruptionReferenceSharingScope,
+    pub(crate) reference_edges: BlobCorruptionReferenceEdges,
+    pub(crate) edge_count: u64,
+}
+
 pub(crate) fn construct_localization_receipt(
-    damage_case: BlobDamageCase,
-    source: BlobCorruptionDetectionSource,
-    object_id: BlobObjectId,
-    generation: BlobGeneration,
-    ordinal: BlobChunkOrdinal,
-    stored_digest: StoredChunkDigest,
-    placement_class: BlobCorruptionPlacementClass,
-    sharing_scope: BlobCorruptionReferenceSharingScope,
-    reference_edges: BlobCorruptionReferenceEdges,
-    edge_count: u64,
+    input: BlobLocalizationReceiptInput,
 ) -> BlobCorruptedChunkLocalization {
     BlobCorruptedChunkLocalization {
-        damage_case,
-        source,
-        object_id,
-        generation,
-        ordinal,
-        stored_digest,
-        placement_class,
-        sharing_scope,
-        reference_edges,
+        damage_case: input.damage_case,
+        source: input.source,
+        object_id: input.object_id,
+        generation: input.generation,
+        ordinal: input.ordinal,
+        stored_digest: input.stored_digest,
+        placement_class: input.placement_class,
+        sharing_scope: input.sharing_scope,
+        reference_edges: input.reference_edges,
         counters: BlobCorruptionCounterSnapshot::start()
-            .record_localization(source, edge_count)
-            .record_damage_case(damage_case),
+            .record_localization(input.source, input.edge_count)
+            .record_damage_case(input.damage_case),
     }
 }
 

@@ -61,7 +61,7 @@ impl<'a> UiAdmissionBoundary<'a> {
             );
         };
         let declaration_identity = node_record.declaration_identity();
-        let Some(artifact) = self.support_artifact(&declaration_identity) else {
+        let Some(artifact) = self.support_artifact(declaration_identity) else {
             return UiSupportSnapshot::new(
                 target.clone(),
                 UiSupportPosture::Unsupported {

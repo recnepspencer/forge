@@ -8,7 +8,7 @@ pub struct WorthUiAdmittedReplacementCandidate {
     candidate: WorthUiReplacementCandidate,
     active_basis: WorthUiActiveReplacementBasis,
     report: WorthUiCandidateAdmissionReport,
-    admitted_query_support_receipt_digest: u64,
+    admitted_query_contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
 }
 
 impl WorthUiAdmittedReplacementCandidate {
@@ -17,15 +17,15 @@ impl WorthUiAdmittedReplacementCandidate {
         active_basis: WorthUiActiveReplacementBasis,
         report: WorthUiCandidateAdmissionReport,
     ) -> Self {
-        let admitted_query_support_receipt_digest = candidate
+        let admitted_query_contract_identity = candidate
             .lowering_basis()
             .query_support_receipt()
-            .receipt_digest();
+            .contract_identity();
         Self {
             candidate,
             active_basis,
             report,
-            admitted_query_support_receipt_digest,
+            admitted_query_contract_identity,
         }
     }
 
@@ -38,22 +38,22 @@ impl WorthUiAdmittedReplacementCandidate {
     }
 
     pub fn report(&self) -> WorthUiCandidateAdmissionReport {
-        self.report
+        self.report.clone()
     }
 
     pub fn verify_receipts_unchanged(&self) -> Result<(), WorthUiCandidateAdmissionDenial> {
-        let current_receipt_digest = self
+        let current_contract_identity = self
             .candidate
             .lowering_basis()
             .query_support_receipt()
-            .receipt_digest();
-        if current_receipt_digest == self.admitted_query_support_receipt_digest {
+            .contract_identity();
+        if current_contract_identity == self.admitted_query_contract_identity {
             Ok(())
         } else {
             Err(
-                WorthUiCandidateAdmissionDenial::QuerySupportReceiptChanged {
-                    admitted_receipt_digest: self.admitted_query_support_receipt_digest,
-                    current_receipt_digest,
+                WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
+                    admitted_contract_identity: self.admitted_query_contract_identity,
+                    current_contract_identity,
                 },
             )
         }
@@ -64,28 +64,38 @@ impl WorthUiAdmittedReplacementCandidate {
     }
 
     #[cfg(test)]
-    pub(crate) fn verify_test_receipt_digest(
+    pub(crate) fn verify_test_query_contract(
         &self,
-        current_receipt_digest: u64,
+        contract_label: &str,
     ) -> Result<(), WorthUiCandidateAdmissionDenial> {
-        if current_receipt_digest == self.admitted_query_support_receipt_digest {
+        let current_contract_identity = query_contract_identity_for_test(contract_label);
+        if current_contract_identity == self.admitted_query_contract_identity {
             Ok(())
         } else {
             Err(
-                WorthUiCandidateAdmissionDenial::QuerySupportReceiptChanged {
-                    admitted_receipt_digest: self.admitted_query_support_receipt_digest,
-                    current_receipt_digest,
+                WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
+                    admitted_contract_identity: self.admitted_query_contract_identity,
+                    current_contract_identity,
                 },
             )
         }
     }
 
     #[cfg(test)]
-    pub(crate) fn with_admitted_query_support_receipt_digest_for_test(
-        mut self,
-        admitted_query_support_receipt_digest: u64,
-    ) -> Self {
-        self.admitted_query_support_receipt_digest = admitted_query_support_receipt_digest;
+    pub(crate) fn with_admitted_query_contract_for_test(mut self, contract_label: &str) -> Self {
+        self.admitted_query_contract_identity = query_contract_identity_for_test(contract_label);
         self
     }
+}
+
+#[cfg(test)]
+fn query_contract_identity_for_test(
+    label: &str,
+) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
+    let definition =
+        worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(label)
+            .expect("test Query contract label must be valid");
+    worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
+        definition.digest()
+    ])
 }
