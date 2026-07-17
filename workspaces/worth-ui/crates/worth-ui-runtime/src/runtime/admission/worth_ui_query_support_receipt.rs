@@ -1,7 +1,7 @@
 use crate::runtime::candidate::WorthUiCandidateDependencyMetadata;
 use crate::source::WorthUiRuntimeDependencyHook;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum WorthUiQuerySupportStatus {
     Supported,
     Deferred,
@@ -26,7 +26,7 @@ impl WorthUiQuerySupportReceipt {
         let mut hook_count = 0usize;
         let mut definitions = Vec::new();
         let mut status = WorthUiQuerySupportStatus::Supported;
-        for (_handle, hooks) in graph.runtime_hooks() {
+        for hooks in graph.runtime_hooks().values() {
             for hook in hooks {
                 hook_count += 1;
                 status = status.combine(support_status_for_runtime_hook(hook));
@@ -51,17 +51,12 @@ impl WorthUiQuerySupportReceipt {
         self.runtime_hook_count
     }
 
-    pub fn contract_identity(
-        self,
-    ) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
+    pub fn contract_identity(self) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
         self.contract_identity
     }
 
     #[cfg(test)]
-    pub(crate) fn for_test(
-        status: WorthUiQuerySupportStatus,
-        contract_label: &str,
-    ) -> Self {
+    pub(crate) fn for_test(status: WorthUiQuerySupportStatus, contract_label: &str) -> Self {
         Self::with_runtime_hook_count_for_test(status, 1, contract_label)
     }
 
@@ -116,7 +111,7 @@ mod tests {
         )
         .expect("definition should admit");
         let hook = WorthUiRuntimeDependencyHook::new(
-            WorthUiRuntimeDependencyHookKind::QueryLiveView,
+            WorthUiRuntimeDependencyHookKind::LiveView,
             ViewBindingId::new("workspace.view_binding.selection").unwrap(),
             definition,
             QueryDenialPresentation::structured_status(),

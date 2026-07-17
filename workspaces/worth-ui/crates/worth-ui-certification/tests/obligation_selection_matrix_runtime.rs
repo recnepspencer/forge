@@ -10,9 +10,8 @@ use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::declaration::UiDeclarationSupportRowSchemaKind;
 use worth_ui::facade::graph::{
     UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchOriginClass,
+    UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchOriginClass,
     UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
-    UiGraphSessionLabel,
 };
 use worth_ui::facade::obligations::{
     UiObligationCheckKind, UiObligationFamily, UiObligationSelectionReason,

@@ -3,7 +3,7 @@ use crate::runtime::{
     WorthUiQueryBindingDriftDenialKind, WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture,
     WorthUiQueryBindingPostureDriftFamily, WorthUiQueryBindingRebindReason,
     WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
-    WorthUiQueryRebindRequiredSurface, WorthUiQuerySupportStatus,
+    WorthUiQueryRebindRequiredSurface,
 };
 
 pub(in crate::runtime) fn query_rebind_basis_digest(plan: &WorthUiQueryLiveRebindPlan) -> u64 {
@@ -23,7 +23,7 @@ pub(in crate::runtime) fn query_rebind_basis_digest(plan: &WorthUiQueryLiveRebin
             WorthUiQueryLiveRebindOutcome::Preserve(preservation) => {
                 fold.fold_tag(1);
                 fold_posture(&mut fold, preservation.preserved_posture());
-                fold.fold_text(preservation.preservation_receipt());
+                fold.fold_u64(preservation.preservation_receipt().canonical_identity());
             }
             WorthUiQueryLiveRebindOutcome::Rebind(rebind) => {
                 fold.fold_tag(2);
@@ -53,22 +53,11 @@ fn fold_identity(
     fold: &mut WorthUiActivationGateDigestFold,
     identity: &WorthUiQueryBindingIdentity,
 ) {
-    fold.fold_text(identity.view_binding_id());
-    fold.fold_text(identity.query_capability_digest());
-    fold.fold_text(identity.query_composition_profile_digest());
-    fold.fold_text(identity.result_shape_digest());
+    fold.fold_u64(identity.canonical_identity());
 }
 
 fn fold_posture(fold: &mut WorthUiActivationGateDigestFold, posture: &WorthUiQueryBindingPosture) {
-    fold_query_support_status(fold, posture.query_support_status());
-    fold.fold_text(posture.support_admission_digest());
-    fold.fold_text(posture.basis_capability_digest());
-    fold.fold_text(posture.live_compatibility_digest());
-    fold.fold_text(posture.async_result_state_digest());
-    fold.fold_text(posture.recovery_digest());
-    fold.fold_text(posture.inspection_digest());
-    fold.fold_text(posture.projection_consumption_digest());
-    fold.fold_text(posture.denial_presentation_digest());
+    fold.fold_u64(posture.canonical_identity());
 }
 
 fn fold_optional_posture(
@@ -82,18 +71,6 @@ fn fold_optional_posture(
         }
         None => fold.fold_tag(0),
     }
-}
-
-fn fold_query_support_status(
-    fold: &mut WorthUiActivationGateDigestFold,
-    status: WorthUiQuerySupportStatus,
-) {
-    let tag = match status {
-        WorthUiQuerySupportStatus::Supported => 1,
-        WorthUiQuerySupportStatus::Deferred => 2,
-        WorthUiQuerySupportStatus::Unsupported => 3,
-    };
-    fold.fold_tag(tag);
 }
 
 fn fold_rebind_reason(

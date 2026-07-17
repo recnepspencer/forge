@@ -3,8 +3,7 @@ use super::lane_meaning_parity_test_support::{
 };
 use super::query_binding_comparison_test_support::{
     denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
-    query_artifact,
-    standard_query_app,
+    query_artifact, standard_query_app,
 };
 use crate::runtime::{
     WorthUiCrossLaneSemanticAuthority, WorthUiCrossLaneSemanticFamily,
@@ -314,17 +313,7 @@ fn comparison_with_deferred_candidate_support(
 fn posture_with_deferred_support(
     posture: &WorthUiQueryBindingPosture,
 ) -> WorthUiQueryBindingPosture {
-    WorthUiQueryBindingPosture::new(
-        WorthUiQuerySupportStatus::Deferred,
-        posture.support_admission_digest().to_owned(),
-        posture.basis_capability_digest().to_owned(),
-        posture.live_compatibility_digest().to_owned(),
-        posture.async_result_state_digest().to_owned(),
-        posture.recovery_digest().to_owned(),
-        posture.inspection_digest().to_owned(),
-        posture.projection_consumption_digest().to_owned(),
-        posture.denial_presentation_digest().to_owned(),
-    )
+    posture.with_query_support_status_for_test(WorthUiQuerySupportStatus::Deferred)
 }
 
 fn all_lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacementPlan {

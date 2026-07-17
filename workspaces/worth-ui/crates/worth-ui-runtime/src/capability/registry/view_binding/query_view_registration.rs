@@ -21,18 +21,12 @@ impl WorthUiQueryViewRegistration {
         }
     }
 
-    pub fn with_visible_state_binding(
-        mut self,
-        binding: VisibleStateBindingDeclaration,
-    ) -> Self {
+    pub fn with_visible_state_binding(mut self, binding: VisibleStateBindingDeclaration) -> Self {
         self.visible_state_bindings.push(binding);
         self
     }
 
-    pub fn with_denial_presentation(
-        mut self,
-        presentation: QueryDenialPresentation,
-    ) -> Self {
+    pub fn with_denial_presentation(mut self, presentation: QueryDenialPresentation) -> Self {
         self.denial_presentation = presentation;
         self
     }

@@ -12,8 +12,7 @@ use worth_query::facade::runtime::{
 };
 
 use crate::{
-    WorthUiQueryAuthorityHandle, WorthUiQueryPrerequisiteBoundary,
-    WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryAuthorityHandle, WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,7 +25,10 @@ pub enum WorthUiQueryCertificationProjection {
 pub fn worth_ui_query_prerequisite_fixture(
     label: &str,
     projection: WorthUiQueryCertificationProjection,
-) -> (WorthUiQueryPrerequisiteEvidence, WorthUiQueryAuthorityHandle) {
+) -> (
+    WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryAuthorityHandle,
+) {
     let (mut workspace, schema_basis_authority) = measurement_projection_workspace(label);
     let completion = declare(size_family_graph)
         .expect("ordinary query declaration should admit")

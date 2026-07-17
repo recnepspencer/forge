@@ -10,7 +10,7 @@ note: if you're trying to build a new `UiMeasurementRequest` consider using one 
       UiMeasurementRequest::font_metrics
       UiMeasurementRequest::native_control_intrinsic_size
       and $N others
- --> $WORKSPACE/crates/worth-ui-host-contract/src/runtime/measurement_request/measurement_request.rs
+ --> $WORKSPACE/crates/worth-ui-host-contract/src/runtime/measurement_request/request.rs
   |
   | /     pub fn text_intrinsic_size(
   | |         identity: UiMeasurementRequestIdentity,

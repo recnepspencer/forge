@@ -5,8 +5,8 @@ use crate::graph::UiGraphNodeIdentity;
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::{WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport};
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture,
-    WorthUiQueryMeasurementFactEligibilityError, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryBasisPosture, WorthUiQueryMeasurementFactEligibilityError,
+    WorthUiQueryPrerequisiteEvidence,
 };
 
 use super::UiAdmissionWorld;
@@ -90,9 +90,7 @@ impl UiAdmissionTarget {
         let Some(query_prerequisites) = self.query_prerequisites.take() else {
             return Ok(self);
         };
-        self.query_prerequisites = Some(
-            authority.bind_prerequisites(query_prerequisites)?,
-        );
+        self.query_prerequisites = Some(authority.bind_prerequisites(query_prerequisites)?);
         Ok(self)
     }
 

@@ -46,6 +46,7 @@ impl WorthUiQueryAuthorityHandle {
         prerequisites: &super::WorthUiQueryPrerequisiteEvidence,
     ) -> bool {
         self.0.binds_resolved_basis(prerequisites.basis())
+            && prerequisites.accepts_projection_contract(self.0.contract().contract_digest())
     }
 
     pub fn bind_prerequisites(

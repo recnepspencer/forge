@@ -6,8 +6,8 @@ use crate::evidence::{
     UiConstraintPropagationEdgePayload, UiLayoutOperatorContractIdentity,
 };
 
-use super::classify_special_inputs::family_for_requirement;
 use super::admission_parts::ConstraintAuthorityContext;
+use super::classify_special_inputs::family_for_requirement;
 
 pub(super) fn verify_required_special_inputs(
     context: &ConstraintAuthorityContext<'_>,

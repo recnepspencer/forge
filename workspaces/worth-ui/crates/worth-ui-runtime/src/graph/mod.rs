@@ -66,11 +66,11 @@ pub use closeout::{
 
 // --- identity ---
 pub use identity::{
-    UiGraphGeneration, UiGraphGenerationRelation, UiGraphNodeIdentity, UiGraphSnapshotComparable,
-    UiGraphSessionIdentityError, UiGraphSessionLabel, UiGraphWorldDifferenceKind,
-    UiGraphWorldProfile, UiPreviewSessionIdentity,
-    UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
-    UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
+    UiGraphGeneration, UiGraphGenerationRelation, UiGraphNodeIdentity, UiGraphSessionIdentityError,
+    UiGraphSessionLabel, UiGraphSnapshotComparable, UiGraphWorldDifferenceKind,
+    UiGraphWorldProfile, UiPreviewSessionIdentity, UiRepeatedInstanceBasis,
+    UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind, UiRuntimeDataInstanceKeyKind,
+    UiRuntimeDataInstanceKeyToken,
 };
 
 // --- indexes / lookup ---

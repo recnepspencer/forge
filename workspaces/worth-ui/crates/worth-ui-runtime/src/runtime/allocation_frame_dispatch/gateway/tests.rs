@@ -275,4 +275,3 @@ fn query_burst_uses_binding_order_and_transport_bound() {
         .is_some_and(|submission| submission.is_backpressured()));
     assert_eq!(overflow.counters().mailbox_high_watermark(), 64);
 }
-

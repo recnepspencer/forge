@@ -5,7 +5,7 @@ fn main() {
         candidate: uninitialized_field(),
         active_basis: uninitialized_field(),
         report: uninitialized_field(),
-        admitted_query_support_receipt_digest: 0,
+        admitted_query_contract_identity: uninitialized_field(),
     };
 }
 

@@ -1,8 +1,8 @@
 use crate::capability::{
     AdmittedCapability, CommandDescriptor, CommandId, CommandProjectionDescriptor,
     CommandProjectionId, CommandReadinessBinding, CommandRuntimeIntentBinding,
-    FrozenThemeTokenEntry, FrozenViewBindingEntry, IconDescriptor, IconId,
-    QueryDenialPresentation, ThemeTokenId, ViewBindingId,
+    FrozenThemeTokenEntry, FrozenViewBindingEntry, IconDescriptor, IconId, QueryDenialPresentation,
+    ThemeTokenId, ViewBindingId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

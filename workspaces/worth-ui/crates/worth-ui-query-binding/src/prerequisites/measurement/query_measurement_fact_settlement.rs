@@ -1,9 +1,9 @@
 use std::sync::Arc;
+use worth_query::facade::domain::WorthQueryInstalledDomainExecutionReceipt;
 use worth_query::facade::foundation::{
     ProjectionConsumptionWarningKind, ProjectionSourceBasisAuthority,
 };
 use worth_query::facade::read::{WorthQueryProjectionOutcome, WorthQueryProjectionViolation};
-use worth_query::facade::domain::WorthQueryInstalledDomainExecutionReceipt;
 
 use super::{
     WorthUiQueryAuthorityHandle, WorthUiQueryMeasurementFactReceipt,
@@ -181,7 +181,8 @@ impl WorthUiQueryMeasurementFactSettlement {
         match warnings {
             None => {
                 let receipt = WorthUiQueryMeasurementFactReceipt::from_installed_query_authority(
-                    query_authority, false,
+                    query_authority,
+                    false,
                 )
                 .map_err(WorthUiQueryMeasurementFactSettlementDenial::Receipt)?;
                 Ok(Self {
@@ -210,7 +211,8 @@ impl WorthUiQueryMeasurementFactSettlement {
                     .into_boxed_slice();
                 let warning_digest = warnings.warning_digest().into();
                 let receipt = WorthUiQueryMeasurementFactReceipt::from_installed_query_authority(
-                    query_authority, true,
+                    query_authority,
+                    true,
                 )
                 .map_err(WorthUiQueryMeasurementFactSettlementDenial::Receipt)?;
                 Ok(Self {
@@ -313,7 +315,6 @@ impl WorthUiQueryAllocationSourceIdentity {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-
 }
 
 impl WorthUiQueryAllocationSourceGeneration {

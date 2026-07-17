@@ -34,9 +34,7 @@ pub(crate) enum UiAllocationPlanningCatalogAdmissionDenial {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum UiAllocationCatalogPreparationDenial {
     PlanningAdmission(UiAllocationPlanningCatalogAdmissionDenial),
-    CatalogPlanning(
-        crate::runtime::invalidation_narrowing::UiAllocationActivationCatalogDenial,
-    ),
+    CatalogPlanning(crate::runtime::invalidation_narrowing::UiAllocationActivationCatalogDenial),
     ReceiptCommit(crate::runtime::UiAllocationReceiptCommitOutcome),
 }
 

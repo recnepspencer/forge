@@ -150,14 +150,8 @@ fn query_links_for_node_input(
     counters.record_projection_consumption_link();
     Some(WorthUiQueryInspectionLinks::from_query_posture(
         identity,
-        posture.support_admission_digest().to_owned(),
-        posture.basis_capability_digest().to_owned(),
-        posture.live_compatibility_digest().to_owned(),
-        posture.inspection_digest().to_owned(),
-        posture.projection_consumption_digest().to_owned(),
-        posture.async_result_state_digest().to_owned(),
-        posture.recovery_digest().to_owned(),
-        node_input.query_preservation_receipt().map(str::to_owned),
+        posture.clone(),
+        node_input.query_preservation_receipt(),
         node_input.query_required_surfaces().to_vec(),
     ))
 }

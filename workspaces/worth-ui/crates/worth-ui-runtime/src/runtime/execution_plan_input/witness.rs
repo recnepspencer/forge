@@ -122,29 +122,16 @@ impl WorthUiExecutionPlanInputWitness {
             digest ^= u64::from(node_input.transition().is_some()).rotate_left(13);
             digest ^= u64::from(node_input.egui_boundary_input().is_some()).rotate_left(17);
             if let Some(identity) = node_input.query_binding_identity() {
-                digest ^= stable_text_digest(identity.view_binding_id()).rotate_left(19);
-                digest ^= stable_text_digest(identity.query_capability_digest()).rotate_left(23);
-                digest ^=
-                    stable_text_digest(identity.query_composition_profile_digest()).rotate_left(29);
-                digest ^= stable_text_digest(identity.result_shape_digest()).rotate_left(31);
+                digest ^= identity.canonical_identity().rotate_left(19);
             }
             if let Some(posture) = node_input.query_binding_posture() {
-                digest ^= (posture.query_support_status() as u64).rotate_left(37);
-                digest ^= stable_text_digest(posture.support_admission_digest()).rotate_left(41);
-                digest ^= stable_text_digest(posture.basis_capability_digest()).rotate_left(43);
-                digest ^= stable_text_digest(posture.live_compatibility_digest()).rotate_left(47);
-                digest ^= stable_text_digest(posture.async_result_state_digest()).rotate_left(53);
-                digest ^= stable_text_digest(posture.recovery_digest()).rotate_left(59);
-                digest ^= stable_text_digest(posture.inspection_digest()).rotate_left(61);
-                digest ^=
-                    stable_text_digest(posture.projection_consumption_digest()).rotate_left(2);
-                digest ^= stable_text_digest(posture.denial_presentation_digest()).rotate_left(9);
+                digest ^= posture.canonical_identity().rotate_left(37);
             }
             for surface in node_input.query_required_surfaces() {
                 digest ^= (*surface as u64).rotate_left(27);
             }
             if let Some(receipt) = node_input.query_preservation_receipt() {
-                digest ^= stable_text_digest(receipt).rotate_left(33);
+                digest ^= receipt.canonical_identity().rotate_left(33);
             }
             if let Some(boundary) = node_input.egui_boundary_input() {
                 digest ^= (boundary as u64).rotate_left(39);

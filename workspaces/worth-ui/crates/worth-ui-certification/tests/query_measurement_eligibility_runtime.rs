@@ -343,22 +343,21 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_same_basis_
                 UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
                     prerequisites: expected,
                 },
-                UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
-                    prerequisites: observed,
+                UiQueryMeasurementBasisAuthority::ProjectionConsumption {
+                    authority: observed,
                 },
             ) => {
                 assert_eq!(
                     expected.basis_digest_for_diagnostics(),
                     observed.basis_digest_for_diagnostics()
                 );
-                assert_eq!(expected.resolution_mode(), observed.resolution_mode());
                 assert_ne!(
                     expected.projection_contract_digest(),
-                    observed.projection_contract_digest()
+                    Some(observed.projection_contract_digest_for_diagnostics())
                 );
             }
             authorities => {
-                panic!("expected admitted-prerequisites stale authorities, got {authorities:?}")
+                panic!("expected retained prerequisites and consumed projection authority, got {authorities:?}")
             }
         },
         posture => panic!("expected contract-scope stale denial, got {posture:?}"),

@@ -4,8 +4,8 @@ use super::query_binding::{
     WorthUiQueryBindingPosture,
 };
 use super::query_binding_comparison_test_support::{
-    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline, query_artifact,
-    standard_query_app,
+    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
+    query_artifact, standard_query_app,
 };
 use crate::runtime::{
     WorthUiNodeReplacementPlan, WorthUiQueryBindingDriftDenialKind,
@@ -32,9 +32,14 @@ fn same_query_binding_basis_preserves_live_binding() {
                 preservation.identity().view_binding_id(),
                 "workspace.view_binding.selection"
             );
-            assert!(preservation
-                .preservation_receipt()
-                .contains("query-live-preserve"));
+            assert_eq!(
+                preservation.preservation_receipt().binding_identity(),
+                preservation.identity().canonical_identity()
+            );
+            assert_eq!(
+                preservation.preservation_receipt().posture_identity(),
+                preservation.preserved_posture().canonical_identity()
+            );
         }
         other => panic!("same basis should preserve live binding, got {other:?}"),
     }
@@ -216,17 +221,7 @@ fn posture_with_support_status(
     posture: &WorthUiQueryBindingPosture,
     support_status: WorthUiQuerySupportStatus,
 ) -> WorthUiQueryBindingPosture {
-    WorthUiQueryBindingPosture::new(
-        support_status,
-        posture.support_admission_digest().to_owned(),
-        posture.basis_capability_digest().to_owned(),
-        posture.live_compatibility_digest().to_owned(),
-        posture.async_result_state_digest().to_owned(),
-        posture.recovery_digest().to_owned(),
-        posture.inspection_digest().to_owned(),
-        posture.projection_consumption_digest().to_owned(),
-        posture.denial_presentation_digest().to_owned(),
-    )
+    posture.with_query_support_status_for_test(support_status)
 }
 
 #[test]

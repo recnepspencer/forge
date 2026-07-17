@@ -28,5 +28,4 @@ impl WorthUiBindingSemanticsMetrics {
     pub(crate) fn families_scanned(&self) -> usize {
         self.families_scanned
     }
-
 }

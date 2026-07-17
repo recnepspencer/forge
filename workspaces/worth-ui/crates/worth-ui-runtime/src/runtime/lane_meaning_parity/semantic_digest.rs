@@ -39,10 +39,7 @@ pub(super) fn digest_query_posture_entry(
     side: WorthUiQueryReferenceSide,
 ) -> u64 {
     let mut digest = WorthUiLaneParityHashFold::new(0x76de_81c2_9c7a_3451);
-    digest.fold_str(entry.identity().view_binding_id());
-    digest.fold_str(entry.identity().query_capability_digest());
-    digest.fold_str(entry.identity().query_composition_profile_digest());
-    digest.fold_str(entry.identity().result_shape_digest());
+    digest.fold(entry.identity().canonical_identity());
     let posture = match side {
         WorthUiQueryReferenceSide::Active => entry.active_posture(),
         WorthUiQueryReferenceSide::Candidate => entry.candidate_posture(),
@@ -55,10 +52,7 @@ pub(super) fn digest_query_posture_entry(
 
 pub(super) fn digest_query_rebind_entry(entry: &WorthUiQueryLiveRebindEntry) -> u64 {
     let mut digest = WorthUiLaneParityHashFold::new(0x76de_81c2_9c7a_3451);
-    digest.fold_str(entry.identity().view_binding_id());
-    digest.fold_str(entry.identity().query_capability_digest());
-    digest.fold_str(entry.identity().query_composition_profile_digest());
-    digest.fold_str(entry.identity().result_shape_digest());
+    digest.fold(entry.identity().canonical_identity());
     match entry.outcome() {
         WorthUiQueryLiveRebindOutcome::Preserve(preservation) => {
             fold_query_posture(&mut digest, preservation.preserved_posture());
@@ -90,11 +84,5 @@ fn fold_query_posture(
     digest: &mut WorthUiLaneParityHashFold,
     posture: &WorthUiQueryBindingPosture,
 ) {
-    digest.fold_str(posture.support_admission_digest());
-    digest.fold_str(posture.basis_capability_digest());
-    digest.fold_str(posture.live_compatibility_digest());
-    digest.fold_str(posture.async_result_state_digest());
-    digest.fold_str(posture.recovery_digest());
-    digest.fold_str(posture.inspection_digest());
-    digest.fold_str(posture.projection_consumption_digest());
+    digest.fold(posture.canonical_identity());
 }

@@ -21,11 +21,20 @@ impl WorthUiQueryInspectionLink {
         definition: worth_ui_query_binding::WorthUiQueryViewDefinition,
         denial_presentation: QueryDenialPresentation,
     ) -> Self {
-        Self { role, view_binding, definition, denial_presentation }
+        Self {
+            role,
+            view_binding,
+            definition,
+            denial_presentation,
+        }
     }
 
-    pub(crate) fn role(&self) -> WorthUiQueryInspectionLinkRole { self.role }
-    pub(crate) fn view_binding(&self) -> &AdmittedCapability<ViewBindingId> { &self.view_binding }
+    pub(crate) fn role(&self) -> WorthUiQueryInspectionLinkRole {
+        self.role
+    }
+    pub(crate) fn view_binding(&self) -> &AdmittedCapability<ViewBindingId> {
+        &self.view_binding
+    }
     pub(crate) fn definition(&self) -> &worth_ui_query_binding::WorthUiQueryViewDefinition {
         &self.definition
     }

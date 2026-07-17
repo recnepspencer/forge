@@ -11,9 +11,8 @@ use crate::declaration::{
     UiDeclaredMeasurementPolicyPosture,
 };
 use crate::evidence::measurement::projection::fact_test_support::{
-    capability_report, display_field_projection_context,
-    host_result_portal_anchor, host_result_scroll_container_viewport, host_result_viewport_extent,
-    viewport_extent_policy,
+    capability_report, display_field_projection_context, host_result_portal_anchor,
+    host_result_scroll_container_viewport, host_result_viewport_extent, viewport_extent_policy,
 };
 use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput, UiMeasurementBasis};
 use crate::facade::{WorthUi, WorthUiApp};

@@ -317,8 +317,7 @@ fn query_prerequisites(
     world_profile: &UiGraphWorldProfile,
     query_basis: worth_ui::facade::admission::UiAdmissionQueryBasis,
 ) -> worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence {
-    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile
-    else {
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile else {
         panic!("query report proofs require query snapshot worlds");
     };
 

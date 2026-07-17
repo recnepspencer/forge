@@ -1,6 +1,4 @@
-use crate::capability::{
-    CapabilitySupportKind, RegistrationCandidate, VIEW_BINDING_FAMILY_NAME,
-};
+use crate::capability::{CapabilitySupportKind, RegistrationCandidate, VIEW_BINDING_FAMILY_NAME};
 
 use super::super::ViewBindingDescriptor;
 

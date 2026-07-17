@@ -1,7 +1,7 @@
-use worth_ui::facade::WorthUi;
 use worth_ui::facade::query_binding::{
     WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryViewDefinition,
 };
+use worth_ui::facade::WorthUi;
 
 use super::view_binding_fixtures::{
     detail_view_binding_from, table_view_binding_from, test_installed_domain,
@@ -27,9 +27,9 @@ fn duplicate_view_binding_id_rejected_before_snapshot_freeze() {
         ))
         .expect("first installed view should register");
     let denial = match builder.register_query_view(detail_view_binding_from(
-            &installed,
-            "workspace.view_binding.duplicate",
-        )) {
+        &installed,
+        "workspace.view_binding.duplicate",
+    )) {
         Ok(_) => panic!("duplicate semantic identity should stop at Query registration"),
         Err(denial) => denial,
     };
@@ -40,7 +40,10 @@ fn duplicate_view_binding_id_rejected_before_snapshot_freeze() {
         denial.kind(),
         WorthUiQueryBindingRegistrationDenialKind::DuplicateViewIdentity,
     );
-    assert_eq!(denial.identity().as_str(), "workspace.view_binding.duplicate");
+    assert_eq!(
+        denial.identity().as_str(),
+        "workspace.view_binding.duplicate"
+    );
 }
 
 #[test]

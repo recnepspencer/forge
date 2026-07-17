@@ -1,11 +1,11 @@
 use crate::capability::{
     CapabilitySnapshot, CapabilitySupportCatalog, ComponentChildPolicy, ComponentDescriptor,
     ComponentId, ComponentPropSchema, ComponentStateOwnership, RegisteredCapabilitySet,
-    RegistrationCandidate,
-    SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass,
-    ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
-    ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
-    COMPONENT_FAMILY_NAME, SURFACE_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
+    RegistrationCandidate, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
+    SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
+    ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily,
+    ViewBindingId, COMPONENT_FAMILY_NAME, SURFACE_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME,
+    VIEW_BINDING_FAMILY_NAME,
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::source::{
@@ -38,13 +38,11 @@ pub(super) fn admitted_app() -> WorthUiApp {
     WorthUi::app()
         .register_component(component_descriptor("workspace.component.dashboard"))
         .register_component(component_descriptor("workspace.component.inspector_panel"))
-        .register_view_binding(
-            ViewBindingDescriptor::from_definition(
-                ViewBindingId::new("workspace.view_binding.selection").unwrap(),
-                ViewBindingFamily::collection(),
-                definition,
-            ),
-        )
+        .register_view_binding(ViewBindingDescriptor::from_definition(
+            ViewBindingId::new("workspace.view_binding.selection").unwrap(),
+            ViewBindingFamily::collection(),
+            definition,
+        ))
         .register_surface(
             SurfaceDescriptor::new(
                 SurfaceId::new("workspace.surface.inspector").unwrap(),

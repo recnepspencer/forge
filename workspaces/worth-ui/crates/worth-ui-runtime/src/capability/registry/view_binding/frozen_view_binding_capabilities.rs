@@ -13,7 +13,9 @@ pub struct FrozenViewBindingCapabilities {
 impl FrozenViewBindingCapabilities {
     #[cfg(test)]
     pub(crate) fn empty() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 
     pub(crate) fn from_accepted_descriptors(
@@ -62,11 +64,18 @@ impl FrozenViewBindingCapabilities {
     }
 
     pub(crate) fn digest_basis(&self) -> u64 {
-        self.entries.iter().fold(0x3a42_71ec_c9f2_a901, |basis, entry| {
-            basis
-                ^ entry.descriptor().definition().digest().as_u64().rotate_left(17)
-                ^ fold_bytes(entry.query_binding_key().as_str().as_bytes()).rotate_left(29)
-        })
+        self.entries
+            .iter()
+            .fold(0x3a42_71ec_c9f2_a901, |basis, entry| {
+                basis
+                    ^ entry
+                        .descriptor()
+                        .definition()
+                        .digest()
+                        .as_u64()
+                        .rotate_left(17)
+                    ^ fold_bytes(entry.query_binding_key().as_str().as_bytes()).rotate_left(29)
+            })
     }
 }
 

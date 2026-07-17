@@ -148,31 +148,7 @@ fn query_owned_inspection_links_are_preserved_not_reauthored() {
             "workspace.view_binding.selection"
         );
         assert_eq!(*links, &expected_links);
-        assert_eq!(
-            links.support_admission_digest(),
-            expected_links.support_admission_digest()
-        );
-        assert_eq!(
-            links.basis_capability_digest(),
-            expected_links.basis_capability_digest()
-        );
-        assert_eq!(
-            links.live_compatibility_digest(),
-            expected_links.live_compatibility_digest()
-        );
-        assert_eq!(
-            links.inspection_digest(),
-            expected_links.inspection_digest()
-        );
-        assert_eq!(
-            links.projection_consumption_digest(),
-            expected_links.projection_consumption_digest()
-        );
-        assert_eq!(
-            links.async_result_state_digest(),
-            expected_links.async_result_state_digest()
-        );
-        assert_eq!(links.recovery_digest(), expected_links.recovery_digest());
+        assert_eq!(links.posture(), expected_links.posture());
         assert_eq!(
             links.preservation_receipt(),
             expected_links.preservation_receipt()

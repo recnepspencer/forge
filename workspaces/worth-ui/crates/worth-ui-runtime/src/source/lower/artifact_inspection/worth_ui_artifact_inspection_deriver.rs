@@ -223,7 +223,7 @@ fn query_link_from_view_binding(
         role,
         view_binding.view_binding().clone(),
         query_semantics.definition().clone(),
-        query_semantics.denial_presentation().clone(),
+        *query_semantics.denial_presentation(),
     )
 }
 

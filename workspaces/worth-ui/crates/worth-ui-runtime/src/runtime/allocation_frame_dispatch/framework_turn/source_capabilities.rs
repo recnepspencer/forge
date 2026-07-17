@@ -165,8 +165,7 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
     > {
-        self.runtime
-            .admit_and_submit_query_projection(outcome)
+        self.runtime.admit_and_submit_query_projection(outcome)
     }
 }
 

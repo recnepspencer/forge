@@ -1,12 +1,11 @@
 use std::collections::BTreeMap;
 
+use crate::prerequisites::WorthUiQueryAllocationSourceAuthority;
 use crate::{
-    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView,
-    WorthUiQueryMeasurementFactSettlement, WorthUiQueryMeasurementFactSettlementDenial,
-    WorthUiQueryProjectionOutcome,
+    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiQueryMeasurementFactSettlement,
+    WorthUiQueryMeasurementFactSettlementDenial, WorthUiQueryProjectionOutcome,
     WorthUiQueryViewDefinition, WorthUiQueryViewIdentity,
 };
-use crate::prerequisites::WorthUiQueryAllocationSourceAuthority;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiQueryBindingRegistrationDenialKind {
@@ -61,7 +60,10 @@ impl WorthUiQueryBindingPlan {
                 }))
             }
             Self::Installed(mut plan) => {
-                if !plan.installed_domain.shares_authority_with(&installed_domain) {
+                if !plan
+                    .installed_domain
+                    .shares_authority_with(&installed_domain)
+                {
                     return Err(WorthUiQueryBindingRegistrationDenial {
                         kind: WorthUiQueryBindingRegistrationDenialKind::ForeignInstalledDomain,
                         identity: definition.identity().clone(),
@@ -94,13 +96,13 @@ impl WorthUiQueryBindingPlan {
     pub fn activate(&self) -> WorthUiRuntimeQueryBinding {
         match self {
             Self::QueryFree => WorthUiRuntimeQueryBinding::QueryFree,
-            Self::Installed(plan) => WorthUiRuntimeQueryBinding::Installed(
-                WorthUiQueryBindingSubsystem {
+            Self::Installed(plan) => {
+                WorthUiRuntimeQueryBinding::Installed(Box::new(WorthUiQueryBindingSubsystem {
                     installed_domain: plan.installed_domain.clone(),
                     definitions: plan.definitions.clone(),
                     allocation_source_authority: Default::default(),
-                },
-            ),
+                }))
+            }
         }
     }
 }
@@ -109,7 +111,7 @@ impl WorthUiQueryBindingPlan {
 #[derive(Debug)]
 pub enum WorthUiRuntimeQueryBinding {
     QueryFree,
-    Installed(WorthUiQueryBindingSubsystem),
+    Installed(Box<WorthUiQueryBindingSubsystem>),
 }
 
 #[derive(Debug)]
@@ -142,9 +144,7 @@ impl WorthUiQueryBindingSubsystem {
         if installed_execution.installed_authority()
             != &self.installed_domain.handle().authority_witness()
         {
-            return Err(
-                WorthUiQueryMeasurementFactSettlementDenial::InstalledAuthorityMismatch,
-            );
+            return Err(WorthUiQueryMeasurementFactSettlementDenial::InstalledAuthorityMismatch);
         }
         if self.definitions.get(definition.identity()) != Some(&definition) {
             return Err(WorthUiQueryMeasurementFactSettlementDenial::UnregisteredView);

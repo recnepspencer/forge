@@ -3,9 +3,9 @@ use super::replacement_impact_test_support::{
 };
 use crate::capability::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
-    ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass,
-    ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource,
-    ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
+    ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
+    SurfaceStateClass, ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
+    ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatchedArtifactInput};

@@ -4,9 +4,10 @@
 //! `worth_ui_runtime::certification_support` from product code.
 
 pub use worth_ui_runtime::certification_support::{
-    planning_pair_for_certification_suite, runtime_origin_fixture, UiDeclaredMeasurementMode,
-    UiMeasurementAdmissionPosture, UiMeasurementCapabilityGateReason,
-    UiMeasurementUnsupportedReason, UiQueryMeasurementBasisAuthority,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
-    WorthUiTouchOriginCertificationFixture, WorthUiTouchOriginFixtureVariant,
+    launch_empty_runtime_for_certification, planning_pair_for_certification_suite,
+    runtime_origin_fixture, UiDeclaredMeasurementMode, UiMeasurementAdmissionPosture,
+    UiMeasurementCapabilityGateReason, UiMeasurementUnsupportedReason,
+    UiQueryMeasurementBasisAuthority, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementUnsupportedQueryReason, WorthUiTouchOriginCertificationFixture,
+    WorthUiTouchOriginFixtureVariant,
 };

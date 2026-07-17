@@ -8,8 +8,8 @@ use worth_query::facade::foundation::{
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    UiGraphInstantiationPlan, UiGraphWorldDifferenceKind, UiPreviewSessionIdentity,
-    UiGraphWorldProfile, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
+    UiGraphInstantiationPlan, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
+    UiPreviewSessionIdentity, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,

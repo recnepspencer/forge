@@ -161,8 +161,7 @@ impl WorthUiBuilder {
         mut self,
         registration: impl Into<WorthUiQueryViewRegistration>,
     ) -> Result<Self, WorthUiQueryViewRegistrationError> {
-        let (view, visible_state_bindings, denial_presentation) =
-            registration.into().into_parts();
+        let (view, visible_state_bindings, denial_presentation) = registration.into().into_parts();
         let definition = view.definition().clone();
         let id = crate::capability::ViewBindingId::new(definition.identity().as_str())
             .map_err(WorthUiQueryViewRegistrationError::InvalidIdentity)?;

@@ -10,15 +10,12 @@ impl WorthUiQueryBindingContractIdentity {
         let mut definitions = definitions.into_iter().collect::<Vec<_>>();
         definitions.sort_unstable();
         definitions.dedup();
-        let identity = definitions.into_iter().fold(
-            0x776f_7274_6875_6901_u64,
-            |identity, definition| {
-                identity
-                    .rotate_left(13)
-                    .wrapping_mul(0x100_0000_01b3)
-                    ^ definition.as_u64()
-            },
-        );
+        let identity =
+            definitions
+                .into_iter()
+                .fold(0x776f_7274_6875_6901_u64, |identity, definition| {
+                    identity.rotate_left(13).wrapping_mul(0x100_0000_01b3) ^ definition.as_u64()
+                });
         Self(identity)
     }
 

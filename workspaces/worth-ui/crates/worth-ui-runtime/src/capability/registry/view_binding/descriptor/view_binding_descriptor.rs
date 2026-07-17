@@ -1,8 +1,6 @@
 use crate::capability::ViewBindingId;
 
-use super::{
-    QueryDenialPresentation, ViewBindingFamily, VisibleStateBindingDeclaration,
-};
+use super::{QueryDenialPresentation, ViewBindingFamily, VisibleStateBindingDeclaration};
 
 /// UI presentation attached to one semantic Query binding definition.
 /// Query capability, result, basis, live, and projection posture are derived
