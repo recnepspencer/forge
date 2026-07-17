@@ -109,12 +109,14 @@ fn measurement_result_from_request(
     WorthUiHostMeasurementCollector::for_internal_proof()
         .collect(
             &SuiteValueStubAdapter { value },
-            request.identity(),
-            request.evidence_family(),
-            suite_host_need_from_request(request),
-            report,
-            generation,
-            normalization_context,
+            crate::host::UiHostMeasurementCollectionInput {
+                identity: request.identity(),
+                evidence_family: request.evidence_family(),
+                need: suite_host_need_from_request(request),
+                capability_report: report,
+                evidence_generation: generation,
+                normalization_context,
+            },
         )
         .expect("suite host lane collection should admit")
 }
@@ -141,18 +143,16 @@ fn suite_host_need_from_request(request: &UiMeasurementRequest) -> UiHostMeasure
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::ScrollContainerViewport => {
             UiHostMeasurementNeed::ScrollContainerViewport(
-                request
+                *request
                     .scroll_container_viewport_input()
-                    .expect("suite scroll request")
-                    .clone(),
+                    .expect("suite scroll request"),
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::PortalAnchorRect => {
             UiHostMeasurementNeed::PortalAnchorRect(
-                request
+                *request
                     .portal_anchor_rect_input()
-                    .expect("suite portal request")
-                    .clone(),
+                    .expect("suite portal request"),
             )
         }
         other => panic!("suite fixture does not model host need for {other:?}"),

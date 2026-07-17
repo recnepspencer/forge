@@ -20,7 +20,8 @@ pub(crate) use artifact::{
     WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactHandle,
     WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactModule,
     WorthUiArtifactNode, WorthUiArtifactNodeKind, WorthUiArtifactSurfaceHandle,
-    WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
+    WorthUiArtifactSurfaceNode, WorthUiArtifactSurfaceNodeInput, WorthUiArtifactThemeTokenHandle,
+    WorthUiArtifactThemeTokenNode,
 };
 pub(crate) use artifact_input::WorthUiArtifactInputBodyAtom;
 #[cfg(test)]

@@ -28,7 +28,7 @@ impl UiInspectionReceipt {
         authority_generation: Option<UiEvidenceAuthorityGeneration>,
     ) -> Self {
         Self {
-            selected_relevance: query.relevance().clone(),
+            selected_relevance: query.relevance(),
             query,
             relevance_admission,
             authority_generation,
@@ -48,7 +48,7 @@ impl UiInspectionReceipt {
     ) -> Self {
         let posture = UiInspectionPosture::from_support_report(support_report);
         Self {
-            selected_relevance: query.relevance().clone(),
+            selected_relevance: query.relevance(),
             query,
             relevance_admission,
             authority_generation,
@@ -94,7 +94,7 @@ impl UiInspectionReceipt {
         let cost = assembly.cost();
         let evidence_slice_ref = assembly.slice().slice_ref();
         Self {
-            selected_relevance: query.relevance().clone(),
+            selected_relevance: query.relevance(),
             query,
             relevance_admission,
             authority_generation: Some(authority_generation),
@@ -115,7 +115,7 @@ impl UiInspectionReceipt {
         let cost = assembly.cost();
         let evidence_slice_ref = assembly.slice().slice_ref();
         Self {
-            selected_relevance: query.relevance().clone(),
+            selected_relevance: query.relevance(),
             query,
             relevance_admission,
             authority_generation: Some(authority_generation),
@@ -138,7 +138,7 @@ impl UiInspectionReceipt {
         let cost = assembly.cost();
         let evidence_slice_ref = assembly.slice().slice_ref();
         Self {
-            selected_relevance: query.relevance().clone(),
+            selected_relevance: query.relevance(),
             query,
             relevance_admission,
             authority_generation: Some(authority_generation),

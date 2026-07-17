@@ -90,6 +90,10 @@ impl WorthUiPlanChildRange {
     pub fn len(self) -> u32 {
         self.len
     }
+
+    pub fn is_empty(self) -> bool {
+        self.len == 0
+    }
 }
 
 impl WorthUiEguiPlanBoundary {

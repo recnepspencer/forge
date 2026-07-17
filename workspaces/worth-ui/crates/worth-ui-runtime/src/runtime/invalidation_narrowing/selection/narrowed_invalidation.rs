@@ -20,7 +20,7 @@ pub enum UiAllocationInvalidationTarget {
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
     },
     PortalAnchor {
-        movement: super::UiAdmittedPortalMovement,
+        movement: Box<super::UiAdmittedPortalMovement>,
     },
     ScrollOwnedExtent {
         evidence_generation: worth_ui_inspection::UiEvidenceAuthorityGeneration,

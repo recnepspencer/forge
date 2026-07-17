@@ -46,7 +46,7 @@ impl WorthUiQueryProjectionSubmission {
         };
         let warnings = query_warning_posture(&settlement);
         let fact = UiAllocationFrameSourceFact::QueryProjection {
-            source: settlement,
+            source: Box::new(settlement),
             posture,
             warnings,
         };

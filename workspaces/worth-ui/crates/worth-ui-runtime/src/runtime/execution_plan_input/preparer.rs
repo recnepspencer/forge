@@ -25,7 +25,7 @@ impl WorthUiExecutionPlanInputPreparer {
 
         counters.record_readiness_verification();
         reject_missing_activation_readiness(
-            &pending_activation,
+            pending_activation,
             staged,
             pending_frame_epoch,
             active_frame_epoch,

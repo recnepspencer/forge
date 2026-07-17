@@ -324,19 +324,21 @@ fn all_lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplace
         .map(|classification| {
             counters.record_transition(WorthUiNodeLifecycleTransition::LaneChange);
             WorthUiNodeReplacementClassification::new(
-                classification.identity_basis().to_owned(),
-                classification.authored_provenance_digest(),
-                WorthUiNodeLifecycleTransition::LaneChange,
-                classification.active_kind(),
-                classification.candidate_kind(),
-                classification.active_durable_state_eligible(),
-                classification.candidate_durable_state_eligible(),
-                classification.active_resize_contract_id().cloned(),
-                classification.candidate_resize_contract_id().cloned(),
-                classification.active_resize_permission().cloned(),
-                classification.candidate_resize_permission().cloned(),
-                classification.active_resize_shape_digest(),
-                classification.candidate_resize_shape_digest(),
+                crate::runtime::replacement::node_classification::WorthUiNodeReplacementClassificationInput {
+                    identity_basis: classification.identity_basis().to_owned(),
+                    authored_provenance_digest: classification.authored_provenance_digest(),
+                    transition: WorthUiNodeLifecycleTransition::LaneChange,
+                    active_kind: classification.active_kind(),
+                    candidate_kind: classification.candidate_kind(),
+                    active_durable_state_eligible: classification.active_durable_state_eligible(),
+                    candidate_durable_state_eligible: classification.candidate_durable_state_eligible(),
+                    active_resize_contract_id: classification.active_resize_contract_id().cloned(),
+                    candidate_resize_contract_id: classification.candidate_resize_contract_id().cloned(),
+                    active_resize_permission: classification.active_resize_permission().cloned(),
+                    candidate_resize_permission: classification.candidate_resize_permission().cloned(),
+                    active_resize_shape_digest: classification.active_resize_shape_digest(),
+                    candidate_resize_shape_digest: classification.candidate_resize_shape_digest(),
+                },
             )
         })
         .collect();

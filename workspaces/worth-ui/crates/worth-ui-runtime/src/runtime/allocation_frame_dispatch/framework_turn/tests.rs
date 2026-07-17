@@ -33,28 +33,30 @@ fn unknown_graph_targets_replay_to_the_same_typed_denial() {
 #[test]
 fn empty_framework_invocation_returns_typed_empty_outcome() {
     let mut runtime = framework_from_artifact(empty_artifact());
-    let completion = runtime.execute_framework_turn(|_| {});
-    let execution = completion.into_execution().expect("empty turn executes");
-    let _boundary = execution.activation_boundary();
-    drop(execution);
+    {
+        let completion = runtime.execute_framework_turn(|_| {});
+        let execution = completion.into_execution().expect("empty turn executes");
+        let _boundary = execution.activation_boundary();
+    }
     assert!(runtime.pending_allocation_frame_handoff.is_none());
 }
 
 #[test]
 fn denied_narrowing_releases_the_next_framework_turn() {
     let mut runtime = framework_from_artifact(empty_artifact());
-    let first_completion = runtime.execute_framework_turn(|turn| {
-        turn.resize_preview(|source| {
-            source
-                .admit_and_submit(preview_sample(42))
-                .expect("interaction admits");
+    {
+        let first_completion = runtime.execute_framework_turn(|turn| {
+            turn.resize_preview(|source| {
+                source
+                    .admit_and_submit(preview_sample(42))
+                    .expect("interaction admits");
+            });
         });
-    });
-    assert!(matches!(
-        first_completion,
-        super::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied { .. }
-    ));
-    drop(first_completion);
+        assert!(matches!(
+            first_completion,
+            super::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied { .. }
+        ));
+    }
     assert!(runtime.pending_narrowed_allocation_frame.is_none());
 
     let second_completion = runtime.execute_framework_turn(|_| {});

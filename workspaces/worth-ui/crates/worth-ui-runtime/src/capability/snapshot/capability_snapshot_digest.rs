@@ -1,4 +1,4 @@
-use super::SnapshotMetrics;
+use super::{CapabilitySnapshotFreezeInput, SnapshotMetrics};
 
 /// Deterministic identity for a frozen capability snapshot.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -7,45 +7,36 @@ pub struct CapabilitySnapshotDigest {
 }
 
 impl CapabilitySnapshotDigest {
-    pub(crate) fn from_metrics_and_registry_bases(
+    pub(crate) fn from_freeze_input(
         metrics: SnapshotMetrics,
-        command_basis: u64,
-        command_projection_basis: u64,
-        component_basis: u64,
-        icon_basis: u64,
-        surface_basis: u64,
-        mosaic_region_basis: u64,
-        mosaic_placement_basis: u64,
-        mosaic_sizing_basis: u64,
-        mosaic_state_basis: u64,
-        native_capability_basis: u64,
-        plugin_slot_basis: u64,
-        view_binding_basis: u64,
-        runtime_outcome_projection_basis: u64,
-        setting_basis: u64,
-        task_presentation_basis: u64,
-        theme_token_basis: u64,
+        input: &CapabilitySnapshotFreezeInput,
     ) -> Self {
         Self {
             value: 0x9e37_79b9_7f4a_7c15
                 ^ metrics.registered_family_count() as u64
                 ^ ((metrics.total_width() as u64) << 32)
-                ^ command_basis.rotate_left(17)
-                ^ command_projection_basis.rotate_left(13)
-                ^ component_basis.rotate_left(29)
-                ^ icon_basis.rotate_left(41)
-                ^ surface_basis.rotate_left(53)
-                ^ mosaic_region_basis.rotate_left(7)
-                ^ mosaic_placement_basis.rotate_left(19)
-                ^ mosaic_sizing_basis.rotate_left(31)
-                ^ mosaic_state_basis.rotate_left(43)
-                ^ native_capability_basis.rotate_left(59)
-                ^ plugin_slot_basis.rotate_left(3)
-                ^ view_binding_basis.rotate_left(5)
-                ^ runtime_outcome_projection_basis.rotate_left(23)
-                ^ setting_basis.rotate_left(37)
-                ^ task_presentation_basis.rotate_left(47)
-                ^ theme_token_basis.rotate_left(11),
+                ^ input.commands.digest_basis().rotate_left(17)
+                ^ input.command_projections.digest_basis().rotate_left(13)
+                ^ input.components.digest_basis().rotate_left(29)
+                ^ input.icons.digest_basis().rotate_left(41)
+                ^ input.surfaces.digest_basis().rotate_left(53)
+                ^ input.mosaic_regions.digest_basis().rotate_left(7)
+                ^ input
+                    .mosaic_placement_policies
+                    .digest_basis()
+                    .rotate_left(19)
+                ^ input.mosaic_sizing_contracts.digest_basis().rotate_left(31)
+                ^ input.mosaic_state_slots.digest_basis().rotate_left(43)
+                ^ input.native_capabilities.digest_basis().rotate_left(59)
+                ^ input.plugin_slots.digest_basis().rotate_left(3)
+                ^ input.view_bindings.digest_basis().rotate_left(5)
+                ^ input
+                    .runtime_outcome_projections
+                    .digest_basis()
+                    .rotate_left(23)
+                ^ input.settings.digest_basis().rotate_left(37)
+                ^ input.task_presentations.digest_basis().rotate_left(47)
+                ^ input.theme_tokens.digest_basis().rotate_left(11),
         }
     }
 

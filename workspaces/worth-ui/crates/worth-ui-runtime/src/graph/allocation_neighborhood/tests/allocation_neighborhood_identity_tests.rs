@@ -71,13 +71,15 @@ fn synthetic_neighborhood<const N: usize>(
 ) -> UiAllocationNeighborhood {
     let authority = super::super::UiAllocationNeighborhoodMintAuthority::mint();
     UiAllocationNeighborhood::new(
-        UiGraphNodeIdentity::new(801),
-        crate::graph::UiGraphGeneration::initial(),
-        77,
-        88,
-        UiMeasurementDependencyMap::new(vec![]),
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        members.into_iter().collect(),
+        crate::evidence::UiAllocationNeighborhoodTestInput {
+            root_graph_node_identity: UiGraphNodeIdentity::new(801),
+            graph_generation: crate::graph::UiGraphGeneration::initial(),
+            world_identity_digest: 77,
+            measurement_basis_identity_digest: 88,
+            dependency_map: UiMeasurementDependencyMap::new(vec![]),
+            neighborhood_class: UiAllocationNeighborhoodClass::ContainerPeerGroup,
+            members: members.into_iter().collect(),
+        },
         &authority,
     )
 }

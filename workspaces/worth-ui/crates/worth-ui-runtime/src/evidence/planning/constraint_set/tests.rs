@@ -3,8 +3,8 @@ use crate::declaration::{
     UiDeclarationRepetitionPosture, UiDeclaredMeasurementBasisSource,
 };
 use crate::evidence::{
-    UiAllocationConstraintSet, UiAllocationConstraintSummary, UiConstraintAvailableSpacePosture,
-    UiConstraintAxisScope, UiConstraintBoundedMinMaxRequirement,
+    UiAllocationConstraintSet, UiAllocationConstraintSummary, UiAllocationConstraintSummaryInput,
+    UiConstraintAvailableSpacePosture, UiConstraintAxisScope, UiConstraintBoundedMinMaxRequirement,
     UiConstraintCycleParticipationPosture, UiConstraintEqualShareGroup,
     UiConstraintNormalizationPosture, UiConstraintParentAvailableSpace,
     UiConstraintPropagationEdge, UiConstraintPropagationEdgeFamily,
@@ -12,7 +12,8 @@ use crate::evidence::{
     UiConstraintSiblingNegotiationFixedPointPolicy, UiConstraintSiblingNegotiationMode,
     UiConstraintSiblingNegotiationSolveOrder, UiConstraintSpecialInputPosture,
     UiLayoutOperatorChildParticipationRule, UiLayoutOperatorContainmentKind,
-    UiLayoutOperatorFamily, UiLayoutOperatorPlanningContract, UiLayoutOperatorPrimaryAxis,
+    UiLayoutOperatorFamily, UiLayoutOperatorPlanningContract,
+    UiLayoutOperatorPlanningContractInput, UiLayoutOperatorPrimaryAxis,
     UiLayoutOperatorSlotParticipationKind, UiLayoutOperatorSpecialInputRequirement,
 };
 
@@ -146,55 +147,55 @@ fn named_operator_contracts_publish_closed_propagation_semantics() {
     let row = contract(UiDeclarationPlanningOperatorKind::Row);
     let grid = contract(UiDeclarationPlanningOperatorKind::Grid);
     let split = contract(UiDeclarationPlanningOperatorKind::Split);
-    let mosaic = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Mosaic,
-        UiLayoutOperatorFamily::Mosaic,
-        UiLayoutOperatorContainmentKind::Mosaic,
-        None,
-        UiLayoutOperatorSlotParticipationKind::None,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        crate::evidence::UiAllocationNeighborhoodClass::LocalIntrinsicContent,
-        crate::evidence::UiAllocationNeighborhoodMembershipRule::RootOnly,
-        None,
-        None,
-        None,
-        None,
-        vec![],
-    );
+    let mosaic = UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::Mosaic,
+        operator_family: UiLayoutOperatorFamily::Mosaic,
+        containment_kind: UiLayoutOperatorContainmentKind::Mosaic,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::None,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: crate::evidence::UiAllocationNeighborhoodClass::LocalIntrinsicContent,
+        membership_rule: crate::evidence::UiAllocationNeighborhoodMembershipRule::RootOnly,
+        measurement_mode: None,
+        constraint_modifier: None,
+        basis_source: None,
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    });
     let overlay = contract(UiDeclarationPlanningOperatorKind::Overlay);
-    let scroll = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Scroll,
-        UiLayoutOperatorFamily::Control,
-        UiLayoutOperatorContainmentKind::Control,
-        None,
-        UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        crate::evidence::UiAllocationNeighborhoodClass::ScrollContainer,
-        crate::evidence::UiAllocationNeighborhoodMembershipRule::RootOnly,
-        None,
-        None,
-        Some(UiDeclaredMeasurementBasisSource::ScrollViewport),
-        None,
-        vec![],
-    );
-    let portal = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::PortalAnchor,
-        UiLayoutOperatorFamily::Control,
-        UiLayoutOperatorContainmentKind::Control,
-        None,
-        UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        crate::evidence::UiAllocationNeighborhoodClass::PortalAnchor,
-        crate::evidence::UiAllocationNeighborhoodMembershipRule::RootOnly,
-        None,
-        None,
-        Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
-        None,
-        vec![],
-    );
+    let scroll = UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::Scroll,
+        operator_family: UiLayoutOperatorFamily::Control,
+        containment_kind: UiLayoutOperatorContainmentKind::Control,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: crate::evidence::UiAllocationNeighborhoodClass::ScrollContainer,
+        membership_rule: crate::evidence::UiAllocationNeighborhoodMembershipRule::RootOnly,
+        measurement_mode: None,
+        constraint_modifier: None,
+        basis_source: Some(UiDeclaredMeasurementBasisSource::ScrollViewport),
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    });
+    let portal = UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::PortalAnchor,
+        operator_family: UiLayoutOperatorFamily::Control,
+        containment_kind: UiLayoutOperatorContainmentKind::Control,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: crate::evidence::UiAllocationNeighborhoodClass::PortalAnchor,
+        membership_rule: crate::evidence::UiAllocationNeighborhoodMembershipRule::RootOnly,
+        measurement_mode: None,
+        constraint_modifier: None,
+        basis_source: Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    });
 
     for contract in [&stack, &row, &grid, &split, &mosaic] {
         assert!(contract
@@ -257,21 +258,23 @@ fn constraint_set_summary_preserves_typed_planning_facts() {
     let constraint_set = UiAllocationConstraintSet::new(
         19,
         contract(UiDeclarationPlanningOperatorKind::Grid).identity(),
-        UiAllocationConstraintSummary::new(
-            Some(UiConstraintAxisScope::Both),
-            Some(UiConstraintAvailableSpacePosture::AdmittedPositiveExtent),
-            Some(UiConstraintAxisScope::Both),
-            UiConstraintSiblingNegotiationMode::StablePeerTwoDimensional,
-            UiConstraintEqualShareGroup::StablePeerTwoDimensional,
-            UiConstraintBoundedMinMaxRequirement::BothAxes,
-            UiConstraintSpecialInputPosture::Required,
-            UiConstraintSpecialInputPosture::NotRequired,
-            UiConstraintSpecialInputPosture::NotRequired,
-            UiConstraintResizePermissionPosture::DurableAuthorityLane,
-            None,
-            None,
-            None,
-        ),
+        UiAllocationConstraintSummary::new(UiAllocationConstraintSummaryInput {
+            incoming_available_space: Some(UiConstraintAxisScope::Both),
+            incoming_available_space_posture: Some(
+                UiConstraintAvailableSpacePosture::AdmittedPositiveExtent,
+            ),
+            intrinsic_contribution_requirements: Some(UiConstraintAxisScope::Both),
+            sibling_negotiation_mode: UiConstraintSiblingNegotiationMode::StablePeerTwoDimensional,
+            equal_share_group: UiConstraintEqualShareGroup::StablePeerTwoDimensional,
+            bounded_min_max_requirements: UiConstraintBoundedMinMaxRequirement::BothAxes,
+            viewport_requirement: UiConstraintSpecialInputPosture::Required,
+            scroll_owner_requirement: UiConstraintSpecialInputPosture::NotRequired,
+            portal_anchor_requirement: UiConstraintSpecialInputPosture::NotRequired,
+            resize_permission_posture: UiConstraintResizePermissionPosture::DurableAuthorityLane,
+            unit_posture: None,
+            coordinate_space: None,
+            rounding_posture: None,
+        }),
         vec![],
     );
 
@@ -299,38 +302,39 @@ fn constraint_set_summary_preserves_typed_planning_facts() {
 }
 
 fn contract(operator_kind: UiDeclarationPlanningOperatorKind) -> UiLayoutOperatorPlanningContract {
-    UiLayoutOperatorPlanningContract::new(
+    UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
         operator_kind,
-        UiLayoutOperatorFamily::Control,
-        UiLayoutOperatorContainmentKind::Control,
-        None,
-        UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        crate::evidence::UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        crate::evidence::UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        None,
-        None,
-        None,
-        None,
-        vec![],
-    )
+        operator_family: UiLayoutOperatorFamily::Control,
+        containment_kind: UiLayoutOperatorContainmentKind::Control,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: crate::evidence::UiAllocationNeighborhoodClass::ContainerPeerGroup,
+        membership_rule:
+            crate::evidence::UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
+        measurement_mode: None,
+        constraint_modifier: None,
+        basis_source: None,
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    })
 }
 
 fn default_summary() -> UiAllocationConstraintSummary {
-    UiAllocationConstraintSummary::new(
-        Some(UiConstraintAxisScope::Both),
-        None,
-        Some(UiConstraintAxisScope::Both),
-        UiConstraintSiblingNegotiationMode::StablePeerPrimaryAxis,
-        UiConstraintEqualShareGroup::None,
-        UiConstraintBoundedMinMaxRequirement::PrimaryAxis,
-        UiConstraintSpecialInputPosture::NotRequired,
-        UiConstraintSpecialInputPosture::NotRequired,
-        UiConstraintSpecialInputPosture::NotRequired,
-        UiConstraintResizePermissionPosture::None,
-        None,
-        None,
-        None,
-    )
+    UiAllocationConstraintSummary::new(UiAllocationConstraintSummaryInput {
+        incoming_available_space: Some(UiConstraintAxisScope::Both),
+        incoming_available_space_posture: None,
+        intrinsic_contribution_requirements: Some(UiConstraintAxisScope::Both),
+        sibling_negotiation_mode: UiConstraintSiblingNegotiationMode::StablePeerPrimaryAxis,
+        equal_share_group: UiConstraintEqualShareGroup::None,
+        bounded_min_max_requirements: UiConstraintBoundedMinMaxRequirement::PrimaryAxis,
+        viewport_requirement: UiConstraintSpecialInputPosture::NotRequired,
+        scroll_owner_requirement: UiConstraintSpecialInputPosture::NotRequired,
+        portal_anchor_requirement: UiConstraintSpecialInputPosture::NotRequired,
+        resize_permission_posture: UiConstraintResizePermissionPosture::None,
+        unit_posture: None,
+        coordinate_space: None,
+        rounding_posture: None,
+    })
 }

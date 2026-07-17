@@ -9,7 +9,7 @@ use crate::source::{
 pub(crate) enum WorthUiIdentitySeededArtifactInputNode {
     Import(WorthUiIdentitySeededArtifactInputImportNode),
     Component(WorthUiIdentitySeededArtifactInputComponentNode),
-    Surface(WorthUiIdentitySeededArtifactInputSurfaceNode),
+    Surface(Box<WorthUiIdentitySeededArtifactInputSurfaceNode>),
     Binding(WorthUiIdentitySeededArtifactInputBindingNode),
     Token(WorthUiIdentitySeededArtifactInputThemeTokenNode),
 }

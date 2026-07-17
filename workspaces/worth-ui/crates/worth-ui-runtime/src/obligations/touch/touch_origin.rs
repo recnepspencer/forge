@@ -114,7 +114,9 @@ impl UiGraphTouchOriginWitness {
     ) -> Self {
         Self {
             receipt,
-            authority: UiGraphTouchOriginAuthority::QueryBasis { prerequisites },
+            authority: UiGraphTouchOriginAuthority::QueryBasis {
+                prerequisites: Box::new(prerequisites),
+            },
         }
     }
 
@@ -161,7 +163,7 @@ pub(crate) enum UiGraphTouchOriginAuthority {
         declaration_identity: UiDeclarationIdentity,
     },
     QueryBasis {
-        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+        prerequisites: Box<worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence>,
     },
     InstalledQueryBasis {
         authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,

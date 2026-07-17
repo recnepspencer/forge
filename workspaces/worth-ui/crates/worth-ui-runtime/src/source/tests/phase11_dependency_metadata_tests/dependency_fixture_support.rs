@@ -152,13 +152,13 @@ pub(super) fn assert_hook_surface(
 
 fn artifact_handle(
     artifact: &WorthUiArtifact,
-    mut predicate: impl FnMut(&WorthUiArtifactNode) -> Option<WorthUiArtifactHandle>,
+    predicate: impl FnMut(&WorthUiArtifactNode) -> Option<WorthUiArtifactHandle>,
 ) -> WorthUiArtifactHandle {
     artifact
         .module_ids()
         .iter()
         .filter_map(|module_id| artifact.module(module_id))
         .flat_map(|module| module.nodes().iter())
-        .find_map(|node| predicate(node))
+        .find_map(predicate)
         .expect("artifact handle should exist")
 }

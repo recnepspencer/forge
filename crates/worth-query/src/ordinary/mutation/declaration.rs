@@ -47,7 +47,7 @@ impl WorthQueryMutationDeclaration {
 
 #[derive(Debug)]
 pub struct WorthQueryMutationDeclarationStop {
-    error: WorthQueryRuntimeError,
+    error: Box<WorthQueryRuntimeError>,
 }
 
 impl WorthQueryMutationDeclarationStop {
@@ -60,13 +60,17 @@ impl WorthQueryMutationDeclarationStop {
     }
 }
 
-pub fn declare(
-    author: impl FnOnce(
-        WorthQueryAspectMutationBuilder,
-    ) -> Result<WorthQueryWriteCommand, WorthQueryRuntimeError>,
-) -> Result<WorthQueryMutationDeclaration, WorthQueryMutationDeclarationStop> {
-    let command = author(WorthQueryAspectMutationBuilder::new())
-        .map_err(|error| WorthQueryMutationDeclarationStop { error })?;
+pub fn declare<E>(
+    author: impl FnOnce(WorthQueryAspectMutationBuilder) -> Result<WorthQueryWriteCommand, E>,
+) -> Result<WorthQueryMutationDeclaration, WorthQueryMutationDeclarationStop>
+where
+    E: Into<Box<WorthQueryRuntimeError>>,
+{
+    let command = author(WorthQueryAspectMutationBuilder::new()).map_err(|error| {
+        WorthQueryMutationDeclarationStop {
+            error: error.into(),
+        }
+    })?;
     let identity = mutation_declaration_identity(&command);
     Ok(WorthQueryMutationDeclaration {
         identity: WorthQueryMutationDeclarationIdentity { identity },

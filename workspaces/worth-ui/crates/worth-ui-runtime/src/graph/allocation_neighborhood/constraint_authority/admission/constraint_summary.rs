@@ -1,10 +1,10 @@
 use crate::evidence::{
-    UiAllocationConstraintSummary, UiConstraintAvailableSpacePosture, UiConstraintAxisScope,
-    UiConstraintBoundedMinMaxRequirement, UiConstraintEqualShareGroup,
-    UiConstraintNormalizationPosture, UiConstraintPropagationEdgeFamily,
-    UiConstraintResizePermissionPosture, UiConstraintSiblingNegotiationMode,
-    UiConstraintSpecialInputPosture, UiLayoutOperatorChildParticipationRule, UiMeasurementBasis,
-    UiMeasurementDependencyLineageKind,
+    UiAllocationConstraintSummary, UiAllocationConstraintSummaryInput,
+    UiConstraintAvailableSpacePosture, UiConstraintAxisScope, UiConstraintBoundedMinMaxRequirement,
+    UiConstraintEqualShareGroup, UiConstraintNormalizationPosture,
+    UiConstraintPropagationEdgeFamily, UiConstraintResizePermissionPosture,
+    UiConstraintSiblingNegotiationMode, UiConstraintSpecialInputPosture,
+    UiLayoutOperatorChildParticipationRule, UiMeasurementBasis, UiMeasurementDependencyLineageKind,
 };
 
 pub(super) fn derive_constraint_summary(
@@ -16,29 +16,29 @@ pub(super) fn derive_constraint_summary(
     allowed_families: &[UiConstraintPropagationEdgeFamily],
     required_special_families: &[UiConstraintPropagationEdgeFamily],
 ) -> UiAllocationConstraintSummary {
-    UiAllocationConstraintSummary::new(
+    UiAllocationConstraintSummary::new(UiAllocationConstraintSummaryInput {
         incoming_available_space,
         incoming_available_space_posture,
-        intrinsic_contribution_scope(child_participation_rule),
-        sibling_negotiation_mode(child_participation_rule),
-        equal_share_group(child_participation_rule, allowed_families),
-        bounded_min_max_requirement,
-        special_input_posture(
+        intrinsic_contribution_requirements: intrinsic_contribution_scope(child_participation_rule),
+        sibling_negotiation_mode: sibling_negotiation_mode(child_participation_rule),
+        equal_share_group: equal_share_group(child_participation_rule, allowed_families),
+        bounded_min_max_requirements: bounded_min_max_requirement,
+        viewport_requirement: special_input_posture(
             required_special_families.contains(&UiConstraintPropagationEdgeFamily::ViewportInput),
         ),
-        special_input_posture(
+        scroll_owner_requirement: special_input_posture(
             required_special_families
                 .contains(&UiConstraintPropagationEdgeFamily::ScrollViewportInput),
         ),
-        special_input_posture(
+        portal_anchor_requirement: special_input_posture(
             required_special_families
                 .contains(&UiConstraintPropagationEdgeFamily::PortalAnchorInput),
         ),
-        resize_permission_posture(allowed_families),
-        normalization_posture.unit_posture(),
-        normalization_posture.coordinate_space(),
-        normalization_posture.rounding_posture(),
-    )
+        resize_permission_posture: resize_permission_posture(allowed_families),
+        unit_posture: normalization_posture.unit_posture(),
+        coordinate_space: normalization_posture.coordinate_space(),
+        rounding_posture: normalization_posture.rounding_posture(),
+    })
 }
 
 pub(super) fn intrinsic_contribution_scope(

@@ -5,7 +5,7 @@ use crate::runtime::{
 
 #[derive(Debug, PartialEq)]
 pub enum WorthUiReloadStormIterationOutcome {
-    Activated(WorthUiReloadStormSuccessfulIteration),
+    Activated(Box<WorthUiReloadStormSuccessfulIteration>),
     EquivalentNoOp(WorthUiReloadStormNoOpIteration),
     DeniedPreserved(WorthUiReloadStormDeniedIteration),
 }

@@ -68,14 +68,16 @@ impl WorthUiOrdinaryLanePlanBuilder {
 
         let digest = digest_ordinary_rows(execution_plan.handle_receipt().basis_digest(), &rows);
         Ok(WorthUiOrdinaryLanePlan::new(
-            execution_plan.handle_receipt(),
-            lane_admission.support_digest(),
-            digest,
-            rows,
-            component_plan_indexes,
-            command_plan_indexes,
-            token_plan_indexes,
-            counters,
+            super::WorthUiOrdinaryLanePlanInput {
+                handle_receipt: execution_plan.handle_receipt(),
+                support_digest: lane_admission.support_digest(),
+                ordinary_plan_digest: digest,
+                rows,
+                component_plan_indexes,
+                command_plan_indexes,
+                token_plan_indexes,
+                counters,
+            },
         ))
     }
 }

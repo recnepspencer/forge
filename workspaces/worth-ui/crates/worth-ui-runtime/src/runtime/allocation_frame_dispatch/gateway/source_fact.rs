@@ -36,7 +36,7 @@ pub enum UiAllocationFrameSourceFactPosture {
 pub enum UiAllocationFrameSourceFact {
     HostMeasurement(crate::host::UiAdmittedHostMeasurement),
     QueryProjection {
-        source: worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement,
+        source: Box<worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement>,
         posture: UiAllocationFrameQuerySettlementPosture,
         warnings: UiAllocationFrameQueryWarningPosture,
     },

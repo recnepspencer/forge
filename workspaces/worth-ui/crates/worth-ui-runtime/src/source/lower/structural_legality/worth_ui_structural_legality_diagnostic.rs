@@ -54,7 +54,7 @@ pub(crate) struct WorthUiStructuralLegalityDiagnostic {
     module_id: WorthUiSourceModuleId,
     authored_text: String,
     structural_locus: String,
-    provenance: WorthUiArtifactInputProvenance,
+    provenance: Box<WorthUiArtifactInputProvenance>,
 }
 
 impl WorthUiStructuralLegalityDiagnostic {
@@ -70,7 +70,7 @@ impl WorthUiStructuralLegalityDiagnostic {
             module_id,
             authored_text: authored_text.into(),
             structural_locus: structural_locus.into(),
-            provenance,
+            provenance: Box::new(provenance),
         }
     }
 

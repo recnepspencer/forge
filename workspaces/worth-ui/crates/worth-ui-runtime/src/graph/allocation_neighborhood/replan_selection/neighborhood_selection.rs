@@ -263,6 +263,22 @@ impl UiGraphReplanTransactionBasis {
     pub(crate) fn frame_ingress_keys(&self) -> &[crate::runtime::UiAllocationFrameIngressKey] {
         self.frame_identity.ingress_keys()
     }
+    pub(crate) fn stream_families(&self) -> &[crate::runtime::UiAllocationStreamFamily] {
+        self.frame_identity.families()
+    }
+    pub(crate) fn invalidation_families(
+        &self,
+    ) -> impl ExactSizeIterator<Item = crate::runtime::UiAllocationInvalidationFamily> + '_ {
+        self.frame_identity
+            .invalidations()
+            .iter()
+            .map(crate::runtime::UiAllocationInvalidationIntent::family)
+    }
+    pub(crate) fn ingress_policy_verdicts(
+        &self,
+    ) -> &[crate::runtime::UiAllocationIngressPolicyVerdict] {
+        self.frame_identity.ingress_policy_verdicts()
+    }
     pub(crate) fn ordered_neighborhoods(
         &self,
     ) -> impl ExactSizeIterator<Item = &UiAllocationNeighborhoodIdentity> {
@@ -292,6 +308,9 @@ impl UiGraphReplanTransactionBasis {
     }
     pub(crate) fn overlap_disposition(&self) -> UiReplanOverlapDisposition {
         self.overlap_disposition
+    }
+    pub(crate) fn root_posture(&self) -> UiReplanRootPosture {
+        self.root_posture
     }
     pub(crate) fn consequences(&self) -> &super::UiGraphReplanConsequences {
         &self.consequences

@@ -1,3 +1,4 @@
+use crate::evidence::UiInspectionObligationReasonProjection;
 use crate::obligations::inspection::UiObligationEvidenceIndex;
 use worth_ui_inspection::{
     UiInspectionEvidenceSource, UiInspectionObligationDecision,
@@ -23,31 +24,22 @@ pub struct UiObligationDiagnosticRow {
 }
 
 impl UiObligationDiagnosticRow {
-    pub(crate) fn new(
-        handle_digest: u64,
-        family: Option<UiInspectionObligationFamily>,
-        decision: UiInspectionObligationDecision,
-        dispatch_posture: Option<UiInspectionObligationDispatchPosture>,
-        verdict_class: Option<UiInspectionObligationVerdictClass>,
-        verdict_posture: Option<UiInspectionObligationVerdictPosture>,
-        denial_posture: Option<UiInspectionObligationDenialPosture>,
-        selection_reasons: Box<[UiInspectionObligationSelectionReason]>,
-        non_selection_reason: Option<UiInspectionObligationNonSelectionReason>,
-        legality_reason: Option<UiInspectionObligationLegalityReason>,
-        prerequisite_sources: Box<[UiInspectionEvidenceSource]>,
-    ) -> Self {
+    pub(crate) fn from_projection(projection: &UiInspectionObligationReasonProjection) -> Self {
         Self {
-            handle_digest,
-            family,
-            decision,
-            dispatch_posture,
-            verdict_class,
-            verdict_posture,
-            denial_posture,
-            selection_reasons,
-            non_selection_reason,
-            legality_reason,
-            prerequisite_sources,
+            handle_digest: projection.handle_digest(),
+            family: projection.family(),
+            decision: projection.decision(),
+            dispatch_posture: projection.dispatch_posture(),
+            verdict_class: projection.verdict_class(),
+            verdict_posture: projection.verdict_posture(),
+            denial_posture: projection.denial_posture(),
+            selection_reasons: projection.selection_reasons().to_vec().into_boxed_slice(),
+            non_selection_reason: projection.non_selection_reason(),
+            legality_reason: projection.legality_reason(),
+            prerequisite_sources: projection
+                .prerequisite_sources()
+                .to_vec()
+                .into_boxed_slice(),
         }
     }
 
@@ -108,22 +100,7 @@ impl UiObligationDiagnosticProjection {
             .iter()
             .map(|record| {
                 let projection = record.to_projection();
-                UiObligationDiagnosticRow::new(
-                    projection.handle_digest(),
-                    projection.family(),
-                    projection.decision(),
-                    projection.dispatch_posture(),
-                    projection.verdict_class(),
-                    projection.verdict_posture(),
-                    projection.denial_posture(),
-                    projection.selection_reasons().to_vec().into_boxed_slice(),
-                    projection.non_selection_reason(),
-                    projection.legality_reason(),
-                    projection
-                        .prerequisite_sources()
-                        .to_vec()
-                        .into_boxed_slice(),
-                )
+                UiObligationDiagnosticRow::from_projection(&projection)
             })
             .collect::<Vec<_>>()
             .into_boxed_slice();

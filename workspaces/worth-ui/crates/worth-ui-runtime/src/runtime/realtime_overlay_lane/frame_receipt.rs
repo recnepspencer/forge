@@ -17,20 +17,33 @@ pub struct WorthUiRealtimeFrameReceipt {
     certification: WorthUiRealtimeCertification,
 }
 
+pub(crate) struct WorthUiRealtimeFrameReceiptInput {
+    pub target: WorthUiRealtimeFrameTarget,
+    pub lane: WorthUiRealtimeOverlayLane,
+    pub renderer_surface_admission: WorthUiRendererSurfaceAdmission,
+    pub touched_plan_indexes: Vec<u32>,
+    pub touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
+    pub command_plan_indexes: Vec<u32>,
+    pub accessibility_plan_indexes: Vec<u32>,
+    pub diagnostics_plan_indexes: Vec<u32>,
+    pub counters: WorthUiRealtimeLaneCounters,
+    pub certification: WorthUiRealtimeCertification,
+}
+
 impl WorthUiRealtimeFrameReceipt {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        target: WorthUiRealtimeFrameTarget,
-        lane: WorthUiRealtimeOverlayLane,
-        renderer_surface_admission: WorthUiRendererSurfaceAdmission,
-        touched_plan_indexes: Vec<u32>,
-        touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
-        command_plan_indexes: Vec<u32>,
-        accessibility_plan_indexes: Vec<u32>,
-        diagnostics_plan_indexes: Vec<u32>,
-        counters: WorthUiRealtimeLaneCounters,
-        certification: WorthUiRealtimeCertification,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiRealtimeFrameReceiptInput) -> Self {
+        let WorthUiRealtimeFrameReceiptInput {
+            target,
+            lane,
+            renderer_surface_admission,
+            touched_plan_indexes,
+            touched_runtime_handles,
+            command_plan_indexes,
+            accessibility_plan_indexes,
+            diagnostics_plan_indexes,
+            counters,
+            certification,
+        } = input;
         Self {
             target,
             lane,

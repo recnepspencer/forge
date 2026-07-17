@@ -29,12 +29,9 @@ pub(super) fn assert_failure_preserves_active_runtime(
     );
     assert_preserved_counters(failure.counters());
     assert_preserved_counters(failure.failed_activation_report().counters());
-    assert_eq!(
-        failure
-            .failed_activation_report()
-            .fallback_runtime_created(),
-        false
-    );
+    assert!(!failure
+        .failed_activation_report()
+        .fallback_runtime_created());
     assert_eq!(
         failure
             .failed_activation_report()

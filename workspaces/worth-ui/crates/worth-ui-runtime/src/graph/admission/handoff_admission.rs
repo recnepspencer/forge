@@ -169,7 +169,7 @@ mod tests {
         .expect("typed runtime basis key should admit");
 
         assert!(matches!(
-            admit_graph_handoffs(&[handoff.clone()], &[orphan_basis]),
+            admit_graph_handoffs(std::slice::from_ref(&handoff), &[orphan_basis]),
             Err(UiGraphInstantiationDenial::RuntimeBasisTargetsUnknownDeclaration { .. })
         ));
 

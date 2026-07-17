@@ -10,6 +10,15 @@ pub(crate) mod obligation;
 pub(crate) mod planning;
 pub(crate) mod shared;
 
+pub(crate) use planning::project_denied_replan_inspection;
+#[cfg(test)]
+pub(crate) use planning::UiAllocationNeighborhoodTestInput;
+pub(crate) use planning::UiConstraintChildIntrinsicContributionInput;
+pub(crate) use planning::{
+    UiAllocationConstraintSetInput, UiAllocationConstraintSummaryInput,
+    UiAllocationNeighborhoodInput,
+};
+
 pub use allocation::{
     UiAllocationReplanTransactionEvidence, UiAllocationSourceGatewayEvidence, UiDragResizeEvidence,
     UiDragResizeStrategy, UiPortalAnchorMovementEvidence, UiScrollOwnedAllocationEvidence,
@@ -21,6 +30,7 @@ pub(crate) use construction::{
     preflight_evidence_expansion, with_retention_posture, UiEvidenceSliceAssembly,
     UiEvidenceSliceAssemblyInput,
 };
+pub(crate) use layout_operator::UiLayoutOperatorPlanningContractInput;
 pub use layout_operator::{
     UiLayoutOperatorChildParticipationRule, UiLayoutOperatorContainmentKind,
     UiLayoutOperatorContractIdentity, UiLayoutOperatorCrossAxis, UiLayoutOperatorFamily,
@@ -37,6 +47,7 @@ pub(crate) use measurement::{
     admit_declared_measurement_projection_fact_receipt,
     project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
     project_measurement_inspection_view, UiHostMeasurementAuthorityWitness,
+    UiHostMeasurementResultInput,
 };
 pub use measurement::{
     admit_measurement_basis, certify_measurement_basis_determinism,
@@ -54,6 +65,7 @@ pub use measurement::{
     UiMeasurementSiblingResizeSupportSource, UiMeasurementUnitPosture, UiMeasurementValue,
     UiProjectionFactReceipt, UiProjectionFactReceiptDenial, UiQueryWorldCompatibilityFailure,
 };
+pub(crate) use obligation::UiInspectionObligationReasonProjectionInput;
 pub use obligation::{
     UiInspectionObligationEvidenceReceipt, UiInspectionObligationReasonProjection,
 };
@@ -104,6 +116,11 @@ pub(crate) use planning::{
 pub use planning::{
     UiAllocationStreamPolicyDenialEvidenceReceipt, UiAllocationStreamPolicyEvidenceOutcome,
     UiAllocationStreamPolicyEvidenceReceipt, UiAllocationStreamPolicyPayloadCounters,
+};
+pub(crate) use planning::{
+    UiAllocationStreamPolicyEvidenceInput, UiConstraintBoundReconciliationInput,
+    UiConstraintPortalAnchorPlanningInput, UiConstraintScrollOwnerPlanningInput,
+    UiConstraintViewportPlanningInput,
 };
 pub use shared::evidence_expansion::UiEvidenceExpansion;
 pub use shared::evidence_family::UiEvidenceFamily;

@@ -19,20 +19,33 @@ pub struct WorthUiStagedReplacement {
     pending_execution_plan_lowering_input: WorthUiPendingExecutionPlanLoweringInput,
 }
 
+pub(crate) struct WorthUiStagedReplacementInput {
+    pub frame_epoch: WorthUiRuntimeFrameEpoch,
+    pub active_artifact_digest: u64,
+    pub candidate_artifact_digest: u64,
+    pub admitted_candidate: WorthUiAdmittedReplacementCandidate,
+    pub impact: WorthUiReplacementImpactClassification,
+    pub narrowing: WorthUiRuntimeImpactNarrowing,
+    pub node_plan: WorthUiNodeReplacementPlan,
+    pub reconciliation_plan: WorthUiDurableStateReconciliationPlan,
+    pub query_rebind_plan: WorthUiQueryLiveRebindPlan,
+    pub pending_execution_plan_lowering_input: WorthUiPendingExecutionPlanLoweringInput,
+}
+
 impl WorthUiStagedReplacement {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        frame_epoch: WorthUiRuntimeFrameEpoch,
-        active_artifact_digest: u64,
-        candidate_artifact_digest: u64,
-        admitted_candidate: WorthUiAdmittedReplacementCandidate,
-        impact: WorthUiReplacementImpactClassification,
-        narrowing: WorthUiRuntimeImpactNarrowing,
-        node_plan: WorthUiNodeReplacementPlan,
-        reconciliation_plan: WorthUiDurableStateReconciliationPlan,
-        query_rebind_plan: WorthUiQueryLiveRebindPlan,
-        pending_execution_plan_lowering_input: WorthUiPendingExecutionPlanLoweringInput,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiStagedReplacementInput) -> Self {
+        let WorthUiStagedReplacementInput {
+            frame_epoch,
+            active_artifact_digest,
+            candidate_artifact_digest,
+            admitted_candidate,
+            impact,
+            narrowing,
+            node_plan,
+            reconciliation_plan,
+            query_rebind_plan,
+            pending_execution_plan_lowering_input,
+        } = input;
         Self {
             frame_epoch,
             active_artifact_digest,

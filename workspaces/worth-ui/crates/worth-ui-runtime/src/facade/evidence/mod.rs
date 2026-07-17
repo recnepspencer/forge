@@ -14,6 +14,7 @@ pub use crate::evidence::{
     UiAllocationPlanningCertificationReport, UiAllocationPlanningCertificationSuiteKind,
     UiAllocationPlanningCostClass, UiAllocationPlanningCostReceipt,
     UiAllocationPlanningDeniedBroadeningReason, UiAllocationPlanningDeterminismPosture,
+    UiAllocationReceiptDenialInspectionReceipt, UiAllocationReceiptInspectionReceipt,
     UiAllocationSolveConvergencePosture, UiAllocationSolvePass, UiAllocationSolveRemainderPolicy,
     UiAllocationSolveTrace, UiAllocationSourceGatewayEvidence,
     UiAllocationStreamPolicyDenialEvidenceReceipt, UiAllocationStreamPolicyEvidenceOutcome,

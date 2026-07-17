@@ -29,6 +29,21 @@ pub(crate) struct UiPreparedCommittedAllocationActivation<'runtime> {
         crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
 }
 
+pub(super) struct UiCommittedAllocationCommitResources<'runtime> {
+    pub ledger_commit: crate::runtime::allocation_receipt::UiPreparedAllocationCatalogLedgerCommit<'runtime>,
+    pub invalidation: std::cell::RefMut<
+        'runtime,
+        crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    >,
+    pub frame_commit:
+        crate::runtime::allocation_frame_dispatch::UiPreparedFrameReplacementCommit<'runtime>,
+    pub active: &'runtime mut crate::runtime::active::WorthUiActiveRuntimeState,
+    pub last_valid: &'runtime mut crate::runtime::launch::WorthUiLastValidRuntimeState,
+    pub transient_interaction_admission: &'runtime mut crate::runtime::replacement::state_inventory::WorthUiTransientInteractionAdmissionAuthority,
+    pub durable_resize_source:
+        &'runtime mut crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
+}
+
 impl UiCommittedAllocationSuccessors {
     pub(super) fn new(
         receipt_draft: super::WorthUiPlanSwapReceiptDraft,
@@ -50,21 +65,17 @@ impl UiCommittedAllocationSuccessors {
 
     pub(crate) fn bind_commit_resources<'runtime>(
         self,
-        ledger_commit: crate::runtime::allocation_receipt::UiPreparedAllocationCatalogLedgerCommit<
-            'runtime,
-        >,
-        invalidation: std::cell::RefMut<
-            'runtime,
-            crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-        >,
-        frame_commit: crate::runtime::allocation_frame_dispatch::UiPreparedFrameReplacementCommit<
-            'runtime,
-        >,
-        active: &'runtime mut crate::runtime::active::WorthUiActiveRuntimeState,
-        last_valid: &'runtime mut crate::runtime::launch::WorthUiLastValidRuntimeState,
-        transient_interaction_admission: &'runtime mut crate::runtime::replacement::state_inventory::WorthUiTransientInteractionAdmissionAuthority,
-        durable_resize_source: &'runtime mut crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
+        resources: UiCommittedAllocationCommitResources<'runtime>,
     ) -> UiPreparedCommittedAllocationActivation<'runtime> {
+        let UiCommittedAllocationCommitResources {
+            ledger_commit,
+            invalidation,
+            frame_commit,
+            active,
+            last_valid,
+            transient_interaction_admission,
+            durable_resize_source,
+        } = resources;
         let frame_assignment = frame_commit.assignment();
         let last_valid_successor =
             crate::runtime::launch::WorthUiLastValidRuntimeState::record_from_active(active);

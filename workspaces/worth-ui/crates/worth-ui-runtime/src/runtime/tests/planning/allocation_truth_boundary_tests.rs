@@ -202,7 +202,7 @@ fn receipt_and_denial_inspection_are_projected_from_commit_lineage() {
     let UiAllocationReceiptCommitDenial::CandidatePlanningDenied(report) = denial else {
         panic!("expected candidate-planning denial");
     };
-    assert_eq!(report.inspection_receipt().denial(), &report);
+    assert_eq!(report.inspection_receipt().denial(), report.as_ref());
 }
 
 #[test]

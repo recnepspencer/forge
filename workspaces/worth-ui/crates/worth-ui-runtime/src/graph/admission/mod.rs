@@ -13,5 +13,8 @@ pub use graph_instantiation_plan::{
     UiGraphInstantiationLocalDenialKind, UiGraphInstantiationPlan, UiGraphNodeInstantiationEntry,
     UiGraphParticipationSeed, UiGraphTopologyLocalDenial, UiGraphTopologySeed,
 };
+pub(crate) use graph_instantiation_plan::{
+    UiGraphNodeInstantiationInput, UiGraphTopologySeedInput,
+};
 pub(crate) use handoff_admission::admit_graph_handoffs;
 pub use repeated_instance_basis_admission::UiRuntimeInstanceBasisAdmission;

@@ -11,6 +11,15 @@ pub(crate) struct UiCommittedAllocationActivationAttempt {
     pub(super) identity: UiCommittedAllocationActivationIdentity,
 }
 
+pub(crate) struct UiCommittedAllocationActivationInput<'a> {
+    pub pending_activation: crate::runtime::WorthUiPendingActivation,
+    pub plan_input: &'a crate::runtime::WorthUiExecutionPlanInput,
+    pub handle_allocation: &'a crate::runtime::WorthUiRuntimeHandleAllocation,
+    pub candidate_plan: crate::runtime::WorthUiExecutionPlan,
+    pub boundary: crate::runtime::WorthUiFrameBoundary,
+    pub lane_parity_report: Option<&'a crate::runtime::WorthUiLaneParityReport>,
+}
+
 impl UiCommittedAllocationActivationAttempt {
     pub(in crate::runtime) fn new(
         catalog: crate::runtime::invalidation_narrowing::UiAllocationActivationCatalog,
@@ -42,7 +51,6 @@ impl UiCommittedAllocationActivationAttempt {
         self.catalog.activation_candidate().planning()
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn prepare(
         self,
         pending_activation: crate::runtime::WorthUiPendingActivation,
@@ -63,18 +71,20 @@ impl UiCommittedAllocationActivationAttempt {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(in crate::runtime) fn activate(
         self,
         runtime: &mut crate::runtime::WorthUiRuntime,
-        pending_activation: crate::runtime::WorthUiPendingActivation,
-        plan_input: &crate::runtime::WorthUiExecutionPlanInput,
-        handle_allocation: &crate::runtime::WorthUiRuntimeHandleAllocation,
-        candidate_plan: crate::runtime::WorthUiExecutionPlan,
-        boundary: crate::runtime::WorthUiFrameBoundary,
-        lane_parity_report: Option<&crate::runtime::WorthUiLaneParityReport>,
+        input: UiCommittedAllocationActivationInput<'_>,
     ) -> Result<crate::runtime::WorthUiPlanSwapReceipt, super::UiCommittedAllocationActivationDenial>
     {
+        let UiCommittedAllocationActivationInput {
+            pending_activation,
+            plan_input,
+            handle_allocation,
+            candidate_plan,
+            boundary,
+            lane_parity_report,
+        } = input;
         let attempt_identity = self.identity.clone();
         let invalidation_authority =
             runtime

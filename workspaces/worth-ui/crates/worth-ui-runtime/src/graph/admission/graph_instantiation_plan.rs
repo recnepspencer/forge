@@ -60,19 +60,33 @@ pub struct UiGraphNodeInstantiationEntry {
     core_index_contribution_seed: UiGraphCoreIndexContributionSeed,
 }
 
+pub(crate) struct UiGraphNodeInstantiationInput {
+    pub(crate) declaration_identity: UiDeclarationIdentity,
+    pub(crate) authored_provenance_digest: u64,
+    pub(crate) measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    pub(crate) aspect_contract: UiAspectContract,
+    pub(crate) repeated_instance_basis: UiRepeatedInstanceBasis,
+    pub(crate) topology_seed: UiGraphTopologySeed,
+    pub(crate) participation_seed: UiGraphParticipationSeed,
+    pub(crate) attachment_posture: UiGraphAttachmentPosture,
+    pub(crate) mounted_receipt_seed: UiGraphMountedReceiptAuthoritySeed,
+    pub(crate) core_index_contribution_seed: UiGraphCoreIndexContributionSeed,
+}
+
 impl UiGraphNodeInstantiationEntry {
-    pub(crate) fn new(
-        declaration_identity: UiDeclarationIdentity,
-        authored_provenance_digest: u64,
-        measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
-        aspect_contract: UiAspectContract,
-        repeated_instance_basis: UiRepeatedInstanceBasis,
-        topology_seed: UiGraphTopologySeed,
-        participation_seed: UiGraphParticipationSeed,
-        attachment_posture: UiGraphAttachmentPosture,
-        mounted_receipt_seed: UiGraphMountedReceiptAuthoritySeed,
-        core_index_contribution_seed: UiGraphCoreIndexContributionSeed,
-    ) -> Self {
+    pub(crate) fn new(input: UiGraphNodeInstantiationInput) -> Self {
+        let UiGraphNodeInstantiationInput {
+            declaration_identity,
+            authored_provenance_digest,
+            measurement_constraint_modifier,
+            aspect_contract,
+            repeated_instance_basis,
+            topology_seed,
+            participation_seed,
+            attachment_posture,
+            mounted_receipt_seed,
+            core_index_contribution_seed,
+        } = input;
         Self {
             declaration_identity,
             authored_provenance_digest,
@@ -203,17 +217,29 @@ pub struct UiGraphTopologySeed {
     repetition_posture: UiDeclarationRepetitionPosture,
 }
 
+pub(crate) struct UiGraphTopologySeedInput {
+    pub(crate) structural_digest: UiDeclarationStructuralDigest,
+    pub(crate) role: UiDeclarationStructuralRole,
+    pub(crate) operator_kind: UiDeclarationPlanningOperatorKind,
+    pub(crate) containment_claim: UiGraphContainmentClaim,
+    pub(crate) parent_resolution_claim: UiGraphParentResolutionClaim,
+    pub(crate) slot_participation_intent: UiDeclarationSlotParticipationIntent,
+    pub(crate) ordering_guarantee: UiDeclarationOrderingGuarantee,
+    pub(crate) repetition_posture: UiDeclarationRepetitionPosture,
+}
+
 impl UiGraphTopologySeed {
-    pub(crate) fn new(
-        structural_digest: UiDeclarationStructuralDigest,
-        role: UiDeclarationStructuralRole,
-        operator_kind: UiDeclarationPlanningOperatorKind,
-        containment_claim: UiGraphContainmentClaim,
-        parent_resolution_claim: UiGraphParentResolutionClaim,
-        slot_participation_intent: UiDeclarationSlotParticipationIntent,
-        ordering_guarantee: UiDeclarationOrderingGuarantee,
-        repetition_posture: UiDeclarationRepetitionPosture,
-    ) -> Self {
+    pub(crate) fn new(input: UiGraphTopologySeedInput) -> Self {
+        let UiGraphTopologySeedInput {
+            structural_digest,
+            role,
+            operator_kind,
+            containment_claim,
+            parent_resolution_claim,
+            slot_participation_intent,
+            ordering_guarantee,
+            repetition_posture,
+        } = input;
         Self {
             structural_digest,
             role,

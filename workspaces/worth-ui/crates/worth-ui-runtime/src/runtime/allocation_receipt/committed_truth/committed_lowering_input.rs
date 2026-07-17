@@ -9,13 +9,16 @@ pub struct UiCommittedAllocationLoweringInput {
 }
 
 impl UiCommittedAllocationLoweringInput {
-    pub(super) fn from_receipt(receipt: &super::UiAllocationReceipt) -> Self {
-        Self {
+    pub(super) fn from_receipt(
+        receipt: &super::UiAllocationReceipt,
+    ) -> Result<Self, super::UiAllocationFreshnessConsumptionDenial> {
+        super::admit_execution_lowering(receipt.report())?;
+        Ok(Self {
             receipt: receipt.clone(),
             report: receipt.report().clone(),
             transaction: receipt.transaction().clone(),
             frame_epoch: receipt.transaction().frame_epoch(),
-        }
+        })
     }
 
     pub fn receipt(&self) -> &super::UiAllocationReceipt {

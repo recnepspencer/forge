@@ -8,7 +8,6 @@ use worth_ui::facade::{
     WorthUiRendererSurfaceHandle,
 };
 
-#[allow(clippy::too_many_arguments)]
 fn accepts_realtime_types(
     _policy: Option<WorthUiHighFrequencyFramePolicy>,
     _policy_denial: Option<WorthUiHighFrequencyFramePolicyDenial>,

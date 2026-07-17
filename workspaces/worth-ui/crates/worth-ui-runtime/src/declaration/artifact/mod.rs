@@ -6,6 +6,7 @@ pub(crate) mod ui_declaration_lowering;
 mod ui_declaration_provenance;
 
 pub use ui_declaration_artifact::UiDeclarationArtifact;
+pub(crate) use ui_declaration_artifact::UiDeclarationArtifactInput;
 pub use ui_declaration_digest::{
     UiDeclarationArtifactDigest, UiDeclarationAspectDigest, UiDeclarationFamilyDigest,
     UiDeclarationIdentityDigest, UiDeclarationPostureDigest, UiDeclarationStructuralDigest,

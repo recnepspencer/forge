@@ -3,44 +3,26 @@ use crate::declaration::{
     UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
     UiDeclarationOrderingGuarantee, UiDeclarationPlanningOperatorKind,
     UiDeclarationRepetitionPosture, UiDeclarationSlotParticipationIntent,
-    UiDeclarationStructuralDigest, UiDeclarationStructuralRole,
+    UiDeclarationStructuralDigest, UiDeclarationStructuralRole, UiDeclarationStructuralSemantics,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiStructuralDeclarationPayload {
     family: UiDeclarationFamily,
     structural_digest: UiDeclarationStructuralDigest,
-    role: UiDeclarationStructuralRole,
-    operator_kind: UiDeclarationPlanningOperatorKind,
-    mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
-    containment_intent: UiDeclarationContainmentIntent,
-    slot_participation_intent: UiDeclarationSlotParticipationIntent,
-    ordering_guarantee: UiDeclarationOrderingGuarantee,
-    repetition_posture: UiDeclarationRepetitionPosture,
+    semantics: UiDeclarationStructuralSemantics,
 }
 
 impl UiStructuralDeclarationPayload {
     pub(crate) fn new(
         family: UiDeclarationFamily,
         structural_digest: UiDeclarationStructuralDigest,
-        role: UiDeclarationStructuralRole,
-        operator_kind: UiDeclarationPlanningOperatorKind,
-        mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
-        containment_intent: UiDeclarationContainmentIntent,
-        slot_participation_intent: UiDeclarationSlotParticipationIntent,
-        ordering_guarantee: UiDeclarationOrderingGuarantee,
-        repetition_posture: UiDeclarationRepetitionPosture,
+        semantics: UiDeclarationStructuralSemantics,
     ) -> Self {
         Self {
             family,
             structural_digest,
-            role,
-            operator_kind,
-            mosaic_sizing_contract_id,
-            containment_intent,
-            slot_participation_intent,
-            ordering_guarantee,
-            repetition_posture,
+            semantics,
         }
     }
 
@@ -57,30 +39,34 @@ impl UiStructuralDeclarationPayload {
     }
 
     pub const fn role(&self) -> UiDeclarationStructuralRole {
-        self.role
+        self.semantics.role()
     }
 
     pub const fn operator_kind(&self) -> UiDeclarationPlanningOperatorKind {
-        self.operator_kind
+        self.semantics.operator_kind()
     }
 
     pub fn mosaic_sizing_contract_id(&self) -> Option<&MosaicSizingContractId> {
-        self.mosaic_sizing_contract_id.as_ref()
+        self.semantics.mosaic_sizing_contract_id()
     }
 
     pub fn containment_intent(&self) -> &UiDeclarationContainmentIntent {
-        &self.containment_intent
+        self.semantics.containment_intent()
     }
 
     pub fn slot_participation_intent(&self) -> &UiDeclarationSlotParticipationIntent {
-        &self.slot_participation_intent
+        self.semantics.slot_participation_intent()
     }
 
     pub const fn ordering_guarantee(&self) -> UiDeclarationOrderingGuarantee {
-        self.ordering_guarantee
+        self.semantics.ordering_guarantee()
     }
 
     pub const fn repetition_posture(&self) -> UiDeclarationRepetitionPosture {
-        self.repetition_posture
+        self.semantics.repetition_posture()
+    }
+
+    pub const fn semantics(&self) -> &UiDeclarationStructuralSemantics {
+        &self.semantics
     }
 }

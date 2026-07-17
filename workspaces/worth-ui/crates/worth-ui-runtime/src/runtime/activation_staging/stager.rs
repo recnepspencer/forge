@@ -8,21 +8,44 @@ use crate::runtime::{
     WorthUiRuntimeImpactNarrowing, WorthUiStagedReplacement,
 };
 
+use super::WorthUiStagedReplacementInput;
+
+pub(crate) struct WorthUiActivationStagingInput<'a> {
+    pub active_before: WorthUiActiveRuntimeObservation,
+    pub active_after: WorthUiActiveRuntimeObservation,
+    pub admitted: WorthUiAdmittedReplacementCandidate,
+    pub impact: &'a WorthUiReplacementImpactClassification,
+    pub narrowing: &'a WorthUiRuntimeImpactNarrowing,
+    pub node_plan: &'a WorthUiNodeReplacementPlan,
+    pub reconciliation_plan: Option<&'a WorthUiDurableStateReconciliationPlan>,
+    pub query_rebind_plan: Option<&'a WorthUiQueryLiveRebindPlan>,
+    pub pending_execution_plan_lowering_input: Option<&'a WorthUiPendingExecutionPlanLoweringInput>,
+}
+
+struct WorthUiStagedPlanCardinality<'a> {
+    node_plan: &'a WorthUiNodeReplacementPlan,
+    reconciliation_plan: &'a WorthUiDurableStateReconciliationPlan,
+    query_rebind_plan: &'a WorthUiQueryLiveRebindPlan,
+    pending_input: &'a WorthUiPendingExecutionPlanLoweringInput,
+}
+
 pub(crate) struct WorthUiActivationStager;
 
 impl WorthUiActivationStager {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn stage(
-        active_before: WorthUiActiveRuntimeObservation,
-        active_after: WorthUiActiveRuntimeObservation,
-        admitted: WorthUiAdmittedReplacementCandidate,
-        impact: &WorthUiReplacementImpactClassification,
-        narrowing: &WorthUiRuntimeImpactNarrowing,
-        node_plan: &WorthUiNodeReplacementPlan,
-        reconciliation_plan: Option<&WorthUiDurableStateReconciliationPlan>,
-        query_rebind_plan: Option<&WorthUiQueryLiveRebindPlan>,
-        pending_execution_plan_lowering_input: Option<&WorthUiPendingExecutionPlanLoweringInput>,
+        input: WorthUiActivationStagingInput<'_>,
     ) -> Result<WorthUiPendingActivation, WorthUiActivationStagingDenial> {
+        let WorthUiActivationStagingInput {
+            active_before,
+            active_after,
+            admitted,
+            impact,
+            narrowing,
+            node_plan,
+            reconciliation_plan,
+            query_rebind_plan,
+            pending_execution_plan_lowering_input,
+        } = input;
         let active_artifact_digest = active_before.artifact_digest();
         let candidate_artifact_digest = admitted.artifact_bundle().artifact_digest().raw();
         let frame_epoch = active_before.frame_epoch();
@@ -114,10 +137,12 @@ impl WorthUiActivationStager {
             active_artifact_digest,
             candidate_artifact_digest,
             frame_epoch,
-            node_plan,
-            reconciliation_plan,
-            query_rebind_plan,
-            pending_execution_plan_lowering_input,
+            WorthUiStagedPlanCardinality {
+                node_plan,
+                reconciliation_plan,
+                query_rebind_plan,
+                pending_input: pending_execution_plan_lowering_input,
+            },
             &mut counters,
         )?;
 
@@ -131,18 +156,18 @@ impl WorthUiActivationStager {
             readiness,
             counters,
         );
-        let staged_replacement = WorthUiStagedReplacement::new(
+        let staged_replacement = WorthUiStagedReplacement::new(WorthUiStagedReplacementInput {
             frame_epoch,
             active_artifact_digest,
             candidate_artifact_digest,
-            admitted,
-            impact.clone(),
-            narrowing.clone(),
-            node_plan.clone(),
-            reconciliation_plan.clone(),
-            query_rebind_plan.clone(),
-            pending_execution_plan_lowering_input.clone(),
-        );
+            admitted_candidate: admitted,
+            impact: impact.clone(),
+            narrowing: narrowing.clone(),
+            node_plan: node_plan.clone(),
+            reconciliation_plan: reconciliation_plan.clone(),
+            query_rebind_plan: query_rebind_plan.clone(),
+            pending_execution_plan_lowering_input: pending_execution_plan_lowering_input.clone(),
+        });
         Ok(WorthUiPendingActivation::new(
             frame_epoch,
             staged_replacement,
@@ -301,17 +326,19 @@ fn verify_required_digest_pair(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn reject_mismatched_plan_lowering_input(
     active_artifact_digest: u64,
     candidate_artifact_digest: u64,
     frame_epoch: WorthUiRuntimeFrameEpoch,
-    node_plan: &WorthUiNodeReplacementPlan,
-    reconciliation_plan: &WorthUiDurableStateReconciliationPlan,
-    query_rebind_plan: &WorthUiQueryLiveRebindPlan,
-    pending_input: &WorthUiPendingExecutionPlanLoweringInput,
+    plans: WorthUiStagedPlanCardinality<'_>,
     counters: &mut WorthUiActivationStagingCounters,
 ) -> Result<(), WorthUiActivationStagingDenial> {
+    let WorthUiStagedPlanCardinality {
+        node_plan,
+        reconciliation_plan,
+        query_rebind_plan,
+        pending_input,
+    } = plans;
     let matches_staged_cardinality = pending_input.node_classification_count()
         == node_plan.classifications().len()
         && pending_input.reconciliation_receipt_count() == reconciliation_plan.receipts().len()

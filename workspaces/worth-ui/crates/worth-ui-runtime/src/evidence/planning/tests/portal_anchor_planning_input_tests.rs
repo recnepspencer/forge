@@ -1,61 +1,57 @@
 use crate::evidence::{
-    UiConstraintPortalAnchorPlanningInputResult, UiMeasurementCoordinateSpace,
-    UiMeasurementRoundingPosture, UiMeasurementUnitPosture, UiPortalAnchorPlanningInputPosture,
-    UiPortalAnchorPlanningInputSolveOrder,
+    UiConstraintPortalAnchorPlanningInput, UiConstraintPortalAnchorPlanningInputResult,
+    UiMeasurementCoordinateSpace, UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
+    UiPortalAnchorPlanningInputPosture, UiPortalAnchorPlanningInputSolveOrder,
 };
+
+fn portal_input(
+    neighborhood_identity_digest: u64,
+    source_evidence_identity_digest: Option<u64>,
+    posture: UiPortalAnchorPlanningInputPosture,
+) -> UiConstraintPortalAnchorPlanningInput {
+    UiConstraintPortalAnchorPlanningInput {
+        neighborhood_identity_digest,
+        solve_order: UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
+        posture,
+        source_evidence_identity_digest,
+        source_generation_digest: source_evidence_identity_digest.map(|_| 201),
+        unit_posture: source_evidence_identity_digest.map(|_| UiMeasurementUnitPosture::LogicalPx),
+        coordinate_space: source_evidence_identity_digest
+            .map(|_| UiMeasurementCoordinateSpace::PortalLayer),
+        rounding_posture: source_evidence_identity_digest
+            .map(|_| UiMeasurementRoundingPosture::ExactFloat),
+        planning_time_only: true,
+    }
+}
 
 #[test]
 fn portal_anchor_planning_input_identity_depends_on_source_evidence() {
-    let left = UiConstraintPortalAnchorPlanningInputResult::new(
+    let left = UiConstraintPortalAnchorPlanningInputResult::new(portal_input(
         17,
-        UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
-        UiPortalAnchorPlanningInputPosture::AdmittedPlanningTimeOnly,
         Some(101),
-        Some(201),
-        Some(UiMeasurementUnitPosture::LogicalPx),
-        Some(UiMeasurementCoordinateSpace::PortalLayer),
-        Some(UiMeasurementRoundingPosture::ExactFloat),
-        true,
-    );
-    let right = UiConstraintPortalAnchorPlanningInputResult::new(
-        17,
-        UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
         UiPortalAnchorPlanningInputPosture::AdmittedPlanningTimeOnly,
+    ));
+    let right = UiConstraintPortalAnchorPlanningInputResult::new(portal_input(
+        17,
         Some(102),
-        Some(201),
-        Some(UiMeasurementUnitPosture::LogicalPx),
-        Some(UiMeasurementCoordinateSpace::PortalLayer),
-        Some(UiMeasurementRoundingPosture::ExactFloat),
-        true,
-    );
+        UiPortalAnchorPlanningInputPosture::AdmittedPlanningTimeOnly,
+    ));
 
     assert_ne!(left.identity_digest(), right.identity_digest());
 }
 
 #[test]
 fn portal_anchor_planning_input_identity_depends_on_posture() {
-    let admitted = UiConstraintPortalAnchorPlanningInputResult::new(
+    let admitted = UiConstraintPortalAnchorPlanningInputResult::new(portal_input(
         19,
-        UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
-        UiPortalAnchorPlanningInputPosture::AdmittedPlanningTimeOnly,
         Some(101),
-        Some(201),
-        Some(UiMeasurementUnitPosture::LogicalPx),
-        Some(UiMeasurementCoordinateSpace::PortalLayer),
-        Some(UiMeasurementRoundingPosture::ExactFloat),
-        true,
-    );
-    let missing = UiConstraintPortalAnchorPlanningInputResult::new(
+        UiPortalAnchorPlanningInputPosture::AdmittedPlanningTimeOnly,
+    ));
+    let missing = UiConstraintPortalAnchorPlanningInputResult::new(portal_input(
         19,
-        UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
+        None,
         UiPortalAnchorPlanningInputPosture::MissingRequiredEvidence,
-        None,
-        None,
-        None,
-        None,
-        None,
-        true,
-    );
+    ));
 
     assert_ne!(admitted.identity_digest(), missing.identity_digest());
 }

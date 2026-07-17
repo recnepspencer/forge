@@ -28,6 +28,7 @@ pub use certification_scenario::{
     UiMeasurementBasisCertificationScenario, UiMeasurementBasisCertificationScenarioError,
 };
 pub use denial::{UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
+use identity::UiMeasurementBasisIdentityInput;
 pub(crate) use query_allocation_mapping::{
     UiQueryAllocationPurpose, UiQueryAllocationTargetMapping,
 };

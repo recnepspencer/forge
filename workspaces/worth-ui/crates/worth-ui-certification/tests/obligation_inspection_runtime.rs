@@ -342,9 +342,7 @@ fn obligation_relevance(detail: UiInspectionObligationRelevanceDetail) -> UiInsp
         .with_obligation_detail(detail)
 }
 
-fn obligation_shape(
-    projection: &worth_ui::facade::inspection::UiInspectionObligationReasonProjection,
-) -> (
+type ObligationInspectionShape = (
     UiInspectionObligationDecision,
     Option<UiInspectionObligationFamily>,
     Option<u64>,
@@ -352,7 +350,11 @@ fn obligation_shape(
     Option<UiInspectionObligationVerdictClass>,
     Option<worth_ui::facade::inspection::UiInspectionObligationVerdictPosture>,
     Option<worth_ui::facade::inspection::UiInspectionObligationDenialPosture>,
-) {
+);
+
+fn obligation_shape(
+    projection: &worth_ui::facade::inspection::UiInspectionObligationReasonProjection,
+) -> ObligationInspectionShape {
     (
         projection.decision(),
         projection.family(),

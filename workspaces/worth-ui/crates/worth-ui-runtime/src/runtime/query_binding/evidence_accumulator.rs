@@ -45,19 +45,22 @@ impl WorthUiQueryBindingEvidenceAccumulator {
             &ViewBindingId::new(view_binding_id).expect("indexed view binding id remains valid"),
             &definition,
         );
-        let posture = WorthUiQueryBindingPosture::new(
+        let posture = WorthUiQueryBindingPosture::new(super::WorthUiQueryBindingPostureInput {
             support_receipt,
-            true,
-            definition.lifecycle(),
-            self.runtime_surfaces
+            installed_basis_authority: true,
+            lifecycle: definition.lifecycle(),
+            async_result_state_available: self
+                .runtime_surfaces
                 .contains(&WorthUiRuntimeDependencyHookKind::AsyncResultState),
-            self.runtime_surfaces
+            recovery_available: self
+                .runtime_surfaces
                 .contains(&WorthUiRuntimeDependencyHookKind::SignalContinuation),
-            self.inspection_available,
-            self.projection_consumption_available,
-            self.denial_presentation
+            inspection_available: self.inspection_available,
+            projection_consumption_available: self.projection_consumption_available,
+            denial_presentation: self
+                .denial_presentation
                 .unwrap_or_else(crate::capability::QueryDenialPresentation::structured_status),
-        );
+        });
         Some(WorthUiQueryBindingEvidence::new(identity, posture))
     }
 

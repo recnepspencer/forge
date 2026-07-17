@@ -140,14 +140,16 @@ fn execute_indexed_target(
     }
 
     Ok(WorthUiCanvasSpatialFrameReceipt::new(
-        target,
-        lane,
-        vec![row.plan_index()],
-        vec![row.runtime_handle()],
-        plan.command_plan_indexes().to_vec(),
-        plan.diagnostics_plan_indexes().to_vec(),
-        plan.selection_state_slot_handles().to_vec(),
-        counters,
-        plan.certification(),
+        super::WorthUiCanvasSpatialFrameReceiptInput {
+            target,
+            lane,
+            touched_plan_indexes: vec![row.plan_index()],
+            touched_runtime_handles: vec![row.runtime_handle()],
+            command_plan_indexes: plan.command_plan_indexes().to_vec(),
+            diagnostics_plan_indexes: plan.diagnostics_plan_indexes().to_vec(),
+            selection_state_slot_handles: plan.selection_state_slot_handles().to_vec(),
+            counters,
+            certification: plan.certification(),
+        },
     ))
 }

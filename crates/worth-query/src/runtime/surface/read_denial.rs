@@ -102,13 +102,13 @@ impl WorthQueryReadAccessPlanBindingMismatch {
 pub struct WorthQueryReadDenial {
     kind: WorthQueryReadDenialKind,
     message: String,
-    built_in_operator_denial: Option<WorthQueryReadBuiltInOperatorDenial>,
-    relationship_proof_denial: Option<WorthQueryReadRelationshipProofDenial>,
-    scope_shape_mismatch: Option<WorthQueryReadScopeShapeMismatch>,
-    access_plan_binding_mismatch: Option<WorthQueryReadAccessPlanBindingMismatch>,
-    graph_read_access_admission: Option<WorthQueryGraphReadAccessAdmission>,
-    graph_read_access_execution_counters: Option<WorthQueryGraphReadAccessExecutionCounters>,
-    graph_read_persistent_artifact_audit: Option<WorthQueryGraphReadPersistentArtifactAudit>,
+    built_in_operator_denial: Option<Box<WorthQueryReadBuiltInOperatorDenial>>,
+    relationship_proof_denial: Option<Box<WorthQueryReadRelationshipProofDenial>>,
+    scope_shape_mismatch: Option<Box<WorthQueryReadScopeShapeMismatch>>,
+    access_plan_binding_mismatch: Option<Box<WorthQueryReadAccessPlanBindingMismatch>>,
+    graph_read_access_admission: Option<Box<WorthQueryGraphReadAccessAdmission>>,
+    graph_read_access_execution_counters: Option<Box<WorthQueryGraphReadAccessExecutionCounters>>,
+    graph_read_persistent_artifact_audit: Option<Box<WorthQueryGraphReadPersistentArtifactAudit>>,
 }
 
 impl WorthQueryReadDenial {
@@ -121,35 +121,35 @@ impl WorthQueryReadDenial {
     }
 
     pub fn built_in_operator_denial(&self) -> Option<&WorthQueryReadBuiltInOperatorDenial> {
-        self.built_in_operator_denial.as_ref()
+        self.built_in_operator_denial.as_deref()
     }
 
     pub fn relationship_proof_denial(&self) -> Option<&WorthQueryReadRelationshipProofDenial> {
-        self.relationship_proof_denial.as_ref()
+        self.relationship_proof_denial.as_deref()
     }
 
     pub fn scope_shape_mismatch(&self) -> Option<&WorthQueryReadScopeShapeMismatch> {
-        self.scope_shape_mismatch.as_ref()
+        self.scope_shape_mismatch.as_deref()
     }
 
     pub fn access_plan_binding_mismatch(&self) -> Option<&WorthQueryReadAccessPlanBindingMismatch> {
-        self.access_plan_binding_mismatch.as_ref()
+        self.access_plan_binding_mismatch.as_deref()
     }
 
     pub fn graph_read_access_admission(&self) -> Option<&WorthQueryGraphReadAccessAdmission> {
-        self.graph_read_access_admission.as_ref()
+        self.graph_read_access_admission.as_deref()
     }
 
     pub fn graph_read_access_execution_counters(
         &self,
     ) -> Option<&WorthQueryGraphReadAccessExecutionCounters> {
-        self.graph_read_access_execution_counters.as_ref()
+        self.graph_read_access_execution_counters.as_deref()
     }
 
     pub fn graph_read_persistent_artifact_audit(
         &self,
     ) -> Option<&WorthQueryGraphReadPersistentArtifactAudit> {
-        self.graph_read_persistent_artifact_audit.as_ref()
+        self.graph_read_persistent_artifact_audit.as_deref()
     }
 
     pub(crate) fn new(kind: WorthQueryReadDenialKind, message: impl Into<String>) -> Self {
@@ -171,7 +171,7 @@ impl WorthQueryReadDenial {
         mut self,
         access_plan_binding_mismatch: WorthQueryReadAccessPlanBindingMismatch,
     ) -> Self {
-        self.access_plan_binding_mismatch = Some(access_plan_binding_mismatch);
+        self.access_plan_binding_mismatch = Some(Box::new(access_plan_binding_mismatch));
         self
     }
 
@@ -179,7 +179,7 @@ impl WorthQueryReadDenial {
         mut self,
         graph_read_access_admission: WorthQueryGraphReadAccessAdmission,
     ) -> Self {
-        self.graph_read_access_admission = Some(graph_read_access_admission);
+        self.graph_read_access_admission = Some(Box::new(graph_read_access_admission));
         self
     }
 
@@ -187,7 +187,8 @@ impl WorthQueryReadDenial {
         mut self,
         graph_read_access_execution_counters: WorthQueryGraphReadAccessExecutionCounters,
     ) -> Self {
-        self.graph_read_access_execution_counters = Some(graph_read_access_execution_counters);
+        self.graph_read_access_execution_counters =
+            Some(Box::new(graph_read_access_execution_counters));
         self
     }
 
@@ -195,7 +196,8 @@ impl WorthQueryReadDenial {
         mut self,
         graph_read_persistent_artifact_audit: WorthQueryGraphReadPersistentArtifactAudit,
     ) -> Self {
-        self.graph_read_persistent_artifact_audit = Some(graph_read_persistent_artifact_audit);
+        self.graph_read_persistent_artifact_audit =
+            Some(Box::new(graph_read_persistent_artifact_audit));
         self
     }
 
@@ -219,9 +221,9 @@ impl WorthQueryReadDenial {
         Self {
             kind: WorthQueryReadDenialKind::BuiltInOperatorDenied,
             message: message.into(),
-            built_in_operator_denial: Some(WorthQueryReadBuiltInOperatorDenial::new(
+            built_in_operator_denial: Some(Box::new(WorthQueryReadBuiltInOperatorDenial::new(
                 operator, reason,
-            )),
+            ))),
             relationship_proof_denial: None,
             scope_shape_mismatch: None,
             access_plan_binding_mismatch: None,
@@ -239,7 +241,7 @@ impl WorthQueryReadDenial {
             kind: WorthQueryReadDenialKind::RelationshipProofAdmissionDenied,
             message: message.into(),
             built_in_operator_denial: None,
-            relationship_proof_denial: Some(denial),
+            relationship_proof_denial: Some(Box::new(denial)),
             scope_shape_mismatch: None,
             access_plan_binding_mismatch: None,
             graph_read_access_admission: None,
@@ -262,7 +264,10 @@ impl WorthQueryReadDenial {
             message,
             built_in_operator_denial: None,
             relationship_proof_denial: None,
-            scope_shape_mismatch: Some(WorthQueryReadScopeShapeMismatch { expected, actual }),
+            scope_shape_mismatch: Some(Box::new(WorthQueryReadScopeShapeMismatch {
+                expected,
+                actual,
+            })),
             access_plan_binding_mismatch: None,
             graph_read_access_admission: None,
             graph_read_access_execution_counters: None,

@@ -81,17 +81,19 @@ impl WorthUiCanvasSpatialPlanBuilder {
         );
 
         Ok(WorthUiCanvasSpatialPlan::new(
-            execution_plan.handle_receipt(),
-            lane_admission.support_digest(),
-            digest,
-            rows,
-            command_plan_indexes,
-            diagnostics_plan_indexes,
-            selection_state_slot_handles,
-            hooks.draw_hooks,
-            hooks.hit_test_hooks,
-            hooks.tool_state_hooks,
-            counters,
+            super::WorthUiCanvasSpatialPlanInput {
+                handle_receipt: execution_plan.handle_receipt(),
+                support_digest: lane_admission.support_digest(),
+                canvas_plan_digest: digest,
+                rows,
+                command_plan_indexes,
+                diagnostics_plan_indexes,
+                selection_state_slot_handles,
+                draw_hooks: hooks.draw_hooks,
+                hit_test_hooks: hooks.hit_test_hooks,
+                tool_state_hooks: hooks.tool_state_hooks,
+                counters,
+            },
         ))
     }
 }

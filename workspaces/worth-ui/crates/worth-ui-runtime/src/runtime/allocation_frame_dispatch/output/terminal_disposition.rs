@@ -15,14 +15,14 @@ pub struct UiAllocationFrameQueueDisposition {
 enum UiAllocationFrameQueueDispositionRepresentation {
     Disposed {
         reason: UiAllocationFramePauseReason,
-        ingress: UiAllocationFrameMailboxDrain,
-        successor_ingress: UiAllocationFrameMailboxDrain,
+        ingress: Box<UiAllocationFrameMailboxDrain>,
+        successor_ingress: Box<UiAllocationFrameMailboxDrain>,
         counters: UiAllocationFrameDispatcherCounters,
     },
     Sealed {
         reason: UiAllocationFramePauseReason,
-        frame: UiAdmittedAllocationStreamFrame,
-        successor_ingress: UiAllocationFrameMailboxDrain,
+        frame: Box<UiAdmittedAllocationStreamFrame>,
+        successor_ingress: Box<UiAllocationFrameMailboxDrain>,
         counters: UiAllocationFrameDispatcherCounters,
     },
 }
@@ -38,8 +38,8 @@ impl UiAllocationFrameQueueDisposition {
         Self {
             representation: UiAllocationFrameQueueDispositionRepresentation::Disposed {
                 reason,
-                ingress,
-                successor_ingress,
+                ingress: Box::new(ingress),
+                successor_ingress: Box::new(successor_ingress),
                 counters,
             },
         }
@@ -55,8 +55,8 @@ impl UiAllocationFrameQueueDisposition {
         Self {
             representation: UiAllocationFrameQueueDispositionRepresentation::Sealed {
                 reason,
-                frame,
-                successor_ingress,
+                frame: Box::new(frame),
+                successor_ingress: Box::new(successor_ingress),
                 counters,
             },
         }

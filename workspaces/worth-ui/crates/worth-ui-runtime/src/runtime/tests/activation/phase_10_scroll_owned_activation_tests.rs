@@ -38,14 +38,17 @@ fn phase_10_scroll_viewport_extent_replans_only_the_owned_neighborhood() {
             source
                 .collect_and_submit(
                     &ScrollViewportAdapter { width: 180.0, height: 90.0 },
-                    UiMeasurementRequestIdentity::new(951),
-                    UiMeasurementEvidenceFamily::ScrollContainerViewport,
-                    crate::host::UiHostMeasurementNeed::ScrollContainerViewport(
-                        UiScrollContainerViewportRequest::new(55),
-                    ),
-                    &report,
-                    UiEvidenceAuthorityGeneration::new(17),
-                    crate::host::UiHostMeasurementNormalizationContext::scroll_container_logical_exact(profile),
+                    crate::host::UiHostMeasurementCollectionInput {
+                        identity: UiMeasurementRequestIdentity::new(951),
+                        evidence_family: UiMeasurementEvidenceFamily::ScrollContainerViewport,
+                        need: crate::host::UiHostMeasurementNeed::ScrollContainerViewport(
+                            UiScrollContainerViewportRequest::new(55),
+                        ),
+                        capability_report: &report,
+                        evidence_generation: UiEvidenceAuthorityGeneration::new(17),
+                        normalization_context:
+                            crate::host::UiHostMeasurementNormalizationContext::scroll_container_logical_exact(profile),
+                    },
                 )
                 .expect("ordinary host observation enters the allocation stream");
         });
@@ -145,14 +148,17 @@ fn phase_10_unadmitted_scroll_ownership_denies_without_host_fallback() {
             source
                 .collect_and_submit(
                     &ScrollViewportAdapter { width: 180.0, height: 90.0 },
-                    UiMeasurementRequestIdentity::new(951),
-                    UiMeasurementEvidenceFamily::ScrollContainerViewport,
-                    crate::host::UiHostMeasurementNeed::ScrollContainerViewport(
-                        UiScrollContainerViewportRequest::new(55),
-                    ),
-                    &report,
-                    UiEvidenceAuthorityGeneration::new(17),
-                    crate::host::UiHostMeasurementNormalizationContext::scroll_container_logical_exact(profile),
+                    crate::host::UiHostMeasurementCollectionInput {
+                        identity: UiMeasurementRequestIdentity::new(951),
+                        evidence_family: UiMeasurementEvidenceFamily::ScrollContainerViewport,
+                        need: crate::host::UiHostMeasurementNeed::ScrollContainerViewport(
+                            UiScrollContainerViewportRequest::new(55),
+                        ),
+                        capability_report: &report,
+                        evidence_generation: UiEvidenceAuthorityGeneration::new(17),
+                        normalization_context:
+                            crate::host::UiHostMeasurementNormalizationContext::scroll_container_logical_exact(profile),
+                    },
                 )
                 .expect("host observation is valid evidence even when allocation ownership is absent");
         });

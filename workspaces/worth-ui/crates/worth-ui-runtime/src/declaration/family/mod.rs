@@ -1,12 +1,12 @@
 mod admission;
 mod catalog;
 mod contracts;
+mod declaration_family;
 mod denial;
-mod family;
 
 pub(crate) use admission::UiDeclarationFamilyAdmission;
 pub use catalog::UiDeclarationFamilyCatalog;
+pub use declaration_family::{UiDeclarationFamily, UiDeclarationFamilyKind};
 pub use denial::UiDeclarationFamilyAdmissionDenial;
-pub use family::{UiDeclarationFamily, UiDeclarationFamilyKind};
 
 pub(crate) use admission::admit_declaration_family;

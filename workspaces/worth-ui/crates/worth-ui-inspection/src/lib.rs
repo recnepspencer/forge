@@ -1,6 +1,7 @@
 //! Public inspection surfaces grouped by lifecycle authority:
 //! target identity → query admission → receipt projection → evidence contract → posture → scope.
 
+mod allocation;
 mod evidence_contract;
 mod facade;
 mod posture;
@@ -16,6 +17,21 @@ pub use target::{
 };
 
 // Evidence contract lane
+pub use allocation::{
+    UiAllocationInspectionAnchorPosture, UiAllocationInspectionAttemptResult,
+    UiAllocationInspectionAxis, UiAllocationInspectionBounds,
+    UiAllocationInspectionCoordinateSpace, UiAllocationInspectionDenialFamily,
+    UiAllocationInspectionDeniedAttempt, UiAllocationInspectionEdgeReference,
+    UiAllocationInspectionEvidenceFamily, UiAllocationInspectionEvidenceRef,
+    UiAllocationInspectionFreshnessPosture, UiAllocationInspectionGeometry,
+    UiAllocationInspectionGraphNodeIdentity, UiAllocationInspectionInvalidationFamily,
+    UiAllocationInspectionKnowledge, UiAllocationInspectionNeighborhoodIdentity,
+    UiAllocationInspectionPlanningBasisIdentity, UiAllocationInspectionPortalAnchorTargetIdentity,
+    UiAllocationInspectionReceipt, UiAllocationInspectionReceiptIdentity,
+    UiAllocationInspectionReceiptProjection, UiAllocationInspectionReuseDenialPosture,
+    UiAllocationInspectionReusePosture, UiAllocationInspectionSelection,
+    UiAllocationInspectionStreamFamily,
+};
 pub use evidence_contract::{
     UiEvidenceAuthorityArtifactIdentity, UiEvidenceAuthorityBinding, UiEvidenceAuthorityGeneration,
     UiEvidenceAuthorityKind, UiEvidenceExpansionOutcome, UiEvidenceFamily,
@@ -63,11 +79,12 @@ pub use receipt::{
     UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
     UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
     UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
-    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
-    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
-    UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
-    UiInspectionQueryWorldCompatibilityFailure, UiInspectionRefLifecycleLane,
-    UiInspectionScopeSupportRow, UiInspectionSliceLane, UiInspectionSupportReport,
+    UiInspectionMeasurementEvidenceViewInput, UiInspectionMeasurementFailureSource,
+    UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
+    UiInspectionMeasurementOwnershipPosture, UiInspectionMeasurementQueryFactFamily,
+    UiInspectionMeasurementQueryUnsupportedReason, UiInspectionQueryWorldCompatibilityFailure,
+    UiInspectionRefLifecycleLane, UiInspectionScopeSupportRow, UiInspectionSliceLane,
+    UiInspectionSupportReport,
 };
 
 // Scope lane

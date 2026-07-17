@@ -91,6 +91,27 @@ pub(crate) enum UiAllocationStreamCommitDecision {
     Denied(UiAllocationStreamCompositionDenial),
 }
 
+pub(crate) fn replacement_activation_policy(
+    catalog_cardinality: u16,
+) -> UiResolvedAllocationStreamPolicy {
+    UiResolvedAllocationStreamPolicy {
+        commit_lane: UiAllocationResolvedCommitLane::Ordinary,
+        target: UiAllocationCommitTarget::AllocationOnly,
+        cadence: UiAllocationCadenceKind::Terminal,
+        budget: UiAllocationCadenceBudget::contract(
+            catalog_cardinality,
+            1,
+            catalog_cardinality,
+            0,
+            0,
+        )
+        .with_max_invalidation_targets(catalog_cardinality),
+        evidence_cadence: UiAllocationEvidenceCadence::PerCommittedReceipt,
+        collapse_law: UiAllocationStreamCollapseLaw::TerminalOnly,
+        partial_settlement_law: UiAllocationPartialSettlementLaw::NotApplicable,
+    }
+}
+
 pub(crate) fn resolve_stream_families(
     ordered_entries: &[UiAllocationStreamFamily],
     payload_counters: &mut crate::evidence::UiAllocationStreamPolicyPayloadCounters,

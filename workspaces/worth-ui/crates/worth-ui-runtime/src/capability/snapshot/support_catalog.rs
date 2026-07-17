@@ -197,13 +197,13 @@ impl CapabilitySupportCatalog {
             .copied()
     }
 
-    fn posture_for_identity<T: Clone + CapabilitySupportId>(
+    fn posture_for_identity<T>(
         &self,
         family_name: &'static str,
         identity: &T,
     ) -> Option<CapabilitySupportPosture<T>>
     where
-        T: CapabilityIdentityText,
+        T: Clone + CapabilitySupportId + CapabilityIdentityText,
     {
         self.lookup_support_kind(family_name, identity.identity_text())
             .map(|support_kind| support_posture_for_identity(identity.clone(), support_kind))

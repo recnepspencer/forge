@@ -12,14 +12,14 @@ pub trait WorthUiQueryExt {
         &self,
     ) -> Result<
         domain::WorthQueryInstalledDomainReadDeclaration<WorthUiDomainEntry>,
-        read::WorthQueryReadDeclarationStop,
+        Box<read::WorthQueryReadDeclarationStop>,
     >;
 
     fn live_measurements(
         &self,
     ) -> Result<
         domain::WorthQueryInstalledDomainLiveDeclaration<WorthUiDomainEntry>,
-        worth_query::facade::live::WorthQueryLiveDeclarationStop,
+        Box<worth_query::facade::live::WorthQueryLiveDeclarationStop>,
     >;
 
     fn record_measurement(
@@ -28,7 +28,7 @@ pub trait WorthUiQueryExt {
         contribution: WorthUiMeasurementContribution,
     ) -> Result<
         domain::WorthQueryInstalledDomainWorkflowDeclaration<WorthUiDomainEntry>,
-        domain::WorthQueryMutationDeclarationStop,
+        Box<domain::WorthQueryMutationDeclarationStop>,
     >;
 }
 
@@ -37,7 +37,7 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
         &self,
     ) -> Result<
         domain::WorthQueryInstalledDomainReadDeclaration<WorthUiDomainEntry>,
-        read::WorthQueryReadDeclarationStop,
+        Box<read::WorthQueryReadDeclarationStop>,
     > {
         let operation = self.graph_read_operation(&measurement_allocation_operation());
         self.read(|query| {
@@ -53,13 +53,14 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
                 |shape| shape.field(identity_field()).field(measurement_field()),
             )
         })
+        .map_err(Box::new)
     }
 
     fn live_measurements(
         &self,
     ) -> Result<
         domain::WorthQueryInstalledDomainLiveDeclaration<WorthUiDomainEntry>,
-        worth_query::facade::live::WorthQueryLiveDeclarationStop,
+        Box<worth_query::facade::live::WorthQueryLiveDeclarationStop>,
     > {
         let operation = self.graph_read_operation(&measurement_allocation_operation());
         self.live("worth-ui.measurements", |query| {
@@ -75,6 +76,7 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
                 |shape| shape.field(identity_field()).field(measurement_field()),
             )
         })
+        .map_err(Box::new)
     }
 
     fn record_measurement(
@@ -83,25 +85,29 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
         contribution: WorthUiMeasurementContribution,
     ) -> Result<
         domain::WorthQueryInstalledDomainWorkflowDeclaration<WorthUiDomainEntry>,
-        domain::WorthQueryMutationDeclarationStop,
+        Box<domain::WorthQueryMutationDeclarationStop>,
     > {
         self.mutation(|mutation| {
             mutation
                 .set_aspect(
-                    domain::WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")?,
+                    domain::WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")
+                        .map_err(worth_query::facade::mutation::WorthQueryRuntimeError::from)
+                        .map_err(Box::new)?,
                     domain::WorthQueryAuthoredAspectValue::string(contribution.identity),
                 )
                 .set_aspect(
-                    domain::WorthQueryAspectTouch::from_authoring_ingress_text(
-                        "measurement.value",
-                    )?,
+                    domain::WorthQueryAspectTouch::from_authoring_ingress_text("measurement.value")
+                        .map_err(worth_query::facade::mutation::WorthQueryRuntimeError::from)
+                        .map_err(Box::new)?,
                     domain::WorthQueryAuthoredAspectValue::native(AspectValue::Float32(
                         contribution.value,
                     )),
                 )
                 .build_insert(MEASUREMENT_ROOT)
+                .map_err(Box::new)
         })
         .map(|mutation| mutation.workflow(label))
+        .map_err(Box::new)
     }
 }
 

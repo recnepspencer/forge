@@ -84,15 +84,17 @@ fn execute_renderer_surface(
     counters.record_frame_synchronized_pass();
     counters.record_renderer_surface_handoff();
     Ok(WorthUiRealtimeFrameReceipt::new(
-        target,
-        WorthUiRealtimeOverlayLane::HudOverlay,
-        row.renderer_surface_admission(),
-        vec![row.plan_index()],
-        vec![row.runtime_handle()],
-        plan.command_plan_indexes().to_vec(),
-        plan.accessibility_plan_indexes().to_vec(),
-        plan.diagnostics_plan_indexes().to_vec(),
-        counters,
-        plan.certification(),
+        super::WorthUiRealtimeFrameReceiptInput {
+            target,
+            lane: WorthUiRealtimeOverlayLane::HudOverlay,
+            renderer_surface_admission: row.renderer_surface_admission(),
+            touched_plan_indexes: vec![row.plan_index()],
+            touched_runtime_handles: vec![row.runtime_handle()],
+            command_plan_indexes: plan.command_plan_indexes().to_vec(),
+            accessibility_plan_indexes: plan.accessibility_plan_indexes().to_vec(),
+            diagnostics_plan_indexes: plan.diagnostics_plan_indexes().to_vec(),
+            counters,
+            certification: plan.certification(),
+        },
     ))
 }

@@ -40,7 +40,7 @@ pub(super) fn canvas_spatial_denial_for_stale_lane_admission() -> WorthUiCanvasS
     );
     let stale_admission = receipt_runtime
         .admit_execution_lanes(
-            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
+            &receipt_runtime.detached_allocation_lowering_input_for_test(&drifted_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission succeeds");
@@ -93,13 +93,13 @@ pub(super) fn canvas_spatial_denial_for_missing_support() -> WorthUiCanvasSpatia
         &context.plan_input,
         "canvas-spatial.missing-support",
     );
-    let receipt = context
+    let lowering_input = context
         .runtime
-        .detached_allocation_receipt_for_test(&planning);
+        .detached_allocation_lowering_input_for_test(&planning);
     let no_canvas_support = context
         .runtime
         .admit_execution_lanes(
-            &receipt,
+            &lowering_input,
             &WorthUiExecutionLaneSupport::without_lane_for_test(
                 WorthUiExecutionLane::CanvasSpatial,
             ),
@@ -163,14 +163,14 @@ fn canvas_spatial_context() -> CanvasSpatialContext {
     let planning = allocation_planning(&runtime, &plan_input, "canvas-spatial.fixture");
     let lane_admission = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("lane admission succeeds");
     let hook_admissions = canvas_hook_admissions(&runtime, &lane_admission);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -240,9 +240,11 @@ fn pending_plan_input(
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation_plan),
-            Some(&query_rebind_plan),
-            Some(&pending_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation_plan),
+                Some(&query_rebind_plan),
+                Some(&pending_input),
+            ),
         )
         .expect("activation staging succeeds")
 }

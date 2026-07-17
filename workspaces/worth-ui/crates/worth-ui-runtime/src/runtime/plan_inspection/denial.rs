@@ -11,7 +11,7 @@ pub enum WorthUiPlanInspectionDenialReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiPlanInspectionDenial {
     reason: WorthUiPlanInspectionDenialReason,
-    counters: WorthUiPlanInspectionCounters,
+    counters: Box<WorthUiPlanInspectionCounters>,
 }
 
 impl WorthUiPlanInspectionDenial {
@@ -20,7 +20,10 @@ impl WorthUiPlanInspectionDenial {
         mut counters: WorthUiPlanInspectionCounters,
     ) -> Self {
         counters.record_denial();
-        Self { reason, counters }
+        Self {
+            reason,
+            counters: Box::new(counters),
+        }
     }
 
     pub fn reason(&self) -> WorthUiPlanInspectionDenialReason {
@@ -28,6 +31,6 @@ impl WorthUiPlanInspectionDenial {
     }
 
     pub fn counters(&self) -> WorthUiPlanInspectionCounters {
-        self.counters
+        *self.counters
     }
 }

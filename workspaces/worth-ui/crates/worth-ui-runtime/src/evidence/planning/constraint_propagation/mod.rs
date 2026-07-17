@@ -10,6 +10,7 @@ mod parent_available_space;
 mod results;
 mod sibling_negotiation_group;
 
+pub(crate) use child_intrinsic_contribution::UiConstraintChildIntrinsicContributionInput;
 pub use child_intrinsic_contribution::{
     UiConstraintChildIntrinsicContribution, UiConstraintHostIntrinsicKind,
     UiConstraintIntrinsicSourcePosture,
@@ -39,5 +40,9 @@ pub use results::{
     UiScrollOwnerPlanningInputSolveOrder, UiScrollOwnerSourceAdmissionCounters,
     UiScrollOwnerSourceEvidence, UiScrollOwnerSourceKind, UiViewportPlanningInputPosture,
     UiViewportPlanningInputSolveOrder,
+};
+pub(crate) use results::{
+    UiConstraintBoundReconciliationInput, UiConstraintPortalAnchorPlanningInput,
+    UiConstraintScrollOwnerPlanningInput, UiConstraintViewportPlanningInput,
 };
 pub use sibling_negotiation_group::UiConstraintSiblingNegotiationGroup;

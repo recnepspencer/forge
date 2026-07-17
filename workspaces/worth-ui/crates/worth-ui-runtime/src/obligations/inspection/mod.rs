@@ -17,6 +17,7 @@ pub(crate) use evidence_authority_source::UiObligationEvidenceAuthoritySource;
 pub use evidence_handle::{UiObligationEvidenceHandle, UiObligationEvidenceHandleKind};
 pub use evidence_index::UiObligationEvidenceIndex;
 pub use evidence_query::UiObligationEvidenceQuery;
+pub(crate) use evidence_record::UiObligationEvidenceRecordInput;
 pub use evidence_record::{
     UiObligationEvidenceDecision, UiObligationEvidenceDenialPosture,
     UiObligationEvidenceDispatchPosture, UiObligationEvidencePrerequisiteSource,

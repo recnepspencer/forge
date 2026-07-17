@@ -606,11 +606,11 @@ structural closeout bundle and 3.8 start-here capabilities).
 
 Detailed spec: [milestone-3.8.md](./milestone-3.8.md)
 
-**Current implementation position:** Phases 1-11 have landed. Query Milestone
-9.13 changed the downstream authority and native-value contract while 3.8 was
-in progress, so Phases 12-18 now close the installed-domain, declarative
-binding, native projection, identity, facade, and topology cutover before
-Phases 19-22 finish inspection, freshness, counters, and certification.
+**Status: Closed.** Phases 1-22 have landed. The post-Query-9.13 cutover closes
+installed-domain composition, declarative binding, native projection,
+identity, facade, and topology authority; the final phases close local
+inspection, freshness, counters, typed denials, hostile runtime integration,
+and anti-bypass certification.
 
 This slice closes committed allocation truth and churn-heavy measurement
 behavior after 3.6a and 3.6b planning semantics already exist **and after 3.7
@@ -689,7 +689,63 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 - new receipts attach to verified planning/measurement transitions, not host
   folklore or reconstructed booleans
 
+### Milestone 3.8.1: Runtime Authority Closure and Honest Composition Gate
+
+Detailed spec: [milestone-3.8.1.md](./milestone-3.8.1.md)
+
+**Status: Planned. Blocking prerequisite for Milestone 3.9.**
+
+This closure slice binds the artifact, declarations, committed graph, Query
+binding, capability snapshot, host session, runtime execution, and inspection
+surfaces into one application generation before execution-plan lowering builds
+on the 3.8 substrate.
+
+**Must ship**
+
+- one sealed prepared application authority and one active application session
+  that cannot be split into independently launchable runtime and inspection
+  truth
+- inseparable file- and Rust-authored candidate composition through
+  preparation and atomic replacement cutover
+- typed fallible freeze/preparation with no panic for publicly constructible
+  invalid declarations or graph topology
+- operational host-session authority; arbitrary per-turn adapter substitution
+  is mechanically unavailable
+- proof-bearing framework-turn transition planning and policy-family execution
+  beneath one thin close/pump owner
+- deletion of unreachable GPU/theme source and a mechanical production-source
+  reachability gate
+- hostile end-to-end and anti-bypass certification across application, Query,
+  host, allocation, replacement, and inspection generations
+
+**Must preserve**
+
+- canonical artifact meaning, Query-owned binding authority, runtime-owned UI
+  semantics, and host adapters limited to native mechanics
+- invalid replacement preservation of the last complete active generation
+- delta-bounded allocation work with explicit structural counters
+- Query-free and headless paths without unnecessary ceremony
+- no compatibility lane retaining artifact-only launch, split source ingress,
+  decorative host configuration, or infallible public freeze
+
+**Acceptance evidence**
+
+- mixed artifact/declaration/graph/Query/host/application generations are
+  unrepresentable or deny before mutation even when capability digests match
+- active runtime and active inspection report the same generation through
+  launch, ordinary frames, valid replacement, no-op replacement, and denied
+  replacement
+- public invalid input returns typed denial without unwind or partial authority
+  publication
+- framework-turn planning is mutation-free, execution is transactional, and
+  close/pump ownership remains exactly once
+- every production Rust source file participates in a declared compiled module
+  graph and all workspace quality/boundary/certification gates are green
+
 ### Milestone 3.9: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
+
+This slice begins only after Milestone 3.8.1 has closed the application,
+replacement, host-session, and framework-turn composition boundaries.
 
 This slice ensures execution consumes lowered plans instead of reconstructing
 strategy from graph or declaration artifacts every frame.

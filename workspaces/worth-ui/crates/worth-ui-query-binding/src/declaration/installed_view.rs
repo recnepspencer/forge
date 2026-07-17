@@ -87,7 +87,7 @@ impl WorthUiInstalledQueryView {
         &self,
     ) -> Result<
         domain::WorthQueryInstalledDomainReadDeclaration<WorthUiDomainEntry>,
-        read::WorthQueryReadDeclarationStop,
+        Box<read::WorthQueryReadDeclarationStop>,
     > {
         self.installed_domain.handle().measurements()
     }

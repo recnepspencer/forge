@@ -2,7 +2,7 @@ use crate::admission::UiAdmissionTarget;
 use crate::obligations::inspection::{
     UiObligationEvidenceAuthoritySource, UiObligationEvidenceDecision, UiObligationEvidenceHandle,
     UiObligationEvidenceHandleKind, UiObligationEvidencePrerequisiteSource,
-    UiObligationEvidenceRecord, UiObligationNonSelectionReason,
+    UiObligationEvidenceRecord, UiObligationEvidenceRecordInput, UiObligationNonSelectionReason,
 };
 use crate::obligations::prerequisites::UiObligationPrerequisiteEvidenceRef;
 use crate::obligations::selection::UiSelectedObligationSet;
@@ -16,25 +16,29 @@ pub(crate) fn selected_obligation_evidence_records(
         .obligations()
         .iter()
         .map(|obligation| {
-            UiObligationEvidenceRecord::new(
-                obligation.evidence_handle(),
-                UiObligationEvidenceAuthoritySource::SelectedObligationSet,
-                selected.identity_digest(),
-                selected.touch().target().graph_node_identity().digest(),
-                Some(selected.touch().identity_digest()),
-                Some(obligation.family()),
-                UiObligationEvidenceDecision::Selected,
-                None,
-                None,
-                None,
-                obligation.selection_reasons().to_vec().into_boxed_slice(),
-                prerequisite_sources_from_refs(obligation.prerequisite_evidence_refs())
-                    .into_boxed_slice(),
-                query_prerequisite_evidence_from_refs(obligation.prerequisite_evidence_refs())
-                    .into_boxed_slice(),
-                None,
-                None,
-            )
+            UiObligationEvidenceRecord::new(UiObligationEvidenceRecordInput {
+                handle: obligation.evidence_handle(),
+                authority_source: UiObligationEvidenceAuthoritySource::SelectedObligationSet,
+                authority_digest: selected.identity_digest(),
+                graph_node_digest: selected.touch().target().graph_node_identity().digest(),
+                touch_identity_digest: Some(selected.touch().identity_digest()),
+                family: Some(obligation.family()),
+                decision: UiObligationEvidenceDecision::Selected,
+                dispatch_posture: None,
+                verdict_posture: None,
+                denial_posture: None,
+                selection_reasons: obligation.selection_reasons().to_vec().into_boxed_slice(),
+                prerequisite_sources: prerequisite_sources_from_refs(
+                    obligation.prerequisite_evidence_refs(),
+                )
+                .into_boxed_slice(),
+                query_prerequisite_evidence: query_prerequisite_evidence_from_refs(
+                    obligation.prerequisite_evidence_refs(),
+                )
+                .into_boxed_slice(),
+                non_selection_reason: None,
+                legality_reason: None,
+            })
         })
         .collect()
 }
@@ -52,23 +56,30 @@ pub(crate) fn not_selected_obligation_evidence_record(
         ^ (family as u64).rotate_left(11)
         ^ (ordinal as u64).rotate_left(29);
 
-    UiObligationEvidenceRecord::new(
-        UiObligationEvidenceHandle::new(UiObligationEvidenceHandleKind::NotSelected, handle_seed),
-        UiObligationEvidenceAuthoritySource::SelectedObligationSet,
+    UiObligationEvidenceRecord::new(UiObligationEvidenceRecordInput {
+        handle: UiObligationEvidenceHandle::new(
+            UiObligationEvidenceHandleKind::NotSelected,
+            handle_seed,
+        ),
+        authority_source: UiObligationEvidenceAuthoritySource::SelectedObligationSet,
         authority_digest,
-        touch.target().graph_node_identity().digest(),
-        Some(touch.identity_digest()),
-        Some(family),
-        UiObligationEvidenceDecision::NotSelected,
-        None,
-        None,
-        None,
+        graph_node_digest: touch.target().graph_node_identity().digest(),
+        touch_identity_digest: Some(touch.identity_digest()),
+        family: Some(family),
+        decision: UiObligationEvidenceDecision::NotSelected,
+        dispatch_posture: None,
+        verdict_posture: None,
+        denial_posture: None,
         selection_reasons,
-        prerequisite_sources_from_refs(prerequisite_evidence_refs).into_boxed_slice(),
-        query_prerequisite_evidence_from_refs(prerequisite_evidence_refs).into_boxed_slice(),
-        Some(non_selection_reason),
-        None,
-    )
+        prerequisite_sources: prerequisite_sources_from_refs(prerequisite_evidence_refs)
+            .into_boxed_slice(),
+        query_prerequisite_evidence: query_prerequisite_evidence_from_refs(
+            prerequisite_evidence_refs,
+        )
+        .into_boxed_slice(),
+        non_selection_reason: Some(non_selection_reason),
+        legality_reason: None,
+    })
 }
 
 pub(crate) fn prerequisite_sources_from_target(

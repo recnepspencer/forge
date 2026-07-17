@@ -17,6 +17,7 @@ mod runtime_instance_accessors;
 mod runtime_instance_test_support;
 mod seal_artifact;
 mod staging_transition;
+pub use staging_transition::WorthUiActivationStagingPlans;
 
 pub use launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
 pub use lifecycle_state::{

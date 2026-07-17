@@ -8,6 +8,7 @@ mod hash_fold;
 mod reuse;
 
 pub use basis::WorthUiExecutionPlanEquivalenceBasis;
+pub(crate) use basis::WorthUiExecutionPlanEquivalenceBasisInput;
 pub use counters::WorthUiExecutionPlanEquivalenceCounters;
 pub use digest::WorthUiExecutionPlanDigest;
 pub(crate) use digestor::WorthUiExecutionPlanDigestor;

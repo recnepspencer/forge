@@ -17,17 +17,29 @@ pub struct UiDeclarationStructuralSemantics {
     repetition_posture: UiDeclarationRepetitionPosture,
 }
 
+pub(crate) struct UiDeclarationStructuralSemanticsInput {
+    pub(crate) family_kind: UiDeclarationFamilyKind,
+    pub(crate) role: UiDeclarationStructuralRole,
+    pub(crate) operator_kind: UiDeclarationPlanningOperatorKind,
+    pub(crate) mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
+    pub(crate) containment_intent: UiDeclarationContainmentIntent,
+    pub(crate) slot_participation_intent: UiDeclarationSlotParticipationIntent,
+    pub(crate) ordering_guarantee: UiDeclarationOrderingGuarantee,
+    pub(crate) repetition_posture: UiDeclarationRepetitionPosture,
+}
+
 impl UiDeclarationStructuralSemantics {
-    pub(crate) fn new(
-        family_kind: UiDeclarationFamilyKind,
-        role: UiDeclarationStructuralRole,
-        operator_kind: UiDeclarationPlanningOperatorKind,
-        mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
-        containment_intent: UiDeclarationContainmentIntent,
-        slot_participation_intent: UiDeclarationSlotParticipationIntent,
-        ordering_guarantee: UiDeclarationOrderingGuarantee,
-        repetition_posture: UiDeclarationRepetitionPosture,
-    ) -> Self {
+    pub(crate) fn new(input: UiDeclarationStructuralSemanticsInput) -> Self {
+        let UiDeclarationStructuralSemanticsInput {
+            family_kind,
+            role,
+            operator_kind,
+            mosaic_sizing_contract_id,
+            containment_intent,
+            slot_participation_intent,
+            ordering_guarantee,
+            repetition_posture,
+        } = input;
         Self {
             family_kind,
             role,

@@ -3,17 +3,17 @@ use super::UiCommittedAllocationSuccessors;
 
 pub(crate) enum UiCommittedAllocationPreflightDenial {
     ActivationGate {
-        denial: crate::runtime::WorthUiActivationGateDenial,
-        counters: super::UiCommittedAllocationActivationCounters,
+        denial: Box<crate::runtime::WorthUiActivationGateDenial>,
+        counters: Box<super::UiCommittedAllocationActivationCounters>,
     },
     CandidatePlanDigestMismatch {
-        counters: super::UiCommittedAllocationActivationCounters,
+        counters: Box<super::UiCommittedAllocationActivationCounters>,
     },
     LedgerCommittedOutcomeMismatch {
-        counters: super::UiCommittedAllocationActivationCounters,
+        counters: Box<super::UiCommittedAllocationActivationCounters>,
     },
     CounterExhausted {
-        counters: super::UiCommittedAllocationActivationCounters,
+        counters: Box<super::UiCommittedAllocationActivationCounters>,
         exhaustion: super::UiCommittedAllocationActivationCounterExhaustion,
     },
 }
@@ -58,12 +58,17 @@ pub(super) fn preflight_committed_allocation(
         boundary,
         runtime_frame_epoch,
     )
-    .map_err(|denial| UiCommittedAllocationPreflightDenial::ActivationGate { denial, counters })?;
+    .map_err(
+        |denial| UiCommittedAllocationPreflightDenial::ActivationGate {
+            denial: Box::new(denial),
+            counters: Box::new(counters),
+        },
+    )?;
     counters
         .record_active_successor_build()
         .map_err(
             |exhaustion| UiCommittedAllocationPreflightDenial::CounterExhausted {
-                counters,
+                counters: Box::new(counters),
                 exhaustion,
             },
         )?;
@@ -72,19 +77,23 @@ pub(super) fn preflight_committed_allocation(
     let payload =
         PreparedActiveSuccessor::prepare(ready, candidate_plan_digest, active.snapshot_digest())
             .map_err(
-                |_| UiCommittedAllocationPreflightDenial::CandidatePlanDigestMismatch { counters },
+                |_| UiCommittedAllocationPreflightDenial::CandidatePlanDigestMismatch {
+                    counters: Box::new(counters),
+                },
             )?;
     let previous = active.observation();
     let (next_active, ledger_transition, committed) =
         prepare_active_successor(active, payload, runtime_frame_epoch);
     if &committed != ledger_transition.committed_outcome() {
         return Err(
-            UiCommittedAllocationPreflightDenial::LedgerCommittedOutcomeMismatch { counters },
+            UiCommittedAllocationPreflightDenial::LedgerCommittedOutcomeMismatch {
+                counters: Box::new(counters),
+            },
         );
     }
     counters.record_live_mutation().map_err(|exhaustion| {
         UiCommittedAllocationPreflightDenial::CounterExhausted {
-            counters,
+            counters: Box::new(counters),
             exhaustion,
         }
     })?;
@@ -109,9 +118,9 @@ impl UiPreflightedCommittedAllocationTransaction {
             'runtime,
             crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
         >,
-    ) -> Result<UiCommitTruthResources<'runtime>, Self> {
+    ) -> Result<UiCommitTruthResources<'runtime>, Box<Self>> {
         let Some(ledger_commit) = ledger.prepare_catalog_commit(&self.ledger_transition) else {
-            return Err(self);
+            return Err(Box::new(self));
         };
         Ok(UiCommitTruthResources {
             transaction: self,

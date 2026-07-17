@@ -73,26 +73,28 @@ pub(super) fn lane_narrowing_for(
     identity_report: &WorthUiIdentityMatchReport,
 ) -> WorthUiRuntimeImpactNarrowing {
     WorthUiRuntimeImpactNarrowing::new(
-        identity_report.active_artifact_digest(),
-        identity_report.candidate_artifact_digest(),
-        vec![module_id("app/main.wui")],
-        identity_report
-            .graph()
-            .active_nodes()
-            .iter()
-            .map(|node| node.handle().clone())
-            .collect(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        WorthUiAccessibilityInvalidation::unchanged(),
-        Vec::new(),
-        Vec::new(),
-        Some(WorthUiLaneImpactClassification::LaneAffecting {
-            reason: "test-lane-change",
-        }),
-        identity_report.graph().active_node_count(),
-        WorthUiImpactLookupCounters::default(),
+        crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrowingInput {
+            active_artifact_digest: identity_report.active_artifact_digest(),
+            candidate_artifact_digest: identity_report.candidate_artifact_digest(),
+            affected_source_modules: vec![module_id("app/main.wui")],
+            affected_handles: identity_report
+                .graph()
+                .active_nodes()
+                .iter()
+                .map(|node| node.handle().clone())
+                .collect(),
+            affected_subtree_digests: Vec::new(),
+            command_binding_invalidations: Vec::new(),
+            token_invalidations: Vec::new(),
+            accessibility_invalidation: WorthUiAccessibilityInvalidation::unchanged(),
+            renderer_resource_invalidations: Vec::new(),
+            query_dependency_invalidations: Vec::new(),
+            lane_impact: Some(WorthUiLaneImpactClassification::LaneAffecting {
+                reason: "test-lane-change",
+            }),
+            full_artifact_handle_count: identity_report.graph().active_node_count(),
+            counters: WorthUiImpactLookupCounters::default(),
+        },
     )
 }
 
@@ -100,21 +102,23 @@ pub(super) fn empty_lane_narrowing_for(
     identity_report: &WorthUiIdentityMatchReport,
 ) -> WorthUiRuntimeImpactNarrowing {
     WorthUiRuntimeImpactNarrowing::new(
-        identity_report.active_artifact_digest(),
-        identity_report.candidate_artifact_digest(),
-        vec![module_id("app/main.wui")],
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        WorthUiAccessibilityInvalidation::unchanged(),
-        Vec::new(),
-        Vec::new(),
-        Some(WorthUiLaneImpactClassification::LaneAffecting {
-            reason: "test-lane-change",
-        }),
-        identity_report.graph().active_node_count(),
-        WorthUiImpactLookupCounters::default(),
+        crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrowingInput {
+            active_artifact_digest: identity_report.active_artifact_digest(),
+            candidate_artifact_digest: identity_report.candidate_artifact_digest(),
+            affected_source_modules: vec![module_id("app/main.wui")],
+            affected_handles: Vec::new(),
+            affected_subtree_digests: Vec::new(),
+            command_binding_invalidations: Vec::new(),
+            token_invalidations: Vec::new(),
+            accessibility_invalidation: WorthUiAccessibilityInvalidation::unchanged(),
+            renderer_resource_invalidations: Vec::new(),
+            query_dependency_invalidations: Vec::new(),
+            lane_impact: Some(WorthUiLaneImpactClassification::LaneAffecting {
+                reason: "test-lane-change",
+            }),
+            full_artifact_handle_count: identity_report.graph().active_node_count(),
+            counters: WorthUiImpactLookupCounters::default(),
+        },
     )
 }
 
@@ -122,24 +126,26 @@ pub(super) fn narrowing_for(
     identity_report: &WorthUiIdentityMatchReport,
 ) -> WorthUiRuntimeImpactNarrowing {
     WorthUiRuntimeImpactNarrowing::new(
-        identity_report.active_artifact_digest(),
-        identity_report.candidate_artifact_digest(),
-        vec![module_id("app/main.wui")],
-        identity_report
-            .graph()
-            .active_nodes()
-            .iter()
-            .map(|node| node.handle().clone())
-            .collect(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        WorthUiAccessibilityInvalidation::unchanged(),
-        Vec::new(),
-        Vec::new(),
-        None,
-        identity_report.graph().active_node_count(),
-        WorthUiImpactLookupCounters::default(),
+        crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrowingInput {
+            active_artifact_digest: identity_report.active_artifact_digest(),
+            candidate_artifact_digest: identity_report.candidate_artifact_digest(),
+            affected_source_modules: vec![module_id("app/main.wui")],
+            affected_handles: identity_report
+                .graph()
+                .active_nodes()
+                .iter()
+                .map(|node| node.handle().clone())
+                .collect(),
+            affected_subtree_digests: Vec::new(),
+            command_binding_invalidations: Vec::new(),
+            token_invalidations: Vec::new(),
+            accessibility_invalidation: WorthUiAccessibilityInvalidation::unchanged(),
+            renderer_resource_invalidations: Vec::new(),
+            query_dependency_invalidations: Vec::new(),
+            lane_impact: None,
+            full_artifact_handle_count: identity_report.graph().active_node_count(),
+            counters: WorthUiImpactLookupCounters::default(),
+        },
     )
 }
 
@@ -148,19 +154,21 @@ pub(super) fn narrowing_for_identity(
     identity_basis: &str,
 ) -> WorthUiRuntimeImpactNarrowing {
     WorthUiRuntimeImpactNarrowing::new(
-        identity_report.active_artifact_digest(),
-        identity_report.candidate_artifact_digest(),
-        vec![module_id("app/main.wui")],
-        vec![active_handle_for_identity(identity_report, identity_basis)],
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        WorthUiAccessibilityInvalidation::unchanged(),
-        Vec::new(),
-        Vec::new(),
-        None,
-        identity_report.graph().active_node_count(),
-        WorthUiImpactLookupCounters::default(),
+        crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrowingInput {
+            active_artifact_digest: identity_report.active_artifact_digest(),
+            candidate_artifact_digest: identity_report.candidate_artifact_digest(),
+            affected_source_modules: vec![module_id("app/main.wui")],
+            affected_handles: vec![active_handle_for_identity(identity_report, identity_basis)],
+            affected_subtree_digests: Vec::new(),
+            command_binding_invalidations: Vec::new(),
+            token_invalidations: Vec::new(),
+            accessibility_invalidation: WorthUiAccessibilityInvalidation::unchanged(),
+            renderer_resource_invalidations: Vec::new(),
+            query_dependency_invalidations: Vec::new(),
+            lane_impact: None,
+            full_artifact_handle_count: identity_report.graph().active_node_count(),
+            counters: WorthUiImpactLookupCounters::default(),
+        },
     )
 }
 
@@ -188,14 +196,16 @@ fn impact_for(
     impact: WorthUiReplacementImpact,
 ) -> WorthUiReplacementImpactClassification {
     WorthUiReplacementImpactClassification::new(
-        identity_report.active_artifact_digest(),
-        identity_report.candidate_artifact_digest(),
-        impact,
-        crate::runtime::WorthUiCommandImpact::Unchanged,
-        WorthUiTokenThemeImpact::Unchanged,
-        WorthUiAccessibilityImpact::Unchanged,
-        crate::runtime::WorthUiRendererResourceImpact::Unchanged,
-        WorthUiReplacementImpactCounters::default(),
+        crate::runtime::replacement::impact::WorthUiReplacementImpactClassificationInput {
+            active_artifact_digest: identity_report.active_artifact_digest(),
+            candidate_artifact_digest: identity_report.candidate_artifact_digest(),
+            impact,
+            command_impact: crate::runtime::WorthUiCommandImpact::Unchanged,
+            token_theme_impact: WorthUiTokenThemeImpact::Unchanged,
+            accessibility_impact: WorthUiAccessibilityImpact::Unchanged,
+            renderer_resource_impact: crate::runtime::WorthUiRendererResourceImpact::Unchanged,
+            counters: WorthUiReplacementImpactCounters::default(),
+        },
     )
 }
 

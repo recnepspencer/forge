@@ -23,6 +23,7 @@ pub use denial::{
     WorthUiRealtimeFrameDenialReason,
 };
 pub use frame_receipt::WorthUiRealtimeFrameReceipt;
+pub(crate) use frame_receipt::WorthUiRealtimeFrameReceiptInput;
 pub use frame_target::WorthUiRealtimeFrameTarget;
 pub use high_frequency_frame_policy::{
     WorthUiHighFrequencyFramePolicy, WorthUiHighFrequencyFramePolicyDenial,
@@ -30,6 +31,7 @@ pub use high_frequency_frame_policy::{
 };
 pub use hud_node::WorthUiHudNode;
 pub use hud_plan::WorthUiHudPlan;
+pub(crate) use hud_plan::WorthUiHudPlanInput;
 pub use lane::WorthUiRealtimeOverlayLane;
 pub use overlay_hook::WorthUiRealtimeOverlayHook;
 pub use renderer_surface_admission::WorthUiRendererSurfaceAdmission;

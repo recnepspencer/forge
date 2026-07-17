@@ -9,7 +9,7 @@ pub(crate) enum UiAllocationFrameTurnOutcome {
         counters: UiAllocationFrameDispatcherCounters,
     },
     DownstreamBackpressured {
-        sealed_frame: UiAdmittedAllocationStreamFrame,
+        sealed_frame: Box<UiAdmittedAllocationStreamFrame>,
     },
     Denied {
         denial: UiAllocationFrameDispatchDenial,

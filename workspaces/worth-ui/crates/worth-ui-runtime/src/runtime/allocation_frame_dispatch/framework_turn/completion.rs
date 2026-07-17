@@ -63,16 +63,16 @@ pub enum WorthUiFrameworkTurnCompletion<'runtime> {
 pub enum WorthUiPreviewPaintFollowOn {
     PreviewOnly,
     DurableResizeCommitted {
-        outcome: crate::runtime::UiDurableResizeCommitOutcome,
-        selection: crate::graph::UiAdmittedReplanNeighborhoodSet,
+        outcome: Box<crate::runtime::UiDurableResizeCommitOutcome>,
+        selection: Box<crate::graph::UiAdmittedReplanNeighborhoodSet>,
     },
     DurableResizeDenied {
-        report: crate::runtime::UiDurableResizeCommitDenialReport,
-        selection: crate::graph::UiAdmittedReplanNeighborhoodSet,
+        report: Box<crate::runtime::UiDurableResizeCommitDenialReport>,
+        selection: Box<crate::graph::UiAdmittedReplanNeighborhoodSet>,
     },
     DurableResizeSuppressedByPreviewIsolation {
         violation: crate::runtime::UiPreviewPaintIsolationViolation,
-        selection: crate::graph::UiAdmittedReplanNeighborhoodSet,
+        selection: Box<crate::graph::UiAdmittedReplanNeighborhoodSet>,
     },
 }
 
@@ -144,37 +144,37 @@ impl<'runtime> WorthUiPendingDurableResize<'runtime> {
         match transaction {
             crate::runtime::UiAllocationReplanTransactionOutcome::Committed(committed) => {
                 WorthUiPreviewPaintFollowOn::DurableResizeCommitted {
-                    outcome: crate::runtime::UiDurableResizeCommitOutcome::new(
+                    outcome: Box::new(crate::runtime::UiDurableResizeCommitOutcome::new(
                         self.extent,
                         committed,
                         durable_state.expect("committed drag owns activated semantic state"),
                         mutated,
                         false,
-                    ),
-                    selection: self.selection,
+                    )),
+                    selection: Box::new(self.selection),
                 }
             }
             crate::runtime::UiAllocationReplanTransactionOutcome::Replayed(committed) => {
                 WorthUiPreviewPaintFollowOn::DurableResizeCommitted {
-                    outcome: crate::runtime::UiDurableResizeCommitOutcome::new(
+                    outcome: Box::new(crate::runtime::UiDurableResizeCommitOutcome::new(
                         self.extent,
                         committed,
                         durable_state.expect("replayed drag owns activated semantic state"),
                         false,
                         true,
-                    ),
-                    selection: self.selection,
+                    )),
+                    selection: Box::new(self.selection),
                 }
             }
             crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial) => {
                 WorthUiPreviewPaintFollowOn::DurableResizeDenied {
-                    report: crate::runtime::UiDurableResizeCommitDenialReport::new(
+                    report: Box::new(crate::runtime::UiDurableResizeCommitDenialReport::new(
                         denial,
                         self.identity,
                         self.extent,
                         frame_epoch,
-                    ),
-                    selection: self.selection,
+                    )),
+                    selection: Box::new(self.selection),
                 }
             }
         }
@@ -182,10 +182,10 @@ impl<'runtime> WorthUiPendingDurableResize<'runtime> {
 }
 
 impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
-    pub fn into_execution(self) -> Result<WorthUiFrameworkTurnExecution<'runtime>, Self> {
+    pub fn into_execution(self) -> Result<WorthUiFrameworkTurnExecution<'runtime>, Box<Self>> {
         match self {
             Self::ReadyToExecute { execution } => Ok(execution),
-            other => Err(other),
+            other => Err(Box::new(other)),
         }
     }
     pub fn narrowed_plan(&self) -> Option<&crate::runtime::UiNarrowedAllocationFramePlan> {
@@ -213,6 +213,21 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
             _ => None,
         }
     }
+    pub fn denied_replan_inspection(
+        &self,
+    ) -> Option<worth_ui_inspection::UiAllocationInspectionDeniedAttempt> {
+        let Self::AllocationInvalidationsNarrowed {
+            plan,
+            selection,
+            transaction: crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial),
+        } = self
+        else {
+            return None;
+        };
+        Some(crate::evidence::project_denied_replan_inspection(
+            plan, selection, denial,
+        ))
+    }
     pub fn viewport_resize_outcome(&self) -> Option<&crate::runtime::UiViewportResizeOutcome> {
         match self {
             Self::ViewportResizeResolved { outcome } => Some(outcome),
@@ -228,13 +243,13 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
     pub fn resolve_preview_paint(
         self,
         host: &mut impl crate::host::WorthUiPreviewPaintHost,
-    ) -> Result<WorthUiResolvedPreviewPaintCompletion, Self> {
+    ) -> Result<WorthUiResolvedPreviewPaintCompletion, Box<Self>> {
         self.finish_preview(|input| input.consume(host))
     }
     pub fn discard_preview_paint(
         self,
         reason: crate::host::UiHostPreviewDiscardReason,
-    ) -> Result<WorthUiResolvedPreviewPaintCompletion, Self> {
+    ) -> Result<WorthUiResolvedPreviewPaintCompletion, Box<Self>> {
         self.finish_preview(|input| input.discard(reason))
     }
     fn finish_preview(
@@ -242,7 +257,7 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
         finish: impl FnOnce(
             crate::host::UiHostPreviewPaintInput,
         ) -> crate::host::UiHostPreviewPaintDisposition,
-    ) -> Result<WorthUiResolvedPreviewPaintCompletion, Self> {
+    ) -> Result<WorthUiResolvedPreviewPaintCompletion, Box<Self>> {
         match self {
             Self::ResizePreviewPublished { pending } => {
                 let (disposition, isolation) = pending.finish(finish);
@@ -259,7 +274,7 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
                     crate::runtime::UiPreviewPaintIsolationOutcome::Violated(violation) => {
                         WorthUiPreviewPaintFollowOn::DurableResizeSuppressedByPreviewIsolation {
                             violation,
-                            selection: durable.selection,
+                            selection: Box::new(durable.selection),
                         }
                     }
                 };
@@ -269,7 +284,7 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
                     follow_on,
                 })
             }
-            other => Err(other),
+            other => Err(Box::new(other)),
         }
     }
 }
@@ -289,7 +304,7 @@ impl WorthUiPreviewPaintFollowOn {
     pub fn durable_resize_outcome(&self) -> Option<&crate::runtime::UiDurableResizeCommitOutcome> {
         match self {
             Self::PreviewOnly => None,
-            Self::DurableResizeCommitted { outcome, .. } => Some(outcome),
+            Self::DurableResizeCommitted { outcome, .. } => Some(outcome.as_ref()),
             Self::DurableResizeDenied { .. } => None,
             Self::DurableResizeSuppressedByPreviewIsolation { .. } => None,
         }
@@ -298,16 +313,18 @@ impl WorthUiPreviewPaintFollowOn {
         &self,
     ) -> Option<&crate::runtime::UiDurableResizeCommitDenialReport> {
         match self {
-            Self::DurableResizeDenied { report, .. } => Some(report),
+            Self::DurableResizeDenied { report, .. } => Some(report.as_ref()),
             _ => None,
         }
     }
     pub fn replan_selection(&self) -> Option<&crate::graph::UiAdmittedReplanNeighborhoodSet> {
         match self {
             Self::PreviewOnly => None,
-            Self::DurableResizeCommitted { selection, .. } => Some(selection),
-            Self::DurableResizeDenied { selection, .. } => Some(selection),
-            Self::DurableResizeSuppressedByPreviewIsolation { selection, .. } => Some(selection),
+            Self::DurableResizeCommitted { selection, .. } => Some(selection.as_ref()),
+            Self::DurableResizeDenied { selection, .. } => Some(selection.as_ref()),
+            Self::DurableResizeSuppressedByPreviewIsolation { selection, .. } => {
+                Some(selection.as_ref())
+            }
         }
     }
 }

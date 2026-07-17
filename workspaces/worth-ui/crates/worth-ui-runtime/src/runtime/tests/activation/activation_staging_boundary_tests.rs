@@ -97,9 +97,11 @@ fn staging_does_not_mutate_active_runtime_state() {
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation_plan),
-            None,
-            Some(&pending_execution_plan_lowering_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation_plan),
+                None,
+                Some(&pending_execution_plan_lowering_input),
+            ),
         )
         .expect_err("missing query rebind denies");
 

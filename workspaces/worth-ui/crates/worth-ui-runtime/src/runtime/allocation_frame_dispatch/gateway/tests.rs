@@ -137,18 +137,19 @@ fn interaction_gateway_reaches_only_the_framework_turn_capability() {
 #[test]
 fn gateway_admission_is_bounded_by_dispatcher_transport_backpressure() {
     let mut framework = framework_from_artifact(empty_artifact());
-    let mut admission = framework.interaction_admission();
-    let admitted = (0..=64)
-        .map(|_| {
-            admission
-                .admit(
-                    UiGraphNodeIdentity::new(7),
-                    WorthUiTransientInteractionState::DragCapture,
-                )
-                .expect("interaction source should admit")
-        })
-        .collect::<Vec<_>>();
-    drop(admission);
+    let admitted = {
+        let mut admission = framework.interaction_admission();
+        (0..=64)
+            .map(|_| {
+                admission
+                    .admit(
+                        UiGraphNodeIdentity::new(7),
+                        WorthUiTransientInteractionState::DragCapture,
+                    )
+                    .expect("interaction source should admit")
+            })
+            .collect::<Vec<_>>()
+    };
     let mut overflow = None;
     run_framework_turn(&mut framework, |turn| {
         for admitted in admitted.iter().copied().take(64) {

@@ -10,7 +10,9 @@ mod structural_semantics;
 mod support;
 
 pub(crate) use artifact::ui_declaration_lowering::UiDeclarationLowering;
-pub(crate) use artifact::{authored_source_provenance_digest, stable_text_digest};
+pub(crate) use artifact::{
+    authored_source_provenance_digest, stable_text_digest, UiDeclarationArtifactInput,
+};
 pub use artifact::{
     UiDeclarationArtifact, UiDeclarationArtifactDigest, UiDeclarationAspectDigest,
     UiDeclarationDigestProjection, UiDeclarationEquivalenceContract, UiDeclarationFamilyDigest,
@@ -52,12 +54,14 @@ pub(crate) use measurement_dependency::declared_query_measurement_dependencies;
 pub use measurement_dependency::{
     UiDeclaredMeasurementBasisRequirementSet, UiDeclaredMeasurementQueryDependencySet,
 };
-pub(crate) use structural_semantics::UiDeclarationStructuralSemanticsAdmission;
 pub use structural_semantics::{
     UiDeclarationContainmentIntent, UiDeclarationOrderingGuarantee,
     UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,
     UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
     UiDeclarationStructuralSemantics, UiDeclarationStructuralSemanticsAdmissionDenial,
+};
+pub(crate) use structural_semantics::{
+    UiDeclarationStructuralSemanticsAdmission, UiDeclarationStructuralSemanticsInput,
 };
 pub(crate) use support::{
     derive_declaration_inspection_support_projection, UiDeclarationInspectionSupportProjection,

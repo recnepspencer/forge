@@ -16,7 +16,7 @@ pub(super) fn duplicate_identity_denial<T>(
                 identity_basis,
                 first_node_summary,
                 second_node_summary,
-                counters: *counters,
+                counters: Box::new(*counters),
             })
         }
         WorthUiIdentityMatchNodeSide::Candidate => {
@@ -25,7 +25,7 @@ pub(super) fn duplicate_identity_denial<T>(
                 identity_basis,
                 first_node_summary,
                 second_node_summary,
-                counters: *counters,
+                counters: Box::new(*counters),
             })
         }
     }
