@@ -5,6 +5,7 @@ Framework-agnostic browser bindings for Worth Signal.
 `worth-signals-wasm` gives you one package for three jobs:
 
 - local reactive app state
+- process-local application truth with declared aspect branches and manual merge
 - API-backed resource state
 - browser and framework integration around that state
 
@@ -55,12 +56,16 @@ scripts/wasm/publish-worth-signals-wasm.ps1 -SkipPublish
   persistence
 - runtime diagnostics, history, replay, branching, merge planning, and exact
   graph restore
+- explicit local-truth branches with stale-basis denial, per-aspect conflict
+  review, and authority-issued manual resolution
 - lower-level compatibility surfaces for advanced and migration-oriented use
 
 ## Where To Start
 
 - If you want local app state, start with the examples below and then read
   [App Surface Reference](./docs/app-surface/overview.md).
+- If you need browser-local application branches and manual merge, start with
+  [Branch Merge And Manual Resolution](./docs/local-truth/branch-merge.md).
 - If you want API-backed state, jump to
   [API Resources Overview](./docs/resources/overview.md).
 - If you want package setup and local package workflow, start with

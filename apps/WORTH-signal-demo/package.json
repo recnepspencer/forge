@@ -8,15 +8,15 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test:demo5": "node --test tests/demo_five_concurrency.test.mjs",
+    "test:demo6": "node --experimental-wasm-modules --test tests/demo_six_aspect_merge.test.mjs tests/demo_six_code_evidence.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@WORTH/signal": "file:../../packages/worth-signal",
     "@tanstack/react-query": "^5.100.14",
     "@types/three": "^0.184.1",
     "flubber": "^0.4.2",
-    "worth-signals-wasm": "1.2.0",
+    "worth-signals-wasm": "file:../../crates/worth-signal-wasm/pkg",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "react": "^19.2.4",

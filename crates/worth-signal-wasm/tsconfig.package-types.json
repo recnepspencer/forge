@@ -28,6 +28,7 @@
     "./package/feature-store-types-smoke.ts",
     "./package/runtime-contract-types-smoke.ts",
     "./package/resource-types-smoke.ts",
-    "./package/worker-first-callback-types-smoke.ts"
+    "./package/worker-first-callback-types-smoke.ts",
+    "./package/local-truth-types-smoke.ts"
   ]
 }

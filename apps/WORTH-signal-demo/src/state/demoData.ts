@@ -135,11 +135,11 @@ channel.on("collaboration", (event) => {
   });
 });
 
-// Ã¢â‚¬Â¦the runtime decides what it means for this client
+// The runtime decides what it means for this client.
 form.fieldWritePosture("limit");
-// Ã¢â€ â€™ { canWrite: false, collaborator: "...", reason: "..." }
+// => { canWrite: false, collaborator: "...", reason: "..." }
 form.readiness();
-// Ã¢â€ â€™ blocked only if YOUR patch plan touches a leased field`,
+// => blocked only if YOUR patch plan touches a leased field`,
     alternativeName: "React Hook Form + socket glue",
     alternativeCode: `const form = useForm({ values: policy });
 
@@ -287,47 +287,41 @@ line.effects().projection();    // the derived visible fold Ã¢â‚¬â€ r
   },
   {
     id: 6,
-    title: "Route-Coupled Resource Form",
-    purpose: "Show the first stacked composed example linking routes, resources, and forms.",
-    preface: "This is the adapter-tax demo. TanStack, Formik, and a router are not the problem; the problem is the layer you write to translate query status into form status, mutation status into route-leave rules, server results into cache patches, and lifecycle events into toasts. The Worth block shows the same workflow when those contracts already line up.",
+    title: "Merge Aspects, Not Objects",
+    purpose: "Two branches edit one gear. Worth merges them aspect by aspect against the fork basis — disjoint edits compose themselves, and a real collision becomes one decision.",
+    preface: "Branching is the easy part. Deciding what a merge means is where most state management gives up and hands you last-write-wins. Here, every commit names the exact aspects it changed — thickness, gear count, hole size — so the runtime can compare each aspect to the basis both branches forked from. Different aspects? They merge without a question. The same aspect on both sides? You get a review with both values, and nothing is overwritten silently. Every commit stays inspectable afterward, and the code on this page is the production source, excerpted live.",
     difficulty: "Advanced",
-    primaryMessage: "Worth primitives compose into workflows without requiring a separate orchestration layer.",
-    WORTHCode: `// Combine Routing + Resources + Forms in a single flow
-const routes = signals.router.define({
-  detail: signals.router.route("/tasks/:taskId"),
-  edit: signals.router.route("/tasks/:taskId/edit")
+    primaryMessage: "Declared aspects make merges mechanical: disjoint edits compose, collisions become one decision.",
+    WORTHCode: `const branch = await gearTruth.forkBranch({
+  parentBranchId: main.id,
+  expectedParentBasis: main.basis,
+  name: "Design branch",
 });
 
-const taskDetail = api.url("/tasks/:taskId").detail({
-  load: ({ taskId }) => fetchTask(taskId)
+await gearTruth.commit({
+  branchId: branch.id,
+  expectedBasis: branch.basis,
+  operations: gearChanges,
 });
 
-// Backing form directly with the resource line
-const form = signals.form({
-  source: taskDetail.line({ taskId }).toSource(),
-  fields: ({ field }) => ({
-    title: field("title"),
-    status: field("status")
-  })
-});`,
-    alternativeName: "React Router + Formik + React Query",
-    alternativeCode: `// Requires complex useEffect chains to map query fields
-// into Formik initial values, along with search param triggers
-useEffect(() => {
-  if (query.data) {
-    formik.setValues(query.data);
-  }
-}, [query.data]);
-
-// Dynamic route checking needed to prevent unsaved changes`,
-    explanationAlternative: "High coordination debt. Demands fragile useEffect syncer loops, manual dirty caches inside routers to blocks exits, and context bridging.",
-    explanationWORTH: "Primitives align naturally. Form binds natively to Resource Lines, and the route admission process checks form.readiness to intercept unsaved departures.",
+const review = await gearTruth.previewMerge(mergeRequest);
+await gearTruth.resolveMerge({ reviewId: review.id, selections: [] });`,
+    alternativeName: "UI-owned object merge",
+    alternativeCode: `// The component becomes the truth authority.
+const merged = {
+  ...target,
+  teeth: chooseSource ? source.teeth : target.teeth,
+};
+setState(merged);`,
+    explanationAlternative: "The component decides the merged values itself. It has no record of the basis either side started from, so it cannot tell a deliberate change from a stale overwrite — and after setState, no evidence remains that a merge happened at all.",
+    explanationWORTH: "A process-local TypeScript authority owns the branches, the aspect commits, merge admission, and the atomic merge commit. Everything on the page — values, conflicts, history, the signal projection strip — is read back from that authority, not composed in React.",
     whatYouGet: [
-      "Zero-glue form + resource + router bindings",
-      "Auto-warming resource lines on route transition",
-      "Preserved draft continuity between routes",
-      "Dynamic route exit validation guards"
+      "Two writable branches forked from one basis",
+      "One-aspect commits: release a slider, commit one locus",
+      "Merges that only ask about true collisions — with both values shown",
+      "A commit graph where every node is a sealed, inspectable snapshot",
+      "A live Signal projection receipt — its native basis digest advances with every commit"
     ],
-    relatedDocsPath: "forms/route-coupling/route-authority-handoff"
+    relatedDocsPath: "local-truth/branch-merge"
   }
 ];

@@ -1,8 +1,10 @@
 export const productSourceTreeNames = Object.freeze([
   "api",
+  "authoring",
   "feature_store",
   "forms",
   "local",
+  "local_truth",
   "route",
   "resource",
   "router",
@@ -96,6 +98,7 @@ export const productFilesToCopy = Object.freeze([
   ["product/linked_definition.ts", "product/linked_definition.js"],
   ["product/output_projection_ids.ts", "product/output_projection_ids.js"],
   ["product/public_inputs.ts", "product/public_inputs.js"],
+  ["product/public_helpers.ts", "product/public_helpers.js"],
   ["product/reserved_authoring_ids.ts", "product/reserved_authoring_ids.js"],
   ["product/runtime_contract.ts", "product/runtime_contract.js"],
   ["product/scopes.ts", "product/scopes.js"],

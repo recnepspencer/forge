@@ -12,6 +12,7 @@ const packageDir = path.dirname(productDir);
 const packageSourceDir = path.join(packageDir, "..", "package-src");
 const apiSourceDir = path.join(packageSourceDir, "product", "api");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
+const localTruthSourceDir = path.join(packageSourceDir, "product", "local_truth");
 const resourceModuleGlobal = globalThis;
 const cachedResourceModuleLoad =
   resourceModuleGlobal.__WorthCachedResourceModuleLoad ?? { promise: null };
@@ -70,6 +71,11 @@ async function loadResourceModuleIntoCachedTempDir() {
       tempDir,
       resourceSourceDir,
       path.join(tempDir, "product", "resource"),
+    );
+    await writeConvertedResourceTree(
+      tempDir,
+      localTruthSourceDir,
+      path.join(tempDir, "product", "local_truth"),
     );
 
     const moduleUrl = pathToFileURL(

@@ -18,6 +18,16 @@ the broader signal app model.
 - [Recipes](./learn/recipes.md)
   Task-first examples for the most common resource and forms happy paths.
 
+## Local Truth And Merge
+
+- [Local Truth Docs Home](./local-truth/README.md)
+  Browser-local branch history, aspect-aware merge, and manual resolution.
+- [Branch Merge And Manual Resolution](./local-truth/branch-merge.md)
+  The public API, lifecycle, examples, denials, rebuild behavior, and limits.
+- [Standalone And Platform Authority Boundaries](./local-truth/authority-boundaries.md)
+  When to use TypeScript local truth and when Query and Relational must own
+  durable platform state.
+
 ## Forms
 
 - [Forms Docs Home](./forms/README.md)
@@ -218,6 +228,7 @@ details.
 
 1. [start_here.md](./start_here.md)
 2. [Feature Index](./learn/feature-index.md)
-3. [Forms Overview](./forms/index.md) or [Recipes](./learn/recipes.md), depending on which product lane you need
+3. [Forms Overview](./forms/index.md), [Recipes](./learn/recipes.md), or
+   [Local Truth](./local-truth/README.md), depending on which product lane you need
 4. the one feature page that matches your task
 5. the matching reference page only if you need lower-level detail
