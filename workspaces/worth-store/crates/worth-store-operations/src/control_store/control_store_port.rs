@@ -67,6 +67,12 @@ pub trait OperationalControlStorePort {
         &self,
         record: &OperationalControlRecord,
     ) -> Result<PhysicalControlAppendReceipt, OperationalControlAppendDenial>;
+
+    fn compare_exchange_authorization_consumption(
+        &self,
+        expected: Option<worth_store_authority::ControlStoreGeneration>,
+        record: &OperationalControlRecord,
+    ) -> Result<PhysicalControlAppendReceipt, OperationalControlAppendDenial>;
 }
 
 #[derive(Debug)]
@@ -80,7 +86,7 @@ pub struct OperationalControlStore {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ObservedFilesystemSeparation {
     Enforce,
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-test-authority"))]
     CertifiedDistinct,
 }
 
@@ -96,8 +102,8 @@ impl OperationalControlStore {
         )
     }
 
-    #[cfg(test)]
-    pub(crate) fn open_with_certified_topology(
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn open_with_certified_topology(
         control_location: OperationalControlLocation,
         protected_locations: impl IntoIterator<Item = ProtectedOperationalMediaLocation>,
     ) -> Result<Self, OperationalControlStoreOpenDenial> {
@@ -269,6 +275,43 @@ impl OperationalControlStorePort for OperationalControlStore {
             .append_at_current_tail(&transition_identity, &payload)
             .map_err(OperationalControlAppendDenial::Media)
     }
+
+    fn compare_exchange_authorization_consumption(
+        &self,
+        expected: Option<worth_store_authority::ControlStoreGeneration>,
+        record: &OperationalControlRecord,
+    ) -> Result<PhysicalControlAppendReceipt, OperationalControlAppendDenial> {
+        self.reject_control_media_overlap(record)?;
+        let OperationalControlRecordKind::AuthorizationConsumed {
+            authorization_identity,
+            ..
+        } = record.kind()
+        else {
+            return Err(OperationalControlAppendDenial::Media(
+                ControlMediaFault::DerivedTransitionIndexCorrupt,
+            ));
+        };
+        let payload =
+            encode_control_record(record).map_err(OperationalControlAppendDenial::Encoding)?;
+        self.physical
+            .compare_exchange_append(
+                expected,
+                &authorization_claim_identity(*authorization_identity),
+                &payload,
+            )
+            .map_err(OperationalControlAppendDenial::Media)
+    }
+}
+
+fn authorization_claim_identity(identity: [u8; 32]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut value = String::with_capacity("authorization-claim:".len() + 64);
+    value.push_str("authorization-claim:");
+    for byte in identity {
+        value.push(HEX[(byte >> 4) as usize] as char);
+        value.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    value
 }
 
 impl OperationalControlStore {

@@ -8,6 +8,9 @@ macro_rules! row {
 }
 
 pub const STORE_CANONICAL_BASIS_FAMILY_REGISTRY: &[StoreCanonicalBasisInventoryRow] = &[
+    row!("S10PhaseInvocationEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/phase_invocation.rs", RecoveryVettedRecordReceipt, "worth-store-certification::courtroom::operational_recovery::phase_invocation"),
+    row!("S10ScenarioProductionEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/phase_invocation.rs", RecoveryVettedRecordReceipt, "worth-store-certification::courtroom::operational_recovery::phase_invocation"),
+    row!("S10StructuralPreflightEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/structural_preflight.rs", BoundaryReceiptEvidence, "worth-store-certification::courtroom::operational_recovery::structural_preflight"),
     row!("S10ScenarioSuiteEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/closeout.rs", RecoveryVettedRecordReceipt, "worth-store-certification::courtroom::operational_recovery::closeout"),
     row!("PromotionRemoteExclusionEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/closeout.rs", RecoveryVettedRecordReceipt, "worth-store-certification::courtroom::operational_recovery::closeout"),
     row!("S11StructuredAuditHardeningHandoff", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/handoff.rs", ReadinessHandoff, "worth-store-certification::courtroom::operational_recovery::handoff"),

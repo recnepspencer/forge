@@ -29,7 +29,7 @@ pub enum RepairJournalDenial {
 }
 
 pub(super) struct RepairExecutionJournal<'a> {
-    control: &'a OperationalControlStore,
+    control: &'a dyn OperationalControlStorePort,
     authority: StoreCurrentAuthorityIdentity,
     operation: OperationalOperationId,
     plan_fingerprint: [u8; 32],
@@ -45,8 +45,10 @@ impl<'a> RepairExecutionJournal<'a> {
         &self.operation
     }
 
-    pub(super) fn open(
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn open_through(
         control: &'a OperationalControlStore,
+        append: &'a dyn OperationalControlStorePort,
         authority: StoreCurrentAuthorityIdentity,
         operation: OperationalOperationId,
         authorization_identity: [u8; 32],
@@ -64,7 +66,7 @@ impl<'a> RepairExecutionJournal<'a> {
             Some(_) => return Err(RepairJournalDenial::PlanMismatch),
             None => {
                 let transition = transition_id("repair-open", plan_fingerprint)?;
-                control
+                append
                     .append(&OperationalControlRecord::repair_execution_opened(
                         authority,
                         operation.clone(),
@@ -84,7 +86,7 @@ impl<'a> RepairExecutionJournal<'a> {
             }
         }
         Ok(Self {
-            control,
+            control: append,
             authority,
             operation,
             plan_fingerprint,
@@ -102,13 +104,15 @@ impl<'a> RepairExecutionJournal<'a> {
             .map(|(receipt, _)| *receipt)
     }
 
-    pub(super) fn recover(
+    pub(super) fn recover_through(
         control: &'a OperationalControlStore,
+        append: &'a dyn OperationalControlStorePort,
         authority: StoreCurrentAuthorityIdentity,
         handle: &IndeterminateRepairRecoveryHandle,
     ) -> Result<Self, RepairJournalDenial> {
-        let journal = Self::open(
+        let journal = Self::open_through(
             control,
+            append,
             authority,
             handle.operation_id().clone(),
             handle.authorization_identity(),

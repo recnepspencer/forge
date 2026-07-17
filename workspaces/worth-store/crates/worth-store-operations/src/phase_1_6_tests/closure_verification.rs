@@ -91,7 +91,7 @@ fn structurally_valid_bundle_omission_cannot_release_a_larger_admitted_cut() {
         .find(|artifact| artifact.family() == BackupArtifactFamily::Page)
         .expect("canonical physical page");
     let extra_owner = reclaim_reference(BackupArtifactFamily::Page, 55);
-    super::backup_artifact_fixture::copy_page_to_owner(
+    crate::certification_scenario::backup_artifacts::copy_page_to_owner(
         canonical_page.source_path(),
         &extra_path,
         extra_owner,

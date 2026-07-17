@@ -10,7 +10,7 @@ use crate::{
 
 impl OperationalRecoveryProductionDriver {
     pub fn derive_audit(
-        &mut self,
+        &self,
         records: &[OperationalControlRecord],
     ) -> Result<
         DrivenOperationalTransition<Vec<OperationalAuditRecord>>,
@@ -24,7 +24,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn export_audit(
-        &mut self,
+        &self,
         completeness: &AuditCompletenessReceipt,
         records: &[OperationalAuditRecord],
     ) -> Result<

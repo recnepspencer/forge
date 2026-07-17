@@ -7,8 +7,8 @@ use worth_store_authority::{
 use worth_store_physical_isolation::AtomicRecoveryPublicationReceipt;
 
 use crate::{
-    OperationalControlRecord, OperationalControlStore, OperationalControlStorePort,
-    OperationalOperationId, OperationalTransitionId,
+    OperationalControlRecord, OperationalControlStorePort, OperationalOperationId,
+    OperationalTransitionId,
 };
 
 use super::protocol::{PublishedCutoverCore, ReadmittedCutoverCore};
@@ -59,7 +59,7 @@ pub(super) fn release_terminal_source_lease(
 
 pub(super) fn attempt_readmission<K>(
     published: PublishedCutoverCore<K>,
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     current: &StoreCurrentAuthorityWitness,
     fence_port: &impl RecoveryWriteFencePort,
@@ -141,7 +141,7 @@ pub(super) fn attempt_readmission<K>(
 pub(super) fn abandon<K>(
     published: PublishedCutoverCore<K>,
     reason_identity: [u8; 32],
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     fence_port: &impl RecoveryWriteFencePort,
 ) -> Result<PublishedAbandonedCore, RecoveryCutoverExecutionDenial> {
@@ -178,7 +178,7 @@ pub(super) fn abandon<K>(
 pub(super) fn retain_for_forensics<K>(
     published: PublishedCutoverCore<K>,
     retention_plan_identity: [u8; 32],
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     fence_port: &impl RecoveryWriteFencePort,
 ) -> Result<PublishedRetainedForForensicsCore, RecoveryCutoverExecutionDenial> {
@@ -214,7 +214,7 @@ pub(super) fn retain_for_forensics<K>(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn release_and_record(
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     authority: StoreCurrentAuthorityIdentity,
     operation: OperationalOperationId,
     publication_identity: [u8; 32],
@@ -246,7 +246,7 @@ pub(super) fn release_and_record(
 
 #[allow(clippy::too_many_arguments)]
 fn persist_disposition(
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     authority: StoreCurrentAuthorityIdentity,
     observed_authority: StoreCurrentAuthorityIdentity,
     operation: OperationalOperationId,

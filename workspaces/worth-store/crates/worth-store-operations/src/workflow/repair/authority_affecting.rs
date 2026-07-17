@@ -15,13 +15,12 @@ use worth_store_recovery_physics::{
 };
 
 use crate::authorization::{
-    authorize_lowered_plan, consume_authorization, recover_authorization_consumption,
+    authorize_lowered_plan, consume_authorization_through, recover_authorization_consumption,
     AuthorizationReplayPolicy, AuthorizedOperationalPlan, LoweredOperationalPlan,
 };
 use crate::owner_plan_dag::{DestructiveOperationKind, OperationalPlanBinding};
 use crate::{
-    AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt, AuthorizationDenial,
-    AuthorizationRevocationObservation, ExternalOperatorAssertion,
+    AuthorizationDenial, AuthorizationRevocationObservation, ExternalOperatorAssertion,
     IndeterminateRepairRecoveryHandle, OperationalAuthorizationPort, OperationalControlStore,
     OperationalOperationId, OperationalSecurityScope, OperationalTransitionId,
     ProductionRestoreAdmissibleBackupBundle,
@@ -30,7 +29,10 @@ use crate::{
 use super::authority_owner_dag::{repair_dag, RepairOwnerNodes};
 use super::authority_staging_artifacts::{operation_identity, path_identity, staging_artifacts};
 use super::journal::RepairExecutionJournal;
-use super::{AuthorityAffectingRepairOperation, RepairCandidateSet, RepairJournalDenial};
+use super::{
+    AuthorityAffectingRepairOperation, AuthorityAffectingRepairReadinessDenial,
+    ExecutionReadyAuthorityAffectingRepair, RepairCandidateSet, RepairJournalDenial,
+};
 
 #[derive(Debug)]
 pub struct AuthorityAffectingStagedRepairPlan {
@@ -222,33 +224,30 @@ impl LoweredAuthorityAffectingRepairOwnerPlanDag {
     }
 }
 
-#[derive(Debug)]
-pub enum AuthorityAffectingRepairReadinessDenial {
-    StaleAuthority,
-    Target(crate::control_store::NonCurrentRecoveryTargetDenial),
-    Authorization(AuthorizationConsumptionDenial),
-    Journal(RepairJournalDenial),
-}
-
-pub struct ExecutionReadyAuthorityAffectingRepair<'a> {
-    pub(super) operation_id: OperationalOperationId,
-    pub(super) authorization: AuthorizationConsumptionReceipt,
-    pub(super) staging_authority: worth_store_authority::StoreCurrentAuthorityIdentity,
-    pub(super) security_scope: OperationalSecurityScope,
-    pub(super) integrity: IntegrityRepairClassificationPlan,
-    pub(super) backend: LoweredNonCurrentStagingPlan,
-    pub(super) recovery: BackupRestoreReplayPlan,
-    pub(super) layout: Option<worth_store_layout_indexes::LayoutRepairConsequencePlan>,
-    pub(super) blob: Option<worth_store_blob_chunks::BlobRepairConsequencePlan>,
-    pub(super) nodes: RepairOwnerNodes,
-    pub(super) journal: RepairExecutionJournal<'a>,
-    pub(super) _target_admission: crate::control_store::NonCurrentRecoveryTargetAdmission,
-}
-
 impl AuthorizedAuthorityAffectingRepairPlan {
     pub fn ready<'a>(
         self,
         control: &'a OperationalControlStore,
+        transition: OperationalTransitionId,
+        current: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyAuthorityAffectingRepair<'a>, AuthorityAffectingRepairReadinessDenial>
+    {
+        self.ready_through(
+            control,
+            control,
+            transition,
+            current,
+            observed_at,
+            revocation,
+        )
+    }
+
+    pub(super) fn ready_through<'a>(
+        self,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
         transition: OperationalTransitionId,
         current: &StoreCurrentAuthorityWitness,
         observed_at: u64,
@@ -269,8 +268,9 @@ impl AuthorizedAuthorityAffectingRepairPlan {
         let operation_id = self.operation_id;
         let staging_authority = self.authorization.binding().authority_identity();
         let security_scope = self.authorization.binding().security_scope();
-        let consumed = consume_authorization(
+        let consumed = consume_authorization_through(
             control,
+            append,
             operation_id.clone(),
             transition,
             self.authorization,
@@ -279,8 +279,9 @@ impl AuthorizedAuthorityAffectingRepairPlan {
             revocation,
         )
         .map_err(AuthorityAffectingRepairReadinessDenial::Authorization)?;
-        let journal = RepairExecutionJournal::open(
+        let journal = RepairExecutionJournal::open_through(
             control,
+            append,
             current.authority_identity(),
             operation_id.clone(),
             consumed.receipt().authorization_identity(),
@@ -311,6 +312,17 @@ impl LoweredAuthorityAffectingRepairOwnerPlanDag {
         self,
         handle: &IndeterminateRepairRecoveryHandle,
         control: &'a OperationalControlStore,
+        current: &StoreCurrentAuthorityWitness,
+    ) -> Result<ExecutionReadyAuthorityAffectingRepair<'a>, AuthorityAffectingRepairReadinessDenial>
+    {
+        self.recover_ready_through(handle, control, control, current)
+    }
+
+    pub(super) fn recover_ready_through<'a>(
+        self,
+        handle: &IndeterminateRepairRecoveryHandle,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
         current: &StoreCurrentAuthorityWitness,
     ) -> Result<ExecutionReadyAuthorityAffectingRepair<'a>, AuthorityAffectingRepairReadinessDenial>
     {
@@ -347,9 +359,13 @@ impl LoweredAuthorityAffectingRepairOwnerPlanDag {
             handle.plan_fingerprint(),
         )
         .map_err(AuthorityAffectingRepairReadinessDenial::Authorization)?;
-        let journal =
-            RepairExecutionJournal::recover(control, current.authority_identity(), handle)
-                .map_err(AuthorityAffectingRepairReadinessDenial::Journal)?;
+        let journal = RepairExecutionJournal::recover_through(
+            control,
+            append,
+            current.authority_identity(),
+            handle,
+        )
+        .map_err(AuthorityAffectingRepairReadinessDenial::Journal)?;
         Ok(ExecutionReadyAuthorityAffectingRepair {
             operation_id: self.operation_id,
             authorization,

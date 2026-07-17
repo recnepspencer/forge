@@ -8,9 +8,10 @@ use worth_store_recovery_physics::{
 };
 
 use crate::authorization::{
-    consume_authorization, record_recovery_staging_completion, recover_authorization_consumption,
-    StagingAuthorizationContinuation,
+    consume_authorization_through, record_recovery_staging_completion,
+    recover_authorization_consumption, StagingAuthorizationContinuation,
 };
+use crate::workflow::persist_recovery_owner_receipts;
 use crate::{
     AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt,
     AuthorizationRevocationObservation, OperationalControlStore, OperationalTransitionId,
@@ -25,7 +26,6 @@ pub enum PitrReadinessDenial {
     Authorization(AuthorizationConsumptionDenial),
 }
 
-#[derive(Debug)]
 pub struct ExecutionReadyPointInTimeRecovery<'a> {
     operation_id: crate::OperationalOperationId,
     authorization: AuthorizationConsumptionReceipt,
@@ -36,7 +36,17 @@ pub struct ExecutionReadyPointInTimeRecovery<'a> {
     lease: worth_store_physical_isolation::PitrReachabilityLease,
     owner_verification: worth_store_offline_verifier::StagedRecoveryOwnerVerificationSet,
     _target_admission: crate::control_store::NonCurrentRecoveryTargetAdmission,
-    control: &'a OperationalControlStore,
+    control: &'a dyn crate::OperationalControlStorePort,
+}
+
+impl std::fmt::Debug for ExecutionReadyPointInTimeRecovery<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ExecutionReadyPointInTimeRecovery")
+            .field("operation_id", &self.operation_id)
+            .field("staging_authority", &self.staging_authority)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug)]
@@ -115,6 +125,45 @@ impl AuthorizedPointInTimeRecoveryPlan {
         observed_at: u64,
         revocation: AuthorizationRevocationObservation,
     ) -> Result<ExecutionReadyPointInTimeRecovery<'a>, PitrReadinessDenial> {
+        self.ready_through(
+            control,
+            control,
+            transition_id,
+            current,
+            observed_at,
+            revocation,
+        )
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn ready_with_certification_control_store<'a>(
+        self,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
+        transition_id: OperationalTransitionId,
+        current: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyPointInTimeRecovery<'a>, PitrReadinessDenial> {
+        self.ready_through(
+            control,
+            append,
+            transition_id,
+            current,
+            observed_at,
+            revocation,
+        )
+    }
+
+    fn ready_through<'a>(
+        self,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
+        transition_id: OperationalTransitionId,
+        current: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyPointInTimeRecovery<'a>, PitrReadinessDenial> {
         if self.authorization.binding().authority_identity() != current.authority_identity() {
             return Err(PitrReadinessDenial::StaleAuthority);
         }
@@ -132,8 +181,9 @@ impl AuthorizedPointInTimeRecoveryPlan {
         let operation_id = self.operation_id;
         let staging_authority = self.authorization.binding().authority_identity();
         let security_scope = self.authorization.binding().security_scope();
-        let consumed = consume_authorization(
+        let consumed = consume_authorization_through(
             control,
+            append,
             operation_id.clone(),
             transition_id,
             self.authorization,
@@ -152,7 +202,7 @@ impl AuthorizedPointInTimeRecoveryPlan {
             lease: self.lease,
             owner_verification: self.owner_verification,
             _target_admission: target_admission,
-            control,
+            control: append,
         })
     }
 }
@@ -207,6 +257,17 @@ impl LoweredPointInTimeRecoveryPlan {
     }
 }
 
+#[cfg(feature = "certification-test-authority")]
+impl<'a> ExecutionReadyPointInTimeRecovery<'a> {
+    pub fn with_certification_control_store(
+        mut self,
+        control: &'a dyn crate::OperationalControlStorePort,
+    ) -> Self {
+        self.control = control;
+        self
+    }
+}
+
 impl ExecutionReadyPointInTimeRecovery<'_> {
     pub fn execute<Ports>(
         self,
@@ -242,6 +303,16 @@ impl ExecutionReadyPointInTimeRecovery<'_> {
                 return Err(PitrExecutionDenial::Recovery(denial))
             }
         };
+        persist_recovery_owner_receipts(
+            self.control,
+            staging_authority,
+            &self.operation_id,
+            self.authorization,
+            crate::OperationalWorkflowKind::PointInTimeRecovery,
+            &backend,
+            crate::workflow::recovery_owner_receipt::pitr_owner_receipt_identity(recovery),
+        )
+        .map_err(PitrExecutionDenial::Control)?;
         record_recovery_staging_completion(
             self.control,
             staging_authority,

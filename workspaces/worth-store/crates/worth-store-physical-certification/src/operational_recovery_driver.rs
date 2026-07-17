@@ -1,15 +1,18 @@
+use std::cell::RefCell;
 use std::path::Path;
 
+use crate::operational_recovery_trace::OperationalRecoveryDriverTrace;
 pub use crate::operational_recovery_yieldpoint::OperationalRecoveryYieldpoint;
 use worth_store_authority::PrimaryServingAuthority;
 use worth_store_offline_verifier::{
     ForensicAcquisitionCounters, ForensicAcquisitionDenial, ForensicAcquisitionProgress,
-    ForensicAcquisitionSession, ForensicBundle, ReplicaTargetVerificationBudget,
+    ForensicAcquisitionSession, ForensicBundle, OperationalTruthReport,
+    ReplicaTargetVerificationBudget,
 };
 use worth_store_operations::{
     CompletedReplicaBootstrap, CurrentReplicaPromotion, DurablyFencedReplicaPromotion,
     ExecutedReplicaBootstrap, ExecutedReplicaPromotion, ExecutionReadyReplicaBootstrap,
-    ExecutionReadyReplicaPromotion, FencedReplicaPromotion, OperationalControlStore,
+    ExecutionReadyReplicaPromotion, FencedReplicaPromotion, OperationalControlStorePort,
     OperationalOperationId, OperationalTransitionId, PostVerifiedReplicaBootstrap,
     PostVerifiedReplicaPromotion, PublishedReplicaPromotion, ReplicaBootstrapExecutionDenial,
     ReplicaBootstrapFinalizationDenial, ReplicaBootstrapPersistenceDenial,
@@ -18,22 +21,6 @@ use worth_store_operations::{
     ReplicaPromotionPublicationPort, TransferredReplicaBootstrap,
 };
 use worth_store_replication::ReplicaBootstrapExecutionPort;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OperationalRecoveryDriverTrace {
-    reached: Vec<OperationalRecoveryYieldpoint>,
-    operation_identities: Vec<String>,
-}
-
-impl OperationalRecoveryDriverTrace {
-    pub fn reached(&self) -> &[OperationalRecoveryYieldpoint] {
-        &self.reached
-    }
-
-    pub fn operation_identities(&self) -> &[String] {
-        &self.operation_identities
-    }
-}
 
 #[derive(Debug)]
 pub enum DrivenOperationalTransition<T> {
@@ -44,37 +31,83 @@ pub enum DrivenOperationalTransition<T> {
 
 #[derive(Debug)]
 pub struct OperationalRecoveryProductionDriver {
+    state: RefCell<OperationalRecoveryDriverState>,
+}
+
+#[derive(Debug)]
+struct OperationalRecoveryDriverState {
     pause_at: Option<OperationalRecoveryYieldpoint>,
     reached: Vec<OperationalRecoveryYieldpoint>,
     operation_identities: Vec<String>,
+    control_artifact_identities: Vec<[u8; 32]>,
+    inspection_evidence_identity: Option<[u8; 32]>,
+    truth_evidence_identity: Option<[u8; 32]>,
 }
 
 impl OperationalRecoveryProductionDriver {
     pub const fn uninterrupted() -> Self {
         Self {
-            pause_at: None,
-            reached: Vec::new(),
-            operation_identities: Vec::new(),
+            state: RefCell::new(OperationalRecoveryDriverState {
+                pause_at: None,
+                reached: Vec::new(),
+                operation_identities: Vec::new(),
+                control_artifact_identities: Vec::new(),
+                inspection_evidence_identity: None,
+                truth_evidence_identity: None,
+            }),
         }
     }
 
     pub const fn pause_once_at(yieldpoint: OperationalRecoveryYieldpoint) -> Self {
         Self {
-            pause_at: Some(yieldpoint),
-            reached: Vec::new(),
-            operation_identities: Vec::new(),
+            state: RefCell::new(OperationalRecoveryDriverState {
+                pause_at: Some(yieldpoint),
+                reached: Vec::new(),
+                operation_identities: Vec::new(),
+                control_artifact_identities: Vec::new(),
+                inspection_evidence_identity: None,
+                truth_evidence_identity: None,
+            }),
         }
     }
 
     pub fn trace(&self) -> OperationalRecoveryDriverTrace {
-        OperationalRecoveryDriverTrace {
-            reached: self.reached.clone(),
-            operation_identities: self.operation_identities.clone(),
+        let state = self.state.borrow();
+        OperationalRecoveryDriverTrace::from_observations(
+            state.reached.clone(),
+            state.operation_identities.clone(),
+            state.control_artifact_identities.clone(),
+            state.inspection_evidence_identity,
+            state.truth_evidence_identity,
+        )
+    }
+
+    /// Binds a durable production transition to this scenario invocation.
+    /// The driver accepts only the owner-produced control artifact and derives
+    /// its identity itself; callers cannot supply a phase label or digest.
+    pub(super) fn observe_durable_control_transition(
+        &self,
+        record: &worth_store_operations::OperationalControlRecord,
+    ) {
+        self.observe_operation(record.operation_id());
+        let identity = record.stable_fingerprint();
+        let mut state = self.state.borrow_mut();
+        if !state.control_artifact_identities.contains(&identity) {
+            state.control_artifact_identities.push(identity);
+            state.control_artifact_identities.sort_unstable();
         }
     }
 
+    /// Binds the completed bounded media walk and canonical semantic truth to
+    /// the invocation without accepting caller-authored evidence bytes.
+    pub fn observe_completed_truth_composition(&self, truth: &OperationalTruthReport) {
+        let mut state = self.state.borrow_mut();
+        state.inspection_evidence_identity = Some(truth.source_inspection_identity());
+        state.truth_evidence_identity = Some(truth.truth_evidence_identity());
+    }
+
     pub fn forensic_acquire_next(
-        &mut self,
+        &self,
         operation: &OperationalOperationId,
         session: &mut ForensicAcquisitionSession,
     ) -> Result<DrivenOperationalTransition<ForensicAcquisitionProgress>, ForensicAcquisitionDenial>
@@ -91,7 +124,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn forensic_finish(
-        &mut self,
+        &self,
         session: ForensicAcquisitionSession,
         completed_at_tick: u64,
     ) -> Result<
@@ -109,7 +142,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn bootstrap_transfer<'control>(
-        &mut self,
+        &self,
         ready: ExecutionReadyReplicaBootstrap<'control>,
         port: &mut impl ReplicaBootstrapExecutionPort,
     ) -> Result<
@@ -128,7 +161,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn persist_bootstrap_transfer(
-        &mut self,
+        &self,
         transferred: &TransferredReplicaBootstrap<'_>,
         transition: OperationalTransitionId,
     ) -> Result<
@@ -146,7 +179,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn post_verify_bootstrap(
-        &mut self,
+        &self,
         executed: ExecutedReplicaBootstrap,
         target_root: &Path,
         budget: ReplicaTargetVerificationBudget,
@@ -165,9 +198,9 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn complete_bootstrap(
-        &mut self,
+        &self,
         verified: PostVerifiedReplicaBootstrap,
-        control: &OperationalControlStore,
+        control: &dyn OperationalControlStorePort,
         transition: OperationalTransitionId,
     ) -> Result<
         DrivenOperationalTransition<CompletedReplicaBootstrap>,
@@ -176,7 +209,7 @@ impl OperationalRecoveryProductionDriver {
         if self.before(OperationalRecoveryYieldpoint::BeforeBootstrapCompletion) {
             return Ok(DrivenOperationalTransition::InterruptedBefore);
         }
-        let completed = verified.complete(control, transition)?;
+        let completed = verified.complete_with_certification_control_store(control, transition)?;
         Ok(self.after(
             OperationalRecoveryYieldpoint::AfterBootstrapCompletion,
             completed,
@@ -184,7 +217,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn promotion_fence<'control>(
-        &mut self,
+        &self,
         ready: ExecutionReadyReplicaPromotion<'control>,
         authority: &PrimaryServingAuthority<'_>,
     ) -> Result<
@@ -203,7 +236,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn persist_promotion_fence<'control>(
-        &mut self,
+        &self,
         fenced: &FencedReplicaPromotion<'control>,
         transition: OperationalTransitionId,
     ) -> Result<
@@ -221,7 +254,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn record_promotion(
-        &mut self,
+        &self,
         durable: &DurablyFencedReplicaPromotion<'_>,
         transition: OperationalTransitionId,
     ) -> Result<
@@ -239,7 +272,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn post_verify_promotion(
-        &mut self,
+        &self,
         executed: ExecutedReplicaPromotion,
         target_root: &Path,
         budget: ReplicaTargetVerificationBudget,
@@ -258,9 +291,9 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn publish_promotion(
-        &mut self,
+        &self,
         verified: PostVerifiedReplicaPromotion,
-        control: &OperationalControlStore,
+        control: &dyn OperationalControlStorePort,
         transition: OperationalTransitionId,
         port: &mut impl ReplicaPromotionPublicationPort,
     ) -> Result<
@@ -270,7 +303,8 @@ impl OperationalRecoveryProductionDriver {
         if self.before(OperationalRecoveryYieldpoint::BeforePromotionPublication) {
             return Ok(DrivenOperationalTransition::InterruptedBefore);
         }
-        let published = verified.publish(control, transition, port)?;
+        let published =
+            verified.publish_with_certification_control_store(control, transition, port)?;
         Ok(self.after(
             OperationalRecoveryYieldpoint::AfterPromotionPublication,
             published,
@@ -279,9 +313,9 @@ impl OperationalRecoveryProductionDriver {
 
     #[allow(clippy::too_many_arguments)]
     pub fn readmit_promotion(
-        &mut self,
+        &self,
         published: PublishedReplicaPromotion,
-        control: &OperationalControlStore,
+        control: &dyn OperationalControlStorePort,
         transition: OperationalTransitionId,
         serving: &PrimaryServingAuthority<'_>,
         now_tick: u64,
@@ -293,49 +327,60 @@ impl OperationalRecoveryProductionDriver {
         if self.before(OperationalRecoveryYieldpoint::BeforePromotionReadmission) {
             return Ok(DrivenOperationalTransition::InterruptedBefore);
         }
-        let current =
-            published.readmit(control, transition, serving, now_tick, requested_until_tick)?;
+        let current = published.readmit_with_certification_control_store(
+            control,
+            transition,
+            serving,
+            now_tick,
+            requested_until_tick,
+        )?;
         Ok(self.after(
             OperationalRecoveryYieldpoint::AfterPromotionReadmission,
             current,
         ))
     }
 
-    pub(super) fn before(&mut self, point: OperationalRecoveryYieldpoint) -> bool {
-        self.reached.push(point);
-        self.take_pause(point)
+    pub(super) fn before(&self, point: OperationalRecoveryYieldpoint) -> bool {
+        let mut state = self.state.borrow_mut();
+        state.reached.push(point);
+        take_pause(&mut state, point)
     }
 
     pub(super) fn after<T>(
-        &mut self,
+        &self,
         point: OperationalRecoveryYieldpoint,
         value: T,
     ) -> DrivenOperationalTransition<T> {
-        self.reached.push(point);
-        if self.take_pause(point) {
+        let mut state = self.state.borrow_mut();
+        state.reached.push(point);
+        if take_pause(&mut state, point) {
             DrivenOperationalTransition::InterruptedAfter(value)
         } else {
             DrivenOperationalTransition::Completed(value)
         }
     }
 
-    fn take_pause(&mut self, point: OperationalRecoveryYieldpoint) -> bool {
-        if self.pause_at == Some(point) {
-            self.pause_at = None;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn observe_operation(&mut self, operation: &OperationalOperationId) {
+    pub(super) fn observe_operation(&self, operation: &OperationalOperationId) {
         let identity = operation.as_str();
-        if !self
+        let mut state = self.state.borrow_mut();
+        if !state
             .operation_identities
             .iter()
             .any(|observed| observed == identity)
         {
-            self.operation_identities.push(identity.to_owned());
+            state.operation_identities.push(identity.to_owned());
         }
+    }
+}
+
+fn take_pause(
+    state: &mut OperationalRecoveryDriverState,
+    point: OperationalRecoveryYieldpoint,
+) -> bool {
+    if state.pause_at == Some(point) {
+        state.pause_at = None;
+        true
+    } else {
+        false
     }
 }

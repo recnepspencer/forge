@@ -1,0 +1,12 @@
+[package]
+name = "worth-store-s10-handoff-public-boundary"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+worth-store-authority = { path = "../../../../../../worth-store-authority" }
+worth-store-certification = { path = "../../../../.." }
+worth-store-operations = { path = "../../../../../../worth-store-operations" }
