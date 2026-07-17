@@ -31,19 +31,31 @@ pub struct UiConstraintPortalAnchorPlanningInputResult {
     identity_digest: u64,
 }
 
+pub(crate) struct UiConstraintPortalAnchorPlanningInput {
+    pub neighborhood_identity_digest: u64,
+    pub solve_order: UiPortalAnchorPlanningInputSolveOrder,
+    pub posture: UiPortalAnchorPlanningInputPosture,
+    pub source_evidence_identity_digest: Option<u64>,
+    pub source_generation_digest: Option<u64>,
+    pub unit_posture: Option<UiMeasurementUnitPosture>,
+    pub coordinate_space: Option<UiMeasurementCoordinateSpace>,
+    pub rounding_posture: Option<UiMeasurementRoundingPosture>,
+    pub planning_time_only: bool,
+}
+
 impl UiConstraintPortalAnchorPlanningInputResult {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        neighborhood_identity_digest: u64,
-        solve_order: UiPortalAnchorPlanningInputSolveOrder,
-        posture: UiPortalAnchorPlanningInputPosture,
-        source_evidence_identity_digest: Option<u64>,
-        source_generation_digest: Option<u64>,
-        unit_posture: Option<UiMeasurementUnitPosture>,
-        coordinate_space: Option<UiMeasurementCoordinateSpace>,
-        rounding_posture: Option<UiMeasurementRoundingPosture>,
-        planning_time_only: bool,
-    ) -> Self {
+    pub(crate) fn new(input: UiConstraintPortalAnchorPlanningInput) -> Self {
+        let UiConstraintPortalAnchorPlanningInput {
+            neighborhood_identity_digest,
+            solve_order,
+            posture,
+            source_evidence_identity_digest,
+            source_generation_digest,
+            unit_posture,
+            coordinate_space,
+            rounding_posture,
+            planning_time_only,
+        } = input;
         let identity_digest =
             stable_text_digest("worth-ui.constraint-portal-anchor-planning-input")
                 ^ neighborhood_identity_digest.rotate_left(7)

@@ -37,27 +37,32 @@ pub(super) fn admit_portal_anchor_planning_input(
                 UiPortalAnchorPlanningInputPosture::IncompatibleMeasurementPosture
             };
             UiConstraintPortalAnchorPlanningInputResult::new(
-                neighborhood_identity_digest,
-                UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
-                posture,
-                Some(source_identity_digest),
-                Some(source_generation_digest),
-                Some(unit),
-                Some(coordinate),
-                Some(rounding),
-                true,
+                crate::evidence::UiConstraintPortalAnchorPlanningInput {
+                    neighborhood_identity_digest,
+                    solve_order:
+                        UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
+                    posture,
+                    source_evidence_identity_digest: Some(source_identity_digest),
+                    source_generation_digest: Some(source_generation_digest),
+                    unit_posture: Some(unit),
+                    coordinate_space: Some(coordinate),
+                    rounding_posture: Some(rounding),
+                    planning_time_only: true,
+                },
             )
         }
         None => UiConstraintPortalAnchorPlanningInputResult::new(
-            neighborhood_identity_digest,
-            UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
-            UiPortalAnchorPlanningInputPosture::MissingRequiredEvidence,
-            None,
-            None,
-            None,
-            None,
-            None,
-            true,
+            crate::evidence::UiConstraintPortalAnchorPlanningInput {
+                neighborhood_identity_digest,
+                solve_order: UiPortalAnchorPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
+                posture: UiPortalAnchorPlanningInputPosture::MissingRequiredEvidence,
+                source_evidence_identity_digest: None,
+                source_generation_digest: None,
+                unit_posture: None,
+                coordinate_space: None,
+                rounding_posture: None,
+                planning_time_only: true,
+            },
         ),
     };
 

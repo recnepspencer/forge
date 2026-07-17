@@ -8,4 +8,5 @@ mod graph_snapshot_lookup;
 pub use declaration_correspondence::UiGraphDeclarationCorrespondence;
 pub use graph_attachment_posture::UiGraphAttachmentPosture;
 pub use graph_node::UiGraphNode;
+pub(crate) use graph_node::UiGraphNodeInput;
 pub use graph_snapshot::UiGraphSnapshot;

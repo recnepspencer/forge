@@ -43,6 +43,12 @@ pub struct CapabilityRegistrationBuilder {
     diagnostic_richness: CapabilityDiagnosticRichness,
 }
 
+impl Default for CapabilityRegistrationBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CapabilityRegistrationBuilder {
     pub fn new() -> Self {
         Self {

@@ -16,18 +16,29 @@ pub struct WorthUiVirtualizedDataFrameReceipt {
     certification: WorthUiVirtualizedDataCertification,
 }
 
+pub(crate) struct WorthUiVirtualizedDataFrameReceiptInput {
+    pub target: WorthUiVirtualizedDataFrameTarget,
+    pub lane: WorthUiVirtualizedDataLane,
+    pub visible_range: WorthUiVisibleRange,
+    pub touched_plan_indexes: Vec<u32>,
+    pub touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
+    pub query_patch_posture: WorthUiQueryPatchPosture,
+    pub counters: WorthUiVirtualizedDataCounters,
+    pub certification: WorthUiVirtualizedDataCertification,
+}
+
 impl WorthUiVirtualizedDataFrameReceipt {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        target: WorthUiVirtualizedDataFrameTarget,
-        lane: WorthUiVirtualizedDataLane,
-        visible_range: WorthUiVisibleRange,
-        touched_plan_indexes: Vec<u32>,
-        touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
-        query_patch_posture: WorthUiQueryPatchPosture,
-        counters: WorthUiVirtualizedDataCounters,
-        certification: WorthUiVirtualizedDataCertification,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiVirtualizedDataFrameReceiptInput) -> Self {
+        let WorthUiVirtualizedDataFrameReceiptInput {
+            target,
+            lane,
+            visible_range,
+            touched_plan_indexes,
+            touched_runtime_handles,
+            query_patch_posture,
+            counters,
+            certification,
+        } = input;
         Self {
             target,
             lane,

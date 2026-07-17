@@ -30,7 +30,7 @@ fn first_difference(
     metrics: &mut WorthUiArtifactEquivalenceMetrics,
 ) -> Option<WorthUiArtifactDifference> {
     if left.module_ids().len() != right.module_ids().len() {
-        return Some(WorthUiArtifactDifference::ModuleCountMismatch {
+        return Some(WorthUiArtifactDifference::ModuleCount {
             left_module_count: left.module_ids().len(),
             right_module_count: right.module_ids().len(),
         });
@@ -43,7 +43,7 @@ fn first_difference(
         .enumerate()
     {
         if left_module_id != right_module_id {
-            return Some(WorthUiArtifactDifference::ModuleOrderMismatch {
+            return Some(WorthUiArtifactDifference::ModuleOrder {
                 module_index,
                 left_module_id: left_module_id.as_str().to_owned(),
                 right_module_id: right_module_id.as_str().to_owned(),
@@ -56,7 +56,7 @@ fn first_difference(
             .module(right_module_id)
             .expect("right artifact module");
         if left_module.nodes().len() != right_module.nodes().len() {
-            return Some(WorthUiArtifactDifference::ModuleNodeCountMismatch {
+            return Some(WorthUiArtifactDifference::ModuleNodeCount {
                 module_id: left_module_id.as_str().to_owned(),
                 left_node_count: left_module.nodes().len(),
                 right_node_count: right_module.nodes().len(),
@@ -73,7 +73,7 @@ fn first_difference(
             let left_kind = left_node.handle().kind();
             let right_kind = right_node.handle().kind();
             if left_kind != right_kind {
-                return Some(WorthUiArtifactDifference::NodeKindMismatch {
+                return Some(WorthUiArtifactDifference::NodeKind {
                     module_id: left_module_id.as_str().to_owned(),
                     node_index,
                     left_kind,
@@ -85,7 +85,7 @@ fn first_difference(
             let left_basis = node_semantic_basis(left_node);
             let right_basis = node_semantic_basis(right_node);
             if left_basis != right_basis {
-                return Some(WorthUiArtifactDifference::NodeSemanticMismatch {
+                return Some(WorthUiArtifactDifference::NodeSemantics {
                     module_id: left_module_id.as_str().to_owned(),
                     node_index,
                     node_kind: left_kind,

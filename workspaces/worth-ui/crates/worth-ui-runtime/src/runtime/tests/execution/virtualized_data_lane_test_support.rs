@@ -23,13 +23,13 @@ pub(super) fn virtualized_data_denial_for_missing_support(
             &context.plan_input,
             "virtualized-data.missing-support",
         );
-        let receipt = context
+        let lowering_input = context
             .runtime
-            .detached_allocation_receipt_for_test(&planning);
+            .detached_allocation_lowering_input_for_test(&planning);
         context
             .runtime
             .admit_execution_lanes(
-                &receipt,
+                &lowering_input,
                 &WorthUiExecutionLaneSupport::without_lane_for_test(removed_lane),
             )
             .expect("narrower lane admission succeeds")
@@ -53,7 +53,7 @@ pub(super) fn virtualized_data_denial_for_stale_lane_admission() -> WorthUiVirtu
     );
     let stale_admission = receipt_runtime
         .admit_execution_lanes(
-            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
+            &receipt_runtime.detached_allocation_lowering_input_for_test(&drifted_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission still has data and Query support");
@@ -103,13 +103,13 @@ fn virtualized_data_context() -> VirtualizedDataContext {
         .expect("handle allocation succeeds");
     let lane_admission = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("lane admission succeeds");
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -142,10 +142,10 @@ fn admission_without_query_bound(context: &VirtualizedDataContext) -> WorthUiLan
         &no_query_plan_input,
         "virtualized-data.without-query-bound",
     );
-    let receipt = receipt_runtime.detached_allocation_receipt_for_test(&planning);
+    let lowering_input = receipt_runtime.detached_allocation_lowering_input_for_test(&planning);
     receipt_runtime
         .admit_execution_lanes(
-            &receipt,
+            &lowering_input,
             &WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound),
         )
         .expect("query-free input can be admitted without QueryBound support")

@@ -3,6 +3,9 @@ use crate::evidence::UiAllocationNeighborhoodIdentity;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiAllocationReplanTransaction {
     frame_ingress_keys: Box<[crate::runtime::UiAllocationFrameIngressKey]>,
+    stream_families: Box<[crate::runtime::UiAllocationStreamFamily]>,
+    invalidation_families: Box<[crate::runtime::UiAllocationInvalidationFamily]>,
+    ingress_policy_verdicts: Box<[crate::runtime::UiAllocationIngressPolicyVerdict]>,
     primary_neighborhood: UiAllocationNeighborhoodIdentity,
     ordered_neighborhoods: Box<[UiAllocationNeighborhoodIdentity]>,
     widen_reasons: Box<[Option<crate::graph::UiReplanWidenReason>]>,
@@ -10,6 +13,7 @@ pub struct UiAllocationReplanTransaction {
     frame_epoch: crate::runtime::UiAllocationFrameEpoch,
     policy: crate::runtime::UiResolvedAllocationStreamPolicy,
     overlap_disposition: crate::graph::UiReplanOverlapDisposition,
+    root_posture: crate::graph::UiReplanRootPosture,
     transaction_generation: u64,
     runtime_generation: u64,
     consequences: crate::graph::UiGraphReplanConsequences,
@@ -44,27 +48,30 @@ impl UiAllocationReplanTransaction {
         {
             return Err(UiAllocationReplanTransactionDenial::DuplicateNeighborhood);
         }
-        let mut payload = crate::evidence::UiAllocationStreamPolicyPayloadCounters::default();
-        let crate::runtime::stream_policy::UiAllocationStreamCommitDecision::Commit(receipt) =
-            crate::runtime::stream_policy::resolve_stream_families(
-                &[crate::runtime::UiAllocationStreamFamily::HostMeasurementReplacement],
-                &mut payload,
-            )
-        else {
-            return Err(UiAllocationReplanTransactionDenial::CardinalityMismatch);
-        };
+        let cardinality = u16::try_from(ordered.len())
+            .map_err(|_| UiAllocationReplanTransactionDenial::CardinalityMismatch)?;
         Ok(Self {
             frame_ingress_keys: Box::new([]),
+            stream_families: vec![
+                crate::runtime::UiAllocationStreamFamily::HostMeasurementReplacement,
+            ]
+            .into_boxed_slice(),
+            invalidation_families: vec![
+                crate::runtime::UiAllocationInvalidationFamily::HostMeasurementResultReplacement,
+            ]
+            .into_boxed_slice(),
+            ingress_policy_verdicts: Box::new([]),
             primary_neighborhood: primary.allocation_neighborhood().identity().clone(),
             widen_reasons: vec![None; ordered.len()].into_boxed_slice(),
             expected_generations: Box::new([]),
             frame_epoch,
-            policy: receipt.into_resolution_parts().0,
+            policy: crate::runtime::stream_policy::replacement_activation_policy(cardinality),
             overlap_disposition: if ordered.len() == 1 {
                 crate::graph::UiReplanOverlapDisposition::Singleton
             } else {
                 crate::graph::UiReplanOverlapDisposition::PairwiseDisjoint
             },
+            root_posture: crate::graph::UiReplanRootPosture::NotRoot,
             ordered_neighborhoods: ordered.into_boxed_slice(),
             transaction_generation,
             runtime_generation,
@@ -92,6 +99,12 @@ impl UiAllocationReplanTransaction {
         }
         Ok(Self {
             frame_ingress_keys: basis.frame_ingress_keys().into(),
+            stream_families: basis.stream_families().into(),
+            invalidation_families: basis
+                .invalidation_families()
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+            ingress_policy_verdicts: basis.ingress_policy_verdicts().into(),
             primary_neighborhood: primary,
             ordered_neighborhoods: ordered.into(),
             widen_reasons: basis.widen_reasons().collect::<Vec<_>>().into_boxed_slice(),
@@ -102,6 +115,7 @@ impl UiAllocationReplanTransaction {
             frame_epoch: basis.frame_epoch(),
             policy: basis.policy(),
             overlap_disposition: basis.overlap_disposition(),
+            root_posture: basis.root_posture(),
             transaction_generation,
             runtime_generation,
             consequences: basis.consequences().clone(),
@@ -117,6 +131,21 @@ impl UiAllocationReplanTransaction {
     pub fn ordered_neighborhoods(&self) -> &[UiAllocationNeighborhoodIdentity] {
         &self.ordered_neighborhoods
     }
+    pub fn stream_families(&self) -> &[crate::runtime::UiAllocationStreamFamily] {
+        &self.stream_families
+    }
+    pub fn invalidation_families(&self) -> &[crate::runtime::UiAllocationInvalidationFamily] {
+        &self.invalidation_families
+    }
+    pub fn ingress_policy_verdicts(&self) -> &[crate::runtime::UiAllocationIngressPolicyVerdict] {
+        &self.ingress_policy_verdicts
+    }
+    pub fn invalidation_count(&self) -> u16 {
+        u16::try_from(self.invalidation_families.len()).unwrap_or(u16::MAX)
+    }
+    pub fn ingress_count(&self) -> u16 {
+        u16::try_from(self.frame_ingress_keys.len()).unwrap_or(u16::MAX)
+    }
     pub fn widen_reasons(&self) -> &[Option<crate::graph::UiReplanWidenReason>] {
         &self.widen_reasons
     }
@@ -129,6 +158,9 @@ impl UiAllocationReplanTransaction {
     pub fn overlap_disposition(&self) -> crate::graph::UiReplanOverlapDisposition {
         self.overlap_disposition
     }
+    pub fn root_posture(&self) -> crate::graph::UiReplanRootPosture {
+        self.root_posture
+    }
     pub fn transaction_generation(&self) -> u64 {
         self.transaction_generation
     }
@@ -138,12 +170,16 @@ impl UiAllocationReplanTransaction {
     pub(crate) fn same_idempotency_basis(&self, other: &Self) -> bool {
         self.primary_neighborhood == other.primary_neighborhood
             && self.frame_ingress_keys == other.frame_ingress_keys
+            && self.stream_families == other.stream_families
+            && self.invalidation_families == other.invalidation_families
+            && self.ingress_policy_verdicts == other.ingress_policy_verdicts
             && self.ordered_neighborhoods == other.ordered_neighborhoods
             && self.widen_reasons == other.widen_reasons
             && self.expected_generations == other.expected_generations
             && self.frame_epoch == other.frame_epoch
             && self.policy == other.policy
             && self.overlap_disposition == other.overlap_disposition
+            && self.root_posture == other.root_posture
             && self.runtime_generation == other.runtime_generation
             && self.consequences == other.consequences
     }
@@ -156,6 +192,25 @@ impl UiAllocationReplanTransaction {
             digest ^= key.source_generation().as_u64();
             digest = digest.wrapping_mul(0x100000001b3);
             digest ^= key.source_order().as_u64();
+            digest = digest.wrapping_mul(0x100000001b3);
+        }
+        for family in &self.stream_families {
+            digest ^= u64::from(family.canonical_order()) + 1;
+            digest = digest.wrapping_mul(0x100000001b3);
+        }
+        for family in &self.invalidation_families {
+            digest ^= *family as u64 + 0x40;
+            digest = digest.wrapping_mul(0x100000001b3);
+        }
+        for verdict in &self.ingress_policy_verdicts {
+            let word = match verdict {
+                crate::runtime::UiAllocationIngressPolicyVerdict::Current => 0x80,
+                crate::runtime::UiAllocationIngressPolicyVerdict::PartialQueryStaleButBounded {
+                    warnings,
+                    max_lag_frames,
+                } => 0x81 ^ ((*warnings as u64) << 8) ^ (u64::from(*max_lag_frames) << 16),
+            };
+            digest ^= word;
             digest = digest.wrapping_mul(0x100000001b3);
         }
         for identity in &self.ordered_neighborhoods {
@@ -174,6 +229,12 @@ impl UiAllocationReplanTransaction {
             crate::graph::UiReplanOverlapDisposition::ContainmentSuperseded => 4,
         };
         digest = digest.wrapping_mul(0x100000001b3);
+        digest ^= match self.root_posture {
+            crate::graph::UiReplanRootPosture::NotRoot => 0,
+            crate::graph::UiReplanRootPosture::RootPrimary => 1,
+            crate::graph::UiReplanRootPosture::CountedRootWiden { reason } => 2 + reason as u64,
+        };
+        digest = digest.wrapping_mul(0x100000001b3);
         for generation in &self.expected_generations {
             digest ^= generation.identity_digest();
             digest = digest.wrapping_mul(0x100000001b3);
@@ -181,6 +242,58 @@ impl UiAllocationReplanTransaction {
         digest ^= self.consequences.identity_digest();
         digest = digest.wrapping_mul(0x100000001b3);
         digest
+    }
+}
+
+#[cfg(test)]
+impl UiAllocationReplanTransaction {
+    pub(super) fn for_receipt_law_test(
+        candidate: &super::UiAllocationCandidate,
+        _generation: super::UiAllocationReceiptGeneration,
+    ) -> Self {
+        let mut payload = crate::evidence::UiAllocationStreamPolicyPayloadCounters::default();
+        let crate::runtime::stream_policy::UiAllocationStreamCommitDecision::Commit(receipt) =
+            crate::runtime::stream_policy::resolve_stream_families(
+                &[crate::runtime::UiAllocationStreamFamily::TextInput],
+                &mut payload,
+            )
+        else {
+            panic!("single admitted test family resolves to commit policy");
+        };
+        let identity = candidate.allocation_neighborhood().identity().clone();
+        Self {
+            frame_ingress_keys: Vec::new().into_boxed_slice(),
+            stream_families: vec![crate::runtime::UiAllocationStreamFamily::TextInput]
+                .into_boxed_slice(),
+            invalidation_families: vec![
+                crate::runtime::UiAllocationInvalidationFamily::TextContentChange,
+            ]
+            .into_boxed_slice(),
+            ingress_policy_verdicts: Box::new([]),
+            primary_neighborhood: identity.clone(),
+            ordered_neighborhoods: vec![identity].into_boxed_slice(),
+            widen_reasons: vec![None].into_boxed_slice(),
+            expected_generations: Vec::new().into_boxed_slice(),
+            frame_epoch: crate::runtime::UiAllocationFrameEpoch::initial(),
+            policy: receipt.into_resolution_parts().0,
+            overlap_disposition: crate::graph::UiReplanOverlapDisposition::Singleton,
+            root_posture: crate::graph::UiReplanRootPosture::NotRoot,
+            transaction_generation: 0,
+            runtime_generation: 0,
+            consequences: Default::default(),
+        }
+    }
+
+    pub(super) fn with_partial_query_policy_for_test(mut self, maximum_lag_frames: u8) -> Self {
+        self.ingress_policy_verdicts = vec![
+            crate::runtime::UiAllocationIngressPolicyVerdict::PartialQueryStaleButBounded {
+                warnings:
+                    crate::runtime::UiAllocationFrameQueryWarningPosture::QueryContextRowBound,
+                max_lag_frames: maximum_lag_frames,
+            },
+        ]
+        .into_boxed_slice();
+        self
     }
 }
 
@@ -218,37 +331,5 @@ mod tests {
 
         assert_ne!(original.idempotency_key(), lane_changed.idempotency_key());
         assert!(!original.same_idempotency_basis(&lane_changed));
-    }
-}
-
-#[cfg(test)]
-impl UiAllocationReplanTransaction {
-    pub(super) fn for_receipt_law_test(
-        candidate: &super::UiAllocationCandidate,
-        _generation: super::UiAllocationReceiptGeneration,
-    ) -> Self {
-        let mut payload = crate::evidence::UiAllocationStreamPolicyPayloadCounters::default();
-        let crate::runtime::stream_policy::UiAllocationStreamCommitDecision::Commit(receipt) =
-            crate::runtime::stream_policy::resolve_stream_families(
-                &[crate::runtime::UiAllocationStreamFamily::TextInput],
-                &mut payload,
-            )
-        else {
-            panic!("single admitted test family resolves to commit policy");
-        };
-        let identity = candidate.allocation_neighborhood().identity().clone();
-        Self {
-            frame_ingress_keys: Vec::new().into_boxed_slice(),
-            primary_neighborhood: identity.clone(),
-            ordered_neighborhoods: vec![identity].into_boxed_slice(),
-            widen_reasons: vec![None].into_boxed_slice(),
-            expected_generations: Vec::new().into_boxed_slice(),
-            frame_epoch: crate::runtime::UiAllocationFrameEpoch::initial(),
-            policy: receipt.into_resolution_parts().0,
-            overlap_disposition: crate::graph::UiReplanOverlapDisposition::Singleton,
-            transaction_generation: 0,
-            runtime_generation: 0,
-            consequences: Default::default(),
-        }
     }
 }

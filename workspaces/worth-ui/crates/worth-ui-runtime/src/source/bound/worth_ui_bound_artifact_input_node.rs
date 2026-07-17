@@ -11,7 +11,7 @@ use crate::source::{
 pub(crate) enum WorthUiBoundArtifactInputNode {
     Import(WorthUiArtifactInputImportNode),
     Component(WorthUiBoundArtifactInputComponentNode),
-    Surface(WorthUiBoundArtifactInputSurfaceNode),
+    Surface(Box<WorthUiBoundArtifactInputSurfaceNode>),
     Binding(WorthUiBoundArtifactInputBindingNode),
     Token(WorthUiBoundArtifactInputThemeTokenNode),
 }

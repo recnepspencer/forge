@@ -1,4 +1,16 @@
 pub use worth_ui_inspection::{
+    UiAllocationInspectionAnchorPosture, UiAllocationInspectionAttemptResult,
+    UiAllocationInspectionAxis, UiAllocationInspectionBounds,
+    UiAllocationInspectionCoordinateSpace, UiAllocationInspectionDenialFamily,
+    UiAllocationInspectionDeniedAttempt, UiAllocationInspectionEdgeReference,
+    UiAllocationInspectionEvidenceFamily, UiAllocationInspectionEvidenceRef,
+    UiAllocationInspectionFreshnessPosture, UiAllocationInspectionGeometry,
+    UiAllocationInspectionGraphNodeIdentity, UiAllocationInspectionInvalidationFamily,
+    UiAllocationInspectionKnowledge, UiAllocationInspectionNeighborhoodIdentity,
+    UiAllocationInspectionPlanningBasisIdentity, UiAllocationInspectionPortalAnchorTargetIdentity,
+    UiAllocationInspectionReceipt, UiAllocationInspectionReceiptIdentity,
+    UiAllocationInspectionReuseDenialPosture, UiAllocationInspectionReusePosture,
+    UiAllocationInspectionSelection, UiAllocationInspectionStreamFamily,
     UiAuthoredSourceProvenanceRef, UiEvidenceAuthorityArtifactIdentity, UiEvidenceAuthorityBinding,
     UiEvidenceAuthorityGeneration, UiEvidenceAuthorityKind, UiEvidenceBudget,
     UiEvidenceExpansionOutcome, UiEvidenceFamily, UiEvidenceLinkKind,
@@ -34,6 +46,7 @@ pub use worth_ui_inspection::{
     UiInspectionWrongWorldPosture, UiRelevanceFamily, UiRelevanceFilter,
 };
 pub use worth_ui_runtime::facade::evidence::{
+    UiAllocationReceiptDenialInspectionReceipt, UiAllocationReceiptInspectionReceipt,
     UiEvidenceExpansion, UiEvidenceFamilySummary, UiEvidenceHandle, UiEvidenceIdentity,
     UiEvidenceMaterializedDetail, UiEvidenceRef, UiEvidenceSlice, UiEvidenceSliceRef,
     UiInspectionCostReceipt, UiInspectionObligationEvidenceReceipt,

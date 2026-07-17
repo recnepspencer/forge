@@ -236,9 +236,11 @@ fn stage_pending_activation(
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation),
-            Some(&query_rebind),
-            Some(&pending_input),
+            crate::runtime::WorthUiActivationStagingPlans {
+                reconciliation_plan: Some(&reconciliation),
+                query_rebind_plan: Some(&query_rebind),
+                pending_execution_plan_lowering_input: Some(&pending_input),
+            },
         )
         .expect("suite activation staging succeeds")
 }

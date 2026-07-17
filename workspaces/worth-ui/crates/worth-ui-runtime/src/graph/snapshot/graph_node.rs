@@ -23,20 +23,35 @@ pub struct UiGraphNode {
     participation_posture: UiGraphParticipationPosture,
 }
 
+pub(crate) struct UiGraphNodeInput {
+    pub(crate) graph_node_identity: UiGraphNodeIdentity,
+    pub(crate) declaration_identity: UiDeclarationIdentity,
+    pub(crate) structural_digest: UiDeclarationStructuralDigest,
+    pub(crate) structural_role: UiDeclarationStructuralRole,
+    pub(crate) operator_kind: UiDeclarationPlanningOperatorKind,
+    pub(crate) repetition_posture: UiDeclarationRepetitionPosture,
+    pub(crate) measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    pub(crate) authored_provenance_digest: u64,
+    pub(crate) repeated_instance_basis: UiRepeatedInstanceBasis,
+    pub(crate) attachment_posture: UiGraphAttachmentPosture,
+    pub(crate) participation_posture: UiGraphParticipationPosture,
+}
+
 impl UiGraphNode {
-    pub(crate) fn new(
-        graph_node_identity: UiGraphNodeIdentity,
-        declaration_identity: UiDeclarationIdentity,
-        structural_digest: UiDeclarationStructuralDigest,
-        structural_role: UiDeclarationStructuralRole,
-        operator_kind: UiDeclarationPlanningOperatorKind,
-        repetition_posture: UiDeclarationRepetitionPosture,
-        measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
-        authored_provenance_digest: u64,
-        repeated_instance_basis: UiRepeatedInstanceBasis,
-        attachment_posture: UiGraphAttachmentPosture,
-        participation_posture: UiGraphParticipationPosture,
-    ) -> Self {
+    pub(crate) fn new(input: UiGraphNodeInput) -> Self {
+        let UiGraphNodeInput {
+            graph_node_identity,
+            declaration_identity,
+            structural_digest,
+            structural_role,
+            operator_kind,
+            repetition_posture,
+            measurement_constraint_modifier,
+            authored_provenance_digest,
+            repeated_instance_basis,
+            attachment_posture,
+            participation_posture,
+        } = input;
         Self {
             graph_node_identity,
             declaration_identity,

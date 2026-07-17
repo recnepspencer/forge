@@ -182,27 +182,31 @@ fn admit_member_intrinsic_contribution_witness(
                 ));
             }
             Ok(Some(UiConstraintChildIntrinsicContribution::new(
-                contributor_graph_node_identity,
-                axis_scope,
-                primary_extent,
-                None,
-                UiConstraintIntrinsicSourcePosture::QueryOnly,
-                UiConstraintHostIntrinsicKind::None,
-                UiMeasurementUnitPosture::LogicalPx,
-                UiMeasurementCoordinateSpace::GraphNodeLocal,
-                UiMeasurementRoundingPosture::ExactFloat,
+                crate::evidence::UiConstraintChildIntrinsicContributionInput {
+                    contributor_graph_node_identity,
+                    axis_scope,
+                    primary_extent,
+                    cross_extent: None,
+                    source_posture: UiConstraintIntrinsicSourcePosture::QueryOnly,
+                    host_kind: UiConstraintHostIntrinsicKind::None,
+                    unit_posture: UiMeasurementUnitPosture::LogicalPx,
+                    coordinate_space: UiMeasurementCoordinateSpace::GraphNodeLocal,
+                    rounding_posture: UiMeasurementRoundingPosture::ExactFloat,
+                },
             )))
         }
         (None, Some(host)) => Ok(Some(UiConstraintChildIntrinsicContribution::new(
-            contributor_graph_node_identity,
-            axis_scope,
-            host.primary_extent,
-            host.cross_extent,
-            UiConstraintIntrinsicSourcePosture::HostOnly,
-            host.host_kind,
-            host.unit_posture,
-            host.coordinate_space,
-            host.rounding_posture,
+            crate::evidence::UiConstraintChildIntrinsicContributionInput {
+                contributor_graph_node_identity,
+                axis_scope,
+                primary_extent: host.primary_extent,
+                cross_extent: host.cross_extent,
+                source_posture: UiConstraintIntrinsicSourcePosture::HostOnly,
+                host_kind: host.host_kind,
+                unit_posture: host.unit_posture,
+                coordinate_space: host.coordinate_space,
+                rounding_posture: host.rounding_posture,
+            },
         ))),
         (Some(primary_extent), Some(host)) => {
             if host.primary_extent != primary_extent
@@ -217,15 +221,17 @@ fn admit_member_intrinsic_contribution_witness(
                 ));
             }
             Ok(Some(UiConstraintChildIntrinsicContribution::new(
-                contributor_graph_node_identity,
-                axis_scope,
-                primary_extent,
-                host.cross_extent,
-                UiConstraintIntrinsicSourcePosture::QueryAndHost,
-                host.host_kind,
-                host.unit_posture,
-                host.coordinate_space,
-                host.rounding_posture,
+                crate::evidence::UiConstraintChildIntrinsicContributionInput {
+                    contributor_graph_node_identity,
+                    axis_scope,
+                    primary_extent,
+                    cross_extent: host.cross_extent,
+                    source_posture: UiConstraintIntrinsicSourcePosture::QueryAndHost,
+                    host_kind: host.host_kind,
+                    unit_posture: host.unit_posture,
+                    coordinate_space: host.coordinate_space,
+                    rounding_posture: host.rounding_posture,
+                },
             )))
         }
     }

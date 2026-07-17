@@ -1,7 +1,7 @@
 # Milestone 3.8 Engineering Spec: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
 
-> **Status:** In progress — Phases 1-11 implemented; post-9.13 Query cutover
-> phases inserted before the remaining inspection and closeout work
+> **Status:** Closed — Phases 1-22 implemented and milestone-native hostile
+> certification complete
 >
 > **Roadmap parent:** [worth_ui_roadmap.md](./worth_ui_roadmap.md)
 >
@@ -446,7 +446,8 @@ Ordinary law:
   `current`, `coalescing`, or `stale_but_bounded`
 - later execution lowering may consume only receipts whose companion report is
   `current` or `stale_but_bounded` under an admitted policy that explicitly
-  allows bounded lag
+  allows bounded lag; that allowance is carried by the report and cannot be
+  minted or widened by the consumer
 - `recompute_pending` is not an execution-lowering input
 
 `recompute_pending` lives on append-only report lineage artifacts, not by
@@ -477,11 +478,13 @@ Freshness posture transitions must be explicit:
 | `current` | admitted coalescing policy accepts delayed recompute | `coalescing` |
 | `current` | later basis/observation invalidates but bounded prior receipt remains paintable | `stale_but_bounded` |
 | `current` | replacement/remeasure required before next committed receipt | `recompute_pending` |
-| `coalescing` | committed recompute succeeds | `current` |
+| `coalescing` | admitted coalescing lag remains within its report-carried bound | `stale_but_bounded` |
 | `coalescing` | bounded lag exceeded before recompute | `recompute_pending` |
-| `stale_but_bounded` | committed recompute succeeds | `current` |
 | `stale_but_bounded` | bounded lag no longer admissible | `recompute_pending` |
-| `recompute_pending` | committed recompute succeeds | `current` |
+
+A successful recompute commits a new receipt and a new `current` report. It
+does not mutate a `coalescing`, `stale_but_bounded`, or `recompute_pending`
+report back to `current`; those report-lineage artifacts remain immutable.
 
 Partial reuse is admitted in one narrow form in 3.8:
 
@@ -971,180 +974,140 @@ The law is:
   AI critique can evaluate alignment/spacing/symmetry from runtime semantics
   instead of screenshot-only reconstruction
 
-## Planned Structural Homes
+## Final Structural Homes
 
-3.8 is cross-cutting enough that it needs an explicit landing tree. Use this
-as the target skeleton unless a later structural QA pass approves a tighter
-equivalent.
+3.8 is cross-cutting enough that its final authority homes are recorded here.
+This is the implemented topology, with unchanged sibling surfaces elided.
 
 ```text
 workspaces/worth-ui/crates/
   worth-ui-query-binding/
     src/
       installed_domain/
-        domain_entry.rs
-        domain_package.rs
-        native_aspect_contracts.rs
-        installed_binding_capability.rs
+        capability.rs
+        rebind.rs
+        workspace.rs
       declaration/
-        view_binding.rs
-        projection_contract.rs
-        lifecycle_requirement.rs
+        binding_contract_identity.rs
+        definition.rs
+        identity.rs
+        installed_view.rs
       consumption/
-        projection_outcome.rs
-        native_measurement_facts.rs
-        allocation_settlement.rs
-        authority_index.rs
-      facade.rs
+        installed_projection.rs
+      prerequisites/
+        allocation/query_allocation_invalidation_basis.rs
+        basis/query_authority_handle.rs
+        basis/query_basis_authority.rs
+        basis/query_lane.rs
+        measurement/query_measurement_fact_receipt.rs
+        measurement/query_measurement_fact_settlement.rs
+      domain_marker.rs
+      domain_package.rs
+      installed_measurements.rs
+      native_aspect_contracts.rs
 
   worth-ui-runtime/
     src/
       graph/
         allocation_neighborhood/
           mod.rs
-          neighborhood_identity.rs
-          neighborhood_set.rs
-          widen_reason.rs
-          locality_proof.rs
-          viewport_family.rs
-          drag_resize_family.rs
-          scroll_family.rs
-          portal_family.rs
+          admission/
+            admitted_constraint_basis.rs
+            catalog_basis.rs
+            operator_contract.rs
+          membership/
+            equivalence.rs
+            membership.rs
+            membership_rule.rs
+          replan_selection/
+            consequences.rs
+            neighborhood_selection.rs
+            portal_consequence.rs
+            scroll_consequence.rs
+            selector.rs
+          constraint_authority/
+            ...admitted derivation and integration surfaces...
 
       runtime/
-        allocation_planning/
-          ...existing candidate-planning files only...
-
-        host_observation/
-          ...existing observation intake files...
-
-        replacement/
-          ...existing preservation / impact inputs...
-
         allocation_frame_dispatch/
-          mod.rs
-          lifecycle.rs
-          epoch.rs
-          mailbox.rs
-          collector.rs
-          sealed_frame.rs
-          submission_outcome.rs
-          dispatcher.rs
-          shutdown.rs
-          gateway/
-            mod.rs
-            host_measurement.rs
-            query_projection.rs
-            interaction.rs
-            durable_resize.rs
-
-        allocation_invalidation/
-          mod.rs
-          family.rs
-          classifier.rs
-          query_fact_change.rs
-          viewport_extent_change.rs
-          durable_resize_change.rs
-          resize_preview_delta.rs
-          content_growth_change.rs
-          scroll_extent_change.rs
-          portal_anchor_movement.rs
-          host_measurement_replacement.rs
-          denial.rs
-
-        allocation_stream_policy/
-          mod.rs
-          policy.rs
-          merge_table.rs
-          cadence.rs
-          legality.rs
-          viewport_policy.rs
-          drag_resize_policy.rs
-          typing_query_policy.rs
-          portal_scroll_policy.rs
+          ...frame lifecycle and capability-shaped gateways...
+        invalidation_narrowing/
+          ...typed classification, graph narrowing, and authority...
+        stream_policy/
+          ...cadence, ordering, composition, and closed families...
 
         allocation_receipt/
           mod.rs
-          receipt.rs
-          receipt_id.rs
-          receipt_commit.rs
-          receipt_report.rs
-          receipt_denial.rs
-          reuse.rs
-          partial_reuse.rs
-          structure_reuse_leaf_remeasure.rs
-          geometry_relationships.rs
-
-        allocation_freshness/
-          mod.rs
-          posture.rs
-          lag_policy.rs
-          consumer_legality.rs
-
-        allocation_counters/
-          mod.rs
-          counter_names.rs
-          counter_report.rs
-          boundedness.rs
+          committed_truth/
+            committed_allocation.rs
+            committed_evidence.rs
+            committed_lowering_input.rs
+            committed_receipt.rs
+            geometry_evidence.rs
+          ledger_lifecycle/
+            ledger_state.rs
+            receipt_ledger.rs
+            receipt_ledger_entry.rs
+          report_freshness/
+            allocation_counters.rs
+            consumer_admission.rs
+            receipt_generation.rs
+            receipt_identity.rs
+            receipt_report.rs
+          reuse/
+            preview_candidate.rs
+            preview_isolation.rs
+            receipt_budget.rs
+            reuse_verdict.rs
+          transaction/
+            denial_taxonomy.rs
+            receipt_commit.rs
+            replan_transaction.rs
+            transaction_outcome.rs
 
       evidence/
-        allocation/
-          mod.rs
-          invalidation_artifact.rs
-          neighborhood_selection_report.rs
-          reuse_decision.rs
-          freshness_report.rs
-          commit_denial.rs
-          counter_report.rs
-          geometry_evidence.rs
+        planning/
+          allocation_geometry_inspection.rs
+          denied_replan_inspection.rs
+          receipt_inspection.rs
 
   worth-ui-inspection/
     src/
       allocation/
         mod.rs
-        query.rs
-        receipt_inspection.rs
-        neighborhood_explanation.rs
-        freshness_inspection.rs
-        geometry_inspection.rs
-        critique_readiness.rs
+        attempt_projection.rs
+        evidence_ref.rs
+        geometry_projection.rs
+        receipt_projection.rs
 
   worth-ui-certification/
     src/
       allocation/
         mod.rs
-        locality_certification.rs
-        cadence_certification.rs
-        denial_certification.rs
-        freshness_certification.rs
-        anti_bypass_certification.rs
-        hostile_integration_certification.rs
-
-  worth-ui-test-support/
-    src/
-      allocation/
-        mod.rs
-        fixtures.rs
-        scenario_builders.rs
-        stream_generators.rs
-        oracle_helpers.rs
+        allocation_closeout_certification.rs
+      topology/
+        allocation_closeout_anti_bypass_audit.rs
 ```
 
 ### Directory Laws
 
 - `graph/allocation_neighborhood/` owns neighborhood identity, ordered-set
   shape, widen reasons, and locality proof only.
-- `runtime/allocation_invalidation/` owns family classification only.
+- `runtime/invalidation_narrowing/` owns typed family classification and
+  admitted graph-target narrowing only.
 - `runtime/allocation_frame_dispatch/` owns runtime lifecycle, transport
   capacity, epoch/sequence allocation, immutable sealing, and one-shot dispatch
   only; its `gateway/` children own capability-shaped source submission only.
-- `runtime/allocation_stream_policy/` owns cadence, ordering, and merge
+- `runtime/stream_policy/` owns cadence, ordering, and merge
   legality only; it returns a resolved frame plan and never closes frames or
   commits receipts.
-- `runtime/allocation_receipt/` owns committed receipt truth only.
-- `runtime/allocation_freshness/` owns freshness posture only.
-- `runtime/allocation_counters/` owns boundedness counters only.
-- `evidence/allocation/` owns typed evidence artifacts only.
+- `runtime/allocation_receipt/committed_truth/` owns committed receipt truth.
+- `runtime/allocation_receipt/report_freshness/` owns freshness admission and
+  allocation counter reports.
+- `runtime/allocation_receipt/transaction/` owns atomic transaction and typed
+  denial truth.
+- `evidence/planning/` projects runtime-owned receipt evidence into inspection
+  types; it does not own operational authority.
 - `worth-ui-inspection/src/allocation/` projects evidence; it does not mint it.
 - `worth-ui-certification/src/allocation/` proves behavior; it does not own it.
 - `worth-ui-test-support/src/allocation/` builds fixtures; it does not become a
@@ -1153,29 +1116,20 @@ workspaces/worth-ui/crates/
 ### Phase Mapping
 
 - Phase 1 and Phase 2 land primarily in `runtime/allocation_receipt/` and
-  `evidence/allocation/`
+  `evidence/planning/`
 - Phase 3 lands primarily in `runtime/allocation_frame_dispatch/`
 - Phase 4 lands primarily in `runtime/allocation_frame_dispatch/gateway/` and
   admitted host/Query/interaction boundary ports
-- Phase 5 lands primarily in `runtime/allocation_stream_policy/` and
-  `runtime/allocation_invalidation/` as a resolved frame plan with typed
+- Phase 5 lands primarily in `runtime/stream_policy/` and
+  `runtime/invalidation_narrowing/` as a resolved frame plan with typed
   invalidation artifacts only
-- Phase 6 lands primarily in `runtime/allocation_invalidation/` and admitted
+- Phase 6 lands primarily in `runtime/invalidation_narrowing/` and admitted
   graph/Query narrowing surfaces
 - Phase 7 lands primarily in `graph/allocation_neighborhood/`, planning, and
   the transaction-owned atomic allocation transition seam
-- Phase 8 lands primarily in `runtime/allocation_invalidation/viewport_extent_change.rs`
-  plus `runtime/allocation_stream_policy/viewport_policy.rs`
-- Phase 9 lands primarily in
-  `runtime/allocation_invalidation/durable_resize_change.rs`,
-  `runtime/allocation_invalidation/resize_preview_delta.rs`, and
-  `runtime/allocation_stream_policy/drag_resize_policy.rs`
-- Phase 10 lands primarily in
-  `runtime/allocation_invalidation/scroll_extent_change.rs` and
-  `graph/allocation_neighborhood/scroll_family.rs`
-- Phase 11 lands primarily in
-  `runtime/allocation_invalidation/portal_anchor_movement.rs` and
-  `graph/allocation_neighborhood/portal_family.rs`
+- Phases 8 through 11 land in the typed viewport, drag-resize, scroll-owned,
+  and portal consequences below `runtime/invalidation_narrowing/`, with graph
+  locality owned by `graph/allocation_neighborhood/`.
 - Phase 12 lands in workspace boundary configuration, crate manifests,
   `worth-ui-query-binding`, and Query-edge certification
 - Phase 13 lands in `worth-ui-query-binding/installed_domain/` plus Worth UI
@@ -1191,9 +1145,13 @@ workspaces/worth-ui/crates/
 - Phase 18 restructures oversized allocation responsibility neighborhoods and
   installs topology, naming, residue, and agent-context enforcement
 - Phase 19 lands primarily in `worth-ui-inspection/src/allocation/`
-- Phase 20 lands primarily in `runtime/allocation_freshness/`
-- Phase 21 lands primarily in `runtime/allocation_counters/` and
-  `evidence/allocation/counter_report.rs`
+- Phase 20 lands primarily in
+  `runtime/allocation_receipt/report_freshness/` and the execution-consumer
+  admission boundary
+- Phase 21 lands primarily in
+  `runtime/allocation_receipt/report_freshness/allocation_counters.rs`,
+  `runtime/allocation_receipt/transaction/denial_taxonomy.rs`, and the receipt
+  inspection projection
 - Phase 22 lands primarily in `worth-ui-certification/src/allocation/`
 
 ### Anti-Sprawl Rules
@@ -2457,7 +2415,8 @@ This phase closes the freshness contract for committed allocation truth.
 **Relevant subsystems**
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/evidence/`
 - `workspaces/worth-ui/crates/worth-ui-inspection/`
-- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/report_freshness/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution/host_lanes/`
 
 **Relevant APIs**
 - `UiAllocationReceipt`
@@ -2479,12 +2438,16 @@ This phase closes the freshness contract for committed allocation truth.
 - Adversarial consumer-boundary test: host paint and downstream execution obey
   the admitted freshness-consumption rules rather than sharing one permissive
   posture, with explicit assertions for which postures each consumer may and
-  may not consume.
+  may not consume. Topology assembly must accept
+  `UiCommittedAllocationLoweringInput`, never a raw receipt, so a caller cannot
+  bypass or widen freshness admission.
 
 **Engineering decisions**
 - Place freshness and lag posture on companion `UiAllocationReceiptReport`
   while leaving receipt identity, equivalence, and generation on
   `UiAllocationReceipt`.
+- Derive bounded-stale execution legality from the report-carried lag bound;
+  expose no public constructor or caller-supplied lag allowance.
 - Keep freshness as a typed runtime contract, not a presentation-layer summary.
 
 **Open questions**
@@ -2506,6 +2469,8 @@ churn.
 
 **Relevant subsystems**
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/evidence/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/report_freshness/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/transaction/`
 - `workspaces/worth-ui/crates/worth-ui-certification/`
 - `workspaces/worth-ui/crates/worth-ui-inspection/`
 
@@ -2529,8 +2494,9 @@ churn.
   reuse, and churn-burst handling under hostile stream pressure, with exact
   counter names and per-scenario maximum values asserted.
 - Adversarial denial test: mandatory denial families surface as typed evidence
-  with stable identities and attached allocation causes, and certification must
-  assert zero generic fallback-denial artifacts.
+  with stable cause-sensitive identities and attached allocation causes;
+  distinct reuse-denial reasons must retain their exact reason and must not
+  collide. Certification must assert zero generic fallback-denial artifacts.
 
 **Engineering decisions**
 - Add allocation-specific denial taxonomy instead of generic measurement
@@ -2555,8 +2521,8 @@ the existing proof-flow grammar:
 `measurement basis admit -> neighborhood admit -> plan_allocation -> allocation receipt commit -> downstream execution consumers`
 
 **Relevant subsystems**
-- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/`
-- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/tests/activation/`
 - `workspaces/worth-ui/crates/worth-ui-certification/`
 - `workspaces/worth-ui/crates/worth-ui-test-support/`
 
@@ -2729,11 +2695,31 @@ the existing proof-flow grammar:
   neighborhood-set cardinality, and bounded receipt-commit cadence under
   hostile churn
 
+## Closeout Evidence
+
+- the complete `worth-ui-runtime` library suite passes all 818 tests
+- the milestone closeout suite proves local receipt and denied-attempt
+  inspection, all four freshness postures, distinct paint/execution admission,
+  mandatory boundedness counters, and the closed denial taxonomy
+- one combined hostile workbench drives typing, Query growth, resize preview,
+  durable resize, viewport observation, scroll observation, and portal movement
+  through production framework turns; replay is deterministic, every
+  transition remains exactly one neighborhood and one committed receipt, and
+  root-widen attempts remain zero
+- public certification consumes the runtime-origin fixture through
+  `worth-ui-test-support`, asserts exact receipt and neighborhood bounds, and
+  proves committed receipt execution consumption
+- allocation anti-bypass certification finds no host-owned receipt minting,
+  synthetic neighborhood construction, or consumer-owned allocation cache
+  authority
+- Road 1 boundary topology and generated agent-context checks pass, and every
+  Rust file changed by this closeout remains within the 400-line limit
+
 ## Sequencing Notes
 
-- Phases 1-11 were implemented before the Query 9.13 cutover. Their allocation
-  semantics remain valid, but their Query-facing edges are not considered
-  closed until Phases 12-18 replace the interim consumer model.
+- Phases 1-11 were implemented before the Query 9.13 cutover. Phases 12-18 now
+  replace the interim consumer model, and Phases 19-22 close inspection,
+  freshness, boundedness, denial, integration, and certification.
 - Phases 12-18 are intentionally inserted before allocation inspection,
   freshness, counters, and certification. Those later surfaces would otherwise
   make pre-9.13 mirrors and reconstructed identity part of the durable 3.8

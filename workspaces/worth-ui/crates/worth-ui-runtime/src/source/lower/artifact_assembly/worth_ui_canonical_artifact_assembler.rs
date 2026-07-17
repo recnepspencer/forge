@@ -131,19 +131,21 @@ fn assemble_node(
             ))
         }
         WorthUiIdentitySeededArtifactInputNode::Surface(node) => {
-            WorthUiArtifactNode::Surface(WorthUiArtifactSurfaceNode::new(
-                WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(
-                    module_id.clone(),
-                    node_index,
-                )),
-                node.surface().clone(),
-                node.bound_node().descriptor().clone(),
-                node.bound_node().structure().clone(),
-                node.bound_node().semantics().clone(),
-                authored_provenance_digest(node.provenance()),
-                node.identity_seed().clone(),
-                node.durable_state_eligibility().clone(),
-            ))
+            WorthUiArtifactNode::Surface(Box::new(WorthUiArtifactSurfaceNode::new(
+                crate::source::WorthUiArtifactSurfaceNodeInput {
+                    handle: WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(
+                        module_id.clone(),
+                        node_index,
+                    )),
+                    surface: node.surface().clone(),
+                    descriptor: node.bound_node().descriptor().clone(),
+                    structure: node.bound_node().structure().clone(),
+                    semantics: node.bound_node().semantics().clone(),
+                    authored_provenance_digest: authored_provenance_digest(node.provenance()),
+                    identity_seed: node.identity_seed().clone(),
+                    durable_state_eligibility: node.durable_state_eligibility().clone(),
+                },
+            )))
         }
         WorthUiIdentitySeededArtifactInputNode::Binding(node) => {
             WorthUiArtifactNode::Binding(WorthUiArtifactBindingNode::new(

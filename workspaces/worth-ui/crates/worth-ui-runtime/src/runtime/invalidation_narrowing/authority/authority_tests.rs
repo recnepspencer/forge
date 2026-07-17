@@ -322,7 +322,9 @@ fn ordinary_turn_selects_and_atomically_commits_the_phase7_transaction() {
         committed.evidence().overlap_disposition(),
         crate::graph::UiReplanOverlapDisposition::PairwiseDisjoint
     );
-    let lowering = committed.receipts()[0].lowering_input();
+    let lowering = committed.receipts()[0]
+        .lowering_input()
+        .expect("current committed receipt lowers");
     assert_eq!(lowering.receipt(), &committed.receipts()[0]);
     assert_eq!(lowering.report(), committed.receipts()[0].report());
     assert_eq!(lowering.transaction(), committed.transaction());

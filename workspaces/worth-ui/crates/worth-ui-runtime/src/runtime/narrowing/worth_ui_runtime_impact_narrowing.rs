@@ -23,23 +23,39 @@ pub struct WorthUiRuntimeImpactNarrowing {
     counters: WorthUiImpactLookupCounters,
 }
 
+pub(crate) struct WorthUiRuntimeImpactNarrowingInput {
+    pub active_artifact_digest: u64,
+    pub candidate_artifact_digest: u64,
+    pub affected_source_modules: Vec<WorthUiSourceModuleId>,
+    pub affected_handles: Vec<WorthUiArtifactHandle>,
+    pub affected_subtree_digests: Vec<WorthUiArtifactSubtreeDigest>,
+    pub command_binding_invalidations: Vec<WorthUiCommandBindingInvalidation>,
+    pub token_invalidations: Vec<WorthUiTokenInvalidation>,
+    pub accessibility_invalidation: WorthUiAccessibilityInvalidation,
+    pub renderer_resource_invalidations: Vec<WorthUiRendererResourceInvalidation>,
+    pub query_dependency_invalidations: Vec<WorthUiQueryDependencyInvalidation>,
+    pub lane_impact: Option<WorthUiLaneImpactClassification>,
+    pub full_artifact_handle_count: usize,
+    pub counters: WorthUiImpactLookupCounters,
+}
+
 impl WorthUiRuntimeImpactNarrowing {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        active_artifact_digest: u64,
-        candidate_artifact_digest: u64,
-        affected_source_modules: Vec<WorthUiSourceModuleId>,
-        affected_handles: Vec<WorthUiArtifactHandle>,
-        affected_subtree_digests: Vec<WorthUiArtifactSubtreeDigest>,
-        command_binding_invalidations: Vec<WorthUiCommandBindingInvalidation>,
-        token_invalidations: Vec<WorthUiTokenInvalidation>,
-        accessibility_invalidation: WorthUiAccessibilityInvalidation,
-        renderer_resource_invalidations: Vec<WorthUiRendererResourceInvalidation>,
-        query_dependency_invalidations: Vec<WorthUiQueryDependencyInvalidation>,
-        lane_impact: Option<WorthUiLaneImpactClassification>,
-        full_artifact_handle_count: usize,
-        counters: WorthUiImpactLookupCounters,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiRuntimeImpactNarrowingInput) -> Self {
+        let WorthUiRuntimeImpactNarrowingInput {
+            active_artifact_digest,
+            candidate_artifact_digest,
+            affected_source_modules,
+            affected_handles,
+            affected_subtree_digests,
+            command_binding_invalidations,
+            token_invalidations,
+            accessibility_invalidation,
+            renderer_resource_invalidations,
+            query_dependency_invalidations,
+            lane_impact,
+            full_artifact_handle_count,
+            counters,
+        } = input;
         let mut affected_source_modules = affected_source_modules
             .into_iter()
             .map(|module_id| module_id.as_str().to_owned())

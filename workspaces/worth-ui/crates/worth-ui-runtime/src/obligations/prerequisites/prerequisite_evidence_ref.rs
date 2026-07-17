@@ -3,7 +3,7 @@ use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiObligationPrerequisiteEvidenceRef {
-    Query(WorthUiQueryPrerequisiteEvidence),
+    Query(Box<WorthUiQueryPrerequisiteEvidence>),
     Host(WorthUiHostCapabilityReport),
 }
 

@@ -19,6 +19,7 @@ pub use worth_ui_lane_impact_classification::WorthUiLaneImpactClassification;
 pub use worth_ui_renderer_resource_impact::WorthUiRendererResourceImpact;
 pub use worth_ui_replacement_impact::WorthUiReplacementImpact;
 pub use worth_ui_replacement_impact_classification::WorthUiReplacementImpactClassification;
+pub(crate) use worth_ui_replacement_impact_classification::WorthUiReplacementImpactClassificationInput;
 pub use worth_ui_replacement_impact_classifier::WorthUiReplacementImpactClassifier;
 pub use worth_ui_replacement_impact_counters::WorthUiReplacementImpactCounters;
 pub use worth_ui_replacement_impact_denial::WorthUiReplacementImpactDenial;

@@ -86,19 +86,21 @@ fn lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacement
             };
             counters.record_transition(transition);
             WorthUiNodeReplacementClassification::new(
-                classification.identity_basis().to_owned(),
-                classification.authored_provenance_digest(),
-                transition,
-                classification.active_kind(),
-                classification.candidate_kind(),
-                classification.active_durable_state_eligible(),
-                classification.candidate_durable_state_eligible(),
-                classification.active_resize_contract_id().cloned(),
-                classification.candidate_resize_contract_id().cloned(),
-                classification.active_resize_permission().cloned(),
-                classification.candidate_resize_permission().cloned(),
-                classification.active_resize_shape_digest(),
-                classification.candidate_resize_shape_digest(),
+                crate::runtime::replacement::node_classification::WorthUiNodeReplacementClassificationInput {
+                    identity_basis: classification.identity_basis().to_owned(),
+                    authored_provenance_digest: classification.authored_provenance_digest(),
+                    transition,
+                    active_kind: classification.active_kind(),
+                    candidate_kind: classification.candidate_kind(),
+                    active_durable_state_eligible: classification.active_durable_state_eligible(),
+                    candidate_durable_state_eligible: classification.candidate_durable_state_eligible(),
+                    active_resize_contract_id: classification.active_resize_contract_id().cloned(),
+                    candidate_resize_contract_id: classification.candidate_resize_contract_id().cloned(),
+                    active_resize_permission: classification.active_resize_permission().cloned(),
+                    candidate_resize_permission: classification.candidate_resize_permission().cloned(),
+                    active_resize_shape_digest: classification.active_resize_shape_digest(),
+                    candidate_resize_shape_digest: classification.candidate_resize_shape_digest(),
+                },
             )
         })
         .collect();
@@ -117,13 +119,13 @@ fn assemble_plan_from_pending_activation(
     let plan_input = runtime
         .prepare_execution_plan_input(pending)
         .expect("plan input prepares");
-    let planning = allocation_planning(&runtime, &plan_input, "lane-meaning.active");
+    let planning = allocation_planning(runtime, &plan_input, "lane-meaning.active");
     let allocation = runtime
         .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handles allocate");
     runtime
         .assemble_execution_plan_topology(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
         )
         .expect("topology assembles")

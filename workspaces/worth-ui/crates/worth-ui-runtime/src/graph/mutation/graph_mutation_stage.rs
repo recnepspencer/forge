@@ -40,19 +40,19 @@ impl UiGraphMutationStage {
             .zip(mounted_receipt_reservations.iter().copied())
         {
             let graph_node_identity = reservation.graph_node_identity();
-            let node = UiGraphNode::new(
+            let node = UiGraphNode::new(crate::graph::UiGraphNodeInput {
                 graph_node_identity,
-                entry.declaration_identity().clone(),
-                entry.topology_seed().structural_digest(),
-                entry.topology_seed().role(),
-                entry.topology_seed().operator_kind(),
-                entry.topology_seed().repetition_posture(),
-                entry.measurement_constraint_modifier(),
-                entry.authored_provenance_digest(),
-                entry.repeated_instance_basis().clone(),
-                entry.attachment_posture(),
-                materialize_graph_participation_posture(entry),
-            );
+                declaration_identity: entry.declaration_identity().clone(),
+                structural_digest: entry.topology_seed().structural_digest(),
+                structural_role: entry.topology_seed().role(),
+                operator_kind: entry.topology_seed().operator_kind(),
+                repetition_posture: entry.topology_seed().repetition_posture(),
+                measurement_constraint_modifier: entry.measurement_constraint_modifier(),
+                authored_provenance_digest: entry.authored_provenance_digest(),
+                repeated_instance_basis: entry.repeated_instance_basis().clone(),
+                attachment_posture: entry.attachment_posture(),
+                participation_posture: materialize_graph_participation_posture(entry),
+            });
 
             declaration_to_nodes
                 .entry(entry.declaration_identity().digest().raw())
@@ -133,19 +133,19 @@ impl UiGraphMutationStage {
                 } else {
                     node.participation_posture()
                 };
-                UiGraphNode::new(
-                    node.graph_node_identity(),
-                    node.declaration_identity().clone(),
-                    node.structural_digest(),
-                    node.structural_role(),
-                    node.operator_kind(),
-                    node.repetition_posture(),
-                    node.measurement_constraint_modifier(),
-                    node.authored_provenance_digest(),
-                    node.repeated_instance_basis().clone(),
-                    node.attachment_posture(),
-                    posture,
-                )
+                UiGraphNode::new(crate::graph::UiGraphNodeInput {
+                    graph_node_identity: node.graph_node_identity(),
+                    declaration_identity: node.declaration_identity().clone(),
+                    structural_digest: node.structural_digest(),
+                    structural_role: node.structural_role(),
+                    operator_kind: node.operator_kind(),
+                    repetition_posture: node.repetition_posture(),
+                    measurement_constraint_modifier: node.measurement_constraint_modifier(),
+                    authored_provenance_digest: node.authored_provenance_digest(),
+                    repeated_instance_basis: node.repeated_instance_basis().clone(),
+                    attachment_posture: node.attachment_posture(),
+                    participation_posture: posture,
+                })
             })
             .collect::<Vec<_>>();
 

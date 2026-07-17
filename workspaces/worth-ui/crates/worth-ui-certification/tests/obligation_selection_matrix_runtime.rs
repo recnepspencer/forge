@@ -322,7 +322,7 @@ fn query_snapshot_world_profile(
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
-            &schema_basis_parts
+            schema_basis_parts
                 .into_iter()
                 .map(str::to_owned)
                 .collect::<Vec<_>>(),
@@ -336,10 +336,10 @@ fn query_snapshot_world_profile(
     UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }
 
-fn obligation_by_family<'a>(
-    selection: &'a worth_ui_runtime::facade::obligations::UiSelectedObligationSet,
+fn obligation_by_family(
+    selection: &worth_ui_runtime::facade::obligations::UiSelectedObligationSet,
     family: UiObligationFamily,
-) -> &'a UiSelectedObligation {
+) -> &UiSelectedObligation {
     selection
         .obligations()
         .iter()

@@ -69,7 +69,6 @@ impl UiConstraintSiblingNegotiationMember {
 }
 
 impl UiConstraintSiblingNegotiationResult {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         group: UiConstraintSiblingNegotiationGroup,
         fixed_point_policy: UiConstraintSiblingNegotiationFixedPointPolicy,

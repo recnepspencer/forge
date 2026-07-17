@@ -45,6 +45,17 @@ pub struct UiAdmittedAllocationInvalidationTargetSet {
     pub(super) widened: Box<[UiAdmittedAllocationInvalidationTarget]>,
 }
 
+struct UiAllocationInvalidationTargetAdmissionInput<'a> {
+    graph_node_identity: UiGraphNodeIdentity,
+    neighborhood: &'a UiAllocationNeighborhood,
+    basis: &'a UiMeasurementBasis,
+    allocation_plan: Option<&'a UiAdmittedAllocationPlanReference>,
+    membership_probes: u16,
+    replacement_impact: Option<&'a Rc<crate::runtime::WorthUiReplacementImpactClassification>>,
+    impact_narrowing: Option<&'a Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>>,
+    neighborhood_footprint: Rc<UiGraphNeighborhoodFootprint>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiGraphReplanTargetDisposition {
     LocalPrimaryEligible,
@@ -107,14 +118,16 @@ impl UiGraphReplanAdmission {
             targets.insert(
                 identity,
                 UiAdmittedAllocationInvalidationTarget::admit(
-                    identity,
-                    neighborhood,
-                    basis,
-                    allocation_plan,
-                    1,
-                    replacement_impact,
-                    impact_narrowing,
-                    Rc::clone(&footprint),
+                    UiAllocationInvalidationTargetAdmissionInput {
+                        graph_node_identity: identity,
+                        neighborhood,
+                        basis,
+                        allocation_plan,
+                        membership_probes: 1,
+                        replacement_impact,
+                        impact_narrowing,
+                        neighborhood_footprint: Rc::clone(&footprint),
+                    },
                 ),
             );
         }
@@ -155,16 +168,17 @@ impl UiAdmittedAllocationPlanReference {
 }
 
 impl UiAdmittedAllocationInvalidationTarget {
-    pub(crate) fn admit(
-        graph_node_identity: UiGraphNodeIdentity,
-        neighborhood: &UiAllocationNeighborhood,
-        basis: &UiMeasurementBasis,
-        allocation_plan: Option<&UiAdmittedAllocationPlanReference>,
-        membership_probes: u16,
-        replacement_impact: Option<&Rc<crate::runtime::WorthUiReplacementImpactClassification>>,
-        impact_narrowing: Option<&Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>>,
-        neighborhood_footprint: Rc<UiGraphNeighborhoodFootprint>,
-    ) -> Self {
+    fn admit(input: UiAllocationInvalidationTargetAdmissionInput<'_>) -> Self {
+        let UiAllocationInvalidationTargetAdmissionInput {
+            graph_node_identity,
+            neighborhood,
+            basis,
+            allocation_plan,
+            membership_probes,
+            replacement_impact,
+            impact_narrowing,
+            neighborhood_footprint,
+        } = input;
         Self {
             graph_node_identity,
             graph_generation: neighborhood.graph_generation(),
@@ -357,7 +371,7 @@ impl UiGraphReplanAuthority {
         for identity in &touched {
             targets.extend(self.targets_by_node.get(identity)?.iter().cloned());
         }
-        targets.sort_by(|left, right| causal_rank(left).cmp(&causal_rank(right)));
+        targets.sort_by_key(causal_rank);
         targets.dedup_by(|left, right| {
             left.neighborhood_identity() == right.neighborhood_identity()
                 && left.generation_key() == right.generation_key()

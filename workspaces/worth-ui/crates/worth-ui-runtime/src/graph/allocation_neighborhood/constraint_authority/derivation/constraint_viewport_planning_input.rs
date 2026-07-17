@@ -32,27 +32,31 @@ pub(super) fn admit_viewport_planning_input(
                 UiViewportPlanningInputPosture::IncompatibleMeasurementPosture
             };
             UiConstraintViewportPlanningInputResult::new(
-                neighborhood_identity_digest,
-                UiViewportPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
-                posture,
-                Some(source_identity_digest),
-                Some(source_generation_digest),
-                Some(unit),
-                Some(coordinate),
-                Some(rounding),
-                true,
+                crate::evidence::UiConstraintViewportPlanningInput {
+                    neighborhood_identity_digest,
+                    solve_order: UiViewportPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
+                    posture,
+                    source_evidence_identity_digest: Some(source_identity_digest),
+                    source_generation_digest: Some(source_generation_digest),
+                    unit_posture: Some(unit),
+                    coordinate_space: Some(coordinate),
+                    rounding_posture: Some(rounding),
+                    planning_time_only: true,
+                },
             )
         }
         None => UiConstraintViewportPlanningInputResult::new(
-            neighborhood_identity_digest,
-            UiViewportPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
-            UiViewportPlanningInputPosture::MissingRequiredEvidence,
-            None,
-            None,
-            None,
-            None,
-            None,
-            true,
+            crate::evidence::UiConstraintViewportPlanningInput {
+                neighborhood_identity_digest,
+                solve_order: UiViewportPlanningInputSolveOrder::BeforeDerivedConstraintFamilies,
+                posture: UiViewportPlanningInputPosture::MissingRequiredEvidence,
+                source_evidence_identity_digest: None,
+                source_generation_digest: None,
+                unit_posture: None,
+                coordinate_space: None,
+                rounding_posture: None,
+                planning_time_only: true,
+            },
         ),
     };
 

@@ -18,6 +18,7 @@ pub use frame_cost_surface::{
 pub use hooks::{WorthUiDiagnosticsProjectionHook, WorthUiDiagnosticsProjectionHookEffect};
 pub use plan_inspection_surface::WorthUiPlanInspectionSurface;
 pub use projection::WorthUiDiagnosticsProjection;
+pub(crate) use projection::WorthUiDiagnosticsProjectionInput;
 pub use query_status_surface::{WorthUiQueryStatusRow, WorthUiQueryStatusSurface};
 pub use reload_status_surface::WorthUiReloadStatusSurface;
 pub use request::{WorthUiDiagnosticsProjectionRequest, WorthUiRuntimeDiagnosticsProjection};

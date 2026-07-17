@@ -36,8 +36,8 @@ pub(crate) use super::allocation_frame_dispatch::{
     WorthUiQueryProjectionSubmission,
 };
 pub use super::launch::{
-    WorthUiLastValidObservation, WorthUiPendingActivation, WorthUiRuntime,
-    WorthUiRuntimeFrameEpoch, WorthUiRuntimeFrameworkLoop, WorthUiRuntimeLaunch,
+    WorthUiActivationStagingPlans, WorthUiLastValidObservation, WorthUiPendingActivation,
+    WorthUiRuntime, WorthUiRuntimeFrameEpoch, WorthUiRuntimeFrameworkLoop, WorthUiRuntimeLaunch,
     WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
 };
 
@@ -53,16 +53,20 @@ pub use super::allocation_frame_dispatch::{
 };
 pub(crate) use super::allocation_receipt::UiCommittedAllocation;
 pub use super::allocation_receipt::{
-    UiAllocationAnchorPosture, UiAllocationAuthorityCounter,
+    admit_host_paint, UiAllocationAnchorPosture, UiAllocationAuthorityCounter,
     UiAllocationAuthorityCounterExhaustion, UiAllocationAxis, UiAllocationAxisAlignedBounds,
     UiAllocationCandidate, UiAllocationConstraintPayloadShape,
-    UiAllocationConstraintPropagationShape, UiAllocationDurableSemanticState,
-    UiAllocationEdgeReference, UiAllocationGeometryKnowledge, UiAllocationLeafRemeasureWitness,
-    UiAllocationPreviewCandidate, UiAllocationReceipt, UiAllocationReceiptCommitDenial,
-    UiAllocationReceiptCommitOutcome, UiAllocationReceiptConstraintShape,
-    UiAllocationReceiptDenialCause, UiAllocationReceiptDenialReport,
-    UiAllocationReceiptEquivalenceBasis, UiAllocationReceiptFreshnessPosture,
-    UiAllocationReceiptGeneration, UiAllocationReceiptIdentity, UiAllocationReceiptReport,
+    UiAllocationConstraintPropagationShape, UiAllocationCounterName, UiAllocationCounterReport,
+    UiAllocationCounterValue, UiAllocationDenialEvidence, UiAllocationDenialEvidenceIdentity,
+    UiAllocationDenialFamily, UiAllocationDurableSemanticState, UiAllocationEdgeReference,
+    UiAllocationFreshnessConsumptionDenial, UiAllocationFreshnessTransition,
+    UiAllocationFreshnessTransitionCause, UiAllocationFreshnessTransitionDenial,
+    UiAllocationGeometryKnowledge, UiAllocationLeafRemeasureWitness, UiAllocationPreviewCandidate,
+    UiAllocationReceipt, UiAllocationReceiptCommitDenial, UiAllocationReceiptCommitOutcome,
+    UiAllocationReceiptConstraintShape, UiAllocationReceiptDenialCause,
+    UiAllocationReceiptDenialReport, UiAllocationReceiptEquivalenceBasis,
+    UiAllocationReceiptFreshnessPosture, UiAllocationReceiptGeneration,
+    UiAllocationReceiptIdentity, UiAllocationReceiptLagBound, UiAllocationReceiptReport,
     UiAllocationReplanTransaction, UiAllocationReplanTransactionCommitDenial,
     UiAllocationReplanTransactionCounters, UiAllocationReplanTransactionDenial,
     UiAllocationReplanTransactionOutcome, UiAllocationReuseDenial, UiAllocationReuseVerdict,

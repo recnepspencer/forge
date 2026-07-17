@@ -42,26 +42,26 @@ pub(super) fn admit_allocation_receipt_candidate(
     previous: Option<&UiAllocationReceipt>,
 ) -> Result<UiAllocationReuseVerdict, UiAllocationReceiptCommitOutcome> {
     if !candidate.is_admitted() {
-        return Err(UiAllocationReceiptCommitOutcome::Denied(
-            UiAllocationReceiptCommitDenial::CandidatePlanningDenied(
+        return Err(UiAllocationReceiptCommitOutcome::denied(
+            UiAllocationReceiptCommitDenial::candidate_planning(
                 super::UiAllocationReceiptDenialReport::candidate_planning_denied(candidate),
             ),
         ));
     }
 
     let reuse_verdict = previous.map_or(UiAllocationReuseVerdict::NewCommit, |previous| {
-        evaluate_allocation_receipt_reuse(&candidate, previous)
+        evaluate_allocation_receipt_reuse(candidate, previous)
     });
     match reuse_verdict {
         UiAllocationReuseVerdict::Denied(reason) => {
-            return Err(UiAllocationReceiptCommitOutcome::Denied(
-                UiAllocationReceiptCommitDenial::ReuseDenied(
+            return Err(UiAllocationReceiptCommitOutcome::denied(
+                UiAllocationReceiptCommitDenial::reuse(
                     super::UiAllocationReceiptDenialReport::reuse_denied(candidate, reason),
                 ),
             ));
         }
         partial @ UiAllocationReuseVerdict::StructureReuseLeafRemeasure(_) => {
-            return Err(UiAllocationReceiptCommitOutcome::RecomputePending(
+            return Err(UiAllocationReceiptCommitOutcome::recompute_pending(
                 super::UiAllocationReceiptReport::new(
                     UiAllocationReceiptIdentity::from_candidate(candidate),
                     UiAllocationReceiptGeneration::from_candidate(candidate),

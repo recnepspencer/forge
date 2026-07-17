@@ -1,10 +1,9 @@
 use super::super::{
     UiAdmittedAllocationSourceOrder, UiAdmittedAllocationStreamIngress,
     UiAllocationFrameDispatcher, UiAllocationFrameIngressIdentity,
-    UiAllocationFrameSourceGeneration, UiAllocationFrameSourceIdentity,
-    UiAllocationFrameSourceLane, UiAllocationFrameSourceLease,
+    UiAllocationFrameSourceGeneration, UiAllocationFrameSourceLease,
 };
-use super::UiAllocationFrameSourceFact;
+use super::{UiAllocationFrameSourceFact, UiAllocationFrameSourceSubmission};
 
 #[derive(Debug, Default)]
 pub(crate) struct UiAllocationFrameGatewayState {
@@ -19,19 +18,22 @@ impl UiAllocationFrameGatewayState {
     pub(in crate::runtime::allocation_frame_dispatch) fn admit(
         &mut self,
         dispatcher: &mut UiAllocationFrameDispatcher,
-        lane: UiAllocationFrameSourceLane,
-        identity: UiAllocationFrameSourceIdentity,
-        source_generation: u64,
-        ingress_identity: u64,
-        source_order: u64,
-        fact: UiAllocationFrameSourceFact,
+        submission: UiAllocationFrameSourceSubmission,
     ) -> Result<
         UiAdmittedAllocationStreamIngress,
         (
             super::super::UiAllocationFrameSourceAdmissionDenial,
-            UiAllocationFrameSourceFact,
+            Box<UiAllocationFrameSourceFact>,
         ),
     > {
+        let UiAllocationFrameSourceSubmission {
+            lane,
+            source_identity: identity,
+            source_generation,
+            ingress_identity,
+            source_order,
+            fact,
+        } = submission;
         let generation = UiAllocationFrameSourceGeneration::from_gateway(source_generation);
         let source_index = self.sources.iter().position(|source| {
             source.source_lane() == lane && source.source_identity() == identity
@@ -42,7 +44,7 @@ impl UiAllocationFrameGatewayState {
                 let successor =
                     match dispatcher.advance_source_generation(&self.sources[index], generation) {
                         Ok(successor) => successor,
-                        Err(denial) => return Err((denial, fact)),
+                        Err(denial) => return Err((denial, Box::new(fact))),
                     };
                 self.sources[index] = successor;
                 index
@@ -50,7 +52,7 @@ impl UiAllocationFrameGatewayState {
             None => {
                 let lease = match dispatcher.admit_source_generation(lane, identity, generation) {
                     Ok(lease) => lease,
-                    Err(denial) => return Err((denial, fact)),
+                    Err(denial) => return Err((denial, Box::new(fact))),
                 };
                 self.sources.push(lease);
                 self.sources.len() - 1

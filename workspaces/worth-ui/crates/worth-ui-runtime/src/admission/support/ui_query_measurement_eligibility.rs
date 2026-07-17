@@ -64,20 +64,33 @@ pub struct UiQueryMeasurementEligibility {
     posture: UiQueryMeasurementEligibilityPosture,
 }
 
+pub(crate) struct UiQueryMeasurementEligibilityInput {
+    pub target: UiAdmissionTarget,
+    pub graph_node_identity: UiGraphNodeIdentity,
+    pub declaration_identity: Option<UiDeclarationIdentity>,
+    pub touch_identity_digest: u64,
+    pub selected_measurement_obligation_identity_digest: Option<u64>,
+    pub selected_support_authority_generation: UiEvidenceAuthorityGeneration,
+    pub boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
+    pub required_families: Box<[WorthUiQueryMeasurementFactFamily]>,
+    pub projection_fact_receipt: Option<UiProjectionFactReceipt>,
+    pub posture: UiQueryMeasurementEligibilityPosture,
+}
+
 impl UiQueryMeasurementEligibility {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        target: UiAdmissionTarget,
-        graph_node_identity: UiGraphNodeIdentity,
-        declaration_identity: Option<UiDeclarationIdentity>,
-        touch_identity_digest: u64,
-        selected_measurement_obligation_identity_digest: Option<u64>,
-        selected_support_authority_generation: UiEvidenceAuthorityGeneration,
-        boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
-        required_families: Box<[WorthUiQueryMeasurementFactFamily]>,
-        projection_fact_receipt: Option<UiProjectionFactReceipt>,
-        posture: UiQueryMeasurementEligibilityPosture,
-    ) -> Self {
+    pub(crate) fn new(input: UiQueryMeasurementEligibilityInput) -> Self {
+        let UiQueryMeasurementEligibilityInput {
+            target,
+            graph_node_identity,
+            declaration_identity,
+            touch_identity_digest,
+            selected_measurement_obligation_identity_digest,
+            selected_support_authority_generation,
+            boundary_support_authority_generation,
+            required_families,
+            projection_fact_receipt,
+            posture,
+        } = input;
         let required_fact_family_set_digest =
             query_measurement_fact_family_set_digest(&required_families);
         Self {

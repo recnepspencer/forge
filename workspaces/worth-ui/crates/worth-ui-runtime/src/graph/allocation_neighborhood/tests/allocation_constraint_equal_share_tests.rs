@@ -250,27 +250,37 @@ fn zero_share_and_single_survivor_resolve_through_typed_posture() {
         .expect("grid neighborhood should preserve a peer member")
         .clone();
     let single_survivor = UiAllocationNeighborhood::new_for_graph_test(
-        neighborhood.root_graph_node_identity(),
-        neighborhood.graph_generation(),
-        neighborhood.world_identity_digest(),
-        neighborhood.measurement_basis_identity_digest(),
-        neighborhood.layout_operator_planning_contract().clone(),
-        neighborhood.dependency_map().clone(),
-        neighborhood.neighborhood_class(),
-        neighborhood.membership_rule(),
-        vec![root_member.clone(), first_peer],
+        crate::evidence::UiAllocationNeighborhoodInput {
+            root_graph_node_identity: neighborhood.root_graph_node_identity(),
+            graph_generation: neighborhood.graph_generation(),
+            world_identity_digest: neighborhood.world_identity_digest(),
+            graph_snapshot_authority_digest: neighborhood.graph_snapshot_authority_digest(),
+            measurement_basis_identity_digest: neighborhood.measurement_basis_identity_digest(),
+            layout_operator_planning_contract: neighborhood
+                .layout_operator_planning_contract()
+                .clone(),
+            dependency_map: neighborhood.dependency_map().clone(),
+            neighborhood_class: neighborhood.neighborhood_class(),
+            membership_rule: neighborhood.membership_rule(),
+            members: vec![root_member.clone(), first_peer],
+        },
         &super::super::UiAllocationNeighborhoodMintAuthority::mint(),
     );
     let zero_share = UiAllocationNeighborhood::new_for_graph_test(
-        neighborhood.root_graph_node_identity(),
-        neighborhood.graph_generation(),
-        neighborhood.world_identity_digest(),
-        neighborhood.measurement_basis_identity_digest(),
-        neighborhood.layout_operator_planning_contract().clone(),
-        neighborhood.dependency_map().clone(),
-        neighborhood.neighborhood_class(),
-        neighborhood.membership_rule(),
-        vec![root_member],
+        crate::evidence::UiAllocationNeighborhoodInput {
+            root_graph_node_identity: neighborhood.root_graph_node_identity(),
+            graph_generation: neighborhood.graph_generation(),
+            world_identity_digest: neighborhood.world_identity_digest(),
+            graph_snapshot_authority_digest: neighborhood.graph_snapshot_authority_digest(),
+            measurement_basis_identity_digest: neighborhood.measurement_basis_identity_digest(),
+            layout_operator_planning_contract: neighborhood
+                .layout_operator_planning_contract()
+                .clone(),
+            dependency_map: neighborhood.dependency_map().clone(),
+            neighborhood_class: neighborhood.neighborhood_class(),
+            membership_rule: neighborhood.membership_rule(),
+            members: vec![root_member],
+        },
         &super::super::UiAllocationNeighborhoodMintAuthority::mint(),
     );
 

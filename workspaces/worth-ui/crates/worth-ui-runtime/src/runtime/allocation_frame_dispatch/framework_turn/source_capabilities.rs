@@ -138,22 +138,10 @@ impl WorthUiHostMeasurementTurnSource<'_> {
     pub fn collect_and_submit<A: worth_ui_host_contract::WorthUiMeasurementHostAdapter>(
         &mut self,
         adapter: &A,
-        identity: worth_ui_host_contract::UiMeasurementRequestIdentity,
-        evidence_family: worth_ui_host_contract::UiMeasurementEvidenceFamily,
-        need: crate::host::UiHostMeasurementNeed,
-        capability_report: &worth_ui_host_contract::WorthUiHostCapabilityReport,
-        evidence_generation: worth_ui_inspection::UiEvidenceAuthorityGeneration,
-        normalization_context: crate::host::UiHostMeasurementNormalizationContext,
+        input: crate::host::UiHostMeasurementCollectionInput<'_>,
     ) -> Result<UiAllocationFrameGatewayOutcome, crate::host::UiHostMeasurementEvidenceDenial> {
-        self.runtime.collect_and_submit_host_measurement(
-            adapter,
-            identity,
-            evidence_family,
-            need,
-            capability_report,
-            evidence_generation,
-            normalization_context,
-        )
+        self.runtime
+            .collect_and_submit_host_measurement(adapter, input)
     }
 }
 

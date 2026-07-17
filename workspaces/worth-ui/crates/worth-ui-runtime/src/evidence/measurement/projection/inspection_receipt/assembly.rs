@@ -55,13 +55,15 @@ pub(crate) fn measurement_view_from_parts(
         basis.map(|basis| project_neighborhood_class_hint(basis.neighborhood_class_hint()));
 
     UiInspectionMeasurementEvidenceView::new(
-        support_report,
-        basis_posture,
-        denial_posture,
-        basis_inputs,
-        dependency_lineage,
-        generation_compatibility,
-        neighborhood_class_hint,
-        failure_source,
+        worth_ui_inspection::UiInspectionMeasurementEvidenceViewInput {
+            support_report,
+            basis_posture,
+            denial_posture,
+            basis_inputs,
+            dependency_lineage,
+            generation_compatibility,
+            neighborhood_class_hint,
+            failure_source,
+        },
     )
 }

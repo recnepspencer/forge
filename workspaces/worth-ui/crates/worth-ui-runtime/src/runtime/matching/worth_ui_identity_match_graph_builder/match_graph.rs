@@ -86,6 +86,6 @@ fn classify_cross_side_identity_kind_alignment(
         candidate_kind: candidate.node.kind(),
         active_node_summary: active.node.node_summary(),
         candidate_node_summary: candidate.node.node_summary(),
-        counters: *counters,
+        counters: Box::new(*counters),
     })
 }

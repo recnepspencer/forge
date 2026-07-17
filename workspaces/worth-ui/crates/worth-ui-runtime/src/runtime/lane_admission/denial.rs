@@ -13,8 +13,8 @@ pub enum WorthUiLaneAdmissionDenialReason {
 pub struct WorthUiLaneAdmissionDenial {
     reason: WorthUiLaneAdmissionDenialReason,
     lane: Option<WorthUiExecutionLane>,
-    diagnostic: Option<WorthUiLaneSupportDiagnostic>,
-    counters: WorthUiLaneAdmissionCounters,
+    diagnostic: Option<Box<WorthUiLaneSupportDiagnostic>>,
+    counters: Box<WorthUiLaneAdmissionCounters>,
 }
 
 impl WorthUiLaneAdmissionDenial {
@@ -28,8 +28,8 @@ impl WorthUiLaneAdmissionDenial {
         Self {
             reason,
             lane,
-            diagnostic,
-            counters,
+            diagnostic: diagnostic.map(Box::new),
+            counters: Box::new(counters),
         }
     }
 
@@ -42,10 +42,10 @@ impl WorthUiLaneAdmissionDenial {
     }
 
     pub fn diagnostic(&self) -> Option<&WorthUiLaneSupportDiagnostic> {
-        self.diagnostic.as_ref()
+        self.diagnostic.as_deref()
     }
 
     pub fn counters(&self) -> WorthUiLaneAdmissionCounters {
-        self.counters
+        *self.counters
     }
 }

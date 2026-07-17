@@ -38,7 +38,7 @@ impl WorthUiAdmittedReplacementCandidate {
     }
 
     pub fn report(&self) -> WorthUiCandidateAdmissionReport {
-        self.report
+        self.report.clone()
     }
 
     pub fn verify_receipts_unchanged(&self) -> Result<(), WorthUiCandidateAdmissionDenial> {

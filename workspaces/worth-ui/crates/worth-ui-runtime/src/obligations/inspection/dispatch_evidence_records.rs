@@ -2,7 +2,7 @@ use crate::obligations::dispatch::{UiObligationDispatchExecution, UiObligationDi
 use crate::obligations::inspection::{
     query_prerequisite_evidence_from_refs, UiObligationEvidenceAuthoritySource,
     UiObligationEvidenceDecision, UiObligationEvidenceDispatchPosture, UiObligationEvidenceHandle,
-    UiObligationEvidenceHandleKind, UiObligationEvidenceRecord,
+    UiObligationEvidenceHandleKind, UiObligationEvidenceRecord, UiObligationEvidenceRecordInput,
 };
 
 pub(crate) fn dispatch_evidence_records(
@@ -10,31 +10,33 @@ pub(crate) fn dispatch_evidence_records(
 ) -> Vec<UiObligationEvidenceRecord> {
     if dispatch_plan.entries().is_empty() {
         return vec![UiObligationEvidenceRecord::new(
-            UiObligationEvidenceHandle::new(
-                UiObligationEvidenceHandleKind::Dispatch,
-                dispatch_plan.shape_digest(),
-            ),
-            UiObligationEvidenceAuthoritySource::DispatchPlan,
-            dispatch_plan.shape_digest(),
-            dispatch_plan
-                .selected()
-                .touch()
-                .target()
-                .graph_node_identity()
-                .digest(),
-            Some(dispatch_plan.selected().touch().identity_digest()),
-            None,
-            UiObligationEvidenceDecision::Dispatch,
-            Some(UiObligationEvidenceDispatchPosture::TypedStop(
-                dispatch_plan.plan_stop_posture(),
-            )),
-            None,
-            None,
-            Box::new([]),
-            Box::new([]),
-            Box::new([]),
-            None,
-            None,
+            UiObligationEvidenceRecordInput {
+                handle: UiObligationEvidenceHandle::new(
+                    UiObligationEvidenceHandleKind::Dispatch,
+                    dispatch_plan.shape_digest(),
+                ),
+                authority_source: UiObligationEvidenceAuthoritySource::DispatchPlan,
+                authority_digest: dispatch_plan.shape_digest(),
+                graph_node_digest: dispatch_plan
+                    .selected()
+                    .touch()
+                    .target()
+                    .graph_node_identity()
+                    .digest(),
+                touch_identity_digest: Some(dispatch_plan.selected().touch().identity_digest()),
+                family: None,
+                decision: UiObligationEvidenceDecision::Dispatch,
+                dispatch_posture: Some(UiObligationEvidenceDispatchPosture::TypedStop(
+                    dispatch_plan.plan_stop_posture(),
+                )),
+                verdict_posture: None,
+                denial_posture: None,
+                selection_reasons: Box::new([]),
+                prerequisite_sources: Box::new([]),
+                query_prerequisite_evidence: Box::new([]),
+                non_selection_reason: None,
+                legality_reason: None,
+            },
         )];
     }
 
@@ -57,8 +59,8 @@ pub(crate) fn dispatch_evidence_records(
                 }
             };
 
-            UiObligationEvidenceRecord::new(
-                UiObligationEvidenceHandle::new(
+            UiObligationEvidenceRecord::new(UiObligationEvidenceRecordInput {
+                handle: UiObligationEvidenceHandle::new(
                     UiObligationEvidenceHandleKind::Dispatch,
                     dispatch_plan.shape_digest()
                         ^ entry
@@ -67,36 +69,37 @@ pub(crate) fn dispatch_evidence_records(
                             .identity_digest()
                             .rotate_left(13),
                 ),
-                UiObligationEvidenceAuthoritySource::DispatchPlan,
-                dispatch_plan.shape_digest(),
-                dispatch_plan
+                authority_source: UiObligationEvidenceAuthoritySource::DispatchPlan,
+                authority_digest: dispatch_plan.shape_digest(),
+                graph_node_digest: dispatch_plan
                     .selected()
                     .touch()
                     .target()
                     .graph_node_identity()
                     .digest(),
-                Some(dispatch_plan.selected().touch().identity_digest()),
-                Some(entry.selected().family()),
-                UiObligationEvidenceDecision::Dispatch,
-                Some(dispatch_posture),
-                None,
-                None,
-                entry
+                touch_identity_digest: Some(dispatch_plan.selected().touch().identity_digest()),
+                family: Some(entry.selected().family()),
+                decision: UiObligationEvidenceDecision::Dispatch,
+                dispatch_posture: Some(dispatch_posture),
+                verdict_posture: None,
+                denial_posture: None,
+                selection_reasons: entry
                     .selected()
                     .selection_reasons()
                     .to_vec()
                     .into_boxed_slice(),
-                crate::obligations::inspection::prerequisite_sources_from_refs(
+                prerequisite_sources:
+                    crate::obligations::inspection::prerequisite_sources_from_refs(
+                        entry.selected().prerequisite_evidence_refs(),
+                    )
+                    .into_boxed_slice(),
+                query_prerequisite_evidence: query_prerequisite_evidence_from_refs(
                     entry.selected().prerequisite_evidence_refs(),
                 )
                 .into_boxed_slice(),
-                query_prerequisite_evidence_from_refs(
-                    entry.selected().prerequisite_evidence_refs(),
-                )
-                .into_boxed_slice(),
-                None,
-                None,
-            )
+                non_selection_reason: None,
+                legality_reason: None,
+            })
         })
         .collect()
 }

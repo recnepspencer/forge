@@ -23,3 +23,4 @@ pub use frame_receipt::WorthUiOrdinaryLaneFrameReceipt;
 pub use frame_target::WorthUiOrdinaryFrameTarget;
 pub use ordinary_node::WorthUiOrdinaryLaneNode;
 pub use plan::WorthUiOrdinaryLanePlan;
+pub(crate) use plan::WorthUiOrdinaryLanePlanInput;

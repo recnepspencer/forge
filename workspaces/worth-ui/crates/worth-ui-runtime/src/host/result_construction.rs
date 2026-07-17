@@ -4,8 +4,9 @@ use worth_ui_host_contract::{UiHostObservation, UiHostObservationValue};
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::evidence::{
-    UiMeasurementCoordinateSpace, UiMeasurementEvidenceCategory, UiMeasurementResult,
-    UiMeasurementRoundingPosture, UiMeasurementUnitPosture, UiMeasurementValue,
+    UiHostMeasurementResultInput, UiMeasurementCoordinateSpace, UiMeasurementEvidenceCategory,
+    UiMeasurementResult, UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
+    UiMeasurementValue,
 };
 
 use super::UiHostMeasurementAssumptionProfile;
@@ -29,7 +30,7 @@ pub(super) fn construct_measurement_result_from_host_observation(
         .portal_anchor_rect_input()
         .map(worth_ui_host_contract::UiPortalAnchorRectRequest::target_identity);
 
-    UiMeasurementResult::new_from_host_lane(
+    UiMeasurementResult::new_from_host_lane(UiHostMeasurementResultInput {
         request_identity,
         request_shape_digest,
         evidence_category,
@@ -40,7 +41,7 @@ pub(super) fn construct_measurement_result_from_host_observation(
         assumption_profile,
         value,
         portal_anchor_target_identity,
-    )
+    })
 }
 
 fn measurement_value_from_host_observation(value: UiHostObservationValue) -> UiMeasurementValue {

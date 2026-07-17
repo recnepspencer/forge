@@ -65,7 +65,7 @@ impl<'a> WorthUiMeasurementInspectionBoundary<'a> {
         let detail = UiEvidenceMaterializedDetail::Measurement(self.measurement_view_for_target(
             app,
             &target,
-            support_report.clone(),
+            support_report,
         ));
         let relevance_admission = query.admit_relevance();
         let assembly = UiEvidenceSliceAssembly::assemble(
@@ -146,14 +146,14 @@ impl<'a> WorthUiMeasurementInspectionBoundary<'a> {
             );
         };
         let Some(touch) = measurement_touch_for_target(app, artifact, graph_node_identity) else {
-            return MeasurementInspectionOutcome::Basis(admit_measurement_basis(
+            return MeasurementInspectionOutcome::Basis(Box::new(admit_measurement_basis(
                 artifact.identity().clone(),
                 graph_node_identity,
                 app.graph_snapshot().world_profile().clone(),
                 UiEvidenceAuthorityGeneration::new(app.graph_snapshot().generation().as_u64()),
                 policy,
                 &[],
-            ));
+            )));
         };
         let bundle = measurement_bundle_for_artifact(self.measurement_evidence, artifact);
         let mut evidence_inputs = measurement_host_inputs(bundle);
@@ -195,14 +195,14 @@ impl<'a> WorthUiMeasurementInspectionBoundary<'a> {
             }
         }
 
-        MeasurementInspectionOutcome::Basis(admit_measurement_basis(
+        MeasurementInspectionOutcome::Basis(Box::new(admit_measurement_basis(
             artifact.identity().clone(),
             graph_node_identity,
             app.graph_snapshot().world_profile().clone(),
             UiEvidenceAuthorityGeneration::new(app.graph_snapshot().generation().as_u64()),
             policy,
             &evidence_inputs,
-        ))
+        )))
     }
 
     fn lookup_target(

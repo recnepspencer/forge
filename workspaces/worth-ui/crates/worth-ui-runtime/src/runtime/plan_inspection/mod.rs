@@ -13,5 +13,6 @@ pub use inspection::WorthUiExecutionPlanInspection;
 pub(crate) use inspector::WorthUiExecutionPlanInspector;
 pub use lane_inspection::WorthUiLaneInspection;
 pub use node_inspection::WorthUiPlanNodeInspection;
+pub(crate) use node_inspection::WorthUiPlanNodeInspectionInput;
 pub use provenance::{WorthUiArtifactToPlanProvenance, WorthUiPlanProvenanceSource};
 pub use query_links::WorthUiQueryInspectionLinks;

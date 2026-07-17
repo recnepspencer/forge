@@ -136,8 +136,9 @@ fn declared_measurement_policies(
                 })
         })
         .filter(|(module_path, declaration_index, _)| {
-            (module_path == "app/measurement_boundary.wui" && *declaration_index == 0)
-                || (module_path == "app/measurement_boundary_portal.wui" && *declaration_index == 0)
+            (module_path == "app/measurement_boundary.wui"
+                || module_path == "app/measurement_boundary_portal.wui")
+                && *declaration_index == 0
         })
         .collect()
 }

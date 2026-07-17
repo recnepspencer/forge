@@ -41,9 +41,9 @@ pub(super) fn admit_lanes(
     planning: &UiAllocationCandidate,
     support: &WorthUiExecutionLaneSupport,
 ) -> WorthUiLaneAdmission {
-    let receipt = runtime.detached_allocation_receipt_for_test(planning);
+    let lowering_input = runtime.detached_allocation_lowering_input_for_test(planning);
     runtime
-        .admit_execution_lanes(&receipt, support)
+        .admit_execution_lanes(&lowering_input, support)
         .expect("lane admission succeeds")
 }
 

@@ -146,9 +146,11 @@ impl WorthUiRuntime {
                 &impact,
                 &narrowing,
                 &node_plan,
-                Some(&reconciliation),
-                Some(&query_rebind),
-                Some(&lowering_input),
+                crate::runtime::WorthUiActivationStagingPlans::new(
+                    Some(&reconciliation),
+                    Some(&query_rebind),
+                    Some(&lowering_input),
+                ),
             )
             .map_err(|_| {
                 denial(
@@ -184,9 +186,12 @@ impl WorthUiRuntime {
                 pending,
                 admitted_catalog,
                 |runtime, allocation_receipt, candidate_plan, _planning| {
+                    let lowering_input = allocation_receipt
+                        .lowering_input()
+                        .map_err(crate::runtime::WorthUiAllocationCatalogActivationDenial::Freshness)?;
                     let lane_admission = runtime
                         .admit_execution_lanes(
-                            allocation_receipt,
+                            &lowering_input,
                             &WorthUiExecutionLaneSupport::platform_default(),
                         )
                         .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;

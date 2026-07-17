@@ -25,6 +25,8 @@ pub mod obligations;
 pub mod query_binding;
 pub mod registry;
 mod retained_obligation_registry;
+#[doc(hidden)]
+pub mod runtime_exports;
 pub mod runtime_handoff;
 
 pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;

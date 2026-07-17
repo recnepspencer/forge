@@ -66,20 +66,33 @@ pub struct UiMeasurementAdmission {
     posture: UiMeasurementAdmissionPosture,
 }
 
+pub(crate) struct UiMeasurementAdmissionInput {
+    pub target: UiAdmissionTarget,
+    pub graph_node_identity: UiGraphNodeIdentity,
+    pub declaration_identity: Option<UiDeclarationIdentity>,
+    pub touch_identity_digest: u64,
+    pub selected_measurement_obligation_identity_digest: Option<u64>,
+    pub selected_support_authority_generation: UiEvidenceAuthorityGeneration,
+    pub boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
+    pub host_capability_profile_digest: Option<u64>,
+    pub host_capability_observation_generation: Option<WorthUiHostCapabilityObservationGeneration>,
+    pub posture: UiMeasurementAdmissionPosture,
+}
+
 impl UiMeasurementAdmission {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        target: UiAdmissionTarget,
-        graph_node_identity: UiGraphNodeIdentity,
-        declaration_identity: Option<UiDeclarationIdentity>,
-        touch_identity_digest: u64,
-        selected_measurement_obligation_identity_digest: Option<u64>,
-        selected_support_authority_generation: UiEvidenceAuthorityGeneration,
-        boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
-        host_capability_profile_digest: Option<u64>,
-        host_capability_observation_generation: Option<WorthUiHostCapabilityObservationGeneration>,
-        posture: UiMeasurementAdmissionPosture,
-    ) -> Self {
+    pub(crate) fn new(input: UiMeasurementAdmissionInput) -> Self {
+        let UiMeasurementAdmissionInput {
+            target,
+            graph_node_identity,
+            declaration_identity,
+            touch_identity_digest,
+            selected_measurement_obligation_identity_digest,
+            selected_support_authority_generation,
+            boundary_support_authority_generation,
+            host_capability_profile_digest,
+            host_capability_observation_generation,
+            posture,
+        } = input;
         Self {
             target,
             graph_node_identity,

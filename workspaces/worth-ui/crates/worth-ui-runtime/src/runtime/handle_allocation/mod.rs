@@ -10,6 +10,7 @@ mod plan_generation;
 mod receipt;
 
 pub use allocation::WorthUiRuntimeHandleAllocation;
+pub(crate) use allocation::WorthUiRuntimeHandleAllocationInput;
 pub(crate) use allocator::WorthUiRuntimeHandleAllocator;
 pub use basis::WorthUiRuntimeHandleAllocationBasis;
 pub use counters::WorthUiRuntimeHandleAllocationCounters;

@@ -15,6 +15,31 @@ pub(crate) type CommandProjectionResolution = (
     CommandProjectionDescriptor,
 );
 pub(crate) type IconResolution = (AdmittedCapability<IconId>, IconDescriptor);
+
+const COMMAND_REFERENCE_CODES: [WorthUiBindingDiagnosticCode; 4] = [
+    WorthUiBindingDiagnosticCode::MissingSemanticCommandReference,
+    WorthUiBindingDiagnosticCode::DeferredSemanticCommandReference,
+    WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandReference,
+    WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandReference,
+];
+const COMMAND_PROJECTION_REFERENCE_CODES: [WorthUiBindingDiagnosticCode; 4] = [
+    WorthUiBindingDiagnosticCode::MissingSemanticCommandProjectionReference,
+    WorthUiBindingDiagnosticCode::DeferredSemanticCommandProjectionReference,
+    WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandProjectionReference,
+    WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandProjectionReference,
+];
+const VIEW_BINDING_REFERENCE_CODES: [WorthUiBindingDiagnosticCode; 4] = [
+    WorthUiBindingDiagnosticCode::MissingSemanticViewBindingReference,
+    WorthUiBindingDiagnosticCode::DeferredSemanticViewBindingReference,
+    WorthUiBindingDiagnosticCode::UnsupportedSemanticViewBindingReference,
+    WorthUiBindingDiagnosticCode::PlatformInternalSemanticViewBindingReference,
+];
+const THEME_TOKEN_REFERENCE_CODES: [WorthUiBindingDiagnosticCode; 4] = [
+    WorthUiBindingDiagnosticCode::MissingSemanticThemeTokenReference,
+    WorthUiBindingDiagnosticCode::DeferredSemanticThemeTokenReference,
+    WorthUiBindingDiagnosticCode::UnsupportedSemanticThemeTokenReference,
+    WorthUiBindingDiagnosticCode::PlatformInternalSemanticThemeTokenReference,
+];
 pub(crate) type ViewBindingResolution = (AdmittedCapability<ViewBindingId>, FrozenViewBindingEntry);
 pub(crate) type ThemeTokenResolution = (AdmittedCapability<ThemeTokenId>, FrozenThemeTokenEntry);
 
@@ -75,10 +100,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
                 authored_text,
                 semantic_locus,
                 provenance,
-                WorthUiBindingDiagnosticCode::MissingSemanticCommandReference,
-                WorthUiBindingDiagnosticCode::DeferredSemanticCommandReference,
-                WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandReference,
-                WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandReference,
+                COMMAND_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -87,10 +109,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
             authored_text,
             semantic_locus,
             provenance,
-            WorthUiBindingDiagnosticCode::MissingSemanticCommandReference,
-            WorthUiBindingDiagnosticCode::DeferredSemanticCommandReference,
-            WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandReference,
-            WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandReference,
+            COMMAND_REFERENCE_CODES,
         ))
     }
 
@@ -125,10 +144,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
                 command_projection_id.as_str(),
                 semantic_locus,
                 provenance,
-                WorthUiBindingDiagnosticCode::MissingSemanticCommandProjectionReference,
-                WorthUiBindingDiagnosticCode::DeferredSemanticCommandProjectionReference,
-                WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandProjectionReference,
-                WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandProjectionReference,
+                COMMAND_PROJECTION_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -139,10 +155,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
             command_projection_id.as_str(),
             semantic_locus,
             provenance,
-            WorthUiBindingDiagnosticCode::MissingSemanticCommandProjectionReference,
-            WorthUiBindingDiagnosticCode::DeferredSemanticCommandProjectionReference,
-            WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandProjectionReference,
-            WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandProjectionReference,
+            COMMAND_PROJECTION_REFERENCE_CODES,
         ))
     }
 
@@ -152,10 +165,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
         icon_id: &IconId,
         semantic_locus: &str,
         provenance: &WorthUiArtifactInputProvenance,
-        missing_code: WorthUiBindingDiagnosticCode,
-        deferred_code: WorthUiBindingDiagnosticCode,
-        unsupported_code: WorthUiBindingDiagnosticCode,
-        platform_internal_code: WorthUiBindingDiagnosticCode,
+        diagnostic_codes: [WorthUiBindingDiagnosticCode; 4],
     ) -> Result<IconResolution, WorthUiBindingDiagnostic> {
         let lookup = self.snapshot.index().icons().lookup(icon_id);
         self.metrics.record_lookup(lookup.counters());
@@ -177,10 +187,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
                 icon_id.as_str(),
                 semantic_locus,
                 provenance,
-                missing_code,
-                deferred_code,
-                unsupported_code,
-                platform_internal_code,
+                diagnostic_codes,
             ));
         }
         Err(postured_diagnostic(
@@ -189,10 +196,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
             icon_id.as_str(),
             semantic_locus,
             provenance,
-            missing_code,
-            deferred_code,
-            unsupported_code,
-            platform_internal_code,
+            diagnostic_codes,
         ))
     }
 
@@ -241,10 +245,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
                 authored_text,
                 semantic_locus,
                 provenance,
-                WorthUiBindingDiagnosticCode::MissingSemanticViewBindingReference,
-                WorthUiBindingDiagnosticCode::DeferredSemanticViewBindingReference,
-                WorthUiBindingDiagnosticCode::UnsupportedSemanticViewBindingReference,
-                WorthUiBindingDiagnosticCode::PlatformInternalSemanticViewBindingReference,
+                VIEW_BINDING_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -255,10 +256,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
             authored_text,
             semantic_locus,
             provenance,
-            WorthUiBindingDiagnosticCode::MissingSemanticViewBindingReference,
-            WorthUiBindingDiagnosticCode::DeferredSemanticViewBindingReference,
-            WorthUiBindingDiagnosticCode::UnsupportedSemanticViewBindingReference,
-            WorthUiBindingDiagnosticCode::PlatformInternalSemanticViewBindingReference,
+            VIEW_BINDING_REFERENCE_CODES,
         ))
     }
 
@@ -303,10 +301,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
                 authored_text,
                 semantic_locus,
                 provenance,
-                WorthUiBindingDiagnosticCode::MissingSemanticThemeTokenReference,
-                WorthUiBindingDiagnosticCode::DeferredSemanticThemeTokenReference,
-                WorthUiBindingDiagnosticCode::UnsupportedSemanticThemeTokenReference,
-                WorthUiBindingDiagnosticCode::PlatformInternalSemanticThemeTokenReference,
+                THEME_TOKEN_REFERENCE_CODES,
             ));
         }
         Err(postured_diagnostic(
@@ -317,10 +312,7 @@ impl<'snapshot> WorthUiBindingSemanticsContext<'snapshot> {
             authored_text,
             semantic_locus,
             provenance,
-            WorthUiBindingDiagnosticCode::MissingSemanticThemeTokenReference,
-            WorthUiBindingDiagnosticCode::DeferredSemanticThemeTokenReference,
-            WorthUiBindingDiagnosticCode::UnsupportedSemanticThemeTokenReference,
-            WorthUiBindingDiagnosticCode::PlatformInternalSemanticThemeTokenReference,
+            THEME_TOKEN_REFERENCE_CODES,
         ))
     }
 }
@@ -331,11 +323,9 @@ fn postured_diagnostic<T: CapabilitySupportId>(
     authored_text: &str,
     semantic_locus: &str,
     provenance: &WorthUiArtifactInputProvenance,
-    missing_code: WorthUiBindingDiagnosticCode,
-    deferred_code: WorthUiBindingDiagnosticCode,
-    unsupported_code: WorthUiBindingDiagnosticCode,
-    platform_internal_code: WorthUiBindingDiagnosticCode,
+    diagnostic_codes: [WorthUiBindingDiagnosticCode; 4],
 ) -> WorthUiBindingDiagnostic {
+    let [missing_code, deferred_code, unsupported_code, platform_internal_code] = diagnostic_codes;
     diagnostic(
         match posture {
             Some(posture) if posture.is_deferred() => deferred_code,

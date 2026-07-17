@@ -146,12 +146,12 @@ impl WorthQueryInstalledDomainMutationCompletion {
 }
 
 impl<D> WorthQueryInstalledDomainHandle<D> {
-    pub fn mutation(
+    pub fn mutation<E>(
         &self,
-        author: impl FnOnce(
-            WorthQueryAspectMutationBuilder,
-        ) -> Result<WorthQueryWriteCommand, WorthQueryRuntimeError>,
+        author: impl FnOnce(WorthQueryAspectMutationBuilder) -> Result<WorthQueryWriteCommand, E>,
     ) -> Result<WorthQueryInstalledDomainMutationDeclaration<D>, WorthQueryMutationDeclarationStop>
+    where
+        E: Into<Box<WorthQueryRuntimeError>>,
     {
         declare_mutation(author).map(|declaration| WorthQueryInstalledDomainMutationDeclaration {
             witness: self.authority_witness(),

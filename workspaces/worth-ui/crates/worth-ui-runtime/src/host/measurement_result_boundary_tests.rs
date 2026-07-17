@@ -117,12 +117,14 @@ fn normalized_host_measurement_results_preserve_identity_generation_and_posture(
         let result = WorthUiHostMeasurementCollector::for_internal_proof()
             .collect(
                 &CountingAdapter::new(),
-                request_identity,
-                measurement_evidence_family_for(category),
-                need,
-                &report,
-                UiEvidenceAuthorityGeneration::new(77),
-                context,
+                crate::host::UiHostMeasurementCollectionInput {
+                    identity: request_identity,
+                    evidence_family: measurement_evidence_family_for(category),
+                    need,
+                    capability_report: &report,
+                    evidence_generation: UiEvidenceAuthorityGeneration::new(77),
+                    normalization_context: context,
+                },
             )
             .unwrap();
 
@@ -212,12 +214,16 @@ fn stale_measurement_results_must_be_readmitted_before_reuse() {
     let result = WorthUiHostMeasurementCollector::for_internal_proof()
         .collect(
             &CountingAdapter::new(),
-            UiMeasurementRequestIdentity::new(77),
-            worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
-            UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-            &report,
-            UiEvidenceAuthorityGeneration::new(9),
-            UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+            crate::host::UiHostMeasurementCollectionInput {
+                identity: UiMeasurementRequestIdentity::new(77),
+                evidence_family:
+                    worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
+                need: UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
+                capability_report: &report,
+                evidence_generation: UiEvidenceAuthorityGeneration::new(9),
+                normalization_context:
+                    UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+            },
         )
         .unwrap();
 

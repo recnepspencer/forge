@@ -141,7 +141,7 @@ impl UiAllocationReceiptLedger {
             )
             .into();
         }
-        self.prepare_selected_mode(UiAllocationReplanCommitMode::Viewport(basis))
+        self.prepare_selected_mode(UiAllocationReplanCommitMode::Viewport(Box::new(basis)))
     }
 
     pub(in crate::runtime) fn prepare_durable_resize(

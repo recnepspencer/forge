@@ -26,11 +26,10 @@ fn plan_inspection_explains_artifact_and_capability_origin() {
         inspection.plan_digest(),
         runtime.digest_execution_plan(&plan)
     );
-    assert!(inspection.nodes().iter().all(|node| node
-        .artifact_provenance()
-        .identity_basis()
-        .len()
-        > 0));
+    assert!(inspection
+        .nodes()
+        .iter()
+        .all(|node| !node.artifact_provenance().identity_basis().is_empty()));
     assert!(inspection
         .nodes()
         .iter()
@@ -246,8 +245,11 @@ fn inspection_fixture() -> (
     let allocation = runtime
         .allocate_runtime_handles(&receipt)
         .expect("handles allocate");
+    let lowering_input = receipt
+        .lowering_input()
+        .expect("fresh receipt admits execution lowering");
     let plan = runtime
-        .assemble_execution_plan_topology(&receipt, &allocation)
+        .assemble_execution_plan_topology(&lowering_input, &allocation)
         .expect("topology assembles");
     (runtime, plan_input, planning, plan)
 }

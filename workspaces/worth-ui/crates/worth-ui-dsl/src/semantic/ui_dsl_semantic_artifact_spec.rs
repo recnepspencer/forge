@@ -94,20 +94,20 @@ impl UiDslSemanticArtifactSpec {
     }
 
     pub(crate) fn into_artifact(self) -> UiDslSemanticArtifact {
-        UiDslSemanticArtifact::new(
-            self.key,
-            self.family,
-            self.provenance,
-            self.published_aspects,
-            self.consumed_aspects,
-            self.structural_tokens,
-            self.posture_tokens,
-            self.support_tokens,
-            self.authored_comments,
-            self.formatting_profile,
-            self.parser_local_id,
-            self.diagnostic_label,
-            self.renderer_label,
-        )
+        UiDslSemanticArtifact::new(super::UiDslSemanticArtifactInput {
+            key: self.key,
+            family: self.family,
+            provenance: self.provenance,
+            published_aspects: self.published_aspects,
+            consumed_aspects: self.consumed_aspects,
+            structural_tokens: self.structural_tokens,
+            posture_tokens: self.posture_tokens,
+            support_tokens: self.support_tokens,
+            authored_comments: self.authored_comments,
+            formatting_profile: self.formatting_profile,
+            parser_local_id: self.parser_local_id,
+            diagnostic_label: self.diagnostic_label,
+            renderer_label: self.renderer_label,
+        })
     }
 }

@@ -87,7 +87,7 @@ impl WorthUiRuntime {
         match outcome {
             UiAllocationFrameTurnOutcome::DownstreamBackpressured { sealed_frame } => {
                 self.pending_allocation_frame_handoff = Some(
-                    super::UiPendingAllocationFrameHandoff::unchanged(sealed_frame),
+                    super::UiPendingAllocationFrameHandoff::unchanged(*sealed_frame),
                 );
                 match crate::runtime::stream_policy::consume_pending_frame(
                     &mut self.pending_allocation_frame_handoff,
@@ -117,12 +117,12 @@ impl WorthUiRuntime {
                                             basis,
                                         ),
                                     );
-                                    return match outcome {
+                                    match outcome {
                                         Ok(outcome) => {
                                             WorthUiFrameworkTurnCompletion::ViewportResizeResolved { outcome }
                                         },
                                         Err(denial) => WorthUiFrameworkTurnCompletion::ViewportResizeDenied { denial },
-                                    };
+                                    }
                                     }
                                     crate::runtime::viewport_resize::UiResolvedAllocationCommitPlan::Ordinary => {
                                         let selection = match crate::graph::select_replan_neighborhoods(&plan, &authority) {
@@ -266,22 +266,11 @@ impl WorthUiRuntime {
     >(
         &self,
         adapter: &A,
-        identity: worth_ui_host_contract::UiMeasurementRequestIdentity,
-        evidence_family: worth_ui_host_contract::UiMeasurementEvidenceFamily,
-        need: crate::host::UiHostMeasurementNeed,
-        capability_report: &worth_ui_host_contract::WorthUiHostCapabilityReport,
-        evidence_generation: worth_ui_inspection::UiEvidenceAuthorityGeneration,
-        normalization_context: crate::host::UiHostMeasurementNormalizationContext,
+        input: crate::host::UiHostMeasurementCollectionInput<'_>,
     ) -> Result<UiAllocationFrameGatewayOutcome, crate::host::UiHostMeasurementEvidenceDenial> {
-        let admitted = self.host_measurement_collector().collect_admitted(
-            adapter,
-            identity,
-            evidence_family,
-            need,
-            capability_report,
-            evidence_generation,
-            normalization_context,
-        )?;
+        let admitted = self
+            .host_measurement_collector()
+            .collect_admitted(adapter, input)?;
         Ok(self
             .host_measurement_submission()
             .submit_admitted_host_measurement(admitted))

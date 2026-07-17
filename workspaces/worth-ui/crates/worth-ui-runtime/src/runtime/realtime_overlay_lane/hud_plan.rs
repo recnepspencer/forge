@@ -19,21 +19,35 @@ pub struct WorthUiHudPlan {
     counters: WorthUiRealtimeLaneCounters,
 }
 
+pub(crate) struct WorthUiHudPlanInput {
+    pub handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
+    pub support_digest: u64,
+    pub hud_plan_digest: u64,
+    pub frame_policy: WorthUiHighFrequencyFramePolicy,
+    pub rows: Vec<WorthUiHudNode>,
+    pub renderer_surface_admissions: Vec<WorthUiRendererSurfaceAdmission>,
+    pub command_plan_indexes: Vec<u32>,
+    pub accessibility_plan_indexes: Vec<u32>,
+    pub diagnostics_plan_indexes: Vec<u32>,
+    pub overlay_hooks: Vec<WorthUiRealtimeOverlayHook>,
+    pub counters: WorthUiRealtimeLaneCounters,
+}
+
 impl WorthUiHudPlan {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
-        support_digest: u64,
-        hud_plan_digest: u64,
-        frame_policy: WorthUiHighFrequencyFramePolicy,
-        rows: Vec<WorthUiHudNode>,
-        renderer_surface_admissions: Vec<WorthUiRendererSurfaceAdmission>,
-        command_plan_indexes: Vec<u32>,
-        accessibility_plan_indexes: Vec<u32>,
-        diagnostics_plan_indexes: Vec<u32>,
-        overlay_hooks: Vec<WorthUiRealtimeOverlayHook>,
-        counters: WorthUiRealtimeLaneCounters,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiHudPlanInput) -> Self {
+        let WorthUiHudPlanInput {
+            handle_receipt,
+            support_digest,
+            hud_plan_digest,
+            frame_policy,
+            rows,
+            renderer_surface_admissions,
+            command_plan_indexes,
+            accessibility_plan_indexes,
+            diagnostics_plan_indexes,
+            overlay_hooks,
+            counters,
+        } = input;
         Self {
             handle_receipt,
             support_digest,

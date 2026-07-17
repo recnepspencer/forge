@@ -103,9 +103,11 @@ fn activation_staging_denial_preservation_keeps_prior_valid_state() {
             &inputs.impact,
             &inputs.narrowing,
             &inputs.node_plan,
-            None,
-            Some(&inputs.query_rebind_plan),
-            Some(&inputs.pending_execution_plan_lowering_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                None,
+                Some(&inputs.query_rebind_plan),
+                Some(&inputs.pending_execution_plan_lowering_input),
+            ),
         )
         .expect_err("missing reconciliation denies activation staging");
 

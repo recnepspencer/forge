@@ -237,17 +237,17 @@ impl UiInspectionMeasurementDependencyLineageEntry {
 }
 
 impl UiInspectionMeasurementEvidenceView {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        support_report: UiInspectionSupportReport,
-        basis_posture: Option<UiInspectionMeasurementBasisPosture>,
-        denial_posture: Option<UiInspectionMeasurementDenialPosture>,
-        basis_inputs: Box<[UiInspectionMeasurementBasisInput]>,
-        dependency_lineage: Box<[UiInspectionMeasurementDependencyLineageEntry]>,
-        generation_compatibility: Option<UiInspectionMeasurementGenerationCompatibility>,
-        neighborhood_class_hint: Option<UiInspectionMeasurementNeighborhoodClassHint>,
-        failure_source: Option<UiInspectionMeasurementFailureSource>,
-    ) -> Self {
+    pub fn new(input: UiInspectionMeasurementEvidenceViewInput) -> Self {
+        let UiInspectionMeasurementEvidenceViewInput {
+            support_report,
+            basis_posture,
+            denial_posture,
+            basis_inputs,
+            dependency_lineage,
+            generation_compatibility,
+            neighborhood_class_hint,
+            failure_source,
+        } = input;
         Self {
             support_report,
             basis_posture,
@@ -293,4 +293,15 @@ impl UiInspectionMeasurementEvidenceView {
     pub fn failure_source(&self) -> Option<UiInspectionMeasurementFailureSource> {
         self.failure_source
     }
+}
+
+pub struct UiInspectionMeasurementEvidenceViewInput {
+    pub support_report: UiInspectionSupportReport,
+    pub basis_posture: Option<UiInspectionMeasurementBasisPosture>,
+    pub denial_posture: Option<UiInspectionMeasurementDenialPosture>,
+    pub basis_inputs: Box<[UiInspectionMeasurementBasisInput]>,
+    pub dependency_lineage: Box<[UiInspectionMeasurementDependencyLineageEntry]>,
+    pub generation_compatibility: Option<UiInspectionMeasurementGenerationCompatibility>,
+    pub neighborhood_class_hint: Option<UiInspectionMeasurementNeighborhoodClassHint>,
+    pub failure_source: Option<UiInspectionMeasurementFailureSource>,
 }

@@ -6,6 +6,7 @@ mod ui_dsl_source_provenance;
 
 pub use ui_dsl_lowering_receipt::UiDslLoweringReceipt;
 pub use ui_dsl_semantic_artifact::UiDslSemanticArtifact;
+pub(crate) use ui_dsl_semantic_artifact::UiDslSemanticArtifactInput;
 pub use ui_dsl_semantic_artifact_spec::UiDslSemanticArtifactSpec;
 pub use ui_dsl_semantic_atoms::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticFamily, UiDslSemanticKey,

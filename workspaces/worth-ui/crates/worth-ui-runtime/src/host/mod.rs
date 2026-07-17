@@ -28,7 +28,8 @@ pub use host_session::UiHostMeasurementExecutionDenial;
 pub use measurement_assumption_profile::UiHostMeasurementAssumptionProfile;
 pub(crate) use measurement_evidence_boundary::UiHostMeasurementSourceAuthority;
 pub use measurement_evidence_boundary::{
-    admit_current_host_measurement_evidence, WorthUiHostMeasurementCollector,
+    admit_current_host_measurement_evidence, UiHostMeasurementCollectionInput,
+    WorthUiHostMeasurementCollector,
 };
 pub(crate) use measurement_invalidation::invalidate_stale_host_measurement_evidence;
 pub use measurement_normalization_context::{

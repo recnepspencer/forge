@@ -67,7 +67,7 @@ impl UiDeclarationLowering {
             semantic_input_digest,
             semantic_receipt.source_artifact_generation(),
         );
-        UiDeclarationArtifact::new(
+        UiDeclarationArtifact::new(crate::declaration::UiDeclarationArtifactInput {
             identity,
             digests,
             aspect_contract_admission,
@@ -76,7 +76,7 @@ impl UiDeclarationLowering {
             structural_semantics_admission,
             family_admission,
             provenance,
-        )
+        })
     }
 }
 

@@ -42,11 +42,10 @@ impl UiObligationDispatchBoundary {
         let entries = selected
             .obligations()
             .iter()
-            .cloned()
             .map(|selected_obligation| {
                 UiObligationDispatchEntry::new(
                     selected_obligation.clone(),
-                    execution_for(&selected_obligation),
+                    execution_for(selected_obligation),
                 )
             })
             .collect::<Vec<_>>()

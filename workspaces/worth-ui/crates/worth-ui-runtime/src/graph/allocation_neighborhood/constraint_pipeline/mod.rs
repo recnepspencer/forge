@@ -72,18 +72,19 @@ fn admit_constraint_basis_inner(
         context.neighborhood_identity_digest,
         context.contract_identity_digest,
     )?;
-    let constraint_set = construct_constraint_set(
-        context.neighborhood_identity_digest,
-        context.contract.identity(),
-        parts.summary,
-        parts.viewport_planning_input,
-        parts.scroll_owner_planning_input,
-        parts.portal_anchor_planning_input,
-        parts.sibling_negotiation,
-        parts.equal_share_distribution,
-        parts.bound_reconciliation,
-        parts.edges,
-    )?;
+    let constraint_set =
+        construct_constraint_set(crate::evidence::UiAllocationConstraintSetInput {
+            neighborhood_identity_digest: context.neighborhood_identity_digest,
+            layout_operator_contract_identity: context.contract.identity(),
+            summary: parts.summary,
+            viewport_planning_input: parts.viewport_planning_input,
+            scroll_owner_planning_input: parts.scroll_owner_planning_input,
+            portal_anchor_planning_input: parts.portal_anchor_planning_input,
+            sibling_negotiation: parts.sibling_negotiation,
+            equal_share_distribution: parts.equal_share_distribution,
+            bound_reconciliation: parts.bound_reconciliation,
+            propagation_edges: parts.edges,
+        })?;
     Ok(crate::graph::UiAdmittedAllocationConstraintBasis::seal(
         measurement_basis,
         neighborhood,

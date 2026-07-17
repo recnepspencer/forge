@@ -22,22 +22,37 @@ pub struct WorthUiRuntimeHandleAllocation {
     state_slot_handles: Vec<WorthUiStateSlotHandle>,
 }
 
+pub(crate) struct WorthUiRuntimeHandleAllocationInput {
+    pub basis: WorthUiRuntimeHandleAllocationBasis,
+    pub receipt: WorthUiRuntimeHandleAllocationReceipt,
+    pub family_widths: WorthUiRuntimeHandleFamilyWidths,
+    pub counters: WorthUiRuntimeHandleAllocationCounters,
+    pub runtime_handles: Vec<WorthUiRuntimeHandle>,
+    pub component_handles: Vec<WorthUiComponentHandle>,
+    pub command_handles: Vec<WorthUiCommandHandle>,
+    pub token_handles: Vec<WorthUiTokenHandle>,
+    pub child_range_handles: Vec<WorthUiChildRangeHandle>,
+    pub view_binding_handles: Vec<WorthUiViewBindingHandle>,
+    pub lane_handles: Vec<WorthUiLaneHandle>,
+    pub state_slot_handles: Vec<WorthUiStateSlotHandle>,
+}
+
 impl WorthUiRuntimeHandleAllocation {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        basis: WorthUiRuntimeHandleAllocationBasis,
-        receipt: WorthUiRuntimeHandleAllocationReceipt,
-        family_widths: WorthUiRuntimeHandleFamilyWidths,
-        counters: WorthUiRuntimeHandleAllocationCounters,
-        runtime_handles: Vec<WorthUiRuntimeHandle>,
-        component_handles: Vec<WorthUiComponentHandle>,
-        command_handles: Vec<WorthUiCommandHandle>,
-        token_handles: Vec<WorthUiTokenHandle>,
-        child_range_handles: Vec<WorthUiChildRangeHandle>,
-        view_binding_handles: Vec<WorthUiViewBindingHandle>,
-        lane_handles: Vec<WorthUiLaneHandle>,
-        state_slot_handles: Vec<WorthUiStateSlotHandle>,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiRuntimeHandleAllocationInput) -> Self {
+        let WorthUiRuntimeHandleAllocationInput {
+            basis,
+            receipt,
+            family_widths,
+            counters,
+            runtime_handles,
+            component_handles,
+            command_handles,
+            token_handles,
+            child_range_handles,
+            view_binding_handles,
+            lane_handles,
+            state_slot_handles,
+        } = input;
         Self {
             basis,
             receipt,

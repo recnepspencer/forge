@@ -15,17 +15,29 @@ pub struct WorthUiReplacementImpactClassification {
     counters: WorthUiReplacementImpactCounters,
 }
 
+pub(crate) struct WorthUiReplacementImpactClassificationInput {
+    pub active_artifact_digest: u64,
+    pub candidate_artifact_digest: u64,
+    pub impact: WorthUiReplacementImpact,
+    pub command_impact: WorthUiCommandImpact,
+    pub token_theme_impact: WorthUiTokenThemeImpact,
+    pub accessibility_impact: WorthUiAccessibilityImpact,
+    pub renderer_resource_impact: WorthUiRendererResourceImpact,
+    pub counters: WorthUiReplacementImpactCounters,
+}
+
 impl WorthUiReplacementImpactClassification {
-    pub(crate) fn new(
-        active_artifact_digest: u64,
-        candidate_artifact_digest: u64,
-        impact: WorthUiReplacementImpact,
-        command_impact: WorthUiCommandImpact,
-        token_theme_impact: WorthUiTokenThemeImpact,
-        accessibility_impact: WorthUiAccessibilityImpact,
-        renderer_resource_impact: WorthUiRendererResourceImpact,
-        counters: WorthUiReplacementImpactCounters,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiReplacementImpactClassificationInput) -> Self {
+        let WorthUiReplacementImpactClassificationInput {
+            active_artifact_digest,
+            candidate_artifact_digest,
+            impact,
+            command_impact,
+            token_theme_impact,
+            accessibility_impact,
+            renderer_resource_impact,
+            counters,
+        } = input;
         Self {
             active_artifact_digest,
             candidate_artifact_digest,

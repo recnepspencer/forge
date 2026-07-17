@@ -83,13 +83,13 @@ fn realtime_scale_context(duplicate_render_resource: bool) -> RealtimeScaleConte
         .expect("handle allocation succeeds");
     let lane_admission = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("lane admission succeeds");
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -154,9 +154,11 @@ fn pending_plan_input(
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation_plan),
-            Some(&query_rebind_plan),
-            Some(&pending_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation_plan),
+                Some(&query_rebind_plan),
+                Some(&pending_input),
+            ),
         )
         .expect("activation staging succeeds")
 }

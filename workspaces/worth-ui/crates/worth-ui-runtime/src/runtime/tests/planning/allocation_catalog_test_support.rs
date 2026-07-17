@@ -19,6 +19,10 @@ use crate::facade::{WorthUi, WorthUiApp};
 use crate::graph::{UiGraphNodeIdentity, UiGraphSnapshot, UiGraphWorldProfile};
 use crate::obligations::selection::UiSelectedObligationSet;
 
+#[path = "allocation_catalog_test_support/hostile_workbench_admissions.rs"]
+mod hostile_workbench_admissions;
+pub(crate) use hostile_workbench_admissions::admitted_hostile_workbench_planning_admissions;
+
 pub(crate) fn admitted_disjoint_planning_admissions(
     label: &str,
 ) -> (
@@ -227,14 +231,33 @@ fn admitted_planning_admissions_with(
     UiGraphSnapshot,
     Vec<(UiMeasurementBasis, UiSelectedObligationSet)>,
 ) {
-    assert!(count > 0);
+    let operators = vec![operator; count.saturating_sub(1)];
+    admitted_planning_admissions_with_operators(label, &operators, world_profile, basis)
+}
+
+fn admitted_planning_admissions_with_operators(
+    label: &str,
+    operators: &[&str],
+    world_profile: Option<crate::graph::UiGraphWorldProfile>,
+    basis: impl Fn(
+        usize,
+        crate::declaration::UiDeclarationIdentity,
+        UiGraphNodeIdentity,
+        &WorthUiApp,
+        &worth_ui_host_contract::WorthUiHostCapabilityReport,
+        UiEvidenceAuthorityGeneration,
+    ) -> UiMeasurementBasis,
+) -> (
+    UiGraphSnapshot,
+    Vec<(UiMeasurementBasis, UiSelectedObligationSet)>,
+) {
     let world_profile = world_profile.unwrap_or_else(|| {
         let (_, _, world_profile) = display_field_projection_context(label);
         world_profile
     });
-    let package = (0..count.saturating_sub(1)).fold(
+    let package = operators.iter().enumerate().fold(
         WorthUiDslPackage::named("worth-ui.runtime.allocation-planning.catalog"),
-        |package, ordinal| {
+        |package, (ordinal, operator)| {
             package.with_semantic_artifact_spec(control_spec(
                 ordinal,
                 &format!("slot:{ordinal}"),
@@ -258,8 +281,7 @@ fn admitted_planning_admissions_with(
         .identity()
         .clone();
     let mut identities = vec![first_identity];
-    identities
-        .extend((0..count.saturating_sub(1)).map(|ordinal| declaration_identity(&app, ordinal)));
+    identities.extend((0..operators.len()).map(|ordinal| declaration_identity(&app, ordinal)));
     let nodes = identities
         .iter()
         .map(|identity| graph_node(&app, identity))

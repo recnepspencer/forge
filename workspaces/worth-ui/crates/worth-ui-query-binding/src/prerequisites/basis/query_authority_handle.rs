@@ -27,10 +27,12 @@ impl WorthUiQueryAuthorityHandle {
 
     pub fn from_outcome(
         outcome: WorthQueryProjectionOutcome,
-    ) -> Result<(Self, Option<ProjectionConsumptionWarnings>), WorthQueryProjectionOutcome> {
+    ) -> Result<(Self, Option<ProjectionConsumptionWarnings>), Box<WorthQueryProjectionOutcome>>
+    {
         outcome
             .into_admitted()
             .map(|(authority, warnings)| (Self::retain(*authority), warnings))
+            .map_err(Box::new)
     }
 
     pub fn authority(&self) -> &WorthQueryConsumedProjectionAuthority {

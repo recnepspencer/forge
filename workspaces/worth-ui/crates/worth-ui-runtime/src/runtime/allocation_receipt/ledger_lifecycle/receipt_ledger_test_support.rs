@@ -5,9 +5,9 @@ pub(crate) struct UiNonPortalReceiptLawCandidate(super::UiAllocationCandidate);
 impl UiNonPortalReceiptLawCandidate {
     pub(crate) fn admit(
         candidate: super::UiAllocationCandidate,
-    ) -> Result<Self, super::UiAllocationCandidate> {
+    ) -> Result<Self, Box<super::UiAllocationCandidate>> {
         if candidate.portal_allocation_input().is_some() {
-            Err(candidate)
+            Err(Box::new(candidate))
         } else {
             Ok(Self(candidate))
         }
@@ -26,9 +26,9 @@ pub(crate) fn detached_non_portal_receipt(
     let generation = super::UiAllocationReceiptGeneration::from_candidate(&candidate);
     let transaction =
         super::UiAllocationReplanTransaction::for_receipt_law_test(&candidate, generation);
-    super::UiAllocationReceiptCommitOutcome::Committed(
+    super::UiAllocationReceiptCommitOutcome::Committed(Box::new(
         super::receipt_commit::commit_admitted_allocation_receipt(candidate, verdict, transaction),
-    )
+    ))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -112,14 +112,14 @@ impl super::UiAllocationReceiptLedger {
         let revision = match state.checked_truth_successor(1, false, false) {
             Ok(revision) => revision,
             Err(denial) => {
-                return super::UiAllocationReceiptCommitOutcome::Denied(
+                return super::UiAllocationReceiptCommitOutcome::Denied(Box::new(
                     super::UiAllocationReceiptCommitDenial::AuthorityCounterExhausted(denial),
-                )
+                ))
             }
         };
         state.committed_by_scope.insert(scope, receipt.clone());
         state.truth_revision = revision;
-        super::UiAllocationReceiptCommitOutcome::Committed(receipt)
+        super::UiAllocationReceiptCommitOutcome::Committed(Box::new(receipt))
     }
 }
 

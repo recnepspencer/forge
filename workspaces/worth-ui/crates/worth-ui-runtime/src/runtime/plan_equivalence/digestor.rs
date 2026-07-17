@@ -21,14 +21,16 @@ impl WorthUiExecutionPlanDigestor {
         let mut counters = WorthUiExecutionPlanEquivalenceCounters::default();
         let raw = digest_plan(plan, &mut counters);
         let basis = WorthUiExecutionPlanEquivalenceBasis::new(
-            plan.handle_receipt(),
-            plan.topology().traversal_order().len(),
-            plan.topology().child_ranges().len(),
-            plan.lane_partitions().len(),
-            plan.lookup_index().entry_count(),
-            counters.egui_boundary_digest_count(),
-            counters.render_resource_digest_count(),
-            raw,
+            super::WorthUiExecutionPlanEquivalenceBasisInput {
+                handle_receipt: plan.handle_receipt(),
+                plan_node_count: plan.topology().traversal_order().len(),
+                child_range_count: plan.topology().child_ranges().len(),
+                lane_partition_count: plan.lane_partitions().len(),
+                lookup_entry_count: plan.lookup_index().entry_count(),
+                egui_boundary_count: counters.egui_boundary_digest_count(),
+                render_resource_ref_count: counters.render_resource_digest_count(),
+                executable_shape_fingerprint: raw,
+            },
         );
         (WorthUiExecutionPlanDigest::new(raw, basis), counters)
     }

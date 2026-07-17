@@ -3,7 +3,7 @@ use crate::evidence::{
     UiAllocationConstraintSet, UiBoundReconciliationPosture, UiConstraintBoundReconciliationResult,
     UiConstraintPropagationDenial, UiConstraintPropagationDenialReason,
     UiConstraintPropagationEdge, UiConstraintPropagationEdgeFamily,
-    UiConstraintPropagationEdgePayload, UiLayoutOperatorContractIdentity,
+    UiConstraintPropagationEdgePayload,
 };
 
 use super::admission_parts::ConstraintAuthorityContext;
@@ -39,11 +39,9 @@ pub(super) fn verify_required_special_inputs(
 
 pub(super) fn apply_cyclic_bound_reconciliation_posture(
     bound_reconciliation: Option<&UiConstraintBoundReconciliationResult>,
-    edges: &mut Vec<UiConstraintPropagationEdge>,
+    edges: &mut [UiConstraintPropagationEdge],
 ) -> Option<UiConstraintBoundReconciliationResult> {
-    let Some(reconciliation) = bound_reconciliation else {
-        return None;
-    };
+    let reconciliation = bound_reconciliation?;
     if !edges.iter().any(|edge| {
         edge.family() == UiConstraintPropagationEdgeFamily::BoundedReconciliation
             && edge.cycle_participation_posture()
@@ -52,19 +50,21 @@ pub(super) fn apply_cyclic_bound_reconciliation_posture(
         return Some(reconciliation.clone());
     }
     let cycled = UiConstraintBoundReconciliationResult::new(
-        reconciliation.neighborhood_identity_digest(),
-        reconciliation.axis_scope(),
-        reconciliation.requirement(),
-        reconciliation.solve_order(),
-        UiBoundReconciliationPosture::Cyclic,
-        reconciliation.incoming_available_space_posture(),
-        reconciliation.viewport_requirement(),
-        reconciliation.scroll_owner_requirement(),
-        reconciliation.portal_anchor_requirement(),
-        reconciliation.unit_posture(),
-        reconciliation.coordinate_space(),
-        reconciliation.rounding_posture(),
-        reconciliation.members().to_vec(),
+        crate::evidence::UiConstraintBoundReconciliationInput {
+            neighborhood_identity_digest: reconciliation.neighborhood_identity_digest(),
+            axis_scope: reconciliation.axis_scope(),
+            requirement: reconciliation.requirement(),
+            solve_order: reconciliation.solve_order(),
+            posture: UiBoundReconciliationPosture::Cyclic,
+            incoming_available_space_posture: reconciliation.incoming_available_space_posture(),
+            viewport_requirement: reconciliation.viewport_requirement(),
+            scroll_owner_requirement: reconciliation.scroll_owner_requirement(),
+            portal_anchor_requirement: reconciliation.portal_anchor_requirement(),
+            unit_posture: reconciliation.unit_posture(),
+            coordinate_space: reconciliation.coordinate_space(),
+            rounding_posture: reconciliation.rounding_posture(),
+            members: reconciliation.members().to_vec(),
+        },
     );
     for edge in edges.iter_mut() {
         if edge.family() == UiConstraintPropagationEdgeFamily::BoundedReconciliation {
@@ -86,7 +86,7 @@ pub(super) fn apply_cyclic_bound_reconciliation_posture(
 }
 
 pub(super) fn verify_unique_edge_authority(
-    edges: &mut Vec<UiConstraintPropagationEdge>,
+    edges: &mut [UiConstraintPropagationEdge],
     neighborhood_identity_digest: u64,
     contract_identity_digest: u64,
 ) -> Result<(), UiConstraintPropagationDenial> {
@@ -107,32 +107,10 @@ pub(super) fn verify_unique_edge_authority(
 }
 
 pub(super) fn construct_constraint_set(
-    neighborhood_identity_digest: u64,
-    contract_identity: UiLayoutOperatorContractIdentity,
-    summary: crate::evidence::UiAllocationConstraintSummary,
-    viewport_planning_input: Option<crate::evidence::UiConstraintViewportPlanningInputResult>,
-    scroll_owner_planning_input: Option<
-        crate::evidence::UiConstraintScrollOwnerPlanningInputResult,
-    >,
-    portal_anchor_planning_input: Option<
-        crate::evidence::UiConstraintPortalAnchorPlanningInputResult,
-    >,
-    sibling_negotiation: Option<crate::evidence::UiConstraintSiblingNegotiationResult>,
-    equal_share_distribution: Option<crate::evidence::UiConstraintEqualShareDistributionResult>,
-    bound_reconciliation: Option<UiConstraintBoundReconciliationResult>,
-    edges: Vec<UiConstraintPropagationEdge>,
+    input: crate::evidence::UiAllocationConstraintSetInput,
 ) -> Result<UiAllocationConstraintSet, UiConstraintPropagationDenial> {
     Ok(UiAllocationConstraintSet::new_with_sibling_negotiation(
         super::super::UiGraphConstraintMintAuthority::mint(),
-        neighborhood_identity_digest,
-        contract_identity,
-        summary,
-        viewport_planning_input,
-        scroll_owner_planning_input,
-        portal_anchor_planning_input,
-        sibling_negotiation,
-        equal_share_distribution,
-        bound_reconciliation,
-        edges,
+        input,
     ))
 }

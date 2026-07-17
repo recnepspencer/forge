@@ -219,14 +219,16 @@ pub(crate) fn admit_declaration_structural_semantics(
         );
     };
     UiDeclarationStructuralSemanticsAdmission::Admitted(UiDeclarationStructuralSemantics::new(
-        family_kind,
-        structural_role,
-        operator_kind,
-        mosaic_sizing_contract_id,
-        containment_intent,
-        slot_participation_intent,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
+        crate::declaration::UiDeclarationStructuralSemanticsInput {
+            family_kind,
+            role: structural_role,
+            operator_kind,
+            mosaic_sizing_contract_id,
+            containment_intent,
+            slot_participation_intent,
+            ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+            repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        },
     ))
 }
 

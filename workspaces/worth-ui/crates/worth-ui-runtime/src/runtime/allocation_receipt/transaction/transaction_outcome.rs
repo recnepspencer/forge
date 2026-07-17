@@ -37,6 +37,7 @@ pub enum UiAllocationReplanTransactionCommitDenial {
     },
     ReuseDenied {
         ordinal: u16,
+        reason: super::UiAllocationReuseDenial,
     },
     RecomputePending {
         ordinal: u16,
@@ -105,84 +106,13 @@ impl UiAllocationReplanTransactionCounters {
 impl UiCommittedAllocationReplan {
     pub(crate) fn new(
         transaction: super::UiAllocationReplanTransaction,
-        receipts: Vec<super::UiAllocationReceipt>,
+        mut receipts: Vec<super::UiAllocationReceipt>,
         counters: UiAllocationReplanTransactionCounters,
         catalog_bindings: super::UiCommittedAllocationCatalogBindings,
     ) -> Result<Self, ()> {
-        for consequence in transaction.consequences().portal_anchors() {
-            let movement = consequence.movement();
-            let expected_identity = movement.identity_transition().current();
-            let receipt = receipts
-                .iter()
-                .find(|receipt| {
-                    movement.target().primary().neighborhood_identity()
-                        == receipt
-                            .committed_allocation()
-                            .allocation_neighborhood()
-                            .identity()
-                })
-                .ok_or(())?;
-            if receipt.identity().portal_anchor() != Some(expected_identity)
-                || receipt
-                    .geometry_evidence()
-                    .portal_anchor_observation()
-                    .is_none_or(|observation| {
-                        observation.identity() != expected_identity
-                            || observation.observed_bounds().x() != movement.observation().rect().x
-                            || observation.observed_bounds().y() != movement.observation().rect().y
-                            || observation.observed_bounds().width()
-                                != movement.observation().rect().width
-                            || observation.observed_bounds().height()
-                                != movement.observation().rect().height
-                    })
-            {
-                return Err(());
-            }
-        }
-        let scroll_evidence = transaction
-            .consequences()
-            .scroll_owned()
-            .iter()
-            .map(|consequence| {
-                let affected_receipts = receipts
-                    .iter()
-                    .filter(|receipt| {
-                        let digest = receipt
-                            .committed_allocation()
-                            .allocation_neighborhood()
-                            .identity()
-                            .identity_digest();
-                        consequence
-                            .neighborhood_identity_digests()
-                            .binary_search(&digest)
-                            .is_ok()
-                    })
-                    .try_fold(0u16, |count, receipt| {
-                        let digest = receipt
-                            .committed_allocation()
-                            .allocation_neighborhood()
-                            .identity()
-                            .identity_digest();
-                        if consequence
-                            .neighborhood_identity_digests()
-                            .binary_search(&digest)
-                            .is_ok()
-                        {
-                            count.checked_add(1)
-                        } else {
-                            Some(count)
-                        }
-                    })?;
-                Some(
-                    consequence
-                        .evidence()
-                        .clone()
-                        .with_commit_count(transaction.policy(), affected_receipts),
-                )
-            })
-            .collect::<Option<Vec<_>>>()
-            .ok_or(())?
-            .into_boxed_slice();
+        attach_counter_report(&transaction, counters, &mut receipts);
+        verify_portal_commit_geometry(&transaction, &receipts)?;
+        let scroll_evidence = project_scroll_commit_evidence(&transaction, &receipts)?;
         let evidence =
             super::UiCommittedAllocationEvidenceSet::ordinary(scroll_evidence, &receipts);
         Ok(Self {
@@ -237,4 +167,88 @@ impl UiCommittedAllocationReplan {
         self.evidence = self.evidence.with_viewport(evidence);
         self
     }
+}
+
+fn attach_counter_report(
+    transaction: &super::UiAllocationReplanTransaction,
+    counters: UiAllocationReplanTransactionCounters,
+    receipts: &mut [super::UiAllocationReceipt],
+) {
+    let report = super::UiAllocationCounterReport::from_commit(transaction, counters);
+    for receipt in receipts {
+        receipt.attach_counter_report(report.clone());
+    }
+}
+
+fn verify_portal_commit_geometry(
+    transaction: &super::UiAllocationReplanTransaction,
+    receipts: &[super::UiAllocationReceipt],
+) -> Result<(), ()> {
+    for consequence in transaction.consequences().portal_anchors() {
+        let movement = consequence.movement();
+        let expected_identity = movement.identity_transition().current();
+        let receipt = receipts
+            .iter()
+            .find(|receipt| {
+                movement.target().primary().neighborhood_identity()
+                    == receipt
+                        .committed_allocation()
+                        .allocation_neighborhood()
+                        .identity()
+            })
+            .ok_or(())?;
+        let expected = movement.observation().rect();
+        let geometry_matches = receipt
+            .geometry_evidence()
+            .portal_anchor_observation()
+            .is_some_and(|observation| {
+                let observed = observation.observed_bounds();
+                observation.identity() == expected_identity
+                    && observed.x() == expected.x
+                    && observed.y() == expected.y
+                    && observed.width() == expected.width
+                    && observed.height() == expected.height
+            });
+        if receipt.identity().portal_anchor() != Some(expected_identity) || !geometry_matches {
+            return Err(());
+        }
+    }
+    Ok(())
+}
+
+fn project_scroll_commit_evidence(
+    transaction: &super::UiAllocationReplanTransaction,
+    receipts: &[super::UiAllocationReceipt],
+) -> Result<Box<[crate::evidence::UiScrollOwnedAllocationEvidence]>, ()> {
+    transaction
+        .consequences()
+        .scroll_owned()
+        .iter()
+        .map(|consequence| {
+            let affected_receipts = receipts.iter().try_fold(0u16, |count, receipt| {
+                let digest = receipt
+                    .committed_allocation()
+                    .allocation_neighborhood()
+                    .identity()
+                    .identity_digest();
+                if consequence
+                    .neighborhood_identity_digests()
+                    .binary_search(&digest)
+                    .is_ok()
+                {
+                    count.checked_add(1)
+                } else {
+                    Some(count)
+                }
+            })?;
+            Some(
+                consequence
+                    .evidence()
+                    .clone()
+                    .with_commit_count(transaction.policy(), affected_receipts),
+            )
+        })
+        .collect::<Option<Vec<_>>>()
+        .ok_or(())
+        .map(Vec::into_boxed_slice)
 }

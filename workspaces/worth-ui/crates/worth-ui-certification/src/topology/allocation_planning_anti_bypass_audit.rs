@@ -75,12 +75,14 @@ fn host_adapter_planning_semantics_violations(workspace_root: &Path) -> Vec<Stri
         .flat_map(|path| {
             let text = fs::read_to_string(&path).expect("host source should decode");
             forbidden_tokens.into_iter().filter_map(move |token| {
-                text.contains(token).then(|| {
-                    format!(
+                if text.contains(token) {
+                    Some(format!(
                         "{} reaches planning semantics through `{token}`; host adapters own native mechanics only",
                         path.display()
-                    )
-                })
+                    ))
+                } else {
+                    None
+                }
             })
         })
         .collect()

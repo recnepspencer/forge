@@ -88,13 +88,15 @@ fn execute_view_binding(
 
     counters.record_visible_range(range);
     Ok(WorthUiVirtualizedDataFrameReceipt::new(
-        target,
-        WorthUiVirtualizedDataLane::from_visible_range(range),
-        range,
-        vec![row.plan_index()],
-        vec![row.runtime_handle()],
-        row.query_patch_posture().clone(),
-        counters,
-        plan.certification(),
+        super::WorthUiVirtualizedDataFrameReceiptInput {
+            target,
+            lane: WorthUiVirtualizedDataLane::from_visible_range(range),
+            visible_range: range,
+            touched_plan_indexes: vec![row.plan_index()],
+            touched_runtime_handles: vec![row.runtime_handle()],
+            query_patch_posture: row.query_patch_posture().clone(),
+            counters,
+            certification: plan.certification(),
+        },
     ))
 }

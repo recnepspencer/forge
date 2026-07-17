@@ -72,7 +72,7 @@ fn frame_traversal_uses_plan_topology_without_artifact_tree_scan() {
         .topology()
         .child_ranges()
         .iter()
-        .all(|range| range.len() > 0));
+        .all(|range| !range.is_empty()));
     for (node_input, topology_node) in plan_input
         .node_inputs()
         .iter()

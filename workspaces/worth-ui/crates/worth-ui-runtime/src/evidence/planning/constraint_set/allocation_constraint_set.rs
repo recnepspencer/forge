@@ -82,23 +82,52 @@ pub struct UiAllocationConstraintSet {
     propagation_edges: Box<[UiConstraintPropagationEdge]>,
 }
 
+pub(crate) struct UiAllocationConstraintSummaryInput {
+    pub(crate) incoming_available_space: Option<UiConstraintAxisScope>,
+    pub(crate) incoming_available_space_posture: Option<UiConstraintAvailableSpacePosture>,
+    pub(crate) intrinsic_contribution_requirements: Option<UiConstraintAxisScope>,
+    pub(crate) sibling_negotiation_mode: UiConstraintSiblingNegotiationMode,
+    pub(crate) equal_share_group: UiConstraintEqualShareGroup,
+    pub(crate) bounded_min_max_requirements: UiConstraintBoundedMinMaxRequirement,
+    pub(crate) viewport_requirement: UiConstraintSpecialInputPosture,
+    pub(crate) scroll_owner_requirement: UiConstraintSpecialInputPosture,
+    pub(crate) portal_anchor_requirement: UiConstraintSpecialInputPosture,
+    pub(crate) resize_permission_posture: UiConstraintResizePermissionPosture,
+    pub(crate) unit_posture: Option<UiMeasurementUnitPosture>,
+    pub(crate) coordinate_space: Option<UiMeasurementCoordinateSpace>,
+    pub(crate) rounding_posture: Option<UiMeasurementRoundingPosture>,
+}
+
+pub(crate) struct UiAllocationConstraintSetInput {
+    pub(crate) neighborhood_identity_digest: u64,
+    pub(crate) layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
+    pub(crate) summary: UiAllocationConstraintSummary,
+    pub(crate) viewport_planning_input: Option<UiConstraintViewportPlanningInputResult>,
+    pub(crate) scroll_owner_planning_input: Option<UiConstraintScrollOwnerPlanningInputResult>,
+    pub(crate) portal_anchor_planning_input: Option<UiConstraintPortalAnchorPlanningInputResult>,
+    pub(crate) sibling_negotiation: Option<UiConstraintSiblingNegotiationResult>,
+    pub(crate) equal_share_distribution: Option<UiConstraintEqualShareDistributionResult>,
+    pub(crate) bound_reconciliation: Option<UiConstraintBoundReconciliationResult>,
+    pub(crate) propagation_edges: Vec<UiConstraintPropagationEdge>,
+}
+
 impl UiAllocationConstraintSummary {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) const fn new(
-        incoming_available_space: Option<UiConstraintAxisScope>,
-        incoming_available_space_posture: Option<UiConstraintAvailableSpacePosture>,
-        intrinsic_contribution_requirements: Option<UiConstraintAxisScope>,
-        sibling_negotiation_mode: UiConstraintSiblingNegotiationMode,
-        equal_share_group: UiConstraintEqualShareGroup,
-        bounded_min_max_requirements: UiConstraintBoundedMinMaxRequirement,
-        viewport_requirement: UiConstraintSpecialInputPosture,
-        scroll_owner_requirement: UiConstraintSpecialInputPosture,
-        portal_anchor_requirement: UiConstraintSpecialInputPosture,
-        resize_permission_posture: UiConstraintResizePermissionPosture,
-        unit_posture: Option<UiMeasurementUnitPosture>,
-        coordinate_space: Option<UiMeasurementCoordinateSpace>,
-        rounding_posture: Option<UiMeasurementRoundingPosture>,
-    ) -> Self {
+    pub(crate) const fn new(input: UiAllocationConstraintSummaryInput) -> Self {
+        let UiAllocationConstraintSummaryInput {
+            incoming_available_space,
+            incoming_available_space_posture,
+            intrinsic_contribution_requirements,
+            sibling_negotiation_mode,
+            equal_share_group,
+            bounded_min_max_requirements,
+            viewport_requirement,
+            scroll_owner_requirement,
+            portal_anchor_requirement,
+            resize_permission_posture,
+            unit_posture,
+            coordinate_space,
+            rounding_posture,
+        } = input;
         Self {
             incoming_available_space,
             incoming_available_space_posture,
@@ -182,34 +211,29 @@ impl UiAllocationConstraintSet {
         summary: UiAllocationConstraintSummary,
         propagation_edges: Vec<UiConstraintPropagationEdge>,
     ) -> Self {
-        Self::construct(
+        Self::construct(UiAllocationConstraintSetInput {
             neighborhood_identity_digest,
             layout_operator_contract_identity,
             summary,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
+            viewport_planning_input: None,
+            scroll_owner_planning_input: None,
+            portal_anchor_planning_input: None,
+            sibling_negotiation: None,
+            equal_share_distribution: None,
+            bound_reconciliation: None,
             propagation_edges,
-        )
+        })
     }
 
     pub(crate) fn new_with_sibling_negotiation(
         _: crate::graph::UiGraphConstraintMintAuthority,
-        neighborhood_identity_digest: u64,
-        layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
-        summary: UiAllocationConstraintSummary,
-        viewport_planning_input: Option<UiConstraintViewportPlanningInputResult>,
-        scroll_owner_planning_input: Option<UiConstraintScrollOwnerPlanningInputResult>,
-        portal_anchor_planning_input: Option<UiConstraintPortalAnchorPlanningInputResult>,
-        sibling_negotiation: Option<UiConstraintSiblingNegotiationResult>,
-        equal_share_distribution: Option<UiConstraintEqualShareDistributionResult>,
-        bound_reconciliation: Option<UiConstraintBoundReconciliationResult>,
-        propagation_edges: Vec<UiConstraintPropagationEdge>,
+        input: UiAllocationConstraintSetInput,
     ) -> Self {
-        Self::construct(
+        Self::construct(input)
+    }
+
+    fn construct(input: UiAllocationConstraintSetInput) -> Self {
+        let UiAllocationConstraintSetInput {
             neighborhood_identity_digest,
             layout_operator_contract_identity,
             summary,
@@ -219,23 +243,8 @@ impl UiAllocationConstraintSet {
             sibling_negotiation,
             equal_share_distribution,
             bound_reconciliation,
-            propagation_edges,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn construct(
-        neighborhood_identity_digest: u64,
-        layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
-        summary: UiAllocationConstraintSummary,
-        viewport_planning_input: Option<UiConstraintViewportPlanningInputResult>,
-        scroll_owner_planning_input: Option<UiConstraintScrollOwnerPlanningInputResult>,
-        portal_anchor_planning_input: Option<UiConstraintPortalAnchorPlanningInputResult>,
-        sibling_negotiation: Option<UiConstraintSiblingNegotiationResult>,
-        equal_share_distribution: Option<UiConstraintEqualShareDistributionResult>,
-        bound_reconciliation: Option<UiConstraintBoundReconciliationResult>,
-        mut propagation_edges: Vec<UiConstraintPropagationEdge>,
-    ) -> Self {
+            mut propagation_edges,
+        } = input;
         propagation_edges.sort_unstable_by_key(UiConstraintPropagationEdge::canonical_sort_key);
         let identity = UiAllocationConstraintSetIdentity::new(
             propagation_edges.iter().fold(

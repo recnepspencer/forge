@@ -93,6 +93,7 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
                 "UiInspectionMeasurementEvidenceCategory".to_string(),
                 "UiInspectionMeasurementEvidenceSlot".to_string(),
                 "UiInspectionMeasurementEvidenceView".to_string(),
+                "UiInspectionMeasurementEvidenceViewInput".to_string(),
                 "UiInspectionMeasurementFailureSource".to_string(),
                 "UiInspectionMeasurementGenerationCompatibility".to_string(),
                 "UiInspectionMeasurementNeighborhoodClassHint".to_string(),

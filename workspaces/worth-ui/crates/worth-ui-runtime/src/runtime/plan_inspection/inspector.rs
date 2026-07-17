@@ -31,14 +31,16 @@ impl WorthUiExecutionPlanInspector {
             counters.record_provenance_link();
             counters.record_node_inspection();
             nodes.push(WorthUiPlanNodeInspection::new(
-                node.runtime_handle().plan_index(),
-                node.runtime_handle(),
-                node.family(),
-                node.child_range(),
-                node.region_structure(),
-                node.egui_boundary().cloned(),
-                node.render_resource_ref(),
-                node_provenance.clone(),
+                super::WorthUiPlanNodeInspectionInput {
+                    plan_index: node.runtime_handle().plan_index(),
+                    runtime_handle: node.runtime_handle(),
+                    family: node.family(),
+                    child_range: node.child_range(),
+                    region_structure: node.region_structure(),
+                    egui_boundary: node.egui_boundary().cloned(),
+                    render_resource_ref: node.render_resource_ref(),
+                    provenance: node_provenance.clone(),
+                },
             ));
             provenance.push(node_provenance);
         }

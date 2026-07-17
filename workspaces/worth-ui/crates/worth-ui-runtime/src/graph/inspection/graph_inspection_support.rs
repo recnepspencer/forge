@@ -231,8 +231,8 @@ impl<'a> UiGraphInspectionSupport<'a> {
     }
 }
 
-fn scalar<'a, T>(
-    snapshot: &'a UiGraphSnapshot,
+fn scalar<T>(
+    snapshot: &UiGraphSnapshot,
     target: UiGraphInspectionTarget,
     lookup: UiGraphLookup<T>,
     evidence_refs: Vec<UiGraphEvidenceRef>,

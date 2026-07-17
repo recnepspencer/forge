@@ -9,8 +9,9 @@ pub enum WorthUiAllocationCatalogActivationDenial {
     Preparation,
     PlanInput,
     HandleAllocation,
+    Freshness(crate::runtime::UiAllocationFreshnessConsumptionDenial),
     TopologyAssembly,
-    Attempt(crate::runtime::UiCommittedAllocationActivationDenial),
+    Attempt(Box<crate::runtime::UiCommittedAllocationActivationDenial>),
 }
 
 impl WorthUiRuntime {
@@ -52,10 +53,14 @@ impl WorthUiRuntime {
             .prepare_allocation_catalog_activation(&pending_activation, admitted_catalog)
             .map_err(|_| WorthUiAllocationCatalogActivationDenial::Preparation)?;
         let receipt = prepared.primary_receipt().clone();
+        let lowering_input = receipt
+            .lowering_input()
+            .map_err(WorthUiAllocationCatalogActivationDenial::Freshness)?;
         let handles = self
             .allocate_runtime_handles(&receipt)
             .map_err(|_| WorthUiAllocationCatalogActivationDenial::HandleAllocation)?;
-        let candidate_plan = match self.assemble_execution_plan_topology(&receipt, &handles) {
+        let candidate_plan = match self.assemble_execution_plan_topology(&lowering_input, &handles)
+        {
             Ok(plan) => plan,
             Err(_) => return Err(WorthUiAllocationCatalogActivationDenial::TopologyAssembly),
         };
@@ -63,15 +68,19 @@ impl WorthUiRuntime {
             boundary_source(self, &receipt, &candidate_plan, prepared.primary_planning())?;
         match prepared.activate(
             self,
-            pending_activation,
-            &plan_input,
-            &handles,
-            candidate_plan,
-            boundary,
-            lane_parity_report.as_ref(),
+            super::committed_allocation_attempt::UiCommittedAllocationActivationInput {
+                pending_activation,
+                plan_input: &plan_input,
+                handle_allocation: &handles,
+                candidate_plan,
+                boundary,
+                lane_parity_report: lane_parity_report.as_ref(),
+            },
         ) {
             Ok(receipt) => Ok(receipt),
-            Err(denial) => Err(WorthUiAllocationCatalogActivationDenial::Attempt(denial)),
+            Err(denial) => Err(WorthUiAllocationCatalogActivationDenial::Attempt(Box::new(
+                denial,
+            ))),
         }
     }
 

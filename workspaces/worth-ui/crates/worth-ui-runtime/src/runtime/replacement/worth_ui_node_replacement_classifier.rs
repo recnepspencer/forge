@@ -250,19 +250,21 @@ fn classify_matched_identities(
             affected_handles,
         );
         accumulator.record_matched_classification(WorthUiNodeReplacementClassification::new(
-            identity_basis.to_owned(),
-            Some(candidate_node.authored_provenance_digest()),
-            transition,
-            Some(active_node.kind()),
-            Some(candidate_node.kind()),
-            active_node.durable_state_eligible(),
-            candidate_node.durable_state_eligible(),
-            active_node.resize_contract_id().cloned(),
-            candidate_node.resize_contract_id().cloned(),
-            active_node.resize_permission().cloned(),
-            candidate_node.resize_permission().cloned(),
-            active_node.resize_shape_digest(),
-            candidate_node.resize_shape_digest(),
+            super::WorthUiNodeReplacementClassificationInput {
+                identity_basis: identity_basis.to_owned(),
+                authored_provenance_digest: Some(candidate_node.authored_provenance_digest()),
+                transition,
+                active_kind: Some(active_node.kind()),
+                candidate_kind: Some(candidate_node.kind()),
+                active_durable_state_eligible: active_node.durable_state_eligible(),
+                candidate_durable_state_eligible: candidate_node.durable_state_eligible(),
+                active_resize_contract_id: active_node.resize_contract_id().cloned(),
+                candidate_resize_contract_id: candidate_node.resize_contract_id().cloned(),
+                active_resize_permission: active_node.resize_permission().cloned(),
+                candidate_resize_permission: candidate_node.resize_permission().cloned(),
+                active_resize_shape_digest: active_node.resize_shape_digest(),
+                candidate_resize_shape_digest: candidate_node.resize_shape_digest(),
+            },
         ))?;
     }
     Ok(())
@@ -332,19 +334,21 @@ fn classify_dropped_identities(
             continue;
         }
         accumulator.record_dropped_classification(WorthUiNodeReplacementClassification::new(
-            identity_basis.to_owned(),
-            Some(active_node.authored_provenance_digest()),
-            WorthUiNodeLifecycleTransition::Drop,
-            Some(active_node.kind()),
-            None,
-            active_node.durable_state_eligible(),
-            false,
-            active_node.resize_contract_id().cloned(),
-            None,
-            active_node.resize_permission().cloned(),
-            None,
-            active_node.resize_shape_digest(),
-            None,
+            super::WorthUiNodeReplacementClassificationInput {
+                identity_basis: identity_basis.to_owned(),
+                authored_provenance_digest: Some(active_node.authored_provenance_digest()),
+                transition: WorthUiNodeLifecycleTransition::Drop,
+                active_kind: Some(active_node.kind()),
+                candidate_kind: None,
+                active_durable_state_eligible: active_node.durable_state_eligible(),
+                candidate_durable_state_eligible: false,
+                active_resize_contract_id: active_node.resize_contract_id().cloned(),
+                candidate_resize_contract_id: None,
+                active_resize_permission: active_node.resize_permission().cloned(),
+                candidate_resize_permission: None,
+                active_resize_shape_digest: active_node.resize_shape_digest(),
+                candidate_resize_shape_digest: None,
+            },
         ))?;
     }
     Ok(())
@@ -360,19 +364,21 @@ fn classify_created_identities(
             continue;
         }
         accumulator.record_created_classification(WorthUiNodeReplacementClassification::new(
-            identity_basis.to_owned(),
-            Some(candidate_node.authored_provenance_digest()),
-            WorthUiNodeLifecycleTransition::Create,
-            None,
-            Some(candidate_node.kind()),
-            false,
-            candidate_node.durable_state_eligible(),
-            None,
-            candidate_node.resize_contract_id().cloned(),
-            None,
-            candidate_node.resize_permission().cloned(),
-            None,
-            candidate_node.resize_shape_digest(),
+            super::WorthUiNodeReplacementClassificationInput {
+                identity_basis: identity_basis.to_owned(),
+                authored_provenance_digest: Some(candidate_node.authored_provenance_digest()),
+                transition: WorthUiNodeLifecycleTransition::Create,
+                active_kind: None,
+                candidate_kind: Some(candidate_node.kind()),
+                active_durable_state_eligible: false,
+                candidate_durable_state_eligible: candidate_node.durable_state_eligible(),
+                active_resize_contract_id: None,
+                candidate_resize_contract_id: candidate_node.resize_contract_id().cloned(),
+                active_resize_permission: None,
+                candidate_resize_permission: candidate_node.resize_permission().cloned(),
+                active_resize_shape_digest: None,
+                candidate_resize_shape_digest: candidate_node.resize_shape_digest(),
+            },
         ))?;
     }
     Ok(())

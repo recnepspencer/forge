@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub(in crate::runtime) enum UiAllocationLedgerPreparation {
-    Resolved(super::UiAllocationReplanTransactionOutcome),
-    Prepared(UiPreparedAllocationLedgerTransition),
+    Resolved(Box<super::UiAllocationReplanTransactionOutcome>),
+    Prepared(Box<UiPreparedAllocationLedgerTransition>),
 }
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub(in crate::runtime) struct UiPreparedAllocationLedgerTransition {
 
 impl From<super::UiAllocationReplanTransactionOutcome> for UiAllocationLedgerPreparation {
     fn from(outcome: super::UiAllocationReplanTransactionOutcome) -> Self {
-        Self::Resolved(outcome)
+        Self::Resolved(Box::new(outcome))
     }
 }
 

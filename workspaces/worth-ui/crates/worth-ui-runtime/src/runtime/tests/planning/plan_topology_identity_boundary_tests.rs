@@ -39,7 +39,7 @@ fn stale_lane_admission_denies_when_planning_identity_changes_without_topology_d
     );
     let stale_lane_admission = first_runtime
         .admit_execution_lanes(
-            &first_runtime.detached_allocation_receipt_for_test(&first_planning),
+            &first_runtime.detached_allocation_lowering_input_for_test(&first_planning),
             &crate::runtime::WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("first lane admission succeeds");
@@ -47,6 +47,9 @@ fn stale_lane_admission_denies_when_planning_identity_changes_without_topology_d
     let second_allocation = second_runtime
         .allocate_runtime_handles(&second_receipt)
         .expect("second handles allocate");
+    let second_lowering_input = second_receipt
+        .lowering_input()
+        .expect("second receipt admits execution lowering");
 
     assert_eq!(first_planning.node_inputs(), second_planning.node_inputs());
     assert_ne!(
@@ -60,7 +63,7 @@ fn stale_lane_admission_denies_when_planning_identity_changes_without_topology_d
 
     let denial = second_runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &second_receipt,
+            &second_lowering_input,
             &second_allocation,
             &stale_lane_admission,
         )

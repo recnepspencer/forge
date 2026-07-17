@@ -19,21 +19,35 @@ pub struct WorthUiCanvasSpatialPlan {
     counters: WorthUiCanvasSpatialCounters,
 }
 
+pub(crate) struct WorthUiCanvasSpatialPlanInput {
+    pub handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
+    pub support_digest: u64,
+    pub canvas_plan_digest: u64,
+    pub rows: Vec<WorthUiCanvasSpatialNode>,
+    pub command_plan_indexes: Vec<u32>,
+    pub diagnostics_plan_indexes: Vec<u32>,
+    pub selection_state_slot_handles: Vec<WorthUiStateSlotHandle>,
+    pub draw_hooks: Vec<WorthUiCanvasDrawHook>,
+    pub hit_test_hooks: Vec<WorthUiSpatialHitTestHook>,
+    pub tool_state_hooks: Vec<WorthUiSpatialToolStateHook>,
+    pub counters: WorthUiCanvasSpatialCounters,
+}
+
 impl WorthUiCanvasSpatialPlan {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
-        support_digest: u64,
-        canvas_plan_digest: u64,
-        rows: Vec<WorthUiCanvasSpatialNode>,
-        command_plan_indexes: Vec<u32>,
-        diagnostics_plan_indexes: Vec<u32>,
-        selection_state_slot_handles: Vec<WorthUiStateSlotHandle>,
-        draw_hooks: Vec<WorthUiCanvasDrawHook>,
-        hit_test_hooks: Vec<WorthUiSpatialHitTestHook>,
-        tool_state_hooks: Vec<WorthUiSpatialToolStateHook>,
-        counters: WorthUiCanvasSpatialCounters,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiCanvasSpatialPlanInput) -> Self {
+        let WorthUiCanvasSpatialPlanInput {
+            handle_receipt,
+            support_digest,
+            canvas_plan_digest,
+            rows,
+            command_plan_indexes,
+            diagnostics_plan_indexes,
+            selection_state_slot_handles,
+            draw_hooks,
+            hit_test_hooks,
+            tool_state_hooks,
+            counters,
+        } = input;
         Self {
             handle_receipt,
             support_digest,

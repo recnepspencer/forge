@@ -25,11 +25,10 @@ pub(crate) fn runtime_with_scroll_catalog() -> (
         2,
         &settlement,
     );
-    let (runtime, roots, planning, _, _, receipt, unrelated_receipt, query, evidence) =
-        activate_catalog(runtime, pending, 2, true, false, Some(admitted_inputs));
-    let mut runtime = runtime;
+    let activated = activate_catalog(runtime, pending, 2, true, false, Some(admitted_inputs));
+    let mut runtime = activated.runtime;
     runtime.install_query_binding_for_test(installed_query.binding_plan());
-    let basis = planning.measurement_basis();
+    let basis = activated.planning.measurement_basis();
     let result = basis
         .host_allocation_requests()
         .find_map(|request| basis.host_measurement_result(request))
@@ -37,12 +36,14 @@ pub(crate) fn runtime_with_scroll_catalog() -> (
         .clone();
     (
         runtime,
-        roots,
+        activated.roots,
         result,
-        query.expect("scroll catalog carries Query content extent"),
-        receipt,
-        unrelated_receipt,
-        evidence.expect("scroll activation retains committed evidence"),
+        activated
+            .query
+            .expect("scroll catalog carries Query content extent"),
+        activated.receipt,
+        activated.unrelated_receipt,
+        activated.committed_evidence,
         installed_query,
     )
 }
@@ -55,12 +56,11 @@ pub(crate) fn runtime_with_portal_catalog() -> (
 ) {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let (runtime, roots, _, _, _, receipt, _, _, evidence) =
-        activate_catalog(runtime, pending, 2, false, true, None);
+    let activated = activate_catalog(runtime, pending, 2, false, true, None);
     (
-        runtime,
-        roots,
-        receipt,
-        evidence.expect("portal activation retains committed evidence"),
+        activated.runtime,
+        activated.roots,
+        activated.receipt,
+        activated.committed_evidence,
     )
 }

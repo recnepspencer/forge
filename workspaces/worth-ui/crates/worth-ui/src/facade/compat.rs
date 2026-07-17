@@ -2,7 +2,7 @@
 //!
 //! Prefer the named facade submodules such as `app`, `inspection`, `diagnostics`,
 //! `dsl`, `host`, `registry`, and `support` for new code.
-pub use crate::facade::app::{WorthUiApp, WorthUiAppBuilder, WorthUiBuilder};
+pub use crate::facade::app::{WorthUi, WorthUiApp, WorthUiAppBuilder, WorthUiBuilder};
 pub use crate::facade::diagnostics::{
     CapabilityDiagnosticCode, CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity,
     CapabilityRegistrationDiagnostic, CapabilityRegistrationReport, CapabilitySnapshot,

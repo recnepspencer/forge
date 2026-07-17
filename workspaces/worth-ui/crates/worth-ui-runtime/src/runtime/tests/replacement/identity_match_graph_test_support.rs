@@ -125,16 +125,20 @@ pub(super) fn component_node_with_descriptor(
 
 pub(super) fn surface_node(seed: &str, surface_id: &str, index: usize) -> WorthUiArtifactNode {
     let module_id = module_id("placeholder.wui");
-    WorthUiArtifactNode::Surface(WorthUiArtifactSurfaceNode::new(
-        WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(module_id, index)),
-        AdmittedCapability::from_checked_id(SurfaceId::new(surface_id).unwrap()),
-        surface(surface_id, "workspace.component.dashboard"),
-        empty_structure(),
-        WorthUiBoundSurfaceSemantics::default(),
-        0,
-        WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
-        durable_eligible(),
-    ))
+    WorthUiArtifactNode::Surface(Box::new(WorthUiArtifactSurfaceNode::new(
+        crate::source::WorthUiArtifactSurfaceNodeInput {
+            handle: WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(
+                module_id, index,
+            )),
+            surface: AdmittedCapability::from_checked_id(SurfaceId::new(surface_id).unwrap()),
+            descriptor: surface(surface_id, "workspace.component.dashboard"),
+            structure: empty_structure(),
+            semantics: WorthUiBoundSurfaceSemantics::default(),
+            authored_provenance_digest: 0,
+            identity_seed: WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
+            durable_state_eligibility: durable_eligible(),
+        },
+    )))
 }
 
 pub(super) fn splitter_surface_node(
@@ -160,16 +164,20 @@ pub(super) fn splitter_surface_node_with_authored_provenance_digest(
     authored_provenance_digest: u64,
 ) -> WorthUiArtifactNode {
     let module_id = module_id("placeholder.wui");
-    WorthUiArtifactNode::Surface(WorthUiArtifactSurfaceNode::new(
-        WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(module_id, index)),
-        AdmittedCapability::from_checked_id(SurfaceId::new(surface_id).unwrap()),
-        surface(surface_id, "workspace.component.dashboard"),
-        splitter_structure(surface_id, sizing_contract_id),
-        WorthUiBoundSurfaceSemantics::default(),
-        authored_provenance_digest,
-        WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
-        durable_eligible(),
-    ))
+    WorthUiArtifactNode::Surface(Box::new(WorthUiArtifactSurfaceNode::new(
+        crate::source::WorthUiArtifactSurfaceNodeInput {
+            handle: WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(
+                module_id, index,
+            )),
+            surface: AdmittedCapability::from_checked_id(SurfaceId::new(surface_id).unwrap()),
+            descriptor: surface(surface_id, "workspace.component.dashboard"),
+            structure: splitter_structure(surface_id, sizing_contract_id),
+            semantics: WorthUiBoundSurfaceSemantics::default(),
+            authored_provenance_digest,
+            identity_seed: WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
+            durable_state_eligibility: durable_eligible(),
+        },
+    )))
 }
 
 fn rehandle_nodes(
@@ -211,18 +219,20 @@ fn rehandle_node(
                 node.durable_state_eligibility().clone(),
             ))
         }
-        WorthUiArtifactNode::Surface(node) => {
-            WorthUiArtifactNode::Surface(WorthUiArtifactSurfaceNode::new(
-                WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(module_id, index)),
-                node.surface().clone(),
-                node.descriptor().clone(),
-                node.structure().clone(),
-                node.semantics().clone(),
-                node.authored_provenance_digest(),
-                node.identity_seed().clone(),
-                node.durable_state_eligibility().clone(),
-            ))
-        }
+        WorthUiArtifactNode::Surface(node) => WorthUiArtifactNode::Surface(Box::new(
+            WorthUiArtifactSurfaceNode::new(crate::source::WorthUiArtifactSurfaceNodeInput {
+                handle: WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(
+                    module_id, index,
+                )),
+                surface: node.surface().clone(),
+                descriptor: node.descriptor().clone(),
+                structure: node.structure().clone(),
+                semantics: node.semantics().clone(),
+                authored_provenance_digest: node.authored_provenance_digest(),
+                identity_seed: node.identity_seed().clone(),
+                durable_state_eligibility: node.durable_state_eligibility().clone(),
+            }),
+        )),
         WorthUiArtifactNode::Binding(node) => {
             WorthUiArtifactNode::Binding(WorthUiArtifactBindingNode::new(
                 WorthUiArtifactHandle::Binding(WorthUiArtifactBindingHandle::new(module_id, index)),
@@ -344,24 +354,26 @@ fn identity_narrowing_for(
     admitted: &WorthUiAdmittedReplacementCandidate,
 ) -> WorthUiRuntimeImpactNarrowing {
     WorthUiRuntimeImpactNarrowing::new(
-        runtime.replacement_admission_basis().artifact_digest(),
-        admitted.artifact_bundle().artifact_digest().raw(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        WorthUiAccessibilityInvalidation::unchanged(),
-        Vec::new(),
-        Vec::new(),
-        None,
-        admitted
-            .artifact_bundle()
-            .dependency_metadata()
-            .invalidation_basis()
-            .impact_metadata()
-            .full_artifact_handle_count(),
-        WorthUiImpactLookupCounters::default(),
+        crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrowingInput {
+            active_artifact_digest: runtime.replacement_admission_basis().artifact_digest(),
+            candidate_artifact_digest: admitted.artifact_bundle().artifact_digest().raw(),
+            affected_source_modules: Vec::new(),
+            affected_handles: Vec::new(),
+            affected_subtree_digests: Vec::new(),
+            command_binding_invalidations: Vec::new(),
+            token_invalidations: Vec::new(),
+            accessibility_invalidation: WorthUiAccessibilityInvalidation::unchanged(),
+            renderer_resource_invalidations: Vec::new(),
+            query_dependency_invalidations: Vec::new(),
+            lane_impact: None,
+            full_artifact_handle_count: admitted
+                .artifact_bundle()
+                .dependency_metadata()
+                .invalidation_basis()
+                .impact_metadata()
+                .full_artifact_handle_count(),
+            counters: WorthUiImpactLookupCounters::default(),
+        },
     )
 }
 

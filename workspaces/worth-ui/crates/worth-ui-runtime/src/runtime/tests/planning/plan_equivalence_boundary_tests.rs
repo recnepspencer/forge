@@ -3,6 +3,7 @@ use super::allocation_planning_test_support::{
     admitted_measurement_basis, allocation_planning, planning_graph_authority,
 };
 use super::durable_state_inventory_test_support::platform_inventory;
+use super::plan_equivalence_topology_test_support::execution_plan_with_topology;
 use super::query_binding_comparison_test_support::{query_artifact, standard_query_app};
 use super::replacement_impact_test_support::admitted_candidate;
 use crate::facade::WorthUiApp;
@@ -51,8 +52,11 @@ fn lane_or_handle_meaning_change_changes_equivalence() {
     let changed_allocation = changed_runtime
         .allocate_runtime_handles(&changed_receipt)
         .expect("changed handles allocate");
+    let changed_lowering_input = changed_receipt
+        .lowering_input()
+        .expect("changed receipt admits execution lowering");
     let changed_plan = changed_runtime
-        .assemble_execution_plan_topology(&changed_receipt, &changed_allocation)
+        .assemble_execution_plan_topology(&changed_lowering_input, &changed_allocation)
         .expect("changed topology assembles");
 
     let equivalence = runtime.compare_execution_plans(&stable_plan, &changed_plan);
@@ -221,7 +225,7 @@ fn stage_query_replacement_for_policy_runtime(
     runtime: &WorthUiRuntime,
     candidate: crate::source::WorthUiArtifact,
 ) -> WorthUiPendingActivation {
-    let admitted = admitted_candidate(&app, &runtime, candidate);
+    let admitted = admitted_candidate(app, runtime, candidate);
     let comparison = runtime
         .compare_admitted_replacement(&admitted)
         .expect("runtime comparison succeeds");
@@ -237,7 +241,7 @@ fn stage_query_replacement_for_policy_runtime(
     let node_plan = runtime
         .classify_node_replacements(&impact, &narrowing, &identity_report)
         .expect("node replacement plan succeeds");
-    let inventory = platform_inventory(&runtime)
+    let inventory = platform_inventory(runtime)
         .build_for_replacement(&node_plan)
         .expect("inventory builds");
     let reconciliation_plan = runtime
@@ -260,9 +264,11 @@ fn stage_query_replacement_for_policy_runtime(
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation_plan),
-            Some(&query_rebind_plan),
-            Some(&pending_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation_plan),
+                Some(&query_rebind_plan),
+                Some(&pending_input),
+            ),
         )
         .expect("activation staging succeeds")
 }
@@ -284,7 +290,7 @@ fn assemble_plan_from_pending_activation(
         .expect("handles allocate");
     runtime
         .assemble_execution_plan_topology(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
         )
         .expect("topology assembles")
@@ -383,18 +389,5 @@ fn plan_with_first_node_render_resource_ref_changed(
     execution_plan_with_topology(
         plan,
         WorthUiPlanTopology::new(traversal_order, plan.topology().child_ranges().to_vec()),
-    )
-}
-
-fn execution_plan_with_topology(
-    plan: &WorthUiExecutionPlan,
-    topology: WorthUiPlanTopology,
-) -> WorthUiExecutionPlan {
-    WorthUiExecutionPlan::new(
-        plan.handle_receipt(),
-        topology,
-        plan.lane_partitions().to_vec(),
-        plan.lookup_index().clone(),
-        plan.counters(),
     )
 }

@@ -23,14 +23,14 @@ pub enum WorthUiRealtimeFrameDenialReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiHudPlanDenial {
     reason: WorthUiHudPlanDenialReason,
-    counters: WorthUiRealtimeLaneCounters,
+    counters: Box<WorthUiRealtimeLaneCounters>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiRealtimeFrameDenial {
     reason: WorthUiRealtimeFrameDenialReason,
     plan_index: Option<u32>,
-    counters: WorthUiRealtimeLaneCounters,
+    counters: Box<WorthUiRealtimeLaneCounters>,
 }
 
 impl WorthUiHudPlanDenial {
@@ -38,7 +38,10 @@ impl WorthUiHudPlanDenial {
         reason: WorthUiHudPlanDenialReason,
         counters: WorthUiRealtimeLaneCounters,
     ) -> Self {
-        Self { reason, counters }
+        Self {
+            reason,
+            counters: Box::new(counters),
+        }
     }
 
     pub fn reason(&self) -> WorthUiHudPlanDenialReason {
@@ -46,7 +49,7 @@ impl WorthUiHudPlanDenial {
     }
 
     pub fn counters(&self) -> WorthUiRealtimeLaneCounters {
-        self.counters
+        *self.counters
     }
 }
 
@@ -59,7 +62,7 @@ impl WorthUiRealtimeFrameDenial {
         Self {
             reason,
             plan_index,
-            counters,
+            counters: Box::new(counters),
         }
     }
 
@@ -72,6 +75,6 @@ impl WorthUiRealtimeFrameDenial {
     }
 
     pub fn counters(&self) -> WorthUiRealtimeLaneCounters {
-        self.counters
+        *self.counters
     }
 }

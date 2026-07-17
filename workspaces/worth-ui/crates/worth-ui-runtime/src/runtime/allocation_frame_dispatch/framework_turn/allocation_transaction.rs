@@ -140,12 +140,13 @@ pub(super) fn publish_prepared(
     transaction_authority: &mut UiAllocationTransactionAuthority,
     preparation: UiAllocationLedgerPreparation,
 ) -> crate::runtime::UiAllocationReplanTransactionOutcome {
-    let UiAllocationLedgerPreparation::Prepared(mut transition) = preparation else {
+    let UiAllocationLedgerPreparation::Prepared(transition) = preparation else {
         let UiAllocationLedgerPreparation::Resolved(outcome) = preparation else {
             unreachable!()
         };
-        return outcome;
+        return *outcome;
     };
+    let mut transition = *transition;
     transaction_authority.bind_transition(&transition);
     let portal = !transition
         .committed()

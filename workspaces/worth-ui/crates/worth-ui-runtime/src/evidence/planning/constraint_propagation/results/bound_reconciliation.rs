@@ -50,6 +50,22 @@ pub struct UiConstraintBoundReconciliationResult {
     identity_digest: u64,
 }
 
+pub(crate) struct UiConstraintBoundReconciliationInput {
+    pub neighborhood_identity_digest: u64,
+    pub axis_scope: UiConstraintAxisScope,
+    pub requirement: UiConstraintBoundedMinMaxRequirement,
+    pub solve_order: UiBoundReconciliationSolveOrder,
+    pub posture: UiBoundReconciliationPosture,
+    pub incoming_available_space_posture: Option<UiConstraintAvailableSpacePosture>,
+    pub viewport_requirement: UiConstraintSpecialInputPosture,
+    pub scroll_owner_requirement: UiConstraintSpecialInputPosture,
+    pub portal_anchor_requirement: UiConstraintSpecialInputPosture,
+    pub unit_posture: Option<UiMeasurementUnitPosture>,
+    pub coordinate_space: Option<UiMeasurementCoordinateSpace>,
+    pub rounding_posture: Option<UiMeasurementRoundingPosture>,
+    pub members: Vec<UiConstraintBoundReconciliationMember>,
+}
+
 impl UiConstraintBoundReconciliationMember {
     pub(crate) fn new(
         member_identity_digest: u64,
@@ -77,22 +93,22 @@ impl UiConstraintBoundReconciliationMember {
 }
 
 impl UiConstraintBoundReconciliationResult {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        neighborhood_identity_digest: u64,
-        axis_scope: UiConstraintAxisScope,
-        requirement: UiConstraintBoundedMinMaxRequirement,
-        solve_order: UiBoundReconciliationSolveOrder,
-        posture: UiBoundReconciliationPosture,
-        incoming_available_space_posture: Option<UiConstraintAvailableSpacePosture>,
-        viewport_requirement: UiConstraintSpecialInputPosture,
-        scroll_owner_requirement: UiConstraintSpecialInputPosture,
-        portal_anchor_requirement: UiConstraintSpecialInputPosture,
-        unit_posture: Option<UiMeasurementUnitPosture>,
-        coordinate_space: Option<UiMeasurementCoordinateSpace>,
-        rounding_posture: Option<UiMeasurementRoundingPosture>,
-        mut members: Vec<UiConstraintBoundReconciliationMember>,
-    ) -> Self {
+    pub(crate) fn new(input: UiConstraintBoundReconciliationInput) -> Self {
+        let UiConstraintBoundReconciliationInput {
+            neighborhood_identity_digest,
+            axis_scope,
+            requirement,
+            solve_order,
+            posture,
+            incoming_available_space_posture,
+            viewport_requirement,
+            scroll_owner_requirement,
+            portal_anchor_requirement,
+            unit_posture,
+            coordinate_space,
+            rounding_posture,
+            mut members,
+        } = input;
         members.sort_unstable_by_key(UiConstraintBoundReconciliationMember::member_identity_digest);
         let identity_digest = members.iter().fold(
             stable_text_digest("worth-ui.constraint-bound-reconciliation-result")

@@ -1,6 +1,7 @@
 mod admission_boundary_audit;
 mod admission_boundary_certification;
 mod admission_public_surface_audit;
+mod allocation_closeout_anti_bypass_audit;
 mod allocation_planning_anti_bypass_audit;
 mod allocation_planning_boundary_certification;
 mod certification_entry;
@@ -30,6 +31,7 @@ pub use admission_public_surface_audit::{
     audit_admission_facades_are_curated_and_glob_free,
     audit_runtime_admission_surface_routes_through_curated_submodule,
 };
+pub use allocation_closeout_anti_bypass_audit::audit_allocation_closeout_anti_bypass_boundaries;
 pub use allocation_planning_anti_bypass_audit::audit_allocation_planning_anti_bypass_boundaries;
 pub use allocation_planning_boundary_certification::{
     activation_boundary_suite, allocation_inspection_suite, allocation_neighborhood_suite,
