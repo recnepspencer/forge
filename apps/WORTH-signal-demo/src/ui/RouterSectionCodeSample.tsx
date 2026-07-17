@@ -1,33 +1,9 @@
 import React from "react";
+import { DEMO_FOUR_CODE } from "../state/demoCodeSamples";
 import { tokenizeCodeLine } from "./SignalsSectionCodeSample";
 import "./signalsSection.css";
 
-export const ROUTER_CODE_SAMPLE = `const stepExecution = signals.router.prerequisite(
-  "stepExecution",
-  async ({ facts, allow, forbidden }) => {
-    if (facts.trainedRev !== facts.effectiveRev) {
-      return forbidden({
-        reason: "trainingSupersededByRevision",
-        detail: \`Trained on rev \${facts.trainedRev}; effective is \${facts.effectiveRev}.\`,
-      });
-    }
-    return allow({ reason: "trainingCurrent" });
-  },
-);
-
-const routes = signals.router.define({
-  stepExecute: signals.router.route("/batches/:batchId/steps/:stepId", {
-    admission: [stepExecution],
-    resources: {
-      page: signals.router.resourceLine(stepFamily, { prefetch: "intent" }),
-    },
-  }),
-});
-
-// every navigation is an admission decision with a recorded outcome
-const ingress = signals.router.browserHistory.push(href);
-const report = await routes.admitBrowserHistoryIngress(ingress, session.facts);
-story.record(report);`;
+export const ROUTER_CODE_SAMPLE = DEMO_FOUR_CODE;
 
 interface RouterCodeSampleProps {
   liveLine: string | null;

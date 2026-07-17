@@ -107,6 +107,10 @@ class WorkerFirstRootSession {
 
   bridge() { return this.#bridge; }
   ready() { return this.#bootstrap; }
+  async settleAuthoredPublications() {
+    await this.ready();
+    await this.#authoredRuntime.settlePendingPublications();
+  }
   hostSurface() { return this.#hostCapabilities.host; }
   latestHostCapabilityEvent() { return this.#hostCapabilities.latestEvent(); }
   recentHostCapabilityEvents() { return this.#hostCapabilities.recentEvents(); }

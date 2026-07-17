@@ -121,9 +121,10 @@ test("default worker-first root graph exposes contract, export, and inspection p
   });
   const compatibilityImportedGraph = compatibilityImportedSignals.importGraph(definition, snapshot);
   await compatibilityImportedGraph.ready();
+  let workerSignals;
 
   try {
-    const workerSignals = await createSignals();
+    workerSignals = await createSignals();
     const importedGraph = workerSignals.importGraph(definition, snapshot);
     await importedGraph.ready();
 
@@ -186,6 +187,9 @@ test("default worker-first root graph exposes contract, export, and inspection p
       comparableContractSummary(compatibilityAlias.inspectHistory().contractSummary()),
     );
   } finally {
+    await workerSignals?.terminate();
+    await compatibilityImportedSignals.terminate();
+    await compatibilitySignals.terminate();
     await cleanup();
     globalThis.Worker = previousWorker;
   }
@@ -212,9 +216,10 @@ test("default worker-first root graph mutates through worker-owned transaction l
   const firstSnapshot = sourceGraph.exportSnapshot();
   sourceGraph.writeInput("left", 3);
   const secondSnapshot = sourceGraph.exportSnapshot();
+  let workerSignals;
 
   try {
-    const workerSignals = await createSignals();
+    workerSignals = await createSignals();
     const importedGraph = workerSignals.importGraph(firstDefinition, firstSnapshot);
     await importedGraph.ready();
     const workerAlias = workerSignals.graph("workerAlias", {
@@ -261,6 +266,8 @@ test("default worker-first root graph mutates through worker-owned transaction l
       /superseded by a newer root importGraph/,
     );
   } finally {
+    await workerSignals?.terminate();
+    await compatibilitySignals.terminate();
     await cleanup();
     globalThis.Worker = previousWorker;
   }

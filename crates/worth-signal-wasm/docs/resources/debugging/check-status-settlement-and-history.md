@@ -104,4 +104,4 @@ still useful because it tells you why the exact path is unavailable.
 ## Related Docs
 
 - [Restore, Replay, And Recover](./restore-replay-and-recover.md)
-- [History And Restore](../../resource-contracts/history-and-restore.md)
+- [History And Restore](./restore-replay-and-recover.md)

@@ -77,19 +77,27 @@
   line-height: 1.45;
 }
 
-.signals-card-why-hint {
-  margin-top: 0.15rem;
-  color: rgba(125, 199, 255, 0.5);
-  font-size: 0.72rem;
-  opacity: 0;
-  transform: translateY(2px);
-  transition: opacity 180ms ease, transform 180ms ease;
+.signals-decision-card {
+  cursor: default;
 }
 
-.signals-card:hover .signals-card-why-hint,
-.signals-card.is-selected .signals-card-why-hint {
-  opacity: 1;
-  transform: translateY(0);
+.signals-card-why-hint {
+  justify-self: start;
+  margin-top: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(125, 199, 255, 0.72);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  text-align: left;
+  transition: color 180ms ease;
+}
+
+.signals-card-why-hint:hover,
+.signals-card-why-hint:focus-visible {
+  color: #b5ddff;
 }
 
 .signals-lane-auto > strong {
@@ -296,6 +304,12 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   background: var(--worth-bg-2);
+}
+
+.signals-why-panel:focus {
+  outline: none;
+  border-color: rgba(125, 199, 255, 0.48);
+  box-shadow: 0 0 0 1px rgba(125, 199, 255, 0.16), 0 0 36px rgba(125, 199, 255, 0.08);
 }
 
 .signals-panel-head {

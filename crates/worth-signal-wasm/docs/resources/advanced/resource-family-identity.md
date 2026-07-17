@@ -96,5 +96,5 @@ line identity even when the canonical key string happens to match.
 
 ## Related Docs
 
-- [Family Identity Equivalence Tests](../../package/product/resource_runtime/authoring/family_identity_equivalence.test.mjs)
+- [Family Identity Equivalence Tests](../../../package/product/resource_runtime/authoring/family_identity_equivalence.test.mjs)
 - [Raw Resource Lines](./raw-resource-lines.md)

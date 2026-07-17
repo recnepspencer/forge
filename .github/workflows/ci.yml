@@ -28,6 +28,21 @@ jobs:
         with:
           components: clippy
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Worth Signals documentation dependencies
+        working-directory: crates/worth-signal-wasm
+        run: npm ci
+
+      - name: Worth Signals public documentation gate
+        working-directory: crates/worth-signal-wasm
+        run: |
+          npm run test:documentation
+          npm run typecheck:package-surface
+
       - name: Cache cargo registry & build
         uses: actions/cache@v4
         with:

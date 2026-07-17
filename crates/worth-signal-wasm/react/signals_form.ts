@@ -1,6 +1,11 @@
 import { useMemo, useRef } from "react";
 
 import { useMaybeReactSignalsStore } from "./context.js";
+import {
+  commitMultiSelectInput,
+  commitTextInput,
+  setCheckboxInput,
+} from "./form_input_events.js";
 import { useSignalValue } from "./hooks.js";
 
 import type {
@@ -20,91 +25,6 @@ import type {
   SignalsWithFormLike,
 } from "./form_model.js";
 import type { FormFieldDeclaration } from "../package/types/forms/core.js";
-
-function eventValue(eventOrValue: unknown): unknown {
-  if (
-    eventOrValue
-    && typeof eventOrValue === "object"
-    && "currentTarget" in eventOrValue
-  ) {
-    const currentTarget = (eventOrValue as { currentTarget?: { value?: unknown } }).currentTarget;
-    if (currentTarget && "value" in currentTarget) {
-      return currentTarget.value;
-    }
-  }
-  if (
-    eventOrValue
-    && typeof eventOrValue === "object"
-    && "target" in eventOrValue
-  ) {
-    const target = (eventOrValue as { target?: { value?: unknown } }).target;
-    if (target && "value" in target) {
-      return target.value;
-    }
-  }
-  return eventOrValue;
-}
-
-function eventChecked(eventOrChecked: unknown): boolean {
-  if (typeof eventOrChecked === "boolean") {
-    return eventOrChecked;
-  }
-  if (
-    eventOrChecked
-    && typeof eventOrChecked === "object"
-    && "currentTarget" in eventOrChecked
-  ) {
-    const currentTarget = (eventOrChecked as { currentTarget?: { checked?: unknown } }).currentTarget;
-    if (currentTarget && typeof currentTarget.checked === "boolean") {
-      return currentTarget.checked;
-    }
-  }
-  if (
-    eventOrChecked
-    && typeof eventOrChecked === "object"
-    && "target" in eventOrChecked
-  ) {
-    const target = (eventOrChecked as { target?: { checked?: unknown } }).target;
-    if (target && typeof target.checked === "boolean") {
-      return target.checked;
-    }
-  }
-  return Boolean(eventOrChecked);
-}
-
-function eventMultiValue(eventOrValue: unknown): unknown[] {
-  if (Array.isArray(eventOrValue)) {
-    return eventOrValue;
-  }
-  if (
-    eventOrValue
-    && typeof eventOrValue === "object"
-    && "currentTarget" in eventOrValue
-  ) {
-    const currentTarget = (eventOrValue as {
-      currentTarget?: { selectedOptions?: Iterable<{ value?: unknown }> };
-    }).currentTarget;
-    if (currentTarget?.selectedOptions) {
-      return Array.from(currentTarget.selectedOptions, (entry) => entry.value);
-    }
-  }
-  if (
-    eventOrValue
-    && typeof eventOrValue === "object"
-    && "target" in eventOrValue
-  ) {
-    const target = (eventOrValue as {
-      target?: { selectedOptions?: Iterable<{ value?: unknown }>; value?: unknown };
-    }).target;
-    if (target?.selectedOptions) {
-      return Array.from(target.selectedOptions, (entry) => entry.value);
-    }
-    if (Array.isArray(target?.value)) {
-      return target.value;
-    }
-  }
-  return eventOrValue == null ? [] : [eventOrValue];
-}
 
 function readFieldMessages(form: RuntimeFormController, fieldId: string): readonly unknown[] {
   return form.visibleMessages().filter((message) => message.target === fieldId);
@@ -152,7 +72,7 @@ function readFieldBinding<TValue = unknown, TRaw = TValue>(
     ...state,
     binding,
     onChange(next: unknown) {
-      binding.input(eventValue(next) as TRaw);
+      commitTextInput(binding, next);
     },
     onBlur() {
       binding.blur();
@@ -187,7 +107,7 @@ function readCheckboxBinding<TValue = boolean>(
     interaction: readFieldInteraction(form, fieldId),
     writePosture,
     onChange(next: unknown) {
-      binding.set(eventChecked(next) as TValue);
+      setCheckboxInput(binding, next);
     },
     onBlur() {
       binding.blur();
@@ -238,7 +158,7 @@ function readMultiSelectBinding<TValue = string>(
     writePosture,
     options: fieldOptions,
     onChange(next: unknown) {
-      binding.input(eventMultiValue(next) as readonly TValue[]);
+      commitMultiSelectInput(binding, next);
     },
     onBlur() {
       binding.blur();

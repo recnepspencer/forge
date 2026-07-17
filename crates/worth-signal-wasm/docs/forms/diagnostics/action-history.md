@@ -47,11 +47,13 @@ console.log(form.actionHistory().length);
 ## Real Example
 
 ```ts
-const pending = form.executeAction("submit");
+const execution = await form.executeAction("submit");
 
-form.fulfillAction(pending.operationId, {
-  reason: "server accepted canonical value",
-});
+if (execution.resultKind === "pending") {
+  form.fulfillAction(execution.operationId, {
+    reason: "server accepted canonical value",
+  });
+}
 
 console.log(form.actionHistory());
 console.log(form.actionExecutionHistory());

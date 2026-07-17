@@ -10,3 +10,4 @@ export * from "./types/branch_commands.js";
 export * from "./types/forms_surface.js";
 export * from "./types/resource_surface.js";
 export * from "./types/router_surface.js";
+export * from "./types/local_truth_surface.js";

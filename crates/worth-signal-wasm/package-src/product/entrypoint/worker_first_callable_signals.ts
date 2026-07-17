@@ -17,6 +17,7 @@ import { runWorkerFirstAsyncTransaction } from "./worker_first_async_transaction
 import { createWorkerFirstFormFactory } from "./worker_first_form_factory.js";
 import { createFeatureStoreFactory } from "../feature_store/feature_store_factory.js";
 import { createLocalNamespace } from "../local/local_namespace.js";
+import { createWorkerLocalTruthFactory } from "../local_truth/protocol/worker_local_truth_proxy.js";
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstExplicitSpecNamespace } from "./worker_first_explicit_spec_namespace.js";
 import { createRouterNamespace } from "../router/router_namespace.js";
@@ -59,6 +60,7 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
   let apiScope = null;
   let featureStore = null;
   let local = null;
+  let localTruth = null;
   let router = null;
   let spec = null;
   let rootNamespace = null;
@@ -108,6 +110,10 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
     get local() {
       local ??= createLocalNamespace(callableSignals);
       return local;
+    },
+    get localTruth() {
+      localTruth ??= createWorkerLocalTruthFactory(rootSession);
+      return localTruth;
     },
     get router() {
       router ??= createRouterNamespace();

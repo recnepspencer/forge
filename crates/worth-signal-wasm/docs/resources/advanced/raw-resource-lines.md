@@ -101,4 +101,4 @@ must say so.
 ## Related Docs
 
 - [Raw Escape Hatch](../raw-escape-hatch.md)
-- [Line Facade Stability Test](../../package/product/resource_runtime/authoring/line_facade_stability.test.mjs)
+- [Line Facade Stability Test](../../../package/product/resource_runtime/authoring/line_facade_stability.test.mjs)

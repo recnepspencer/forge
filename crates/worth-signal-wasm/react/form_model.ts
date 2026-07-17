@@ -6,8 +6,13 @@ import type {
 } from "../package/types/forms/controller.js";
 import type {
   FormFieldDeclaration,
+  FormFieldDiagnostics,
+  FormFieldDirtyState,
   FormFieldHandle,
+  FormFieldWritePosture,
 } from "../package/types/forms/core.js";
+import type { FormFieldInteractionState } from "../package/types/forms/interaction.js";
+import type { FormMessageArtifact } from "../package/types/forms/validation.js";
 import type { SignalValue } from "../package/types/model.js";
 import type { SignalsLike } from "./model.js";
 
@@ -41,11 +46,11 @@ export interface SignalsFormFieldState<TValue = unknown, TRaw = TValue> {
   readonly disabled: boolean;
   readonly readOnly: boolean;
   readonly field: FormFieldHandleReactLike<TValue, TRaw>;
-  readonly dirty: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["dirty"]>;
-  readonly diagnostics: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["diagnostics"]>;
-  readonly messages: readonly unknown[];
-  readonly interaction: unknown | null;
-  readonly writePosture: unknown;
+  readonly dirty: FormFieldDirtyState;
+  readonly diagnostics: FormFieldDiagnostics;
+  readonly messages: readonly FormMessageArtifact[];
+  readonly interaction: FormFieldInteractionState | null;
+  readonly writePosture: FormFieldWritePosture;
 }
 
 export interface SignalsFormFieldBinding<TValue = unknown, TRaw = TValue>
@@ -61,11 +66,11 @@ export interface SignalsFormCheckboxBinding<TValue = boolean> {
   readonly checked: boolean;
   readonly disabled: boolean;
   readonly readOnly: boolean;
-  readonly dirty: unknown;
-  readonly diagnostics: unknown;
-  readonly messages: readonly unknown[];
-  readonly interaction: unknown | null;
-  readonly writePosture: unknown;
+  readonly dirty: FormFieldDirtyState;
+  readonly diagnostics: FormFieldDiagnostics;
+  readonly messages: readonly FormMessageArtifact[];
+  readonly interaction: FormFieldInteractionState | null;
+  readonly writePosture: FormFieldWritePosture;
   onChange(next: unknown): void;
   onBlur(): void;
   onFocus(): void;
@@ -81,11 +86,11 @@ export interface SignalsFormMultiSelectBinding<TValue = string> {
   readonly value: readonly TValue[];
   readonly disabled: boolean;
   readonly readOnly: boolean;
-  readonly dirty: unknown;
-  readonly diagnostics: unknown;
-  readonly messages: readonly unknown[];
-  readonly interaction: unknown | null;
-  readonly writePosture: unknown;
+  readonly dirty: FormFieldDirtyState;
+  readonly diagnostics: FormFieldDiagnostics;
+  readonly messages: readonly FormMessageArtifact[];
+  readonly interaction: FormFieldInteractionState | null;
+  readonly writePosture: FormFieldWritePosture;
   readonly options: readonly SignalsFormOption<TValue>[];
   onChange(next: unknown): void;
   onBlur(): void;
@@ -156,11 +161,11 @@ export interface FormBoundInputReactLike<TValue = unknown, TRaw = TValue> {
 }
 
 export interface FormFieldHandleReactLike<TValue = unknown, TRaw = TValue> {
-  id: string;
-  path: string;
+  readonly id: string;
+  readonly path: string;
   value(): TValue;
-  dirty(): unknown;
-  diagnostics(): unknown;
+  dirty(): FormFieldDirtyState;
+  diagnostics(): FormFieldDiagnostics;
 }
 
 export interface FormActionPlanReactLike {
@@ -176,14 +181,9 @@ export interface FormActionDebugReactLike {
   readonly latestExecution: unknown;
 }
 
-export interface FormVisibleMessageReactLike {
-  readonly target?: string;
-  readonly visibility?: string;
-}
+export type FormVisibleMessageReactLike = FormMessageArtifact;
 
-export interface FormInteractionFieldReactLike {
-  readonly field: string;
-}
+export type FormInteractionFieldReactLike = FormFieldInteractionState;
 
 export interface FormControllerReactLike {
   bindInput<TValue = unknown, TRaw = TValue>(
@@ -200,7 +200,7 @@ export interface FormControllerReactLike {
   interaction(): {
     readonly fields: readonly FormInteractionFieldReactLike[];
   };
-  fieldWritePosture(fieldId: string, capability?: "edit" | "patch"): unknown;
+  fieldWritePosture(fieldId: string, capability?: "edit" | "patch"): FormFieldWritePosture;
   actionPlan(actionId: string): FormActionPlanReactLike;
   debugAction(actionId: string): FormActionDebugReactLike;
   executeAction(actionId: string): unknown;

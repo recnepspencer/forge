@@ -1,18 +1,19 @@
 # Route-Coupled Forms
 
-This section covers forms whose authority depends on admitted route truth.
+Route coupling coordinates a form handoff with router authority. It makes draft
+continuity, current step, pending actions, and exit posture visible before a
+transition is applied.
 
-Use these docs when you need:
+The form does not navigate. It prepares and records route handoff artifacts;
+the router admits and applies browser history. Freeze, discard, defer, preserve,
+and clear are explicit draft-authority decisions, not component-unmount
+heuristics.
 
-- route-to-form authority handoff
-- preserve, freeze, discard, defer, or cleared draft behavior
-- route-coupled step and action denial
-- continuity inspection through diagnostics and verification
-
-Docs in this section:
+Read next:
 
 - [Route Authority Handoff](./route-authority-handoff.md)
 - [Draft Continuity](./draft-continuity.md)
 - [Freeze, Discard, Defer, And Cleared Authority](./freeze-discard-defer-and-cleared-authority.md)
 - [Route-Coupled Steps And Actions](./route-coupled-steps-and-actions.md)
 - [Continuity Audit](./continuity-audit.md)
+- [Lifecycle And Route Continuity](../lifecycle/README.md)

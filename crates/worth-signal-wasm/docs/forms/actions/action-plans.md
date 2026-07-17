@@ -246,9 +246,9 @@ When you need proof that execution used the same plan, compare digests:
 
 ```ts
 const plan = form.actionPlan("submit");
-const pending = form.executeAction("submit");
+const execution = await form.executeAction("submit");
 
-console.log(plan.planDigest === pending.planDigest);
+console.log(plan.planDigest === execution.planDigest);
 // true when execution admitted this exact plan
 ```
 

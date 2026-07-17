@@ -52,4 +52,4 @@ if (plan.kind === "planned") {
 - [Merge And Rebase](./effects/merge-and-rebase.md)
 - [Concurrent Optimistic Effects](./effects/concurrency-and-dependencies.md)
 - [Branch-Native Resource Effects](./branch-native-effects.md)
-- [Response Topology Proof](../resource-contracts/response-topology-proof.md)
+- [Response Topology Proof](./verification/response-topology-proof.md)

@@ -189,6 +189,7 @@ async function main() {
   assert.equal(packageJson.exports["./raw_surface.js"].types, "./raw_surface.d.ts");
   assert.equal(packageJson.exports["./react"].import, "./react/index.js");
   assert.equal(packageJson.exports["./react"].types, "./react/index.d.ts");
+  assert.equal(packageJson.peerDependencies["@types/react"], ">=18.0.0");
 
   await rm(tarballPath, { force: true });
   const { stdout: packStdout } = await runNpm(["pack", "--json"], { cwd: pkgDir });

@@ -1,86 +1,82 @@
 # Admit
 
-## What This Feature Is
-
-Admission is the router step that resolves a projected route into an admitted
-route outcome or a non-admitted terminal outcome.
-
-## Why You Use It
-
-- turn route matches into policy-aware route truth
-- run prerequisites and recovery in the router instead of framework-local
-  glue
-- get one typed outcome surface for success and failure
-
-## Stable Entry Points
-
-- `routes.admit(...)`
-- `candidate.admission(...)`
-- `plan.resolve()`
-
-## Core Mental Model
-
-Projection says what matched. Admission says what is actually true now after
-prerequisites, recovery, and route-local forms authority have had their say.
-
-## How It Executes
-
-1. project the route
-2. evaluate prerequisites
-3. if needed, run recovery
-4. produce an admitted or non-admitted outcome
-5. emit diagnostics and provenance
-
-## Small Example
+The happy path is one call:
 
 ```ts
-const outcome = await routes.admit("/projects/p7");
-
-console.log(outcome.kind);
+const outcome = await routes.admit("/projects/p7", admissionFacts);
 ```
 
-## Real Example
+Admission turns a structural match into an explicit route outcome. As an
+application grows, the same call can evaluate named prerequisites, declared
+fact sources, redirects, failures, recovery, and forms authority without
+scattering policy across components.
+
+## Declare Facts That Policy Is Allowed To Consume
+
+Raw `facts` are convenient at the call site. A prerequisite should name the
+host, resource, or graph values it is authorized to read.
 
 ```ts
-const projected = routes.project("/projects/p7");
+const signedIn = signals.router.host.boolean("signedIn");
+const projectAvailable = signals.router.resource.boolean("projectAvailable");
 
-if (projected) {
-  const plan = projected.admission({
-    tenant: "acme",
-  });
+const mayOpenProject = signals.router.prerequisite("may-open-project", {
+  consumes: [signedIn, projectAvailable] as const,
+  evaluate: ({ consume, allow, redirect, notFound }) => {
+    if (!consume(signedIn)) {
+      return redirect({ href: "/sign-in", reason: "signInRequired" });
+    }
 
-  console.log(plan.prerequisiteNames());
-  console.log(plan.provenance());
+    return consume(projectAvailable)
+      ? allow({ reason: "projectAvailable" })
+      : notFound({ reason: "projectMissing" });
+  },
+});
+```
 
-  const outcome = await plan.resolve();
-  console.log(outcome.kind);
+The plain-English rule is simple: a policy may only read facts it declared.
+The declared source family records where the value came from; it does not fetch
+or manufacture the value.
+
+```ts
+const routes = signals.router.define({
+  project: signals.router.route("/projects/:projectId", {
+    admission: [mayOpenProject],
+  }),
+});
+
+const outcome = await routes.admit("/projects/p7", {
+  signedIn: true,
+  projectAvailable: true,
+});
+```
+
+## Handle The Outcome You Actually Received
+
+`outcome.kind` is one of `admitted`, `redirect`, `notFound`, `forbidden`,
+`unavailable`, or `denied`. Only an admitted outcome has `route()`.
+
+```ts
+if (outcome.kind === "admitted") {
+  renderRoute(outcome.route());
+} else {
+  renderRouteFailure(outcome.kind, outcome.artifact());
 }
 ```
 
-## How It Relates To Other Features
+Prerequisites run in declaration order and the first non-allow result stops the
+ordinary admission path. Recovery may then handle an eligible terminal result;
+a redirect is already a decision and is not recovered.
 
-- use [Projected Candidates](../projection/projected_candidates.md) before
-  admission
-- use [Route Outcomes](./route_outcomes.md) to interpret the result surface
+## Inspect Before Guessing
 
-## Inspection And Debugging
+- `outcome.diagnostics()` summarizes the result.
+- `outcome.provenance()` preserves prerequisite decisions and recovery trail.
+- `candidate.admission(facts)` exposes `prerequisiteNames()`,
+  `recoveryNames()`, and plan provenance before `resolve()`.
 
-- `plan.provenance()`
-- `outcome.diagnostics()`
-- `outcome.provenance()`
-- `outcome.recovery()`
+Do not repeat the same permission test in the view. Doing so creates two
+answers to “may this route be visible?”
 
-## Anti-Patterns
-
-- treating `routes.project(...)` as a substitute for `routes.admit(...)`
-- rebuilding prerequisite and redirect logic outside the router
-
-## Current Limits
-
-- admission only sees the facts and admission sources you declare explicitly
-
-## Related Docs
-
-- [Route Outcomes](./route_outcomes.md)
-- [Prerequisites](./prerequisites.md)
-- [Admission Facts](./admission_facts.md)
+Next: [Prerequisites](./prerequisites.md), [Route Outcomes](./route_outcomes.md),
+and [Stale Deep Link Recovery](../recovery/stale_deep_link_recovery.md).

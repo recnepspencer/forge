@@ -33,22 +33,22 @@ import {
   createRejectedEffectCheckpoint,
   finalizeRejectedEffectCheckpoint,
 } from "./settlement/resource_effect_rejection_checkpoint.js";
+import { createResourceLineLocalTruthAdapter } from "./resource_line_local_truth_adapter.js";
 function createResourceEffectBranchDag(materialization, projectionCoordinator) {
   const history = materialization.history;
   const index = createResourceEffectDependencyIndex();
   const settlements = createResourceEffectSettlementRegistry();
   const confirmedEffects = new Map();
   const confirmedEffectsByLocus = new Map();
-  let canonicalValueAuthority;
-  let canonicalRevisionAuthority;
+  let confirmedLocalTruth = null;
   const lineId = materialization.lineIdentity.runtimeLineId;
 
   return Object.freeze({
     admit(effectPlan, patch, currentState) {
       return enqueue(async () => {
-      adoptCanonicalEraIfQuiescent(currentState);
+      await adoptCanonicalEraIfQuiescent(currentState);
       requireBranchCommandSurface(history);
-      const admissionCanonicalValue = canonicalValueAuthority;
+      const admissionCanonicalValue = confirmedLocalTruth.readConfirmedValue();
       const canonicalBasis = await readCanonicalBasis(history);
       const retriedEffect = index.effectForRetryLineage(
         effectPlan.retryLineageId,
@@ -109,7 +109,7 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
           patchResult: patchOutcome.result,
         });
         const rebuilt = await rebuildProjection(
-          canonicalValueAuthority,
+          confirmedLocalTruth.readConfirmedValue(),
           [registered.effectId],
         );
         return Object.freeze({ envelope, patchOutcome, projection: rebuilt });
@@ -129,7 +129,7 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
     },
     settle(effectId, settlement, currentState) {
       return enqueue(async () => {
-      adoptCanonicalEraIfQuiescent(currentState);
+      await adoptCanonicalEraIfQuiescent(currentState);
       const settlementAdmission = settlements.begin(effectId, settlement);
       if (settlementAdmission.kind === "duplicate") {
         return settlementAdmission.receipt;
@@ -154,7 +154,7 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
           createRejectedEffectCheckpoint(
             effectId,
             retired,
-            canonicalValueAuthority,
+            confirmedLocalTruth.readConfirmedValue(),
           ),
         );
         return await finalizeRejectedCheckpoint(checkpoint, settlementToken);
@@ -172,7 +172,7 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
           kind: "responseRecorded",
           effectId,
           waitingOnDependencyEffectIds: Object.freeze(unresolvedDependencies),
-          canonicalValue: canonicalValueAuthority,
+          canonicalValue: confirmedLocalTruth.readConfirmedValue(),
           projection: projectionCoordinator.projectionFor(lineId),
         });
         index.replace(effectId, {
@@ -213,8 +213,8 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
     },
     rebuildProjection(currentState) {
       return enqueue(() => {
-        adoptCanonicalEraIfQuiescent(currentState);
-        return rebuildProjection(canonicalValueAuthority, [], true);
+        return adoptCanonicalEraIfQuiescent(currentState).then(() =>
+          rebuildProjection(confirmedLocalTruth.readConfirmedValue(), [], true));
       });
     },
     counters() {
@@ -226,10 +226,13 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
     return projectionCoordinator.enqueue(operation);
   }
 
-  function adoptCanonicalEraIfQuiescent(currentState) {
-    if (canonicalValueAuthority === undefined) {
-      canonicalValueAuthority = currentState.canonicalValue;
-      canonicalRevisionAuthority = currentState.canonicalRevision;
+  async function adoptCanonicalEraIfQuiescent(currentState) {
+    if (confirmedLocalTruth === null) {
+      confirmedLocalTruth = createResourceLineLocalTruthAdapter(
+        lineId,
+        currentState.canonicalValue,
+        currentState.canonicalRevision,
+      );
       return;
     }
     // Server deliveries (refresh, revalidate, restore) advance canonical truth
@@ -240,10 +243,13 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
     // (e.g. denying an insert as duplicate after a delivery removed the item).
     if (
       index.projectionIdentity().openEffectCount === 0
-      && canonicalRevisionAuthority !== currentState.canonicalRevision
+      && confirmedLocalTruth.readConfirmedRevision() !== currentState.canonicalRevision
     ) {
-      canonicalValueAuthority = currentState.canonicalValue;
-      canonicalRevisionAuthority = currentState.canonicalRevision;
+      await confirmedLocalTruth.replaceConfirmedValue(
+        currentState.canonicalValue,
+        currentState.canonicalRevision,
+        "serverObservation",
+      );
       confirmedEffects.clear();
       confirmedEffectsByLocus.clear();
     }
@@ -260,7 +266,7 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
       effect,
       settlement,
       canonicalBranchId: (await readCanonicalBasis(history)).branchId,
-      canonicalValue: canonicalValueAuthority,
+      canonicalValue: confirmedLocalTruth.readConfirmedValue(),
       sameLocusConfirmedEffects: sameLocus,
       materialization,
       authoredSignalIds: authoredSignalIds(materialization),
@@ -276,14 +282,18 @@ function createResourceEffectBranchDag(materialization, projectionCoordinator) {
     const { effect, settlement, confirmation } = checkpoint;
     const current = index.get(effect.effectId);
     if (current?.lifecycle !== "Retired") {
-      commitConfirmedEffect(effect, settlement, confirmation);
+      await commitConfirmedEffect(effect, settlement, confirmation);
     }
     await rebuildProjection(confirmation.canonicalValue, [effect.effectId]);
     return createConfirmedEffectResult(effect, confirmation);
   }
 
-  function commitConfirmedEffect(effect, settlement, confirmation) {
-    canonicalValueAuthority = confirmation.canonicalValue;
+  async function commitConfirmedEffect(effect, settlement, confirmation) {
+    await confirmedLocalTruth.replaceConfirmedValue(
+      confirmation.canonicalValue,
+      settlement.serverRevision ?? confirmedLocalTruth.readConfirmedRevision(),
+      `effectConfirmation:${effect.effectId}`,
+    );
     const confirmedEffect = Object.freeze({
       ...confirmation.settlingEffect,
       patchIntent: settlement.serverPatch ?? effect.patchIntent,

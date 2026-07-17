@@ -80,6 +80,10 @@ class WorkerRuntimeBridge {
     return this.#request("applyTransactionProjection", request);
   }
 
+  localTruthCommand(envelope) {
+    return this.#request("localTruthCommand", envelope);
+  }
+
   attachObservationDelivery(request) {
     return this.#request("attachObservationDelivery", request);
   }

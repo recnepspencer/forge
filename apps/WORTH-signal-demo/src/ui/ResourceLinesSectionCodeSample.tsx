@@ -1,26 +1,9 @@
 import React from "react";
+import { DEMO_TWO_CODE } from "../state/demoCodeSamples";
 import { tokenizeCodeLine } from "./SignalsSectionCodeSample";
 import "./signalsSection.css";
 
-export const RESOURCE_LINES_CODE_SAMPLE = `const api = signals.api({ baseUrl: "/api/storefront" });
-
-const product = api.url("/products/:productId").detail({
-  reconcile: signals.resource.detailFields({
-    price: { read: (v) => v.price, write: (v, price) => ({ ...v, price }) },
-  }),
-  load: ({ productId }) => fetchProduct(productId),
-});
-
-const line = product.line({ productId: "p-204" });
-
-// the server pushes new truth — no user action involved
-line.deliver(product.delivery.field({
-  packetId: "pkt-08", basisId: "srv-v1", nextBasisId: "srv-v2",
-  field: "price", value: 188,
-}));
-
-// the line kept the receipt
-line.diagnostics().lastEffect.provenance;`;
+export const RESOURCE_LINES_CODE_SAMPLE = DEMO_TWO_CODE;
 
 interface ResourceLinesCodeSampleProps {
   liveLine: string | null;

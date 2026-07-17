@@ -1,86 +1,57 @@
 # Transition Artifacts
 
-## What This Feature Is
-
-Transition artifacts are the route-facing results returned by
-`routes.transition(...)`.
-
-## Why You Use It
-
-- inspect what target route the transition produced
-- explain why visible route truth changed the way it did
-- keep continuity policy and transition source explicit
-
-## Stable Entry Points
-
-- `routes.transition(currentOutcome, target, options?)`
-- `RouteTransitionArtifact`
-
-## Core Mental Model
-
-A transition artifact is the explanation surface for one route change. It tells
-you:
-
-- where the transition started
-- what target route outcome it produced
-- why visible truth changed the way it did
-
-## How It Executes
-
-1. start from an admitted current route outcome
-2. admit or reuse the target route truth
-3. apply continuity and visibility policy
-4. return one transition artifact with diagnostics
-
-## Small Example
+`routes.transition(...)` changes route truth from one **admitted** outcome to a
+target. It returns an explanation artifact; it does not render a page or mutate
+browser history.
 
 ```ts
-const home = await routes.admit("/");
-const transition = home.kind === "admitted"
-  ? await routes.transition(home, "/about")
-  : null;
-```
+const current = await routes.admit("/");
 
-## Real Example
-
-```ts
-const home = await routes.admit("/");
-
-if (home.kind === "admitted") {
-  const transition = await routes.transition(home, "/private", {
-    facts: { auth: "anonymous" },
+if (current.kind === "admitted") {
+  const transition = await routes.transition(current, "/projects/p7", {
+    facts: admissionFacts,
   });
 
   console.log(transition.target().kind);
-  console.log(transition.diagnostics().requestedSource);
-  console.log(transition.diagnostics().visibleChangeSource);
+  console.log(transition.diagnostics().visiblePolicy);
 }
 ```
 
-## How It Relates To Other Features
+## Why The Artifact Matters
 
-- prefetched targets are covered in [Prefetch Admission](./prefetch_admission.md)
-- resource-backed pending continuity is covered in
-  [Continuity Preservation](./continuity_preservation.md)
+The target may be admitted, redirected, rejected, or temporarily backed by
+pending resources. `transition.diagnostics()` tells you:
 
-## Inspection And Debugging
+- the requested source (`directNavigation`, `speculativeCommit`, `redirect`,
+  or `prefetchAdmission`)
+- why visible truth changed
+- the continuity policy used
+- which resources were pending
 
-- `transition.target()`
-- `transition.diagnostics()`
-- `transition.verification()`
+That is more useful than a boolean “navigation finished.”
 
-## Anti-Patterns
+## Prefetched Targets
 
-- treating the target route outcome as enough without reading transition
-  diagnostics
-- rebuilding visibility policy outside the router
+A projected prefetch artifact can be the target. Narrow the nullable result and
+dispose it when its lifetime ends.
 
-## Current Limits
+```ts
+const prefetched = routes.warmup("/projects/p7", "intent");
 
-- transitions require a current admitted route outcome as the starting point
-- this surface is about route transitions, not general UI animation
+if (current.kind === "admitted" && prefetched) {
+  try {
+    const transition = await routes.transition(current, prefetched);
+    console.log(transition.diagnostics().requestedSource);
+  } finally {
+    prefetched.free();
+  }
+}
+```
 
-## Related Docs
+The router's transition artifact and the host's browser writeback are separate
+steps. Keeping them separate lets an application inspect or reject target truth
+before performing a browser side effect.
 
-- [Pending Visibility](./pending_visibility.md)
-- [Prefetch Admission](./prefetch_admission.md)
+Next: [Pending Visibility](./pending_visibility.md),
+[Continuity Preservation](./continuity_preservation.md), and
+[Browser History Writeback](../history/browser_history_writeback.md).

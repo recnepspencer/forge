@@ -1,80 +1,61 @@
 # Route Authority Handoff
 
-## What This Feature Is
+The router decides whether a route is admitted. The form owns its draft. Route
+authority handoff is the explicit seam between those two responsibilities.
 
-Route authority handoff is the explicit forms artifact that says how admitted
-route truth should hand off authority to a route-coupled form.
-
-## Why You Use It
-
-- keep preserve, freeze, discard, defer, and cleared semantics explicit
-- prevent route-coupled forms from guessing whether authority is available
-- expose route-coupled behavior in one stable surface
-
-## Stable Entry Points
-
-- `form.routeAuthority().summary.handoff`
-- `FormRouteAuthorityHandoffArtifact`
-
-## Core Mental Model
-
-This seam belongs to forms, but the router supplies the route authority that
-drives it. The handoff tells the form what kind of authority relationship it
-has right now.
-
-## How It Executes
-
-1. a route authority artifact is reported into the form
-2. forms derive handoff posture from that authority
-3. route-coupled behavior becomes admitted, deferred, or cleared
-
-## Small Example
-
-```ts
-const handoff = form.routeAuthority().summary.handoff;
-console.log(handoff?.posture);
-```
-
-## Real Example
+Start by declaring which form surface belongs to the route and what should
+happen to its draft when route authority changes:
 
 ```ts
 const routes = signals.router.define({
   review: signals.router.route("/review", {
-    forms: signals.router.forms("review-surface", {
+    forms: signals.router.forms("review-form", {
       continuity: "defer",
+      reason: "Keep the draft while review authority is temporarily absent.",
     }),
   }),
 });
+```
 
-const outcome = await routes.admit("/review");
+Then bind only admitted route authority:
+
+```ts
+const outcome = await routes.admit("/review", admissionFacts);
 
 if (outcome.kind === "admitted") {
-  form.reportRouteAuthority(outcome.route().formsAuthority());
-  console.log(form.routeAuthority().summary.handoff?.routeCoupledBehavior);
+  const authority = outcome.route().formsAuthority();
+  if (authority) {
+    form.reportRouteAuthority(authority);
+  } else {
+    form.clearRouteAuthority({ reason: "Route has no form authority" });
+  }
+} else {
+  form.clearRouteAuthority({ reason: `Route outcome: ${outcome.kind}` });
 }
 ```
 
-## How It Relates To Other Features
+Narrowing `formsAuthority()` is important: not every admitted route declares a
+form surface. `bindRouteAuthority(...)` is a convenience when the admitted
+route type is compatible with the form controller; reporting the explicit
+artifact is the most precise handoff for a typed route tree.
 
-- draft results are covered in [Draft Continuity](./draft_continuity.md)
-- public audit surfaces are covered in [Continuity Audit](./continuity_audit.md)
+## Continuity Is Policy, Not Storage
 
-## Inspection And Debugging
+The declaration's `preserve`, `freeze`, `discard`, or `defer` posture tells the
+form how to interpret route authority changes. It does not move draft truth
+into the router. Forms still own edits, validation, submission, and merge state.
 
-- `summary.handoff?.posture`
-- `summary.handoff?.routeCoupledBehavior`
-- `summary.transitionKind`
+```ts
+const report = form.routeAuthority();
+console.log(report.summary.handoff?.posture);
+console.log(report.summary.handoff?.routeCoupledBehavior);
+```
 
-## Anti-Patterns
+Cleared and deferred are intentionally different. Cleared says authority was
+explicitly removed. Deferred says the relationship is temporarily unresolved
+under a declared continuity policy. Do not collapse either into a generic
+disabled flag.
 
-- collapsing cleared authority into deferred authority
-- letting steps or actions infer authority from unrelated blockers
-
-## Current Limits
-
-- this is a route-coupled forms seam, not a general forms availability system
-
-## Related Docs
-
-- [Draft Continuity](./draft_continuity.md)
-- [Continuity Audit](./continuity_audit.md)
+Next: [Draft Continuity](./draft_continuity.md),
+[Route-Coupled Behavior](./route_coupled_behavior.md), and
+[Continuity Audit](./continuity_audit.md).

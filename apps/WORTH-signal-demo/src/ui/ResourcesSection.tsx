@@ -213,7 +213,7 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
       <p className="po-intro">
         Two screens receive the same clicks and the same server outcomes. The strip below is the
         referee: what the server actually knows. Each screen wears a live badge comparing what it
-        shows against that truth â€” and under each screen sits its model: one shared cache value on
+        shows against that truth — and under each screen sits its model: one shared cache value on
         the left, one branch per write on the right.
       </p>
 
@@ -241,7 +241,7 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
             onClick={() => void runTenRequests()}
             type="button"
           >
-            Run 10 mixed outcomes Â· seed {seed}
+            Run 10 mixed outcomes · seed {seed}
           </button>
           <button
             className="po-control-button po-control-button-ghost"
@@ -261,8 +261,8 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
       {phase === "batchRunning" || phase === "batchSettled" ? (
         <aside className="po-solo-note" role="status">
           {phase === "batchRunning"
-            ? "Five successes, four rejections, and one dependency cancellation are settling in seeded random order â€” watch the left current value diverge while the right one stays honest."
-            : "All ten server outcomes were delivered. The runtime receipt below turns green when closeout finishes â€” every number in it is runtime-issued."}
+            ? "Five successes, four rejections, and one dependency cancellation are settling in seeded random order — watch the left current value diverge while the right one stays honest."
+            : "All ten server outcomes were delivered. The runtime receipt below turns green when closeout finishes — every number in it is runtime-issued."}
         </aside>
       ) : null}
 
@@ -291,7 +291,7 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
         <h2 id="po-code-title">Each request owns a branch; dependencies are explicit</h2>
         <ResourcesSectionCodeSample
           liveLine={phase === "diverged" || phase === "healed"
-            ? "// â†’ rejected parent + dependent retired Â· confirmed sibling preserved"
+            ? "// → rejected parent + dependent retired · confirmed sibling preserved"
             : null}
         />
       </section>
@@ -300,7 +300,7 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
         code={DX_SAMPLE}
         filename="save-po-line.ts"
         receipts={[
-          { claim: "Every optimistic request has an identity.", api: "admission.effectId Â· line.effects().get(effectId)" },
+          { claim: "Every optimistic request has an identity.", api: "admission.effectId · line.effects().get(effectId)" },
           { claim: "Dependencies are declared, not inferred.", api: "resourcePatch.dependsOn(patch, [parentEffectId])" },
           { claim: "Failure retires branches instead of patching backward.", api: "line.effects().reject(effectId)" },
         ]}
@@ -308,8 +308,8 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
       />
 
       <div className="signals-docs-row">
-        <button onClick={() => onNavigate("#/docs/resources/effects/concurrency-and-dependencies")} type="button">
-          Read concurrency and dependencies <span aria-hidden="true">â†’</span>
+        <button onClick={() => onNavigate("#/docs/resources/effects/README")} type="button">
+          Read optimistic updates <span aria-hidden="true">→</span>
         </button>
       </div>
     </div>

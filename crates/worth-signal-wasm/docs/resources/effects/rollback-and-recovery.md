@@ -71,7 +71,7 @@ console.log(failed.projection);     // rebuilt from remaining open effects
 
 - [Concurrent Optimistic Effects](./concurrency-and-dependencies.md) explains
   sibling and parent/child settlement.
-- [History And Restore](../../resource-contracts/history-and-restore.md) covers
+- [History And Restore](../debugging/restore-replay-and-recover.md) covers
   explicit restore and replay.
 - Resource-backed form rollback actions lower through the same targeted effect
   rejection path.
@@ -100,4 +100,4 @@ depends on the retained history posture of the runtime.
 
 - [Branch-Native Effects](./branch-native-effects.md)
 - [Concurrent Optimistic Effects](./concurrency-and-dependencies.md)
-- [History And Restore](../../resource-contracts/history-and-restore.md)
+- [History And Restore](../debugging/restore-replay-and-recover.md)

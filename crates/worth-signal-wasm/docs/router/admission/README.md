@@ -1,21 +1,17 @@
-# Router Admission
+# Route Admission
 
-Admission turns a projected route candidate into terminal route truth.
+Matching says a route fits. Admission says it may become route truth now. The
+router consumes facts supplied at the boundary and returns one typed outcome:
+`admitted`, `redirect`, `notFound`, `forbidden`, `unavailable`, or `denied`.
 
-Docs in this section:
+Start with [Admit](./admit.md), then use:
 
-- [Admit](./admit.md)
-- [Route Outcomes](./route_outcomes.md)
-- [Prerequisites](./prerequisites.md)
-- [Access Policy](./access_policy.md)
-- [Forbidden, Unavailable, And Denied](./forbidden_unavailable_denied.md)
-- [Admission Facts](./admission_facts.md)
+- [Prerequisites](./prerequisites.md) for declared decisions
+- [Admission Facts](./admission_facts.md) for explicit inputs
+- [Route Outcomes](./route_outcomes.md) for result handling
+- [Access Policy](./access_policy.md) for typed host/resource/graph sources
+- [Forbidden, Unavailable, And Denied](./forbidden_unavailable_denied.md) when
+  failure meaning matters
 
-Suggested order:
-
-1. admit
-2. route outcomes
-3. prerequisites
-4. access policy
-5. forbidden, unavailable, and denied
-6. admission facts
+An admission callback may decide. It should not fetch, navigate, render, or
+silently read an ambient auth store.

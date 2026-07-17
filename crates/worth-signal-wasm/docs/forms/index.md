@@ -1,76 +1,101 @@
-# Forms Overview
+# Forms
 
-Forms are the product surface for runtime-owned draft state, semantic dirty
-truth, patch planning, validation, action planning, and adjacent form
-artifacts.
+Start with the part every form needs: declare a source and its fields, then let
+Worth own the draft. You immediately get effective values, semantic dirty
+state, patch plans, submit readiness, and inspectable reasons when the form
+cannot proceed—without assembling a second state system beside your inputs.
 
-Use `signals.form(...)` when you want the runtime to own:
+That small path is the framework, not a reduced mode. As the workflow grows,
+the same controller can take on explicit source authority, validation,
+permissions, steps, actions, resource-backed execution, route handoff,
+collaboration posture, history, and verification. Add those lanes when the
+product earns them; the core model does not change underneath you.
 
-- source vs draft vs effective value layering
-- field handles and repeated-item identity
-- semantic dirty checks and patch plans
-- validation artifacts and visible messages
-- readiness and later action planning
+```ts
+import { createSignals } from "worth-signals-wasm";
 
-Start in this order:
+const signals = await createSignals();
+const task = signals.input({ title: "Ship docs", done: false });
 
-1. [Your First Form](./getting-started/your-first-form.md)
-2. [Choosing A Form Source](./getting-started/choosing-a-form-source.md)
-3. [Source Truth, Draft, And Effective Values](./state/source-truth-draft-and-effective-values.md)
-4. [Dirty State](./changes/dirty-state.md)
-5. [Validation Overview](./validation/validation-overview.md)
-6. [Field And Control Availability](./availability/field-and-control-availability.md)
-7. [Action Overview](./actions/action-overview.md)
-8. [Layout Overview](./layout/layout-overview.md)
-9. [Input Adapter Overview](./inputs/input-adapter-overview.md)
-10. [Focus, Touch, And Visited State](./interaction/focus-touch-and-visited-state.md)
-11. [Entry Bootstrap](./lifecycle/entry-bootstrap.md)
-12. [Attachments](./media/attachments.md)
-13. [Resource Line Source](./resource-backed/resource-line-source.md)
-14. [Collaboration Overview](./collaboration/collaboration-overview.md)
-15. [Route Authority Handoff](./route-coupling/route-authority-handoff.md)
-16. [Diagnostics Summary](./diagnostics/diagnostics-summary.md)
-17. [Verification Packages](./verification/verification-packages.md)
+const form = signals.form({
+  source: task,
+  fields: ({ field }) => ({
+    title: field<string>("title"),
+    done: field<boolean>("done"),
+  }),
+});
 
-Fast lookup:
+form.fields.title.set("Publish docs");
 
-- "I need one normal form."  
-  [Your First Form](./getting-started/your-first-form.md)
-- "I need to know where form truth lives."  
-  [Source Truth, Draft, And Effective Values](./state/source-truth-draft-and-effective-values.md)
-- "I need to patch a complex edit form."  
-  [Patching Complex Edit Forms](./changes/patching-complex-edit-forms.md)
-- "I need to disable submit if unchanged."  
-  [Unchanged Forms And Submit Readiness](./changes/unchanged-forms-and-submit-readiness.md)
-- "I need async validation or draft migration."  
-  [Async Validation](./validation/async-validation.md) and
-  [Source Compatibility And Draft Migration](./validation/source-compatibility-and-draft-migration.md)
-- "I need to disable a field, gate submit, or require approval."  
-  [Availability And Permissions](./availability/README.md)
-- "I need multi-step behavior or submit execution."  
-  [Steps And Multi-Step Forms](./steps/README.md) and
-  [Actions And Submit](./actions/README.md)
-- "I need label size, layout hints, or accessibility reads."  
-  [Layout And Accessibility](./layout/README.md)
-- "I need to wire a dropdown, search box, or external control honestly."  
-  [Inputs And Controls](./inputs/README.md)
-- "I need focus state, offline blockers, or host facts."  
-  [Interaction And Host Facts](./interaction/README.md)
-- "I need entry readiness, exit state, or handoff visibility."  
-  [Lifecycle](./lifecycle/README.md)
-- "I need attachment/media state or transfer readback."  
-  [Attachments And Media](./media/README.md)
-- "I need resource-backed draft truth and execution."  
-  [Resource-Backed Forms](./resource-backed/README.md)
-- "I need shared editing, locks, or reviewer posture."  
-  [Collaboration](./collaboration/README.md)
-- "I need route-coupled draft handoff or freeze/discard/defer behavior."  
-  [Route-Coupled Forms](./route-coupling/README.md)
-- "I need to inspect what changed or prove the public surfaces agree."  
-  [Diagnostics And History](./diagnostics/README.md) and
-  [Verification](./verification/README.md)
+console.log(form.effective());
+console.log(form.dirty());
+console.log(form.patchPlan());
+console.log(form.readiness());
+```
 
-Related package entrypoints:
+That source vs draft distinction is the load-bearing boundary. The input still
+owns source truth. The form controller owns the draft and
+derives the effective value, dirty report, patch plan, validation, and
+readiness. A field write does not mutate the source. If the user changes a
+field back to its source-equivalent value, the form becomes semantically clean
+again.
 
-- [start_here.md](../start_here.md)
-- [Feature Index](../learn/feature-index.md)
+## The Model In One Minute
+
+```text
+declared source -> source value
+                       |
+field writes ------> draft
+                       |
+                       v
+                  effective value
+                       |
+       dirty + patch + validation + readiness
+```
+
+- **Source** is the value owned by a signal, a public graph input, a resource
+  line, or an explicit external boundary.
+- **Draft** contains controller-local edits. Clearing the draft does not roll
+  back a server mutation.
+- **Effective value** overlays the draft on the current source.
+- **Patch plan** describes the semantic change Worth can prove from declared
+  fields and stable item identity.
+- **Readiness** combines change, parsing, validation, availability, admission,
+  step, action, host, route, collaboration, and resource blockers that actually
+  apply to the declaration.
+
+Worth does not render controls, call arbitrary endpoints, invent permissions,
+or provide a collaboration transport. It owns the form model and emits typed
+artifacts that your UI and host code can use.
+
+## Choose The Next Guide
+
+- [Your First Form](./getting-started/your-first-form.md) — build the ordinary
+  source, field, edit, and readiness loop.
+- [State, Fields, And Changes](./state/README.md) — understand source, draft,
+  effective value, field families, dirty state, and patch plans.
+- [Validation And Messages](./validation/README.md) — parse raw input, derive
+  validation, and settle explicit async checks.
+- [Readiness And Permissions](./availability/README.md) — explain disabled,
+  hidden, read-only, denied, or approval-gated work.
+- [Actions And Submission](./actions/README.md) — plan actions, hand host work
+  out explicitly, and settle the result.
+- [Multi-Step Flows](./steps/README.md) — group fields without creating a second
+  form state machine.
+- [Layout, Inputs, And Accessibility](./layout/README.md) — declare UI semantics
+  without pretending the controller renders the DOM.
+- [Resource-Backed Forms](./resource-backed/README.md) — bind source and
+  execution to a real resource line.
+- [Lifecycle And Route Continuity](./lifecycle/README.md) — make entry, exit,
+  handoff, and draft continuity visible.
+- [Collaboration](./collaboration/README.md) — project locks, reviewer posture,
+  comments, and resource-owned collaboration evidence.
+- [Diagnostics And Recovery](./diagnostics/README.md) — inspect current truth,
+  retained history, verification, and honestly unavailable recovery.
+- [Form API Reference](../api-reference/forms.md) — exact factories, controller
+  reads, field methods, action settlement, and limits.
+
+Once the basic model is familiar, use [Common Form Patterns](./getting-started/common-form-patterns.md)
+and [Form Recipes](./recipes.md) for complete constructions, [Input Adapters](./state/input-adapters.md)
+when a custom control needs a DOM-facing binding, and the [Forms Glossary](./glossary.md)
+when a term is doing more work than its name first suggests.

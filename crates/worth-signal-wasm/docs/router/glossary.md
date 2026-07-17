@@ -1,43 +1,39 @@
 # Router Glossary
 
-This page defines the core router vocabulary used across the router docs.
+These terms name distinct stages. Keeping them distinct prevents the classic
+router bug where “the URL matched” quietly becomes “the user may see it.”
 
-- **Raw location authority**: a local URL-shaped input that has not yet been
-  canonicalized.
-- **Canonical route artifact**: the normalized route truth for one route plus
-  typed search and hash state.
-- **Route reference**: the stable public handle returned by
-  `signals.router.define(...)` for one declared route.
-- **Route location**: a built location from a route reference and concrete
-  params/search/hash input.
-- **Projected route candidate**: the matched route/layout/outlet structure
-  before admission runs.
-- **Admission**: the step that turns a projected candidate into an admitted
-  route or a non-admitted route outcome.
-- **Prerequisite**: a route admission check declared with
-  `signals.router.prerequisite(...)`.
-- **Recovery**: a route repair step declared with `signals.router.recovery(...)`
-  that can turn a failed admission into a recovered route.
-- **Route outcome**: the result of route admission. This is one of `admitted`,
-  `redirect`, `notFound`, `forbidden`, `unavailable`, or `denied`.
-- **Browser-history ingress**: an explicit host envelope for browser-driven URL
-  changes.
-- **Browser-history writeback**: an explicit host envelope for graph-issued
-  history mutation.
-- **Boundary artifact**: the typed explanation of what happened at a host
-  boundary, such as `routeTruthConverged` or `routeOutcomeNotAdmitted`.
-- **Route-history entry**: one retained admitted route truth entry inside a
-  browser-history story.
-- **Back provenance**: the previous admitted route-history entry, wrapped as a
-  restore/replay-capable artifact.
-- **Inspection**: the browser-history summary surface that aggregates current,
-  back, breadcrumb, and coherence evidence.
-- **Auditability**: the closeout surface that answers why the current route is
-  visible and which boundary or restore truth explains it.
+- **Authority**: the one source allowed to decide a fact. The browser owns the
+  raw location; the router owns its normalized route interpretation.
+- **Raw location**: a local URL received from a load, link, history event, or
+  external host event before normalization.
+- **Canonical URL**: the normalized path, ordered search entries, and decoded
+  hash used for stable equality.
+- **Route reference**: the typed handle returned by `signals.router.define(...)`.
+- **Route location**: one route reference filled with concrete params, search,
+  and hash values.
+- **Projection**: structural matching. It answers “what route, layouts, outlets,
+  and declared capabilities match this URL?”
+- **Projected candidate**: that structural match before access checks run.
+- **Admission**: the decision that answers whether a projected candidate may
+  become route truth now.
+- **Route outcome**: `admitted`, `redirect`, `notFound`, `forbidden`,
+  `unavailable`, or `denied`.
+- **Recovery**: a declared fallback from a non-admitted stale location to a
+  nearest valid route. It is not a catch-all redirect.
+- **Provenance**: the retained explanation of where a result came from—its
+  prerequisite decisions, recovery trail, browser boundary, or restore source.
+- **Browser ingress**: a typed envelope for a browser-owned location event.
+- **Browser writeback**: a typed envelope describing a requested push, replace,
+  or external escape. The host still performs the browser side effect.
+- **History story**: retained router reports used to derive current, back,
+  breadcrumb, inspection, and auditability views. It is not the browser's
+  native history stack.
+- **Visible continuity**: keeping the current route visible while a target is
+  pending. It does not make the pending target admitted truth.
+- **Restore boundary**: an exact runtime snapshot carried with a route-history
+  entry. Without one, exact restore is unavailable.
+- **Verification package**: stable digests that tie an artifact to its inputs.
+  It is evidence about truth, not another owner of truth.
 
-Related docs:
-
-- [Router Overview](./index.md)
-- [Authority](./authority/README.md)
-- [Admission](./admission/README.md)
-- [History](./history/README.md)
+See [Router Overview](./index.md) for the full flow.

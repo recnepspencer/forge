@@ -247,7 +247,7 @@ export function ResourcesWORTHPanel({
         bumpDag();
         pushPanelEvent(setEvents, createPanelEvent(
           "info",
-          `Adding ${draft.label}Ã¢â‚¬Â¦`,
+          `Adding ${draft.label}…`,
           parentId ? "admitted on a derived dependency basis" : "admitted on its own effect branch",
         ));
         return effectId;
@@ -345,13 +345,13 @@ export function ResourcesWORTHPanel({
   return (
     <div className="po-column">
       <PlatformOwner
-        description="One effect branch per write Ã‚Â· isolated closeout Ã‚Â· runtime receipts"
+        description="One effect branch per write · isolated closeout · runtime receipts"
         title="Worth Signals"
         variant="worth"
       />
       <PoPanel
         agreement={agreement}
-        caption="worker-first Ã‚Â· branchNative() Ã‚Â· line.effects().confirm / reject"
+        caption="worker-first · branchNative() · line.effects().confirm / reject"
         error={bootError}
         events={events}
         highlightId={highlightId}
@@ -371,7 +371,7 @@ export function ResourcesWORTHPanel({
       {selectedReceipt ? (
         <details className="po-receipt" open>
           <summary>
-            runtime receipt Ã¢â‚¬â€ {selectedLabel ?? selectedEffectId}
+            runtime receipt — {selectedLabel ?? selectedEffectId}
             <button className="po-receipt-export" onClick={exportReceipts} type="button">Export all (JSON)</button>
           </summary>
           <pre>{JSON.stringify(selectedReceipt, null, 2)}</pre>

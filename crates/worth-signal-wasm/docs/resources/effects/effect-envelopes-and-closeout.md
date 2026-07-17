@@ -100,5 +100,5 @@ such as unavailable branch proof or restore retention.
 
 ## Related Docs
 
-- [Effect Closeout Matrix](../../resource-contracts/closeout-matrix.md)
-- [Effect Envelope Contract](../../resource-contracts/effect-envelope.md)
+- [Effect Closeout Matrix](./README.md)
+- [Effect Envelope Contract](./effect-envelopes-and-closeout.md)

@@ -1,24 +1,30 @@
 # Inputs And Controls
 
-This section covers the first-class tools forms exposes for integrating real
-inputs and controls with the form runtime.
+Field handles accept committed values directly. Input adapters add an honest
+boundary for controls that have raw text, composition, search, focus, or an
+external imperative lifecycle.
 
-Use these docs when you need:
+```ts
+const seats = form.fields.seats;
 
-- input adapter declaration
-- raw input, composition, and commit boundaries
-- focus, blur, touch, and visited reporting
-- external imperative widgets
-- dropdown, combobox, and search integrations
-- control-level availability
-- input capability inspection
+seats.input("12");
+seats.compose({ active: false });
+seats.commitInput();
+seats.touch();
+seats.blur();
+```
 
-Docs in this section:
+Only report capabilities the adapter really supports. An adapter declaration
+does not implement a dropdown, debounce a search request, focus the DOM, or
+perform accessibility announcements. It gives the controller enough semantic
+information to expose parse barriers, interaction state, and missing
+capabilities.
+
+Read next:
 
 - [Input Adapter Overview](./input-adapter-overview.md)
 - [Raw Input, Compose, And Commit](./raw-input-compose-and-commit.md)
-- [Focus, Blur, Touch, And Visit Reporting](./focus-blur-touch-and-visit-reporting.md)
-- [External Imperative Inputs](./external-imperative-inputs.md)
 - [Dropdowns, Comboboxes, And Search](./dropdowns-comboboxes-and-search.md)
-- [Control-Level Availability](./control-level-availability.md)
+- [External Imperative Inputs](./external-imperative-inputs.md)
 - [Input Capability Matrix](./input-capability-matrix.md)
+- [Focus, Blur, Touch, And Visit Reporting](./focus-blur-touch-and-visit-reporting.md)
