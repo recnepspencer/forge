@@ -24,7 +24,7 @@ pub struct WorthUiQueryPrerequisiteEvidence {
     projection_consumption_lane: WorthUiQueryProjectionConsumptionLane,
     inspection_lane: WorthUiQueryInspectionLane,
     causal_explanation_lane: WorthUiQueryCausalExplanationLane,
-    projection_contract_digest: Option<Box<str>>,
+    projection_contract_identity: Option<super::WorthUiQueryProjectionContractIdentity>,
 }
 
 impl WorthUiQueryPrerequisiteEvidence {
@@ -35,7 +35,7 @@ impl WorthUiQueryPrerequisiteEvidence {
         projection_consumption_lane: WorthUiQueryProjectionConsumptionLane,
         inspection_lane: WorthUiQueryInspectionLane,
         causal_explanation_lane: WorthUiQueryCausalExplanationLane,
-        projection_contract_digest: Option<Box<str>>,
+        projection_contract_identity: Option<super::WorthUiQueryProjectionContractIdentity>,
     ) -> Result<Self, WorthUiQueryPrerequisiteEvidenceError> {
         if !resolution_report.certifies(&basis) {
             return Err(WorthUiQueryPrerequisiteEvidenceError::ResolutionReportMismatch);
@@ -48,7 +48,7 @@ impl WorthUiQueryPrerequisiteEvidence {
             projection_consumption_lane,
             inspection_lane,
             causal_explanation_lane,
-            projection_contract_digest,
+            projection_contract_identity,
         })
     }
 
@@ -76,14 +76,18 @@ impl WorthUiQueryPrerequisiteEvidence {
         self.causal_explanation_lane
     }
 
-    pub fn projection_contract_digest(&self) -> Option<&str> {
-        self.projection_contract_digest.as_deref()
+    pub const fn projection_contract_identity(
+        &self,
+    ) -> Option<super::WorthUiQueryProjectionContractIdentity> {
+        self.projection_contract_identity
     }
 
-    pub(crate) fn accepts_projection_contract(&self, projection_contract_digest: &str) -> bool {
-        self.projection_contract_digest
-            .as_deref()
-            .is_none_or(|expected| expected == projection_contract_digest)
+    pub(crate) fn accepts_projection_contract(
+        &self,
+        projection_contract_identity: super::WorthUiQueryProjectionContractIdentity,
+    ) -> bool {
+        self.projection_contract_identity
+            .is_none_or(|expected| expected == projection_contract_identity)
     }
 
     pub fn resolution_mode(&self) -> WorthUiQueryResolutionMode {
@@ -105,7 +109,10 @@ impl WorthUiQueryPrerequisiteEvidence {
         self.basis.proof().identity().canonical_digest().clone()
     }
 
-    pub(crate) fn bound_to_projection_contract(&self, projection_contract_digest: &str) -> Self {
+    pub(crate) fn bound_to_projection_contract(
+        &self,
+        projection_contract_identity: super::WorthUiQueryProjectionContractIdentity,
+    ) -> Self {
         Self {
             basis: self.basis.clone(),
             resolution_report: self.resolution_report.clone(),
@@ -113,7 +120,7 @@ impl WorthUiQueryPrerequisiteEvidence {
             projection_consumption_lane: self.projection_consumption_lane,
             inspection_lane: self.inspection_lane,
             causal_explanation_lane: self.causal_explanation_lane,
-            projection_contract_digest: Some(projection_contract_digest.into()),
+            projection_contract_identity: Some(projection_contract_identity),
         }
     }
 }

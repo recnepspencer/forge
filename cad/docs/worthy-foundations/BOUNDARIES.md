@@ -36,6 +36,10 @@ Answer in order; each answer narrows the next.
    If you cannot fill them, you do not yet understand the change.
 7. **Imitate the exemplar** named for that band in `NAMING.md`.
 
+All `entry` routes share one installed operating-world root. A task may select
+a typed operation-family facade, but that family cannot create a runtime, bind
+raw graph handles, or act as a second public authority root.
+
 Two standing reminders:
 
 - **A Query budget denial reached during the work is design feedback**, not
@@ -89,8 +93,8 @@ the hard rows follow the table.
 | 3 | Reroute this duct run around the new beam | platform lane + pack policy · `worthy-entry-route`, `worthy-resolver-mep`(◐), `worthy-solver-route`, `worthy-solver-clearance` | L1 corridor entity (grouped neighborhood) · PARTICIPATES from every crossed cell, DERIVES to route artifact · routing aspect · declared-wide corridor scope | wide work is *declared* wide: one corridor entity, one grouped publication - never per-cell fragments |
 | 4 | Change primary structure steel->timber; show cost delta | platform · `worthy-entry-component` (parameter mutation), cost flows through `worthy-derived-cost` | L1 parameter write on structural-system aspects · invalidation down DERIVES: resolution -> quantities -> cost · spine scope = the system's PARTICIPATES set | cost never reads geometry; it re-derives from quantity facts - the pyramid, not a scan |
 | 5 | Encode a Salt Lake City setback rule | **pack** · `worthy-pack-jurisdiction` (+ `worthy-schema-jurisdiction` grammar if the rule *kind* is new) | L0 regime bound to spine cells · applicability via CONTAINS walk · advisory/denial surfaces as L4 compliance facts | jurisdictions are knowledge bundles; only a genuinely new rule *kind* touches platform grammar |
-| 6 | Undo my manual tweak from yesterday | platform · Query journal/replay lanes surfaced through `worthy-entry-recovery` | L1 authored declarations only - undo rewrites intent; derived layers rebuild | undo is journal truth, not graph surgery; derived state is destroyable by definition |
-| 7 | "Make the entry more dramatic" | `worthy-ui-ai-collaboration` -> decomposed into ordinary L1 declarations through `worthy-entry-*` lanes | many small L1 writes · each with its own bounded touch · no special "AI lane" in the graph | AI authorship is ordinary authorship: same entry lanes, same obligations, same receipts |
+| 6 | Undo my manual tweak from yesterday | platform · declared inverse or compensation through `worthy-entry-recovery`; certification replay remains `worthy-cert-replay` only | L1 authored declarations only · reversal or compensation is a new operation referencing the original receipt · derived layers rebuild | ordinary undo is typed aftermath, not graph surgery or replay; journal reconstruction stays behind Fence 2 |
+| 7 | "Make the entry more dramatic" | `worthy-ui-ai-collaboration` -> decomposed into ordinary L1 declarations through typed `worthy-entry-*` family views borrowed from the one operating-world root | many small L1 writes · each with its own bounded touch · no special "AI lane" in the graph | AI authorship is ordinary authorship: one authority root, the same entry families, obligations, and receipts |
 | 8 | The 7.5->7.6 handoff (stage N+1 consumes stage N) | platform · consumer depends on `worthy-derived-brep` **only**, via projection consumption | L3 artifact consumed through typed projection receipts · zero upstream re-derivation | replay from an ordinary consumer is a **compile error** (Fence 2) - the three-minute test, made unwritable |
 | 9 | Pull *this* edge tighter (manual refinement) | platform · promotion grammar (`worth-schema-graph`), refinement entity via `worthy-entry-transform` | edge promoted to L1 identity on reference · REFERENCES edge · lineage-bound to carrying BREP artifact | identity is sparse and earned by reference; the other 99.9% of edges stay artifact payload |
 | 10 | Run structural physics on the current model | platform · `worthy-resolver-physics-scenario` assembles from admitted regimes, `worthy-solver-physics` computes pure, `worthy-derived-physics-report` publishes | reads L0 regimes + L2 facts (never L3 payload directly) · DERIVES to L4 report · scope = the analyzed system's PARTICIPATES set | physics consumes resolution-layer facts through the pyramid; the solver sees extracted arrays, never the graph |
@@ -99,6 +103,7 @@ the hard rows follow the table.
 | 13 | Render the scene after an edit | platform · `worthy-derived-scene`, consumed by `worthy-ui-scene` | L4 product derived from L2/L3 · aspect-filtered DERIVES · re-derives only touched cells | the scene is a derived product like cost - display never reads truth directly |
 | 14 | Add a new blend/chamfer kernel | platform · decides Open Decision 2: lands in `worthy-solver-curve`/`-intersection` or births `worthy-solver-blend` | no graph contact at all - solvers take extracted inputs | the first blend *is* the experiment that settles the solver cut; route the decision to NAMING.md, not to a guess |
 | 15 | Prove edit cost stays flat at 10^7 entities | platform · `worthy-cert-scale` | canonical edits (#1, #3, #4) benchmarked at 10^3/10^5/10^7 · asserts flat touch-shape + fan-out | the scale ladder is the graph-scaling claim, certified |
+| 16 | Coordinate work across two independently authoritative graphs | platform · install one named participation adapter per genuine graph authority, then bind one typed cross-graph operation through the shared operating-world root | source meaning consumed through typed projection · target change emitted as typed effect · no graph-to-graph edge invented by the app | same-commit graphs may bind atomically; otherwise compensation and partial failure are declared before execution rather than hidden behind an adapter |
 
 ---
 

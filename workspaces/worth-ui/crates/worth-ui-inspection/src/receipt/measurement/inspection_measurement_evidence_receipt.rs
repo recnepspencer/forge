@@ -100,6 +100,13 @@ pub enum UiInspectionMeasurementNeighborhoodClassHint {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum UiInspectionQueryWorldCompatibilityFailure {
+    InstalledAuthorityMismatch,
+    SnapshotBasisMismatch,
+    QueryAuthorityUnavailable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiInspectionMeasurementGenerationCompatibility {
     Compatible,
     StaleQueryFactReceipt {
@@ -115,8 +122,7 @@ pub enum UiInspectionMeasurementGenerationCompatibility {
         observed: u64,
     },
     IncompatibleWorld {
-        expected_query_basis_digest: Box<str>,
-        observed_world_basis_digest: Option<Box<str>>,
+        reason: UiInspectionQueryWorldCompatibilityFailure,
     },
     IncompatibleHostProfile {
         expected_profile_digest: u64,

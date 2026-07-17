@@ -91,11 +91,10 @@ impl MeasurementEvidenceInput {
         match self {
             Self::QueryProjectionFact(receipt) => {
                 stable_text_digest("measurement-evidence-input:query-projection-fact")
-                    ^ stable_text_digest(receipt.query_basis_digest()).rotate_left(7)
-                    ^ stable_text_digest(receipt.projection_contract_digest()).rotate_left(13)
-                    ^ stable_text_digest(receipt.projection_consumption_receipt_digest())
+                    ^ receipt
+                        .authority_index_key()
+                        .identity_digest()
                         .rotate_left(19)
-                    ^ stable_text_digest(receipt.projection_fact_set_digest()).rotate_left(23)
                     ^ receipt
                         .required_query_fact_family_set_digest()
                         .rotate_left(29)

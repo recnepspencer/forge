@@ -52,6 +52,14 @@ the thing we sell. v1 used "products" for both; this tree does not.
 (`worthy-entry-boolean`). There are deliberately no `worthy-query-*` crates -
 that name is permanently confusable with the runtime itself.
 
+### Entry root vs Entry family
+
+The **installed operating-world root** is the one authority-bearing ordinary
+door into Query for a host world. An **entry family** (`construct`, `boolean`,
+`transform`, `route`, `recovery`) is a typed borrowed facade over that root.
+Multiple family crates improve domain routing and discoverability; they do not
+create multiple runtimes, graph worlds, or authority roots.
+
 ### Ordinary consumption vs Replay
 
 The distinction the three-minute test taught. **Ordinary consumption** is the
@@ -61,6 +69,10 @@ projection consumption) and move forward without reopening its derivation.
 prove the truth from history. Fence 2 makes the separation mechanical -
 replay surfaces are importable only from `cert` crates. If ordinary code
 "needs" replay, the derived artifact it should be consuming is missing.
+Ordinary retry or re-execution starts again from installed intent and current
+authority without access to the old execution trace. Ordinary reversal or
+compensation is a new declared operation referencing the original receipt.
+Neither is replay.
 
 ### Entity vs Aspect vs Payload
 
@@ -110,6 +122,18 @@ tribal - translations:
 - **Projection consumption** - the typed, receipt-backed lane for reading
   facts the runtime already materialized, without reopening the authority
   that produced them. How every layer of the pyramid reads the layer below.
+- **Derived publication** - the one typed, receipt-backed output an operation
+  intentionally exposes for ordinary downstream consumption. Execution traces
+  prove how work ran; publications are what later ordinary operations consume.
+- **Graph participation adapter** - a sealed runtime-affine entry-boundary
+  capability for a genuinely separate graph authority. It declares observation,
+  effect, lineage, cost, failure, and commit posture. It is not a generic
+  callback, an app-owned bridge, or something every domain needs.
+- **Cross-graph operation** - one installed operation that consumes typed
+  projections from source graph authority and emits typed effects to target
+  graph authority through the operating-world root. It is atomic only with
+  shared commit authority; otherwise compensation and partial failure are part
+  of its declared contract.
 - **Receipt / Envelope** - typed artifacts recording what actually happened
   (what was touched, under which authority, with what evidence), so later
   code never reconstructs the story from logs or deltas.

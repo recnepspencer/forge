@@ -234,6 +234,8 @@ fn narrow_source(
                     match denial.reason {
                     super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted =>
                         UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal },
+                    super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable =>
+                        UiAllocationInvalidationNarrowingDenial::QueryAuthorityNotIndexable { ordinal },
                     _ => unreachable!("Query lookup cannot return host denial"),
                 }})?;
                 counted(
@@ -258,6 +260,8 @@ fn narrow_source(
                 .map_err(|denial| match denial {
                     super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted =>
                         UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal },
+                    super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable =>
+                        UiAllocationInvalidationNarrowingDenial::QueryAuthorityNotIndexable { ordinal },
                     super::authority::UiInvalidationAuthorityLookupDenial::HostEvidenceGenerationMismatch
                     | super::authority::UiInvalidationAuthorityLookupDenial::HostNormalizationAuthorityMismatch
                     => unreachable!("Query lookup cannot return host denial"),

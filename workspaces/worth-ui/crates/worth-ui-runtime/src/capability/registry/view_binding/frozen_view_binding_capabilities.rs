@@ -1,8 +1,8 @@
 use crate::capability::ViewBindingId;
 
 use super::{
-    FrozenViewBindingEntry, QueryViewBindingKey, ViewBindingAcceptedRegistrationProof,
-    ViewBindingDescriptor,
+    FrozenViewBindingEntry, ViewBindingAcceptedRegistrationProof, ViewBindingDescriptor,
+    WorthUiViewBindingIdentity,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,14 +27,8 @@ impl FrozenViewBindingCapabilities {
         let entries = descriptors
             .into_iter()
             .map(|descriptor| {
-                let key = QueryViewBindingKey::from_digest_basis(format!(
-                    "{}|{}|{}|{}",
-                    descriptor.id().as_str(),
-                    descriptor.family().digest_basis(),
-                    descriptor.definition().digest().as_u64(),
-                    visible_state_digest(&descriptor),
-                ));
-                FrozenViewBindingEntry::new(descriptor, key)
+                let identity = WorthUiViewBindingIdentity::from_descriptor(&descriptor);
+                FrozenViewBindingEntry::new(descriptor, identity)
             })
             .collect();
         Self { entries }
@@ -74,22 +68,7 @@ impl FrozenViewBindingCapabilities {
                         .digest()
                         .as_u64()
                         .rotate_left(17)
-                    ^ fold_bytes(entry.query_binding_key().as_str().as_bytes()).rotate_left(29)
+                    ^ entry.identity().as_u64().rotate_left(29)
             })
     }
-}
-
-fn visible_state_digest(descriptor: &ViewBindingDescriptor) -> String {
-    descriptor
-        .visible_state_bindings()
-        .iter()
-        .map(|binding| binding.digest_basis())
-        .collect::<Vec<_>>()
-        .join("|")
-}
-
-fn fold_bytes(bytes: &[u8]) -> u64 {
-    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |digest, byte| {
-        (digest ^ u64::from(*byte)).wrapping_mul(0x100_0000_01b3)
-    })
 }

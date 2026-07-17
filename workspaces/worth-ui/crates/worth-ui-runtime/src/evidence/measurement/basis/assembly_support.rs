@@ -87,9 +87,7 @@ pub(super) fn host_result_compatibility(
     report: &WorthUiHostCapabilityReport,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
 ) -> Option<UiMeasurementGenerationCompatibility> {
-    let Some(result) = result else {
-        return None;
-    };
+    let result = result?;
     if result.evidence_generation() != declaration_support_authority_generation {
         return Some(UiMeasurementGenerationCompatibility::StaleHostEvidence {
             expected: declaration_support_authority_generation,
@@ -136,25 +134,32 @@ pub(super) fn query_receipt_compatibility(
     }
 
     if let crate::graph::UiGraphWorldProfile::InstalledQueryBasis { authority } = world_profile {
-        if authority.query_authority() != receipt.query_authority() {
+        if !authority
+            .query_authority()
+            .shares_authority_with(receipt.query_authority())
+        {
             return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
-                expected_query_basis_digest: receipt.query_basis_digest().into(),
-                observed_world_basis_digest: None,
+                reason:
+                    crate::evidence::UiQueryWorldCompatibilityFailure::InstalledAuthorityMismatch,
             });
         }
         return None;
     }
 
-    let observed_world_basis_digest = match world_profile {
+    let binds_world = match world_profile {
         crate::graph::UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } => {
-            Some(prerequisites.basis_digest_for_diagnostics())
+            receipt.query_authority().binds_prerequisites(prerequisites)
         }
-        _ => None,
+        _ => {
+            return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
+                reason:
+                    crate::evidence::UiQueryWorldCompatibilityFailure::QueryAuthorityUnavailable,
+            })
+        }
     };
-    if observed_world_basis_digest != Some(receipt.query_basis_digest()) {
+    if !binds_world {
         return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
-            expected_query_basis_digest: receipt.query_basis_digest().into(),
-            observed_world_basis_digest: observed_world_basis_digest.map(Into::into),
+            reason: crate::evidence::UiQueryWorldCompatibilityFailure::SnapshotBasisMismatch,
         });
     }
 

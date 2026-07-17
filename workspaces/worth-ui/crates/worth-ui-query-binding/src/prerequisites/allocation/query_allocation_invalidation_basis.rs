@@ -70,22 +70,6 @@ impl WorthUiQueryAllocationInvalidationBasis {
     pub fn consumed_families(&self) -> &[WorthUiQueryMeasurementFactFamily] {
         &self.consumed_families
     }
-    pub fn query_basis_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .contract()
-            .basis_digest()
-            .unwrap_or_default()
-    }
-    pub fn projection_contract_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .contract()
-            .contract_digest()
-    }
-    pub fn projection_consumption_receipt_digest(&self) -> &str {
-        self.query_authority.authority().receipt().receipt_digest()
-    }
     pub fn observations(&self) -> &[WorthUiQueryMeasurementFactObservation] {
         &self.observations
     }
@@ -104,14 +88,13 @@ impl WorthUiQueryAllocationConsumptionIdentity {
     pub fn source_order(&self) -> WorthUiQueryAllocationSourceOrder {
         self.source_order
     }
-    pub fn query_basis_digest(&self) -> &str {
-        self.authority_index_key.query_basis_digest()
+    pub fn canonical_basis_identity(&self) -> &[u8; 32] {
+        self.authority_index_key.canonical_basis_identity()
     }
-    pub fn projection_contract_digest(&self) -> &str {
-        self.authority_index_key.projection_contract_digest()
+    pub fn projection_contract_identity(&self) -> u64 {
+        self.authority_index_key.projection_contract_identity()
     }
-    pub fn projection_consumption_receipt_digest(&self) -> &str {
-        self.authority_index_key
-            .projection_consumption_receipt_digest()
+    pub fn canonical_source_identity(&self) -> &[u8; 32] {
+        self.authority_index_key.canonical_source_identity()
     }
 }

@@ -6,7 +6,9 @@ use crate::authorized_projection::{
     AuthorizedProjectionArtifact, AuthorizedProjectionCounters, MaskedProjectionArtifact,
     PolicyFieldInfluenceSet,
 };
-use crate::evidence_identity::WorthQueryEvidenceIdentity;
+use crate::evidence_identity::{
+    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+};
 use crate::memory_workspace::{WorthQueryEntity, WorthQuerySnapshotIdentity};
 use crate::projection_consumption::{ProjectMaterializedFacts, ProjectionFactKind};
 use crate::runtime::{
@@ -56,6 +58,16 @@ pub(super) fn test_result_shape_canonical_digest(label: &str) -> String {
         .digest()
         .as_str()
         .to_string()
+}
+
+fn test_live_installation_identity(label: &str) -> WorthQueryEvidenceIdentity {
+    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            WorthQueryEvidenceTag::new("identity_family"),
+            "test_runtime_live_subscription_installation_v1",
+        )
+        .field_shape(WorthQueryEvidenceTag::new("installation"), label)
+        .seal()
 }
 pub(super) fn authorized_projection(
     query_digest: &str,
@@ -147,6 +159,7 @@ pub(super) fn live_binding() -> crate::runtime::WorthQueryLiveArtifactBinding {
                     WorthQueryLiveReadReceipt::test_only(
                         first.view_name(),
                         "installation:first",
+                        test_live_installation_identity("installation:first"),
                         "query:test",
                         test_result_shape_artifact("shape:first").digest().clone(),
                         "subscription:first",
@@ -166,6 +179,7 @@ pub(super) fn live_binding() -> crate::runtime::WorthQueryLiveArtifactBinding {
                     WorthQueryLiveReadReceipt::test_only(
                         second.view_name(),
                         "installation:second",
+                        test_live_installation_identity("installation:second"),
                         "query:test",
                         test_result_shape_artifact("shape:second").digest().clone(),
                         "subscription:second",
@@ -228,6 +242,7 @@ pub(super) fn live_struct_binding() -> crate::runtime::WorthQueryLiveArtifactBin
                 WorthQueryLiveReadReceipt::test_only(
                     target.view_name(),
                     "installation:struct",
+                    test_live_installation_identity("installation:struct"),
                     "query:test",
                     test_result_shape_artifact("shape:struct").digest().clone(),
                     "subscription:struct",

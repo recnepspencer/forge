@@ -19,8 +19,8 @@ fn equivalent_query_view_references_produce_equivalent_bindings() {
 
     assert_eq!(left.capabilities().digest(), right.capabilities().digest());
     assert_eq!(
-        left.capabilities().view_bindings().entries()[0].query_binding_key(),
-        right.capabilities().view_bindings().entries()[0].query_binding_key()
+        left.capabilities().view_bindings().entries()[0].identity(),
+        right.capabilities().view_bindings().entries()[0].identity()
     );
 }
 
@@ -86,8 +86,8 @@ fn admitted_definition_lifecycle_participates_in_view_binding_key_equivalence() 
         .freeze();
 
     assert_ne!(
-        left_app.capabilities().view_bindings().entries()[0].query_binding_key(),
-        right_app.capabilities().view_bindings().entries()[0].query_binding_key()
+        left_app.capabilities().view_bindings().entries()[0].identity(),
+        right_app.capabilities().view_bindings().entries()[0].identity()
     );
 }
 
@@ -107,8 +107,8 @@ fn visible_state_bindings_participate_in_view_binding_key_equivalence() {
         .freeze();
 
     assert_ne!(
-        left_app.capabilities().view_bindings().entries()[0].query_binding_key(),
-        right_app.capabilities().view_bindings().entries()[0].query_binding_key()
+        left_app.capabilities().view_bindings().entries()[0].identity(),
+        right_app.capabilities().view_bindings().entries()[0].identity()
     );
 }
 
@@ -130,7 +130,7 @@ fn visible_state_binding_key_basis_is_not_delimiter_collision_prone() {
         .freeze();
 
     assert_ne!(
-        split_app.capabilities().view_bindings().entries()[0].query_binding_key(),
-        joined_app.capabilities().view_bindings().entries()[0].query_binding_key()
+        split_app.capabilities().view_bindings().entries()[0].identity(),
+        joined_app.capabilities().view_bindings().entries()[0].identity()
     );
 }

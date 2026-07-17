@@ -8,7 +8,8 @@ use std::rc::Rc;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct UiAllocationInvalidationAuthority {
     pub(super) active_contexts: Vec<UiCommittedAllocationInvalidationContext>,
-    pub(super) query_contexts: BTreeMap<Box<str>, Box<[usize]>>,
+    pub(super) query_contexts:
+        BTreeMap<worth_ui_query_binding::WorthUiQueryAuthorityIndexKey, Box<[usize]>>,
     pub(super) host_targets_by_witness: BTreeMap<
         crate::evidence::UiHostMeasurementAuthorityWitness,
         UiHostInvalidationTargetMapping,
@@ -75,6 +76,7 @@ pub(super) struct UiHostInvalidationTargetMapping {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiInvalidationAuthorityLookupDenial {
+    QueryAuthorityNotIndexable,
     HostEvidenceGenerationMismatch,
     HostNormalizationAuthorityMismatch,
     AuthorityCounterExhausted,
@@ -233,8 +235,10 @@ impl UiAllocationInvalidationAuthority {
                 probes: 0,
             });
         }
-        let source_identity = authority.authority().source_identity().as_str();
-        let Some(ordinals) = self.query_contexts.get(source_identity) else {
+        let authority_index_key = authority
+            .authority_index_key()
+            .map_err(|_| UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable)?;
+        let Some(ordinals) = self.query_contexts.get(&authority_index_key) else {
             return Ok(UiInvalidationAuthorityLookup {
                 target: None,
                 probes: 1,
@@ -248,14 +252,11 @@ impl UiAllocationInvalidationAuthority {
                 .ok_or(UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted)?;
             for mapping in context
                 .basis
-                .query_allocation_mappings_for_source(source_identity)
+                .query_allocation_mappings_for_source(&authority_index_key)
             {
                 probes = probes
                     .checked_add(1)
                     .ok_or(UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted)?;
-                if mapping.query_authority() != authority {
-                    continue;
-                }
                 if let Some(target) = self.graph_replan.target_set(mapping.target()) {
                     return Ok(UiInvalidationAuthorityLookup {
                         target: Some(target.with_graph_index_probes(probes)),

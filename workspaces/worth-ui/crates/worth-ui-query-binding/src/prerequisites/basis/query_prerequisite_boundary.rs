@@ -1,8 +1,6 @@
 use worth_query::facade::foundation::{ResolvedSnapshotBasis, SnapshotResolutionReport};
 
 use super::prerequisite_assembly::construct_prerequisite_evidence;
-#[cfg(feature = "certification-construction")]
-use super::WorthUiQueryMeasurementFactFamily;
 use super::{
     WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane,
     WorthUiQueryInspectionLane, WorthUiQueryMeasurementFactEligibility,
@@ -164,30 +162,5 @@ impl WorthUiQueryPrerequisiteBoundary {
     > {
         let _ = self;
         WorthUiQueryMeasurementFactObservation::from_query_authority(authority)
-    }
-
-    #[cfg(feature = "certification-construction")]
-    pub fn bind_projection_contract_for_certification(
-        self,
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        projection_contract_digest: impl AsRef<str>,
-    ) -> WorthUiQueryPrerequisiteEvidence {
-        let _ = self;
-        prerequisites.bound_to_projection_contract(projection_contract_digest.as_ref())
-    }
-
-    #[cfg(feature = "certification-construction")]
-    pub fn measurement_fact_eligibility_for_certification(
-        self,
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        projection_contract_digest: impl Into<Box<str>>,
-        available_families: Vec<WorthUiQueryMeasurementFactFamily>,
-    ) -> WorthUiQueryMeasurementFactEligibility {
-        let _ = self;
-        WorthUiQueryMeasurementFactEligibility::for_certification(
-            prerequisites,
-            projection_contract_digest,
-            available_families,
-        )
     }
 }

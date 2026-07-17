@@ -137,10 +137,12 @@ impl UiQueryMeasurementEligibility {
             .map(|evidence| evidence.resolution_mode())
     }
 
-    pub fn query_projection_contract_digest(&self) -> Option<&str> {
+    pub fn query_projection_contract_identity(
+        &self,
+    ) -> Option<worth_ui_query_binding::WorthUiQueryProjectionContractIdentity> {
         self.target
             .query_prerequisites()
-            .and_then(|evidence| evidence.projection_contract_digest())
+            .and_then(|evidence| evidence.projection_contract_identity())
     }
 
     pub fn required_fact_family_set_digest(&self) -> u64 {

@@ -11,8 +11,4 @@ impl VisibleStateBindingDeclaration {
     pub fn name(&self) -> &str {
         &self.name
     }
-
-    pub fn digest_basis(&self) -> String {
-        self.name.clone()
-    }
 }

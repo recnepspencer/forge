@@ -14,6 +14,7 @@ use super::read_receipt_support::materialized_result_digest;
 pub struct WorthQueryLiveReadReceipt {
     view_name: String,
     installation_digest: String,
+    installation_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,
     query_digest: String,
     canonical_result_shape_digest: CanonicalResultShapeDigest,
     canonical_result_shape_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,
@@ -40,6 +41,7 @@ impl WorthQueryLiveReadReceipt {
         Self {
             view_name: installation.view_name().to_string(),
             installation_digest: installation.installation_projection().label().to_string(),
+            installation_identity: installation.installation_identity().clone(),
             query_digest: installation.query_projection().label().to_string(),
             canonical_result_shape_digest: installation.canonical_result_shape_digest().clone(),
             canonical_result_shape_identity: installation.canonical_result_shape_identity().clone(),
@@ -71,6 +73,10 @@ impl WorthQueryLiveReadReceipt {
 
     pub fn installation_digest(&self) -> &str {
         &self.installation_digest
+    }
+
+    pub fn installation_identity(&self) -> &crate::evidence_identity::WorthQueryEvidenceIdentity {
+        &self.installation_identity
     }
 
     pub fn query_digest(&self) -> &str {
@@ -165,6 +171,7 @@ impl WorthQueryLiveReadReceipt {
     pub(crate) fn test_only(
         view_name: impl Into<String>,
         installation_digest: impl Into<String>,
+        installation_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,
         query_digest: impl Into<String>,
         canonical_result_shape_digest: CanonicalResultShapeDigest,
         subscription_family_digest: impl Into<String>,
@@ -173,11 +180,13 @@ impl WorthQueryLiveReadReceipt {
         row_count: usize,
     ) -> Self {
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
+        let canonical_result_shape_identity = canonical_result_shape_digest.evidence_identity();
         Self {
             view_name: view_name.into(),
             installation_digest: installation_digest.into(),
+            installation_identity,
             query_digest: query_digest.into(),
-            canonical_result_shape_identity: canonical_result_shape_digest.evidence_identity(),
+            canonical_result_shape_identity,
             canonical_result_shape_digest,
             subscription_family_digest: subscription_family_digest.into(),
             result_digest: result_digest.into(),

@@ -99,6 +99,7 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
                 "UiInspectionMeasurementOwnershipPosture".to_string(),
                 "UiInspectionMeasurementQueryFactFamily".to_string(),
                 "UiInspectionMeasurementQueryUnsupportedReason".to_string(),
+                "UiInspectionQueryWorldCompatibilityFailure".to_string(),
                 "UiInspectionRefLifecycleLane".to_string(),
                 "UiInspectionScopeSupportRow".to_string(),
                 "UiInspectionSliceLane".to_string(),

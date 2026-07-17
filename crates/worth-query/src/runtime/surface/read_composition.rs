@@ -87,7 +87,7 @@ impl WorthQueryReadRelationshipProofPosture {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryReadGraph {
-    digest: String,
+    identity: WorthQueryEvidenceIdentity,
     family: WorthQueryReadGraphFamily,
     scope_class: WorthQueryReadScopeClass,
     schema_basis: SchemaBasisDigest,
@@ -107,7 +107,11 @@ pub struct WorthQueryReadGraph {
 
 impl WorthQueryReadGraph {
     pub fn digest(&self) -> &str {
-        &self.digest
+        self.identity.as_str()
+    }
+
+    pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.identity
     }
 
     pub fn family(&self) -> &WorthQueryReadGraphFamily {
@@ -220,7 +224,7 @@ impl WorthQueryReadGraph {
             WorthQueryReadGraphFamily::Detail => "detail",
             WorthQueryReadGraphFamily::Collection => "collection",
         };
-        let digest = worth_query_evidence_identity(WorthQueryEvidenceScope::ReadGraphDigest)
+        let identity = worth_query_evidence_identity(WorthQueryEvidenceScope::ReadGraphDigest)
             .field_shape(WorthQueryEvidenceTag::new("family"), family_label)
             .field_shape(WorthQueryEvidenceTag::new("scope"), scope_class.as_str())
             .field_value(
@@ -259,11 +263,9 @@ impl WorthQueryReadGraph {
                     .as_ref()
                     .map(|plan| plan.core().digest().as_str()),
             )
-            .seal()
-            .as_str()
-            .to_string();
+            .seal();
         Self {
-            digest,
+            identity,
             family,
             scope_class,
             schema_basis,
@@ -285,7 +287,7 @@ impl WorthQueryReadGraph {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryReadReceipt {
-    pub(super) read_graph_digest: String,
+    pub(super) read_graph_identity: WorthQueryEvidenceIdentity,
     pub(super) graph_family: WorthQueryReadGraphFamily,
     pub(super) collection_result_family: Option<crate::collection::CollectionResultFamily>,
     pub(super) execution_plan_evidence_identity: WorthQueryEvidenceIdentity,

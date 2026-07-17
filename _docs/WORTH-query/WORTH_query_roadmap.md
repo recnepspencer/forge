@@ -311,15 +311,19 @@ cross-feature proof gates before final certification:
   installation, derived operation registries, and proof-bearing value DX
   without creating a second scalar or struct authority
 - `Milestone 9.14` must prove downstream projection authority is one
-  non-detachable runtime-affine capability rooted in installed typed domain
+  non-detachable runtime-affine capability rooted in one installed operating-
+  world entry root, explicit graph participation, and installed typed domain
   operation definitions: consumers cannot locally reconstruct stable operation
-  meaning, workflow progression, replay, reversal, or lineage, or recombine
-  independently valid installations, domain capabilities, stage receipts,
+  meaning, alternate entry roots, graph bridges, workflow progression, replay,
+  reversal, publication, or lineage, or recombine independently valid
+  installations, graph adapters, domain capabilities, stage receipts,
   replay/reversal scopes, definitions, completions, bases, facts, receipts,
   support projections, dependency labels, equivalence tokens, reporting
   digests, invalidation labels, collection patches, leases, or lifecycle
-  artifacts into operational power; atomic cross-domain binding, Query-minted
-  workflow traces, semantic replay, typed aftermath, lineage, native access,
+  artifacts into operational power; atomic cross-domain and admitted cross-
+  graph binding, Query-minted workflow traces, ordinary re-execution, cert-only
+  replay, typed aftermath, derived publication, lineage and promotion-on-
+  reference, native access,
   consumer support, dependency impact, shared execution admission, managed
   leases, compatibility, invalidation, collection windows, patch delivery,
   replacement, rebind, and disposal remain Query-owned, proof-bearing, and
@@ -4062,19 +4066,21 @@ the resulting value, predicate, row, and projection contracts unchanged.
 ### Goal
 
 Make Query's downstream projection path mechanically complete by carrying
-installed domain operation meaning, declaration, installation, basis,
-atomic cross-domain binding, workflow progression, execution trace, semantic
-replay, reversal/compensation posture, typed lineage, execution, consumption,
-native refinement, consumer support, compiled
+installed domain operation meaning, declaration, installation, one operating-
+world entry root, explicit graph participation, basis, atomic cross-domain and
+admitted cross-graph binding, workflow progression, execution trace, ordinary
+re-execution, cert-only replay, reversal/compensation posture, typed lineage,
+derived publication, execution, consumption, native refinement, consumer support, compiled
 dependency impact, equivalent-capability sharing, managed consumer leases,
 compatibility, invalidation, collection windows, query-shaped patch delivery,
 and managed lifecycle through one sealed runtime-affine capability.
 
 ### Adversarial Constraint
 
-Independently valid handles, portable or locally reconstructed definitions,
-domain capabilities, stage receipts, replay or reversal scopes, lineage
-candidates, completions, bases, fact receipts, support projections, dependency labels,
+Independently valid handles, alternate entry roots, graph adapters, operation-
+family facades, portable or locally reconstructed definitions, domain
+capabilities, stage receipts, replay or reversal scopes, lineage candidates,
+completions, bases, fact receipts, support projections, dependency labels,
 equivalence tokens, reporting digests, invalidation labels, cursors,
 collection patches, leases, and lifecycle artifacts from foreign runtimes,
 stale generations, or different declarations must be impossible to recombine
@@ -4091,11 +4097,15 @@ meaning, but a downstream consumer can still fail if Query exports safe
 ingredients that the consumer must coordinate correctly, if stable domain
 operations locally rebuild schema and result meaning, if workflows maintain
 product-specific stage ledgers, replay and undo catalogs, or representation-
-derived lineage, if local dependency graphs reinterpret change impact, or if
+derived lineage, if operation families construct separate runtime roots, if
+applications bridge graphs through raw handles or hidden adapters, if local
+dependency graphs reinterpret change impact, or if
 equivalent capabilities create duplicate execution and subscription resources.
 Query must install one complete operation semantic closure and export the
-atomic bound capability, workflow trace, replay, aftermath, lineage, consumer
-support contract, dependency impact, sharing and lease contract, invalidation delta,
+single operating-world root, explicit graph participation, atomic bound
+capability, workflow trace, cert-fenced replay, aftermath, lineage, derived
+publication, consumer support contract, dependency impact, sharing and lease
+contract, invalidation delta,
 collection window/patch contract, and named compatibility decisions before
 Milestone 13 freezes provider-independent certification and before Store
 integration multiplies the boundary.
@@ -4108,15 +4118,21 @@ The governing milestone spec is
 ### Must Ship
 
 - complete installed operation semantic closure with indexed resolution
-- atomic multi-domain operation binding
+- one installed operating-world root with typed borrowed operation-family
+  facades and no alternate authority-bearing entry points
+- installed graph-participation adapters only for genuinely separate graph
+  authority, with explicit atomic or compensated commit posture
+- atomic multi-domain and admitted multi-graph operation binding
 - installed workflow DAGs and Query-minted workflow run/stage traces
-- semantic replay and re-execution with distinct attempt identity and declared
-  equivalence
+- ordinary retry/re-execution and cert-only trace replay with distinct attempt
+  identity and declared equivalence
 - typed exact-inverse, compensation, recovery, and irreversibility posture
-- trace-bound lineage and identity-evolution evidence for persistent naming
+- trace-bound lineage and identity-evolution evidence for persistent naming and
+  promotion-on-reference
 - one non-detachable bound projection capability
 - one Query-minted consumer support contract
-- proof-bearing installed execution, consumption, and settlement progression
+- proof-bearing installed execution, derived publication, consumption, and
+  settlement progression
 - declaration-indexed Foundational-native access without consumer fact scans
 - Query-owned installation, basis, replacement, rebind, and reuse decisions
 - capability-bound live, replacement, rebind, cancellation, and disposal
@@ -4138,9 +4154,13 @@ The governing milestone spec is
   sharing admission, invalidation, collection identity/ordering, cursor/patch
   meaning, and managed lifecycle authority
 - Query remains atomic cross-domain binding, workflow progression and trace,
-  replay admission, reversal binding, lineage transport, and identity-evolution
-  authority while domains own algorithms, compensation/inverse meaning, and
-  naming/correspondence policy
+  graph-participation and cross-graph binding, cert replay admission, reversal
+  binding, lineage transport, and identity-evolution authority while domains
+  own algorithms, compensation/inverse meaning, and naming/correspondence policy
+- operation-family entry facades remain typed borrowed views over one root;
+  typed family distinctions do not create separate runtime authority
+- one logical graph remains the default; graph participation is introduced only
+  for a genuine independent authority boundary
 - Store remains durable journal, checkpoint, restart replay, and recovery
   authority
 - lower runtimes remain truth, scheduling, and physical-provider authorities
@@ -4156,6 +4176,8 @@ The governing milestone spec is
 
 - installed operation resolution is one bounded indexed lookup independent of
   unrelated domains and operations
+- graph-participation and operation-family resolution inspect only the
+  operation's declared roles and never scan unrelated graphs or entry families
 - native access is `O(k)` for `k` declared access keys and `O(1)` per admitted
   key after declaration binding
 - compatibility cost is bounded by retained proof dimensions and independent of
@@ -4179,12 +4201,16 @@ The governing milestone spec is
   consumer-owned compatibility or dependency closure, consumer-owned sharing
   registry, operational digest comparison, support/invalidation mirror, broad
   fact/collection scan, local patch-posture hash, raw CDC interpretation, or
-  orphan lifecycle join may remain debt
+  orphan lifecycle join, alternate entry root, hidden graph adapter, direct
+  graph-to-graph call, shared-ID authority, or ordinary replay import may
+  remain debt
 
 ### Sequencing Notes
 
 This follows 9.13 because it consumes the installed-domain and native-value
-authority model established there. It precedes Milestone 13 because the
+authority model established there. Graph participation and one-root authority
+close before operation binding; publication and the cert replay fence close
+before workflow consumers. It precedes Milestone 13 because the
 provider-independent oracle must certify the completed downstream capability,
 not ingredient surfaces that consumers can misassemble.
 
@@ -4192,7 +4218,8 @@ not ingredient surfaces that consumers can misassemble.
 
 This milestone is not blocked on Store. Store integration must consume the
 same installed operation definition and resolution, bound capability, consumer
-support, dependency-impact, sharing and lease, compatibility, invalidation,
+support, graph-participation, single-root, publication, cert-replay,
+dependency-impact, sharing and lease, compatibility, invalidation,
 collection window/patch, lifecycle, and accounting contracts without reopening
 them.
 
@@ -4200,15 +4227,23 @@ them.
 
 - equivalent installed operation definitions converge while conflicts fail
   atomically and local lookalikes cannot execute
+- every operation family borrows one installed operating-world root and cannot
+  construct an alternate runtime or accept raw graph handles
+- same-graph domain composition needs no adapter; separate graph authority
+  participates only through an installed adapter, and multi-graph atomicity
+  requires shared commit authority
 - invalid workflow graphs fail installation, independently valid stage
   receipts cannot be mixed, and required multi-domain capabilities bind only
   as one atomic authority
-- semantic replay uses distinct run/attempt identity while proving declared
-  result/effect/lineage equivalence or localizing typed divergence
+- cert-only replay uses distinct run/attempt identity while proving declared
+  result/publication/effect/lineage equivalence or localizing typed divergence;
+  ordinary consumers cannot import replay and consume publications instead
 - touched scope cannot mint undo; inverse, compensation, recovery, and
   irreversibility remain explicit and separately certified
 - persistent naming cannot be authorized from raw IDs, strings, digests,
   geometry, rendered values, or advisory correspondence
+- promotion-on-reference never eagerly gives graph identity to unreferenced
+  artifact payload
 - external construction and sabotage probes cannot mint or recombine authority
 - complete native scalar, struct, absence, and refinement parity survives the
   bound capability path
@@ -4291,9 +4326,11 @@ delivery shapes mean.
   shapes, basis-exact reads, policy masking, live evolution, saved-artifact
   semantic freeze, continuation meaning, and blob-reference projection meaning
 - provider-independent bound-projection oracles for exact installed-operation
-  resolution, installation, atomic multi-domain binding, workflow progression
-  and trace, semantic replay, reversal/compensation posture, lineage and
-  persistent-naming admission, consumer support, execution, consumption,
+  resolution, installation, single-root entry, graph participation, atomic
+  multi-domain and admitted multi-graph binding, workflow progression and
+  trace, ordinary re-execution, cert-only replay, reversal/compensation
+  posture, publication, lineage, promotion and persistent-naming admission,
+  consumer support, execution, consumption,
   native access, dependency impact, shared execution and lease lifecycle,
   compatibility, invalidation, collection window/patch delivery, denial, and
   counter parity established by Milestone 9.14
@@ -4446,7 +4483,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Declarative Query experience and phase-surface cutover | Milestone 9.13 | Capability declarations, admitted-query handles, managed live resources, typed outcomes and next-action stops, DX transcripts, contracted facade and residue artifacts | Ordinary consumers describe desired outcomes while Query exclusively owns canonicalization, binding, validation, admission, planning, lowering, execution routing, lifecycle, receipt assembly, and derived diagnostics | Milestone 9.13 ordinary/internal parity, compile-fail, facade-snapshot, prohibition, residue, lifecycle, bounded-work, and reference-consumer certification + Milestone 13 product-surface parity |
 | Runtime-installed domain capability authority | Milestone 9.13 add-on Phases 13-20 | Canonical domain packages, admitted package artifacts, runtime installation registry, runtime-affine installed handles, package-compiled operation/invariant/obligation indexes, installation and execution receipts | Equivalent packages install identically; conflicting packages fail atomically; only the installing runtime can mint usable handles; registered operations and contributions resolve without raw strings, manual registries, or semantic adapters | Milestone 9.13 package convergence, installation atomicity, runtime-affinity, derived-index rebuild, facade/residue/sabotage, bounded-lookup, and reference-consumer certification + Milestone 13 domain parity |
 | Foundational-native aspect value authority and consumer DX | Milestone 9.13 add-on Phases 21-30 | Portable non-authoritative patch/state candidates, Foundational contract readmission, native entity/relation transaction intents, authoritative patch planning and publication, durable readmission, exact scalar and struct values, contract-derived operator capabilities, proof-bearing mutation/result/consumption artifacts, native retained rows or honest internal markers, typed refinement denials, canonical value identity basis | Every native patch operation, scalar family, and representative struct round-trips through portable boundaries, Relational planning/merge/commit, checkpoint/replay, Query authoring, validation, execution, materialization, projection, refinement, receipts, and inspection; incompatible operators and weaker-proof promotion fail before work; no substrate owns a competing value, patch, state, or semantic encoder | Milestone 9.13 patch/state readmission, entity/relation transaction parity, restart/replay, native-family/struct matrix, canonical identity parity, facade/compile-fail/prohibition/residue/sabotage, bounded-work, and reference-consumer deletion certification + Milestone 13 schema, execution, projection, and domain parity |
-| Installed operation semantics and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, atomic multi-domain operation capabilities, installed workflow DAGs, Query-minted run/stage traces, semantic replay results, typed reversal/compensation posture, trace-bound lineage evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, workflow progression, replay, reversal, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; native access remains Foundational-exact and bounded; Query alone binds multi-domain operation authority, advances workflow, mints traces, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition and workflow-graph convergence/conflict, stage-progression, replay-equivalence/divergence, reversal-posture, lineage/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
+| Installed operation semantics and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, one installed operating-world root, typed borrowed operation-family facades, sealed graph-participation adapters, atomic multi-domain and admitted multi-graph operation capabilities, installed workflow DAGs, Query-minted run/stage traces, ordinary re-execution and cert-only replay results, typed reversal/compensation posture, derived-publication receipts, trace-bound lineage and promotion evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, entry authority, graph participation, workflow progression, replay, reversal, publication, promotion, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; one logical graph is the default; separate graphs bind atomically only with shared commit authority and otherwise expose compensation; ordinary downstream work consumes typed publications while replay remains cert-only; native access remains Foundational-exact and bounded; Query alone binds operation authority, advances workflow, mints traces and publications, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition, single-root, graph-adapter, atomic/compensated multi-graph, workflow-graph convergence/conflict, stage-progression, publication-consumption, replay-fence/equivalence/divergence, reversal-posture, lineage/promotion/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |

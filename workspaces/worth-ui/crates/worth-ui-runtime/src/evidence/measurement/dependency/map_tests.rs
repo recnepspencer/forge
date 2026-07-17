@@ -209,12 +209,12 @@ fn unrelated_query_projection_facts_do_not_widen_measurement_neighborhood() {
     .expect("expanded query receipt should admit");
 
     assert_ne!(
-        baseline_receipt.projection_fact_set_digest(),
-        expanded_receipt.projection_fact_set_digest()
+        baseline_receipt.projection_fact_set_digest_for_diagnostics(),
+        expanded_receipt.projection_fact_set_digest_for_diagnostics()
     );
     assert_ne!(
-        baseline_receipt.projection_consumption_receipt_digest(),
-        expanded_receipt.projection_consumption_receipt_digest()
+        baseline_receipt.projection_consumption_receipt_digest_for_diagnostics(),
+        expanded_receipt.projection_consumption_receipt_digest_for_diagnostics()
     );
 
     let baseline_basis = admit_measurement_basis(

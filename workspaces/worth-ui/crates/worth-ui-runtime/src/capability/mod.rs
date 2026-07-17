@@ -61,7 +61,7 @@ pub use registry::{
     NativeCapabilityFamily, NativeCapabilityKey, NativePlatformPosture, NativeShellAuthorityClaim,
     PluginCapabilityPermission, PluginContributionFamily, PluginSlotContributionReference,
     PluginSlotDescriptor, PluginSlotDiagnostics, PluginSlotGlobalMutationHook, PluginSlotKey,
-    PluginSlotOrdering, PluginSlotSupportPosture, QueryDenialPresentation, QueryViewBindingKey,
+    PluginSlotOrdering, PluginSlotSupportPosture, QueryDenialPresentation,
     RawColorOutsideTokenDefinition, RawIconAssetReference, RawLayoutMeasurementForDiagnostics,
     RawLayoutMeasurementKind, RuntimeOutcomeAffordance, RuntimeOutcomeDenialPosture,
     RuntimeOutcomeFamily, RuntimeOutcomePresentation, RuntimeOutcomeProjectionDescriptor,
@@ -75,7 +75,7 @@ pub use registry::{
     TaskPresentationRuntimeAuthorityPosture, ThemeColorValue, ThemeColorValueError,
     ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenKey, ThemeTokenSource,
     ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, VisibleStateBindingDeclaration,
-    WorthUiQueryViewRegistration,
+    WorthUiQueryViewRegistration, WorthUiViewBindingIdentity,
 };
 pub(crate) use registry::{
     CommandAcceptedRegistrationProof, CommandProjectionAcceptedRegistrationProof,

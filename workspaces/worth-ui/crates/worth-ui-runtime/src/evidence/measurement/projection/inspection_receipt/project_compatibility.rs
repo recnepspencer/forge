@@ -1,4 +1,6 @@
-use worth_ui_inspection::UiInspectionMeasurementGenerationCompatibility;
+use worth_ui_inspection::{
+    UiInspectionMeasurementGenerationCompatibility, UiInspectionQueryWorldCompatibilityFailure,
+};
 
 use crate::evidence::measurement::UiMeasurementGenerationCompatibility;
 
@@ -27,13 +29,15 @@ pub(crate) fn project_generation_compatibility(
                 observed: observed.as_u64(),
             }
         }
-        UiMeasurementGenerationCompatibility::IncompatibleWorld {
-            expected_query_basis_digest,
-            observed_world_basis_digest,
-        } => UiInspectionMeasurementGenerationCompatibility::IncompatibleWorld {
-            expected_query_basis_digest: expected_query_basis_digest.clone(),
-            observed_world_basis_digest: observed_world_basis_digest.clone(),
-        },
+        UiMeasurementGenerationCompatibility::IncompatibleWorld { reason } => {
+            UiInspectionMeasurementGenerationCompatibility::IncompatibleWorld {
+                reason: match reason {
+                    crate::evidence::UiQueryWorldCompatibilityFailure::InstalledAuthorityMismatch => UiInspectionQueryWorldCompatibilityFailure::InstalledAuthorityMismatch,
+                    crate::evidence::UiQueryWorldCompatibilityFailure::SnapshotBasisMismatch => UiInspectionQueryWorldCompatibilityFailure::SnapshotBasisMismatch,
+                    crate::evidence::UiQueryWorldCompatibilityFailure::QueryAuthorityUnavailable => UiInspectionQueryWorldCompatibilityFailure::QueryAuthorityUnavailable,
+                },
+            }
+        }
         UiMeasurementGenerationCompatibility::IncompatibleHostProfile {
             expected_profile_digest,
             observed_profile_digest,

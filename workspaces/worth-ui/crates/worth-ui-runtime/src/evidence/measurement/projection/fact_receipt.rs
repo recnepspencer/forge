@@ -91,42 +91,8 @@ impl UiProjectionFactReceipt {
         self.declaration_support_authority_generation
     }
 
-    pub fn query_basis_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .contract()
-            .basis_digest()
-            .unwrap_or_default()
-    }
-
     pub fn query_resolution_mode(&self) -> WorthUiQueryResolutionMode {
         self.query_resolution_mode
-    }
-
-    pub fn projection_contract_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .contract()
-            .contract_digest()
-    }
-
-    pub fn projection_consumption_declaration_digest(&self) -> &str {
-        self.query_authority
-            .authority()
-            .receipt()
-            .declaration_digest()
-    }
-
-    pub fn projection_consumption_receipt_digest(&self) -> &str {
-        self.query_authority.authority().receipt().receipt_digest()
-    }
-
-    pub fn projection_fact_set_digest(&self) -> &str {
-        self.query_authority.authority().receipt().fact_set_digest()
-    }
-
-    pub fn projection_source_identity(&self) -> &str {
-        self.query_authority.authority().source_identity().as_str()
     }
 
     pub fn required_measurement_dependencies(&self) -> &[UiDeclaredMeasurementEvidenceRequirement] {

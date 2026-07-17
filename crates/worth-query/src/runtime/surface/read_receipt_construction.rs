@@ -207,7 +207,7 @@ impl WorthQueryReadReceipt {
             .map(support_profile_for_relationship_proof);
         let policy_aware_plan = read_graph.policy_aware_plan();
         Self {
-            read_graph_digest: read_graph.digest().to_string(),
+            read_graph_identity: read_graph.evidence_identity().clone(),
             graph_family: read_graph.family().clone(),
             collection_result_family: read_graph
                 .execution_plan()

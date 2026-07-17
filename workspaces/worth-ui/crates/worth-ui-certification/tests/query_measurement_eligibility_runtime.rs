@@ -171,6 +171,13 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_cross_basis
                     prerequisites.basis_digest_for_diagnostics(),
                     authority.basis_digest_for_diagnostics()
                 );
+                assert_ne!(
+                    prerequisites.canonical_basis_digest().value().bytes(),
+                    authority
+                        .authority_index_key()
+                        .expect("authority should be indexable")
+                        .canonical_basis_identity()
+                );
                 assert_eq!(
                     prerequisites.resolution_mode(),
                     measurement_admission
@@ -179,9 +186,16 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_cross_basis
                         .expect("current target should retain query prerequisites")
                         .resolution_mode()
                 );
-                assert_ne!(
-                    prerequisites.projection_contract_digest(),
-                    Some(authority.projection_contract_digest_for_diagnostics())
+                assert_eq!(
+                    prerequisites
+                        .projection_contract_identity()
+                        .map(|identity| identity.as_u64()),
+                    Some(
+                        authority
+                            .authority_index_key()
+                            .expect("authority should be indexable")
+                            .projection_contract_identity()
+                    )
                 );
             }
             authorities => {
@@ -352,8 +366,15 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_same_basis_
                     observed.basis_digest_for_diagnostics()
                 );
                 assert_ne!(
-                    expected.projection_contract_digest(),
-                    Some(observed.projection_contract_digest_for_diagnostics())
+                    expected
+                        .projection_contract_identity()
+                        .map(|identity| identity.as_u64()),
+                    Some(
+                        observed
+                            .authority_index_key()
+                            .expect("authority should be indexable")
+                            .projection_contract_identity()
+                    )
                 );
             }
             authorities => {

@@ -177,24 +177,13 @@ impl UiScrollInvalidationBindingIndex {
         (Option<&BindingKeyIndex>, u16),
         (super::authority::UiInvalidationAuthorityLookupDenial, u16),
     > {
-        let mut probes = 0_u16;
-        for rows in self.query.values() {
-            probes = probes.checked_add(1).ok_or((
-                super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted,
-                u16::MAX,
-            ))?;
-            let matches = rows.values().next().is_some_and(|binding| {
-                matches!(
-                    binding.contract().source(),
-                    crate::runtime::UiAdmittedScrollExtentSource::QueryContent(source)
-                        if source.query_authority() == authority
-                )
-            });
-            if matches {
-                return Ok((Some(rows), probes));
-            }
-        }
-        Ok((None, probes))
+        let key = authority.authority_index_key().map_err(|_| {
+            (
+                super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable,
+                1,
+            )
+        })?;
+        Ok((self.query.get(&key), 1))
     }
     pub(crate) fn projection_for_host(
         &self,

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+
 use worth_query::facade::domain::WorthQueryInstalledDomainExecutionReceipt;
 use worth_query::facade::foundation::{
     ProjectionConsumptionWarningKind, ProjectionSourceBasisAuthority,
@@ -32,7 +33,7 @@ pub enum WorthUiQueryProjectionWarningKind {
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct WorthUiQueryAllocationSourceIdentity(Arc<str>);
+pub struct WorthUiQueryAllocationSourceIdentity(Arc<super::WorthUiQueryAuthorityIndexKey>);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct WorthUiQueryAllocationSourceGeneration(u64);
@@ -62,7 +63,6 @@ pub(crate) struct WorthUiQueryAllocationSourceAuthority {
     next_order: u64,
     generation: u64,
     basis_authority: Option<ProjectionSourceBasisAuthority>,
-    canonical_identity: Option<WorthUiQueryAllocationSourceIdentity>,
 }
 
 impl Default for WorthUiQueryAllocationSourceAuthority {
@@ -71,7 +71,6 @@ impl Default for WorthUiQueryAllocationSourceAuthority {
             next_order: 1,
             generation: 0,
             basis_authority: None,
-            canonical_identity: None,
         }
     }
 }
@@ -95,8 +94,11 @@ impl WorthUiQueryAllocationSourceAuthority {
                 .ok_or(WorthUiQueryMeasurementFactSettlementDenial::SourceGenerationExhausted)?
         };
         let order = self.next_order;
-        let identity = query_authority.authority().source_identity().as_str();
-        let canonical_identity = self.canonical_identity(identity);
+        let source_identity = WorthUiQueryAllocationSourceIdentity(Arc::new(
+            query_authority
+                .authority_index_key()
+                .map_err(WorthUiQueryMeasurementFactSettlementDenial::Receipt)?,
+        ));
         let next_order = self
             .next_order
             .checked_add(1)
@@ -107,7 +109,7 @@ impl WorthUiQueryAllocationSourceAuthority {
             warnings,
             installed_execution,
             WorthUiQueryAllocationSourceCoordinates {
-                identity: canonical_identity.clone(),
+                identity: source_identity,
                 generation: WorthUiQueryAllocationSourceGeneration(generation),
                 order: WorthUiQueryAllocationSourceOrder(order),
             },
@@ -117,17 +119,7 @@ impl WorthUiQueryAllocationSourceAuthority {
             self.basis_authority = Some(admitted_basis);
         }
         self.next_order = next_order;
-        if self.canonical_identity.as_ref() != Some(&canonical_identity) {
-            self.canonical_identity = Some(canonical_identity);
-        }
         Ok(settlement)
-    }
-
-    fn canonical_identity(&self, identity: &str) -> WorthUiQueryAllocationSourceIdentity {
-        match self.canonical_identity.as_ref() {
-            Some(canonical) if canonical.as_str() == identity => canonical.clone(),
-            _ => WorthUiQueryAllocationSourceIdentity(Arc::from(identity)),
-        }
     }
 }
 
@@ -158,8 +150,8 @@ enum WorthUiQueryMeasurementFactSettlementRepresentation {
     Settled(WorthUiQueryMeasurementFactReceipt),
     Partial {
         receipt: WorthUiQueryMeasurementFactReceipt,
+        _query_warnings: worth_query::facade::foundation::ProjectionConsumptionWarnings,
         warning_kinds: Box<[WorthUiQueryProjectionWarningKind]>,
-        warning_digest: Box<str>,
     },
 }
 
@@ -209,7 +201,6 @@ impl WorthUiQueryMeasurementFactSettlement {
                     })
                     .collect::<Vec<_>>()
                     .into_boxed_slice();
-                let warning_digest = warnings.warning_digest().into();
                 let receipt = WorthUiQueryMeasurementFactReceipt::from_installed_query_authority(
                     query_authority,
                     true,
@@ -218,8 +209,8 @@ impl WorthUiQueryMeasurementFactSettlement {
                 Ok(Self {
                     representation: WorthUiQueryMeasurementFactSettlementRepresentation::Partial {
                         receipt,
+                        _query_warnings: warnings,
                         warning_kinds,
-                        warning_digest,
                     },
                     source_coordinates,
                     definition,
@@ -252,15 +243,6 @@ impl WorthUiQueryMeasurementFactSettlement {
             WorthUiQueryMeasurementFactSettlementRepresentation::Partial {
                 warning_kinds, ..
             } => warning_kinds,
-        }
-    }
-
-    pub fn warning_digest(&self) -> Option<&str> {
-        match &self.representation {
-            WorthUiQueryMeasurementFactSettlementRepresentation::Settled(_) => None,
-            WorthUiQueryMeasurementFactSettlementRepresentation::Partial {
-                warning_digest, ..
-            } => Some(warning_digest),
         }
     }
 
@@ -312,7 +294,7 @@ impl WorthUiQueryMeasurementFactSettlement {
 }
 
 impl WorthUiQueryAllocationSourceIdentity {
-    pub fn as_str(&self) -> &str {
+    pub fn authority_index_key(&self) -> &super::WorthUiQueryAuthorityIndexKey {
         &self.0
     }
 }

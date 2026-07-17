@@ -21,6 +21,9 @@ pub enum UiAllocationInvalidationNarrowingDenial {
     QueryTargetNotAdmitted {
         ordinal: u16,
     },
+    QueryAuthorityNotIndexable {
+        ordinal: u16,
+    },
     DurableResizeTargetNotAdmitted {
         ordinal: u16,
     },
@@ -116,6 +119,8 @@ pub(super) fn map_host_lookup_denial(
     ordinal: u16,
 ) -> UiAllocationInvalidationNarrowingDenial {
     match denial {
+        super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable =>
+            UiAllocationInvalidationNarrowingDenial::QueryAuthorityNotIndexable { ordinal },
         super::authority::UiInvalidationAuthorityLookupDenial::HostEvidenceGenerationMismatch =>
             UiAllocationInvalidationNarrowingDenial::HostEvidenceGenerationMismatch { ordinal },
         super::authority::UiInvalidationAuthorityLookupDenial::HostNormalizationAuthorityMismatch =>

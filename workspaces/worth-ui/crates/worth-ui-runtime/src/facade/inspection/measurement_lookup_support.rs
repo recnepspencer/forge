@@ -239,23 +239,12 @@ pub(super) enum QueryMeasurementInspectionOutcome {
 }
 
 fn project_query_basis_compatibility(
-    expected: &UiQueryMeasurementBasisAuthority,
-    observed: &UiQueryMeasurementBasisAuthority,
+    _expected: &UiQueryMeasurementBasisAuthority,
+    _observed: &UiQueryMeasurementBasisAuthority,
 ) -> UiInspectionMeasurementGenerationCompatibility {
     UiInspectionMeasurementGenerationCompatibility::IncompatibleWorld {
-        expected_query_basis_digest: query_basis_digest_from_authority(expected),
-        observed_world_basis_digest: Some(query_basis_digest_from_authority(observed)),
-    }
-}
-
-fn query_basis_digest_from_authority(authority: &UiQueryMeasurementBasisAuthority) -> Box<str> {
-    match authority {
-        UiQueryMeasurementBasisAuthority::AdmittedPrerequisites { prerequisites } => {
-            prerequisites.basis_digest_for_diagnostics().into()
-        }
-        UiQueryMeasurementBasisAuthority::ProjectionConsumption { authority } => {
-            authority.basis_digest_for_diagnostics().into()
-        }
+        reason:
+            worth_ui_inspection::UiInspectionQueryWorldCompatibilityFailure::SnapshotBasisMismatch,
     }
 }
 
