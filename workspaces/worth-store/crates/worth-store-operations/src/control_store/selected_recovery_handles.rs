@@ -6,4 +6,6 @@ pub(crate) struct SelectedRecoveryHandles {
     pub(super) pending_recovery_publications: Vec<super::PendingRecoveryPublicationHandle>,
     pub(super) prepared_recovery_publications: Vec<super::PreparedRecoveryPublicationHandle>,
     pub(super) terminal_recovery_fence_releases: Vec<super::TerminalRecoveryFenceReleaseHandle>,
+    pub(super) replica_bootstraps: Vec<super::ReplicaBootstrapRecoveryHandle>,
+    pub(super) replica_promotions: Vec<super::ReplicaPromotionRecoveryHandle>,
 }

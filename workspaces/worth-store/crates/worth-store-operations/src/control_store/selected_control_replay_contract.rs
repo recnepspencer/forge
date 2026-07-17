@@ -52,6 +52,13 @@ pub enum OperationalControlHistoryViolationKind {
     RecoveryPublicationBindingMismatch,
     FenceReleaseBeforeDisposition,
     FenceReleaseBindingMismatch,
+    DuplicateReplicaOperation,
+    ReplicaRecordBeforeAuthorization,
+    ReplicaOperationBindingMismatch,
+    DuplicateReplicaOperationStage,
+    ReplicaPromotionBeforeFence,
+    ReplicaBootstrapTerminalBeforeTransfer,
+    ReplicaRecordAfterTerminal,
 }
 
 impl OperationalControlHistoryViolation {
@@ -79,6 +86,7 @@ impl OperationalControlHistoryViolation {
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum SelectedControlReplayDenial {
     AllocationFailed,
     CounterOverflow,
@@ -100,6 +108,8 @@ pub(crate) struct ReplayedSelectedControlHistory {
     pub(crate) pending_recovery_publications: Vec<PendingRecoveryPublicationHandle>,
     pub(crate) prepared_recovery_publications: Vec<PreparedRecoveryPublicationHandle>,
     pub(crate) terminal_recovery_fence_releases: Vec<super::TerminalRecoveryFenceReleaseHandle>,
+    pub(crate) replica_bootstraps: Vec<super::ReplicaBootstrapRecoveryHandle>,
+    pub(crate) replica_promotions: Vec<super::ReplicaPromotionRecoveryHandle>,
 }
 
 pub(super) enum StateLookupDenial {

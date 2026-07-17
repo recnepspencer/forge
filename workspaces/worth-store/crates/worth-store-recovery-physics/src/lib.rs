@@ -30,9 +30,9 @@ mod recovery_budget;
 mod recovery_completion;
 mod recovery_evidence;
 mod recovery_integrity_handoff_receipt;
-mod replica_bootstrap_source;
 mod redo_replay;
 mod replay_receipt;
+mod replica_bootstrap_source;
 mod rollback_recovery;
 mod security_metadata_admission;
 #[cfg(test)]
@@ -213,11 +213,6 @@ pub use recovery_evidence::{
     NON_APPLICABLE_FOUNDATIONAL_SURFACES, RECOVERY_ADMISSION_MECHANISMS,
 };
 pub use recovery_integrity_handoff_receipt::RecoveryIntegrityHandoffReceipt;
-pub use replica_bootstrap_source::{
-    BootstrapSourceArtifact, BootstrapSourceArtifactFamily, BootstrapSourceResolutionCounters,
-    BootstrapSourceResolutionDenial, BootstrapSourceResolutionRequest,
-    RecoveryPhysicsBootstrapSourceOwner, ResolvedBootstrapRecoverySourceCut,
-};
 pub use redo_replay::{
     AdmittedRedoFrame, MiddleWalCorruptionDenial, MissingAcknowledgedWalRangeDenial,
     RecoveredPhysicalState, RecoveryRedoPlan, RedoApplicationCursor, RedoApplicationPageFact,
@@ -229,6 +224,12 @@ pub use redo_replay::{
     WalPrefixObservationScan, WalValidPrefix, WalValidPrefixCounters,
 };
 pub use replay_receipt::{CheckpointValidityDecision, WalReplayReceipt};
+pub use replica_bootstrap_source::{
+    BootstrapSourceArtifact, BootstrapSourceArtifactFamily, BootstrapSourceEvidenceBinding,
+    BootstrapSourceFrontier, BootstrapSourceResolutionCounters, BootstrapSourceResolutionDenial,
+    BootstrapSourceResolutionRequest, RecoveryPhysicsBootstrapSourceOwner,
+    ResolvedBootstrapRecoverySourceCut,
+};
 pub use rollback_recovery::{
     RecoveryPhysicsRollbackOwner, ResolvedRollbackCandidate, RollbackExecutionReceipt,
     RollbackReplayDenial, RollbackReplayPlan,

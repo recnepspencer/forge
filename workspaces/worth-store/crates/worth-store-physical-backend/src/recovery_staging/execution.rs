@@ -58,6 +58,7 @@ pub struct NonCurrentStagingExecutionReceipt {
     plan_fingerprint: [u8; 32],
     bytes_copied: u64,
     artifacts_materialized: u64,
+    maximum_resident_buffer_bytes: u64,
     media: ClosedNonCurrentStagingMedia,
 }
 
@@ -70,6 +71,9 @@ impl NonCurrentStagingExecutionReceipt {
     }
     pub const fn artifacts_materialized(&self) -> u64 {
         self.artifacts_materialized
+    }
+    pub const fn maximum_resident_buffer_bytes(&self) -> u64 {
+        self.maximum_resident_buffer_bytes
     }
     pub const fn media(&self) -> &ClosedNonCurrentStagingMedia {
         &self.media
@@ -171,6 +175,7 @@ pub(super) fn finalize_lowered(
         plan_fingerprint: plan.binding().fingerprint(),
         bytes_copied: copied.0,
         artifacts_materialized: plan.binding().artifact_count(),
+        maximum_resident_buffer_bytes: plan.binding().copy_buffer_bytes() as u64,
         media,
     })
 }

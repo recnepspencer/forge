@@ -39,6 +39,47 @@ pub struct ReplicaBootstrapExecutionReport {
     source_lease_identity: [u8; 32],
     reached_frontier: ReplicaRecoveryFrontier,
     durable_target_identity: [u8; 32],
+    counters: ReplicaBootstrapExecutionCounters,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReplicaBootstrapExecutionCounters {
+    source_bytes_read: u64,
+    output_bytes_written: u64,
+    backend_requests: u64,
+    maximum_resident_buffer_bytes: u64,
+}
+
+impl ReplicaBootstrapExecutionCounters {
+    pub const fn measured(
+        source_bytes_read: u64,
+        output_bytes_written: u64,
+        backend_requests: u64,
+        maximum_resident_buffer_bytes: u64,
+    ) -> Option<Self> {
+        if backend_requests == 0 || maximum_resident_buffer_bytes == 0 {
+            return None;
+        }
+        Some(Self {
+            source_bytes_read,
+            output_bytes_written,
+            backend_requests,
+            maximum_resident_buffer_bytes,
+        })
+    }
+
+    pub const fn source_bytes_read(self) -> u64 {
+        self.source_bytes_read
+    }
+    pub const fn output_bytes_written(self) -> u64 {
+        self.output_bytes_written
+    }
+    pub const fn backend_requests(self) -> u64 {
+        self.backend_requests
+    }
+    pub const fn maximum_resident_buffer_bytes(self) -> u64 {
+        self.maximum_resident_buffer_bytes
+    }
 }
 
 impl ReplicaBootstrapExecutionReport {
@@ -46,11 +87,13 @@ impl ReplicaBootstrapExecutionReport {
         source_lease_identity: [u8; 32],
         reached_frontier: ReplicaRecoveryFrontier,
         durable_target_identity: [u8; 32],
+        counters: ReplicaBootstrapExecutionCounters,
     ) -> Self {
         Self {
             source_lease_identity,
             reached_frontier,
             durable_target_identity,
+            counters,
         }
     }
 }
@@ -69,6 +112,7 @@ pub struct ReplicaBootstrapReceipt {
     reached_frontier: ReplicaRecoveryFrontier,
     durable_target_identity: [u8; 32],
     retained_source_lease_identity: [u8; 32],
+    execution_counters: ReplicaBootstrapExecutionCounters,
 }
 
 impl ReplicaBootstrapReceipt {
@@ -92,6 +136,10 @@ impl ReplicaBootstrapReceipt {
         self.durable_target_identity
     }
 
+    pub const fn execution_counters(&self) -> ReplicaBootstrapExecutionCounters {
+        self.execution_counters
+    }
+
     pub fn receipt_identity(&self) -> [u8; 32] {
         let mut digest = Sha256::new();
         digest.update(b"worth-store-replica-bootstrap-receipt-v1");
@@ -99,11 +147,27 @@ impl ReplicaBootstrapReceipt {
         digest.update(self.target_peer.as_str().as_bytes());
         digest.update(self.reached_frontier.observed_lsn().to_be_bytes());
         digest.update(self.reached_frontier.durable_lsn().to_be_bytes());
-        digest.update(self.reached_frontier.client_acknowledged_lsn().to_be_bytes());
-        digest.update(self.reached_frontier.replication_acknowledged_lsn().to_be_bytes());
+        digest.update(
+            self.reached_frontier
+                .client_acknowledged_lsn()
+                .to_be_bytes(),
+        );
+        digest.update(
+            self.reached_frontier
+                .replication_acknowledged_lsn()
+                .to_be_bytes(),
+        );
         digest.update(self.reached_frontier.authority_epoch().to_be_bytes());
         digest.update(self.durable_target_identity);
         digest.update(self.retained_source_lease_identity);
+        digest.update(self.execution_counters.source_bytes_read.to_be_bytes());
+        digest.update(self.execution_counters.output_bytes_written.to_be_bytes());
+        digest.update(self.execution_counters.backend_requests.to_be_bytes());
+        digest.update(
+            self.execution_counters
+                .maximum_resident_buffer_bytes
+                .to_be_bytes(),
+        );
         digest.finalize().into()
     }
 }
@@ -154,7 +218,32 @@ impl ReplicaBootstrapOwner {
             reached_frontier: report.reached_frontier,
             durable_target_identity: report.durable_target_identity,
             retained_source_lease_identity: plan.source_lease.binding_fingerprint(),
+            execution_counters: report.counters,
         };
+        Ok((receipt, plan.source_lease))
+    }
+
+    pub fn recover_recorded(
+        plan: LoweredReplicaBootstrapPlan,
+        recorded_receipt_identity: [u8; 32],
+        durable_target_identity: [u8; 32],
+        source_lease_identity: [u8; 32],
+        execution_counters: ReplicaBootstrapExecutionCounters,
+    ) -> Result<(ReplicaBootstrapReceipt, BootstrapReachabilityLease), ReplicaBootstrapDenial> {
+        if source_lease_identity != plan.source_lease.binding_fingerprint() {
+            return Err(ReplicaBootstrapDenial::SourceLeaseMismatch);
+        }
+        let receipt = ReplicaBootstrapReceipt {
+            plan_fingerprint: plan.fingerprint,
+            target_peer: plan.intent.target_peer.clone(),
+            reached_frontier: plan.intent.expected_frontier,
+            durable_target_identity,
+            retained_source_lease_identity: source_lease_identity,
+            execution_counters,
+        };
+        if receipt.receipt_identity() != recorded_receipt_identity {
+            return Err(ReplicaBootstrapDenial::ExecutionFailed);
+        }
         Ok((receipt, plan.source_lease))
     }
 }
@@ -171,6 +260,10 @@ impl LoweredReplicaBootstrapPlan {
     pub fn source_lease_identity(&self) -> [u8; 32] {
         self.source_lease.binding_fingerprint()
     }
+
+    pub fn into_retained_source_lease(self) -> BootstrapReachabilityLease {
+        self.source_lease
+    }
 }
 
 fn bootstrap_plan_fingerprint(
@@ -183,8 +276,18 @@ fn bootstrap_plan_fingerprint(
     digest.update(lease.binding_fingerprint());
     digest.update(intent.expected_frontier.observed_lsn().to_be_bytes());
     digest.update(intent.expected_frontier.durable_lsn().to_be_bytes());
-    digest.update(intent.expected_frontier.client_acknowledged_lsn().to_be_bytes());
-    digest.update(intent.expected_frontier.replication_acknowledged_lsn().to_be_bytes());
+    digest.update(
+        intent
+            .expected_frontier
+            .client_acknowledged_lsn()
+            .to_be_bytes(),
+    );
+    digest.update(
+        intent
+            .expected_frontier
+            .replication_acknowledged_lsn()
+            .to_be_bytes(),
+    );
     digest.update(intent.expected_frontier.authority_epoch().to_be_bytes());
     digest.finalize().into()
 }

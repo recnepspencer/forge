@@ -119,8 +119,9 @@ pub mod certification_test_authority;
 mod control_store;
 mod facade;
 pub mod layout_projection;
-mod owner_plan_dag;
 mod operational_audit;
+mod operational_session;
+mod owner_plan_dag;
 #[cfg(test)]
 mod phase_1_6_tests;
 #[cfg(test)]

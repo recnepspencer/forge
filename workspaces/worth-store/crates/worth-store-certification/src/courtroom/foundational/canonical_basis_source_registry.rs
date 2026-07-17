@@ -8,6 +8,19 @@ macro_rules! row {
 }
 
 pub const STORE_CANONICAL_BASIS_FAMILY_REGISTRY: &[StoreCanonicalBasisInventoryRow] = &[
+    row!("S10ScenarioSuiteEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/closeout.rs", RecoveryVettedRecordReceipt, "worth-store-certification::courtroom::operational_recovery::closeout"),
+    row!("PromotionRemoteExclusionEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/closeout.rs", RecoveryVettedRecordReceipt, "worth-store-certification::courtroom::operational_recovery::closeout"),
+    row!("S11StructuredAuditHardeningHandoff", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/handoff.rs", ReadinessHandoff, "worth-store-certification::courtroom::operational_recovery::handoff"),
+    row!("S12PhysicalQualificationHandoff", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/handoff.rs", ReadinessHandoff, "worth-store-certification::courtroom::operational_recovery::handoff"),
+    row!("S10OperationalQosEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/qos_evidence.rs", RecoveryPerformanceReport, "worth-store-certification::courtroom::operational_recovery::qos_evidence"),
+    row!("S10OperationalScenarioEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/scenario.rs", RecoveryVettedRecordReceipt, "worth-store-certification::courtroom::operational_recovery::scenario"),
+    row!("ScenarioScaleEvidence", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/operational_recovery/scenario_scale.rs", RecoveryPerformanceReport, "worth-store-certification::courtroom::operational_recovery::scenario_scale"),
+    row!("IntegrityRepairClassificationReceipt", "workspaces/worth-store/crates/worth-store-physical-integrity/src/operational_repair/mod.rs", PhysicalIntegrityEvidence, "worth-store-physical-integrity::operational_repair"),
+    row!("RecoveredBackupFrontierReceipt", "workspaces/worth-store/crates/worth-store-recovery-physics/src/backup_restore/mod.rs", RecoveryVettedRecordReceipt, "worth-store-recovery-physics::backup_restore"),
+    row!("PointInTimeRecoveryReceipt", "workspaces/worth-store/crates/worth-store-recovery-physics/src/point_in_time_recovery/replay.rs", RecoveryVettedRecordReceipt, "worth-store-recovery-physics::point_in_time_recovery"),
+    row!("RollbackExecutionReceipt", "workspaces/worth-store/crates/worth-store-recovery-physics/src/rollback_recovery/mod.rs", RecoveryVettedRecordReceipt, "worth-store-recovery-physics::rollback_recovery"),
+    row!("StagedWalApplicationProviderReceipt", "workspaces/worth-store/crates/worth-store-recovery-physics/src/staged_wal_application.rs", RecoveryVettedRecordReceipt, "worth-store-recovery-physics::staged_wal_application"),
+    row!("StagedWalApplicationReceipt", "workspaces/worth-store/crates/worth-store-recovery-physics/src/staged_wal_application.rs", RecoveryVettedRecordReceipt, "worth-store-recovery-physics::staged_wal_application"),
     row!("LayoutOwnerCoverageReceipt", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/layout/owner_coverage/verdict.rs", BoundaryReceiptEvidence, "worth-store-certification::courtroom::layout::owner_coverage"),
     row!("LayoutExecutedEvidenceKind", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/layout/executed_evidence/receipt.rs", BoundaryReceiptEvidence, "worth-store-certification::courtroom::layout::executed_evidence"),
     row!("LayoutExecutedEvidenceReceipt", "workspaces/worth-store/crates/worth-store-certification/src/courtroom/layout/executed_evidence/receipt.rs", BoundaryReceiptEvidence, "worth-store-certification::courtroom::layout::executed_evidence"),

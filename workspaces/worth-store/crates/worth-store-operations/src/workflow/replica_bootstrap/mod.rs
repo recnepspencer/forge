@@ -1,8 +1,19 @@
+mod execution;
+mod finalization;
 mod workflow;
 
+pub use execution::{
+    ExecutedReplicaBootstrap, ExecutionReadyReplicaBootstrap, RecoveredReplicaBootstrap,
+    RecoveredTerminalReplicaBootstrap, ReplicaBootstrapExecutionDenial,
+    ReplicaBootstrapPersistenceDenial, ReplicaBootstrapReadinessDenial, ReplicaBootstrapResume,
+    TransferredReplicaBootstrap,
+};
+pub use finalization::{
+    AbandonedReplicaBootstrap, CompletedReplicaBootstrap, PostVerifiedReplicaBootstrap,
+    ReplicaBootstrapFinalizationDenial,
+};
 pub use workflow::{
     AuthorizedReplicaBootstrapPlan, EvidenceBoundReplicaBootstrapPlan,
-    ExecutedReplicaBootstrap, ExecutionReadyReplicaBootstrap, LoweredReplicaBootstrapOwnerPlanDag,
-    ReplicaBootstrapExecutionDenial, ReplicaBootstrapIntent, ReplicaBootstrapLoweringDenial,
-    ReplicaBootstrapReadinessDenial, ReplicaBootstrapResolutionDenial,
+    LoweredReplicaBootstrapOwnerPlanDag, ReplicaBootstrapIntent, ReplicaBootstrapLoweringDenial,
+    ReplicaBootstrapResolutionDenial,
 };

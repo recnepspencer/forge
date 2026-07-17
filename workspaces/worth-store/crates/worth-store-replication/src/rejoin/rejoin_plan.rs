@@ -38,6 +38,18 @@ impl OldPrimaryRejoinPlan {
     pub const fn divergence(&self) -> &DivergentReplicaHistoryReport {
         &self.divergence
     }
+
+    pub const fn old_primary(&self) -> &ReplicationPeerId {
+        &self.old_primary
+    }
+
+    pub const fn promoted_primary(&self) -> &ReplicationPeerId {
+        &self.promoted_primary
+    }
+
+    pub const fn authorization_fingerprint(&self) -> Option<[u8; 32]> {
+        self.authorization_fingerprint
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -57,14 +69,17 @@ impl ReplicationRejoinOwner {
         if divergence.classification() != ReplicaHistoryClassification::Divergent {
             return Err(OldPrimaryRejoinDenial::HistoryNotDivergent);
         }
-        if matches!(disposition, OldPrimaryDivergenceDisposition::AuthorizedDiscard)
-            && authorization_fingerprint.is_none()
+        if matches!(
+            disposition,
+            OldPrimaryDivergenceDisposition::AuthorizedDiscard
+        ) && authorization_fingerprint.is_none()
         {
             return Err(OldPrimaryRejoinDenial::MissingDispositionAuthorization);
         }
         let fingerprint = rejoin_fingerprint(
             &old_primary,
             &promoted_primary,
+            &divergence,
             disposition,
             authorization_fingerprint,
         );
@@ -82,13 +97,17 @@ impl ReplicationRejoinOwner {
 fn rejoin_fingerprint(
     old_primary: &ReplicationPeerId,
     promoted_primary: &ReplicationPeerId,
+    divergence: &DivergentReplicaHistoryReport,
     disposition: OldPrimaryDivergenceDisposition,
     authorization_fingerprint: Option<[u8; 32]>,
 ) -> [u8; 32] {
     let mut digest = Sha256::new();
     digest.update(b"worth-store-old-primary-rejoin-plan-v1");
+    digest.update((old_primary.as_str().len() as u64).to_be_bytes());
     digest.update(old_primary.as_str().as_bytes());
+    digest.update((promoted_primary.as_str().len() as u64).to_be_bytes());
     digest.update(promoted_primary.as_str().as_bytes());
+    digest.update(divergence.stable_fingerprint());
     digest.update([disposition as u8]);
     digest.update(authorization_fingerprint.unwrap_or([0; 32]));
     digest.finalize().into()

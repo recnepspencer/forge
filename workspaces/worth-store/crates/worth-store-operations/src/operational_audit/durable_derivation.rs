@@ -32,13 +32,10 @@ pub fn derive_operational_audit_records(
         let mut sequence_value = 0_u64;
         for record in records.iter() {
             let source_artifact_identity = control_record_fingerprint(record);
-            if let Some(prior_identity) =
-                observed_transitions.get(record.transition_id().as_str())
+            if let Some(prior_identity) = observed_transitions.get(record.transition_id().as_str())
             {
                 if *prior_identity != source_artifact_identity {
-                    return Err(
-                        OperationalAuditDerivationDenial::ConflictingDuplicateTransition,
-                    );
+                    return Err(OperationalAuditDerivationDenial::ConflictingDuplicateTransition);
                 }
                 continue;
             }
@@ -110,6 +107,33 @@ fn transition_kind(kind: &OperationalControlRecordKind) -> OperationalAuditTrans
         }
         OperationalControlRecordKind::OperationalOwnerReceiptPersisted { .. } => {
             OperationalAuditTransitionKind::OwnerReceiptPersisted
+        }
+        OperationalControlRecordKind::ReplicaBootstrapTransferRecorded { .. } => {
+            OperationalAuditTransitionKind::ReplicaBootstrapTransferRecorded
+        }
+        OperationalControlRecordKind::ReplicaBootstrapCompleted { .. } => {
+            OperationalAuditTransitionKind::ReplicaBootstrapCompleted
+        }
+        OperationalControlRecordKind::ReplicaBootstrapAbandoned { .. } => {
+            OperationalAuditTransitionKind::Abandoned
+        }
+        OperationalControlRecordKind::ReplicaPromotionFenceRecorded { .. } => {
+            OperationalAuditTransitionKind::ReplicaPromotionFenceRecorded
+        }
+        OperationalControlRecordKind::ReplicaPromotionRecorded { .. } => {
+            OperationalAuditTransitionKind::ReplicaPromotionRecorded
+        }
+        OperationalControlRecordKind::ReplicaPromotionPublished { .. } => {
+            OperationalAuditTransitionKind::ReplicaPromotionPublished
+        }
+        OperationalControlRecordKind::ReplicaPromotionReadmitted { .. } => {
+            OperationalAuditTransitionKind::ReplicaPromotionReadmitted
+        }
+        OperationalControlRecordKind::OldPrimaryRejoinPlanned { .. } => {
+            OperationalAuditTransitionKind::OldPrimaryRejoinPlanned
+        }
+        OperationalControlRecordKind::OldPrimaryRejoinCompleted { .. } => {
+            OperationalAuditTransitionKind::OldPrimaryRejoinCompleted
         }
         OperationalControlRecordKind::RepairDispositionRecorded { .. } => {
             OperationalAuditTransitionKind::DispositionRecorded
@@ -187,6 +211,83 @@ fn fingerprint_kind(kind: &OperationalControlRecordKind, digest: &mut Sha256) {
             digest.update([*workflow as u8]); digest.update(plan_fingerprint);
             digest.update(receipt_fingerprint); digest.update([*owner_tag]);
         }
+        OperationalControlRecordKind::ReplicaBootstrapTransferRecorded {
+            authorization_plan_fingerprint, execution_plan_fingerprint, receipt_identity,
+            durable_target_identity, source_lease_identity,
+            source_bytes_read, output_bytes_written, backend_requests,
+            maximum_resident_buffer_bytes,
+        } => {
+            digest.update(authorization_plan_fingerprint);
+            digest.update(execution_plan_fingerprint);
+            digest.update(receipt_identity);
+            digest.update(durable_target_identity);
+            digest.update(source_lease_identity);
+            digest.update(source_bytes_read.to_be_bytes());
+            digest.update(output_bytes_written.to_be_bytes());
+            digest.update(backend_requests.to_be_bytes());
+            digest.update(maximum_resident_buffer_bytes.to_be_bytes());
+        }
+        OperationalControlRecordKind::ReplicaBootstrapCompleted {
+            receipt_identity, verification_identity, source_lease_identity,
+        } => {
+            digest.update(receipt_identity);
+            digest.update(verification_identity);
+            digest.update(source_lease_identity);
+        }
+        OperationalControlRecordKind::ReplicaBootstrapAbandoned {
+            receipt_identity, reason, source_lease_identity,
+        } => {
+            digest.update(receipt_identity);
+            digest.update(reason.as_bytes());
+            digest.update(source_lease_identity);
+        }
+        OperationalControlRecordKind::ReplicaPromotionFenceRecorded {
+            authorization_plan_fingerprint, execution_plan_fingerprint, fence_identity,
+            promoted_epoch,
+        } => {
+            digest.update(authorization_plan_fingerprint);
+            digest.update(execution_plan_fingerprint);
+            digest.update(fence_identity);
+            digest.update(promoted_epoch.to_be_bytes());
+        }
+        OperationalControlRecordKind::ReplicaPromotionRecorded {
+            authorization_plan_fingerprint, execution_plan_fingerprint, receipt_identity,
+            fence_identity, promoted_epoch,
+        } => {
+            digest.update(authorization_plan_fingerprint);
+            digest.update(execution_plan_fingerprint);
+            digest.update(receipt_identity);
+            digest.update(fence_identity);
+            digest.update(promoted_epoch.to_be_bytes());
+        }
+        OperationalControlRecordKind::ReplicaPromotionPublished {
+            receipt_identity, verification_identity, publication_identity,
+            target_identity, promoted_epoch,
+        } => {
+            digest.update(receipt_identity); digest.update(verification_identity);
+            digest.update(publication_identity); digest.update(target_identity);
+            digest.update(promoted_epoch.to_be_bytes());
+        }
+        OperationalControlRecordKind::ReplicaPromotionReadmitted {
+            publication_identity, serve_lease_identity, serving_epoch,
+        } => {
+            digest.update(publication_identity); digest.update(serve_lease_identity);
+            digest.update(serving_epoch.to_be_bytes());
+        }
+        OperationalControlRecordKind::OldPrimaryRejoinPlanned {
+            promotion_receipt_identity, rejoin_plan_fingerprint, disposition_tag,
+        } => {
+            digest.update(promotion_receipt_identity); digest.update(rejoin_plan_fingerprint);
+            digest.update([*disposition_tag]);
+        }
+        OperationalControlRecordKind::OldPrimaryRejoinCompleted {
+            rejoin_plan_fingerprint, rejoin_receipt_identity, forensic_retention_identity,
+            rebootstrap_target_identity, disposition_tag,
+        } => {
+            digest.update(rejoin_plan_fingerprint); digest.update(rejoin_receipt_identity);
+            digest.update(forensic_retention_identity); digest.update(rebootstrap_target_identity);
+            digest.update([*disposition_tag]);
+        }
         OperationalControlRecordKind::RepairDispositionRecorded { plan_fingerprint, disposition_tag, disposition_basis } => {
             digest.update(plan_fingerprint); digest.update([*disposition_tag]); digest.update(disposition_basis);
         }
@@ -230,7 +331,11 @@ fn audit_record_identity(
     digest.update(operation.as_bytes());
     digest.update(transition.as_bytes());
     digest.update(sequence.get().to_be_bytes());
-    digest.update(parent.map(AuditCausalParent::record_identity).unwrap_or([0; 32]));
+    digest.update(
+        parent
+            .map(AuditCausalParent::record_identity)
+            .unwrap_or([0; 32]),
+    );
     digest.update([kind as u8]);
     digest.update(source);
     digest.finalize().into()

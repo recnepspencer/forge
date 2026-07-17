@@ -82,16 +82,26 @@ pub use repair::{
     RepairResolutionDenial, UnrecoverableDamageReport,
 };
 pub use replica_bootstrap::{
-    AuthorizedReplicaBootstrapPlan, EvidenceBoundReplicaBootstrapPlan,
-    ExecutedReplicaBootstrap, ExecutionReadyReplicaBootstrap, LoweredReplicaBootstrapOwnerPlanDag,
-    ReplicaBootstrapExecutionDenial, ReplicaBootstrapIntent, ReplicaBootstrapLoweringDenial,
-    ReplicaBootstrapReadinessDenial, ReplicaBootstrapResolutionDenial,
+    AbandonedReplicaBootstrap, AuthorizedReplicaBootstrapPlan, CompletedReplicaBootstrap,
+    EvidenceBoundReplicaBootstrapPlan, ExecutedReplicaBootstrap, ExecutionReadyReplicaBootstrap,
+    LoweredReplicaBootstrapOwnerPlanDag, PostVerifiedReplicaBootstrap, RecoveredReplicaBootstrap,
+    RecoveredTerminalReplicaBootstrap, ReplicaBootstrapExecutionDenial,
+    ReplicaBootstrapFinalizationDenial, ReplicaBootstrapIntent, ReplicaBootstrapLoweringDenial,
+    ReplicaBootstrapPersistenceDenial, ReplicaBootstrapReadinessDenial,
+    ReplicaBootstrapResolutionDenial, ReplicaBootstrapResume, TransferredReplicaBootstrap,
 };
 pub use replica_promotion::{
-    AuthorizedReplicaPromotionPlan, EvidenceBoundReplicaPromotionPlan,
-    ExecutedReplicaPromotion, ExecutionReadyReplicaPromotion, LoweredReplicaPromotionOwnerPlanDag,
-    ReplicaPromotionExecutionDenial, ReplicaPromotionIntent, ReplicaPromotionLoweringDenial,
-    ReplicaPromotionReadinessDenial, ReplicaPromotionResolutionDenial,
+    AuthorizedReplicaPromotionPlan, CompletedOldPrimaryRejoin, CurrentReplicaPromotion,
+    DurablyFencedReplicaPromotion, EvidenceBoundReplicaPromotionPlan, ExecutedReplicaPromotion,
+    ExecutionReadyReplicaPromotion, FencedReplicaPromotion, GovernedOldPrimaryRejoinPlan,
+    LoweredReplicaPromotionOwnerPlanDag, PostVerifiedReplicaPromotion, PublishedReplicaPromotion,
+    RecoveredReplicaPromotion, ReplicaPromotionExecutionDenial,
+    ReplicaPromotionFencePersistenceDenial, ReplicaPromotionFencingDenial,
+    ReplicaPromotionFinalizationDenial, ReplicaPromotionIntent, ReplicaPromotionLoweringDenial,
+    ReplicaPromotionPublicationDenial, ReplicaPromotionPublicationPort,
+    ReplicaPromotionPublicationReceipt, ReplicaPromotionPublicationRequest,
+    ReplicaPromotionReadinessDenial, ReplicaPromotionResolutionDenial, ReplicaPromotionResume,
+    ResolvedOldPrimaryRejoin,
 };
 pub use restore::{
     AuthorizedBackupRestorePlan, BackupRestoreExecutionDenial, BackupRestoreIntent,

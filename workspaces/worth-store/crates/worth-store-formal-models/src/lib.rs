@@ -57,6 +57,14 @@ pub use protocols::lease_reclaim::{
     map_reclaim_eligibility, map_release, map_revocation, LeaseReclaimAction,
     LeaseReclaimActionKind, LeaseReclaimDenial,
 };
+pub use protocols::operational_recovery::{
+    check_operational_recovery_mutation_sensitivity, check_operational_recovery_refinement,
+    map_operational_control_record, OperationalRecoveryAction, OperationalRecoveryActionKind,
+    OperationalRecoveryControlledDefect, OperationalRecoveryCounterexample,
+    OperationalRecoveryInvariant, OperationalRecoveryModel, OperationalRecoveryModelFamily,
+    OperationalRecoveryMutationSensitivityDenial, OperationalRecoveryMutationSensitivityReceipt,
+    OperationalRecoveryMutationSensitivitySuite, OperationalRecoveryRefinementReceipt,
+};
 pub use protocols::quarantine_readmission::{
     map_quarantine_readmission_outcome, map_quarantine_record, QuarantineReadmissionDenial,
     QuarantineReadmissionModel, QuarantineReadmissionOutcomeObservation,

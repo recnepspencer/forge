@@ -36,6 +36,17 @@ impl ForensicBundleRange {
     pub const fn posture(&self) -> ForensicRangePosture {
         self.posture
     }
+
+    pub const fn digest(&self) -> Option<[u8; 32]> {
+        self.digest
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForensicEvidencePosture {
+    UntrustedObservation,
+    AdmittedObservation,
+    Unavailable,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +55,13 @@ pub struct ForensicCustodyRecord {
     pub(crate) acquisition_method: String,
     pub(crate) consistency_basis_identity: [u8; 32],
     pub(crate) source_media_fingerprints: Vec<[u8; 32]>,
+    pub(crate) clock_provenance: String,
+    pub(crate) started_at_tick: u64,
+    pub(crate) completed_at_tick: u64,
+    pub(crate) integrity_posture: ForensicEvidencePosture,
+    pub(crate) authenticity_posture: ForensicEvidencePosture,
+    pub(crate) custody_posture: ForensicEvidencePosture,
+    pub(crate) transformation_identity: [u8; 32],
 }
 
 impl ForensicCustodyRecord {
@@ -53,6 +71,30 @@ impl ForensicCustodyRecord {
 
     pub fn acquisition_method(&self) -> &str {
         &self.acquisition_method
+    }
+
+    pub fn clock_provenance(&self) -> &str {
+        &self.clock_provenance
+    }
+
+    pub const fn started_at_tick(&self) -> u64 {
+        self.started_at_tick
+    }
+
+    pub const fn completed_at_tick(&self) -> u64 {
+        self.completed_at_tick
+    }
+
+    pub const fn integrity_posture(&self) -> ForensicEvidencePosture {
+        self.integrity_posture
+    }
+
+    pub const fn authenticity_posture(&self) -> ForensicEvidencePosture {
+        self.authenticity_posture
+    }
+
+    pub const fn custody_posture(&self) -> ForensicEvidencePosture {
+        self.custody_posture
     }
 }
 

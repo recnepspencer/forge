@@ -9,9 +9,12 @@ use super::recovery_staging_control_replay::{
     consume_completed_for_publication, observe_authorized_staging, observe_staging_completed,
     ReplayedRecoveryStaging,
 };
-use super::repair_control_replay::{
-    observe_disposition, observe_open, observe_receipt, observe_start, ReplayedRepairJournal,
+use super::repair_control_replay::ReplayedRepairJournal;
+use super::replica_operation_control_replay::{
+    observe_authorization as observe_replica_authorization, ReplayedReplicaBootstrap,
+    ReplayedReplicaPromotion,
 };
+use super::selected_control_replay_state::{ReplayedBackup, ReplayedWorkflow};
 use super::{
     archived_workflow_index::{ArchivedWorkflowIndex, ArchivedWorkflowKind},
     selected_control_replay_contract::{
@@ -31,22 +34,12 @@ pub(crate) struct SelectedControlReplay {
     pub(super) abandoned_backups: u64,
     pub(super) budget: OperationalControlReplayBudget,
     pub(super) active_recovery_object_bytes: u64,
-    consumed_authorizations: HashMap<[u8; 32], ([u8; 32], OperationalOperationId)>,
+    pub(super) consumed_authorizations: HashMap<[u8; 32], ([u8; 32], OperationalOperationId)>,
     pub(super) repair_journals: HashMap<OperationalOperationId, ReplayedRepairJournal>,
     pub(super) recovery_publications: HashMap<OperationalOperationId, ReplayedRecoveryPublication>,
     pub(super) recovery_staging: HashMap<OperationalOperationId, ReplayedRecoveryStaging>,
-}
-
-pub(super) enum ReplayedWorkflow {
-    BackupAwaitingSourceLease { opened_record_index: u64 },
-    BackupActive(ReplayedBackup),
-}
-
-pub(super) struct ReplayedBackup {
-    pub(super) recovery: Box<worth_store_physical_isolation::BackupCutRecoveryRecord>,
-    pub(super) materialization_plan: Option<super::BackupMaterializationRecoveryPlan>,
-    pub(super) materialized: bool,
-    pub(super) recovery_object_bytes: u64,
+    pub(super) replica_bootstraps: HashMap<OperationalOperationId, ReplayedReplicaBootstrap>,
+    pub(super) replica_promotions: HashMap<OperationalOperationId, ReplayedReplicaPromotion>,
 }
 
 impl SelectedControlReplay {
@@ -62,6 +55,8 @@ impl SelectedControlReplay {
             repair_journals: HashMap::new(),
             recovery_publications: HashMap::new(),
             recovery_staging: HashMap::new(),
+            replica_bootstraps: HashMap::new(),
+            replica_promotions: HashMap::new(),
         }
     }
 
@@ -72,6 +67,9 @@ impl SelectedControlReplay {
     ) -> Result<(), SelectedControlReplayDenial> {
         let authority_identity = record.authority_identity();
         let (operation, kind) = record.into_replay_parts();
+        if self.observe_replica_transition(record_index, &operation, &kind)? {
+            return Ok(());
+        }
         match kind {
             OperationalControlRecordKind::WorkflowOpened { workflow } => {
                 self.observe_workflow_open(record_index, operation, workflow)?;
@@ -253,6 +251,19 @@ impl SelectedControlReplay {
                 .map_err(|kind| SelectedControlReplayDenial::Invalid(
                     super::OperationalControlHistoryViolation::new(
                         record_index, operation.clone(), kind)))?;
+                observe_replica_authorization(
+                    &mut self.replica_bootstraps,
+                    &mut self.replica_promotions,
+                    &operation,
+                    authority_identity,
+                    operation_tag,
+                    authorization_identity,
+                    plan_fingerprint,
+                    execution_plan_fingerprint,
+                )
+                .map_err(|kind| SelectedControlReplayDenial::Invalid(
+                    super::OperationalControlHistoryViolation::new(
+                        record_index, operation.clone(), kind)))?;
                 observe_authorized_staging(
                     &mut self.recovery_staging,
                     &operation,
@@ -266,65 +277,68 @@ impl SelectedControlReplay {
                     super::OperationalControlHistoryViolation::new(record_index, operation, kind)))?;
             }
             OperationalControlRecordKind::RepairExecutionOpened {
-                authorization_identity, plan_fingerprint, owner_node_count, topology_tag,
-            } => {
-                if self.consumed_authorizations.get(&authorization_identity)
-                    != Some(&(plan_fingerprint, operation.clone()))
-                {
-                    return invalid(record_index, operation,
-                        OperationalControlHistoryViolationKind::RepairJournalAuthorizationMismatch);
-                }
-                observe_open(&mut self.repair_journals, &operation, authority_identity,
-                authorization_identity, plan_fingerprint, owner_node_count, topology_tag)
-                .map_err(|kind| super::selected_control_replay_contract::
-                    SelectedControlReplayDenial::Invalid(
-                        super::OperationalControlHistoryViolation::new(record_index, operation, kind)))?
-            },
+                authorization_identity,
+                plan_fingerprint,
+                owner_node_count,
+                topology_tag,
+            } => self.observe_repair_open(
+                record_index,
+                &operation,
+                authority_identity,
+                authorization_identity,
+                plan_fingerprint,
+                owner_node_count,
+                topology_tag,
+            )?,
             OperationalControlRecordKind::RepairOwnerReceiptPersisted {
-                plan_fingerprint, node_fingerprint, receipt_fingerprint, owner_tag,
-            } => observe_receipt(&mut self.repair_journals, &operation, plan_fingerprint,
-                node_fingerprint, receipt_fingerprint, owner_tag).map_err(|kind|
-                    super::selected_control_replay_contract::SelectedControlReplayDenial::Invalid(
-                        super::OperationalControlHistoryViolation::new(record_index, operation, kind)))?,
+                plan_fingerprint,
+                node_fingerprint,
+                receipt_fingerprint,
+                owner_tag,
+            } => self.observe_repair_receipt(
+                record_index,
+                &operation,
+                plan_fingerprint,
+                node_fingerprint,
+                receipt_fingerprint,
+                owner_tag,
+            )?,
             OperationalControlRecordKind::RepairOwnerEffectStarted {
-                plan_fingerprint, node_fingerprint, owner_tag,
-            } => observe_start(&mut self.repair_journals, &operation, plan_fingerprint,
-                node_fingerprint, owner_tag).map_err(|kind|
-                    SelectedControlReplayDenial::Invalid(
-                        super::OperationalControlHistoryViolation::new(
-                            record_index, operation, kind)))?,
+                plan_fingerprint,
+                node_fingerprint,
+                owner_tag,
+            } => self.observe_repair_start(
+                record_index,
+                &operation,
+                plan_fingerprint,
+                node_fingerprint,
+                owner_tag,
+            )?,
             OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
                 workflow, ..
-            } => match self
-                .archived
-                .lookup(&operation)
-                .map_err(SelectedControlReplayDenial::DerivedIndex)?
-            {
-                Some(ArchivedWorkflowKind::NonBackup(observed)) if observed == workflow => {}
-                Some(ArchivedWorkflowKind::NonBackup(observed)) => {
-                    return invalid(record_index, operation, wrong_workflow(observed));
-                }
-                Some(ArchivedWorkflowKind::BackupTerminal) => {
-                    return invalid(
-                        record_index,
-                        operation,
-                        OperationalControlHistoryViolationKind::RecordAfterTerminal,
-                    );
-                }
-                None => {
-                    return invalid(
-                        record_index,
-                        operation,
-                        OperationalControlHistoryViolationKind::RecordBeforeWorkflowOpen,
-                    );
-                }
-            },
+            } => self.observe_operational_owner_receipt(record_index, &operation, workflow)?,
+            OperationalControlRecordKind::ReplicaBootstrapTransferRecorded { .. }
+            | OperationalControlRecordKind::ReplicaBootstrapCompleted { .. }
+            | OperationalControlRecordKind::ReplicaBootstrapAbandoned { .. }
+            | OperationalControlRecordKind::ReplicaPromotionFenceRecorded { .. }
+            | OperationalControlRecordKind::ReplicaPromotionRecorded { .. }
+            | OperationalControlRecordKind::ReplicaPromotionPublished { .. }
+            | OperationalControlRecordKind::ReplicaPromotionReadmitted { .. }
+            | OperationalControlRecordKind::OldPrimaryRejoinPlanned { .. }
+            | OperationalControlRecordKind::OldPrimaryRejoinCompleted { .. } => unreachable!(
+                "replica transitions are consumed before the general replay dispatch"
+            ),
             OperationalControlRecordKind::RepairDispositionRecorded {
-                plan_fingerprint, disposition_tag, disposition_basis,
-            } => observe_disposition(&mut self.repair_journals, &operation, plan_fingerprint,
-                disposition_tag, disposition_basis).map_err(|kind|
-                    super::selected_control_replay_contract::SelectedControlReplayDenial::Invalid(
-                        super::OperationalControlHistoryViolation::new(record_index, operation, kind)))?,
+                plan_fingerprint,
+                disposition_tag,
+                disposition_basis,
+            } => self.observe_repair_disposition(
+                record_index,
+                &operation,
+                plan_fingerprint,
+                disposition_tag,
+                disposition_basis,
+            )?,
             OperationalControlRecordKind::RecoveryStagingCompleted {
                 authorization_identity, plan_fingerprint, execution_plan_fingerprint,
                 staged_media_identity,

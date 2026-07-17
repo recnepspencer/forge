@@ -1,8 +1,10 @@
 use std::collections::BTreeSet;
 
-use crate::{OperationalOperationId, OperationalTransitionId};
+use crate::{OperationalControlRecord, OperationalOperationId, OperationalTransitionId};
 
-use super::OperationalAuditRecord;
+use super::{
+    assemble_operational_audit_records, derive_operational_audit_records, OperationalAuditRecord,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpectedAuditTransitionSet {
@@ -12,7 +14,7 @@ pub struct ExpectedAuditTransitionSet {
 }
 
 impl ExpectedAuditTransitionSet {
-    pub fn new(
+    pub(crate) fn new(
         operation_id: OperationalOperationId,
         transitions: impl IntoIterator<Item = OperationalTransitionId>,
         terminal_transition: OperationalTransitionId,
@@ -30,6 +32,30 @@ impl ExpectedAuditTransitionSet {
             terminal_transition: terminal_transition.as_str().to_owned(),
         })
     }
+
+    pub fn from_durable_control_records(
+        operation_id: OperationalOperationId,
+        durable_records: &[OperationalControlRecord],
+    ) -> Result<Self, AuditCompletenessDenial> {
+        let audit = derive_operational_audit_records(durable_records)
+            .map_err(|_| AuditCompletenessDenial::InvalidDurableControlHistory)?;
+        let operation_records = audit
+            .iter()
+            .filter(|record| record.operation_id() == &operation_id)
+            .collect::<Vec<_>>();
+        let terminal = operation_records
+            .last()
+            .ok_or(AuditCompletenessDenial::InvalidExpectedTransitionSet)?
+            .transition_id()
+            .clone();
+        Self::new(
+            operation_id,
+            operation_records
+                .iter()
+                .map(|record| record.transition_id().clone()),
+            terminal,
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,6 +65,8 @@ pub enum AuditCompletenessDenial {
     UnexpectedTransition(String),
     TerminalTransitionMissing,
     CausalParentMismatch,
+    InvalidDeliverySet,
+    InvalidDurableControlHistory,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +84,10 @@ impl AuditCompletenessReceipt {
     pub const fn transition_count(&self) -> u64 {
         self.transition_count
     }
+
+    pub const fn terminal_record_identity(&self) -> [u8; 32] {
+        self.terminal_record_identity
+    }
 }
 
 impl ExpectedAuditTransitionSet {
@@ -63,7 +95,22 @@ impl ExpectedAuditTransitionSet {
         self,
         records: &[OperationalAuditRecord],
     ) -> Result<AuditCompletenessReceipt, AuditCompletenessDenial> {
-        let operation_records = records
+        let delivered_transitions = records
+            .iter()
+            .filter(|record| record.operation_id() == &self.operation_id)
+            .map(|record| record.transition_id().as_str().to_owned())
+            .collect::<BTreeSet<_>>();
+        if let Some(missing) = self.transitions.difference(&delivered_transitions).next() {
+            return Err(AuditCompletenessDenial::MissingTransition(missing.clone()));
+        }
+        if let Some(unexpected) = delivered_transitions.difference(&self.transitions).next() {
+            return Err(AuditCompletenessDenial::UnexpectedTransition(
+                unexpected.clone(),
+            ));
+        }
+        let assembled = assemble_operational_audit_records(records.iter().cloned())
+            .map_err(|_| AuditCompletenessDenial::InvalidDeliverySet)?;
+        let operation_records = assembled
             .iter()
             .filter(|record| record.operation_id() == &self.operation_id)
             .collect::<Vec<_>>();
@@ -71,14 +118,11 @@ impl ExpectedAuditTransitionSet {
             .iter()
             .map(|record| record.transition_id().as_str().to_owned())
             .collect::<BTreeSet<_>>();
-        if let Some(missing) = self.transitions.difference(&observed).next() {
-            return Err(AuditCompletenessDenial::MissingTransition(missing.clone()));
-        }
-        if let Some(unexpected) = observed.difference(&self.transitions).next() {
-            return Err(AuditCompletenessDenial::UnexpectedTransition(unexpected.clone()));
-        }
+        debug_assert_eq!(observed, self.transitions);
         for pair in operation_records.windows(2) {
-            if pair[1].causal_parent().map(|parent| parent.record_identity())
+            if pair[1]
+                .causal_parent()
+                .map(|parent| parent.record_identity())
                 != Some(pair[0].record_identity())
             {
                 return Err(AuditCompletenessDenial::CausalParentMismatch);

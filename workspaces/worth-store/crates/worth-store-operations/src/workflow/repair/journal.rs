@@ -41,6 +41,10 @@ pub(super) struct RepairExecutionJournal<'a> {
 }
 
 impl<'a> RepairExecutionJournal<'a> {
+    pub(super) const fn operation_id(&self) -> &OperationalOperationId {
+        &self.operation
+    }
+
     pub(super) fn open(
         control: &'a OperationalControlStore,
         authority: StoreCurrentAuthorityIdentity,

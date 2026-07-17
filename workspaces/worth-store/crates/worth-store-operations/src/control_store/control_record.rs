@@ -1,7 +1,6 @@
 pub(crate) use super::control_record_kind::{
     OperationalControlRecordKind, RecoveryPublicationControlBinding,
 };
-use super::OperationalWorkflowKind;
 use super::{BackupMaterializationRecoveryPlan, OperationalOperationId, OperationalTransitionId};
 use worth_store_authority::StoreCurrentAuthorityIdentity;
 use worth_store_physical_backend::ControlRecoveryObjectHandle;
@@ -11,10 +10,10 @@ use worth_store_physical_isolation::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OperationalControlRecord {
-    authority_identity: StoreCurrentAuthorityIdentity,
-    operation_id: OperationalOperationId,
-    transition_id: OperationalTransitionId,
-    kind: OperationalControlRecordKind,
+    pub(super) authority_identity: StoreCurrentAuthorityIdentity,
+    pub(super) operation_id: OperationalOperationId,
+    pub(super) transition_id: OperationalTransitionId,
+    pub(super) kind: OperationalControlRecordKind,
 }
 
 impl OperationalControlRecord {
@@ -23,7 +22,7 @@ impl OperationalControlRecord {
         authority_identity: StoreCurrentAuthorityIdentity,
         operation_id: OperationalOperationId,
         transition_id: OperationalTransitionId,
-        workflow: OperationalWorkflowKind,
+        workflow: super::OperationalWorkflowKind,
     ) -> Self {
         Self {
             authority_identity,
@@ -226,28 +225,6 @@ impl OperationalControlRecord {
             kind: OperationalControlRecordKind::RepairOwnerEffectStarted {
                 plan_fingerprint,
                 node_fingerprint,
-                owner_tag,
-            },
-        }
-    }
-
-    pub(crate) fn operational_owner_receipt_persisted(
-        authority_identity: StoreCurrentAuthorityIdentity,
-        operation_id: OperationalOperationId,
-        transition_id: OperationalTransitionId,
-        workflow: OperationalWorkflowKind,
-        plan_fingerprint: [u8; 32],
-        receipt_fingerprint: [u8; 32],
-        owner_tag: u8,
-    ) -> Self {
-        Self {
-            authority_identity,
-            operation_id,
-            transition_id,
-            kind: OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
-                workflow,
-                plan_fingerprint,
-                receipt_fingerprint,
                 owner_tag,
             },
         }

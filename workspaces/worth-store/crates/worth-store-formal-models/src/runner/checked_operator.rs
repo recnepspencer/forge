@@ -281,10 +281,7 @@ mod tests {
             ProtocolFamily::DurabilityRecovery,
             &model,
             root.join("missing.cfg"),
-            ProtocolCheckBounds::new(
-                NonZeroU64::new(10).unwrap(),
-                NonZeroU64::new(4).unwrap(),
-            ),
+            ProtocolCheckBounds::new(NonZeroU64::new(10).unwrap(), NonZeroU64::new(4).unwrap()),
         );
         let denial = require_checked_operator_bindings(
             &invocation,

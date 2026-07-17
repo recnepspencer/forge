@@ -1,28 +1,23 @@
 use sha2::{Digest, Sha256};
-use worth_store_authority::{
-    PrimaryServeLease, PrimaryServingAuthority, PromotionFenceRequest, StoreCurrentAuthorityIdentity,
-    StoreCurrentAuthorityWitness,
-};
+use worth_store_authority::{PrimaryServeLease, StoreCurrentAuthorityIdentity};
 use worth_store_offline_verifier::IndependentlyVerifiedDisasterRecoveryBundle;
 use worth_store_replication::{
-    DivergentReplicaHistoryReport, ReplicaPromotionOwner, ReplicaPromotionReceipt,
-    ReplicaRecoveryFrontier, ReplicationPeerId,
+    DivergentReplicaHistoryReport, ReplicaPromotionOwner, ReplicaRecoveryFrontier,
+    ReplicationPeerId,
 };
 
 use crate::authorization::{
-    authorize_lowered_plan, consume_authorization, AuthorizationReplayPolicy,
-    AuthorizedOperationalPlan, LoweredOperationalPlan,
+    authorize_lowered_plan, AuthorizationReplayPolicy, AuthorizedOperationalPlan,
+    LoweredOperationalPlan,
 };
-use crate::control_store::OperationalControlStorePort;
 use crate::owner_plan_dag::{
     CanonicalOwnerPlanDag, DestructiveOperationKind, OperationalPlanBinding, OwnerPlanNode,
     OwnerPlanPrerequisite,
 };
 use crate::{
-    AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt, AuthorizationDenial,
-    AuthorizationRevocationObservation, ExternalOperatorAssertion, OperationalAuthorizationPort,
-    OperationalControlStore, OperationalOperationId, OperationalSecurityScope,
-    OperationalTransitionId, OwnerPlanEffect, OwnerPlanFootprint, StoreOwnerKind,
+    AuthorizationDenial, AuthorizationRevocationObservation, ExternalOperatorAssertion,
+    OperationalAuthorizationPort, OperationalOperationId, OperationalSecurityScope,
+    OwnerPlanEffect, OwnerPlanFootprint, StoreOwnerKind,
 };
 
 #[derive(Debug)]
@@ -81,7 +76,8 @@ impl ReplicaPromotionIntent {
         history: DivergentReplicaHistoryReport,
         old_primary_lease: PrimaryServeLease,
     ) -> Result<EvidenceBoundReplicaPromotionPlan, ReplicaPromotionResolutionDenial> {
-        if self.security_scope.identity() != source.materialized().security_scope() {
+        if self.security_scope.fingerprint() != source.materialized().security().scope_fingerprint()
+        {
             return Err(ReplicaPromotionResolutionDenial::SecurityScopeMismatch);
         }
         if history.observation().lineage() != source.materialized().source_lineage() {
@@ -111,25 +107,29 @@ pub enum ReplicaPromotionLoweringDenial {
 
 #[derive(Debug)]
 pub struct LoweredReplicaPromotionOwnerPlanDag {
-    operation_id: OperationalOperationId,
-    authorization: LoweredOperationalPlan<ReplicaPromotionOperation>,
-    replication: worth_store_replication::LoweredReplicaPromotionPlan,
-    old_primary_lease: PrimaryServeLease,
+    pub(super) operation_id: OperationalOperationId,
+    pub(super) authorization: LoweredOperationalPlan<ReplicaPromotionOperation>,
+    pub(super) replication: worth_store_replication::LoweredReplicaPromotionPlan,
+    pub(super) old_primary_lease: PrimaryServeLease,
     explanation: crate::CanonicalOwnerPlanDagExplanation,
 }
 
 #[derive(Debug)]
-struct ReplicaPromotionOperation;
+pub(super) struct ReplicaPromotionOperation;
 
 impl EvidenceBoundReplicaPromotionPlan {
-    pub fn lower(self) -> Result<LoweredReplicaPromotionOwnerPlanDag, ReplicaPromotionLoweringDenial> {
+    pub fn lower(
+        self,
+    ) -> Result<LoweredReplicaPromotionOwnerPlanDag, ReplicaPromotionLoweringDenial> {
         let source_identity = self.source.materialized().manifest_identity();
         let total_bytes = self
             .source
             .materialized()
             .components()
             .iter()
-            .try_fold(0_u64, |total, component| total.checked_add(component.byte_length()))
+            .try_fold(0_u64, |total, component| {
+                total.checked_add(component.byte_length())
+            })
             .ok_or(ReplicaPromotionLoweringDenial::EmptyFootprint)?;
         let footprint = OwnerPlanFootprint::bounded(0, total_bytes.max(1))
             .ok_or(ReplicaPromotionLoweringDenial::EmptyFootprint)?;
@@ -189,137 +189,22 @@ impl LoweredReplicaPromotionOwnerPlanDag {
 
 #[derive(Debug)]
 pub struct AuthorizedReplicaPromotionPlan {
-    operation_id: OperationalOperationId,
-    authorization: AuthorizedOperationalPlan<ReplicaPromotionOperation>,
-    replication: worth_store_replication::LoweredReplicaPromotionPlan,
-    old_primary_lease: PrimaryServeLease,
-}
-
-#[derive(Debug)]
-pub enum ReplicaPromotionReadinessDenial {
-    StaleAuthority,
-    Authorization(AuthorizationConsumptionDenial),
-}
-
-#[derive(Debug)]
-pub struct ExecutionReadyReplicaPromotion<'control> {
-    operation_id: OperationalOperationId,
-    authorization: AuthorizationConsumptionReceipt,
-    authority_identity: StoreCurrentAuthorityIdentity,
-    replication: worth_store_replication::LoweredReplicaPromotionPlan,
-    old_primary_lease: PrimaryServeLease,
-    control: &'control OperationalControlStore,
-}
-
-impl AuthorizedReplicaPromotionPlan {
-    pub fn ready<'control>(
-        self,
-        control: &'control OperationalControlStore,
-        transition_id: OperationalTransitionId,
-        current_authority: &StoreCurrentAuthorityWitness,
-        observed_at: u64,
-        revocation: AuthorizationRevocationObservation,
-    ) -> Result<ExecutionReadyReplicaPromotion<'control>, ReplicaPromotionReadinessDenial> {
-        if self.authorization.binding().authority_identity()
-            != current_authority.authority_identity()
-        {
-            return Err(ReplicaPromotionReadinessDenial::StaleAuthority);
-        }
-        let authority_identity = current_authority.authority_identity();
-        let consumed = consume_authorization(
-            control,
-            self.operation_id.clone(),
-            transition_id,
-            self.authorization,
-            Some(self.replication.fingerprint()),
-            observed_at,
-            revocation,
-        )
-        .map_err(ReplicaPromotionReadinessDenial::Authorization)?;
-        Ok(ExecutionReadyReplicaPromotion {
-            operation_id: self.operation_id,
-            authorization: consumed.receipt(),
-            authority_identity,
-            replication: self.replication,
-            old_primary_lease: self.old_primary_lease,
-            control,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub enum ReplicaPromotionExecutionDenial {
-    Fence(worth_store_authority::PromotionFenceDenial),
-    Replication(worth_store_replication::ReplicaPromotionDenial),
-    Control(crate::OperationalControlAppendDenial),
-}
-
-#[derive(Debug)]
-pub struct ExecutedReplicaPromotion {
-    operation_id: OperationalOperationId,
-    authorization: AuthorizationConsumptionReceipt,
-    receipt: ReplicaPromotionReceipt,
-}
-
-impl ExecutedReplicaPromotion {
-    pub const fn operation_id(&self) -> &OperationalOperationId {
-        &self.operation_id
-    }
-
-    pub const fn authorization(&self) -> AuthorizationConsumptionReceipt {
-        self.authorization
-    }
-
-    pub const fn receipt(&self) -> &ReplicaPromotionReceipt {
-        &self.receipt
-    }
-}
-
-impl ExecutionReadyReplicaPromotion<'_> {
-    pub fn execute(
-        self,
-        serving_authority: &PrimaryServingAuthority<'_>,
-        receipt_transition: OperationalTransitionId,
-    ) -> Result<ExecutedReplicaPromotion, ReplicaPromotionExecutionDenial> {
-        let plan_fingerprint = self.replication.fingerprint();
-        let minimum_epoch = self
-            .replication
-            .candidate()
-            .frontier()
-            .authority_epoch()
-            .max(self.old_primary_lease.epoch());
-        let fence = serving_authority
-            .fence_old_primary(PromotionFenceRequest::for_old_primary(
-                self.old_primary_lease,
-                minimum_epoch,
-            ))
-            .map_err(ReplicaPromotionExecutionDenial::Fence)?;
-        let receipt = ReplicaPromotionOwner::record_fenced_promotion(self.replication, fence)
-            .map_err(ReplicaPromotionExecutionDenial::Replication)?;
-        let control_record = crate::OperationalControlRecord::operational_owner_receipt_persisted(
-            self.authority_identity,
-            self.operation_id.clone(),
-            receipt_transition,
-            crate::OperationalWorkflowKind::ReplicaPromotion,
-            plan_fingerprint,
-            receipt.receipt_identity(),
-            8,
-        );
-        self.control
-            .append(&control_record)
-            .map_err(ReplicaPromotionExecutionDenial::Control)?;
-        Ok(ExecutedReplicaPromotion {
-            operation_id: self.operation_id,
-            authorization: self.authorization,
-            receipt,
-        })
-    }
+    pub(super) operation_id: OperationalOperationId,
+    pub(super) authorization: AuthorizedOperationalPlan<ReplicaPromotionOperation>,
+    pub(super) replication: worth_store_replication::LoweredReplicaPromotionPlan,
+    pub(super) old_primary_lease: PrimaryServeLease,
 }
 
 fn promotion_owner_dag(
     replication_plan: [u8; 32],
     footprint: OwnerPlanFootprint,
-) -> Result<(CanonicalOwnerPlanDag, crate::CanonicalOwnerPlanDagExplanation), ReplicaPromotionLoweringDenial> {
+) -> Result<
+    (
+        CanonicalOwnerPlanDag,
+        crate::CanonicalOwnerPlanDagExplanation,
+    ),
+    ReplicaPromotionLoweringDenial,
+> {
     let fence = OwnerPlanNode::from_owner_binding(
         StoreOwnerKind::Authority,
         OwnerPlanEffect::FenceOldPrimary,

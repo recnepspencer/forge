@@ -21,6 +21,10 @@ impl ResolvedBootstrapSourceCut {
         self.0.source_identity()
     }
 
+    pub const fn source_evidence_identity(&self) -> [u8; 32] {
+        self.0.source_evidence_identity()
+    }
+
     pub fn artifact_names(&self) -> &[String] {
         self.0.artifact_names()
     }
@@ -44,6 +48,10 @@ impl BootstrapReachabilityLease {
 
     pub const fn source_identity(&self) -> [u8; 32] {
         self.0.source_identity()
+    }
+
+    pub const fn source_evidence_identity(&self) -> [u8; 32] {
+        self.0.source_evidence_identity()
     }
 
     pub fn artifact_names(&self) -> &[String] {

@@ -50,4 +50,14 @@ impl ReplicationLineageIdentity {
     pub fn from_declared_lineage(raw: impl Into<String>) -> Option<Self> {
         Self::admit(raw.into())
     }
+
+    pub fn stable_fingerprint(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+
+        let mut digest = Sha256::new();
+        digest.update(b"worth-store-replication-lineage-v1");
+        digest.update((self.0.len() as u64).to_be_bytes());
+        digest.update(self.0.as_bytes());
+        digest.finalize().into()
+    }
 }

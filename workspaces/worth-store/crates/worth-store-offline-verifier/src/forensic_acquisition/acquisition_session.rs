@@ -1,51 +1,23 @@
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 use worth_store_physical_backend::{OfflineMediaReadDenial, ReadOnlyOfflineMediaCapability};
 
-use super::{
-    ForensicBundle, ForensicBundleRange, ForensicCustodyRecord, ForensicRangePosture,
-};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ForensicAcquisitionRequest {
-    target_root: PathBuf,
-    observer_identity: String,
-    acquisition_method: String,
-    resident_buffer_bytes: usize,
-}
-
-impl ForensicAcquisitionRequest {
-    pub fn new(
-        target_root: impl Into<PathBuf>,
-        observer_identity: impl Into<String>,
-        acquisition_method: impl Into<String>,
-        resident_buffer_bytes: usize,
-    ) -> Result<Self, ForensicAcquisitionDenial> {
-        let observer_identity = observer_identity.into();
-        let acquisition_method = acquisition_method.into();
-        if observer_identity.is_empty() || acquisition_method.is_empty() {
-            return Err(ForensicAcquisitionDenial::InvalidCustody);
-        }
-        if resident_buffer_bytes == 0 {
-            return Err(ForensicAcquisitionDenial::InvalidBufferBudget);
-        }
-        Ok(Self {
-            target_root: target_root.into(),
-            observer_identity,
-            acquisition_method,
-            resident_buffer_bytes,
-        })
-    }
-}
+use super::acquisition_record::DurableForensicSourceRecord;
+use super::{acquisition_record, bundle_manifest, ForensicAcquisitionPlan, ForensicBundle};
 
 #[derive(Debug)]
 pub enum ForensicAcquisitionDenial {
     InvalidCustody,
     InvalidBufferBudget,
+    InvalidCompletionClock,
     TargetOverlapsSource,
     TargetAlreadyContainsConflict,
+    SourceBindingChanged,
+    DamagedAcquisitionJournal,
+    IncompleteAcquisition,
+    CounterOverflow,
     Media(OfflineMediaReadDenial),
     Io(std::io::Error),
 }
@@ -62,6 +34,7 @@ pub struct ForensicAcquisitionCounters {
     source_bytes_read: u64,
     output_bytes_written: u64,
     unreadable_ranges: u64,
+    recovered_source_records: u64,
     maximum_resident_buffer_bytes: u64,
 }
 
@@ -69,163 +42,327 @@ impl ForensicAcquisitionCounters {
     pub const fn source_files(self) -> u64 {
         self.source_files
     }
-
     pub const fn source_bytes_read(self) -> u64 {
         self.source_bytes_read
     }
-
     pub const fn output_bytes_written(self) -> u64 {
         self.output_bytes_written
     }
-
     pub const fn unreadable_ranges(self) -> u64 {
         self.unreadable_ranges
     }
-
+    pub const fn recovered_source_records(self) -> u64 {
+        self.recovered_source_records
+    }
     pub const fn maximum_resident_buffer_bytes(self) -> u64 {
         self.maximum_resident_buffer_bytes
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForensicAcquisitionProgress {
+    SourceRecorded { source_index: usize },
+    Complete,
+}
+
 #[derive(Debug)]
 pub struct ForensicAcquisitionSession {
-    request: ForensicAcquisitionRequest,
+    plan: ForensicAcquisitionPlan,
     media: ReadOnlyOfflineMediaCapability,
+    records: Vec<DurableForensicSourceRecord>,
+    counters: ForensicAcquisitionCounters,
 }
 
 impl ForensicAcquisitionSession {
     pub fn open(
-        request: ForensicAcquisitionRequest,
+        plan: ForensicAcquisitionPlan,
         media: ReadOnlyOfflineMediaCapability,
     ) -> Result<Self, ForensicAcquisitionDenial> {
-        reject_target_source_overlap(&request, &media)?;
-        Ok(Self { request, media })
+        plan.validate_media(&media)?;
+        reject_target_source_overlap(&plan, &media)?;
+        std::fs::create_dir_all(plan.target_root())?;
+        sync_directory(plan.target_root())?;
+        let records = acquisition_record::read_all(plan.target_root(), media.file_count())?;
+        validate_recovered_records(&plan, &records)?;
+        let output_bytes = records
+            .iter()
+            .try_fold(0_u64, |total, record| {
+                total.checked_add(record.acquired_prefix_bytes)
+            })
+            .ok_or(ForensicAcquisitionDenial::CounterOverflow)?;
+        let unreadable_ranges = records
+            .iter()
+            .filter(|record| record.unreadable_bytes() > 0)
+            .count() as u64;
+        for record in &records {
+            validate_recorded_output(plan.target_root(), *record, plan.resident_buffer_bytes())?;
+        }
+        let counters = ForensicAcquisitionCounters {
+            source_files: media.file_count() as u64,
+            source_bytes_read: 0,
+            output_bytes_written: output_bytes,
+            unreadable_ranges,
+            recovered_source_records: records.len() as u64,
+            maximum_resident_buffer_bytes: plan.resident_buffer_bytes() as u64,
+        };
+        Ok(Self {
+            plan,
+            media,
+            records,
+            counters,
+        })
+    }
+
+    pub fn acquire_next(
+        &mut self,
+    ) -> Result<ForensicAcquisitionProgress, ForensicAcquisitionDenial> {
+        let source_index = self.records.len();
+        if source_index == self.media.file_count() {
+            return Ok(ForensicAcquisitionProgress::Complete);
+        }
+        let source = self.plan.sources[source_index];
+        let record = acquire_source(
+            &mut self.media,
+            source_index,
+            source.byte_length,
+            source.metadata_fingerprint,
+            &self.plan,
+            &mut self.counters,
+        )?;
+        acquisition_record::persist(self.plan.target_root(), record)?;
+        self.records.push(record);
+        Ok(ForensicAcquisitionProgress::SourceRecorded { source_index })
     }
 
     pub fn acquire(
         mut self,
+        completed_at_tick: u64,
     ) -> Result<(ForensicBundle, ForensicAcquisitionCounters), ForensicAcquisitionDenial> {
-        std::fs::create_dir_all(&self.request.target_root)?;
-        let mut buffer = vec![0; self.request.resident_buffer_bytes];
-        let mut ranges = Vec::new();
-        ranges
-            .try_reserve_exact(self.media.file_count())
-            .map_err(|_| ForensicAcquisitionDenial::InvalidBufferBudget)?;
-        let mut source_fingerprints = Vec::new();
-        source_fingerprints
-            .try_reserve_exact(self.media.file_count())
-            .map_err(|_| ForensicAcquisitionDenial::InvalidBufferBudget)?;
-        let mut counters = ForensicAcquisitionCounters {
-            source_files: self.media.file_count() as u64,
-            source_bytes_read: 0,
-            output_bytes_written: 0,
-            unreadable_ranges: 0,
-            maximum_resident_buffer_bytes: buffer.len() as u64,
-        };
-        for source_index in 0..self.media.file_count() {
-            let (source_length, source_fingerprint) = {
-                let source = self.media.file(source_index).expect("bounded source index");
-                (source.length(), source.metadata_fingerprint())
-            };
-            source_fingerprints.push(source_fingerprint);
-            let range = acquire_source_file(
-                &mut self.media,
-                source_index,
-                source_length,
-                &self.request.target_root,
-                &mut buffer,
-                &mut counters,
-            )?;
-            ranges.push(range);
+        while self.acquire_next()? != ForensicAcquisitionProgress::Complete {}
+        self.finish(completed_at_tick)
+    }
+
+    pub fn finish(
+        self,
+        completed_at_tick: u64,
+    ) -> Result<(ForensicBundle, ForensicAcquisitionCounters), ForensicAcquisitionDenial> {
+        if self.records.len() != self.media.file_count() {
+            return Err(ForensicAcquisitionDenial::IncompleteAcquisition);
+        }
+        if completed_at_tick < self.plan.started_at_tick() {
+            return Err(ForensicAcquisitionDenial::InvalidCompletionClock);
         }
         self.media
             .revalidate_consistency()
             .map_err(ForensicAcquisitionDenial::Media)?;
-        let custody = ForensicCustodyRecord {
-            observer_identity: self.request.observer_identity,
-            acquisition_method: self.request.acquisition_method,
-            consistency_basis_identity: Sha256::digest(self.media.basis().identity().as_bytes()).into(),
-            source_media_fingerprints: source_fingerprints,
-        };
-        let bundle_identity = forensic_bundle_identity(&custody, &ranges);
-        persist_manifest(&self.request.target_root, bundle_identity, &ranges)?;
-        Ok((
-            ForensicBundle {
-                root: self.request.target_root,
-                bundle_identity,
-                ranges,
-                custody,
-            },
-            counters,
-        ))
+        let bundle =
+            bundle_manifest::finalize_bundle(&self.plan, &self.records, completed_at_tick)?;
+        Ok((bundle, self.counters))
     }
 }
 
-fn acquire_source_file(
+fn acquire_source(
     media: &mut ReadOnlyOfflineMediaCapability,
     source_index: usize,
     source_length: u64,
-    target_root: &Path,
-    buffer: &mut [u8],
+    source_fingerprint: [u8; 32],
+    plan: &ForensicAcquisitionPlan,
     counters: &mut ForensicAcquisitionCounters,
-) -> Result<ForensicBundleRange, ForensicAcquisitionDenial> {
-    let output_name = format!("evidence-{source_index:08}.bin");
-    let pending_path = target_root.join(format!(".{output_name}.pending"));
-    let final_path = target_root.join(&output_name);
-    if pending_path.exists() || final_path.exists() {
-        return Err(ForensicAcquisitionDenial::TargetAlreadyContainsConflict);
+) -> Result<DurableForensicSourceRecord, ForensicAcquisitionDenial> {
+    let output_name = output_name(source_index);
+    let final_path = plan.target_root().join(&output_name);
+    let pending_path = plan.target_root().join(format!(".{output_name}.pending"));
+    if pending_path.exists() {
+        std::fs::remove_file(&pending_path)?;
     }
-    let mut output = std::fs::OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(&pending_path)?;
     let mut digest = Sha256::new();
     let mut offset = 0_u64;
+    if final_path.exists() {
+        offset = validate_orphan_prefix(
+            media,
+            source_index,
+            source_length,
+            &final_path,
+            plan.resident_buffer_bytes(),
+            &mut digest,
+            counters,
+        )?;
+        std::fs::rename(&final_path, &pending_path)?;
+    }
+    let mut output = std::fs::OpenOptions::new()
+        .create(offset == 0)
+        .append(true)
+        .open(&pending_path)?;
+    let mut buffer = vec![0; plan.resident_buffer_bytes()];
     while offset < source_length {
-        let observation = match media.read_bounded_into(source_index, offset, buffer) {
+        let observation = match media.read_bounded_into(source_index, offset, &mut buffer) {
             Ok(observation) => observation,
-            Err(_denial) => {
+            Err(_) => {
+                output.sync_all()?;
                 drop(output);
-                std::fs::remove_file(&pending_path)?;
-                counters.unreadable_ranges += 1;
-                return Ok(ForensicBundleRange {
+                if offset == 0 {
+                    std::fs::remove_file(&pending_path)?;
+                } else {
+                    std::fs::rename(&pending_path, &final_path)?;
+                }
+                sync_directory(plan.target_root())?;
+                counters.unreadable_ranges = counters
+                    .unreadable_ranges
+                    .checked_add(1)
+                    .ok_or(ForensicAcquisitionDenial::CounterOverflow)?;
+                return Ok(source_record(
+                    plan,
                     source_index,
-                    source_offset: offset,
-                    byte_length: source_length.saturating_sub(offset),
-                    output_name: None,
-                    digest: None,
-                    posture: ForensicRangePosture::Unreadable,
-                });
+                    source_length,
+                    offset,
+                    digest.finalize().into(),
+                    source_fingerprint,
+                ));
             }
         };
         let read = observation.bytes_read();
         output.write_all(&buffer[..read])?;
         digest.update(&buffer[..read]);
-        offset = offset.saturating_add(read as u64);
-        counters.source_bytes_read = counters.source_bytes_read.saturating_add(read as u64);
-        counters.output_bytes_written = counters.output_bytes_written.saturating_add(read as u64);
+        offset = offset
+            .checked_add(read as u64)
+            .ok_or(ForensicAcquisitionDenial::CounterOverflow)?;
+        counters.source_bytes_read = counters
+            .source_bytes_read
+            .checked_add(read as u64)
+            .ok_or(ForensicAcquisitionDenial::CounterOverflow)?;
+        counters.output_bytes_written = counters
+            .output_bytes_written
+            .checked_add(read as u64)
+            .ok_or(ForensicAcquisitionDenial::CounterOverflow)?;
     }
     output.sync_all()?;
+    drop(output);
     std::fs::rename(&pending_path, &final_path)?;
-    sync_directory(target_root)?;
-    Ok(ForensicBundleRange {
+    sync_directory(plan.target_root())?;
+    Ok(source_record(
+        plan,
         source_index,
-        source_offset: 0,
-        byte_length: source_length,
-        output_name: Some(output_name),
-        digest: Some(digest.finalize().into()),
-        posture: ForensicRangePosture::Acquired,
-    })
+        source_length,
+        source_length,
+        digest.finalize().into(),
+        source_fingerprint,
+    ))
+}
+
+fn validate_orphan_prefix(
+    media: &mut ReadOnlyOfflineMediaCapability,
+    source_index: usize,
+    source_length: u64,
+    path: &Path,
+    buffer_bytes: usize,
+    digest: &mut Sha256,
+    counters: &mut ForensicAcquisitionCounters,
+) -> Result<u64, ForensicAcquisitionDenial> {
+    let length = std::fs::metadata(path)?.len();
+    if length > source_length {
+        return Err(ForensicAcquisitionDenial::TargetAlreadyContainsConflict);
+    }
+    let mut target = std::fs::File::open(path)?;
+    let mut target_buffer = vec![0; buffer_bytes];
+    let mut source_buffer = vec![0; buffer_bytes];
+    let mut offset = 0_u64;
+    while offset < length {
+        let requested = usize::try_from((length - offset).min(buffer_bytes as u64)).unwrap();
+        target.read_exact(&mut target_buffer[..requested])?;
+        let observed = media
+            .read_bounded_into(source_index, offset, &mut source_buffer)
+            .map_err(ForensicAcquisitionDenial::Media)?;
+        if observed.bytes_read() < requested
+            || target_buffer[..requested] != source_buffer[..requested]
+        {
+            return Err(ForensicAcquisitionDenial::TargetAlreadyContainsConflict);
+        }
+        digest.update(&target_buffer[..requested]);
+        offset += requested as u64;
+        counters.source_bytes_read = counters
+            .source_bytes_read
+            .checked_add(requested as u64)
+            .ok_or(ForensicAcquisitionDenial::CounterOverflow)?;
+    }
+    counters.maximum_resident_buffer_bytes = counters
+        .maximum_resident_buffer_bytes
+        .max((buffer_bytes as u64).saturating_mul(2));
+    Ok(length)
+}
+
+fn source_record(
+    plan: &ForensicAcquisitionPlan,
+    source_index: usize,
+    source_length: u64,
+    acquired_prefix_bytes: u64,
+    acquired_digest: [u8; 32],
+    source_fingerprint: [u8; 32],
+) -> DurableForensicSourceRecord {
+    DurableForensicSourceRecord {
+        plan_identity: plan.plan_identity(),
+        source_index: source_index as u64,
+        source_length,
+        acquired_prefix_bytes,
+        acquired_digest,
+        source_fingerprint,
+    }
+}
+
+fn validate_recovered_records(
+    plan: &ForensicAcquisitionPlan,
+    records: &[DurableForensicSourceRecord],
+) -> Result<(), ForensicAcquisitionDenial> {
+    for (index, record) in records.iter().enumerate() {
+        let source = plan
+            .sources
+            .get(index)
+            .ok_or(ForensicAcquisitionDenial::DamagedAcquisitionJournal)?;
+        if record.plan_identity != plan.plan_identity()
+            || record.source_index != index as u64
+            || record.source_length != source.byte_length
+            || record.source_fingerprint != source.metadata_fingerprint
+        {
+            return Err(ForensicAcquisitionDenial::DamagedAcquisitionJournal);
+        }
+    }
+    Ok(())
+}
+
+fn validate_recorded_output(
+    root: &Path,
+    record: DurableForensicSourceRecord,
+    buffer_bytes: usize,
+) -> Result<(), ForensicAcquisitionDenial> {
+    if record.acquired_prefix_bytes == 0 {
+        return Ok(());
+    }
+    let path = root.join(output_name(record.source_index as usize));
+    if std::fs::metadata(&path)?.len() != record.acquired_prefix_bytes {
+        return Err(ForensicAcquisitionDenial::DamagedAcquisitionJournal);
+    }
+    let mut file = std::fs::File::open(path)?;
+    let mut buffer = vec![0; buffer_bytes];
+    let mut digest = Sha256::new();
+    loop {
+        let read = file.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    if <[u8; 32]>::from(digest.finalize()) != record.acquired_digest {
+        return Err(ForensicAcquisitionDenial::DamagedAcquisitionJournal);
+    }
+    Ok(())
 }
 
 fn reject_target_source_overlap(
-    request: &ForensicAcquisitionRequest,
+    plan: &ForensicAcquisitionPlan,
     media: &ReadOnlyOfflineMediaCapability,
 ) -> Result<(), ForensicAcquisitionDenial> {
-    let target = absolute_path(&request.target_root)?;
+    let target = absolute_path(plan.target_root())?;
     for index in 0..media.file_count() {
-        let source = media.file(index).expect("bounded source index").path();
-        let source = absolute_path(source)?;
+        let source = absolute_path(media.file(index).expect("bounded source index").path())?;
         if source.starts_with(&target) || target.starts_with(&source) {
             return Err(ForensicAcquisitionDenial::TargetOverlapsSource);
         }
@@ -241,47 +378,12 @@ fn absolute_path(path: &Path) -> Result<PathBuf, std::io::Error> {
     }
 }
 
-fn forensic_bundle_identity(
-    custody: &ForensicCustodyRecord,
-    ranges: &[ForensicBundleRange],
-) -> [u8; 32] {
-    let mut digest = Sha256::new();
-    digest.update(b"worth-store-forensic-bundle-v1");
-    digest.update(custody.observer_identity.as_bytes());
-    digest.update(custody.acquisition_method.as_bytes());
-    digest.update(custody.consistency_basis_identity);
-    for fingerprint in &custody.source_media_fingerprints {
-        digest.update(fingerprint);
-    }
-    for range in ranges {
-        digest.update((range.source_index as u64).to_be_bytes());
-        digest.update(range.source_offset.to_be_bytes());
-        digest.update(range.byte_length.to_be_bytes());
-        digest.update([range.posture as u8]);
-        digest.update(range.digest.unwrap_or([0; 32]));
-    }
-    digest.finalize().into()
-}
-
-fn persist_manifest(
-    root: &Path,
-    identity: [u8; 32],
-    ranges: &[ForensicBundleRange],
-) -> Result<(), ForensicAcquisitionDenial> {
-    let mut manifest = Vec::new();
-    manifest.extend_from_slice(b"WORTHFORENSIC1\n");
-    manifest.extend_from_slice(&identity);
-    manifest.extend_from_slice(&(ranges.len() as u64).to_be_bytes());
-    let path = root.join("forensic.manifest");
-    let mut file = std::fs::OpenOptions::new().create_new(true).write(true).open(path)?;
-    file.write_all(&manifest)?;
-    file.sync_all()?;
-    sync_directory(root)?;
-    Ok(())
+pub(super) fn output_name(source_index: usize) -> String {
+    format!("evidence-{source_index:08}.bin")
 }
 
 #[cfg(windows)]
-fn sync_directory(path: &Path) -> std::io::Result<()> {
+pub(super) fn sync_directory(path: &Path) -> std::io::Result<()> {
     use std::os::windows::fs::OpenOptionsExt;
     std::fs::OpenOptions::new()
         .read(true)
@@ -292,6 +394,6 @@ fn sync_directory(path: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(not(windows))]
-fn sync_directory(path: &Path) -> std::io::Result<()> {
+pub(super) fn sync_directory(path: &Path) -> std::io::Result<()> {
     std::fs::File::open(path)?.sync_all()
 }

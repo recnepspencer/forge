@@ -5,7 +5,11 @@ pub struct OperationLocalSequence(u64);
 
 impl OperationLocalSequence {
     pub(crate) const fn new(value: u64) -> Option<Self> {
-        if value == 0 { None } else { Some(Self(value)) }
+        if value == 0 {
+            None
+        } else {
+            Some(Self(value))
+        }
     }
 
     pub const fn get(self) -> u64 {
@@ -44,6 +48,14 @@ pub enum OperationalAuditTransitionKind {
     PublicationPending,
     PublicationDisposition,
     FenceReleased,
+    ReplicaBootstrapTransferRecorded,
+    ReplicaPromotionFenceRecorded,
+    ReplicaPromotionRecorded,
+    ReplicaBootstrapCompleted,
+    ReplicaPromotionPublished,
+    ReplicaPromotionReadmitted,
+    OldPrimaryRejoinPlanned,
+    OldPrimaryRejoinCompleted,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -9,6 +9,16 @@ impl OperationalOperationId {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    pub fn stable_fingerprint(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+
+        let mut digest = Sha256::new();
+        digest.update(b"worth-store-operational-operation-id-v1");
+        digest.update((self.0.len() as u64).to_be_bytes());
+        digest.update(self.0.as_bytes());
+        digest.finalize().into()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

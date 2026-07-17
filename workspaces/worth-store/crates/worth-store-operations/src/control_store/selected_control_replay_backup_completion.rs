@@ -1,10 +1,11 @@
 use worth_store_physical_backend::ControlMediaFault;
 
 use super::archived_workflow_index::ArchivedWorkflowKind;
-use super::selected_control_replay::{ReplayedWorkflow, SelectedControlReplay};
+use super::selected_control_replay::SelectedControlReplay;
 use super::selected_control_replay_contract::{
     OperationalControlHistoryViolationKind, StateLookupDenial,
 };
+use super::selected_control_replay_state::ReplayedWorkflow;
 use super::OperationalOperationId;
 
 impl SelectedControlReplay {

@@ -11,7 +11,7 @@ use crate::authorization::{consume_authorization, recover_authorization_consumpt
 use crate::{
     AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt,
     AuthorizationRevocationObservation, IndeterminateRepairRecoveryHandle, OperationalControlStore,
-    OperationalTransitionId, OwnerPlanNodeIdentity,
+    OperationalOperationId, OperationalTransitionId, OwnerPlanNodeIdentity,
 };
 
 use super::journal::RepairExecutionJournal;
@@ -67,12 +67,16 @@ impl ExecutedRepairOwnerReceiptDag {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutedRepair {
+    operation_id: OperationalOperationId,
     authority_identity: StoreCurrentAuthorityIdentity,
     authorization: AuthorizationConsumptionReceipt,
     owners: ExecutedRepairOwnerReceiptDag,
 }
 
 impl ExecutedRepair {
+    pub const fn operation_id(&self) -> &OperationalOperationId {
+        &self.operation_id
+    }
     pub const fn authority_identity(&self) -> StoreCurrentAuthorityIdentity {
         self.authority_identity
     }
@@ -273,7 +277,9 @@ impl ExecutionReadyRepair<'_> {
         self.journal
             .close(RepairExecutionDisposition::Executed, completion_basis)
             .map_err(RepairExecutionDenial::Journal)?;
+        let operation_id = self.journal.operation_id().clone();
         Ok(ExecutedRepair {
+            operation_id,
             authority_identity: self.authority_identity,
             authorization: self.authorization,
             owners: ExecutedRepairOwnerReceiptDag { receipts },

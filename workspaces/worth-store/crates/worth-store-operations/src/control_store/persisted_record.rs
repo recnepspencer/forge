@@ -1,6 +1,7 @@
 use super::{
     BackupMaterializationRecoveryPlan, OperationalControlRecord, OperationalControlRecordKind,
     OperationalOperationId, OperationalTransitionId, OperationalWorkflowKind,
+    PersistedOperationalControlRecordKind, PersistedWorkflowKind,
 };
 use worth_store_physical_backend::ControlMediaFault;
 use worth_store_physical_backend::ControlRecoveryObjectHandle;
@@ -21,124 +22,6 @@ pub(crate) struct PersistedOperationalControlRecord {
     pub(crate) operation_id: String,
     pub(crate) transition_id: String,
     pub(crate) kind: PersistedOperationalControlRecordKind,
-}
-
-pub(crate) enum PersistedOperationalControlRecordKind {
-    WorkflowOpened {
-        workflow: PersistedWorkflowKind,
-    },
-    SourceLeasePersisted {
-        cut_identity: [u8; 32],
-        object_digest: [u8; 32],
-        object_bytes: u64,
-    },
-    BackupMaterializationOpened {
-        cut_identity: [u8; 32],
-        target_platform: u8,
-        target_bytes: Vec<u8>,
-        buffer_bytes: u64,
-    },
-    BackupMaterializationRecorded {
-        manifest_digest: [u8; 32],
-    },
-    IndependentBackupVerificationRecordedAndSourceLeaseReleased {
-        verification_identity: [u8; 32],
-        release_recovery_bytes: Vec<u8>,
-    },
-    BackupAbandoned {
-        reason: String,
-        released_source_lease: Vec<u8>,
-    },
-    AuthorizationConsumed {
-        authorization_identity: [u8; 32],
-        plan_fingerprint: [u8; 32],
-        operation_tag: u8,
-        execution_plan_fingerprint: Option<[u8; 32]>,
-        assertion_identity: [u8; 32],
-        expires_at: u64,
-        replay_same_operation_identity: bool,
-    },
-    RepairExecutionOpened {
-        authorization_identity: [u8; 32],
-        plan_fingerprint: [u8; 32],
-        owner_node_count: u64,
-        topology_tag: u8,
-    },
-    RepairOwnerReceiptPersisted {
-        plan_fingerprint: [u8; 32],
-        node_fingerprint: [u8; 32],
-        receipt_fingerprint: [u8; 32],
-        owner_tag: u8,
-    },
-    RepairOwnerEffectStarted {
-        plan_fingerprint: [u8; 32],
-        node_fingerprint: [u8; 32],
-        owner_tag: u8,
-    },
-    OperationalOwnerReceiptPersisted {
-        workflow: PersistedWorkflowKind,
-        plan_fingerprint: [u8; 32],
-        receipt_fingerprint: [u8; 32],
-        owner_tag: u8,
-    },
-    RepairDispositionRecorded {
-        plan_fingerprint: [u8; 32],
-        disposition_tag: u8,
-        disposition_basis: [u8; 32],
-    },
-    RecoveryStagingCompleted {
-        authorization_identity: [u8; 32],
-        plan_fingerprint: [u8; 32],
-        execution_plan_fingerprint: [u8; 32],
-        staged_media_identity: [u8; 32],
-    },
-    RecoveryPublicationPrepared {
-        operation_tag: u8,
-        cutover_plan_fingerprint: [u8; 32],
-        publication_plan_fingerprint: [u8; 32],
-        publication_identity: [u8; 32],
-        candidate_media_identity: [u8; 32],
-        fence_identity: [u8; 32],
-        fence_plan_fingerprint: [u8; 32],
-        authority_posture: worth_store_authority::RecoveryAuthorityAdmissionPosture,
-        admission_policy: worth_store_authority::RecoveryAuthorityAdmissionPolicy,
-    },
-    RecoveryPublicationPending {
-        operation_tag: u8,
-        cutover_plan_fingerprint: [u8; 32],
-        publication_plan_fingerprint: [u8; 32],
-        publication_identity: [u8; 32],
-        candidate_media_identity: [u8; 32],
-        fence_identity: [u8; 32],
-        fence_plan_fingerprint: [u8; 32],
-        authority_posture: worth_store_authority::RecoveryAuthorityAdmissionPosture,
-        admission_policy: worth_store_authority::RecoveryAuthorityAdmissionPolicy,
-    },
-    RecoveryPublicationDisposition {
-        publication_identity: [u8; 32],
-        disposition_tag: u8,
-        disposition_basis: [u8; 32],
-        observed_authority: [u8; 32],
-    },
-    RecoveryPublicationFenceReleased {
-        publication_identity: [u8; 32],
-        fence_identity: [u8; 32],
-        fence_plan_fingerprint: [u8; 32],
-        disposition_tag: u8,
-    },
-}
-
-#[derive(Clone, Copy)]
-pub(crate) enum PersistedWorkflowKind {
-    OfflineInspection,
-    Backup,
-    Restore,
-    PointInTimeRecovery,
-    Rollback,
-    Repair,
-    ReplicaBootstrap,
-    ReplicaPromotion,
-    ForensicAcquisition,
 }
 
 impl PersistedOperationalControlRecord {
@@ -273,6 +156,65 @@ impl PersistedOperationalControlRecordKind {
                 OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
                     workflow: workflow.into(), plan_fingerprint,
                     receipt_fingerprint, owner_tag },
+            Self::ReplicaBootstrapTransferRecorded {
+                authorization_plan_fingerprint, execution_plan_fingerprint, receipt_identity,
+                durable_target_identity, source_lease_identity,
+                source_bytes_read, output_bytes_written, backend_requests,
+                maximum_resident_buffer_bytes,
+            } => OperationalControlRecordKind::ReplicaBootstrapTransferRecorded {
+                authorization_plan_fingerprint, execution_plan_fingerprint, receipt_identity,
+                durable_target_identity, source_lease_identity,
+                source_bytes_read, output_bytes_written, backend_requests,
+                maximum_resident_buffer_bytes,
+            },
+            Self::ReplicaBootstrapCompleted {
+                receipt_identity, verification_identity, source_lease_identity,
+            } => OperationalControlRecordKind::ReplicaBootstrapCompleted {
+                receipt_identity, verification_identity, source_lease_identity,
+            },
+            Self::ReplicaBootstrapAbandoned {
+                receipt_identity, reason, source_lease_identity,
+            } => OperationalControlRecordKind::ReplicaBootstrapAbandoned {
+                receipt_identity, reason, source_lease_identity,
+            },
+            Self::ReplicaPromotionFenceRecorded {
+                authorization_plan_fingerprint, execution_plan_fingerprint, fence_identity,
+                promoted_epoch,
+            } => OperationalControlRecordKind::ReplicaPromotionFenceRecorded {
+                authorization_plan_fingerprint, execution_plan_fingerprint, fence_identity,
+                promoted_epoch,
+            },
+            Self::ReplicaPromotionRecorded {
+                authorization_plan_fingerprint, execution_plan_fingerprint, receipt_identity,
+                fence_identity, promoted_epoch,
+            } => OperationalControlRecordKind::ReplicaPromotionRecorded {
+                authorization_plan_fingerprint, execution_plan_fingerprint, receipt_identity,
+                fence_identity, promoted_epoch,
+            },
+            Self::ReplicaPromotionPublished {
+                receipt_identity, verification_identity, publication_identity,
+                target_identity, promoted_epoch,
+            } => OperationalControlRecordKind::ReplicaPromotionPublished {
+                receipt_identity, verification_identity, publication_identity,
+                target_identity, promoted_epoch,
+            },
+            Self::ReplicaPromotionReadmitted {
+                publication_identity, serve_lease_identity, serving_epoch,
+            } => OperationalControlRecordKind::ReplicaPromotionReadmitted {
+                publication_identity, serve_lease_identity, serving_epoch,
+            },
+            Self::OldPrimaryRejoinPlanned {
+                promotion_receipt_identity, rejoin_plan_fingerprint, disposition_tag,
+            } => OperationalControlRecordKind::OldPrimaryRejoinPlanned {
+                promotion_receipt_identity, rejoin_plan_fingerprint, disposition_tag,
+            },
+            Self::OldPrimaryRejoinCompleted {
+                rejoin_plan_fingerprint, rejoin_receipt_identity,
+                forensic_retention_identity, rebootstrap_target_identity, disposition_tag,
+            } => OperationalControlRecordKind::OldPrimaryRejoinCompleted {
+                rejoin_plan_fingerprint, rejoin_receipt_identity,
+                forensic_retention_identity, rebootstrap_target_identity, disposition_tag,
+            },
             Self::RepairDispositionRecorded { plan_fingerprint, disposition_tag,
                 disposition_basis } =>
                 OperationalControlRecordKind::RepairDispositionRecorded {

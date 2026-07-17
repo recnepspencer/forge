@@ -72,6 +72,7 @@ pub struct ReplicaPromotionReceipt {
     acknowledged_data_loss_lsn: u64,
     fence_identity: [u8; 32],
     promoted_epoch: worth_store_authority::PromotedAuthorityEpoch,
+    durable_target_identity: [u8; 32],
 }
 
 impl ReplicaPromotionReceipt {
@@ -95,6 +96,14 @@ impl ReplicaPromotionReceipt {
         self.promoted_epoch
     }
 
+    pub const fn fence_identity(&self) -> [u8; 32] {
+        self.fence_identity
+    }
+
+    pub const fn durable_target_identity(&self) -> [u8; 32] {
+        self.durable_target_identity
+    }
+
     pub fn receipt_identity(&self) -> [u8; 32] {
         let mut digest = Sha256::new();
         digest.update(b"worth-store-replica-promotion-receipt-v1");
@@ -102,11 +111,20 @@ impl ReplicaPromotionReceipt {
         digest.update(self.promoted_peer.as_str().as_bytes());
         digest.update(self.promoted_frontier.observed_lsn().to_be_bytes());
         digest.update(self.promoted_frontier.durable_lsn().to_be_bytes());
-        digest.update(self.promoted_frontier.client_acknowledged_lsn().to_be_bytes());
-        digest.update(self.promoted_frontier.replication_acknowledged_lsn().to_be_bytes());
+        digest.update(
+            self.promoted_frontier
+                .client_acknowledged_lsn()
+                .to_be_bytes(),
+        );
+        digest.update(
+            self.promoted_frontier
+                .replication_acknowledged_lsn()
+                .to_be_bytes(),
+        );
         digest.update(self.acknowledged_data_loss_lsn.to_be_bytes());
         digest.update(self.fence_identity);
         digest.update(self.promoted_epoch.get().to_be_bytes());
+        digest.update(self.durable_target_identity);
         digest.finalize().into()
     }
 }
@@ -176,6 +194,11 @@ impl ReplicaPromotionOwner {
             acknowledged_data_loss_lsn: plan.candidate.acknowledged_data_loss_lsn,
             fence_identity: fence.fence_identity(),
             promoted_epoch: fence.promoted_epoch(),
+            durable_target_identity: plan
+                .candidate
+                .history
+                .observation()
+                .durable_media_identity(),
         })
     }
 }
@@ -191,5 +214,6 @@ fn promotion_fingerprint(candidate: &ReplicaPromotionCandidate) -> [u8; 32] {
     digest.update(frontier.replication_acknowledged_lsn().to_be_bytes());
     digest.update(frontier.authority_epoch().to_be_bytes());
     digest.update(candidate.acknowledged_data_loss_lsn.to_be_bytes());
+    digest.update(candidate.history.observation().durable_media_identity());
     digest.finalize().into()
 }

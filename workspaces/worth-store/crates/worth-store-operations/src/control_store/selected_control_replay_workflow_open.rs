@@ -1,11 +1,10 @@
 use super::archived_workflow_index::ArchivedWorkflowKind;
-use super::selected_control_replay::{ReplayedWorkflow, SelectedControlReplay};
+use super::selected_control_replay::SelectedControlReplay;
 use super::selected_control_replay_contract::{
     invalid, OperationalControlHistoryViolationKind, SelectedControlReplayDenial,
 };
-use super::{
-    OperationalControlReplayResource, OperationalOperationId, OperationalWorkflowKind,
-};
+use super::selected_control_replay_state::ReplayedWorkflow;
+use super::{OperationalControlReplayResource, OperationalOperationId, OperationalWorkflowKind};
 
 impl SelectedControlReplay {
     pub(super) fn observe_workflow_open(

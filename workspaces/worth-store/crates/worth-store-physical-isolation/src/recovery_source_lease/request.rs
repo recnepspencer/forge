@@ -4,6 +4,7 @@ use std::path::PathBuf;
 pub struct RecoverySourceLeaseRequest {
     pub(super) operation_identity: [u8; 32],
     pub(super) source_identity: [u8; 32],
+    pub(super) source_evidence_identity: [u8; 32],
     pub(super) source_root: PathBuf,
     pub(super) artifact_names: Vec<String>,
 }
@@ -18,6 +19,23 @@ impl RecoverySourceLeaseRequest {
         Self {
             operation_identity,
             source_identity,
+            source_evidence_identity: source_identity,
+            source_root: source_root.into(),
+            artifact_names,
+        }
+    }
+
+    pub(super) fn with_evidence_identity(
+        operation_identity: [u8; 32],
+        source_identity: [u8; 32],
+        source_evidence_identity: [u8; 32],
+        source_root: impl Into<PathBuf>,
+        artifact_names: Vec<String>,
+    ) -> Self {
+        Self {
+            operation_identity,
+            source_identity,
+            source_evidence_identity,
             source_root: source_root.into(),
             artifact_names,
         }
