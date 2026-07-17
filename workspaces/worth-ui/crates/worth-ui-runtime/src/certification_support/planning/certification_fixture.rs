@@ -13,7 +13,7 @@ use super::fixture_support::{
     artifact_from_modules, capability_report, container_basis, control_app,
     declaration_identity_for, graph_node_identity_for_provenance, host_portal_anchor_result,
     host_scroll_viewport_result, intrinsic_basis, measurement_policy, peer_app, query_app,
-    snapshot_with_admitted_layout,
+    snapshot_with_admitted_layout, structural_touch_for_node,
 };
 use crate::runtime::WorthUiAllocationPlanning;
 
@@ -112,9 +112,7 @@ fn planning_scenario(
         }
         _ => container_basis(&app, root, generation, bounded),
     };
-    let touch = app
-        .try_query_touch_for_node(root)
-        .expect("certification planning root must admit a query touch");
+    let touch = structural_touch_for_node(&app, root);
     let selected = app.admission().select_obligations(&touch);
     (basis, snapshot, selected)
 }

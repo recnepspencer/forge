@@ -1,5 +1,4 @@
 use crate::declaration::stable_text_digest;
-use worth_foundational::CanonicalF32;
 use crate::evidence::{
     MeasurementEvidenceInput, UiAllocationNeighborhood, UiAllocationNeighborhoodMember,
     UiConstraintAxisScope, UiConstraintChildIntrinsicContribution,
@@ -11,6 +10,7 @@ use crate::evidence::{
     UiMeasurementCoordinateSpace, UiMeasurementResult, UiMeasurementRoundingPosture,
     UiMeasurementUnitPosture, UiMeasurementValue,
 };
+use worth_foundational::CanonicalF32;
 
 use super::constraint_summary::intrinsic_contribution_scope;
 

@@ -4,7 +4,7 @@ error: cannot construct `WorthUiBuilder` with struct literal syntax due to priva
 4 |     let _ = WorthUiAppBuilder {};
   |             ^^^^^^^^^^^^^^^^^
   |
-  = note: private fields `inner`, `dsl_package`, `host_contract`, `graph_world_profile`, `measurement_inspection_evidence` and `source_backed_declaration_witness` that were not provided
+  = note: private fields that were not provided
 help: you might have meant to use the `new` associated function
   |
 4 -     let _ = WorthUiAppBuilder {};

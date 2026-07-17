@@ -88,11 +88,11 @@ pub use super::replacement::query_binding::{
 };
 pub use super::replacement::query_live_rebind::{
     WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
-    WorthUiQueryBindingPreservation, WorthUiQueryBindingRebind, WorthUiQueryBindingRebindReason,
-    WorthUiQueryBindingRetirement, WorthUiQueryBindingRetirementReason,
-    WorthUiQueryLiveRebindCounters, WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome,
-    WorthUiQueryLiveRebindPlan, WorthUiQueryLiveRebindPlanDenial,
-    WorthUiQueryRebindRequiredSurface,
+    WorthUiQueryBindingPreservation, WorthUiQueryBindingPreservationReceipt,
+    WorthUiQueryBindingRebind, WorthUiQueryBindingRebindReason, WorthUiQueryBindingRetirement,
+    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters,
+    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
+    WorthUiQueryLiveRebindPlanDenial, WorthUiQueryRebindRequiredSurface,
 };
 pub use super::replacement::reconciliation::{
     WorthUiAdmittedDurableResizeInput, WorthUiAdmittedDurableResizeSourceFact,

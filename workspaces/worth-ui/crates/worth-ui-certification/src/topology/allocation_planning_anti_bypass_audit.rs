@@ -23,19 +23,19 @@ fn raw_planning_admission_visibility_violations(workspace_root: &Path) -> Vec<St
     let checks = [
         (
             workspace_root.join(
-                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/projection.rs",
+                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/activation_handoff/projection.rs",
             ),
             "pub fn admit_allocation_neighborhood(",
         ),
         (
             workspace_root.join(
-                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/projection.rs",
+                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/activation_handoff/projection.rs",
             ),
             "pub fn admit_allocation_neighborhood_from_graph(",
         ),
         (
             workspace_root.join(
-                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/constraint_projection.rs",
+                "crates/worth-ui-runtime/src/graph/allocation_neighborhood/constraint_authority/admission/constraint_projection.rs",
             ),
             "pub fn admit_allocation_constraint_set(",
         ),

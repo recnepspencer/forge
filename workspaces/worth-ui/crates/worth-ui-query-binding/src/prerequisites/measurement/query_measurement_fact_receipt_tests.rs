@@ -11,12 +11,15 @@ use crate::{
 #[test]
 fn installed_projection_preserves_authority_native_value_and_settlement_posture() {
     let (mut binding, outcome) = installed_measurement_projection("settled", 240.0);
-    let settlement = binding.admit(outcome).expect("installed projection should settle");
+    let settlement = binding
+        .admit(outcome)
+        .expect("installed projection should settle");
 
     assert!(!settlement.is_partial());
-    assert_eq!(settlement.receipt().consumed_families(), [
-        WorthUiQueryMeasurementFactFamily::ScrollContentExtent,
-    ]);
+    assert_eq!(
+        settlement.receipt().consumed_families(),
+        [WorthUiQueryMeasurementFactFamily::ScrollContentExtent,]
+    );
     assert_eq!(
         settlement.receipt().observations()[0].extent(),
         worth_foundational::CanonicalF32::from_f32(240.0),
@@ -24,7 +27,7 @@ fn installed_projection_preserves_authority_native_value_and_settlement_posture(
     assert_eq!(settlement.allocation_source_generation().as_u64(), 1);
     assert_eq!(settlement.allocation_source_order().as_u64(), 1);
     let counters = settlement.receipt().refinement_counters();
-    assert_eq!(counters.declared_measurement_family_count(), 1);
+    assert_eq!(counters.declared_measurement_fact_count(), 1);
     assert_eq!(counters.projected_measurement_fact_count(), 1);
     assert_eq!(counters.refinement_attempt_count(), 1);
     assert_eq!(counters.admitted_observation_count(), 1);
@@ -33,7 +36,8 @@ fn installed_projection_preserves_authority_native_value_and_settlement_posture(
 #[test]
 fn installed_projection_preserves_foundational_canonical_float_semantics() {
     let noncanonical_nan = f32::from_bits(0x7fc0_0042);
-    let (mut binding, outcome) = installed_measurement_projection("canonical-nan", noncanonical_nan);
+    let (mut binding, outcome) =
+        installed_measurement_projection("canonical-nan", noncanonical_nan);
     let settlement = binding.admit(outcome).expect("native NaN should settle");
 
     assert_eq!(
@@ -66,7 +70,9 @@ fn installed_projection_preserves_query_denial_for_structured_measurement() {
         "native-struct",
         contract,
         "summary",
-        Some(runtime::WorthQueryAuthoredAspectValue::struct_value(summary)),
+        Some(runtime::WorthQueryAuthoredAspectValue::struct_value(
+            summary,
+        )),
     );
 
     assert_eq!(
@@ -104,7 +110,10 @@ fn query_free_runtime_denies_before_frame_ingress() {
         .activate()
         .admit(outcome)
         .expect_err("query-free runtime cannot consume Query work");
-    assert_eq!(denial, super::WorthUiQueryMeasurementFactSettlementDenial::QueryNotInstalled);
+    assert_eq!(
+        denial,
+        super::WorthUiQueryMeasurementFactSettlementDenial::QueryNotInstalled
+    );
 }
 
 #[test]
@@ -123,7 +132,9 @@ fn foreign_installed_authority_cannot_activate_registered_view() {
 #[test]
 fn repeated_installed_settlements_reuse_source_identity_but_advance_order() {
     let mut workspace = measurement_workspace("repeated", 240.0);
-    let installed = workspace.worth_ui().expect("Worth UI domain should be installed");
+    let installed = workspace
+        .worth_ui()
+        .expect("Worth UI domain should be installed");
     let view = installed
         .measurement_view("inspector.measurements")
         .expect("measurement view should admit");
@@ -138,11 +149,53 @@ fn repeated_installed_settlements_reuse_source_identity_but_advance_order() {
         .admit(project_view(&mut workspace, &view))
         .expect("second projection should settle");
 
-    assert_eq!(first.allocation_source_identity(), second.allocation_source_identity());
+    assert_eq!(
+        first.allocation_source_identity(),
+        second.allocation_source_identity()
+    );
     assert_eq!(first.allocation_source_generation().as_u64(), 1);
     assert_eq!(second.allocation_source_generation().as_u64(), 1);
     assert_eq!(first.allocation_source_order().as_u64(), 1);
     assert_eq!(second.allocation_source_order().as_u64(), 2);
+}
+
+#[test]
+fn refinement_counters_use_exact_declared_and_projected_fact_width() {
+    let mut workspace = measurement_workspace("refinement-width", 240.0);
+    let installed = workspace
+        .worth_ui()
+        .expect("Worth UI domain should be installed");
+    let view = installed
+        .measurement_view("inspector.measurements")
+        .expect("measurement view should admit");
+    let mut binding = WorthUiQueryBindingPlan::default()
+        .register_view(view.clone())
+        .expect("installed view should register")
+        .activate();
+    let completion = view
+        .read()
+        .expect("installed read should declare")
+        .using(domain::current())
+        .run(&mut workspace)
+        .expect("installed authority should match workspace")
+        .into_result()
+        .expect("installed read should complete");
+    let field = measurement_value_path();
+    let outcome = view
+        .project(
+            &completion,
+            domain::project_facts()
+                .display_field(field.clone())
+                .derived_field(field),
+        )
+        .expect("view projection retains installed authority");
+    let settlement = binding.admit(outcome).expect("projection should settle");
+
+    let counters = settlement.receipt().refinement_counters();
+    assert_eq!(counters.declared_measurement_fact_count(), 2);
+    assert_eq!(counters.projected_measurement_fact_count(), 2);
+    assert_eq!(counters.refinement_attempt_count(), 2);
+    assert_eq!(counters.admitted_observation_count(), 1);
 }
 
 fn installed_measurement_projection(
@@ -153,7 +206,9 @@ fn installed_measurement_projection(
     crate::WorthUiQueryProjectionOutcome,
 ) {
     let mut workspace = measurement_workspace(name, extent);
-    let installed = workspace.worth_ui().expect("Worth UI domain should be installed");
+    let installed = workspace
+        .worth_ui()
+        .expect("Worth UI domain should be installed");
     let view = installed
         .measurement_view("inspector.measurements")
         .expect("measurement view should admit");

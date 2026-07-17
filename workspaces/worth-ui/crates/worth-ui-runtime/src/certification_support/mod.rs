@@ -5,6 +5,7 @@
 
 mod layout_admission;
 mod planning;
+mod runtime_launch;
 mod touch_origin;
 mod touch_origin_source;
 
@@ -17,6 +18,7 @@ pub use crate::declaration::UiDeclaredMeasurementMode;
 #[cfg(test)]
 pub(crate) use layout_admission::snapshot_after_layout_admission_support;
 pub use planning::planning_pair_for_certification_suite;
+pub use runtime_launch::launch_empty_runtime_for_certification;
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,
     WorthUiTouchOriginFixtureVariant,

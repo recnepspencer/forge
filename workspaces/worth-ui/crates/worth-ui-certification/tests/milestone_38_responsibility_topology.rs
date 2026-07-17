@@ -37,7 +37,10 @@ fn visit_production_directories(root: &Path, visit: &mut impl FnMut(&Path)) {
     }
     visit(root);
     for entry in fs::read_dir(root).unwrap_or_else(|error| {
-        panic!("failed to read responsibility directory {}: {error}", root.display())
+        panic!(
+            "failed to read responsibility directory {}: {error}",
+            root.display()
+        )
     }) {
         let path = entry.expect("responsibility directory entry").path();
         if path.is_dir() {
@@ -55,7 +58,10 @@ fn phase_18_responsibility_directories_remain_bounded_and_semantic() {
                 .expect("responsibility directory")
                 .filter_map(Result::ok)
                 .map(|entry| entry.path())
-                .filter(|path| path.is_file() && path.extension().and_then(|value| value.to_str()) == Some("rs"))
+                .filter(|path| {
+                    path.is_file()
+                        && path.extension().and_then(|value| value.to_str()) == Some("rs")
+                })
                 .collect::<Vec<_>>();
             if rust_files.len() > MAX_DIRECT_RUST_FILES {
                 findings.push(format!(
@@ -108,5 +114,9 @@ fn phase_18_required_responsibility_homes_exist() {
         .filter(|path| !path.is_dir())
         .map(|path| path.display().to_string())
         .collect::<Vec<_>>();
-    assert!(missing.is_empty(), "missing Phase 18 responsibility homes:\n{}", missing.join("\n"));
+    assert!(
+        missing.is_empty(),
+        "missing Phase 18 responsibility homes:\n{}",
+        missing.join("\n")
+    );
 }

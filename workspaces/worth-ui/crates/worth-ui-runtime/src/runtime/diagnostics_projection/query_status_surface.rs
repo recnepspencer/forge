@@ -1,6 +1,7 @@
 use crate::runtime::{
     WorthUiDiagnosticSource, WorthUiExecutionPlanInspection, WorthUiQueryBindingIdentity,
-    WorthUiQueryInspectionLinks, WorthUiReloadCheckedStopPosture, WorthUiRuntimeDiagnostic,
+    WorthUiQueryBindingPosture, WorthUiQueryInspectionLinks, WorthUiReloadCheckedStopPosture,
+    WorthUiRuntimeDiagnostic,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -16,11 +17,8 @@ pub enum WorthUiQueryStatusRow {
     },
     InspectionLinks {
         binding_identity: WorthUiQueryBindingIdentity,
-        inspection_digest: String,
-        projection_consumption_digest: String,
-        async_result_state_digest: String,
-        recovery_digest: String,
-        preservation_receipt: Option<String>,
+        posture: WorthUiQueryBindingPosture,
+        preservation_receipt: Option<crate::runtime::WorthUiQueryBindingPreservationReceipt>,
     },
 }
 
@@ -63,10 +61,7 @@ fn row_from_diagnostic(row: &WorthUiRuntimeDiagnostic) -> Option<WorthUiQuerySta
 fn row_from_query_links(links: &WorthUiQueryInspectionLinks) -> WorthUiQueryStatusRow {
     WorthUiQueryStatusRow::InspectionLinks {
         binding_identity: links.binding_identity().clone(),
-        inspection_digest: links.inspection_digest().to_owned(),
-        projection_consumption_digest: links.projection_consumption_digest().to_owned(),
-        async_result_state_digest: links.async_result_state_digest().to_owned(),
-        recovery_digest: links.recovery_digest().to_owned(),
-        preservation_receipt: links.preservation_receipt().map(ToOwned::to_owned),
+        posture: links.posture().clone(),
+        preservation_receipt: links.preservation_receipt(),
     }
 }

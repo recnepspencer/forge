@@ -26,36 +26,38 @@ pub struct UiInspectionCloseoutReport {
     non_goals: &'static [UiInspectionCloseoutNonGoal],
 }
 
+pub(crate) struct UiInspectionCloseoutProfile {
+    pub(super) evidence_families: &'static [UiEvidenceFamily],
+    pub(super) relevance_outcomes: &'static [UiInspectionRelevanceOutcome],
+    pub(super) ref_lifecycle_lanes: &'static [UiInspectionRefLifecycleLane],
+    pub(super) materialization_postures: &'static [UiEvidenceMaterializationPosture],
+    pub(super) retention_postures: &'static [UiEvidenceRetentionPosture],
+    pub(super) query_citation_kinds: &'static [UiInspectionQueryForeignEvidenceKind],
+    pub(super) derived_index_lanes: &'static [UiInspectionDerivedIndexLane],
+    pub(super) slice_lanes: &'static [UiInspectionSliceLane],
+    pub(super) cost_lanes: &'static [UiInspectionCostLane],
+    pub(super) ai_harness_lanes: &'static [UiInspectionAiHarnessLane],
+    pub(super) closed_semantic_lanes: &'static [UiInspectionClosedSemanticLane],
+    pub(super) guarantees: &'static [UiInspectionCloseoutGuarantee],
+    pub(super) non_goals: &'static [UiInspectionCloseoutNonGoal],
+}
+
 impl UiInspectionCloseoutReport {
-    pub(crate) const fn new(
-        evidence_families: &'static [UiEvidenceFamily],
-        relevance_outcomes: &'static [UiInspectionRelevanceOutcome],
-        ref_lifecycle_lanes: &'static [UiInspectionRefLifecycleLane],
-        materialization_postures: &'static [UiEvidenceMaterializationPosture],
-        retention_postures: &'static [UiEvidenceRetentionPosture],
-        query_citation_kinds: &'static [UiInspectionQueryForeignEvidenceKind],
-        derived_index_lanes: &'static [UiInspectionDerivedIndexLane],
-        slice_lanes: &'static [UiInspectionSliceLane],
-        cost_lanes: &'static [UiInspectionCostLane],
-        ai_harness_lanes: &'static [UiInspectionAiHarnessLane],
-        closed_semantic_lanes: &'static [UiInspectionClosedSemanticLane],
-        guarantees: &'static [UiInspectionCloseoutGuarantee],
-        non_goals: &'static [UiInspectionCloseoutNonGoal],
-    ) -> Self {
+    pub(super) const fn new(profile: UiInspectionCloseoutProfile) -> Self {
         Self {
-            evidence_families,
-            relevance_outcomes,
-            ref_lifecycle_lanes,
-            materialization_postures,
-            retention_postures,
-            query_citation_kinds,
-            derived_index_lanes,
-            slice_lanes,
-            cost_lanes,
-            ai_harness_lanes,
-            closed_semantic_lanes,
-            guarantees,
-            non_goals,
+            evidence_families: profile.evidence_families,
+            relevance_outcomes: profile.relevance_outcomes,
+            ref_lifecycle_lanes: profile.ref_lifecycle_lanes,
+            materialization_postures: profile.materialization_postures,
+            retention_postures: profile.retention_postures,
+            query_citation_kinds: profile.query_citation_kinds,
+            derived_index_lanes: profile.derived_index_lanes,
+            slice_lanes: profile.slice_lanes,
+            cost_lanes: profile.cost_lanes,
+            ai_harness_lanes: profile.ai_harness_lanes,
+            closed_semantic_lanes: profile.closed_semantic_lanes,
+            guarantees: profile.guarantees,
+            non_goals: profile.non_goals,
         }
     }
 

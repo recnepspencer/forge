@@ -6,13 +6,11 @@ use worth_query::facade::foundation::{
     WorthQuerySnapshotIdentity,
 };
 use worth_ui::facade::admission::UiAdmissionQueryBasis;
-use worth_ui::facade::graph::{
-    UiGraphTouchDescriptor, UiGraphWorldProfile,
-};
+use worth_ui::facade::graph::{UiGraphTouchDescriptor, UiGraphWorldProfile};
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane,
-    WorthUiQueryInspectionLane, WorthUiQueryPrerequisiteEvidence,
-    WorthUiQueryPrerequisiteBoundary, WorthUiQueryProjectionConsumptionLane,
+    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
+    WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryProjectionConsumptionLane,
 };
 
 pub fn query_snapshot_world_profile(
@@ -43,8 +41,7 @@ pub fn query_prerequisites(
     touch: &UiGraphTouchDescriptor,
     query_basis: UiAdmissionQueryBasis,
 ) -> WorthUiQueryPrerequisiteEvidence {
-    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } =
-        touch.world().world_profile()
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = touch.world().world_profile()
     else {
         panic!("query prerequisite tests require query snapshot worlds");
     };

@@ -14,6 +14,7 @@ use super::{
 pub enum WorthUiQueryMeasurementFactReceiptError {
     NonQueryOwnedProjectionSource,
     BasisDigestMismatch,
+    ProjectionContractMismatch,
     ProjectionConsumptionNotAdmitted,
     Observation(WorthUiQueryMeasurementFactObservationError),
 }
@@ -94,6 +95,7 @@ impl WorthUiQueryMeasurementFactReceipt {
         self.query_authority
             .authority()
             .binds_resolved_basis(prerequisites.basis())
+            && prerequisites.accepts_projection_contract(self.projection_contract_digest())
     }
 
     pub fn query_authority(&self) -> &WorthUiQueryAuthorityHandle {

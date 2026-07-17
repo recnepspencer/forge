@@ -15,9 +15,9 @@ use worth_ui_dsl::{
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
 use worth_ui_query_binding::{
-    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryPrerequisiteBoundary,
-    WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
-    WorthUiQueryPrerequisiteEvidence, WorthUiQueryProjectionConsumptionLane,
+    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane,
+    WorthUiQueryInspectionLane, WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryProjectionConsumptionLane,
 };
 
 use self::projection_consumption_support::{
@@ -85,8 +85,7 @@ pub fn synthetic_query_prerequisites_for_world(
     world_profile: &UiGraphWorldProfile,
     query_basis: UiAdmissionQueryBasis,
 ) -> WorthUiQueryPrerequisiteEvidence {
-    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile
-    else {
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile else {
         panic!("query measurement eligibility tests require query snapshot worlds");
     };
 

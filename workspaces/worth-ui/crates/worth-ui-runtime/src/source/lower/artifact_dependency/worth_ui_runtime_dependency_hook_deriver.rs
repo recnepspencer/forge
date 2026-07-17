@@ -7,10 +7,10 @@ pub(super) fn hooks_for_view_binding(
     view_binding: &WorthUiBoundViewBindingReference,
 ) -> Vec<WorthUiRuntimeDependencyHook> {
     [
-        WorthUiRuntimeDependencyHookKind::QueryLiveView,
-        WorthUiRuntimeDependencyHookKind::QueryRegionScopedInvalidation,
-        WorthUiRuntimeDependencyHookKind::QuerySignalContinuation,
-        WorthUiRuntimeDependencyHookKind::QueryAsyncResultState,
+        WorthUiRuntimeDependencyHookKind::LiveView,
+        WorthUiRuntimeDependencyHookKind::RegionScopedInvalidation,
+        WorthUiRuntimeDependencyHookKind::SignalContinuation,
+        WorthUiRuntimeDependencyHookKind::AsyncResultState,
     ]
     .into_iter()
     .map(|kind| hook_from_query_semantics(kind, view_binding))
@@ -26,6 +26,6 @@ fn hook_from_query_semantics(
         kind,
         view_binding.view_binding().id().clone(),
         query.definition().clone(),
-        query.denial_presentation().clone(),
+        *query.denial_presentation(),
     )
 }

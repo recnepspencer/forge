@@ -81,8 +81,8 @@ pub fn query_snapshot_world_profile(
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
     let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
-            QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-        );
+        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
+    );
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(

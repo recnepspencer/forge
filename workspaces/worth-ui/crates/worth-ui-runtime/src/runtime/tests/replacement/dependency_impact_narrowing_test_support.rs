@@ -1,6 +1,6 @@
 use crate::capability::{
-    CommandDescriptor, CommandId, ComponentId, SurfaceId, ViewBindingDescriptor,
-    ViewBindingFamily, ViewBindingId,
+    CommandDescriptor, CommandId, ComponentId, SurfaceId, ViewBindingDescriptor, ViewBindingFamily,
+    ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::replacement_impact_test_support::impact_test_app;

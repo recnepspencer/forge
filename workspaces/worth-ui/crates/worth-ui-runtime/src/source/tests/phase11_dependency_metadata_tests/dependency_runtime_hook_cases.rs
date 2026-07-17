@@ -41,7 +41,7 @@ fn dependency_metadata_preserves_runtime_graph_hooks() {
         .runtime_hooks_for(&binding)
         .first()
         .expect("binding runtime hook");
-    assert_eq!(hook.kind(), WorthUiRuntimeDependencyHookKind::QueryLiveView);
+    assert_eq!(hook.kind(), WorthUiRuntimeDependencyHookKind::LiveView);
     assert_eq!(
         hook.view_binding_id().as_str(),
         "workspace.view_binding.selection"

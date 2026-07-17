@@ -135,11 +135,10 @@ fn deferred_query_support_rejected_before_plan_lowering() {
     let app = WorthUi::app().freeze();
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
-    let query_receipt =
-        WorthUiQuerySupportReceipt::for_test(
-            WorthUiQuerySupportStatus::Deferred,
-            "deferred-query-support",
-        );
+    let query_receipt = WorthUiQuerySupportReceipt::for_test(
+        WorthUiQuerySupportStatus::Deferred,
+        "deferred-query-support",
+    );
     let candidate = candidate_with_lowering_basis(
         ["app/panels/inspector.wui"],
         WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
@@ -168,11 +167,10 @@ fn unsupported_query_support_rejected_before_plan_lowering() {
     let app = WorthUi::app().freeze();
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
-    let query_receipt =
-        WorthUiQuerySupportReceipt::for_test(
-            WorthUiQuerySupportStatus::Unsupported,
-            "unsupported-query-support",
-        );
+    let query_receipt = WorthUiQuerySupportReceipt::for_test(
+        WorthUiQuerySupportStatus::Unsupported,
+        "unsupported-query-support",
+    );
     let candidate = candidate_with_lowering_basis(
         ["app/panels/inspector.wui"],
         WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
@@ -236,7 +234,10 @@ fn admitted_candidate_cannot_swap_query_support_contracts_after_admission() {
     let admitted = WorthUiCandidateAdmission::for_active_basis(active_basis)
         .admit(candidate)
         .expect("candidate admits before receipt tampering");
-    let admitted_identity = admitted.report().query_support_receipt().contract_identity();
+    let admitted_identity = admitted
+        .report()
+        .query_support_receipt()
+        .contract_identity();
     let changed_identity = query_contract_identity("changed-after-admission");
 
     assert_eq!(
@@ -311,12 +312,11 @@ fn query_bound_app() -> WorthUiApp {
 fn query_contract_identity(
     label: &str,
 ) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
-    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
-        label,
-    )
-    .expect("test Query contract label admits");
+    let definition =
+        worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(label)
+            .expect("test Query contract label admits");
     worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
-        definition.digest(),
+        definition.digest()
     ])
 }
 

@@ -121,7 +121,10 @@ impl<'a> UiAdmissionBoundary<'a> {
                 query_authority,
             ) {
             Ok(receipt) => receipt,
-            Err(WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch) => {
+            Err(
+                WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch
+                | WorthUiQueryMeasurementFactReceiptError::ProjectionContractMismatch,
+            ) => {
                 let posture = stale_basis_posture_from_query_authority(
                     target.world().clone(),
                     current_prerequisites,
@@ -236,7 +239,7 @@ fn observed_basis_authority(
     authority: &WorthUiQueryAuthorityHandle,
 ) -> UiQueryMeasurementBasisAuthority {
     UiQueryMeasurementBasisAuthority::ProjectionConsumption {
-        authority: authority.clone(),
+        authority: Box::new(authority.clone()),
     }
 }
 
@@ -244,6 +247,6 @@ fn prerequisite_basis_authority(
     prerequisites: &WorthUiQueryPrerequisiteEvidence,
 ) -> UiQueryMeasurementBasisAuthority {
     UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
-        prerequisites: prerequisites.clone(),
+        prerequisites: Box::new(prerequisites.clone()),
     }
 }

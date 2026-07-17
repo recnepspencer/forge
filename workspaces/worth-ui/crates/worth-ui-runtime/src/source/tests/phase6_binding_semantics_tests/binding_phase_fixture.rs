@@ -36,4 +36,3 @@ pub(super) fn bound_artifact_input_for(
     WorthUiBindingSemanticsLowerer::lower(&legally_structured, snapshot)
         .expect("phase 6 binding semantics should succeed")
 }
-

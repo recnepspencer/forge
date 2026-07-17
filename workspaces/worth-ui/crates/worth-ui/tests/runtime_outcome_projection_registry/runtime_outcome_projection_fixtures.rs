@@ -56,4 +56,3 @@ pub(crate) fn blocking_presentation(label: &str) -> RuntimeOutcomePresentation {
 pub(crate) fn projection_id(raw_text: &str) -> RuntimeOutcomeProjectionId {
     RuntimeOutcomeProjectionId::new(raw_text).expect("valid runtime outcome projection id")
 }
-

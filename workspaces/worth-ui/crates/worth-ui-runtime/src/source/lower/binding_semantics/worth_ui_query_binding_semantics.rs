@@ -13,6 +13,6 @@ pub(super) fn bind_query_view_semantics(
     context.record_query_owned_semantic_check();
     Ok(WorthUiBoundQueryViewSemantics::new(
         entry.descriptor().definition().clone(),
-        entry.descriptor().denial_presentation().clone(),
+        *entry.descriptor().denial_presentation(),
     ))
 }

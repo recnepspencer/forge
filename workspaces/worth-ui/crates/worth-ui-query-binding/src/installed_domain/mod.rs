@@ -3,8 +3,7 @@ mod rebind;
 mod workspace;
 
 pub use capability::{
-    WorthUiInstalledQueryDomain, WorthUiQueryInstallationDenial,
-    WorthUiQueryInstallationDenialKind,
+    WorthUiInstalledQueryDomain, WorthUiQueryInstallationDenial, WorthUiQueryInstallationDenialKind,
 };
 pub use rebind::{
     WorthUiQueryDomainRebindDenial, WorthUiQueryDomainRebindDenialKind,

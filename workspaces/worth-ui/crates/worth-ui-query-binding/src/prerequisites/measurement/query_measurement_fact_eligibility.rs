@@ -9,6 +9,7 @@ use super::{WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence}
 pub enum WorthUiQueryMeasurementFactEligibilityError {
     NonQueryOwnedProjectionSource,
     BasisDigestMismatch,
+    ProjectionContractMismatch,
     ProjectionConsumptionNotAdmitted,
 }
 
@@ -109,6 +110,9 @@ fn validate_query_authority(
     }
     if !authority.binds_resolved_basis(prerequisites.basis()) {
         return Err(WorthUiQueryMeasurementFactEligibilityError::BasisDigestMismatch);
+    }
+    if !prerequisites.accepts_projection_contract(authority.contract().contract_digest()) {
+        return Err(WorthUiQueryMeasurementFactEligibilityError::ProjectionContractMismatch);
     }
     Ok(())
 }

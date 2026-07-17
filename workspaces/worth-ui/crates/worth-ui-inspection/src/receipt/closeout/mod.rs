@@ -13,6 +13,7 @@ pub use inspection_ai_harness_lane::UiInspectionAiHarnessLane;
 pub use inspection_closed_semantic_lane::UiInspectionClosedSemanticLane;
 pub use inspection_closeout_guarantee::UiInspectionCloseoutGuarantee;
 pub use inspection_closeout_non_goal::UiInspectionCloseoutNonGoal;
+pub(super) use inspection_closeout_report::UiInspectionCloseoutProfile;
 pub use inspection_closeout_report::UiInspectionCloseoutReport;
 pub use inspection_cost_lane::UiInspectionCostLane;
 pub use inspection_derived_index_lane::UiInspectionDerivedIndexLane;

@@ -104,8 +104,7 @@ pub fn query_prerequisites(
     world_profile: &UiGraphWorldProfile,
     query_basis: UiAdmissionQueryBasis,
 ) -> worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence {
-    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile
-    else {
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile else {
         panic!("query denial proofs require query snapshot worlds");
     };
 

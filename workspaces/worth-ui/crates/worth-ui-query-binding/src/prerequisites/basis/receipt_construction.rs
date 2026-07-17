@@ -20,6 +20,9 @@ pub(crate) fn verify_projection_contract(
     if !authority.binds_resolved_basis(prerequisites.basis()) {
         return Err(WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch);
     }
+    if !prerequisites.accepts_projection_contract(authority.contract().contract_digest()) {
+        return Err(WorthUiQueryMeasurementFactReceiptError::ProjectionContractMismatch);
+    }
     Ok(())
 }
 

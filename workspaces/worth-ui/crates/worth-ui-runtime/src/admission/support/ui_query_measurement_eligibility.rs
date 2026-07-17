@@ -19,10 +19,10 @@ pub enum UiQueryMeasurementUnsupportedQueryReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiQueryMeasurementBasisAuthority {
     AdmittedPrerequisites {
-        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+        prerequisites: Box<worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence>,
     },
     ProjectionConsumption {
-        authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: Box<worth_ui_query_binding::WorthUiQueryAuthorityHandle>,
     },
 }
 

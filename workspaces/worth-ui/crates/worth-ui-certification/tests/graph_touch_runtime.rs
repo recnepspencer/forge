@@ -1,7 +1,7 @@
 use worth_ui::facade::graph::{
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass,
-    UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
-    UiGraphSessionLabel,
+    UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial,
+    UiGraphTouchOriginClass, UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming,
+    UiGraphWorldProfile,
 };
 
 #[path = "fixtures/graph_touch_support.rs"]

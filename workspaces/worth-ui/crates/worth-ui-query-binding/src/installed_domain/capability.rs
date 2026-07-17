@@ -1,6 +1,5 @@
 use worth_query::facade::domain::{
-    WorthQueryDomainHandleDenial, WorthQueryDomainHandleDenialKind,
-    WorthQueryInstalledDomainHandle,
+    WorthQueryDomainHandleDenial, WorthQueryDomainHandleDenialKind, WorthQueryInstalledDomainHandle,
 };
 
 use crate::WorthUiDomainEntry;
@@ -53,9 +52,7 @@ pub struct WorthUiInstalledQueryDomain {
 }
 
 impl WorthUiInstalledQueryDomain {
-    pub(crate) fn from_handle(
-        handle: WorthQueryInstalledDomainHandle<WorthUiDomainEntry>,
-    ) -> Self {
+    pub(crate) fn from_handle(handle: WorthQueryInstalledDomainHandle<WorthUiDomainEntry>) -> Self {
         Self { handle }
     }
 
@@ -63,9 +60,7 @@ impl WorthUiInstalledQueryDomain {
         self.handle.authority_witness() == other.handle.authority_witness()
     }
 
-    pub(crate) fn handle(
-        &self,
-    ) -> &WorthQueryInstalledDomainHandle<WorthUiDomainEntry> {
+    pub(crate) fn handle(&self) -> &WorthQueryInstalledDomainHandle<WorthUiDomainEntry> {
         &self.handle
     }
 }

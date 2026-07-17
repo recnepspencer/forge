@@ -33,14 +33,14 @@ impl WorthUiQueryDependencyInvalidation {
 
 fn surface_from_hook_kind(kind: WorthUiRuntimeDependencyHookKind) -> WorthUiQueryDependencySurface {
     match kind {
-        WorthUiRuntimeDependencyHookKind::QueryLiveView => WorthUiQueryDependencySurface::LiveView,
-        WorthUiRuntimeDependencyHookKind::QueryRegionScopedInvalidation => {
+        WorthUiRuntimeDependencyHookKind::LiveView => WorthUiQueryDependencySurface::LiveView,
+        WorthUiRuntimeDependencyHookKind::RegionScopedInvalidation => {
             WorthUiQueryDependencySurface::RegionScopedLiveInvalidation
         }
-        WorthUiRuntimeDependencyHookKind::QuerySignalContinuation => {
+        WorthUiRuntimeDependencyHookKind::SignalContinuation => {
             WorthUiQueryDependencySurface::SignalCompatibilityAndContinuation
         }
-        WorthUiRuntimeDependencyHookKind::QueryAsyncResultState => {
+        WorthUiRuntimeDependencyHookKind::AsyncResultState => {
             WorthUiQueryDependencySurface::AsyncResourcesAndResultState
         }
     }

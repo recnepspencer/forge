@@ -226,7 +226,8 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             builder = builder.record(row);
         }
         if needs_query_evidence {
-            for evidence in phase_rows::query_evidence_rows(&self.carried_query_contract_identities) {
+            for evidence in phase_rows::query_evidence_rows(&self.carried_query_contract_identities)
+            {
                 builder = builder.with_query_evidence(evidence);
             }
         }

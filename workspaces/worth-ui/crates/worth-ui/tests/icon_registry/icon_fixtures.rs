@@ -97,4 +97,3 @@ pub(crate) fn denied_projection_with_icon(
     .with_presentation(RuntimeOutcomePresentation::new().with_icon(icon_id(icon)))
     .with_denial_posture(RuntimeOutcomeDenialPosture::structured_status())
 }
-

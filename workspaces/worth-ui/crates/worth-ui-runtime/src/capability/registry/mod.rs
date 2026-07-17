@@ -20,8 +20,7 @@ pub(crate) use command::CommandAcceptedRegistrationProof;
 pub(crate) use command::CommandRegistry;
 pub use command::{
     CommandCategory, CommandDescriptor, CommandReadinessBinding, CommandReadinessStatus,
-    CommandRuntimeIntentBinding,
-    FrozenCommandCapabilities,
+    CommandRuntimeIntentBinding, FrozenCommandCapabilities,
 };
 pub(crate) use command_projection::{
     CommandProjectionAcceptedRegistrationProof, CommandProjectionRegistry,
@@ -136,7 +135,7 @@ pub use theme_token::{
 pub(crate) use theme_token::{ThemeTokenAcceptedRegistrationProof, ThemeTokenRegistry};
 pub use view_binding::{
     FrozenViewBindingCapabilities, FrozenViewBindingEntry, QueryDenialPresentation,
-    QueryViewBindingKey, ViewBindingDescriptor, ViewBindingFamily,
-    VisibleStateBindingDeclaration, WorthUiQueryViewRegistration,
+    QueryViewBindingKey, ViewBindingDescriptor, ViewBindingFamily, VisibleStateBindingDeclaration,
+    WorthUiQueryViewRegistration,
 };
 pub(crate) use view_binding::{ViewBindingAcceptedRegistrationProof, ViewBindingRegistry};

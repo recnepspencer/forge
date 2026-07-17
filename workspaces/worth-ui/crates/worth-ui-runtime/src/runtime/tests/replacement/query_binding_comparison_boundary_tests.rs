@@ -4,8 +4,8 @@ use super::dependency_impact_narrowing_test_support::{
 };
 use super::query_binding::WorthUiQueryBindingEvidenceIndex;
 use super::query_binding_comparison_test_support::{
-    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline, query_artifact,
-    standard_query_app,
+    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
+    query_artifact, standard_query_app,
 };
 use crate::runtime::{
     WorthUiNodeReplacementPlan, WorthUiQueryBindingComparisonDenial,
@@ -94,11 +94,11 @@ fn query_binding_comparison_does_not_use_ui_local_status_enums() {
         binding
             .active_posture()
             .expect("active posture")
-            .denial_presentation_digest(),
+            .denial_presentation(),
         binding
             .candidate_posture()
             .expect("candidate posture")
-            .denial_presentation_digest()
+            .denial_presentation()
     );
 }
 

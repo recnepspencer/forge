@@ -80,6 +80,12 @@ impl WorthUiQueryPrerequisiteEvidence {
         self.projection_contract_digest.as_deref()
     }
 
+    pub(crate) fn accepts_projection_contract(&self, projection_contract_digest: &str) -> bool {
+        self.projection_contract_digest
+            .as_deref()
+            .is_none_or(|expected| expected == projection_contract_digest)
+    }
+
     pub fn resolution_mode(&self) -> WorthUiQueryResolutionMode {
         match self.resolution_report.resolution_mode() {
             worth_query::facade::foundation::BasisResolutionMode::RuntimeDirect => {

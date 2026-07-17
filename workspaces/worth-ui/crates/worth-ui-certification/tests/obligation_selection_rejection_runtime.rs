@@ -4,8 +4,8 @@ use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationSupportMilestoneExpectation,
 };
 use worth_ui::facade::graph::{
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
-    UiGraphSessionLabel,
+    UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
+    UiGraphWorldProfile,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,

@@ -2,10 +2,10 @@
 mod prerequisite_assembly;
 #[path = "basis/query_authority_handle.rs"]
 mod query_authority_handle;
-#[path = "basis/query_basis_posture.rs"]
-mod query_basis_posture;
 #[path = "basis/query_basis_authority.rs"]
 mod query_basis_authority;
+#[path = "basis/query_basis_posture.rs"]
+mod query_basis_posture;
 #[path = "basis/query_lane.rs"]
 mod query_lane;
 #[path = "measurement/query_measurement_fact_eligibility.rs"]
@@ -29,8 +29,8 @@ mod query_prerequisite_evidence;
 mod receipt_construction;
 
 pub use query_authority_handle::WorthUiQueryAuthorityHandle;
-pub use query_basis_posture::WorthUiQueryBasisPosture;
 pub use query_basis_authority::{WorthUiQueryBasisAuthority, WorthUiQueryBasisIdentity};
+pub use query_basis_posture::WorthUiQueryBasisPosture;
 pub use query_lane::{
     WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
     WorthUiQueryProjectionConsumptionLane,

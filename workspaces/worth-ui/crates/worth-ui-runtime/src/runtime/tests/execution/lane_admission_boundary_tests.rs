@@ -338,14 +338,12 @@ fn query_bound_lane_support_links_are_preserved_not_reauthored() {
         let posture = input
             .query_binding_posture()
             .expect("query support link comes from Query posture");
+        assert_eq!(links.posture(), posture);
         assert_eq!(
-            links.support_admission_digest(),
-            posture.support_admission_digest()
-        );
-        assert_eq!(links.inspection_digest(), posture.inspection_digest());
-        assert_eq!(
-            links.projection_consumption_digest(),
-            posture.projection_consumption_digest()
+            links.binding_identity(),
+            input
+                .query_binding_identity()
+                .expect("query support link carries typed binding identity")
         );
         assert_eq!(links.required_surfaces(), input.query_required_surfaces());
     }

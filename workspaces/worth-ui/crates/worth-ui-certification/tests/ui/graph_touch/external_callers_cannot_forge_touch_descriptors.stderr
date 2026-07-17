@@ -47,13 +47,15 @@ error[E0624]: associated function `declaration_change` is private
 error[E0624]: associated function `query_fact_change` is private
   --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs:10:40
    |
-10 |     let _ = UiGraphTouchOriginReceipt::query_fact_change;
-   |                                        ^^^^^^^^^^^^^^^^^ private associated function
+10 |       let _ = UiGraphTouchOriginReceipt::query_fact_change;
+   |                                          ^^^^^^^^^^^^^^^^^ private associated function
    |
   ::: $WORKSPACE/crates/worth-ui-runtime/src/obligations/touch/touch_origin.rs
    |
-   |     pub(crate) fn query_fact_change(authority_projection: &str) -> Self {
-   |     ------------------------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn query_fact_change(
+   | |         prerequisites: &worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
 
 error[E0624]: associated function `host_observation` is private
   --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs:11:40
@@ -113,18 +115,11 @@ error[E0624]: associated function `declaration_instances` is private
    | |     ) -> Self {
    | |_____________- private associated function defined here
 
-error[E0624]: associated function `mounted_receipt_transition_only` is private
+error[E0599]: no function or associated item named `mounted_receipt_transition_only` found for struct `UiGraphTouchOriginWitness` in the current scope
   --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs:16:40
    |
-16 |       let _ = UiGraphTouchOriginWitness::mounted_receipt_transition_only;
-   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private associated function
-   |
-  ::: $WORKSPACE/crates/worth-ui-runtime/src/obligations/touch/touch_origin.rs
-   |
-   | /     pub(crate) const fn mounted_receipt_transition_only(
-   | |         receipt: UiGraphTouchOriginReceipt,
-   | |     ) -> Self {
-   | |_____________- private associated function defined here
+16 |     let _ = UiGraphTouchOriginWitness::mounted_receipt_transition_only;
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `UiGraphTouchOriginWitness`
 
 error[E0624]: associated function `authored_provenance_digests` is private
   --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs:17:40

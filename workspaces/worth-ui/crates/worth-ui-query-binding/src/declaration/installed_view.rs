@@ -1,12 +1,11 @@
 use worth_query::facade::{domain, read};
 
 use super::{
-    WorthUiQueryViewDefinition, WorthUiQueryViewIdentity,
-    WorthUiQueryViewIdentityError, WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
+    WorthUiQueryViewDefinition, WorthUiQueryViewIdentity, WorthUiQueryViewIdentityError,
+    WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
 };
 use crate::{
-    WorthUiDomainEntry, WorthUiInstalledQueryDomain, WorthUiQueryExt,
-    WorthUiQueryProjectionOutcome,
+    WorthUiDomainEntry, WorthUiInstalledQueryDomain, WorthUiQueryExt, WorthUiQueryProjectionOutcome,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,9 +71,7 @@ impl WorthUiInstalledQueryDomain {
 }
 
 impl WorthUiInstalledQueryView {
-    pub(crate) fn into_parts(
-        self,
-    ) -> (WorthUiInstalledQueryDomain, WorthUiQueryViewDefinition) {
+    pub(crate) fn into_parts(self) -> (WorthUiInstalledQueryDomain, WorthUiQueryViewDefinition) {
         (self.installed_domain, self.definition)
     }
 

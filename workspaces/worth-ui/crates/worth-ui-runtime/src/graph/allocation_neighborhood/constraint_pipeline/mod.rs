@@ -5,10 +5,10 @@
 //! Each step lives in a named module so future readers can open the transition they care about
 //! without reconstructing the pipeline from a bag of private functions.
 
+mod admission_parts;
 mod admit_edges;
 mod classify_special_inputs;
 mod collect_authority;
-mod admission_parts;
 mod verify_construct;
 
 #[cfg(test)]

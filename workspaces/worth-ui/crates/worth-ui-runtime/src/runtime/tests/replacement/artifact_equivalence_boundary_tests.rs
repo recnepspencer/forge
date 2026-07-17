@@ -157,10 +157,12 @@ fn changed_admission_contract_rejected_before_artifact_comparison() {
     let app = WorthUi::app().freeze();
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let admitted = admitted_candidate(&app, &runtime, ["app/panels/inspector.wui"]);
-    let current_contract_identity = admitted.report().query_support_receipt().contract_identity();
+    let current_contract_identity = admitted
+        .report()
+        .query_support_receipt()
+        .contract_identity();
     let stale_admitted_contract_identity = query_contract_identity("stale-admission-contract");
-    let stale_admitted =
-        admitted.with_admitted_query_contract_for_test("stale-admission-contract");
+    let stale_admitted = admitted.with_admitted_query_contract_for_test("stale-admission-contract");
 
     let denial = runtime
         .compare_admitted_replacement(&stale_admitted)
@@ -184,12 +186,11 @@ fn changed_admission_contract_rejected_before_artifact_comparison() {
 fn query_contract_identity(
     label: &str,
 ) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
-    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
-        label,
-    )
-    .expect("test Query contract label admits");
+    let definition =
+        worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(label)
+            .expect("test Query contract label admits");
     worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
-        definition.digest(),
+        definition.digest()
     ])
 }
 

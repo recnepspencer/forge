@@ -90,13 +90,11 @@ pub(super) fn query_app() -> WorthUiApp {
     )
     .expect("suite query definition should admit");
     WorthUi::app()
-        .register_view_binding(
-            ViewBindingDescriptor::from_definition(
-                ViewBindingId::new("workspace.view_binding.selection").expect("valid binding id"),
-                ViewBindingFamily::collection(),
-                definition,
-            ),
-        )
+        .register_view_binding(ViewBindingDescriptor::from_definition(
+            ViewBindingId::new("workspace.view_binding.selection").expect("valid binding id"),
+            ViewBindingFamily::collection(),
+            definition,
+        ))
         .freeze()
 }
 
@@ -219,4 +217,38 @@ pub(super) fn snapshot_with_admitted_layout(
         app,
         admitted_nodes,
     )
+}
+
+pub(super) fn structural_touch_for_node(
+    app: &WorthUiApp,
+    graph_node_identity: UiGraphNodeIdentity,
+) -> crate::obligations::touch::UiGraphTouchDescriptor {
+    let declaration_identity = app
+        .graph()
+        .lookup()
+        .graph_node(graph_node_identity)
+        .expect("certification node remains in graph authority")
+        .value()
+        .declaration_identity()
+        .clone();
+    let artifact = app
+        .declaration_artifacts()
+        .iter()
+        .find(|artifact| artifact.identity() == &declaration_identity)
+        .expect("certification node retains declaration authority");
+    let origin = app
+        .graph()
+        .touches()
+        .declaration_change_receipt(artifact)
+        .expect("certification declaration admits structural change authority");
+    app.graph()
+        .touches()
+        .from_node(
+            origin,
+            crate::obligations::touch::UiGraphTouchTiming::PostMutation,
+            graph_node_identity,
+            crate::obligations::touch::UiGraphTouchAspects::new()
+                .structural(crate::obligations::touch::UiGraphTouchAspectPosture::Invalidated),
+        )
+        .expect("certification structural change admits a graph touch")
 }

@@ -153,9 +153,8 @@ fn durable_gateway_preserves_reconciliation_generation_and_order() {
 #[test]
 fn framework_turn_capability_routes_all_four_admitted_sources_once() {
     let (mut runtime, _, durable_input) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_durable_resize_catalog();
-    let mut query = super::super::query_test_support::InstalledQueryFixture::new(
-        "four-source-tick",
-    );
+    let mut query =
+        super::super::query_test_support::InstalledQueryFixture::new("four-source-tick");
     runtime.install_query_binding_for_test(query.binding_plan());
     let attempt = query.project();
 

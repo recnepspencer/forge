@@ -7,8 +7,8 @@ use worth_ui::facade::admission::{
     UiAdmissionFamily, UiAdmissionTarget, UiAdmissionWorld, UiSupportPosture, UiSupportReason,
 };
 use worth_ui::facade::graph::{
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
-    UiGraphSessionLabel,
+    UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
+    UiGraphWorldProfile,
 };
 use worth_ui::facade::obligations::{UiObligationDispatchStopPosture, UiObligationFamily};
 use worth_ui_host_contract::{

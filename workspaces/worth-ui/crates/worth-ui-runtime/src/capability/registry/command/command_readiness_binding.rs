@@ -15,7 +15,9 @@ pub struct CommandReadinessBinding {
 
 impl CommandReadinessBinding {
     pub fn always_admitted() -> Self {
-        Self { status: CommandReadinessStatus::Admitted }
+        Self {
+            status: CommandReadinessStatus::Admitted,
+        }
     }
 
     pub fn from_status(status: CommandReadinessStatus) -> Self {
@@ -36,6 +38,7 @@ impl CommandReadinessBinding {
             CommandReadinessStatus::Deferred => "deferred",
             CommandReadinessStatus::Unsupported => "unsupported",
             CommandReadinessStatus::InvalidBasis => "invalid_basis",
-        }.to_owned()
+        }
+        .to_owned()
     }
 }

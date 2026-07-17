@@ -10,8 +10,8 @@ use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
     UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
-    UiGraphSessionLabel,
+    UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
+    UiGraphWorldProfile,
 };
 use worth_ui::facade::obligations::{
     UiObligationDispatchStopPosture, UiObligationFamily, UiObligationVerdictClass,

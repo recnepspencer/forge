@@ -1,6 +1,4 @@
-use crate::capability::{
-    QueryDenialPresentation, WorthUiQueryViewRegistration,
-};
+use crate::capability::{QueryDenialPresentation, WorthUiQueryViewRegistration};
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::dependency_impact_narrowing_test_support::lower_rust_authored_artifact;
 use crate::runtime::tests::replacement_impact_test_support::{admitted_candidate, launch_runtime};
@@ -58,25 +56,16 @@ pub(super) fn phase11_pipeline(
     (runtime, admitted, narrowing, plan)
 }
 
-fn query_app(
-    live: bool,
-    denial: QueryDenialPresentation,
-) -> WorthUiApp {
-    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
-        if live { "live-query-app" } else { "snapshot-query-app" },
-    );
-    let selection = query_registration(
-        &installed,
-        "workspace.view_binding.selection",
-        live,
-        denial.clone(),
-    );
-    let detail = query_registration(
-        &installed,
-        "workspace.view_binding.detail",
-        live,
-        denial,
-    );
+fn query_app(live: bool, denial: QueryDenialPresentation) -> WorthUiApp {
+    let installed =
+        worth_ui_query_binding::certification::worth_ui_installed_test_domain(if live {
+            "live-query-app"
+        } else {
+            "snapshot-query-app"
+        });
+    let selection =
+        query_registration(&installed, "workspace.view_binding.selection", live, denial);
+    let detail = query_registration(&installed, "workspace.view_binding.detail", live, denial);
     WorthUi::app()
         .register_query_view(selection)
         .expect("installed selection view should register")

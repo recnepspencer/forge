@@ -82,10 +82,7 @@ impl WorthUiAdmittedReplacementCandidate {
     }
 
     #[cfg(test)]
-    pub(crate) fn with_admitted_query_contract_for_test(
-        mut self,
-        contract_label: &str,
-    ) -> Self {
+    pub(crate) fn with_admitted_query_contract_for_test(mut self, contract_label: &str) -> Self {
         self.admitted_query_contract_identity = query_contract_identity_for_test(contract_label);
         self
     }
@@ -95,11 +92,10 @@ impl WorthUiAdmittedReplacementCandidate {
 fn query_contract_identity_for_test(
     label: &str,
 ) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
-    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
-        label,
-    )
-    .expect("test Query contract label must be valid");
+    let definition =
+        worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(label)
+            .expect("test Query contract label must be valid");
     worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
-        definition.digest(),
+        definition.digest()
     ])
 }
