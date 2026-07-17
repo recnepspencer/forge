@@ -7,6 +7,23 @@
 //! let _shortcut =
 //!     worth_store_physical_isolation::execute_admitted_compaction_rewrite_for_plan;
 //! ```
+//!
+//! Replica bootstrap cannot lease a caller-built raw source request. It must
+//! consume the cut resolved by Recovery Physics from independently reopened
+//! media:
+//!
+//! ```compile_fail
+//! use worth_store_physical_isolation::{
+//!     RecoverySourceLeaseRegistry, RecoverySourceLeaseRequest,
+//! };
+//!
+//! fn raw_bootstrap_source_is_insufficient(
+//!     registry: &RecoverySourceLeaseRegistry,
+//!     raw: RecoverySourceLeaseRequest,
+//! ) {
+//!     let _ = registry.admit_bootstrap_source_cut(raw);
+//! }
+//! ```
 
 extern crate self as worth_store_physical_isolation;
 

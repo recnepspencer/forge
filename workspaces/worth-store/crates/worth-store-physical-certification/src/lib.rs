@@ -12,6 +12,12 @@ mod evidence;
 mod faults;
 mod fixtures;
 mod observation;
+mod operational_recovery_audit_driver;
+mod operational_recovery_driver;
+#[cfg(test)]
+mod operational_recovery_driver_tests;
+mod operational_recovery_rejoin_driver;
+mod operational_recovery_yieldpoint;
 mod oracles;
 mod physical_isolation_handoff;
 mod planning;
@@ -156,6 +162,10 @@ pub use observation::{
     PhysicalSimulationBoundaryObservation, PhysicalSimulationObservationBasis,
     PhysicalSimulationObserver, RecoveryOutcomeKind, RecoveryOutcomeObservation,
     ShortcutRejectionObservation, ShortcutRejectionObservationKind,
+};
+pub use operational_recovery_driver::{
+    DrivenOperationalTransition, OperationalRecoveryDriverTrace,
+    OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
 };
 pub use oracles::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,

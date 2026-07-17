@@ -3,12 +3,18 @@ use std::io::Read;
 use sha2::{Digest, Sha256};
 use worth_store_replication::MaterializedDisasterRecoveryBundle;
 
+use super::{
+    closure_verification::verify_cross_component_closure, DisasterRecoveryClosureDenial,
+    DisasterRecoveryVerificationPolicy, IndependentlyOpenedDisasterRecoveryBundle,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DisasterRecoveryVerificationCounters {
     components_opened: u64,
     backend_bytes_read: u64,
     maximum_resident_buffer_bytes: u64,
     cross_component_closure_checks: u64,
+    assumption_checks: u64,
 }
 
 impl DisasterRecoveryVerificationCounters {
@@ -27,6 +33,10 @@ impl DisasterRecoveryVerificationCounters {
     pub const fn cross_component_closure_checks(self) -> u64 {
         self.cross_component_closure_checks
     }
+
+    pub const fn assumption_checks(self) -> u64 {
+        self.assumption_checks
+    }
 }
 
 #[derive(Debug)]
@@ -38,6 +48,10 @@ pub enum DisasterRecoveryVerificationDenial {
     MissingComponent,
     ComponentLengthMismatch,
     ComponentDigestMismatch,
+    CrossComponentClosure(DisasterRecoveryClosureDenial),
+    CounterOverflow,
+    UnsupportedFormatAssumption,
+    UnsupportedBackendAssumption,
     Io(std::io::Error),
 }
 
@@ -69,12 +83,14 @@ impl IndependentlyVerifiedDisasterRecoveryBundle {
 }
 
 pub fn verify_disaster_recovery_bundle(
-    materialized: MaterializedDisasterRecoveryBundle,
+    opened: IndependentlyOpenedDisasterRecoveryBundle,
     resident_buffer_bytes: usize,
+    policy: &DisasterRecoveryVerificationPolicy,
 ) -> Result<IndependentlyVerifiedDisasterRecoveryBundle, DisasterRecoveryVerificationDenial> {
     if resident_buffer_bytes == 0 {
         return Err(DisasterRecoveryVerificationDenial::InvalidBufferBudget);
     }
+    let materialized = opened.materialized;
     let canonical_root = std::fs::canonicalize(materialized.root())
         .map_err(|_| DisasterRecoveryVerificationDenial::BundleRootUnavailable)?;
     let mut buffer = Vec::new();
@@ -85,13 +101,16 @@ pub fn verify_disaster_recovery_bundle(
     let mut counters = DisasterRecoveryVerificationCounters {
         components_opened: 0,
         backend_bytes_read: 0,
-        maximum_resident_buffer_bytes: resident_buffer_bytes as u64,
+        maximum_resident_buffer_bytes: u64::try_from(resident_buffer_bytes)
+            .map_err(|_| DisasterRecoveryVerificationDenial::CounterOverflow)?,
         cross_component_closure_checks: 0,
+        assumption_checks: 0,
     };
     let mut verification_digest = Sha256::new();
     verification_digest.update(b"worth-store-independent-dr-verification-v1");
     verification_digest.update(materialized.manifest_identity());
     for component in materialized.components() {
+        verify_assumptions(component, policy, &mut counters)?;
         verify_component(
             &canonical_root,
             component,
@@ -100,12 +119,31 @@ pub fn verify_disaster_recovery_bundle(
             &mut verification_digest,
         )?;
     }
-    counters.cross_component_closure_checks = 1;
+    counters.cross_component_closure_checks = verify_cross_component_closure(&materialized)
+        .map_err(DisasterRecoveryVerificationDenial::CrossComponentClosure)?;
     Ok(IndependentlyVerifiedDisasterRecoveryBundle {
         materialized,
         verification_identity: verification_digest.finalize().into(),
         counters,
     })
+}
+
+fn verify_assumptions(
+    component: &worth_store_replication::DisasterRecoveryComponent,
+    policy: &DisasterRecoveryVerificationPolicy,
+    counters: &mut DisasterRecoveryVerificationCounters,
+) -> Result<(), DisasterRecoveryVerificationDenial> {
+    if !policy.supports_format(component) {
+        return Err(DisasterRecoveryVerificationDenial::UnsupportedFormatAssumption);
+    }
+    if !policy.supports_backend(component) {
+        return Err(DisasterRecoveryVerificationDenial::UnsupportedBackendAssumption);
+    }
+    counters.assumption_checks = counters
+        .assumption_checks
+        .checked_add(2)
+        .ok_or(DisasterRecoveryVerificationDenial::CounterOverflow)?;
+    Ok(())
 }
 
 fn verify_component(
@@ -138,7 +176,12 @@ fn verify_component(
             break;
         }
         component_digest.update(&buffer[..read]);
-        bytes_read = bytes_read.saturating_add(read as u64);
+        bytes_read = bytes_read
+            .checked_add(
+                u64::try_from(read)
+                    .map_err(|_| DisasterRecoveryVerificationDenial::CounterOverflow)?,
+            )
+            .ok_or(DisasterRecoveryVerificationDenial::CounterOverflow)?;
     }
     let actual_digest: [u8; 32] = component_digest.finalize().into();
     if bytes_read != component.byte_length() {
@@ -147,10 +190,16 @@ fn verify_component(
     if actual_digest != component.expected_digest() {
         return Err(DisasterRecoveryVerificationDenial::ComponentDigestMismatch);
     }
-    counters.components_opened += 1;
-    counters.backend_bytes_read = counters.backend_bytes_read.saturating_add(bytes_read);
+    counters.components_opened = counters
+        .components_opened
+        .checked_add(1)
+        .ok_or(DisasterRecoveryVerificationDenial::CounterOverflow)?;
+    counters.backend_bytes_read = counters
+        .backend_bytes_read
+        .checked_add(bytes_read)
+        .ok_or(DisasterRecoveryVerificationDenial::CounterOverflow)?;
     verification_digest.update([component.family() as u8]);
-    verification_digest.update(component.relative_path().as_os_str().to_string_lossy().as_bytes());
+    verification_digest.update(component.relative_path().as_os_str().as_encoded_bytes());
     verification_digest.update(actual_digest);
     verification_digest.update(bytes_read.to_be_bytes());
     Ok(())

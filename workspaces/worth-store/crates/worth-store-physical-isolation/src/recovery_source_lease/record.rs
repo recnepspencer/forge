@@ -4,10 +4,11 @@ use std::{fs::OpenOptions, io::Write};
 
 use sha2::{Digest, Sha256};
 
+use super::directory_durability::sync_directory;
 use super::{RecoverySourceLeaseDenial, RecoverySourceLeaseKind};
 
-const MAGIC: &[u8; 8] = b"WRSLEAS2";
-const VERSION: u16 = 2;
+const MAGIC: &[u8; 8] = b"WRSLEAS3";
+const VERSION: u16 = 3;
 const MAX_RECORD_BYTES: usize = 1024 * 1024;
 static NEXT_PENDING_RECORD: AtomicU64 = AtomicU64::new(1);
 
@@ -15,6 +16,7 @@ pub(super) struct PersistedRecoverySourceLease {
     pub(super) kind: RecoverySourceLeaseKind,
     pub(super) operation_identity: [u8; 32],
     pub(super) source_identity: [u8; 32],
+    pub(super) source_evidence_identity: [u8; 32],
     pub(super) source_root: PathBuf,
     pub(super) artifact_names: Vec<String>,
 }
@@ -23,6 +25,7 @@ pub(super) fn encode(
     kind: RecoverySourceLeaseKind,
     operation: [u8; 32],
     source: [u8; 32],
+    source_evidence: [u8; 32],
     source_root: &Path,
     artifact_names: &[String],
 ) -> Result<Vec<u8>, RecoverySourceLeaseDenial> {
@@ -33,13 +36,14 @@ pub(super) fn encode(
         .map_err(|_| RecoverySourceLeaseDenial::AllocationFailed)?;
     let mut content = Vec::new();
     content
-        .try_reserve(111 + root.len())
+        .try_reserve(143 + root.len())
         .map_err(|_| RecoverySourceLeaseDenial::AllocationFailed)?;
     content.extend_from_slice(MAGIC);
     content.extend_from_slice(&VERSION.to_le_bytes());
     content.push(kind.tag());
     content.extend_from_slice(&operation);
     content.extend_from_slice(&source);
+    content.extend_from_slice(&source_evidence);
     content.push(platform);
     content.extend_from_slice(&root_len.to_le_bytes());
     content.extend_from_slice(&root);
@@ -62,7 +66,7 @@ pub(super) fn decode(
     expected_identity: [u8; 32],
 ) -> Result<PersistedRecoverySourceLease, RecoverySourceLeaseDenial> {
     if content.len() > MAX_RECORD_BYTES
-        || content.len() < 83
+        || content.len() < 116
         || &content[..8] != MAGIC
         || u16::from_le_bytes([content[8], content[9]]) != VERSION
         || Sha256::digest(content)[..] != expected_identity
@@ -74,19 +78,22 @@ pub(super) fn decode(
         .try_into()
         .expect("fixed operation identity");
     let source_identity = content[43..75].try_into().expect("fixed source identity");
-    let platform = content[75];
+    let source_evidence_identity = content[75..107]
+        .try_into()
+        .expect("fixed source evidence identity");
+    let platform = content[107];
     let root_len = usize::try_from(u32::from_le_bytes(
-        content[76..80].try_into().expect("fixed root length"),
+        content[108..112].try_into().expect("fixed root length"),
     ))
     .map_err(|_| RecoverySourceLeaseDenial::LeaseConflict)?;
-    let root_end = 80_usize
+    let root_end = 112_usize
         .checked_add(root_len)
         .ok_or(RecoverySourceLeaseDenial::LeaseConflict)?;
     let count_end = root_end
         .checked_add(4)
         .ok_or(RecoverySourceLeaseDenial::LeaseConflict)?;
     let root_bytes = content
-        .get(80..root_end)
+        .get(112..root_end)
         .ok_or(RecoverySourceLeaseDenial::LeaseConflict)?;
     let source_root = decode_path(platform, root_bytes)?;
     let count_bytes = content
@@ -104,6 +111,7 @@ pub(super) fn decode(
         kind,
         operation_identity,
         source_identity,
+        source_evidence_identity,
         source_root,
         artifact_names,
     })
@@ -206,24 +214,6 @@ fn verify_existing(path: &Path, expected: &[u8]) -> Result<(), RecoverySourceLea
     } else {
         Err(RecoverySourceLeaseDenial::LeaseConflict)
     }
-}
-
-#[cfg(windows)]
-fn sync_directory(path: &Path) -> Result<(), RecoverySourceLeaseDenial> {
-    use std::os::windows::fs::OpenOptionsExt;
-    OpenOptions::new()
-        .read(true)
-        .write(true)
-        .custom_flags(0x0200_0000)
-        .open(path)?
-        .sync_all()?;
-    Ok(())
-}
-
-#[cfg(not(windows))]
-fn sync_directory(path: &Path) -> Result<(), RecoverySourceLeaseDenial> {
-    std::fs::File::open(path)?.sync_all()?;
-    Ok(())
 }
 
 #[cfg(windows)]

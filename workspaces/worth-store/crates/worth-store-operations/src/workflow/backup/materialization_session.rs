@@ -46,6 +46,7 @@ pub enum BackupMaterializationDenial {
 
 #[derive(Debug)]
 pub struct BackupMaterializationCompletion {
+    operation_id: OperationalOperationId,
     bundle: MaterializedBackupBundle,
     counters: PhysicalBackupMaterializationCounters,
     cut: AdmittedBackupCut,
@@ -66,6 +67,9 @@ pub struct BackupMaterializationRecordDenial {
 }
 
 impl BackupMaterializationCompletion {
+    pub const fn operation_id(&self) -> &OperationalOperationId {
+        &self.operation_id
+    }
     pub const fn bundle(&self) -> &MaterializedBackupBundle {
         &self.bundle
     }
@@ -95,6 +99,7 @@ impl UnrecordedBackupMaterialization {
             });
         }
         Ok(BackupMaterializationCompletion {
+            operation_id: self.operation_id,
             bundle: self.bundle,
             counters: self.counters,
             cut: self.cut,

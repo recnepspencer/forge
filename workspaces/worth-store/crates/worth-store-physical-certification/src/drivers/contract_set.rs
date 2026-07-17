@@ -48,9 +48,7 @@ impl AdmittedDriverContractSet {
         );
         Self::from_drivers([
             production.admit()?,
-            CrashRuntimeIsolationDriver::fresh_runtime_recovery()
-                .declare_yieldpoint(PhysicalBoundaryYieldpoint::fresh_runtime_replay_open())
-                .admit()?,
+            operational_recovery_crash_driver().admit()?,
             AdversarialStorageBoundaryDriver::shortcut_rejection()
                 .declare_yieldpoint(PhysicalBoundaryYieldpoint::shortcut_rejection_boundary())
                 .admit()?,
@@ -126,6 +124,17 @@ impl AdmittedDriverContractSet {
     pub fn iter(&self) -> impl Iterator<Item = &PhysicalSimulationDriver> {
         self.drivers.iter()
     }
+}
+
+fn operational_recovery_crash_driver() -> CrashRuntimeIsolationDriver {
+    use crate::OperationalRecoveryYieldpoint as Point;
+    Point::ALL.into_iter().fold(
+        CrashRuntimeIsolationDriver::fresh_runtime_recovery()
+            .declare_yieldpoint(PhysicalBoundaryYieldpoint::fresh_runtime_replay_open()),
+        |driver, point| {
+            driver.declare_yieldpoint(PhysicalBoundaryYieldpoint::operational_recovery(point))
+        },
+    )
 }
 
 const fn baseline_storage_seam(seam: ProductionStorageBoundarySeam) -> bool {

@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 1 generic and domain Store certification suites."
 
 [dependencies]
+sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-analysis.workspace = true

@@ -1,9 +1,9 @@
 use worth_store_physical_format::{
     AllocationClassKind, FreeSpaceManifestEntry, OfflineManifestCodec, PersistedExtentBytes,
-    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness,
-    PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
-    PhysicalPageId, PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalRecordSlot,
-    PhysicalRootReference, PhysicalSegmentId, PlatformPhysicalReplayArtifact, SlotAppendRequest,
+    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalExtentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
+    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalRootReference,
+    PhysicalSegmentId, PlatformPhysicalReplayArtifact, SlotAppendRequest,
 };
 
 use super::{FixtureScaleDeclaration, LargeStoreFixtureProfile, SyntheticFixtureAuthorityDenied};

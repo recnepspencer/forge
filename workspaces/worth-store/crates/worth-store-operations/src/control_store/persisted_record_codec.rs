@@ -1,14 +1,12 @@
 use worth_store_physical_backend::MAX_OPERATIONAL_CONTROL_PAYLOAD_BYTES;
 
 use super::persisted_record_codec_io::{ControlRecordDecoder, ControlRecordEncoder};
-use super::publication_binding_codec::{
-    decode_admission_policy, decode_authority_posture, encode_admission_policy,
-    encode_authority_posture,
-};
+use super::persisted_record_encoding::encode_kind;
+use super::publication_binding_codec::{decode_admission_policy, decode_authority_posture};
 use super::{
-    OperationalControlRecord, OperationalControlRecordKind, OperationalWorkflowKind,
-    PersistedControlRecordDecodeDenial, PersistedOperationalControlRecord,
-    PersistedOperationalControlRecordKind, PersistedWorkflowKind,
+    OperationalControlRecord, PersistedControlRecordDecodeDenial,
+    PersistedOperationalControlRecord, PersistedOperationalControlRecordKind,
+    PersistedWorkflowKind,
 };
 
 const CONTROL_RECORD_MAGIC: [u8; 8] = *b"WSCTL004";
@@ -52,161 +50,6 @@ pub(crate) fn decode_control_record(
         transition_id,
         kind,
     })
-}
-
-fn encode_kind(
-    output: &mut ControlRecordEncoder,
-    kind: &OperationalControlRecordKind,
-) -> Result<(), OperationalControlEncodingDenial> {
-    match kind {
-        OperationalControlRecordKind::WorkflowOpened { workflow } => {
-            output.u8(1)?;
-            output.u8(workflow_tag(*workflow))
-        }
-        OperationalControlRecordKind::SourceLeasePersisted {
-            recovery,
-            recovery_object,
-        } => {
-            output.u8(4)?;
-            output.bytes(&recovery.cut_identity())?;
-            output.bytes(&recovery_object.digest())?;
-            output.u64(recovery_object.bytes())
-        }
-        OperationalControlRecordKind::BackupMaterializationOpened { plan } => {
-            let (platform, path) = plan
-                .persisted_path()
-                .map_err(|denial| match denial {
-                    super::operational_media_path::OperationalMediaPathDenial::AllocationFailed => {
-                        OperationalControlEncodingDenial::AllocationFailed
-                    }
-                    _ => OperationalControlEncodingDenial::RecordTooLarge,
-                })?;
-            output.u8(11)?;
-            output.bytes(&plan.cut_identity())?;
-            output.u8(platform)?;
-            output.length_prefixed_bytes(&path)?;
-            output.u64(plan.buffer_bytes() as u64)
-        }
-        OperationalControlRecordKind::BackupMaterializationRecorded {
-            manifest_digest,
-        } => {
-            output.u8(5)?;
-            output.bytes(manifest_digest)
-        }
-        OperationalControlRecordKind::IndependentBackupVerificationRecordedAndSourceLeaseReleased {
-            verification_identity,
-            release,
-        } => {
-            output.u8(6)?;
-            output.bytes(verification_identity)?;
-            output.length_prefixed_bytes(release.recovery_bytes())
-        }
-        OperationalControlRecordKind::BackupAbandoned {
-            reason,
-            released_source_lease,
-        } => {
-            output.u8(9)?;
-            output.string(reason)?;
-            output.u8(1)?;
-            output.length_prefixed_bytes(released_source_lease.recovery_bytes())
-        }
-        OperationalControlRecordKind::AuthorizationConsumed {
-            authorization_identity,
-            plan_fingerprint,
-            operation_tag,
-            execution_plan_fingerprint,
-            assertion_identity,
-            expires_at,
-            replay_same_operation_identity,
-        } => {
-            output.u8(12)?;
-            output.bytes(authorization_identity)?;
-            output.bytes(plan_fingerprint)?;
-            output.u8(*operation_tag)?;
-            match execution_plan_fingerprint {
-                Some(fingerprint) => {
-                    output.u8(1)?;
-                    output.bytes(fingerprint)?;
-                }
-                None => output.u8(0)?,
-            }
-            output.bytes(assertion_identity)?;
-            output.u64(*expires_at)?;
-            output.u8(u8::from(*replay_same_operation_identity))
-        }
-        OperationalControlRecordKind::RepairExecutionOpened {
-            authorization_identity, plan_fingerprint, owner_node_count, topology_tag,
-        } => { output.u8(13)?; output.bytes(authorization_identity)?;
-            output.bytes(plan_fingerprint)?; output.u64(*owner_node_count)?; output.u8(*topology_tag) }
-        OperationalControlRecordKind::RepairOwnerReceiptPersisted {
-            plan_fingerprint, node_fingerprint, receipt_fingerprint, owner_tag,
-        } => { output.u8(14)?; output.bytes(plan_fingerprint)?; output.bytes(node_fingerprint)?;
-            output.bytes(receipt_fingerprint)?; output.u8(*owner_tag) }
-        OperationalControlRecordKind::RepairOwnerEffectStarted {
-            plan_fingerprint, node_fingerprint, owner_tag,
-        } => { output.u8(21)?; output.bytes(plan_fingerprint)?;
-            output.bytes(node_fingerprint)?; output.u8(*owner_tag) }
-        OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
-            workflow, plan_fingerprint, receipt_fingerprint, owner_tag,
-        } => {
-            output.u8(22)?;
-            output.u8(workflow_tag(*workflow))?;
-            output.bytes(plan_fingerprint)?;
-            output.bytes(receipt_fingerprint)?;
-            output.u8(*owner_tag)
-        }
-        OperationalControlRecordKind::RepairDispositionRecorded {
-            plan_fingerprint, disposition_tag, disposition_basis,
-        } => { output.u8(15)?; output.bytes(plan_fingerprint)?; output.u8(*disposition_tag)?;
-            output.bytes(disposition_basis) }
-        OperationalControlRecordKind::RecoveryStagingCompleted {
-            authorization_identity, plan_fingerprint, execution_plan_fingerprint,
-            staged_media_identity,
-        } => {
-            output.u8(18)?;
-            output.bytes(authorization_identity)?;
-            output.bytes(plan_fingerprint)?;
-            output.bytes(execution_plan_fingerprint)?;
-            output.bytes(staged_media_identity)
-        }
-        OperationalControlRecordKind::RecoveryPublicationPending { binding } => {
-            output.u8(16)?;
-            output.u8(binding.operation_tag())?;
-            output.bytes(&binding.cutover_plan_fingerprint())?;
-            output.bytes(&binding.publication_plan_fingerprint())?;
-            output.bytes(&binding.publication_identity())?;
-            output.bytes(&binding.candidate_media_identity())?;
-            output.bytes(&binding.fence_identity())?;
-            output.bytes(&binding.fence_plan_fingerprint())?;
-            encode_authority_posture(output, binding.authority_posture())?;
-            encode_admission_policy(output, binding.admission_policy())
-        }
-        OperationalControlRecordKind::RecoveryPublicationPrepared { binding } => {
-            output.u8(19)?;
-            output.u8(binding.operation_tag())?;
-            output.bytes(&binding.cutover_plan_fingerprint())?;
-            output.bytes(&binding.publication_plan_fingerprint())?;
-            output.bytes(&binding.publication_identity())?;
-            output.bytes(&binding.candidate_media_identity())?;
-            output.bytes(&binding.fence_identity())?;
-            output.bytes(&binding.fence_plan_fingerprint())?;
-            encode_authority_posture(output, binding.authority_posture())?;
-            encode_admission_policy(output, binding.admission_policy())
-        }
-        OperationalControlRecordKind::RecoveryPublicationDisposition {
-            publication_identity, disposition_tag, disposition_basis, observed_authority,
-        } => { output.u8(17)?; output.bytes(publication_identity)?; output.u8(*disposition_tag)?;
-            output.bytes(disposition_basis)?; output.bytes(&observed_authority.fingerprint()) }
-        OperationalControlRecordKind::RecoveryPublicationFenceReleased {
-            publication_identity, fence_identity, fence_plan_fingerprint, disposition_tag,
-        } => {
-            output.u8(20)?;
-            output.bytes(publication_identity)?;
-            output.bytes(fence_identity)?;
-            output.bytes(fence_plan_fingerprint)?;
-            output.u8(*disposition_tag)
-        }
-    }
 }
 
 fn decode_kind(
@@ -312,22 +155,62 @@ fn decode_kind(
             receipt_fingerprint: input.array()?,
             owner_tag: input.u8()?,
         },
+        23 => PersistedOperationalControlRecordKind::ReplicaBootstrapTransferRecorded {
+            authorization_plan_fingerprint: input.array()?,
+            execution_plan_fingerprint: input.array()?,
+            receipt_identity: input.array()?,
+            durable_target_identity: input.array()?,
+            source_lease_identity: input.array()?,
+            source_bytes_read: input.u64()?,
+            output_bytes_written: input.u64()?,
+            backend_requests: input.u64()?,
+            maximum_resident_buffer_bytes: input.u64()?,
+        },
+        24 => PersistedOperationalControlRecordKind::ReplicaPromotionFenceRecorded {
+            authorization_plan_fingerprint: input.array()?,
+            execution_plan_fingerprint: input.array()?,
+            fence_identity: input.array()?,
+            promoted_epoch: input.u64()?,
+        },
+        25 => PersistedOperationalControlRecordKind::ReplicaPromotionRecorded {
+            authorization_plan_fingerprint: input.array()?,
+            execution_plan_fingerprint: input.array()?,
+            receipt_identity: input.array()?,
+            fence_identity: input.array()?,
+            promoted_epoch: input.u64()?,
+        },
+        26 => PersistedOperationalControlRecordKind::ReplicaBootstrapCompleted {
+            receipt_identity: input.array()?,
+            verification_identity: input.array()?,
+            source_lease_identity: input.array()?,
+        },
+        27 => PersistedOperationalControlRecordKind::ReplicaBootstrapAbandoned {
+            receipt_identity: input.array()?,
+            reason: input.string()?,
+            source_lease_identity: input.array()?,
+        },
+        28 => PersistedOperationalControlRecordKind::ReplicaPromotionPublished {
+            receipt_identity: input.array()?, verification_identity: input.array()?,
+            publication_identity: input.array()?, target_identity: input.array()?,
+            promoted_epoch: input.u64()?,
+        },
+        29 => PersistedOperationalControlRecordKind::ReplicaPromotionReadmitted {
+            publication_identity: input.array()?, serve_lease_identity: input.array()?,
+            serving_epoch: input.u64()?,
+        },
+        30 => PersistedOperationalControlRecordKind::OldPrimaryRejoinPlanned {
+            promotion_receipt_identity: input.array()?,
+            rejoin_plan_fingerprint: input.array()?, disposition_tag: input.u8()?,
+        },
+        31 => PersistedOperationalControlRecordKind::OldPrimaryRejoinCompleted {
+            rejoin_plan_fingerprint: input.array()?,
+            rejoin_receipt_identity: input.array()?,
+            forensic_retention_identity: input.array()?,
+            rebootstrap_target_identity: input.array()?,
+            disposition_tag: input.u8()?,
+        },
         _ => return Err(PersistedControlRecordDecodeDenial::InvalidEncoding),
     })
-}
-
-const fn workflow_tag(kind: OperationalWorkflowKind) -> u8 {
-    match kind {
-        OperationalWorkflowKind::OfflineInspection => 1,
-        OperationalWorkflowKind::Backup => 2,
-        OperationalWorkflowKind::Restore => 3,
-        OperationalWorkflowKind::PointInTimeRecovery => 4,
-        OperationalWorkflowKind::Rollback => 5,
-        OperationalWorkflowKind::Repair => 6,
-        OperationalWorkflowKind::ReplicaBootstrap => 7,
-        OperationalWorkflowKind::ReplicaPromotion => 8,
-        OperationalWorkflowKind::ForensicAcquisition => 9,
-    }
 }
 
 const fn workflow_from_tag(

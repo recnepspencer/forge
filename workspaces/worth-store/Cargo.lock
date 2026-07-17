@@ -828,6 +828,7 @@ name = "worth-store-authority"
 version = "0.1.0"
 dependencies = [
  "sha2",
+ "worth-foundational",
  "worth-proof",
  "worth-store-aspect-native",
  "worth-store-contracts",
@@ -905,6 +906,7 @@ name = "worth-store-certification"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+ "sha2",
  "worth-foundational",
  "worth-proof",
  "worth-relational",
@@ -1159,6 +1161,8 @@ dependencies = [
 name = "worth-store-physical-certification"
 version = "0.1.0"
 dependencies = [
+ "sha2",
+ "tempfile",
  "worth-foundational",
  "worth-proof",
  "worth-store-aspect-native",
@@ -1178,6 +1182,7 @@ dependencies = [
  "worth-store-readiness",
  "worth-store-reclaim-policy",
  "worth-store-recovery-physics",
+ "worth-store-replication",
  "worth-store-security",
  "worth-store-test-support",
  "worth-store-tiering",

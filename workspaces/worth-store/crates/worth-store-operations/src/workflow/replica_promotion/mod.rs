@@ -1,8 +1,22 @@
+mod execution;
+mod finalization;
 mod workflow;
 
+pub use execution::{
+    DurablyFencedReplicaPromotion, ExecutedReplicaPromotion, ExecutionReadyReplicaPromotion,
+    FencedReplicaPromotion, RecoveredReplicaPromotion, ReplicaPromotionExecutionDenial,
+    ReplicaPromotionFencePersistenceDenial, ReplicaPromotionFencingDenial,
+    ReplicaPromotionReadinessDenial, ReplicaPromotionResume,
+};
+pub use finalization::{
+    CompletedOldPrimaryRejoin, CurrentReplicaPromotion, GovernedOldPrimaryRejoinPlan,
+    PostVerifiedReplicaPromotion, PublishedReplicaPromotion, ReplicaPromotionFinalizationDenial,
+    ReplicaPromotionPublicationDenial, ReplicaPromotionPublicationPort,
+    ReplicaPromotionPublicationReceipt, ReplicaPromotionPublicationRequest,
+    ResolvedOldPrimaryRejoin,
+};
 pub use workflow::{
     AuthorizedReplicaPromotionPlan, EvidenceBoundReplicaPromotionPlan,
-    ExecutedReplicaPromotion, ExecutionReadyReplicaPromotion, LoweredReplicaPromotionOwnerPlanDag,
-    ReplicaPromotionExecutionDenial, ReplicaPromotionIntent, ReplicaPromotionLoweringDenial,
-    ReplicaPromotionReadinessDenial, ReplicaPromotionResolutionDenial,
+    LoweredReplicaPromotionOwnerPlanDag, ReplicaPromotionIntent, ReplicaPromotionLoweringDenial,
+    ReplicaPromotionResolutionDenial,
 };

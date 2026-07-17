@@ -46,6 +46,7 @@ fn driver_owns_yieldpoint_seam(driver: PhysicalDriverKind, seam: PhysicalBoundar
         }
         PhysicalDriverKind::FreshRuntimeRecovery => {
             seam == PhysicalBoundarySeam::FreshRuntimeRecovery
+                || matches!(seam, PhysicalBoundarySeam::OperationalRecovery(_))
         }
         PhysicalDriverKind::MemoryPressureBoundary => seam == PhysicalBoundarySeam::MemoryPressure,
         PhysicalDriverKind::IoPressureBoundary => seam == PhysicalBoundarySeam::IoPressure,

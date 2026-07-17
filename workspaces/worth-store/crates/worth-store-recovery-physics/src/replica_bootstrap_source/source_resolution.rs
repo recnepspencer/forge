@@ -34,39 +34,57 @@ impl From<OfflineMediaReadDenial> for BootstrapSourceResolutionDenial {
 #[derive(Debug)]
 pub struct BootstrapSourceResolutionRequest {
     operation_identity: [u8; 32],
+    evidence: BootstrapSourceEvidenceBinding,
+    source_root: PathBuf,
+    frontier: BootstrapSourceFrontier,
+    artifacts: Vec<BootstrapSourceArtifact>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BootstrapSourceEvidenceBinding {
     source_identity: [u8; 32],
     verification_identity: [u8; 32],
     source_lineage_identity: [u8; 32],
-    source_root: PathBuf,
+}
+
+impl BootstrapSourceEvidenceBinding {
+    pub fn from_independent_verification(
+        source_identity: [u8; 32],
+        verification_identity: [u8; 32],
+        source_lineage_identity: [u8; 32],
+    ) -> Result<Self, BootstrapSourceResolutionDenial> {
+        if source_identity == [0; 32]
+            || verification_identity == [0; 32]
+            || source_lineage_identity == [0; 32]
+        {
+            return Err(BootstrapSourceResolutionDenial::InvalidIdentity);
+        }
+        Ok(Self {
+            source_identity,
+            verification_identity,
+            source_lineage_identity,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BootstrapSourceFrontier {
     observed_lsn: u64,
     durable_lsn: u64,
     client_acknowledged_lsn: u64,
     replication_acknowledged_lsn: u64,
     authority_epoch: u64,
-    artifacts: Vec<BootstrapSourceArtifact>,
 }
 
-impl BootstrapSourceResolutionRequest {
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_independent_verification(
-        operation_identity: [u8; 32],
-        source_identity: [u8; 32],
-        verification_identity: [u8; 32],
-        source_lineage_identity: [u8; 32],
-        source_root: impl Into<PathBuf>,
+impl BootstrapSourceFrontier {
+    pub const fn admit(
         observed_lsn: u64,
         durable_lsn: u64,
         client_acknowledged_lsn: u64,
         replication_acknowledged_lsn: u64,
         authority_epoch: u64,
-        mut artifacts: Vec<BootstrapSourceArtifact>,
     ) -> Result<Self, BootstrapSourceResolutionDenial> {
-        if operation_identity == [0; 32]
-            || source_identity == [0; 32]
-            || verification_identity == [0; 32]
-            || source_lineage_identity == [0; 32]
-            || authority_epoch == 0
-        {
+        if authority_epoch == 0 {
             return Err(BootstrapSourceResolutionDenial::InvalidIdentity);
         }
         if replication_acknowledged_lsn > client_acknowledged_lsn
@@ -74,6 +92,27 @@ impl BootstrapSourceResolutionRequest {
             || durable_lsn > observed_lsn
         {
             return Err(BootstrapSourceResolutionDenial::InvalidFrontier);
+        }
+        Ok(Self {
+            observed_lsn,
+            durable_lsn,
+            client_acknowledged_lsn,
+            replication_acknowledged_lsn,
+            authority_epoch,
+        })
+    }
+}
+
+impl BootstrapSourceResolutionRequest {
+    pub fn from_independent_verification(
+        operation_identity: [u8; 32],
+        evidence: BootstrapSourceEvidenceBinding,
+        source_root: impl Into<PathBuf>,
+        frontier: BootstrapSourceFrontier,
+        mut artifacts: Vec<BootstrapSourceArtifact>,
+    ) -> Result<Self, BootstrapSourceResolutionDenial> {
+        if operation_identity == [0; 32] {
+            return Err(BootstrapSourceResolutionDenial::InvalidIdentity);
         }
         artifacts.sort_by(|left, right| left.relative_path().cmp(right.relative_path()));
         if artifacts
@@ -89,20 +128,16 @@ impl BootstrapSourceResolutionRequest {
             BootstrapSourceArtifactFamily::Blob,
         ] {
             if !artifacts.iter().any(|artifact| artifact.family() == family) {
-                return Err(BootstrapSourceResolutionDenial::MissingRequiredFamily(family));
+                return Err(BootstrapSourceResolutionDenial::MissingRequiredFamily(
+                    family,
+                ));
             }
         }
         Ok(Self {
             operation_identity,
-            source_identity,
-            verification_identity,
-            source_lineage_identity,
+            evidence,
             source_root: source_root.into(),
-            observed_lsn,
-            durable_lsn,
-            client_acknowledged_lsn,
-            replication_acknowledged_lsn,
-            authority_epoch,
+            frontier,
             artifacts,
         })
     }
@@ -208,7 +243,12 @@ impl RecoveryPhysicsBootstrapSourceOwner {
         let mut bytes_read = 0_u64;
         for artifact in &request.artifacts {
             bytes_read = bytes_read
-                .checked_add(verify_artifact(&source_root, artifact, &mut media, &mut buffer)?)
+                .checked_add(verify_artifact(
+                    &source_root,
+                    artifact,
+                    &mut media,
+                    &mut buffer,
+                )?)
                 .ok_or(BootstrapSourceResolutionDenial::CounterOverflow)?;
         }
         media.revalidate_consistency()?;
@@ -216,7 +256,8 @@ impl RecoveryPhysicsBootstrapSourceOwner {
             artifacts_reopened: u64::try_from(request.artifacts.len())
                 .map_err(|_| BootstrapSourceResolutionDenial::CounterOverflow)?,
             bytes_read,
-            resident_buffer_bytes: resident_buffer_bytes as u64,
+            resident_buffer_bytes: u64::try_from(resident_buffer_bytes)
+                .map_err(|_| BootstrapSourceResolutionDenial::CounterOverflow)?,
         };
         Ok(resolve_cut(request, source_root, counters))
     }
@@ -280,9 +321,9 @@ fn resolve_cut(
         .collect();
     ResolvedBootstrapRecoverySourceCut {
         operation_identity: request.operation_identity,
-        source_identity: request.source_identity,
-        verification_identity: request.verification_identity,
-        source_lineage_identity: request.source_lineage_identity,
+        source_identity: request.evidence.source_identity,
+        verification_identity: request.evidence.verification_identity,
+        source_lineage_identity: request.evidence.source_lineage_identity,
         source_root,
         artifact_paths,
         frontier_identity,
@@ -294,11 +335,11 @@ fn resolve_cut(
 fn frontier_identity(request: &BootstrapSourceResolutionRequest) -> [u8; 32] {
     let mut digest = Sha256::new();
     digest.update(b"worth-store-bootstrap-source-frontier-v1");
-    digest.update(request.observed_lsn.to_be_bytes());
-    digest.update(request.durable_lsn.to_be_bytes());
-    digest.update(request.client_acknowledged_lsn.to_be_bytes());
-    digest.update(request.replication_acknowledged_lsn.to_be_bytes());
-    digest.update(request.authority_epoch.to_be_bytes());
+    digest.update(request.frontier.observed_lsn.to_be_bytes());
+    digest.update(request.frontier.durable_lsn.to_be_bytes());
+    digest.update(request.frontier.client_acknowledged_lsn.to_be_bytes());
+    digest.update(request.frontier.replication_acknowledged_lsn.to_be_bytes());
+    digest.update(request.frontier.authority_epoch.to_be_bytes());
     digest.finalize().into()
 }
 
@@ -309,15 +350,34 @@ fn resolution_identity(
     let mut digest = Sha256::new();
     digest.update(b"worth-store-resolved-bootstrap-source-cut-v1");
     digest.update(request.operation_identity);
-    digest.update(request.source_identity);
-    digest.update(request.verification_identity);
-    digest.update(request.source_lineage_identity);
+    digest.update(request.evidence.source_identity);
+    digest.update(request.evidence.verification_identity);
+    digest.update(request.evidence.source_lineage_identity);
     digest.update(frontier_identity);
     for artifact in &request.artifacts {
         digest.update([artifact.family().tag()]);
-        digest.update(artifact.relative_path().as_os_str().to_string_lossy().as_bytes());
+        update_path_digest(&mut digest, artifact.relative_path());
         digest.update(artifact.byte_length().to_be_bytes());
         digest.update(artifact.content_digest());
     }
     digest.finalize().into()
+}
+
+#[cfg(windows)]
+fn update_path_digest(digest: &mut Sha256, path: &Path) {
+    use std::os::windows::ffi::OsStrExt;
+    for unit in path.as_os_str().encode_wide() {
+        digest.update(unit.to_le_bytes());
+    }
+}
+
+#[cfg(unix)]
+fn update_path_digest(digest: &mut Sha256, path: &Path) {
+    use std::os::unix::ffi::OsStrExt;
+    digest.update(path.as_os_str().as_bytes());
+}
+
+#[cfg(not(any(windows, unix)))]
+fn update_path_digest(digest: &mut Sha256, path: &Path) {
+    digest.update(path.as_os_str().to_string_lossy().as_bytes());
 }

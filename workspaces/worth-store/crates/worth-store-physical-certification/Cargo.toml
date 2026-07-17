@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 2 S.12 physical database certification and performance evidence."
 
 [dependencies]
+sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
@@ -25,10 +26,12 @@ worth-store-physical-isolation = { workspace = true, features = ["certification-
 worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
 worth-store-readiness.workspace = true
 worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-replication.workspace = true
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
 
 [dev-dependencies]
+tempfile = "3"
 worth-store-test-support.workspace = true
 
 [features]

@@ -232,6 +232,8 @@ impl SelectedOperationalControlState {
                 pending_recovery_publications: replayed.pending_recovery_publications,
                 prepared_recovery_publications: replayed.prepared_recovery_publications,
                 terminal_recovery_fence_releases: replayed.terminal_recovery_fence_releases,
+                replica_bootstraps: replayed.replica_bootstraps,
+                replica_promotions: replayed.replica_promotions,
             }),
         }
     }
@@ -284,6 +286,14 @@ impl SelectedOperationalControlState {
 
     pub fn indeterminate_recovery_staging_handles(&self) -> &[IndeterminateRecoveryStagingHandle] {
         &self.recovery_handles.indeterminate_recovery_staging
+    }
+
+    pub fn replica_bootstrap_recovery_handles(&self) -> &[super::ReplicaBootstrapRecoveryHandle] {
+        &self.recovery_handles.replica_bootstraps
+    }
+
+    pub fn replica_promotion_recovery_handles(&self) -> &[super::ReplicaPromotionRecoveryHandle] {
+        &self.recovery_handles.replica_promotions
     }
 }
 

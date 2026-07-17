@@ -64,6 +64,7 @@ pub struct ExternalFenceGrant {
     pub(crate) new_epoch: u64,
     pub(crate) provider_identity: [u8; 32],
     pub(crate) fence_identity: [u8; 32],
+    pub(crate) operation_identity: super::PromotionFenceOperationIdentity,
 }
 
 impl ExternalFenceGrant {
@@ -72,12 +73,14 @@ impl ExternalFenceGrant {
         new_epoch: u64,
         provider_identity: [u8; 32],
         fence_identity: [u8; 32],
+        operation_identity: super::PromotionFenceOperationIdentity,
     ) -> Self {
         Self {
             old_lease_token,
             new_epoch,
             provider_identity,
             fence_identity,
+            operation_identity,
         }
     }
 }
@@ -98,7 +101,13 @@ pub trait OperationalFencingAuthorityPort: std::fmt::Debug {
         &self,
         old_lease_token: [u8; 32],
         minimum_epoch_exclusive: u64,
+        operation_identity: super::PromotionFenceOperationIdentity,
     ) -> Result<ExternalFenceGrant, OperationalFencingProviderDenial>;
+
+    fn recover_fence(
+        &self,
+        operation_identity: super::PromotionFenceOperationIdentity,
+    ) -> Result<Option<ExternalFenceGrant>, OperationalFencingProviderDenial>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -126,6 +135,19 @@ impl PrimaryServeLease {
 
     pub const fn selected_control_generation(self) -> ControlStoreGeneration {
         self.selected_control_generation
+    }
+
+    pub fn lease_identity(self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+        let mut digest = Sha256::new();
+        digest.update(b"worth-store-primary-serve-lease-v1");
+        digest.update(self.authority.fingerprint());
+        digest.update(self.selected_control_generation.get().to_be_bytes());
+        digest.update(self.token);
+        digest.update(self.epoch.to_be_bytes());
+        digest.update(self.valid_until_tick.to_be_bytes());
+        digest.update(self.provider_identity);
+        digest.finalize().into()
     }
 
     pub(crate) const fn token(self) -> [u8; 32] {

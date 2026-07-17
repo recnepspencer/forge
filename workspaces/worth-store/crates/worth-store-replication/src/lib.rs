@@ -71,25 +71,21 @@ pub use admission::{
     ReplicationSourceDeclaration,
 };
 pub use bootstrap::{
-    LoweredReplicaBootstrapPlan, ReplicaBootstrapDenial, ReplicaBootstrapExecutionPort,
+    durable_replica_target_identity, LoweredReplicaBootstrapPlan, ReplicaBootstrapDenial,
+    ReplicaBootstrapExecutionCounters, ReplicaBootstrapExecutionPort,
     ReplicaBootstrapExecutionReport, ReplicaBootstrapIntent, ReplicaBootstrapOwner,
-    ReplicaBootstrapReceipt,
+    ReplicaBootstrapReceipt, REPLICA_TARGET_DIGEST_BUFFER_BYTES,
 };
 pub use disaster_recovery::{
-    DisasterRecoveryBundleDenial, DisasterRecoveryComponent, DisasterRecoveryComponentFamily,
+    DisasterRecoveryArtifactEvidence, DisasterRecoveryBundleDenial, DisasterRecoveryComponent,
+    DisasterRecoveryComponentFamily, DisasterRecoveryComponentSemantics,
+    DisasterRecoveryManifestFormat, DisasterRecoverySecurityBinding,
     MaterializedDisasterRecoveryBundle, ReplicationDisasterRecoveryOwner,
+    DISASTER_RECOVERY_MANIFEST_NAME,
 };
 pub use divergence::{
     DivergentReplicaHistoryReport, ReplicaHistoryClassification, ReplicaHistoryObservation,
     ReplicaRecoveryFrontier, ReplicaRecoveryFrontierDenial,
-};
-pub use promotion::{
-    LoweredReplicaPromotionPlan, ReplicaPromotionCandidate, ReplicaPromotionDenial,
-    ReplicaPromotionIntent, ReplicaPromotionOwner, ReplicaPromotionReceipt,
-};
-pub use rejoin::{
-    OldPrimaryDivergenceDisposition, OldPrimaryRejoinDenial, OldPrimaryRejoinPlan,
-    ReplicationRejoinOwner,
 };
 pub use identity::{
     ReplicationCapsuleId, ReplicationLineageIdentity, ReplicationPeerId, ReplicationSourceEpoch,
@@ -103,8 +99,17 @@ pub use progress::{
     ReplicationProgressInterruption, ReplicationProgressOutcome, ReplicationProgressOutcomeView,
 };
 pub use progress_store::ReplicationPeerCapacity;
+pub use promotion::{
+    LoweredReplicaPromotionPlan, ReplicaPromotionCandidate, ReplicaPromotionDenial,
+    ReplicaPromotionIntent, ReplicaPromotionOwner, ReplicaPromotionReceipt,
+};
 pub use publication::{
     PublishedReplication, ReplicationPublicationDenial, ReplicationPublicationOutcome,
     ReplicationPublicationOutcomeView, ReplicationPublicationReadiness,
+};
+pub use rejoin::{
+    OldPrimaryDivergenceDisposition, OldPrimaryRejoinDenial, OldPrimaryRejoinExecutionDenial,
+    OldPrimaryRejoinExecutionPort, OldPrimaryRejoinExecutionRequest, OldPrimaryRejoinPlan,
+    OldPrimaryRejoinReceipt, ReplicationRejoinOwner,
 };
 pub use runtime::ReplicationAdmissionRuntime;

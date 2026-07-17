@@ -11,20 +11,32 @@ mod operational_media_path;
 mod persisted_record;
 mod persisted_record_codec;
 mod persisted_record_codec_io;
-mod publication_binding_codec;
 #[cfg(test)]
 mod persisted_record_codec_tests;
+mod persisted_record_encoding;
+mod persisted_record_kind;
 mod prepared_publication_handle;
+mod publication_binding_codec;
 mod recovery_publication_control_replay;
 mod recovery_staging_control_replay;
 mod recovery_staging_handle;
 mod repair_control_replay;
 mod repair_recovery_posture;
 mod replay_budget;
+mod replica_control_record;
+#[cfg(test)]
+mod replica_operation_codec_tests;
+mod replica_operation_control_replay;
+mod replica_operation_recovery;
+mod replica_operation_rejoin_replay;
+#[cfg(test)]
+mod replica_operation_replay_tests;
 mod selected_control_replay;
 mod selected_control_replay_backup_completion;
 mod selected_control_replay_contract;
 mod selected_control_replay_finish;
+mod selected_control_replay_repair_transition;
+mod selected_control_replay_replica;
 mod selected_control_replay_state;
 mod selected_control_replay_workflow_open;
 mod selected_control_state;
@@ -60,6 +72,13 @@ pub use repair_recovery_posture::{
     RepairRecoveryTopology, RepairResumePreconditions,
 };
 pub use replay_budget::{OperationalControlReplayBudget, OperationalControlReplayResource};
+pub use replica_operation_recovery::{
+    RecoveredOldPrimaryRejoin, RecoveredReplicaBootstrapDisposition,
+    RecoveredReplicaBootstrapTransfer, RecoveredReplicaPromotionFence,
+    RecoveredReplicaPromotionPublication, RecoveredReplicaPromotionReadmission,
+    RecoveredReplicaPromotionReceipt, ReplicaBootstrapRecoveryHandle,
+    ReplicaPromotionRecoveryHandle,
+};
 pub use selected_control_replay_contract::{
     OperationalControlHistoryViolation, OperationalControlHistoryViolationKind,
 };
@@ -83,9 +102,11 @@ pub use backup_materialization_recovery_plan::{
 pub(crate) use control_store_port::NonCurrentRecoveryTargetAdmission;
 pub(crate) use persisted_record::{
     PersistedControlRecordDecodeDenial, PersistedOperationalControlRecord,
-    PersistedOperationalControlRecordKind, PersistedWorkflowKind,
 };
 pub(crate) use persisted_record_codec::{decode_control_record, encode_control_record};
+pub(crate) use persisted_record_kind::{
+    PersistedOperationalControlRecordKind, PersistedWorkflowKind,
+};
 pub(crate) use selected_control_replay::SelectedControlReplay;
 pub(crate) use selected_control_replay_contract::SelectedControlReplayDenial;
 pub(crate) use selected_recovery_handles::SelectedRecoveryHandles;

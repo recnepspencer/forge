@@ -73,7 +73,11 @@ impl<'a> PrimaryServingAuthority<'a> {
             .provider
             .acquire_primary_serve_lease(request)
             .map_err(PrimaryServeAdmissionDenial::Provider)?;
-        self.validate_grant(request, PrimaryServeLease::from_grant(request, grant), now_tick)
+        self.validate_grant(
+            request,
+            PrimaryServeLease::from_grant(request, grant),
+            now_tick,
+        )
     }
 
     pub fn renew(
@@ -83,7 +87,11 @@ impl<'a> PrimaryServingAuthority<'a> {
         requested_until_tick: u64,
     ) -> Result<PrimaryServeLease, PrimaryServeAdmissionDenial> {
         self.require_current_binding(lease)?;
-        let request = self.request(lease.epoch().saturating_sub(1), now_tick, requested_until_tick)?;
+        let request = self.request(
+            lease.epoch().saturating_sub(1),
+            now_tick,
+            requested_until_tick,
+        )?;
         let grant = self
             .provider
             .renew_primary_serve_lease(lease.token(), request)

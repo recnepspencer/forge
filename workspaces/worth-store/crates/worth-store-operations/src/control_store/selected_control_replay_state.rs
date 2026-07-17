@@ -1,10 +1,22 @@
 use super::archived_workflow_index::ArchivedWorkflowKind;
-use super::selected_control_replay::{ReplayedBackup, ReplayedWorkflow, SelectedControlReplay};
+use super::selected_control_replay::SelectedControlReplay;
 use super::selected_control_replay_contract::{
     after_terminal, wrong_workflow, OperationalControlHistoryViolationKind, StateLookupDenial,
 };
 use super::OperationalOperationId;
 use worth_store_physical_backend::ControlMediaFault;
+
+pub(super) enum ReplayedWorkflow {
+    BackupAwaitingSourceLease { opened_record_index: u64 },
+    BackupActive(ReplayedBackup),
+}
+
+pub(super) struct ReplayedBackup {
+    pub(super) recovery: Box<worth_store_physical_isolation::BackupCutRecoveryRecord>,
+    pub(super) materialization_plan: Option<super::BackupMaterializationRecoveryPlan>,
+    pub(super) materialized: bool,
+    pub(super) recovery_object_bytes: u64,
+}
 
 impl SelectedControlReplay {
     pub(super) fn state(

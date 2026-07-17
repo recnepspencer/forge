@@ -10,6 +10,17 @@
 //! let _forged = OfflineFileTruthEvidence::new("authority.manifest")
 //!     .with_authenticity(OfflineSecurityEvidencePosture::Confirmed);
 //! ```
+//!
+//! A producer-side materialization receipt cannot skip independent manifest reopen:
+//!
+//! ```compile_fail
+//! use worth_store_offline_verifier::verify_disaster_recovery_bundle;
+//! use worth_store_replication::MaterializedDisasterRecoveryBundle;
+//!
+//! let producer_receipt: MaterializedDisasterRecoveryBundle = todo!();
+//! let policy = todo!();
+//! let _ = verify_disaster_recovery_bundle(producer_receipt, 4096, policy);
+//! ```
 
 mod backup_verification;
 mod blob_corruption_observation;
@@ -17,9 +28,9 @@ mod blob_corruption_observation;
 mod blob_corruption_observation_tests;
 mod boundary;
 mod custody_capsule_observation;
-mod disaster_recovery_verification;
 #[cfg(test)]
 mod custody_capsule_observation_tests;
+mod disaster_recovery_verification;
 mod export_bundle_observation;
 mod forensic_acquisition;
 mod handoff;
@@ -28,6 +39,7 @@ mod media_acquisition;
 mod repair_blast_radius_observation;
 #[cfg(test)]
 mod repair_blast_radius_observation_tests;
+mod replica_target_verification;
 mod scan;
 mod staged_recovery_verification;
 mod truth_composition;
@@ -50,8 +62,12 @@ pub use custody_capsule_observation::{
     OfflineCustodyCapsuleObservation, OfflineCustodyCapsuleObservationDenial,
 };
 pub use disaster_recovery_verification::{
-    verify_disaster_recovery_bundle, DisasterRecoveryVerificationCounters,
-    DisasterRecoveryVerificationDenial, IndependentlyVerifiedDisasterRecoveryBundle,
+    open_disaster_recovery_bundle, verify_disaster_recovery_bundle,
+    BootstrapSourceCutResolutionDenial, DisasterRecoveryClosureDenial,
+    DisasterRecoveryIndependentOpenDenial, DisasterRecoveryVerificationCounters,
+    DisasterRecoveryVerificationDenial, DisasterRecoveryVerificationPolicy,
+    DisasterRecoveryVerificationPolicyDenial, IndependentlyOpenedDisasterRecoveryBundle,
+    IndependentlyVerifiedDisasterRecoveryBundle,
 };
 pub use export_bundle_observation::{
     inspect_offline_export_bundle, OfflineExportBundleObservation,
@@ -59,8 +75,9 @@ pub use export_bundle_observation::{
     OfflineExportDigestEvidence,
 };
 pub use forensic_acquisition::{
-    ForensicAcquisitionCounters, ForensicAcquisitionDenial, ForensicAcquisitionRequest,
-    ForensicAcquisitionSession, ForensicBundle, ForensicBundleRange, ForensicCustodyRecord,
+    ForensicAcquisitionCounters, ForensicAcquisitionDenial, ForensicAcquisitionIntent,
+    ForensicAcquisitionPlan, ForensicAcquisitionProgress, ForensicAcquisitionSession,
+    ForensicBundle, ForensicBundleRange, ForensicCustodyRecord, ForensicEvidencePosture,
     ForensicRangePosture,
 };
 pub use handoff::{
@@ -80,6 +97,11 @@ pub use media_acquisition::{
 pub use repair_blast_radius_observation::{
     OfflineRepairBlastRadiusObservation, OfflineRepairBlastRadiusObservationDenial,
     OfflineRepairEvidenceKind,
+};
+pub use replica_target_verification::{
+    verify_replica_bootstrap_target, verify_replica_promotion_target,
+    IndependentlyVerifiedReplicaTarget, ReplicaTargetVerificationBudget,
+    ReplicaTargetVerificationDenial,
 };
 pub use scan::{
     offline_repair_scan_background_pressure_shape,

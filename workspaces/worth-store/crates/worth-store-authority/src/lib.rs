@@ -9,12 +9,12 @@ mod current_authority_identity;
 mod derived_authority_evidence;
 mod external_authority_token;
 mod fencing_authority;
+mod primary_serving;
 mod recovery_authority_admission_policy;
 mod recovery_authority_posture;
 mod recovery_cutover;
 mod recovery_fence_release;
 mod retained_authority_evidence;
-mod primary_serving;
 
 pub use aspect_native_authority::{
     admit_aspect_native_authority_record, AspectNativeAuthorityRecord,
@@ -48,6 +48,13 @@ pub use fencing_authority::{
     ControlStoreFencingAuthority, ControlStoreFencingPort, ControlStoreFencingProviderDenial,
     ControlStoreGeneration, ControlStoreSelectionCoordinates, SelectedControlStoreGeneration,
 };
+pub use primary_serving::{
+    ExternalFenceGrant, ExternalServeLeaseGrant, FenceProof, OperationalFencingAuthorityPort,
+    OperationalFencingProviderDenial, PrimaryServeAdmission, PrimaryServeAdmissionDenial,
+    PrimaryServeLease, PrimaryServeLeaseRequest, PrimaryServeOperation, PrimaryServingAuthority,
+    PromotedAuthorityEpoch, PromotionFenceDenial, PromotionFenceOperationIdentity,
+    PromotionFenceRecoveryRequest, PromotionFenceRequest,
+};
 pub use recovery_authority_admission_policy::{
     RecoveryAuthorityAdmissionPolicy, RecoveryAuthorityAdmissionPolicyDenial,
     RecoveryAuthorityAdmissionPolicyKind,
@@ -66,10 +73,4 @@ pub use recovery_cutover::{
 pub use retained_authority_evidence::{
     compare_retained_store_authority_evidence, report_retained_store_authority_evidence,
     StoreRetainedAuthorityEvidence, StoreRetainedAuthorityEvidenceComparison,
-};
-pub use primary_serving::{
-    ExternalFenceGrant, ExternalServeLeaseGrant, FenceProof, OperationalFencingAuthorityPort,
-    OperationalFencingProviderDenial, PrimaryServeAdmission, PrimaryServeAdmissionDenial,
-    PrimaryServeLease, PrimaryServeLeaseRequest, PrimaryServeOperation, PrimaryServingAuthority,
-    PromotedAuthorityEpoch, PromotionFenceDenial, PromotionFenceRequest,
 };

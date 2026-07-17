@@ -11,6 +11,7 @@ pub enum PhysicalBoundarySeam {
     MemoryPressure,
     IoPressure,
     ShortcutRejection,
+    OperationalRecovery(crate::OperationalRecoveryYieldpoint),
     FutureExtensionSlot,
 }
 
@@ -77,6 +78,13 @@ impl PhysicalBoundaryYieldpoint {
         Self::offline_verifier(OfflineVerifierBoundarySeam::LayoutWalkBeforeRuntimeRecovery)
     }
 
+    pub fn operational_recovery(seam: crate::OperationalRecoveryYieldpoint) -> Self {
+        Self::new(
+            seam.token(),
+            PhysicalBoundarySeam::OperationalRecovery(seam),
+        )
+    }
+
     fn new(name: impl Into<String>, seam: PhysicalBoundarySeam) -> Self {
         Self {
             name: name.into(),
@@ -115,6 +123,7 @@ pub(crate) fn canonical_yieldpoint_name_for_seam(seam: PhysicalBoundarySeam) -> 
         PhysicalBoundarySeam::MemoryPressure => "memory-pressure-boundary",
         PhysicalBoundarySeam::IoPressure => "io-pressure-boundary",
         PhysicalBoundarySeam::ShortcutRejection => "shortcut-rejection-boundary",
+        PhysicalBoundarySeam::OperationalRecovery(seam) => seam.token(),
         PhysicalBoundarySeam::FutureExtensionSlot => "future-extension-slot",
     }
 }

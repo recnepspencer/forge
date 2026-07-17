@@ -67,6 +67,9 @@ impl ExecutedAuthorityAffectingRepair {
     pub const fn staged_media(&self) -> &ClosedNonCurrentStagingMedia {
         self.backend.media()
     }
+    pub const fn backend(&self) -> &NonCurrentStagingExecutionReceipt {
+        &self.backend
+    }
     pub const fn recovered_frontier(&self) -> RecoveredBackupFrontierReceipt {
         self.recovery
     }
