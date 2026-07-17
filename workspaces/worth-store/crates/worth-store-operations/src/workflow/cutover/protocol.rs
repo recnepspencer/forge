@@ -11,7 +11,7 @@ use worth_store_physical_isolation::{
 };
 
 use crate::authorization::{
-    authorize_lowered_plan, consume_authorization, AuthorizationReplayPolicy,
+    authorize_lowered_plan, consume_authorization_through, AuthorizationReplayPolicy,
     AuthorizedOperationalPlan, ConsumedOperationalPlan, LoweredOperationalPlan,
 };
 use crate::owner_plan_dag::{
@@ -50,6 +50,16 @@ pub(super) struct AuthorizedCutoverCore<K> {
     operation_kind: DestructiveOperationKind,
     authority_posture: worth_store_authority::RecoveryAuthorityAdmissionPosture,
     admission_policy: worth_store_authority::RecoveryAuthorityAdmissionPolicy,
+}
+
+pub(super) struct CutoverReadinessInput<'a, F: RecoveryWriteFencePort> {
+    pub(super) control: &'a OperationalControlStore,
+    pub(super) append: &'a dyn crate::OperationalControlStorePort,
+    pub(super) transition: OperationalTransitionId,
+    pub(super) current: &'a StoreCurrentAuthorityWitness,
+    pub(super) fence_port: &'a F,
+    pub(super) observed_at: u64,
+    pub(super) revocation: AuthorizationRevocationObservation,
 }
 
 pub(super) struct FencedCutoverCore<K> {
@@ -225,32 +235,32 @@ pub(super) fn authorize<K>(
     })
 }
 
-pub(super) fn ready<K>(
+pub(super) fn ready<K, F: RecoveryWriteFencePort>(
     authorized: AuthorizedCutoverCore<K>,
-    control: &OperationalControlStore,
-    transition: OperationalTransitionId,
-    current: &StoreCurrentAuthorityWitness,
-    fence_port: &impl RecoveryWriteFencePort,
-    observed_at: u64,
-    revocation: AuthorizationRevocationObservation,
+    input: CutoverReadinessInput<'_, F>,
 ) -> Result<FencedCutoverCore<K>, RecoveryCutoverExecutionDenial> {
-    if authorized.authorization.binding().authority_identity() != current.authority_identity() {
+    if authorized.authorization.binding().authority_identity() != input.current.authority_identity()
+    {
         return Err(RecoveryCutoverExecutionDenial::StaleAuthority);
     }
     let operation_id = authorized.operation_id;
-    let consumed = consume_authorization(
-        control,
+    let consumed = consume_authorization_through(
+        input.control,
+        input.append,
         operation_id.clone(),
-        transition,
+        input.transition,
         authorized.authorization,
         None,
-        observed_at,
-        revocation,
+        input.observed_at,
+        input.revocation,
     )
     .map_err(RecoveryCutoverExecutionDenial::Authorization)?;
-    let fence =
-        RecoveryCutoverAuthorityOwner::establish_write_fence(authorized.fence, current, fence_port)
-            .map_err(RecoveryCutoverExecutionDenial::Fence)?;
+    let fence = RecoveryCutoverAuthorityOwner::establish_write_fence(
+        authorized.fence,
+        input.current,
+        input.fence_port,
+    )
+    .map_err(RecoveryCutoverExecutionDenial::Fence)?;
     Ok(FencedCutoverCore {
         operation_id,
         consumed,

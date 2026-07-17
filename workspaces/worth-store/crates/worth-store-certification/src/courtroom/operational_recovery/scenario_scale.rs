@@ -5,6 +5,16 @@ pub enum ScenarioScaleProfile {
     Release,
 }
 
+impl ScenarioScaleProfile {
+    pub const fn token(self) -> &'static str {
+        match self {
+            Self::Smoke => "smoke",
+            Self::Ci => "ci",
+            Self::Release => "release",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ScenarioScaleEvidence {
     profile: ScenarioScaleProfile,
@@ -26,19 +36,53 @@ pub struct ScenarioWorkloadDimensions {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScenarioScaleDenial {
     EmptyWorkload,
+    StoreFixtureMismatch,
+    ArtifactCatalogMismatch,
+    CandidateCatalogMismatch,
+    PhysicalProfileMismatch,
     StoreBelowProfileRatio,
     ReleaseBlobBreadthMissing,
 }
 
 impl ScenarioScaleEvidence {
-    pub fn admit(
+    pub fn from_execution(
         profile: ScenarioScaleProfile,
-        dimensions: ScenarioWorkloadDimensions,
-        resident_budget_bytes: u64,
-        schedules_executed: u64,
+        execution: &super::S10ScenarioExecutionMatrix,
     ) -> Result<Self, ScenarioScaleDenial> {
+        let manifest = execution.primary().replay().fixture_manifest();
+        let scale = manifest.scale();
+        let dimensions = ScenarioWorkloadDimensions::from_execution(execution);
+        let resident_budget_bytes = scale.resident_memory_budget_bytes();
+        let schedules_executed = execution.schedules_executed();
         if dimensions.contains_zero() || resident_budget_bytes == 0 || schedules_executed == 0 {
             return Err(ScenarioScaleDenial::EmptyWorkload);
+        }
+        let expected_physical_profile = match profile {
+            ScenarioScaleProfile::Smoke => {
+                worth_store_physical_certification::PhysicalSimulationProfile::DeveloperSmoke
+            }
+            ScenarioScaleProfile::Ci => {
+                worth_store_physical_certification::PhysicalSimulationProfile::CiCertification
+            }
+            ScenarioScaleProfile::Release => {
+                worth_store_physical_certification::PhysicalSimulationProfile::ReleaseCertification
+            }
+        };
+        if execution.primary().replay().plan().profile() != expected_physical_profile {
+            return Err(ScenarioScaleDenial::PhysicalProfileMismatch);
+        }
+        if dimensions.store_bytes != scale.declared_store_bytes() {
+            return Err(ScenarioScaleDenial::StoreFixtureMismatch);
+        }
+        let catalog = manifest.artifact_catalog();
+        let observed_artifacts = u64::from(catalog.persisted_pages())
+            + u64::from(catalog.persisted_extents())
+            + u64::from(catalog.discovered_references());
+        if dimensions.artifact_count != observed_artifacts {
+            return Err(ScenarioScaleDenial::ArtifactCatalogMismatch);
+        }
+        if dimensions.candidate_count != u64::from(catalog.root_manifest_candidates()) {
+            return Err(ScenarioScaleDenial::CandidateCatalogMismatch);
         }
         let ratio = match profile {
             ScenarioScaleProfile::Smoke => 1,
@@ -82,21 +126,19 @@ impl ScenarioScaleEvidence {
 }
 
 impl ScenarioWorkloadDimensions {
-    pub const fn new(
-        store_bytes: u64,
-        blob_bytes: u64,
-        wal_tail_bytes: u64,
-        damaged_region_bytes: u64,
-        artifact_count: u64,
-        candidate_count: u64,
-    ) -> Self {
+    fn from_execution(execution: &super::S10ScenarioExecutionMatrix) -> Self {
+        let manifest = execution.primary().replay().fixture_manifest();
+        let scale = manifest.scale();
+        let catalog = manifest.artifact_catalog();
         Self {
-            store_bytes,
-            blob_bytes,
-            wal_tail_bytes,
-            damaged_region_bytes,
-            artifact_count,
-            candidate_count,
+            store_bytes: scale.declared_store_bytes(),
+            blob_bytes: scale.blob_bytes(),
+            wal_tail_bytes: scale.wal_tail_bytes(),
+            damaged_region_bytes: scale.damaged_region_bytes(),
+            artifact_count: u64::from(catalog.persisted_pages())
+                + u64::from(catalog.persisted_extents())
+                + u64::from(catalog.discovered_references()),
+            candidate_count: u64::from(catalog.root_manifest_candidates()),
         }
     }
 

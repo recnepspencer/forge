@@ -80,8 +80,11 @@ impl FixtureReadyBuilder {
     }
 
     pub fn and_reopen_through_physical_authority(
-        self,
+        mut self,
     ) -> Result<ProductionBackedPhysicalFixture, SyntheticFixtureAuthorityDenied> {
+        self.capability_declarations
+            .sort_unstable_by_key(FixtureCapabilityDeclaration::mutation_boundary);
+        self.capability_declarations.dedup();
         let report = canonical_offline_verifier().verify(&self.layout)?;
         let receipt = FixtureAuthorityReceipt::from_reopened_layout(
             self.profile,

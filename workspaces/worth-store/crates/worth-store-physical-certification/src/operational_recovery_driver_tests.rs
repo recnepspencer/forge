@@ -38,7 +38,7 @@ fn interrupted_after_forensic_record_reopens_real_production_state() {
     .plan(&media())
     .unwrap();
     let mut session = ForensicAcquisitionSession::open(plan.clone(), media()).unwrap();
-    let mut driver = OperationalRecoveryProductionDriver::pause_once_at(
+    let driver = OperationalRecoveryProductionDriver::pause_once_at(
         OperationalRecoveryYieldpoint::AfterForensicSourceRecord,
     );
 

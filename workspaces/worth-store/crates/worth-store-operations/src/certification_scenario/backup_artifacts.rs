@@ -8,10 +8,14 @@ use worth_store_contracts::{
 use worth_store_layout_indexes::encode_baseline_btree_leaf_record;
 use worth_store_physical_backend::observe_physical_backup_artifact;
 use worth_store_physical_format::{
-    BackupBundleArtifactFormat, PageGenerationCell, PhysicalBinaryEncodingWitness,
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageKind,
-    PhysicalReferenceAuthority, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
-    PlatformPhysicalOpenRequest, PlatformPhysicalRootPublicationReport, RootPublicationCell,
+    BackupBundleArtifactFormat, PageGenerationCell, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalReferenceAuthority, PhysicalStoreRuntime,
+    PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
+    PlatformPhysicalRootPublicationReport, RootPublicationCell,
+};
+#[cfg(test)]
+use worth_store_physical_format::{
+    PhysicalBinaryEncodingWitness, PhysicalHeaderAuthority, PhysicalPageKind,
     PHYSICAL_HEADER_LENGTH,
 };
 use worth_store_physical_isolation::{
@@ -24,15 +28,15 @@ use worth_store_recovery_physics::{
     PageLsn, SharpCheckpointCertificationMode,
 };
 
-mod physical_reference_fixture;
-use physical_reference_fixture::*;
+mod physical_reference;
+use physical_reference::*;
 
-pub(super) struct CanonicalBackupArtifacts {
-    pub(super) references: Vec<BackupArtifactReference>,
-    pub(super) checkpoint_identity: String,
+pub(crate) struct CanonicalBackupArtifacts {
+    pub(crate) references: Vec<BackupArtifactReference>,
+    pub(crate) checkpoint_identity: String,
 }
 
-pub(super) fn canonical_backup_artifacts_at_root_generation(
+pub(crate) fn canonical_backup_artifacts_at_root_generation(
     case: &str,
     source: &Path,
     root_generation: u64,
@@ -46,7 +50,8 @@ pub(super) fn canonical_backup_artifacts_at_root_generation(
     artifacts.expect("nonzero publication count")
 }
 
-pub(super) fn canonical_backup_artifacts_across_one_root_publication(
+#[cfg(test)]
+pub(crate) fn canonical_backup_artifacts_across_one_root_publication(
     case: &str,
     older_source: &Path,
     newer_source: &Path,
@@ -242,7 +247,7 @@ fn materialize_canonical_backup_artifacts(
     }
 }
 
-pub(super) fn open_physical_runtime() -> PhysicalStoreRuntime {
+pub(crate) fn open_physical_runtime() -> PhysicalStoreRuntime {
     PhysicalStoreRuntime::open_physical_format(
         physical_readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
@@ -250,7 +255,8 @@ pub(super) fn open_physical_runtime() -> PhysicalStoreRuntime {
     .expect("physical runtime")
 }
 
-pub(super) fn copy_page_to_owner(
+#[cfg(test)]
+pub(crate) fn copy_page_to_owner(
     source: &Path,
     target: &Path,
     owner: CurrentGenerationPhysicalReference,

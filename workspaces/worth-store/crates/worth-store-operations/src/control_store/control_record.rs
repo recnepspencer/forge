@@ -230,6 +230,28 @@ impl OperationalControlRecord {
         }
     }
 
+    pub(crate) fn operational_owner_receipt_persisted(
+        authority_identity: StoreCurrentAuthorityIdentity,
+        operation_id: OperationalOperationId,
+        transition_id: OperationalTransitionId,
+        workflow: super::OperationalWorkflowKind,
+        plan_fingerprint: [u8; 32],
+        receipt_fingerprint: [u8; 32],
+        owner_tag: u8,
+    ) -> Self {
+        Self {
+            authority_identity,
+            operation_id,
+            transition_id,
+            kind: OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
+                workflow,
+                plan_fingerprint,
+                receipt_fingerprint,
+                owner_tag,
+            },
+        }
+    }
+
     pub(crate) fn repair_disposition_recorded(
         authority_identity: StoreCurrentAuthorityIdentity,
         operation_id: OperationalOperationId,

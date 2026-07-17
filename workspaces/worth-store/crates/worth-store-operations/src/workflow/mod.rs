@@ -2,6 +2,7 @@ mod backup;
 mod cutover;
 mod point_in_time_recovery;
 mod recovery_owner_plan;
+mod recovery_owner_receipt;
 mod repair;
 mod replica_bootstrap;
 mod replica_promotion;
@@ -9,6 +10,7 @@ mod restore;
 mod rollback;
 
 pub(crate) use cutover::recover_pending;
+pub(crate) use recovery_owner_receipt::persist_recovery_owner_receipts;
 
 pub use backup::{
     admit_backup_for_production_restore, qualify_backup_custody,

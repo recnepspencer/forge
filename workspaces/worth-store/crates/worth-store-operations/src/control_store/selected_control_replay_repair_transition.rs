@@ -1,12 +1,9 @@
 use super::{
-    archived_workflow_index::ArchivedWorkflowKind,
     repair_control_replay::{observe_disposition, observe_open, observe_receipt, observe_start},
     selected_control_replay_contract::{
-        invalid, wrong_workflow, OperationalControlHistoryViolationKind,
-        SelectedControlReplayDenial,
+        invalid, OperationalControlHistoryViolationKind, SelectedControlReplayDenial,
     },
-    OperationalControlHistoryViolation, OperationalOperationId, OperationalWorkflowKind,
-    SelectedControlReplay,
+    OperationalControlHistoryViolation, OperationalOperationId, SelectedControlReplay,
 };
 use worth_store_authority::StoreCurrentAuthorityIdentity;
 
@@ -79,34 +76,6 @@ impl SelectedControlReplay {
             owner_tag,
         )
         .map_err(|kind| replay_denial(record_index, operation, kind))
-    }
-
-    pub(super) fn observe_operational_owner_receipt(
-        &mut self,
-        record_index: u64,
-        operation: &OperationalOperationId,
-        workflow: OperationalWorkflowKind,
-    ) -> Result<(), SelectedControlReplayDenial> {
-        match self
-            .archived
-            .lookup(operation)
-            .map_err(SelectedControlReplayDenial::DerivedIndex)?
-        {
-            Some(ArchivedWorkflowKind::NonBackup(observed)) if observed == workflow => Ok(()),
-            Some(ArchivedWorkflowKind::NonBackup(observed)) => {
-                invalid(record_index, operation.clone(), wrong_workflow(observed))
-            }
-            Some(ArchivedWorkflowKind::BackupTerminal) => invalid(
-                record_index,
-                operation.clone(),
-                OperationalControlHistoryViolationKind::RecordAfterTerminal,
-            ),
-            None => invalid(
-                record_index,
-                operation.clone(),
-                OperationalControlHistoryViolationKind::RecordBeforeWorkflowOpen,
-            ),
-        }
     }
 
     pub(super) fn observe_repair_disposition(

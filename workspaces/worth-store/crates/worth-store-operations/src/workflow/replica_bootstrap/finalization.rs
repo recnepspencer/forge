@@ -56,6 +56,16 @@ impl ExecutedReplicaBootstrap {
     ) -> Result<AbandonedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {
         abandon(self, control, transition, reason)
     }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn abandon_with_certification_control_store(
+        self,
+        control: &dyn OperationalControlStorePort,
+        transition: OperationalTransitionId,
+        reason: String,
+    ) -> Result<AbandonedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {
+        abandon(self, control, transition, reason)
+    }
 }
 
 impl RecoveredReplicaBootstrap {
@@ -70,6 +80,16 @@ impl RecoveredReplicaBootstrap {
     pub fn abandon(
         self,
         control: &OperationalControlStore,
+        transition: OperationalTransitionId,
+        reason: String,
+    ) -> Result<AbandonedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {
+        abandon(self.into_executed(), control, transition, reason)
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn abandon_with_certification_control_store(
+        self,
+        control: &dyn OperationalControlStorePort,
         transition: OperationalTransitionId,
         reason: String,
     ) -> Result<AbandonedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {
@@ -97,28 +117,45 @@ impl PostVerifiedReplicaBootstrap {
         control: &OperationalControlStore,
         transition: OperationalTransitionId,
     ) -> Result<CompletedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {
-        let record = crate::OperationalControlRecord::replica_bootstrap_completed(
-            self.executed.authority_identity,
-            self.executed.operation_id.clone(),
-            transition,
-            &self.executed.receipt,
-            &self.verification,
-        );
-        control
-            .append(&record)
-            .map_err(ReplicaBootstrapFinalizationDenial::Control)?;
-        let source_release = self
-            .executed
-            .retained_source_lease
-            .release()
-            .map_err(ReplicaBootstrapFinalizationDenial::SourceLease)?;
-        Ok(CompletedReplicaBootstrap {
-            operation_identity: self.executed.operation_id.stable_fingerprint(),
-            receipt_identity: self.executed.receipt.receipt_identity(),
-            verification_identity: self.verification.verification_identity(),
-            source_release,
-        })
+        complete(self, control, transition)
     }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn complete_with_certification_control_store(
+        self,
+        control: &dyn OperationalControlStorePort,
+        transition: OperationalTransitionId,
+    ) -> Result<CompletedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {
+        complete(self, control, transition)
+    }
+}
+
+fn complete(
+    verified: PostVerifiedReplicaBootstrap,
+    control: &dyn OperationalControlStorePort,
+    transition: OperationalTransitionId,
+) -> Result<CompletedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {
+    let record = crate::OperationalControlRecord::replica_bootstrap_completed(
+        verified.executed.authority_identity,
+        verified.executed.operation_id.clone(),
+        transition,
+        &verified.executed.receipt,
+        &verified.verification,
+    );
+    control
+        .append(&record)
+        .map_err(ReplicaBootstrapFinalizationDenial::Control)?;
+    let source_release = verified
+        .executed
+        .retained_source_lease
+        .release()
+        .map_err(ReplicaBootstrapFinalizationDenial::SourceLease)?;
+    Ok(CompletedReplicaBootstrap {
+        operation_identity: verified.executed.operation_id.stable_fingerprint(),
+        receipt_identity: verified.executed.receipt.receipt_identity(),
+        verification_identity: verified.verification.verification_identity(),
+        source_release,
+    })
 }
 
 fn post_verify(
@@ -136,7 +173,7 @@ fn post_verify(
 
 fn abandon(
     executed: ExecutedReplicaBootstrap,
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     reason: String,
 ) -> Result<AbandonedReplicaBootstrap, ReplicaBootstrapFinalizationDenial> {

@@ -61,6 +61,18 @@ name = "protocol_model_authority_compile_fail"
 path = "tests/compile_fail/protocol_models/authority_inversion_runner.rs"
 
 [[test]]
+name = "s10_adoption_reverse_flow_compile_fail"
+path = "tests/compile_fail/operational_recovery/adoption_reverse_flow_runner.rs"
+
+[[test]]
+name = "s10_execution_matrix"
+path = "tests/scenarios/recovery/s10_execution_matrix/s10_execution_matrix.rs"
+
+[[test]]
+name = "s10_handoff_public_boundary_compile"
+path = "tests/compile_fail/operational_recovery/handoff_public_boundary_runner.rs"
+
+[[test]]
 name = "s4_5_actor_contract_lowering"
 path = "tests/scenarios/recovery/actor_contract_lowering/actor_contract_lowering.rs"
 

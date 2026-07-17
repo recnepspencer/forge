@@ -5,6 +5,7 @@ mod operational_truth_report;
 mod tests;
 mod truth_evidence;
 mod truth_region;
+mod truth_report_identity;
 
 pub(crate) use operational_truth_report::compose_operational_truth_with_owner_candidates;
 pub use operational_truth_report::{

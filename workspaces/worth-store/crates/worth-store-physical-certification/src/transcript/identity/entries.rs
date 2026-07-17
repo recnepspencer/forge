@@ -77,8 +77,28 @@ pub(super) fn replay_basis_entries(parts: &ExecutedTranscriptParts) -> Vec<Canon
                 .to_string(),
         ),
         text_entry(
-            "transcript.fixture.artifact_catalog",
-            format!("{:?}", parts.fixture_manifest().artifact_catalog()),
+            "transcript.fixture.scale.blob_bytes",
+            parts.fixture_manifest().scale().blob_bytes().to_string(),
+        ),
+        text_entry(
+            "transcript.fixture.scale.wal_tail_bytes",
+            parts
+                .fixture_manifest()
+                .scale()
+                .wal_tail_bytes()
+                .to_string(),
+        ),
+        text_entry(
+            "transcript.fixture.scale.damaged_region_bytes",
+            parts
+                .fixture_manifest()
+                .scale()
+                .damaged_region_bytes()
+                .to_string(),
+        ),
+        text_entry(
+            "transcript.fixture.identity",
+            hex(&parts.fixture_manifest().evidence_identity()),
         ),
         text_entry(
             "transcript.trace.observer",
@@ -96,7 +116,7 @@ pub(super) fn replay_basis_entries(parts: &ExecutedTranscriptParts) -> Vec<Canon
 }
 
 pub(super) fn transcript_version() -> CanonicalizationRuleVersion {
-    CanonicalizationRuleVersion::new("store.physical.simulation.transcript.v1")
+    CanonicalizationRuleVersion::new("store.physical.simulation.transcript.v2")
         .expect("transcript canonicalization version is static")
 }
 

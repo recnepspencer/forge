@@ -1,13 +1,7 @@
 use super::authorization_control_replay::observe_authorization_consumption;
-use super::recovery_publication_control_replay::{
-    observe_disposition as observe_publication_disposition,
-    observe_fence_released as observe_publication_fence_released,
-    observe_prepared as observe_publication_prepared,
-    observe_published as observe_publication_published, ReplayedRecoveryPublication,
-};
+use super::recovery_publication_control_replay::ReplayedRecoveryPublication;
 use super::recovery_staging_control_replay::{
-    consume_completed_for_publication, observe_authorized_staging, observe_staging_completed,
-    ReplayedRecoveryStaging,
+    observe_authorized_staging, observe_staging_completed, ReplayedRecoveryStaging,
 };
 use super::repair_control_replay::ReplayedRepairJournal;
 use super::replica_operation_control_replay::{
@@ -68,6 +62,14 @@ impl SelectedControlReplay {
         let authority_identity = record.authority_identity();
         let (operation, kind) = record.into_replay_parts();
         if self.observe_replica_transition(record_index, &operation, &kind)? {
+            return Ok(());
+        }
+        if self.observe_recovery_publication_transition(
+            record_index,
+            &operation,
+            authority_identity,
+            &kind,
+        )? {
             return Ok(());
         }
         match kind {
@@ -315,8 +317,18 @@ impl SelectedControlReplay {
                 owner_tag,
             )?,
             OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
-                workflow, ..
-            } => self.observe_operational_owner_receipt(record_index, &operation, workflow)?,
+                workflow,
+                plan_fingerprint,
+                receipt_fingerprint,
+                owner_tag,
+            } => self.observe_recovery_owner_receipt(
+                record_index,
+                &operation,
+                workflow,
+                plan_fingerprint,
+                receipt_fingerprint,
+                owner_tag,
+            )?,
             OperationalControlRecordKind::ReplicaBootstrapTransferRecorded { .. }
             | OperationalControlRecordKind::ReplicaBootstrapCompleted { .. }
             | OperationalControlRecordKind::ReplicaBootstrapAbandoned { .. }
@@ -352,46 +364,12 @@ impl SelectedControlReplay {
             )
             .map_err(|kind| SelectedControlReplayDenial::Invalid(
                 super::OperationalControlHistoryViolation::new(record_index, operation, kind)))?,
-            OperationalControlRecordKind::RecoveryPublicationPrepared { binding } => {
-                consume_completed_for_publication(
-                    &mut self.recovery_staging,
-                    &operation,
-                    binding.operation_tag(),
-                )
-                .map_err(|kind| SelectedControlReplayDenial::Invalid(
-                    super::OperationalControlHistoryViolation::new(
-                        record_index, operation.clone(), kind)))?;
-                observe_publication_prepared(&mut self.recovery_publications, &operation,
-                    authority_identity, binding)
-                .map_err(|kind|
-                    SelectedControlReplayDenial::Invalid(super::OperationalControlHistoryViolation::new(
-                        record_index, operation, kind)))?
-            },
-            OperationalControlRecordKind::RecoveryPublicationPending { binding } =>
-                observe_publication_published(&mut self.recovery_publications, &operation,
-                    authority_identity, binding).map_err(|kind|
-                    SelectedControlReplayDenial::Invalid(super::OperationalControlHistoryViolation::new(
-                        record_index, operation, kind)))?,
-            OperationalControlRecordKind::RecoveryPublicationDisposition {
-                publication_identity, disposition_tag, disposition_basis, observed_authority,
-            } => observe_publication_disposition(&mut self.recovery_publications, &operation,
-                authority_identity, publication_identity, disposition_tag, disposition_basis,
-                observed_authority).map_err(|kind|
-                    SelectedControlReplayDenial::Invalid(super::OperationalControlHistoryViolation::new(
-                        record_index, operation, kind)))?,
-            OperationalControlRecordKind::RecoveryPublicationFenceReleased {
-                publication_identity, fence_identity, fence_plan_fingerprint, disposition_tag,
-            } => observe_publication_fence_released(
-                &mut self.recovery_publications,
-                &operation,
-                authority_identity,
-                publication_identity,
-                fence_identity,
-                fence_plan_fingerprint,
-                disposition_tag,
-            ).map_err(|kind|
-                SelectedControlReplayDenial::Invalid(super::OperationalControlHistoryViolation::new(
-                    record_index, operation, kind)))?,
+            OperationalControlRecordKind::RecoveryPublicationPrepared { .. }
+            | OperationalControlRecordKind::RecoveryPublicationPending { .. }
+            | OperationalControlRecordKind::RecoveryPublicationDisposition { .. }
+            | OperationalControlRecordKind::RecoveryPublicationFenceReleased { .. } => {
+                unreachable!("publication transitions are consumed before general replay")
+            }
         }
         Ok(())
     }

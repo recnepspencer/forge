@@ -3,6 +3,7 @@ mod acquisition_tests;
 mod inspection_budget;
 mod inspection_cancellation;
 mod inspection_counters;
+mod inspection_evidence_identity;
 mod inspection_scope;
 mod inspection_session;
 mod interruption;

@@ -1,8 +1,11 @@
 mod authority_affecting;
 mod authority_affecting_execution;
+mod authority_affecting_readiness;
 mod authority_owner_dag;
 mod authority_receipt_persistence;
 mod authority_staging_artifacts;
+#[cfg(feature = "certification-test-authority")]
+mod certification_control_store;
 mod execution;
 mod execution_control;
 mod intent;
@@ -40,10 +43,12 @@ pub(crate) struct DerivedRepairOperation;
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AuthorityAffectingRepairOperation;
 pub use authority_affecting::{
-    AuthorityAffectingRepairLoweringDenial, AuthorityAffectingRepairReadinessDenial,
-    AuthorityAffectingStagedRepairPlan, AuthorizedAuthorityAffectingRepairPlan,
-    ExecutionReadyAuthorityAffectingRepair, LoweredAuthorityAffectingRepairOwnerPlanDag,
+    AuthorityAffectingRepairLoweringDenial, AuthorityAffectingStagedRepairPlan,
+    AuthorizedAuthorityAffectingRepairPlan, LoweredAuthorityAffectingRepairOwnerPlanDag,
 };
 pub use authority_affecting_execution::{
     AuthorityAffectingRepairExecutionDenial, ExecutedAuthorityAffectingRepair,
+};
+pub use authority_affecting_readiness::{
+    AuthorityAffectingRepairReadinessDenial, ExecutionReadyAuthorityAffectingRepair,
 };

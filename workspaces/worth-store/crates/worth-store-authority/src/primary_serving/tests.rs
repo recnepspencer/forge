@@ -18,9 +18,10 @@ use crate::{
     require_current_store_authority, ControlStoreFencingAuthority, ControlStoreFencingPort,
     ControlStoreFencingProviderDenial, ControlStoreGeneration, ControlStoreSelectionCoordinates,
     ExternalFenceGrant, ExternalServeLeaseGrant, OperationalFencingAuthorityPort,
-    OperationalFencingProviderDenial, PrimaryServeLeaseRequest, PrimaryServingAuthority,
-    PromotionFenceDenial, PromotionFenceOperationIdentity, PromotionFenceRecoveryRequest,
-    PromotionFenceRequest, StoreCurrentAuthorityIdentity,
+    OperationalFencingProviderDenial, PrimaryServeAdmissionDenial, PrimaryServeLeaseRequest,
+    PrimaryServeOperation, PrimaryServingAuthority, PromotionFenceDenial,
+    PromotionFenceOperationIdentity, PromotionFenceRecoveryRequest, PromotionFenceRequest,
+    StoreCurrentAuthorityIdentity,
 };
 
 #[derive(Debug)]
@@ -162,6 +163,37 @@ fn recovered_fence_rejects_provider_substitution() {
         serving.recover_promotion_fence(PromotionFenceRecoveryRequest::new(operation, lease, 5)),
         Err(PromotionFenceDenial::ProviderIdentityChanged)
     );
+}
+
+#[test]
+fn every_serving_operation_fails_closed_at_the_lease_expiry_boundary() {
+    let current = current_authority();
+    let provider = TestProvider::new([6; 32]);
+    let selected = ControlStoreFencingAuthority::for_current_store(&current, &provider)
+        .select_generation()
+        .unwrap();
+    let serving =
+        PrimaryServingAuthority::for_selected_control_generation(&current, selected, &provider)
+            .unwrap();
+    let lease = serving.acquire(4, 10, 100).unwrap();
+
+    for operation in [
+        PrimaryServeOperation::ObserveAsCurrent,
+        PrimaryServeOperation::Mutate,
+        PrimaryServeOperation::Acknowledge,
+    ] {
+        let admitted = serving.admit(lease, operation, 99).unwrap();
+        assert_eq!(admitted.operation(), operation);
+        assert_eq!(admitted.admitted_at_tick(), 99);
+        assert_eq!(
+            serving.admit(lease, operation, 100),
+            Err(PrimaryServeAdmissionDenial::LeaseExpired)
+        );
+        assert_eq!(
+            serving.admit(lease, operation, 101),
+            Err(PrimaryServeAdmissionDenial::LeaseExpired)
+        );
+    }
 }
 
 fn current_authority() -> crate::StoreCurrentAuthorityWitness {

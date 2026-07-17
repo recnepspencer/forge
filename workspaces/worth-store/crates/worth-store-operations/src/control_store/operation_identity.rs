@@ -37,6 +37,14 @@ impl OperationalTransitionId {
         Self("recovery-staging-completed".to_owned())
     }
 
+    pub(crate) fn backend_owner_receipt() -> Self {
+        Self("backend-owner-receipt".to_owned())
+    }
+
+    pub(crate) fn recovery_owner_receipt() -> Self {
+        Self("recovery-owner-receipt".to_owned())
+    }
+
     pub(crate) fn recovery_publication_published() -> Self {
         Self("recovery-publication-published".to_owned())
     }

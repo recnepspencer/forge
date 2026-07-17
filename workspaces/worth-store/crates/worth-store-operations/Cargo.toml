@@ -8,6 +8,7 @@ description = "Roadmap 2 S.10 operational safety, backup, PITR, repair, and fore
 [features]
 default = []
 certification-test-authority = [
+    "worth-store-blob-chunks/certification-test-authority",
     "worth-store-security/certification-test-authority",
 ]
 

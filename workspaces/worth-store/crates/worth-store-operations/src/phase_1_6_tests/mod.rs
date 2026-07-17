@@ -1,4 +1,4 @@
-mod backup_artifact_fixture;
+mod backup_custody_fixture;
 mod closure_verification;
 mod control_append_fault;
 mod control_history_semantics;

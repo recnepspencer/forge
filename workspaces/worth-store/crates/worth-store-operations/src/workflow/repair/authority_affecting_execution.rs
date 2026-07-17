@@ -16,13 +16,12 @@ use crate::{
     OwnerPlanNodeIdentity,
 };
 
-use super::authority_affecting::ExecutionReadyAuthorityAffectingRepair;
 use super::authority_receipt_persistence::{
     backend_receipt, blob_receipt, integrity_receipt, layout_receipt, persist, recovery_receipt,
 };
 use super::{
-    RepairExecutionBoundary, RepairExecutionBoundaryMoment, RepairExecutionControlPort,
-    RepairExecutionInterrupted, UninterruptedRepairExecution,
+    ExecutionReadyAuthorityAffectingRepair, RepairExecutionBoundary, RepairExecutionBoundaryMoment,
+    RepairExecutionControlPort, RepairExecutionInterrupted, UninterruptedRepairExecution,
 };
 use super::{RepairExecutionDisposition, RepairJournalDenial};
 

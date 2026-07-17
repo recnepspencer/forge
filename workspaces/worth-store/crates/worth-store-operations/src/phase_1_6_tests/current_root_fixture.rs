@@ -23,7 +23,7 @@ impl CurrentRootFixture {
 }
 
 pub(super) fn current_root_fixture_with_shared_page() -> CurrentRootFixture {
-    let mut runtime = super::backup_artifact_fixture::open_physical_runtime();
+    let mut runtime = crate::certification_scenario::backup_artifacts::open_physical_runtime();
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(41).expect("segment");
     let page = PhysicalPageId::from_raw(9).expect("page");

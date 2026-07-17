@@ -1,105 +1,16 @@
 use worth_store_authority::{
-    FenceProof, PrimaryServeLease, PrimaryServingAuthority, PromotionFenceDenial,
-    PromotionFenceOperationIdentity, PromotionFenceRecoveryRequest, PromotionFenceRequest,
-    StoreCurrentAuthorityIdentity, StoreCurrentAuthorityWitness,
+    FenceProof, PrimaryServingAuthority, PromotionFenceDenial, PromotionFenceOperationIdentity,
+    PromotionFenceRecoveryRequest, PromotionFenceRequest, StoreCurrentAuthorityIdentity,
 };
 use worth_store_replication::{ReplicaPromotionOwner, ReplicaPromotionReceipt};
 
-use crate::authorization::{consume_authorization, recover_authorization_consumption};
 use crate::control_store::ReplicaPromotionRecoveryHandle;
 use crate::{
-    AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt,
-    AuthorizationRevocationObservation, OperationalControlStore, OperationalControlStorePort,
-    OperationalOperationId, OperationalTransitionId,
+    AuthorizationConsumptionReceipt, OperationalControlStorePort, OperationalOperationId,
+    OperationalTransitionId,
 };
 
-use super::{AuthorizedReplicaPromotionPlan, LoweredReplicaPromotionOwnerPlanDag};
-
-#[derive(Debug)]
-pub enum ReplicaPromotionReadinessDenial {
-    StaleAuthority,
-    Authorization(AuthorizationConsumptionDenial),
-}
-
-#[derive(Debug)]
-pub struct ExecutionReadyReplicaPromotion<'control> {
-    operation_id: OperationalOperationId,
-    authorization: AuthorizationConsumptionReceipt,
-    authority_identity: StoreCurrentAuthorityIdentity,
-    replication: worth_store_replication::LoweredReplicaPromotionPlan,
-    old_primary_lease: PrimaryServeLease,
-    control: &'control OperationalControlStore,
-}
-
-impl AuthorizedReplicaPromotionPlan {
-    pub fn ready<'control>(
-        self,
-        control: &'control OperationalControlStore,
-        transition_id: OperationalTransitionId,
-        current_authority: &StoreCurrentAuthorityWitness,
-        observed_at: u64,
-        revocation: AuthorizationRevocationObservation,
-    ) -> Result<ExecutionReadyReplicaPromotion<'control>, ReplicaPromotionReadinessDenial> {
-        if self.authorization.binding().authority_identity()
-            != current_authority.authority_identity()
-        {
-            return Err(ReplicaPromotionReadinessDenial::StaleAuthority);
-        }
-        let authority_identity = current_authority.authority_identity();
-        let consumed = consume_authorization(
-            control,
-            self.operation_id.clone(),
-            transition_id,
-            self.authorization,
-            Some(self.replication.fingerprint()),
-            observed_at,
-            revocation,
-        )
-        .map_err(ReplicaPromotionReadinessDenial::Authorization)?;
-        Ok(ExecutionReadyReplicaPromotion {
-            operation_id: self.operation_id,
-            authorization: consumed.receipt(),
-            authority_identity,
-            replication: self.replication,
-            old_primary_lease: self.old_primary_lease,
-            control,
-        })
-    }
-}
-
-impl LoweredReplicaPromotionOwnerPlanDag {
-    pub fn recover_ready<'control>(
-        self,
-        handle: &ReplicaPromotionRecoveryHandle,
-        control: &'control OperationalControlStore,
-        current_authority: &StoreCurrentAuthorityWitness,
-    ) -> Result<ExecutionReadyReplicaPromotion<'control>, ReplicaPromotionReadinessDenial> {
-        let binding = self.authorization.binding();
-        if self.operation_id != *handle.operation_id()
-            || binding.authority_identity() != current_authority.authority_identity()
-            || handle.authority_identity() != current_authority.authority_identity()
-            || binding.fingerprint() != handle.authorization_plan_fingerprint()
-            || self.replication.fingerprint() != handle.execution_plan_fingerprint()
-        {
-            return Err(ReplicaPromotionReadinessDenial::StaleAuthority);
-        }
-        let authorization = recover_authorization_consumption(
-            control,
-            handle.operation_id(),
-            handle.authorization_identity(),
-            handle.authorization_plan_fingerprint(),
-        )
-        .map_err(ReplicaPromotionReadinessDenial::Authorization)?;
-        Ok(ExecutionReadyReplicaPromotion {
-            operation_id: self.operation_id,
-            authorization,
-            authority_identity: current_authority.authority_identity(),
-            replication: self.replication,
-            old_primary_lease: self.old_primary_lease,
-            control,
-        })
-    }
-}
+use super::ExecutionReadyReplicaPromotion;
 
 #[derive(Debug)]
 pub enum ReplicaPromotionFencingDenial {
@@ -130,14 +41,13 @@ pub struct RecoveredReplicaPromotion {
     pub(super) rejoin_plan_fingerprint: Option<[u8; 32]>,
 }
 
-#[derive(Debug)]
 pub struct FencedReplicaPromotion<'control> {
     operation_id: OperationalOperationId,
     authorization: AuthorizationConsumptionReceipt,
     authority_identity: StoreCurrentAuthorityIdentity,
     replication: worth_store_replication::LoweredReplicaPromotionPlan,
     fence: FenceProof,
-    control: &'control OperationalControlStore,
+    control: &'control dyn OperationalControlStorePort,
 }
 
 impl<'control> ExecutionReadyReplicaPromotion<'control> {
@@ -256,15 +166,54 @@ pub enum ReplicaPromotionFencePersistenceDenial {
     Control(crate::OperationalControlAppendDenial),
 }
 
-#[derive(Debug)]
 pub struct DurablyFencedReplicaPromotion<'control> {
     operation_id: OperationalOperationId,
     authorization: AuthorizationConsumptionReceipt,
     authority_identity: StoreCurrentAuthorityIdentity,
     replication: worth_store_replication::LoweredReplicaPromotionPlan,
     fence: FenceProof,
-    control: &'control OperationalControlStore,
+    control: &'control dyn OperationalControlStorePort,
 }
+
+macro_rules! debug_promotion_state {
+    ($type:ident, $name:literal, $($field:ident),+ $(,)?) => {
+        impl std::fmt::Debug for $type<'_> {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let mut state = formatter.debug_struct($name);
+                $(state.field(stringify!($field), &self.$field);)+
+                state.finish_non_exhaustive()
+            }
+        }
+    };
+}
+
+debug_promotion_state!(
+    ExecutionReadyReplicaPromotion,
+    "ExecutionReadyReplicaPromotion",
+    operation_id,
+    authorization,
+    authority_identity,
+    replication,
+    old_primary_lease,
+);
+debug_promotion_state!(
+    FencedReplicaPromotion,
+    "FencedReplicaPromotion",
+    operation_id,
+    authorization,
+    authority_identity,
+    replication,
+    fence,
+);
+debug_promotion_state!(
+    DurablyFencedReplicaPromotion,
+    "DurablyFencedReplicaPromotion",
+    operation_id,
+    authorization,
+    authority_identity,
+    replication,
+    fence,
+);
 
 impl<'control> FencedReplicaPromotion<'control> {
     pub fn persist_fence(

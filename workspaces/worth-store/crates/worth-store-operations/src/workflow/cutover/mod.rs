@@ -3,6 +3,7 @@ mod operation_cutover;
 mod post_verification;
 mod protocol;
 mod publication_disposition;
+mod publication_terminal;
 mod readmitted_source_lease;
 mod recovered_publication;
 mod recovered_publication_disposition;

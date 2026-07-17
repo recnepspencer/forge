@@ -54,7 +54,12 @@ impl S10ScenarioSuiteEvidence {
         for phase in S10Phase::all() {
             let count = by_kind
                 .values()
-                .filter(|scenario| scenario.program().covered_phases().contains(&phase))
+                .filter(|scenario| {
+                    scenario
+                        .phase_invocations()
+                        .iter()
+                        .any(|invocation| invocation.phase() == phase)
+                })
                 .count();
             if count < 2 {
                 return Err(S10ScenarioSuiteDenial::PhaseCoveredByFewerThanTwoScenarios(
@@ -136,6 +141,7 @@ pub enum S10CloseoutDenial {
     ReusedScenarioEvidenceAcrossProfiles,
     ControlStoreHasNoDurableHistory,
     RemoteExclusionNotProven,
+    PhaseDefectSuite(super::S10PhaseDefectSuiteDenial),
     ScaleComparison(S10ScaleComparisonDenial),
 }
 
@@ -144,6 +150,7 @@ pub struct S10CertificationCloseout {
     closeout_identity: [u8; 32],
     ci_suite_identity: [u8; 32],
     release_suite_identity: [u8; 32],
+    phase_defect_suite_identity: [u8; 32],
     selected_control_generation: u64,
     adoption: S10ProofFoundationalAdoptionMatrix,
     capabilities: OperationalRecoveryCapabilityMatrix,
@@ -155,6 +162,7 @@ pub struct S10CertificationCloseout {
 pub fn close_s10_certification(
     ci: S10ScenarioSuiteEvidence,
     release: S10ScenarioSuiteEvidence,
+    phase_defects: super::S10PhaseDefectSuite,
     control: &SelectedOperationalControlState,
     exclusion: PromotionRemoteExclusionEvidence,
 ) -> Result<S10CertificationCloseout, S10CloseoutDenial> {
@@ -181,6 +189,10 @@ pub fn close_s10_certification(
         return Err(S10CloseoutDenial::RemoteExclusionNotProven);
     }
     let scenario_evidence_identities = six_scenario_identities(&ci, &release);
+    let scenario_identity_set = scenario_evidence_identities.into_iter().collect();
+    phase_defects
+        .require_scenario_membership(&scenario_identity_set)
+        .map_err(S10CloseoutDenial::PhaseDefectSuite)?;
     let scale_comparisons = S10ScaleComparisonMatrix::from_suites(&ci, &release)
         .map_err(S10CloseoutDenial::ScaleComparison)?;
     let mut digest = Sha256::new();
@@ -198,12 +210,14 @@ pub fn close_s10_certification(
     digest.update(exclusion.fence_identity);
     digest.update(exclusion.publication_identity);
     digest.update(exclusion.serve_lease_identity);
+    digest.update(phase_defects.suite_identity());
     digest.update(scale_comparisons.matrix_identity());
     let closeout_identity = digest.finalize().into();
     Ok(S10CertificationCloseout {
         closeout_identity,
         ci_suite_identity: ci.suite_identity,
         release_suite_identity: release.suite_identity,
+        phase_defect_suite_identity: phase_defects.suite_identity(),
         selected_control_generation: control.selected_generation().generation().get(),
         adoption: S10ProofFoundationalAdoptionMatrix::canonical(),
         capabilities: OperationalRecoveryCapabilityMatrix::from_closed_suites(&ci, &release),
@@ -228,6 +242,9 @@ impl S10CertificationCloseout {
     }
     pub const fn release_suite_identity(&self) -> [u8; 32] {
         self.release_suite_identity
+    }
+    pub const fn phase_defect_suite_identity(&self) -> [u8; 32] {
+        self.phase_defect_suite_identity
     }
     pub const fn selected_control_generation(&self) -> u64 {
         self.selected_control_generation

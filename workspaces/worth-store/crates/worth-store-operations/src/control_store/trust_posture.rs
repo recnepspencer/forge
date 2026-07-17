@@ -171,6 +171,7 @@ pub struct SelectedOperationalControlState {
     selected_generation: SelectedControlStoreGeneration,
     media_identity: ControlMediaIdentity,
     history_summary: OperationalControlHistorySummary,
+    durable_records: Vec<super::OperationalControlRecord>,
     recovery_handles: Box<SelectedRecoveryHandles>,
 }
 
@@ -219,12 +220,14 @@ impl SelectedOperationalControlState {
         selected_generation: SelectedControlStoreGeneration,
         media_identity: ControlMediaIdentity,
         history_summary: OperationalControlHistorySummary,
+        durable_records: Vec<super::OperationalControlRecord>,
         replayed: ReplayedSelectedControlHistory,
     ) -> Self {
         Self {
             selected_generation,
             media_identity,
             history_summary,
+            durable_records,
             recovery_handles: Box::new(SelectedRecoveryHandles {
                 active_backups: replayed.active_backups,
                 indeterminate_repairs: replayed.indeterminate_repairs,
@@ -245,6 +248,13 @@ impl SelectedOperationalControlState {
     }
     pub const fn history_summary(&self) -> OperationalControlHistorySummary {
         self.history_summary
+    }
+
+    /// Canonical decoded records from the exact selected durable prefix.
+    /// Audit, formal refinement, and certification consume this view rather
+    /// than accepting a caller-reconstructed parallel history.
+    pub fn durable_records(&self) -> &[super::OperationalControlRecord] {
+        &self.durable_records
     }
 
     pub fn recover_backup_reachability_leases(

@@ -6,7 +6,7 @@ use worth_store_replication::{
     ReplicaBootstrapExecutionPort, ReplicaBootstrapOwner, ReplicaBootstrapReceipt,
 };
 
-use crate::authorization::{consume_authorization, recover_authorization_consumption};
+use crate::authorization::{consume_authorization_through, recover_authorization_consumption};
 use crate::control_store::ReplicaBootstrapRecoveryHandle;
 use crate::{
     AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt,
@@ -24,13 +24,12 @@ pub enum ReplicaBootstrapReadinessDenial {
     TerminalSourceLease(worth_store_physical_isolation::RecoverySourceLeaseDenial),
 }
 
-#[derive(Debug)]
 pub struct ExecutionReadyReplicaBootstrap<'control> {
     operation_id: OperationalOperationId,
     authorization: AuthorizationConsumptionReceipt,
     authority_identity: StoreCurrentAuthorityIdentity,
     replication: worth_store_replication::LoweredReplicaBootstrapPlan,
-    control: &'control OperationalControlStore,
+    control: &'control dyn OperationalControlStorePort,
 }
 
 impl AuthorizedReplicaBootstrapPlan {
@@ -42,14 +41,54 @@ impl AuthorizedReplicaBootstrapPlan {
         observed_at: u64,
         revocation: AuthorizationRevocationObservation,
     ) -> Result<ExecutionReadyReplicaBootstrap<'control>, ReplicaBootstrapReadinessDenial> {
+        self.ready_with_control_port(
+            control,
+            control,
+            transition_id,
+            current_authority,
+            observed_at,
+            revocation,
+        )
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn ready_with_certification_control_store<'control>(
+        self,
+        control: &'control OperationalControlStore,
+        append: &'control dyn OperationalControlStorePort,
+        transition_id: OperationalTransitionId,
+        current_authority: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyReplicaBootstrap<'control>, ReplicaBootstrapReadinessDenial> {
+        self.ready_with_control_port(
+            control,
+            append,
+            transition_id,
+            current_authority,
+            observed_at,
+            revocation,
+        )
+    }
+
+    fn ready_with_control_port<'control>(
+        self,
+        control: &'control OperationalControlStore,
+        append: &'control dyn OperationalControlStorePort,
+        transition_id: OperationalTransitionId,
+        current_authority: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyReplicaBootstrap<'control>, ReplicaBootstrapReadinessDenial> {
         if self.authorization.binding().authority_identity()
             != current_authority.authority_identity()
         {
             return Err(ReplicaBootstrapReadinessDenial::StaleAuthority);
         }
         let authority_identity = current_authority.authority_identity();
-        let consumed = consume_authorization(
+        let consumed = consume_authorization_through(
             control,
+            append,
             self.operation_id.clone(),
             transition_id,
             self.authorization,
@@ -63,7 +102,7 @@ impl AuthorizedReplicaBootstrapPlan {
             authorization: consumed.receipt(),
             authority_identity,
             replication: self.replication,
-            control,
+            control: append,
         })
     }
 }
@@ -73,6 +112,27 @@ impl LoweredReplicaBootstrapOwnerPlanDag {
         self,
         handle: &ReplicaBootstrapRecoveryHandle,
         control: &'control OperationalControlStore,
+        current_authority: &StoreCurrentAuthorityWitness,
+    ) -> Result<ReplicaBootstrapResume<'control>, ReplicaBootstrapReadinessDenial> {
+        self.recover_with_control_port(handle, control, control, current_authority)
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn recover_with_certification_control_store<'control>(
+        self,
+        handle: &ReplicaBootstrapRecoveryHandle,
+        control: &'control OperationalControlStore,
+        append: &'control dyn OperationalControlStorePort,
+        current_authority: &StoreCurrentAuthorityWitness,
+    ) -> Result<ReplicaBootstrapResume<'control>, ReplicaBootstrapReadinessDenial> {
+        self.recover_with_control_port(handle, control, append, current_authority)
+    }
+
+    fn recover_with_control_port<'control>(
+        self,
+        handle: &ReplicaBootstrapRecoveryHandle,
+        control: &'control OperationalControlStore,
+        append: &'control dyn OperationalControlStorePort,
         current_authority: &StoreCurrentAuthorityWitness,
     ) -> Result<ReplicaBootstrapResume<'control>, ReplicaBootstrapReadinessDenial> {
         let binding = self.authorization.binding();
@@ -129,7 +189,7 @@ impl LoweredReplicaBootstrapOwnerPlanDag {
                 authorization,
                 authority_identity: current_authority.authority_identity(),
                 replication: self.replication,
-                control,
+                control: append,
             },
         ))
     }
@@ -179,14 +239,13 @@ pub enum ReplicaBootstrapExecutionDenial {
     Replication(worth_store_replication::ReplicaBootstrapDenial),
 }
 
-#[derive(Debug)]
 pub struct TransferredReplicaBootstrap<'control> {
     operation_id: OperationalOperationId,
     authorization: AuthorizationConsumptionReceipt,
     authority_identity: StoreCurrentAuthorityIdentity,
     receipt: ReplicaBootstrapReceipt,
     retained_source_lease: BootstrapReachabilityLease,
-    control: &'control OperationalControlStore,
+    control: &'control dyn OperationalControlStorePort,
 }
 
 impl<'control> ExecutionReadyReplicaBootstrap<'control> {
@@ -209,6 +268,31 @@ impl<'control> ExecutionReadyReplicaBootstrap<'control> {
             retained_source_lease,
             control: self.control,
         })
+    }
+}
+
+impl std::fmt::Debug for ExecutionReadyReplicaBootstrap<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ExecutionReadyReplicaBootstrap")
+            .field("operation_id", &self.operation_id)
+            .field("authorization", &self.authorization)
+            .field("authority_identity", &self.authority_identity)
+            .field("replication", &self.replication)
+            .finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Debug for TransferredReplicaBootstrap<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("TransferredReplicaBootstrap")
+            .field("operation_id", &self.operation_id)
+            .field("authorization", &self.authorization)
+            .field("authority_identity", &self.authority_identity)
+            .field("receipt", &self.receipt)
+            .field("retained_source_lease", &self.retained_source_lease)
+            .finish_non_exhaustive()
     }
 }
 

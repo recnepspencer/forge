@@ -1,5 +1,9 @@
+use crate::OperationalRecoveryControlTransitionKind;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum OperationalRecoveryYieldpoint {
+    BeforeDurableControlTransition(OperationalRecoveryControlTransitionKind),
+    AfterDurableControlTransition(OperationalRecoveryControlTransitionKind),
     BeforeForensicSourceAcquisition,
     AfterForensicSourceRecord,
     BeforeForensicFinalization,
@@ -37,7 +41,151 @@ pub enum OperationalRecoveryYieldpoint {
 }
 
 impl OperationalRecoveryYieldpoint {
-    pub const ALL: [Self; 34] = [
+    pub const ALL: [Self; 82] = [
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::BackupSourceLease,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::BackupSourceLease,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::BackupMaterializationOpen,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::BackupMaterializationOpen,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::BackupMaterializationCompletion,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::BackupMaterializationCompletion,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::IndependentBackupVerification,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::IndependentBackupVerification,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::AuthorizationConsumption,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::AuthorizationConsumption,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryOwnerReceipt,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryOwnerReceipt,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryStagingCompletion,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryStagingCompletion,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairExecutionOpen,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairExecutionOpen,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairOwnerEffect,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairOwnerEffect,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairOwnerReceipt,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairOwnerReceipt,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairDisposition,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RepairDisposition,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationPreparation,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationPreparation,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationPending,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationPending,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationDisposition,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationDisposition,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationFenceRelease,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::RecoveryPublicationFenceRelease,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::WorkflowAbandonment,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::WorkflowAbandonment,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaBootstrapTransfer,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaBootstrapTransfer,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaBootstrapCompletion,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaBootstrapCompletion,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionFence,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionFence,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionRecord,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionRecord,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionPublication,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionPublication,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionReadmission,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::ReplicaPromotionReadmission,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::OldPrimaryRejoinPlan,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::OldPrimaryRejoinPlan,
+        ),
+        Self::BeforeDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::OldPrimaryRejoinCompletion,
+        ),
+        Self::AfterDurableControlTransition(
+            OperationalRecoveryControlTransitionKind::OldPrimaryRejoinCompletion,
+        ),
         Self::BeforeForensicSourceAcquisition,
         Self::AfterForensicSourceRecord,
         Self::BeforeForensicFinalization,
@@ -74,8 +222,10 @@ impl OperationalRecoveryYieldpoint {
         Self::AfterAuditExport,
     ];
 
-    pub const fn token(self) -> &'static str {
+    pub fn token(self) -> &'static str {
         match self {
+            Self::BeforeDurableControlTransition(kind) => kind.before_token(),
+            Self::AfterDurableControlTransition(kind) => kind.after_token(),
             Self::BeforeForensicSourceAcquisition => "s10-forensic-before-source-acquisition",
             Self::AfterForensicSourceRecord => "s10-forensic-after-source-record",
             Self::BeforeForensicFinalization => "s10-forensic-before-finalization",

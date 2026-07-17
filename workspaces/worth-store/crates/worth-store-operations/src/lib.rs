@@ -132,3 +132,5 @@ mod replication_prep_scheduler_demand;
 mod workflow;
 
 pub use facade::*;
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub mod certification_scenario;
