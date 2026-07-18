@@ -1,7 +1,7 @@
-use worth_signal::facade::SignalTransaction;
-use worth_signal::facade::{specialist::EvaluationVerdict, SignalError};
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
+use worth_signal::facade::SignalTransaction;
+use worth_signal::facade::{specialist::EvaluationVerdict, SignalError};
 
 use crate::boundary::errors::WorthSignalJsError;
 use crate::runtime::summaries::RunSummary;

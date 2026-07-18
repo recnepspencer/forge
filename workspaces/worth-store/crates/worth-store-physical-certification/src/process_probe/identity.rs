@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    environment, ProcessEnvironmentBindingEvidence, ProcessProbeDeclaration,
+    environment, wire_encoding, ProcessEnvironmentBindingEvidence, ProcessProbeDeclaration,
     ProcessProbeEvidenceDenial, ProcessProbeIntent, ProcessRole, SealedProcessProbeInput,
 };
 use crate::certification_child_process::{decode_hex_32, encode_hex_32, publish_new_synced};
@@ -59,7 +59,7 @@ pub(crate) fn configure_process_probe(
     if input.identity() != intent.input_identity() {
         return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
     }
-    let sealed_input = serde_json::to_string(input)
+    let sealed_input = wire_encoding::encode_environment(input)
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     let protocol_keys = [
         ROLE_ENV,
@@ -123,9 +123,13 @@ pub fn admit_current_process_probe(
     }
     let input_identity = decode_hex_32(&required_string(INPUT_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    let sealed_input =
-        SealedProcessProbeInput::decode_untrusted(required_string(SEALED_INPUT_ENV)?.as_bytes())
-            .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
+    let sealed_input = wire_encoding::decode_environment::<SealedProcessProbeInput>(
+        &required_string(SEALED_INPUT_ENV)?,
+    )
+    .and_then(|decoded| {
+        SealedProcessProbeInput::decode_untrusted(&wire_encoding::encode(&decoded)?)
+    })
+    .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
     if sealed_input.identity() != input_identity {
         return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
     }
@@ -151,9 +155,11 @@ pub(crate) fn write_current_process_observation(
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     let input_artifact_identity = decode_hex_32(&required_string(INPUT_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    let sealed_input =
-        SealedProcessProbeInput::decode_declared(required_string(SEALED_INPUT_ENV)?.as_bytes())
-            .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
+    let sealed_input = wire_encoding::decode_environment::<SealedProcessProbeInput>(
+        &required_string(SEALED_INPUT_ENV)?,
+    )
+    .and_then(|decoded| SealedProcessProbeInput::decode_declared(&wire_encoding::encode(&decoded)?))
+    .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
     if sealed_input.identity() != input_artifact_identity
         || input_artifact_identity != admission.input_identity
     {
@@ -181,7 +187,7 @@ pub(crate) fn write_current_process_observation(
         input_artifact_identity,
         runtime_identity,
     };
-    write_new_json(&observation_path, &evidence)
+    write_new_observation(&observation_path, &evidence)
 }
 
 fn validate_current_environment(
@@ -209,7 +215,7 @@ pub(crate) fn read_process_observation(
     spawned_process_id: u32,
 ) -> Result<ObservedProcessIdentity, ProcessProbeEvidenceDenial> {
     let bytes = fs::read(path).map_err(|_| ProcessProbeEvidenceDenial::MissingChildObservation)?;
-    let evidence: ProcessIdentityEvidence = serde_json::from_slice(&bytes)
+    let evidence: ProcessIdentityEvidence = wire_encoding::decode(&bytes)
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     evidence.validate_against(declaration, spawned_process_id)?;
     Ok(ObservedProcessIdentity(evidence))
@@ -270,13 +276,12 @@ fn explicit_command_environment(
         .collect()
 }
 
-fn write_new_json(
+fn write_new_observation(
     path: &Path,
     evidence: &ProcessIdentityEvidence,
 ) -> Result<(), ProcessProbeEvidenceDenial> {
-    let mut bytes = serde_json::to_vec_pretty(evidence)
-        .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-    bytes.push(b'\n');
+    let bytes =
+        wire_encoding::encode(evidence).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
     publish_new_synced(path, &bytes).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)
 }
 

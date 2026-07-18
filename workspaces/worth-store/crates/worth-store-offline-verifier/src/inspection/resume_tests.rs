@@ -11,6 +11,8 @@ use crate::{
 
 mod file_facts;
 use file_facts::file_facts;
+mod manual_clock;
+use manual_clock::ManualClock;
 
 #[test]
 fn owner_issued_restart_matrix_covers_every_chunk_boundary() {
@@ -78,22 +80,28 @@ fn every_chunk_boundary_crash_and_cancellation_converges_across_buffer_widths() 
 #[test]
 fn absolute_deadline_cannot_be_reset_by_persisted_resume() {
     let fixture = ResumeFixture::new();
-    let deadline = std::time::SystemTime::now() + std::time::Duration::from_millis(40);
+    let clock = std::sync::Arc::new(ManualClock::new(std::time::UNIX_EPOCH));
+    let deadline = std::time::UNIX_EPOCH + std::time::Duration::from_secs(10);
     let budget = OfflineInspectionBudget::bounded(16, 256)
         .expect("budget")
         .with_deadline(deadline)
         .expect("deadline");
-    let mut interrupted = fixture.inspection(budget).start().expect("start");
+    let mut interrupted = fixture
+        .inspection(budget)
+        .clock(clock.clone())
+        .start()
+        .expect("start");
     interrupted.advance().expect("read").expect("progress");
     let encoded = interrupted
         .checkpoint()
         .expect("checkpoint")
         .encode()
         .expect("persisted checkpoint");
-    std::thread::sleep(std::time::Duration::from_millis(60));
+    clock.set(deadline);
 
     let denial = match fixture
         .inspection(budget)
+        .clock(clock)
         .resume_from_checkpoint_bytes(&encoded)
     {
         Err(denial) => denial,
@@ -220,7 +228,6 @@ fn persisted_checkpoint_decode_cannot_escape_the_session_owned_memory_budget() {
         .expect("oversized checkpoint safely becomes a fresh session")
         .finish()
         .expect("fresh walk");
-
     assert_eq!(walked.counters().checkpoint_revalidated_files(), 0);
     assert_eq!(walked.counters().checkpoint_rejections(), 1);
     assert_eq!(walked.counters().bytes_read(), 128);

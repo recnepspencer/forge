@@ -73,6 +73,7 @@ pub struct OfflineInspectionSession {
     counters: OfflineInspectionCounters,
     cancellation: OfflineInspectionCancellation,
     started_at: std::time::Instant,
+    clock: std::sync::Arc<dyn super::OfflineInspectionClock>,
     elapsed_before_resume: std::time::Duration,
     resume_revalidation: Option<ResumeRevalidation>,
     resident_owned_allocation_bytes: u64,
@@ -85,6 +86,7 @@ impl OfflineInspectionSession {
         budget: OfflineInspectionBudget,
         cancellation: OfflineInspectionCancellation,
         started_at: std::time::Instant,
+        clock: std::sync::Arc<dyn super::OfflineInspectionClock>,
     ) -> Result<Self, crate::OfflineMediaAcquisitionDenial> {
         let requested_session_owned = media
             .resident_owned_allocation_bytes()
@@ -159,6 +161,7 @@ impl OfflineInspectionSession {
             counters,
             cancellation,
             started_at,
+            clock,
             elapsed_before_resume: std::time::Duration::ZERO,
             resume_revalidation: None,
             resident_owned_allocation_bytes,

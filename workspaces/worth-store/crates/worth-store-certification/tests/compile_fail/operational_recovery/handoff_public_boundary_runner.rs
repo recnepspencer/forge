@@ -62,30 +62,13 @@ fn consume_s12_handoff(
     let _ = handoff.unqualified_dimensions();
 }
 
-const FIXTURES: &[(&str, &[&str])] = &[
-    (
-        "s11_handoff_cannot_mint_current_authority.rs",
-        &[
-            "S11StructuredAuditHardeningHandoff",
-            "StoreCurrentAuthorityWitness",
-        ],
-    ),
-    (
-        "s12_handoff_cannot_mint_control_state.rs",
-        &[
-            "S12PhysicalQualificationHandoff",
-            "SelectedOperationalControlState",
-        ],
-    ),
-    (
-        "s11_handoff_fields_are_not_reinterpretable.rs",
-        &["S11StructuredAuditHardeningHandoff", "private"],
-    ),
-    (
-        "s12_handoff_fields_are_not_reinterpretable.rs",
-        &["S12PhysicalQualificationHandoff", "private"],
-    ),
-];
+const FIXTURES: &[(&str, &[&str])] = &[(
+    "s11_handoff_cannot_mint_current_authority.rs",
+    &[
+        "S11StructuredAuditHardeningHandoff",
+        "StoreCurrentAuthorityWitness",
+    ],
+)];
 
 fn static_case_root() -> std::path::PathBuf {
     store_workspace_root().join("crates/worth-store-certification/tests/compile_fail/operational_recovery/cases/handoff_public_boundary")

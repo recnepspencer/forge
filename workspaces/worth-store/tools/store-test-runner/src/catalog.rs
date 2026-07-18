@@ -19,6 +19,7 @@ pub(crate) struct TestTarget {
     pub(crate) kind: CargoTargetKind,
     pub(crate) test: bool,
     pub(crate) doctest: bool,
+    pub(crate) required_features: Vec<String>,
     pub(crate) lane: CiTestLane,
 }
 
@@ -78,6 +79,7 @@ impl TestCatalog {
                     kind,
                     test: target.test,
                     doctest: target.doctest,
+                    required_features: target.required_features,
                     lane,
                 });
             }
@@ -161,13 +163,15 @@ struct CargoTarget {
     src_path: String,
     test: bool,
     doctest: bool,
+    #[serde(rename = "required-features", default)]
+    required_features: Vec<String>,
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
-    use super::TestCatalog;
+    use super::{CargoMetadata, TestCatalog};
     use crate::classification::CiTestLane;
     use crate::product::smoke_cases;
 
@@ -198,6 +202,29 @@ mod tests {
                 smoke.target
             );
         }
+    }
+
+    #[test]
+    fn cargo_required_features_are_preserved_as_execution_authority() {
+        let metadata: CargoMetadata = serde_json::from_str(
+            r#"{
+                "packages": [{
+                    "name": "example",
+                    "targets": [{
+                        "name": "feature_guarded",
+                        "kind": ["test"],
+                        "src_path": "/repo/example/tests/feature_guarded.rs",
+                        "test": true,
+                        "doctest": false,
+                        "required-features": ["certification"]
+                    }]
+                }]
+            }"#,
+        )
+        .unwrap();
+
+        let catalog = TestCatalog::from_metadata(metadata).unwrap();
+        assert_eq!(catalog.targets()[0].required_features, ["certification"]);
     }
 
     fn workspace_root() -> &'static Path {

@@ -308,12 +308,9 @@ fn durable_publication_receipt(
         CheckpointDurablePublicationScope::new(StoreCheckpointRecordIdentity::new(7), digest, 1, 2)
             .expect("checkpoint publication scope should admit");
     let accepted = admission.submit_write(scope.clone()).backend_accepted();
+    let directory = tempfile::tempdir().expect("durability execution directory");
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(
-            &std::env::temp_dir(),
-            b"blob-recovery-durable-write",
-            &accepted,
-        )
+        .persist_and_execute(directory.path(), b"blob-recovery-durable-write", &accepted)
         .expect("durability execution should succeed");
     accepted
         .reach_durability_boundary(proof)

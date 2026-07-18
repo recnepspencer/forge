@@ -4,8 +4,7 @@ use worth_store_certification::courtroom::operational_recovery::{
     localize_s10_closeout_join_phase_defect, localize_s10_control_selection_phase_defect,
     localize_s10_counter_phase_defect, localize_s10_formal_phase_defect,
     localize_s10_harness_phase_defect, localize_s10_observation_join_omission,
-    localize_s10_runtime_record_omission, localize_s10_structural_phase_defect,
-    require_s10_structural_preflight, PromotionRemoteExclusionEvidence, S10CloseoutDenial,
+    localize_s10_runtime_record_omission, PromotionRemoteExclusionEvidence, S10CloseoutDenial,
     S10OperationalScenarioKind, S10PhaseDefectLocalization, S10PhaseDefectSuite,
     S10ScenarioProductionEvidence, S10ScenarioSuiteEvidence, ScenarioScaleProfile,
 };
@@ -23,7 +22,6 @@ pub fn closeout_denial() -> S10CloseoutDenial {
         S10OperationalScenarioKind::AuthorityRepairRollback,
         ScenarioScaleProfile::Ci,
     );
-    let preflight = require_s10_structural_preflight().unwrap();
     let defects = S10PhaseDefectSuite::join(localizations(
         &burning,
         &burning_world,
@@ -31,7 +29,6 @@ pub fn closeout_denial() -> S10CloseoutDenial {
         &split_world,
         &repair,
         &repair_world,
-        &preflight,
     ))
     .expect("one distinct controlled rejection per S10 phase");
     let ci =
@@ -56,7 +53,6 @@ fn localizations(
     split_world: &super::owner_world::ExecutedOwnerWorld,
     repair: &worth_store_certification::courtroom::operational_recovery::S10OperationalScenarioEvidence,
     repair_world: &super::owner_world::ExecutedOwnerWorld,
-    preflight: &worth_store_certification::courtroom::operational_recovery::S10StructuralPreflightEvidence,
 ) -> Vec<S10PhaseDefectLocalization> {
     let burning_production =
         S10ScenarioProductionEvidence::new(&burning_world.selected, &burning_world.truth);
@@ -66,7 +62,6 @@ fn localizations(
         S10ScenarioProductionEvidence::new(&repair_world.selected, &repair_world.truth);
     let control_denial = split_world.controlled_selected_prefix_defect();
     let mut defects = vec![
-        localize_s10_structural_phase_defect(burning, preflight).unwrap(),
         localize_s10_control_selection_phase_defect(split, &control_denial).unwrap(),
         localize_s10_observation_join_omission(burning, burning_production, 3).unwrap(),
         localize_s10_observation_join_omission(repair, repair_production, 4).unwrap(),

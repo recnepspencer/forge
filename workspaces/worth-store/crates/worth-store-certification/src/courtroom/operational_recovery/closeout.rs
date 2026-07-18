@@ -52,7 +52,7 @@ impl S10ScenarioSuiteEvidence {
                 return Err(S10ScenarioSuiteDenial::MissingScenario(kind));
             }
         }
-        for phase in S10Phase::all() {
+        for phase in S10Phase::scenario_phases() {
             let count = by_kind
                 .values()
                 .filter(|scenario| {

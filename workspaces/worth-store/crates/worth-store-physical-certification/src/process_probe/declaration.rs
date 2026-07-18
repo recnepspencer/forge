@@ -4,7 +4,7 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::ProcessArtifactPath;
+use super::{wire_encoding, ProcessArtifactPath};
 use crate::certification_child_process::validated_current_executable;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -137,8 +137,7 @@ impl SealedProcessProbeInput {
     }
 
     fn decode(bytes: &[u8], reobserve_inputs: bool) -> Result<Self, String> {
-        let decoded: Self = serde_json::from_slice(bytes)
-            .map_err(|error| format!("invalid process probe input: {error}"))?;
+        let decoded: Self = wire_encoding::decode(bytes)?;
         if reobserve_inputs {
             for artifact in &decoded.artifacts {
                 artifact.validate_child_admission()?;
@@ -307,7 +306,5 @@ impl ProcessProbeDeclaration {
 }
 
 fn digest_serialized(value: &impl Serialize) -> Result<[u8; 32], String> {
-    serde_json::to_vec(value)
-        .map(|bytes| Sha256::digest(bytes).into())
-        .map_err(|error| format!("could not encode process probe identity: {error}"))
+    wire_encoding::encode(value).map(|bytes| Sha256::digest(bytes).into())
 }

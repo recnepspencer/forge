@@ -88,7 +88,6 @@ impl S10HostileProgramEvidence {
         footprint_rejection: worth_store_operations::certification_scenario::ScenarioFootprintMutationRejectionReceipt,
         staging_resume: worth_store_operations::certification_scenario::ScenarioStagingResumeReceipt,
         published_readmission: PublishedReadmissionRecoveryReceipt,
-        structural_preflight: super::S10StructuralPreflightEvidence,
     ) -> Result<Self, S10HostileProgramDenial> {
         if rejected.rejection_identity() == [0; 32] || rejected.omitted_artifact().is_empty() {
             return Err(S10HostileProgramDenial::PoisonedBackupNotRejected);
@@ -146,7 +145,6 @@ impl S10HostileProgramEvidence {
         source.update(footprint_rejection.evidence_identity());
         source.update(staging_resume.evidence_identity());
         source.update(published_readmission.evidence_identity());
-        source.update(structural_preflight.dependency_boundary_identity());
         Ok(Self::bind(
             S10OperationalScenarioKind::BurningPrimary,
             source.finalize().into(),

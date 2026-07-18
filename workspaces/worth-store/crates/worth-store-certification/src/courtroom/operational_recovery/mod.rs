@@ -17,7 +17,6 @@ mod scenario_owner_topology;
 mod scenario_scale;
 mod scenario_topology;
 mod scenario_trace_binding;
-mod structural_preflight;
 #[cfg(test)]
 mod tests;
 
@@ -47,9 +46,8 @@ pub use phase_defects::{
     localize_s10_formal_phase_defect, localize_s10_harness_join_omission,
     localize_s10_harness_phase_defect, localize_s10_observation_join_omission,
     localize_s10_observation_phase_defect, localize_s10_runtime_phase_defect,
-    localize_s10_runtime_record_omission, localize_s10_structural_phase_defect,
-    S10PhaseDefectDenial, S10PhaseDefectLocalization, S10PhaseDefectSourceKind,
-    S10PhaseDefectSuite, S10PhaseDefectSuiteDenial,
+    localize_s10_runtime_record_omission, S10PhaseDefectDenial, S10PhaseDefectLocalization,
+    S10PhaseDefectSourceKind, S10PhaseDefectSuite, S10PhaseDefectSuiteDenial,
 };
 pub use phase_invocation::{
     S10PhaseInvocationDenial, S10PhaseInvocationEvidence, S10ScenarioProductionEvidence,
@@ -66,6 +64,3 @@ pub use scenario_scale::{
     ScenarioScaleDenial, ScenarioScaleEvidence, ScenarioScaleProfile, ScenarioWorkloadDimensions,
 };
 pub use scenario_topology::{S10OperationalScenarioKind, S10OperationalScenarioProgram, S10Phase};
-pub use structural_preflight::{
-    require_s10_structural_preflight, S10StructuralPreflightDenial, S10StructuralPreflightEvidence,
-};

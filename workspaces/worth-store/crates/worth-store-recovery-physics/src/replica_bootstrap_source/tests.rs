@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use sha2::{Digest, Sha256};
 use worth_store_physical_backend::{
@@ -12,8 +11,6 @@ use super::{
     BootstrapSourceFrontier, BootstrapSourceResolutionDenial, BootstrapSourceResolutionRequest,
     RecoveryPhysicsBootstrapSourceOwner,
 };
-
-static NEXT_WORLD: AtomicU64 = AtomicU64::new(1);
 
 #[test]
 fn bounded_real_media_resolution_issues_an_exact_recovery_owned_cut() {
@@ -77,6 +74,7 @@ fn a_digest_complete_set_without_blob_reachability_is_not_a_bootstrap_source() {
 }
 
 struct BootstrapSourceWorld {
+    _directory: tempfile::TempDir,
     root: PathBuf,
     relative_paths: Vec<PathBuf>,
     artifacts: Vec<BootstrapSourceArtifact>,
@@ -85,11 +83,11 @@ struct BootstrapSourceWorld {
 
 impl BootstrapSourceWorld {
     fn create() -> Self {
-        let root = std::env::temp_dir().join(format!(
-            "worth-store-bootstrap-source-{}-{}",
-            std::process::id(),
-            NEXT_WORLD.fetch_add(1, Ordering::Relaxed)
-        ));
+        let directory = tempfile::Builder::new()
+            .prefix("worth-store-bootstrap-source-")
+            .tempdir()
+            .expect("bootstrap source directory");
+        let root = directory.path().to_owned();
         std::fs::create_dir_all(root.join("blob")).expect("fixture directories must exist");
         let declarations = [
             (
@@ -134,6 +132,7 @@ impl BootstrapSourceWorld {
         relative_paths.sort();
         artifacts.sort_by(|left, right| left.relative_path().cmp(right.relative_path()));
         Self {
+            _directory: directory,
             root: std::fs::canonicalize(root).expect("fixture root must canonicalize"),
             relative_paths,
             artifacts,
@@ -176,12 +175,6 @@ impl BootstrapSourceWorld {
         .expect("fixture closure must be admissible");
         ReadOnlyOfflineMediaCapability::open_bounded_from_owned_paths(paths, basis, 16_384)
             .expect("fixture media must open read-only")
-    }
-}
-
-impl Drop for BootstrapSourceWorld {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.root);
     }
 }
 

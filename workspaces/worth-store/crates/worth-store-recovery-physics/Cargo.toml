@@ -8,6 +8,7 @@ description = "Roadmap 2 S.4 WAL, checkpoint, LSN, and physical recovery rules."
 
 [dependencies]
 sha2 = "0.10"
+tempfile = { version = "3", optional = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
@@ -23,13 +24,22 @@ worth-store-wal.workspace = true
 
 [features]
 default = []
-certification-test-authority = ["worth-store-physical-backend/certification-test-authority"]
+certification-test-authority = [
+    "dep:tempfile",
+    "worth-store-physical-backend/certification-test-authority",
+]
 phase21-layout-rule-construction = []
 phase22-layout-rule-construction = []
 
 [dev-dependencies]
+tempfile = "3"
 worth-store-authority.workspace = true
 worth-store-readiness.workspace = true
 
 [lints]
 workspace = true
+
+[[test]]
+name = "layout_scenarios"
+path = "tests/layout_scenarios.rs"
+required-features = ["certification-test-authority"]

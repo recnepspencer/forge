@@ -1,18 +1,10 @@
 use worth_store_certification::courtroom::operational_recovery::{
-    certify_s10_operational_scenario, require_s10_structural_preflight,
-    S10OperationalScenarioEvidence, S10OperationalScenarioKind, S10OperationalScenarioProgram,
-    S10ScenarioProductionEvidence, S10ScenarioSuiteEvidence, ScenarioScaleProfile,
+    certify_s10_operational_scenario, S10OperationalScenarioEvidence, S10OperationalScenarioKind,
+    S10OperationalScenarioProgram, S10ScenarioProductionEvidence, S10ScenarioSuiteEvidence,
+    ScenarioScaleProfile,
 };
 
 use super::{owner_world, physical_evidence, qos};
-
-pub fn certify_authority_repair_rollback_smoke() -> S10OperationalScenarioEvidence {
-    certify_scenario(
-        S10OperationalScenarioKind::AuthorityRepairRollback,
-        ScenarioScaleProfile::Smoke,
-    )
-    .0
-}
 
 pub fn certify_scenario(
     kind: S10OperationalScenarioKind,
@@ -23,7 +15,6 @@ pub fn certify_scenario(
 ) {
     let identity = format!("s10-certifier/{}/{}", kind.token(), profile.token());
     let world = owner_world::execute_scenario_world_for_profile(kind, profile, &identity);
-    let preflight = require_s10_structural_preflight().expect("S10 structural preflight");
     let crash_coverage =
         super::crash_coverage::scenario_crash_coverage(kind, &identity, &world.trace);
     let execution =
@@ -31,9 +22,8 @@ pub fn certify_scenario(
     let production = S10ScenarioProductionEvidence::new(&world.selected, &world.truth);
     certify_s10_operational_scenario(
         S10OperationalScenarioProgram::new(kind, profile),
-        &preflight,
         production,
-        hostile_program(kind, &world, &execution, preflight),
+        hostile_program(kind, &world, &execution),
         execution,
         qos::operational_qos(),
         world.counters.clone(),
@@ -47,7 +37,6 @@ fn hostile_program(
     kind: S10OperationalScenarioKind,
     world: &owner_world::ExecutedOwnerWorld,
     execution: &worth_store_certification::courtroom::operational_recovery::S10ScenarioExecutionMatrix,
-    preflight: worth_store_certification::courtroom::operational_recovery::S10StructuralPreflightEvidence,
 ) -> worth_store_certification::courtroom::operational_recovery::S10HostileProgramEvidence {
     use worth_store_certification::courtroom::operational_recovery::S10HostileProgramEvidence;
 
@@ -72,7 +61,6 @@ fn hostile_program(
             world
                 .published_readmission_recovery
                 .expect("burning-primary publication recovery"),
-            preflight,
         ),
         S10OperationalScenarioKind::SplitBrainPromotion => S10HostileProgramEvidence::split_brain(
             world
@@ -116,7 +104,6 @@ fn hostile_program(
                     .retained_authority_rollback
                     .as_ref()
                     .expect("retained-authority rollback closure"),
-                preflight,
             )
         }
     }

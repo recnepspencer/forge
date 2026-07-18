@@ -43,17 +43,21 @@ pub(super) use worth_store_wal::{BlobWalRecordEnvelope, DurablePublicationDeclar
 
 #[derive(Debug, Clone)]
 pub struct LsmMembershipReplacementCrashFixture {
+    _directory: crate::TemporaryDirectory,
     anchor: AdmittedWalAppendReceipt,
     key: LsmMembershipKey,
     activation_path: std::path::PathBuf,
     activation_bytes: Vec<u8>,
     replacement_output: BlobWalRecordIdentity,
     replacement_path: std::path::PathBuf,
+    replacement_offset: u64,
+    replacement_bytes: u64,
     wrong_physical_denial: worth_store_lsm_authority::LsmMembershipDenial,
 }
 
 #[derive(Debug, Clone)]
 pub struct ExecutedLsmCompactionFixture {
+    pub(super) _directory: crate::TemporaryDirectory,
     pub(super) published: PublishedLsmCompaction,
     pub(super) reader_cutover: worth_store_physical_isolation::ReadDuringCompactionVerdict,
     pub(super) replay_source: worth_store_lsm_authority::AdmittedLsmReplaySource,
@@ -111,13 +115,21 @@ impl LsmMembershipReplacementCrashFixture {
         &self.replacement_path
     }
 
+    pub const fn replacement_offset(&self) -> u64 {
+        self.replacement_offset
+    }
+
+    pub const fn replacement_bytes(&self) -> u64 {
+        self.replacement_bytes
+    }
+
     pub const fn wrong_physical_denial(&self) -> worth_store_lsm_authority::LsmMembershipDenial {
         self.wrong_physical_denial
     }
 }
 
 pub fn lsm_membership_replacement_crash_fixture() -> LsmMembershipReplacementCrashFixture {
-    begin_durability_fixture();
+    let directory = begin_durability_fixture();
     let access = lsm_strategy();
     let security = admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
     let metadata = worth_store_wal::WalSecurityMetadataCarrier::for_wal_record(
@@ -185,6 +197,8 @@ pub fn lsm_membership_replacement_crash_fixture() -> LsmMembershipReplacementCra
     .unwrap();
     let replacement_output = output.identity();
     let replacement_path = output.persisted_path().to_path_buf();
+    let replacement_offset = output.persisted_offset();
+    let replacement_bytes = output.persisted_bytes();
     let wrong_physical_denial = worth_store_lsm_authority::prepare_lsm_membership_activation(
         &selected,
         output.clone(),
@@ -213,12 +227,15 @@ pub fn lsm_membership_replacement_crash_fixture() -> LsmMembershipReplacementCra
         .into_result()
         .unwrap();
     LsmMembershipReplacementCrashFixture {
+        _directory: directory,
         anchor,
         key,
         activation_path,
         activation_bytes,
         replacement_output,
         replacement_path,
+        replacement_offset,
+        replacement_bytes,
         wrong_physical_denial,
     }
 }

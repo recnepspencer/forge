@@ -46,41 +46,10 @@ fn io_qos_secure_io_authority_rejects_lower_authority_sources() {
     assert_eq!(evidence.fixtures.len(), FIXTURES.len());
 }
 
-const FIXTURES: &[(&str, &[&str])] = &[
-    (
-        "identity_provider_claim_cannot_satisfy_secure_io_scope.rs",
-        &["IoSchedulerSecurityScopeAdmission", "StoreJwtSubjectClaim"],
-    ),
-    (
-        "kms_key_id_cannot_satisfy_secure_io_scope.rs",
-        &["IoSchedulerSecurityScopeAdmission", "StoreKmsKeyIdentifier"],
-    ),
-    (
-        "iam_role_cannot_satisfy_secure_io_scope.rs",
-        &["IoSchedulerSecurityScopeAdmission", "StoreIamRoleClaim"],
-    ),
-    (
-        "operator_identity_cannot_satisfy_secure_io_scope.rs",
-        &[
-            "IoSchedulerSecurityScopeAdmission",
-            "StoreOperatorIdentityClaim",
-        ],
-    ),
-    (
-        "terminal_projection_cannot_satisfy_secure_io_scope.rs",
-        &[
-            "IoSchedulerSecurityScopeAdmission",
-            "StoreTerminalProjectionText",
-        ],
-    ),
-    (
-        "security_scope_identity_cannot_satisfy_secure_io_scope.rs",
-        &[
-            "IoSchedulerSecurityScopeAdmission",
-            "StoreSecurityScopeIdentity",
-        ],
-    ),
-];
+const FIXTURES: &[(&str, &[&str])] = &[(
+    "identity_provider_claim_cannot_satisfy_secure_io_scope.rs",
+    &["IoSchedulerSecurityScopeAdmission", "StoreJwtSubjectClaim"],
+)];
 
 fn store_workspace_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -119,36 +119,4 @@ impl PhysicalRootPublicationRuntime {
             storage_boundary_execution,
         )
     }
-
-    #[cfg(any(
-        test,
-        feature = "certification-authority",
-        feature = "phase20-layout-rule-construction"
-    ))]
-    pub fn open_for_testing(
-        current_root: CurrentPhysicalRoot,
-    ) -> Result<Self, PhysicalPublicationDenial> {
-        use std::sync::atomic::{AtomicU64, Ordering};
-        static NEXT_STORE: AtomicU64 = AtomicU64::new(1);
-        let id = NEXT_STORE.fetch_add(1, Ordering::Relaxed);
-        let creation_nonce = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("test publication directory clock must follow Unix epoch")
-            .as_nanos();
-        let directory = std::env::temp_dir().join(format!(
-            "worth-store-root-publication-test-{}-{id}-{creation_nonce}",
-            std::process::id(),
-        ));
-        Self::open(&directory, current_root)
-    }
-
-    #[cfg(any(
-        test,
-        feature = "certification-authority",
-        feature = "phase20-layout-rule-construction"
-    ))]
-    pub fn from_current_root(current_root: CurrentPhysicalRoot) -> Self {
-        Self::open_for_testing(current_root)
-            .expect("isolated test publication store must open through the production owner")
-    }
 }

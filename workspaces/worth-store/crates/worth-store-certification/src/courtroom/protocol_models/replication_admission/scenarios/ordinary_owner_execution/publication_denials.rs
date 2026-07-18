@@ -53,14 +53,17 @@ fn collect_peer_capacity_publication_denial(actions: &mut BTreeSet<ReplicationAd
 
 fn collect_progress_store_publication_denial(actions: &mut BTreeSet<ReplicationAdmissionAction>) {
     let scope = readmitted_wal_security_scope_for_test();
-    let directory = unique_progress_directory();
+    let directory = worth_store_test_support::TemporaryDirectory::create(
+        "replication-progress-publication-denial",
+    )
+    .unwrap();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         scope.current_authority(),
         ReplicationPeerCapacity::new(1).unwrap(),
     )
     .unwrap();
-    let log = directory.join("replication-progress.lock");
+    let log = directory.path().join("replication-progress.lock");
     std::fs::remove_file(&log).unwrap();
     std::fs::create_dir(&log).unwrap();
     let readiness =

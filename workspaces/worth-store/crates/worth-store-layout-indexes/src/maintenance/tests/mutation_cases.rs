@@ -175,9 +175,10 @@ fn copy_on_write_mutation_executes_the_admitted_physical_publication() {
         .into_copy_on_write()
         .expect("copy-on-write plan must retain exact operation capability");
     let mut runtime =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             inputs.old_root,
-        );
+        )
+        .unwrap();
     let receipt = copy_on_write_layout_mutation_execution()
         .execute(&mut runtime, plan)
         .into_published()
@@ -247,9 +248,10 @@ fn non_exact_maintenance_modes_cannot_publish_exact_btree_authority() {
             .into_copy_on_write()
             .expect("B-tree mutation must retain copy-on-write capability");
         let mut runtime =
-            worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+            worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
                 inputs.old_root,
-            );
+            )
+            .unwrap();
         let receipt = copy_on_write_layout_mutation_execution()
             .execute(&mut runtime, plan)
             .into_published()

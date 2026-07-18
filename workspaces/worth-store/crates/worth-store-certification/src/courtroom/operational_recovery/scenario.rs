@@ -14,8 +14,8 @@ mod requirements;
 use super::{
     S10HostileProgramEvidence, S10OperationalQosEvidence, S10OperationalScenarioKind,
     S10OperationalScenarioProgram, S10PhaseInvocationDenial, S10PhaseInvocationEvidence,
-    S10ScenarioExecutionMatrix, S10ScenarioProductionEvidence, S10StructuralPreflightEvidence,
-    ScenarioScaleDenial, ScenarioScaleEvidence,
+    S10ScenarioExecutionMatrix, S10ScenarioProductionEvidence, ScenarioScaleDenial,
+    ScenarioScaleEvidence,
 };
 use requirements::{require_counter_kinds, required_model_transitions, required_yieldpoints};
 use worth_store_formal_models::{
@@ -76,7 +76,6 @@ pub struct S10OperationalScenarioEvidence {
 #[allow(clippy::too_many_arguments)]
 pub fn certify_s10_operational_scenario(
     program: S10OperationalScenarioProgram,
-    preflight: &S10StructuralPreflightEvidence,
     production: S10ScenarioProductionEvidence<'_>,
     hostile_program: S10HostileProgramEvidence,
     execution: S10ScenarioExecutionMatrix,
@@ -159,7 +158,6 @@ pub fn certify_s10_operational_scenario(
     );
     let phase_invocations = derive_phase_invocations(
         program.kind(),
-        preflight,
         production,
         [
             phase_15_identity,

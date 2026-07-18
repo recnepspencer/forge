@@ -2,9 +2,7 @@ use sha2::{Digest, Sha256};
 use worth_store_physical_integrity::IntegrityRepairClassificationReceipt;
 
 use super::{S10HostileProgramDenial, S10HostileProgramEvidence, S10HostileProgramRequirement};
-use crate::courtroom::operational_recovery::{
-    S10OperationalScenarioKind, S10StructuralPreflightEvidence,
-};
+use crate::courtroom::operational_recovery::S10OperationalScenarioKind;
 
 impl S10HostileProgramEvidence {
     pub fn authority_repair(
@@ -41,7 +39,6 @@ impl S10HostileProgramEvidence {
         cancellation_recovery: worth_store_operations::certification_scenario::ScenarioRepairCancellationRecoveryReceipt,
         mutants: worth_store_operations::certification_scenario::ScenarioRepairMutantRejectionReceipt,
         rollback: &worth_store_operations::CompletedRetainedAuthorityRollback,
-        structural_preflight: S10StructuralPreflightEvidence,
     ) -> Result<Self, S10HostileProgramDenial> {
         let classified_regions = classification.classified_regions();
         validate_repair_program(
@@ -64,7 +61,6 @@ impl S10HostileProgramEvidence {
         source.update(cancellation_recovery.evidence_identity());
         source.update(mutants.evidence_identity());
         source.update(rollback.evidence_identity());
-        source.update(structural_preflight.dependency_boundary_identity());
         Ok(Self::bind(
             S10OperationalScenarioKind::AuthorityRepairRollback,
             source.finalize().into(),

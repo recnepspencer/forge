@@ -13,7 +13,7 @@ use crate::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
 #[test]
 fn consecutive_appends_share_one_framed_segment() {
     let root = execution_root("consecutive");
-    let planner = open_planner(&root);
+    let planner = open_planner(root.path());
     let first = execute(&planner, 0, 1, "first", b"alpha").unwrap();
     let second = execute(&planner, 1, 2, "second", b"beta").unwrap();
     assert_eq!(
@@ -35,7 +35,7 @@ fn consecutive_appends_share_one_framed_segment() {
 #[test]
 fn torn_trailing_frame_is_removed_before_the_next_acknowledgment() {
     let root = execution_root("torn-tail");
-    let planner = open_planner(&root);
+    let planner = open_planner(root.path());
     let first = execute(&planner, 10, 11, "first", b"alpha").unwrap();
     std::fs::OpenOptions::new()
         .append(true)
@@ -53,7 +53,7 @@ fn torn_trailing_frame_is_removed_before_the_next_acknowledgment() {
 #[test]
 fn noncontiguous_lsn_is_a_typed_append_denial() {
     let root = execution_root("lsn-gap");
-    let planner = open_planner(&root);
+    let planner = open_planner(root.path());
     execute(&planner, 20, 21, "first", b"alpha").unwrap();
     assert!(matches!(
         execute(&planner, 22, 23, "gap", b"beta"),
@@ -66,7 +66,7 @@ fn noncontiguous_lsn_is_a_typed_append_denial() {
 #[test]
 fn corrupted_committed_frame_blocks_later_acknowledgment() {
     let root = execution_root("corruption");
-    let planner = open_planner(&root);
+    let planner = open_planner(root.path());
     let first = execute(&planner, 30, 31, "first", b"alpha").unwrap();
     let mut bytes = std::fs::read(first.execution().persisted_path()).unwrap();
     bytes[116] ^= 1;
@@ -85,7 +85,7 @@ fn windows_wal_append_flushes_its_parent_namespace_without_rename_publication() 
     use worth_store_physical_backend::WindowsFlushFileBuffersProfile;
 
     let root = execution_root("windows-parent-namespace");
-    let planner = open_planner(&root);
+    let planner = open_planner(root.path());
     let payload = b"host-durable";
     let plan = WalAppendPlan::<WindowsFlushFileBuffersProfile>::new(
         WalSegmentId::new(1).unwrap(),
@@ -120,7 +120,7 @@ fn injected_torn_frame_cannot_issue_acknowledgment_and_reopens_at_valid_prefix()
     };
 
     let root = execution_root("injected-torn-tail");
-    let planner = open_planner(&root);
+    let planner = open_planner(root.path());
     let first = execute(&planner, 40, 41, "first", b"alpha").unwrap();
     let control = ScriptedStorageBoundaryControl::inject(
         ProductionStorageBoundarySeam::WalAppendBeforeFlush,
@@ -164,7 +164,7 @@ fn dropped_flush_cannot_mint_a_durability_proof_or_acknowledgment() {
     };
 
     let root = execution_root("dropped-flush");
-    let planner = open_planner(&root);
+    let planner = open_planner(root.path());
     let control = ScriptedStorageBoundaryControl::inject(
         ProductionStorageBoundarySeam::WalFlush,
         StorageBoundaryFault::AbortBeforeDurabilityBarrier,
@@ -205,7 +205,7 @@ fn generated_torn_wal_prefixes_never_acknowledge_or_break_lsn_continuity() {
     };
 
     let probe_root = execution_root("generated-tear-size-probe");
-    let probe_planner = open_planner(&probe_root);
+    let probe_planner = open_planner(probe_root.path());
     execute(&probe_planner, 0, 1, "first", b"alpha").unwrap();
     let encoded_second_frame_bytes = execute(&probe_planner, 1, 2, "second", b"beta")
         .unwrap()
@@ -214,7 +214,7 @@ fn generated_torn_wal_prefixes_never_acknowledge_or_break_lsn_continuity() {
 
     for retained_bytes in 0..encoded_second_frame_bytes {
         let root = execution_root(&format!("generated-tear-{retained_bytes}"));
-        let planner = open_planner(&root);
+        let planner = open_planner(root.path());
         let first = execute(&planner, 0, 1, "first", b"alpha").unwrap();
         let control = ScriptedStorageBoundaryControl::inject(
             ProductionStorageBoundarySeam::WalAppendBeforeFlush,
@@ -284,12 +284,9 @@ fn backend() -> AdmittedBackendCapabilityWitness {
         .unwrap()
 }
 
-fn execution_root(label: &str) -> std::path::PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT_ROOT: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!(
-        "worth-store-wal-{label}-{}-{}",
-        std::process::id(),
-        NEXT_ROOT.fetch_add(1, Ordering::Relaxed),
-    ))
+fn execution_root(label: &str) -> tempfile::TempDir {
+    tempfile::Builder::new()
+        .prefix(&format!("worth-store-wal-{label}-"))
+        .tempdir()
+        .unwrap()
 }

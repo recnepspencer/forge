@@ -52,6 +52,7 @@ const fn expected_denial(denial: OwnerDenial) -> LsmExecutionDenial {
             LsmExecutionDenial::PersistedMembershipIncomplete
         }
         OwnerDenial::PersistedMembershipStale => LsmExecutionDenial::PersistedMembershipStale,
+        OwnerDenial::PersistedArtifactInvalid => LsmExecutionDenial::PersistedArtifactInvalid,
         OwnerDenial::PersistedIndexIo => LsmExecutionDenial::PersistedIndexIo,
         OwnerDenial::PhysicalTargetEpochRequired => LsmExecutionDenial::PhysicalTargetEpochRequired,
         OwnerDenial::DurableRecordBindingMismatch => {

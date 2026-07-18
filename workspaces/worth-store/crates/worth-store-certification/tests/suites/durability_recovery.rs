@@ -115,9 +115,6 @@ mod production_driver_yieldpoint_matrix;
 #[path = "../scenarios/recovery/proof_progression/proof_progression.rs"]
 mod proof_progression;
 
-#[path = "../scenarios/recovery/recovery_harness_ui/recovery_harness_ui.rs"]
-mod recovery_harness_ui;
-
 #[path = "../scenarios/recovery/recovery_offline_verifier/recovery_offline_verifier.rs"]
 mod recovery_offline_verifier;
 

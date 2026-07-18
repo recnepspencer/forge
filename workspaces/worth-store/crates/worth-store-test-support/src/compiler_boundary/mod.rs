@@ -1,15 +1,11 @@
 mod bounded_process;
-mod cargo_configuration;
 mod cargo_environment;
 mod declaration;
 mod diagnostics;
-mod environment_lock;
 mod environment_manifest;
-mod immutable_file;
 mod result;
 #[cfg(test)]
 mod tests;
-mod toolchain;
 
 use std::path::Path;
 
@@ -18,10 +14,7 @@ pub use declaration::{
     UiProofSuiteDeclaration,
 };
 pub use diagnostics::CheckedCompilerDiagnostic;
-pub use result::{
-    UiCargoConfigurationIdentity, UiCompilerResourcePosture, UiCompilerToolIdentity,
-    UiCompilerToolchainIdentity, UiFixtureResult, UiRunFailure, UiRunResult,
-};
+pub use result::{UiFixtureResult, UiRunFailure, UiRunResult};
 
 /// Executes one declared compiler-boundary suite in its canonical cache-sharing
 /// Cargo environment. Success means every fixture failed for its declared

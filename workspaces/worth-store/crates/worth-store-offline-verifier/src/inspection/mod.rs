@@ -26,8 +26,8 @@ pub use inspection_scope::OfflineInspectionScope;
 pub use inspection_session::{
     OfflineInspectionDenial, OfflineInspectionProgress, OfflineInspectionSession,
 };
-pub(crate) use interruption::reject_inspection_interruption;
-pub use offline_store_inspection::OfflineStoreInspection;
+pub(crate) use interruption::{reject_inspection_interruption, reject_inspection_interruption_at};
+pub use offline_store_inspection::{OfflineInspectionClock, OfflineStoreInspection};
 pub use restart_matrix::{RestartingOfflineScanDenial, RestartingOfflineScanReceipt};
 pub use resume_checkpoint::{OfflineInspectionCheckpoint, OfflineInspectionCheckpointCodecDenial};
 pub use structurally_walked_media::{

@@ -6,15 +6,15 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    artifact::output_artifact_identity, identity::ObservedProcessIdentity, ProcessIdentityEvidence,
-    ProcessProbeDeclaration, ProcessTerminationRequirement, SealedProcessProbeInput,
+    artifact::output_artifact_identity, identity::ObservedProcessIdentity, wire_encoding,
+    ProcessIdentityEvidence, ProcessProbeDeclaration, ProcessTerminationRequirement,
+    SealedProcessProbeInput,
 };
 use crate::certification_child_process::publish_new_synced;
 
 pub const PROCESS_PROBE_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_EVIDENCE_ROOT";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "mode", rename_all = "snake_case")]
 pub enum ProcessTermination {
     GracefulExit { code: Option<i32> },
     PanicUnwind { code: Option<i32> },
@@ -84,7 +84,7 @@ impl ProcessProbeExecution {
             output_artifact_identity,
             evidence_identity: [0; 32],
         };
-        evidence.evidence_identity = serde_json::to_vec(&evidence)
+        evidence.evidence_identity = wire_encoding::encode(&evidence)
             .map(|bytes| Sha256::digest(bytes).into())
             .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
         Ok(evidence)
@@ -96,10 +96,9 @@ pub(crate) fn persist_execution(
     execution: &ProcessProbeExecution,
 ) -> Result<PathBuf, ProcessProbeEvidenceDenial> {
     let root = execution_root(fallback_root)?;
-    let path = root.join(format!("{}.json", hex(&execution.evidence_identity)));
-    let mut bytes = serde_json::to_vec_pretty(execution)
-        .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-    bytes.push(b'\n');
+    let path = root.join(format!("{}.bin", hex(&execution.evidence_identity)));
+    let bytes =
+        wire_encoding::encode(execution).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
     match publish_new_synced(&path, &bytes) {
         Ok(()) => Ok(path),
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {

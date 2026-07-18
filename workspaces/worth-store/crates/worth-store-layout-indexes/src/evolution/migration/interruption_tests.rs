@@ -110,9 +110,10 @@ fn target_publication_interruption_rejects_a_different_physical_execution() {
         2_101,
     );
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             first.publication_source_root(),
-        );
+        )
+        .unwrap();
     let interruption = super::layout_migration_execution(&mut publication)
         .execute(first)
         .into_published()

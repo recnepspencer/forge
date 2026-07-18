@@ -19,7 +19,8 @@ use crate::{
 fn hostile_epoch_lineage_and_overlap_never_issue_readiness() {
     let first = source(1, 7, "lineage-a", 10, 20, "sha256:first");
     let authority = first.security_scope().current_authority().clone();
-    let mut runtime = ReplicationAdmissionRuntime::bind(&authority);
+    let directory = tempfile::tempdir().unwrap();
+    let mut runtime = ReplicationAdmissionRuntime::bind(directory.path(), &authority);
     published_progress(&mut runtime, first);
 
     assert!(matches!(
@@ -52,7 +53,8 @@ fn hostile_epoch_lineage_and_overlap_never_issue_readiness() {
 fn duplicate_is_stale_and_resume_preserves_source_lineage() {
     let first = source(1, 7, "lineage-a", 10, 20, "sha256:first");
     let authority = first.security_scope().current_authority().clone();
-    let mut runtime = ReplicationAdmissionRuntime::bind(&authority);
+    let directory = tempfile::tempdir().unwrap();
+    let mut runtime = ReplicationAdmissionRuntime::bind(directory.path(), &authority);
     published_progress(&mut runtime, first);
     let duplicate_outcome =
         runtime.observe_progress(source(1, 7, "lineage-a", 10, 20, "sha256:first"));
@@ -113,7 +115,8 @@ fn replay_declaration_cannot_substitute_for_durable_publication_identity() {
 fn current_authority_cannot_change_between_admission_and_publication() {
     let source = source(6, 7, "lineage-a", 30, 40, "sha256:authority");
     let authority = source.security_scope().current_authority().clone();
-    let mut runtime = ReplicationAdmissionRuntime::bind(&authority);
+    let directory = tempfile::tempdir().unwrap();
+    let mut runtime = ReplicationAdmissionRuntime::bind(directory.path(), &authority);
     let progress = runtime
         .observe_progress(source)
         .into_observed_progress()
@@ -135,7 +138,8 @@ fn current_authority_cannot_change_between_admission_and_publication() {
 fn stale_pending_observation_cannot_regress_peer_progress() {
     let first = source(7, 7, "lineage-a", 10, 20, "sha256:first-pending");
     let authority = first.security_scope().current_authority().clone();
-    let mut runtime = ReplicationAdmissionRuntime::bind(&authority);
+    let directory = tempfile::tempdir().unwrap();
+    let mut runtime = ReplicationAdmissionRuntime::bind(directory.path(), &authority);
     let first_readiness = admit_replication_publication_readiness(
         runtime
             .observe_progress(first)
@@ -168,7 +172,7 @@ fn durable_progress_reopens_as_resume_authority() {
     let first = source(20, 7, "lineage-a", 10, 20, "sha256:restart-first");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(4).unwrap(),
     )
@@ -177,7 +181,7 @@ fn durable_progress_reopens_as_resume_authority() {
     drop(runtime);
 
     let reopened = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(4).unwrap(),
     )
@@ -195,7 +199,7 @@ fn alternating_snapshots_bound_progress_storage() {
     let first = source(30, 7, "lineage-a", 0, 1, "sha256:bounded-0");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -214,7 +218,7 @@ fn alternating_snapshots_bound_progress_storage() {
             ),
         );
     }
-    let snapshots = std::fs::read_dir(&directory)
+    let snapshots = std::fs::read_dir(directory.path())
         .unwrap()
         .filter_map(Result::ok)
         .filter(|entry| entry.file_name().to_string_lossy().ends_with(".snapshot"))
@@ -228,7 +232,7 @@ fn progress_store_is_bound_to_current_authority() {
     let first = source(60, 7, "lineage-a", 10, 20, "sha256:authority-first");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -238,7 +242,7 @@ fn progress_store_is_bound_to_current_authority() {
     let foreign = readmitted_foreign_wal_security_scope_for_test();
     assert_eq!(
         ReplicationAdmissionRuntime::open(
-            &directory,
+            directory.path(),
             foreign.current_authority(),
             ReplicationPeerCapacity::new(1).unwrap(),
         )
@@ -253,7 +257,7 @@ fn torn_inactive_snapshot_falls_back_to_last_complete_generation() {
     let first = source(70, 7, "lineage-a", 0, 1, "sha256:torn-first");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -266,13 +270,13 @@ fn torn_inactive_snapshot_falls_back_to_last_complete_generation() {
     drop(runtime);
     std::fs::OpenOptions::new()
         .write(true)
-        .open(directory.join("replication-progress-0.snapshot"))
+        .open(directory.path().join("replication-progress-0.snapshot"))
         .unwrap()
         .set_len(8)
         .unwrap();
 
     let reopened = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -291,7 +295,7 @@ fn checksummed_snapshot_corruption_is_not_silently_downgraded() {
     let first = source(80, 7, "lineage-a", 0, 1, "sha256:corrupt-first");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -302,7 +306,7 @@ fn checksummed_snapshot_corruption_is_not_silently_downgraded() {
         source(81, 7, "lineage-a", 1, 2, "sha256:corrupt-second"),
     );
     drop(runtime);
-    let path = directory.join("replication-progress-0.snapshot");
+    let path = directory.path().join("replication-progress-0.snapshot");
     let mut bytes = std::fs::read(&path).unwrap();
     let last = bytes.last_mut().unwrap();
     *last ^= 0xff;
@@ -310,7 +314,7 @@ fn checksummed_snapshot_corruption_is_not_silently_downgraded() {
 
     assert_eq!(
         ReplicationAdmissionRuntime::open(
-            &directory,
+            directory.path(),
             &authority,
             ReplicationPeerCapacity::new(1).unwrap(),
         )
@@ -378,12 +382,9 @@ fn published_progress(
         .unwrap();
 }
 
-fn progress_directory(label: &str) -> std::path::PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!(
-        "worth-store-replication-{label}-{}-{}",
-        std::process::id(),
-        NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed),
-    ))
+fn progress_directory(label: &str) -> tempfile::TempDir {
+    tempfile::Builder::new()
+        .prefix(&format!("worth-store-replication-{label}-"))
+        .tempdir()
+        .unwrap()
 }

@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::ops::{Deref, DerefMut};
 
 use worth_store_formal_models::{
     map_replication_progress_outcome, map_replication_publication_outcome,
@@ -271,29 +272,40 @@ fn publication_readiness(
     admit_replication_publication_readiness(progress)
 }
 
-fn current_runtime() -> ReplicationAdmissionRuntime {
-    let scope = readmitted_wal_security_scope_for_test();
-    ReplicationAdmissionRuntime::bind(scope.current_authority())
+fn current_runtime() -> ReplicationRuntimeFixture {
+    open_runtime(ReplicationPeerCapacity::new(usize::MAX).unwrap())
 }
 
-fn open_runtime(capacity: ReplicationPeerCapacity) -> ReplicationAdmissionRuntime {
+fn open_runtime(capacity: ReplicationPeerCapacity) -> ReplicationRuntimeFixture {
     let scope = readmitted_wal_security_scope_for_test();
-    ReplicationAdmissionRuntime::open(
-        &unique_progress_directory(),
-        scope.current_authority(),
-        capacity,
-    )
-    .unwrap()
+    let directory = worth_store_test_support::TemporaryDirectory::create("replication-protocol")
+        .expect("replication progress directory");
+    let runtime =
+        ReplicationAdmissionRuntime::open(directory.path(), scope.current_authority(), capacity)
+            .expect("replication runtime");
+    ReplicationRuntimeFixture {
+        runtime,
+        _directory: directory,
+    }
 }
 
-fn unique_progress_directory() -> std::path::PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!(
-        "worth-store-replication-protocol-{}-{}",
-        std::process::id(),
-        NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed),
-    ))
+struct ReplicationRuntimeFixture {
+    runtime: ReplicationAdmissionRuntime,
+    _directory: worth_store_test_support::TemporaryDirectory,
+}
+
+impl Deref for ReplicationRuntimeFixture {
+    type Target = ReplicationAdmissionRuntime;
+
+    fn deref(&self) -> &Self::Target {
+        &self.runtime
+    }
+}
+
+impl DerefMut for ReplicationRuntimeFixture {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.runtime
+    }
 }
 
 fn admitted_source(spec: SourceSpec) -> AdmittedReplicationSource {

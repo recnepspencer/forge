@@ -30,7 +30,9 @@ mod terminal_projection_json_fixtures;
 
 pub mod compiler_boundary;
 pub mod harness;
-pub mod structural_preflight;
+mod test_directory;
+
+pub use test_directory::TemporaryDirectory;
 
 #[cfg(feature = "boundary-fixtures")]
 pub use harness::production_facade;

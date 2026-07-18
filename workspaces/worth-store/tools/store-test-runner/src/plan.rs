@@ -29,7 +29,7 @@ impl TestPlan {
         catalog: &TestCatalog,
         workspace_root: &Path,
     ) -> Result<Self, String> {
-        let units = match product {
+        let mut units = match product {
             TestProduct::Owner { package } => owner(package, catalog, workspace_root)?,
             TestProduct::Smoke => smoke(catalog, workspace_root)?,
             TestProduct::Ui => integration_lane(CiTestLane::Ui, None, catalog, workspace_root),
@@ -45,6 +45,9 @@ impl TestPlan {
                 selected_lane => integration_lane(*selected_lane, *shard, catalog, workspace_root),
             },
         };
+        if matches!(product, TestProduct::Ci { .. }) {
+            apply_ci_profiles(&mut units);
+        }
         Self::new(product.clone(), units)
     }
 
@@ -75,16 +78,30 @@ impl TestPlan {
     pub(crate) fn units(&self) -> &[TestExecutionUnit] {
         &self.units
     }
+}
 
-    pub(crate) fn may_run_concurrently(&self) -> bool {
-        matches!(
-            self.product,
-            TestProduct::Ui
-                | TestProduct::Ci {
-                    lane: CiTestLane::Ui | CiTestLane::Scenario,
-                    ..
-                }
-        )
+fn apply_ci_profiles(units: &mut [TestExecutionUnit]) {
+    for unit in units {
+        if unit.program != "cargo" {
+            continue;
+        }
+        if unit
+            .arguments
+            .starts_with(&["nextest".into(), "run".into()])
+        {
+            unit.arguments.splice(
+                2..2,
+                [
+                    "--profile".into(),
+                    "ci".into(),
+                    "--cargo-profile".into(),
+                    "ci-test".into(),
+                ],
+            );
+        } else if unit.arguments.first().is_some_and(|value| value == "test") {
+            unit.arguments
+                .splice(1..1, ["--profile".into(), "ci-test".into()]);
+        }
     }
 }
 
@@ -162,7 +179,13 @@ fn owner(
         format!("owner::{package}"),
         "owner product".into(),
         workspace_root,
-        vec!["test".into(), "-q".into(), "-p".into(), package.into()],
+        vec![
+            "nextest".into(),
+            "run".into(),
+            "-p".into(),
+            package.into(),
+            "--no-fail-fast".into(),
+        ],
         false,
     )])
 }
@@ -171,22 +194,16 @@ fn smoke(catalog: &TestCatalog, workspace_root: &Path) -> Result<Vec<TestExecuti
     smoke_cases()
         .iter()
         .map(|case| {
-            catalog
+            let target = catalog
                 .integration_target(case.package, case.target)
                 .ok_or_else(|| format!("missing smoke target {}::{}", case.package, case.target))?;
+            let mut arguments = cargo_test_target_arguments(target);
+            arguments.extend([case.filter.into(), "--".into(), "--exact".into()]);
             Ok(TestExecutionUnit::cargo(
                 format!("smoke::{}::{}::{}", case.package, case.target, case.filter),
                 "smoke registration".into(),
                 workspace_root,
-                vec![
-                    "test".into(),
-                    "-q".into(),
-                    "-p".into(),
-                    case.package.into(),
-                    "--test".into(),
-                    case.target.into(),
-                    case.filter.into(),
-                ],
+                arguments,
                 true,
             ))
         })
@@ -204,37 +221,67 @@ fn integration_lane(
         .iter()
         .filter(|target| target.lane == selected)
         .collect::<Vec<_>>();
-    select_shard(&targets, shard)
-        .into_iter()
-        .map(|target| {
-            let arguments = vec![
-                "test".into(),
-                "-q".into(),
-                "-p".into(),
-                target.package.clone(),
-                "--test".into(),
-                target.name.clone(),
-            ];
-            TestExecutionUnit::cargo(
-                format!("{selected}::{}::{}", target.package, target.name),
-                format!("{}::{} at {}", target.package, target.name, target.source),
-                workspace_root,
-                arguments,
-                false,
-            )
+    if targets.is_empty() {
+        return Vec::new();
+    }
+
+    let filter = targets
+        .iter()
+        .map(|target| format!("binary_id(={}::{})", target.package, target.name))
+        .collect::<Vec<_>>()
+        .join(" + ");
+    let mut features = targets
+        .iter()
+        .flat_map(|target| {
+            target
+                .required_features
+                .iter()
+                .map(|feature| format!("{}/{}", target.package, feature))
         })
-        .collect()
+        .collect::<Vec<_>>();
+    features.sort();
+    features.dedup();
+
+    let mut arguments = vec![
+        "nextest".into(),
+        "run".into(),
+        "--workspace".into(),
+        "--no-fail-fast".into(),
+        "--filterset".into(),
+        filter,
+    ];
+    for feature in features {
+        arguments.extend(["--features".into(), feature]);
+    }
+    if let Some((index, count)) = shard {
+        arguments.extend([
+            "--partition".into(),
+            format!("hash:{}/{}", index + 1, count),
+        ]);
+    }
+
+    vec![TestExecutionUnit::cargo(
+        format!("{selected}::nextest"),
+        format!("Cargo targets classified as {selected}"),
+        workspace_root,
+        arguments,
+        false,
+    )]
 }
 
-fn select_shard<T>(items: &[T], shard: Option<(usize, usize)>) -> Vec<&T> {
-    match shard {
-        None => items.iter().collect(),
-        Some((index, count)) => items
-            .iter()
-            .enumerate()
-            .filter_map(|(position, item)| (position % count == index).then_some(item))
-            .collect(),
+fn cargo_test_target_arguments(target: &crate::catalog::TestTarget) -> Vec<String> {
+    let mut arguments = vec![
+        "test".into(),
+        "-q".into(),
+        "-p".into(),
+        target.package.clone(),
+        "--test".into(),
+        target.name.clone(),
+    ];
+    if !target.required_features.is_empty() {
+        arguments.extend(["--features".into(), target.required_features.join(",")]);
     }
+    arguments
 }
 
 fn owner_ci(workspace_root: &Path) -> Vec<TestExecutionUnit> {
@@ -244,13 +291,14 @@ fn owner_ci(workspace_root: &Path) -> Vec<TestExecutionUnit> {
             "Cargo workspace unit targets".into(),
             workspace_root,
             [
-                "test",
-                "-q",
+                "nextest",
+                "run",
                 "--workspace",
                 "--lib",
                 "--bins",
                 "--examples",
                 "--benches",
+                "--no-fail-fast",
             ]
             .into_iter()
             .map(str::to_owned)
@@ -312,86 +360,4 @@ fn structural(workspace_root: &Path) -> Result<Vec<TestExecutionUnit>, String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeSet;
-    use std::path::Path;
-
-    use super::{select_shard, TestExecutionUnit, TestPlan};
-    use crate::catalog::TestCatalog;
-    use crate::classification::CiTestLane;
-    use crate::product::TestProduct;
-
-    #[test]
-    fn duplicate_identity_names_both_origins() {
-        let units = vec![unit("same", "first"), unit("same", "second")];
-        let error = TestPlan::new(TestProduct::Smoke, units).unwrap_err();
-        assert!(error.contains("first"));
-        assert!(error.contains("second"));
-    }
-
-    #[test]
-    fn stable_shards_are_disjoint_and_converge() {
-        let whole = (0..11).collect::<Vec<_>>();
-        let mut observed = Vec::new();
-        for index in 0..3 {
-            observed.extend(select_shard(&whole, Some((index, 3))).into_iter().copied());
-        }
-        observed.sort();
-        assert_eq!(observed, whole);
-    }
-
-    #[test]
-    fn unknown_owner_is_denied_before_execution() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .unwrap();
-        let catalog = TestCatalog::load(root).unwrap();
-        let product = TestProduct::Owner {
-            package: "worth-store-does-not-exist".into(),
-        };
-        let error = TestPlan::build(&product, &catalog, root).unwrap_err();
-        assert!(error.contains("worth-store-does-not-exist"));
-    }
-
-    #[test]
-    fn empty_product_is_never_green() {
-        let error = TestPlan::new(TestProduct::Smoke, Vec::new()).unwrap_err();
-        assert!(error.contains("selected zero units"));
-    }
-
-    #[test]
-    fn integration_partitions_cover_the_current_catalog_exactly() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .unwrap();
-        let catalog = TestCatalog::load(root).unwrap();
-        for lane in [CiTestLane::Scenario, CiTestLane::Ui, CiTestLane::Formal] {
-            let product = TestProduct::Ci { lane, shard: None };
-            let plan = TestPlan::build(&product, &catalog, root).unwrap();
-            let actual = plan
-                .units()
-                .iter()
-                .map(|unit| unit.identity().to_owned())
-                .collect::<BTreeSet<_>>();
-            let expected = catalog
-                .targets()
-                .iter()
-                .filter(|target| target.lane == lane)
-                .map(|target| format!("{lane}::{}::{}", target.package, target.name))
-                .collect::<BTreeSet<_>>();
-            assert_eq!(actual, expected, "{lane} partition drifted");
-        }
-    }
-
-    fn unit(identity: &str, origin: &str) -> TestExecutionUnit {
-        TestExecutionUnit::cargo(
-            identity.into(),
-            origin.into(),
-            Path::new("."),
-            vec!["test".into()],
-            false,
-        )
-    }
-}
+mod tests;

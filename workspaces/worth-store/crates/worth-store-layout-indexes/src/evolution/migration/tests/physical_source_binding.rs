@@ -26,9 +26,10 @@ fn migration_rejects_a_same_store_publication_from_an_unbound_source() {
 
     let request = LayoutMigrationExecutionRequest::new(migration, unrelated_successor);
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             request.publication_source_root(),
-        );
+        )
+        .unwrap();
     let outcome = layout_migration_execution(&mut publication).execute(request);
 
     assert!(matches!(
@@ -53,9 +54,10 @@ fn rollback_rejects_a_same_store_publication_from_the_pre_migration_source() {
 
     let request = LayoutRollbackExecutionRequest::new(rollback, pre_migration_source);
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             request.publication_source_root(),
-        );
+        )
+        .unwrap();
     let outcome = layout_rollback_execution(&mut publication).execute(request);
 
     assert!(matches!(

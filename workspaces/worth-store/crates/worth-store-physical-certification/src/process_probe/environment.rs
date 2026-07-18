@@ -4,7 +4,7 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::ProcessProbeEvidenceDenial;
+use super::{wire_encoding, ProcessProbeEvidenceDenial};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProcessEnvironmentBindingEvidence {
@@ -57,7 +57,7 @@ pub(super) fn current_bindings(
 pub(super) fn identity(
     bindings: &[ProcessEnvironmentBindingEvidence],
 ) -> Result<[u8; 32], ProcessProbeEvidenceDenial> {
-    serde_json::to_vec(bindings)
+    wire_encoding::encode(bindings)
         .map(|bytes| Sha256::digest(bytes).into())
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)
 }

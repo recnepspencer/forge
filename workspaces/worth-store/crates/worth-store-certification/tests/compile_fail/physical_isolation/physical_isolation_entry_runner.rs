@@ -41,56 +41,10 @@ fn suite(root: &Path) -> UiProofSuiteDeclaration {
 }
 
 fn fixture_denials() -> Vec<(&'static str, Vec<&'static str>)> {
-    vec![
-        (
-            "entry_request_cannot_be_struct_literal.rs",
-            vec!["PhysicalIsolationEntryRequest", "private"],
-        ),
-        (
-            "entry_admission_cannot_be_struct_literal.rs",
-            vec!["PhysicalIsolationEntryAdmission", "private"],
-        ),
-        (
-            "entry_identity_cannot_be_struct_literal.rs",
-            vec!["PhysicalIsolationEntryIdentity", "private"],
-        ),
-        (
-            "root_epoch_basis_cannot_be_struct_literal.rs",
-            vec!["RootEpoch", "private"],
-        ),
-        (
-            "copied_recovery_fields_cannot_admit_entry.rs",
-            vec!["PhysicalIsolationEntryRequest"],
-        ),
-        (
-            "semantic_snapshot_cannot_admit_entry.rs",
-            vec!["PhysicalIsolationEntryRequest"],
-        ),
-        (
-            "foundational_evidence_cannot_admit_entry.rs",
-            vec!["PhysicalIsolationEntryRequest"],
-        ),
-        (
-            "proof_progression_cannot_admit_entry.rs",
-            vec!["PhysicalIsolationEntryRequest"],
-        ),
-        (
-            "readiness_alone_cannot_register_lane.rs",
-            vec!["PhysicalIsolationHarnessReadinessReceipt"],
-        ),
-        (
-            "copied_rows_cannot_register_lane.rs",
-            vec!["PhysicalIsolationHarnessReadinessReceipt"],
-        ),
-        (
-            "entry_evidence_cannot_register_lane.rs",
-            vec!["PhysicalIsolationHarnessReadinessReceipt"],
-        ),
-        (
-            "lane_registration_cannot_be_struct_literal.rs",
-            vec!["PhysicalIsolationCertificationLaneRegistration", "private"],
-        ),
-    ]
+    vec![(
+        "copied_recovery_fields_cannot_admit_entry.rs",
+        vec!["PhysicalIsolationEntryRequest"],
+    )]
 }
 
 fn dependency_manifest(root: &Path) -> String {

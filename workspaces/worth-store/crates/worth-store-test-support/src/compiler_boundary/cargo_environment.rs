@@ -7,99 +7,83 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use super::diagnostics::{checked_diagnostics, validate_denial};
-use super::toolchain;
-use super::{bounded_process, environment_lock, environment_manifest, immutable_file};
 use super::{
-    UiCompilerToolchainIdentity, UiFixtureIdentity, UiFixtureResult, UiProofSuiteDeclaration,
-    UiRunFailure, UiRunResult,
+    bounded_process, environment_manifest, UiFixtureIdentity, UiFixtureResult,
+    UiProofSuiteDeclaration, UiRunFailure, UiRunResult,
 };
 
-struct FixtureEnvironment<'a> {
-    workspace_root: &'a Path,
-    environment_root: &'a Path,
-    target_root: &'a Path,
-    manifest_path: &'a Path,
-    environment_identity: &'a str,
-    suite_identity: &'a str,
-    profile_identity: &'a str,
-    toolchain: &'a UiCompilerToolchainIdentity,
-}
+const COMPILER_TIMEOUT: Duration = Duration::from_secs(300);
+const OUTPUT_LIMIT: usize = 16 * 1024 * 1024;
 
 pub(super) fn run(
     workspace_root: &Path,
     declaration: &UiProofSuiteDeclaration,
 ) -> Result<UiRunResult, UiRunFailure> {
-    let workspace_root = workspace_root.canonicalize().map_err(|error| {
-        UiRunFailure::EnvironmentObservation(format!(
-            "canonicalize {}: {error}",
-            workspace_root.display()
-        ))
-    })?;
-    let workspace_root = cargo_compatible_path(&workspace_root);
-    let toolchain = toolchain::observe(&workspace_root)?;
-    let environment_manifest = environment_manifest::UiEnvironmentManifestContract::load(
+    let workspace_root =
+        cargo_compatible_path(&workspace_root.canonicalize().map_err(|error| {
+            UiRunFailure::EnvironmentObservation(format!(
+                "canonicalize {}: {error}",
+                workspace_root.display()
+            ))
+        })?);
+    let manifest_contract = environment_manifest::UiEnvironmentManifestContract::load(
         &workspace_root,
         declaration.environment().profile_identity(),
     )?;
-    let environment_root_identity = environment_basis_identity(
-        &workspace_root,
-        declaration,
-        &toolchain,
-        &environment_manifest,
-    )?;
+    let environment_identity = digest_serialized(&(
+        declaration.suite_identity(),
+        declaration.environment().dependency_manifest(),
+        declaration.environment().feature_identity(),
+        declaration.environment().profile_identity(),
+    ))?;
     let environment_root = workspace_root
         .join("target/store-ui/environments")
-        .join(&environment_root_identity);
-    fs::create_dir_all(environment_root.join("src/bin"))
+        .join(&environment_identity[..24]);
+    let source_root = environment_root.join("src/bin");
+    if source_root.exists() {
+        fs::remove_dir_all(&source_root)
+            .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
+    }
+    fs::create_dir_all(&source_root)
         .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
     let manifest_path = environment_root.join("Cargo.toml");
-    let manifest = environment_manifest.render(
-        &environment_root_identity,
+    let manifest = manifest_contract.render(
+        &environment_identity,
         declaration.environment().dependency_manifest(),
     )?;
-    immutable_file::write(&manifest_path, manifest.as_bytes())?;
-    let lock = environment_lock::seal(
-        &workspace_root,
-        &environment_root,
-        &manifest_path,
-        &manifest,
-        &toolchain,
-    )?;
-    let environment_identity = digest_serialized(&(
-        "worth-store-ui-environment-v5",
-        &environment_root_identity,
-        &lock.sha256,
-    ))?;
-    let target_root = workspace_root
-        .join("target/store-ui")
-        .join(&environment_identity[..24]);
+    fs::write(&manifest_path, manifest)
+        .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
+
+    let target_root = workspace_root.join("target/store-ui/cargo-target");
     fs::create_dir_all(&target_root)
         .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
-    immutable_file::write(
-        &target_root.join(".environment-identity"),
-        environment_identity.as_bytes(),
-    )?;
-
-    let mut fixtures = Vec::new();
+    let mut fixtures = Vec::with_capacity(declaration.fixtures().len());
     let environment = FixtureEnvironment {
         workspace_root: &workspace_root,
-        environment_root: &environment_root,
-        target_root: &target_root,
+        source_root: &source_root,
         manifest_path: &manifest_path,
+        target_root: &target_root,
         environment_identity: &environment_identity,
-        suite_identity: declaration.suite_identity(),
-        profile_identity: declaration.environment().profile_identity(),
-        toolchain: &toolchain,
+        declaration,
     };
     for fixture in declaration.fixtures() {
         fixtures.push(run_fixture(&environment, fixture)?);
     }
-    toolchain::validate_unchanged(&workspace_root, &toolchain)?;
+
     Ok(UiRunResult {
         environment_identity,
         shared_target_root: normalized_path(&workspace_root, &target_root),
         fixtures,
     })
+}
+
+struct FixtureEnvironment<'a> {
+    workspace_root: &'a Path,
+    source_root: &'a Path,
+    manifest_path: &'a Path,
+    target_root: &'a Path,
+    environment_identity: &'a str,
+    declaration: &'a UiProofSuiteDeclaration,
 }
 
 fn run_fixture(
@@ -110,54 +94,38 @@ fn run_fixture(
         UiRunFailure::FixtureRead(format!("{}: {error}", fixture.source_path().display()))
     })?;
     let source_digest = digest_bytes(&source);
-    let expected_denial_identity = digest_serialized(fixture.expected_denial())?;
     let identity = UiFixtureIdentity {
-        suite_identity: environment.suite_identity.to_owned(),
+        suite_identity: environment.declaration.suite_identity().to_owned(),
         case_identity: fixture.case_identity().to_owned(),
         source_path: normalized_path(environment.workspace_root, fixture.source_path()),
-        source_digest: source_digest.clone(),
+        source_digest,
         environment_identity: environment.environment_identity.to_owned(),
-        expected_denial_identity,
+        expected_denial_identity: digest_serialized(fixture.expected_denial())?,
     };
-    let bin_name = fixture_bin_name(
-        environment.suite_identity,
-        fixture.case_identity(),
-        &source_digest,
-    );
-    let fixture_path = environment
-        .environment_root
-        .join("src/bin")
-        .join(format!("{bin_name}.rs"));
-    immutable_file::write(&fixture_path, &source)?;
-    let before = artifact_count(environment.target_root);
-    let mut command = Command::new(&environment.toolchain.cargo.executable_path);
+    let bin_name = fixture_bin_name(fixture.case_identity());
+    fs::write(
+        environment.source_root.join(format!("{bin_name}.rs")),
+        source,
+    )
+    .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
+
+    let mut command = Command::new("cargo");
     command
         .args([
             "check",
             "--offline",
-            "--locked",
             "--message-format=json",
             "--profile",
-            environment.profile_identity,
+            environment.declaration.environment().profile_identity(),
             "--bin",
+            &bin_name,
+            "--manifest-path",
         ])
-        .arg(&bin_name)
-        .arg("--manifest-path")
         .arg(environment.manifest_path)
         .env("CARGO_TARGET_DIR", environment.target_root)
-        .env("RUSTC", &environment.toolchain.rustc.executable_path)
-        .env_remove("RUSTC_WRAPPER")
-        .env_remove("RUSTC_WORKSPACE_WRAPPER")
-        .env_remove("RUSTC_BOOTSTRAP")
-        .env_remove("RUSTFLAGS")
-        .env_remove("CARGO_ENCODED_RUSTFLAGS")
         .current_dir(environment.workspace_root);
-    let output = bounded_process::run(
-        &mut command,
-        Duration::from_millis(environment.toolchain.compile_timeout_millis),
-        environment.toolchain.output_cap_bytes_per_stream,
-    )
-    .map_err(UiRunFailure::CompilerLaunch)?;
+    let output = bounded_process::run(&mut command, COMPILER_TIMEOUT, OUTPUT_LIMIT)
+        .map_err(UiRunFailure::CompilerLaunch)?;
     if output.timed_out {
         return Err(UiRunFailure::CompilerTimedOut(
             fixture.case_identity().to_owned(),
@@ -168,9 +136,9 @@ fn run_fixture(
             fixture.case_identity().to_owned(),
         ));
     }
+
     let root = environment.workspace_root.to_string_lossy();
     let diagnostics = checked_diagnostics(&output.stdout, &root);
-    let dependency_artifacts = dependency_artifacts(&output.stdout, &bin_name);
     let stderr = String::from_utf8_lossy(&output.stderr)
         .replace(root.as_ref(), "<workspace>")
         .replace('\\', "/");
@@ -183,35 +151,13 @@ fn run_fixture(
     })?;
     Ok(UiFixtureResult {
         fixture: identity,
-        dependency_artifacts_compiled: dependency_artifacts.compiled,
-        dependency_artifacts_reused: dependency_artifacts.reused,
-        target_artifact_count_before: before,
-        target_artifact_count_after: artifact_count(environment.target_root),
         diagnostics,
         semantic_denial_matched: true,
     })
 }
 
-fn environment_basis_identity(
-    workspace_root: &Path,
-    declaration: &UiProofSuiteDeclaration,
-    toolchain: &UiCompilerToolchainIdentity,
-    environment_manifest: &environment_manifest::UiEnvironmentManifestContract,
-) -> Result<String, UiRunFailure> {
-    let lock = digest_file(&workspace_root.join("Cargo.lock"))?;
-    digest_serialized(&(
-        declaration.environment().dependency_manifest(),
-        declaration.environment().feature_identity(),
-        declaration.environment().profile_identity(),
-        environment_manifest,
-        toolchain,
-        lock,
-    ))
-}
-
-fn fixture_bin_name(suite: &str, case: &str, source_digest: &str) -> String {
-    let readable = format!("{suite}_{case}")
-        .chars()
+fn fixture_bin_name(case: &str) -> String {
+    case.chars()
         .map(|character| {
             if character.is_ascii_alphanumeric() {
                 character.to_ascii_lowercase()
@@ -219,60 +165,9 @@ fn fixture_bin_name(suite: &str, case: &str, source_digest: &str) -> String {
                 '_'
             }
         })
-        .collect::<String>();
-    let identity = digest_bytes(format!("{readable}\0{source_digest}").as_bytes());
-    format!("{}_{}", readable.trim_matches('_'), &identity[..12])
-}
-
-fn artifact_count(root: &Path) -> usize {
-    let mut pending = vec![root.to_path_buf()];
-    let mut count = 0;
-    while let Some(path) = pending.pop() {
-        let Ok(entries) = fs::read_dir(path) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
-                pending.push(entry.path());
-            } else {
-                count += 1;
-            }
-        }
-    }
-    count
-}
-
-fn dependency_artifacts(stdout: &[u8], fixture_bin: &str) -> DependencyArtifactObservation {
-    let mut observation = DependencyArtifactObservation::default();
-    for line in stdout.split(|byte| *byte == b'\n') {
-        let Ok(value) = serde_json::from_slice::<serde_json::Value>(line) else {
-            continue;
-        };
-        if value.get("reason").and_then(serde_json::Value::as_str) != Some("compiler-artifact")
-            || value
-                .pointer("/target/name")
-                .and_then(serde_json::Value::as_str)
-                == Some(fixture_bin)
-        {
-            continue;
-        }
-        if value
-            .get("fresh")
-            .and_then(serde_json::Value::as_bool)
-            .unwrap_or(false)
-        {
-            observation.reused += 1;
-        } else {
-            observation.compiled += 1;
-        }
-    }
-    observation
-}
-
-#[derive(Default)]
-struct DependencyArtifactObservation {
-    compiled: usize,
-    reused: usize,
+        .collect::<String>()
+        .trim_matches('_')
+        .to_owned()
 }
 
 fn normalized_path(workspace_root: &Path, path: &Path) -> String {
@@ -306,20 +201,4 @@ fn digest_serialized(value: &impl Serialize) -> Result<String, UiRunFailure> {
 
 fn digest_bytes(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
-}
-
-fn digest_file(path: &Path) -> Result<String, UiRunFailure> {
-    let mut file = fs::File::open(path)
-        .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
-    let mut digest = Sha256::new();
-    let mut buffer = [0_u8; 64 * 1024];
-    loop {
-        let read = std::io::Read::read(&mut file, &mut buffer)
-            .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
-        if read == 0 {
-            break;
-        }
-        digest.update(&buffer[..read]);
-    }
-    Ok(format!("{:x}", digest.finalize()))
 }

@@ -86,11 +86,11 @@ pub use handoff::{
 };
 pub use inspection::{
     OfflineInspectionBudget, OfflineInspectionCancellation, OfflineInspectionCheckpoint,
-    OfflineInspectionCheckpointCodecDenial, OfflineInspectionCounters, OfflineInspectionDenial,
-    OfflineInspectionProgress, OfflineInspectionScope, OfflineInspectionSession,
-    OfflineMediaAcquisitionBudget, OfflineStoreInspection, OfflineStructuralIdentification,
-    OfflineWalkedFile, RestartingOfflineScanDenial, RestartingOfflineScanReceipt,
-    StructurallyWalkedMedia,
+    OfflineInspectionCheckpointCodecDenial, OfflineInspectionClock, OfflineInspectionCounters,
+    OfflineInspectionDenial, OfflineInspectionProgress, OfflineInspectionScope,
+    OfflineInspectionSession, OfflineMediaAcquisitionBudget, OfflineStoreInspection,
+    OfflineStructuralIdentification, OfflineWalkedFile, RestartingOfflineScanDenial,
+    RestartingOfflineScanReceipt, StructurallyWalkedMedia,
 };
 pub use media_acquisition::{
     OfflineMediaAcquisitionDenial, OfflineMediaAcquisitionDimension, UntrustedOfflineMediaSet,

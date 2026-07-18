@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 use worth_store_offline_verifier::OperationalTruthReport;
 use worth_store_operations::{OperationalControlRecord, SelectedOperationalControlState};
 
-use super::{S10OperationalScenarioKind, S10Phase, S10StructuralPreflightEvidence};
+use super::{S10OperationalScenarioKind, S10Phase};
 
 mod record_artifacts;
 use record_artifacts::{
@@ -79,7 +79,6 @@ impl S10PhaseInvocationEvidence {
 
 pub(super) fn derive_phase_invocations(
     kind: S10OperationalScenarioKind,
-    preflight: &S10StructuralPreflightEvidence,
     production: S10ScenarioProductionEvidence<'_>,
     later_phase_identities: [[u8; 32]; 5],
 ) -> Result<Vec<S10PhaseInvocationEvidence>, S10PhaseInvocationDenial> {
@@ -87,7 +86,6 @@ pub(super) fn derive_phase_invocations(
     let records = production.control_records();
     let truth = production.truth();
     let mut phases = vec![
-        invocation(1, preflight.evidence_identity(), Vec::new())?,
         invocation(
             2,
             selected_control_identity(production.control()),

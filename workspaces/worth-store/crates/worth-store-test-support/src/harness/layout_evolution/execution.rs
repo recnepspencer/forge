@@ -5,7 +5,6 @@ use worth_store_layout_indexes::evolution::migration::{
     LayoutRollbackRequest,
 };
 use worth_store_layout_indexes::{ObserveOwnerCase, OwnerCaseObservation};
-use worth_store_physical_isolation::PhysicalRootPublicationRuntime;
 
 use super::world;
 use crate::harness::physical_isolation::publication;
@@ -68,7 +67,8 @@ fn execute_migration_request(
     current_root: Option<worth_store_physical_isolation::CurrentPhysicalRoot>,
 ) -> worth_store_layout_indexes::evolution::migration::LayoutMigrationExecutionOutcome {
     let root = current_root.unwrap_or_else(|| request.publication_source_root());
-    let mut runtime = PhysicalRootPublicationRuntime::from_current_root(root);
+    let mut runtime =
+        crate::harness::physical_isolation::PhysicalRootPublicationFixture::open(root).unwrap();
     layout_migration_execution(&mut runtime).execute(request)
 }
 
@@ -161,6 +161,7 @@ fn execute_rollback_request(
     current_root: Option<worth_store_physical_isolation::CurrentPhysicalRoot>,
 ) -> worth_store_layout_indexes::evolution::migration::LayoutRollbackExecutionOutcome {
     let root = current_root.unwrap_or_else(|| request.publication_source_root());
-    let mut runtime = PhysicalRootPublicationRuntime::from_current_root(root);
+    let mut runtime =
+        crate::harness::physical_isolation::PhysicalRootPublicationFixture::open(root).unwrap();
     layout_rollback_execution(&mut runtime).execute(request)
 }

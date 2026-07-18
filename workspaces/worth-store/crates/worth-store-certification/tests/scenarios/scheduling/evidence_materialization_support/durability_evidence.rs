@@ -23,8 +23,9 @@ pub(super) fn flush_row() -> S6FlushDurabilityEvidenceRow {
             .unwrap(),
         )
         .backend_accepted();
+    let directory = tempfile::tempdir().unwrap();
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(&std::env::temp_dir(), b"evidence-durable-write", &accepted)
+        .persist_and_execute(directory.path(), b"evidence-durable-write", &accepted)
         .unwrap();
     let publication = DurableCheckpointPublication::publish(
         accepted

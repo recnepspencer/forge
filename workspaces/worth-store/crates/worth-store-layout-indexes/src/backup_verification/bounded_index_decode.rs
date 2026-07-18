@@ -163,10 +163,11 @@ mod tests {
         let mut bytes = crate::encode_baseline_btree_leaf_record(slots, true, false);
         bytes[1] |= 0b1000_0000;
         let identity = format!("index:sha256:{}", hex(&Sha256::digest(bytes)));
-        let path = temporary_index_path();
-        std::fs::write(&path, bytes).expect("index bytes");
+        let file = temporary_index_file();
+        let path = file.path();
+        std::fs::write(path, bytes).expect("index bytes");
         let denial = verify_bounded_layout_index_artifact(
-            &path,
+            path,
             BoundedLayoutIndexVerificationRequest::new(
                 LayoutIndexBackupFormat::BaselineBTreeLeafV1,
                 &identity,
@@ -178,7 +179,6 @@ mod tests {
         .expect_err("outer digest cannot legalize reserved owner-format bits");
 
         assert!(matches!(denial, BoundedLayoutIndexDenial::MalformedIndex));
-        let _ = std::fs::remove_file(path);
     }
 
     #[test]
@@ -195,11 +195,12 @@ mod tests {
         ];
         let substituted = crate::encode_baseline_btree_leaf_record(substituted_slots, true, false);
         let substituted_digest: [u8; 32] = Sha256::digest(substituted).into();
-        let path = temporary_index_path();
-        std::fs::write(&path, substituted).expect("substituted index bytes");
+        let file = temporary_index_file();
+        let path = file.path();
+        std::fs::write(path, substituted).expect("substituted index bytes");
 
         let denial = verify_bounded_layout_index_artifact(
-            &path,
+            path,
             BoundedLayoutIndexVerificationRequest::new(
                 LayoutIndexBackupFormat::BaselineBTreeLeafV1,
                 &original_identity,
@@ -211,18 +212,17 @@ mod tests {
         .expect_err("a valid substitute must not inherit another index identity");
 
         assert!(matches!(denial, BoundedLayoutIndexDenial::IdentityMismatch));
-        let _ = std::fs::remove_file(path);
     }
 
     fn hex(bytes: &[u8]) -> String {
         bytes.iter().map(|byte| format!("{byte:02x}")).collect()
     }
 
-    fn temporary_index_path() -> std::path::PathBuf {
-        std::env::temp_dir().join(format!(
-            "worth-store-layout-index-{}-{:?}.bin",
-            std::process::id(),
-            std::thread::current().id()
-        ))
+    fn temporary_index_file() -> tempfile::NamedTempFile {
+        tempfile::Builder::new()
+            .prefix("worth-store-layout-index-")
+            .suffix(".bin")
+            .tempfile()
+            .unwrap()
     }
 }

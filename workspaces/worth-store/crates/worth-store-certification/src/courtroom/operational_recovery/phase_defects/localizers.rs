@@ -12,28 +12,11 @@ use crate::courtroom::operational_recovery::scenario_identity::phase_19_join_ide
 use crate::courtroom::operational_recovery::scenario_trace_binding::require_production_observation_identities;
 use crate::courtroom::operational_recovery::{
     S10OperationalScenarioEvidence, S10Phase, S10PhaseInvocationEvidence,
-    S10ScenarioProductionEvidence, S10StructuralPreflightEvidence,
+    S10ScenarioProductionEvidence,
 };
 
 mod runtime_record_omission;
 pub use runtime_record_omission::localize_s10_runtime_record_omission;
-
-pub fn localize_s10_structural_phase_defect(
-    scenario: &S10OperationalScenarioEvidence,
-    preflight: &S10StructuralPreflightEvidence,
-) -> Result<S10PhaseDefectLocalization, S10PhaseDefectDenial> {
-    let invocation = phase_invocation(scenario, 1)?;
-    if invocation.production_artifact_identity() != preflight.evidence_identity() {
-        return Err(S10PhaseDefectDenial::PreflightMismatch);
-    }
-    Ok(localization(
-        scenario,
-        invocation,
-        S10PhaseDefectSourceKind::StructuralBoundaryPredicate,
-        preflight.dependency_boundary_identity(),
-        6,
-    ))
-}
 
 pub fn localize_s10_control_selection_phase_defect(
     scenario: &S10OperationalScenarioEvidence,

@@ -5,6 +5,7 @@ mod execution;
 mod identity;
 #[cfg(test)]
 mod tests;
+mod wire_encoding;
 
 pub use artifact::{ProcessArtifactDisposition, ProcessArtifactObservation, ProcessArtifactPath};
 pub use declaration::{

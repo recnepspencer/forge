@@ -5,8 +5,9 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::wire_encoding;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "observation", rename_all = "snake_case")]
 pub enum ProcessArtifactObservation {
     Absent,
     File {
@@ -133,9 +134,8 @@ pub(crate) fn output_artifact_identity(path: &Path) -> Result<[u8; 32], String> 
             path.display()
         ));
     }
-    serde_json::to_vec(&("worth-store-process-output-artifact-v1", observation))
+    wire_encoding::encode(&("worth-store-process-output-artifact-v1", observation))
         .map(|bytes| Sha256::digest(bytes).into())
-        .map_err(|error| format!("could not encode process output identity: {error}"))
 }
 
 fn observe(path: &Path) -> Result<ProcessArtifactObservation, String> {

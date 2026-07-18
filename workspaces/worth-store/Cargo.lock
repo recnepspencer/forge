@@ -9,6 +9,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1066,6 +1075,7 @@ name = "worth-store-formal-models"
 version = "0.1.0"
 dependencies = [
  "sha2",
+ "tempfile",
  "worth-store-layout-indexes",
  "worth-store-lsm-authority",
  "worth-store-operations",
@@ -1234,8 +1244,8 @@ dependencies = [
 name = "worth-store-physical-certification"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "serde",
- "serde_json",
  "sha2",
  "tempfile",
  "worth-foundational",
@@ -1343,6 +1353,7 @@ name = "worth-store-recovery-physics"
 version = "0.1.0"
 dependencies = [
  "sha2",
+ "tempfile",
  "worth-foundational",
  "worth-proof",
  "worth-store-aspect-native",
@@ -1364,6 +1375,7 @@ version = "0.1.0"
 dependencies = [
  "fs4",
  "sha2",
+ "tempfile",
  "worth-proof",
  "worth-store-authority",
  "worth-store-physical-backend",
@@ -1429,6 +1441,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "toml",
  "worth-foundational",
  "worth-proof",

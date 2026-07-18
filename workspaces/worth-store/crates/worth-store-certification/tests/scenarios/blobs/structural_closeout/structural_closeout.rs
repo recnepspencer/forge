@@ -42,6 +42,7 @@ fn facade_visibility_stays_narrow_at_closeout() {
             "blob_corruption_compile_fail",
             "blob_export_bundle_compile_fail",
             "blob_generation_registry_compile_fail",
+            "blob_harness_execution_compile_fail",
             "blob_import_readmission_compile_fail",
             "blob_placement_movement_compile_fail",
             "blob_publication_commit_compile_fail",
@@ -58,7 +59,7 @@ fn facade_visibility_stays_narrow_at_closeout() {
     );
     assert_public_mods(
         &repo_root.join("workspaces/worth-store/crates/worth-store-test-support/src/lib.rs"),
-        &["harness"],
+        &["compiler_boundary", "harness"],
     );
 }
 

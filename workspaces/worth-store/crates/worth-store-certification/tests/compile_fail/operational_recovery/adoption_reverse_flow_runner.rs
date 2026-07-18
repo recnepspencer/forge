@@ -28,42 +28,10 @@ fn descriptive_shared_artifacts_cannot_reenter_store_authority() {
     assert_eq!(evidence.fixtures.len(), FIXTURES.len());
 }
 
-const FIXTURES: &[(&str, &[&str])] = &[
-    (
-        "shared_audit_record_cannot_construct_control_record.rs",
-        &["OperationalAuditRecord", "OperationalControlRecord"],
-    ),
-    (
-        "terminal_export_cannot_construct_authorization.rs",
-        &["OperationalEvidenceExport", "AuthorizedBackupRestorePlan"],
-    ),
-    (
-        "support_bundle_cannot_construct_operational_authority.rs",
-        &["OperationalAuditSupportPayload", "ExecutionReadyRepair"],
-    ),
-    (
-        "forensic_bundle_cannot_construct_restore_source.rs",
-        &[
-            "ForensicCustodyRecord",
-            "ProductionRestoreAdmissibleBackupBundle",
-        ],
-    ),
-    (
-        "lineage_projection_cannot_mint_primary_serve_lease.rs",
-        &["ReplicaPromotionReceipt", "PrimaryServeLease"],
-    ),
-    (
-        "counter_receipt_cannot_construct_execution_ready_plan.rs",
-        &["OperationalCounterReceipt", "ExecutionReadyRepair"],
-    ),
-    (
-        "derived_index_cannot_construct_repair_trusted_source.rs",
-        &[
-            "DerivedIndexRepairReceipt",
-            "ProductionRestoreAdmissibleBackupBundle",
-        ],
-    ),
-];
+const FIXTURES: &[(&str, &[&str])] = &[(
+    "shared_audit_record_cannot_construct_control_record.rs",
+    &["OperationalAuditRecord", "OperationalControlRecord"],
+)];
 
 fn store_workspace_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))

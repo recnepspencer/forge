@@ -191,7 +191,7 @@ impl OfflineInspectionSession {
             return Err(OfflineInspectionDenial::Cancelled);
         }
         if let Some(deadline) = self.budget.deadline() {
-            if std::time::SystemTime::now() >= deadline {
+            if self.clock.now() >= deadline {
                 return Err(OfflineInspectionDenial::AbsoluteDeadlineReached { deadline });
             }
         }

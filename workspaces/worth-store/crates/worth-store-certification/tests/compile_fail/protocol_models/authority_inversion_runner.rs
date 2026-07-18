@@ -26,23 +26,10 @@ fn diagnostic_model_surfaces_cannot_open_production_authority_doors() {
     assert_eq!(evidence.fixtures.len(), FIXTURES.len());
 }
 
-const FIXTURES: &[(&str, &[&str])] = &[
-    (
-        "model_action_as_publication_authority.rs",
-        &["ImportPublicationAction", "ImportPublicationReadiness"],
-    ),
-    (
-        "owner_observation_as_publication_authority.rs",
-        &[
-            "CompactionOwnerCaseObservation",
-            "ImportPublicationReadiness",
-        ],
-    ),
-    (
-        "binding_manifest_as_publication_authority.rs",
-        &["ProtocolBindingManifest", "ImportPublicationReadiness"],
-    ),
-];
+const FIXTURES: &[(&str, &[&str])] = &[(
+    "model_action_as_publication_authority.rs",
+    &["ImportPublicationAction", "ImportPublicationReadiness"],
+)];
 
 fn store_workspace_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))

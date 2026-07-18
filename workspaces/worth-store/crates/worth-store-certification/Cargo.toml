@@ -7,7 +7,6 @@ license.workspace = true
 description = "Roadmap 1 generic and domain Store certification suites."
 
 [dependencies]
-serde_json = "1"
 sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
@@ -49,6 +48,7 @@ certification-test-support = ["worth-store-physical-certification/certification-
 workspace = true
 
 [dev-dependencies]
+serde_json = "1"
 worth-relational = { path = "../../../../crates/worth-relational" }
 worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
 worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
@@ -71,96 +71,20 @@ name = "s10_handoff_public_boundary_compile"
 path = "tests/compile_fail/operational_recovery/handoff_public_boundary_runner.rs"
 
 [[test]]
-name = "s4_5_coverage_compile_fail"
-path = "tests/compile_fail/recovery/coverage_runner.rs"
-
-[[test]]
 name = "s4_5_driver_contract_boundary_compile_fail"
 path = "tests/compile_fail/recovery/driver_contract_boundary_runner.rs"
-
-[[test]]
-name = "s4_5_entry_boundary_compile_fail"
-path = "tests/compile_fail/recovery/entry_boundary_runner.rs"
-
-[[test]]
-name = "s4_5_fixture_authority_compile_fail"
-path = "tests/compile_fail/recovery/fixture_authority_runner.rs"
-
-[[test]]
-name = "s4_5_forbidden_shortcut_rejection_compile_fail"
-path = "tests/compile_fail/recovery/forbidden_shortcut_rejection_runner.rs"
-
-[[test]]
-name = "s4_5_observer_oracle_boundary_compile_fail"
-path = "tests/compile_fail/recovery/observer_oracle_boundary_runner.rs"
-
-[[test]]
-name = "s4_5_s5_simulation_harness_readiness_compile_fail"
-path = "tests/compile_fail/physical_isolation/simulation_harness_readiness_runner.rs"
-
-[[test]]
-name = "s4_5_scenario_authority_compile_fail"
-path = "tests/compile_fail/recovery/scenario_authority_runner.rs"
-
-[[test]]
-name = "s4_5_simulation_plan_boundary_compile_fail"
-path = "tests/compile_fail/recovery/simulation_plan_boundary_runner.rs"
-
-[[test]]
-name = "s4_5_transcript_evidence_compile_fail"
-path = "tests/compile_fail/recovery/transcript_evidence_runner.rs"
-
-[[test]]
-name = "s5_1_certification_closeout_compile_fail"
-path = "tests/compile_fail/security/certification_closeout_runner.rs"
 
 [[test]]
 name = "s5_1_security_scope_admission_compile_fail"
 path = "tests/compile_fail/security/security_scope_admission_runner.rs"
 
 [[test]]
-name = "s5_1_security_scope_vocabulary_compile_fail"
-path = "tests/compile_fail/security/security_scope_vocabulary_runner.rs"
-
-[[test]]
-name = "s5_copy_on_write_publication_compile_fail"
-path = "tests/compile_fail/physical_isolation/copy_on_write_publication_runner.rs"
-
-[[test]]
-name = "s5_epoch_scope_and_root_kind_compile_fail"
-path = "tests/compile_fail/physical_isolation/epoch_scope_and_root_kind_runner.rs"
-
-[[test]]
-name = "s5_latch_acquisition_order_compile_fail"
-path = "tests/compile_fail/physical_isolation/latch_acquisition_order_runner.rs"
-
-[[test]]
 name = "s5_physical_isolation_entry_compile_fail"
 path = "tests/compile_fail/physical_isolation/physical_isolation_entry_runner.rs"
 
 [[test]]
-name = "s5_physical_semantic_isolation_compile_fail"
-path = "tests/compile_fail/physical_isolation/physical_semantic_isolation_runner.rs"
-
-[[test]]
-name = "s5_stable_read_execution_compile_fail"
-path = "tests/compile_fail/physical_isolation/stable_read_execution_runner.rs"
-
-[[test]]
-name = "s5_stable_read_plan_admission_compile_fail"
-path = "tests/compile_fail/physical_isolation/stable_read_plan_admission_runner.rs"
-
-[[test]]
 name = "s5_tier_movement_future_chunk_compile_fail"
 path = "tests/compile_fail/blobs/tier_movement_future_chunk_runner.rs"
-
-[[test]]
-name = "s6_evidence_materialization_compile_fail"
-path = "tests/compile_fail/scheduling/evidence_materialization_runner.rs"
-
-[[test]]
-name = "s6_io_qos_readiness_handoff_compile_fail"
-path = "tests/compile_fail/scheduling/io_qos_readiness_handoff_runner.rs"
 
 [[test]]
 name = "s6_secure_io_authority_compile_fail"

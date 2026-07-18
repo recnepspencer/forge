@@ -8,7 +8,6 @@ pub use localizers::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S10PhaseDefectSourceKind {
-    StructuralBoundaryPredicate,
     ControlSelection,
     IndependentInspection,
     RuntimeArtifactOmission,
@@ -22,7 +21,6 @@ pub enum S10PhaseDefectSourceKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S10PhaseDefectDenial {
     PhaseNotInvoked,
-    PreflightMismatch,
     ControlSelectionNotBound,
     ControlSelectionNotLocalizable,
     MutantDidNotFailIndependentOracle,
@@ -106,7 +104,7 @@ impl S10PhaseDefectSuite {
                 return Err(S10PhaseDefectSuiteDenial::ReusedRejectionEvidence);
             }
         }
-        for phase in S10Phase::all() {
+        for phase in S10Phase::scenario_phases() {
             if !by_phase.contains_key(&phase) {
                 return Err(S10PhaseDefectSuiteDenial::MissingPhase(phase));
             }
@@ -150,20 +148,20 @@ mod tests {
 
     #[test]
     fn suite_requires_one_distinct_typed_rejection_per_phase() {
-        let missing = S10PhaseDefectSuite::join((1_u8..19).map(localization)).unwrap_err();
+        let missing = S10PhaseDefectSuite::join((2_u8..19).map(localization)).unwrap_err();
         assert_eq!(
             missing,
             S10PhaseDefectSuiteDenial::MissingPhase(S10Phase(19))
         );
 
-        let complete = S10PhaseDefectSuite::join((1_u8..=19).map(localization)).unwrap();
-        assert_eq!(complete.localizations().count(), 19);
+        let complete = S10PhaseDefectSuite::join((2_u8..=19).map(localization)).unwrap();
+        assert_eq!(complete.localizations().count(), 18);
         assert_ne!(complete.suite_identity(), [0; 32]);
     }
 
     #[test]
     fn suite_rejects_reusing_one_rejection_as_multiple_phase_defects() {
-        let mut localizations = (1_u8..=19).map(localization).collect::<Vec<_>>();
+        let mut localizations = (2_u8..=19).map(localization).collect::<Vec<_>>();
         localizations[1].rejection_identity = localizations[0].rejection_identity;
         assert_eq!(
             S10PhaseDefectSuite::join(localizations).unwrap_err(),

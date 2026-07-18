@@ -1,7 +1,5 @@
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Mutex;
 use std::time::Instant;
 
 use crate::plan::{TestExecutionUnit, TestPlan};
@@ -9,11 +7,7 @@ use crate::report::{TestRunReport, UnitResult};
 
 pub(crate) fn execute(plan: &TestPlan, target_root: Option<&Path>) -> TestRunReport {
     let started = Instant::now();
-    let (results, failure) = if plan.may_run_concurrently() {
-        execute_concurrently(plan, target_root)
-    } else {
-        execute_sequentially(plan, target_root)
-    };
+    let (results, failure) = execute_sequentially(plan, target_root);
 
     TestRunReport {
         product: plan.product_name(),
@@ -44,61 +38,6 @@ fn execute_sequentially(
         }
     }
     (results, None)
-}
-
-fn execute_concurrently(
-    plan: &TestPlan,
-    target_root: Option<&Path>,
-) -> (Vec<UnitResult>, Option<String>) {
-    let worker_count = std::thread::available_parallelism()
-        .map(|count| count.get())
-        .unwrap_or(2)
-        .min(4)
-        .min(plan.units().len());
-    let next = AtomicUsize::new(0);
-    let failed = AtomicBool::new(false);
-    let results = Mutex::new(Vec::new());
-    let failure = Mutex::new(None);
-
-    std::thread::scope(|scope| {
-        for _ in 0..worker_count {
-            scope.spawn(|| loop {
-                if failed.load(Ordering::Acquire) {
-                    return;
-                }
-                let index = next.fetch_add(1, Ordering::AcqRel);
-                let Some(unit) = plan.units().get(index) else {
-                    return;
-                };
-                println!("run: {}", unit.identity());
-                match execute_unit(unit, target_root) {
-                    Ok(result) if result.success => results.lock().unwrap().push(result),
-                    Ok(result) => {
-                        let message = format!("unit `{}` failed", result.identity);
-                        results.lock().unwrap().push(result);
-                        let mut first_failure = failure.lock().unwrap();
-                        if first_failure.is_none() {
-                            *first_failure = Some(message);
-                        }
-                        failed.store(true, Ordering::Release);
-                        return;
-                    }
-                    Err(error) => {
-                        let mut first_failure = failure.lock().unwrap();
-                        if first_failure.is_none() {
-                            *first_failure = Some(error);
-                        }
-                        failed.store(true, Ordering::Release);
-                        return;
-                    }
-                }
-            });
-        }
-    });
-
-    let mut results = results.into_inner().unwrap();
-    results.sort_by(|left, right| left.identity.cmp(&right.identity));
-    (results, failure.into_inner().unwrap())
 }
 
 fn execute_unit(
@@ -135,7 +74,11 @@ fn require_matching_test(
     target_root: Option<&Path>,
 ) -> Result<(), String> {
     let mut command = command(unit, target_root);
-    command.args(["--", "--list"]);
+    if unit.arguments().iter().any(|argument| argument == "--") {
+        command.arg("--list");
+    } else {
+        command.args(["--", "--list"]);
+    }
     let output = command.output().map_err(|error| {
         format!(
             "failed to list filtered unit `{}`: {error}",
@@ -151,10 +94,10 @@ fn require_matching_test(
     }
     let listing = String::from_utf8_lossy(&output.stdout);
     let matches = listed_test_count(&listing);
-    if matches == 0 {
+    if matches != 1 {
         Err(format!(
-            "filtered unit `{}` matched zero tests",
-            unit.identity()
+            "filtered unit `{}` must match exactly one test, matched {matches}",
+            unit.identity(),
         ))
     } else {
         Ok(())

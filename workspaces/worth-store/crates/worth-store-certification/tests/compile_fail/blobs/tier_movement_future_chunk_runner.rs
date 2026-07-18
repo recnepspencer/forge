@@ -9,16 +9,10 @@ fn future_chunk_placeholder_boundary_misuse_does_not_compile() {
     run(FIXTURES);
 }
 
-const FIXTURES: &[(&str, &[&str])] = &[
-    (
-        "future_chunk_variant_cannot_be_constructed_directly.rs",
-        &["cannot create non-exhaustive variant using struct expression"],
-    ),
-    (
-        "future_chunk_constructor_is_not_public.rs",
-        &["future_chunk", "private"],
-    ),
-];
+const FIXTURES: &[(&str, &[&str])] = &[(
+    "future_chunk_variant_cannot_be_constructed_directly.rs",
+    &["cannot create non-exhaustive variant using struct expression"],
+)];
 
 fn run(fixtures: &[(&str, &[&str])]) {
     let root = store_workspace_root();

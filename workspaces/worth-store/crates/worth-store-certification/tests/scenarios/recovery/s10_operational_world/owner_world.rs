@@ -82,13 +82,6 @@ pub struct ExecutedOwnerWorld {
     media: OwnerBackedBackupScenario,
 }
 
-pub fn execute_authority_repair_rollback_world(identity: &str) -> ExecutedOwnerWorld {
-    execute_scenario_world(
-        S10OperationalScenarioKind::AuthorityRepairRollback,
-        identity,
-    )
-}
-
 pub fn execute_scenario_world(
     kind: S10OperationalScenarioKind,
     identity: &str,

@@ -141,7 +141,7 @@ fn untrusted_probe_input_rejects_an_output_channel_that_became_visible() {
         vec![ProcessArtifactPath::output_channel("result", &output).unwrap()],
     )
     .unwrap();
-    let encoded = serde_json::to_vec(&input).unwrap();
+    let encoded = super::wire_encoding::encode(&input).unwrap();
     std::fs::write(&output, b"preexisting-output").unwrap();
 
     assert!(SealedProcessProbeInput::decode_untrusted(&encoded).is_err());

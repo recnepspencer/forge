@@ -210,36 +210,26 @@ where
 }
 
 thread_local! {
-    static FIXTURE_DIRECTORY: std::cell::RefCell<Option<std::path::PathBuf>> = const {
+    static FIXTURE_DIRECTORY: std::cell::RefCell<Option<crate::TemporaryDirectory>> = const {
         std::cell::RefCell::new(None)
     };
 }
 
-pub(super) fn begin_durability_fixture() {
-    FIXTURE_DIRECTORY.with(|slot| *slot.borrow_mut() = Some(new_execution_directory()));
+pub(super) fn begin_durability_fixture() -> crate::TemporaryDirectory {
+    let directory = crate::TemporaryDirectory::create("lsm-durability")
+        .expect("cannot create durability execution directory");
+    FIXTURE_DIRECTORY.with(|slot| {
+        *slot.borrow_mut() = Some(directory.clone());
+    });
+    directory
 }
 
 fn execution_directory<T>(execute: impl FnOnce(&std::path::Path) -> T) -> T {
     FIXTURE_DIRECTORY.with(|slot| {
         if slot.borrow().is_none() {
-            *slot.borrow_mut() = Some(new_execution_directory());
+            let _directory = begin_durability_fixture();
         }
-        execute(slot.borrow().as_ref().expect("fixture directory"))
+        let borrowed = slot.borrow();
+        execute(borrowed.as_ref().expect("fixture directory").path())
     })
-}
-
-fn new_execution_directory() -> std::path::PathBuf {
-    static FIXTURE_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    loop {
-        let directory = std::env::temp_dir().join(format!(
-            "worth-store-lsm-durability-{}-{}",
-            std::process::id(),
-            FIXTURE_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-        ));
-        match std::fs::create_dir(&directory) {
-            Ok(()) => return directory,
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(error) => panic!("cannot create durability execution directory: {error}"),
-        }
-    }
 }

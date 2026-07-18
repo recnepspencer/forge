@@ -87,6 +87,7 @@ pub enum LsmExecutionDenial {
     PersistedMembershipAmbiguous,
     PersistedMembershipIncomplete,
     PersistedMembershipStale,
+    PersistedArtifactInvalid,
     PersistedIndexIo,
     PhysicalTargetEpochRequired,
     DurableRecordBindingMismatch,
