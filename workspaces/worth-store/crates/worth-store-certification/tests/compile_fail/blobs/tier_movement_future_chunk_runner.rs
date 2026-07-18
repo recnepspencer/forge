@@ -12,7 +12,7 @@ fn future_chunk_placeholder_boundary_misuse_does_not_compile() {
 const FIXTURES: &[(&str, &[&str])] = &[
     (
         "future_chunk_variant_cannot_be_constructed_directly.rs",
-        &["FutureChunk", "non-exhaustive"],
+        &["cannot create non-exhaustive variant using struct expression"],
     ),
     (
         "future_chunk_constructor_is_not_public.rs",

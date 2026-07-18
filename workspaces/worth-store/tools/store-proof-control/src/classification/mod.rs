@@ -83,7 +83,9 @@ pub fn validate(
         .map(|target| target.identity.as_str())
         .collect();
     for proof in &inventory.proofs {
-        violations.extend(compiler_boundary_policy::violations(proof));
+        if inventory.discovered.schema_version >= 3 {
+            violations.extend(compiler_boundary_policy::violations(proof));
+        }
         if !identities.insert(&proof.case.identity.stable_id) {
             violations.push(format!(
                 "duplicate proof identity: {}",

@@ -29,7 +29,10 @@ const FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "release_receipt_cannot_be_struct_literal.rs",
-        &["private", "footprint_basis"],
+        &[
+            "cannot construct `PhysicalReadPlanReleaseReceipt` with struct literal syntax",
+            "private field",
+        ],
     ),
     (
         "epoch_checked_plan_cannot_issue_handle.rs",

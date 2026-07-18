@@ -44,7 +44,7 @@ const FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "root_epoch_cannot_be_publicly_constructed.rs",
-        &["RootEpoch", "private"],
+        &["cannot initialize a tuple struct which contains private fields"],
     ),
     (
         "generation_reference_cannot_mint_page_epoch.rs",

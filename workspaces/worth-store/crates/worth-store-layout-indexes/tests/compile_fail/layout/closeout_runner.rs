@@ -23,12 +23,12 @@ const fn fixtures() -> [CompileFailFixture; 9] {
     [
         fixture(
             "counter_snapshot_exact_constructor_is_not_public.rs",
-            &["S8AccessPathCounterSnapshot", "could not find"],
+            &["associated function `exact` is private"],
             &[],
         ),
         fixture(
             "counter_snapshot_support_constructor_is_not_public.rs",
-            &["S8AccessPathCounterSnapshot", "could not find"],
+            &["AccessPathCounterSnapshot", "snapshot_support", "not found"],
             &[],
         ),
         fixture(

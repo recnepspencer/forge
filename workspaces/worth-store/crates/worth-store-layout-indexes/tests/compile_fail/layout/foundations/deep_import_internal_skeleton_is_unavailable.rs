@@ -1,5 +1,5 @@
-use worth_store_layout_indexes::access::execution::ready_plan::S8ExecutionReadyAccessReceipt;
+use worth_store_layout_indexes::access::execution::AccessPathCounterSnapshot;
 
 fn main() {
-    let _ = std::mem::size_of::<S8ExecutionReadyAccessReceipt>();
+    let _ = std::mem::size_of::<AccessPathCounterSnapshot>();
 }

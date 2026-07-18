@@ -74,6 +74,7 @@ fn dependency(root: &Path, rust_name: &str) -> DependencyDeclaration {
             "phase22-layout-rule-construction",
         ],
         "worth_store_security" => vec!["certification-test-authority"],
+        "worth_store_test_support" => vec!["boundary-fixtures"],
         "worth_store_wal" => vec!["certification-authority"],
         _ => Vec::new(),
     };

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "pre_cleanup_scenario_executables": 93,
   "consolidated_suite_executables": 6,
   "suites": [
@@ -10,7 +10,8 @@
       "admitted_process_topologies": [
         "in-process-libtest",
         "fresh-child-process",
-        "nested-cargo-process"
+        "nested-cargo-process",
+        "standardized-ui-harness"
       ],
       "shared_support_sources": [
         "crates/worth-store-certification/tests/support/recovery/bounded_recovery_budget/budget_fixture.rs",
@@ -3021,7 +3022,7 @@
           "source_paths": [
             "crates/worth-store-certification/tests/scenarios/recovery/recovery_harness_ui/recovery_harness_ui.rs"
           ],
-          "process_topology": "in-process-libtest",
+          "process_topology": "standardized-ui-harness",
           "proof_contract": {
             "production_subject_packages": [
               "worth-store-physical-backend",

@@ -1,7 +1,7 @@
 use worth_store_certification::S51CertificationCloseoutEvidence;
-use worth_store_readiness::S51AdmittedSecurityScopeReadiness;
+use worth_store_operations::BackupExportCustodyReadiness;
 
-fn requires_readiness(_: S51AdmittedSecurityScopeReadiness) {}
+fn requires_readiness(_: BackupExportCustodyReadiness) {}
 
 fn main() {
     let evidence: S51CertificationCloseoutEvidence = todo!();

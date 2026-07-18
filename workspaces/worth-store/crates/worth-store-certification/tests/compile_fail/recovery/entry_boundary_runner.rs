@@ -27,11 +27,11 @@ const FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "raw_inventory_surface_cannot_be_minted.rs",
-        &["ExistingSimulationHarnessSurface", "private"],
+        &["associated function `new` is private"],
     ),
     (
         "entry_identity_cannot_be_minted.rs",
-        &["SimulationHarnessEntryIdentity", "private"],
+        &["associated function `new` is private"],
     ),
     (
         "entry_struct_literal_cannot_be_minted.rs",

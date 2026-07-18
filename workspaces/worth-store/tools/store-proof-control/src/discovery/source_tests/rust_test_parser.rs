@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 pub(super) struct RustTestFunction {
     pub(super) name: String,
     pub(super) line: usize,
@@ -7,7 +9,21 @@ pub(super) struct RustTestFunction {
     pub(super) execution_source: String,
 }
 
-pub(super) fn rust_test_functions(source: &str) -> Vec<RustTestFunction> {
+pub(super) struct ExecutionGraph {
+    function_sources: BTreeMap<String, Vec<String>>,
+}
+
+pub(super) fn execution_graph(source: &str) -> ExecutionGraph {
+    let lines: Vec<_> = source.lines().collect();
+    ExecutionGraph {
+        function_sources: declared_function_sources(&lines),
+    }
+}
+
+pub(super) fn rust_test_functions(
+    source: &str,
+    execution_graph: &ExecutionGraph,
+) -> Vec<RustTestFunction> {
     let lines: Vec<_> = source.lines().collect();
     let mut tests = Vec::new();
     for (index, line) in lines.iter().enumerate() {
@@ -19,19 +35,80 @@ pub(super) fn rust_test_functions(source: &str) -> Vec<RustTestFunction> {
             let trimmed = candidate.trim();
             ignored |= trimmed.starts_with("#[ignore");
             if let Some(name) = function_name(trimmed) {
+                let direct_source = function_source(&lines, index + 1);
                 tests.push(RustTestFunction {
+                    execution_source: execution_source(&direct_source, execution_graph),
                     name,
                     line: index + 1,
                     ignored,
                     assertion_predicates: assertion_predicates(&lines, index + 1),
                     behavior_fingerprint: behavior_fingerprint(&lines, index + 1),
-                    execution_source: function_source(&lines, index + 1),
                 });
                 break;
             }
         }
     }
     tests
+}
+
+fn declared_function_sources(lines: &[&str]) -> BTreeMap<String, Vec<String>> {
+    let mut functions = BTreeMap::<String, Vec<String>>::new();
+    for (index, line) in lines.iter().enumerate() {
+        let Some(name) = function_name(line.trim()) else {
+            continue;
+        };
+        functions
+            .entry(name)
+            .or_default()
+            .push(function_source(lines, index));
+    }
+    functions
+}
+
+fn execution_source(root: &str, graph: &ExecutionGraph) -> String {
+    let mut reachable_names = BTreeSet::new();
+    let mut pending = called_function_names(root).into_iter().collect::<Vec<_>>();
+    let mut execution = root.to_owned();
+    while let Some(name) = pending.pop() {
+        if !reachable_names.insert(name.clone()) {
+            continue;
+        }
+        let Some(definitions) = graph.function_sources.get(&name) else {
+            continue;
+        };
+        for definition in definitions {
+            execution.push_str(definition);
+            pending.extend(called_function_names(definition));
+        }
+    }
+    execution
+}
+
+fn called_function_names(source: &str) -> BTreeSet<String> {
+    let bytes = source.as_bytes();
+    let mut names = BTreeSet::new();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        if !bytes[cursor].is_ascii_alphabetic() && bytes[cursor] != b'_' {
+            cursor += 1;
+            continue;
+        }
+        let start = cursor;
+        cursor += 1;
+        while cursor < bytes.len()
+            && (bytes[cursor].is_ascii_alphanumeric() || bytes[cursor] == b'_')
+        {
+            cursor += 1;
+        }
+        let mut after = cursor;
+        while after < bytes.len() && bytes[after].is_ascii_whitespace() {
+            after += 1;
+        }
+        if after < bytes.len() && bytes[after] == b'(' {
+            names.insert(source[start..cursor].to_owned());
+        }
+    }
+    names
 }
 
 fn function_source(lines: &[&str], function_start: usize) -> String {

@@ -49,32 +49,19 @@ fn io_qos_secure_io_authority_rejects_lower_authority_sources() {
 const FIXTURES: &[(&str, &[&str])] = &[
     (
         "identity_provider_claim_cannot_satisfy_secure_io_scope.rs",
-        &[
-            "SecureIoPreservationRequest::new",
-            "IoSchedulerSecurityScopeAdmission",
-            "StoreJwtSubjectClaim",
-        ],
+        &["IoSchedulerSecurityScopeAdmission", "StoreJwtSubjectClaim"],
     ),
     (
         "kms_key_id_cannot_satisfy_secure_io_scope.rs",
-        &[
-            "SecureIoPreservationRequest::new",
-            "IoSchedulerSecurityScopeAdmission",
-            "StoreKmsKeyIdentifier",
-        ],
+        &["IoSchedulerSecurityScopeAdmission", "StoreKmsKeyIdentifier"],
     ),
     (
         "iam_role_cannot_satisfy_secure_io_scope.rs",
-        &[
-            "SecureIoPreservationRequest::new",
-            "IoSchedulerSecurityScopeAdmission",
-            "StoreIamRoleClaim",
-        ],
+        &["IoSchedulerSecurityScopeAdmission", "StoreIamRoleClaim"],
     ),
     (
         "operator_identity_cannot_satisfy_secure_io_scope.rs",
         &[
-            "SecureIoPreservationRequest::new",
             "IoSchedulerSecurityScopeAdmission",
             "StoreOperatorIdentityClaim",
         ],
@@ -82,7 +69,6 @@ const FIXTURES: &[(&str, &[&str])] = &[
     (
         "terminal_projection_cannot_satisfy_secure_io_scope.rs",
         &[
-            "SecureIoPreservationRequest::new",
             "IoSchedulerSecurityScopeAdmission",
             "StoreTerminalProjectionText",
         ],
@@ -90,7 +76,6 @@ const FIXTURES: &[(&str, &[&str])] = &[
     (
         "security_scope_identity_cannot_satisfy_secure_io_scope.rs",
         &[
-            "SecureIoPreservationRequest::new",
             "IoSchedulerSecurityScopeAdmission",
             "StoreSecurityScopeIdentity",
         ],

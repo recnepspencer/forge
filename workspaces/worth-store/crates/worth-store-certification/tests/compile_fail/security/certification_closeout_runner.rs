@@ -24,8 +24,8 @@ fn closeout_rejects_certification_owned_authority_shortcuts() {
                     &[],
                 ),
                 (
-                    "worth-store-readiness",
-                    root.join("crates/worth-store-readiness").as_path(),
+                    "worth-store-operations",
+                    root.join("crates/worth-store-operations").as_path(),
                     &[],
                 ),
             ],
@@ -58,7 +58,7 @@ const FIXTURES: &[(&str, &[&str])] = &[
     (
         "closeout_evidence_cannot_satisfy_readiness.rs",
         &[
-            "S51AdmittedSecurityScopeReadiness",
+            "BackupExportCustodyReadiness",
             "S51CertificationCloseoutEvidence",
         ],
     ),

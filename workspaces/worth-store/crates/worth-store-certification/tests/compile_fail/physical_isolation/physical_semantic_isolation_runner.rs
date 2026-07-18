@@ -46,13 +46,16 @@ const FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "semantic_reference_cannot_satisfy_physical_authority.rs",
-        &["PhysicalReadStabilityAuthority", "SemanticNodeReference"],
+        &[
+            "PhysicalReadStabilityAuthority",
+            "SemanticVisibilityReference",
+        ],
     ),
     (
         "correlation_cannot_satisfy_physical_authority.rs",
         &[
             "PhysicalReadStabilityAuthority",
-            "SemanticPhysicalCorrelation",
+            "PhysicalSnapshotCorrelation",
         ],
     ),
     (

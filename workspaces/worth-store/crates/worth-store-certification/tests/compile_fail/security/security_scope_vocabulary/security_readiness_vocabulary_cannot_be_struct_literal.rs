@@ -4,6 +4,6 @@ use worth_store_security::{
 
 fn main() {
     let _forged = StoreSecurityReadinessVocabulary {
-        term: StoreSecurityReadinessVocabularyTerm::S11SecurityFoundationReadiness,
+        term: StoreSecurityReadinessVocabularyTerm::SecurityFoundationReadiness,
     };
 }

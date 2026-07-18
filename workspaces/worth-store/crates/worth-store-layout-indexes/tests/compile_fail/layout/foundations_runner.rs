@@ -32,10 +32,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 45] {
         ),
         fixture(
             "deep_import_internal_skeleton_is_unavailable.rs",
-            &[
-                "module `access` is private",
-                "S8ExecutionReadyAccessReceipt",
-            ],
+            &["module `access` is private"],
             &[],
         ),
         fixture(
@@ -255,7 +252,10 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 45] {
         ),
         fixture(
             "raw_blob_identity_cannot_construct_materialization_source.rs",
-            &["private field", "ImportedBlobMaterializationSourceIdentity"],
+            &[
+                "cannot initialize a tuple struct which contains private fields",
+                "private field",
+            ],
             &[],
         ),
         fixture(
@@ -273,7 +273,10 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 45] {
         ),
         fixture(
             "raw_restore_identity_cannot_construct_materialization_source.rs",
-            &["RestoredArtifactMaterializationSourceIdentity"],
+            &[
+                "cannot initialize a tuple struct which contains private fields",
+                "private field",
+            ],
             &[],
         ),
     ]

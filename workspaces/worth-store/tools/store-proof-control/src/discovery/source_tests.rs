@@ -13,8 +13,8 @@ use super::cargo_surface::{normalized, CargoSurface, TestTargetIdentity};
 use doctest_parser::{declared_doctest_features, declared_doctests, DoctestKind};
 use module_reachability::reachable_target_files;
 use rust_test_parser::{
-    external_tools, launches_child_process, launches_nested_cargo, rust_test_functions,
-    uses_standardized_ui_harness,
+    execution_graph, external_tools, launches_child_process, launches_nested_cargo,
+    rust_test_functions, uses_standardized_ui_harness,
 };
 use source_inventory::{candidate_source_paths, is_ui_fixture, read_source_snapshot, rust_sources};
 use test_identity::{
@@ -105,6 +105,7 @@ pub(crate) fn discover_test_cases(surface: &CargoSurface) -> Result<Vec<TestCase
         .collect();
     source_texts.extend(read_source_snapshot(&missing_candidates)?);
     let target_text = target_registration_text(&target_files, &source_texts)?;
+    let mut target_execution_graphs = BTreeMap::new();
     let mut cases = Vec::new();
     for package in &surface.packages {
         let package_root = Path::new(&package.package_root);
@@ -139,7 +140,29 @@ pub(crate) fn discover_test_cases(surface: &CargoSurface) -> Result<Vec<TestCase
             } else {
                 "unregistered"
             };
-            let tests = rust_test_functions(&text);
+            let local_execution_graph = execution_graph(text);
+            let mut tests = rust_test_functions(text, &local_execution_graph);
+            if let Some(target) = assignment {
+                let target_source = target_text
+                    .get(&target.identity)
+                    .expect("target registration text covers assigned targets");
+                let needs_target_graph = uses_standardized_ui_harness(target_source)
+                    && tests
+                        .iter()
+                        .any(|test| !uses_standardized_ui_harness(test.execution_source.as_str()));
+                if needs_target_graph {
+                    if !target_execution_graphs.contains_key(&target.identity) {
+                        target_execution_graphs
+                            .insert(target.identity.clone(), execution_graph(target_source));
+                    }
+                    tests = rust_test_functions(
+                        text,
+                        target_execution_graphs
+                            .get(&target.identity)
+                            .expect("target execution graph was inserted"),
+                    );
+                }
+            }
             let tests_were_empty = tests.is_empty();
             for test in tests {
                 let execution_text = test.execution_source.as_str();

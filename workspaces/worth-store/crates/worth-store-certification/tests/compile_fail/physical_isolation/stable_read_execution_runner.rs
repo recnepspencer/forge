@@ -16,7 +16,7 @@ const FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "raw_bytes_cannot_be_read_by_execution.rs",
-        &["read_guarded_bytes", "PhysicalByteGuard"],
+        &["method `read_guarded_bytes` is private"],
     ),
     (
         "reachability_barrier_is_not_byte_guard.rs",

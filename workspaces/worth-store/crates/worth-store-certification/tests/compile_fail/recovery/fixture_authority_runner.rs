@@ -56,7 +56,7 @@ const FIXTURES: &[(&str, &[&str])] = &[
         "raw_mutation_boundary_cannot_satisfy_capability_declaration.rs",
         &["FixtureNeedsBoundary", "mutation_boundary"],
     ),
-    ("fixture_receipt_cannot_be_cloned.rs", &["clone"]),
+    ("fixture_receipt_cannot_be_cloned.rs", &["Clone"]),
     ("production_fixture_cannot_be_cloned.rs", &["clone"]),
 ];
 
