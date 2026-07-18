@@ -14,6 +14,7 @@ pub enum ProofProcessModel {
     LibtestWithFreshChildProcess,
     LibtestWithNestedCargoProcess,
     AllocatorGlobalProcess,
+    ExternalToolProcess,
 }
 
 impl ProofProcessModel {
@@ -43,6 +44,7 @@ impl ProofProcessModel {
             Self::LibtestWithFreshChildProcess => "libtest-with-fresh-child-process",
             Self::LibtestWithNestedCargoProcess => "libtest-with-nested-cargo-process",
             Self::AllocatorGlobalProcess => "allocator-global-process",
+            Self::ExternalToolProcess => "external-tool-process",
         }
     }
 }

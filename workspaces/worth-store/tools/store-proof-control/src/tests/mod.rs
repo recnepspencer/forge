@@ -1,5 +1,7 @@
 mod boundary_policy;
 mod cache_identity;
+mod ci_partitioning;
+mod ci_selection;
 mod classification_denials;
 mod discovery_boundary_fixture;
 mod discovery_preservation;

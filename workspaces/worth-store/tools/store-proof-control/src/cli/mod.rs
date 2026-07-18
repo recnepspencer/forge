@@ -41,11 +41,40 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
         CliCommand::SealProofAuthority => seal_proof_authority(&workspace_root),
         CliCommand::SealProofBehaviorAuthority => seal_proof_behavior_authority(&workspace_root),
         CliCommand::SealScenarioAuthority => seal_scenario_authority(&workspace_root),
+        CliCommand::InternalObserve { request_path } => {
+            crate::execution::observe_external_request(Path::new(&request_path))
+        }
+        CliCommand::CiAggregate { evidence_root } => {
+            aggregate_ci_evidence(&workspace_root, Path::new(&evidence_root))
+        }
         CliCommand::Proof {
             request,
             preflight_bundle,
         } => run_product(&workspace_root, request, preflight_bundle.as_deref()),
     }
+}
+
+fn aggregate_ci_evidence(workspace_root: &Path, evidence_root: &Path) -> Result<(), String> {
+    let inventory = validate_repository(workspace_root)?;
+    let evidence = crate::ci::read_partition_evidence(evidence_root)?;
+    let aggregate =
+        crate::ci::CiCertificationAggregate::certify(&inventory, &evidence).map_err(|missing| {
+            missing
+                .into_iter()
+                .map(|lane| {
+                    format!(
+                        "{}/{}: {}",
+                        lane.partition, lane.operating_system, lane.reason
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n  - ")
+        })?;
+    let path = aggregate.output_path(workspace_root);
+    write_new_json(&path, &aggregate)?;
+    println!("CI certification aggregate: {}", path.display());
+    println!("CI source identity: {}", aggregate.source_identity);
+    Ok(())
 }
 
 fn seal_proof_behavior_authority(workspace_root: &Path) -> Result<(), String> {
@@ -254,8 +283,22 @@ fn run_product(
     let run_path = workspace_root
         .join(".store-proof/evidence/runs")
         .join(&plan.plan_digest)
-        .join(format!("{}.json", run.attempt_identity));
+        .join(format!("{}.json", run.run_identity));
     write_new_json(&run_path, &run)?;
+    if let Some(partition) = plan.request.semantic_ci_partition() {
+        let partition = partition.identity();
+        let evidence = crate::ci::CiPartitionEvidence::from_run(
+            workspace_root,
+            partition,
+            &plan,
+            &run,
+            plan.ci_shard_plan.clone(),
+        )?;
+        let evidence_path = evidence.output_path(workspace_root);
+        write_new_json(&evidence_path, &evidence)?;
+        println!("CI partition evidence: {}", evidence_path.display());
+        println!("CI closeout eligibility: {}", evidence.closeout_eligible);
+    }
     if run.behavioral_verdict == "passed" {
         Ok(())
     } else {

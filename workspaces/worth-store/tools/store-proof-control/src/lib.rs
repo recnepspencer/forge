@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod authority_progression;
+pub mod ci;
 pub mod classification;
 pub mod cli;
 pub mod discovery;

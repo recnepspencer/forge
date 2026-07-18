@@ -34,14 +34,19 @@ pub fn print_plan(plan: &SelectedProofExecutionPlan) {
     println!("selected units:");
     for unit in &plan.units {
         println!(
-            "  - {}::{} [{}; case={}; profile={}; features={}; process={}]",
+            "  - {}::{} [{}; case={}; profile={}; features={}; process={}; isolation={:?}; target-root={}; timeout={}ms; retries={}; dependencies={}]",
             unit.package,
             unit.target_name,
             unit.target_selector,
             unit.case_filter.as_deref().unwrap_or("all"),
             unit.build_profile.cargo_profile(),
             unit.feature_lane.description(),
-            unit.process_model
+            unit.process_model,
+            unit.isolation,
+            unit.resources.target_root,
+            unit.timeout_millis,
+            unit.retry.maximum_retries,
+            unit.dependencies.join(",")
         );
     }
     println!("excluded products:");
@@ -70,7 +75,7 @@ pub fn print_run(plan: &SelectedProofExecutionPlan, run: &ExecutedProofRun) {
     println!("behavioral verdict: {}", run.behavioral_verdict);
     println!(
         "execution breadth: {}/{} units",
-        run.completed_units, run.attempted_units
+        run.executed_units, run.planned_units
     );
     println!("responsibility verdicts:");
     for verdict in &run.unit_verdicts {
@@ -84,20 +89,41 @@ pub fn print_run(plan: &SelectedProofExecutionPlan, run: &ExecutedProofRun) {
         );
     }
     println!(
-        "observed runner processes: cargo={} requested-test-or-check={} declared-subprocess-units={}",
-        run.process_counts.cargo_processes_launched,
-        run.process_counts.test_or_check_processes_requested,
-        run.process_counts.declared_subprocess_units
+        "observed runner processes: cargo={} requested-test-or-check={} declared-subprocess-receipts={}",
+        run.observed_cost.cargo_processes_launched,
+        run.observed_cost.test_or_check_processes_requested,
+        run.observed_cost.declared_subprocess_evidence
     );
     println!(
         "compiler/link/child observation: {}; {}; {}",
-        run.process_counts.compiler_process_observation,
-        run.process_counts.linker_process_observation,
-        run.process_counts.child_process_observation
+        run.observed_cost.compiler_process_observation,
+        run.observed_cost.linker_process_observation,
+        run.observed_cost.child_process_observation
     );
     println!(
+        "structural build breadth: compiler-artifacts={} linked-executables={}",
+        run.observed_cost.cargo_compiler_artifact_messages,
+        run.observed_cost.linked_executable_artifacts.len()
+    );
+    println!(
+        "external observer breadth: processes={} compiler-samples={} linker-samples={} peak-descendants={} authority={}",
+        run.observed_cost.externally_observed_processes,
+        run.observed_cost.externally_observed_compilers,
+        run.observed_cost.externally_observed_linkers,
+        run.observed_cost.peak_observed_descendants,
+        run.observed_cost.observer_authorities.join(",")
+    );
+    for skipped in &run.skipped_units {
+        println!(
+            "  - skipped {} reason={} blockers={}",
+            skipped.unit_identity,
+            skipped.reason,
+            skipped.blocking_units.join(",")
+        );
+    }
+    println!(
         "evidence identity: plan={} attempt={}",
-        plan.plan_digest, run.attempt_identity
+        plan.plan_digest, run.run_identity
     );
     println!(
         "rerun: cargo {}",

@@ -2,6 +2,14 @@
   "schema_version": 1,
   "declarations": [
     {
+      "stable_case_id": "store-proof-control::src/ci/partition/required_matrix_keeps_windows_for_physical_and_compiler_claims::partition::required_matrix_keeps_windows_for_physical_and_compiler_claims",
+      "behavior_fingerprint": "sha256:5a5b1665a443c5050a721988c927d04603163c44e41eeee1d3035a342e8c0b4e"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/ci/shard/invalid_shard_coordinates_deny_before_assignment::shard::invalid_shard_coordinates_deny_before_assignment",
+      "behavior_fingerprint": "sha256:60bde3a725cd780e3c8fb025f4098c8ff0b80558e0823a3ff285613ff9afa2a5"
+    },
+    {
       "stable_case_id": "store-proof-control::src/classification/scenario_suite/source_identity/source_identity_does_not_embed_checkout_location::source_identity::source_identity_does_not_embed_checkout_location",
       "behavior_fingerprint": "sha256:c03abace352489cdd1f23646617ca45b05e1467b4b919b8d342305d30df208c7"
     },
@@ -30,12 +38,44 @@
       "behavior_fingerprint": "sha256:eb35ec6c7faa62c741502da6ef0d04af690c35994c9c706a06c8cffa4c0bae24"
     },
     {
+      "stable_case_id": "store-proof-control::src/execution/attempt/retry_success_remains_flaky_instead_of_green::attempt::retry_success_remains_flaky_instead_of_green",
+      "behavior_fingerprint": "sha256:829e16c9a5b98a697a4f245b89d167d4588cf8ed1fc51aa572cac43df148d156"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/admitted_retry_cannot_turn_fail_then_pass_green::command_attempt_tests::admitted_retry_cannot_turn_fail_then_pass_green",
+      "behavior_fingerprint": "sha256:7ffbd59c3bfb213f10e91913d6e79eb1b87f13e2ff0417ac3bff3e941899c39c"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/failed_and_successful_units_retain_independent_attempt_receipts::command_attempt_tests::failed_and_successful_units_retain_independent_attempt_receipts",
+      "behavior_fingerprint": "sha256:a5273ffd533c1ebf901a98786d558e81a3beef82129b1f0db6568a8ca04d9b6e"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/failed_dependency_skips_only_its_dependents::command_attempt_tests::failed_dependency_skips_only_its_dependents",
+      "behavior_fingerprint": "sha256:88553ee99b08d2436a27df3d4232bcb0d5907816b6df0475b14f3b94af2f7aab"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/failed_unit_does_not_erase_independent_success_or_run_evidence::command_attempt_tests::failed_unit_does_not_erase_independent_success_or_run_evidence",
+      "behavior_fingerprint": "sha256:b41e8d429f10d458c2771d9adcefd6b18e0e2445071ebbb52f1190b9c727599b"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/timeout_terminates_the_process_tree_and_retains_the_attempt::command_attempt_tests::timeout_terminates_the_process_tree_and_retains_the_attempt",
+      "behavior_fingerprint": "sha256:cecb9a0779bd0ab09ba96ffd9d83afeeda694c085d3eb6c76a289679442d7297"
+    },
+    {
       "stable_case_id": "store-proof-control::src/execution/mod/green_preflight_cannot_substitute_for_a_failed_behavioral_unit::mod::green_preflight_cannot_substitute_for_a_failed_behavioral_unit",
-      "behavior_fingerprint": "sha256:3cf40d9b41359e8b8ded3344828bd5c98f72b5226a13ac374c9ff67638a07d3e"
+      "behavior_fingerprint": "sha256:b28dc0f24c9488896450e8d696b8ddc2981a77ea790721fc74a3426c63794ee5"
     },
     {
       "stable_case_id": "store-proof-control::src/execution/process_evidence_tests/controller_rejects_incoherent_process_contract_projections::process_evidence_tests::controller_rejects_incoherent_process_contract_projections",
       "behavior_fingerprint": "sha256:7487ba38ad4260c6773f9006bc1ad7418cdfc9ed80063b9f326229d45bf0a72c"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/schedule/malformed_dependency_graph_denies_before_execution::schedule::malformed_dependency_graph_denies_before_execution",
+      "behavior_fingerprint": "sha256:9e0b152a48c9554e217ea1cfa5924bbe945b93742081bd5a3709426a59dc2f05"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/schedule/schedule_is_deterministic_and_parallel_only_for_disjoint_resources::schedule::schedule_is_deterministic_and_parallel_only_for_disjoint_resources",
+      "behavior_fingerprint": "sha256:8a4dfc77083de9182374a5bad1bbdf8f8c2259a7bb5c07257a5169b76974ad92"
     },
     {
       "stable_case_id": "store-proof-control::src/selection/mod/doctest_selection_cannot_lower_a_synthetic_zero_match_filter::mod::doctest_selection_cannot_lower_a_synthetic_zero_match_filter",
@@ -100,6 +140,30 @@
     {
       "stable_case_id": "store-proof-control::src/tests/cache_identity/profile_and_feature_lanes_change_cache_identity::cache_identity::profile_and_feature_lanes_change_cache_identity",
       "behavior_fingerprint": "sha256:68b8543876718e4c8f783522e34ff2582cc53a026286016641f0e8a9ca5395b4"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_partitioning/aggregate_denies_a_missing_windows_claim_and_retains_rerun_history::ci_partitioning::aggregate_denies_a_missing_windows_claim_and_retains_rerun_history",
+      "behavior_fingerprint": "sha256:dd6ecc4750db5bc714bcd38ed8e1660af49d9ad6db98723a234fbade9d0e84ed"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_partitioning/cache_identity_rejects_toolchain_feature_and_profile_poisoning::ci_partitioning::cache_identity_rejects_toolchain_feature_and_profile_poisoning",
+      "behavior_fingerprint": "sha256:50b0272d3d1a8426576d6c7747c7fe396049f7f7259124e23f368558dd1247f2"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_partitioning/every_ci_certifiable_product_has_one_partition_authority::ci_partitioning::every_ci_certifiable_product_has_one_partition_authority",
+      "behavior_fingerprint": "sha256:447cc5312927780b899fe8f718ed06447103cec2a2dad549adabc2705c171614"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_selection/shard_plans_are_disjoint_complete_and_share_one_topology_identity::ci_selection::shard_plans_are_disjoint_complete_and_share_one_topology_identity",
+      "behavior_fingerprint": "sha256:b51dc5f7e6ee2e834db3b923c20bb8bf1adf8cdc40aa33fbb6f9a0aa28631b57"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_selection/structural_preflight_partition_is_an_explicit_zero_behavior_unit_product::ci_selection::structural_preflight_partition_is_an_explicit_zero_behavior_unit_product",
+      "behavior_fingerprint": "sha256:f5ef7f2d461cb70ff0d9a528fc78aef8a7b6030b20a3f4d6dc20edd8d8d8f8ad"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_selection/ui_partition_uses_only_standardized_harnesses_and_rustdoc_units::ci_selection::ui_partition_uses_only_standardized_harnesses_and_rustdoc_units",
+      "behavior_fingerprint": "sha256:358f1b4442adb2bc79558b58e542cc3a43777a3cc50be092f95502a0e102daa5"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/classification_denials/duplicate_identity_and_owner_leakage_are_denied::classification_denials::duplicate_identity_and_owner_leakage_are_denied",

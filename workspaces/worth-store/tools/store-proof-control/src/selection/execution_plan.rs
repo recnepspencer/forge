@@ -6,9 +6,14 @@ use serde::{Deserialize, Serialize};
 use crate::discovery::TestTargetIdentity;
 use crate::evidence::sha256_serialized;
 
-use super::proof_mode::{ProofProductUnavailable, StoreProofMode, StoreProofRequest};
+use super::execution_contract::timeout_millis;
+use super::proof_mode::{StoreProofMode, StoreProofRequest};
 use super::repository_identity::RepositoryIdentity;
-use super::{ProofProcessModel, StoreBuildProfileIdentity, StoreFeatureLane};
+use super::ProofProductUnavailable;
+use super::{
+    ProofExecutionCommand, ProofExecutionIsolation, ProofExecutionResources, ProofFailurePolicy,
+    ProofProcessModel, ProofRetryPolicy, StoreBuildProfileIdentity, StoreFeatureLane,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructuralPreflightReference {
@@ -44,6 +49,12 @@ pub struct ProofExecutionUnit {
     pub feature_lane: StoreFeatureLane,
     pub build_profile: StoreBuildProfileIdentity,
     pub process_model: ProofProcessModel,
+    pub command: ProofExecutionCommand,
+    pub isolation: ProofExecutionIsolation,
+    pub resources: ProofExecutionResources,
+    pub dependencies: Vec<String>,
+    pub timeout_millis: u64,
+    pub retry: ProofRetryPolicy,
     pub expected_evidence: Vec<String>,
 }
 
@@ -69,6 +80,7 @@ impl ProofExecutionUnit {
         } else {
             ProofProcessModel::LibtestProcess
         };
+        let isolation = ProofExecutionIsolation::for_process_model(process_model);
         Self {
             package: target.package.clone(),
             target_name: target.name.clone(),
@@ -77,6 +89,12 @@ impl ProofExecutionUnit {
             feature_lane: StoreFeatureLane::from_required_features(&target.required_features),
             build_profile: StoreBuildProfileIdentity::for_mode(request.mode()),
             process_model,
+            command: ProofExecutionCommand::Cargo,
+            isolation,
+            resources: ProofExecutionResources::unbound(process_model),
+            dependencies: Vec::new(),
+            timeout_millis: timeout_millis(request.mode()),
+            retry: ProofRetryPolicy::never(),
             expected_evidence: vec![
                 "behavioral_verdict".to_owned(),
                 "target_breadth".to_owned(),
@@ -87,6 +105,8 @@ impl ProofExecutionUnit {
 
     pub(crate) fn with_process_model(mut self, process_model: ProofProcessModel) -> Self {
         self.process_model = process_model;
+        self.isolation = ProofExecutionIsolation::for_process_model(process_model);
+        self.resources = ProofExecutionResources::unbound(process_model);
         if self.process_model.requires_ui_proof_evidence()
             && !self
                 .expected_evidence
@@ -105,6 +125,7 @@ impl ProofExecutionUnit {
     }
 
     pub(crate) fn feature_compatibility(package: String, features: Vec<String>) -> Self {
+        let process_model = ProofProcessModel::CargoCheckProcess;
         Self {
             package,
             target_name: "library-feature-compatibility".to_owned(),
@@ -112,7 +133,13 @@ impl ProofExecutionUnit {
             case_filter: None,
             feature_lane: StoreFeatureLane::declared(features),
             build_profile: StoreBuildProfileIdentity::CiTest,
-            process_model: ProofProcessModel::CargoCheckProcess,
+            process_model,
+            command: ProofExecutionCommand::Cargo,
+            isolation: ProofExecutionIsolation::for_process_model(process_model),
+            resources: ProofExecutionResources::unbound(process_model),
+            dependencies: Vec::new(),
+            timeout_millis: timeout_millis(StoreProofMode::Ci),
+            retry: ProofRetryPolicy::never(),
             expected_evidence: vec![
                 "compiler_verdict".to_owned(),
                 "resolved_feature_graph".to_owned(),
@@ -120,7 +147,70 @@ impl ProofExecutionUnit {
         }
     }
 
-    pub fn cargo_arguments(&self, mode: StoreProofMode) -> Vec<String> {
+    pub(crate) fn formal_tool(workspace_root: &Path) -> Self {
+        let process_model = ProofProcessModel::ExternalToolProcess;
+        let script = workspace_root
+            .join("../../scripts/ci/verify_worth_store_formal_toolchain.sh")
+            .to_string_lossy()
+            .replace('\\', "/");
+        let mut resources = ProofExecutionResources::unbound(process_model);
+        resources.bind_target_root(workspace_root);
+        resources.exclusive_external_tools.extend([
+            "bash".to_owned(),
+            "java".to_owned(),
+            "tlc".to_owned(),
+        ]);
+        Self {
+            package: "worth-store-formal-models".to_owned(),
+            target_name: "production-protocol-toolchain".to_owned(),
+            target_selector: "external-tool".to_owned(),
+            case_filter: None,
+            feature_lane: StoreFeatureLane::ProductionEquivalent,
+            build_profile: StoreBuildProfileIdentity::CiTest,
+            process_model,
+            command: ProofExecutionCommand::ExternalTool {
+                program: "bash".to_owned(),
+                arguments: vec![script],
+            },
+            isolation: ProofExecutionIsolation::for_process_model(process_model),
+            resources,
+            dependencies: Vec::new(),
+            timeout_millis: timeout_millis(StoreProofMode::Ci),
+            retry: ProofRetryPolicy::never(),
+            expected_evidence: vec![
+                "formal_tool_receipt".to_owned(),
+                "external_process_observation".to_owned(),
+            ],
+        }
+    }
+
+    pub(crate) fn bind_workspace(&mut self, workspace_root: &Path, request: &StoreProofRequest) {
+        self.resources.bind_target_root(workspace_root);
+        if let Some(seed) = request.seed() {
+            self.resources
+                .environment
+                .insert("WORTH_STORE_PROOF_SEED".to_owned(), seed.to_string());
+        }
+        if let Some(backend) = request.backend() {
+            self.resources
+                .environment
+                .insert("WORTH_STORE_BACKEND_PROFILE".to_owned(), backend.to_owned());
+        }
+    }
+
+    pub fn identity(&self) -> String {
+        format!(
+            "{}::{}::{}",
+            self.package,
+            self.target_name,
+            self.case_filter.as_deref().unwrap_or("all")
+        )
+    }
+
+    pub fn command_line(&self, mode: StoreProofMode) -> (String, Vec<String>) {
+        if let ProofExecutionCommand::ExternalTool { program, arguments } = &self.command {
+            return (program.clone(), arguments.clone());
+        }
         let cargo_operation = if self.target_selector == "check-lib" {
             "check"
         } else {
@@ -152,6 +242,7 @@ impl ProofExecutionUnit {
             arguments.push("--features".to_owned());
             arguments.push(self.feature_lane.cargo_features().join(","));
         }
+        arguments.push("--message-format=json-render-diagnostics".to_owned());
         if let Some(filter) = &self.case_filter {
             arguments.push(filter.clone());
         }
@@ -160,7 +251,7 @@ impl ProofExecutionUnit {
             arguments.push("--ignored".to_owned());
             arguments.push("--nocapture".to_owned());
         }
-        arguments
+        ("cargo".to_owned(), arguments)
     }
 }
 
@@ -173,6 +264,9 @@ pub struct SelectedProofExecutionPlan {
     pub repository: RepositoryIdentity,
     pub selection: StoreProofSelection,
     pub units: Vec<ProofExecutionUnit>,
+    pub ci_shard_plan: Option<crate::ci::CiShardPlan>,
+    pub maximum_concurrency: usize,
+    pub failure_policy: ProofFailurePolicy,
     pub excluded_products: BTreeMap<String, String>,
     pub cache_posture: String,
     pub evidence_destination: String,
@@ -186,6 +280,9 @@ struct PlanDigestBasis<'a> {
     repository: &'a RepositoryIdentity,
     selection: &'a StoreProofSelection,
     units: &'a [ProofExecutionUnit],
+    ci_shard_plan: &'a Option<crate::ci::CiShardPlan>,
+    maximum_concurrency: usize,
+    failure_policy: ProofFailurePolicy,
     structural_preflight: &'a StructuralPreflightReference,
 }
 
@@ -195,15 +292,21 @@ impl SelectedProofExecutionPlan {
         request: StoreProofRequest,
         selection: StoreProofSelection,
         units: Vec<ProofExecutionUnit>,
+        ci_shard_plan: Option<crate::ci::CiShardPlan>,
         excluded_products: BTreeMap<String, String>,
         repository: RepositoryIdentity,
         structural_preflight: StructuralPreflightReference,
     ) -> Result<Self, ProofProductUnavailable> {
+        let maximum_concurrency = declared_concurrency();
+        let failure_policy = ProofFailurePolicy::for_mode(request.mode());
         let digest = sha256_serialized(&PlanDigestBasis {
             request: &request,
             repository: &repository,
             selection: &selection,
             units: &units,
+            ci_shard_plan: &ci_shard_plan,
+            maximum_concurrency,
+            failure_policy,
             structural_preflight: &structural_preflight,
         })
         .map_err(ProofProductUnavailable::RepositoryObservation)?;
@@ -219,6 +322,9 @@ impl SelectedProofExecutionPlan {
             repository,
             selection,
             units,
+            ci_shard_plan,
+            maximum_concurrency,
+            failure_policy,
             excluded_products,
             cache_posture,
             evidence_destination: destination.to_string_lossy().replace('\\', "/"),
@@ -227,6 +333,13 @@ impl SelectedProofExecutionPlan {
             structural_preflight,
         })
     }
+}
+
+fn declared_concurrency() -> usize {
+    std::thread::available_parallelism()
+        .map(usize::from)
+        .unwrap_or(1)
+        .clamp(1, 8)
 }
 
 impl StructuralPreflightReference {

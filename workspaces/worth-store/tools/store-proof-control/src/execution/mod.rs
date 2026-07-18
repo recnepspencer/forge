@@ -1,194 +1,287 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-use std::process::Command;
-use std::time::Instant;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
 
-use crate::selection::{ProofProcessModel, SelectedProofExecutionPlan};
-use crate::structural_preflight::{forge_root, require_fresh, PreflightEvidenceFreshness};
-use worth_store_test_support::structural_preflight::{
-    StructuralPreflightEvidence, STRUCTURAL_PREFLIGHT_BUNDLE_ENV,
+use crate::selection::{
+    ProofFailurePolicy, SelectedProofExecutionPlan, StructuralPreflightReference,
 };
+use crate::structural_preflight::{forge_root, require_fresh, PreflightEvidenceFreshness};
+use worth_store_test_support::structural_preflight::StructuralPreflightEvidence;
 
+mod attempt;
+mod command_attempt;
+#[cfg(test)]
+mod command_attempt_tests;
+mod external_observer;
+mod formal_evidence;
+mod observation;
 mod process_evidence;
+mod schedule;
 mod ui_evidence;
+
+pub use attempt::{ProofAttemptOutcome, ProofRunAttempt, ProofUnitExecutionVerdict};
+pub use external_observer::{ExternalObservationReceipt, ExternalObservedProcess};
+pub use formal_evidence::FormalToolEvidenceReference;
+pub use observation::ObservedProofRunCost;
 pub use process_evidence::ProcessProbeEvidenceReference;
+pub use schedule::ProofExecutionSchedule;
 pub use ui_evidence::UiProofEvidenceReference;
+
+pub(crate) fn observe_external_request(request_path: &Path) -> Result<(), String> {
+    external_observer::observe_request(request_path)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutedProofRun {
     pub plan_digest: String,
-    pub attempt_identity: String,
-    pub attempt_started_unix_millis: u128,
-    pub attempted_units: usize,
-    pub completed_units: usize,
+    pub schedule: ProofExecutionSchedule,
+    pub run_identity: String,
+    pub run_started_unix_millis: u128,
+    pub planned_units: usize,
+    pub executed_units: usize,
+    pub passed_units: usize,
+    pub failed_units: usize,
+    pub skipped_units: Vec<SkippedProofExecutionUnit>,
     pub behavioral_verdict: String,
     pub failed_unit: Option<String>,
     pub unit_verdicts: Vec<ProofUnitExecutionVerdict>,
-    pub process_counts: ProofRunProcessCounts,
+    pub attempts: Vec<ProofRunAttempt>,
+    pub observed_cost: ObservedProofRunCost,
     pub structural_preflight_evidence_identity: String,
     pub structural_preflight_bundle_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProofUnitExecutionVerdict {
+pub struct SkippedProofExecutionUnit {
     pub unit_identity: String,
-    pub case_filter: Option<String>,
-    pub process_model: ProofProcessModel,
-    pub behavioral_verdict: String,
-    pub elapsed_millis: u128,
-    pub ui_proof_evidence: Vec<UiProofEvidenceReference>,
-    pub process_probe_evidence: Vec<ProcessProbeEvidenceReference>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProofRunProcessCounts {
-    pub cargo_processes_launched: usize,
-    pub test_or_check_processes_requested: usize,
-    pub declared_subprocess_units: usize,
-    pub compiler_process_observation: String,
-    pub linker_process_observation: String,
-    pub child_process_observation: String,
+    pub reason: String,
+    pub blocking_units: Vec<String>,
 }
 
 pub fn execute(
     workspace_root: &Path,
     plan: &SelectedProofExecutionPlan,
 ) -> Result<ExecutedProofRun, String> {
-    let preflight = validate_preflight(workspace_root, plan)?;
-    let attempt_started_unix_millis = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|error| format!("system clock precedes Unix epoch: {error}"))?
-        .as_millis();
-    let attempt_identity = format!(
-        "{}-{attempt_started_unix_millis}-{}",
+    let preflight = validate_preflight(workspace_root, &plan.structural_preflight)?;
+    execute_validated(workspace_root, plan, preflight)
+}
+
+fn execute_validated(
+    workspace_root: &Path,
+    plan: &SelectedProofExecutionPlan,
+    preflight: ValidatedPreflight,
+) -> Result<ExecutedProofRun, String> {
+    let schedule = schedule::schedule(plan)?;
+    let run_started_unix_millis = unix_millis()?;
+    let run_identity = format!(
+        "{}-{run_started_unix_millis}-{}-{}",
         &plan.plan_digest[..16],
-        std::process::id()
+        std::process::id(),
+        RUN_NONCE.fetch_add(1, Ordering::Relaxed)
     );
-    let mut unit_verdicts = Vec::new();
-    for (unit_index, unit) in plan.units.iter().enumerate() {
-        let arguments = unit.cargo_arguments(plan.request.mode());
-        let started = Instant::now();
-        let unit_identity = format!("{}::{}", unit.package, unit.target_name);
-        let unit_execution_identity = crate::evidence::sha256_serialized(&(
-            "worth-store-proof-unit-execution-v1",
-            &plan.plan_digest,
-            unit_index,
-            unit,
-        ))?;
-        let ui_evidence_root = ui_evidence::attempt_root(
-            workspace_root,
-            &attempt_identity,
-            unit_index,
-            &unit_identity,
-        );
-        let process_evidence_root = process_evidence::attempt_root(
-            workspace_root,
-            &attempt_identity,
-            unit_index,
-            &unit_identity,
-        );
-        let mut command = Command::new("cargo");
-        command
-            .args(&arguments)
-            .current_dir(workspace_root)
-            .env(
-                worth_store_test_support::compiler_boundary::UI_EVIDENCE_ROOT_ENV,
-                &ui_evidence_root,
-            )
-            .env(
-                worth_store_test_support::compiler_boundary::UI_EXECUTION_IDENTITY_ENV,
-                &unit_execution_identity,
-            )
-            .env(STRUCTURAL_PREFLIGHT_BUNDLE_ENV, &preflight.bundle_path)
-            .env(
-                process_evidence::PROCESS_PROBE_EVIDENCE_ROOT_ENV,
-                &process_evidence_root,
+    let before = observation::observe_before(plan)?;
+    let mut attempts_by_unit = BTreeMap::new();
+    let mut skipped = BTreeMap::new();
+    let mut failed = BTreeSet::new();
+
+    for wave in &schedule.waves {
+        let runnable: Vec<_> = wave
+            .unit_indices
+            .iter()
+            .copied()
+            .filter(|index| {
+                classify_skip(plan, *index, &failed, &skipped).map_or(true, |denial| {
+                    skipped.insert(*index, denial);
+                    false
+                })
+            })
+            .collect();
+        if runnable.is_empty() {
+            continue;
+        }
+        let results = std::thread::scope(|scope| {
+            let preflight = &preflight;
+            let run_identity = run_identity.as_str();
+            let handles: Vec<_> = runnable
+                .iter()
+                .copied()
+                .map(|index| {
+                    let handle = scope.spawn(move || {
+                        command_attempt::execute_unit(
+                            workspace_root,
+                            plan,
+                            preflight,
+                            run_identity,
+                            index,
+                        )
+                    });
+                    (index, handle)
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|(index, handle)| {
+                    let result = handle
+                        .join()
+                        .map_err(|_| format!("execution worker panicked for unit {index}"))?;
+                    result.map(|attempts| (index, attempts))
+                })
+                .collect::<Result<Vec<_>, String>>()
+        })?;
+        for (index, attempts) in results {
+            let verdict = ProofUnitExecutionVerdict::from_attempts(
+                plan.units[index].identity(),
+                plan.units[index].case_filter.clone(),
+                plan.units[index].process_model,
+                &attempts,
             );
-        if let Some(seed) = plan.request.seed() {
-            command.env("WORTH_STORE_PROOF_SEED", seed.to_string());
-        }
-        if let Some(backend) = plan.request.backend() {
-            command.env("WORTH_STORE_BACKEND_PROFILE", backend);
-        }
-        let status = command
-            .status()
-            .map_err(|error| format!("could not launch cargo for {}: {error}", unit.target_name))?;
-        let ui_proof_evidence = ui_evidence::collect(
-            workspace_root,
-            &ui_evidence_root,
-            &unit_identity,
-            &unit_execution_identity,
-            unit.process_model.requires_ui_proof_evidence() && status.success(),
-        )?;
-        let process_probe_evidence = process_evidence::collect(
-            workspace_root,
-            &process_evidence_root,
-            &unit_identity,
-            status.success() && unit.process_model.requires_process_probe_evidence(),
-        )?;
-        unit_verdicts.push(ProofUnitExecutionVerdict {
-            unit_identity: unit_identity.clone(),
-            case_filter: unit.case_filter.clone(),
-            process_model: unit.process_model,
-            behavioral_verdict: if status.success() { "passed" } else { "failed" }.to_owned(),
-            elapsed_millis: started.elapsed().as_millis(),
-            ui_proof_evidence,
-            process_probe_evidence,
-        });
-        if !status.success() {
-            let decision = behavioral_decision(&unit_verdicts);
-            return Ok(ExecutedProofRun {
-                plan_digest: plan.plan_digest.clone(),
-                attempt_identity,
-                attempt_started_unix_millis,
-                attempted_units: plan.units.len(),
-                completed_units: decision.completed_units,
-                behavioral_verdict: decision.verdict.to_owned(),
-                failed_unit: decision.failed_unit,
-                process_counts: process_counts(&unit_verdicts),
-                structural_preflight_evidence_identity: preflight.evidence_identity.clone(),
-                structural_preflight_bundle_path: preflight.bundle_path.clone(),
-                unit_verdicts,
-            });
+            if verdict.behavioral_verdict != "passed" {
+                failed.insert(index);
+            }
+            attempts_by_unit.insert(index, attempts);
         }
     }
-    let decision = behavioral_decision(&unit_verdicts);
+
+    let executed: BTreeSet<_> = attempts_by_unit.keys().copied().collect();
+    classify_remaining_skips(plan, &executed, &failed, &mut skipped);
+    let mut attempts = Vec::new();
+    let mut unit_verdicts = Vec::new();
+    for (index, unit_attempts) in attempts_by_unit {
+        unit_verdicts.push(ProofUnitExecutionVerdict::from_attempts(
+            plan.units[index].identity(),
+            plan.units[index].case_filter.clone(),
+            plan.units[index].process_model,
+            &unit_attempts,
+        ));
+        attempts.extend(unit_attempts);
+    }
+    let observed_cost = observation::finish_observation(before, &attempts)?;
+    let skipped_units = skipped.into_values().collect::<Vec<_>>();
+    let passed_units = unit_verdicts
+        .iter()
+        .filter(|verdict| verdict.behavioral_verdict == "passed")
+        .count();
+    let failed_units = unit_verdicts.len() - passed_units;
+    let behavioral_verdict = if failed_units == 0 && skipped_units.is_empty() {
+        "passed"
+    } else if unit_verdicts
+        .iter()
+        .any(|verdict| verdict.behavioral_verdict == "flaky-indeterminate")
+    {
+        "indeterminate"
+    } else {
+        "failed"
+    };
+    let failed_unit = unit_verdicts
+        .iter()
+        .find(|verdict| verdict.behavioral_verdict != "passed")
+        .map(|verdict| verdict.unit_identity.clone());
     Ok(ExecutedProofRun {
         plan_digest: plan.plan_digest.clone(),
-        attempt_identity,
-        attempt_started_unix_millis,
-        attempted_units: plan.units.len(),
-        completed_units: decision.completed_units,
-        behavioral_verdict: decision.verdict.to_owned(),
-        failed_unit: decision.failed_unit,
-        process_counts: process_counts(&unit_verdicts),
+        schedule,
+        run_identity,
+        run_started_unix_millis,
+        planned_units: plan.units.len(),
+        executed_units: unit_verdicts.len(),
+        passed_units,
+        failed_units,
+        skipped_units,
+        behavioral_verdict: behavioral_verdict.to_owned(),
+        failed_unit,
+        unit_verdicts,
+        attempts,
+        observed_cost,
         structural_preflight_evidence_identity: preflight.evidence_identity,
         structural_preflight_bundle_path: preflight.bundle_path,
-        unit_verdicts,
     })
+}
+
+fn classify_skip(
+    plan: &SelectedProofExecutionPlan,
+    index: usize,
+    failed: &BTreeSet<usize>,
+    skipped: &BTreeMap<usize, SkippedProofExecutionUnit>,
+) -> Option<SkippedProofExecutionUnit> {
+    let failed_identities: BTreeSet<_> = failed
+        .iter()
+        .map(|failed| plan.units[*failed].identity())
+        .collect();
+    let skipped_identities: BTreeSet<_> = skipped
+        .values()
+        .map(|unit| unit.unit_identity.clone())
+        .collect();
+    let blocking_units: Vec<_> = plan.units[index]
+        .dependencies
+        .iter()
+        .filter(|dependency| {
+            failed_identities.contains(*dependency) || skipped_identities.contains(*dependency)
+        })
+        .cloned()
+        .collect();
+    if !blocking_units.is_empty() {
+        return Some(SkippedProofExecutionUnit {
+            unit_identity: plan.units[index].identity(),
+            reason: "dependency-failed".to_owned(),
+            blocking_units,
+        });
+    }
+    if plan.failure_policy == ProofFailurePolicy::StopAllAfterFailure && !failed.is_empty() {
+        return Some(SkippedProofExecutionUnit {
+            unit_identity: plan.units[index].identity(),
+            reason: "product-fail-fast-policy".to_owned(),
+            blocking_units: failed
+                .iter()
+                .map(|failed| plan.units[*failed].identity())
+                .collect(),
+        });
+    }
+    None
+}
+
+fn classify_remaining_skips(
+    plan: &SelectedProofExecutionPlan,
+    executed: &BTreeSet<usize>,
+    failed: &BTreeSet<usize>,
+    skipped: &mut BTreeMap<usize, SkippedProofExecutionUnit>,
+) {
+    loop {
+        let mut changed = false;
+        for index in 0..plan.units.len() {
+            if executed.contains(&index) || skipped.contains_key(&index) {
+                continue;
+            }
+            if let Some(denial) = classify_skip(plan, index, failed, skipped) {
+                skipped.insert(index, denial);
+                changed = true;
+            }
+        }
+        if !changed {
+            return;
+        }
+    }
 }
 
 fn validate_preflight(
     workspace_root: &Path,
-    plan: &SelectedProofExecutionPlan,
+    reference: &StructuralPreflightReference,
 ) -> Result<ValidatedPreflight, String> {
-    let bundle_path = std::path::PathBuf::from(&plan.structural_preflight.bundle_path);
+    let bundle_path = std::path::PathBuf::from(&reference.bundle_path);
     let evidence: StructuralPreflightEvidence = crate::evidence::read_json(&bundle_path)?;
     evidence
         .validate_integrity()
         .map_err(|denial| denial.to_string())?;
-    if evidence.evidence_identity.0 != plan.structural_preflight.evidence_identity {
+    if evidence.evidence_identity.0 != reference.evidence_identity {
         return Err(format!(
             "preflight bundle identity mismatch: plan={} bundle={}",
-            plan.structural_preflight.evidence_identity, evidence.evidence_identity.0
+            reference.evidence_identity, evidence.evidence_identity.0
         ));
     }
     if !evidence.failures().is_empty() {
         return Err("behavioral execution cannot consume a failed preflight bundle".to_owned());
     }
-    let forge_root = forge_root(workspace_root)?;
-    match require_fresh(&forge_root, &evidence)? {
+    match require_fresh(&forge_root(workspace_root)?, &evidence)? {
         PreflightEvidenceFreshness::Fresh { .. } => Ok(ValidatedPreflight {
             evidence_identity: evidence.evidence_identity.0,
             bundle_path: bundle_path.to_string_lossy().replace('\\', "/"),
@@ -209,55 +302,24 @@ fn validate_preflight(
     }
 }
 
-struct ValidatedPreflight {
+pub(crate) struct ValidatedPreflight {
     evidence_identity: String,
     bundle_path: String,
 }
 
-struct BehavioralDecision {
-    completed_units: usize,
-    verdict: &'static str,
-    failed_unit: Option<String>,
+fn unix_millis() -> Result<u128, String> {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .map_err(|error| format!("system clock precedes Unix epoch: {error}"))
 }
 
-fn behavioral_decision(verdicts: &[ProofUnitExecutionVerdict]) -> BehavioralDecision {
-    let failed_unit = verdicts
-        .iter()
-        .find(|verdict| verdict.behavioral_verdict != "passed")
-        .map(|verdict| verdict.unit_identity.clone());
-    BehavioralDecision {
-        completed_units: verdicts
-            .iter()
-            .filter(|verdict| verdict.behavioral_verdict == "passed")
-            .count(),
-        verdict: if failed_unit.is_some() {
-            "failed"
-        } else {
-            "passed"
-        },
-        failed_unit,
-    }
-}
-
-fn process_counts(verdicts: &[ProofUnitExecutionVerdict]) -> ProofRunProcessCounts {
-    ProofRunProcessCounts {
-        cargo_processes_launched: verdicts.len(),
-        test_or_check_processes_requested: verdicts.len(),
-        declared_subprocess_units: verdicts
-            .iter()
-            .filter(|verdict| !verdict.process_model.is_plain_libtest())
-            .count(),
-        compiler_process_observation: "not-observed-before-phase-10-runner".to_owned(),
-        linker_process_observation: "not-observed-before-phase-10-runner".to_owned(),
-        child_process_observation:
-            "phase-8-process-evidence-recorded; external-process-counting-deferred-to-phase-10"
-                .to_owned(),
-    }
-}
+static RUN_NONCE: AtomicU64 = AtomicU64::new(0);
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::selection::ProofProcessModel;
 
     #[test]
     fn green_preflight_cannot_substitute_for_a_failed_behavioral_unit() {
@@ -265,24 +327,19 @@ mod tests {
             evidence_identity: "green-preflight".to_owned(),
             bundle_path: "green-preflight.json".to_owned(),
         };
-        let verdicts = vec![ProofUnitExecutionVerdict {
+        let verdict = ProofUnitExecutionVerdict {
             unit_identity: "worth-store-certification::inverted-assertion".to_owned(),
             case_filter: None,
             process_model: ProofProcessModel::LibtestProcess,
             behavioral_verdict: "failed".to_owned(),
             elapsed_millis: 1,
+            attempt_identities: vec!["failed-attempt".to_owned()],
             ui_proof_evidence: Vec::new(),
             process_probe_evidence: Vec::new(),
-        }];
-
-        let decision = behavioral_decision(&verdicts);
+        };
 
         assert_eq!(accepted_preflight.evidence_identity, "green-preflight");
-        assert_eq!(decision.verdict, "failed");
-        assert_eq!(decision.completed_units, 0);
-        assert_eq!(
-            decision.failed_unit.as_deref(),
-            Some("worth-store-certification::inverted-assertion")
-        );
+        assert_eq!(verdict.behavioral_verdict, "failed");
+        assert_eq!(verdict.attempt_identities, ["failed-attempt"]);
     }
 }

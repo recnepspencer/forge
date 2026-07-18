@@ -9,6 +9,12 @@ pub enum CliCommand {
     SealProofAuthority,
     SealProofBehaviorAuthority,
     SealScenarioAuthority,
+    InternalObserve {
+        request_path: String,
+    },
+    CiAggregate {
+        evidence_root: String,
+    },
     Proof {
         request: StoreProofRequest,
         preflight_bundle: Option<String>,
@@ -54,6 +60,28 @@ impl ParsedArguments {
                 command: CliCommand::SealProofBehaviorAuthority,
             });
         }
+        if command == "internal-observe" {
+            let remaining: Vec<_> = arguments.collect();
+            let request_path = option_value(&remaining, "--request")
+                .ok_or_else(|| "internal-observe requires --request <path>".to_owned())?;
+            if remaining.len() != 2 {
+                return Err("internal-observe accepts only --request <path>".to_owned());
+            }
+            return Ok(Self {
+                command: CliCommand::InternalObserve { request_path },
+            });
+        }
+        if command == "ci-aggregate" {
+            let remaining: Vec<_> = arguments.collect();
+            let evidence_root = option_value(&remaining, "--evidence-root")
+                .ok_or_else(|| "ci-aggregate requires --evidence-root <path>".to_owned())?;
+            if remaining.len() != 2 {
+                return Err("ci-aggregate accepts only --evidence-root <path>".to_owned());
+            }
+            return Ok(Self {
+                command: CliCommand::CiAggregate { evidence_root },
+            });
+        }
         let mode = parse_mode(&command).ok_or_else(usage)?;
         let remaining: Vec<_> = arguments.collect();
         let package =
@@ -70,6 +98,8 @@ impl ParsedArguments {
             .transpose()?;
         let backend = option_value(&remaining, "--backend");
         let preflight_bundle = option_value(&remaining, "--preflight-bundle");
+        let shard_index = parsed_usize_option(&remaining, "--shard-index")?;
+        let shard_count = parsed_usize_option(&remaining, "--shard-count")?;
         let plan_only = remaining.iter().any(|argument| argument == "--plan-only");
         reject_unknown_options(&remaining)?;
         Ok(Self {
@@ -83,7 +113,8 @@ impl ParsedArguments {
                     plan_only,
                 )
                 .with_seed(seed)
-                .with_backend(backend),
+                .with_backend(backend)
+                .with_shard(shard_index, shard_count),
                 preflight_bundle,
             },
         })
@@ -120,6 +151,8 @@ fn reject_unknown_options(arguments: &[String]) -> Result<(), String> {
         "--seed",
         "--backend",
         "--preflight-bundle",
+        "--shard-index",
+        "--shard-count",
     ];
     let mut index = 0;
     while index < arguments.len() {
@@ -138,6 +171,16 @@ fn reject_unknown_options(arguments: &[String]) -> Result<(), String> {
         return Err(format!("unknown proof-control argument: {argument}"));
     }
     Ok(())
+}
+
+fn parsed_usize_option(arguments: &[String], name: &str) -> Result<Option<usize>, String> {
+    option_value(arguments, name)
+        .map(|value| {
+            value
+                .parse::<usize>()
+                .map_err(|_| format!("{name} requires an unsigned integer, got {value:?}"))
+        })
+        .transpose()
 }
 
 fn usage() -> String {

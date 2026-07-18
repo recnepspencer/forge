@@ -1,9 +1,11 @@
 mod build_profile;
+mod execution_contract;
 mod execution_plan;
 mod feature_lane;
 mod owner_execution;
 mod plan_inventory;
 mod process_model;
+mod product_selection;
 mod proof_mode;
 mod repository_identity;
 mod scenario_execution;
@@ -13,13 +15,18 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 pub use build_profile::StoreBuildProfileIdentity;
+pub use execution_contract::{
+    ProofExecutionCommand, ProofExecutionIsolation, ProofExecutionResources, ProofFailurePolicy,
+    ProofRetryPolicy,
+};
 pub use execution_plan::{
     ProofExecutionUnit, SelectedProofExecutionPlan, StoreProofSelection,
     StructuralPreflightReference,
 };
 pub use feature_lane::StoreFeatureLane;
 pub use process_model::ProofProcessModel;
-pub use proof_mode::{ProofProductUnavailable, StoreProofMode, StoreProofRequest};
+pub use proof_mode::{StoreProofMode, StoreProofRequest};
+pub use proof_unavailable::ProofProductUnavailable;
 pub use repository_identity::RepositoryIdentity;
 
 use crate::discovery::TestTargetIdentity;
@@ -27,6 +34,10 @@ use crate::ValidatedProofInventory;
 use feature_lane::feature_lane_for_target;
 use owner_execution::validate_owner_execution_locality;
 use plan_inventory::proof_selection;
+mod proof_unavailable;
+use product_selection::{
+    excluded_products, feature_compatibility_units, validate_selected_product_reachability,
+};
 use scenario_execution::{
     declared_suite_filters, suite_case_responsibilities, DeclaredScenarioExecution,
 };
@@ -50,6 +61,7 @@ pub fn select(
     .map_err(|violations| ProofProductUnavailable::ScenarioTopology(violations.join("\n  - ")))?;
     let suite_filters = declared_suite_filters(&suite_inventory);
     let suite_responsibilities = suite_case_responsibilities(&suite_inventory);
+    let ui_product_selected = selected_products.contains("store-ui");
     let selected_case_targets = if request.mode() == StoreProofMode::Ui {
         selected_ui_runner_cases(
             inventory,
@@ -58,24 +70,55 @@ pub fn select(
             &suite_responsibilities,
         )?
     } else {
-        selected_case_targets(
+        let mut selected = selected_case_targets(
             inventory,
             &selected_products,
             &request,
             &suite_responsibilities,
-        )
+        );
+        if ui_product_selected {
+            merge_selected_cases(
+                &mut selected,
+                selected_ui_runner_cases(
+                    inventory,
+                    &selected_products,
+                    &request,
+                    &suite_responsibilities,
+                )?,
+            );
+        }
+        selected
     };
     let mut units = execution_units(inventory, &request, &selected_case_targets, &suite_filters)?;
     if selected_products.contains("store-ci:feature-compatibility") {
         units.extend(feature_compatibility_units(inventory));
     }
-    if request.mode() == StoreProofMode::Ui {
+    if request.semantic_ci_partition() == Some(crate::ci::CiProofPartitionKind::FormalExternal) {
+        units.push(ProofExecutionUnit::formal_tool(workspace_root));
+    }
+    if ui_product_selected {
         units.extend(ui_doctest_execution_units(inventory, &request));
     }
     validate_owner_execution_locality(&request, &units)?;
     units.sort();
     units.dedup();
-    if units.is_empty() {
+    for unit in &mut units {
+        unit.bind_workspace(workspace_root, &request);
+    }
+    let ci_shard_plan = request
+        .shard()
+        .map(|(selected_shard, shard_count)| {
+            let partition = request.partition().unwrap_or("unpartitioned");
+            crate::ci::CiShardPlan::lower(partition, &units, shard_count, selected_shard)
+                .map_err(ProofProductUnavailable::RepositoryObservation)
+        })
+        .transpose()?;
+    if let Some(shard_plan) = &ci_shard_plan {
+        units.retain(|unit| shard_plan.includes(unit));
+    }
+    let structural_only = request.semantic_ci_partition()
+        == Some(crate::ci::CiProofPartitionKind::StructuralPreflight);
+    if units.is_empty() && !structural_only {
         return Err(ProofProductUnavailable::NoReachableProof {
             product: request.display_name(),
         });
@@ -90,57 +133,11 @@ pub fn select(
             &units,
         ),
         units,
+        ci_shard_plan,
         excluded_products(&selected_products),
         repository_identity::observe_repository_identity(workspace_root)?,
         structural_preflight,
     )
-}
-
-fn validate_selected_product_reachability(
-    inventory: &ValidatedProofInventory,
-    products: &BTreeSet<String>,
-) -> Result<(), ProofProductUnavailable> {
-    for product in products {
-        if product == "store-ci:feature-compatibility" {
-            continue;
-        }
-        if !inventory
-            .inventory()
-            .proofs
-            .iter()
-            .any(|proof| proof.products.contains(product))
-        {
-            return Err(ProofProductUnavailable::MissingRequiredProofProduct(
-                product.clone(),
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn feature_compatibility_units(inventory: &ValidatedProofInventory) -> Vec<ProofExecutionUnit> {
-    inventory
-        .inventory()
-        .discovered
-        .packages
-        .iter()
-        .filter(|package| package.name.starts_with("worth-store"))
-        .flat_map(|package| {
-            let production =
-                ProofExecutionUnit::feature_compatibility(package.name.clone(), Vec::new());
-            let named = package
-                .features
-                .iter()
-                .filter(|feature| *feature != "default")
-                .map(|feature| {
-                    ProofExecutionUnit::feature_compatibility(
-                        package.name.clone(),
-                        vec![feature.clone()],
-                    )
-                });
-            std::iter::once(production).chain(named).collect::<Vec<_>>()
-        })
-        .collect()
 }
 
 fn selected_case_targets(
@@ -195,7 +192,9 @@ fn execution_units(
         .iter()
         .filter(|target| selected.contains_key(&target.identity))
         .map(|target| {
-            if aggregates_entire_target(request) {
+            if aggregates_entire_target(request)
+                && !selected_cases_include_compiler_boundary(inventory, target, selected)
+            {
                 let process_model = suite_filters
                     .get(&target.identity)
                     .is_some_and(|scenarios| {
@@ -231,6 +230,37 @@ fn execution_units(
         })
         .collect::<Result<Vec<_>, _>>()
         .map(|units| units.into_iter().flatten().collect())
+}
+
+fn merge_selected_cases(destination: &mut SelectedCases, source: SelectedCases) {
+    for (target, responsibilities) in source {
+        for (responsibility, cases) in responsibilities {
+            destination
+                .entry(target.clone())
+                .or_default()
+                .entry(responsibility)
+                .or_default()
+                .extend(cases);
+        }
+    }
+}
+
+fn selected_cases_include_compiler_boundary(
+    inventory: &ValidatedProofInventory,
+    target: &TestTargetIdentity,
+    selected: &SelectedCases,
+) -> bool {
+    let selected_names: BTreeSet<_> = selected
+        .get(&target.identity)
+        .into_iter()
+        .flat_map(|responsibilities| responsibilities.values())
+        .flatten()
+        .collect();
+    inventory.inventory().proofs.iter().any(|proof| {
+        proof.case.target_identity.as_deref() == Some(target.identity.as_str())
+            && selected_names.contains(&proof.case.identity.case_name)
+            && proof.case.compiler_boundary_harness.is_some()
+    })
 }
 
 fn aggregates_entire_target(request: &StoreProofRequest) -> bool {
@@ -302,31 +332,6 @@ fn process_model_for_case(
     } else {
         ProofProcessModel::LibtestProcess
     }
-}
-
-fn excluded_products(included: &BTreeSet<String>) -> BTreeMap<String, String> {
-    let all = [
-        "store-owner",
-        "store-smoke",
-        "store-ui",
-        "store-ci",
-        "store-soak",
-        "store-release",
-        "store-hardware",
-    ];
-    all.into_iter()
-        .filter(|product| {
-            !included
-                .iter()
-                .any(|included| included.starts_with(product))
-        })
-        .map(|product| {
-            (
-                product.to_owned(),
-                "outside the explicitly requested proof product".to_owned(),
-            )
-        })
-        .collect()
 }
 
 #[cfg(test)]

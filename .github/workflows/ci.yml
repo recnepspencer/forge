@@ -143,65 +143,125 @@ jobs:
       - name: Run miri on worth-math
         run: cargo +nightly miri test -p worth-math
 
-  worth-store-production:
-    name: WORTH Store Production (${{ matrix.os }})
+  worth-store-proof:
+    name: WORTH Store ${{ matrix.partition }} (${{ matrix.os }}, shard ${{ matrix.shard_index }}/${{ matrix.shard_count }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - { os: ubuntu-latest, partition: owner-unit, shard_index: 0, shard_count: 0 }
+          - { os: ubuntu-latest, partition: scenario-certification, shard_index: 0, shard_count: 2 }
+          - { os: ubuntu-latest, partition: scenario-certification, shard_index: 1, shard_count: 2 }
+          - { os: windows-latest, partition: scenario-certification, shard_index: 0, shard_count: 2 }
+          - { os: windows-latest, partition: scenario-certification, shard_index: 1, shard_count: 2 }
+          - { os: ubuntu-latest, partition: ui-dependency, shard_index: 0, shard_count: 0 }
+          - { os: windows-latest, partition: ui-dependency, shard_index: 0, shard_count: 0 }
+          - { os: ubuntu-latest, partition: fresh-process, shard_index: 0, shard_count: 0 }
+          - { os: windows-latest, partition: fresh-process, shard_index: 0, shard_count: 0 }
+          - { os: ubuntu-latest, partition: structural-preflight, shard_index: 0, shard_count: 0 }
+          - { os: ubuntu-latest, partition: formal-external, shard_index: 0, shard_count: 0 }
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
 
-      - name: Cache WORTH Store build
+      - name: Record resolved Rust toolchain identity
+        shell: pwsh
+        run: rustc -Vv | Set-Content -NoNewline .ci-rustc-identity
+
+      - name: Cache WORTH Store registry
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-worth-store-registry-${{ hashFiles('workspaces/worth-store/Cargo.lock') }}
+          key: >-
+            ${{ runner.os }}-${{ runner.arch }}-worth-store-${{ matrix.partition }}-ci-test-
+            features-${{ hashFiles('workspaces/worth-store/test-control/feature-semantic-authority.json', 'workspaces/worth-store/**/Cargo.toml') }}-
+            toolchain-${{ hashFiles('.ci-rustc-identity') }}-
+            config-${{ hashFiles('workspaces/worth-store/.cargo/config.toml', 'workspaces/worth-store/Cargo.toml') }}-
+            lock-${{ hashFiles('workspaces/worth-store/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-worth-store-registry-
+            ${{ runner.os }}-${{ runner.arch }}-worth-store-${{ matrix.partition }}-ci-test-
 
-      - name: Execute WORTH Store CI proof product
+      - name: Install pinned TLC runtime
+        if: matrix.partition == 'formal-external'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Execute unsharded proof partition
+        if: matrix.shard_count == 0
         working-directory: workspaces/worth-store
-        run: cargo store-ci
+        run: cargo store-ci --partition ${{ matrix.partition }}
 
-      - name: Run WORTH Store Phase 6 release-scale backup lane
-        if: runner.os == 'Linux' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      - name: Execute proof partition shard
+        if: matrix.shard_count > 0
+        working-directory: workspaces/worth-store
+        run: >-
+          cargo store-ci --partition ${{ matrix.partition }}
+          --shard-index ${{ matrix.shard_index }} --shard-count ${{ matrix.shard_count }}
+
+      - name: Run release-scale backup lane
+        if: matrix.partition == 'owner-unit' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         run: >-
           cargo test --manifest-path workspaces/worth-store/Cargo.toml
           -p worth-store-operations --lib
           phase_1_6_tests::release_scale_backup::two_gib_owner_bundle_stays_bounded_through_materialization_and_independent_verification
           -- --ignored --exact --nocapture --test-threads=1
 
-      - name: Clippy WORTH Store workspace
-        run: cargo clippy --manifest-path workspaces/worth-store/Cargo.toml --workspace --all-targets --all-features -- -D warnings
-
-      - name: Install pinned TLC runtime
-        if: runner.os == 'Linux'
-        uses: actions/setup-java@v4
+      - name: Upload source-bound partition evidence
+        uses: actions/upload-artifact@v4
         with:
-          distribution: temurin
-          java-version: '21'
+          name: worth-store-proof-${{ runner.os }}-${{ matrix.partition }}-${{ matrix.shard_index }}
+          path: workspaces/worth-store/.store-proof/evidence/ci/partitions
+          if-no-files-found: error
 
-      - name: Verify production protocol models and controlled mutants
-        if: runner.os == 'Linux'
-        run: bash scripts/ci/verify_worth_store_formal_toolchain.sh
+  worth-store-lint:
+    name: WORTH Store lint (${{ matrix.responsibility }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { responsibility: test-control, packages: '-p store-proof-control -p worth-store-test-support --all-targets' }
+          - { responsibility: certification, packages: '-p worth-store-certification -p worth-store-formal-models --all-targets' }
+          - { responsibility: process-probes, packages: '-p worth-store-physical-certification --all-targets' }
+          - { responsibility: production-owners, packages: '--workspace --lib --bins' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Lint responsibility targets
+        working-directory: workspaces/worth-store
+        run: cargo clippy ${{ matrix.packages }} -- -D warnings
 
-      - name: Verify Road 1 boundary contract
-        if: runner.os == 'Linux'
-        run: cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .
-
-      - name: Verify generated agent context
-        if: runner.os == 'Linux'
-        run: cargo run --manifest-path tools/agent-context/Cargo.toml -- check
+  worth-store-certification-aggregate:
+    name: WORTH Store source-bound certification aggregate
+    runs-on: ubuntu-latest
+    needs: worth-store-proof
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: worth-store-proof-*
+          path: .store-ci-evidence
+          merge-multiple: true
+      - name: Aggregate required proof lanes
+        working-directory: workspaces/worth-store
+        run: cargo run -p store-proof-control -- ci-aggregate --evidence-root ../../.store-ci-evidence
+      - name: Upload certification aggregate
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-store-certification-aggregate
+          path: workspaces/worth-store/.store-proof/evidence/ci/aggregates
+          if-no-files-found: error
 
   signal-perf:
     name: Signal Performance Lane

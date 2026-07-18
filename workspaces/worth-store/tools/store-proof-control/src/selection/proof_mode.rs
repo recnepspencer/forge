@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
-use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use super::proof_unavailable::ProofProductUnavailable;
 use crate::ValidatedProofInventory;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -26,6 +26,8 @@ pub struct StoreProofRequest {
     scenario_identity: Option<String>,
     seed: Option<u64>,
     backend: Option<String>,
+    shard_index: Option<usize>,
+    shard_count: Option<usize>,
     plan_only: bool,
 }
 
@@ -46,6 +48,8 @@ impl StoreProofRequest {
             scenario_identity,
             seed: None,
             backend: None,
+            shard_index: None,
+            shard_count: None,
             plan_only,
         }
     }
@@ -57,6 +61,12 @@ impl StoreProofRequest {
 
     pub fn with_backend(mut self, backend: Option<String>) -> Self {
         self.backend = backend;
+        self
+    }
+
+    pub fn with_shard(mut self, shard_index: Option<usize>, shard_count: Option<usize>) -> Self {
+        self.shard_index = shard_index;
+        self.shard_count = shard_count;
         self
     }
 
@@ -90,6 +100,20 @@ impl StoreProofRequest {
 
     pub fn backend(&self) -> Option<&str> {
         self.backend.as_deref()
+    }
+
+    pub const fn shard(&self) -> Option<(usize, usize)> {
+        match (self.shard_index, self.shard_count) {
+            (Some(index), Some(count)) => Some((index, count)),
+            _ => None,
+        }
+    }
+
+    pub fn semantic_ci_partition(&self) -> Option<crate::ci::CiProofPartitionKind> {
+        (self.mode == StoreProofMode::Ci)
+            .then(|| self.partition.as_deref())
+            .flatten()
+            .and_then(crate::ci::CiProofPartitionKind::parse)
     }
 
     pub fn display_name(&self) -> String {
@@ -140,7 +164,13 @@ impl StoreProofRequest {
             }
             StoreProofMode::Ci => {
                 if let Some(partition) = &self.partition {
-                    products.insert(format!("store-ci:{partition}"));
+                    if let Some(partition_products) =
+                        crate::ci::partition_products(partition, inventory)
+                    {
+                        products.extend(partition_products);
+                    } else {
+                        products.insert(format!("store-ci:{partition}"));
+                    }
                 } else {
                     products.extend(ci_products(inventory));
                 }
@@ -225,6 +255,28 @@ impl StoreProofRequest {
                 option: "--profile".to_owned(),
             });
         }
+        match (self.shard_index, self.shard_count) {
+            (None, None) => {}
+            (Some(index), Some(count))
+                if self.mode == StoreProofMode::Ci
+                    && self.semantic_ci_partition().is_some_and(|partition| {
+                        partition != crate::ci::CiProofPartitionKind::StructuralPreflight
+                    })
+                    && count > 0
+                    && index < count => {}
+            (Some(_), Some(_)) => {
+                return Err(ProofProductUnavailable::UnsupportedRequestOption {
+                    product: self.display_name(),
+                    option: "invalid --shard-index/--shard-count selection".to_owned(),
+                })
+            }
+            _ => {
+                return Err(ProofProductUnavailable::UnsupportedRequestOption {
+                    product: self.display_name(),
+                    option: "--shard-index and --shard-count must be provided together".to_owned(),
+                })
+            }
+        }
         Ok(())
     }
 }
@@ -279,6 +331,7 @@ fn ci_products(inventory: &ValidatedProofInventory) -> BTreeSet<String> {
         .cloned()
         .collect();
     products.insert("store-ci:feature-compatibility".to_owned());
+    products.insert("store-ui".to_owned());
     products.extend(REQUIRED_CORE_CI_PRODUCTS.map(str::to_owned));
     products
 }
@@ -295,102 +348,3 @@ const REQUIRED_CORE_CI_PRODUCTS: [&str; 10] = [
     "store-ci:formal-conformance",
     "store-ci:test-control",
 ];
-
-#[derive(Debug)]
-pub enum ProofProductUnavailable {
-    ExplicitOwnerRequired,
-    UnknownOwner(String),
-    OwnerBoundaryViolation {
-        owner: String,
-        reached_target: String,
-    },
-    NamedProfileRequired(String),
-    ExplicitSeedRequired(String),
-    NamedBackendRequired(String),
-    UnknownBackend {
-        product: String,
-        backend: String,
-    },
-    UnsupportedRequestOption {
-        product: String,
-        option: String,
-    },
-    UnknownProofProfile {
-        product: String,
-        profile: String,
-    },
-    MissingRequiredProofProduct(String),
-    ScenarioTopology(String),
-    UnsupportedHost {
-        product: String,
-        required: String,
-        actual: String,
-    },
-    NoReachableProof {
-        product: String,
-    },
-    RepositoryObservation(String),
-}
-
-impl fmt::Display for ProofProductUnavailable {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ExplicitOwnerRequired => write!(formatter, "store-owner requires -p <package>"),
-            Self::UnknownOwner(owner) => write!(formatter, "unknown owner package: {owner}"),
-            Self::OwnerBoundaryViolation {
-                owner,
-                reached_target,
-            } => write!(
-                formatter,
-                "store-owner:{owner} reached non-owner target {reached_target}"
-            ),
-            Self::NamedProfileRequired(product) => {
-                write!(formatter, "{product} requires --profile <proof-profile>")
-            }
-            Self::ExplicitSeedRequired(product) => {
-                write!(formatter, "{product} requires --seed <u64>")
-            }
-            Self::NamedBackendRequired(product) => {
-                write!(formatter, "{product} requires --backend <backend-profile>")
-            }
-            Self::UnknownBackend { product, backend } => {
-                write!(
-                    formatter,
-                    "{product} does not recognize backend {backend:?}"
-                )
-            }
-            Self::UnsupportedRequestOption { product, option } => {
-                write!(formatter, "{product} does not admit option {option}")
-            }
-            Self::UnknownProofProfile { product, profile } => {
-                write!(
-                    formatter,
-                    "{product} does not recognize proof profile {profile:?}"
-                )
-            }
-            Self::MissingRequiredProofProduct(product) => {
-                write!(
-                    formatter,
-                    "required proof product has no reachable proof: {product}"
-                )
-            }
-            Self::ScenarioTopology(reason) => {
-                write!(formatter, "scenario topology is invalid: {reason}")
-            }
-            Self::UnsupportedHost {
-                product,
-                required,
-                actual,
-            } => write!(
-                formatter,
-                "{product} requires {required}; current host is {actual}"
-            ),
-            Self::NoReachableProof { product } => {
-                write!(formatter, "{product} selects no reachable proof")
-            }
-            Self::RepositoryObservation(reason) => formatter.write_str(reason),
-        }
-    }
-}
-
-impl std::error::Error for ProofProductUnavailable {}
