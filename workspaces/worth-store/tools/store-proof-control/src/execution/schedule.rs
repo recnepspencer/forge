@@ -181,6 +181,7 @@ mod tests {
                 architecture: "test".to_owned(),
             },
             StructuralPreflightReference::synthetic_for_selection(root),
+            None,
         )
         .unwrap()
     }

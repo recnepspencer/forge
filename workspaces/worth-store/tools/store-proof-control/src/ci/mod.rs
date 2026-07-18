@@ -1,4 +1,5 @@
 mod aggregate;
+mod aggregate_validation;
 mod cache_identity;
 mod compilation;
 mod evidence_reader;

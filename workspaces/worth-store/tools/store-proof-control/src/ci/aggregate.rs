@@ -240,6 +240,24 @@ impl CiCertificationAggregate {
         if !invalid.is_empty() {
             return Err(invalid);
         }
+        let observed_lanes: BTreeSet<_> = evidence
+            .iter()
+            .map(|bundle| RequiredCiLane {
+                partition: bundle.partition.clone(),
+                operating_system: bundle.operating_system.clone(),
+            })
+            .collect();
+        let absent: Vec<_> = required_lanes
+            .difference(&observed_lanes)
+            .map(|lane| MissingCiProofPartition {
+                partition: lane.partition.clone(),
+                operating_system: lane.operating_system.clone(),
+                reason: "required lane has no evidence".to_owned(),
+            })
+            .collect();
+        if !absent.is_empty() {
+            return Err(absent);
+        }
         let source_identities: BTreeSet<_> = evidence
             .iter()
             .map(|bundle| bundle.source_identity.as_str())

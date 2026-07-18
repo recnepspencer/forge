@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::discovery::TestTargetIdentity;
 use crate::evidence::sha256_serialized;
 
+use super::cache_posture::cache_posture;
 use super::execution_contract::timeout_millis;
 use super::proof_mode::{StoreProofMode, StoreProofRequest};
 use super::repository_identity::RepositoryIdentity;
@@ -185,7 +186,12 @@ impl ProofExecutionUnit {
     }
 
     pub(crate) fn bind_workspace(&mut self, workspace_root: &Path, request: &StoreProofRequest) {
-        self.resources.bind_target_root(workspace_root);
+        if let Some(target_root) = request.target_root() {
+            self.resources
+                .bind_explicit_target_root(Path::new(target_root));
+        } else {
+            self.resources.bind_target_root(workspace_root);
+        }
         if let Some(seed) = request.seed() {
             self.resources
                 .environment
@@ -272,6 +278,7 @@ pub struct SelectedProofExecutionPlan {
     pub evidence_destination: String,
     pub closeout_posture: String,
     pub structural_preflight: StructuralPreflightReference,
+    pub source_edit: Option<super::ObservedSourceEditIdentity>,
 }
 
 #[derive(Serialize)]
@@ -284,6 +291,7 @@ struct PlanDigestBasis<'a> {
     maximum_concurrency: usize,
     failure_policy: ProofFailurePolicy,
     structural_preflight: &'a StructuralPreflightReference,
+    source_edit: &'a Option<super::ObservedSourceEditIdentity>,
 }
 
 impl SelectedProofExecutionPlan {
@@ -296,6 +304,7 @@ impl SelectedProofExecutionPlan {
         excluded_products: BTreeMap<String, String>,
         repository: RepositoryIdentity,
         structural_preflight: StructuralPreflightReference,
+        source_edit: Option<super::ObservedSourceEditIdentity>,
     ) -> Result<Self, ProofProductUnavailable> {
         let maximum_concurrency = declared_concurrency();
         let failure_policy = ProofFailurePolicy::for_mode(request.mode());
@@ -308,6 +317,7 @@ impl SelectedProofExecutionPlan {
             maximum_concurrency,
             failure_policy,
             structural_preflight: &structural_preflight,
+            source_edit: &source_edit,
         })
         .map_err(ProofProductUnavailable::RepositoryObservation)?;
         let destination = workspace_root
@@ -331,6 +341,7 @@ impl SelectedProofExecutionPlan {
             closeout_posture: "product-evidence-only; C.1 closeout is unavailable before phase 13"
                 .to_owned(),
             structural_preflight,
+            source_edit,
         })
     }
 }
@@ -372,25 +383,5 @@ impl StructuralPreflightReference {
             profile: "SelectionTest".to_owned(),
             predicates: vec!["Inventory".to_owned()],
         }
-    }
-}
-
-fn cache_posture(units: &[ProofExecutionUnit]) -> String {
-    let profiles: std::collections::BTreeSet<_> =
-        units.iter().map(|unit| unit.build_profile).collect();
-    if profiles == std::collections::BTreeSet::from([StoreBuildProfileIdentity::LocalTest]) {
-        "local-test; incremental=true; clean-or-warm target root admitted".to_owned()
-    } else if profiles == std::collections::BTreeSet::from([StoreBuildProfileIdentity::CiTest]) {
-        "ci-test; incremental=false; evidence validity is independent of local incremental state"
-            .to_owned()
-    } else {
-        format!(
-            "mixed declared profiles [{}]; cache identity is profile-bound",
-            profiles
-                .iter()
-                .map(|profile| profile.cargo_profile())
-                .collect::<Vec<_>>()
-                .join(",")
-        )
     }
 }

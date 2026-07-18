@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "test_topology_digest": "cfc4af09e7daf171c1b6da34fc75afb0158c41158f8dc4b4b332be4994e6032f",
+  "test_topology_digest": "e24e22b02b7a12e1900c86b8951bff9693e04dfb73a6ec9cb4eccbbc13198b6e",
   "environment": {
     "rustc_identity": "rustc 1.94.0 (4a4ef493e 2026-03-02)\nbinary: rustc\ncommit-hash: 4a4ef493e3a1488c6e321570238084b38948f6db\ncommit-date: 2026-03-02\nhost: x86_64-pc-windows-msvc\nrelease: 1.94.0\nLLVM version: 21.1.8",
     "cargo_identity": "cargo 1.94.0 (85eff7c80 2026-01-15)\nrelease: 1.94.0\ncommit-hash: 85eff7c80277b57f78b11e28d14154ab12fcf643\ncommit-date: 2026-01-15\nhost: x86_64-pc-windows-msvc\nlibgit2: 1.9.2 (sys:0.20.3 vendored)\nlibcurl: 8.17.0-DEV (sys:0.4.84+curl-8.17.0 vendored ssl:Schannel)\nos: Windows 10.0.26200 (Windows 11 Core) [64-bit]",
@@ -15,21 +15,34 @@
     {
       "target_identity": "store-proof-control::lib::store_proof_control",
       "listed_cases": [
+        "artifact_lifecycle::tests::cleanup_denies_filesystem_drift_before_mutating_any_planned_target",
+        "artifact_lifecycle::tests::cleanup_executes_exactly_the_dry_run_and_preserves_evidence",
+        "artifact_lifecycle::tests::planning_denies_path_traversal_and_inventory_denies_symlink_escape",
+        "artifact_lifecycle::tests::repeated_warm_edit_residue_stays_bounded_by_the_retention_contract",
         "ci::partition::tests::required_matrix_keeps_windows_for_physical_and_compiler_claims",
         "ci::shard::tests::invalid_shard_coordinates_deny_before_assignment",
         "classification::scenario_suite::source_identity::tests::source_identity_does_not_embed_checkout_location",
+        "cli::arguments::tests::artifact_lifecycle_commands_require_explicit_stage_inputs",
+        "cli::arguments::tests::closeout_stages_and_iteration_target_roots_are_explicit",
         "cli::arguments::tests::documented_seed_and_backend_options_are_plan_bound",
         "cli::arguments::tests::malformed_seed_is_rejected_before_selection",
+        "closeout::tests::developer_envelope_rejects_fake_speed_and_same_process_crash",
+        "closeout::tests::mutation_report_requires_every_named_defect_and_unrelated_control",
+        "closeout::tests::retrospective_policy_preserves_missing_history_as_c2_quarantine",
+        "closeout::tests::source_edit_must_change_and_restore_real_content_identity",
         "discovery::cargo_diagnostics::tests::cargo_json_failures_preserve_rendered_diagnostics",
         "discovery::source_tests::doctest_parser::tests::content_identity_is_stable_when_surrounding_lines_move",
         "discovery::source_tests::doctest_parser::tests::included_markdown_uses_rustdoc_concatenated_line_coordinates",
         "discovery::source_tests::doctest_parser::tests::ordinary_rust_fences_are_executable_proof_cases",
         "execution::attempt::tests::retry_success_remains_flaky_instead_of_green",
+        "execution::cargo_artifact::tests::compiler_artifact_identity_retains_profile_features_and_reuse_status",
+        "execution::cargo_artifact::tests::malformed_compiler_artifact_cannot_disappear_as_console_noise",
         "execution::command_attempt_tests::admitted_retry_cannot_turn_fail_then_pass_green",
         "execution::command_attempt_tests::failed_and_successful_units_retain_independent_attempt_receipts",
         "execution::command_attempt_tests::failed_dependency_skips_only_its_dependents",
         "execution::command_attempt_tests::failed_unit_does_not_erase_independent_success_or_run_evidence",
         "execution::command_attempt_tests::timeout_terminates_the_process_tree_and_retains_the_attempt",
+        "execution::formal_evidence_tests::formal_receipt_must_match_schema_toolchain_digest_and_protocol_inventory",
         "execution::process_evidence::tests::controller_rejects_incoherent_process_contract_projections",
         "execution::schedule::tests::malformed_dependency_graph_denies_before_execution",
         "execution::schedule::tests::schedule_is_deterministic_and_parallel_only_for_disjoint_resources",
@@ -51,8 +64,11 @@
         "tests::boundary_policy::feature_leaks_and_support_radius_mutants_are_denied",
         "tests::cache_identity::profile_and_feature_lanes_change_cache_identity",
         "tests::ci_partitioning::aggregate_denies_a_missing_windows_claim_and_retains_rerun_history",
+        "tests::ci_partitioning::aggregate_denies_unexplained_equivalent_compilation_across_partitions",
         "tests::ci_partitioning::cache_identity_rejects_toolchain_feature_and_profile_poisoning",
         "tests::ci_partitioning::every_ci_certifiable_product_has_one_partition_authority",
+        "tests::ci_partitioning::formal_and_structural_lanes_cannot_forge_their_specialized_evidence",
+        "tests::ci_selection::formal_tool_partition_admits_only_its_declared_linux_host",
         "tests::ci_selection::shard_plans_are_disjoint_complete_and_share_one_topology_identity",
         "tests::ci_selection::structural_preflight_partition_is_an_explicit_zero_behavior_unit_product",
         "tests::ci_selection::ui_partition_uses_only_standardized_harnesses_and_rustdoc_units",
@@ -2842,7 +2858,10 @@
   "rustdoc_targets": [
     {
       "target_identity": "store-proof-control::doc::store_proof_control",
-      "listed_cases": []
+      "listed_cases": [
+        "tools\\store-proof-control\\src\\closeout\\c2_readiness.rs - closeout::c2_readiness::C2TestArchitectureReadiness (line 14)",
+        "tools\\store-proof-control\\src\\closeout\\c2_readiness.rs - closeout::c2_readiness::C2TestArchitectureReadiness (line 21)"
+      ]
     },
     {
       "target_identity": "worth-store-analysis::doc::worth_store_analysis",

@@ -1205,6 +1205,30 @@ remaining physical claim.
   different machines can interpret the result honestly.
 - Residual fake physical claims are handed to C.2 as quarantined audit inputs.
 
+**Retrospective historical-evidence decision**
+
+- This reconstruction did not capture an exact pre-C.1 libtest/rustdoc listing,
+  pre-C.1 cold/warm process observations, or pre-consolidation same-seed
+  scenario transcripts before the relevant source topology changed. Git
+  history also contains S.10 hardening and C.1 consolidation in one commit, so
+  no historical revision represents the missing intermediate state.
+- C.1 must never claim exact pre-C.1 proof cardinality, a measured pre/post
+  speedup, or same-seed pre-consolidation behavioral parity. Those claims are
+  permanently unavailable rather than reconstructed from current runs.
+- The one admitted retrospective policy is
+  `test-control/c1-historical-evidence-policy.json`. It quarantines the unknown
+  historical executable universe and behavioral-parity claim for C.2, then
+  requires exact current executable reverse parity, current full-body behavior
+  seals, reachability for every identity and predicate in the frozen known
+  baseline, the complete controlled-defect matrix, and the clean/warm five-case
+  iteration envelope.
+- The full-preservation predicate therefore means every row in the frozen
+  known baseline is preserved, replaced, or explicitly quarantined. It does
+  not convert the known-incomplete source-derived baseline into an assertion
+  about tests that were never captured.
+- This exception is specific to the already-lost C.1 history. Future milestone
+  cleanup may not cite it to skip a contemporaneous baseline.
+
 **Open questions**
 
 - None.

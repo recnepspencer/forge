@@ -66,10 +66,11 @@ impl ProofExecutionResources {
     }
 
     pub(crate) fn bind_target_root(&mut self, workspace_root: &Path) {
-        self.target_root = workspace_root
-            .join("target")
-            .to_string_lossy()
-            .replace('\\', "/");
+        self.bind_explicit_target_root(&workspace_root.join("target"));
+    }
+
+    pub(crate) fn bind_explicit_target_root(&mut self, target_root: &Path) {
+        self.target_root = target_root.to_string_lossy().replace('\\', "/");
     }
 
     pub fn conflicts_with(&self, other: &Self) -> bool {

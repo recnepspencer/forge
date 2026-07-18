@@ -17,6 +17,7 @@ mod version_probe;
 
 use std::path::{Path, PathBuf};
 
+pub(crate) use freshness::compare_to_plan;
 pub use freshness::require_fresh;
 pub use worth_store_test_support::structural_preflight::{
     PreflightEvidenceFreshness, PreflightEvidenceIdentity, StructuralPredicate,

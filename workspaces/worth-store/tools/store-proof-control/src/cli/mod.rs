@@ -1,7 +1,9 @@
 mod arguments;
 mod artifact_commands;
+mod closeout_commands;
 mod presentation;
 mod repository_validation;
+mod stage_arguments;
 
 use std::path::{Path, PathBuf};
 
@@ -48,6 +50,9 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
         CliCommand::CiAggregate { evidence_root } => {
             aggregate_ci_evidence(&workspace_root, Path::new(&evidence_root))
         }
+        CliCommand::ArtifactPrepareRoot { target_root } => {
+            artifact_commands::prepare_artifact_root(&workspace_root, Path::new(&target_root))
+        }
         CliCommand::ArtifactInspect {
             target_root,
             protected_run,
@@ -62,6 +67,14 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
         } => artifact_commands::plan_artifact_cleanup(Path::new(&inventory_path), &policy),
         CliCommand::ArtifactExecute { plan_path } => {
             artifact_commands::execute_artifact_cleanup(Path::new(&plan_path))
+        }
+        CliCommand::CloseoutPreservation => closeout_commands::preservation(&workspace_root),
+        CliCommand::CloseoutMutations => closeout_commands::mutations(&workspace_root),
+        CliCommand::CloseoutIteration { manifest_path } => {
+            closeout_commands::iteration(&workspace_root, Path::new(&manifest_path))
+        }
+        CliCommand::CloseoutAssemble { manifest_path } => {
+            closeout_commands::assemble(&workspace_root, Path::new(&manifest_path))
         }
         CliCommand::Proof {
             request,

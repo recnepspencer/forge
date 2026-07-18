@@ -5,6 +5,7 @@ mod authority_progression;
 pub mod ci;
 pub mod classification;
 pub mod cli;
+pub mod closeout;
 pub mod discovery;
 pub mod evidence;
 pub mod execution;

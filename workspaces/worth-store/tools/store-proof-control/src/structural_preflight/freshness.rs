@@ -89,3 +89,10 @@ pub(super) fn compare(
         Ok(PreflightEvidenceFreshness::Stale { failures })
     }
 }
+
+pub(crate) fn compare_to_plan(
+    evidence: &StructuralPreflightEvidence,
+    current: &StructuralPreflightPlan,
+) -> Result<PreflightEvidenceFreshness, String> {
+    compare(evidence, current)
+}

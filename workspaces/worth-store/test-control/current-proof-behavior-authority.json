@@ -2,6 +2,22 @@
   "schema_version": 1,
   "declarations": [
     {
+      "stable_case_id": "store-proof-control::src/artifact_lifecycle/tests/cleanup_denies_filesystem_drift_before_mutating_any_planned_target::tests::cleanup_denies_filesystem_drift_before_mutating_any_planned_target",
+      "behavior_fingerprint": "sha256:b3a966dd5bc2de8cb2f76d0f0a89001b97dd42b8d845f5b428223e05896d9f1e"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/artifact_lifecycle/tests/cleanup_executes_exactly_the_dry_run_and_preserves_evidence::tests::cleanup_executes_exactly_the_dry_run_and_preserves_evidence",
+      "behavior_fingerprint": "sha256:c8c9e0008bf13a2b276f6f3481da92a5b670ce3ff0092fb523d821a7b5dbe4f6"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/artifact_lifecycle/tests/planning_denies_path_traversal_and_inventory_denies_symlink_escape::tests::planning_denies_path_traversal_and_inventory_denies_symlink_escape",
+      "behavior_fingerprint": "sha256:e107c1436d25f808a94cb4ff0485acc9c56743e4b362d8e0219e0bd76eb09a77"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/artifact_lifecycle/tests/repeated_warm_edit_residue_stays_bounded_by_the_retention_contract::tests::repeated_warm_edit_residue_stays_bounded_by_the_retention_contract",
+      "behavior_fingerprint": "sha256:60b198fda5915ec37a092c4c2de92cabd0c947b141601b66cbb087bf01ed692c"
+    },
+    {
       "stable_case_id": "store-proof-control::src/ci/partition/required_matrix_keeps_windows_for_physical_and_compiler_claims::partition::required_matrix_keeps_windows_for_physical_and_compiler_claims",
       "behavior_fingerprint": "sha256:5a5b1665a443c5050a721988c927d04603163c44e41eeee1d3035a342e8c0b4e"
     },
@@ -14,12 +30,44 @@
       "behavior_fingerprint": "sha256:c03abace352489cdd1f23646617ca45b05e1467b4b919b8d342305d30df208c7"
     },
     {
+      "stable_case_id": "store-proof-control::src/cli/arguments/artifact_lifecycle_commands_require_explicit_stage_inputs::arguments::artifact_lifecycle_commands_require_explicit_stage_inputs",
+      "behavior_fingerprint": "sha256:74576a9a517cbe65f112ec07040d4e02f04af1fab4f2ec175eff8333b947c161"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/cli/arguments/closeout_stages_and_iteration_target_roots_are_explicit::arguments::closeout_stages_and_iteration_target_roots_are_explicit",
+      "behavior_fingerprint": "sha256:bf80476ba5b49e00712576ed3aaa6a2a504e574b726bf38d72f591f9d5c99fae"
+    },
+    {
       "stable_case_id": "store-proof-control::src/cli/arguments/documented_seed_and_backend_options_are_plan_bound::arguments::documented_seed_and_backend_options_are_plan_bound",
       "behavior_fingerprint": "sha256:f34129fc673ef3fe6774755654ec15d78f8608452d3dbfd658c94ab797de68d1"
     },
     {
       "stable_case_id": "store-proof-control::src/cli/arguments/malformed_seed_is_rejected_before_selection::arguments::malformed_seed_is_rejected_before_selection",
       "behavior_fingerprint": "sha256:6899f4c814f71ad05152b8d11d00345a6b3a342b71bd7d5832317271cc7a6b0e"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/closeout/c2_readiness/doctest_compile_fail_763e970f23168bbb_1::c2_readiness::doctest_compile_fail_763e970f23168bbb_1",
+      "behavior_fingerprint": "doctest_compile_fail_763e970f23168bbb_1"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/closeout/c2_readiness/doctest_compile_fail_93b1bab67d98261a_1::c2_readiness::doctest_compile_fail_93b1bab67d98261a_1",
+      "behavior_fingerprint": "doctest_compile_fail_93b1bab67d98261a_1"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/closeout/tests/developer_envelope_rejects_fake_speed_and_same_process_crash::tests::developer_envelope_rejects_fake_speed_and_same_process_crash",
+      "behavior_fingerprint": "sha256:3c08e30f3eb064d269d20319044ea58fc7b440582db885da2a24dbc8ebb96cfa"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/closeout/tests/mutation_report_requires_every_named_defect_and_unrelated_control::tests::mutation_report_requires_every_named_defect_and_unrelated_control",
+      "behavior_fingerprint": "sha256:84c0650ef8bd524f9c71239e9acb15009229b72bed79af8a10b758d1c1a9706a"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/closeout/tests/retrospective_policy_preserves_missing_history_as_c2_quarantine::tests::retrospective_policy_preserves_missing_history_as_c2_quarantine",
+      "behavior_fingerprint": "sha256:cb988be7974256feb1bd4c4cf9e14a0ac54999daa9a401007f3195ea4c1ba809"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/closeout/tests/source_edit_must_change_and_restore_real_content_identity::tests::source_edit_must_change_and_restore_real_content_identity",
+      "behavior_fingerprint": "sha256:496096dde9cc4fae969bd77eec18ce9cd8be93382f298057fe76bae52896c686"
     },
     {
       "stable_case_id": "store-proof-control::src/discovery/cargo_diagnostics/cargo_json_failures_preserve_rendered_diagnostics::cargo_diagnostics::cargo_json_failures_preserve_rendered_diagnostics",
@@ -42,6 +90,14 @@
       "behavior_fingerprint": "sha256:829e16c9a5b98a697a4f245b89d167d4588cf8ed1fc51aa572cac43df148d156"
     },
     {
+      "stable_case_id": "store-proof-control::src/execution/cargo_artifact/compiler_artifact_identity_retains_profile_features_and_reuse_status::cargo_artifact::compiler_artifact_identity_retains_profile_features_and_reuse_status",
+      "behavior_fingerprint": "sha256:ecb93b838fa7ab61a1ef4609016a7aab39ecb51410d1f4ed66213035cbb62974"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/cargo_artifact/malformed_compiler_artifact_cannot_disappear_as_console_noise::cargo_artifact::malformed_compiler_artifact_cannot_disappear_as_console_noise",
+      "behavior_fingerprint": "sha256:26d301edbf4ceaa16771469dcbfa3262034a71a07770c811d77af9a8e06d1218"
+    },
+    {
       "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/admitted_retry_cannot_turn_fail_then_pass_green::command_attempt_tests::admitted_retry_cannot_turn_fail_then_pass_green",
       "behavior_fingerprint": "sha256:7ffbd59c3bfb213f10e91913d6e79eb1b87f13e2ff0417ac3bff3e941899c39c"
     },
@@ -60,6 +116,10 @@
     {
       "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/timeout_terminates_the_process_tree_and_retains_the_attempt::command_attempt_tests::timeout_terminates_the_process_tree_and_retains_the_attempt",
       "behavior_fingerprint": "sha256:cecb9a0779bd0ab09ba96ffd9d83afeeda694c085d3eb6c76a289679442d7297"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/execution/formal_evidence_tests/formal_receipt_must_match_schema_toolchain_digest_and_protocol_inventory::formal_evidence_tests::formal_receipt_must_match_schema_toolchain_digest_and_protocol_inventory",
+      "behavior_fingerprint": "sha256:056e9e1542437e8fc967a5f5f22767513c6451e8b95a296df53b5127ae1f4c22"
     },
     {
       "stable_case_id": "store-proof-control::src/execution/mod/green_preflight_cannot_substitute_for_a_failed_behavioral_unit::mod::green_preflight_cannot_substitute_for_a_failed_behavioral_unit",
@@ -146,12 +206,24 @@
       "behavior_fingerprint": "sha256:dd6ecc4750db5bc714bcd38ed8e1660af49d9ad6db98723a234fbade9d0e84ed"
     },
     {
+      "stable_case_id": "store-proof-control::src/tests/ci_partitioning/aggregate_denies_unexplained_equivalent_compilation_across_partitions::ci_partitioning::aggregate_denies_unexplained_equivalent_compilation_across_partitions",
+      "behavior_fingerprint": "sha256:b52320ffe492ed597e18004250676b764c661ba113c50280ada1b92ad13bb93b"
+    },
+    {
       "stable_case_id": "store-proof-control::src/tests/ci_partitioning/cache_identity_rejects_toolchain_feature_and_profile_poisoning::ci_partitioning::cache_identity_rejects_toolchain_feature_and_profile_poisoning",
       "behavior_fingerprint": "sha256:50b0272d3d1a8426576d6c7747c7fe396049f7f7259124e23f368558dd1247f2"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/ci_partitioning/every_ci_certifiable_product_has_one_partition_authority::ci_partitioning::every_ci_certifiable_product_has_one_partition_authority",
       "behavior_fingerprint": "sha256:447cc5312927780b899fe8f718ed06447103cec2a2dad549adabc2705c171614"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_partitioning/formal_and_structural_lanes_cannot_forge_their_specialized_evidence::ci_partitioning::formal_and_structural_lanes_cannot_forge_their_specialized_evidence",
+      "behavior_fingerprint": "sha256:89723c5f8d0fd8e32a7400e67f1ea36524711c17e6d23649c3a0f96b971b1344"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/tests/ci_selection/formal_tool_partition_admits_only_its_declared_linux_host::ci_selection::formal_tool_partition_admits_only_its_declared_linux_host",
+      "behavior_fingerprint": "sha256:2b64bdcbe78623f2c05875fb1046eda90d556f2d637c05ef1c941205ad0bd627"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/ci_selection/shard_plans_are_disjoint_complete_and_share_one_topology_identity::ci_selection::shard_plans_are_disjoint_complete_and_share_one_topology_identity",

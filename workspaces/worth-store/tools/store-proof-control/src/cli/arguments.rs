@@ -1,4 +1,5 @@
-use crate::selection::{StoreProofMode, StoreProofRequest};
+use super::stage_arguments::{parse_artifacts, parse_closeout};
+use crate::selection::{RequestedSourceEdit, StoreProofMode, StoreProofRequest};
 
 pub enum CliCommand {
     Baseline {
@@ -19,12 +20,23 @@ pub enum CliCommand {
         target_root: String,
         protected_run: Option<String>,
     },
+    ArtifactPrepareRoot {
+        target_root: String,
+    },
     ArtifactPlan {
         inventory_path: String,
         policy: String,
     },
     ArtifactExecute {
         plan_path: String,
+    },
+    CloseoutPreservation,
+    CloseoutMutations,
+    CloseoutIteration {
+        manifest_path: String,
+    },
+    CloseoutAssemble {
+        manifest_path: String,
     },
     Proof {
         request: StoreProofRequest,
@@ -94,7 +106,10 @@ impl ParsedArguments {
             });
         }
         if command == "artifacts" {
-            return parse_artifact_command(arguments.collect());
+            return parse_artifacts(arguments.collect());
+        }
+        if command == "closeout" {
+            return parse_closeout(arguments.collect());
         }
         let mode = parse_mode(&command).ok_or_else(usage)?;
         let remaining: Vec<_> = arguments.collect();
@@ -112,6 +127,8 @@ impl ParsedArguments {
             .transpose()?;
         let backend = option_value(&remaining, "--backend");
         let preflight_bundle = option_value(&remaining, "--preflight-bundle");
+        let target_root = option_value(&remaining, "--target-root");
+        let source_edit = source_edit(&remaining)?;
         let shard_index = parsed_usize_option(&remaining, "--shard-index")?;
         let shard_count = parsed_usize_option(&remaining, "--shard-count")?;
         let plan_only = remaining.iter().any(|argument| argument == "--plan-only");
@@ -128,62 +145,27 @@ impl ParsedArguments {
                 )
                 .with_seed(seed)
                 .with_backend(backend)
-                .with_shard(shard_index, shard_count),
+                .with_shard(shard_index, shard_count)
+                .with_target_root(target_root)
+                .with_source_edit(source_edit),
                 preflight_bundle,
             },
         })
     }
 }
 
-fn parse_artifact_command(arguments: Vec<String>) -> Result<ParsedArguments, String> {
-    let action = arguments
-        .first()
-        .ok_or_else(|| "artifacts requires inspect, plan, or execute".to_owned())?;
-    let options = &arguments[1..];
-    let command = match action.as_str() {
-        "inspect" => {
-            let target_root = option_value(options, "--target-root").ok_or_else(|| {
-                "artifacts inspect requires --target-root <absolute-path>".to_owned()
-            })?;
-            let protected_run = option_value(options, "--protected-run");
-            let expected = if protected_run.is_some() { 4 } else { 2 };
-            if options.len() != expected {
-                return Err(
-                    "artifacts inspect accepts --target-root and optional --protected-run"
-                        .to_owned(),
-                );
-            }
-            CliCommand::ArtifactInspect {
-                target_root,
-                protected_run,
-            }
-        }
-        "plan" => {
-            let inventory_path = option_value(options, "--inventory")
-                .ok_or_else(|| "artifacts plan requires --inventory <path>".to_owned())?;
-            let policy = option_value(options, "--policy")
-                .ok_or_else(|| "artifacts plan requires --policy bounded-local".to_owned())?;
-            if options.len() != 4 {
-                return Err(
-                    "artifacts plan accepts --inventory <path> --policy bounded-local".to_owned(),
-                );
-            }
-            CliCommand::ArtifactPlan {
-                inventory_path,
-                policy,
-            }
-        }
-        "execute" => {
-            let plan_path = option_value(options, "--plan")
-                .ok_or_else(|| "artifacts execute requires --plan <path>".to_owned())?;
-            if options.len() != 2 {
-                return Err("artifacts execute accepts only --plan <path>".to_owned());
-            }
-            CliCommand::ArtifactExecute { plan_path }
-        }
-        _ => return Err(format!("unknown artifacts action: {action}")),
-    };
-    Ok(ParsedArguments { command })
+fn source_edit(arguments: &[String]) -> Result<Option<RequestedSourceEdit>, String> {
+    let source_path = option_value(arguments, "--edit-source");
+    let original_sha256 = option_value(arguments, "--edit-original-sha256");
+    let purpose = option_value(arguments, "--edit-purpose");
+    let description = option_value(arguments, "--edit-description");
+    match (source_path, original_sha256, purpose, description) {
+        (None, None, None, None) => Ok(None),
+        (Some(source_path), Some(original_sha256), Some(purpose), Some(description)) => Ok(Some(
+            RequestedSourceEdit::new(source_path, original_sha256, purpose, description),
+        )),
+        _ => Err("source edit evidence requires --edit-source, --edit-original-sha256, --edit-purpose, and --edit-description together".to_owned()),
+    }
 }
 
 fn parse_mode(value: &str) -> Option<StoreProofMode> {
@@ -216,6 +198,11 @@ fn reject_unknown_options(arguments: &[String]) -> Result<(), String> {
         "--seed",
         "--backend",
         "--preflight-bundle",
+        "--target-root",
+        "--edit-source",
+        "--edit-original-sha256",
+        "--edit-purpose",
+        "--edit-description",
         "--shard-index",
         "--shard-count",
     ];
@@ -249,7 +236,7 @@ fn parsed_usize_option(arguments: &[String], name: &str) -> Result<Option<usize>
 }
 
 fn usage() -> String {
-    "usage: store-proof-control <baseline|audit-executable-listing|validate|seal-proof-authority|seal-proof-behavior-authority|seal-scenario-authority|artifacts|owner|smoke|ui|ci|soak|release|hardware>"
+    "usage: store-proof-control <baseline|audit-executable-listing|validate|seal-proof-authority|seal-proof-behavior-authority|seal-scenario-authority|artifacts|closeout|owner|smoke|ui|ci|soak|release|hardware>"
         .to_owned()
 }
 
@@ -350,5 +337,46 @@ mod tests {
         .err()
         .unwrap();
         assert!(denial.contains("requires --plan"));
+    }
+
+    #[test]
+    fn closeout_stages_and_iteration_target_roots_are_explicit() {
+        let preservation =
+            ParsedArguments::parse(["closeout", "preservation"].into_iter().map(str::to_owned))
+                .unwrap();
+        assert!(matches!(
+            preservation.command,
+            CliCommand::CloseoutPreservation
+        ));
+
+        let iteration = ParsedArguments::parse(
+            ["closeout", "iteration", "--manifest", "iteration.json"]
+                .into_iter()
+                .map(str::to_owned),
+        )
+        .unwrap();
+        assert!(matches!(
+            iteration.command,
+            CliCommand::CloseoutIteration { .. }
+        ));
+
+        let proof = ParsedArguments::parse(
+            [
+                "smoke",
+                "--target-root",
+                "C:/workspace/.store-proof/clean-target",
+                "--plan-only",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        )
+        .unwrap();
+        let CliCommand::Proof { request, .. } = proof.command else {
+            panic!("smoke parsed as a non-proof command");
+        };
+        assert_eq!(
+            request.target_root(),
+            Some("C:/workspace/.store-proof/clean-target")
+        );
     }
 }

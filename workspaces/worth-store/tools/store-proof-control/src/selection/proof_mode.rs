@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use super::proof_unavailable::ProofProductUnavailable;
+use super::RequestedSourceEdit;
 use crate::ValidatedProofInventory;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -28,6 +29,8 @@ pub struct StoreProofRequest {
     backend: Option<String>,
     shard_index: Option<usize>,
     shard_count: Option<usize>,
+    target_root: Option<String>,
+    source_edit: Option<RequestedSourceEdit>,
     plan_only: bool,
 }
 
@@ -50,6 +53,8 @@ impl StoreProofRequest {
             backend: None,
             shard_index: None,
             shard_count: None,
+            target_root: None,
+            source_edit: None,
             plan_only,
         }
     }
@@ -67,6 +72,16 @@ impl StoreProofRequest {
     pub fn with_shard(mut self, shard_index: Option<usize>, shard_count: Option<usize>) -> Self {
         self.shard_index = shard_index;
         self.shard_count = shard_count;
+        self
+    }
+
+    pub fn with_target_root(mut self, target_root: Option<String>) -> Self {
+        self.target_root = target_root;
+        self
+    }
+
+    pub fn with_source_edit(mut self, source_edit: Option<RequestedSourceEdit>) -> Self {
+        self.source_edit = source_edit;
         self
     }
 
@@ -107,6 +122,14 @@ impl StoreProofRequest {
             (Some(index), Some(count)) => Some((index, count)),
             _ => None,
         }
+    }
+
+    pub fn target_root(&self) -> Option<&str> {
+        self.target_root.as_deref()
+    }
+
+    pub fn source_edit(&self) -> Option<&RequestedSourceEdit> {
+        self.source_edit.as_ref()
     }
 
     pub fn semantic_ci_partition(&self) -> Option<crate::ci::CiProofPartitionKind> {

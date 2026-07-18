@@ -1,11 +1,70 @@
-use std::path::Path;
+use std::path::{Component, Path};
 
 use crate::artifact_lifecycle::{
-    BuildArtifactCleanupOutcome, BuildArtifactCleanupPlan, BuildArtifactCleanupReceipt,
-    BuildArtifactInventory, BuildArtifactRetentionPolicy,
+    mark_disposable_artifact_root, AdmittedArtifactRoot, BuildArtifactCleanupOutcome,
+    BuildArtifactCleanupPlan, BuildArtifactCleanupReceipt, BuildArtifactInventory,
+    BuildArtifactRetentionPolicy,
 };
 use crate::evidence::{read_json, write_immutable_json};
 use crate::execution::ExecutedProofRun;
+
+pub(super) fn prepare_artifact_root(
+    workspace_root: &Path,
+    target_root: &Path,
+) -> Result<(), String> {
+    if !target_root.is_absolute() {
+        return Err(format!(
+            "artifact target root must be explicit and absolute: {}",
+            target_root.display()
+        ));
+    }
+    if target_root
+        .components()
+        .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
+    {
+        return Err(format!(
+            "artifact target root contains path traversal: {}",
+            target_root.display()
+        ));
+    }
+    let workspace = workspace_root.canonicalize().map_err(|error| {
+        format!(
+            "could not resolve workspace root {}: {error}",
+            workspace_root.display()
+        )
+    })?;
+    if target_root.exists() {
+        return Err(format!(
+            "artifact prepare refuses an existing path: {}",
+            target_root.display()
+        ));
+    }
+    let parent = target_root.parent().ok_or_else(|| {
+        format!(
+            "artifact target root has no parent: {}",
+            target_root.display()
+        )
+    })?;
+    let parent = parent.canonicalize().map_err(|error| {
+        format!(
+            "artifact target parent must already exist and resolve safely {}: {error}",
+            parent.display()
+        )
+    })?;
+    if !parent.starts_with(&workspace) {
+        return Err(format!(
+            "artifact root must be a strict workspace descendant: {}",
+            target_root.display()
+        ));
+    }
+    mark_disposable_artifact_root(target_root)?;
+    AdmittedArtifactRoot::admit(&workspace, target_root)?;
+    println!(
+        "prepared disposable artifact root: {}",
+        target_root.display()
+    );
+    Ok(())
+}
 
 pub(super) fn inspect_artifacts(
     workspace_root: &Path,

@@ -208,6 +208,7 @@ fn plan<const N: usize>(root: &Path, units: [ProofExecutionUnit; N]) -> Selected
             architecture: std::env::consts::ARCH.to_owned(),
         },
         StructuralPreflightReference::synthetic_for_selection(root),
+        None,
     )
     .unwrap()
 }

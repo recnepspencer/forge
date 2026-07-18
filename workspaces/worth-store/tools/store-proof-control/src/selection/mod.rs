@@ -1,4 +1,5 @@
 mod build_profile;
+mod cache_posture;
 mod execution_contract;
 mod execution_plan;
 mod feature_lane;
@@ -9,6 +10,7 @@ mod product_selection;
 mod proof_mode;
 mod repository_identity;
 mod scenario_execution;
+mod source_edit;
 mod ui_execution;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -28,6 +30,7 @@ pub use process_model::ProofProcessModel;
 pub use proof_mode::{StoreProofMode, StoreProofRequest};
 pub use proof_unavailable::ProofProductUnavailable;
 pub use repository_identity::RepositoryIdentity;
+pub use source_edit::{ObservedSourceEditIdentity, RequestedSourceEdit};
 
 use crate::discovery::TestTargetIdentity;
 use crate::ValidatedProofInventory;
@@ -53,6 +56,15 @@ pub fn select(
 ) -> Result<SelectedProofExecutionPlan, ProofProductUnavailable> {
     let selected_products = request.selected_product_names(inventory)?;
     request.validate_host()?;
+    if let Some(target_root) = request.target_root() {
+        crate::artifact_lifecycle::AdmittedArtifactRoot::admit(
+            workspace_root,
+            Path::new(target_root),
+        )
+        .map_err(ProofProductUnavailable::RepositoryObservation)?;
+    }
+    let source_edit = source_edit::observe(workspace_root, request.source_edit())
+        .map_err(ProofProductUnavailable::RepositoryObservation)?;
     validate_selected_product_reachability(inventory, &selected_products)?;
     let suite_inventory = crate::classification::build_consolidated_suite_inventory(
         workspace_root,
@@ -137,6 +149,7 @@ pub fn select(
         excluded_products(&selected_products),
         repository_identity::observe_repository_identity(workspace_root)?,
         structural_preflight,
+        source_edit,
     )
 }
 
