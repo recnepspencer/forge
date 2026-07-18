@@ -14,7 +14,6 @@ pub(super) fn scope(
     let mut files = Vec::new();
     for source in source_paths {
         collect(
-            forge_root,
             &forge_root.join(source),
             included_extensions,
             &mut files,
@@ -49,28 +48,7 @@ pub(super) fn scope(
     })
 }
 
-pub(super) fn refresh(
-    forge_root: &Path,
-    declared: &PreflightInputScope,
-) -> Result<PreflightInputScope, String> {
-    scope(
-        forge_root,
-        &declared.scope_identity,
-        &declared
-            .source_paths
-            .iter()
-            .map(String::as_str)
-            .collect::<Vec<_>>(),
-        &declared
-            .included_extensions
-            .iter()
-            .map(String::as_str)
-            .collect::<Vec<_>>(),
-    )
-}
-
 fn collect(
-    forge_root: &Path,
     path: &Path,
     extensions: &[&str],
     files: &mut Vec<PathBuf>,
@@ -93,10 +71,9 @@ fn collect(
             continue;
         }
         if child.is_dir() || admitted_file(&child, extensions) {
-            collect(forge_root, &child, extensions, files)?;
+            collect(&child, extensions, files)?;
         }
     }
-    let _ = forge_root;
     Ok(())
 }
 

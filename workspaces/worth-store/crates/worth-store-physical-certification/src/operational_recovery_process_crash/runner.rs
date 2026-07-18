@@ -17,12 +17,16 @@ use crate::{
 impl OperationalRecoveryFreshProcessRunner {
     pub fn certify_control_cut(
         &self,
+        media_root: &Path,
+        scenario_identity: &str,
         cut_command: &mut Command,
         reopen_command: &mut Command,
         yieldpoint: OperationalRecoveryYieldpoint,
         uninterrupted_trace: &OperationalRecoveryDriverTrace,
     ) -> Result<OperationalRecoveryCrashCutEvidence, OperationalRecoveryProcessCrashDenial> {
         self.certify_control_cut_with_process_evidence(
+            media_root,
+            scenario_identity,
             cut_command,
             reopen_command,
             yieldpoint,
@@ -33,6 +37,8 @@ impl OperationalRecoveryFreshProcessRunner {
 
     pub fn certify_control_cut_with_process_evidence(
         &self,
+        media_root: &Path,
+        scenario_identity: &str,
         cut_command: &mut Command,
         reopen_command: &mut Command,
         yieldpoint: OperationalRecoveryYieldpoint,
@@ -40,10 +46,13 @@ impl OperationalRecoveryFreshProcessRunner {
     ) -> Result<OperationalRecoveryProcessCrashEvidence, OperationalRecoveryProcessCrashDenial> {
         std::fs::create_dir_all(&self.evidence_directory)
             .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
+        require_media_binding(cut_command, media_root)?;
+        require_media_binding(reopen_command, media_root)?;
         let executable_identity = validated_executable_identity(cut_command, reopen_command)?;
+        let challenge_subject = format!("{scenario_identity}:{}", yieldpoint.token());
         let challenge = fresh_challenge(
             b"worth-store-s10-process-crash-challenge-v1",
-            yieldpoint.token().as_bytes(),
+            challenge_subject.as_bytes(),
             executable_identity,
         );
         let paths = ProbePaths::new(&self.evidence_directory, challenge);
@@ -55,14 +64,35 @@ impl OperationalRecoveryFreshProcessRunner {
             challenge,
             yieldpoint,
         );
-        let cut_input = process_input("operational-recovery-cut", yieldpoint, &paths.cut)?;
-        let reopen_input = process_input("operational-recovery-reopen", yieldpoint, &paths.reopen)?;
+        let cut_input = process_input(
+            scenario_identity,
+            "cut",
+            yieldpoint,
+            media_root,
+            &paths.cut,
+        )?;
         let cut_declaration = declaration(
             cut_command,
             &cut_input,
-            ProcessRole::CrashTarget,
+            ProcessRole::Writer,
             ProcessIsolationRequirement::ParentTerminated,
             ProcessTerminationRequirement::ParentKill,
+        )?;
+        configure_process_probe(
+            cut_command,
+            &cut_declaration,
+            &cut_input,
+            &paths.cut_process,
+            CRASH_ENVIRONMENT_KEYS,
+        )?;
+        let cut_execution = execute_cut(cut_command, cut_declaration, &paths)?;
+        persist_execution(&self.evidence_directory, &cut_execution)?;
+        let reopen_input = process_input(
+            scenario_identity,
+            "reopen",
+            yieldpoint,
+            media_root,
+            &paths.reopen,
         )?;
         let reopen_declaration = declaration(
             reopen_command,
@@ -72,20 +102,12 @@ impl OperationalRecoveryFreshProcessRunner {
             ProcessTerminationRequirement::GracefulExit,
         )?;
         configure_process_probe(
-            cut_command,
-            &cut_declaration,
-            &paths.cut_process,
-            CRASH_ENVIRONMENT_KEYS,
-        )?;
-        configure_process_probe(
             reopen_command,
             &reopen_declaration,
+            &reopen_input,
             &paths.reopen_process,
             CRASH_ENVIRONMENT_KEYS,
         )?;
-
-        let cut_execution = execute_cut(cut_command, cut_declaration, &paths)?;
-        persist_execution(&self.evidence_directory, &cut_execution)?;
         let reopen_execution = execute_reopen(reopen_command, reopen_declaration, &paths)?;
         persist_execution(&self.evidence_directory, &reopen_execution)?;
         let crash_cut = validate_semantic_reports(
@@ -237,15 +259,47 @@ fn configure_crash_command(
 
 fn process_input(
     scenario: &str,
+    role: &str,
     yieldpoint: OperationalRecoveryYieldpoint,
+    media_root: &Path,
     report_path: &Path,
 ) -> Result<SealedProcessProbeInput, OperationalRecoveryProcessCrashDenial> {
     SealedProcessProbeInput::new(
         scenario,
-        yieldpoint.token(),
-        vec![ProcessArtifactPath::new("semantic-report", report_path)?],
+        format!("{role}:{}", yieldpoint.token()),
+        vec![
+            ProcessArtifactPath::new("physical-media", media_root)?,
+            ProcessArtifactPath::output_channel("semantic-report-channel", report_path)?,
+        ],
     )
     .map_err(Into::into)
+}
+
+fn require_media_binding(
+    command: &Command,
+    media_root: &Path,
+) -> Result<(), OperationalRecoveryProcessCrashDenial> {
+    let expected = normalized_absolute(media_root)
+        .ok_or(OperationalRecoveryProcessCrashDenial::InputArtifactMismatch)?;
+    let matches = command.get_envs().any(|(_, value)| {
+        value
+            .and_then(|value| normalized_absolute(Path::new(value)))
+            .is_some_and(|observed| observed == expected)
+    });
+    if matches {
+        Ok(())
+    } else {
+        Err(OperationalRecoveryProcessCrashDenial::InputArtifactMismatch)
+    }
+}
+
+fn normalized_absolute(path: &Path) -> Option<String> {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(path)
+    };
+    Some(absolute.to_string_lossy().replace('\\', "/"))
 }
 
 fn wait_for_cut_readiness(

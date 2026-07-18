@@ -59,6 +59,15 @@ pub(super) fn collect(
             .map_err(|error| format!("could not read {}: {error}", path.display()))?;
         let evidence: UiProofRunEvidence = serde_json::from_slice(&bytes)
             .map_err(|error| format!("could not decode {}: {error}", path.display()))?;
+        evidence.validate_integrity()?;
+        if path.file_stem().and_then(|value| value.to_str())
+            != Some(evidence.evidence_identity.as_str())
+        {
+            return Err(format!(
+                "UI evidence path does not match evidence identity: {}",
+                path.display()
+            ));
+        }
         if evidence.fixtures.is_empty()
             || evidence
                 .fixtures

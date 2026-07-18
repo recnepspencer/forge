@@ -200,7 +200,8 @@ pub use operational_recovery_process_crash::{
     PROCESS_CRASH_YIELDPOINT_ENV,
 };
 pub use process_probe::{
-    ProcessArtifactPath, ProcessEnvironmentBindingEvidence, ProcessIdentityEvidence,
+    ProcessArtifactDisposition, ProcessArtifactObservation, ProcessArtifactPath,
+    ProcessEnvironmentBindingEvidence, ProcessIdentityEvidence,
     ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessProbeEvidenceDenial,
     ProcessProbeExecution, ProcessRole, ProcessTermination, ProcessTerminationRequirement,
     SealedProcessProbeInput, PROCESS_PROBE_EVIDENCE_ROOT_ENV,

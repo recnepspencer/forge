@@ -11,6 +11,7 @@ pub enum S10StructuralPreflightDenial {
     BundleDecodeFailed(PathBuf),
     FailedPredicate(StructuralPredicate),
     MissingPredicate(StructuralPredicate),
+    InvalidBundleIntegrity,
     InvalidEvidenceIdentity,
 }
 
@@ -28,10 +29,19 @@ pub fn require_s10_structural_preflight(
     let path = std::env::var_os(STRUCTURAL_PREFLIGHT_BUNDLE_ENV)
         .map(PathBuf::from)
         .ok_or(S10StructuralPreflightDenial::MissingBundleEnvironment)?;
+    load_s10_structural_preflight(&path)
+}
+
+fn load_s10_structural_preflight(
+    path: &std::path::Path,
+) -> Result<S10StructuralPreflightEvidence, S10StructuralPreflightDenial> {
     let bytes = std::fs::read(&path)
-        .map_err(|_| S10StructuralPreflightDenial::BundleReadFailed(path.clone()))?;
+        .map_err(|_| S10StructuralPreflightDenial::BundleReadFailed(path.to_path_buf()))?;
     let bundle: StructuralPreflightEvidence = serde_json::from_slice(&bytes)
-        .map_err(|_| S10StructuralPreflightDenial::BundleDecodeFailed(path.clone()))?;
+        .map_err(|_| S10StructuralPreflightDenial::BundleDecodeFailed(path.to_path_buf()))?;
+    bundle
+        .validate_integrity()
+        .map_err(|_| S10StructuralPreflightDenial::InvalidBundleIntegrity)?;
     if let Some(failure) = bundle.failures().first() {
         return Err(S10StructuralPreflightDenial::FailedPredicate(
             failure.predicate,
@@ -105,15 +115,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn direct_behavioral_execution_without_preflight_bundle_denies() {
-        let previous = std::env::var_os(STRUCTURAL_PREFLIGHT_BUNDLE_ENV);
-        std::env::remove_var(STRUCTURAL_PREFLIGHT_BUNDLE_ENV);
+    fn missing_preflight_bundle_path_denies_without_mutating_process_environment() {
+        let missing = std::env::temp_dir().join(format!(
+            "worth-store-missing-preflight-{}",
+            std::process::id()
+        ));
         assert_eq!(
-            require_s10_structural_preflight(),
-            Err(S10StructuralPreflightDenial::MissingBundleEnvironment)
+            load_s10_structural_preflight(&missing),
+            Err(S10StructuralPreflightDenial::BundleReadFailed(missing))
         );
-        if let Some(previous) = previous {
-            std::env::set_var(STRUCTURAL_PREFLIGHT_BUNDLE_ENV, previous);
-        }
     }
 }

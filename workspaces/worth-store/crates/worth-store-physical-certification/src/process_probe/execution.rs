@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
@@ -87,15 +88,22 @@ pub(crate) fn persist_execution(
     let mut bytes = serde_json::to_vec_pretty(execution)
         .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
     bytes.push(b'\n');
-    if path.exists() {
-        return if fs::read(&path).ok().as_deref() == Some(bytes.as_slice()) {
+    match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+        Ok(mut file) => {
+            file.write_all(&bytes)
+                .and_then(|()| file.sync_all())
+                .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
             Ok(path)
-        } else {
-            Err(ProcessProbeEvidenceDenial::EvidenceWrite)
-        };
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            if fs::read(&path).ok().as_deref() == Some(bytes.as_slice()) {
+                Ok(path)
+            } else {
+                Err(ProcessProbeEvidenceDenial::EvidenceWrite)
+            }
+        }
+        Err(_) => Err(ProcessProbeEvidenceDenial::EvidenceWrite),
     }
-    fs::write(&path, bytes).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-    Ok(path)
 }
 
 pub(crate) fn classify_exit(status: ExitStatus) -> ProcessTermination {

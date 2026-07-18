@@ -49,12 +49,7 @@ pub(super) fn run(
             fixture,
         )?);
     }
-    let evidence_identity = digest_serialized(&(
-        declaration.suite_identity(),
-        &environment_identity,
-        &fixtures,
-    ))?;
-    let evidence = UiProofRunEvidence {
+    let mut evidence = UiProofRunEvidence {
         schema_version: 1,
         suite_identity: declaration.suite_identity().to_owned(),
         environment_identity,
@@ -62,8 +57,9 @@ pub(super) fn run(
         shared_target_root: normalized_path(&workspace_root, &target_root),
         environment_manifest_created: manifest_created,
         fixtures,
-        evidence_identity,
+        evidence_identity: String::new(),
     };
+    evidence.evidence_identity = digest_serialized(&evidence)?;
     let suite_path = evidence_root
         .join("runs")
         .join(format!("{}.json", evidence.evidence_identity));
@@ -295,19 +291,24 @@ fn persist_suite_evidence(
     let mut encoded = serde_json::to_vec_pretty(evidence)
         .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
     encoded.push(b'\n');
-    if path.exists() {
-        let existing =
-            fs::read(path).map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
-        return if existing == encoded {
-            Ok(())
-        } else {
-            Err(UiProofRunFailure::EvidenceWrite(format!(
-                "UI run evidence identity collision at {}",
-                path.display()
-            )))
-        };
+    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
+        Ok(mut file) => file
+            .write_all(&encoded)
+            .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string())),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            let existing = fs::read(path)
+                .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
+            if existing == encoded {
+                Ok(())
+            } else {
+                Err(UiProofRunFailure::EvidenceWrite(format!(
+                    "UI run evidence identity collision at {}",
+                    path.display()
+                )))
+            }
+        }
+        Err(error) => Err(UiProofRunFailure::EvidenceWrite(error.to_string())),
     }
-    fs::write(path, encoded).map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))
 }
 
 fn fixture_bin_name(suite: &str, case: &str) -> String {

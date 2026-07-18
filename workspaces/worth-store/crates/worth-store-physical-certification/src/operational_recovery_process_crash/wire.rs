@@ -1,5 +1,5 @@
 use std::fs::OpenOptions;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 
 use worth_store_authority::ControlStoreSelectionCoordinates;
@@ -7,6 +7,7 @@ use worth_store_operations::OperationalControlSessionObservation;
 
 use super::OperationalRecoveryProcessCrashDenial;
 use crate::OperationalRecoveryYieldpoint;
+use crate::certification_child_process::publish_new_synced;
 
 const MAGIC: &[u8; 8] = b"WS10CUT2";
 const MAX_OPERATIONS: usize = 128;
@@ -39,9 +40,7 @@ pub(super) fn write_report(path: &Path, report: &ProcessObservationReport) -> st
         bytes.extend_from_slice(&(operation.len() as u16).to_be_bytes());
         bytes.extend_from_slice(operation.as_bytes());
     }
-    let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
-    file.write_all(&bytes)?;
-    file.sync_all()
+    publish_new_synced(path, &bytes)
 }
 
 pub(super) fn read_report(

@@ -65,7 +65,6 @@ pub fn execute(
         &plan.plan_digest[..16],
         std::process::id()
     );
-    let mut completed_units = 0;
     let mut unit_verdicts = Vec::new();
     for (unit_index, unit) in plan.units.iter().enumerate() {
         let arguments = unit.cargo_arguments(plan.request.mode());
@@ -131,30 +130,31 @@ pub fn execute(
             process_probe_evidence,
         });
         if !status.success() {
+            let decision = behavioral_decision(&unit_verdicts);
             return Ok(ExecutedProofRun {
                 plan_digest: plan.plan_digest.clone(),
                 attempt_identity,
                 attempt_started_unix_millis,
                 attempted_units: plan.units.len(),
-                completed_units,
-                behavioral_verdict: "failed".to_owned(),
-                failed_unit: Some(unit_identity),
+                completed_units: decision.completed_units,
+                behavioral_verdict: decision.verdict.to_owned(),
+                failed_unit: decision.failed_unit,
                 process_counts: process_counts(&unit_verdicts),
                 structural_preflight_evidence_identity: preflight.evidence_identity.clone(),
                 structural_preflight_bundle_path: preflight.bundle_path.clone(),
                 unit_verdicts,
             });
         }
-        completed_units += 1;
     }
+    let decision = behavioral_decision(&unit_verdicts);
     Ok(ExecutedProofRun {
         plan_digest: plan.plan_digest.clone(),
         attempt_identity,
         attempt_started_unix_millis,
         attempted_units: plan.units.len(),
-        completed_units,
-        behavioral_verdict: "passed".to_owned(),
-        failed_unit: None,
+        completed_units: decision.completed_units,
+        behavioral_verdict: decision.verdict.to_owned(),
+        failed_unit: decision.failed_unit,
         process_counts: process_counts(&unit_verdicts),
         structural_preflight_evidence_identity: preflight.evidence_identity,
         structural_preflight_bundle_path: preflight.bundle_path,
@@ -168,6 +168,9 @@ fn validate_preflight(
 ) -> Result<ValidatedPreflight, String> {
     let bundle_path = std::path::PathBuf::from(&plan.structural_preflight.bundle_path);
     let evidence: StructuralPreflightEvidence = crate::evidence::read_json(&bundle_path)?;
+    evidence
+        .validate_integrity()
+        .map_err(|denial| denial.to_string())?;
     if evidence.evidence_identity.0 != plan.structural_preflight.evidence_identity {
         return Err(format!(
             "preflight bundle identity mismatch: plan={} bundle={}",
@@ -204,6 +207,31 @@ struct ValidatedPreflight {
     bundle_path: String,
 }
 
+struct BehavioralDecision {
+    completed_units: usize,
+    verdict: &'static str,
+    failed_unit: Option<String>,
+}
+
+fn behavioral_decision(verdicts: &[ProofUnitExecutionVerdict]) -> BehavioralDecision {
+    let failed_unit = verdicts
+        .iter()
+        .find(|verdict| verdict.behavioral_verdict != "passed")
+        .map(|verdict| verdict.unit_identity.clone());
+    BehavioralDecision {
+        completed_units: verdicts
+            .iter()
+            .filter(|verdict| verdict.behavioral_verdict == "passed")
+            .count(),
+        verdict: if failed_unit.is_some() {
+            "failed"
+        } else {
+            "passed"
+        },
+        failed_unit,
+    }
+}
+
 fn process_counts(verdicts: &[ProofUnitExecutionVerdict]) -> ProofRunProcessCounts {
     ProofRunProcessCounts {
         cargo_processes_launched: verdicts.len(),
@@ -216,5 +244,37 @@ fn process_counts(verdicts: &[ProofUnitExecutionVerdict]) -> ProofRunProcessCoun
         linker_process_observation: "not-observed-before-phase-10-runner".to_owned(),
         child_process_observation: "declared-not-externally-counted-before-phase-8-and-phase-10"
             .to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn green_preflight_cannot_substitute_for_a_failed_behavioral_unit() {
+        let accepted_preflight = ValidatedPreflight {
+            evidence_identity: "green-preflight".to_owned(),
+            bundle_path: "green-preflight.json".to_owned(),
+        };
+        let verdicts = vec![ProofUnitExecutionVerdict {
+            unit_identity: "worth-store-certification::inverted-assertion".to_owned(),
+            case_filter: None,
+            process_model: "libtest-process".to_owned(),
+            behavioral_verdict: "failed".to_owned(),
+            elapsed_millis: 1,
+            ui_proof_evidence: Vec::new(),
+            process_probe_evidence: Vec::new(),
+        }];
+
+        let decision = behavioral_decision(&verdicts);
+
+        assert_eq!(accepted_preflight.evidence_identity, "green-preflight");
+        assert_eq!(decision.verdict, "failed");
+        assert_eq!(decision.completed_units, 0);
+        assert_eq!(
+            decision.failed_unit.as_deref(),
+            Some("worth-store-certification::inverted-assertion")
+        );
     }
 }

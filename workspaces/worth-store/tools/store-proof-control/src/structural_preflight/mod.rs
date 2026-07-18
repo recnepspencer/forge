@@ -1,8 +1,12 @@
+pub mod dependency_boundary;
 mod execution;
 mod freshness;
 mod inputs;
 mod plan;
 mod residue;
+#[cfg(test)]
+mod tests;
+mod tool_execution;
 
 use std::path::{Path, PathBuf};
 
@@ -38,6 +42,9 @@ pub fn execute(
         inventory,
         validation_failure,
     )?;
+    evidence
+        .validate_integrity()
+        .map_err(|denial| denial.to_string())?;
     let bundle_path = bundle_path(store_root, &evidence.evidence_identity);
     crate::evidence::write_immutable_json(&bundle_path, &evidence)?;
     Ok(StructuralPreflightProduct {

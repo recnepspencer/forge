@@ -1,4 +1,5 @@
-use std::io::Read;
+use std::io::{Read, Write};
+use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -44,6 +45,33 @@ pub(crate) fn fresh_challenge(
     digest.update(subject);
     digest.update(executable_identity);
     digest.finalize().into()
+}
+
+pub(crate) fn publish_new_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    static NEXT_PUBLICATION: AtomicU64 = AtomicU64::new(1);
+    let parent = path.parent().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "evidence path has no parent")
+    })?;
+    std::fs::create_dir_all(parent)?;
+    let temporary = parent.join(format!(
+        ".process-evidence-{}-{}.tmp",
+        std::process::id(),
+        NEXT_PUBLICATION.fetch_add(1, Ordering::Relaxed)
+    ));
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)?;
+    if let Err(error) = file.write_all(bytes).and_then(|()| file.sync_all()) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(error);
+    }
+    drop(file);
+    if let Err(error) = std::fs::hard_link(&temporary, path) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(error);
+    }
+    std::fs::remove_file(temporary)
 }
 
 pub(crate) fn encode_hex_32(bytes: &[u8; 32]) -> String {

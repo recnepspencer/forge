@@ -30,10 +30,30 @@ pub struct StructuralPredicateEvidence {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StructuralToolExecutionEvidence {
+    pub command_identity: String,
+    pub provenance: String,
+    pub program: String,
+    pub resolved_program_path: String,
+    pub program_sha256: String,
+    pub program_version_identity: String,
+    pub arguments: Vec<String>,
+    pub declared_tool_identities: Vec<String>,
+    pub timeout_millis: u64,
+    pub resource_posture: String,
+    pub process_id: u32,
+    pub exit_code: Option<i32>,
+    pub timed_out: bool,
+    pub successful: bool,
+    pub authority_identity: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructuralPreflightEvidence {
     pub schema_version: u32,
     pub plan: StructuralPreflightPlan,
     pub predicates: Vec<StructuralPredicateEvidence>,
+    pub tool_executions: Vec<StructuralToolExecutionEvidence>,
     pub evidence_identity: PreflightEvidenceIdentity,
 }
 

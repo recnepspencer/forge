@@ -1,11 +1,15 @@
+mod artifact;
 mod declaration;
 mod execution;
 mod identity;
 #[cfg(test)]
 mod tests;
 
+pub use artifact::{
+    ProcessArtifactDisposition, ProcessArtifactObservation, ProcessArtifactPath,
+};
 pub use declaration::{
-    ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessRole,
+    ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessRole,
     ProcessTerminationRequirement, SealedProcessProbeInput,
 };
 pub use execution::{

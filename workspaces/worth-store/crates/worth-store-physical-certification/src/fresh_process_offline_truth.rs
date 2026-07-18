@@ -142,7 +142,10 @@ impl FreshProcessOfflineTruthRunner {
         let input = SealedProcessProbeInput::new(
             "destroyed-primary-offline-truth",
             "observe-damaged-primary-without-live-runtime",
-            vec![ProcessArtifactPath::new("damaged-primary", &baseline.target)?],
+            vec![
+                ProcessArtifactPath::new("damaged-primary", &baseline.target)?,
+                ProcessArtifactPath::output_channel("observer-report-channel", &report_path)?,
+            ],
         )
         .map_err(|_| FreshProcessOfflineTruthDenial::InvalidEnvironment)?;
         let declaration = ProcessProbeDeclaration::for_current_executable(
@@ -156,6 +159,7 @@ impl FreshProcessOfflineTruthRunner {
         configure_process_probe(
             observer_command,
             &declaration,
+            &input,
             &process_path,
             OFFLINE_ENVIRONMENT_KEYS,
         )?;

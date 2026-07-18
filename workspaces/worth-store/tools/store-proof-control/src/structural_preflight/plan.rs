@@ -52,10 +52,11 @@ fn predicate_plan(
                 ],
                 &["rs", "toml", "md"],
             )?],
-            Some(StructuralToolDeclaration {
-                tool_identity: format!("agent-context::{toolchain}"),
-                program: "cargo".to_owned(),
-                arguments: vec![
+            Some(StructuralToolDeclaration::workspace_owned(
+                format!("agent-context::{toolchain}"),
+                "cargo",
+                toolchain,
+                vec![
                     "run".to_owned(),
                     "--quiet".to_owned(),
                     "--manifest-path".to_owned(),
@@ -63,8 +64,10 @@ fn predicate_plan(
                     "--".to_owned(),
                     "check".to_owned(),
                 ],
-                source_scope_identity: "agent-context-authority".to_owned(),
-            }),
+                "agent-context-authority",
+                300_000,
+                "single-process; inherited-memory-limit; no-network-required",
+            )?),
         ),
         Predicate::Inventory => (vec![inventory_scope(root)?], None),
         Predicate::Preservation => (
@@ -96,12 +99,15 @@ fn predicate_plan(
                 ],
                 &["rs", "sh", "txt"],
             )?],
-            Some(StructuralToolDeclaration {
-                tool_identity: format!("workspace-rust-line-caps::{toolchain}"),
-                program: "bash".to_owned(),
-                arguments: vec!["scripts/ci/check_workspace_rust_line_caps.sh".to_owned()],
-                source_scope_identity: "workspace-rust-line-cap-authority".to_owned(),
-            }),
+            Some(StructuralToolDeclaration::workspace_owned(
+                format!("workspace-rust-line-caps::{toolchain}"),
+                "bash",
+                command_version_identity(root, "bash", &["--version"] )?,
+                vec!["scripts/ci/check_workspace_rust_line_caps.sh".to_owned()],
+                "workspace-rust-line-cap-authority",
+                120_000,
+                "single-process; inherited-memory-limit; no-network-required",
+            )?),
         ),
         Predicate::Naming => (
             vec![manifest_scope(root)?, boundary_scope(root)?],
@@ -168,10 +174,11 @@ fn manifest_scope(root: &Path) -> Result<PreflightInputScope, String> {
 }
 
 fn boundary_tool(toolchain: &str, projection: &str) -> StructuralToolDeclaration {
-    StructuralToolDeclaration {
-        tool_identity: format!("boundary-check::{projection}::{toolchain}"),
-        program: "cargo".to_owned(),
-        arguments: vec![
+    StructuralToolDeclaration::workspace_owned(
+        format!("boundary-check::{projection}::{toolchain}"),
+        "cargo",
+        toolchain,
+        vec![
             "run".to_owned(),
             "--quiet".to_owned(),
             "--manifest-path".to_owned(),
@@ -180,8 +187,11 @@ fn boundary_tool(toolchain: &str, projection: &str) -> StructuralToolDeclaration
             "--root".to_owned(),
             ".".to_owned(),
         ],
-        source_scope_identity: "road1-boundary-authority".to_owned(),
-    }
+        "road1-boundary-authority",
+        300_000,
+        "single-process; inherited-memory-limit; no-network-required",
+    )
+    .expect("boundary tool declaration is complete")
 }
 
 fn toolchain_identity(root: &Path) -> Result<String, String> {
@@ -203,4 +213,12 @@ fn command_identity(root: &Path, program: &str, arguments: &[&str]) -> Result<St
         ));
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+}
+
+fn command_version_identity(
+    root: &Path,
+    program: &str,
+    arguments: &[&str],
+) -> Result<String, String> {
+    command_identity(root, program, arguments)
 }

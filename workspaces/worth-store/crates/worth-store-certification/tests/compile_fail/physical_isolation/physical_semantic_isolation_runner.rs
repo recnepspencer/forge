@@ -4,23 +4,6 @@ use worth_store_test_support::compiler_boundary::{
     cargo_dependency_manifest, run_cargo_ui_fixture_suite,
 };
 
-#[path = "../cargo_artifact_message.rs"]
-mod cargo_artifact_message;
-
-// store-proof-identity[parses_library_artifact_with_windows_path]: worth-store-certification::compiler/cargo_artifact_message::cargo_artifact_message::parses_library_artifact_with_windows_path
-#[test]
-fn parses_library_artifact_with_windows_path() {
-    let message = cargo_artifact_message::parse(
-        r#"{"reason":"compiler-artifact","target":{"kind":["lib"],"name":"worth-store-certification"},"filenames":["C:\\target\\libworth_store_certification.rlib"]}"#,
-    )
-    .unwrap();
-    assert_eq!(message.target_name, "worth-store-certification");
-    assert_eq!(
-        message.filenames[0].to_string_lossy(),
-        r"C:\target\libworth_store_certification.rlib"
-    );
-}
-
 #[test]
 fn semantic_visibility_cannot_satisfy_physical_read_stability_authority() {
     let root = store_workspace_root();

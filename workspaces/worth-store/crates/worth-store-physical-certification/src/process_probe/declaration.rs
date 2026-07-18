@@ -1,10 +1,11 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::certification_child_process::validated_current_executable;
+use super::ProcessArtifactPath;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -38,13 +39,6 @@ pub enum ProcessTerminationRequirement {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct ProcessArtifactPath {
-    purpose: String,
-    path: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct SealedProcessProbeInput {
     scenario_identity: String,
     fault_schedule_identity: String,
@@ -62,28 +56,6 @@ pub struct ProcessProbeDeclaration {
     executable_identity: [u8; 32],
     working_directory: String,
     declaration_identity: [u8; 32],
-}
-
-impl ProcessArtifactPath {
-    pub fn new(purpose: impl Into<String>, path: impl AsRef<Path>) -> Result<Self, String> {
-        let purpose = purpose.into();
-        if purpose.trim().is_empty() {
-            return Err("process artifact purpose cannot be empty".to_owned());
-        }
-        let path = normalized_path(path.as_ref());
-        if path.trim().is_empty() {
-            return Err(format!("process artifact {purpose} has no path"));
-        }
-        Ok(Self { purpose, path })
-    }
-
-    pub fn purpose(&self) -> &str {
-        &self.purpose
-    }
-
-    pub fn path(&self) -> &str {
-        &self.path
-    }
 }
 
 impl SealedProcessProbeInput {
@@ -135,17 +107,30 @@ impl SealedProcessProbeInput {
     }
 
     pub fn decode_untrusted(bytes: &[u8]) -> Result<Self, String> {
+        Self::decode(bytes, true)
+    }
+
+    pub(crate) fn decode_declared(bytes: &[u8]) -> Result<Self, String> {
+        Self::decode(bytes, false)
+    }
+
+    fn decode(bytes: &[u8], reobserve_inputs: bool) -> Result<Self, String> {
         let decoded: Self = serde_json::from_slice(bytes)
             .map_err(|error| format!("invalid process probe input: {error}"))?;
+        if reobserve_inputs {
+            for artifact in &decoded.artifacts {
+                artifact.validate_child_admission()?;
+            }
+        }
         let checked = Self::new(
             decoded.scenario_identity.clone(),
             decoded.fault_schedule_identity.clone(),
             decoded.artifacts.clone(),
         )?;
-        if decoded.identity != checked.identity {
+        if decoded != checked {
             return Err("process probe input identity mismatch".to_owned());
         }
-        Ok(decoded)
+        Ok(checked)
     }
 }
 
@@ -227,8 +212,4 @@ fn digest_serialized(value: &impl Serialize) -> Result<[u8; 32], String> {
     serde_json::to_vec(value)
         .map(|bytes| Sha256::digest(bytes).into())
         .map_err(|error| format!("could not encode process probe identity: {error}"))
-}
-
-fn normalized_path(path: &Path) -> String {
-    path.to_string_lossy().replace('\\', "/")
 }

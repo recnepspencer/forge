@@ -5,12 +5,15 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::{ProcessProbeDeclaration, ProcessProbeEvidenceDenial, ProcessRole};
-use crate::certification_child_process::{decode_hex_32, encode_hex_32};
+use super::{
+    ProcessProbeDeclaration, ProcessProbeEvidenceDenial, ProcessRole, SealedProcessProbeInput,
+};
+use crate::certification_child_process::{decode_hex_32, encode_hex_32, publish_new_synced};
 
 const ROLE_ENV: &str = "WORTH_STORE_PROCESS_PROBE_ROLE";
 const PARENT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_PARENT_PID";
 const INPUT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_INPUT_IDENTITY";
+const SEALED_INPUT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_SEALED_INPUT";
 const OBSERVATION_ENV: &str = "WORTH_STORE_PROCESS_PROBE_OBSERVATION";
 const ENVIRONMENT_KEYS_ENV: &str = "WORTH_STORE_PROCESS_PROBE_ENVIRONMENT_KEYS";
 const ENVIRONMENT_IDENTITY_ENV: &str = "WORTH_STORE_PROCESS_PROBE_ENVIRONMENT_IDENTITY";
@@ -38,10 +41,22 @@ pub struct ProcessIdentityEvidence {
 pub(crate) fn configure_process_probe(
     command: &mut Command,
     declaration: &ProcessProbeDeclaration,
+    input: &SealedProcessProbeInput,
     observation_path: &Path,
     additional_environment_keys: &[&str],
 ) -> Result<(), ProcessProbeEvidenceDenial> {
-    let mut keys = vec![ROLE_ENV, PARENT_ENV, INPUT_ENV, OBSERVATION_ENV];
+    if input.identity() != declaration.input_identity() {
+        return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
+    }
+    let sealed_input = serde_json::to_string(input)
+        .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+    let mut keys = vec![
+        ROLE_ENV,
+        PARENT_ENV,
+        INPUT_ENV,
+        SEALED_INPUT_ENV,
+        OBSERVATION_ENV,
+    ];
     keys.extend(additional_environment_keys.iter().copied());
     keys.sort_unstable();
     keys.dedup();
@@ -55,6 +70,7 @@ pub(crate) fn configure_process_probe(
         .env(ROLE_ENV, role_token(declaration.role()))
         .env(PARENT_ENV, std::process::id().to_string())
         .env(INPUT_ENV, encode_hex_32(&declaration.input_identity()))
+        .env(SEALED_INPUT_ENV, sealed_input)
         .env(OBSERVATION_ENV, observation_path)
         .env(ENVIRONMENT_KEYS_ENV, keys.join(";"));
     let bindings = command_bindings(command, &keys)?;
@@ -78,6 +94,13 @@ pub(crate) fn write_current_process_observation(
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     let input_artifact_identity = decode_hex_32(&required_string(INPUT_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+    let sealed_input = SealedProcessProbeInput::decode_declared(
+        required_string(SEALED_INPUT_ENV)?.as_bytes(),
+    )
+    .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
+    if sealed_input.identity() != input_artifact_identity {
+        return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
+    }
     let declared_environment_identity = decode_hex_32(&required_string(ENVIRONMENT_IDENTITY_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     let keys = required_string(ENVIRONMENT_KEYS_ENV)?
@@ -194,22 +217,10 @@ fn write_new_json(
     path: &Path,
     evidence: &ProcessIdentityEvidence,
 ) -> Result<(), ProcessProbeEvidenceDenial> {
-    let parent = path
-        .parent()
-        .ok_or(ProcessProbeEvidenceDenial::EvidenceWrite)?;
-    fs::create_dir_all(parent).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
     let mut bytes = serde_json::to_vec_pretty(evidence)
         .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
     bytes.push(b'\n');
-    let mut file = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)
-        .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-    use std::io::Write;
-    file.write_all(&bytes)
-        .and_then(|()| file.sync_all())
-        .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)
+    publish_new_synced(path, &bytes).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)
 }
 
 fn file_digest(path: &Path) -> Result<[u8; 32], ProcessProbeEvidenceDenial> {

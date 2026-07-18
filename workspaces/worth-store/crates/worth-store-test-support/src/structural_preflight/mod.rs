@@ -1,11 +1,14 @@
 mod evidence;
+mod integrity;
 mod plan;
 mod predicate;
 
 pub use evidence::{
     PreflightEvidenceFreshness, PreflightEvidenceIdentity, StructuralPredicateEvidence,
     StructuralPredicateFailure, StructuralPredicateVerdict, StructuralPreflightEvidence,
+    StructuralToolExecutionEvidence,
 };
+pub use integrity::StructuralPreflightIntegrityDenial;
 pub use plan::{
     PreflightInputScope, StructuralPredicatePlan, StructuralPreflightPlan,
     StructuralPreflightProfile, StructuralPreflightRequest, StructuralToolDeclaration,

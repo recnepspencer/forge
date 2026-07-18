@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use super::{CheckedCompilerDiagnostic, UiFixtureIdentity};
 
@@ -66,3 +67,29 @@ impl std::fmt::Display for UiProofRunFailure {
 }
 
 impl std::error::Error for UiProofRunFailure {}
+
+impl UiProofRunEvidence {
+    pub fn validate_integrity(&self) -> Result<(), String> {
+        if self.schema_version != 1
+            || self.suite_identity.trim().is_empty()
+            || self.environment_identity.trim().is_empty()
+            || self.fixtures.is_empty()
+            || self.fixtures.iter().any(|fixture| {
+                fixture.fixture.suite_identity != self.suite_identity
+                    || fixture.fixture.environment_identity != self.environment_identity
+                    || !fixture.semantic_denial_matched
+            })
+        {
+            return Err("UI proof evidence has inconsistent semantic fields".to_owned());
+        }
+        let mut unsigned = self.clone();
+        unsigned.evidence_identity.clear();
+        let identity = serde_json::to_vec(&unsigned)
+            .map(|bytes| format!("{:x}", Sha256::digest(bytes)))
+            .map_err(|error| format!("could not validate UI proof evidence: {error}"))?;
+        if identity != self.evidence_identity {
+            return Err("UI proof evidence identity mismatch".to_owned());
+        }
+        Ok(())
+    }
+}

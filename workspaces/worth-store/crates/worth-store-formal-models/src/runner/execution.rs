@@ -158,10 +158,11 @@ fn observe_external_tool_identity(
     let tool_artifact_path = std::fs::canonicalize(tool_jar)
         .map_err(|error| ProtocolRunnerFailure::ToolIdentityUnavailable(error.to_string()))?;
     let executable_sha256 = file_digest(&executable_path)?;
-    let version = Command::new(&executable_path)
-        .arg("-version")
-        .output()
-        .map_err(|error| ProtocolRunnerFailure::ToolIdentityUnavailable(error.to_string()))?;
+    let version = command_output_with_timeout(
+        &executable_path,
+        &["-version"],
+        Duration::from_secs(10),
+    )?;
     if !version.status.success() {
         return Err(ProtocolRunnerFailure::ToolIdentityUnavailable(
             "java -version did not complete successfully".to_owned(),
@@ -189,8 +190,40 @@ fn observe_external_tool_identity(
         tool_artifact_path,
         tool_sha256,
         timeout_millis,
-        "workers=auto; deadlock-check=true; state-directory=attempt-scoped",
+        format!(
+            "workers=auto; available-parallelism={}; deadlock-check=true; state-directory=attempt-scoped; version-probe-timeout-ms=10000",
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get)
+        ),
     ))
+}
+
+fn command_output_with_timeout(
+    executable: &Path,
+    arguments: &[&str],
+    timeout: Duration,
+) -> Result<std::process::Output, ProtocolRunnerFailure> {
+    let mut child = Command::new(executable)
+        .args(arguments)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| ProtocolRunnerFailure::ToolIdentityUnavailable(error.to_string()))?;
+    let stdout = child.stdout.take().expect("piped identity stdout");
+    let stderr = child.stderr.take().expect("piped identity stderr");
+    let stdout_reader = std::thread::spawn(move || read_process_stream(stdout));
+    let stderr_reader = std::thread::spawn(move || read_process_stream(stderr));
+    let status = wait_for_checker(&mut child, Instant::now() + timeout)?;
+    let stdout = stdout_reader
+        .join()
+        .map_err(|_| ProtocolRunnerFailure::ToolIdentityUnavailable("stdout reader panicked".into()))??;
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| ProtocolRunnerFailure::ToolIdentityUnavailable("stderr reader panicked".into()))??;
+    Ok(std::process::Output {
+        status,
+        stdout,
+        stderr,
+    })
 }
 
 fn wait_for_checker(

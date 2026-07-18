@@ -54,6 +54,7 @@ pub enum OperationalRecoveryProcessCrashDenial {
     YieldpointMismatch,
     TraceMismatch,
     ExecutableMismatch,
+    InputArtifactMismatch,
     ProcessProbe(ProcessProbeEvidenceDenial),
     CrashCut(OperationalRecoveryCrashCutDenial),
 }
@@ -100,10 +101,10 @@ impl OperationalRecoveryProcessCrashConfig {
         };
         write_report(&self.report_path, &report).expect("write durable S10 crash-cut report");
         write_current_process_observation(
-            ProcessRole::CrashTarget,
+            ProcessRole::Writer,
             Some(observation.process().fingerprint()),
         )
-        .expect("write S10 crash-target process observation");
+        .expect("write S10 writer process observation");
         loop {
             std::thread::park();
         }

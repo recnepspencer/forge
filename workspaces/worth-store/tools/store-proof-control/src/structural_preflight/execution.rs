@@ -1,17 +1,15 @@
-use std::collections::BTreeMap;
 use std::path::Path;
-use std::process::Command;
 
 use worth_store_test_support::structural_preflight::{
     PreflightEvidenceIdentity, StructuralPredicate, StructuralPredicateEvidence,
     StructuralPredicateFailure, StructuralPredicateVerdict, StructuralPreflightEvidence,
-    StructuralPreflightPlan, StructuralToolDeclaration,
+    StructuralPreflightPlan,
 };
 
-use crate::evidence::{sha256_bytes, sha256_serialized};
+use crate::evidence::sha256_serialized;
 use crate::ValidatedProofInventory;
 
-use super::residue;
+use super::{residue, tool_execution};
 
 pub(super) fn execute(
     forge_root: &Path,
@@ -20,7 +18,7 @@ pub(super) fn execute(
     inventory: Option<&ValidatedProofInventory>,
     validation_failure: Option<&str>,
 ) -> Result<StructuralPreflightEvidence, String> {
-    let tools = execute_tools_once(forge_root, &plan);
+    let tools = tool_execution::execute_once(forge_root, &plan);
     let mut predicates = Vec::with_capacity(plan.predicates.len());
     for predicate in &plan.predicates {
         let input_identity = sha256_serialized(
@@ -54,6 +52,7 @@ pub(super) fn execute(
         schema_version: 1,
         plan,
         predicates,
+        tool_executions: tool_execution::evidence(&tools),
         evidence_identity: PreflightEvidenceIdentity(String::new()),
     };
     evidence.evidence_identity = PreflightEvidenceIdentity(sha256_serialized(&evidence)?);
@@ -159,75 +158,4 @@ fn failed(
             invalidated_inputs,
         },
     }
-}
-
-fn execute_tools_once(
-    forge_root: &Path,
-    plan: &StructuralPreflightPlan,
-) -> BTreeMap<String, ToolOutcome> {
-    let mut outcomes = BTreeMap::new();
-    for tool in plan
-        .predicates
-        .iter()
-        .filter_map(|predicate| predicate.tool.as_ref())
-    {
-        let key = tool_key(tool);
-        outcomes.entry(key).or_insert_with(|| run_tool(forge_root, tool));
-    }
-    outcomes
-}
-
-fn run_tool(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
-    let output = Command::new(&tool.program)
-        .args(&tool.arguments)
-        .current_dir(root)
-        .output();
-    match output {
-        Ok(output) => {
-            let root_text = root.to_string_lossy();
-            let stdout = normalize(&output.stdout, &root_text);
-            let stderr = normalize(&output.stderr, &root_text);
-            let identity = sha256_bytes(
-                format!(
-                    "{}\n{}\n{}\n{}",
-                    tool.tool_identity,
-                    output.status.code().unwrap_or(-1),
-                    stdout,
-                    stderr
-                )
-                .as_bytes(),
-            );
-            ToolOutcome {
-                identity,
-                failure: (!output.status.success()).then(|| {
-                    format!(
-                        "{} rejected with {:?}: {}",
-                        tool.tool_identity,
-                        output.status.code(),
-                        stderr
-                    )
-                }),
-            }
-        }
-        Err(error) => ToolOutcome {
-            identity: tool.tool_identity.clone(),
-            failure: Some(format!("could not launch {}: {error}", tool.tool_identity)),
-        },
-    }
-}
-
-fn tool_key(tool: &StructuralToolDeclaration) -> String {
-    serde_json::to_string(&(&tool.program, &tool.arguments))
-        .expect("tool command identity is serializable")
-}
-
-fn normalize(bytes: &[u8], root: &str) -> String {
-    String::from_utf8_lossy(bytes)
-        .replace(root, "<forge-root>")
-        .replace('\\', "/")
-}
-
-struct ToolOutcome {
-    identity: String,
-    failure: Option<String>,
 }

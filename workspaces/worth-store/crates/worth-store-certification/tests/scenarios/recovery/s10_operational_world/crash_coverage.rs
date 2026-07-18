@@ -47,7 +47,14 @@ fn certify_cut(
         command
     };
     OperationalRecoveryFreshProcessRunner::new(directory.path().join("evidence"))
-        .certify_control_cut(&mut command(), &mut command(), point, trace)
+        .certify_control_cut(
+            &media_root,
+            identity,
+            &mut command(),
+            &mut command(),
+            point,
+            trace,
+        )
         .unwrap()
 }
 

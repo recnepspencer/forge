@@ -1,10 +1,11 @@
 use std::fs::OpenOptions;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 
 use worth_store_offline_verifier::OperationalTruthRegion;
 
 use super::FreshProcessOfflineTruthDenial;
+use crate::certification_child_process::publish_new_synced;
 
 const MAGIC: &[u8; 8] = b"WS10TRU1";
 const REPORT_BYTES: usize = 8 + 32 + 4 + 32 + 32 + 32 + 1 + 8 + 8;
@@ -76,9 +77,7 @@ pub(super) fn write_report(
     bytes.push(report.region_kind as u8);
     bytes.extend_from_slice(&report.start.to_be_bytes());
     bytes.extend_from_slice(&report.end.to_be_bytes());
-    let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
-    file.write_all(&bytes)?;
-    file.sync_all()?;
+    publish_new_synced(path, &bytes)?;
     Ok(())
 }
 

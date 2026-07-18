@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::process::Command;
 
 use worth_store_test_support::compiler_boundary::{
     cargo_dependency_manifest, run_cargo_ui_fixture_suite,
@@ -7,22 +6,10 @@ use worth_store_test_support::compiler_boundary::{
 
 #[test]
 fn later_milestone_consumers_compile_but_cannot_reinterpret_handoffs_as_authority() {
-    for binary in ["s11_public_consumer", "s12_public_consumer"] {
-        let output = Command::new(env!("CARGO"))
-            .args(["check", "--offline", "--quiet", "--bin", binary])
-            .current_dir(static_case_root())
-            .env(
-                "CARGO_TARGET_DIR",
-                store_workspace_root().join(".store-proof/cache/ui/handoff-positive-api"),
-            )
-            .output()
-            .expect("handoff positive API fixture invokes Cargo");
-        assert!(
-            output.status.success(),
-            "{binary} public consumer failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+    let _ = consume_s11_handoff
+        as fn(&worth_store_certification::courtroom::operational_recovery::S11StructuredAuditHardeningHandoff);
+    let _ = consume_s12_handoff
+        as fn(&worth_store_certification::courtroom::operational_recovery::S12PhysicalQualificationHandoff);
 
     let root = store_workspace_root();
     let evidence = run_cargo_ui_fixture_suite(
@@ -55,6 +42,24 @@ fn later_milestone_consumers_compile_but_cannot_reinterpret_handoffs_as_authorit
     )
     .unwrap();
     assert_eq!(evidence.fixtures.len(), FIXTURES.len());
+}
+
+fn consume_s11_handoff(
+    handoff: &worth_store_certification::courtroom::operational_recovery::S11StructuredAuditHardeningHandoff,
+) {
+    let _ = handoff.closeout_identity();
+    let _ = handoff.structured_audit_schema();
+    let _ = handoff.scenario_evidence_identities();
+    let _ = handoff.unimplemented_strengthening();
+}
+
+fn consume_s12_handoff(
+    handoff: &worth_store_certification::courtroom::operational_recovery::S12PhysicalQualificationHandoff,
+) {
+    let _ = handoff.closeout_identity();
+    let _ = handoff.scenario_evidence_identities();
+    let _ = handoff.complexity_contracts();
+    let _ = handoff.unqualified_dimensions();
 }
 
 const FIXTURES: &[(&str, &[&str])] = &[

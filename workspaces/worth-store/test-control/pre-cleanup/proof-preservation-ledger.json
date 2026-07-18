@@ -6142,14 +6142,23 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "duplicate_proof_remove_after_parity",
       "assertion_predicates": [
         ".expect(\"compiler artifact parses\");",
         "assert_eq!(message.target_name, \"worth-store-certification\");",
         "assert_eq!("
       ],
       "original_target_identity": "worth-store-certification::test::s5_physical_semantic_isolation_compile_fail",
-      "physical_reality_audit_required": false
+      "physical_reality_audit_required": false,
+      "amendment_rationale": "the Cargo artifact parser tested displaced compile-runner plumbing; the standardized UI harness now proves the compiler boundary directly with typed shared-environment evidence",
+      "replacement": {
+        "replacement_case_id": "worth-store-certification::compiler/physical_isolation/physical_semantic_isolation_runner::physical_semantic_isolation_runner::semantic_visibility_cannot_satisfy_physical_read_stability_authority",
+        "predicate_parity": {
+          ".expect(\"compiler artifact parses\");": "assert_eq!(evidence.fixtures.len(), FIXTURES.len());",
+          "assert_eq!(message.target_name, \"worth-store-certification\");": "assert_eq!(evidence.fixtures.len(), FIXTURES.len());",
+          "assert_eq!(": "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
+        }
+      }
     },
     {
       "stable_case_id": "worth-store-certification::compiler/operational_recovery/adoption_reverse_flow_runner::adoption_reverse_flow_runner::descriptive_shared_artifacts_cannot_reenter_store_authority",
@@ -28740,13 +28749,21 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "duplicate_proof_remove_after_parity",
       "assertion_predicates": [
         "assert!(parse(r#\"{\"reason\":\"build-finished\",\"success\":true}\"#).is_none());",
         "assert!(parse("
       ],
       "original_target_identity": "worth-store-layout-indexes::test::layout_compile_fail",
-      "physical_reality_audit_required": false
+      "physical_reality_audit_required": false,
+      "amendment_rationale": "the negative Cargo-message parser case tested displaced runner plumbing; the standardized layout UI harness now rejects compiler-boundary violations without interpreting artifact messages",
+      "replacement": {
+        "replacement_case_id": "worth-store-layout-indexes::compiler/layout/bootstrap_runner::bootstrap_runner::bootstrap_catalog_surfaces_reject_raw_struct_shortcuts",
+        "predicate_parity": {
+          "assert!(parse(r#\"{\"reason\":\"build-finished\",\"success\":true}\"#).is_none());": "compile_fail_support::assert_compile_fails_in_ui_dir(",
+          "assert!(parse(": "compile_fail_support::assert_compile_fails_in_ui_dir("
+        }
+      }
     },
     {
       "stable_case_id": "worth-store-layout-indexes::compiler/cargo_artifact_message::cargo_artifact_message::parses_library_artifact_with_windows_path",
@@ -28758,14 +28775,23 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "duplicate_proof_remove_after_parity",
       "assertion_predicates": [
         ".expect(\"compiler artifact parses\");",
         "assert_eq!(message.target_name, \"worth-store-layout-indexes\");",
         "assert_eq!("
       ],
       "original_target_identity": "worth-store-layout-indexes::test::layout_compile_fail",
-      "physical_reality_audit_required": false
+      "physical_reality_audit_required": false,
+      "amendment_rationale": "the positive Cargo-message parser case tested displaced runner plumbing; the standardized layout UI harness now records typed compiler evidence independently of platform-shaped artifact paths",
+      "replacement": {
+        "replacement_case_id": "worth-store-layout-indexes::compiler/layout/bootstrap_runner::bootstrap_runner::bootstrap_catalog_surfaces_reject_raw_struct_shortcuts",
+        "predicate_parity": {
+          ".expect(\"compiler artifact parses\");": "compile_fail_support::assert_compile_fails_in_ui_dir(",
+          "assert_eq!(message.target_name, \"worth-store-layout-indexes\");": "compile_fail_support::assert_compile_fails_in_ui_dir(",
+          "assert_eq!(": "compile_fail_support::assert_compile_fails_in_ui_dir("
+        }
+      }
     },
     {
       "stable_case_id": "worth-store-layout-indexes::compiler/layout/bootstrap_runner::bootstrap_runner::bootstrap_catalog_surfaces_reject_raw_struct_shortcuts",

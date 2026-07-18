@@ -131,7 +131,14 @@ fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
     let point =
         OperationalRecoveryYieldpoint::AfterDurableControlTransition(Control::BackupSourceLease);
     let evidence = OperationalRecoveryFreshProcessRunner::new(evidence_root)
-        .certify_control_cut_with_process_evidence(&mut cut, &mut reopen, point, &trace)
+        .certify_control_cut_with_process_evidence(
+            &media_root,
+            CASE,
+            &mut cut,
+            &mut reopen,
+            point,
+            &trace,
+        )
         .unwrap();
 
     assert_eq!(evidence.crash_cut().yieldpoint(), point);
