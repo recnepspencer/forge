@@ -7365,23 +7365,6 @@
       "physical_reality_audit_required": false
     },
     {
-      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/dependency_topology_predicates_are_not_disguised_as_compile_fixtures::tests::dependency_topology_predicates_are_not_disguised_as_compile_fixtures",
-      "family": "owner_invariant",
-      "owner": {
-        "package": "worth-store-test-support",
-        "responsibility": "src/compiler_boundary/tests/dependency_topology_predicates_are_not_disguised_as_compile_fixtures"
-      },
-      "products": [
-        "store-owner:worth-store-test-support"
-      ],
-      "disposition": "preserve_unchanged",
-      "expected_evidence": [
-        "behavioral_verdict",
-        "assertion_predicates"
-      ],
-      "physical_reality_audit_required": false
-    },
-    {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/evidence_root_parent_traversal_is_rejected_before_publication::tests::evidence_root_parent_traversal_is_rejected_before_publication",
       "family": "owner_invariant",
       "owner": {

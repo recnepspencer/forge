@@ -173,6 +173,17 @@ fn fresh_process_roles_share_executable_but_not_process_or_runtime_identity() {
     assert_eq!(process_ids.len(), executions.len());
     assert_eq!(runtime_ids.len(), executions.len());
     assert_eq!(evidence_ids.len(), executions.len());
+    assert!(executions.iter().all(|execution| execution
+        .process
+        .environment
+        .iter()
+        .all(|binding| binding.name != UNADMITTED_EXPECTED_STATE_ENV)));
+    #[cfg(windows)]
+    assert!(executions.iter().all(|execution| execution
+        .process
+        .environment
+        .iter()
+        .any(|binding| binding.name == "TEMP" || binding.name == "TMP")));
     assert!(matches!(
         writer.termination,
         ProcessTermination::ParentKill { .. }

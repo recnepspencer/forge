@@ -1,5 +1,6 @@
 mod artifact;
 mod declaration;
+mod environment;
 mod execution;
 mod identity;
 #[cfg(test)]
@@ -10,14 +11,12 @@ pub use declaration::{
     ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessProbeIntent, ProcessRole,
     ProcessTerminationRequirement, SealedProcessProbeInput,
 };
+pub use environment::ProcessEnvironmentBindingEvidence;
 pub use execution::{
     ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessTermination,
     PROCESS_PROBE_EVIDENCE_ROOT_ENV,
 };
-pub use identity::{
-    admit_current_process_probe, AdmittedProcessProbe, ProcessEnvironmentBindingEvidence,
-    ProcessIdentityEvidence,
-};
+pub use identity::{admit_current_process_probe, AdmittedProcessProbe, ProcessIdentityEvidence};
 
 pub(crate) use execution::{classify_exit, persist_execution};
 pub(crate) use identity::{

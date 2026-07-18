@@ -230,11 +230,25 @@ fn environment_identity(environment: &[EnvironmentBindingProjection]) -> [u8; 32
 fn environment_is_admitted(environment: &[EnvironmentBindingProjection]) -> bool {
     !environment.is_empty()
         && environment.iter().all(|binding| {
-            binding.name.starts_with("WORTH_STORE_") && binding.value_sha256 != [0; 32]
+            admitted_environment_name(&binding.name) && binding.value_sha256 != [0; 32]
         })
         && environment
             .windows(2)
             .all(|pair| pair[0].name < pair[1].name)
+}
+
+fn admitted_environment_name(name: &str) -> bool {
+    name.starts_with("WORTH_STORE_") || runtime_environment_names().contains(&name)
+}
+
+#[cfg(windows)]
+const fn runtime_environment_names() -> &'static [&'static str] {
+    &["SYSTEMROOT", "TEMP", "TMP", "WINDIR"]
+}
+
+#[cfg(not(windows))]
+const fn runtime_environment_names() -> &'static [&'static str] {
+    &["TMPDIR"]
 }
 
 fn termination_matches(

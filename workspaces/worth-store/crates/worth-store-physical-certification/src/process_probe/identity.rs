@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    ProcessProbeDeclaration, ProcessProbeEvidenceDenial, ProcessProbeIntent, ProcessRole,
-    SealedProcessProbeInput,
+    environment, ProcessEnvironmentBindingEvidence, ProcessProbeDeclaration,
+    ProcessProbeEvidenceDenial, ProcessProbeIntent, ProcessRole, SealedProcessProbeInput,
 };
 use crate::certification_child_process::{decode_hex_32, encode_hex_32, publish_new_synced};
 
@@ -19,12 +19,6 @@ const SEALED_INPUT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_SEALED_INPUT";
 const OBSERVATION_ENV: &str = "WORTH_STORE_PROCESS_PROBE_OBSERVATION";
 const ENVIRONMENT_KEYS_ENV: &str = "WORTH_STORE_PROCESS_PROBE_ENVIRONMENT_KEYS";
 const ENVIRONMENT_IDENTITY_ENV: &str = "WORTH_STORE_PROCESS_PROBE_ENVIRONMENT_IDENTITY";
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ProcessEnvironmentBindingEvidence {
-    pub name: String,
-    pub value_sha256: [u8; 32],
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProcessIdentityEvidence {
@@ -73,17 +67,25 @@ pub(crate) fn configure_process_probe(
         return Err(ProcessProbeEvidenceDenial::UnadmittedEnvironment);
     }
     let additional_bindings = explicit_command_environment(command, additional_environment_keys)?;
-    let mut keys = protocol_keys.to_vec();
-    keys.extend(additional_environment_keys.iter().copied());
+    let runtime_bindings = environment::inherited_runtime_bindings();
+    let mut keys = protocol_keys
+        .iter()
+        .chain(additional_environment_keys)
+        .map(|key| (*key).to_owned())
+        .collect::<Vec<_>>();
+    keys.extend(runtime_bindings.iter().map(|(name, _)| name.clone()));
     keys.sort_unstable();
     keys.dedup();
     if keys
         .iter()
-        .any(|key| !key.starts_with("WORTH_STORE_") || key.contains(';'))
+        .any(|key| !environment::admitted_name(key) || key.contains(';'))
     {
         return Err(ProcessProbeEvidenceDenial::UnadmittedEnvironment);
     }
     command.env_clear();
+    for (name, value) in runtime_bindings {
+        command.env(name, value);
+    }
     for (name, value) in additional_bindings {
         command.env(name, value);
     }
@@ -94,8 +96,8 @@ pub(crate) fn configure_process_probe(
         .env(SEALED_INPUT_ENV, sealed_input)
         .env(OBSERVATION_ENV, observation_path)
         .env(ENVIRONMENT_KEYS_ENV, keys.join(";"));
-    let bindings = command_bindings(command, &keys)?;
-    let identity = environment_identity(&bindings)?;
+    let bindings = environment::command_bindings(command, &keys)?;
+    let identity = environment::identity(&bindings)?;
     command.env(ENVIRONMENT_IDENTITY_ENV, encode_hex_32(&identity));
     intent
         .bind_environment(identity)
@@ -181,11 +183,11 @@ fn validate_current_environment(
         .split(';')
         .map(str::to_owned)
         .collect::<Vec<_>>();
-    let environment = current_bindings(&keys)?;
-    if !environment_is_admitted(&environment) {
+    let environment = environment::current_bindings(&keys)?;
+    if !environment::is_admitted(&environment) {
         return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
     }
-    let environment_identity = environment_identity(&environment)?;
+    let environment_identity = environment::identity(&environment)?;
     if environment_identity != declared_environment_identity {
         return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
     }
@@ -233,33 +235,14 @@ impl ProcessIdentityEvidence {
         {
             return Err(ProcessProbeEvidenceDenial::WorkingDirectoryMismatch);
         }
-        if !environment_is_admitted(&self.environment)
-            || environment_identity(&self.environment)? != self.environment_identity
+        if !environment::is_admitted(&self.environment)
+            || environment::identity(&self.environment)? != self.environment_identity
             || self.environment_identity != declaration.environment_identity()
         {
             return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
         }
         Ok(())
     }
-}
-
-fn command_bindings(
-    command: &Command,
-    keys: &[&str],
-) -> Result<Vec<ProcessEnvironmentBindingEvidence>, ProcessProbeEvidenceDenial> {
-    keys.iter()
-        .map(|key| {
-            let value = command
-                .get_envs()
-                .find(|(name, _)| *name == std::ffi::OsStr::new(key))
-                .and_then(|(_, value)| value)
-                .ok_or(ProcessProbeEvidenceDenial::UnadmittedEnvironment)?;
-            Ok(ProcessEnvironmentBindingEvidence {
-                name: (*key).to_owned(),
-                value_sha256: Sha256::digest(value.to_string_lossy().as_bytes()).into(),
-            })
-        })
-        .collect()
 }
 
 fn explicit_command_environment(
@@ -276,40 +259,6 @@ fn explicit_command_environment(
             Ok(((*key).to_owned(), value.to_owned()))
         })
         .collect()
-}
-
-fn current_bindings(
-    keys: &[String],
-) -> Result<Vec<ProcessEnvironmentBindingEvidence>, ProcessProbeEvidenceDenial> {
-    if keys.iter().any(|key| !key.starts_with("WORTH_STORE_")) {
-        return Err(ProcessProbeEvidenceDenial::UnadmittedEnvironment);
-    }
-    keys.iter()
-        .map(|key| {
-            let value =
-                std::env::var_os(key).ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-            Ok(ProcessEnvironmentBindingEvidence {
-                name: key.clone(),
-                value_sha256: Sha256::digest(value.to_string_lossy().as_bytes()).into(),
-            })
-        })
-        .collect()
-}
-
-fn environment_identity(
-    bindings: &[ProcessEnvironmentBindingEvidence],
-) -> Result<[u8; 32], ProcessProbeEvidenceDenial> {
-    serde_json::to_vec(bindings)
-        .map(|bytes| Sha256::digest(bytes).into())
-        .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)
-}
-
-fn environment_is_admitted(bindings: &[ProcessEnvironmentBindingEvidence]) -> bool {
-    !bindings.is_empty()
-        && bindings.iter().all(|binding| {
-            binding.name.starts_with("WORTH_STORE_") && binding.value_sha256 != [0; 32]
-        })
-        && bindings.windows(2).all(|pair| pair[0].name < pair[1].name)
 }
 
 fn write_new_json(

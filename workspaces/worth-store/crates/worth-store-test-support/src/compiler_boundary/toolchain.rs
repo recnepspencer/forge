@@ -96,20 +96,30 @@ fn selected_program(environment: &str, fallback: &str) -> OsString {
 fn resolve_program(program: &OsStr) -> Result<PathBuf, String> {
     let path = Path::new(program);
     if path.is_absolute() || path.components().count() > 1 {
-        return std::fs::canonicalize(path)
-            .map_err(|error| format!("could not resolve {}: {error}", path.display()));
+        return admitted_invocation_path(path);
     }
     for root in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
         for extension in executable_extensions() {
             let candidate = root.join(format!("{}{}", path.to_string_lossy(), extension));
             if candidate.is_file() {
-                return std::fs::canonicalize(&candidate).map_err(|error| {
-                    format!("could not resolve {}: {error}", candidate.display())
-                });
+                return admitted_invocation_path(&candidate);
             }
         }
     }
     Err(format!("{} is not on PATH", path.display()))
+}
+
+fn admitted_invocation_path(path: &Path) -> Result<PathBuf, String> {
+    let absolute = std::path::absolute(path)
+        .map_err(|error| format!("could not resolve {}: {error}", path.display()))?;
+    if absolute.is_file() {
+        Ok(absolute)
+    } else {
+        Err(format!(
+            "compiler tool is not a file: {}",
+            absolute.display()
+        ))
+    }
 }
 
 fn executable_extensions() -> Vec<String> {

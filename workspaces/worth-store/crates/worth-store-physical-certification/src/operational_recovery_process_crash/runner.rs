@@ -21,6 +21,7 @@ impl OperationalRecoveryFreshProcessRunner {
         scenario_identity: &str,
         cut_command: &mut Command,
         reopen_command: &mut Command,
+        scenario_environment_keys: &[&str],
         yieldpoint: OperationalRecoveryYieldpoint,
         uninterrupted_trace: &OperationalRecoveryDriverTrace,
     ) -> Result<OperationalRecoveryCrashCutEvidence, OperationalRecoveryProcessCrashDenial> {
@@ -29,6 +30,7 @@ impl OperationalRecoveryFreshProcessRunner {
             scenario_identity,
             cut_command,
             reopen_command,
+            scenario_environment_keys,
             yieldpoint,
             uninterrupted_trace,
         )
@@ -41,6 +43,7 @@ impl OperationalRecoveryFreshProcessRunner {
         scenario_identity: &str,
         cut_command: &mut Command,
         reopen_command: &mut Command,
+        scenario_environment_keys: &[&str],
         yieldpoint: OperationalRecoveryYieldpoint,
         uninterrupted_trace: &OperationalRecoveryDriverTrace,
     ) -> Result<OperationalRecoveryProcessCrashEvidence, OperationalRecoveryProcessCrashDenial>
@@ -65,6 +68,7 @@ impl OperationalRecoveryFreshProcessRunner {
             challenge,
             yieldpoint,
         );
+        let admitted_environment_keys = admitted_crash_environment_keys(scenario_environment_keys);
         let cut_input =
             process_input(scenario_identity, "cut", yieldpoint, media_root, &paths.cut)?;
         let cut_intent = declaration(
@@ -79,7 +83,7 @@ impl OperationalRecoveryFreshProcessRunner {
             cut_intent,
             &cut_input,
             &paths.cut_process,
-            CRASH_ENVIRONMENT_KEYS,
+            &admitted_environment_keys,
         )?;
         let cut_execution = execute_cut(cut_command, cut_declaration, &cut_input, &paths)?;
         persist_execution(&self.evidence_directory, &cut_execution)?;
@@ -102,7 +106,7 @@ impl OperationalRecoveryFreshProcessRunner {
             reopen_intent,
             &reopen_input,
             &paths.reopen_process,
-            CRASH_ENVIRONMENT_KEYS,
+            &admitted_environment_keys,
         )?;
         let reopen_execution =
             execute_reopen(reopen_command, reopen_declaration, &reopen_input, &paths)?;
@@ -116,6 +120,14 @@ impl OperationalRecoveryFreshProcessRunner {
             reopen_process: reopen_execution,
         })
     }
+}
+
+fn admitted_crash_environment_keys<'a>(scenario_environment_keys: &'a [&'a str]) -> Vec<&'a str> {
+    let mut admitted = CRASH_ENVIRONMENT_KEYS.to_vec();
+    admitted.extend_from_slice(scenario_environment_keys);
+    admitted.sort_unstable();
+    admitted.dedup();
+    admitted
 }
 
 impl OperationalRecoveryProcessCrashEvidence {

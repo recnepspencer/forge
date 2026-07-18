@@ -138,6 +138,7 @@ fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
             CASE,
             &mut cut,
             &mut reopen,
+            &[ROOT_ENV],
             point,
             &trace,
         )

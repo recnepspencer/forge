@@ -38,6 +38,10 @@
       "behavior_fingerprint": "sha256:a4b4a2f3e565dae2164b08b2c3a6a0e434b0aeacb2f766701ba3207dff581585"
     },
     {
+      "stable_case_id": "store-proof-control::src/structural_preflight/plan_tests/complete_preflight_plan_binds_tools_sources_and_dependency_flow::plan_tests::complete_preflight_plan_binds_tools_sources_and_dependency_flow",
+      "behavior_fingerprint": "sha256:e31237629565031580e0aa6bb4c62c9241992b3609d16e1b21a4a0325d128500"
+    },
+    {
       "stable_case_id": "store-proof-control::src/structural_preflight/tests/changed_generated_context_names_only_agent_context_input::tests::changed_generated_context_names_only_agent_context_input",
       "behavior_fingerprint": "sha256:bbd5a993761731aeb2e23a4b2960dd77e1f6b0840ee343619a20922400d817e3"
     },
@@ -123,7 +127,7 @@
     },
     {
       "stable_case_id": "store-proof-control::src/tests/feature_graph_fixture/transitive_default_feature_authority_leak_names_the_manifest_edge::feature_graph_fixture::transitive_default_feature_authority_leak_names_the_manifest_edge",
-      "behavior_fingerprint": "sha256:3fb5130dc5faf27e66d1ac049e24c88527566572ea6b757dc3746f861bad0cfe"
+      "behavior_fingerprint": "sha256:30465d4e8c56cbdc7975ebc15266ab2452571a395a2107d5206015a48fdcc935"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/owner_closure_fixture/renamed_optional_dependency_features_are_resolved_by_manifest_alias::owner_closure_fixture::renamed_optional_dependency_features_are_resolved_by_manifest_alias",
@@ -11003,7 +11007,7 @@
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/operational_recovery_driver_tests/external_process_death_and_independent_reopen_mint_a_real_control_cut::operational_recovery_driver_tests::external_process_death_and_independent_reopen_mint_a_real_control_cut",
-      "behavior_fingerprint": "sha256:3edb0b7e23d2144e01dd969ca8b386fe53891f17af745091f6ca477c485cc490"
+      "behavior_fingerprint": "sha256:bf46beb55137a77a5865d9a59803970bf1821df5162ac6de7f92913247b5a01c"
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/operational_recovery_driver_tests/interrupted_after_forensic_record_reopens_real_production_state::operational_recovery_driver_tests::interrupted_after_forensic_record_reopens_real_production_state",
@@ -11103,7 +11107,7 @@
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/fresh_process_roles_share_executable_but_not_process_or_runtime_identity::tests::fresh_process_roles_share_executable_but_not_process_or_runtime_identity",
-      "behavior_fingerprint": "sha256:a5e1360eb04c5d9ab8c85cd725a9363067bcddbc9dc16a48fa301f0dcede295e"
+      "behavior_fingerprint": "sha256:11f21d81e37a34ef12dbb827cbb59bd6695f10498601873e960d265275f5370b"
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/graceful_exit_cannot_satisfy_a_parent_kill_declaration::tests::graceful_exit_cannot_satisfy_a_parent_kill_declaration",
@@ -12700,10 +12704,6 @@
     {
       "stable_case_id": "worth-store-test-support::compiler/harness_authority/platform_physical_runtime_receipt_cannot_be_minted::platform_physical_runtime_receipt_cannot_be_minted::platform_physical_runtime_receipt_cannot_be_minted",
       "behavior_fingerprint": "sha256:e2b5afd3c59d9aa525b42820c71be456f910361673f7a71184f8824c7c966813"
-    },
-    {
-      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/dependency_topology_predicates_are_not_disguised_as_compile_fixtures::tests::dependency_topology_predicates_are_not_disguised_as_compile_fixtures",
-      "behavior_fingerprint": "sha256:4bd73fbcee492140a8337af92b4d3895817df5cf43e2daf8ce602dbb9b079a6a"
     },
     {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/evidence_root_parent_traversal_is_rejected_before_publication::tests::evidence_root_parent_traversal_is_rejected_before_publication",

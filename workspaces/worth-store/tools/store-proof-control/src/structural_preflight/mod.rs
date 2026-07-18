@@ -2,6 +2,9 @@ mod execution;
 mod freshness;
 mod inputs;
 mod plan;
+#[cfg(test)]
+mod plan_tests;
+mod predicate_evaluation;
 mod repository_failure;
 mod residue;
 #[cfg(test)]

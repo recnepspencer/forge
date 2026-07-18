@@ -6206,9 +6206,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s5_copy_on_write_publication_compile_fail",
       "physical_reality_audit_required": false
@@ -6223,9 +6224,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s5_epoch_scope_and_root_kind_compile_fail",
       "physical_reality_audit_required": false
@@ -6240,9 +6242,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s5_latch_acquisition_order_compile_fail",
       "physical_reality_audit_required": false
@@ -6257,9 +6260,11 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), fixture_denials().len());",
+        "assert!(evidence"
       ],
       "original_target_identity": "worth-store-certification::test::s5_physical_isolation_entry_compile_fail",
       "physical_reality_audit_required": false
@@ -6274,9 +6279,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s5_physical_semantic_isolation_compile_fail",
       "physical_reality_audit_required": false
@@ -6291,9 +6297,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_s5_simulation_harness_readiness_compile_fail",
       "physical_reality_audit_required": false
@@ -6308,9 +6315,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s5_stable_read_execution_compile_fail",
       "physical_reality_audit_required": false
@@ -6325,9 +6333,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s5_stable_read_plan_admission_compile_fail",
       "physical_reality_audit_required": false
@@ -6342,12 +6351,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        ".expect(\"compile-fail fixture invokes cargo\");",
-        "assert!(!output.status.success(), \"{binary} unexpectedly compiled\");",
-        "assert!(",
-        "assert!("
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::protocol_model_authority_compile_fail",
       "physical_reality_audit_required": false
@@ -6362,9 +6369,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_coverage_compile_fail",
       "physical_reality_audit_required": false
@@ -6379,10 +6387,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert!(!output.status.success(), \"fixture unexpectedly compiled\");",
-        "assert!("
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_driver_contract_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6397,9 +6405,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_private_field_denial(\"yieldpoint_declaration_cannot_be_minted.rs\");"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_driver_contract_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6414,9 +6423,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_private_field_denial(\"physical_simulation_driver_cannot_be_minted.rs\");"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_driver_contract_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6431,10 +6441,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert!(!output.status.success(), \"fixture unexpectedly compiled\");",
-        "assert!("
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_driver_contract_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6449,9 +6459,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_private_field_denial(\"yieldpoint_schedule_binding_cannot_be_minted.rs\");"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_driver_contract_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6466,9 +6477,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_private_field_denial(\"physical_boundary_yieldpoint_fields_cannot_be_minted.rs\");"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_driver_contract_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6483,9 +6495,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_entry_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6500,9 +6513,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_fixture_authority_compile_fail",
       "physical_reality_audit_required": false
@@ -6517,9 +6531,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_forbidden_shortcut_rejection_compile_fail",
       "physical_reality_audit_required": false
@@ -6534,9 +6549,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_observer_oracle_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6551,9 +6567,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_scenario_authority_compile_fail",
       "physical_reality_audit_required": false
@@ -6568,9 +6585,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_simulation_plan_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -6585,9 +6603,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_5_transcript_evidence_compile_fail",
       "physical_reality_audit_required": false
@@ -6602,9 +6621,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(&repo_root, case);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s6_evidence_materialization_compile_fail",
       "physical_reality_audit_required": false
@@ -6619,9 +6639,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s6_io_qos_readiness_handoff_compile_fail",
       "physical_reality_audit_required": false
@@ -6636,9 +6657,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(&repo_root, fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s6_secure_io_authority_compile_fail",
       "physical_reality_audit_required": false
@@ -6653,9 +6675,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(&repo_root, fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s5_1_certification_closeout_compile_fail",
       "physical_reality_audit_required": false
@@ -13570,9 +13593,10 @@
       "products": [
         "store-ci:recovery"
       ],
-      "disposition": "preserve_and_consolidate",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_public_facade_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s4_recovery_harness_ui",
       "physical_reality_audit_required": true
@@ -13962,9 +13986,10 @@
       "products": [
         "store-ci:recovery"
       ],
-      "disposition": "preserve_and_consolidate",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the sealed process-probe protocol strengthens the original crash or observer obligation with explicit admission, process identity, termination, and artifact evidence",
       "assertion_predicates": [
-        "assert!(write_reopen_observation_from_environment(&control).unwrap());",
+        "assert!(write_reopen_observation_from_environment(&admission, &control).unwrap());",
         ".expect(\"cut child configuration\");"
       ],
       "original_target_identity": "worth-store-certification::test::s10_operational_world",
@@ -14169,10 +14194,11 @@
       "products": [
         "store-ci:recovery"
       ],
-      "disposition": "preserve_and_consolidate",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the sealed process-probe protocol strengthens the original crash or observer obligation with explicit admission, process identity, termination, and artifact evidence",
       "assertion_predicates": [
         ".expect(\"destroyed primary parent\")",
-        "assert!(write_offline_truth_observation_from_environment(truth.report()).unwrap());"
+        "assert!(write_offline_truth_observation_from_environment(&admission, truth.report()).unwrap());"
       ],
       "original_target_identity": "worth-store-certification::test::s10_operational_world",
       "physical_reality_audit_required": true
@@ -19205,16 +19231,15 @@
     {
       "stable_case_id": "worth-store-certification::src/courtroom/operational_recovery/structural_preflight/real_workspace_preflight_binds_tools_sources_and_reverse_flow_gates::structural_preflight::real_workspace_preflight_binds_tools_sources_and_reverse_flow_gates",
       "owner": {
-        "package": "worth-store-certification",
-        "responsibility": "src/courtroom/operational_recovery/structural_preflight/real_workspace_preflight_binds_tools_sources_and_reverse_flow_gates"
+        "package": "store-proof-control",
+        "responsibility": "src/structural_preflight/plan_tests/complete_preflight_plan_binds_tools_sources_and_dependency_flow"
       },
       "family": "owner_invariant",
       "products": [
-        "store-ci:certification-owner",
-        "store-soak"
+        "store-ci:test-control"
       ],
-      "disposition": "preserve_and_reclassify",
-      "amendment_rationale": "legacy path-shaped proof product was replaced by the certification owner semantic product",
+      "disposition": "replace_with_stronger_proof",
+      "amendment_rationale": "the ignored certification-owned nested-Cargo check is replaced by a first-class controller proof over the production preflight plan and its constitutional tool, source, lockfile, and dependency bindings",
       "assertion_predicates": [
         "assert_ne!(evidence.boundary_check_identity(), [0; 32]);",
         "assert_ne!(evidence.agent_context_identity(), [0; 32]);",
@@ -19223,7 +19248,17 @@
         "assert_ne!(evidence.toolchain_identity(), [0; 32]);"
       ],
       "original_target_identity": "worth-store-certification::lib::worth_store_certification",
-      "physical_reality_audit_required": false
+      "physical_reality_audit_required": false,
+      "replacement": {
+        "replacement_case_id": "store-proof-control::src/structural_preflight/plan_tests/complete_preflight_plan_binds_tools_sources_and_dependency_flow::plan_tests::complete_preflight_plan_binds_tools_sources_and_dependency_flow",
+        "predicate_parity": {
+          "assert_ne!(evidence.boundary_check_identity(), [0; 32]);": "assert!(boundary_tool_is_locked_offline);",
+          "assert_ne!(evidence.agent_context_identity(), [0; 32]);": "assert!(agent_context_tool_is_locked_offline);",
+          "assert_ne!(evidence.reverse_flow_compile_identity(), [0; 32]);": "assert!(dependency_is_metadata_owned);",
+          "assert_ne!(evidence.source_tree_identity(), [0; 32]);": "assert!(all_input_scopes_are_bound);",
+          "assert_ne!(evidence.toolchain_identity(), [0; 32]);": "assert!(boundary_tool_binds_rustc);"
+        }
+      }
     },
     {
       "stable_case_id": "worth-store-certification::src/courtroom/operational_recovery/tests/execution_matrix_rejects_an_empty_schedule_claim::tests::execution_matrix_rejects_an_empty_schedule_claim",
@@ -25601,9 +25636,9 @@
         "store-ci:certification-owner"
       ],
       "disposition": "preserve_and_reclassify",
-      "amendment_rationale": "legacy path-shaped proof product was replaced by the certification owner semantic product",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::aspect_native_authority_ui",
       "physical_reality_audit_required": false
@@ -25619,9 +25654,9 @@
         "store-ci:certification-owner"
       ],
       "disposition": "preserve_and_reclassify",
-      "amendment_rationale": "legacy path-shaped proof product was replaced by the certification owner semantic product",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_public_facade_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::aspect_native_harness_authoring_ui",
       "physical_reality_audit_required": false
@@ -25784,9 +25819,9 @@
         "store-ci:certification-owner"
       ],
       "disposition": "preserve_and_reclassify",
-      "amendment_rationale": "legacy path-shaped proof product was replaced by the certification owner semantic product",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::authority_projection_readmission_ui",
       "physical_reality_audit_required": false
@@ -25942,9 +25977,9 @@
         "store-ci:certification-owner"
       ],
       "disposition": "preserve_and_reclassify",
-      "amendment_rationale": "legacy path-shaped proof product was replaced by the certification owner semantic product",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::terminal_projection_quarantine_ui",
       "physical_reality_audit_required": false
@@ -35011,12 +35046,19 @@
       "products": [
         "store-owner:worth-store-operations"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "replace_with_stronger_proof",
+      "amendment_rationale": "the control-record identity tests moved into their responsibility-named test module without weakening the asserted fingerprint distinction",
       "assertion_predicates": [
         "assert_ne!("
       ],
       "original_target_identity": "worth-store-operations::lib::worth_store_operations",
-      "physical_reality_audit_required": false
+      "physical_reality_audit_required": false,
+      "replacement": {
+        "replacement_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/optional_execution_plan_identity_has_an_explicit_presence_tag::control_record_identity_tests::optional_execution_plan_identity_has_an_explicit_presence_tag",
+        "predicate_parity": {
+          "assert_ne!(": "assert_ne!("
+        }
+      }
     },
     {
       "stable_case_id": "worth-store-operations::src/control_store/control_record_identity/publication_binding_fingerprint_binds_authority_posture_and_policy::control_record_identity::publication_binding_fingerprint_binds_authority_posture_and_policy",
@@ -35028,12 +35070,19 @@
       "products": [
         "store-owner:worth-store-operations"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "replace_with_stronger_proof",
+      "amendment_rationale": "the control-record identity tests moved into their responsibility-named test module without weakening the asserted fingerprint distinction",
       "assertion_predicates": [
         "assert_ne!("
       ],
       "original_target_identity": "worth-store-operations::lib::worth_store_operations",
-      "physical_reality_audit_required": false
+      "physical_reality_audit_required": false,
+      "replacement": {
+        "replacement_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/publication_binding_fingerprint_binds_authority_posture_and_policy::control_record_identity_tests::publication_binding_fingerprint_binds_authority_posture_and_policy",
+        "predicate_parity": {
+          "assert_ne!(": "assert_ne!("
+        }
+      }
     },
     {
       "stable_case_id": "worth-store-operations::src/control_store/control_record_identity/stable_fingerprint_binds_the_complete_control_payload::control_record_identity::stable_fingerprint_binds_the_complete_control_payload",
@@ -35045,12 +35094,19 @@
       "products": [
         "store-owner:worth-store-operations"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "replace_with_stronger_proof",
+      "amendment_rationale": "the control-record identity tests moved into their responsibility-named test module without weakening the asserted fingerprint distinction",
       "assertion_predicates": [
         "assert_ne!(backup.stable_fingerprint(), repair.stable_fingerprint());"
       ],
       "original_target_identity": "worth-store-operations::lib::worth_store_operations",
-      "physical_reality_audit_required": false
+      "physical_reality_audit_required": false,
+      "replacement": {
+        "replacement_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/stable_fingerprint_binds_the_complete_control_payload::control_record_identity_tests::stable_fingerprint_binds_the_complete_control_payload",
+        "predicate_parity": {
+          "assert_ne!(backup.stable_fingerprint(), repair.stable_fingerprint());": "assert_ne!(backup.stable_fingerprint(), repair.stable_fingerprint());"
+        }
+      }
     },
     {
       "stable_case_id": "worth-store-operations::src/control_store/operation_identity/control_characters_cannot_alias_the_durable_transition_delimiter::operation_identity::control_characters_cannot_alias_the_durable_transition_delimiter",
@@ -41298,13 +41354,19 @@
       "products": [
         "store-ci:physical-certification"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the sealed process-probe protocol strengthens the original crash or observer obligation with explicit admission, process identity, termination, and artifact evidence",
       "assertion_predicates": [
-        "assert!(write_reopen_observation_from_environment(&control).unwrap());",
+        "assert!(write_reopen_observation_from_environment(&admission, &control).unwrap());",
         ".expect(\"cut child configuration\");",
-        "assert_eq!(evidence.yieldpoint(), point);",
-        "assert!(!evidence.operation_identities().is_empty());",
-        "assert_ne!(evidence.evidence_identity(), [0; 32]);"
+        "assert_eq!(evidence.crash_cut().yieldpoint(), point);",
+        "assert!(!evidence.crash_cut().operation_identities().is_empty());",
+        "assert_ne!(evidence.crash_cut().evidence_identity(), [0; 32]);",
+        "assert_ne!(",
+        "assert_ne!(",
+        "assert_eq!(",
+        "assert!(matches!(",
+        "assert!(matches!("
       ],
       "original_target_identity": "worth-store-physical-certification::lib::worth_store_physical_certification",
       "physical_reality_audit_required": false
@@ -42172,9 +42234,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(case);"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-physical-certification::test::backend_qualification_public_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -42189,9 +42252,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(CompileFailCase {"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-physical-certification::test::blob_harness_public_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -42206,9 +42270,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(CompileFailCase {"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-physical-certification::test::blob_harness_public_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -42223,9 +42288,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(CompileFailCase {"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-physical-certification::test::blob_harness_public_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -42240,9 +42306,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(CompileFailCase {"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-physical-certification::test::blob_harness_public_boundary_compile_fail",
       "physical_reality_audit_required": false
@@ -47523,9 +47590,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "assert_eq!("
       ],
       "original_target_identity": "worth-store-test-support::test::harness_authority_compile_fail",
       "physical_reality_audit_required": false

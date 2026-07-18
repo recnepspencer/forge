@@ -79,7 +79,7 @@
         "crates/worth-store-certification/tests/scenarios/recovery/s10_execution_matrix/s10_execution_matrix.rs": "d789a98e504df3af29fc012c5db66640cd34e85bb20ec80ccfe89b909c71415d",
         "crates/worth-store-certification/tests/scenarios/recovery/s10_operational_world/certification.rs": "a842b428907c1306b9ec4ec21ea53abd45f980623000629cbed785459e0270a5",
         "crates/worth-store-certification/tests/scenarios/recovery/s10_operational_world/closeout.rs": "8a216c71f2817baac486c09b19142759502b686afe96b9b95865cbc2f9842613",
-        "crates/worth-store-certification/tests/scenarios/recovery/s10_operational_world/crash_coverage.rs": "846e5089e94c8c19e4def03558cc783fad9fa18be424bfe3fa4b0b7fa1af4555",
+        "crates/worth-store-certification/tests/scenarios/recovery/s10_operational_world/crash_coverage.rs": "24c31bb1dffe1c5a421a38c19cf6c886f647d921be68f1865fc9740899c482fe",
         "crates/worth-store-certification/tests/scenarios/recovery/s10_operational_world/owner_world.rs": "6b79e0bad82e4f86396b9d16a986c2e3f277e65f1dfd8c781cde09c0d705e891",
         "crates/worth-store-certification/tests/scenarios/recovery/s10_operational_world/owner_world/audit.rs": "1201c20873099ddf39d3892435b2f96182bd4c7b41db1c97135a32dc21265abe",
         "crates/worth-store-certification/tests/scenarios/recovery/s10_operational_world/owner_world/control_selection_defect.rs": "0d0e6f5942668251fa253844aaec79fdce9595c33c9d63dac4be1b9d487ae566",

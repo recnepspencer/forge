@@ -17,17 +17,9 @@ pub enum StructuralPredicate {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "predicate", rename_all = "snake_case")]
 pub enum DependencyBoundaryPredicate {
-    ManifestDependencyDirection {
-        source_package: String,
-        forbidden_dependency: String,
-    },
     ForbiddenFeatureEdge {
         source_package: String,
         feature: String,
         forbidden_dependency: String,
-    },
-    SourceBoundary {
-        source_scope: String,
-        forbidden_import: String,
     },
 }

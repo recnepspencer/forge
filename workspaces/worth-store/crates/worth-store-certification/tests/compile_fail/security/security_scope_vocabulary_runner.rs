@@ -154,10 +154,6 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
     ]
 }
 
-fn ensure_compile_fail_fixture_support_crates_are_linked() {
-    let _ = std::mem::size_of::<serde_json::Value>();
-}
-
 fn assert_compile_fails(fixture: CompileFailFixture) {
     let root = store_workspace_root();
     let forge_root = root.ancestors().nth(2).unwrap();

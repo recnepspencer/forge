@@ -53,6 +53,7 @@ fn certify_cut(
             identity,
             &mut command(),
             &mut command(),
+            &[ROOT_ENV, IDENTITY_ENV, KIND_ENV],
             point,
             trace,
         )

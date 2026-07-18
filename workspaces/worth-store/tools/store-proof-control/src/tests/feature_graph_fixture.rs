@@ -3,6 +3,7 @@ use crate::classification::{
     FeatureSemanticAuthorityDenial,
 };
 use crate::discovery::discover_workspace;
+use worth_store_test_support::structural_preflight::DependencyBoundaryPredicate;
 
 use super::scratch_workspace::ScratchCargoWorkspace;
 
@@ -30,15 +31,27 @@ fn transitive_default_feature_authority_leak_names_the_manifest_edge() {
 
     let discovered = discover_workspace(workspace.root(), false).unwrap();
     let denials = validate_inventory_build_graph_policy(discovered.inventory()).unwrap_err();
-    assert!(denials.iter().any(|denial| matches!(
-        denial,
-        BuildGraphPolicyViolation::DependencyBoundary(violation)
-            if violation.denial == DependencyBoundaryDenial::ResolvedProductionFeatureClosure
-    )));
-    assert!(denials[0].to_string().contains("fixture-app"));
-    assert!(denials[0]
-        .to_string()
-        .contains("certification-test-authority"));
+    let violation = denials
+        .iter()
+        .find_map(|denial| match denial {
+            BuildGraphPolicyViolation::DependencyBoundary(violation)
+                if violation.denial
+                    == DependencyBoundaryDenial::ResolvedProductionFeatureClosure =>
+            {
+                Some(violation)
+            }
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(
+        violation.predicate,
+        DependencyBoundaryPredicate::ForbiddenFeatureEdge {
+            source_package: "fixture-app".to_owned(),
+            feature: "certification-test-authority".to_owned(),
+            forbidden_dependency: "fixture-substrate".to_owned(),
+        }
+    );
+    assert_eq!(violation.dependency_kind, "normal");
 }
 
 #[test]

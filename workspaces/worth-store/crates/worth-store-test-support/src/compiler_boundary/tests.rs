@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use super::{cargo_dependency_manifest, run_cargo_ui_fixture_suite, UiProofRunFailure};
-use crate::structural_preflight::DependencyBoundaryPredicate;
 
 #[test]
 fn fixtures_in_one_environment_share_manifest_and_target_root() {
@@ -77,18 +76,6 @@ fn fixture_source_text_cannot_impersonate_a_semantic_compiler_message() {
     let denial = super::diagnostics::validate_denial(&expected, &diagnostics, "").unwrap_err();
 
     assert!(denial.contains("missed semantic fragment"));
-}
-
-#[test]
-fn dependency_topology_predicates_are_not_disguised_as_compile_fixtures() {
-    let predicate = DependencyBoundaryPredicate::ManifestDependencyDirection {
-        source_package: "worth-store-authority".to_owned(),
-        forbidden_dependency: "worth-store-certification".to_owned(),
-    };
-    let encoded = serde_json::to_string(&predicate).unwrap();
-
-    assert!(encoded.contains("manifest_dependency_direction"));
-    assert!(!encoded.contains("expected_compiler_denial"));
 }
 
 #[test]

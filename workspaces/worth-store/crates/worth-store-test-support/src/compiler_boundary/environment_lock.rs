@@ -26,6 +26,7 @@ pub(super) fn seal(
     let staging = LockGenerationStaging::create(workspace_root)?;
     let staging_manifest = staging.path.join("Cargo.toml");
     artifact_store::write_immutable_file(&staging_manifest, manifest.as_bytes())?;
+    artifact_store::write_immutable_file(&staging.path.join("src/lib.rs"), b"#![no_std]\n")?;
     let mut command = Command::new(&toolchain.cargo.executable_path);
     command
         .args(["generate-lockfile", "--offline", "--manifest-path"])

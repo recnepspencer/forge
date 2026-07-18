@@ -192,26 +192,33 @@ fn is_sha256(value: &str) -> bool {
 fn resolve_program(program: &str) -> Result<PathBuf, String> {
     let path = Path::new(program);
     if path.is_absolute() || path.components().count() > 1 {
-        return std::fs::canonicalize(path)
-            .map_err(|error| format!("could not resolve structural tool {program}: {error}"));
+        return admitted_invocation_path(path, program);
     }
     let extensions = executable_extensions();
     for root in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
         for extension in &extensions {
             let candidate = root.join(format!("{program}{extension}"));
             if candidate.is_file() {
-                return std::fs::canonicalize(&candidate).map_err(|error| {
-                    format!(
-                        "could not resolve structural tool {}: {error}",
-                        candidate.display()
-                    )
-                });
+                return admitted_invocation_path(&candidate, program);
             }
         }
     }
     Err(format!(
         "structural tool executable {program} is not on PATH"
     ))
+}
+
+fn admitted_invocation_path(path: &Path, program: &str) -> Result<PathBuf, String> {
+    let absolute = std::path::absolute(path)
+        .map_err(|error| format!("could not resolve structural tool {program}: {error}"))?;
+    if absolute.is_file() {
+        Ok(absolute)
+    } else {
+        Err(format!(
+            "structural tool {program} is not a file: {}",
+            absolute.display()
+        ))
+    }
 }
 
 fn executable_extensions() -> Vec<String> {
