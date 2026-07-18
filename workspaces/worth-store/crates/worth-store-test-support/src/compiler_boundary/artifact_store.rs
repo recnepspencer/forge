@@ -6,23 +6,66 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use super::{UiFixtureRunEvidence, UiProofRunEvidence, UiProofRunFailure, UI_EVIDENCE_ROOT_ENV};
 
 pub(super) fn admitted_evidence_root(workspace_root: &Path) -> Result<PathBuf, UiProofRunFailure> {
-    let default = workspace_root.join(".store-proof/evidence/ui");
-    let Some(declared) = std::env::var_os(UI_EVIDENCE_ROOT_ENV).map(PathBuf::from) else {
-        return Ok(default);
-    };
+    let workspace_root = workspace_root.canonicalize().map_err(|error| {
+        UiProofRunFailure::EnvironmentObservation(format!(
+            "canonicalize UI workspace root {}: {error}",
+            workspace_root.display()
+        ))
+    })?;
+    let admitted = workspace_root.join(".store-proof/evidence");
+    fs::create_dir_all(&admitted)
+        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+    let admitted = admitted.canonicalize().map_err(|error| {
+        UiProofRunFailure::EnvironmentObservation(format!(
+            "canonicalize admitted UI evidence root {}: {error}",
+            admitted.display()
+        ))
+    })?;
+    let declared = std::env::var_os(UI_EVIDENCE_ROOT_ENV)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| admitted.join("ui"));
     let declared = if declared.is_absolute() {
         declared
     } else {
         workspace_root.join(declared)
     };
-    let admitted = workspace_root.join(".store-proof/evidence");
-    if !declared.starts_with(&admitted) {
-        return Err(UiProofRunFailure::EnvironmentObservation(format!(
-            "{UI_EVIDENCE_ROOT_ENV} must remain under {}",
-            admitted.display()
-        )));
+    admit_declared_root(&admitted, &declared)
+}
+
+pub(super) fn admit_declared_root(
+    admitted: &Path,
+    declared: &Path,
+) -> Result<PathBuf, UiProofRunFailure> {
+    if declared
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+        || !declared.starts_with(admitted)
+    {
+        return Err(outside_evidence_root(admitted));
     }
-    Ok(declared)
+    let mut existing = declared;
+    while !existing.exists() {
+        existing = existing
+            .parent()
+            .ok_or_else(|| outside_evidence_root(admitted))?;
+    }
+    let existing = existing.canonicalize().map_err(|error| {
+        UiProofRunFailure::EnvironmentObservation(format!(
+            "canonicalize UI evidence ancestor {}: {error}",
+            existing.display()
+        ))
+    })?;
+    if !existing.starts_with(admitted) {
+        return Err(outside_evidence_root(admitted));
+    }
+    Ok(declared.to_path_buf())
+}
+
+fn outside_evidence_root(admitted: &Path) -> UiProofRunFailure {
+    UiProofRunFailure::EnvironmentObservation(format!(
+        "{UI_EVIDENCE_ROOT_ENV} must remain under {} without parent traversal or symlink escape",
+        admitted.display()
+    ))
 }
 
 pub(super) fn write_immutable_file(path: &Path, bytes: &[u8]) -> Result<bool, UiProofRunFailure> {

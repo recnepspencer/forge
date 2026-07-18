@@ -11114,6 +11114,10 @@
       "behavior_fingerprint": "sha256:30bd14dc536be8864c6cddce25fb266f16ece1fb94c23c1a755b198dbd39aaf9"
     },
     {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/process_evidence_root_rejects_parent_traversal_before_creation::tests::process_evidence_root_rejects_parent_traversal_before_creation",
+      "behavior_fingerprint": "sha256:efba4b1f922ac1533b8e858d05c43e950c7fc4e8060e650b7a1a280207ecce3a"
+    },
+    {
       "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/untrusted_probe_input_rejects_an_output_channel_that_became_visible::tests::untrusted_probe_input_rejects_an_output_channel_that_became_visible",
       "behavior_fingerprint": "sha256:b422b03efd3976ec96985bcbcfea89047176fc7c20c6ce67022ee8374d24b5ad"
     },
@@ -12700,6 +12704,14 @@
     {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/dependency_topology_predicates_are_not_disguised_as_compile_fixtures::tests::dependency_topology_predicates_are_not_disguised_as_compile_fixtures",
       "behavior_fingerprint": "sha256:4bd73fbcee492140a8337af92b4d3895817df5cf43e2daf8ce602dbb9b079a6a"
+    },
+    {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/evidence_root_parent_traversal_is_rejected_before_publication::tests::evidence_root_parent_traversal_is_rejected_before_publication",
+      "behavior_fingerprint": "sha256:864234f05c8f0f09329b07477ad788c6ef0abf81ebd9554a1b06f537b06d0441"
+    },
+    {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/fixture_source_text_cannot_impersonate_a_semantic_compiler_message::tests::fixture_source_text_cannot_impersonate_a_semantic_compiler_message",
+      "behavior_fingerprint": "sha256:f8c9e8467b42712061353ad39e16876b28be27cffe2f40f0ff8fa454f8440475"
     },
     {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/fixtures_in_one_environment_share_manifest_and_target_root::tests::fixtures_in_one_environment_share_manifest_and_target_root",

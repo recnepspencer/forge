@@ -6125,9 +6125,9 @@
         "store-ui"
       ],
       "disposition": "preserve_and_reclassify",
-      "amendment_rationale": "the bounded compiler runner is the smoke specimen for its registered future-chunk fixtures",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert_compile_fails(fixture);"
+        "behavioral_completion"
       ],
       "original_target_identity": "worth-store-certification::test::s5_tier_movement_future_chunk_compile_fail",
       "physical_reality_audit_required": false
@@ -6170,12 +6170,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        ".expect(\"compile-fail fixture invokes cargo\");",
-        "assert!(!output.status.success(), \"{binary} unexpectedly compiled\");",
-        "assert!(",
-        "assert!("
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s10_adoption_reverse_flow_compile_fail",
       "physical_reality_audit_required": false
@@ -6190,13 +6188,10 @@
       "products": [
         "store-ui"
       ],
-      "disposition": "preserve_unchanged",
+      "disposition": "preserve_and_reclassify",
+      "amendment_rationale": "the standardized UI harness replaces local Cargo plumbing with immutable checked semantic-denial evidence while preserving the original compiler-boundary obligation",
       "assertion_predicates": [
-        "assert!(",
-        "assert!(!output.status.success(), \"{binary} unexpectedly compiled\");",
-        "assert!(",
-        "assert!(!stderr.contains(\"failed to load manifest\"), \"{stderr}\");",
-        "assert!(!stderr.contains(\"can't find crate\"), \"{stderr}\");"
+        "assert_eq!(evidence.fixtures.len(), FIXTURES.len());"
       ],
       "original_target_identity": "worth-store-certification::test::s10_handoff_public_boundary_compile",
       "physical_reality_audit_required": false

@@ -65,6 +65,21 @@ fn unrelated_compile_failure_cannot_satisfy_declared_semantic_denial() {
 }
 
 #[test]
+fn fixture_source_text_cannot_impersonate_a_semantic_compiler_message() {
+    let expected = super::ExpectedCompilerDenial::semantic_fragments(["private"]).unwrap();
+    let diagnostics = vec![super::CheckedCompilerDiagnostic {
+        level: "error".to_owned(),
+        code: Some("E0432".to_owned()),
+        message: "unresolved import `absent_dependency`".to_owned(),
+        rendered: "use absent_dependency::private;".to_owned(),
+    }];
+
+    let denial = super::diagnostics::validate_denial(&expected, &diagnostics, "").unwrap_err();
+
+    assert!(denial.contains("missed semantic fragment"));
+}
+
+#[test]
 fn dependency_topology_predicates_are_not_disguised_as_compile_fixtures() {
     let predicate = DependencyBoundaryPredicate::ManifestDependencyDirection {
         source_package: "worth-store-authority".to_owned(),
@@ -74,6 +89,20 @@ fn dependency_topology_predicates_are_not_disguised_as_compile_fixtures() {
 
     assert!(encoded.contains("manifest_dependency_direction"));
     assert!(!encoded.contains("expected_compiler_denial"));
+}
+
+#[test]
+fn evidence_root_parent_traversal_is_rejected_before_publication() {
+    let scratch = ScratchUiWorld::new("evidence-root-escape");
+    let admitted = scratch.root().join(".store-proof/evidence");
+    std::fs::create_dir_all(&admitted).unwrap();
+    let admitted = admitted.canonicalize().unwrap();
+    let escaped = admitted.join("ui/../../outside");
+
+    let denial = super::artifact_store::admit_declared_root(&admitted, &escaped).unwrap_err();
+
+    assert!(denial.to_string().contains("parent traversal"));
+    assert!(!scratch.root().join(".store-proof/outside").exists());
 }
 
 struct ScratchUiWorld {

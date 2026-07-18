@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "test_topology_digest": "5b2b58b452ef11a43ccabe1a98533898a4495235d5aa36bc0fe39c6b6409cf9c",
+  "test_topology_digest": "159ec6bcf3aa6cb2930ab5effd43fc29361d4f32b80a1752e60e20da8b2239f3",
   "environment": {
     "rustc_identity": "rustc 1.94.0 (4a4ef493e 2026-03-02)\nbinary: rustc\ncommit-hash: 4a4ef493e3a1488c6e321570238084b38948f6db\ncommit-date: 2026-03-02\nhost: x86_64-pc-windows-msvc\nrelease: 1.94.0\nLLVM version: 21.1.8",
     "cargo_identity": "cargo 1.94.0 (85eff7c80 2026-01-15)\nrelease: 1.94.0\ncommit-hash: 85eff7c80277b57f78b11e28d14154ab12fcf643\ncommit-date: 2026-01-15\nhost: x86_64-pc-windows-msvc\nlibgit2: 1.9.2 (sys:0.20.3 vendored)\nlibcurl: 8.17.0-DEV (sys:0.4.84+curl-8.17.0 vendored ssl:Schannel)\nos: Windows 10.0.26200 (Windows 11 Core) [64-bit]",
@@ -22,7 +22,15 @@
         "discovery::source_tests::doctest_parser::tests::content_identity_is_stable_when_surrounding_lines_move",
         "discovery::source_tests::doctest_parser::tests::included_markdown_uses_rustdoc_concatenated_line_coordinates",
         "discovery::source_tests::doctest_parser::tests::ordinary_rust_fences_are_executable_proof_cases",
+        "execution::tests::green_preflight_cannot_substitute_for_a_failed_behavioral_unit",
         "selection::tests::doctest_selection_cannot_lower_a_synthetic_zero_match_filter",
+        "structural_preflight::tests::changed_generated_context_names_only_agent_context_input",
+        "structural_preflight::tests::changed_manifest_scope_names_only_the_invalidated_dependency_input",
+        "structural_preflight::tests::claimed_bundle_identity_cannot_hide_mutated_predicate_evidence",
+        "structural_preflight::tests::forbidden_production_edge_fails_dependency_without_poisoning_feature_authority",
+        "structural_preflight::tests::fresh_evidence_identity_is_reused_by_multiple_compatible_consumers",
+        "structural_preflight::tests::identical_boundary_and_naming_commands_launch_one_observed_tool_process",
+        "structural_preflight::tests::repository_failure_has_one_owner_and_explicit_dependents",
         "tests::boundary_policy::feature_leaks_and_support_radius_mutants_are_denied",
         "tests::cache_identity::profile_and_feature_lanes_change_cache_identity",
         "tests::classification_denials::duplicate_identity_and_owner_leakage_are_denied",
@@ -482,7 +490,7 @@
         "courtroom::operational_recovery::phase_defects::tests::suite_requires_one_distinct_typed_rejection_per_phase",
         "courtroom::operational_recovery::qos_evidence::tests::operational_qos_accepts_the_exact_scheduler_counter_family",
         "courtroom::operational_recovery::qos_evidence::tests::operational_qos_rejects_a_bag_missing_required_scheduler_counters",
-        "courtroom::operational_recovery::structural_preflight::tests::real_workspace_preflight_binds_tools_sources_and_reverse_flow_gates",
+        "courtroom::operational_recovery::structural_preflight::tests::missing_preflight_bundle_path_denies_without_mutating_process_environment",
         "courtroom::operational_recovery::tests::execution_matrix_rejects_an_empty_schedule_claim",
         "courtroom::physical_integrity::closeout::composition::physical_integrity_closeout_line_cap_tests::closeout_rejects_line_cap_labels_without_checked_composition",
         "courtroom::physical_integrity::closeout::suite::physical_integrity_closeout_tests::closeout_facade_runs_physical_integrity_harness_from_executed_evidence",
@@ -1490,7 +1498,6 @@
     {
       "target_identity": "worth-store-certification::test::s5_physical_semantic_isolation_compile_fail",
       "listed_cases": [
-        "parses_library_artifact_with_windows_path",
         "semantic_visibility_cannot_satisfy_physical_read_stability_authority"
       ]
     },
@@ -1958,8 +1965,6 @@
         "bootstrap::bootstrap_catalog_surfaces_reject_raw_struct_shortcuts",
         "btree::btree_surfaces_reject_forgeable_admission_shortcuts",
         "closeout::public_authority_surfaces_reject_external_bypass",
-        "compile_fail_support::cargo_artifact_message::tests::ignores_non_artifact_and_binary_messages",
-        "compile_fail_support::cargo_artifact_message::tests::parses_library_artifact_with_windows_path",
         "counter_evidence::btree_execution_rejects_coarse_and_seeded_production_shortcuts",
         "foundations::layout_foundations_deny_forged_or_weaker_authority",
         "migration::layout_migration_surfaces_reject_raw_struct_shortcuts",
@@ -2382,6 +2387,12 @@
         "pressure_harness::tests::io_pressure_replay_tests::same_scenario_replay_preserves_all_io_pressure_topology",
         "pressure_harness::tests::io_pressure_shortcut_tests::io_pressure_evidence_publication_denies_shortcut_contaminated_replay_bundles",
         "pressure_harness::tests::io_pressure_shortcut_tests::io_pressure_publication_rejects_forbidden_shortcuts_before_evidence_can_be_minted",
+        "process_probe::tests::artifact_identity_observes_bytes_and_preexisting_state",
+        "process_probe::tests::fresh_process_roles_share_executable_but_not_process_or_runtime_identity",
+        "process_probe::tests::graceful_exit_cannot_satisfy_a_parent_kill_declaration",
+        "process_probe::tests::probe_input_rejects_decoded_expected_runtime_truth",
+        "process_probe::tests::process_evidence_root_rejects_parent_traversal_before_creation",
+        "process_probe::tests::untrusted_probe_input_rejects_an_output_channel_that_became_visible",
         "qualification::scheduling::backends::tests::backend_qualification_cross_backend_tests::cross_backend_parity_preserves_causes_for_every_capability",
         "qualification::scheduling::backends::tests::backend_qualification_cross_backend_tests::ordinary_publisher_rejects_cross_backend_evidence_for_every_capability",
         "qualification::scheduling::backends::tests::backend_qualification_matrix_surface_tests::publisher_materializes_all_capability_rows_from_executed_evidence",
@@ -2741,6 +2752,11 @@
     {
       "target_identity": "worth-store-test-support::lib::worth_store_test_support",
       "listed_cases": [
+        "compiler_boundary::tests::dependency_topology_predicates_are_not_disguised_as_compile_fixtures",
+        "compiler_boundary::tests::evidence_root_parent_traversal_is_rejected_before_publication",
+        "compiler_boundary::tests::fixture_source_text_cannot_impersonate_a_semantic_compiler_message",
+        "compiler_boundary::tests::fixtures_in_one_environment_share_manifest_and_target_root",
+        "compiler_boundary::tests::unrelated_compile_failure_cannot_satisfy_declared_semantic_denial",
         "harness::layout_evolution::tests::evolution_inventory_equals_ordinary_owner_observations",
         "harness::lsm_execution_fixture::artifact_binding_tests::artifact_swap_after_record_admission_is_denied_before_membership_admission",
         "harness::lsm_execution_fixture::artifact_binding_tests::duplicate_active_component_is_denied_before_membership_admission",

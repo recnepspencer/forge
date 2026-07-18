@@ -23,10 +23,7 @@ pub(super) fn checked_diagnostics(
             (message["level"].as_str() == Some("error")).then(|| CheckedCompilerDiagnostic {
                 level: "error".to_owned(),
                 code: message["code"]["code"].as_str().map(str::to_owned),
-                message: normalize(
-                    message["message"].as_str().unwrap_or_default(),
-                    workspace_root,
-                ),
+                message: normalize(&semantic_message_text(message), workspace_root),
                 rendered: normalize(
                     message["rendered"].as_str().unwrap_or_default(),
                     workspace_root,
@@ -46,7 +43,7 @@ pub(super) fn validate_denial(
             "Cargo failed without a structured compiler error; stderr:\n{stderr}"
         ));
     }
-    let checked_text = diagnostics
+    let observed_text = diagnostics
         .iter()
         .flat_map(|diagnostic| [&diagnostic.message, &diagnostic.rendered])
         .cloned()
@@ -54,7 +51,7 @@ pub(super) fn validate_denial(
         .collect::<Vec<_>>()
         .join("\n");
     for forbidden in &expected.forbidden_setup_fragments {
-        if checked_text.contains(forbidden) {
+        if observed_text.contains(forbidden) {
             return Err(format!(
                 "compiler denial was caused by forbidden setup failure {forbidden:?}"
             ));
@@ -73,14 +70,45 @@ pub(super) fn validate_denial(
             expected.error_codes
         ));
     }
+    let semantic_text = diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.message.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
     for fragment in &expected.required_semantic_fragments {
-        if !checked_text.contains(fragment) {
+        if !semantic_text.contains(fragment) {
             return Err(format!(
                 "compiler denial missed semantic fragment {fragment:?}"
             ));
         }
     }
     Ok(())
+}
+
+fn semantic_message_text(message: &serde_json::Value) -> String {
+    let mut semantic = Vec::new();
+    collect_semantic_messages(message, &mut semantic);
+    semantic.join("\n")
+}
+
+fn collect_semantic_messages(message: &serde_json::Value, semantic: &mut Vec<String>) {
+    if let Some(text) = message["message"].as_str().filter(|text| !text.is_empty()) {
+        semantic.push(text.to_owned());
+    }
+    if let Some(spans) = message["spans"].as_array() {
+        semantic.extend(
+            spans
+                .iter()
+                .filter_map(|span| span["label"].as_str())
+                .filter(|label| !label.is_empty())
+                .map(str::to_owned),
+        );
+    }
+    if let Some(children) = message["children"].as_array() {
+        for child in children {
+            collect_semantic_messages(child, semantic);
+        }
+    }
 }
 
 fn normalize(value: &str, workspace_root: &str) -> String {

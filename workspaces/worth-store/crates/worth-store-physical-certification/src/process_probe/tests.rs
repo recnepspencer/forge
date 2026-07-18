@@ -79,6 +79,21 @@ fn artifact_identity_observes_bytes_and_preexisting_state() {
 }
 
 #[test]
+fn process_evidence_root_rejects_parent_traversal_before_creation() {
+    let root = tempfile::tempdir().unwrap();
+    let admitted = root.path().join("evidence");
+    std::fs::create_dir_all(&admitted).unwrap();
+    let admitted = admitted.canonicalize().unwrap();
+    let escaped = admitted.join("process/../../outside");
+
+    assert_eq!(
+        super::execution::admit_declared_evidence_root(&admitted, &escaped),
+        Err(ProcessProbeEvidenceDenial::EvidenceWrite)
+    );
+    assert!(!root.path().join("outside").exists());
+}
+
+#[test]
 fn untrusted_probe_input_rejects_an_output_channel_that_became_visible() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("probe-output");

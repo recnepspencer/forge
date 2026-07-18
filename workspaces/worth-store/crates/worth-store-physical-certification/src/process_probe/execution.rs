@@ -1,5 +1,4 @@
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
@@ -10,6 +9,7 @@ use super::{
     artifact::output_artifact_identity, ProcessIdentityEvidence, ProcessProbeDeclaration,
     ProcessTerminationRequirement, SealedProcessProbeInput,
 };
+use crate::certification_child_process::publish_new_synced;
 
 pub const PROCESS_PROBE_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_EVIDENCE_ROOT";
 
@@ -90,40 +90,13 @@ pub(crate) fn persist_execution(
     fallback_root: &Path,
     execution: &ProcessProbeExecution,
 ) -> Result<PathBuf, ProcessProbeEvidenceDenial> {
-    let declared_root = std::env::var_os(PROCESS_PROBE_EVIDENCE_ROOT_ENV).map(PathBuf::from);
-    let root = declared_root
-        .clone()
-        .unwrap_or_else(|| fallback_root.join("process-probes"));
-    fs::create_dir_all(&root).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-    if declared_root.is_some() {
-        let workspace = std::env::current_dir()
-            .and_then(fs::canonicalize)
-            .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-        let admitted = workspace.join(".store-proof/evidence");
-        fs::create_dir_all(&admitted).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-        let admitted =
-            fs::canonicalize(admitted).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-        let observed =
-            fs::canonicalize(&root).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-        if !observed.starts_with(admitted) {
-            return Err(ProcessProbeEvidenceDenial::EvidenceWrite);
-        }
-    }
+    let root = execution_root(fallback_root)?;
     let path = root.join(format!("{}.json", hex(&execution.evidence_identity)));
     let mut bytes = serde_json::to_vec_pretty(execution)
         .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
     bytes.push(b'\n');
-    match fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&path)
-    {
-        Ok(mut file) => {
-            file.write_all(&bytes)
-                .and_then(|()| file.sync_all())
-                .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
-            Ok(path)
-        }
+    match publish_new_synced(&path, &bytes) {
+        Ok(()) => Ok(path),
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
             if fs::read(&path).ok().as_deref() == Some(bytes.as_slice()) {
                 Ok(path)
@@ -133,6 +106,61 @@ pub(crate) fn persist_execution(
         }
         Err(_) => Err(ProcessProbeEvidenceDenial::EvidenceWrite),
     }
+}
+
+fn execution_root(fallback_root: &Path) -> Result<PathBuf, ProcessProbeEvidenceDenial> {
+    let Some(declared) = std::env::var_os(PROCESS_PROBE_EVIDENCE_ROOT_ENV).map(PathBuf::from)
+    else {
+        let root = fallback_root.join("process-probes");
+        fs::create_dir_all(&root).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+        return Ok(root);
+    };
+    let workspace = std::env::current_dir()
+        .and_then(fs::canonicalize)
+        .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    let admitted = workspace.join(".store-proof/evidence");
+    fs::create_dir_all(&admitted).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    let admitted =
+        fs::canonicalize(admitted).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    let declared = if declared.is_absolute() {
+        declared
+    } else {
+        workspace.join(declared)
+    };
+    admit_declared_evidence_root(&admitted, &declared)?;
+    fs::create_dir_all(&declared).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    let observed =
+        fs::canonicalize(&declared).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    if !observed.starts_with(&admitted) {
+        return Err(ProcessProbeEvidenceDenial::EvidenceWrite);
+    }
+    Ok(declared)
+}
+
+pub(crate) fn admit_declared_evidence_root(
+    admitted: &Path,
+    declared: &Path,
+) -> Result<(), ProcessProbeEvidenceDenial> {
+    if declared
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+        || !declared.starts_with(admitted)
+    {
+        return Err(ProcessProbeEvidenceDenial::EvidenceWrite);
+    }
+    let mut existing = declared;
+    while !existing.exists() {
+        existing = existing
+            .parent()
+            .ok_or(ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    }
+    let existing = existing
+        .canonicalize()
+        .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    if !existing.starts_with(admitted) {
+        return Err(ProcessProbeEvidenceDenial::EvidenceWrite);
+    }
+    Ok(())
 }
 
 pub(crate) fn classify_exit(status: ExitStatus) -> ProcessTermination {

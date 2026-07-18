@@ -67,7 +67,7 @@ fn predicate_plan(
                     "crates",
                     "workspaces/worth-store/crates",
                 ],
-                &["rs", "toml", "md"],
+                &["rs", "toml", "lock", "md"],
             )?],
             Some(cargo_tool(
                 required_toolchain(toolchain)?,
@@ -77,6 +77,8 @@ fn predicate_plan(
                 &required_toolchain(toolchain)?.identity,
                 vec![
                     "run".to_owned(),
+                    "--offline".to_owned(),
+                    "--locked".to_owned(),
                     "--quiet".to_owned(),
                     "--manifest-path".to_owned(),
                     "tools/agent-context/Cargo.toml".to_owned(),
@@ -178,7 +180,7 @@ fn boundary_scope(root: &Path) -> Result<PreflightInputScope, String> {
             "tools/boundary-check",
             "cad/docs/worthy-foundations",
         ],
-        &["rs", "toml", "md"],
+        &["rs", "toml", "lock", "md"],
     )
 }
 
@@ -223,6 +225,8 @@ fn boundary_tool(
             &toolchain.identity,
             vec![
                 "run".to_owned(),
+                "--offline".to_owned(),
+                "--locked".to_owned(),
                 "--quiet".to_owned(),
                 "--manifest-path".to_owned(),
                 "tools/boundary-check/Cargo.toml".to_owned(),
