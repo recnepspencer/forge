@@ -1,7 +1,7 @@
 use super::*;
 
-pub(super) fn diagnostic_support_report(
-) -> worth_foundational::FoundationalDiagnosticSupportReport {
+pub(super) fn diagnostic_support_report() -> worth_foundational::FoundationalDiagnosticSupportReport
+{
     materialize_diagnostic_support_report(
         FoundationalDiagnosticSupportInput::new(
             diagnostic_subject(),
@@ -21,8 +21,8 @@ pub(super) fn diagnostic_support_report(
     .unwrap()
 }
 
-pub(super) fn diagnostic_explanation(
-) -> worth_foundational::FoundationalDiagnosticExplanationBundle {
+pub(super) fn diagnostic_explanation() -> worth_foundational::FoundationalDiagnosticExplanationBundle
+{
     materialize_diagnostic_explanation_bundle(
         FoundationalDiagnosticExplanationInput::new(
             diagnostic_subject(),
@@ -83,8 +83,8 @@ pub(super) fn admitted_backend() -> AdmittedBackendCapabilityWitness {
     admitted_backend_for::<HostDurabilityProfile>()
 }
 
-pub(super) fn admitted_backend_for<P: BackendDurabilityProfile>(
-) -> AdmittedBackendCapabilityWitness {
+pub(super) fn admitted_backend_for<P: BackendDurabilityProfile>() -> AdmittedBackendCapabilityWitness
+{
     PhysicalBackendCapabilityAdmissionAuthority::store_owned()
         .admit_backend_capability(BackendCapabilityAdmissionRequest::new(
             P::TARGET,
