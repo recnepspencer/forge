@@ -36,6 +36,7 @@ pub use crash_probe::execute_scenario_crash_probe;
 use topology::ScenarioOwnerTopology;
 
 pub struct ExecutedOwnerWorld {
+    scenario_identity: String,
     pub selected: SelectedOperationalControlState,
     pub truth: OperationalTruthReport,
     pub trace: OperationalRecoveryDriverTrace,
@@ -296,6 +297,7 @@ fn execute_materialized_scenario_world(
     let audits = audit::derive_audits(&driver, &selected);
 
     ExecutedOwnerWorld {
+        scenario_identity: identity.to_owned(),
         selected,
         truth,
         trace: driver.trace(),

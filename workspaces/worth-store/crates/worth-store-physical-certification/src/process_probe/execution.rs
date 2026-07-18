@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 
 use super::{
     ProcessIdentityEvidence, ProcessProbeDeclaration, ProcessTerminationRequirement,
+    SealedProcessProbeInput,
 };
 
 pub const PROCESS_PROBE_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_EVIDENCE_ROOT";
@@ -45,12 +46,14 @@ pub enum ProcessProbeEvidenceDenial {
     EnvironmentMismatch,
     TerminationMismatch,
     OutputArtifactUnavailable,
+    OutputArtifactMismatch,
     EvidenceWrite,
 }
 
 impl ProcessProbeExecution {
     pub fn observed(
         declaration: ProcessProbeDeclaration,
+        input: &SealedProcessProbeInput,
         process: ProcessIdentityEvidence,
         termination: ProcessTermination,
         output_artifact: &Path,
@@ -58,9 +61,15 @@ impl ProcessProbeExecution {
         if !termination_satisfies(declaration.required_termination(), &termination) {
             return Err(ProcessProbeEvidenceDenial::TerminationMismatch);
         }
-        let output_artifact_identity = fs::read(output_artifact)
-            .map(|bytes| Sha256::digest(bytes).into())
-            .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactUnavailable)?;
+        if declaration.input_identity() != input.identity()
+            || !input
+                .admits_output_path(output_artifact)
+                .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactMismatch)?
+        {
+            return Err(ProcessProbeEvidenceDenial::OutputArtifactMismatch);
+        }
+        process.validate_against(&declaration, process.process_id)?;
+        let output_artifact_identity = file_digest(output_artifact)?;
         let mut evidence = Self {
             schema_version: 1,
             declaration,
@@ -120,7 +129,7 @@ fn termination_satisfies(
         (required, observed),
         (
             ProcessTerminationRequirement::GracefulExit,
-            ProcessTermination::GracefulExit { .. }
+            ProcessTermination::GracefulExit { code: Some(0) }
         ) | (
             ProcessTerminationRequirement::PanicUnwind,
             ProcessTermination::PanicUnwind { .. }
@@ -139,4 +148,21 @@ fn termination_satisfies(
 
 fn hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn file_digest(path: &Path) -> Result<[u8; 32], ProcessProbeEvidenceDenial> {
+    let mut file = fs::File::open(path)
+        .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactUnavailable)?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactUnavailable)?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(digest.finalize().into())
 }

@@ -6,8 +6,9 @@ use std::time::{Duration, Instant};
 use sha2::{Digest, Sha256};
 
 use super::{
-    interpret_tlc_output, ExecutedProtocolCheck, ExternalToolIdentity, PinnedTlcToolchain,
-    ProtocolCheckArtifactIdentity, ProtocolCheckInvocation, ProtocolCheckVerdict,
+    interpret_tlc_output, ExecutedProtocolCheck, ExternalToolIdentity, ExternalToolObservation,
+    PinnedTlcToolchain, ProtocolCheckArtifactIdentity, ProtocolCheckInvocation,
+    ProtocolCheckVerdict,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,6 +27,7 @@ pub enum ProtocolRunnerFailure {
     },
     MissingModel,
     MissingConfiguration,
+    StateDirectoryNotFresh,
     ProcessLaunch(String),
     ProcessTimedOut,
     ToolIdentityUnavailable(String),
@@ -80,11 +82,11 @@ pub fn execute_protocol_check_with_identity(
     let external_tool_identity = observe_external_tool_identity(
         &runner.java_executable,
         &runner.tool_jar,
+        &runner.state_directory,
         tool_sha256,
         invocation.bounds().maximum_runtime_millis().get(),
     )?;
-    std::fs::create_dir_all(&runner.state_directory)
-        .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
+    prepare_state_directory(&runner.state_directory)?;
 
     let mut child = Command::new(&runner.java_executable)
         .current_dir(
@@ -150,6 +152,7 @@ pub fn execute_protocol_check_with_identity(
 fn observe_external_tool_identity(
     java_executable: &Path,
     tool_jar: &Path,
+    state_directory: &Path,
     tool_sha256: [u8; 32],
     timeout_millis: u64,
 ) -> Result<ExternalToolIdentity, ProtocolRunnerFailure> {
@@ -180,21 +183,37 @@ fn observe_external_tool_identity(
             "java -version returned no identity".to_owned(),
         ));
     }
-    Ok(ExternalToolIdentity::observed(
-        "tlc2.TLC",
-        PinnedTlcToolchain::VERSION,
-        PinnedTlcToolchain::DOWNLOAD_URL,
+    Ok(ExternalToolIdentity::observed(ExternalToolObservation {
+        adapter_name: "tlc2.TLC".to_owned(),
+        adapter_version: PinnedTlcToolchain::VERSION.to_owned(),
+        provenance: PinnedTlcToolchain::DOWNLOAD_URL.to_owned(),
         executable_path,
         executable_sha256,
         executable_version,
         tool_artifact_path,
-        tool_sha256,
+        tool_artifact_sha256: tool_sha256,
         timeout_millis,
-        format!(
-            "workers=auto; available-parallelism={}; deadlock-check=true; state-directory=attempt-scoped; version-probe-timeout-ms=10000",
-            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get)
+        resource_posture: format!(
+            "workers=auto; available-parallelism={}; deadlock-check=true; state-directory={}; state-directory-posture=fresh-exclusive; version-probe-timeout-ms=10000; output-cap-bytes-per-stream=67108864",
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
+            normalized_path(state_directory),
         ),
-    ))
+    }))
+}
+
+fn prepare_state_directory(path: &Path) -> Result<(), ProtocolRunnerFailure> {
+    let parent = path
+        .parent()
+        .ok_or(ProtocolRunnerFailure::StateDirectoryNotFresh)?;
+    std::fs::create_dir_all(parent)
+        .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
+    std::fs::create_dir(path).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            ProtocolRunnerFailure::StateDirectoryNotFresh
+        } else {
+            ProtocolRunnerFailure::ProcessLaunch(error.to_string())
+        }
+    })
 }
 
 fn command_output_with_timeout(
@@ -212,7 +231,14 @@ fn command_output_with_timeout(
     let stderr = child.stderr.take().expect("piped identity stderr");
     let stdout_reader = std::thread::spawn(move || read_process_stream(stdout));
     let stderr_reader = std::thread::spawn(move || read_process_stream(stderr));
-    let status = wait_for_checker(&mut child, Instant::now() + timeout)?;
+    let status = match wait_for_checker(&mut child, Instant::now() + timeout) {
+        Ok(status) => status,
+        Err(failure) => {
+            let _ = stdout_reader.join();
+            let _ = stderr_reader.join();
+            return Err(failure);
+        }
+    };
     let stdout = stdout_reader
         .join()
         .map_err(|_| ProtocolRunnerFailure::ToolIdentityUnavailable("stdout reader panicked".into()))??;
@@ -231,15 +257,27 @@ fn wait_for_checker(
     deadline: Instant,
 ) -> Result<ExitStatus, ProtocolRunnerFailure> {
     loop {
-        if let Some(status) = child
-            .try_wait()
-            .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?
-        {
+        let status = match child.try_wait() {
+            Ok(status) => status,
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(ProtocolRunnerFailure::ProcessLaunch(error.to_string()));
+            }
+        };
+        if let Some(status) = status {
             return Ok(status);
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            let kill_error = child.kill().err();
+            child
+                .wait()
+                .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
+            if let Some(error) = kill_error {
+                return Err(ProtocolRunnerFailure::ProcessLaunch(format!(
+                    "could not kill timed-out checker: {error}"
+                )));
+            }
             return Err(ProtocolRunnerFailure::ProcessTimedOut);
         }
         std::thread::sleep(Duration::from_millis(10));
@@ -247,10 +285,23 @@ fn wait_for_checker(
 }
 
 fn read_process_stream(mut stream: impl Read) -> Result<Vec<u8>, ProtocolRunnerFailure> {
+    const MAX_CHECKER_OUTPUT_BYTES: usize = 64 * 1024 * 1024;
     let mut bytes = Vec::new();
-    stream
-        .read_to_end(&mut bytes)
-        .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = stream
+            .read(&mut buffer)
+            .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
+        if read == 0 {
+            break;
+        }
+        if bytes.len().saturating_add(read) > MAX_CHECKER_OUTPUT_BYTES {
+            return Err(ProtocolRunnerFailure::ProcessLaunch(
+                "checker output exceeded 64 MiB".to_owned(),
+            ));
+        }
+        bytes.extend_from_slice(&buffer[..read]);
+    }
     Ok(bytes)
 }
 
@@ -265,9 +316,24 @@ fn require_pinned_tool_digest(path: &Path) -> Result<[u8; 32], ProtocolRunnerFai
 }
 
 fn file_digest(path: &Path) -> Result<[u8; 32], ProtocolRunnerFailure> {
-    let bytes = std::fs::read(path)
+    let mut file = std::fs::File::open(path)
         .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
-    Ok(Sha256::digest(bytes).into())
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(digest.finalize().into())
+}
+
+fn normalized_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 fn hex_digest(digest: &[u8; 32]) -> String {

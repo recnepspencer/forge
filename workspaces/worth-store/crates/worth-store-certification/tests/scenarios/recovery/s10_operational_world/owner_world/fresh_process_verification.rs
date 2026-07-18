@@ -27,7 +27,7 @@ impl ExecutedOwnerWorld {
                 .workspace_root()
                 .join("fresh-process-offline-truth"),
         )
-        .certify_destroyed_primary(&baseline, &mut observer)
+        .certify_destroyed_primary(&self.scenario_identity, &baseline, &mut observer)
         .expect("fresh process independently classifies destroyed primary")
     }
 }

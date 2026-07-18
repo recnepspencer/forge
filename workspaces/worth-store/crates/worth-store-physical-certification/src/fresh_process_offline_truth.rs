@@ -13,7 +13,7 @@ use crate::process_probe::{
     write_current_process_observation,
 };
 use crate::{
-    ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration,
+    AdmittedProcessProbe, ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration,
     ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessRole, ProcessTerminationRequirement,
     SealedProcessProbeInput,
 };
@@ -99,15 +99,21 @@ impl FreshProcessOfflineTruthRunner {
 
     pub fn certify_destroyed_primary(
         &self,
+        scenario_identity: &str,
         baseline: &FreshProcessOfflineTruthBaseline,
         observer_command: &mut Command,
     ) -> Result<FreshProcessDestroyedPrimaryEvidence, FreshProcessOfflineTruthDenial> {
-        self.certify_destroyed_primary_with_process_evidence(baseline, observer_command)
-            .map(FreshProcessDestroyedPrimaryCertification::into_destroyed_primary)
+        self.certify_destroyed_primary_with_process_evidence(
+            scenario_identity,
+            baseline,
+            observer_command,
+        )
+        .map(FreshProcessDestroyedPrimaryCertification::into_destroyed_primary)
     }
 
     pub fn certify_destroyed_primary_with_process_evidence(
         &self,
+        scenario_identity: &str,
         baseline: &FreshProcessOfflineTruthBaseline,
         observer_command: &mut Command,
     ) -> Result<FreshProcessDestroyedPrimaryCertification, FreshProcessOfflineTruthDenial> {
@@ -120,9 +126,13 @@ impl FreshProcessOfflineTruthRunner {
         if damaged_digest == baseline.live_digest {
             return Err(FreshProcessOfflineTruthDenial::TargetNotDamaged);
         }
-        let mut subject = [0_u8; 64];
-        subject[..32].copy_from_slice(&baseline.live_digest);
-        subject[32..].copy_from_slice(&damaged_digest);
+        let mut subject = Sha256::new();
+        subject.update(b"worth-store-s10-offline-truth-subject-v1");
+        subject.update((scenario_identity.len() as u64).to_le_bytes());
+        subject.update(scenario_identity.as_bytes());
+        subject.update(baseline.live_digest);
+        subject.update(damaged_digest);
+        let subject: [u8; 32] = subject.finalize().into();
         let challenge = fresh_challenge(
             b"worth-store-s10-fresh-process-offline-truth-v1",
             &subject,
@@ -140,7 +150,7 @@ impl FreshProcessOfflineTruthRunner {
             .env(OFFLINE_TRUTH_CHALLENGE_ENV, encode_hex_32(&challenge))
             .env(OFFLINE_TRUTH_TARGET_ENV, &baseline.target);
         let input = SealedProcessProbeInput::new(
-            "destroyed-primary-offline-truth",
+            scenario_identity,
             "observe-damaged-primary-without-live-runtime",
             vec![
                 ProcessArtifactPath::new("damaged-primary", &baseline.target)?,
@@ -179,6 +189,7 @@ impl FreshProcessOfflineTruthRunner {
         let process = read_process_observation(&process_path, &declaration, process_id)?;
         let execution = ProcessProbeExecution::observed(
             declaration,
+            &input,
             process,
             classify_exit(status),
             &report_path,
@@ -201,6 +212,7 @@ impl FreshProcessOfflineTruthRunner {
 }
 
 pub fn write_offline_truth_observation_from_environment(
+    admission: &AdmittedProcessProbe,
     truth: &OperationalTruthReport,
 ) -> Result<bool, FreshProcessOfflineTruthDenial> {
     if std::env::var(OFFLINE_TRUTH_ROLE_ENV).ok().as_deref() != Some(OBSERVER_ROLE) {
@@ -237,7 +249,7 @@ pub fn write_offline_truth_observation_from_environment(
             end,
         },
     )?;
-    write_current_process_observation(ProcessRole::OfflineVerifier, None)?;
+    write_current_process_observation(admission, None)?;
     Ok(true)
 }
 

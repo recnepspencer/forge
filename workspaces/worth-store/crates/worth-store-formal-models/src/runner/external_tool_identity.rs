@@ -14,31 +14,32 @@ pub struct ExternalToolIdentity {
     resource_posture: String,
 }
 
+pub(super) struct ExternalToolObservation {
+    pub(super) adapter_name: String,
+    pub(super) adapter_version: String,
+    pub(super) provenance: String,
+    pub(super) executable_path: PathBuf,
+    pub(super) executable_sha256: [u8; 32],
+    pub(super) executable_version: String,
+    pub(super) tool_artifact_path: PathBuf,
+    pub(super) tool_artifact_sha256: [u8; 32],
+    pub(super) timeout_millis: u64,
+    pub(super) resource_posture: String,
+}
+
 impl ExternalToolIdentity {
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn observed(
-        adapter_name: impl Into<String>,
-        adapter_version: impl Into<String>,
-        provenance: impl Into<String>,
-        executable_path: PathBuf,
-        executable_sha256: [u8; 32],
-        executable_version: String,
-        tool_artifact_path: PathBuf,
-        tool_artifact_sha256: [u8; 32],
-        timeout_millis: u64,
-        resource_posture: impl Into<String>,
-    ) -> Self {
+    pub(super) fn observed(observation: ExternalToolObservation) -> Self {
         Self {
-            adapter_name: adapter_name.into(),
-            adapter_version: adapter_version.into(),
-            provenance: provenance.into(),
-            executable_path,
-            executable_sha256,
-            executable_version,
-            tool_artifact_path,
-            tool_artifact_sha256,
-            timeout_millis,
-            resource_posture: resource_posture.into(),
+            adapter_name: observation.adapter_name,
+            adapter_version: observation.adapter_version,
+            provenance: observation.provenance,
+            executable_path: observation.executable_path,
+            executable_sha256: observation.executable_sha256,
+            executable_version: observation.executable_version,
+            tool_artifact_path: observation.tool_artifact_path,
+            tool_artifact_sha256: observation.tool_artifact_sha256,
+            timeout_millis: observation.timeout_millis,
+            resource_posture: observation.resource_posture,
         }
     }
 

@@ -17,7 +17,10 @@ pub struct StructuralPredicateFailure {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "verdict", rename_all = "snake_case")]
 pub enum StructuralPredicateVerdict {
-    Passed { authority_identity: String },
+    Passed {
+        authority_basis_identity: String,
+        authority_identity: String,
+    },
     Failed { failure: StructuralPredicateFailure },
 }
 
@@ -44,6 +47,9 @@ pub struct StructuralToolExecutionEvidence {
     pub process_id: u32,
     pub exit_code: Option<i32>,
     pub timed_out: bool,
+    pub stdout_sha256: String,
+    pub stderr_sha256: String,
+    pub observation_failure: Option<String>,
     pub successful: bool,
     pub authority_identity: String,
 }
@@ -85,7 +91,9 @@ impl StructuralPreflightEvidence {
                 return None;
             }
             match &evidence.verdict {
-                StructuralPredicateVerdict::Passed { authority_identity } => {
+                StructuralPredicateVerdict::Passed {
+                    authority_identity, ..
+                } => {
                     Some(authority_identity.as_str())
                 }
                 StructuralPredicateVerdict::Failed { .. } => None,

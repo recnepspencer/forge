@@ -106,6 +106,16 @@ impl SealedProcessProbeInput {
         self.identity
     }
 
+    pub(crate) fn admits_output_path(&self, path: &std::path::Path) -> Result<bool, String> {
+        self.artifacts
+            .iter()
+            .try_fold(false, |admitted, artifact| {
+                artifact
+                    .admits_output_path(path)
+                    .map(|matches| admitted || matches)
+            })
+    }
+
     pub fn decode_untrusted(bytes: &[u8]) -> Result<Self, String> {
         Self::decode(bytes, true)
     }

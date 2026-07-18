@@ -101,7 +101,9 @@ impl ProcessArtifactPath {
                 }
             }
             ProcessArtifactDisposition::OutputChannel => {
-                if self.initial_observation == ProcessArtifactObservation::Absent {
+                if self.initial_observation == ProcessArtifactObservation::Absent
+                    && observe(Path::new(&self.path))? == ProcessArtifactObservation::Absent
+                {
                     Ok(())
                 } else {
                     Err(format!(
@@ -111,6 +113,11 @@ impl ProcessArtifactPath {
                 }
             }
         }
+    }
+
+    pub(crate) fn admits_output_path(&self, path: &Path) -> Result<bool, String> {
+        Ok(self.disposition == ProcessArtifactDisposition::OutputChannel
+            && self.path == normalized_path(&absolute_path(path)?))
     }
 }
 

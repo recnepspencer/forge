@@ -7,13 +7,15 @@ use worth_store_test_support::structural_preflight::{
 };
 
 use crate::evidence::sha256_serialized;
+use crate::classification::{
+    validate_feature_semantic_authority_policy, validate_production_dependency_policy,
+};
 use crate::ValidatedProofInventory;
 
 use super::{residue, tool_execution};
 
 pub(super) fn execute(
     forge_root: &Path,
-    store_root: &Path,
     plan: StructuralPreflightPlan,
     inventory: Option<&ValidatedProofInventory>,
     validation_failure: Option<&str>,
@@ -34,7 +36,6 @@ pub(super) fn execute(
             .and_then(|tool| tools.get(&tool_key(tool)));
         let verdict = evaluate_predicate(
             forge_root,
-            store_root,
             predicate.predicate,
             &input_identity,
             inventory,
@@ -44,7 +45,7 @@ pub(super) fn execute(
         predicates.push(StructuralPredicateEvidence {
             predicate: predicate.predicate,
             input_identity,
-            tool_identity: tool_outcome.map(|outcome| outcome.identity.clone()),
+            tool_identity: tool_outcome.map(|outcome| outcome.identity().to_owned()),
             verdict,
         });
     }
@@ -61,7 +62,6 @@ pub(super) fn execute(
 
 fn evaluate_predicate(
     forge_root: &Path,
-    _store_root: &Path,
     predicate: StructuralPredicate,
     input_identity: &str,
     inventory: Option<&ValidatedProofInventory>,
@@ -75,19 +75,16 @@ fn evaluate_predicate(
                 predicate,
                 "tool_rejected",
                 message,
-                vec![tool.identity.clone()],
+                vec![tool.identity().to_owned()],
             ));
         }
     }
     match predicate {
         Predicate::Boundary | Predicate::AgentContext | Predicate::LineCap | Predicate::Naming => {
             let tool = tool.ok_or_else(|| format!("{predicate:?} has no declared tool result"))?;
-            Ok(passed(predicate, input_identity, &tool.identity))
+            Ok(passed(predicate, input_identity, tool.identity()))
         }
-        Predicate::Inventory
-        | Predicate::Preservation
-        | Predicate::Feature
-        | Predicate::Dependency => {
+        Predicate::Inventory | Predicate::Preservation => {
             let Some(inventory) = inventory else {
                 return Ok(failed(
                     predicate,
@@ -103,19 +100,22 @@ fn evaluate_predicate(
                     inventory.inventory().proofs.len(),
                     input_identity,
                 ))?,
-                Predicate::Feature => sha256_serialized(&(
-                    "feature-graph-validated-v1",
-                    &inventory.inventory().discovered.packages,
-                ))?,
-                Predicate::Dependency => sha256_serialized(&(
-                    "dependency-boundary-validated-v1",
-                    &inventory.inventory().discovered.packages,
-                    input_identity,
-                ))?,
                 _ => unreachable!(),
             };
             Ok(passed(predicate, input_identity, &inventory_identity))
         }
+        Predicate::Feature => evaluate_feature_predicate(
+            predicate,
+            input_identity,
+            inventory,
+            validation_failure,
+        ),
+        Predicate::Dependency => evaluate_dependency_predicate(
+            predicate,
+            input_identity,
+            inventory,
+            validation_failure,
+        ),
         Predicate::AdmittedResidue => match residue::validate(forge_root) {
             Ok(posture) => Ok(passed(
                 predicate,
@@ -132,6 +132,102 @@ fn evaluate_predicate(
     }
 }
 
+fn evaluate_feature_predicate(
+    predicate: StructuralPredicate,
+    input_identity: &str,
+    inventory: Option<&ValidatedProofInventory>,
+    validation_failure: Option<&str>,
+) -> Result<StructuralPredicateVerdict, String> {
+    let Some(inventory) = inventory else {
+        return Ok(repository_validation_failed(
+            predicate,
+            input_identity,
+            validation_failure,
+        ));
+    };
+    match validate_feature_semantic_authority_policy(&inventory.inventory().discovered) {
+        Ok(_) => Ok(passed(
+            predicate,
+            input_identity,
+            &sha256_serialized(&(
+                "feature-semantic-authority-validated-v1",
+                &inventory.inventory().discovered.feature_semantic_authority,
+            ))?,
+        )),
+        Err(violations) => Ok(failed(
+            predicate,
+            "invalid_feature_semantic_authority",
+            &joined_violations(&violations),
+            vec![input_identity.to_owned()],
+        )),
+    }
+}
+
+fn evaluate_dependency_predicate(
+    predicate: StructuralPredicate,
+    input_identity: &str,
+    inventory: Option<&ValidatedProofInventory>,
+    validation_failure: Option<&str>,
+) -> Result<StructuralPredicateVerdict, String> {
+    let Some(inventory) = inventory else {
+        return Ok(repository_validation_failed(
+            predicate,
+            input_identity,
+            validation_failure,
+        ));
+    };
+    let discovered = &inventory.inventory().discovered;
+    let authority = match validate_feature_semantic_authority_policy(discovered) {
+        Ok(authority) => authority,
+        Err(violations) => {
+            return Ok(failed(
+                predicate,
+                "feature_authority_prerequisite_rejected",
+                &joined_violations(&violations),
+                vec!["feature-semantic-authority".to_owned()],
+            ));
+        }
+    };
+    match validate_production_dependency_policy(discovered, &authority) {
+        Ok(()) => Ok(passed(
+            predicate,
+            input_identity,
+            &sha256_serialized(&(
+                "production-dependency-policy-validated-v1",
+                &discovered.build_graph,
+                input_identity,
+            ))?,
+        )),
+        Err(violations) => Ok(failed(
+            predicate,
+            "forbidden_dependency",
+            &joined_violations(&violations),
+            vec![input_identity.to_owned()],
+        )),
+    }
+}
+
+fn repository_validation_failed(
+    predicate: StructuralPredicate,
+    input_identity: &str,
+    validation_failure: Option<&str>,
+) -> StructuralPredicateVerdict {
+    failed(
+        predicate,
+        "repository_validation_failed",
+        validation_failure.unwrap_or("repository validation produced no inventory"),
+        vec![input_identity.to_owned()],
+    )
+}
+
+fn joined_violations(violations: &[impl std::fmt::Display]) -> String {
+    violations
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn passed(
     predicate: StructuralPredicate,
     input_identity: &str,
@@ -140,6 +236,7 @@ fn passed(
     let identity = sha256_serialized(&(predicate, input_identity, authority))
         .expect("structural predicate identity is serializable");
     StructuralPredicateVerdict::Passed {
+        authority_basis_identity: authority.to_owned(),
         authority_identity: identity,
     }
 }

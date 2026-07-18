@@ -1,7 +1,9 @@
+mod bounded_process;
 mod cargo_environment;
 mod declaration;
 mod diagnostics;
 mod evidence;
+mod toolchain;
 #[cfg(test)]
 mod tests;
 
@@ -12,7 +14,10 @@ pub use declaration::{
     UiProofSuiteDeclaration,
 };
 pub use diagnostics::CheckedCompilerDiagnostic;
-pub use evidence::{UiFixtureRunEvidence, UiProofRunEvidence, UiProofRunFailure};
+pub use evidence::{
+    UiCompilerToolIdentity, UiCompilerToolchainIdentity, UiFixtureRunEvidence,
+    UiProofRunEvidence, UiProofRunFailure,
+};
 
 /// An outer proof controller may bind this to an attempt-scoped directory so
 /// compiler-boundary evidence is handed directly into the owning proof run.

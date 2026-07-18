@@ -11,15 +11,25 @@ use worth_store_test_support::structural_preflight::{
 use crate::evidence::sha256_bytes;
 
 pub(super) struct ToolOutcome {
-    pub identity: String,
     pub failure: Option<String>,
-    declaration: StructuralToolDeclaration,
-    command_identity: String,
-    declared_tool_identities: Vec<String>,
-    process_id: u32,
-    exit_code: Option<i32>,
-    timed_out: bool,
-    successful: bool,
+    execution: StructuralToolExecutionEvidence,
+}
+
+impl ToolOutcome {
+    pub fn identity(&self) -> &str {
+        &self.execution.authority_identity
+    }
+
+    fn admit_tool_identity(&mut self, identity: &str) {
+        self.execution
+            .declared_tool_identities
+            .push(identity.to_owned());
+        self.execution.declared_tool_identities.sort();
+        self.execution.declared_tool_identities.dedup();
+        self.execution
+            .seal_authority_identity()
+            .expect("structural tool execution evidence is serializable");
+    }
 }
 
 pub(super) fn execute_once(
@@ -38,10 +48,7 @@ pub(super) fn execute_once(
                 entry.insert(run(forge_root, tool));
             }
             std::collections::btree_map::Entry::Occupied(mut entry) => {
-                entry
-                    .get_mut()
-                    .declared_tool_identities
-                    .push(tool.tool_identity.clone());
+                entry.get_mut().admit_tool_identity(&tool.tool_identity);
             }
         }
     }
@@ -51,34 +58,7 @@ pub(super) fn execute_once(
 pub(super) fn evidence(
     tools: &BTreeMap<String, ToolOutcome>,
 ) -> Vec<StructuralToolExecutionEvidence> {
-    tools
-        .values()
-        .map(|outcome| {
-            let mut declared_tool_identities = outcome.declared_tool_identities.clone();
-            declared_tool_identities.sort();
-            declared_tool_identities.dedup();
-            StructuralToolExecutionEvidence {
-                command_identity: outcome.command_identity.clone(),
-                provenance: outcome.declaration.provenance.clone(),
-                program: outcome.declaration.program.clone(),
-                resolved_program_path: outcome.declaration.resolved_program_path.clone(),
-                program_sha256: outcome.declaration.program_sha256.clone(),
-                program_version_identity: outcome
-                    .declaration
-                    .program_version_identity
-                    .clone(),
-                arguments: outcome.declaration.arguments.clone(),
-                declared_tool_identities,
-                timeout_millis: outcome.declaration.timeout_millis,
-                resource_posture: outcome.declaration.resource_posture.clone(),
-                process_id: outcome.process_id,
-                exit_code: outcome.exit_code,
-                timed_out: outcome.timed_out,
-                successful: outcome.successful,
-                authority_identity: outcome.identity.clone(),
-            }
-        })
-        .collect()
+    tools.values().map(|outcome| outcome.execution.clone()).collect()
 }
 
 fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
@@ -129,18 +109,7 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
     let successful = status.as_ref().is_some_and(ExitStatus::success)
         && !timed_out
         && observation_failure.is_none();
-    let authority_identity = sha256_bytes(
-        format!(
-            "{}\n{:?}\n{}\n{}\n{}",
-            identity,
-            exit_code,
-            timed_out,
-            stdout,
-            stderr
-        )
-        .as_bytes(),
-    );
-    let failure = observation_failure.or_else(|| {
+    let failure = observation_failure.clone().or_else(|| {
         (!successful).then(|| {
             if timed_out {
                 format!(
@@ -157,17 +126,20 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
             }
         })
     });
-    ToolOutcome {
-        identity: authority_identity,
+    outcome(
+        tool,
+        identity,
+        ObservedToolExecution {
+            process_id,
+            exit_code,
+            timed_out,
+            stdout,
+            stderr,
+            observation_failure,
+            successful,
+        },
         failure,
-        declaration: tool.clone(),
-        command_identity: identity,
-        declared_tool_identities: vec![tool.tool_identity.clone()],
-        process_id,
-        exit_code,
-        timed_out,
-        successful,
-    }
+    )
 }
 
 fn launch_failure(
@@ -175,17 +147,63 @@ fn launch_failure(
     command_identity: String,
     reason: String,
 ) -> ToolOutcome {
-    ToolOutcome {
-        identity: command_identity.clone(),
-        failure: Some(format!("could not launch {}: {reason}", tool.tool_identity)),
-        declaration: tool.clone(),
+    let failure = format!("could not launch {}: {reason}", tool.tool_identity);
+    outcome(
+        tool,
         command_identity,
+        ObservedToolExecution {
+            process_id: 0,
+            exit_code: None,
+            timed_out: false,
+            stdout: String::new(),
+            stderr: String::new(),
+            observation_failure: Some(failure.clone()),
+            successful: false,
+        },
+        Some(failure),
+    )
+}
+
+fn outcome(
+    tool: &StructuralToolDeclaration,
+    command_identity: String,
+    observed: ObservedToolExecution,
+    failure: Option<String>,
+) -> ToolOutcome {
+    let mut execution = StructuralToolExecutionEvidence {
+        command_identity,
+        provenance: tool.provenance.clone(),
+        program: tool.program.clone(),
+        resolved_program_path: tool.resolved_program_path.clone(),
+        program_sha256: tool.program_sha256.clone(),
+        program_version_identity: tool.program_version_identity.clone(),
+        arguments: tool.arguments.clone(),
         declared_tool_identities: vec![tool.tool_identity.clone()],
-        process_id: 0,
-        exit_code: None,
-        timed_out: false,
-        successful: false,
-    }
+        timeout_millis: tool.timeout_millis,
+        resource_posture: tool.resource_posture.clone(),
+        process_id: observed.process_id,
+        exit_code: observed.exit_code,
+        timed_out: observed.timed_out,
+        stdout_sha256: sha256_bytes(observed.stdout.as_bytes()),
+        stderr_sha256: sha256_bytes(observed.stderr.as_bytes()),
+        observation_failure: observed.observation_failure,
+        successful: observed.successful,
+        authority_identity: String::new(),
+    };
+    execution
+        .seal_authority_identity()
+        .expect("structural tool execution evidence is serializable");
+    ToolOutcome { failure, execution }
+}
+
+struct ObservedToolExecution {
+    process_id: u32,
+    exit_code: Option<i32>,
+    timed_out: bool,
+    stdout: String,
+    stderr: String,
+    observation_failure: Option<String>,
+    successful: bool,
 }
 
 fn wait_bounded(
@@ -226,8 +244,22 @@ fn wait_bounded(
 }
 
 fn read_stream(mut stream: impl Read) -> std::io::Result<Vec<u8>> {
+    const MAX_OUTPUT_BYTES: usize = 8 * 1024 * 1024;
     let mut bytes = Vec::new();
-    stream.read_to_end(&mut bytes)?;
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = stream.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        if bytes.len().saturating_add(read) > MAX_OUTPUT_BYTES {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "structural tool output exceeded 8 MiB",
+            ));
+        }
+        bytes.extend_from_slice(&buffer[..read]);
+    }
     Ok(bytes)
 }
 

@@ -5,7 +5,8 @@ use worth_store_operations::{OperationalControlSessionObservation, OperationalCo
 
 use crate::certification_child_process::{decode_hex_32, encode_hex_32};
 use crate::{
-    OperationalRecoveryCrashCutDenial, OperationalRecoveryCrashCutEvidence,
+    admit_current_process_probe, AdmittedProcessProbe, OperationalRecoveryCrashCutDenial,
+    OperationalRecoveryCrashCutEvidence,
     OperationalRecoveryDriverTrace, OperationalRecoveryYieldpoint, ProcessProbeEvidenceDenial,
     ProcessProbeExecution, ProcessRole,
 };
@@ -26,6 +27,7 @@ pub struct OperationalRecoveryProcessCrashConfig {
     yieldpoint: OperationalRecoveryYieldpoint,
     report_path: PathBuf,
     challenge: [u8; 32],
+    admission: AdmittedProcessProbe,
 }
 
 #[derive(Debug)]
@@ -76,10 +78,12 @@ impl OperationalRecoveryProcessCrashConfig {
             .map_err(|_| OperationalRecoveryProcessCrashDenial::InvalidEnvironment)?;
         let yieldpoint = OperationalRecoveryYieldpoint::from_token(&token)
             .ok_or(OperationalRecoveryProcessCrashDenial::InvalidEnvironment)?;
+        let admission = admit_current_process_probe(ProcessRole::Writer)?;
         Ok(Some(Self {
             yieldpoint,
             report_path,
             challenge,
+            admission,
         }))
     }
 
@@ -101,7 +105,7 @@ impl OperationalRecoveryProcessCrashConfig {
         };
         write_report(&self.report_path, &report).expect("write durable S10 crash-cut report");
         write_current_process_observation(
-            ProcessRole::Writer,
+            &self.admission,
             Some(observation.process().fingerprint()),
         )
         .expect("write S10 writer process observation");
@@ -112,6 +116,7 @@ impl OperationalRecoveryProcessCrashConfig {
 }
 
 pub fn write_reopen_observation_from_environment(
+    admission: &AdmittedProcessProbe,
     store: &OperationalControlStore,
 ) -> Result<bool, OperationalRecoveryProcessCrashDenial> {
     if std::env::var(PROCESS_CRASH_ROLE_ENV).ok().as_deref() != Some(REOPEN_ROLE) {
@@ -143,10 +148,7 @@ pub fn write_reopen_observation_from_environment(
         },
     )
     .map_err(|_| OperationalRecoveryProcessCrashDenial::MissingOrMalformedReport)?;
-    write_current_process_observation(
-        ProcessRole::RecoveredRuntime,
-        Some(observation.process().fingerprint()),
-    )?;
+    write_current_process_observation(admission, Some(observation.process().fingerprint()))?;
     Ok(true)
 }
 

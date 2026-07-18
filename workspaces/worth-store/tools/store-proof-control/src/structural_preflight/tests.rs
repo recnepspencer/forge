@@ -6,7 +6,16 @@ use worth_store_test_support::structural_preflight::{
     StructuralToolDeclaration,
 };
 
+use crate::classification::{
+    ClassifiedInventory, FeatureAuthorityClass, FeatureSemanticAuthority,
+    FeatureSemanticDeclaration,
+};
+use crate::discovery::{
+    DependencyEdge, ObservedArtifactFootprint, ObservedBuildGraph, PackageSurface,
+    TestSurfaceInventory,
+};
 use crate::evidence::sha256_serialized;
+use crate::ValidatedProofInventory;
 
 use super::freshness;
 
@@ -35,7 +44,8 @@ fn changed_manifest_scope_names_only_the_invalidated_dependency_input() {
         .iter_mut()
         .find(|predicate| predicate.predicate == StructuralPredicate::Dependency)
         .unwrap();
-    dependency.input_scopes[0].input_identity = "changed-manifest-identity".to_owned();
+    dependency.input_scopes[0].input_identity =
+        sha256_serialized(&"changed-manifest-identity").unwrap();
     current.plan_identity.clear();
     current.plan_identity = sha256_serialized(&current).unwrap();
 
@@ -53,41 +63,64 @@ fn changed_manifest_scope_names_only_the_invalidated_dependency_input() {
 }
 
 #[test]
-fn dependency_and_generated_context_failures_remain_separate_predicates() {
-    let mut evidence = passed_evidence();
-    evidence.predicates = evidence
-        .predicates
-        .into_iter()
-        .map(|mut row| {
-            row.verdict = StructuralPredicateVerdict::Failed {
-                failure: StructuralPredicateFailure {
-                    predicate: row.predicate,
-                    failure_code: match row.predicate {
-                        StructuralPredicate::AgentContext => "stale_generated_context",
-                        StructuralPredicate::Dependency => "forbidden_dependency",
-                        _ => unreachable!(),
-                    }
-                    .to_owned(),
-                    message: format!("localized {:?} failure", row.predicate),
-                    invalidated_inputs: vec![row.input_identity.clone()],
-                },
-            };
-            row
-        })
-        .collect();
+fn forbidden_production_edge_fails_dependency_without_poisoning_feature_authority() {
+    let inventory = inventory_with_forbidden_feature_edge();
+    let plan = unsigned_plan(vec![
+        predicate_plan(StructuralPredicate::Feature, "feature-authority"),
+        predicate_plan(StructuralPredicate::Dependency, "dependency-manifests"),
+    ]);
 
+    let evidence = super::execution::execute(
+        std::path::Path::new("."),
+        plan,
+        Some(&inventory),
+        None,
+    )
+    .unwrap();
+
+    assert!(evidence
+        .passed_identity(StructuralPredicate::Feature)
+        .is_some());
     let failures = evidence.failures();
+    assert_eq!(failures.len(), 1);
+    assert_eq!(failures[0].predicate, StructuralPredicate::Dependency);
+    assert_eq!(failures[0].failure_code, "forbidden_dependency");
+    assert!(failures[0].message.contains("fixture-app"));
+    assert!(failures[0].message.contains("fixture-substrate"));
+}
 
-    assert_eq!(failures.len(), 2);
+#[test]
+fn changed_generated_context_names_only_agent_context_input() {
+    let evidence = passed_evidence();
+    let mut current = evidence.plan.clone();
+    let context = current
+        .predicates
+        .iter_mut()
+        .find(|predicate| predicate.predicate == StructuralPredicate::AgentContext)
+        .unwrap();
+    context.input_scopes[0].input_identity =
+        sha256_serialized(&"stale-generated-context").unwrap();
+    current.plan_identity.clear();
+    current.plan_identity = sha256_serialized(&current).unwrap();
+
+    let freshness = freshness::compare(&evidence, &current).unwrap();
+
+    let PreflightEvidenceFreshness::Stale { failures } = freshness else {
+        panic!("changed generated context was accepted as fresh");
+    };
+    assert_eq!(failures.len(), 1);
     assert_eq!(failures[0].predicate, StructuralPredicate::AgentContext);
-    assert_eq!(failures[1].predicate, StructuralPredicate::Dependency);
-    assert_ne!(failures[0].failure_code, failures[1].failure_code);
+    assert_eq!(
+        failures[0].invalidated_inputs,
+        vec!["agent-context-authority"]
+    );
 }
 
 #[test]
 fn claimed_bundle_identity_cannot_hide_mutated_predicate_evidence() {
     let mut evidence = passed_evidence();
     evidence.predicates[0].verdict = StructuralPredicateVerdict::Passed {
+        authority_basis_identity: "mutated-basis".to_owned(),
         authority_identity: "mutated-authority".to_owned(),
     };
 
@@ -127,7 +160,7 @@ fn identical_boundary_and_naming_commands_launch_one_observed_tool_process() {
     plan.plan_identity = sha256_serialized(&plan).unwrap();
     let root = std::env::current_dir().unwrap();
 
-    let evidence = super::execution::execute(&root, &root, plan, None, None).unwrap();
+    let evidence = super::execution::execute(&root, plan, None, None).unwrap();
 
     assert_eq!(evidence.tool_executions.len(), 1);
     assert_ne!(evidence.tool_executions[0].process_id, 0);
@@ -136,6 +169,13 @@ fn identical_boundary_and_naming_commands_launch_one_observed_tool_process() {
         vec!["synthetic-structural-tool"]
     );
     evidence.validate_integrity().unwrap();
+
+    let mut forged = evidence.clone();
+    forged.tool_executions[0].exit_code = Some(7);
+    forged.evidence_identity = PreflightEvidenceIdentity(String::new());
+    forged.evidence_identity =
+        PreflightEvidenceIdentity(sha256_serialized(&forged).unwrap());
+    assert!(forged.validate_integrity().is_err());
 }
 
 fn passed_evidence() -> StructuralPreflightEvidence {
@@ -175,12 +215,21 @@ fn passed_evidence() -> StructuralPreflightEvidence {
                     .collect::<Vec<_>>(),
             )
             .unwrap();
+            let authority_basis_identity =
+                sha256_serialized(&(predicate.predicate, "synthetic-basis")).unwrap();
+            let authority_identity = sha256_serialized(&(
+                predicate.predicate,
+                &input_identity,
+                &authority_basis_identity,
+            ))
+            .unwrap();
             StructuralPredicateEvidence {
                 predicate: predicate.predicate,
                 input_identity,
                 tool_identity: None,
                 verdict: StructuralPredicateVerdict::Passed {
-                    authority_identity: format!("{:?}-authority", predicate.predicate),
+                    authority_basis_identity,
+                    authority_identity,
                 },
             }
         })
@@ -208,8 +257,83 @@ fn predicate_plan(
             scope_identity: scope_identity.to_owned(),
             source_paths: vec![format!("{scope_identity}.fixture")],
             included_extensions: vec!["fixture".to_owned()],
-            input_identity: format!("{scope_identity}-input"),
+            input_identity: sha256_serialized(&(scope_identity, "input")).unwrap(),
         }],
         tool: None,
     }
+}
+
+fn unsigned_plan(predicates: Vec<StructuralPredicatePlan>) -> StructuralPreflightPlan {
+    let request = StructuralPreflightRequest::new(
+        StructuralPreflightProfile::Complete,
+        predicates.iter().map(|plan| plan.predicate).collect(),
+    )
+    .unwrap();
+    let mut plan = StructuralPreflightPlan {
+        schema_version: 1,
+        request,
+        predicates,
+        plan_identity: String::new(),
+    };
+    plan.plan_identity = sha256_serialized(&plan).unwrap();
+    plan
+}
+
+fn inventory_with_forbidden_feature_edge() -> ValidatedProofInventory {
+    let provider_feature = "certification-test-authority".to_owned();
+    let discovered = TestSurfaceInventory {
+        schema_version: 2,
+        workspace_root: "fixture".to_owned(),
+        target_root: "fixture/target".to_owned(),
+        packages: vec![
+            PackageSurface {
+                name: "fixture-app".to_owned(),
+                manifest_path: "fixture-app/Cargo.toml".to_owned(),
+                package_root: "fixture-app".to_owned(),
+                features: Vec::new(),
+                feature_definitions: Default::default(),
+            },
+            PackageSurface {
+                name: "fixture-substrate".to_owned(),
+                manifest_path: "fixture-substrate/Cargo.toml".to_owned(),
+                package_root: "fixture-substrate".to_owned(),
+                features: vec![provider_feature.clone()],
+                feature_definitions: [(
+                    provider_feature.clone(),
+                    Vec::new(),
+                )]
+                .into_iter()
+                .collect(),
+            },
+        ],
+        targets: Vec::new(),
+        cases: Vec::new(),
+        build_graph: ObservedBuildGraph {
+            dependency_edges: vec![DependencyEdge {
+                consumer: "fixture-app".to_owned(),
+                provider: "fixture-substrate".to_owned(),
+                manifest_name: "fixture-substrate".to_owned(),
+                dependency_kind: "normal".to_owned(),
+                features: vec![provider_feature.clone()],
+                optional: false,
+                uses_default_features: false,
+                target: None,
+            }],
+        },
+        workflow_commands: Vec::new(),
+        historical_artifacts: ObservedArtifactFootprint::not_observed("fixture/target"),
+        feature_semantic_authority: FeatureSemanticAuthority {
+            schema_version: 1,
+            declarations: vec![FeatureSemanticDeclaration {
+                package: "fixture-substrate".to_owned(),
+                feature: provider_feature,
+                authority: FeatureAuthorityClass::TestAuthority,
+            }],
+        },
+    };
+    ValidatedProofInventory::from_classified(ClassifiedInventory {
+        schema_version: 1,
+        discovered,
+        proofs: Vec::new(),
+    })
 }

@@ -85,7 +85,7 @@ impl OperationalRecoveryFreshProcessRunner {
             &paths.cut_process,
             CRASH_ENVIRONMENT_KEYS,
         )?;
-        let cut_execution = execute_cut(cut_command, cut_declaration, &paths)?;
+        let cut_execution = execute_cut(cut_command, cut_declaration, &cut_input, &paths)?;
         persist_execution(&self.evidence_directory, &cut_execution)?;
         let reopen_input = process_input(
             scenario_identity,
@@ -108,7 +108,8 @@ impl OperationalRecoveryFreshProcessRunner {
             &paths.reopen_process,
             CRASH_ENVIRONMENT_KEYS,
         )?;
-        let reopen_execution = execute_reopen(reopen_command, reopen_declaration, &paths)?;
+        let reopen_execution =
+            execute_reopen(reopen_command, reopen_declaration, &reopen_input, &paths)?;
         persist_execution(&self.evidence_directory, &reopen_execution)?;
         let crash_cut = validate_semantic_reports(
             &paths,
@@ -143,6 +144,7 @@ impl OperationalRecoveryProcessCrashEvidence {
 fn execute_cut(
     command: &mut Command,
     declaration: ProcessProbeDeclaration,
+    input: &SealedProcessProbeInput,
     paths: &ProbePaths,
 ) -> Result<ProcessProbeExecution, OperationalRecoveryProcessCrashDenial> {
     let mut child = command
@@ -166,6 +168,7 @@ fn execute_cut(
     let identity = read_process_observation(&paths.cut_process, &declaration, child.id())?;
     ProcessProbeExecution::observed(
         declaration,
+        input,
         identity,
         ProcessTermination::ParentKill {
             platform_status: format!("{status:?}"),
@@ -178,6 +181,7 @@ fn execute_cut(
 fn execute_reopen(
     command: &mut Command,
     declaration: ProcessProbeDeclaration,
+    input: &SealedProcessProbeInput,
     paths: &ProbePaths,
 ) -> Result<ProcessProbeExecution, OperationalRecoveryProcessCrashDenial> {
     let mut child = command
@@ -193,8 +197,14 @@ fn execute_reopen(
         ));
     }
     let identity = read_process_observation(&paths.reopen_process, &declaration, process_id)?;
-    ProcessProbeExecution::observed(declaration, identity, classify_exit(status), &paths.reopen)
-        .map_err(Into::into)
+    ProcessProbeExecution::observed(
+        declaration,
+        input,
+        identity,
+        classify_exit(status),
+        &paths.reopen,
+    )
+    .map_err(Into::into)
 }
 
 fn validate_semantic_reports(

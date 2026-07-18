@@ -32,7 +32,13 @@ fn fixtures_in_one_environment_share_manifest_and_target_root() {
         .fixtures
         .iter()
         .all(|fixture| fixture.fixture.environment_identity == evidence.environment_identity));
-    assert!(evidence.fixtures[1].target_artifact_count_before > 0);
+    assert!(evidence.fixtures[0].dependency_artifacts_compiled > 0);
+    assert_eq!(evidence.fixtures[1].dependency_artifacts_compiled, 0);
+    assert!(evidence.fixtures[1].dependency_artifacts_reused > 0);
+    assert_eq!(
+        evidence.fixtures[0].target_artifact_count_after,
+        evidence.fixtures[1].target_artifact_count_before
+    );
 }
 
 #[test]

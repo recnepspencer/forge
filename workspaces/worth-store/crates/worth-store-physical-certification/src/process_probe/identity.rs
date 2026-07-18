@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -38,6 +39,12 @@ pub struct ProcessIdentityEvidence {
     pub runtime_identity: Option<[u8; 32]>,
 }
 
+#[derive(Debug, Clone)]
+pub struct AdmittedProcessProbe {
+    role: ProcessRole,
+    input_identity: [u8; 32],
+}
+
 pub(crate) fn configure_process_probe(
     command: &mut Command,
     declaration: &ProcessProbeDeclaration,
@@ -56,6 +63,7 @@ pub(crate) fn configure_process_probe(
         INPUT_ENV,
         SEALED_INPUT_ENV,
         OBSERVATION_ENV,
+        ENVIRONMENT_KEYS_ENV,
     ];
     keys.extend(additional_environment_keys.iter().copied());
     keys.sort_unstable();
@@ -79,14 +87,38 @@ pub(crate) fn configure_process_probe(
     Ok(())
 }
 
-pub(crate) fn write_current_process_observation(
+pub fn admit_current_process_probe(
     expected_role: ProcessRole,
+) -> Result<AdmittedProcessProbe, ProcessProbeEvidenceDenial> {
+    let role = parse_role(&required_string(ROLE_ENV)?)
+        .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+    if role != expected_role {
+        return Err(ProcessProbeEvidenceDenial::RoleMismatch);
+    }
+    let input_identity = decode_hex_32(&required_string(INPUT_ENV)?)
+        .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+    let sealed_input = SealedProcessProbeInput::decode_untrusted(
+        required_string(SEALED_INPUT_ENV)?.as_bytes(),
+    )
+    .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
+    if sealed_input.identity() != input_identity {
+        return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
+    }
+    validate_current_environment()?;
+    Ok(AdmittedProcessProbe {
+        role,
+        input_identity,
+    })
+}
+
+pub(crate) fn write_current_process_observation(
+    admission: &AdmittedProcessProbe,
     runtime_identity: Option<[u8; 32]>,
 ) -> Result<(), ProcessProbeEvidenceDenial> {
     let observation_path = required_path(OBSERVATION_ENV)?;
     let role = parse_role(&required_string(ROLE_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    if role != expected_role {
+    if role != admission.role {
         return Err(ProcessProbeEvidenceDenial::RoleMismatch);
     }
     let launch_parent_process_id = required_string(PARENT_ENV)?
@@ -98,20 +130,12 @@ pub(crate) fn write_current_process_observation(
         required_string(SEALED_INPUT_ENV)?.as_bytes(),
     )
     .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
-    if sealed_input.identity() != input_artifact_identity {
+    if sealed_input.identity() != input_artifact_identity
+        || input_artifact_identity != admission.input_identity
+    {
         return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
     }
-    let declared_environment_identity = decode_hex_32(&required_string(ENVIRONMENT_IDENTITY_ENV)?)
-        .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    let keys = required_string(ENVIRONMENT_KEYS_ENV)?
-        .split(';')
-        .map(str::to_owned)
-        .collect::<Vec<_>>();
-    let environment = current_bindings(&keys)?;
-    let environment_identity = environment_identity(&environment)?;
-    if environment_identity != declared_environment_identity {
-        return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
-    }
+    let (environment, environment_identity) = validate_current_environment()?;
     let executable = std::env::current_exe()
         .and_then(fs::canonicalize)
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
@@ -136,6 +160,28 @@ pub(crate) fn write_current_process_observation(
     write_new_json(&observation_path, &evidence)
 }
 
+fn validate_current_environment(
+) -> Result<
+    (Vec<ProcessEnvironmentBindingEvidence>, [u8; 32]),
+    ProcessProbeEvidenceDenial,
+> {
+    let declared_environment_identity = decode_hex_32(&required_string(ENVIRONMENT_IDENTITY_ENV)?)
+        .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+    let keys = required_string(ENVIRONMENT_KEYS_ENV)?
+        .split(';')
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let environment = current_bindings(&keys)?;
+    if !environment_is_admitted(&environment) {
+        return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
+    }
+    let environment_identity = environment_identity(&environment)?;
+    if environment_identity != declared_environment_identity {
+        return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
+    }
+    Ok((environment, environment_identity))
+}
+
 pub(crate) fn read_process_observation(
     path: &Path,
     declaration: &ProcessProbeDeclaration,
@@ -144,28 +190,45 @@ pub(crate) fn read_process_observation(
     let bytes = fs::read(path).map_err(|_| ProcessProbeEvidenceDenial::MissingChildObservation)?;
     let evidence: ProcessIdentityEvidence = serde_json::from_slice(&bytes)
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    if evidence.role != declaration.role() {
-        return Err(ProcessProbeEvidenceDenial::RoleMismatch);
-    }
-    if evidence.process_id != spawned_process_id
-        || evidence.process_id == std::process::id()
-        || evidence.launch_parent_process_id != std::process::id()
-    {
-        return Err(ProcessProbeEvidenceDenial::ProcessRelationshipMismatch);
-    }
-    if evidence.executable_identity != declaration.executable_identity() {
-        return Err(ProcessProbeEvidenceDenial::ExecutableMismatch);
-    }
-    if evidence.input_artifact_identity != declaration.input_identity() {
-        return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
-    }
-    if evidence.working_directory != declaration.working_directory() {
-        return Err(ProcessProbeEvidenceDenial::WorkingDirectoryMismatch);
-    }
-    if environment_identity(&evidence.environment)? != evidence.environment_identity {
-        return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
-    }
+    evidence.validate_against(declaration, spawned_process_id)?;
     Ok(evidence)
+}
+
+impl ProcessIdentityEvidence {
+    pub(crate) fn validate_against(
+        &self,
+        declaration: &ProcessProbeDeclaration,
+        spawned_process_id: u32,
+    ) -> Result<(), ProcessProbeEvidenceDenial> {
+        if self.role != declaration.role() {
+            return Err(ProcessProbeEvidenceDenial::RoleMismatch);
+        }
+        if self.process_id == 0
+            || self.process_id != spawned_process_id
+            || self.process_id == std::process::id()
+            || self.launch_parent_process_id != std::process::id()
+        {
+            return Err(ProcessProbeEvidenceDenial::ProcessRelationshipMismatch);
+        }
+        if self.executable_identity != declaration.executable_identity() {
+            return Err(ProcessProbeEvidenceDenial::ExecutableMismatch);
+        }
+        if self.input_artifact_identity != declaration.input_identity() {
+            return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
+        }
+        if self.working_directory != declaration.working_directory()
+            || self.working_directory_identity
+                != Sha256::digest(self.working_directory.as_bytes()).into()
+        {
+            return Err(ProcessProbeEvidenceDenial::WorkingDirectoryMismatch);
+        }
+        if !environment_is_admitted(&self.environment)
+            || environment_identity(&self.environment)? != self.environment_identity
+        {
+            return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
+        }
+        Ok(())
+    }
 }
 
 fn command_bindings(
@@ -213,6 +276,16 @@ fn environment_identity(
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)
 }
 
+fn environment_is_admitted(bindings: &[ProcessEnvironmentBindingEvidence]) -> bool {
+    !bindings.is_empty()
+        && bindings.iter().all(|binding| {
+            binding.name.starts_with("WORTH_STORE_") && binding.value_sha256 != [0; 32]
+        })
+        && bindings
+            .windows(2)
+            .all(|pair| pair[0].name < pair[1].name)
+}
+
 fn write_new_json(
     path: &Path,
     evidence: &ProcessIdentityEvidence,
@@ -224,9 +297,20 @@ fn write_new_json(
 }
 
 fn file_digest(path: &Path) -> Result<[u8; 32], ProcessProbeEvidenceDenial> {
-    fs::read(path)
-        .map(|bytes| Sha256::digest(bytes).into())
-        .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)
+    let mut file = fs::File::open(path)
+        .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(digest.finalize().into())
 }
 
 fn required_string(name: &str) -> Result<String, ProcessProbeEvidenceDenial> {

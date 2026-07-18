@@ -7,6 +7,7 @@ mod residue;
 #[cfg(test)]
 mod tests;
 mod tool_execution;
+mod version_probe;
 
 use std::path::{Path, PathBuf};
 
@@ -37,7 +38,6 @@ pub fn execute(
     let plan = plan::build(forge_root, request)?;
     let evidence = execution::execute(
         forge_root,
-        store_root,
         plan,
         inventory,
         validation_failure,

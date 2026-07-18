@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
@@ -65,10 +66,21 @@ impl ProtocolCheckArtifactIdentity {
 }
 
 fn file_digest(path: &Path) -> Result<[u8; 32], ProtocolArtifactIdentityInspectionDenial> {
-    let bytes = std::fs::read(path).map_err(|error| {
+    let mut file = std::fs::File::open(path).map_err(|error| {
         ProtocolArtifactIdentityInspectionDenial::ArtifactRead(error.to_string())
     })?;
-    Ok(Sha256::digest(bytes).into())
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer).map_err(|error| {
+            ProtocolArtifactIdentityInspectionDenial::ArtifactRead(error.to_string())
+        })?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(digest.finalize().into())
 }
 
 fn decode_pinned_tool_digest() -> Result<[u8; 32], ProtocolArtifactIdentityInspectionDenial> {

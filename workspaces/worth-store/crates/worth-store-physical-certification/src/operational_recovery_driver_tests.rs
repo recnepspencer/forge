@@ -81,17 +81,19 @@ fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
     };
 
     use crate::{
-        write_reopen_observation_from_environment, DrivenOperationalControlStore,
+        admit_current_process_probe, write_reopen_observation_from_environment,
+        DrivenOperationalControlStore,
         OperationalRecoveryControlTransitionKind as Control, OperationalRecoveryFreshProcessRunner,
-        OperationalRecoveryProcessCrashConfig, PROCESS_CRASH_ROLE_ENV,
+        OperationalRecoveryProcessCrashConfig, ProcessRole, PROCESS_CRASH_ROLE_ENV,
     };
 
     const ROOT_ENV: &str = "WORTH_STORE_S10_PROCESS_CRASH_MEDIA_ROOT";
     const CASE: &str = "s10-real-process-crash-cut";
     if let Some(root) = std::env::var_os(ROOT_ENV).map(std::path::PathBuf::from) {
         if std::env::var(PROCESS_CRASH_ROLE_ENV).ok().as_deref() == Some("reopen") {
+            let admission = admit_current_process_probe(ProcessRole::RecoveredRuntime).unwrap();
             let control = reopen_owner_backed_control_store_at(&root);
-            assert!(write_reopen_observation_from_environment(&control).unwrap());
+            assert!(write_reopen_observation_from_environment(&admission, &control).unwrap());
             return;
         }
         let config = OperationalRecoveryProcessCrashConfig::from_environment()

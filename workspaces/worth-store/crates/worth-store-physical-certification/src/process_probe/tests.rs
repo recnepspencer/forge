@@ -49,6 +49,7 @@ fn graceful_exit_cannot_satisfy_a_parent_kill_declaration() {
     assert_eq!(
         ProcessProbeExecution::observed(
             declaration,
+            &input,
             process,
             ProcessTermination::GracefulExit { code: Some(0) },
             output.path(),
@@ -72,6 +73,22 @@ fn artifact_identity_observes_bytes_and_preexisting_state() {
         &ProcessArtifactObservation::Absent
     );
     assert_ne!(first.initial_observation(), second.initial_observation());
+}
+
+#[test]
+fn untrusted_probe_input_rejects_an_output_channel_that_became_visible() {
+    let directory = tempfile::tempdir().unwrap();
+    let output = directory.path().join("probe-output");
+    let input = SealedProcessProbeInput::new(
+        "output-admission",
+        "before-child",
+        vec![ProcessArtifactPath::output_channel("result", &output).unwrap()],
+    )
+    .unwrap();
+    let encoded = serde_json::to_vec(&input).unwrap();
+    std::fs::write(&output, b"preexisting-output").unwrap();
+
+    assert!(SealedProcessProbeInput::decode_untrusted(&encoded).is_err());
 }
 
 #[test]
@@ -202,14 +219,21 @@ fn run_role(
     };
     let process = read_process_observation(&observation, &declaration, process_id).unwrap();
     let execution =
-        ProcessProbeExecution::observed(declaration, process, observed_termination, &output)
-            .unwrap();
+        ProcessProbeExecution::observed(
+            declaration,
+            &input,
+            process,
+            observed_termination,
+            &output,
+        )
+        .unwrap();
     persist_execution(root, &execution).unwrap();
     execution
 }
 
 fn run_probe_child() {
     let role = parse_test_role(&std::env::var(PROBE_CHILD_ENV).unwrap());
+    let admission = admit_current_process_probe(role).unwrap();
     let output = std::path::PathBuf::from(std::env::var_os(PROBE_OUTPUT_ENV).unwrap());
     crate::certification_child_process::publish_new_synced(&output, b"persisted-agreement")
         .unwrap();
@@ -217,7 +241,7 @@ fn run_probe_child() {
         format!("fresh-runtime-{}-{role:?}", std::process::id()).as_bytes(),
     )
     .into();
-    write_current_process_observation(role, Some(runtime_identity)).unwrap();
+    write_current_process_observation(&admission, Some(runtime_identity)).unwrap();
     if role == ProcessRole::Writer {
         loop {
             std::thread::park();

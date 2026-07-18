@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::process::Command;
 
 use worth_store_test_support::structural_preflight::{
     PreflightInputScope, StructuralPredicate, StructuralPredicatePlan, StructuralPreflightPlan,
@@ -9,15 +8,31 @@ use worth_store_test_support::structural_preflight::{
 use crate::evidence::sha256_serialized;
 
 use super::inputs::scope;
+use super::version_probe::{self, ObservedProgramVersion};
+
+struct RustToolchainIdentity {
+    cargo: ObservedProgramVersion,
+    identity: String,
+}
 
 pub(super) fn build(
     forge_root: &Path,
     request: StructuralPreflightRequest,
 ) -> Result<StructuralPreflightPlan, String> {
-    let toolchain = toolchain_identity(forge_root)?;
+    let needs_rust_toolchain = request.predicates.iter().any(|predicate| {
+        matches!(
+            predicate,
+            StructuralPredicate::Boundary
+                | StructuralPredicate::AgentContext
+                | StructuralPredicate::Naming
+        )
+    });
+    let toolchain = needs_rust_toolchain
+        .then(|| toolchain_identity(forge_root))
+        .transpose()?;
     let mut predicates = Vec::with_capacity(request.predicates.len());
     for predicate in &request.predicates {
-        predicates.push(predicate_plan(forge_root, *predicate, &toolchain)?);
+        predicates.push(predicate_plan(forge_root, *predicate, toolchain.as_ref())?);
     }
     let mut plan = StructuralPreflightPlan {
         schema_version: 1,
@@ -32,13 +47,13 @@ pub(super) fn build(
 fn predicate_plan(
     root: &Path,
     predicate: StructuralPredicate,
-    toolchain: &str,
+    toolchain: Option<&RustToolchainIdentity>,
 ) -> Result<StructuralPredicatePlan, String> {
     use StructuralPredicate as Predicate;
     let (input_scopes, tool) = match predicate {
         Predicate::Boundary => (
             vec![boundary_scope(root)?],
-            Some(boundary_tool(toolchain, "boundary")),
+            Some(boundary_tool(required_toolchain(toolchain)?, "boundary")?),
         ),
         Predicate::AgentContext => (
             vec![scope(
@@ -53,9 +68,9 @@ fn predicate_plan(
                 &["rs", "toml", "md"],
             )?],
             Some(StructuralToolDeclaration::workspace_owned(
-                format!("agent-context::{toolchain}"),
-                "cargo",
-                toolchain,
+                format!("agent-context::{}", required_toolchain(toolchain)?.identity),
+                &required_toolchain(toolchain)?.cargo.program_path,
+                &required_toolchain(toolchain)?.identity,
                 vec![
                     "run".to_owned(),
                     "--quiet".to_owned(),
@@ -66,7 +81,7 @@ fn predicate_plan(
                 ],
                 "agent-context-authority",
                 300_000,
-                "single-process; inherited-memory-limit; no-network-required",
+                "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
             )?),
         ),
         Predicate::Inventory => (vec![inventory_scope(root)?], None),
@@ -99,19 +114,11 @@ fn predicate_plan(
                 ],
                 &["rs", "sh", "txt"],
             )?],
-            Some(StructuralToolDeclaration::workspace_owned(
-                format!("workspace-rust-line-caps::{toolchain}"),
-                "bash",
-                command_version_identity(root, "bash", &["--version"] )?,
-                vec!["scripts/ci/check_workspace_rust_line_caps.sh".to_owned()],
-                "workspace-rust-line-cap-authority",
-                120_000,
-                "single-process; inherited-memory-limit; no-network-required",
-            )?),
+            Some(line_cap_tool(root)?),
         ),
         Predicate::Naming => (
             vec![manifest_scope(root)?, boundary_scope(root)?],
-            Some(boundary_tool(toolchain, "naming")),
+            Some(boundary_tool(required_toolchain(toolchain)?, "naming")?),
         ),
         Predicate::AdmittedResidue => (
             vec![scope(
@@ -133,6 +140,28 @@ fn predicate_plan(
         input_scopes,
         tool,
     })
+}
+
+fn line_cap_tool(
+    root: &Path,
+) -> Result<StructuralToolDeclaration, String> {
+    let bash = version_probe::observe(root, "bash", &["--version"])?;
+    let version_identity = sha256_serialized(&bash)?;
+    StructuralToolDeclaration::workspace_owned(
+                format!("workspace-rust-line-caps::{version_identity}"),
+                &bash.program_path,
+                version_identity,
+                vec!["scripts/ci/check_workspace_rust_line_caps.sh".to_owned()],
+                "workspace-rust-line-cap-authority",
+                120_000,
+                "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
+            )
+}
+
+fn required_toolchain(
+    toolchain: Option<&RustToolchainIdentity>,
+) -> Result<&RustToolchainIdentity, String> {
+    toolchain.ok_or_else(|| "structural predicate omitted its Rust toolchain identity".to_owned())
 }
 
 fn boundary_scope(root: &Path) -> Result<PreflightInputScope, String> {
@@ -173,11 +202,14 @@ fn manifest_scope(root: &Path) -> Result<PreflightInputScope, String> {
     )
 }
 
-fn boundary_tool(toolchain: &str, projection: &str) -> StructuralToolDeclaration {
+fn boundary_tool(
+    toolchain: &RustToolchainIdentity,
+    projection: &str,
+) -> Result<StructuralToolDeclaration, String> {
     StructuralToolDeclaration::workspace_owned(
-        format!("boundary-check::{projection}::{toolchain}"),
-        "cargo",
-        toolchain,
+        format!("boundary-check::{projection}::{}", toolchain.identity),
+        &toolchain.cargo.program_path,
+        &toolchain.identity,
         vec![
             "run".to_owned(),
             "--quiet".to_owned(),
@@ -189,36 +221,13 @@ fn boundary_tool(toolchain: &str, projection: &str) -> StructuralToolDeclaration
         ],
         "road1-boundary-authority",
         300_000,
-        "single-process; inherited-memory-limit; no-network-required",
+        "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
     )
-    .expect("boundary tool declaration is complete")
 }
 
-fn toolchain_identity(root: &Path) -> Result<String, String> {
-    let rustc = command_identity(root, "rustc", &["-Vv"])?;
-    let cargo = command_identity(root, "cargo", &["-Vv"])?;
-    sha256_serialized(&(rustc, cargo))
-}
-
-fn command_identity(root: &Path, program: &str, arguments: &[&str]) -> Result<String, String> {
-    let output = Command::new(program)
-        .args(arguments)
-        .current_dir(root)
-        .output()
-        .map_err(|error| format!("could not launch {program}: {error}"))?;
-    if !output.status.success() {
-        return Err(format!(
-            "{program} identity failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
-}
-
-fn command_version_identity(
-    root: &Path,
-    program: &str,
-    arguments: &[&str],
-) -> Result<String, String> {
-    command_identity(root, program, arguments)
+fn toolchain_identity(root: &Path) -> Result<RustToolchainIdentity, String> {
+    let cargo = version_probe::observe(root, "cargo", &["-Vv"])?;
+    let rustc = version_probe::observe(root, "rustc", &["-Vv"])?;
+    let identity = sha256_serialized(&(&cargo, &rustc))?;
+    Ok(RustToolchainIdentity { cargo, identity })
 }

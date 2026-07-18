@@ -242,7 +242,7 @@ fn termination_matches(
         (required, observed),
         (
             ProcessTerminationRequirementProjection::GracefulExit,
-            TerminationProjection::GracefulExit { .. }
+            TerminationProjection::GracefulExit { code: Some(0) }
         ) | (
             ProcessTerminationRequirementProjection::PanicUnwind,
             TerminationProjection::PanicUnwind { .. }

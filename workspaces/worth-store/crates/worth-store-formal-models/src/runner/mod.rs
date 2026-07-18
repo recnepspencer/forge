@@ -48,6 +48,7 @@ pub use execution::{
     TlcRunnerPaths,
 };
 pub use external_tool_identity::ExternalToolIdentity;
+pub(super) use external_tool_identity::ExternalToolObservation;
 pub use invariant_configuration::{
     configured_invariant_count, ProtocolInvariantConfigurationDenial,
 };

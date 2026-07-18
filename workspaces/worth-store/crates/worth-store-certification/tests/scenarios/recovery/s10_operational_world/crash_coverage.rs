@@ -5,9 +5,11 @@ use worth_store_certification::courtroom::operational_recovery::{
 };
 use worth_store_operations::certification_scenario::reopen_owner_backed_control_store_at;
 use worth_store_physical_certification::{
-    write_reopen_observation_from_environment, OperationalRecoveryCrashCutEvidence,
+    admit_current_process_probe, write_reopen_observation_from_environment,
+    OperationalRecoveryCrashCutEvidence,
     OperationalRecoveryDriverTrace, OperationalRecoveryFreshProcessRunner,
-    OperationalRecoveryProcessCrashConfig, OperationalRecoveryYieldpoint, PROCESS_CRASH_ROLE_ENV,
+    OperationalRecoveryProcessCrashConfig, OperationalRecoveryYieldpoint, ProcessRole,
+    PROCESS_CRASH_ROLE_ENV,
 };
 
 const ROOT_ENV: &str = "WORTH_STORE_S10_SCENARIO_CRASH_ROOT";
@@ -66,8 +68,9 @@ fn scenario_process_crash_probe() {
     let identity = std::env::var(IDENTITY_ENV).unwrap();
     let kind = scenario_kind_from_token(&std::env::var(KIND_ENV).unwrap());
     if std::env::var(PROCESS_CRASH_ROLE_ENV).ok().as_deref() == Some("reopen") {
+        let admission = admit_current_process_probe(ProcessRole::RecoveredRuntime).unwrap();
         let control = reopen_owner_backed_control_store_at(&root);
-        assert!(write_reopen_observation_from_environment(&control).unwrap());
+        assert!(write_reopen_observation_from_environment(&admission, &control).unwrap());
         return;
     }
     let config = OperationalRecoveryProcessCrashConfig::from_environment()

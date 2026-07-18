@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 
 use super::{
     PreflightEvidenceIdentity, StructuralPredicateVerdict, StructuralPreflightEvidence,
-    StructuralPreflightPlan,
+    StructuralPreflightPlan, StructuralToolExecutionEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,12 +50,28 @@ impl StructuralPreflightPlan {
             return Err(StructuralPreflightIntegrityDenial::PredicateSetMismatch);
         }
         if self.predicates.iter().any(|predicate| {
+            let scopes = predicate
+                .input_scopes
+                .iter()
+                .map(|scope| scope.scope_identity.as_str())
+                .collect::<BTreeSet<_>>();
+            predicate.input_scopes.is_empty()
+                || scopes.len() != predicate.input_scopes.len()
+                || predicate.input_scopes.iter().any(|scope| {
+                    scope.scope_identity.trim().is_empty()
+                        || scope.source_paths.is_empty()
+                        || !is_sha256(&scope.input_identity)
+                })
+        }) {
+            return Err(StructuralPreflightIntegrityDenial::PredicateInputIdentityMismatch);
+        }
+        if self.predicates.iter().any(|predicate| {
             predicate.tool.as_ref().is_some_and(|tool| {
                 tool.tool_identity.trim().is_empty()
                     || tool.provenance.trim().is_empty()
                     || tool.program.trim().is_empty()
                     || tool.resolved_program_path.trim().is_empty()
-                    || tool.program_sha256.len() != 64
+                    || !is_sha256(&tool.program_sha256)
                     || tool.program_version_identity.trim().is_empty()
                     || tool.source_scope_identity.trim().is_empty()
                     || tool.timeout_millis == 0
@@ -103,6 +119,9 @@ impl StructuralPreflightEvidence {
             return Err(StructuralPreflightIntegrityDenial::PredicateEvidenceMismatch);
         }
         for evidence in &self.predicates {
+            if !is_sha256(&evidence.input_identity) {
+                return Err(StructuralPreflightIntegrityDenial::PredicateInputIdentityMismatch);
+            }
             let plan = self
                 .plan
                 .predicates
@@ -140,8 +159,33 @@ impl StructuralPreflightEvidence {
                     );
                 }
             }
+            if let StructuralPredicateVerdict::Passed {
+                authority_basis_identity,
+                authority_identity,
+            } = &evidence.verdict
+            {
+                if !is_sha256(authority_basis_identity)
+                    || !is_sha256(authority_identity)
+                    || authority_identity
+                    != &digest_serialized(&(
+                        evidence.predicate,
+                        &evidence.input_identity,
+                        authority_basis_identity,
+                    ))?
+                    || evidence
+                        .tool_identity
+                        .as_ref()
+                        .is_some_and(|tool| tool != authority_basis_identity)
+                {
+                    return Err(StructuralPreflightIntegrityDenial::PredicateEvidenceMismatch);
+                }
+            }
             if let StructuralPredicateVerdict::Failed { failure } = &evidence.verdict {
-                if failure.predicate != evidence.predicate {
+                if failure.predicate != evidence.predicate
+                    || failure.failure_code.trim().is_empty()
+                    || failure.message.trim().is_empty()
+                    || failure.invalidated_inputs.is_empty()
+                {
                     return Err(StructuralPreflightIntegrityDenial::PredicateEvidenceMismatch);
                 }
             }
@@ -196,8 +240,14 @@ impl StructuralPreflightEvidence {
                 || execution.arguments != exemplar.arguments
                 || execution.timeout_millis != exemplar.timeout_millis
                 || execution.resource_posture != exemplar.resource_posture
-                || (execution.timed_out && execution.successful)
-                || (execution.successful && execution.process_id == 0)
+                || !is_sha256(&execution.stdout_sha256)
+                || !is_sha256(&execution.stderr_sha256)
+                || execution.successful
+                    != (execution.exit_code == Some(0)
+                        && !execution.timed_out
+                        && execution.observation_failure.is_none())
+                || (execution.process_id == 0 && execution.observation_failure.is_none())
+                || execution.authority_identity != execution.expected_authority_identity()?
             {
                 return Err(StructuralPreflightIntegrityDenial::ToolExecutionMismatch);
             }
@@ -208,6 +258,27 @@ impl StructuralPreflightEvidence {
             return Err(StructuralPreflightIntegrityDenial::EvidenceIdentityMismatch);
         }
         Ok(())
+    }
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+impl StructuralToolExecutionEvidence {
+    pub fn seal_authority_identity(
+        &mut self,
+    ) -> Result<(), StructuralPreflightIntegrityDenial> {
+        self.authority_identity = self.expected_authority_identity()?;
+        Ok(())
+    }
+
+    fn expected_authority_identity(
+        &self,
+    ) -> Result<String, StructuralPreflightIntegrityDenial> {
+        let mut unsigned = self.clone();
+        unsigned.authority_identity.clear();
+        digest_serialized(&unsigned)
     }
 }
 

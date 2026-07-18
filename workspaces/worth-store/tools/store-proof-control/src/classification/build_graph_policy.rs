@@ -33,6 +33,11 @@ pub struct BuildGraphPolicyViolation {
     pub reason: String,
 }
 
+#[derive(Debug)]
+pub struct ValidatedFeatureSemanticAuthority {
+    test_authority_features: BTreeSet<(String, String)>,
+}
+
 impl std::fmt::Display for BuildGraphPolicyViolation {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -78,9 +83,29 @@ pub fn validate_build_graph_policy(
 pub fn validate_inventory_build_graph_policy(
     inventory: &TestSurfaceInventory,
 ) -> Result<(), Vec<BuildGraphPolicyViolation>> {
-    let mut authority_violations = Vec::new();
+    let authority = validate_feature_semantic_authority_policy(inventory)?;
+    validate_production_dependency_policy(inventory, &authority)
+}
+
+pub fn validate_feature_semantic_authority_policy(
+    inventory: &TestSurfaceInventory,
+) -> Result<ValidatedFeatureSemanticAuthority, Vec<BuildGraphPolicyViolation>> {
+    let mut violations = Vec::new();
     let test_authority_features =
-        validate_feature_semantic_authority(inventory, &mut authority_violations);
+        collect_feature_semantic_authority(inventory, &mut violations);
+    if violations.is_empty() {
+        Ok(ValidatedFeatureSemanticAuthority {
+            test_authority_features,
+        })
+    } else {
+        Err(violations)
+    }
+}
+
+pub fn validate_production_dependency_policy(
+    inventory: &TestSurfaceInventory,
+    authority: &ValidatedFeatureSemanticAuthority,
+) -> Result<(), Vec<BuildGraphPolicyViolation>> {
     let packages: BTreeMap<_, _> = inventory
         .packages
         .iter()
@@ -98,7 +123,7 @@ pub fn validate_inventory_build_graph_policy(
                 .push(edge);
             grouped
         });
-    let mut violations = authority_violations;
+    let mut violations = Vec::new();
     let mut seen_violations = BTreeSet::new();
     for root in inventory
         .packages
@@ -109,7 +134,7 @@ pub fn validate_inventory_build_graph_policy(
             root,
             &packages,
             &edges,
-            &test_authority_features,
+            &authority.test_authority_features,
             &mut seen_violations,
             &mut violations,
         );
@@ -167,7 +192,7 @@ fn resolve_production_root(
     }
 }
 
-fn validate_feature_semantic_authority(
+fn collect_feature_semantic_authority(
     inventory: &TestSurfaceInventory,
     violations: &mut Vec<BuildGraphPolicyViolation>,
 ) -> BTreeSet<(String, String)> {
