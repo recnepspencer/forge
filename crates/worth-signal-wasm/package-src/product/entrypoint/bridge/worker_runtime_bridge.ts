@@ -31,10 +31,14 @@ class WorkerRuntimeBridge {
         "createWorkerRuntimeBridge requires a global Worker constructor",
       );
     }
-    const workerUrl = options.workerUrl
-      ? normalizeWorkerUrl(options.workerUrl)
-      : new URL("./worker_runtime_bridge_worker.js", import.meta.url);
-    this.#worker = new globalThis.Worker(workerUrl, { type: "module" });
+    this.#worker = options.workerUrl
+      ? new Worker(normalizeWorkerUrl(options.workerUrl), {
+          type: "module",
+        })
+      : new Worker(
+          new URL("./worker_runtime_bridge_worker.js", import.meta.url),
+          { type: "module" },
+        );
     this.#history = createWorkerRuntimeBridgeHistory(
       (method, ...args) => this.#request(method, ...args),
     );
