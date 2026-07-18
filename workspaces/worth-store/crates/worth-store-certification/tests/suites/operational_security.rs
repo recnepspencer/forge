@@ -12,6 +12,8 @@ mod security_scope_propagation;
 
 #[path = "../support/recovery/independent_verifier_observation.rs"]
 mod independent_verifier_observation;
+#[path = "../scenarios/physical_isolation/readiness/shortcut_report.rs"]
+mod physical_isolation_shortcut_report;
 #[path = "../support/security/security_scope_simulation_harness/replay.rs"]
 mod replay_support;
 #[path = "../support/recovery/recovery_offline_verifier/runtime_recovery_fixture.rs"]

@@ -1,4 +1,3 @@
-mod artifact_store;
 mod bounded_process;
 mod cargo_configuration;
 mod cargo_environment;
@@ -6,7 +5,8 @@ mod declaration;
 mod diagnostics;
 mod environment_lock;
 mod environment_manifest;
-mod evidence;
+mod immutable_file;
+mod result;
 #[cfg(test)]
 mod tests;
 mod toolchain;
@@ -18,28 +18,18 @@ pub use declaration::{
     UiProofSuiteDeclaration,
 };
 pub use diagnostics::CheckedCompilerDiagnostic;
-pub use evidence::{
+pub use result::{
     UiCargoConfigurationIdentity, UiCompilerResourcePosture, UiCompilerToolIdentity,
-    UiCompilerToolchainIdentity, UiFixtureRunEvidence, UiProofRunEvidence, UiProofRunFailure,
+    UiCompilerToolchainIdentity, UiFixtureResult, UiRunFailure, UiRunResult,
 };
 
-/// An outer proof controller may bind this to an attempt-scoped directory so
-/// compiler-boundary evidence is handed directly into the owning proof run.
-/// The harness rejects roots outside the Store workspace's `.store-proof`
-/// evidence tree.
-pub const UI_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_UI_EVIDENCE_ROOT";
-
-/// Binds emitted evidence to one immutable controller execution unit. Direct
-/// harness callers derive a standalone identity instead; controlled runs must
-/// preserve the controller-provided value exactly.
-pub const UI_EXECUTION_IDENTITY_ENV: &str = "WORTH_STORE_UI_EXECUTION_IDENTITY";
-
 /// Executes one declared compiler-boundary suite in its canonical cache-sharing
-/// Cargo environment and persists checked diagnostic evidence.
+/// Cargo environment. Success means every fixture failed for its declared
+/// semantic reason.
 pub fn run_ui_proof_suite(
     workspace_root: &Path,
     declaration: &UiProofSuiteDeclaration,
-) -> Result<UiProofRunEvidence, UiProofRunFailure> {
+) -> Result<UiRunResult, UiRunFailure> {
     cargo_environment::run(workspace_root, declaration)
 }
 
@@ -53,7 +43,7 @@ pub fn run_cargo_ui_fixture_suite(
     profile_identity: &str,
     source_root: &Path,
     fixtures: &[(&str, &[&str])],
-) -> Result<UiProofRunEvidence, UiProofRunFailure> {
+) -> Result<UiRunResult, UiRunFailure> {
     let fixtures = fixtures
         .iter()
         .map(|(name, fragments)| {
@@ -61,16 +51,16 @@ pub fn run_cargo_ui_fixture_suite(
                 name.trim_end_matches(".rs"),
                 source_root.join(name),
                 ExpectedCompilerDenial::semantic_fragments(fragments.iter().copied())
-                    .map_err(UiProofRunFailure::InvalidDeclaration)?,
+                    .map_err(UiRunFailure::InvalidDeclaration)?,
             )
-            .map_err(UiProofRunFailure::InvalidDeclaration)
+            .map_err(UiRunFailure::InvalidDeclaration)
         })
         .collect::<Result<Vec<_>, _>>()?;
     let environment =
         UiProofEnvironment::cargo(dependency_manifest, feature_identity, profile_identity)
-            .map_err(UiProofRunFailure::InvalidDeclaration)?;
+            .map_err(UiRunFailure::InvalidDeclaration)?;
     let declaration = UiProofSuiteDeclaration::new(suite_identity, environment, fixtures)
-        .map_err(UiProofRunFailure::InvalidDeclaration)?;
+        .map_err(UiRunFailure::InvalidDeclaration)?;
     run_ui_proof_suite(workspace_root, &declaration)
 }
 

@@ -193,10 +193,11 @@ pub use operational_recovery_driver::{
     DrivenOperationalTransition, OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
 };
 pub use operational_recovery_process_crash::{
-    write_reopen_observation_from_environment, OperationalRecoveryFreshProcessRunner,
-    OperationalRecoveryProcessCrashConfig, OperationalRecoveryProcessCrashDenial,
-    OperationalRecoveryProcessCrashEvidence, PROCESS_CRASH_CHALLENGE_ENV, PROCESS_CRASH_REPORT_ENV,
-    PROCESS_CRASH_ROLE_ENV, PROCESS_CRASH_YIELDPOINT_ENV,
+    write_reopen_observation_from_environment, OperationalRecoveryControlCutRequest,
+    OperationalRecoveryFreshProcessRunner, OperationalRecoveryProcessCrashConfig,
+    OperationalRecoveryProcessCrashDenial, OperationalRecoveryProcessCrashEvidence,
+    PROCESS_CRASH_CHALLENGE_ENV, PROCESS_CRASH_REPORT_ENV, PROCESS_CRASH_ROLE_ENV,
+    PROCESS_CRASH_YIELDPOINT_ENV,
 };
 pub use operational_recovery_trace::{
     OperationalRecoveryDriverTrace, OperationalRecoveryTraceJoinDenial,

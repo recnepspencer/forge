@@ -8,11 +8,10 @@ use sha2::{Digest, Sha256};
 
 use super::{bounded_process, cargo_configuration};
 use super::{
-    UiCompilerResourcePosture, UiCompilerToolIdentity, UiCompilerToolchainIdentity,
-    UiProofRunFailure,
+    UiCompilerResourcePosture, UiCompilerToolIdentity, UiCompilerToolchainIdentity, UiRunFailure,
 };
 
-pub(super) fn observe(root: &Path) -> Result<UiCompilerToolchainIdentity, UiProofRunFailure> {
+pub(super) fn observe(root: &Path) -> Result<UiCompilerToolchainIdentity, UiRunFailure> {
     Ok(UiCompilerToolchainIdentity {
         cargo: observe_program(root, selected_program("CARGO", "cargo"), &["-Vv"])?,
         rustc: observe_program(root, selected_program("RUSTC", "rustc"), &["-Vv"])?,
@@ -34,18 +33,18 @@ pub(super) fn observe(root: &Path) -> Result<UiCompilerToolchainIdentity, UiProo
 pub(super) fn validate_unchanged(
     root: &Path,
     identity: &UiCompilerToolchainIdentity,
-) -> Result<(), UiProofRunFailure> {
+) -> Result<(), UiRunFailure> {
     for tool in [&identity.cargo, &identity.rustc] {
         let observed = file_digest(Path::new(&tool.executable_path))?;
         if observed != tool.executable_sha256 {
-            return Err(UiProofRunFailure::EnvironmentObservation(format!(
+            return Err(UiRunFailure::EnvironmentObservation(format!(
                 "compiler tool changed during UI run: {}",
                 tool.executable_path
             )));
         }
     }
     if cargo_configuration::observe(root)? != identity.cargo_configuration {
-        return Err(UiProofRunFailure::EnvironmentObservation(
+        return Err(UiRunFailure::EnvironmentObservation(
             "Cargo configuration changed during UI run".to_owned(),
         ));
     }
@@ -56,15 +55,15 @@ fn observe_program(
     root: &Path,
     program: OsString,
     arguments: &[&str],
-) -> Result<UiCompilerToolIdentity, UiProofRunFailure> {
-    let path = resolve_program(&program).map_err(UiProofRunFailure::EnvironmentObservation)?;
+) -> Result<UiCompilerToolIdentity, UiRunFailure> {
+    let path = resolve_program(&program).map_err(UiRunFailure::EnvironmentObservation)?;
     let executable_sha256 = file_digest(&path)?;
     let mut command = Command::new(&path);
     command.args(arguments).current_dir(root);
     let output = bounded_process::run(&mut command, Duration::from_secs(10), 1024 * 1024)
-        .map_err(UiProofRunFailure::EnvironmentObservation)?;
+        .map_err(UiRunFailure::EnvironmentObservation)?;
     if output.timed_out || !output.status.success() {
-        return Err(UiProofRunFailure::EnvironmentObservation(format!(
+        return Err(UiRunFailure::EnvironmentObservation(format!(
             "{} version probe failed with {:?}",
             path.display(),
             output.status.code()
@@ -78,7 +77,7 @@ fn observe_program(
     .trim()
     .to_owned();
     if version_identity.is_empty() {
-        return Err(UiProofRunFailure::EnvironmentObservation(format!(
+        return Err(UiRunFailure::EnvironmentObservation(format!(
             "{} returned no version identity",
             path.display()
         )));
@@ -137,15 +136,15 @@ fn executable_extensions() -> Vec<String> {
     }
 }
 
-fn file_digest(path: &Path) -> Result<String, UiProofRunFailure> {
+fn file_digest(path: &Path) -> Result<String, UiRunFailure> {
     let mut file = std::fs::File::open(path)
-        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+        .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
     let mut digest = Sha256::new();
     let mut buffer = [0_u8; 64 * 1024];
     loop {
         let read = file
             .read(&mut buffer)
-            .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+            .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
         if read == 0 {
             break;
         }

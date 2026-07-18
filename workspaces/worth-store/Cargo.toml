@@ -41,7 +41,7 @@ members = [
     "crates/worth-store-test-support",
     "crates/worth-store-tiering",
     "crates/worth-store-wal",
-    "tools/store-proof-control",
+    "tools/store-test-runner",
 ]
 
 [workspace.package]

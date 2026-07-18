@@ -2,7 +2,7 @@ use std::path::Path;
 
 use serde::Serialize;
 
-use super::UiProofRunFailure;
+use super::UiRunFailure;
 
 #[derive(Serialize)]
 pub(super) struct UiEnvironmentManifestContract {
@@ -10,19 +10,16 @@ pub(super) struct UiEnvironmentManifestContract {
 }
 
 impl UiEnvironmentManifestContract {
-    pub(super) fn load(
-        store_root: &Path,
-        required_profile: &str,
-    ) -> Result<Self, UiProofRunFailure> {
+    pub(super) fn load(store_root: &Path, required_profile: &str) -> Result<Self, UiRunFailure> {
         let manifest_path = store_root.join("Cargo.toml");
         let source = std::fs::read_to_string(&manifest_path).map_err(|error| {
-            UiProofRunFailure::EnvironmentObservation(format!(
+            UiRunFailure::EnvironmentObservation(format!(
                 "read {}: {error}",
                 manifest_path.display()
             ))
         })?;
         let manifest = source.parse::<toml::Table>().map_err(|error| {
-            UiProofRunFailure::EnvironmentObservation(format!(
+            UiRunFailure::EnvironmentObservation(format!(
                 "parse {}: {error}",
                 manifest_path.display()
             ))
@@ -36,16 +33,16 @@ impl UiEnvironmentManifestContract {
         &self,
         package_identity: &str,
         dependency_manifest: &str,
-    ) -> Result<String, UiProofRunFailure> {
+    ) -> Result<String, UiRunFailure> {
         let dependency_document = dependency_manifest
             .parse::<toml::Table>()
             .map_err(|error| {
-                UiProofRunFailure::InvalidDeclaration(format!(
+                UiRunFailure::InvalidDeclaration(format!(
                     "UI dependency manifest is invalid TOML: {error}"
                 ))
             })?;
         if dependency_document.len() != 1 || !dependency_document.contains_key("dependencies") {
-            return Err(UiProofRunFailure::InvalidDeclaration(
+            return Err(UiRunFailure::InvalidDeclaration(
                 "UI dependency manifest may contain only [dependencies]".to_owned(),
             ));
         }
@@ -79,7 +76,7 @@ impl UiEnvironmentManifestContract {
             toml::Value::Table(self.profiles.clone()),
         );
         toml::to_string(&document).map_err(|error| {
-            UiProofRunFailure::InvalidDeclaration(format!(
+            UiRunFailure::InvalidDeclaration(format!(
                 "could not render UI environment manifest: {error}"
             ))
         })
@@ -89,17 +86,17 @@ impl UiEnvironmentManifestContract {
 fn profile_inheritance_closure(
     declared: &toml::Table,
     required_profile: &str,
-) -> Result<toml::Table, UiProofRunFailure> {
+) -> Result<toml::Table, UiRunFailure> {
     let mut selected = toml::Table::new();
     let mut current = required_profile.to_owned();
     loop {
         if selected.contains_key(&current) {
-            return Err(UiProofRunFailure::InvalidDeclaration(format!(
+            return Err(UiRunFailure::InvalidDeclaration(format!(
                 "Cargo profile inheritance contains a cycle at {current:?}"
             )));
         }
         let profile = declared.get(&current).cloned().ok_or_else(|| {
-            UiProofRunFailure::InvalidDeclaration(format!(
+            UiRunFailure::InvalidDeclaration(format!(
                 "UI profile {current:?} is not declared by the Store workspace"
             ))
         })?;
@@ -121,13 +118,11 @@ fn required_table<'a>(
     parent: &'a toml::Table,
     key: &str,
     owner: &str,
-) -> Result<&'a toml::Table, UiProofRunFailure> {
+) -> Result<&'a toml::Table, UiRunFailure> {
     parent
         .get(key)
         .and_then(toml::Value::as_table)
         .ok_or_else(|| {
-            UiProofRunFailure::EnvironmentObservation(format!(
-                "{owner} omits required table {key:?}"
-            ))
+            UiRunFailure::EnvironmentObservation(format!("{owner} omits required table {key:?}"))
         })
 }

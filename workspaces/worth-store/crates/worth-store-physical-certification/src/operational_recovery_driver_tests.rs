@@ -5,7 +5,8 @@ use worth_store_physical_backend::{
 };
 
 use crate::{
-    DrivenOperationalTransition, OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
+    DrivenOperationalTransition, OperationalRecoveryControlCutRequest,
+    OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
 };
 
 #[test]
@@ -133,7 +134,7 @@ fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
     let point =
         OperationalRecoveryYieldpoint::AfterDurableControlTransition(Control::BackupSourceLease);
     let evidence = OperationalRecoveryFreshProcessRunner::new(evidence_root)
-        .certify_control_cut_with_process_evidence(
+        .certify_control_cut_with_process_evidence(OperationalRecoveryControlCutRequest::new(
             &media_root,
             CASE,
             &mut cut,
@@ -141,7 +142,7 @@ fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
             &[ROOT_ENV],
             point,
             &trace,
-        )
+        ))
         .unwrap();
 
     assert_eq!(evidence.crash_cut().yieldpoint(), point);

@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use worth_store_test_support::compiler_boundary::{
     run_ui_proof_suite, ExpectedCompilerDenial, UiFixtureDeclaration, UiProofEnvironment,
@@ -109,6 +109,6 @@ fn store_workspace_root() -> &'static Path {
         .expect("certification crate lives under the Store workspace")
 }
 
-fn manifest_path(path: &PathBuf) -> String {
+fn manifest_path(path: &Path) -> String {
     path.display().to_string().replace('\\', "/")
 }

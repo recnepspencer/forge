@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::{cargo_dependency_manifest, run_cargo_ui_fixture_suite, UiProofRunFailure};
+use super::{cargo_dependency_manifest, run_cargo_ui_fixture_suite, UiRunFailure};
 
 #[test]
 fn fixtures_in_one_environment_share_manifest_and_target_root() {
@@ -20,12 +20,7 @@ fn fixtures_in_one_environment_share_manifest_and_target_root() {
     )
     .unwrap();
 
-    evidence.validate_integrity().unwrap();
     assert_eq!(evidence.fixtures.len(), 2);
-    assert!(evidence.environment_manifest_created);
-    assert!(evidence.environment_lock_created);
-    assert!(evidence.environment_lock_path.ends_with("/Cargo.lock"));
-    assert_eq!(evidence.environment_lock_sha256.len(), 64);
     assert!(evidence
         .shared_target_root
         .ends_with(&format!("/{}", &evidence.environment_identity[..24])));
@@ -66,10 +61,7 @@ fn unrelated_compile_failure_cannot_satisfy_declared_semantic_denial() {
     )
     .unwrap_err();
 
-    assert!(matches!(
-        denial,
-        UiProofRunFailure::WrongCompilerDenial { .. }
-    ));
+    assert!(matches!(denial, UiRunFailure::WrongCompilerDenial { .. }));
     assert!(denial.to_string().contains("semantic fragment"));
 }
 
@@ -86,27 +78,6 @@ fn fixture_source_text_cannot_impersonate_a_semantic_compiler_message() {
     let denial = super::diagnostics::validate_denial(&expected, &diagnostics, "").unwrap_err();
 
     assert!(denial.contains("missed semantic fragment"));
-}
-
-#[test]
-fn evidence_root_parent_traversal_is_rejected_before_publication() {
-    let scratch = ScratchUiWorld::new("evidence-root-escape");
-    let admitted = scratch.root().join(".store-proof/evidence");
-    std::fs::create_dir_all(&admitted).unwrap();
-    let admitted = admitted.canonicalize().unwrap();
-    let safe = scratch
-        .root()
-        .join(".store-proof/evidence/runs/attempt/ui/unit");
-    let escaped = admitted.join("ui/../../outside");
-
-    assert_eq!(
-        super::artifact_store::admit_declared_root(&admitted, &safe).unwrap(),
-        safe
-    );
-    let denial = super::artifact_store::admit_declared_root(&admitted, &escaped).unwrap_err();
-
-    assert!(denial.to_string().contains("parent traversal"));
-    assert!(!scratch.root().join(".store-proof/outside").exists());
 }
 
 struct ScratchUiWorld {

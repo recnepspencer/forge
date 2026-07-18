@@ -3,7 +3,6 @@ use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
 pub(super) struct BoundedProcessOutput {
-    pub process_id: u32,
     pub status: ExitStatus,
     pub stdout: Vec<u8>,
     pub stderr: Vec<u8>,
@@ -20,7 +19,6 @@ pub(super) fn run(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| error.to_string())?;
-    let process_id = child.id();
     let stdout = child.stdout.take().expect("piped compiler stdout");
     let stderr = child.stderr.take().expect("piped compiler stderr");
     let stdout_reader = std::thread::spawn(move || read_stream(stdout, output_cap));
@@ -36,7 +34,6 @@ pub(super) fn run(
     let stdout = join_stream(stdout_reader, "stdout")?;
     let stderr = join_stream(stderr_reader, "stderr")?;
     Ok(BoundedProcessOutput {
-        process_id,
         status,
         stdout,
         stderr,

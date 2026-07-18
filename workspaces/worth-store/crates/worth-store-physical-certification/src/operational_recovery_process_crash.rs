@@ -12,8 +12,10 @@ use crate::{
 
 const CUT_ROLE: &str = "cut";
 const REOPEN_ROLE: &str = "reopen";
+mod request;
 mod runner;
 mod wire;
+pub use request::OperationalRecoveryControlCutRequest;
 use wire::{read_report, write_report, ProcessObservationReport};
 pub const PROCESS_CRASH_ROLE_ENV: &str = "WORTH_STORE_S10_CRASH_ROLE";
 pub const PROCESS_CRASH_REPORT_ENV: &str = "WORTH_STORE_S10_CRASH_REPORT";

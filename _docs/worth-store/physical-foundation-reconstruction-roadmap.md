@@ -20,7 +20,7 @@ earns a physical claim.
 
 ```text
 Physical Database Roadmap S.9 implementation state reopened
-  -> C.1 test execution architecture and proof-lane cleanup
+  -> C.1 direct test execution and iteration cleanup
   -> C.2 executable reality ledger and claim quarantine
   -> C.3 sealed physical runtime authority and lifecycle
   -> C.4 production media boundary and stable store namespace
@@ -181,11 +181,13 @@ leaving ordinary iteration so expensive that broad verification is avoided.
     platform through Part II. No cleanup milestone imports or partially
     integrates Query.
 
-## Non-Fake Acceptance Test Contract
+## Non-Fake Physical Acceptance Test Contract
 
-Every `C.*` engineering spec must contain a `Non-Fake Acceptance Setup`
-section. A test requirement is incomplete unless it fixes all of the following
-before implementation begins:
+Every `C.2` through `C.13` engineering spec must contain a
+`Non-Fake Acceptance Setup` section. C.1 is the test-execution foundation and
+uses its own direct truth contract; making its reports certify themselves would
+be recursive. A physical test requirement is incomplete unless it fixes all of
+the following before implementation begins:
 
 ### Production subject
 
@@ -297,7 +299,7 @@ a fast smoke run cannot promote a release claim.
 
 ## Milestone Plan
 
-## C.1: Test Execution Architecture And Proof-Lane Cleanup
+## C.1: Direct Test Execution And Iteration Cleanup
 
 Engineering spec:
 [physical-reconstruction-c1-test-execution-architecture.md](physical-reconstruction-c1-test-execution-architecture.md)
@@ -309,21 +311,17 @@ reconstruction begins.
 
 ### Boundary
 
-This milestone changes how tests are compiled, linked, scheduled, supported,
-and classified. It does not delete proof obligations or certify currently fake
-physical behavior. Existing tests are inventoried by claim and moved intact
-before redundant harness topology is removed.
+This milestone changes how tests are selected, compiled, linked, and scheduled.
+It does not certify currently fake physical behavior. Cargo, Git, the test
+executables, and CI remain the truth sources; C.1 does not construct a parallel
+authority hierarchy around them.
 
 ### Must Ship
 
-- a generated test inventory mapping every test to owner, proof family,
-  production subject, mode, expected runtime, external process use, feature
-  set, and required evidence
-- real, documented entrypoints with the strongly preferred names
-  `store-owner`, `store-smoke`, `store-ci`, `store-ui`, `store-soak`,
-  `store-release`, and `store-hardware`; implementations may use Cargo aliases,
-  workspace tooling, or scripts, but each name must select one stable proof
-  product rather than an ad hoc set of filters
+- one on-demand Cargo-derived target catalog that assigns every test target to
+  exactly one CI lane without checked-in generated inventories
+- real, documented `store-owner`, `store-smoke`, `store-ui`, and `store-ci`
+  entrypoints backed by one unique execution planner
 - Worth Store-local development and test profiles that avoid full Windows PDB
   generation where it is not required
 - consolidation of the scenario explosion into a small number of
@@ -340,11 +338,11 @@ before redundant harness topology is removed.
   ordinary production graph by default
 - partitioned CI jobs with cache identity bound to OS, toolchain, profile,
   feature lane, and lockfile
-- instrumentation of compile, link, execution, nested-process, and artifact
-  costs by suite
-- a preserved-proof manifest showing that every pre-cleanup assertion and
-  scenario claim either remains reachable in its assigned lane or is rejected
-  as invalid with a named reason
+- concise elapsed and unit-count observation with optional disposable JSON
+  output; successful local commands produce no mandatory evidence files
+- deletion of recursive behavior fingerprints, preservation ledgers, plan/run
+  seals, source-edit authority, custom CI aggregates, closeout bundles, and C.2
+  readiness tokens
 
 ### Non-Fake Acceptance Setup
 
@@ -353,21 +351,22 @@ before redundant harness topology is removed.
 - **Initial world:** start from a clean target directory for cold measurement
   and a completed identical run for warm measurement. Record Rust toolchain,
   OS, CPU, storage, source revision, features, and exact command.
-- **Execution:** change one leaf owner source file, run owner check; change one
-  shared physical contract, run developer smoke; execute UI, CI certification,
-  and one fresh-process scenario as separate lanes.
-- **Independent observation:** Cargo metadata and filesystem artifact inventory
-  count targets, dependency edges, compiler subprocesses, linked binaries,
-  PDBs, nested Cargo launches, and target-directory identities. The test runner
-  may not self-report these counts without comparison to process and artifact
-  observation.
+- **Execution:** change one leaf owner source file and run owner check; change
+  one shared physical contract and run developer smoke; change one test/UI
+  expectation and run its owning product. Run complete UI and CI products from
+  the committed revision.
+- **Independent observation:** Cargo metadata names targets, Cargo/test process
+  results name behavioral outcomes, ordinary target-directory observation
+  distinguishes cold from warm work, and GitHub matrix status names CI
+  completion. No runner-produced artifact certifies another runner artifact.
 - **Assertions:** owner check does not build certification or unrelated owner
   crates; developer smoke runs the declared vertical specimens; UI fixtures
   share compilation roots; no ordinary lane creates a per-case Cargo target;
   the preserved-proof manifest has no unclassified test.
-- **Controlled defects:** remove one UI denial, invert one scenario assertion,
-  and route one leaf test through the broad support crate. The expected UI,
-  scenario, and topology predicates must fail independently and locally.
+- **Controlled defects:** invert one UI expectation and one ordinary assertion.
+  Each direct owning product must fail for the intended reason. Planner tests
+  separately reject duplicate units, stale zero-match filters, and ambiguous
+  target classification.
 - **Forbidden substitutes:** excluding tests from all modes, replacing tests
   with source scans, timing only a no-change green run, or declaring success
   solely because `cargo nextest` is installed cannot close this milestone.
@@ -376,9 +375,10 @@ before redundant harness topology is removed.
 
 `C.1` closes only when ordinary owner work no longer compiles the courtroom,
 developer smoke exercises real declared specimens with a warm reference target
-under one minute, UI proof no longer performs per-fixture cold builds, and the
-full proof inventory remains reachable through explicit modes. Exact timing is
-profile evidence, but unbounded or unexplained iteration cost blocks closure.
+under one minute, UI proof no longer performs per-fixture cold builds, every
+Cargo test target has one CI lane, and no recursive test-authority path remains.
+Exact timing is observation, but unbounded or unexplained iteration cost blocks
+closure.
 
 ## C.2: Executable Reality Ledger And Claim Quarantine
 
@@ -1179,11 +1179,12 @@ implementation:
 - `physical-reconstruction-c12-formal-owner-rebinding.md`
 - `physical-reconstruction-c13-recertification-and-s10-readiness.md`
 
-Every spec must inherit the Non-Fake Acceptance Test Contract, then make its
-own setup more concrete. Repeating only “control, hostile, and reopen lane” is
-not sufficient; the spec must name executables, initial files, process deaths,
-forbidden inputs, independent observers, exact counters, and controlled
-defects.
+C.2 through C.13 specs inherit the Non-Fake Physical Acceptance Test Contract,
+then make their setup more concrete. Repeating only “control, hostile, and
+reopen lane” is not sufficient; the spec must name executables, initial files,
+process deaths, forbidden inputs, independent observers, exact counters, and
+controlled defects. C.1 instead closes through direct Cargo/test execution and
+ordinary CI status as defined by its engineering spec.
 
 ## Must Preserve
 
@@ -1203,7 +1204,7 @@ defects.
 
 The reconstruction program emits:
 
-- test topology and proof-lane inventory
+- Cargo-derived test catalog and direct execution products
 - executable reality and artifact-family ledgers
 - runtime authority and lifecycle compile-time proof
 - media capability qualification evidence

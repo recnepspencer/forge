@@ -4,12 +4,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use sha2::{Digest, Sha256};
 
-use super::{artifact_store, bounded_process, UiCompilerToolchainIdentity, UiProofRunFailure};
+use super::{bounded_process, immutable_file, UiCompilerToolchainIdentity, UiRunFailure};
 
 pub(super) struct SealedEnvironmentLock {
-    pub path: PathBuf,
     pub sha256: String,
-    pub created: bool,
 }
 
 pub(super) fn seal(
@@ -18,15 +16,15 @@ pub(super) fn seal(
     manifest_path: &Path,
     manifest: &str,
     toolchain: &UiCompilerToolchainIdentity,
-) -> Result<SealedEnvironmentLock, UiProofRunFailure> {
+) -> Result<SealedEnvironmentLock, UiRunFailure> {
     let lock_path = environment_root.join("Cargo.lock");
     if lock_path.is_file() {
-        return observed(lock_path, false);
+        return observed(lock_path);
     }
     let staging = LockGenerationStaging::create(workspace_root)?;
     let staging_manifest = staging.path.join("Cargo.toml");
-    artifact_store::write_immutable_file(&staging_manifest, manifest.as_bytes())?;
-    artifact_store::write_immutable_file(&staging.path.join("src/lib.rs"), b"#![no_std]\n")?;
+    immutable_file::write(&staging_manifest, manifest.as_bytes())?;
+    immutable_file::write(&staging.path.join("src/lib.rs"), b"#![no_std]\n")?;
     let mut command = Command::new(&toolchain.cargo.executable_path);
     command
         .args(["generate-lockfile", "--offline", "--manifest-path"])
@@ -43,14 +41,14 @@ pub(super) fn seal(
         Duration::from_millis(toolchain.compile_timeout_millis),
         toolchain.output_cap_bytes_per_stream,
     )
-    .map_err(UiProofRunFailure::CompilerLaunch)?;
+    .map_err(UiRunFailure::CompilerLaunch)?;
     if output.timed_out {
-        return Err(UiProofRunFailure::CompilerTimedOut(
+        return Err(UiRunFailure::CompilerTimedOut(
             "environment-lock-generation".to_owned(),
         ));
     }
     if !output.status.success() {
-        return Err(UiProofRunFailure::EnvironmentObservation(format!(
+        return Err(UiRunFailure::EnvironmentObservation(format!(
             "could not seal UI dependency lock for {}: {}{}",
             manifest_path.display(),
             String::from_utf8_lossy(&output.stdout),
@@ -58,26 +56,24 @@ pub(super) fn seal(
         )));
     }
     let generated = std::fs::read(staging.path.join("Cargo.lock"))
-        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
-    let created = artifact_store::write_immutable_file(&lock_path, &generated)?;
-    observed(lock_path, created)
+        .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
+    immutable_file::write(&lock_path, &generated)?;
+    observed(lock_path)
 }
 
-fn observed(path: PathBuf, created: bool) -> Result<SealedEnvironmentLock, UiProofRunFailure> {
+fn observed(path: PathBuf) -> Result<SealedEnvironmentLock, UiRunFailure> {
     let metadata = std::fs::symlink_metadata(&path)
-        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+        .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
     if !metadata.is_file() || metadata.file_type().is_symlink() {
-        return Err(UiProofRunFailure::EnvironmentObservation(format!(
+        return Err(UiRunFailure::EnvironmentObservation(format!(
             "UI dependency lock is not a regular file: {}",
             path.display()
         )));
     }
     let bytes = std::fs::read(&path)
-        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+        .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
     Ok(SealedEnvironmentLock {
-        path,
         sha256: format!("{:x}", Sha256::digest(bytes)),
-        created,
     })
 }
 
@@ -86,17 +82,17 @@ struct LockGenerationStaging {
 }
 
 impl LockGenerationStaging {
-    fn create(workspace_root: &Path) -> Result<Self, UiProofRunFailure> {
+    fn create(workspace_root: &Path) -> Result<Self, UiRunFailure> {
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?
+            .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?
             .as_nanos();
-        let parent = workspace_root.join(".store-proof/ui/lock-generation");
+        let parent = workspace_root.join("target/store-ui/lock-generation");
         std::fs::create_dir_all(&parent)
-            .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+            .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
         let path = parent.join(format!("{}-{nonce}", std::process::id()));
         std::fs::create_dir(&path)
-            .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+            .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
         Ok(Self { path })
     }
 }

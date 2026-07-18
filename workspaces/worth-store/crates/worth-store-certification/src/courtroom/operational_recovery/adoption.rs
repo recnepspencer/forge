@@ -92,41 +92,6 @@ impl S10ProofFoundationalAdoptionMatrix {
     pub fn rows(&self) -> &[ProofFoundationalAdoptionRow] {
         &self.rows
     }
-
-    pub(super) fn evidence_identity(&self) -> [u8; 32] {
-        use sha2::{Digest, Sha256};
-        let mut digest = Sha256::new();
-        digest.update(b"worth-store-s10-proof-foundational-adoption-v1");
-        for row in &self.rows {
-            update_text(&mut digest, row.store_source);
-            digest.update([category_tag(row.category)]);
-            update_text(&mut digest, row.shared_role);
-            update_text(&mut digest, row.basis_loss);
-            update_text(&mut digest, row.freshness_loss);
-            update_text(&mut digest, row.comparison_contract);
-            update_text(&mut digest, row.reverse_flow_compile_gate);
-        }
-        digest.finalize().into()
-    }
-}
-
-fn update_text(digest: &mut sha2::Sha256, value: &str) {
-    use sha2::Digest;
-    digest.update((value.len() as u64).to_be_bytes());
-    digest.update(value.as_bytes());
-}
-
-const fn category_tag(category: SharedArtifactCategory) -> u8 {
-    match category {
-        SharedArtifactCategory::Decision => 1,
-        SharedArtifactCategory::Failure => 2,
-        SharedArtifactCategory::Comparison => 3,
-        SharedArtifactCategory::Support => 4,
-        SharedArtifactCategory::Provenance => 5,
-        SharedArtifactCategory::Receipt => 6,
-        SharedArtifactCategory::Lineage => 7,
-        SharedArtifactCategory::Performance => 8,
-    }
 }
 
 const fn row(

@@ -140,34 +140,29 @@ jobs:
       - name: Run miri on worth-math
         run: cargo +nightly miri test -p worth-math
 
-  worth-store-proof:
+  worth-store-tests:
     name: WORTH Store ${{ matrix.partition }} (${{ matrix.os }}, shard ${{ matrix.shard_index }}/${{ matrix.shard_count }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
           - { os: ubuntu-latest, partition: owner-unit, shard_index: 0, shard_count: 0 }
-          - { os: ubuntu-latest, partition: scenario-certification, shard_index: 0, shard_count: 2 }
-          - { os: ubuntu-latest, partition: scenario-certification, shard_index: 1, shard_count: 2 }
-          - { os: windows-latest, partition: scenario-certification, shard_index: 0, shard_count: 2 }
-          - { os: windows-latest, partition: scenario-certification, shard_index: 1, shard_count: 2 }
-          - { os: ubuntu-latest, partition: ui-dependency, shard_index: 0, shard_count: 0 }
-          - { os: windows-latest, partition: ui-dependency, shard_index: 0, shard_count: 0 }
-          - { os: ubuntu-latest, partition: fresh-process, shard_index: 0, shard_count: 0 }
-          - { os: windows-latest, partition: fresh-process, shard_index: 0, shard_count: 0 }
-          - { os: ubuntu-latest, partition: structural-preflight, shard_index: 0, shard_count: 0 }
-          - { os: ubuntu-latest, partition: formal-external, shard_index: 0, shard_count: 0 }
+          - { os: ubuntu-latest, partition: scenario, shard_index: 0, shard_count: 2 }
+          - { os: ubuntu-latest, partition: scenario, shard_index: 1, shard_count: 2 }
+          - { os: windows-latest, partition: scenario, shard_index: 0, shard_count: 2 }
+          - { os: windows-latest, partition: scenario, shard_index: 1, shard_count: 2 }
+          - { os: ubuntu-latest, partition: ui, shard_index: 0, shard_count: 0 }
+          - { os: windows-latest, partition: ui, shard_index: 0, shard_count: 0 }
+          - { os: ubuntu-latest, partition: structural, shard_index: 0, shard_count: 0 }
+          - { os: ubuntu-latest, partition: formal, shard_index: 0, shard_count: 0 }
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Record resolved Rust toolchain identity
-        shell: pwsh
-        run: rustc -Vv | Set-Content -NoNewline .ci-rustc-identity
 
       - name: Cache WORTH Store registry
         uses: actions/cache@v4
@@ -176,27 +171,25 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-worth-store-${{ matrix.partition }}-ci-test-
-            features-${{ hashFiles('workspaces/worth-store/test-control/feature-semantic-authority.json', 'workspaces/worth-store/**/Cargo.toml') }}-
-            toolchain-${{ hashFiles('.ci-rustc-identity') }}-
-            config-${{ hashFiles('workspaces/worth-store/.cargo/config.toml', 'workspaces/worth-store/Cargo.toml') }}-
+            ${{ runner.os }}-${{ runner.arch }}-worth-store-${{ matrix.partition }}-
+            manifests-${{ hashFiles('workspaces/worth-store/**/Cargo.toml') }}-
             lock-${{ hashFiles('workspaces/worth-store/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-worth-store-${{ matrix.partition }}-ci-test-
+            ${{ runner.os }}-${{ runner.arch }}-worth-store-${{ matrix.partition }}-
 
       - name: Install pinned TLC runtime
-        if: matrix.partition == 'formal-external'
+        if: matrix.partition == 'formal'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
-      - name: Execute unsharded proof partition
+      - name: Execute unsharded test partition
         if: matrix.shard_count == 0
         working-directory: workspaces/worth-store
         run: cargo store-ci --partition ${{ matrix.partition }}
 
-      - name: Execute proof partition shard
+      - name: Execute test partition shard
         if: matrix.shard_count > 0
         working-directory: workspaces/worth-store
         run: >-
@@ -211,13 +204,6 @@ jobs:
           phase_1_6_tests::release_scale_backup::two_gib_owner_bundle_stays_bounded_through_materialization_and_independent_verification
           -- --ignored --exact --nocapture --test-threads=1
 
-      - name: Upload source-bound partition evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: worth-store-proof-${{ runner.os }}-${{ matrix.partition }}-${{ matrix.shard_index }}
-          path: workspaces/worth-store/.store-proof/evidence/ci/partitions
-          if-no-files-found: error
-
   worth-store-lint:
     name: WORTH Store lint (${{ matrix.responsibility }})
     runs-on: ubuntu-latest
@@ -225,7 +211,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { responsibility: test-control, packages: '-p store-proof-control -p worth-store-test-support --all-targets' }
+          - { responsibility: test-runner, packages: '-p store-test-runner --all-targets' }
+          - { responsibility: test-support, packages: '-p worth-store-test-support --all-targets' }
           - { responsibility: certification, packages: '-p worth-store-certification -p worth-store-formal-models --all-targets' }
           - { responsibility: process-probes, packages: '-p worth-store-physical-certification --all-targets' }
           - { responsibility: production-owners, packages: '--workspace --lib --bins' }
@@ -237,28 +224,6 @@ jobs:
       - name: Lint responsibility targets
         working-directory: workspaces/worth-store
         run: cargo clippy ${{ matrix.packages }} -- -D warnings
-
-  worth-store-certification-aggregate:
-    name: WORTH Store source-bound certification aggregate
-    runs-on: ubuntu-latest
-    needs: worth-store-proof
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: worth-store-proof-*
-          path: .store-ci-evidence
-          merge-multiple: true
-      - name: Aggregate required proof lanes
-        working-directory: workspaces/worth-store
-        run: cargo run -p store-proof-control -- ci-aggregate --evidence-root ../../.store-ci-evidence
-      - name: Upload certification aggregate
-        uses: actions/upload-artifact@v4
-        with:
-          name: worth-store-certification-aggregate
-          path: workspaces/worth-store/.store-proof/evidence/ci/aggregates
-          if-no-files-found: error
 
   signal-perf:
     name: Signal Performance Lane

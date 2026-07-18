@@ -18,15 +18,18 @@ use crate::{
 impl OperationalRecoveryFreshProcessRunner {
     pub fn certify_control_cut(
         &self,
-        media_root: &Path,
-        scenario_identity: &str,
-        cut_command: &mut Command,
-        reopen_command: &mut Command,
-        scenario_environment_keys: &[&str],
-        yieldpoint: OperationalRecoveryYieldpoint,
-        uninterrupted_trace: &OperationalRecoveryDriverTrace,
+        request: OperationalRecoveryControlCutRequest<'_>,
     ) -> Result<OperationalRecoveryCrashCutEvidence, OperationalRecoveryProcessCrashDenial> {
-        self.certify_control_cut_with_process_evidence(
+        self.certify_control_cut_with_process_evidence(request)
+            .map(OperationalRecoveryProcessCrashEvidence::into_crash_cut)
+    }
+
+    pub fn certify_control_cut_with_process_evidence(
+        &self,
+        request: OperationalRecoveryControlCutRequest<'_>,
+    ) -> Result<OperationalRecoveryProcessCrashEvidence, OperationalRecoveryProcessCrashDenial>
+    {
+        let OperationalRecoveryControlCutRequest {
             media_root,
             scenario_identity,
             cut_command,
@@ -34,21 +37,7 @@ impl OperationalRecoveryFreshProcessRunner {
             scenario_environment_keys,
             yieldpoint,
             uninterrupted_trace,
-        )
-        .map(OperationalRecoveryProcessCrashEvidence::into_crash_cut)
-    }
-
-    pub fn certify_control_cut_with_process_evidence(
-        &self,
-        media_root: &Path,
-        scenario_identity: &str,
-        cut_command: &mut Command,
-        reopen_command: &mut Command,
-        scenario_environment_keys: &[&str],
-        yieldpoint: OperationalRecoveryYieldpoint,
-        uninterrupted_trace: &OperationalRecoveryDriverTrace,
-    ) -> Result<OperationalRecoveryProcessCrashEvidence, OperationalRecoveryProcessCrashDenial>
-    {
+        } = request;
         std::fs::create_dir_all(&self.evidence_directory)
             .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
         require_media_binding(cut_command, media_root)?;

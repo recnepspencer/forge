@@ -4,13 +4,13 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
-use super::{UiCargoConfigurationIdentity, UiProofRunFailure};
+use super::{UiCargoConfigurationIdentity, UiRunFailure};
 
 pub(super) fn observe(
     workspace_root: &Path,
-) -> Result<Vec<UiCargoConfigurationIdentity>, UiProofRunFailure> {
+) -> Result<Vec<UiCargoConfigurationIdentity>, UiRunFailure> {
     let workspace_root = workspace_root.canonicalize().map_err(|error| {
-        UiProofRunFailure::EnvironmentObservation(format!(
+        UiRunFailure::EnvironmentObservation(format!(
             "canonicalize Cargo configuration root {}: {error}",
             workspace_root.display()
         ))
@@ -55,15 +55,15 @@ fn cargo_home() -> Option<PathBuf> {
         })
 }
 
-fn file_digest(path: &Path) -> Result<String, UiProofRunFailure> {
+fn file_digest(path: &Path) -> Result<String, UiRunFailure> {
     let mut file = std::fs::File::open(path)
-        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+        .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
     let mut digest = Sha256::new();
     let mut buffer = [0_u8; 64 * 1024];
     loop {
         let read = file
             .read(&mut buffer)
-            .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+            .map_err(|error| UiRunFailure::EnvironmentObservation(error.to_string()))?;
         if read == 0 {
             break;
         }

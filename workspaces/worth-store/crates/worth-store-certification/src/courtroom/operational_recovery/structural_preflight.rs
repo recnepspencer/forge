@@ -35,7 +35,7 @@ pub fn require_s10_structural_preflight(
 fn load_s10_structural_preflight(
     path: &std::path::Path,
 ) -> Result<S10StructuralPreflightEvidence, S10StructuralPreflightDenial> {
-    let bytes = std::fs::read(&path)
+    let bytes = std::fs::read(path)
         .map_err(|_| S10StructuralPreflightDenial::BundleReadFailed(path.to_path_buf()))?;
     let bundle: StructuralPreflightEvidence = serde_json::from_slice(&bytes)
         .map_err(|_| S10StructuralPreflightDenial::BundleDecodeFailed(path.to_path_buf()))?;
