@@ -43,7 +43,6 @@ pub enum PreviewPerturbationClass {
     PreviewLiveDrift,
     InvalidBasis,
     StaleLifecycle,
-    RawBranchAliasForbidden,
     PromotionLinkageDenied,
     ReplayLinkageDenied,
     PromotionEligibilityBoolForbidden,
@@ -96,7 +95,6 @@ pub enum PreviewFailureClass {
     WorkflowFoundationAuthorityDenied,
     PromotionLinkageMismatch,
     PreviewShapeMismatchDenied,
-    CompileFail,
 }
 
 impl PreviewFailureClass {
@@ -111,7 +109,6 @@ impl PreviewFailureClass {
             Self::WorkflowFoundationAuthorityDenied => "workflow-foundation-authority-denied",
             Self::PromotionLinkageMismatch => "promotion-linkage-mismatch",
             Self::PreviewShapeMismatchDenied => "preview-shape-mismatch-denied",
-            Self::CompileFail => "compile_fail",
         }
     }
 }
@@ -268,7 +265,6 @@ pub struct PreviewCertificationRejection {
     pub execution_counters: Option<PreviewExecutionCounters>,
     pub comparison_counters: Option<PreviewComparisonCounters>,
     pub preview_live_counters: Option<PreviewLiveCounters>,
-    pub compile_fail_case: Option<&'static str>,
 }
 
 impl PreviewCertificationRejection {
@@ -299,7 +295,6 @@ impl PreviewCertificationRejection {
             execution_counters: None,
             comparison_counters: None,
             preview_live_counters: None,
-            compile_fail_case: None,
         }
     }
 
@@ -319,7 +314,6 @@ impl PreviewCertificationRejection {
             execution_counters: None,
             comparison_counters: Some(error.counters().clone()),
             preview_live_counters: None,
-            compile_fail_case: None,
         }
     }
 
@@ -337,7 +331,6 @@ impl PreviewCertificationRejection {
             execution_counters: Some(error.counters().clone()),
             comparison_counters: None,
             preview_live_counters: None,
-            compile_fail_case: None,
         }
     }
 
@@ -356,18 +349,6 @@ impl PreviewCertificationRejection {
             execution_counters: None,
             comparison_counters: None,
             preview_live_counters: Some(error.counters().clone()),
-            compile_fail_case: None,
-        }
-    }
-
-    fn compile_fail(case: &'static str) -> Self {
-        Self {
-            failure_class: PreviewFailureClass::CompileFail,
-            counters: None,
-            execution_counters: None,
-            comparison_counters: None,
-            preview_live_counters: None,
-            compile_fail_case: Some(case),
         }
     }
 
@@ -376,7 +357,6 @@ impl PreviewCertificationRejection {
             || self.execution_counters.is_some()
             || self.comparison_counters.is_some()
             || self.preview_live_counters.is_some()
-            || self.compile_fail_case.is_some()
     }
 }
 
@@ -743,8 +723,7 @@ mod tests {
             PREVIEW_CANONICAL_ROW_SPECS, PREVIEW_REJECTION_ROW_SPECS,
             PREVIEW_REQUIRED_CANONICAL_ROW_NAMES, PREVIEW_REQUIRED_REJECTION_ROW_NAMES,
         },
-        MilestoneFivePointTwoPreviewCertificationAdapter, PreviewFailureClass,
-        PreviewLaneEvaluationClass,
+        MilestoneFivePointTwoPreviewCertificationAdapter, PreviewLaneEvaluationClass,
     };
     use crate::harness::certification::{
         milestone_five_point_two_requirements, unmet_required_rows,
@@ -929,17 +908,12 @@ mod tests {
                 .unwrap_or_else(|| panic!("missing preview rejection row {}", spec.row_name));
             assert_eq!(row.perturbation_class, spec.perturbation_class);
             assert_eq!(row.hostile_lane.failure_class, spec.failure_class);
-            assert_eq!(row.hostile_lane.compile_fail_case, spec.compile_fail_case);
-            if spec.failure_class == PreviewFailureClass::CompileFail {
-                assert!(row.hostile_lane.counters.is_none());
-            } else {
-                assert!(
-                    row.hostile_lane.counters.is_some()
-                        || row.hostile_lane.execution_counters.is_some()
-                        || row.hostile_lane.comparison_counters.is_some()
-                        || row.hostile_lane.preview_live_counters.is_some()
-                );
-            }
+            assert!(
+                row.hostile_lane.counters.is_some()
+                    || row.hostile_lane.execution_counters.is_some()
+                    || row.hostile_lane.comparison_counters.is_some()
+                    || row.hostile_lane.preview_live_counters.is_some()
+            );
             if spec.row_name == "preview-broad-fallback-forbidden" {
                 assert_eq!(
                     row.hostile_lane
@@ -1353,9 +1327,9 @@ fn rejection_row(
         Some(row_catalog::PreviewRuntimeFailureSelector::ShapeMismatchDenied) => {
             PreviewCertificationRejection::from_comparison_failure(shape_mismatch_denied)
         }
-        None => PreviewCertificationRejection::compile_fail(
-            spec.compile_fail_case
-                .expect("compile-fail preview rejection rows must declare a case"),
+        None => panic!(
+            "preview rejection row {} has no runtime denial",
+            spec.row_name
         ),
     };
 

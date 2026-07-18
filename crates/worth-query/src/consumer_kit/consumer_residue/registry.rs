@@ -198,7 +198,7 @@ const CONSUMER_RESIDUE_REGISTRY: &[WorthQueryConsumerResidueRegistryRow] = &[
     registry_row(
         WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
         WorthQueryConsumerResidueDetection::ExactText,
-        "WorthUiQueryMeasurementConsumptionIdentity",
+        "ConsumerMeasurementConsumptionIdentity",
         "consumer mints a local mirror of Query consumption identity",
         "downstream-authority-adoption",
     ),

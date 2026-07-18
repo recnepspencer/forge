@@ -1,7 +1,0 @@
-error[E0432]: unresolved imports `worth_query::facade::BasisLifecycleAdapterOutcome`, `worth_query::facade::BasisLifecycleAdapterProof`
- --> tests/ui/basis_lifecycle/migration/basis_lifecycle_adapter_proof_constructor_private.rs:2:27
-  |
-2 | use worth_query::facade::{BasisLifecycleAdapterOutcome, BasisLifecycleAdapterProof};
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `BasisLifecycleAdapterProof` in `facade`
-  |                           |
-  |                           no `BasisLifecycleAdapterOutcome` in `facade`

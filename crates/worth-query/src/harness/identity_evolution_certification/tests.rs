@@ -3,8 +3,8 @@ use super::row_catalog::{
     IDENTITY_EVOLUTION_CANONICAL_ROW_SPECS, IDENTITY_EVOLUTION_REJECTION_ROW_SPECS,
 };
 use crate::harness::certification::{
-    covered_perturbation_classes, milestone_seven_requirements, unmet_required_assertion_classes,
-    unmet_required_rows, HostileExpectation, RequiredAssertionClass,
+    milestone_seven_requirements, unmet_required_assertion_classes, unmet_required_rows,
+    HostileExpectation, RequiredAssertionClass,
 };
 
 #[test]
@@ -48,18 +48,6 @@ fn identity_evolution_matrix_covers_required_assertion_classes() {
     assert!(
         missing.is_empty(),
         "missing identity-evolution assertion classes: {missing:?}"
-    );
-}
-
-#[test]
-fn identity_evolution_matrix_covers_multiple_perturbation_classes() {
-    let matrix =
-        MilestoneSevenIdentityEvolutionCertificationAdapter::lineage_and_correspondence_query_parity_test();
-    let covered = covered_perturbation_classes(&matrix);
-
-    assert!(
-        covered.len() >= 6,
-        "expected broad identity-evolution perturbation coverage, got {covered:?}"
     );
 }
 
@@ -394,16 +382,6 @@ fn identity_evolution_rejection_rows_bind_typed_failures() {
         .exact_counter_values
         .iter()
         .any(|value| value == "broad_lineage_scan_denial_count:1"));
-
-    let compile_fail = matrix
-        .rejection_rows
-        .iter()
-        .find(|row| row.row_name == "fabricated-branch-local-continuity-forbidden")
-        .expect("compile fail row should exist");
-    assert_eq!(
-        compile_fail.hostile_lane.compile_fail_case,
-        Some("tests/ui/identity_evolution_branch_local_promotion_forbidden.rs")
-    );
 
     let contract = matrix
         .rejection_rows

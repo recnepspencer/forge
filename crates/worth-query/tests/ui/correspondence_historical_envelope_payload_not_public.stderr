@@ -1,5 +1,0 @@
-error[E0599]: no variant or associated item named `payload` found for enum `CorrespondenceHistoricalEnvelope` in the current scope
- --> tests/ui/correspondence_historical_envelope_payload_not_public.rs:5:43
-  |
-5 |         CorrespondenceHistoricalEnvelope::payload;
-  |                                           ^^^^^^^ variant or associated item not found in `CorrespondenceHistoricalEnvelope`

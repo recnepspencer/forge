@@ -386,11 +386,7 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         | WorthQueryEvidenceScope::ApplicationEvidenceIdentityBoundaryClosure
         | WorthQueryEvidenceScope::ApplicationStopClassBoundaryClosure
         | WorthQueryEvidenceScope::ApplicationSessionLabelBoundaryClosure
-        | WorthQueryEvidenceScope::ApplicationIdentityBoundaryClosure
-        | WorthQueryEvidenceScope::ApplicationConsumerKitFamilyClosure
-        | WorthQueryEvidenceScope::ApplicationConsumerKitHostileCertification
-        | WorthQueryEvidenceScope::ApplicationConsumerKitReferenceResidue
-        | WorthQueryEvidenceScope::ApplicationConsumerKitClosure => {
+        | WorthQueryEvidenceScope::ApplicationIdentityBoundaryClosure => {
             graph_application_evidence_scope_as_str(scope)
         }
     }

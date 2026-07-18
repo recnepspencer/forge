@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::policy::admit_preview_promotion_parity_comparison`
- --> tests/ui/promotion_parity_comparison_requires_promotion_execution.rs:1:35
-  |
-1 | ...::policy::{admit_preview_promotion_parity_comparison, AuthoritativePreviewComparisonCandidate, PreviewComparisonError, PromotionPa...
-  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_preview_promotion_parity_comparison` in `facade::policy`

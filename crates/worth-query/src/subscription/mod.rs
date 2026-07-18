@@ -94,14 +94,6 @@ mod support;
 mod terminal_projection_label;
 mod validation_evidence;
 
-pub use identity_authority::{
-    worth_query_subscription_phase_seven_compile_fail_targets,
-    worth_query_subscription_phase_seven_golden_paths,
-    WorthQuerySubscriptionPhaseSevenCompileFailTarget,
-    WORTH_QUERY_SUBSCRIPTION_PHASE_SEVEN_COMPILE_FAIL_TARGET_COUNT,
-    WORTH_QUERY_SUBSCRIPTION_PHASE_SEVEN_GOLDEN_PATH_COUNT,
-};
-
 pub use acknowledgement::{
     QueryDeliveryBatchReceipt, QueryDeliverySequence, SubscriptionAcknowledgementFrontier,
 };

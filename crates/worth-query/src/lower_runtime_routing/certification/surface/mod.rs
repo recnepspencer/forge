@@ -13,7 +13,6 @@ mod evidence_tests;
 mod evidence_width_tests;
 mod fixtures;
 mod synthetic_tail_report;
-mod transcripts;
 
 pub use acceptance::{
     worth_query_lower_runtime_acceptance_suite, WorthQueryLowerRuntimeAcceptanceLane,
@@ -30,8 +29,4 @@ pub(super) use evidence::{
 pub use synthetic_tail_report::{
     worth_query_lower_runtime_synthetic_tail_report, WorthQueryLowerRuntimeSyntheticTailReport,
     WorthQueryLowerRuntimeSyntheticTailRow,
-};
-pub(crate) use transcripts::worth_query_lower_runtime_golden_transcript_digest;
-pub use transcripts::{
-    worth_query_lower_runtime_golden_transcripts, worth_query_lower_runtime_target_dx_digest,
 };

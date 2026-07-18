@@ -1,5 +1,0 @@
-error[E0599]: no method named `verify_existing` found for struct `WorthQueryWorkspace` in the current scope
- --> tests/ui/prohibition_registry/existing_truth_verify_forbidden.rs:4:23
-  |
-4 |     let _ = workspace.verify_existing(binding, |builder: WorthQueryAspectMutationBuilder| builder);
-  |                       ^^^^^^^^^^^^^^^ method not found in `WorthQueryWorkspace`

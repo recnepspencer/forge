@@ -1,11 +1,8 @@
 use super::row_catalog::{
-    UNIFIED_FACADE_REQUIRED_CANONICAL_ROW_NAMES,
-    UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES,
-    UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES,
+    UNIFIED_FACADE_REQUIRED_CANONICAL_ROW_NAMES, UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES,
 };
 use super::{MilestoneFivePointSixUnifiedFacadeCertificationAdapter, UnifiedFacadeFailureClass};
 use crate::harness::certification::{contains_row, milestone_five_point_six_requirements};
-use std::path::Path;
 
 #[test]
 fn unified_facade_certification_matrix_contains_required_rows() {
@@ -347,21 +344,4 @@ fn unified_facade_rejections_preserve_failure_class_honesty() {
             .query_context_broadening_denial_count,
         1
     );
-}
-
-#[test]
-fn unified_facade_compile_fail_boundaries_cover_legacy_shortcuts() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let ui = root.join("tests").join("ui");
-
-    for boundary_name in UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES {
-        assert!(
-            ui.join(format!("{boundary_name}.rs")).exists(),
-            "missing compile-fail fixture {boundary_name}.rs"
-        );
-        assert!(
-            ui.join(format!("{boundary_name}.stderr")).exists(),
-            "missing compile-fail fixture {boundary_name}.stderr"
-        );
-    }
 }

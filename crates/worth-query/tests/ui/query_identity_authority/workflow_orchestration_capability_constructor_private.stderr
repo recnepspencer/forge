@@ -1,7 +1,0 @@
-error[E0451]: field `facade_digest` of struct `WorkflowOrchestrationCapability` is private
- --> tests/ui/workflow_orchestration_capability_constructor_private.rs:5:9
-  |
-4 |     let _ = WorkflowOrchestrationCapability {
-  |             ------------------------------- in this type
-5 |         facade_digest: String::new(),
-  |         ^^^^^^^^^^^^^ private field

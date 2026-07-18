@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::policy::admit_preview_workflow_foundation_request`
- --> tests/ui/preview_workflow_foundation_requires_admitted_witness.rs:1:35
-  |
-1 | ...cy::{admit_preview_workflow_foundation_request, PreviewSessionPlanBinding, PreviewWorkflowFoundationArtifact, PreviewWorkflowFound...
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |         |
-  |         no `admit_preview_workflow_foundation_request` in `facade::policy`
-  |         help: a similar name exists in the module: `PreviewWorkflowFoundationRequest`

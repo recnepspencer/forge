@@ -1,5 +1,0 @@
-error[E0599]: no method named `plan_graph_read_access_in_authority` found for struct `WorthQueryReadDeclaration` in the current scope
- --> tests/ui/declarative_read/internal_plan_controls_are_not_declaration_methods.rs:5:17
-  |
-5 |     declaration.plan_graph_read_access_in_authority();
-  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryReadDeclaration`

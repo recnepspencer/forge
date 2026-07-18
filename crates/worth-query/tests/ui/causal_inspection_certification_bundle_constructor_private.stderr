@@ -1,7 +1,0 @@
-error[E0560]: struct `CausalInspectionCertificationBundle` has no field named `certification_bundle_digest`
- --> tests/ui/causal_inspection_certification_bundle_constructor_private.rs:5:9
-  |
-5 |         certification_bundle_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `CausalInspectionCertificationBundle` does not have this field
-  |
-  = note: all struct fields are already assigned

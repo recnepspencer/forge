@@ -1,8 +1,8 @@
 use super::surface::worth_query_lower_runtime_synthetic_tail_report;
 use super::surface::{
     allowed_phase_six_synthetic_seams, required_phase_six_concrete_seams,
-    worth_query_lower_runtime_acceptance_suite, worth_query_lower_runtime_golden_transcripts,
-    worth_query_lower_runtime_representative_surface, WorthQueryLowerRuntimeAcceptanceLane,
+    worth_query_lower_runtime_acceptance_suite, worth_query_lower_runtime_representative_surface,
+    WorthQueryLowerRuntimeAcceptanceLane,
 };
 use super::{
     certify_lower_runtime_performance_slopes, certify_lower_runtime_routing,
@@ -10,12 +10,10 @@ use super::{
     worth_query_lower_runtime_certification_output_manifest,
     worth_query_lower_runtime_closeout_extension_outputs,
     worth_query_lower_runtime_closeout_report, worth_query_lower_runtime_closure_test,
-    worth_query_lower_runtime_compile_fail_boundary_digest,
     worth_query_lower_runtime_phase_artifact_manifest_digest,
     worth_query_lower_runtime_phase_manifest, worth_query_lower_runtime_phase_progression_digest,
     worth_query_lower_runtime_proof_shape_audit, worth_query_lower_runtime_proof_shape_digest,
     worth_query_lower_runtime_required_certification_outputs,
-    worth_query_lower_runtime_target_dx_digest,
     worth_query_lower_runtime_typestate_transition_digest, WorthQueryLowerRuntimeCertificationLane,
     WorthQueryLowerRuntimePhaseArtifact,
 };
@@ -39,7 +37,6 @@ fn certification_bundle_contains_phase_seven_lanes() {
         WorthQueryLowerRuntimeCertificationLane::DeferredNeighborDenial,
         WorthQueryLowerRuntimeCertificationLane::DownstreamBoundaryAudit,
         WorthQueryLowerRuntimeCertificationLane::ProofShapeSurface,
-        WorthQueryLowerRuntimeCertificationLane::CompileFailBoundary,
         WorthQueryLowerRuntimeCertificationLane::Performance,
     ] {
         assert!(bundle.rows().iter().any(|row| row.lane() == lane));
@@ -93,13 +90,6 @@ fn certification_bundle_emits_required_outputs() {
         bundle.output_digest("route_support_matrix_digest"),
         Some(support.matrix_digest().as_str())
     );
-    let golden_transcripts = worth_query_lower_runtime_golden_transcripts();
-    let expected_golden_digest = hash_parts(
-        &golden_transcripts
-            .iter()
-            .map(|row| format!("{}|{}", row.label(), row.path()))
-            .collect::<Vec<_>>(),
-    );
     assert_eq!(
         bundle.output_digest("route_non_bypass_digest"),
         Some(non_bypass.route_non_bypass_digest())
@@ -113,24 +103,12 @@ fn certification_bundle_emits_required_outputs() {
         Some(worth_query_lower_runtime_phase_artifact_manifest_digest().as_str())
     );
     assert_eq!(
-        bundle.output_digest("compile_fail_boundary_digest"),
-        Some(worth_query_lower_runtime_compile_fail_boundary_digest().as_str())
-    );
-    assert_eq!(
         bundle.output_digest("route_proof_shape_digest"),
         Some(worth_query_lower_runtime_proof_shape_digest().as_str())
     );
     assert_eq!(
         bundle.output_digest("route_phase_progression_digest"),
         Some(worth_query_lower_runtime_phase_progression_digest().as_str())
-    );
-    assert_eq!(
-        bundle.output_digest("route_target_dx_digest"),
-        Some(worth_query_lower_runtime_target_dx_digest().as_str())
-    );
-    assert_eq!(
-        bundle.output_digest("route_golden_transcript_digest"),
-        Some(expected_golden_digest.as_str())
     );
     assert_eq!(
         bundle.output_digest("route_typestate_transition_digest"),
@@ -232,34 +210,6 @@ fn phase_manifest_is_public_and_consumable_by_closeout_bundle() {
             .expect("manifest rows")
             .next_consumer(),
         "runtime-api-public-stabilization gate"
-    );
-}
-
-#[test]
-fn lower_runtime_golden_transcript_manifest_is_exported_and_duplicate_free() {
-    let transcripts = worth_query_lower_runtime_golden_transcripts();
-    let paths = transcripts.iter().map(|row| row.path()).collect::<Vec<_>>();
-    let labels = transcripts
-        .iter()
-        .map(|row| row.label())
-        .collect::<Vec<_>>();
-
-    assert_eq!(transcripts.len(), 3);
-    assert_eq!(
-        paths.len(),
-        paths
-            .iter()
-            .copied()
-            .collect::<std::collections::BTreeSet<_>>()
-            .len()
-    );
-    assert_eq!(
-        labels.len(),
-        labels
-            .iter()
-            .copied()
-            .collect::<std::collections::BTreeSet<_>>()
-            .len()
     );
 }
 

@@ -368,9 +368,6 @@ fn rejection_digest_parts(bundle: &PreviewCertificationRejection, label: &str) -
     if let Some(counters) = bundle.preview_live_counters.as_ref() {
         parts.extend(preview_live_counter_digest_parts(counters, label));
     }
-    if let Some(case) = bundle.compile_fail_case {
-        parts.push(format!("{label}_compile_fail_case:{case}"));
-    }
     parts
 }
 

@@ -8,11 +8,7 @@ pub use boundary_reconciliation::{
     WorthQueryLowerRuntimeBoundaryReconciliationReport,
     WorthQueryLowerRuntimeBoundaryReconciliationRow,
 };
-pub use non_bypass::{
-    certify_lower_runtime_non_bypass, worth_query_lower_runtime_compile_fail_boundary_digest,
-    worth_query_lower_runtime_compile_fail_boundary_target_count,
-    WorthQueryLowerRuntimeNonBypassAudit,
-};
+pub use non_bypass::{certify_lower_runtime_non_bypass, WorthQueryLowerRuntimeNonBypassAudit};
 pub use proof_shape::{
     worth_query_lower_runtime_phase_progression_digest,
     worth_query_lower_runtime_proof_shape_audit, worth_query_lower_runtime_proof_shape_digest,

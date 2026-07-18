@@ -7,8 +7,6 @@ mod surface;
 mod tests;
 pub use boundary_certification::{
     certify_lower_runtime_non_bypass, worth_query_lower_runtime_boundary_reconciliation_report,
-    worth_query_lower_runtime_compile_fail_boundary_digest,
-    worth_query_lower_runtime_compile_fail_boundary_target_count,
     worth_query_lower_runtime_phase_progression_digest,
     worth_query_lower_runtime_proof_shape_audit, worth_query_lower_runtime_proof_shape_digest,
     worth_query_lower_runtime_public_surface_inventory,
@@ -41,8 +39,7 @@ pub use phase_manifest::{
     WorthQueryLowerRuntimePhaseManifest, WorthQueryLowerRuntimePhaseManifestRow,
 };
 pub use surface::{
-    worth_query_lower_runtime_acceptance_suite, worth_query_lower_runtime_golden_transcripts,
-    worth_query_lower_runtime_synthetic_tail_report, worth_query_lower_runtime_target_dx_digest,
+    worth_query_lower_runtime_acceptance_suite, worth_query_lower_runtime_synthetic_tail_report,
     WorthQueryLowerRuntimeAcceptanceLane, WorthQueryLowerRuntimeAcceptanceRow,
     WorthQueryLowerRuntimeAcceptanceSuite, WorthQueryLowerRuntimeSyntheticTailReport,
     WorthQueryLowerRuntimeSyntheticTailRow,

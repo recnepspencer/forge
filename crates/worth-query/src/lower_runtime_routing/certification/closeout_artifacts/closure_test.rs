@@ -23,7 +23,6 @@ pub enum WorthQueryLowerRuntimeClosureTestLane {
     Hostile,
     Parity,
     DownstreamBoundary,
-    CompileBoundary,
 }
 
 impl WorthQueryLowerRuntimeClosureTestLane {
@@ -33,7 +32,6 @@ impl WorthQueryLowerRuntimeClosureTestLane {
             Self::Hostile => "hostile-lane",
             Self::Parity => "parity-lane",
             Self::DownstreamBoundary => "downstream-boundary-lane",
-            Self::CompileBoundary => "compile-boundary-lane",
         }
     }
 }
@@ -190,12 +188,6 @@ pub fn worth_query_lower_runtime_closure_test() -> WorthQueryLowerRuntimeClosure
         .find(|row| row.lane() == WorthQueryLowerRuntimeCertificationLane::DownstreamBoundaryAudit)
         .expect("named closure test requires downstream boundary audit lane")
         .clone();
-    let compile_boundary = certification_bundle
-        .rows()
-        .iter()
-        .find(|row| row.lane() == WorthQueryLowerRuntimeCertificationLane::CompileFailBoundary)
-        .expect("named closure test requires compile-boundary lane")
-        .clone();
 
     assert_eq!(
         certification_bundle
@@ -259,11 +251,6 @@ pub fn worth_query_lower_runtime_closure_test() -> WorthQueryLowerRuntimeClosure
                 downstream_boundary.artifact_digest(),
                 downstream_boundary.detail(),
             ),
-            WorthQueryLowerRuntimeClosureTestRow::new(
-                WorthQueryLowerRuntimeClosureTestLane::CompileBoundary,
-                compile_boundary.artifact_digest(),
-                compile_boundary.detail(),
-            ),
         ],
     )
 }
@@ -277,7 +264,7 @@ mod tests {
         let suite = worth_query_lower_runtime_closure_test();
 
         assert_eq!(suite.name(), LOWER_RUNTIME_CLOSURE_TEST_NAME);
-        assert_eq!(suite.rows().len(), 5);
+        assert_eq!(suite.rows().len(), 4);
         assert!(!suite.suite_digest().is_empty());
         assert_eq!(
             suite
@@ -305,7 +292,7 @@ mod tests {
     }
 
     #[test]
-    fn closure_test_binds_boundary_and_compile_lanes_to_certified_rows() {
+    fn closure_test_binds_downstream_boundary_lane_to_certified_row() {
         let suite = worth_query_lower_runtime_closure_test();
 
         assert_eq!(
@@ -319,19 +306,6 @@ mod tests {
                 .find(|row| row.lane()
                     == WorthQueryLowerRuntimeCertificationLane::DownstreamBoundaryAudit)
                 .expect("downstream boundary row")
-                .artifact_digest()
-        );
-        assert_eq!(
-            suite
-                .lane(WorthQueryLowerRuntimeClosureTestLane::CompileBoundary)
-                .digest(),
-            suite
-                .certification_bundle()
-                .rows()
-                .iter()
-                .find(|row| row.lane()
-                    == WorthQueryLowerRuntimeCertificationLane::CompileFailBoundary)
-                .expect("compile fail row")
                 .artifact_digest()
         );
     }

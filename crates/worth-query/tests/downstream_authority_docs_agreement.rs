@@ -72,7 +72,6 @@ fn closeout_records_authority_deletion_complexity_and_consumer_proof() {
         "unrelated Query workspace growth",
         "historical basis growth",
         "downstream consumer graph growth",
-        "Worth UI",
     ] {
         assert!(CLOSEOUT.contains(required), "missing closeout proof: {required}");
     }

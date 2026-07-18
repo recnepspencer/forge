@@ -195,6 +195,31 @@ const QUERY_CAPABILITY_JOURNEYS: &[Row] = &[
             replacement: "facade::inspection::declare",
         },
     }),
+    row(JourneyEntry {
+        id: "query-domain-extension",
+        consumer: "installed-domain extension author",
+        source:
+            "crates/worth-query/src/domain_installation/installed_authority/capabilities/mutation.rs",
+        probe: "pub fn mutation(",
+        family: Family::DomainExtension,
+        meaning: JourneyMeaning {
+            intent: "domain-native operation declared through an installed Query authority",
+            context: "installed domain handle plus an admitted operation context",
+            capability: "WorthQueryInstalledDomainMutationDeclaration",
+            phase_chain:
+                "installed handle -> domain declaration -> bind context -> execute -> inspect",
+        },
+        evidence: JourneyEvidence {
+            result: "WorthQueryInstalledDomainMutationOutcome",
+            receipts: "installed-domain execution receipt",
+            diagnostics: "typed installed-capability stop and mutation outcome",
+            counters: "installed-domain mutation journey counters",
+        },
+        cutover: JourneyCutover {
+            local_ceremony: "handle.mutation(author) -> using(context) -> run(workspace)",
+            replacement: "facade::domain installed-handle grammar",
+        },
+    }),
 ];
 
 const fn standard_read(id: &'static str, intent: &'static str) -> Row {

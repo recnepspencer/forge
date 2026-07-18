@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::read::declare_live`
- --> tests/ui/managed_live/read_facade_has_no_live_declaration.rs:1:5
-  |
-1 | use worth_query::facade::read::declare_live;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `declare_live` in `facade::read`

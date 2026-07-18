@@ -14,7 +14,6 @@ pub struct CorrespondenceHistoryRejectionRowSpec {
     pub row_name: &'static str,
     pub perturbation_class: CorrespondenceHistoryPerturbationClass,
     pub failure_class: CorrespondenceHistoryFailureClass,
-    pub compile_fail_case: Option<&'static str>,
 }
 
 pub const CORRESPONDENCE_HISTORY_CANONICAL_ROW_SPECS: &[CorrespondenceHistoryCanonicalRowSpec] = &[
@@ -119,69 +118,37 @@ pub const CORRESPONDENCE_HISTORY_CANONICAL_ROW_SPECS: &[CorrespondenceHistoryCan
 
 pub const CORRESPONDENCE_HISTORY_REJECTION_ROW_SPECS: &[CorrespondenceHistoryRejectionRowSpec] = &[
     CorrespondenceHistoryRejectionRowSpec {
-        row_name: "structural-as-authoritative-forbidden",
-        perturbation_class:
-            CorrespondenceHistoryPerturbationClass::StructuralAuthorityPromotionForbidden,
-        failure_class: CorrespondenceHistoryFailureClass::CompileFail,
-        compile_fail_case: Some("tests/ui/advisory_structural_unique_is_not_lineage_continuity.rs"),
-    },
-    CorrespondenceHistoryRejectionRowSpec {
-        row_name: "ambiguous-correspondence-not-collapsed",
-        perturbation_class: CorrespondenceHistoryPerturbationClass::AmbiguityCollapseForbidden,
-        failure_class: CorrespondenceHistoryFailureClass::CompileFail,
-        compile_fail_case: Some("tests/ui/naked_best_match_accessor_forbidden.rs"),
-    },
-    CorrespondenceHistoryRejectionRowSpec {
         row_name: "unsupported-correspondence-family",
         perturbation_class: CorrespondenceHistoryPerturbationClass::UnsupportedCorrespondenceFamily,
         failure_class: CorrespondenceHistoryFailureClass::CorrespondenceDenied,
-        compile_fail_case: None,
     },
     CorrespondenceHistoryRejectionRowSpec {
         row_name: "unsupported-historical-materialization-path",
         perturbation_class:
             CorrespondenceHistoryPerturbationClass::UnsupportedHistoricalMaterializationPath,
         failure_class: CorrespondenceHistoryFailureClass::HistoricalPathDenied,
-        compile_fail_case: None,
     },
     CorrespondenceHistoryRejectionRowSpec {
         row_name: "hidden-materialization-path-substitution-forbidden",
         perturbation_class:
             CorrespondenceHistoryPerturbationClass::HiddenMaterializationSubstitutionForbidden,
         failure_class: CorrespondenceHistoryFailureClass::HistoricalPathDenied,
-        compile_fail_case: None,
     },
     CorrespondenceHistoryRejectionRowSpec {
         row_name: "broad-candidate-scan-success-forbidden",
         perturbation_class: CorrespondenceHistoryPerturbationClass::BroadCandidateScanForbidden,
         failure_class: CorrespondenceHistoryFailureClass::CorrespondenceDenied,
-        compile_fail_case: None,
     },
     CorrespondenceHistoryRejectionRowSpec {
         row_name: "no-executor-path-mutation-after-planning",
         perturbation_class: CorrespondenceHistoryPerturbationClass::ExecutorPathMutationForbidden,
         failure_class: CorrespondenceHistoryFailureClass::HistoricalPathDenied,
-        compile_fail_case: None,
     },
     CorrespondenceHistoryRejectionRowSpec {
         row_name: "host-cache-history-authority-forbidden",
         perturbation_class:
             CorrespondenceHistoryPerturbationClass::HostCacheHistoryAuthorityForbidden,
         failure_class: CorrespondenceHistoryFailureClass::HistoricalPathDenied,
-        compile_fail_case: None,
-    },
-    CorrespondenceHistoryRejectionRowSpec {
-        row_name: "raw-ambiguity-bool-forbidden",
-        perturbation_class: CorrespondenceHistoryPerturbationClass::AmbiguityCollapseForbidden,
-        failure_class: CorrespondenceHistoryFailureClass::CompileFail,
-        compile_fail_case: Some("tests/ui/raw_ambiguity_bool_forbidden.rs"),
-    },
-    CorrespondenceHistoryRejectionRowSpec {
-        row_name: "naked-historical-payload-forbidden",
-        perturbation_class:
-            CorrespondenceHistoryPerturbationClass::HiddenMaterializationSubstitutionForbidden,
-        failure_class: CorrespondenceHistoryFailureClass::CompileFail,
-        compile_fail_case: Some("tests/ui/naked_historical_payload_forbidden.rs"),
     },
 ];
 
@@ -208,14 +175,10 @@ pub const CORRESPONDENCE_HISTORY_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
 ];
 
 pub const CORRESPONDENCE_HISTORY_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
-    "structural-as-authoritative-forbidden",
-    "ambiguous-correspondence-not-collapsed",
     "unsupported-correspondence-family",
     "unsupported-historical-materialization-path",
     "hidden-materialization-path-substitution-forbidden",
     "broad-candidate-scan-success-forbidden",
     "no-executor-path-mutation-after-planning",
     "host-cache-history-authority-forbidden",
-    "raw-ambiguity-bool-forbidden",
-    "naked-historical-payload-forbidden",
 ];

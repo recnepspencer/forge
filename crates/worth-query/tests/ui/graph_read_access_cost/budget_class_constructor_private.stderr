@@ -1,7 +1,0 @@
-error[E0451]: field `kind` of struct `WorthQueryGraphReadBudgetClass` is private
- --> tests/ui/graph_read_access_cost/budget_class_constructor_private.rs:5:9
-  |
-4 |     let _ = WorthQueryGraphReadBudgetClass {
-  |             ------------------------------ in this type
-5 |         kind: WorthQueryGraphReadBudgetClassKind::InlineEphemeralCandidate,
-  |         ^^^^ private field

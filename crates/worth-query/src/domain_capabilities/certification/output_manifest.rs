@@ -16,7 +16,6 @@ pub const DOMAIN_CAPABILITY_CERTIFICATION_OUTPUT_MANIFEST: &[&str] = &[
     "decision_trace_digest",
     "support_traceability_digest",
     "public_boundary_digest",
-    "compile_fail_boundary_digest",
     "failure_digest",
     "counter_snapshot",
     "contribution_width",
@@ -42,13 +41,12 @@ mod tests {
     fn output_manifest_is_duplicate_free_and_matches_spec_shape() {
         let manifest = worth_query_domain_capability_certification_output_manifest();
 
-        assert_eq!(manifest.len(), 28);
+        assert_eq!(manifest.len(), 27);
         assert_eq!(
             manifest.len(),
             manifest.iter().copied().collect::<BTreeSet<_>>().len()
         );
         assert_eq!(manifest[0], "query_digest");
-        assert_eq!(manifest[17], "compile_fail_boundary_digest");
-        assert_eq!(manifest[27], "support_materialization_slope_digest");
+        assert_eq!(manifest[26], "support_materialization_slope_digest");
     }
 }

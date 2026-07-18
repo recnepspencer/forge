@@ -1,4 +1,4 @@
-pub const REQUIRED_CERTIFICATION_OUTPUT_MANIFEST: [&str; 42] = [
+pub const REQUIRED_CERTIFICATION_OUTPUT_MANIFEST: [&str; 40] = [
     "intent_family_digest",
     "query_digest",
     "raw_intent_digest",
@@ -22,8 +22,6 @@ pub const REQUIRED_CERTIFICATION_OUTPUT_MANIFEST: [&str; 42] = [
     "intent_support_matrix_digest",
     "intent_public_surface_digest",
     "intent_target_dx_digest",
-    "intent_golden_transcript_digest",
-    "compile_fail_boundary_digest",
     "decision_proof_shape_digest",
     "decision_phase_progression_digest",
     "execution_provenance_chain_digest",
@@ -43,13 +41,11 @@ pub const REQUIRED_CERTIFICATION_OUTPUT_MANIFEST: [&str; 42] = [
     "decision_certification_coverage_slope_digest",
 ];
 
-pub const CLOSEOUT_EXTENSION_OUTPUT_MANIFEST: [&str; 11] = [
-    "negative_dx_boundary_digest",
+pub const CLOSEOUT_EXTENSION_OUTPUT_MANIFEST: [&str; 9] = [
     "intent_topology_audit_digest",
     "representative_family_coverage_digest",
     "basis_observation_fixture_digest",
     "projection_consumption_fixture_digest",
-    "crate_doc_example_digest",
     "covered_entrypoint_lookup_width",
     "execution_provenance_width",
     "covered_entrypoint_inventory_slope_digest",
@@ -57,7 +53,7 @@ pub const CLOSEOUT_EXTENSION_OUTPUT_MANIFEST: [&str; 11] = [
     "legacy_delegation_parity_slope_digest",
 ];
 
-pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 53] = [
+pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 49] = [
     "intent_family_digest",
     "intent_family_inventory_digest",
     "covered_entrypoint_inventory_digest",
@@ -65,9 +61,6 @@ pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 53] = [
     "intent_support_matrix_digest",
     "intent_public_surface_digest",
     "intent_target_dx_digest",
-    "intent_golden_transcript_digest",
-    "negative_dx_boundary_digest",
-    "compile_fail_boundary_digest",
     "decision_phase_progression_digest",
     "decision_proof_shape_digest",
     "intent_topology_audit_digest",
@@ -92,7 +85,6 @@ pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 53] = [
     "failure_digest",
     "basis_observation_fixture_digest",
     "projection_consumption_fixture_digest",
-    "crate_doc_example_digest",
     "decision_oracle_digest",
     "decision_support_traceability_digest",
     "seeded_sequence_digest",

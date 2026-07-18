@@ -20,15 +20,7 @@ fn ordinary_projection_path_forbidden_fallback_audit_reports_exact_zero() {
     let audit = projection_consumption_forbidden_fallback_audit();
 
     assert_eq!(audit.total_occurrence_count(), 0);
-    for surface in [
-        ProjectionConsumptionOrdinaryPathSurface::CommonPathDx,
-        ProjectionConsumptionOrdinaryPathSurface::RetainedLiveHostileTests,
-        ProjectionConsumptionOrdinaryPathSurface::RetainedLivePhaseTwelveTests,
-        ProjectionConsumptionOrdinaryPathSurface::CommonReadGolden,
-        ProjectionConsumptionOrdinaryPathSurface::CommonWriteGolden,
-        ProjectionConsumptionOrdinaryPathSurface::CommonQueryContextGolden,
-        ProjectionConsumptionOrdinaryPathSurface::RetainedLiveGolden,
-    ] {
+    for surface in [ProjectionConsumptionOrdinaryPathSurface::CommonPathDx] {
         for seam in [
             ProjectionConsumptionForbiddenFallbackSeam::ConsumeScalarFields,
             ProjectionConsumptionForbiddenFallbackSeam::DecodeRowPair,

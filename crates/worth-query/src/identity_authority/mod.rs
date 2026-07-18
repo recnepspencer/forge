@@ -3,7 +3,6 @@ mod authority;
 mod categories;
 mod kinds;
 mod operational;
-mod phase_one_compile_fail_targets;
 mod phase_one_family_map;
 mod phase_one_root_break_targets;
 mod projection;
@@ -45,11 +44,6 @@ pub use kinds::{
     QuerySubscriptionIdentityKind, QueryWorkflowIdentityKind,
 };
 pub use operational::QueryCanonicalAuthority;
-pub use phase_one_compile_fail_targets::{
-    worth_query_identity_phase_one_compile_fail_targets,
-    worth_query_identity_phase_one_subscription_phase_seven_reentry_targets,
-    WorthQueryIdentityPhaseOneCompileFailTarget,
-};
 pub use phase_one_family_map::{
     worth_query_identity_phase_one_families, WorthQueryIdentityPhaseOneFamily,
 };

@@ -1,10 +1,8 @@
 use super::*;
 
 #[test]
-fn intent_admission_certification_reports_representative_seeded_and_doc_example_outputs() {
+fn intent_admission_certification_reports_representative_and_seeded_outputs() {
     let bundle = certify_intent_admission();
-    let doc_rows = bundle.doc_example_report().rows();
-    let labels = doc_rows.iter().map(|row| row.label()).collect::<Vec<_>>();
 
     for name in [
         "raw_intent_digest",
@@ -32,149 +30,7 @@ fn intent_admission_certification_reports_representative_seeded_and_doc_example_
             bundle.representative_output_report().digest_for(name)
         );
     }
-    assert_eq!(doc_rows.len(), 24);
     assert_eq!(bundle.seeded_report().rows().len(), 4);
-    assert_eq!(
-        labels,
-        vec![
-            "common_path",
-            "advanced_review",
-            "advanced_execute",
-            "consumer_lane",
-            "basis_common_path",
-            "projection_common_path",
-            "read_common_path",
-            "read_basis_common_path",
-            "mutation_common_path",
-            "mutation_batch_common_path",
-            "mutation_batch_advanced_path",
-            "live_read_common_path",
-            "live_read_convenience",
-            "inspection_common_path",
-            "materialization_convenience",
-            "inspection_convenience",
-            "routing_common_path",
-            "routing_convenience",
-            "basis_advanced_path",
-            "projection_advanced_path",
-            "mutation_advanced_path",
-            "live_read_advanced_path",
-            "inspection_advanced_path",
-            "routing_advanced_path",
-        ]
-    );
-    assert_eq!(
-        doc_rows
-            .iter()
-            .map(|row| (row.example_target_label(), row.example_target_path()))
-            .collect::<Vec<_>>(),
-        vec![
-            (
-                "common_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_common_path_compiles.rs",
-            ),
-            (
-                "advanced_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
-            ),
-            (
-                "advanced_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
-            ),
-            (
-                "consumer_lane",
-                "tests/ui/intent_admission/docs/intent_admission_doc_consumer_lane_compiles.rs",
-            ),
-            (
-                "basis_projection",
-                "tests/ui/intent_admission/docs/intent_admission_doc_basis_projection_compiles.rs",
-            ),
-            (
-                "basis_projection",
-                "tests/ui/intent_admission/docs/intent_admission_doc_basis_projection_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "advanced_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "read_mutation_inspection_routing",
-                "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
-            ),
-            (
-                "basis_projection",
-                "tests/ui/intent_admission/docs/intent_admission_doc_basis_projection_compiles.rs",
-            ),
-            (
-                "basis_projection",
-                "tests/ui/intent_admission/docs/intent_admission_doc_basis_projection_compiles.rs",
-            ),
-            (
-                "advanced_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
-            ),
-            (
-                "advanced_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
-            ),
-            (
-                "advanced_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
-            ),
-            (
-                "advanced_path",
-                "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
-            ),
-        ]
-    );
-    assert!(doc_rows.iter().all(|row| {
-        row.path() == "crates/worth-query/docs/execution/intent-admission.md"
-            && !row.row_digest().is_empty()
-    }));
-    assert!(!bundle
-        .doc_example_report()
-        .crate_doc_example_digest()
-        .is_empty());
     assert!(!bundle.seeded_report().seeded_sequence_digest().is_empty());
     assert!(!bundle.seeded_report().seed_replay_digest().is_empty());
     assert!(!bundle

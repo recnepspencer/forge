@@ -1,7 +1,5 @@
 mod closure;
 mod concurrent_hostile_matrix;
-mod consumer_kit_closure;
-mod identity_boundary_certification_gate;
 mod identity_boundary_hostile_matrix;
 pub(crate) mod identity_boundary_inventory;
 mod identity_boundary_inventory_sources;
@@ -14,7 +12,6 @@ mod report;
 mod shared_read_pinning;
 #[cfg(test)]
 mod tests;
-mod worth_ui_binding_evidence;
 
 pub use crate::query_context::QueryContextDeferredScopeMarker;
 pub use closure::{
@@ -26,18 +23,6 @@ pub use concurrent_hostile_matrix::{
     WorthQueryConcurrentHostileMatrixArtifact, WorthQueryConcurrentHostileMatrixPosture,
     WorthQueryConcurrentHostileMatrixSabotage, WorthQueryConcurrentHostileMatrixSabotageKind,
 };
-#[cfg(test)]
-pub(crate) use consumer_kit_closure::milestone_nine_eight_consumer_kit_closure;
-pub use consumer_kit_closure::{
-    WorthQueryConsumerKitCertificationCase, WorthQueryConsumerKitCertificationCaseRow,
-    WorthQueryConsumerKitCertificationTier, WorthQueryConsumerKitClosure,
-    WorthQueryConsumerKitDocsAgreement, WorthQueryConsumerKitDocsFamilyRow,
-    WorthQueryConsumerKitFamilyClosureRow, WorthQueryConsumerKitFamilyName,
-    WorthQueryConsumerKitHostileCertification, WorthQueryConsumerKitReferenceResidue,
-    WorthQueryConsumerKitResidueBreakdown,
-};
-#[cfg(test)]
-pub(crate) use identity_boundary_certification_gate::*;
 #[cfg(test)]
 pub(crate) use identity_boundary_hostile_matrix::*;
 #[cfg(test)]
@@ -88,4 +73,3 @@ pub(crate) use shared_read_pinning::{
 pub use shared_read_pinning::{
     WorthQuerySharedReadPinningBoundaryClosure, WorthQuerySharedReadPinningBoundaryPosture,
 };
-pub use worth_ui_binding_evidence::worth_ui_query_binding_evidence_identity;

@@ -217,6 +217,12 @@ that local construction domain-native authority.
   a competing declaration authority even when its method name is ergonomic.
 - Installing a closure, callback, backend plan, or executable consumer object
   would move volatile execution mechanics into portable domain meaning.
+- A distinct Rust newtype whose only semantic payload is a string label is not
+  by itself a typed contract. Parameter, result, collection, touch/effect,
+  lineage, publication, failure, cost, and support contracts must carry the
+  typed meaning consumed by their owning Query admission or lowering path, or
+  an explicit typed `NotRequired` posture; canonical identity participation
+  cannot be their only behavior.
 - A workflow catalog, replay catalog, reversal catalog, and lineage catalog
   maintained independently would create multiple semantic authorities even if
   every catalog refers to the same operation name.
@@ -257,6 +263,11 @@ that local construction domain-native authority.
 - Adversarial callback test: portable operation definitions cannot carry or
   recover executable callbacks, backend objects, or consumer-owned stage
   implementations.
+- Adversarial contract-operability test: every installed semantic contract is
+  consumed by its real Query admission, lowering, publication, or settlement
+  path. Replacing an executable contract with a same-named string newtype must
+  fail the public transcript or hostile runtime suite rather than continuing
+  to pass because only canonical digests observe it.
 
 **Engineering decisions**
 - The package is the canonical portable source for stable domain operation
@@ -317,6 +328,11 @@ allowing an application to bridge graphs directly.
   logical graph without a federation boundary.
 - A generic callback, object-safe "adapter bag," raw provider pointer, or
   application-owned bridge would hide authority and failure semantics.
+- A provider interface that exposes only a semantic key, while retaining its
+  implementation as opaque `Any` state, is not an operational lowering
+  provider. The installed adapter itself must retain the exact callable typed
+  lowering capability used by binding and execution; binding may not build a
+  second private provider bundle beside the installed adapter.
 - An adapter may lower declared reads and effects; it may not translate raw
   identities, copy authority, or invent cross-graph correspondence.
 - Shared IDs, matching digests, event-bus topics, and equal payloads do not
@@ -340,6 +356,11 @@ allowing an application to bridge graphs directly.
 - Adversarial cost test: adapter resolution is bounded indexed work over the
   operation's declared graph roles and does not scan unrelated graphs, domains,
   providers, consumers, or diagnostics.
+- Adversarial provider-use test: sabotage each registered provider's real
+  observation, projection, touch/effect, and commit-admission entry point and
+  prove the bound operation invokes the exact installed adapter once. A suite
+  in which every provider can be replaced by a semantic-key-only empty object
+  without changing outcomes is a milestone failure.
 
 **Engineering decisions**
 - Graph adapters are explicit authority boundaries, not convenience wrappers.
@@ -407,6 +428,11 @@ installed compensation and partial-failure contract before execution starts.
 - Separate graph adapters do not imply distributed atomicity. Query must prove
   shared commit authority or expose compensated, partially committed, and
   recovery-required outcomes explicitly.
+- Matching portable commit names, semantic keys, digests, or provider labels
+  never prove shared commit authority. Atomic multi-graph binding requires one
+  runtime-minted commit-authority witness retained by every participating
+  installed adapter; independently authored equal labels have reporting power
+  only.
 
 **Test requirements**
 - Adversarial convergence test: equivalent installed declarations in the same
@@ -431,6 +457,11 @@ installed compensation and partial-failure contract before execution starts.
 - Adversarial same-commit convergence test: a genuinely shared commit authority
   produces one atomic bound operation regardless of operation-family facade or
   adapter registration order.
+- Adversarial commit-label collision test: two foreign or independently
+  installed providers declaring the same commit label cannot mint atomic
+  authority and deny before planning or provider contact with exact zero-work
+  counters. The corresponding positive case must prove pointer- or witness-
+  bound ownership of one runtime-minted commit authority, not string equality.
 
 **Engineering decisions**
 - The bound capability owns the complete prerequisite set for downstream
@@ -483,6 +514,11 @@ hook kinds, or fold Query reporting digests into a local posture product.
   compatibility, recovery, continuation, or result-state meaning.
 - Support must be evaluated by Query; a downstream default that treats every
   registered hook as supported is structurally dishonest.
+- Comparing two copies of declared requirements is not support admission. Each
+  required dimension must be evaluated against the installed runtime's
+  Query-owned support truth, and every dimension-specific denial required below
+  must be reachable by drifting that runtime truth without rewriting the
+  operation definition.
 
 **Test requirements**
 - Adversarial convergence test: equivalent bound projections mint identical
@@ -536,6 +572,10 @@ artifact producers merely because they completed.
 
 **Warnings**
 - A tuple containing the same artifacts is not a proof-bearing phase type.
+- A transition helper that destructures its predecessor and omits retained
+  domain, graph, commit, basis, installation, result-state, or warning authority
+  has broken the chain even if Rust still enforces move-only phase order. Every
+  phase must retain the complete predecessor proof, not a hand-selected subset.
 - The executor must not accept a detached definition or independently supplied
   basis to override the capability's authority.
 - Advisory, partial, pending, and violation posture must remain attached to the
@@ -545,6 +585,11 @@ artifact producers merely because they completed.
 - Ordinary downstream code cannot inspect a completed execution trace to
   reconstruct output. It consumes the declared publication through projection
   consumption.
+- An executor-supplied packet containing a read result, result shape, and
+  authorized projection is execution material, not a Query publication. Query
+  must validate that material against the bound definition and basis and mint a
+  distinct derived-publication receipt; merely rewrapping the packet in a
+  `Published` type is forbidden.
 
 **Test requirements**
 - Adversarial continuity test: installation authority, declaration identity,
@@ -559,6 +604,12 @@ artifact producers merely because they completed.
 - Adversarial publication test: a completion without a declared and minted
   publication receipt cannot enter projection consumption; a publication from
   another operation, run, basis, or graph adapter cannot be consumed.
+- Adversarial predecessor-retention test: sabotage every authority retained by
+  the bound capability independently and prove that none disappears during
+  `bound -> executed -> published -> consumed -> settled`. In particular,
+  executor-authored foreign read results, result shapes, authorized
+  projections, or matching publication digests deny before publication with
+  zero consumption work.
 - Adversarial ordinary-path test: a downstream operation obtains every required
   upstream fact from the typed publication and cannot reopen trace, replay, or
   provider internals.

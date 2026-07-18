@@ -1,6 +1,4 @@
 use crate::projection_consumption::identity::{
-    compose_closeout_compile_fail_boundary_row_digest,
-    compose_closeout_dx_transcript_surface_row_digest,
     compose_closeout_forbidden_fallback_surface_row_digest,
     compose_closeout_oracle_surface_row_digest, compose_closeout_proof_shape_surface_row_digest,
     compose_closeout_public_boundary_surface_row_digest,
@@ -41,14 +39,12 @@ pub fn assemble_closeout_bundle_outputs(
     oracle_report: &ProjectionConsumptionOracleReport,
     seeded_report: &ProjectionConsumptionSeededCertificationReport,
     slope_report: &ProjectionConsumptionSlopeReport,
-    compile_fail_boundary_digest: String,
-    golden_transcript_digest: String,
 ) -> ProjectionConsumptionBundleOutputs {
     let transition_rules = ProjectionConsumptionTransitionRules::current_phase_five_surface();
     let target_dx_digest = target_dx_digest();
     let negative_dx_boundary_digest = compose_negative_dx_boundary_digest(
         public_boundary_audit.audit_digest(),
-        &compile_fail_boundary_digest,
+        proof_shape_audit.proof_shape_digest(),
     );
     let failure_digest = compose_failure_digest_bundle(
         &denied_masked_field_failure_digest(),
@@ -104,19 +100,6 @@ pub fn assemble_closeout_bundle_outputs(
                 forbidden_fallback_audit.audit_digest(),
                 forbidden_fallback_audit.total_occurrence_count(),
             ),
-        ),
-        certification_row(
-            ProjectionConsumptionCertificationLane::DxTranscriptSurface,
-            format!("target_dx:{target_dx_digest}|golden:{golden_transcript_digest}"),
-            compose_closeout_dx_transcript_surface_row_digest(
-                target_dx_digest.as_str(),
-                golden_transcript_digest.as_str(),
-            ),
-        ),
-        certification_row(
-            ProjectionConsumptionCertificationLane::CompileFailBoundary,
-            format!("compile_fail:{compile_fail_boundary_digest}"),
-            compose_closeout_compile_fail_boundary_row_digest(&compile_fail_boundary_digest),
         ),
         certification_row(
             ProjectionConsumptionCertificationLane::OracleSurface,
@@ -224,10 +207,6 @@ pub fn assemble_closeout_bundle_outputs(
         ),
         ("projection_target_dx_digest", target_dx_digest),
         (
-            "projection_golden_transcript_digest",
-            golden_transcript_digest,
-        ),
-        (
             "projection_proof_shape_digest",
             proof_shape_audit.proof_shape_digest().to_string(),
         ),
@@ -273,7 +252,6 @@ pub fn assemble_closeout_bundle_outputs(
             "seed_generator_class_digest",
             seeded_report.seed_generator_class_digest().to_string(),
         ),
-        ("compile_fail_boundary_digest", compile_fail_boundary_digest),
         ("negative_dx_boundary_digest", negative_dx_boundary_digest),
         ("failure_digest", failure_digest),
         (

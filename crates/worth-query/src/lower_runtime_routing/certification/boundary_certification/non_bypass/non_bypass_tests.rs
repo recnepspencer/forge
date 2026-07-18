@@ -1,14 +1,6 @@
 use super::*;
 
 #[test]
-fn compile_fail_boundary_digest_tracks_phase_six_targets() {
-    assert_eq!(
-        worth_query_lower_runtime_compile_fail_boundary_digest(),
-        compile_fail_boundary_digest()
-    );
-}
-
-#[test]
 fn certify_lower_runtime_non_bypass_passes_for_current_query_topology() {
     let audit = certify_lower_runtime_non_bypass()
         .expect("current workspace should satisfy the lower-runtime non-bypass audit");

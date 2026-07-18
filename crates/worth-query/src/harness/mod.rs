@@ -33,7 +33,6 @@ mod milestone_eight_certification;
 #[cfg(test)]
 pub(crate) mod milestone_nine_certification;
 #[cfg(test)]
-pub(crate) mod milestone_nine_five_forbidden_fallback_closeout;
 #[cfg(test)]
 pub(crate) mod milestone_nine_five_hostile_matrix;
 #[cfg(test)]

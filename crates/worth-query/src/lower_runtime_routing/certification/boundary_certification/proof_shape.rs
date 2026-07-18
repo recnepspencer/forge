@@ -23,7 +23,6 @@ impl WorthQueryLowerRuntimeProofShapeViolation {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryLowerRuntimeProofShapeEnforcement {
-    CompileFailFixture,
     CertificationRuntimeAudit,
     NonBypassAudit,
 }
@@ -31,7 +30,6 @@ pub enum WorthQueryLowerRuntimeProofShapeEnforcement {
 impl WorthQueryLowerRuntimeProofShapeEnforcement {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::CompileFailFixture => "compile-fail-fixture",
             Self::CertificationRuntimeAudit => "certification-runtime-audit",
             Self::NonBypassAudit => "non-bypass-audit",
         }
@@ -172,8 +170,8 @@ pub fn worth_query_lower_runtime_proof_shape_audit() -> WorthQueryLowerRuntimePr
             "downstream Query-facing domain imports lower-runtime facades outside the runtime boundary subtree",
             "declared downstream runtime-boundary subtree only",
             "out-of-subtree lower-runtime import",
-            CompileFailFixture,
-            "phase_boundaries_lower_runtime_routing_compile_fail",
+            NonBypassAudit,
+            "certify_lower_runtime_non_bypass",
         ),
     ])
 }

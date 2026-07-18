@@ -1,4 +1,3 @@
-mod doc_examples;
 mod parity;
 mod representative_families;
 mod representative_outputs;
@@ -7,10 +6,6 @@ mod slope_runs;
 mod slopes;
 mod support_traceability;
 
-pub use doc_examples::{
-    worth_query_intent_admission_doc_example_report, WorthQueryIntentAdmissionDocExampleReport,
-    WorthQueryIntentAdmissionDocExampleRow,
-};
 pub use parity::{
     worth_query_intent_admission_legacy_parity_report, WorthQueryIntentAdmissionLegacyParityCheck,
     WorthQueryIntentAdmissionLegacyParityLane, WorthQueryIntentAdmissionLegacyParityReport,

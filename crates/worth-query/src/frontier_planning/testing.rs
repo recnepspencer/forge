@@ -586,13 +586,6 @@ impl FrontierCounterSnapshot {
         }
     }
 
-    pub(crate) fn compile_fail() -> Self {
-        Self {
-            frontier_lookup_count: 1,
-            ..Self::default()
-        }
-    }
-
     pub(crate) fn absorb(&mut self, other: &Self) {
         self.frontier_lookup_count += other.frontier_lookup_count;
         self.frontier_prediction_count += other.frontier_prediction_count;

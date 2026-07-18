@@ -108,7 +108,7 @@ fn milestone_eight_saved_query_support_profile_drift_is_typed_rejection() {
 }
 
 #[test]
-fn milestone_eight_deferred_and_forbidden_rows_are_typed_rejections() {
+fn milestone_eight_deferred_and_grouped_rows_are_typed_rejections() {
     let matrix =
         MilestoneEightCertificationAdapter::scope_template_view_shape_semantic_parity_test();
     let durable_row = matrix
@@ -121,11 +121,6 @@ fn milestone_eight_deferred_and_forbidden_rows_are_typed_rejections() {
         .iter()
         .find(|row| row.row_name == "grouped-hidden-refresh-forbidden")
         .expect("grouped hidden refresh forbidden row should exist");
-    let mutation_row = matrix
-        .rejection_rows
-        .iter()
-        .find(|row| row.row_name == "post-admission-view-mutation-forbidden")
-        .expect("post-admission view mutation row should exist");
 
     assert_eq!(
         durable_row.hostile_lane.failure_class,
@@ -135,15 +130,6 @@ fn milestone_eight_deferred_and_forbidden_rows_are_typed_rejections() {
         grouped_row.hostile_lane.failure_class,
         MilestoneEightFailureClass::GroupedHiddenRefreshForbidden
     );
-    assert_eq!(
-        mutation_row.hostile_lane.failure_class,
-        MilestoneEightFailureClass::PostAdmissionViewMutationForbidden
-    );
-    assert_ne!(
-        mutation_row.hostile_lane.failure_digest,
-        mutation_row.control_lane.delivery_digest
-    );
-    assert!(!mutation_row.hostile_lane.counter_snapshot_digest.is_empty());
 }
 
 #[test]

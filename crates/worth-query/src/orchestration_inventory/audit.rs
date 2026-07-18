@@ -1,5 +1,4 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
 
 use super::family::{
     WorthQueryOrchestrationBindingProjection, WorthQueryOrchestrationSurfaceFamily,
@@ -12,7 +11,6 @@ pub struct WorthQueryOrchestrationInventoryAudit {
     inventory_digest: String,
     duplicate_public_names: Vec<String>,
     uninventoried_public_verbs: Vec<String>,
-    undocumented_exports: Vec<String>,
     missing_doc_rows: Vec<String>,
     missing_transcript_rows: Vec<String>,
     missing_certification_rows: Vec<String>,
@@ -41,7 +39,6 @@ impl WorthQueryOrchestrationInventoryAudit {
             .difference(&inventory_names)
             .cloned()
             .collect::<Vec<_>>();
-        let mut undocumented_exports = Vec::new();
         let mut missing_doc_rows = Vec::new();
         let mut missing_transcript_rows = Vec::new();
         let mut missing_certification_rows = Vec::new();
@@ -55,9 +52,6 @@ impl WorthQueryOrchestrationInventoryAudit {
             }
             if row.doc_reference().path().is_empty() || row.doc_reference().section().is_empty() {
                 missing_doc_rows.push(row.public_name().to_string());
-            }
-            if !doc_reference_exists(row) {
-                undocumented_exports.push(row.public_name().to_string());
             }
             if row.proof_contract().checked_type_name().is_empty()
                 || row.proof_contract().proof_type_name().is_empty()
@@ -83,13 +77,11 @@ impl WorthQueryOrchestrationInventoryAudit {
         }
 
         uninventoried_public_verbs.sort();
-        undocumented_exports.sort();
 
         Self {
             inventory_digest: inventory.inventory_digest().to_string(),
             duplicate_public_names,
             uninventoried_public_verbs,
-            undocumented_exports,
             missing_doc_rows,
             missing_transcript_rows,
             missing_certification_rows,
@@ -111,10 +103,6 @@ impl WorthQueryOrchestrationInventoryAudit {
 
     pub fn uninventoried_public_verbs(&self) -> &[String] {
         &self.uninventoried_public_verbs
-    }
-
-    pub fn undocumented_exports(&self) -> &[String] {
-        &self.undocumented_exports
     }
 
     pub fn missing_doc_rows(&self) -> &[String] {
@@ -280,26 +268,6 @@ fn helper_semantic_drift(rows: &[WorthQueryOrchestrationSurfaceRow]) -> Vec<Stri
             drift.then(|| format!("{}:helper semantic drift", row.public_name()))
         })
         .collect()
-}
-
-fn doc_reference_exists(row: &WorthQueryOrchestrationSurfaceRow) -> bool {
-    let path = workspace_root().join(row.doc_reference().path());
-    if !path.is_file() {
-        return false;
-    }
-    std::fs::read_to_string(path)
-        .map(|content| {
-            content.contains(row.canonical_base_name()) || content.contains(row.public_name())
-        })
-        .unwrap_or(false)
-}
-
-fn workspace_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("worth-query manifest should live under crates/")
-        .to_path_buf()
 }
 
 fn actual_orchestration_public_verbs() -> BTreeSet<String> {

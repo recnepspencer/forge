@@ -46,7 +46,6 @@ pub(crate) fn assemble_certification_outputs(
         "decision_trace_digest",
         "support_traceability_digest",
         "public_boundary_digest",
-        "compile_fail_boundary_digest",
         "failure_digest",
     ]
     .into_iter()

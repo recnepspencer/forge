@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::materialize_canonical_admission_artifact`
- --> tests/ui/installed_domain/boundaries/low_level_materializer_is_not_public.rs:1:5
-  |
-1 | use worth_query::facade::runtime::materialize_canonical_admission_artifact;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `materialize_canonical_admission_artifact` in `facade::runtime`

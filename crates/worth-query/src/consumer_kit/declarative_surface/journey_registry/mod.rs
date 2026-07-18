@@ -1,17 +1,10 @@
-mod consumers;
 mod query_capabilities;
 
 use super::{WorthQueryConsumerJourneyRow as Row, WorthQueryDeclarativeCapabilityFamily as Family};
 
 pub fn worth_query_consumer_journey_rows() -> &'static [Row] {
     static ROWS: std::sync::OnceLock<Vec<Row>> = std::sync::OnceLock::new();
-    ROWS.get_or_init(|| {
-        query_capabilities::rows()
-            .iter()
-            .chain(consumers::rows())
-            .copied()
-            .collect()
-    })
+    ROWS.get_or_init(|| query_capabilities::rows().to_vec())
 }
 
 pub(super) struct JourneyEntry {

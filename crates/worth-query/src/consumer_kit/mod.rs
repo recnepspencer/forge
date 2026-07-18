@@ -1,5 +1,4 @@
 pub(crate) mod boundary_audit;
-pub(crate) mod capability_grammar;
 pub(crate) mod consumer_residue;
 pub(crate) mod declarative_surface;
 pub(crate) mod domain_authority_inventory;
@@ -9,7 +8,6 @@ pub(crate) mod evidence_report_adoption;
 pub(crate) mod graph_obligation_adoption;
 pub(crate) mod graph_read_bypass_audit;
 pub(crate) mod native_value_authority_inventory;
-pub(crate) mod product_boundary_certification;
 pub(crate) mod prohibition_registry;
 pub(crate) mod public_authority_surface;
 pub(crate) mod support_pinning;
@@ -30,13 +28,6 @@ pub use boundary_audit::{
     WorthQueryBoundaryAuditSourceSite, WorthQueryBoundaryAuditSyntaxClass,
     WorthQueryHardProhibitionBoundaryAudit,
 };
-pub use capability_grammar::{
-    current_capability_grammar_audit, worth_query_capability_grammar, WorthQueryCapabilityCeremony,
-    WorthQueryCapabilityFacadeNamespace, WorthQueryCapabilityGrammarAudit,
-    WorthQueryCapabilityGrammarFinding, WorthQueryCapabilityGrammarFindingKind,
-    WorthQueryCapabilityGrammarRow, WorthQueryCapabilityOutcomeContract,
-    WorthQueryCapabilityTerminalVocabulary, WorthQueryCapabilityTranscriptOwner,
-};
 pub use consumer_residue::{
     query_consumer_residue_audit, worth_query_consumer_residue_certification_evidence,
     worth_query_consumer_residue_registry, worth_query_test_backend_residue_classes,
@@ -48,26 +39,18 @@ pub use consumer_residue::{
 };
 pub use declarative_surface::{
     audit_consumer_journey_sources, audit_consumer_orchestration_sources,
-    audit_declarative_surface_sources, audit_ordinary_api_snapshot_source_for_certification,
-    audit_reference_consumer_adoption_sources, current_declarative_surface_audit,
-    current_ordinary_api_snapshot_audit, worth_query_consumer_journey_rows,
-    worth_query_declarative_surface_rows, worth_query_reference_consumer_adoption_rows,
-    worth_query_reference_consumer_deleted_residue, WorthQueryConsumerJourneyAudit,
-    WorthQueryConsumerJourneyFinding, WorthQueryConsumerJourneyFindingKind,
-    WorthQueryConsumerJourneyRow, WorthQueryConsumerJourneySource,
-    WorthQueryConsumerOrchestrationAudit, WorthQueryConsumerOrchestrationError,
-    WorthQueryConsumerOrchestrationErrorKind, WorthQueryConsumerOrchestrationFinding,
-    WorthQueryConsumerOrchestrationPhase, WorthQueryConsumerOrchestrationSite,
-    WorthQueryDeclarativeCapabilityFamily, WorthQueryDeclarativePhaseResponsibility,
-    WorthQueryDeclarativeSurfaceAudit, WorthQueryDeclarativeSurfaceClass,
-    WorthQueryDeclarativeSurfaceFinding, WorthQueryDeclarativeSurfaceFindingKind,
-    WorthQueryDeclarativeSurfaceRow, WorthQueryDeclarativeSurfaceSource,
-    WorthQueryDeclarativeSurfaceSourceSite, WorthQueryOrdinaryApiSnapshot,
-    WorthQueryOrdinaryApiSnapshotAudit, WorthQueryOrdinaryApiSnapshotFinding,
-    WorthQueryReferenceConsumerAdoptionAudit, WorthQueryReferenceConsumerAdoptionFinding,
-    WorthQueryReferenceConsumerAdoptionFindingKind, WorthQueryReferenceConsumerAdoptionRow,
-    WorthQueryReferenceConsumerDeletedResidue, WorthQueryReferenceConsumerDxCounters,
-    WorthQueryReferenceConsumerResidueKind, WorthQueryReferenceConsumerSource,
+    audit_declarative_surface_sources, current_declarative_surface_audit,
+    worth_query_consumer_journey_rows, worth_query_declarative_surface_rows,
+    WorthQueryConsumerJourneyAudit, WorthQueryConsumerJourneyFinding,
+    WorthQueryConsumerJourneyFindingKind, WorthQueryConsumerJourneyRow,
+    WorthQueryConsumerJourneySource, WorthQueryConsumerOrchestrationAudit,
+    WorthQueryConsumerOrchestrationError, WorthQueryConsumerOrchestrationErrorKind,
+    WorthQueryConsumerOrchestrationFinding, WorthQueryConsumerOrchestrationPhase,
+    WorthQueryConsumerOrchestrationSite, WorthQueryDeclarativeCapabilityFamily,
+    WorthQueryDeclarativePhaseResponsibility, WorthQueryDeclarativeSurfaceAudit,
+    WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceFinding,
+    WorthQueryDeclarativeSurfaceFindingKind, WorthQueryDeclarativeSurfaceRow,
+    WorthQueryDeclarativeSurfaceSource, WorthQueryDeclarativeSurfaceSourceSite,
 };
 pub use domain_authority_inventory::{
     audit_domain_authority_sources, audit_workspace_domain_authority_inventory,
@@ -125,17 +108,10 @@ pub use graph_read_bypass_audit::{
     WorthQueryGraphReadBypassResidueErrorKind, WorthQueryGraphReadBypassResidueManifest,
     WorthQueryGraphReadBypassResidueRow,
 };
-pub use product_boundary_certification::{
-    certify_declarative_product_boundary, worth_query_product_boundary_evidence_rows,
-    WorthQueryProductBoundaryCertificationBundle, WorthQueryProductBoundaryCertificationError,
-    WorthQueryProductBoundaryEvidenceKind, WorthQueryProductBoundaryEvidenceRow,
-    WorthQueryProductBoundaryHostileCase, WorthQueryProductBoundarySabotageCase,
-};
 pub use prohibition_registry::{
-    hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,
-    hard_prohibition_documented_seam_keys, hard_prohibition_registry,
-    render_hard_prohibition_reference, WorthQueryHardProhibitionDocumentationRow,
-    WorthQueryProhibitedSeam, WorthQueryProhibitionCompileFailFixture,
+    hard_prohibition_documentation_rows, hard_prohibition_documented_seam_keys,
+    hard_prohibition_registry, render_hard_prohibition_reference,
+    WorthQueryHardProhibitionDocumentationRow, WorthQueryProhibitedSeam,
     WorthQueryProhibitionEnforcementTier, WorthQueryProhibitionRegistry,
     WorthQueryProhibitionRegistryRow,
 };

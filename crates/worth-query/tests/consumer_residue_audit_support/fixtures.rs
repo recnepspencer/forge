@@ -178,10 +178,10 @@ pub const HOSTILE_CLASS_CASES: &[HostileClassCase] = &[
     case(
         "local-consumption-identity",
         WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
-        "WorthUiQueryMeasurementConsumptionIdentity",
+        "ConsumerMeasurementConsumptionIdentity",
         "downstream-authority-adoption",
-        "WorthUiQueryMeasurementConsumptionIdentity",
-        "struct WorthUiQueryMeasurementConsumptionIdentity;",
+        "ConsumerMeasurementConsumptionIdentity",
+        "struct ConsumerMeasurementConsumptionIdentity;",
     ),
     case(
         "local-contract-binding",

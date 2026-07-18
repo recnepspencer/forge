@@ -1,7 +1,0 @@
-error[E0451]: field `kind` of struct `WorthQueryGraphReadCostEstimateStatus` is private
- --> tests/ui/graph_read_access_cost/cost_status_constructor_private.rs:5:9
-  |
-4 |     let _ = WorthQueryGraphReadCostEstimateStatus {
-  |             ------------------------------------- in this type
-5 |         kind: WorthQueryGraphReadCostEstimateStatusKind::Measured,
-  |         ^^^^ private field
