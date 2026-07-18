@@ -28,5 +28,5 @@ fn main() {
             )
             .with_support(MosaicPlacementSupport::supported()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

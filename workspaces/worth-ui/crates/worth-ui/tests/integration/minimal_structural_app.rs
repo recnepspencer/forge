@@ -1,13 +1,13 @@
 use worth_ui::facade::{CapabilityDiagnosticCode, RawLayoutMeasurementForDiagnostics};
 
-use crate::app_fixtures::{
+use super::app_fixtures::{
     minimal_app_builder, minimal_command_descriptor, minimal_illegal_mosaic_placement_policy,
     minimal_mosaic_sizing_contract,
 };
-use crate::diagnostic_assertions::{
+use super::diagnostic_assertions::{
     assert_diagnostic_codes, assert_diagnostic_codes_and_identities,
 };
-use crate::snapshot_assertions::{
+use super::snapshot_assertions::{
     assert_minimal_app_snapshot_does_not_name_illegal_placement_policy,
     assert_minimal_app_snapshot_does_not_name_raw_sizing_contract,
     assert_minimal_app_snapshot_names_registered_capabilities,
@@ -17,7 +17,9 @@ use crate::snapshot_assertions::{
 
 #[test]
 fn minimal_structural_app_registers_representative_capabilities() {
-    let app = minimal_app_builder().freeze();
+    let app = minimal_app_builder()
+        .freeze()
+        .expect("minimal application should prepare");
 
     assert_minimal_app_snapshot_names_registered_capabilities(app.capabilities());
 }
@@ -85,7 +87,9 @@ fn minimal_structural_app_illegal_mosaic_placement_rejected() {
 
 #[test]
 fn minimal_structural_app_snapshot_inspection_names_registered_capabilities() {
-    let app = minimal_app_builder().freeze();
+    let app = minimal_app_builder()
+        .freeze()
+        .expect("minimal application should prepare");
 
     assert_minimal_app_snapshot_names_registered_capabilities(app.capabilities());
 }

@@ -135,7 +135,8 @@ fn theme_token_driven_icon_accepts_registered_token_reference() {
             )
             .with_theme_posture(IconThemePosture::theme_token_driven()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().icons().len(), 1);
 }

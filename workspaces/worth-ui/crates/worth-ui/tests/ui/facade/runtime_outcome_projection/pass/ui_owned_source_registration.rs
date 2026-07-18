@@ -12,5 +12,5 @@ fn main() {
             family.clone(),
             RuntimeOutcomeSourceReference::new(family),
         ))
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

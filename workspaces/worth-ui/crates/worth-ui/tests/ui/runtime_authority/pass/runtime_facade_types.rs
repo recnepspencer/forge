@@ -1,3 +1,11 @@
+use worth_ui::facade::app::WorthUiPreparedApplicationArtifactPosture;
+use worth_ui::facade::host::{
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext, UiMeasurementEvidenceFamily,
+    UiMeasurementRequestIdentity, UiViewportExtentRequest, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiHostMeasurementSessionInput,
+};
+use worth_ui::facade::inspection::UiEvidenceAuthorityGeneration;
 use worth_ui::facade::{
     WorthUi, WorthUiAccessibilityImpact, WorthUiActiveReplacementBasis,
     WorthUiActiveRuntimeObservation, WorthUiActivationGateCounters, WorthUiActivationGateDenial,
@@ -261,8 +269,10 @@ fn accepts_query_live_rebind_types(
 }
 
 fn main() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app().freeze().expect("application preparation should succeed");
     let _ = app.capabilities().digest();
+    let _ = WorthUiPreparedApplicationArtifactPosture::DeclarationAuthored;
+    let _ = app.prepared_authority().application_artifact_posture();
     let _ = WorthUiRuntimeFrameEpoch::initial();
     let _ = WorthUiRuntimeDiagnosticPolicy::minimal();
     let _ = WorthUiRuntimeActivationStatus::Active;
@@ -325,6 +335,16 @@ fn main() {
     let _ = WorthUiLaneAdmissionDenialReason::UnsupportedLaneReference;
     let _ = WorthUiLaneAdapterHookKind::CanvasSpatialDrawAndHitTest;
     let _ = WorthUiUnsupportedHookDenialReason::ActivePlanTruthOverride;
+    let host_report = WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless());
+    let host_profile =
+        UiHostMeasurementAssumptionProfile::from_capability_report(&host_report, 1, 2, 3, 4);
+    let _host_input = WorthUiHostMeasurementSessionInput::new(
+        UiMeasurementRequestIdentity::new(1),
+        UiMeasurementEvidenceFamily::ViewportExtent,
+        UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
+        UiEvidenceAuthorityGeneration::new(1),
+        UiHostMeasurementNormalizationContext::viewport_logical_exact(host_profile),
+    );
 
     accepts_runtime_types(
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,

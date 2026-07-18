@@ -317,6 +317,7 @@ fn equivalent_contract_app(world_profile: UiGraphWorldProfile) -> crate::facade:
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn distinct_operator_kind_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
@@ -338,6 +339,7 @@ fn distinct_operator_kind_app(world_profile: UiGraphWorldProfile) -> crate::faca
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(
@@ -357,12 +359,10 @@ fn control_spec(
     .with_structural_token(UiDslStructuralToken::new(structural_token))
     .with_structural_token(UiDslStructuralToken::new("slot:footer"));
 
-    match operator_token {
-        Some(operator_token) => {
-            spec.with_structural_token(UiDslStructuralToken::new(operator_token))
-        }
-        None => spec,
+    if let Some(operator_token) = operator_token {
+        return spec.with_structural_token(UiDslStructuralToken::new(operator_token));
     }
+    spec
 }
 
 fn container_policy() -> UiDeclaredMeasurementPolicyPosture {

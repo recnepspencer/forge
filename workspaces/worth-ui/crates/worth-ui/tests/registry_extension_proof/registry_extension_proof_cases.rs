@@ -2,14 +2,14 @@ use std::collections::BTreeMap;
 
 use worth_ui::facade::{CapabilityDiagnosticCode, RegistryFamily};
 
-use crate::facade_exposure_assertions::{
+use super::facade_exposure_assertions::{
     assert_every_family_has_facade_exposure_decision,
     assert_registry_family_names_round_trip_through_facade_inventory,
 };
-use crate::fixtures::{
+use super::fixtures::{
     duplicate_representative_family_registration_report, empty_app, single_command_app,
 };
-use crate::inventory_assertions::{
+use super::inventory_assertions::{
     assert_empty_report_widths_match_inventory, assert_freeze_report_matches_registry_inventory,
     assert_inventory_audit_reports_duplicate_families,
     assert_inventory_audit_reports_unknown_and_omitted_families,
@@ -17,7 +17,7 @@ use crate::inventory_assertions::{
     assert_single_command_report_widths_match_inventory,
     assert_unknown_family_name_is_not_inventory_member,
 };
-use crate::lifecycle_assertions::{
+use super::lifecycle_assertions::{
     assert_every_family_requires_builder_initialization,
     assert_every_family_requires_diagnostics_aggregation,
     assert_every_family_requires_snapshot_freeze,

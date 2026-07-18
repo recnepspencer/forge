@@ -2,22 +2,22 @@ use super::query_binding_comparison_test_support::standard_query_app;
 use super::replacement_impact_test_support::{
     artifact_from_modules, impact_test_app, token_module,
 };
-use super::source_ingress_test_support::{
-    file_import_provider, runtime_from_artifact, rust_import_artifact, rust_import_provider,
-};
+use super::source_ingress_test_support::{runtime_from_artifact, rust_import_artifact};
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::runtime::candidate::rust_authored_replacement_candidate;
+use crate::runtime::candidate::{
+    file_authored_replacement_candidate, rust_authored_replacement_candidate,
+};
 use crate::runtime::{
-    WorthUiFileRustReplacementParityBoundary, WorthUiFileRustReplacementParityReceipt,
-    WorthUiFileRustReplacementPipelineReport, WorthUiReplacementCandidate, WorthUiReplacementCause,
-    WorthUiRuntime, WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeLaunch,
-    WorthUiSourceProvider, WorthUiWatchedArtifactInput, WorthUiWatcherEvent,
+    WorthUiCandidateAuthoringLane, WorthUiFileRustReplacementParityBoundary,
+    WorthUiFileRustReplacementParityReceipt, WorthUiFileRustReplacementPipelineReport,
+    WorthUiReplacementCandidate, WorthUiReplacementCause, WorthUiRuntime,
+    WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeLaunch,
 };
 use crate::source::WorthUiArtifact;
 
 pub(super) fn parity_receipt() -> WorthUiFileRustReplacementParityReceipt {
-    let file = replacement_report_from_provider(file_import_provider());
-    let rust = replacement_report_from_provider(rust_import_provider());
+    let file = replacement_report_for_lane(WorthUiCandidateAuthoringLane::FileAuthored);
+    let rust = replacement_report_for_lane(WorthUiCandidateAuthoringLane::RustAuthored);
     WorthUiFileRustReplacementParityBoundary::compare(file, rust)
         .expect("file and rust reports prove parity")
 }
@@ -29,30 +29,33 @@ pub(super) fn meaningful_token_parity_reports() -> (
     let app = impact_test_app();
     let active = artifact_from_modules(&app, [token_module("theme.text.primary")]);
     let candidate_token = "theme.text.secondary";
-    let file_report = replacement_report_from_provider_against_active_for_app(
+    let file_report = replacement_report_for_artifact_against_active(
         &app,
-        file_token_provider(candidate_token),
+        WorthUiCandidateAuthoringLane::FileAuthored,
+        artifact_from_modules(&app, [token_module(candidate_token)]),
         active.clone(),
     );
-    let rust_report = replacement_report_from_provider_against_active_for_app(
+    let rust_report = replacement_report_for_artifact_against_active(
         &app,
-        rust_token_provider(candidate_token),
+        WorthUiCandidateAuthoringLane::RustAuthored,
+        artifact_from_modules(&app, [token_module(candidate_token)]),
         active,
     );
     (file_report, rust_report)
 }
 
-pub(super) fn replacement_report_from_provider(
-    provider: WorthUiSourceProvider,
+pub(super) fn replacement_report_for_lane(
+    lane: WorthUiCandidateAuthoringLane,
 ) -> WorthUiFileRustReplacementPipelineReport {
     let mut runtime = runtime_from_artifact(rust_import_artifact());
-    let candidate = candidate_from_provider(&runtime, provider);
+    let candidate = candidate_for_lane(&runtime, lane);
     activate_replacement_for_report(&mut runtime, candidate)
 }
 
-pub(super) fn replacement_report_from_provider_against_active_for_app(
+fn replacement_report_for_artifact_against_active(
     app: &WorthUiApp,
-    provider: WorthUiSourceProvider,
+    lane: WorthUiCandidateAuthoringLane,
+    candidate_artifact: WorthUiArtifact,
     active_artifact: WorthUiArtifact,
 ) -> WorthUiFileRustReplacementPipelineReport {
     let mut runtime = app
@@ -60,7 +63,7 @@ pub(super) fn replacement_report_from_provider_against_active_for_app(
             active_artifact,
         ))
         .expect("runtime launches");
-    let candidate = candidate_from_provider_for_app(&runtime, provider, app);
+    let candidate = candidate_for_artifact(app, lane, candidate_artifact);
     activate_replacement_for_report(&mut runtime, candidate)
 }
 
@@ -73,28 +76,40 @@ fn activate_replacement_for_report(
         .expect("replacement parity pipeline completes")
 }
 
-pub(super) fn candidate_from_provider(
-    runtime: &WorthUiRuntime,
-    provider: WorthUiSourceProvider,
+pub(super) fn candidate_for_lane(
+    _runtime: &WorthUiRuntime,
+    lane: WorthUiCandidateAuthoringLane,
 ) -> WorthUiReplacementCandidate {
-    let app = WorthUi::app().freeze();
-    candidate_from_provider_for_app(runtime, provider, &app)
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
+    candidate_for_artifact(&app, lane, rust_import_artifact())
 }
 
-fn candidate_from_provider_for_app(
-    runtime: &WorthUiRuntime,
-    provider: WorthUiSourceProvider,
+fn candidate_for_artifact(
     app: &WorthUiApp,
+    lane: WorthUiCandidateAuthoringLane,
+    artifact: WorthUiArtifact,
 ) -> WorthUiReplacementCandidate {
-    let provider_id = provider.id().to_owned();
-    let mut session = runtime.source_ingress(provider).start();
-    let batch = session
-        .ingest([WorthUiWatcherEvent::provider_revision(provider_id)])
-        .expect("source ingress debounces");
-    batch
-        .lower_to_candidate_submission(app.capabilities())
-        .expect("candidate submission lowers")
-        .into_candidate()
+    match lane {
+        WorthUiCandidateAuthoringLane::FileAuthored => file_authored_replacement_candidate(
+            artifact,
+            app.capabilities().digest(),
+            WorthUiReplacementCause::file_source_change(
+                crate::source::WorthUiSourceModuleId::from_relative_path(std::path::Path::new(
+                    "app/main.wui",
+                ))
+                .expect("test source module identity should be valid"),
+                1,
+            ),
+        ),
+        WorthUiCandidateAuthoringLane::RustAuthored => rust_authored_replacement_candidate(
+            artifact,
+            app.capabilities().digest(),
+            WorthUiReplacementCause::rust_authored_input_change(1),
+        ),
+    }
+    .expect("replacement candidate should seal")
 }
 
 pub(super) fn stale_snapshot_rust_candidate() -> WorthUiReplacementCandidate {
@@ -160,19 +175,4 @@ fn pipeline_report_with_test_overrides(
 struct PipelineReportTestOverride {
     artifact_comparison_outcome: Option<WorthUiRuntimeArtifactComparisonOutcome>,
     lane_support_digest: Option<u64>,
-}
-
-fn file_token_provider(token_id: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::filesystem_root(r"C:\workspace").with_file(
-        "app/main.wui",
-        format!(r#"token {token_id} = "{token_id}";"#),
-    )
-}
-
-fn rust_token_provider(token_id: &str) -> WorthUiSourceProvider {
-    let app = impact_test_app();
-    let artifact = artifact_from_modules(&app, [token_module(token_id)]);
-    WorthUiSourceProvider::rust_authored_artifact("rust-authored-token").with_artifact_input(
-        WorthUiWatchedArtifactInput::from_rust_authored_artifact("token-provider", artifact),
-    )
 }

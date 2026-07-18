@@ -277,6 +277,7 @@ fn peer_app(
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(

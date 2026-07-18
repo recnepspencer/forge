@@ -147,13 +147,3 @@ pub(crate) fn standalone_query_binding_spec() -> UiDslSemanticArtifactSpec {
     )
     .with_posture_token(UiDslPostureToken::new("query-binding:standalone"))
 }
-
-pub(crate) fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
-    }
-}

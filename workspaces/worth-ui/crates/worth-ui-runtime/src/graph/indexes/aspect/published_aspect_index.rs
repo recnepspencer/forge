@@ -35,13 +35,6 @@ pub struct UiGraphPublishedAspectIndex {
 }
 
 impl UiGraphPublishedAspectIndex {
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn empty() -> Self {
-        Self {
-            publishers_by_aspect: BTreeMap::new(),
-        }
-    }
-
     pub(crate) fn build(
         node_aspects: &[(&UiAspectContract, UiGraphNodeIdentity)],
         mounted_receipts: &UiGraphMountedReceiptAuthoritySeedStore,

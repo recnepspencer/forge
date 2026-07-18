@@ -11,11 +11,13 @@ fn equivalent_plugin_slots_produce_equivalent_admitted_families() {
     let first = WorthUi::app()
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.views"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.views"))
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().plugin_slots(),
@@ -46,7 +48,8 @@ fn equivalent_plugin_slot_families_are_canonicalized() {
                 .with_diagnostics(PluginSlotDiagnostics::explain_contributions())
                 .with_support(PluginSlotSupportPosture::supported()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let reordered_with_duplicate = WorthUi::app()
         .register_plugin_slot(
             PluginSlotDescriptor::new(plugin_slot_id("workspace.plugin_slot.inspectors"))
@@ -58,7 +61,8 @@ fn equivalent_plugin_slot_families_are_canonicalized() {
                 .with_diagnostics(PluginSlotDiagnostics::explain_contributions())
                 .with_support(PluginSlotSupportPosture::supported()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         single.capabilities().plugin_slots(),
@@ -89,7 +93,8 @@ fn equivalent_plugin_slot_families_are_canonicalized() {
 fn all_domain_agnostic_builtin_plugin_contribution_families_are_admitted() {
     let app = WorthUi::app()
         .register_plugin_slot(all_builtin_contribution_family_slot())
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().plugin_slots().len(), 1);
     assert_eq!(
@@ -109,13 +114,15 @@ fn all_domain_agnostic_builtin_plugin_contribution_families_are_admitted() {
 fn different_plugin_slot_permission_changes_snapshot_digest() {
     let host_granted = WorthUi::app()
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let user_consent = WorthUi::app()
         .register_plugin_slot(
             plugin_slot("workspace.plugin_slot.commands")
                 .with_permission(PluginCapabilityPermission::user_consent()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         host_granted.capabilities().plugin_slots(),

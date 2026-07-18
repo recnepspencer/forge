@@ -17,6 +17,6 @@ fn replacement_candidate_from_ingress(
     cause: WorthUiReplacementCause,
     authoring_lane: WorthUiCandidateAuthoringLane,
 ) -> Result<WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial> {
-    let bundle = WorthUiCandidateArtifactBundle::derive_and_seal(artifact, snapshot_digest)?;
+    let bundle = WorthUiCandidateArtifactBundle::derive_and_seal(artifact, snapshot_digest);
     WorthUiReplacementCandidate::from_artifact_bundle(bundle, cause, authoring_lane)
 }

@@ -5,19 +5,21 @@ use crate::declaration::{
     UiDeclarationArtifact, UiDeclarationAuthoredEvidenceIndex, UiDeclarationCloseoutReport,
 };
 use crate::evidence::{UiEvidenceExpansion, UiEvidenceRef};
+#[cfg(any(test, feature = "certification-support"))]
+use crate::facade::runtime_handoff::WorthUiRuntimeLaunch;
 use crate::facade::{
     inspection::expand_evidence_ref as expand_inspection_evidence_ref,
     inspection_bridge::{
         route_inspection, UiInspectionClosureReport, UiInspectionFacadeObservation,
         UiInspectionReceipt,
     },
-    lifecycle::{
-        build_graph_evidence_indexes, WorthUiCapabilityRegistrationFreezeCore,
-        WorthUiFacadeLifecycleBootstrap,
+    lifecycle::WorthUiFacadeLifecycleBootstrap,
+    prepared_application_authority::{
+        WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationGenerationIdentity,
     },
     registry::CapabilitySnapshot,
     retained_obligation_registry::WorthUiRetainedObligationRegistry,
-    runtime_handoff::{WorthUiRuntime, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial},
+    runtime_handoff::{WorthUiRuntime, WorthUiRuntimeLaunchDenial},
 };
 use crate::graph::{
     UiGraphAspectEvidenceIndexes, UiGraphAuthority, UiGraphCloseoutReport,
@@ -43,95 +45,52 @@ impl WorthUi {
 
 /// Worth UI application after capability registration has frozen.
 pub struct WorthUiApp {
-    capability_snapshot: CapabilitySnapshot,
-    declaration_artifacts: Vec<UiDeclarationArtifact>,
-    graph_snapshot: UiGraphSnapshot,
-    lifecycle: WorthUiFacadeLifecycleBootstrap,
-    authored_evidence_index: UiDeclarationAuthoredEvidenceIndex,
-    graph_node_evidence_index: UiGraphNodeEvidenceIndex,
-    graph_aspect_evidence_indexes: UiGraphAspectEvidenceIndexes,
+    prepared: WorthUiPreparedApplicationAuthority,
     retained_obligations: WorthUiRetainedObligationRegistry,
     retained_allocation_planning_evidence: Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry>,
-    query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
 }
 
 impl WorthUiApp {
-    pub(crate) fn from_freeze_core_with_query_binding(
-        core: WorthUiCapabilityRegistrationFreezeCore,
-        query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
-    ) -> Self {
-        let (capability_snapshot, declaration_artifacts, graph_snapshot, lifecycle) =
-            core.into_parts();
-        let mut app = Self::from_authority_parts(
-            capability_snapshot,
-            declaration_artifacts,
-            graph_snapshot,
-            lifecycle,
-        );
-        app.query_binding_plan = query_binding_plan;
-        app
-    }
-
-    pub(crate) fn from_authority_parts(
-        capability_snapshot: CapabilitySnapshot,
-        declaration_artifacts: Vec<UiDeclarationArtifact>,
-        graph_snapshot: UiGraphSnapshot,
-        lifecycle: WorthUiFacadeLifecycleBootstrap,
-    ) -> Self {
-        let authored_evidence_index =
-            UiDeclarationAuthoredEvidenceIndex::rebuild(&declaration_artifacts, &graph_snapshot);
-        let graph_evidence =
-            build_graph_evidence_indexes(&declaration_artifacts, &graph_snapshot, &lifecycle);
-
+    pub(crate) fn from_prepared_authority(prepared: WorthUiPreparedApplicationAuthority) -> Self {
         Self {
-            capability_snapshot,
-            declaration_artifacts,
-            authored_evidence_index,
-            graph_node_evidence_index: graph_evidence.node,
-            graph_aspect_evidence_indexes: graph_evidence.aspect,
-            graph_snapshot,
-            lifecycle,
+            prepared,
             retained_obligations: WorthUiRetainedObligationRegistry::default(),
             retained_allocation_planning_evidence: Rc::default(),
-            query_binding_plan: Default::default(),
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn into_authority_parts(
-        self,
-    ) -> (
-        CapabilitySnapshot,
-        Vec<UiDeclarationArtifact>,
-        UiGraphSnapshot,
-        WorthUiFacadeLifecycleBootstrap,
-    ) {
-        (
-            self.capability_snapshot,
-            self.declaration_artifacts,
-            self.graph_snapshot,
-            self.lifecycle,
-        )
+    /// Inspect the comparison-safe identity of this prepared generation.
+    pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
+        self.prepared.generation_identity()
+    }
+
+    /// Borrow the sealed prepared authority without transferring any
+    /// independently launchable constituent.
+    pub fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {
+        &self.prepared
     }
 
     /// Inspect the immutable capability snapshot owned by this app.
     pub fn capabilities(&self) -> &CapabilitySnapshot {
-        &self.capability_snapshot
+        self.prepared.capabilities()
     }
 
     /// Inspect the canonical declaration artifacts admitted during app freeze.
     pub fn declaration_artifacts(&self) -> &[UiDeclarationArtifact] {
-        &self.declaration_artifacts
+        self.prepared.declaration_artifacts()
     }
 
     /// Inspect the proof-bearing graph authority surface owned by this app.
     pub fn graph(&self) -> UiGraphAuthority<'_> {
-        UiGraphAuthority::new(&self.graph_snapshot)
+        UiGraphAuthority::new(self.prepared.graph_snapshot())
     }
 
     /// Enter the runtime-owned admission boundary through one formal facade lane.
     pub fn admission(&self) -> UiAdmissionBoundary<'_> {
-        UiAdmissionBoundary::new(&self.declaration_artifacts, &self.graph_snapshot)
+        UiAdmissionBoundary::new(
+            self.prepared.declaration_artifacts(),
+            self.prepared.graph_snapshot(),
+        )
     }
 
     /// Admit Query-backed measurement eligibility from an ordinary projection-fact
@@ -146,30 +105,37 @@ impl WorthUiApp {
     }
 
     pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {
-        &self.graph_snapshot
+        self.prepared.graph_snapshot()
+    }
+
+    pub(crate) fn advance_prepared_graph(
+        &mut self,
+        committed: crate::graph::UiGraphMutationCommitResult,
+    ) {
+        self.prepared.advance_graph_snapshot(committed);
     }
 
     pub(crate) fn lifecycle(&self) -> &WorthUiFacadeLifecycleBootstrap {
-        &self.lifecycle
+        self.prepared.lifecycle()
     }
 
     pub(crate) fn authored_evidence_index(&self) -> &UiDeclarationAuthoredEvidenceIndex {
-        &self.authored_evidence_index
+        self.prepared.authored_evidence_index()
     }
 
     pub(crate) fn graph_node_evidence_index(&self) -> &UiGraphNodeEvidenceIndex {
-        &self.graph_node_evidence_index
+        self.prepared.graph_node_evidence_index()
     }
 
     pub(crate) fn graph_aspect_evidence_indexes(&self) -> &UiGraphAspectEvidenceIndexes {
-        &self.graph_aspect_evidence_indexes
+        self.prepared.graph_aspect_evidence_indexes()
     }
 
     pub(crate) fn measurement_inspection_evidence(
         &self,
     ) -> &crate::facade::measurement_inspection_evidence::UiMeasurementInspectionEvidenceSnapshot
     {
-        self.lifecycle.measurement_inspection_evidence()
+        self.prepared.lifecycle().measurement_inspection_evidence()
     }
 
     pub fn graph_closeout_report(&self) -> UiGraphCloseoutReport {
@@ -206,51 +172,64 @@ impl WorthUiApp {
     }
 
     pub fn inspection_support_report(&self, scope: UiInspectionScope) -> UiInspectionSupportReport {
-        self.lifecycle.inspection_support_report(scope)
+        self.prepared.lifecycle().inspection_support_report(scope)
     }
 
     pub fn inspection_closure_report(&self) -> UiInspectionClosureReport {
-        self.lifecycle.inspection_closure_report()
+        self.prepared.lifecycle().inspection_closure_report()
     }
 
     pub fn runtime_support_inventory(&self) -> &WorthUiRuntimeSupportInventory {
-        self.lifecycle.runtime_support_inventory()
+        self.prepared.lifecycle().runtime_support_inventory()
     }
 
     pub fn inspection_observation(&self) -> UiInspectionFacadeObservation {
-        self.lifecycle.inspection_observation()
+        self.prepared.lifecycle().inspection_observation()
     }
 
     #[cfg(test)]
-    pub(crate) fn rebuild_authored_evidence_index_from_authority(&mut self) {
-        self.authored_evidence_index =
-            crate::declaration::UiDeclarationAuthoredEvidenceIndex::rebuild(
-                &self.declaration_artifacts,
-                &self.graph_snapshot,
-            );
-    }
-
-    #[cfg(test)]
-    pub(crate) fn rebuild_graph_evidence_indexes_from_authority(&mut self) {
-        let graph_evidence = build_graph_evidence_indexes(
-            &self.declaration_artifacts,
-            &self.graph_snapshot,
-            &self.lifecycle,
-        );
-        self.graph_node_evidence_index = graph_evidence.node;
-        self.graph_aspect_evidence_indexes = graph_evidence.aspect;
+    pub(crate) fn rebuild_prepared_derived_indexes(&mut self) {
+        self.prepared.rebuild_derived_indexes();
     }
 
     /// Launch the runtime whose ordinary frame boundary owns dispatcher close/pump.
-    pub fn launch_runtime(
+    pub fn launch(
+        self,
+    ) -> Result<crate::facade::entry::WorthUiActiveApplicationSession, WorthUiRuntimeLaunchDenial>
+    {
+        self.launch_with_diagnostics(crate::runtime::WorthUiRuntimeDiagnosticPolicy::minimal())
+    }
+
+    pub fn launch_with_diagnostics(
+        self,
+        diagnostic_policy: crate::runtime::WorthUiRuntimeDiagnosticPolicy,
+    ) -> Result<crate::facade::entry::WorthUiActiveApplicationSession, WorthUiRuntimeLaunchDenial>
+    {
+        let admission = self.prepared.admit_launch(diagnostic_policy)?;
+        let (runtime, host_session_plan) = WorthUiRuntime::launch_prepared(
+            admission,
+            Rc::clone(&self.retained_allocation_planning_evidence),
+        )?;
+        Ok(crate::facade::entry::WorthUiActiveApplicationSession::new(
+            self,
+            runtime,
+            host_session_plan,
+        ))
+    }
+
+    /// Certification-only launch seam for subsystem tests that construct a
+    /// deliberately synthetic artifact. Ordinary callers cannot access it.
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn launch_runtime(
         &self,
         launch: WorthUiRuntimeLaunch,
     ) -> Result<WorthUiRuntime, WorthUiRuntimeLaunchDenial> {
         WorthUiRuntime::launch(
             launch,
-            self.capability_snapshot.digest(),
+            self.prepared.generation_identity().clone(),
+            self.prepared.capabilities().digest(),
             Rc::clone(&self.retained_allocation_planning_evidence),
-            self.query_binding_plan.activate(),
+            self.prepared.query_binding_plan().activate(),
         )
     }
 
@@ -262,6 +241,12 @@ impl WorthUiApp {
         &self,
     ) -> &WorthUiRetainedAllocationPlanningEvidenceRegistry {
         self.retained_allocation_planning_evidence.as_ref()
+    }
+
+    pub(crate) fn retained_planning_authority(
+        &self,
+    ) -> &Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry> {
+        &self.retained_allocation_planning_evidence
     }
 
     pub fn inspection_support_report_for(

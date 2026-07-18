@@ -20,38 +20,48 @@ pub enum WorthUiFrameworkTurnCompletion<'runtime> {
     ReadyToExecute {
         execution: WorthUiFrameworkTurnExecution<'runtime>,
     },
-    UnacceptedFrameBackpressured,
     AllocationInvalidationsNarrowed {
         plan: crate::runtime::UiNarrowedAllocationFramePlan,
         selection: crate::graph::UiAdmittedReplanNeighborhoodSet,
         transaction: crate::runtime::UiAllocationReplanTransactionOutcome,
+        planning_counters: super::UiFrameworkTransitionPlanningCounters,
     },
     ViewportResizeResolved {
         outcome: crate::runtime::UiViewportResizeOutcome,
+        planning_counters: super::UiFrameworkTransitionPlanningCounters,
     },
     ViewportResizeDenied {
         denial: crate::runtime::UiViewportResizeDenial,
+        planning_counters: super::UiFrameworkTransitionPlanningCounters,
     },
     ResizePreviewPublished {
         pending: WorthUiPendingPreviewPaint<'runtime>,
+        planning_counters: super::UiFrameworkTransitionPlanningCounters,
     },
     DurableResizeCommitted {
         outcome: crate::runtime::UiDurableResizeCommitOutcome,
         selection: crate::graph::UiAdmittedReplanNeighborhoodSet,
+        planning_counters: super::UiFrameworkTransitionPlanningCounters,
     },
     DragResizePreviewPending {
         preview: WorthUiPendingPreviewPaint<'runtime>,
         durable: WorthUiPendingDurableResize<'runtime>,
+        planning_counters: super::UiFrameworkTransitionPlanningCounters,
     },
     AllocationReplanSelectionDenied {
         denial: crate::graph::UiReplanLocalityDenial,
     },
-    Phase6Backpressured,
     AllocationFrameResolutionDenied {
         rejection: crate::runtime::UiAllocationFrameRejection,
     },
     AllocationInvalidationNarrowingDenied {
         rejection: crate::runtime::UiAllocationInvalidationNarrowingRejection,
+    },
+    FrameworkTransitionPlanningDenied {
+        denial: super::UiFrameworkTransitionPlanningDenial,
+    },
+    FrameworkTransitionExecutionDenied {
+        denial: super::UiFrameworkTransitionExecutionDenial,
     },
     Denied {
         denial: crate::runtime::UiAllocationFrameDispatchDenial,
@@ -182,6 +192,31 @@ impl<'runtime> WorthUiPendingDurableResize<'runtime> {
 }
 
 impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
+    pub fn planning_counters(&self) -> Option<super::UiFrameworkTransitionPlanningCounters> {
+        match self {
+            Self::ReadyToExecute { execution } => Some(execution.planning_counters()),
+            Self::AllocationInvalidationsNarrowed {
+                planning_counters, ..
+            }
+            | Self::ViewportResizeResolved {
+                planning_counters, ..
+            }
+            | Self::ViewportResizeDenied {
+                planning_counters, ..
+            }
+            | Self::ResizePreviewPublished {
+                planning_counters, ..
+            }
+            | Self::DurableResizeCommitted {
+                planning_counters, ..
+            }
+            | Self::DragResizePreviewPending {
+                planning_counters, ..
+            } => Some(*planning_counters),
+            _ => None,
+        }
+    }
+
     pub fn into_execution(self) -> Result<WorthUiFrameworkTurnExecution<'runtime>, Box<Self>> {
         match self {
             Self::ReadyToExecute { execution } => Ok(execution),
@@ -220,6 +255,7 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
             plan,
             selection,
             transaction: crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial),
+            ..
         } = self
         else {
             return None;
@@ -230,7 +266,7 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
     }
     pub fn viewport_resize_outcome(&self) -> Option<&crate::runtime::UiViewportResizeOutcome> {
         match self {
-            Self::ViewportResizeResolved { outcome } => Some(outcome),
+            Self::ViewportResizeResolved { outcome, .. } => Some(outcome),
             _ => None,
         }
     }
@@ -259,7 +295,7 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
         ) -> crate::host::UiHostPreviewPaintDisposition,
     ) -> Result<WorthUiResolvedPreviewPaintCompletion, Box<Self>> {
         match self {
-            Self::ResizePreviewPublished { pending } => {
+            Self::ResizePreviewPublished { pending, .. } => {
                 let (disposition, isolation) = pending.finish(finish);
                 Ok(WorthUiResolvedPreviewPaintCompletion {
                     disposition,
@@ -267,7 +303,9 @@ impl<'runtime> WorthUiFrameworkTurnCompletion<'runtime> {
                     follow_on: WorthUiPreviewPaintFollowOn::PreviewOnly,
                 })
             }
-            Self::DragResizePreviewPending { preview, durable } => {
+            Self::DragResizePreviewPending {
+                preview, durable, ..
+            } => {
                 let (disposition, isolation) = preview.finish(finish);
                 let follow_on = match isolation {
                     crate::runtime::UiPreviewPaintIsolationOutcome::Verified(_) => durable.commit(),

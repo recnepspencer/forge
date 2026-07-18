@@ -2,7 +2,7 @@ use worth_ui_inspection::{UiEvidenceExpansionOutcome, UiEvidenceRichness};
 
 use crate::evidence::{
     preflight_evidence_expansion, UiAllocationPlanningInspectionReceipt, UiEvidenceExpansion,
-    UiEvidenceMaterializedDetail, UiEvidenceRef, UiInspectionObligationEvidenceReceipt,
+    UiEvidenceRef,
 };
 use crate::facade::lifecycle::WorthUiFacadeLifecycleBootstrap;
 use crate::facade::WorthUiApp;
@@ -18,7 +18,7 @@ pub(crate) fn expand_retained_obligation_ref(
         record_materialization_if_available(app.lifecycle(), &expansion);
         return expansion;
     }
-    assemble_fallback_obligation_expansion(app.lifecycle(), evidence_ref, requested_richness)
+    assemble_unsupported_obligation_expansion(evidence_ref, requested_richness)
 }
 
 pub(crate) fn expand_retained_allocation_planning_ref(
@@ -53,19 +53,15 @@ fn lookup_obligation_retained_expansion(
         .map(|selected| selected.expand_evidence_ref(evidence_ref, requested_richness))
 }
 
-fn assemble_fallback_obligation_expansion(
-    lifecycle: &WorthUiFacadeLifecycleBootstrap,
+fn assemble_unsupported_obligation_expansion(
     evidence_ref: UiEvidenceRef,
     requested_richness: UiEvidenceRichness,
 ) -> UiEvidenceExpansion {
-    lifecycle.record_rich_artifact_materialization();
     UiEvidenceExpansion::new(
         evidence_ref,
         requested_richness,
-        UiEvidenceExpansionOutcome::Available,
-        Some(UiEvidenceMaterializedDetail::Obligation(
-            UiInspectionObligationEvidenceReceipt::new(Box::new([evidence_ref]), Box::new([])),
-        )),
+        UiEvidenceExpansionOutcome::Unsupported,
+        None,
         Box::new([]),
         None,
     )

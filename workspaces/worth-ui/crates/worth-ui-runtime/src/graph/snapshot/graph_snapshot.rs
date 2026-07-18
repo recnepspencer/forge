@@ -1,14 +1,15 @@
 use crate::declaration::stable_text_digest;
 use crate::graph::{
-    UiGraphAxisParticipation, UiGraphCoreIndexes, UiGraphDeclarationCorrespondence,
-    UiGraphGeneration, UiGraphGenerationRelation, UiGraphMountedReceiptAuthoritySeedStore,
-    UiGraphMountedReceiptMutation, UiGraphMountedReceiptSlot, UiGraphMountedReceiptTransition,
-    UiGraphNode, UiGraphNodeIdentity, UiGraphSnapshotComparable, UiGraphTopology,
-    UiGraphWorldDifferenceKind, UiGraphWorldProfile,
+    UiGraphAuthorityIdentity, UiGraphAxisParticipation, UiGraphCoreIndexes,
+    UiGraphDeclarationCorrespondence, UiGraphGeneration, UiGraphGenerationRelation,
+    UiGraphMountedReceiptAuthoritySeedStore, UiGraphMountedReceiptMutation,
+    UiGraphMountedReceiptSlot, UiGraphMountedReceiptTransition, UiGraphNode, UiGraphNodeIdentity,
+    UiGraphSnapshotComparable, UiGraphTopology, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphSnapshot {
+    authority_identity: UiGraphAuthorityIdentity,
     generation: UiGraphGeneration,
     world_profile: UiGraphWorldProfile,
     declaration_authority_digest: u64,
@@ -41,6 +42,7 @@ impl UiGraphSnapshot {
         );
 
         Self {
+            authority_identity: UiGraphAuthorityIdentity::mint(),
             generation,
             world_profile,
             declaration_authority_digest,
@@ -78,6 +80,10 @@ impl UiGraphSnapshot {
 
     pub(crate) fn authority_digest(&self) -> u64 {
         self.snapshot_authority_digest
+    }
+
+    pub(crate) fn authority_identity(&self) -> UiGraphAuthorityIdentity {
+        self.authority_identity
     }
 
     pub(crate) fn mounted_receipt_slot_for_node(
@@ -120,6 +126,7 @@ impl UiGraphSnapshot {
         self.mounted_receipt_slot_for_node(graph_node_identity)
             .and_then(|slot| {
                 UiGraphMountedReceiptTransition::from_slot_axis_transition(
+                    self.authority_identity(),
                     *slot,
                     prior_mounted_axis_participation,
                     next_mounted_axis_participation,
@@ -286,6 +293,7 @@ mod tests {
                     .with_semantic_artifact_spec(child),
             )
             .freeze()
+            .expect("application preparation should succeed")
     }
 
     fn committed_snapshot_fixture(app: &WorthUiApp, child_bounded: bool) -> UiGraphSnapshot {

@@ -50,8 +50,8 @@ where
     }
     for index in 0..2 {
         if let Err(error) = rename(&stages[index], &paths[index]) {
-            for committed in 0..index {
-                let _ = fs::remove_file(&paths[committed]);
+            for committed_path in paths.iter().take(index) {
+                let _ = fs::remove_file(committed_path);
             }
             rollback_backups(paths, &backups, &existed, 2, &mut rename);
             cleanup(&stages);

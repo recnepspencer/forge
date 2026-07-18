@@ -22,6 +22,7 @@ impl UiAllocationReceiptDenialReport {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn reuse_denied(
         candidate: &super::UiAllocationCandidate,
         denial: UiAllocationReuseDenial,

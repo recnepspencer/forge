@@ -21,13 +21,15 @@ fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separat
                 .with_semantic_artifact_spec(deferred_diagnostic_surface_spec())
                 .with_semantic_artifact_spec(diagnostic_only_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.admission.support.foreign")
                 .with_semantic_artifact_spec(foreign_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let boundary = app.admission();
 
     let supported_control = artifact_from_file_provenance(&app, "app/admission_support.wui", 0);

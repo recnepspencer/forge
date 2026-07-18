@@ -4,14 +4,12 @@ use crate::declaration::{
     derive_declaration_inspection_support_projection, UiDeclarationArtifact,
     UiDeclarationInspectionSupportProjection,
 };
-use crate::facade::host_observation::WorthUiHostContract;
 use crate::facade::inspection_observation::WorthUiInspectionObservationState;
 use crate::facade::measurement_inspection_evidence::UiMeasurementInspectionEvidenceSnapshot;
 use crate::facade::{
-    inspection_bridge::UiMeasurementInspectionEvidenceBundle, registry::CapabilitySnapshot,
-    WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY,
+    inspection_bridge::UiMeasurementInspectionEvidenceBundle, WorthUiRuntimeSupportInventory,
+    RUNTIME_SUPPORT_INVENTORY,
 };
-use worth_ui_dsl::WorthUiDslPackage;
 use worth_ui_inspection::{UiInspectionScope, UiInspectionSupportReport};
 
 pub(crate) struct WorthUiFacadeLifecycleBootstrap {
@@ -20,14 +18,10 @@ pub(crate) struct WorthUiFacadeLifecycleBootstrap {
     measurement_inspection_evidence: UiMeasurementInspectionEvidenceSnapshot,
     inspection_observation: WorthUiInspectionObservationState,
     runtime_support_inventory: WorthUiRuntimeSupportInventory,
-    _dsl_package: WorthUiDslPackage,
-    _host_contract: WorthUiHostContract,
 }
 
 impl WorthUiFacadeLifecycleBootstrap {
     pub(crate) fn bootstrap_with_inspection_scope_inventory(
-        dsl_package: WorthUiDslPackage,
-        host_contract: WorthUiHostContract,
         declaration_artifacts: &[UiDeclarationArtifact],
         measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
         inspection_scope_inventory: UiInspectionScopeInventory,
@@ -42,8 +36,6 @@ impl WorthUiFacadeLifecycleBootstrap {
             ),
             inspection_observation: WorthUiInspectionObservationState::new(),
             runtime_support_inventory: RUNTIME_SUPPORT_INVENTORY,
-            _dsl_package: dsl_package,
-            _host_contract: host_contract,
         }
     }
 
@@ -105,44 +97,5 @@ impl WorthUiFacadeLifecycleBootstrap {
     pub(crate) fn record_graph_aspect_evidence_index_rebuild(&self) {
         self.inspection_observation
             .record_graph_aspect_evidence_index_rebuild();
-    }
-}
-
-pub(crate) struct WorthUiCapabilityRegistrationFreezeCore {
-    capability_snapshot: CapabilitySnapshot,
-    declaration_artifacts: Vec<UiDeclarationArtifact>,
-    graph_snapshot: crate::graph::UiGraphSnapshot,
-    lifecycle: WorthUiFacadeLifecycleBootstrap,
-}
-
-impl WorthUiCapabilityRegistrationFreezeCore {
-    pub(crate) fn assemble(
-        capability_snapshot: CapabilitySnapshot,
-        declaration_artifacts: Vec<UiDeclarationArtifact>,
-        graph_snapshot: crate::graph::UiGraphSnapshot,
-        lifecycle: WorthUiFacadeLifecycleBootstrap,
-    ) -> Self {
-        Self {
-            capability_snapshot,
-            declaration_artifacts,
-            graph_snapshot,
-            lifecycle,
-        }
-    }
-
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        CapabilitySnapshot,
-        Vec<UiDeclarationArtifact>,
-        crate::graph::UiGraphSnapshot,
-        WorthUiFacadeLifecycleBootstrap,
-    ) {
-        (
-            self.capability_snapshot,
-            self.declaration_artifacts,
-            self.graph_snapshot,
-            self.lifecycle,
-        )
     }
 }

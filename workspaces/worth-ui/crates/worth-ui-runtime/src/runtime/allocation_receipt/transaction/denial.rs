@@ -21,6 +21,7 @@ impl UiAllocationReceiptCommitDenial {
         Self::CandidatePlanningDenied(Box::new(report))
     }
 
+    #[cfg(test)]
     pub(super) fn reuse(report: super::UiAllocationReceiptDenialReport) -> Self {
         Self::ReuseDenied(Box::new(report))
     }

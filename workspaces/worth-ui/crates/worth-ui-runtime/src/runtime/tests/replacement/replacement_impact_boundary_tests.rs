@@ -170,7 +170,9 @@ fn comparison_from_different_active_basis_rejected_before_impact_classification(
 
 #[test]
 fn unsupported_impact_denied_without_mutating_active_state() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_before = runtime.inspect_active();
     let last_valid_before = runtime.last_valid();
@@ -198,7 +200,9 @@ fn unsupported_impact_denied_without_mutating_active_state() {
 
 #[test]
 fn broad_replacement_without_state_drop_receipts_rejected() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let candidate = admitted_candidate(&app, &runtime, two_module_import_artifact());
     let comparison = runtime

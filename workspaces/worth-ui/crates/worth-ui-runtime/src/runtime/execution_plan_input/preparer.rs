@@ -167,6 +167,9 @@ fn collect_staged_replacement_node_inputs(
     node_inputs: &mut Vec<WorthUiPlanNodeInput>,
 ) {
     for classification in staged.node_plan().classifications() {
+        if classification.candidate_kind().is_none() {
+            continue;
+        }
         let topology_input = topology_index
             .input_for_identity(classification.identity_basis())
             .unwrap_or_default();

@@ -118,10 +118,12 @@ impl UiAllocationReceiptLedger {
             let scope = UiAllocationNeighborhoodScope::from_neighborhood(
                 candidate.allocation_neighborhood(),
             );
-            verdicts.push(super::receipt_commit::admit_allocation_receipt_candidate(
-                candidate,
-                state.committed_by_scope.get(&scope),
-            )?);
+            verdicts.push(
+                super::receipt_commit::admit_replacement_allocation_receipt_candidate(
+                    candidate,
+                    state.committed_by_scope.get(&scope),
+                )?,
+            );
         }
         drop(state);
         let mut counters = UiAllocationReplanTransactionCounters::preflight(candidates.len())

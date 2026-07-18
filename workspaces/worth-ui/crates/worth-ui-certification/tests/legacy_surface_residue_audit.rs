@@ -1,16 +1,10 @@
-use std::path::Path;
-
 use worth_ui_certification::topology::{
     audit_legacy_crate_dispositions, audit_legacy_public_surface_narrowing,
     audit_legacy_shim_honesty, audit_no_parallel_legacy_authority,
 };
 
-fn workspace_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate parent")
-        .parent()
-        .expect("workspace root")
+fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
+    super::workspace_source_inventory()
 }
 
 #[test]

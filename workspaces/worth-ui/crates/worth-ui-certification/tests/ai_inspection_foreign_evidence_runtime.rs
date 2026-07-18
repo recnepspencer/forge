@@ -13,13 +13,12 @@ use worth_ui_query_binding::{
     WorthUiQueryProjectionConsumptionLane,
 };
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 #[test]
 fn ai_harness_cites_query_owned_foreign_evidence_without_copying_it_into_ui_truth() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let ai = UiInspectionAiHarness::new(&app);
     let receipt = ai.inspect(
         UiInspectionQuery::new(
@@ -45,12 +44,12 @@ fn ai_harness_cites_query_owned_foreign_evidence_without_copying_it_into_ui_trut
     let expansion = ai.expand_evidence_ref(evidence_ref, UiEvidenceRichness::materialized_detail());
     let foreign_refs = expansion.foreign_evidence_refs();
     let expected_prerequisite =
-        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch)
-            .query_prerequisites()
-            .expect(
-                "graph-aligned query target should retain one Query-owned prerequisite artifact",
-            )
-            .clone();
+        obligation_dispatch_prerequisite_support::admission_targets::graph_aligned_query_target(
+            &touch,
+        )
+        .query_prerequisites()
+        .expect("graph-aligned query target should retain one Query-owned prerequisite artifact")
+        .clone();
     let routes = foreign_refs
         .iter()
         .map(|foreign_ref| match foreign_ref {

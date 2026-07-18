@@ -22,7 +22,8 @@ workspace, and register the view with the UI application.
 - `WorthUiInstalledQueryDomain::live_measurement_view(...)`
 - `WorthUi::app().register_query_view(...)`
 - `WorthUiInstalledQueryView::read()` and `WorthUiInstalledQueryView::project(...)`
-- `WorthUiRuntime::execute_framework_turn(...)`
+- `WorthUiApp::launch()`
+- `WorthUiActiveApplicationSession::execute_framework_turn(...)`
 
 The UI facade exposes the binding and runtime handoff. Query still owns workspace
 construction, read execution, projection declarations, basis selection, and
@@ -51,15 +52,18 @@ authority.
 Query runtime installs the Worth UI domain package
 -> application resolves the installed Worth UI domain
 -> application derives and registers an installed view
+-> the prepared application launches one active application session
 -> the installed view executes a Query read
 -> the same view wraps the Query projection outcome
--> a Worth UI framework turn admits the outcome
+-> the active session's framework turn admits the outcome
 -> worth-ui-query-binding refines native measurement facts
 -> allocation consumes the opaque settlement
 ```
 
 Snapshot and live views follow the same path. Their lifecycle is part of the
-installed view definition, not a UI-side flag.
+installed view definition, not a UI-side flag. Query remains responsible for
+live-resource activation, maintenance, recovery, and disposal; Worth UI only
+coordinates the admitted binding with its application lifecycle.
 
 ## Small Example
 
@@ -82,6 +86,7 @@ fn build_ui(workspace: &WorthQueryWorkspace) -> WorthUiApp {
         .register_query_view(measurements)
         .expect("the installed view must be registered once")
         .freeze()
+        .expect("the application must prepare as one authority")
 }
 ```
 
@@ -101,8 +106,8 @@ use worth_query::facade::{
     runtime::WorthQueryWorkspace,
 };
 use worth_ui::facade::{
+    app::WorthUiActiveApplicationSession,
     query_binding::{WorthUiInstalledQueryView, WorthUiQueryProjectionOutcome},
-    runtime::WorthUiRuntime,
 };
 
 fn measurement_projection(
@@ -133,9 +138,12 @@ fn measurement_projection(
     .expect("the completion must come from this installed view")
 }
 
-fn submit_projection(runtime: &mut WorthUiRuntime, outcome: WorthUiQueryProjectionOutcome) {
+fn submit_projection(
+    session: &mut WorthUiActiveApplicationSession,
+    outcome: WorthUiQueryProjectionOutcome,
+) {
     let mut submission = None;
-    let _completion = runtime.execute_framework_turn(|turn| {
+    let _completion = session.execute_framework_turn(|turn| {
         turn.query_projection(|query| {
             submission = Some(query.admit_and_submit(outcome));
         });
@@ -150,6 +158,12 @@ The Query completion remains authoritative. `WorthUiQueryProjectionOutcome`
 preserves it together with the installed UI definition. The framework turn
 settles and submits it; application code never reconstructs a basis digest or
 converts the native value through a representation format.
+
+The active application session is intentional. It keeps Query submission,
+application generation, graph/allocation authority, host session, inspection,
+and replacement cutover coherent. Raw runtime launch and submission seams are
+certification or owner-implementation concerns, not the ordinary application
+workflow.
 
 ## How It Relates To Other Features
 
@@ -180,6 +194,10 @@ fact-family labels.
 - Do not copy Query status, basis, result shape, or live posture into UI enums.
 - Do not hash reporting text or digest strings to recreate operational identity.
 - Do not stringify native projection values and parse them again for allocation.
+- Do not split `WorthUiQueryProjectionOutcome` into locally trusted basis,
+  receipt, fact, support, source-label, or digest fields.
+- Do not implement live-view activation, subscription, recovery, or disposal in
+  the UI runtime.
 - Do not import Query into `worth-ui-runtime`; translation belongs only in
   `worth-ui-query-binding`.
 

@@ -1,7 +1,11 @@
 use crate::facade::entry::CapabilityRegistrationBuilder;
-use crate::facade::host_observation::{WorthUiHostAdapter, WorthUiHostContract};
+use crate::facade::host_observation::WorthUiOperationalHostAdapter;
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
-use crate::facade::lifecycle::WorthUiCapabilityRegistrationFreezeCore;
+use crate::facade::lifecycle::{
+    prepare_application_authority, WorthUiApplicationPreparationDenial,
+    WorthUiApplicationPreparationSource,
+};
+use crate::facade::prepared_application_authority::WorthUiHostSessionPlan;
 use crate::facade::registry::{
     CapabilityRegistrationReport, CommandDescriptor, CommandProjectionDescriptor,
     ComponentDescriptor, IconDescriptor, MosaicPlacementPolicyDescriptor,
@@ -12,7 +16,7 @@ use crate::facade::registry::{
 };
 use crate::facade::{WorthUiApp, WorthUiDslPackage};
 use crate::graph::UiGraphWorldProfile;
-use crate::runtime::{WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage};
+use crate::runtime::WorthUiWatchedCandidateSubmission;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiQueryViewRegistrationError {
@@ -23,11 +27,11 @@ pub enum WorthUiQueryViewRegistrationError {
 /// Builder for a Worth UI application definition.
 pub struct WorthUiBuilder {
     inner: CapabilityRegistrationBuilder,
-    dsl_package: WorthUiDslPackage,
-    host_contract: WorthUiHostContract,
+    preparation_source: WorthUiBuilderPreparationSource,
+    host_session_plan: WorthUiHostSessionPlan,
     graph_world_profile: UiGraphWorldProfile,
+    runtime_instance_basis_admissions: Vec<crate::graph::UiRuntimeInstanceBasisAdmission>,
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
-    source_backed_declaration_witness: WorthUiSourceBackedDeclarationWitnessSlot,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
 }
 
@@ -37,26 +41,39 @@ impl WorthUiBuilder {
     pub(crate) fn new() -> Self {
         Self {
             inner: CapabilityRegistrationBuilder::new(),
-            dsl_package: WorthUiDslPackage::empty(),
-            host_contract: WorthUiHostContract::headless(),
+            preparation_source: WorthUiBuilderPreparationSource::Declared(
+                WorthUiDslPackage::empty(),
+            ),
+            host_session_plan: WorthUiHostSessionPlan::prepare(
+                worth_ui_host_contract::WorthUiHeadlessHost,
+            ),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
+            runtime_instance_basis_admissions: Vec::new(),
             measurement_inspection_evidence: Vec::new(),
-            source_backed_declaration_witness: WorthUiSourceBackedDeclarationWitnessSlot::Absent,
             query_binding_plan: Default::default(),
         }
     }
 
     pub fn with_dsl_package(mut self, dsl_package: WorthUiDslPackage) -> Self {
-        self.dsl_package = dsl_package;
-        self.source_backed_declaration_witness = WorthUiSourceBackedDeclarationWitnessSlot::Absent;
+        self.preparation_source = WorthUiBuilderPreparationSource::Declared(dsl_package);
+        self
+    }
+
+    /// Prepare the exact artifact/declaration composition admitted by watched
+    /// source ingress. The submission is consumed whole and cannot be split.
+    pub fn with_candidate_submission(
+        mut self,
+        submission: WorthUiWatchedCandidateSubmission,
+    ) -> Self {
+        self.preparation_source = WorthUiBuilderPreparationSource::Watched(Box::new(submission));
         self
     }
 
     pub fn with_host<Host>(mut self, host: Host) -> Self
     where
-        Host: WorthUiHostAdapter,
+        Host: WorthUiOperationalHostAdapter + 'static,
     {
-        self.host_contract = host.host_contract();
+        self.host_session_plan = WorthUiHostSessionPlan::prepare(host);
         self
     }
 
@@ -65,14 +82,12 @@ impl WorthUiBuilder {
         self
     }
 
-    pub fn with_source_backed_dsl_package(
+    #[cfg(test)]
+    pub(crate) fn with_runtime_instance_basis_admissions(
         mut self,
-        source_backed_package: WorthUiSourceBackedDslPackage,
+        admissions: impl IntoIterator<Item = crate::graph::UiRuntimeInstanceBasisAdmission>,
     ) -> Self {
-        let (dsl_package, source_backed_declaration_witness) = source_backed_package.into_parts();
-        self.dsl_package = dsl_package;
-        self.source_backed_declaration_witness =
-            WorthUiSourceBackedDeclarationWitnessSlot::Present(source_backed_declaration_witness);
+        self.runtime_instance_basis_admissions = admissions.into_iter().collect();
         self
     }
 
@@ -209,22 +224,33 @@ impl WorthUiBuilder {
         self
     }
 
-    pub fn freeze(self) -> WorthUiApp {
+    pub fn freeze(self) -> Result<WorthUiApp, WorthUiApplicationPreparationDenial> {
         let capability_snapshot = self
             .inner
             .freeze_with_registration_report()
             .into_accepted_snapshot();
-        WorthUiApp::from_freeze_core_with_query_binding(
-            WorthUiCapabilityRegistrationFreezeCore::freeze_from_registration(
+        let preparation_source = match self.preparation_source {
+            WorthUiBuilderPreparationSource::Declared(dsl_package) => {
+                WorthUiApplicationPreparationSource::declared(dsl_package)
+            }
+            WorthUiBuilderPreparationSource::Watched(submission) => {
+                WorthUiApplicationPreparationSource::watched_submission(
+                    *submission,
+                    capability_snapshot.digest(),
+                )?
+            }
+        };
+        Ok(WorthUiApp::from_prepared_authority(
+            prepare_application_authority(
                 capability_snapshot,
-                self.dsl_package,
-                self.host_contract,
+                preparation_source,
+                self.host_session_plan,
                 self.graph_world_profile,
+                self.runtime_instance_basis_admissions.into_boxed_slice(),
                 self.measurement_inspection_evidence.into_boxed_slice(),
-                self.source_backed_declaration_witness.into_option(),
-            ),
-            self.query_binding_plan,
-        )
+                self.query_binding_plan,
+            )?,
+        ))
     }
 
     pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
@@ -242,16 +268,7 @@ impl WorthUiBuilder {
     }
 }
 
-enum WorthUiSourceBackedDeclarationWitnessSlot {
-    Absent,
-    Present(WorthUiSourceBackedDeclarationWitness),
-}
-
-impl WorthUiSourceBackedDeclarationWitnessSlot {
-    fn into_option(self) -> Option<WorthUiSourceBackedDeclarationWitness> {
-        match self {
-            Self::Absent => None,
-            Self::Present(witness) => Some(witness),
-        }
-    }
+enum WorthUiBuilderPreparationSource {
+    Declared(WorthUiDslPackage),
+    Watched(Box<WorthUiWatchedCandidateSubmission>),
 }

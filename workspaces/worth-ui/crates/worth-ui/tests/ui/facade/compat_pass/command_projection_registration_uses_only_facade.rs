@@ -20,7 +20,7 @@ fn main() {
             .show_shortcuts()
             .show_readiness(),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     let _ = app.capabilities().command_projections().get(&projection_id);
 }

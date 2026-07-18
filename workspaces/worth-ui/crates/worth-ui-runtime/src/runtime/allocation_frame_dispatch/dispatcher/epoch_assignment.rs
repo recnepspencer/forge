@@ -13,4 +13,12 @@ impl UiAllocationFrameEpochAssignment {
     pub(crate) fn epoch(self) -> UiAllocationFrameEpoch {
         self.epoch
     }
+
+    pub(in crate::runtime::allocation_frame_dispatch) fn from_sealed_frame(
+        frame: &super::super::UiAdmittedAllocationStreamFrame,
+    ) -> Self {
+        Self {
+            epoch: frame.epoch(),
+        }
+    }
 }

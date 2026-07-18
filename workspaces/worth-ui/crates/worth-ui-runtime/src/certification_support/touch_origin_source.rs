@@ -23,7 +23,7 @@ pub enum WorthUiTouchOriginFixtureVariant {
 
 pub(super) fn touch_runtime_app() -> WorthUiApp {
     let support_app = touch_runtime_support_app();
-    let source_backed_package = launch_runtime(&support_app, empty_runtime_artifact(&support_app))
+    let submission = launch_runtime(&support_app, empty_runtime_artifact(&support_app))
         .source_ingress(touch_runtime_graph_source_provider())
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(
@@ -31,11 +31,15 @@ pub(super) fn touch_runtime_app() -> WorthUiApp {
         )])
         .expect("touch-origin graph provider should debounce")
         .lower_to_candidate_submission(support_app.capabilities())
-        .expect("touch-origin graph provider should lower to a candidate")
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("touch-origin graph provider should emit a source-backed package");
+        .expect("touch-origin graph provider should lower to a composition");
 
+    touch_runtime_builder()
+        .with_candidate_submission(submission)
+        .freeze()
+        .expect("application preparation should succeed")
+}
+
+fn touch_runtime_builder() -> crate::facade::entry::WorthUiBuilder {
     WorthUi::app()
         .register_component(ComponentDescriptor::new(
             ComponentId::new("workspace.component.dashboard").expect("valid component id"),
@@ -50,8 +54,6 @@ pub(super) fn touch_runtime_app() -> WorthUiApp {
             SurfacePlacementClass::primary_region(),
             SurfaceStateClass::restorable(),
         ))
-        .with_source_backed_dsl_package(source_backed_package)
-        .freeze()
 }
 
 pub(super) fn active_runtime_artifact(
@@ -68,16 +70,19 @@ pub(super) fn replacement_candidate(
     app: &WorthUiApp,
     variant: WorthUiTouchOriginFixtureVariant,
 ) -> crate::runtime::WorthUiReplacementCandidate {
-    launch_runtime(app, empty_runtime_artifact(app))
-        .source_ingress(runtime_origin_source_provider(variant))
-        .start()
-        .ingest([WorthUiWatcherEvent::provider_revision(
-            runtime_origin_provider_revision(variant),
-        )])
-        .expect("source-backed touch-origin provider should debounce")
-        .lower_to_candidate_submission(app.capabilities())
-        .expect("source-backed touch-origin provider should lower to a candidate")
-        .into_candidate()
+    crate::runtime::candidate::rust_authored_replacement_candidate(
+        runtime_origin_artifact(app, variant),
+        app.capabilities().digest(),
+        crate::runtime::WorthUiReplacementCause::rust_authored_input_change(
+            runtime_origin_provider_revision(variant)
+                .as_bytes()
+                .iter()
+                .fold(0_u64, |digest, byte| {
+                    digest.rotate_left(5) ^ u64::from(*byte)
+                }),
+        ),
+    )
+    .expect("certification replacement candidate should lower")
 }
 
 pub(super) fn launch_runtime(
@@ -89,21 +94,28 @@ pub(super) fn launch_runtime(
 }
 
 fn touch_runtime_support_app() -> WorthUiApp {
-    WorthUi::app()
-        .register_component(ComponentDescriptor::new(
-            ComponentId::new("workspace.component.dashboard").expect("valid component id"),
-            ComponentPropSchema::named("workspace.props"),
-            ComponentChildPolicy::no_children(),
-            ComponentStateOwnership::runtime_owned(),
-        ))
-        .register_surface(SurfaceDescriptor::new(
-            SurfaceId::new("workspace.surface.command_save").expect("valid surface id"),
-            SurfaceKind::primary_content(),
-            ComponentId::new("workspace.component.dashboard").expect("valid component id"),
-            SurfacePlacementClass::primary_region(),
-            SurfaceStateClass::restorable(),
-        ))
+    touch_runtime_builder()
         .freeze()
+        .expect("application preparation should succeed")
+}
+
+fn runtime_origin_artifact(
+    app: &WorthUiApp,
+    variant: WorthUiTouchOriginFixtureVariant,
+) -> WorthUiArtifact {
+    let module = match variant {
+        WorthUiTouchOriginFixtureVariant::Baseline
+        | WorthUiTouchOriginFixtureVariant::SameArtifactExtraPlanHook => {
+            WorthUiRustAuthoredArtifactInputModule::new("app/graph_touch_origin_runtime.wui")
+                .with_surface("workspace.surface.command_save")
+        }
+        WorthUiTouchOriginFixtureVariant::OverlayArtifact => {
+            WorthUiRustAuthoredArtifactInputModule::new("app/graph_touch_origin_runtime.wui")
+                .with_surface("workspace.surface.command_save")
+                .with_component("workspace.component.dashboard")
+        }
+    };
+    artifact_from_modules(app, [module])
 }
 
 fn empty_runtime_artifact(app: &WorthUiApp) -> WorthUiArtifact {
@@ -136,15 +148,6 @@ fn artifact_from_modules<const N: usize>(
         .expect("canonical artifact assembles")
 }
 
-fn runtime_origin_source_provider(
-    variant: WorthUiTouchOriginFixtureVariant,
-) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::in_memory(runtime_origin_provider_revision(variant)).with_file(
-        "app/graph_touch_origin_runtime.wui",
-        runtime_origin_source_text(variant),
-    )
-}
-
 fn touch_runtime_graph_source_provider() -> WorthUiSourceProvider {
     WorthUiSourceProvider::in_memory(touch_runtime_graph_provider_revision()).with_file(
         "app/graph_touch_origin_runtime.wui",
@@ -162,18 +165,6 @@ fn runtime_origin_provider_revision(variant: WorthUiTouchOriginFixtureVariant) -
         WorthUiTouchOriginFixtureVariant::OverlayArtifact => "touch-origin-overlay",
         WorthUiTouchOriginFixtureVariant::SameArtifactExtraPlanHook => {
             "touch-origin-same-artifact-extra-plan-hook"
-        }
-    }
-}
-
-fn runtime_origin_source_text(variant: WorthUiTouchOriginFixtureVariant) -> &'static str {
-    match variant {
-        WorthUiTouchOriginFixtureVariant::Baseline
-        | WorthUiTouchOriginFixtureVariant::SameArtifactExtraPlanHook => {
-            "surface workspace.surface.command_save {}"
-        }
-        WorthUiTouchOriginFixtureVariant::OverlayArtifact => {
-            "surface workspace.surface.command_save {}\ncomponent workspace.component.dashboard {}"
         }
     }
 }

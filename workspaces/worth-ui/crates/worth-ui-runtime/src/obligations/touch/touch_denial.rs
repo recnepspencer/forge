@@ -20,6 +20,9 @@ pub enum UiGraphTouchDenial {
     UnknownGraphNode {
         graph_node_identity: UiGraphNodeIdentity,
     },
+    ForeignMountedReceiptTransition {
+        graph_node_identity: UiGraphNodeIdentity,
+    },
     OriginDoesNotAuthorizeGraphNode {
         origin_class: UiGraphTouchOriginClass,
         graph_node_identity: UiGraphNodeIdentity,

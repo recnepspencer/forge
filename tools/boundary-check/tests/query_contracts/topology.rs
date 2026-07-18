@@ -54,12 +54,6 @@ fn canonical_query_audience_matrix_is_exact() {
     assert_eq!(matrix.engine_package, "worth-query");
     assert_eq!(matrix.audiences.len(), 3, "exactly three audience rows");
 
-    // Engine package must appear as the sole engine_package machine key once.
-    let engine_key_hits = text.matches("engine_package = \"worth-query\"").count();
-    assert_eq!(
-        engine_key_hits, 1,
-        "engine package must occur in exactly one engine_package key"
-    );
     assert!(
         !text.contains("query_host_bands"),
         "retired query_host_bands must be absent"

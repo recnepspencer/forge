@@ -4,8 +4,8 @@ use worth_ui::facade::{
     SurfacePlacementClass, WorthUi,
 };
 
-use crate::mosaic_placement_registry_assertions::assert_diagnostic_codes;
-use crate::mosaic_placement_registry_fixtures::complete_policy;
+use super::mosaic_placement_registry_assertions::assert_diagnostic_codes;
+use super::mosaic_placement_registry_fixtures::complete_policy;
 
 #[test]
 fn illegal_surface_to_region_placement_rejected() {

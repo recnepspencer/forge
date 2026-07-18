@@ -25,7 +25,7 @@ pub(crate) fn narrow_resolved_frame(
         .iter()
         .map(|intent| intent.family())
         .collect::<Vec<_>>();
-    let (identity, sources) = plan.into_narrowing_parts();
+    let (identity, resolution_counters, sources) = plan.into_narrowing_parts();
     let mut counters = UiAllocationInvalidationNarrowingCounters::default();
     if invalidation_families.len() != sources.len() {
         let Ok(invalidations) = u16::try_from(invalidation_families.len()) else {
@@ -128,6 +128,7 @@ pub(crate) fn narrow_resolved_frame(
 
     UiAllocationInvalidationNarrowingDisposition::Accepted(UiNarrowedAllocationFramePlan::new(
         identity,
+        resolution_counters,
         narrowed.into_boxed_slice(),
         counters,
     ))

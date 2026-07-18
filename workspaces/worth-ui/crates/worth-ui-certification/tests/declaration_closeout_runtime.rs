@@ -10,7 +10,9 @@ use worth_ui_dsl::{
 
 #[test]
 fn bootstrap_app_exposes_milestone32_closeout_report() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let report = app.declaration_closeout_report();
 
     assert_eq!(report, UiDeclarationCloseoutReport::milestone32());
@@ -37,7 +39,8 @@ fn caller_authored_app_exposes_same_closeout_contract() {
             WorthUiDslPackage::named("worth-ui.certification.closeout")
                 .with_semantic_artifact_spec(control_closeout_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let _artifact = artifact_from_file_provenance(&app, "app/closeout.wui", 0);
     let report = app.declaration_closeout_report();
 

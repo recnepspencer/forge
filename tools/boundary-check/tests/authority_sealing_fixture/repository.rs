@@ -136,6 +136,10 @@ edition = "2021"
         self.assemble_with_lib_source_and_config("// placeholder", &self.minimal_config());
         if lib_path == "src/lib.rs" {
             self.write_entry_crate_layout(lib_path, crate_files, None);
+            self.write_generated_source_exemptions(&[
+                "cad/workspaces/worth-entry/crates/worth-entry-adoption/src/facade.rs",
+                "cad/workspaces/worth-entry/crates/worth-entry-adoption/src/test_surface.rs",
+            ]);
         } else {
             let specimen = crate_files
                 .iter()
@@ -150,7 +154,17 @@ edition = "2021"
                 "cad/workspaces/worth-entry/crates/worth-entry-adoption/src/facade.rs",
                 &facade_reexports(specimen),
             );
+            self.write_generated_source_exemptions(&[
+                "cad/workspaces/worth-entry/crates/worth-entry-adoption/src/lib.rs",
+            ]);
         }
+    }
+
+    fn write_generated_source_exemptions(&self, paths: &[&str]) {
+        self.write_file(
+            "tools/boundary-check/config/generated_source_exemptions.txt",
+            &paths.join("\n"),
+        );
     }
 
     fn write_entry_crate(&self, lib_source: &str, dependency_package: Option<&str>) {

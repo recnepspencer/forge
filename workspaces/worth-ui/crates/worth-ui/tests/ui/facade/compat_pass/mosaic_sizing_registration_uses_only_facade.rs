@@ -31,5 +31,5 @@ fn main() {
             .with_parent_growth_behavior(MosaicParentGrowthBehavior::does_not_force_parent())
             .with_viewport_constraint(MosaicViewportConstraint::clamp_to_viewport()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

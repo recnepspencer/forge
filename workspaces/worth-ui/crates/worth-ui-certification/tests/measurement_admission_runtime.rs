@@ -1,7 +1,6 @@
 #[path = "fixtures/measurement_admission_support.rs"]
 mod measurement_admission_support;
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{
     UiAdmissionFamily, UiAdmissionTarget, UiAdmissionWorld, UiSupportPosture, UiSupportReason,
@@ -20,8 +19,8 @@ use worth_ui_test_support::{
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    apps::focus_touch_app,
-    targets::{available_host_capability_target, missing_host_capability_target},
+    admission_targets::{available_host_capability_target, missing_host_capability_target},
+    application_authority::focus_touch_app,
 };
 use measurement_admission_support::{available_measurement_target, host_measurement_touch};
 
@@ -210,10 +209,11 @@ fn measurement_admission_keeps_wrong_world_and_capability_gated_denials_distinct
 #[test]
 fn unsupported_measurement_touch_without_selected_requirement_denies_structurally() {
     let app = focus_touch_app();
-    let artifact = obligation_dispatch_prerequisite_support::touches::artifact_from_module_path(
-        &app,
-        "app/obligation_dispatch_focus_runtime.wui",
-    );
+    let artifact =
+        obligation_dispatch_prerequisite_support::graph_touches::artifact_from_module_path(
+            &app,
+            "app/obligation_dispatch_focus_runtime.wui",
+        );
     let touch = app
         .graph()
         .touches()
@@ -223,7 +223,9 @@ fn unsupported_measurement_touch_without_selected_requirement_denies_structurall
                 .declaration_change_receipt(artifact)
                 .expect("declaration change should admit"),
             UiGraphTouchTiming::PostMutation,
-            obligation_dispatch_prerequisite_support::touches::graph_node_identity(&app, artifact),
+            obligation_dispatch_prerequisite_support::graph_touches::graph_node_identity(
+                &app, artifact,
+            ),
             UiGraphTouchAspects::new().measurement(UiGraphTouchAspectPosture::Read),
         )
         .expect("measurement touch should admit");

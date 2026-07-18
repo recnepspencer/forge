@@ -150,7 +150,7 @@ fn lane_change_parity_is_consumed_by_the_same_move_only_attempt() {
                         Some(&query_rebind),
                     )
                     .map_err(|_| {
-                        crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly
+                        crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("test boundary")
                     })?;
                 Ok((runtime.safe_frame_boundary(), Some(parity)))
             },

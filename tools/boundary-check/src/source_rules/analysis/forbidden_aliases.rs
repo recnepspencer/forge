@@ -218,9 +218,14 @@ fn collect_use_bindings_rec(
         UseTree::Path(path) => {
             let ident = path.ident.to_string();
             let next = match ident.as_str() {
+                "self" if prefix_module.is_empty() => current_module.to_vec(),
                 "self" => prefix_module.to_vec(),
                 "super" => {
-                    let mut p = prefix_module.to_vec();
+                    let mut p = if prefix_module.is_empty() {
+                        current_module.to_vec()
+                    } else {
+                        prefix_module.to_vec()
+                    };
                     p.pop();
                     p
                 }
@@ -268,9 +273,14 @@ fn expand_use_glob_rec(
         UseTree::Path(path) => {
             let ident = path.ident.to_string();
             let next = match ident.as_str() {
+                "self" if prefix_module.is_empty() => current_module.to_vec(),
                 "self" => prefix_module.to_vec(),
                 "super" => {
-                    let mut p = prefix_module.to_vec();
+                    let mut p = if prefix_module.is_empty() {
+                        current_module.to_vec()
+                    } else {
+                        prefix_module.to_vec()
+                    };
                     p.pop();
                     p
                 }

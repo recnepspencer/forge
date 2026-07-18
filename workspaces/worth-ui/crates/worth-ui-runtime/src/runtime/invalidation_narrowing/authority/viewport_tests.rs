@@ -136,6 +136,7 @@ fn viewport_receipt_ceiling_denies_post_locality_without_ledger_mutation() {
                 selected: 5,
                 maximum: 4,
             },
+            ..
         }
     ));
     assert_eq!(

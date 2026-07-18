@@ -34,6 +34,7 @@ pub fn query_measurement_app(world_profile: UiGraphWorldProfile) -> WorthUiApp {
                 .with_semantic_artifact_spec(portal_measurement_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub fn query_only_measurement_app(world_profile: UiGraphWorldProfile) -> WorthUiApp {
@@ -44,6 +45,7 @@ pub fn query_only_measurement_app(world_profile: UiGraphWorldProfile) -> WorthUi
                 .with_semantic_artifact_spec(query_only_measurement_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub fn measurement_touch(app: &WorthUiApp, declaration_index: usize) -> UiGraphTouchDescriptor {

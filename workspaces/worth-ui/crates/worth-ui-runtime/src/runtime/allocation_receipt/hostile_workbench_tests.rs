@@ -321,6 +321,7 @@ fn observe_completion(
                 plan,
                 selection,
                 transaction,
+                ..
             },
         ) => {
             assert_eq!(plan.families(), &[stream]);
@@ -348,7 +349,9 @@ fn observe_completion(
         }
         (
             ExpectedCompletion::Viewport,
-            crate::runtime::WorthUiFrameworkTurnCompletion::ViewportResizeResolved { outcome },
+            crate::runtime::WorthUiFrameworkTurnCompletion::ViewportResizeResolved {
+                outcome, ..
+            },
         ) => {
             assert_eq!(outcome.counters().selected_neighborhoods(), 1);
             assert!(!matches!(
@@ -363,6 +366,7 @@ fn observe_completion(
             crate::runtime::WorthUiFrameworkTurnCompletion::DurableResizeCommitted {
                 outcome,
                 selection,
+                ..
             },
         ) => {
             observe_selection(selection, maximum_neighborhoods, root_widen_attempts);

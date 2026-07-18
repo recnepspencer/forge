@@ -3,6 +3,7 @@ name = "worth-ui-host-contract"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
+autotests = false
 
 [lib]
 name = "worth_ui_host_contract"
@@ -10,3 +11,10 @@ path = "src/lib.rs"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+trybuild = { workspace = true }
+
+[[test]]
+name = "compile_contracts"
+path = "tests/suites/compile_contracts.rs"

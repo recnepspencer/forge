@@ -72,6 +72,7 @@ fn query_app(live: bool, denial: QueryDenialPresentation) -> WorthUiApp {
         .register_query_view(detail)
         .expect("installed detail view should register")
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn query_registration(

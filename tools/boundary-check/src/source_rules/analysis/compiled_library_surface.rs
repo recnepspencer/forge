@@ -22,7 +22,7 @@ pub(crate) fn observe_compiled_library_surface(
         crate_root: crate_root.clone(),
         relative_crate_root: crate_root.display().to_string(),
     };
-    let library_source = super::crate_modules::resolve_lib_source_path(&crate_root)?;
+    let library_source = super::library_target::resolve_lib_source_path(&crate_root)?;
     let graph = parse_crate_modules(&governed)?;
     let exported_macro_sources = graph
         .modules

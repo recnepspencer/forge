@@ -253,6 +253,7 @@ fn scroll_owner_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthU
                 .with_semantic_artifact_spec(scroll_owner_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn scroll_owner_spec() -> UiDslSemanticArtifactSpec {

@@ -8,6 +8,7 @@ use worth_ui::facade::inspection::UiInspectionAdmissionPosture;
 use worth_ui_dsl::WorthUiDslPackage;
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
 
+#[path = "admission_denial_topology_support.rs"]
 mod admission_denial_topology_support;
 
 use admission_denial_topology_support::*;
@@ -23,7 +24,8 @@ fn query_basis_and_host_capability_denials_depend_on_attached_runtime_lanes() {
                 .with_semantic_artifact_spec(query_bound_control_spec())
                 .with_semantic_artifact_spec(service_bound_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let boundary = app.admission();
     let admitted = artifact_from_file_provenance(&app, "app/admission_denials.wui", 0);
     let query_bound = artifact_from_file_provenance(&app, "app/admission_denials.wui", 1);
@@ -125,7 +127,8 @@ fn denial_reports_retain_full_payloads_for_query_staleness_and_budget() {
                 .with_semantic_artifact_spec(admitted_control_spec())
                 .with_semantic_artifact_spec(query_bound_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let boundary = app.admission();
     let admitted = artifact_from_file_provenance(&app, "app/admission_denials.wui", 0);
     let query_bound = artifact_from_file_provenance(&app, "app/admission_denials.wui", 1);
@@ -239,7 +242,8 @@ fn attached_runtime_lanes_fail_closed_without_owner_bound_prerequisite_evidence(
             WorthUiDslPackage::named("worth-ui.certification.admission.denials.missing-query")
                 .with_semantic_artifact_spec(query_bound_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let query_artifact = artifact_from_file_provenance(&query_app, "app/admission_denials.wui", 1);
     let query_report = query_app.admission().report(UiAdmissionTarget::graph_node(
         graph_node_identity(&query_app, query_artifact),
@@ -264,7 +268,8 @@ fn attached_runtime_lanes_fail_closed_without_owner_bound_prerequisite_evidence(
             WorthUiDslPackage::named("worth-ui.certification.admission.denials.missing-host")
                 .with_semantic_artifact_spec(service_bound_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let service_artifact =
         artifact_from_file_provenance(&service_app, "app/admission_denials.wui", 2);
     let service_report = service_app

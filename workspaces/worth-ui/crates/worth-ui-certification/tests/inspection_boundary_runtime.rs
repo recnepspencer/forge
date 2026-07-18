@@ -8,7 +8,8 @@ use worth_ui::facade::inspection::{
 fn repeated_unsupported_inspection_queries_stay_typed_and_equivalent() {
     let app = WorthUi::app()
         .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
         UiInspectionTarget::product_root(),
         UiInspectionScope::graph(),

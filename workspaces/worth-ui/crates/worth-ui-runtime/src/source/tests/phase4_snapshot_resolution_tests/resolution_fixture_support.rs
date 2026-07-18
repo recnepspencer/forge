@@ -66,10 +66,13 @@ pub(super) fn admitted_app() -> WorthUiApp {
             ThemeTokenAlias::to(ThemeTokenId::new("theme.text.primary").unwrap()),
         ))
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(in crate::source::tests) fn empty_snapshot() -> WorthUiApp {
-    WorthUi::app().freeze()
+    WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn component_descriptor(identity: &str) -> ComponentDescriptor {

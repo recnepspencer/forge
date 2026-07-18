@@ -191,6 +191,7 @@ fn child_posture_app(
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn child_posture_spec(

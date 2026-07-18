@@ -8,8 +8,9 @@ pub(crate) enum UiAllocationFrameTurnOutcome {
     NoAdmittedIngress {
         counters: UiAllocationFrameDispatcherCounters,
     },
-    DownstreamBackpressured {
+    SealedFrameReady {
         sealed_frame: Box<UiAdmittedAllocationStreamFrame>,
+        frame_epoch_assignment: super::super::UiAllocationFrameEpochAssignment,
     },
     Denied {
         denial: UiAllocationFrameDispatchDenial,

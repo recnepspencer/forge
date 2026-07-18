@@ -134,6 +134,7 @@ fn multi_child_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUi
                 .with_semantic_artifact_spec(control_spec("workflow_editor.control.right", 2)),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(semantic_key: &str, declaration_index: usize) -> UiDslSemanticArtifactSpec {

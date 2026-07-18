@@ -1,22 +1,24 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-pub fn audit_allocation_closeout_anti_bypass_boundaries(workspace_root: &Path) -> Vec<String> {
+use super::workspace_source_inventory::WorkspaceSourceInventory;
+
+pub fn audit_allocation_closeout_anti_bypass_boundaries(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
     let mut violations = Vec::new();
-    violations.extend(host_allocation_authority_violations(workspace_root));
-    violations.extend(receipt_construction_violations(workspace_root));
-    violations.extend(local_cache_authority_violations(workspace_root));
+    violations.extend(host_allocation_authority_violations(inventory));
+    violations.extend(receipt_construction_violations(inventory));
+    violations.extend(local_cache_authority_violations(inventory));
     violations.sort();
     violations
 }
 
-fn host_allocation_authority_violations(workspace_root: &Path) -> Vec<String> {
-    let root = workspace_root.join("crates/worth-ui-host-egui/src");
-    collect_rust_files(&root)
-        .into_iter()
-        .flat_map(|path| {
-            let text = fs::read_to_string(&path).expect("host source should decode");
-            forbidden_host_authority_patterns(&text)
+fn host_allocation_authority_violations(inventory: &WorkspaceSourceInventory) -> Vec<String> {
+    inventory
+        .rust_files_under("crates/worth-ui-host-egui/src")
+        .flat_map(|source| {
+            let path = source.absolute_path();
+            forbidden_host_authority_patterns(source.text())
                 .into_iter()
                 .map(move |pattern| {
                     format!(
@@ -40,12 +42,13 @@ fn forbidden_host_authority_patterns(text: &str) -> Vec<&'static str> {
     .collect()
 }
 
-fn receipt_construction_violations(workspace_root: &Path) -> Vec<String> {
-    let runtime = workspace_root.join("crates/worth-ui-runtime/src");
-    collect_rust_files(&runtime)
-        .into_iter()
-        .filter_map(|path| {
-            let relative = normalized_relative(&runtime, &path);
+fn receipt_construction_violations(inventory: &WorkspaceSourceInventory) -> Vec<String> {
+    let runtime = inventory.absolute_path("crates/worth-ui-runtime/src");
+    inventory
+        .rust_files_under("crates/worth-ui-runtime/src")
+        .filter_map(|source| {
+            let path = source.absolute_path();
+            let relative = normalized_relative(&runtime, path);
             if matches!(
                 relative.as_str(),
                 "runtime/allocation_receipt/committed_truth/committed_receipt.rs"
@@ -53,7 +56,7 @@ fn receipt_construction_violations(workspace_root: &Path) -> Vec<String> {
             ) {
                 return None;
             }
-            let text = fs::read_to_string(&path).expect("runtime source should decode");
+            let text = source.text();
             (text.contains("UiAllocationReceipt::from_candidate(")
                 || text.contains("struct UiAllocationReceipt {"))
                 .then(|| format!(
@@ -63,16 +66,17 @@ fn receipt_construction_violations(workspace_root: &Path) -> Vec<String> {
         .collect()
 }
 
-fn local_cache_authority_violations(workspace_root: &Path) -> Vec<String> {
-    let runtime = workspace_root.join("crates/worth-ui-runtime/src/runtime");
-    collect_rust_files(&runtime)
-        .into_iter()
-        .filter_map(|path| {
-            let relative = normalized_relative(&runtime, &path);
+fn local_cache_authority_violations(inventory: &WorkspaceSourceInventory) -> Vec<String> {
+    let runtime = inventory.absolute_path("crates/worth-ui-runtime/src/runtime");
+    inventory
+        .rust_files_under("crates/worth-ui-runtime/src/runtime")
+        .filter_map(|source| {
+            let path = source.absolute_path();
+            let relative = normalized_relative(&runtime, path);
             if relative.starts_with("allocation_receipt/ledger_lifecycle/") {
                 return None;
             }
-            let text = fs::read_to_string(&path).expect("runtime source should decode");
+            let text = source.text();
             text.contains("committed_by_scope").then(|| {
                 format!(
                 "runtime/{relative} reaches the receipt ledger cache outside its owner boundary"
@@ -87,23 +91,6 @@ fn normalized_relative(root: &Path, path: &Path) -> String {
         .expect("collected file is below root")
         .to_string_lossy()
         .replace('\\', "/")
-}
-
-fn collect_rust_files(root: &Path) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    collect_rust_files_into(root, &mut files);
-    files
-}
-
-fn collect_rust_files_into(root: &Path, files: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("source directory should be readable") {
-        let path = entry.expect("directory entry should read").path();
-        if path.is_dir() {
-            collect_rust_files_into(&path, files);
-        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
-            files.push(path);
-        }
-    }
 }
 
 #[cfg(test)]
@@ -129,7 +116,8 @@ mod tests {
     #[test]
     fn current_workspace_has_no_allocation_closeout_bypass() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let violations = super::audit_allocation_closeout_anti_bypass_boundaries(&root);
+        let inventory = super::WorkspaceSourceInventory::capture(root);
+        let violations = super::audit_allocation_closeout_anti_bypass_boundaries(&inventory);
         assert!(
             violations.is_empty(),
             "allocation anti-bypass violations: {violations:#?}"

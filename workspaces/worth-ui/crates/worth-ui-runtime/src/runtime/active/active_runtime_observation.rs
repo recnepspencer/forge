@@ -3,8 +3,10 @@ use crate::runtime::{
 };
 
 /// Read-only projection over active runtime truth.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiActiveRuntimeObservation {
+    generation_identity:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     artifact_digest: u64,
     active_plan_digest: u64,
     snapshot_digest: u64,
@@ -15,6 +17,7 @@ pub struct WorthUiActiveRuntimeObservation {
 
 impl WorthUiActiveRuntimeObservation {
     pub(crate) fn new(
+        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
         artifact_digest: u64,
         active_plan_digest: u64,
         snapshot_digest: u64,
@@ -23,6 +26,7 @@ impl WorthUiActiveRuntimeObservation {
         frame_epoch: WorthUiRuntimeFrameEpoch,
     ) -> Self {
         Self {
+            generation_identity,
             artifact_digest,
             active_plan_digest,
             snapshot_digest,
@@ -34,6 +38,13 @@ impl WorthUiActiveRuntimeObservation {
 
     pub fn artifact_digest(&self) -> u64 {
         self.artifact_digest
+    }
+
+    pub fn generation_identity(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        &self.generation_identity
     }
 
     pub fn active_plan_digest(&self) -> u64 {

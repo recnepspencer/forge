@@ -178,6 +178,7 @@ fn denied_replan_inspection_preserves_local_causes_and_exact_refs() {
                 reason: super::UiAllocationReuseDenial::EquivalenceBasisMismatch,
             },
         ),
+        planning_counters: Default::default(),
     };
     let inspection = denied
         .denied_replan_inspection()

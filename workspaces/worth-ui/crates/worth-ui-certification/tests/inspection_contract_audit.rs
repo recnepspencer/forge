@@ -13,9 +13,7 @@ use worth_ui_dsl::{
 
 #[test]
 fn inspection_query_preserves_budget_richness_and_relevance_through_the_facade_receipt() {
-    let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+    let app = empty_app();
     let query = UiInspectionQuery::new(
         UiInspectionTarget::obligation_graph_node(17),
         UiInspectionScope::graph(),
@@ -42,9 +40,7 @@ fn inspection_query_preserves_budget_richness_and_relevance_through_the_facade_r
 
 #[test]
 fn inspection_inventory_projects_typed_support_and_closure_reports() {
-    let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+    let app = empty_app();
     let graph_report = app.inspection_support_report(UiInspectionScope::graph());
     let measurement_report = app.inspection_support_report(UiInspectionScope::measurement());
     let mounting_report = app.inspection_support_report(UiInspectionScope::mounting());
@@ -83,9 +79,7 @@ fn inspection_inventory_projects_typed_support_and_closure_reports() {
 
 #[test]
 fn supported_non_graph_receipts_remain_matched_on_the_real_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+    let app = empty_app();
     let support_report = app.inspection_support_report(UiInspectionScope::measurement());
 
     let receipt = app.inspect(UiInspectionQuery::new(
@@ -104,9 +98,7 @@ fn supported_non_graph_receipts_remain_matched_on_the_real_path() {
 
 #[test]
 fn unsupported_scope_receipts_surface_typed_relevance_outcomes_on_the_real_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+    let app = empty_app();
     let support_report = app.inspection_support_report(UiInspectionScope::graph());
 
     let receipt = app.inspect(UiInspectionQuery::new(
@@ -133,9 +125,7 @@ fn unsupported_scope_receipts_surface_typed_relevance_outcomes_on_the_real_path(
 
 #[test]
 fn contradictory_requests_surface_typed_relevance_outcomes_on_the_real_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+    let app = empty_app();
 
     let receipt = app.inspect(
         UiInspectionQuery::new(
@@ -157,9 +147,7 @@ fn contradictory_requests_surface_typed_relevance_outcomes_on_the_real_path() {
 
 #[test]
 fn budget_exceeded_requests_surface_typed_relevance_outcomes_on_the_real_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+    let app = empty_app();
 
     let receipt = app.inspect(
         UiInspectionQuery::new(
@@ -185,9 +173,7 @@ fn budget_exceeded_requests_surface_typed_relevance_outcomes_on_the_real_path() 
 
 #[test]
 fn not_applicable_requests_surface_typed_relevance_outcomes_on_the_real_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+    let app = empty_app();
 
     let receipt = app.inspect(
         UiInspectionQuery::new(
@@ -383,6 +369,14 @@ fn declared_surface_app() -> WorthUiApp {
                 .with_semantic_artifact_spec(declared_surface_region_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
+}
+
+fn empty_app() -> WorthUiApp {
+    WorthUi::app()
+        .with_dsl_package(WorthUiDslPackage::empty())
+        .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn declared_surface_region_spec() -> UiDslSemanticArtifactSpec {

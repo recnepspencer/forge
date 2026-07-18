@@ -8,11 +8,13 @@ fn equivalent_command_descriptors_produce_equivalent_indexes() {
     let first = WorthUi::app()
         .register_command(command_descriptor("workspace.open", "Open Workspace"))
         .register_command(command_descriptor("workspace.close", "Close Workspace"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_command(command_descriptor("workspace.close", "Close Workspace"))
         .register_command(command_descriptor("workspace.open", "Open Workspace"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().commands(),
@@ -123,7 +125,8 @@ fn command_readiness_binding_preserves_structured_ui_status() {
         .register_command(
             command_descriptor("workspace.rebuild", "Rebuild Workspace").with_readiness(readiness),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()
@@ -140,7 +143,8 @@ fn command_readiness_binding_preserves_structured_ui_status() {
 fn different_command_descriptor_meaning_produces_different_snapshot_digest() {
     let plain = WorthUi::app()
         .register_command(command_descriptor("workspace.open", "Open Workspace"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let richer = WorthUi::app()
         .register_command(
             command_descriptor("workspace.open", "Open Workspace")
@@ -150,7 +154,8 @@ fn different_command_descriptor_meaning_produces_different_snapshot_digest() {
                     "workspace.open.intent",
                 )),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         plain.capabilities().commands(),
@@ -170,7 +175,8 @@ fn runtime_intent_binding_is_typed_placeholder_metadata_only() {
                 CommandRuntimeIntentBinding::named("workspace.open.intent"),
             ),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()

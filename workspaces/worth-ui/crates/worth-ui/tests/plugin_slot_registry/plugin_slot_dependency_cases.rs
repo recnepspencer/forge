@@ -42,7 +42,8 @@ fn plugin_contribution_slot_reference_resolves_against_registered_slot() {
                 )),
             ),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_plugin_slot_ids(
         app.capabilities().plugin_slots(),

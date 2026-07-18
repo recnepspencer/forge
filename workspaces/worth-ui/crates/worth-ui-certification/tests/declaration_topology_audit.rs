@@ -6,12 +6,8 @@ use worth_ui_certification::topology::{
     audit_runtime_declaration_surface_routes_through_curated_submodule,
 };
 
-fn workspace_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate parent")
-        .parent()
-        .expect("workspace root")
+fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
+    super::workspace_source_inventory()
 }
 
 fn topology_negative_fixture_root(name: &str) -> PathBuf {
@@ -56,9 +52,10 @@ fn declaration_phase_lane_owns_cross_crate_dependency_audit() {
 
 #[test]
 fn declaration_dependency_audit_rejects_use_based_deep_import_fixture() {
-    let violations = audit_no_cross_crate_deep_imports(&topology_negative_fixture_root(
-        "declaration_use_based_deep_import",
-    ));
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        topology_negative_fixture_root("declaration_use_based_deep_import"),
+    );
+    let violations = audit_no_cross_crate_deep_imports(&inventory);
     assert_has_violation(
         &violations,
         "worth-ui-inspection",
@@ -75,9 +72,10 @@ fn non_product_crates_route_declaration_through_worth_ui_facade() {
 
 #[test]
 fn declaration_facade_bypass_audit_rejects_known_bad_fixture() {
-    let violations = audit_non_product_crates_route_declaration_through_worth_ui_facade(
-        &topology_negative_fixture_root("declaration_facade_bypass_consumer"),
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        topology_negative_fixture_root("declaration_facade_bypass_consumer"),
     );
+    let violations = audit_non_product_crates_route_declaration_through_worth_ui_facade(&inventory);
     assert_has_violation(
         &violations,
         "worth-ui-inspection",

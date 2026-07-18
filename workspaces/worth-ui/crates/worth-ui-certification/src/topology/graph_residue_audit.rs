@@ -1,7 +1,7 @@
-use std::fs;
 use std::path::Path;
 
 use super::dependency_audit::{collect_file_paths, collect_file_use_paths, path_starts_with};
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 use syn::visit::{self, Visit};
 use syn::{ExprMethodCall, ExprPath, File, ImplItem, Item};
 
@@ -31,7 +31,7 @@ const PHASE6_DECLARATION_SOURCE_REOPENING_METHODS: &[&str] = &[
 ];
 
 pub fn audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let files = [
         "crates/worth-ui-runtime/src/facade/entry/app.rs",
@@ -40,14 +40,14 @@ pub fn audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(
         "crates/worth-ui-runtime/src/graph/inspection/graph_node_evidence_index.rs",
     ]
     .iter()
-    .map(|relative| workspace_root.join(relative))
+    .map(|relative| inventory.absolute_path(relative))
     .collect::<Vec<_>>();
     let mut violations = Vec::new();
 
     for path in files {
-        for segments in collect_file_paths(&path)
+        for segments in collect_file_paths(inventory, &path)
             .into_iter()
-            .chain(collect_file_use_paths(&path))
+            .chain(collect_file_use_paths(inventory, &path))
         {
             if let Some(authority_name) = declaration_semantic_authority_path(&segments) {
                 violations.push(format!(
@@ -57,7 +57,7 @@ pub fn audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(
             }
         }
 
-        for method_name in collect_method_names(&path) {
+        for method_name in collect_method_names(inventory, &path) {
             if PHASE5_DECLARATION_SOURCE_REOPENING_METHODS.contains(&method_name.as_str()) {
                 violations.push(format!(
                     "{} reopens declaration meaning through DSL semantic accessor `{method_name}()` inside the phase-5 graph lookup lane",
@@ -73,22 +73,20 @@ pub fn audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(
 }
 
 pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let app = workspace_root.join("crates/worth-ui-runtime/src/facade/entry/app.rs");
-    let app_inspection_support = workspace_root
-        .join("crates/worth-ui-runtime/src/facade/inspection_bridge/support_routing.rs");
-    let graph_lookup_boundary = workspace_root
-        .join("crates/worth-ui-runtime/src/graph/inspection/graph_lookup_boundary.rs");
-    let graph_node_evidence_index = workspace_root
-        .join("crates/worth-ui-runtime/src/graph/inspection/graph_node_evidence_index.rs");
-    let obligation_inspection = workspace_root
-        .join("crates/worth-ui-runtime/src/facade/inspection_bridge/obligation_routes.rs");
-    let app_inspection_support_source =
-        fs::read_to_string(&app_inspection_support).expect("source should decode");
-    let boundary_source = fs::read_to_string(&graph_lookup_boundary).expect("source should decode");
-    let obligation_source =
-        fs::read_to_string(&obligation_inspection).expect("source should decode");
+    let app = inventory.absolute_path("crates/worth-ui-runtime/src/facade/entry/app.rs");
+    let app_inspection_support = inventory
+        .absolute_path("crates/worth-ui-runtime/src/facade/inspection_bridge/support_routing.rs");
+    let graph_lookup_boundary = inventory
+        .absolute_path("crates/worth-ui-runtime/src/graph/inspection/graph_lookup_boundary.rs");
+    let graph_node_evidence_index = inventory
+        .absolute_path("crates/worth-ui-runtime/src/graph/inspection/graph_node_evidence_index.rs");
+    let obligation_inspection = inventory
+        .absolute_path("crates/worth-ui-runtime/src/facade/inspection_bridge/obligation_routes.rs");
+    let app_inspection_support_source = inventory.text(&app_inspection_support);
+    let boundary_source = inventory.text(&graph_lookup_boundary);
+    let obligation_source = inventory.text(&obligation_inspection);
     let mut violations = Vec::new();
 
     if !boundary_source.contains("lookup_graph_node_identity") {
@@ -98,7 +96,7 @@ pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
         ));
     }
 
-    let inspect_method_names = collect_method_names_for_function(&app, "inspect");
+    let inspect_method_names = collect_method_names_for_function(inventory, &app, "inspect");
     if inspect_method_names
         .iter()
         .any(|name| name == "rebuild_graph_node_evidence_index_from_authority")
@@ -108,7 +106,7 @@ pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
             app.display()
         ));
     }
-    if collect_paths_for_function(&app, "inspect")
+    if collect_paths_for_function(inventory, &app, "inspect")
         .iter()
         .any(|segments| ends_with_path(segments, &["UiGraphNodeEvidenceIndex", "rebuild"]))
     {
@@ -129,8 +127,11 @@ pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
         }
     }
 
-    let method_names =
-        collect_method_names_for_function(&graph_node_evidence_index, "lookup_graph_node_identity");
+    let method_names = collect_method_names_for_function(
+        inventory,
+        &graph_node_evidence_index,
+        "lookup_graph_node_identity",
+    );
     if !method_names.iter().any(|name| name == "get") {
         violations.push(format!(
             "{} no longer proves indexed graph lookup because `lookup_graph_node_identity` does not call map lookup `get()`",
@@ -159,8 +160,7 @@ pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
         ));
     }
 
-    let graph_index_source =
-        fs::read_to_string(&graph_node_evidence_index).expect("source should decode");
+    let graph_index_source = inventory.text(&graph_node_evidence_index);
     if !graph_index_source.contains("evidence_index()")
         || !graph_index_source.contains("record.graph_node_digest()")
     {
@@ -175,7 +175,7 @@ pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
 }
 
 pub fn audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let files = [
         "crates/worth-ui-runtime/src/facade/entry/app.rs",
@@ -185,14 +185,14 @@ pub fn audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(
         "crates/worth-ui-runtime/src/graph/inspection/aspect/consumed_aspect_evidence_index.rs",
     ]
     .iter()
-    .map(|relative| workspace_root.join(relative))
+    .map(|relative| inventory.absolute_path(relative))
     .collect::<Vec<_>>();
     let mut violations = Vec::new();
 
     for path in files {
-        for segments in collect_file_paths(&path)
+        for segments in collect_file_paths(inventory, &path)
             .into_iter()
-            .chain(collect_file_use_paths(&path))
+            .chain(collect_file_use_paths(inventory, &path))
         {
             if let Some(authority_name) = declaration_semantic_authority_path(&segments) {
                 violations.push(format!(
@@ -202,7 +202,7 @@ pub fn audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(
             }
         }
 
-        for method_name in collect_method_names(&path) {
+        for method_name in collect_method_names(inventory, &path) {
             if PHASE6_DECLARATION_SOURCE_REOPENING_METHODS.contains(&method_name.as_str()) {
                 violations.push(format!(
                     "{} reopens declaration meaning through DSL semantic accessor `{method_name}()` inside the phase-6 aspect lookup lane",
@@ -218,19 +218,19 @@ pub fn audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(
 }
 
 pub fn audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let app = workspace_root.join("crates/worth-ui-runtime/src/facade/entry/app.rs");
-    let aspect_lookup_boundary = workspace_root
-        .join("crates/worth-ui-runtime/src/graph/inspection/aspect/aspect_lookup_boundary.rs");
-    let published_aspect_evidence_index = workspace_root.join(
+    let app = inventory.absolute_path("crates/worth-ui-runtime/src/facade/entry/app.rs");
+    let aspect_lookup_boundary = inventory.absolute_path(
+        "crates/worth-ui-runtime/src/graph/inspection/aspect/aspect_lookup_boundary.rs",
+    );
+    let published_aspect_evidence_index = inventory.absolute_path(
         "crates/worth-ui-runtime/src/graph/inspection/aspect/published_aspect_evidence_index.rs",
     );
-    let consumed_aspect_evidence_index = workspace_root.join(
+    let consumed_aspect_evidence_index = inventory.absolute_path(
         "crates/worth-ui-runtime/src/graph/inspection/aspect/consumed_aspect_evidence_index.rs",
     );
-    let boundary_source =
-        fs::read_to_string(&aspect_lookup_boundary).expect("source should decode");
+    let boundary_source = inventory.text(&aspect_lookup_boundary);
     let mut violations = Vec::new();
 
     for required_lookup in ["lookup_published_aspect", "lookup_consumed_aspect"] {
@@ -242,7 +242,7 @@ pub fn audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first(
         }
     }
 
-    if collect_method_names_for_function(&app, "inspect")
+    if collect_method_names_for_function(inventory, &app, "inspect")
         .iter()
         .any(|name| name == "build_graph_aspect_evidence_indexes")
     {
@@ -251,7 +251,7 @@ pub fn audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first(
             app.display()
         ));
     }
-    if collect_paths_for_function(&app, "inspect")
+    if collect_paths_for_function(inventory, &app, "inspect")
         .iter()
         .any(|segments| ends_with_path(segments, &["UiGraphAspectEvidenceIndexes", "rebuild"]))
     {
@@ -265,7 +265,7 @@ pub fn audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first(
         &published_aspect_evidence_index,
         &consumed_aspect_evidence_index,
     ] {
-        let method_names = collect_method_names_for_function(path, "lookup");
+        let method_names = collect_method_names_for_function(inventory, path, "lookup");
         if !method_names.iter().any(|name| name == "get") {
             violations.push(format!(
                 "{} no longer proves indexed aspect lookup because `lookup` does not call map lookup `get()`",
@@ -298,15 +298,19 @@ fn declaration_semantic_authority_path(segments: &[String]) -> Option<&str> {
         .find(|name| segments.iter().any(|segment| segment == name))
 }
 
-fn collect_method_names(path: &Path) -> Vec<String> {
-    let parsed = parse_rust_file(path);
+fn collect_method_names(inventory: &WorkspaceSourceInventory, path: &Path) -> Vec<String> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = MethodCallCollector::default();
     collector.visit_file(&parsed);
     collector.method_names
 }
 
-fn collect_method_names_for_function(path: &Path, function_name: &str) -> Vec<String> {
-    let parsed = parse_rust_file(path);
+fn collect_method_names_for_function(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+    function_name: &str,
+) -> Vec<String> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = MethodCallCollector::default();
 
     for item in parsed.items {
@@ -330,8 +334,12 @@ fn collect_method_names_for_function(path: &Path, function_name: &str) -> Vec<St
     collector.method_names
 }
 
-fn collect_paths_for_function(path: &Path, function_name: &str) -> Vec<Vec<String>> {
-    let parsed = parse_rust_file(path);
+fn collect_paths_for_function(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+    function_name: &str,
+) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = PathCollector::default();
 
     for item in parsed.items {
@@ -355,9 +363,9 @@ fn collect_paths_for_function(path: &Path, function_name: &str) -> Vec<Vec<Strin
     collector.paths
 }
 
-fn parse_rust_file(path: &Path) -> File {
-    let text = fs::read_to_string(path).expect("source file should decode");
-    syn::parse_file(&text).unwrap_or_else(|error| {
+fn parse_rust_file(inventory: &WorkspaceSourceInventory, path: &Path) -> File {
+    let text = inventory.text(path);
+    syn::parse_file(text).unwrap_or_else(|error| {
         panic!("{} should parse as Rust source: {error}", path.display());
     })
 }

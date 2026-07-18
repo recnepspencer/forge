@@ -1,8 +1,4 @@
-use std::collections::BTreeMap;
-
-use crate::capability::MeasurementConstraint;
 use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
-use crate::declaration::UiDeclaredMeasurementConstraintModifier;
 use crate::runtime::candidate::{
     file_authored_replacement_candidate, rust_authored_replacement_candidate,
 };
@@ -14,27 +10,27 @@ use crate::runtime::source_ingress::denial::{
 use crate::runtime::source_ingress::ordering_receipt::WorthUiCandidateOrderingReceipt;
 use crate::runtime::source_ingress::provider::WorthUiSourceProvider;
 use crate::runtime::source_ingress::revision::WorthUiSourcePackageRevision;
+use crate::runtime::source_ingress::source_backed_declaration_projection::project_source_backed_declaration_witness;
 use crate::runtime::source_ingress::source_backed_package_lowering::source_backed_package;
 use crate::runtime::source_ingress::{
-    WorthUiSourceBackedDeclarationClaims, WorthUiSourceBackedDeclarationWitness,
-    WorthUiSourceBackedDslPackage,
+    WorthUiCandidateComposition, WorthUiCandidateCompositionBasis,
+    WorthUiCandidatePreparationHandoff, WorthUiSourceBackedDslPackage,
 };
 use crate::runtime::WorthUiReplacementCause;
 use crate::runtime::{WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial};
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
-    WorthUiLegallyStructuredArtifactInputNode, WorthUiParsedSourceToArtifactInputLowerer,
+    WorthUiParsedSourceToArtifactInputLowerer, WorthUiRustAuthoredToArtifactInputLowerer,
     WorthUiSourcePackageLoader, WorthUiSourceParser, WorthUiStructuralLegalityLowerer,
 };
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthUiWatchedCandidateSubmission {
-    candidate: WorthUiReplacementCandidate,
+    composition: WorthUiCandidateComposition,
     revision: WorthUiSourcePackageRevision,
     ordering_receipt: WorthUiCandidateOrderingReceipt,
     counters: WorthUiSourceIngressCounters,
-    source_backed_dsl_package: Option<WorthUiSourceBackedDslPackage>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -53,11 +49,10 @@ impl WorthUiDebouncedWatcherBatch {
             lower_provider_to_candidate(&provider, snapshot, &revision, &ordering_receipt)?;
         counters.emit_candidate_submission();
         Ok(WorthUiWatchedCandidateSubmission {
-            candidate: lowered.candidate,
+            composition: lowered,
             revision,
             ordering_receipt,
             counters,
-            source_backed_dsl_package: lowered.source_backed_dsl_package,
         })
     }
 }
@@ -75,18 +70,25 @@ impl WorthUiWatchedCandidateSubmission {
         self.counters
     }
 
-    pub fn into_candidate(self) -> WorthUiReplacementCandidate {
-        self.candidate
+    pub fn composition_basis(&self) -> &WorthUiCandidateCompositionBasis {
+        self.composition.basis()
     }
 
-    pub fn source_backed_dsl_package(&self) -> Option<&WorthUiSourceBackedDslPackage> {
-        self.source_backed_dsl_package.as_ref()
+    pub fn authoring_lane(&self) -> crate::runtime::WorthUiCandidateAuthoringLane {
+        self.composition.authoring_lane()
     }
-}
 
-struct LoweredProviderCandidate {
-    candidate: WorthUiReplacementCandidate,
-    source_backed_dsl_package: Option<WorthUiSourceBackedDslPackage>,
+    pub(crate) fn candidate_snapshot_digest(&self) -> u64 {
+        self.composition.snapshot_digest()
+    }
+
+    pub(crate) fn into_preparation_handoff(self) -> WorthUiCandidatePreparationHandoff {
+        self.composition.into_preparation_handoff()
+    }
+
+    pub(crate) fn into_replacement_handoff(self) -> WorthUiCandidatePreparationHandoff {
+        self.composition.into_preparation_handoff()
+    }
 }
 
 fn lower_provider_to_candidate(
@@ -94,32 +96,32 @@ fn lower_provider_to_candidate(
     snapshot: &CapabilitySnapshot,
     revision: &WorthUiSourcePackageRevision,
     ordering_receipt: &WorthUiCandidateOrderingReceipt,
-) -> Result<LoweredProviderCandidate, WorthUiWatchedCandidateSubmissionDenial> {
+) -> Result<WorthUiCandidateComposition, WorthUiWatchedCandidateSubmissionDenial> {
     if !ordering_receipt.matches_revision(revision) {
         return Err(source_denial(
             WorthUiSourceIngressDenialReason::OrderingReceiptDrift,
         ));
     }
     reject_ambiguous_candidate_material(provider)?;
-    if let Some(input) = provider.artifact_inputs().first() {
-        let artifact = input.artifact().cloned().ok_or_else(|| {
-            WorthUiWatchedCandidateSubmissionDenial::SourceIngress(WorthUiSourceIngressDenial::new(
-                WorthUiSourceIngressDenialReason::NoCandidateMaterial,
-            ))
-        })?;
-        return rust_authored_candidate(artifact, snapshot.digest(), revision).map(|candidate| {
-            LoweredProviderCandidate {
-                candidate,
-                source_backed_dsl_package: None,
-            }
-        });
+    if let Some(input) = provider.rust_authored_inputs().first() {
+        let material = rust_authored_material(input, snapshot)?;
+        return rust_authored_candidate(material.artifact, snapshot.digest(), revision).map(
+            |candidate| {
+                WorthUiCandidateComposition::rust_authored(
+                    candidate,
+                    material.source_backed_dsl_package,
+                )
+            },
+        );
     }
     if !provider.source_modules().is_empty() {
         let material = file_authored_material(provider, snapshot)?;
         return file_authored_candidate(material.artifact, snapshot.digest(), provider, revision)
-            .map(|candidate| LoweredProviderCandidate {
-                candidate,
-                source_backed_dsl_package: Some(material.source_backed_dsl_package),
+            .map(|candidate| {
+                WorthUiCandidateComposition::file_authored(
+                    candidate,
+                    material.source_backed_dsl_package,
+                )
             });
     }
     Err(source_denial(
@@ -130,20 +132,20 @@ fn lower_provider_to_candidate(
 fn reject_ambiguous_candidate_material(
     provider: &WorthUiSourceProvider,
 ) -> Result<(), WorthUiWatchedCandidateSubmissionDenial> {
-    if !provider.source_modules().is_empty() && !provider.artifact_inputs().is_empty() {
+    if !provider.source_modules().is_empty() && !provider.rust_authored_inputs().is_empty() {
         return Err(source_denial(
             WorthUiSourceIngressDenialReason::MixedCandidateMaterial,
         ));
     }
-    if provider.artifact_inputs().len() > 1 {
+    if provider.rust_authored_inputs().len() > 1 {
         return Err(source_denial(
-            WorthUiSourceIngressDenialReason::MultipleArtifactInputs,
+            WorthUiSourceIngressDenialReason::MultipleRustAuthoredInputs,
         ));
     }
     Ok(())
 }
 
-struct FileAuthoredCandidateMaterial {
+struct WorthUiLoweredCandidateMaterial {
     artifact: WorthUiArtifact,
     source_backed_dsl_package: WorthUiSourceBackedDslPackage,
 }
@@ -151,7 +153,7 @@ struct FileAuthoredCandidateMaterial {
 fn file_authored_material(
     provider: &WorthUiSourceProvider,
     snapshot: &CapabilitySnapshot,
-) -> Result<FileAuthoredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
+) -> Result<WorthUiLoweredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
     let mut loader = WorthUiSourcePackageLoader::from_workspace_root(provider.workspace_root());
     for module in provider.source_modules() {
         loader = loader.register_module_with_source(module.relative_path(), module.source_text());
@@ -165,20 +167,26 @@ fn file_authored_material(
     canonical_artifact_from_input(artifact_input, snapshot)
 }
 
+fn rust_authored_material(
+    input: &crate::source::WorthUiRustAuthoredArtifactInput,
+    snapshot: &CapabilitySnapshot,
+) -> Result<WorthUiLoweredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
+    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::try_lower(input)
+        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourcePackageRejected))?;
+    canonical_artifact_from_input(artifact_input, snapshot)
+}
+
 fn canonical_artifact_from_input(
     artifact_input: crate::source::WorthUiArtifactInput,
     snapshot: &CapabilitySnapshot,
-) -> Result<FileAuthoredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
+) -> Result<WorthUiLoweredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
     let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::ArtifactResolutionRejected))?;
     let structured = WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::StructuralLegalityRejected))?;
-    let declaration_witness =
-        WorthUiSourceBackedDeclarationWitness::new(source_backed_contracts(&structured));
-    let source_backed_dsl_package = WorthUiSourceBackedDslPackage::new(
-        source_backed_package(&structured),
-        declaration_witness.clone(),
-    );
+    let declaration_witness = project_source_backed_declaration_witness(&structured)?;
+    let source_backed_dsl_package =
+        WorthUiSourceBackedDslPackage::new(source_backed_package(&structured), declaration_witness);
     let bound = WorthUiBindingSemanticsLowerer::lower(&structured, snapshot)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::BindingSemanticsRejected))?;
     let identity_seeded = WorthUiIdentitySeedLowerer::lower(&bound)
@@ -186,7 +194,7 @@ fn canonical_artifact_from_input(
         .0;
     let artifact = WorthUiCanonicalArtifactAssembler::assemble(&identity_seeded)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::CanonicalAssemblyRejected))?;
-    Ok(FileAuthoredCandidateMaterial {
+    Ok(WorthUiLoweredCandidateMaterial {
         artifact,
         source_backed_dsl_package,
     })
@@ -237,106 +245,4 @@ fn source_denial(
     reason: WorthUiSourceIngressDenialReason,
 ) -> WorthUiWatchedCandidateSubmissionDenial {
     WorthUiWatchedCandidateSubmissionDenial::SourceIngress(WorthUiSourceIngressDenial::new(reason))
-}
-
-fn source_backed_contracts(
-    structured: &crate::source::WorthUiLegallyStructuredArtifactInput,
-) -> BTreeMap<(String, usize), WorthUiSourceBackedDeclarationClaims> {
-    structured
-        .module_ids()
-        .iter()
-        .flat_map(|module_id| {
-            structured
-                .module(module_id)
-                .into_iter()
-                .flat_map(|module| module.nodes().iter())
-        })
-        .filter_map(source_backed_contract_entry)
-        .collect()
-}
-
-fn source_backed_contract_entry(
-    node: &WorthUiLegallyStructuredArtifactInputNode,
-) -> Option<((String, usize), WorthUiSourceBackedDeclarationClaims)> {
-    match node {
-        WorthUiLegallyStructuredArtifactInputNode::Component(node) => source_backed_claim_entry(
-            node.provenance().module_path(),
-            node.provenance().declaration_index(),
-            source_backed_membership_identity(
-                "component",
-                node.authored_identity(),
-                node.descriptor().id().as_str(),
-            ),
-            node.structure(),
-        ),
-        WorthUiLegallyStructuredArtifactInputNode::Surface(node) => source_backed_claim_entry(
-            node.provenance().module_path(),
-            node.provenance().declaration_index(),
-            source_backed_membership_identity(
-                "surface",
-                node.authored_identity(),
-                node.descriptor().id().as_str(),
-            ),
-            node.structure(),
-        ),
-        WorthUiLegallyStructuredArtifactInputNode::Binding(node) => source_backed_claim_entry(
-            node.provenance().module_path(),
-            node.provenance().declaration_index(),
-            source_backed_membership_identity(
-                "binding",
-                node.authored_identity(),
-                node.view_binding().id().as_str(),
-            ),
-            node.structure(),
-        ),
-        WorthUiLegallyStructuredArtifactInputNode::Import(_)
-        | WorthUiLegallyStructuredArtifactInputNode::Token(_) => None,
-    }
-}
-
-fn source_backed_claim_entry(
-    module_path: &str,
-    declaration_index: usize,
-    membership_identity: String,
-    structure: &crate::source::WorthUiMosaicStructureFacts,
-) -> Option<((String, usize), WorthUiSourceBackedDeclarationClaims)> {
-    let sizing_contract_id = structure
-        .unique_root_sizing_contract_id()
-        .expect("source-backed declaration structure should project one root sizing contract")?;
-    Some((
-        (module_path.to_owned(), declaration_index),
-        WorthUiSourceBackedDeclarationClaims::new(
-            format!("source-artifact:{module_path}|{membership_identity}"),
-            source_backed_measurement_constraint_modifier(structure),
-            sizing_contract_id,
-        ),
-    ))
-}
-
-fn source_backed_membership_identity(
-    family: &str,
-    authored_identity: Option<&str>,
-    fallback_identity: &str,
-) -> String {
-    match authored_identity {
-        Some(authored_identity) => format!("{family}:authored:{authored_identity}"),
-        None => format!("{family}:identity:{fallback_identity}"),
-    }
-}
-
-fn source_backed_measurement_constraint_modifier(
-    structure: &crate::source::WorthUiMosaicStructureFacts,
-) -> Option<UiDeclaredMeasurementConstraintModifier> {
-    let constrained = structure.root_regions().iter().any(|region| {
-        region
-            .sizing_contract()
-            .and_then(|(_, descriptor)| descriptor.named_measurement())
-            .is_some_and(|measurement| {
-                !matches!(
-                    measurement.constraint(),
-                    MeasurementConstraint::Unconstrained
-                )
-            })
-    });
-    constrained.then_some(UiDeclaredMeasurementConstraintModifier::Bounded)
 }

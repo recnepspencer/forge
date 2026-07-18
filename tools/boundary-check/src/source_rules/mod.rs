@@ -14,6 +14,13 @@ use std::path::Path;
 pub(crate) use analysis::observe_compiled_library_surface;
 pub(crate) use law_substrates::{illegal_law_substrate_edge, is_legal_law_substrate_edge};
 
+pub(crate) fn validate_workspace_source_reachability(
+    root: &Path,
+    relative_workspace: &str,
+) -> Result<Vec<Diagnostic>, String> {
+    analysis::enforce_workspace_source_reachability(root, relative_workspace)
+}
+
 /// Run all source-level constitutional rules over configured subworkspace crates.
 pub(crate) fn validate_source_rules(
     root: &Path,

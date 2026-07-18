@@ -9,22 +9,13 @@ pub(in crate::runtime::allocation_frame_dispatch) struct UiPendingDurableResizeC
 }
 
 impl<'runtime> UiPendingDurableResizeCommitPort<'runtime> {
-    pub(super) fn new(
+    pub(super) fn from_planned_transaction(
         ledger: &'runtime crate::runtime::allocation_receipt::UiAllocationReceiptLedger,
         invalidation_authority: &'runtime std::cell::RefCell<
             crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
         >,
-        selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
-        identity: u64,
-        extent: crate::runtime::UiResizeLogicalExtent,
+        pending: super::allocation_transaction::UiPendingAllocationTransaction,
     ) -> Self {
-        let pending = super::allocation_transaction::prepare_pending_durable_resize(
-            ledger,
-            &invalidation_authority.borrow(),
-            selection,
-            identity,
-            extent,
-        );
         Self {
             ledger,
             invalidation_authority,

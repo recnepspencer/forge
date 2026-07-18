@@ -18,6 +18,8 @@ pub(crate) use invalidation_narrowing::{
     UiAdmittedScrollInvalidationBinding, UiAllocationInvalidationAuthority,
 };
 mod launch;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use launch::WorthUiActivationStagingPlans;
 mod measurement;
 mod planning;
 mod portal_anchored_allocation;

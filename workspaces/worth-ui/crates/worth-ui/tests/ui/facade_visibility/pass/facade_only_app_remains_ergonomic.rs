@@ -15,7 +15,7 @@ fn main() {
             ComponentChildPolicy::no_children(),
             ComponentStateOwnership::runtime_owned(),
         ))
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     let command_lookup = app.capabilities().index().commands().lookup(&command_id);
 

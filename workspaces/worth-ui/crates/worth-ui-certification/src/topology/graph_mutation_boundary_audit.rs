@@ -1,23 +1,12 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 struct ForbiddenCall<'a> {
     type_name: &'a str,
     method_name: &'a str,
     allowed_paths: &'a [&'a Path],
     message: &'a str,
-}
-
-fn collect_rust_files(root: &Path, output: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("read_dir should succeed") {
-        let entry = entry.expect("dir entry should load");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_files(&path, output);
-        } else if path.extension().is_some_and(|ext| ext == "rs") {
-            output.push(path);
-        }
-    }
 }
 
 fn strip_comments_and_literals(text: &str) -> String {
@@ -296,9 +285,9 @@ fn audit_forbidden_call(
 }
 
 pub fn audit_graph_mutation_boundary_owns_snapshot_and_index_commit(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let runtime_root = workspace_root.join("crates/worth-ui-runtime/src");
+    let runtime_root = inventory.absolute_path("crates/worth-ui-runtime/src");
     let mutation_stage_file = runtime_root.join("graph/mutation/graph_mutation_stage.rs");
     let snapshot_file = runtime_root.join("graph/snapshot/graph_snapshot.rs");
     let topology_mutation_file = runtime_root.join("graph/topology/topology_mutation.rs");
@@ -354,15 +343,13 @@ pub fn audit_graph_mutation_boundary_owns_snapshot_and_index_commit(
             message: "constructs mounted-receipt authority slots outside the graph mutation boundary",
         },
     ];
-    let mut files = Vec::new();
     let mut violations = Vec::new();
 
-    collect_rust_files(&runtime_root, &mut files);
-
-    for path in files {
-        let text = fs::read_to_string(&path).expect("source file should decode");
+    for source in inventory.rust_files_under("crates/worth-ui-runtime/src") {
+        let path = source.absolute_path();
+        let text = source.text();
         for forbidden_call in forbidden_calls.iter() {
-            if let Some(violation) = audit_forbidden_call(&path, &text, forbidden_call) {
+            if let Some(violation) = audit_forbidden_call(path, text, forbidden_call) {
                 violations.push(violation);
             }
         }

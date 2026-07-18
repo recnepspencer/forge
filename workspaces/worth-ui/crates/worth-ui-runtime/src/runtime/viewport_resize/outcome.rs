@@ -17,20 +17,9 @@ pub struct UiViewportCommittedReplan {
 
 impl UiViewportResizeOutcome {
     pub(crate) fn resolve(
-        basis: super::UiViewportResizeCommitBasis<'_>,
-        commit: impl FnOnce(
-            super::UiViewportResizeCommitBasis<'_>,
-        ) -> crate::runtime::UiAllocationReplanTransactionOutcome,
+        transaction: crate::runtime::UiAllocationReplanTransactionOutcome,
     ) -> Result<Self, super::UiViewportResizeDenial> {
-        let selected = basis.selection().ordered_neighborhoods().len();
-        let maximum = basis.plan().policy().budget().max_committed_receipts();
-        if selected > usize::from(maximum) {
-            return Err(super::UiViewportResizeDenial::ReceiptBudgetExceeded {
-                selected: selected as u16,
-                maximum,
-            });
-        }
-        let transaction = match commit(basis) {
+        let transaction = match transaction {
             crate::runtime::UiAllocationReplanTransactionOutcome::Committed(value) => {
                 UiViewportCommittedReplan::admit(value, false)?
             }

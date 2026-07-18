@@ -19,5 +19,5 @@ fn main() {
             SurfacePlacementClass::primary_region(),
             SurfaceStateClass::restorable(),
         ))
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

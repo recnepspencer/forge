@@ -21,12 +21,15 @@ pub(super) mod external_public_reexport;
 mod external_use_target;
 mod forbidden_aliases;
 mod forbidden_bound_scan;
+mod library_target;
 mod module_source;
 mod opaque_attributes;
 mod path_dependencies;
 mod public_reachability;
 mod query_fence;
+mod source_reachability;
 mod type_alias_reachability;
+mod workspace_crates;
 
 use crate::config::{QueryAudienceContract, SubworkspaceConfig};
 use crate::diagnostics::Diagnostic;
@@ -34,6 +37,7 @@ use crate::snapshots::FacadeVocabularyAuthority;
 use std::path::Path;
 
 pub(crate) use compiled_library_surface::observe_compiled_library_surface;
+pub(crate) use source_reachability::enforce_workspace_source_reachability;
 
 pub(super) fn validate(
     root: &Path,
@@ -63,6 +67,12 @@ pub(super) fn validate(
                 continue;
             }
         };
+        diagnostics.extend(source_reachability::enforce_source_reachability(
+            root,
+            &governed,
+            &module_graph,
+            &additional_targets,
+        )?);
         let reachable = match public_reachability::externally_reachable_items(
             &module_graph,
             &governed.crate_root,

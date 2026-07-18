@@ -12,7 +12,7 @@ fn main() {
             .with_category(CommandCategory::Workspace)
             .with_readiness(CommandReadinessBinding::always_admitted()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     let _ = app.capabilities().commands().len();
 }

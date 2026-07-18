@@ -1,0 +1,5 @@
+error[E0599]: no method named `into_canonical_artifact` found for struct `WorthUiPreparedApplicationAuthority` in the current scope
+ --> tests/ui/runtime_authority/fail/prepared_application_authority_has_no_canonical_extraction.rs:4:23
+  |
+4 |     let _ = authority.into_canonical_artifact();
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthUiPreparedApplicationAuthority`

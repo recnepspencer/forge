@@ -1,26 +1,14 @@
 use std::collections::HashMap;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::public_surface_audit::collect_query_lane_public_surface_names;
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 use syn::visit::{self, Visit};
 use syn::{File, Item, ItemUse, UseTree};
 
-fn collect_rust_files(root: &Path, output: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("read_dir should succeed") {
-        let entry = entry.expect("dir entry should load");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_files(&path, output);
-        } else if path.extension().is_some_and(|ext| ext == "rs") {
-            output.push(path);
-        }
-    }
-}
-
-fn parse_rust_file(path: &Path) -> File {
-    let text = fs::read_to_string(path).expect("source file should decode");
-    syn::parse_file(&text).unwrap_or_else(|error| {
+fn parse_rust_file(inventory: &WorkspaceSourceInventory, path: &Path) -> File {
+    let text = inventory.text(path);
+    syn::parse_file(text).unwrap_or_else(|error| {
         panic!("{} should parse as Rust source: {error}", path.display());
     })
 }
@@ -84,8 +72,8 @@ impl<'a> Visit<'_> for PathCollector<'a> {
     }
 }
 
-fn collect_file_paths(path: &Path) -> Vec<Vec<String>> {
-    let parsed = parse_rust_file(path);
+fn collect_file_paths(inventory: &WorkspaceSourceInventory, path: &Path) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(inventory, path);
     let mut alias_collector = AliasCollector::default();
     alias_collector.visit_file(&parsed);
 
@@ -101,7 +89,9 @@ fn path_matches(segments: &[String], crate_name: &str, internal_root: &str) -> b
     segments.len() >= 2 && segments[0] == crate_name && segments[1] == internal_root
 }
 
-pub fn audit_non_dsl_crates_do_not_reach_dsl_internals(workspace_root: &Path) -> Vec<String> {
+pub fn audit_non_dsl_crates_do_not_reach_dsl_internals(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
     let crate_paths = [
         "crates/worth-ui/src",
         "crates/worth-ui-runtime/src",
@@ -112,20 +102,19 @@ pub fn audit_non_dsl_crates_do_not_reach_dsl_internals(workspace_root: &Path) ->
         "crates/worth-ui-certification/src",
     ];
     let mut violations = Vec::new();
-    let mut files = Vec::new();
-
-    for crate_path in crate_paths {
-        collect_rust_files(&workspace_root.join(crate_path), &mut files);
-    }
+    let files = crate_paths
+        .into_iter()
+        .flat_map(|crate_path| inventory.rust_files_under(crate_path))
+        .collect::<Vec<_>>();
 
     for file in files {
-        for segments in collect_file_paths(&file) {
+        for segments in collect_file_paths(inventory, file.absolute_path()) {
             if path_matches(&segments, "worth_ui_dsl", "package")
                 || path_matches(&segments, "worth_ui_dsl", "support")
             {
                 violations.push(format!(
                     "{} reaches worth-ui-dsl internals instead of admitted DSL boundary types",
-                    file.display()
+                    file.absolute_path().display()
                 ));
             }
         }
@@ -137,7 +126,7 @@ pub fn audit_non_dsl_crates_do_not_reach_dsl_internals(workspace_root: &Path) ->
 }
 
 pub fn audit_public_surfaces_do_not_recreate_query_owned_lanes(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let entrypoints = [
         "crates/worth-ui/src/facade/mod.rs",
@@ -147,7 +136,7 @@ pub fn audit_public_surfaces_do_not_recreate_query_owned_lanes(
     let mut violations = Vec::new();
 
     for relative_path in entrypoints {
-        let path = workspace_root.join(relative_path);
+        let path = inventory.absolute_path(relative_path);
         let names = collect_query_lane_public_surface_names(&path);
         for (name, surface_path) in names {
             if public_name_recreates_query_owned_lane(&name) {
@@ -165,7 +154,7 @@ pub fn audit_public_surfaces_do_not_recreate_query_owned_lanes(
 }
 
 pub fn audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let mut violations = Vec::new();
     let mut guarded_files = Vec::new();
@@ -174,18 +163,16 @@ pub fn audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational(
         "crates/worth-ui-inspection/src/posture",
         "crates/worth-ui-inspection/src/receipt",
     ] {
-        collect_rust_files(&workspace_root.join(guarded_root), &mut guarded_files);
+        guarded_files.extend(inventory.rust_files_under(guarded_root));
     }
 
     for guarded_root in [
         "crates/worth-ui-runtime/src/lifecycle",
         "crates/worth-ui-runtime/src/facade",
     ] {
-        let root = workspace_root.join(guarded_root);
-        let mut files = Vec::new();
-        collect_rust_files(&root, &mut files);
-        guarded_files.extend(files.into_iter().filter(|path| {
-            let name = path
+        guarded_files.extend(inventory.rust_files_under(guarded_root).filter(|source| {
+            let name = source
+                .absolute_path()
                 .file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or("");
@@ -197,8 +184,9 @@ pub fn audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational(
         }));
     }
 
-    for path in guarded_files {
-        for segments in collect_file_paths(&path) {
+    for source in guarded_files {
+        let path = source.absolute_path();
+        for segments in collect_file_paths(inventory, path) {
             if segments
                 .first()
                 .is_some_and(|segment| segment == "worth_foundational")
@@ -217,7 +205,7 @@ pub fn audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational(
 }
 
 pub fn audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let aggregate_roots = [
         "crates/worth-ui-runtime/src/facade",
@@ -225,14 +213,14 @@ pub fn audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_
         "crates/worth-ui-inspection/src/facade",
     ];
     let mut violations = Vec::new();
-    let mut files = Vec::new();
+    let files = aggregate_roots
+        .into_iter()
+        .flat_map(|aggregate_root| inventory.rust_files_under(aggregate_root))
+        .collect::<Vec<_>>();
 
-    for aggregate_root in aggregate_roots {
-        collect_rust_files(&workspace_root.join(aggregate_root), &mut files);
-    }
-
-    for path in files {
-        let parsed = parse_rust_file(&path);
+    for source in files {
+        let path = source.absolute_path();
+        let parsed = parse_rust_file(inventory, path);
         let aggregate_structs = collect_lifecycle_aggregate_struct_names(&parsed);
 
         for struct_name in aggregate_structs {

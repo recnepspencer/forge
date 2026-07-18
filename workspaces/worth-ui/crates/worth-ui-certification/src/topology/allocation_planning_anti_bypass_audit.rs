@@ -1,5 +1,6 @@
-use std::fs;
 use std::path::{Path, PathBuf};
+
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 const FORBIDDEN_PLANNING_SEMANTIC_CALLS: &[&str] = &[
     "admit_allocation_neighborhood_from_graph(",
@@ -7,40 +8,42 @@ const FORBIDDEN_PLANNING_SEMANTIC_CALLS: &[&str] = &[
     "WorthUiAllocationPlanning::new(",
 ];
 
-pub fn audit_allocation_planning_anti_bypass_boundaries(workspace_root: &Path) -> Vec<String> {
-    let mut violations = raw_planning_admission_visibility_violations(workspace_root);
-    violations.extend(host_adapter_planning_semantics_violations(workspace_root));
-    violations.extend(non_owner_runtime_planning_semantics_violations(
-        workspace_root,
-    ));
-    violations.extend(evidence_local_planning_semantics_violations(workspace_root));
+pub fn audit_allocation_planning_anti_bypass_boundaries(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
+    let mut violations = raw_planning_admission_visibility_violations(inventory);
+    violations.extend(host_adapter_planning_semantics_violations(inventory));
+    violations.extend(non_owner_runtime_planning_semantics_violations(inventory));
+    violations.extend(evidence_local_planning_semantics_violations(inventory));
     violations.sort();
     violations.dedup();
     violations
 }
 
-fn raw_planning_admission_visibility_violations(workspace_root: &Path) -> Vec<String> {
+fn raw_planning_admission_visibility_violations(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
     let checks = [
         (
-            workspace_root.join(
+            inventory.absolute_path(
                 "crates/worth-ui-runtime/src/graph/allocation_neighborhood/activation_handoff/projection.rs",
             ),
             "pub fn admit_allocation_neighborhood(",
         ),
         (
-            workspace_root.join(
+            inventory.absolute_path(
                 "crates/worth-ui-runtime/src/graph/allocation_neighborhood/activation_handoff/projection.rs",
             ),
             "pub fn admit_allocation_neighborhood_from_graph(",
         ),
         (
-            workspace_root.join(
+            inventory.absolute_path(
                 "crates/worth-ui-runtime/src/graph/allocation_neighborhood/constraint_authority/admission/constraint_projection.rs",
             ),
             "pub fn admit_allocation_constraint_set(",
         ),
         (
-            workspace_root.join(
+            inventory.absolute_path(
                 "crates/worth-ui-runtime/src/obligations/selection/selected_obligation_set.rs",
             ),
             "pub fn admit_allocation_neighborhood(",
@@ -49,7 +52,7 @@ fn raw_planning_admission_visibility_violations(workspace_root: &Path) -> Vec<St
     checks
         .into_iter()
         .filter_map(|(path, forbidden_signature)| {
-            let text = fs::read_to_string(&path).expect("runtime source should decode");
+            let text = inventory.text(&path);
             text.contains(forbidden_signature).then(|| {
                 format!(
                     "{} still exposes `{forbidden_signature}` publicly; raw planning admission must stay sealed behind the runtime planning owner lane",
@@ -60,9 +63,8 @@ fn raw_planning_admission_visibility_violations(workspace_root: &Path) -> Vec<St
         .collect()
 }
 
-fn host_adapter_planning_semantics_violations(workspace_root: &Path) -> Vec<String> {
-    let host_root = workspace_root.join("crates/worth-ui-host-egui/src");
-    let rust_files = collect_rust_files(&host_root);
+fn host_adapter_planning_semantics_violations(inventory: &WorkspaceSourceInventory) -> Vec<String> {
+    let rust_files = inventory.rust_files_under("crates/worth-ui-host-egui/src");
     let forbidden_tokens = [
         "WorthUiAllocationPlanning",
         "UiAllocationConstraintSet",
@@ -72,8 +74,9 @@ fn host_adapter_planning_semantics_violations(workspace_root: &Path) -> Vec<Stri
     ];
     rust_files
         .into_iter()
-        .flat_map(|path| {
-            let text = fs::read_to_string(&path).expect("host source should decode");
+        .flat_map(|source| {
+            let path = source.absolute_path();
+            let text = source.text();
             forbidden_tokens.into_iter().filter_map(move |token| {
                 if text.contains(token) {
                     Some(format!(
@@ -88,17 +91,19 @@ fn host_adapter_planning_semantics_violations(workspace_root: &Path) -> Vec<Stri
         .collect()
 }
 
-fn non_owner_runtime_planning_semantics_violations(workspace_root: &Path) -> Vec<String> {
-    let runtime_root = workspace_root.join("crates/worth-ui-runtime/src/runtime");
-    let rust_files = collect_rust_files(&runtime_root);
+fn non_owner_runtime_planning_semantics_violations(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
+    let rust_files = inventory.rust_files_under("crates/worth-ui-runtime/src/runtime");
     rust_files
         .into_iter()
-        .filter_map(|path| {
-            let relative = relative_runtime_path(workspace_root, &path);
+        .filter_map(|source| {
+            let path = source.absolute_path();
+            let relative = relative_runtime_path(inventory, path);
             if is_allowed_planning_owner(&relative) || is_test_file(&relative) {
                 return None;
             }
-            let text = fs::read_to_string(&path).expect("runtime source should decode");
+            let text = source.text();
             FORBIDDEN_PLANNING_SEMANTIC_CALLS
                 .iter()
                 .find(|needle| text.contains(**needle))
@@ -112,20 +117,22 @@ fn non_owner_runtime_planning_semantics_violations(workspace_root: &Path) -> Vec
         .collect()
 }
 
-fn evidence_local_planning_semantics_violations(workspace_root: &Path) -> Vec<String> {
-    let evidence_root = workspace_root.join("crates/worth-ui-runtime/src/evidence");
-    let rust_files = collect_rust_files(&evidence_root);
+fn evidence_local_planning_semantics_violations(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
+    let rust_files = inventory.rust_files_under("crates/worth-ui-runtime/src/evidence");
     rust_files
         .into_iter()
-        .filter_map(|path| {
+        .filter_map(|source| {
+            let path = source.absolute_path();
             let relative = path
-                .strip_prefix(workspace_root.join("crates/worth-ui-runtime/src"))
+                .strip_prefix(inventory.absolute_path("crates/worth-ui-runtime/src"))
                 .expect("evidence file should sit under worth-ui-runtime/src")
                 .to_path_buf();
             if is_test_file(&relative) {
                 return None;
             }
-            let text = fs::read_to_string(&path).expect("evidence source should decode");
+            let text = source.text();
             FORBIDDEN_PLANNING_SEMANTIC_CALLS
                 .iter()
                 .find(|needle| text.contains(**needle))
@@ -156,33 +163,18 @@ fn is_test_file(relative: &Path) -> bool {
         })
 }
 
-fn relative_runtime_path(workspace_root: &Path, path: &Path) -> PathBuf {
-    path.strip_prefix(workspace_root.join("crates/worth-ui-runtime/src"))
+fn relative_runtime_path(inventory: &WorkspaceSourceInventory, path: &Path) -> PathBuf {
+    path.strip_prefix(inventory.absolute_path("crates/worth-ui-runtime/src"))
         .expect("runtime file should sit under worth-ui-runtime/src")
         .to_path_buf()
 }
 
-fn collect_rust_files(root: &Path) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    collect_rust_files_into(root, &mut files);
-    files
-}
-
-fn collect_rust_files_into(root: &Path, files: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("directory should be readable") {
-        let entry = entry.expect("directory entry should read");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_files_into(&path, files);
-        } else if path.extension().and_then(|ext| ext.to_str()) == Some("rs") {
-            files.push(path);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{audit_allocation_planning_anti_bypass_boundaries, is_allowed_planning_owner};
+    use super::{
+        audit_allocation_planning_anti_bypass_boundaries, is_allowed_planning_owner,
+        WorkspaceSourceInventory,
+    };
     use std::path::Path;
 
     #[test]
@@ -199,7 +191,8 @@ mod tests {
     #[test]
     fn workspace_currently_passes_planning_anti_bypass_audit() {
         let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let violations = audit_allocation_planning_anti_bypass_boundaries(&workspace_root);
+        let inventory = WorkspaceSourceInventory::capture(workspace_root);
+        let violations = audit_allocation_planning_anti_bypass_boundaries(&inventory);
         assert!(
             violations.is_empty(),
             "allocation planning anti-bypass audit failed: {violations:#?}"

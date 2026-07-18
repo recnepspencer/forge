@@ -20,7 +20,7 @@ fn main() {
             .with_editor_hint(SettingEditorHint::toggle())
             .with_ownership_metadata(SettingOwnershipMetadata::platform_runtime_config()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().settings().len(), 1);
 }

@@ -1,9 +1,7 @@
 use crate::runtime::launch::runtime_instance::WorthUiRuntime;
 use crate::runtime::UiAllocationFrameGatewayOutcome;
 
-use super::UiAllocationFrameTurnOutcome;
 use super::WorthUiFrameworkTurnCompletion;
-use super::WorthUiFrameworkTurnExecution;
 /// The single ordinary production turn that may collect allocation sources.
 ///
 /// Source callbacks receive this borrowed capability, never the runtime or the
@@ -64,192 +62,73 @@ impl WorthUiRuntime {
         &mut self,
         collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
     ) -> WorthUiFrameworkTurnCompletion<'_> {
-        if self.pending_narrowed_allocation_frame.is_some() {
-            return WorthUiFrameworkTurnCompletion::Phase6Backpressured;
-        }
-        if self.pending_allocation_frame_handoff.is_some() {
-            return WorthUiFrameworkTurnCompletion::UnacceptedFrameBackpressured;
-        }
         let collection = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             collect_sources(&mut WorthUiFrameworkTurn { runtime: self });
         }));
-        let completion = self.close_allocation_ingress_at_framework_boundary();
-        if let Err(payload) = collection {
-            std::panic::resume_unwind(payload);
+        let turn = self.close_allocation_ingress_and_pump_once();
+        let transition = self.plan_framework_transition(turn);
+        match collection {
+            Ok(()) => self.execute_transition_or_publish_denial(transition),
+            Err(payload) => {
+                self.acknowledge_discarded_transition(transition);
+                std::panic::resume_unwind(payload);
+            }
         }
-        completion
     }
 
-    fn close_allocation_ingress_at_framework_boundary(
+    fn close_allocation_ingress_and_pump_once(&self) -> super::UiAllocationFrameTurnOutcome {
+        self.allocation_frame_scheduler.run_turn()
+    }
+
+    fn plan_framework_transition(
+        &self,
+        turn: super::UiAllocationFrameTurnOutcome,
+    ) -> super::transition_planning::UiFrameworkTransitionPlanningDisposition {
+        super::transition_planning::plan_framework_transition(
+            turn,
+            self.active.generation_identity(),
+            self.active.frame_epoch(),
+            &self.allocation_source_order_ledger,
+            &self.allocation_receipt_ledger,
+            &self.allocation_invalidation_index,
+        )
+    }
+
+    fn execute_transition_or_publish_denial(
         &mut self,
+        transition: super::transition_planning::UiFrameworkTransitionPlanningDisposition,
     ) -> WorthUiFrameworkTurnCompletion<'_> {
-        let outcome = self.advance_allocation_frame_at_framework_boundary();
-        match outcome {
-            UiAllocationFrameTurnOutcome::DownstreamBackpressured { sealed_frame } => {
-                self.pending_allocation_frame_handoff = Some(
-                    super::UiPendingAllocationFrameHandoff::unchanged(*sealed_frame),
-                );
-                match crate::runtime::stream_policy::consume_pending_frame(
-                    &mut self.pending_allocation_frame_handoff,
-                    &mut self.allocation_source_order_ledger,
-                ) {
-                    crate::runtime::stream_policy::UiAllocationFrameConsumptionDisposition::Accepted(plan) =>
-                        match crate::runtime::invalidation_narrowing::narrow_resolved_frame(
-                            plan,
-                            &self.allocation_invalidation_index,
-                        ) {
-                            crate::runtime::invalidation_narrowing::UiAllocationInvalidationNarrowingDisposition::Accepted(plan) => {
-                                let mut authority = self.allocation_invalidation_index.borrow_mut();
-                                match crate::runtime::viewport_resize::UiResolvedAllocationCommitPlan::classify(&plan) {
-                                    crate::runtime::viewport_resize::UiResolvedAllocationCommitPlan::Viewport(viewport_plan) => {
-                                    let basis = match crate::runtime::UiViewportResizeCommitBasis::select(
-                                        viewport_plan,
-                                        &authority,
-                                    ) {
-                                        Ok(basis) => basis,
-                                        Err(denial) => return WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied { denial },
-                                    };
-                                    let outcome = crate::runtime::UiViewportResizeOutcome::resolve(
-                                        basis,
-                                        |basis| super::allocation_transaction::commit_viewport(
-                                            &self.allocation_receipt_ledger,
-                                            &mut authority,
-                                            basis,
-                                        ),
-                                    );
-                                    match outcome {
-                                        Ok(outcome) => {
-                                            WorthUiFrameworkTurnCompletion::ViewportResizeResolved { outcome }
-                                        },
-                                        Err(denial) => WorthUiFrameworkTurnCompletion::ViewportResizeDenied { denial },
-                                    }
-                                    }
-                                    crate::runtime::viewport_resize::UiResolvedAllocationCommitPlan::Ordinary => {
-                                        let selection = match crate::graph::select_replan_neighborhoods(&plan, &authority) {
-                                            Ok(selection) => selection,
-                                            Err(denial) => return WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied { denial },
-                                        };
-                                        let transaction = super::allocation_transaction::commit_selected(
-                                            &self.allocation_receipt_ledger,
-                                            &mut authority,
-                                            &selection,
-                                        );
-                                        WorthUiFrameworkTurnCompletion::AllocationInvalidationsNarrowed {
-                                            plan,
-                                            selection,
-                                            transaction,
-                                        }
-                                    }
-                                    crate::runtime::viewport_resize::UiResolvedAllocationCommitPlan::ResizePreview(preview_plan) => {
-                                        let selection = match crate::graph::select_replan_neighborhoods(preview_plan, &authority) {
-                                            Ok(selection) => selection,
-                                            Err(denial) => return WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied { denial },
-                                        };
-                                        match crate::runtime::UiResizePreviewOutcome::from_selection(preview_plan, &selection) {
-                                            Ok(outcome) => WorthUiFrameworkTurnCompletion::ResizePreviewPublished {
-                                                pending: super::WorthUiPendingPreviewPaint::new(
-                                                    crate::host::seal_preview_paint_input(outcome),
-                                                    crate::runtime::allocation_receipt::UiPreviewPaintIsolationPort::new(
-                                                        &self.allocation_receipt_ledger,
-                                                    ),
-                                                ),
-                                            },
-                                            Err(denial) => WorthUiFrameworkTurnCompletion::AllocationInvalidationsNarrowed {
-                                                plan,
-                                                selection,
-                                                transaction: crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial),
-                                            },
-                                        }
-                                    }
-                                    crate::runtime::viewport_resize::UiResolvedAllocationCommitPlan::DurableResize(durable_plan) => {
-                                        let selection = match crate::graph::select_replan_neighborhoods(durable_plan, &authority) {
-                                            Ok(selection) => selection,
-                                            Err(denial) => return WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied { denial },
-                                        };
-                                        let extent = durable_plan.durable_resize_extent().expect("durable policy carries extent");
-                                        let identity = durable_plan.durable_resize_identity_digest().expect("durable policy carries identity");
-                                        let (transaction, durable_state, mutated) =
-                                            super::allocation_transaction::commit_durable_resize(
-                                                &self.allocation_receipt_ledger,
-                                                &mut authority,
-                                                &selection,
-                                                identity,
-                                                extent,
-                                            );
-                                        match transaction {
-                                            crate::runtime::UiAllocationReplanTransactionOutcome::Committed(committed) => {
-                                                WorthUiFrameworkTurnCompletion::DurableResizeCommitted { outcome: crate::runtime::UiDurableResizeCommitOutcome::new(extent, committed, durable_state.expect("committed resize owns activated semantic state"), mutated, false), selection }
-                                            }
-                                            crate::runtime::UiAllocationReplanTransactionOutcome::Replayed(committed) => {
-                                                let extent = durable_plan.durable_resize_extent().expect("durable policy carries extent");
-                                                WorthUiFrameworkTurnCompletion::DurableResizeCommitted { outcome: crate::runtime::UiDurableResizeCommitOutcome::new(extent, committed, durable_state.expect("replayed resize owns activated semantic state"), false, true), selection }
-                                            }
-                                            crate::runtime::UiAllocationReplanTransactionOutcome::Denied(_) => WorthUiFrameworkTurnCompletion::AllocationInvalidationsNarrowed { plan, selection, transaction },
-                                        }
-                                    }
-                                    crate::runtime::viewport_resize::UiResolvedAllocationCommitPlan::DragResize(drag_plan) => {
-                                        let selection = match crate::graph::select_replan_neighborhoods(drag_plan, &authority) {
-                                            Ok(selection) => selection,
-                                            Err(denial) => return WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied { denial },
-                                        };
-                                        let preview = match crate::runtime::UiResizePreviewOutcome::from_selection(drag_plan, &selection) {
-                                            Ok(preview) => preview,
-                                            Err(denial) => return WorthUiFrameworkTurnCompletion::AllocationInvalidationsNarrowed {
-                                                plan,
-                                                selection,
-                                                transaction: crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial),
-                                            },
-                                        };
-                                        let extent = drag_plan.durable_resize_extent().expect("drag-resize policy carries terminal extent");
-                                        let identity = drag_plan.durable_resize_identity_digest().expect("drag-resize policy carries durable identity");
-                                        drop(authority);
-                                        WorthUiFrameworkTurnCompletion::DragResizePreviewPending {
-                                            preview: super::WorthUiPendingPreviewPaint::new(
-                                                crate::host::seal_preview_paint_input(preview),
-                                                crate::runtime::allocation_receipt::UiPreviewPaintIsolationPort::new(
-                                                    &self.allocation_receipt_ledger,
-                                                ),
-                                            ),
-                                            durable: super::WorthUiPendingDurableResize::new(
-                                                super::UiPendingDurableResizeCommitPort::new(
-                                                    &self.allocation_receipt_ledger,
-                                                    &self.allocation_invalidation_index,
-                                                    &selection,
-                                                    identity,
-                                                    extent,
-                                                ),
-                                                selection,
-                                                identity,
-                                                extent,
-                                            ),
-                                        }
-                                    }
-                                }
-                            }
-                            crate::runtime::invalidation_narrowing::UiAllocationInvalidationNarrowingDisposition::Rejected(rejection) => {
-                                WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied { rejection }
-                            }
-                        },
-                    crate::runtime::stream_policy::UiAllocationFrameConsumptionDisposition::Rejected(rejection) => {
-                        WorthUiFrameworkTurnCompletion::AllocationFrameResolutionDenied {
-                            rejection,
-                        }
-                    }
-                }
+        match transition {
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::Planned(plan) => {
+                super::execution::execute_planned_framework_transition(self, *plan)
             }
-            UiAllocationFrameTurnOutcome::NoAdmittedIngress { .. } => {
-                let boundary =
-                    crate::runtime::WorthUiFrameBoundary::safe_to_activate(self.frame_epoch());
-                WorthUiFrameworkTurnCompletion::ReadyToExecute {
-                    execution: WorthUiFrameworkTurnExecution {
-                        _runtime: self,
-                        boundary,
-                    },
-                }
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::FrameResolutionDenied(rejection) => {
+                WorthUiFrameworkTurnCompletion::AllocationFrameResolutionDenied { rejection }
             }
-            UiAllocationFrameTurnOutcome::Denied { denial, counters } => {
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::InvalidationNarrowingDenied(rejection) => {
+                WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied { rejection }
+            }
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::ReplanSelectionDenied(denial) => {
+                WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied { denial }
+            }
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::PlanningDenied(denial) => {
+                WorthUiFrameworkTurnCompletion::FrameworkTransitionPlanningDenied { denial }
+            }
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::DispatchDenied { denial, counters } => {
                 WorthUiFrameworkTurnCompletion::Denied { denial, counters }
             }
+        }
+    }
+
+    fn acknowledge_discarded_transition(
+        &mut self,
+        transition: super::transition_planning::UiFrameworkTransitionPlanningDisposition,
+    ) {
+        if let super::transition_planning::UiFrameworkTransitionPlanningDisposition::Planned(
+            planned,
+        ) = transition
+        {
+            super::execution::acknowledge_discarded_framework_transition(self, *planned);
         }
     }
 
@@ -262,7 +141,7 @@ impl WorthUiRuntime {
     }
 
     pub(super) fn collect_and_submit_host_measurement<
-        A: worth_ui_host_contract::WorthUiMeasurementHostAdapter,
+        A: worth_ui_host_contract::WorthUiMeasurementHostAdapter + ?Sized,
     >(
         &self,
         adapter: &A,
@@ -361,14 +240,5 @@ impl WorthUiRuntime {
         super::super::gateway::WorthUiDurableResizeSubmission::new(
             self.allocation_frame_scheduler.mailbox(),
         )
-    }
-
-    fn advance_allocation_frame_at_framework_boundary(&mut self) -> UiAllocationFrameTurnOutcome {
-        let (outcome, epoch_assignment) = self.allocation_frame_scheduler.run_turn();
-        if let Some(assignment) = epoch_assignment {
-            self.active
-                .apply_allocation_frame_epoch_assignment(assignment);
-        }
-        outcome
     }
 }

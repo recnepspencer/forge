@@ -314,6 +314,7 @@ fn neighborhood_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthU
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(

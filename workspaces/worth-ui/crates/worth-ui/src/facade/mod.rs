@@ -17,6 +17,7 @@ pub mod query_binding;
 pub mod registry;
 mod runtime_handoff {}
 pub mod runtime;
+pub mod source;
 pub mod support;
 
 pub use compat::*;

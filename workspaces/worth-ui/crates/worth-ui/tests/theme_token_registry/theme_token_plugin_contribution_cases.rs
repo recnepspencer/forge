@@ -100,7 +100,8 @@ fn plugin_custom_and_alias_tokens_stay_inside_runtime_registry() {
             "plugin.panel.accent.alias",
             "theme.platform.accent",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_theme_token_ids(
         app.capabilities().theme_tokens(),

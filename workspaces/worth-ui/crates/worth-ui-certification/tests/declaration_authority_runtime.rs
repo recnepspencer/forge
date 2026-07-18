@@ -33,6 +33,7 @@ fn freeze_artifacts(package: WorthUiDslPackage) -> Vec<UiDeclarationArtifact> {
     WorthUi::app()
         .with_dsl_package(package)
         .freeze()
+        .expect("application preparation should succeed")
         .declaration_artifacts()
         .to_vec()
 }

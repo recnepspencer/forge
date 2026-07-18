@@ -1,0 +1,5 @@
+error[E0599]: no method named `inspect_runtime` found for reference `&WorthUiApp` in the current scope
+ --> tests/ui/runtime_authority/fail/prepared_application_has_no_active_inspection.rs:4:17
+  |
+4 |     let _ = app.inspect_runtime();
+  |                 ^^^^^^^^^^^^^^^ method not found in `&WorthUiApp`

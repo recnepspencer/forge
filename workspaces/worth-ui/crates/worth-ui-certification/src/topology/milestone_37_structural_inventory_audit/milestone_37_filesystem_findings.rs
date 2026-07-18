@@ -1,9 +1,11 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::{finding, CleanupFailureMode, StructuralCleanupFinding, FILE_SIZE_CAP_LINES};
+use crate::topology::workspace_source_inventory::WorkspaceSourceInventory;
 
-pub(super) fn function_overload_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
+pub(super) fn function_overload_findings(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<StructuralCleanupFinding> {
     let mut findings = Vec::new();
     let overload_targets = [
         (
@@ -33,8 +35,8 @@ pub(super) fn function_overload_findings(workspace_root: &Path) -> Vec<Structura
     ];
 
     for (id, rel_path, owner, transition) in overload_targets {
-        let path = workspace_root.join(rel_path);
-        let line_count = max_rust_surface_lines(&path);
+        let path = inventory.absolute_path(rel_path);
+        let line_count = max_rust_surface_lines(inventory, &path);
         if line_count > FILE_SIZE_CAP_LINES {
             findings.push(finding(
                 id,
@@ -52,7 +54,9 @@ pub(super) fn function_overload_findings(workspace_root: &Path) -> Vec<Structura
     findings
 }
 
-pub(super) fn file_size_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
+pub(super) fn file_size_findings(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<StructuralCleanupFinding> {
     let hotspot_roots = [
         "crates/worth-ui-runtime/src/runtime/matching/worth_ui_identity_match_graph_builder",
         "crates/worth-ui-runtime/src/evidence/measurement/projection/inspection_receipt",
@@ -61,12 +65,15 @@ pub(super) fn file_size_findings(workspace_root: &Path) -> Vec<StructuralCleanup
     ];
     let mut offenders = Vec::new();
     for rel in hotspot_roots {
-        let root = workspace_root.join(rel);
-        if !root.exists() {
+        let root = inventory.absolute_path(rel);
+        if !inventory.contains(rel) {
             continue;
         }
-        let paths = if root.is_dir() {
-            collect_rust_files(&root)
+        let paths = if inventory.source(&root).is_none() {
+            inventory
+                .rust_files_under(rel)
+                .map(|source| source.absolute_path().to_path_buf())
+                .collect()
         } else {
             vec![root]
         };
@@ -78,7 +85,7 @@ pub(super) fn file_size_findings(workspace_root: &Path) -> Vec<StructuralCleanup
             if name == "host_test_support.rs" {
                 continue;
             }
-            let lines = count_lines(&path);
+            let lines = count_lines(inventory, &path);
             if lines > FILE_SIZE_CAP_LINES {
                 offenders.push((lines, path));
             }
@@ -93,14 +100,14 @@ pub(super) fn file_size_findings(workspace_root: &Path) -> Vec<StructuralCleanup
     let summary = offenders
         .iter()
         .take(8)
-        .map(|(lines, path)| format!("{}:{lines}", path_relative(workspace_root, path)))
+        .map(|(lines, path)| format!("{}:{lines}", path_relative(inventory.root(), path)))
         .collect::<Vec<_>>()
         .join(", ");
 
     vec![finding(
         "S-01",
         CleanupFailureMode::FileSize,
-        workspace_root.join("crates/worth-ui-runtime/src/lib.rs"),
+        inventory.absolute_path("crates/worth-ui-runtime/src/lib.rs"),
         7,
         "file_split_diff_or_exemption",
         &format!(
@@ -109,9 +116,11 @@ pub(super) fn file_size_findings(workspace_root: &Path) -> Vec<StructuralCleanup
     )]
 }
 
-pub(super) fn test_bypass_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
-    let runtime_mod = workspace_root.join("crates/worth-ui-runtime/src/runtime/mod.rs");
-    let text = read_file(&runtime_mod);
+pub(super) fn test_bypass_findings(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<StructuralCleanupFinding> {
+    let runtime_mod = inventory.absolute_path("crates/worth-ui-runtime/src/runtime/mod.rs");
+    let text = read_file(inventory, &runtime_mod);
     let mut findings = Vec::new();
 
     if text.contains("pub use tests::support::touch_origin_certification_support") {
@@ -139,8 +148,8 @@ pub(super) fn test_bypass_findings(workspace_root: &Path) -> Vec<StructuralClean
     }
 
     let cert_support =
-        workspace_root.join("crates/worth-ui-runtime/src/certification_support/mod.rs");
-    let cert_text = read_file(&cert_support);
+        inventory.absolute_path("crates/worth-ui-runtime/src/certification_support/mod.rs");
+    let cert_text = read_file(inventory, &cert_support);
     if cert_text.contains("include!(") {
         findings.push(finding(
             "B-04",
@@ -152,8 +161,8 @@ pub(super) fn test_bypass_findings(workspace_root: &Path) -> Vec<StructuralClean
         ));
     }
 
-    let host_mod = workspace_root.join("crates/worth-ui-runtime/src/host/mod.rs");
-    let host_text = read_file(&host_mod);
+    let host_mod = inventory.absolute_path("crates/worth-ui-runtime/src/host/mod.rs");
+    let host_text = read_file(inventory, &host_mod);
     if host_text.contains("collect_measurement_via_host_lane_for_test")
         && !host_text.contains("#[cfg(test)]")
     {
@@ -167,8 +176,8 @@ pub(super) fn test_bypass_findings(workspace_root: &Path) -> Vec<StructuralClean
         ));
     }
 
-    let lib_rs = workspace_root.join("crates/worth-ui-runtime/src/lib.rs");
-    let lib_text = read_file(&lib_rs);
+    let lib_rs = inventory.absolute_path("crates/worth-ui-runtime/src/lib.rs");
+    let lib_text = read_file(inventory, &lib_rs);
     if lib_text.contains("pub mod certification_support")
         && !lib_text.contains("feature = \"certification-support\"")
     {
@@ -185,63 +194,71 @@ pub(super) fn test_bypass_findings(workspace_root: &Path) -> Vec<StructuralClean
     findings
 }
 
-pub(super) fn read_file(path: &Path) -> String {
-    fs::read_to_string(path)
-        .unwrap_or_else(|error| panic!("expected readable source at {}: {error}", path.display()))
+pub(super) fn read_file(inventory: &WorkspaceSourceInventory, path: &Path) -> String {
+    inventory.text(path).to_owned()
 }
 
-pub(super) fn max_rust_surface_lines(path: &Path) -> usize {
-    if path.is_dir() {
-        return max_lines_in_rust_dir(path);
+pub(super) fn max_rust_surface_lines(inventory: &WorkspaceSourceInventory, path: &Path) -> usize {
+    if inventory.source(path).is_none() {
+        return max_lines_in_rust_dir(inventory, path);
     }
-    if path.exists() {
-        return count_lines(path);
+    if inventory.source(path).is_some() {
+        return count_lines(inventory, path);
     }
     0
 }
 
-pub(super) fn count_same_level_rust_files(dir: &Path) -> usize {
-    fs::read_dir(dir)
-        .unwrap_or_else(|error| panic!("expected readable dir {}: {error}", dir.display()))
-        .filter_map(Result::ok)
+pub(super) fn count_same_level_rust_files(
+    inventory: &WorkspaceSourceInventory,
+    dir: &Path,
+) -> usize {
+    let relative = dir
+        .strip_prefix(inventory.root())
+        .expect("directory is inventoried");
+    inventory
+        .direct_entries_under(relative)
+        .filter(|path| path.extension().is_some_and(|extension| extension == "rs"))
+        .count()
+}
+
+pub(super) fn count_files_matching(
+    inventory: &WorkspaceSourceInventory,
+    dir: &Path,
+    pattern: &str,
+) -> usize {
+    let relative = dir
+        .strip_prefix(inventory.root())
+        .expect("directory is inventoried");
+    inventory
+        .direct_entries_under(relative)
         .filter(|entry| {
             entry
-                .path()
-                .extension()
-                .is_some_and(|extension| extension == "rs")
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| {
+                    if let Some(prefix) = pattern.strip_suffix("*.rs") {
+                        name.starts_with(prefix) && name.ends_with(".rs")
+                    } else if let Some(suffix) = pattern.strip_prefix('*') {
+                        name.ends_with(suffix)
+                    } else {
+                        name == pattern
+                    }
+                })
         })
         .count()
 }
 
-pub(super) fn count_files_matching(dir: &Path, pattern: &str) -> usize {
-    fs::read_dir(dir)
-        .unwrap_or_else(|error| panic!("expected readable dir {}: {error}", dir.display()))
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry.file_name().to_str().is_some_and(|name| {
-                if let Some(prefix) = pattern.strip_suffix("*.rs") {
-                    name.starts_with(prefix) && name.ends_with(".rs")
-                } else if let Some(suffix) = pattern.strip_prefix('*') {
-                    name.ends_with(suffix)
-                } else {
-                    name == pattern
-                }
-            })
-        })
-        .count()
+fn count_lines(inventory: &WorkspaceSourceInventory, path: &Path) -> usize {
+    inventory.text(path).lines().count()
 }
 
-fn count_lines(path: &Path) -> usize {
-    read_file(path).lines().count()
-}
-
-fn max_lines_in_rust_dir(dir: &Path) -> usize {
-    fs::read_dir(dir)
-        .unwrap_or_else(|error| panic!("expected readable dir {}: {error}", dir.display()))
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| path.extension().is_some_and(|extension| extension == "rs"))
-        .map(|path| count_lines(&path))
+fn max_lines_in_rust_dir(inventory: &WorkspaceSourceInventory, dir: &Path) -> usize {
+    let relative = dir
+        .strip_prefix(inventory.root())
+        .expect("directory is inventoried");
+    inventory
+        .rust_files_under(relative)
+        .map(|source| source.text().lines().count())
         .max()
         .unwrap_or(0)
 }
@@ -253,26 +270,6 @@ fn is_runtime_test_or_support_path(path: &Path) -> bool {
         || text.ends_with("_test_support.rs")
         || text.contains("/tests.rs")
         || text.ends_with("/tests/mod.rs")
-}
-
-fn collect_rust_files(root: &Path) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    collect_rust_files_recursively(root, &mut files);
-    files.sort();
-    files
-}
-
-fn collect_rust_files_recursively(dir: &Path, output: &mut Vec<PathBuf>) {
-    let entries = fs::read_dir(dir)
-        .unwrap_or_else(|error| panic!("expected readable dir {}: {error}", dir.display()));
-    for entry in entries.filter_map(Result::ok) {
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_files_recursively(&path, output);
-        } else if path.extension().is_some_and(|extension| extension == "rs") {
-            output.push(path);
-        }
-    }
 }
 
 fn path_relative(workspace_root: &Path, path: &Path) -> String {

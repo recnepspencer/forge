@@ -20,7 +20,8 @@ fn owner_boundary_can_prove_missing_declaration_artifact_denial() {
             WorthUiDslPackage::named("worth-ui.runtime.admission.denied")
                 .with_semantic_artifact_spec(admitted_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let admitted = artifact_from_file_provenance(&app, "app/admission_denied.wui", 0);
     let support_artifacts = app.declaration_artifacts().to_vec();
     let legality_artifacts = app

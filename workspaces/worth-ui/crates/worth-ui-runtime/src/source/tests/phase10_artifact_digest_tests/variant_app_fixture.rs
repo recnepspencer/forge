@@ -145,6 +145,7 @@ fn phase10_test_app(variant: Phase10AppVariant) -> WorthUiApp {
     }
 
     app.freeze()
+        .expect("application preparation should succeed")
 }
 
 fn default_inspector_surface() -> SurfaceDescriptor {

@@ -6,12 +6,8 @@ use worth_ui_certification::topology::{
     audit_inspection_materialized_detail_growth_posture,
 };
 
-fn workspace_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate parent")
-        .parent()
-        .expect("workspace root")
+fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
+    super::workspace_source_inventory()
 }
 
 fn fixture_root(name: &str) -> PathBuf {
@@ -24,6 +20,10 @@ fn positive_fixture_root(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures/topology_positive")
         .join(name)
+}
+
+fn source_inventory(root: PathBuf) -> worth_ui_certification::topology::WorkspaceSourceInventory {
+    worth_ui_certification::topology::WorkspaceSourceInventory::capture(root)
 }
 
 fn assert_has_violation(violations: &[String], file_fragment: &str, reason_fragment: &str) {
@@ -48,9 +48,10 @@ fn inspection_growth_posture_stays_seeded_typed_and_family_local() {
 
 #[test]
 fn growth_posture_audit_rejects_missing_future_seed_homes_fixture() {
-    let violations = audit_inspection_future_artifact_seed_topology(&fixture_root(
-        "inspection_missing_artifact_seed_homes",
-    ));
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        fixture_root("inspection_missing_artifact_seed_homes"),
+    );
+    let violations = audit_inspection_future_artifact_seed_topology(&inventory);
     assert_has_violation(
         &violations,
         "receipt/replay/mod.rs",
@@ -65,9 +66,8 @@ fn growth_posture_audit_rejects_missing_future_seed_homes_fixture() {
 
 #[test]
 fn growth_posture_audit_rejects_generic_materialized_detail_drift_fixture() {
-    let violations = audit_inspection_materialized_detail_growth_posture(&fixture_root(
-        "inspection_materialized_detail_growth_drift",
-    ));
+    let inventory = source_inventory(fixture_root("inspection_materialized_detail_growth_drift"));
+    let violations = audit_inspection_materialized_detail_growth_posture(&inventory);
     assert_has_violation(
         &violations,
         "evidence_materialized_detail.rs",
@@ -82,17 +82,18 @@ fn growth_posture_audit_rejects_generic_materialized_detail_drift_fixture() {
 
 #[test]
 fn dummy_future_family_extension_has_one_certified_home() {
-    let violations = audit_dummy_future_family_extension_home(&positive_fixture_root(
+    let inventory = source_inventory(positive_fixture_root(
         "inspection_dummy_future_family_good_home",
     ));
+    let violations = audit_dummy_future_family_extension_home(&inventory);
     assert!(violations.is_empty(), "{}", violations.join("\n"));
 }
 
 #[test]
 fn dummy_future_family_extension_rejects_wrong_home_and_second_substrate() {
-    let wrong_home = audit_dummy_future_family_extension_home(&fixture_root(
-        "inspection_dummy_future_family_wrong_home",
-    ));
+    let wrong_inventory =
+        source_inventory(fixture_root("inspection_dummy_future_family_wrong_home"));
+    let wrong_home = audit_dummy_future_family_extension_home(&wrong_inventory);
     assert_has_violation(
         &wrong_home,
         "dummy_future_family.rs",
@@ -104,9 +105,10 @@ fn dummy_future_family_extension_rejects_wrong_home_and_second_substrate() {
         "forbidden facade/debug substrate",
     );
 
-    let second_substrate = audit_dummy_future_family_extension_home(&fixture_root(
+    let second_inventory = source_inventory(fixture_root(
         "inspection_dummy_future_family_second_substrate",
     ));
+    let second_substrate = audit_dummy_future_family_extension_home(&second_inventory);
     assert_has_violation(
         &second_substrate,
         "dummy_future_family.rs",

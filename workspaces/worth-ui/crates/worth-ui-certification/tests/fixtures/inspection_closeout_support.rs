@@ -27,6 +27,7 @@ pub fn closeout_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub fn graph_node_digest(app: &WorthUiApp) -> u64 {

@@ -30,16 +30,25 @@ fn file_source_ingress_derives_sealed_source_backed_package_without_helper_sidec
         .expect("source-backed provider should debounce")
         .lower_to_candidate_submission(support_app.capabilities())
         .expect("source-backed provider should lower through ingress");
-    let (dsl_package, declaration_witness) = submission
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("file ingress should derive one sealed source-backed package")
-        .into_parts();
+    let app = prepare_source_backed_submission(submission, source_backed_boundary_sizing());
 
-    assert_eq!(dsl_package.admitted_declarations().len(), 1);
-    assert!(declaration_witness
-        .claims_for("app/source_backed_package_boundary.wui", 0)
-        .is_some());
+    let source_artifacts = app
+        .declaration_artifacts()
+        .iter()
+        .filter(|artifact| {
+            artifact.provenance().source_provenance().module_path()
+                == "app/source_backed_package_boundary.wui"
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(source_artifacts.len(), 1);
+    assert_eq!(
+        source_artifacts[0]
+            .graph_handoff()
+            .expect("source-backed structural claims should be admitted")
+            .mosaic_sizing_contract_id()
+            .map(|identity| identity.as_str()),
+        Some("workspace.sizing.source_backed_boundary")
+    );
 }
 
 #[test]
@@ -59,41 +68,19 @@ fn source_backed_membership_identity_uses_full_module_path_not_same_stem_heurist
         "workspace.component.source_backed_boundary",
         "workspace.sizing.source_backed_boundary",
     );
-    let (_, left_witness) = left
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("left ingress should derive a sealed package")
-        .into_parts();
-    let (_, right_witness) = right
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("right ingress should derive a sealed package")
-        .into_parts();
-    let left_name = left_witness
-        .claims_for("app/panels/editor.wui", 0)
-        .expect("left claims should exist")
-        .mosaic_membership_name();
-    let right_name = right_witness
-        .claims_for("app/dialogs/editor.wui", 0)
-        .expect("right claims should exist")
-        .mosaic_membership_name();
+    let left = prepare_source_backed_submission(left, source_backed_boundary_sizing());
+    let right = prepare_source_backed_submission(right, source_backed_boundary_sizing());
+    let left_name = mosaic_membership_name_for_provenance(&left, "app/panels/editor.wui", 0);
+    let right_name = mosaic_membership_name_for_provenance(&right, "app/dialogs/editor.wui", 0);
 
     assert_ne!(left_name, right_name);
 }
 
 #[test]
 fn same_file_source_backed_declarations_do_not_collapse_into_one_mosaic_membership() {
-    let support_app = WorthUi::app()
-        .register_component(source_backed_boundary_component())
-        .register_component(ComponentDescriptor::new(
-            ComponentId::new("workspace.component.source_backed_boundary.peer").unwrap(),
-            ComponentPropSchema::named("workspace.component.source_backed_boundary.peer.props"),
-            ComponentChildPolicy::no_children(),
-            ComponentStateOwnership::runtime_owned(),
-        ))
-        .register_mosaic_region_kind(source_backed_boundary_region())
-        .register_mosaic_sizing_contract(source_backed_boundary_sizing())
-        .freeze();
+    let support_app = two_component_source_backed_builder()
+        .freeze()
+        .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
         .source_ingress(
             WorthUiSourceProvider::in_memory("source-backed-same-file").with_file(
@@ -119,36 +106,16 @@ component workspace.component.source_backed_boundary.peer {
         .expect("same-file source-backed provider should debounce")
         .lower_to_candidate_submission(support_app.capabilities())
         .expect("same-file source-backed provider should lower through ingress");
-    let source_backed_package = submission
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("same-file ingress should derive a sealed source-backed package");
-    let (_, witness) = source_backed_package.clone().into_parts();
-    let left_name = witness
-        .claims_for("app/source_backed_same_file.wui", 0)
-        .expect("left same-file claims should exist")
-        .mosaic_membership_name()
-        .to_owned();
-    let right_name = witness
-        .claims_for("app/source_backed_same_file.wui", 1)
-        .expect("right same-file claims should exist")
-        .mosaic_membership_name()
-        .to_owned();
+    let app = two_component_source_backed_builder()
+        .with_candidate_submission(submission)
+        .freeze()
+        .expect("complete same-file composition should prepare");
+    let left_name =
+        mosaic_membership_name_for_provenance(&app, "app/source_backed_same_file.wui", 0);
+    let right_name =
+        mosaic_membership_name_for_provenance(&app, "app/source_backed_same_file.wui", 1);
 
     assert_ne!(left_name, right_name);
-
-    let app = WorthUi::app()
-        .register_component(source_backed_boundary_component())
-        .register_component(ComponentDescriptor::new(
-            ComponentId::new("workspace.component.source_backed_boundary.peer").unwrap(),
-            ComponentPropSchema::named("workspace.component.source_backed_boundary.peer.props"),
-            ComponentChildPolicy::no_children(),
-            ComponentStateOwnership::runtime_owned(),
-        ))
-        .register_mosaic_region_kind(source_backed_boundary_region())
-        .register_mosaic_sizing_contract(source_backed_boundary_sizing())
-        .with_source_backed_dsl_package(source_backed_package)
-        .freeze();
 
     assert_eq!(
         app.graph_snapshot()
@@ -170,17 +137,9 @@ component workspace.component.source_backed_boundary.peer {
 
 #[test]
 fn same_file_equivalent_declaration_reorder_preserves_membership_identity_set() {
-    let support_app = WorthUi::app()
-        .register_component(source_backed_boundary_component())
-        .register_component(ComponentDescriptor::new(
-            ComponentId::new("workspace.component.source_backed_boundary.peer").unwrap(),
-            ComponentPropSchema::named("workspace.component.source_backed_boundary.peer.props"),
-            ComponentChildPolicy::no_children(),
-            ComponentStateOwnership::runtime_owned(),
-        ))
-        .register_mosaic_region_kind(source_backed_boundary_region())
-        .register_mosaic_sizing_contract(source_backed_boundary_sizing())
-        .freeze();
+    let support_app = two_component_source_backed_builder()
+        .freeze()
+        .expect("application preparation should succeed");
     let first = runtime_from_artifact(empty_artifact())
         .source_ingress(
             WorthUiSourceProvider::in_memory("source-backed-reorder-a").with_file(
@@ -231,20 +190,18 @@ component workspace.component.source_backed_boundary {
         .expect("reorder-b provider should debounce")
         .lower_to_candidate_submission(support_app.capabilities())
         .expect("reorder-b provider should lower through ingress");
-    let (_, first_witness) = first
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("reorder-a ingress should derive a sealed package")
-        .into_parts();
-    let (_, second_witness) = second
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("reorder-b ingress should derive a sealed package")
-        .into_parts();
+    let first = two_component_source_backed_builder()
+        .with_candidate_submission(first)
+        .freeze()
+        .expect("first complete composition should prepare");
+    let second = two_component_source_backed_builder()
+        .with_candidate_submission(second)
+        .freeze()
+        .expect("second complete composition should prepare");
 
     assert_eq!(
-        first_witness.sorted_mosaic_membership_names(),
-        second_witness.sorted_mosaic_membership_names()
+        sorted_mosaic_membership_names(&first),
+        sorted_mosaic_membership_names(&second)
     );
 }
 
@@ -258,26 +215,13 @@ fn unconstrained_source_backed_sizing_does_not_synthesize_bounded_measurement_po
         "workspace.component.source_backed_boundary",
         "workspace.sizing.source_backed_unconstrained",
     );
-    let source_backed_package = submission
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("unconstrained ingress should still derive a sealed package");
-    let (_, witness) = source_backed_package.clone().into_parts();
-
-    assert_eq!(
-        witness
-            .claims_for("app/source_backed_unconstrained.wui", 0)
-            .expect("unconstrained claims should exist")
-            .measurement_constraint_modifier(),
-        None
-    );
-
     let app = WorthUi::app()
+        .with_candidate_submission(submission)
         .register_component(source_backed_boundary_component())
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_unconstrained_sizing())
-        .with_source_backed_dsl_package(source_backed_package)
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let node = graph_node_identity_for_provenance(&app, "app/source_backed_unconstrained.wui", 0);
     let graph_node = app
         .graph_snapshot()
@@ -316,6 +260,76 @@ fn support_app_with_sizing(sizing: MosaicSizingContractDescriptor) -> crate::fac
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(sizing)
         .freeze()
+        .expect("application preparation should succeed")
+}
+
+fn prepare_source_backed_submission(
+    submission: crate::runtime::WorthUiWatchedCandidateSubmission,
+    sizing: MosaicSizingContractDescriptor,
+) -> crate::facade::WorthUiApp {
+    WorthUi::app()
+        .with_candidate_submission(submission)
+        .register_component(source_backed_boundary_component())
+        .register_mosaic_region_kind(source_backed_boundary_region())
+        .register_mosaic_sizing_contract(sizing)
+        .freeze()
+        .expect("complete source-backed composition should prepare")
+}
+
+fn two_component_source_backed_builder() -> crate::facade::entry::WorthUiBuilder {
+    WorthUi::app()
+        .register_component(source_backed_boundary_component())
+        .register_component(ComponentDescriptor::new(
+            ComponentId::new("workspace.component.source_backed_boundary.peer").unwrap(),
+            ComponentPropSchema::named("workspace.component.source_backed_boundary.peer.props"),
+            ComponentChildPolicy::no_children(),
+            ComponentStateOwnership::runtime_owned(),
+        ))
+        .register_mosaic_region_kind(source_backed_boundary_region())
+        .register_mosaic_sizing_contract(source_backed_boundary_sizing())
+}
+
+fn sorted_mosaic_membership_names(app: &crate::facade::WorthUiApp) -> Vec<String> {
+    let mut names = app
+        .declaration_artifacts()
+        .iter()
+        .filter_map(|artifact| {
+            let node_identity = app
+                .graph_snapshot()
+                .lookup()
+                .declaration_instances(artifact.identity())
+                .value()
+                .first()
+                .copied()?;
+            let topology = app
+                .graph_snapshot()
+                .lookup()
+                .topology_node(node_identity)?
+                .value();
+            topology
+                .mosaic_membership()
+                .map(|membership| membership.mosaic_name().to_owned())
+        })
+        .collect::<Vec<_>>();
+    names.sort();
+    names
+}
+
+fn mosaic_membership_name_for_provenance(
+    app: &crate::facade::WorthUiApp,
+    module_path: &str,
+    declaration_index: usize,
+) -> String {
+    let identity = graph_node_identity_for_provenance(app, module_path, declaration_index);
+    app.graph_snapshot()
+        .lookup()
+        .topology_node(identity)
+        .expect("source-backed graph topology should exist")
+        .value()
+        .mosaic_membership()
+        .expect("source-backed declaration should retain mosaic membership")
+        .mosaic_name()
+        .to_owned()
 }
 
 fn source_backed_boundary_component() -> ComponentDescriptor {

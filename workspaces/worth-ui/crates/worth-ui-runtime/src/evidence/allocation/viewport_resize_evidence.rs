@@ -18,7 +18,7 @@ pub struct UiViewportResizeEvidence {
 
 impl UiViewportResizeEvidence {
     pub(crate) fn from_committed(
-        basis: &crate::runtime::UiViewportResizeCommitBasis<'_>,
+        basis: &crate::runtime::UiViewportResizeCommitBasis,
         committed: &crate::runtime::UiCommittedAllocationReplan,
     ) -> Self {
         let plan = basis.plan();

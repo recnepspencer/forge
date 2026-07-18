@@ -7,7 +7,6 @@ mod launch_transition;
 mod lifecycle_state;
 mod planning_transition;
 pub(crate) use planning_transition::UiAllocationCatalogMintAuthority;
-#[cfg(test)]
 pub(crate) use planning_transition::UiAllocationCatalogPreparationDenial;
 mod preservation;
 pub(crate) use preservation::WorthUiLastValidRuntimeState;
@@ -17,7 +16,8 @@ mod runtime_instance_accessors;
 mod runtime_instance_test_support;
 mod seal_artifact;
 mod staging_transition;
-pub use staging_transition::WorthUiActivationStagingPlans;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use staging_transition::WorthUiActivationStagingPlans;
 
 pub use launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
 pub use lifecycle_state::{

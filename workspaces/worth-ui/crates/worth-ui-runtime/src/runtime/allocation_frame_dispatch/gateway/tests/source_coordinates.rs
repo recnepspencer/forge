@@ -232,5 +232,4 @@ fn framework_turn_capability_routes_all_four_admitted_sources_once() {
     assert!(submissions.iter().all(|outcome| outcome
         .submission()
         .is_some_and(|submission| submission.is_queued())));
-    assert!(runtime.pending_narrowed_allocation_frame.is_none());
 }

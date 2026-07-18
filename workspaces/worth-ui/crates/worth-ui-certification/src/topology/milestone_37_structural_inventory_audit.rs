@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
+use super::workspace_source_inventory::WorkspaceSourceInventory;
+
 mod milestone_37_filesystem_findings;
 
 use milestone_37_filesystem_findings::{
@@ -47,19 +49,19 @@ pub struct StructuralCleanupFinding {
 }
 
 pub fn audit_milestone_37_structural_inventory(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<StructuralCleanupFinding> {
     let mut findings = Vec::new();
-    findings.extend(facade_leakage_findings(workspace_root));
-    findings.extend(topology_sinkhole_findings(workspace_root));
-    findings.extend(helper_swamp_findings(workspace_root));
-    findings.extend(authority_mixing_findings(workspace_root));
-    findings.extend(function_overload_findings(workspace_root));
+    findings.extend(facade_leakage_findings(inventory));
+    findings.extend(topology_sinkhole_findings(inventory));
+    findings.extend(helper_swamp_findings(inventory));
+    findings.extend(authority_mixing_findings(inventory));
+    findings.extend(function_overload_findings(inventory));
     findings.extend(milestone_37_filesystem_findings::file_size_findings(
-        workspace_root,
+        inventory,
     ));
     findings.extend(milestone_37_filesystem_findings::test_bypass_findings(
-        workspace_root,
+        inventory,
     ));
     findings.sort();
     findings.dedup();
@@ -107,9 +109,9 @@ pub fn rejected_cosmetic_candidate_ids() -> BTreeSet<&'static str> {
     ])
 }
 
-fn facade_leakage_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
-    let facade_mod = workspace_root.join("crates/worth-ui-runtime/src/facade/mod.rs");
-    let text = read_file(&facade_mod);
+fn facade_leakage_findings(inventory: &WorkspaceSourceInventory) -> Vec<StructuralCleanupFinding> {
+    let facade_mod = inventory.absolute_path("crates/worth-ui-runtime/src/facade/mod.rs");
+    let text = read_file(inventory, &facade_mod);
     let mut findings = Vec::new();
 
     if text.contains("pub use crate::runtime::*;") {
@@ -167,12 +169,14 @@ fn facade_leakage_findings(workspace_root: &Path) -> Vec<StructuralCleanupFindin
     findings
 }
 
-fn topology_sinkhole_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
-    let runtime_root = workspace_root.join("crates/worth-ui-runtime/src/runtime");
-    let evidence_root = workspace_root.join("crates/worth-ui-runtime/src/evidence");
+fn topology_sinkhole_findings(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<StructuralCleanupFinding> {
+    let runtime_root = inventory.absolute_path("crates/worth-ui-runtime/src/runtime");
+    let evidence_root = inventory.absolute_path("crates/worth-ui-runtime/src/evidence");
     let mut findings = Vec::new();
 
-    let runtime_same_level = count_same_level_rust_files(&runtime_root);
+    let runtime_same_level = count_same_level_rust_files(inventory, &runtime_root);
     if runtime_same_level >= RUNTIME_SAME_LEVEL_SINKHOLE_THRESHOLD {
         findings.push(finding(
             "T-01",
@@ -186,7 +190,7 @@ fn topology_sinkhole_findings(workspace_root: &Path) -> Vec<StructuralCleanupFin
         ));
     }
 
-    let host_prefix_count = count_files_matching(&runtime_root, "host_*.rs");
+    let host_prefix_count = count_files_matching(inventory, &runtime_root, "host_*.rs");
     if host_prefix_count > 0 {
         findings.push(finding(
             "T-02",
@@ -200,7 +204,7 @@ fn topology_sinkhole_findings(workspace_root: &Path) -> Vec<StructuralCleanupFin
         ));
     }
 
-    let evidence_same_level = count_same_level_rust_files(&evidence_root);
+    let evidence_same_level = count_same_level_rust_files(inventory, &evidence_root);
     if evidence_same_level >= EVIDENCE_SAME_LEVEL_SINKHOLE_THRESHOLD {
         findings.push(finding(
             "T-03",
@@ -214,7 +218,7 @@ fn topology_sinkhole_findings(workspace_root: &Path) -> Vec<StructuralCleanupFin
         ));
     }
 
-    let boundary_test_count = count_files_matching(&runtime_root, "*_boundary_tests.rs");
+    let boundary_test_count = count_files_matching(inventory, &runtime_root, "*_boundary_tests.rs");
     if boundary_test_count >= 20 {
         findings.push(finding(
             "T-04",
@@ -231,9 +235,9 @@ fn topology_sinkhole_findings(workspace_root: &Path) -> Vec<StructuralCleanupFin
     findings
 }
 
-fn helper_swamp_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
-    let evidence_mod = workspace_root.join("crates/worth-ui-runtime/src/evidence/mod.rs");
-    let text = read_file(&evidence_mod);
+fn helper_swamp_findings(inventory: &WorkspaceSourceInventory) -> Vec<StructuralCleanupFinding> {
+    let evidence_mod = inventory.absolute_path("crates/worth-ui-runtime/src/evidence/mod.rs");
+    let text = read_file(inventory, &evidence_mod);
     let mut findings = Vec::new();
 
     let construction_helpers = [
@@ -259,9 +263,9 @@ fn helper_swamp_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding>
         ));
     }
 
-    let bridge = workspace_root.join("crates/worth-ui-runtime/src/facade/runtime_bridge.rs");
-    if bridge.exists() {
-        let bridge_text = read_file(&bridge);
+    let bridge = inventory.absolute_path("crates/worth-ui-runtime/src/facade/runtime_bridge.rs");
+    if inventory.source(&bridge).is_some() {
+        let bridge_text = read_file(inventory, &bridge);
         if bridge_text.contains("WorthUiFacadeLifecycleBootstrap")
             && bridge_text.contains("inspection_scope_inventory")
             && bridge_text.contains("measurement_inspection_evidence")
@@ -280,12 +284,14 @@ fn helper_swamp_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding>
     findings
 }
 
-fn authority_mixing_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
+fn authority_mixing_findings(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<StructuralCleanupFinding> {
     let mut findings = Vec::new();
 
     let evidence_cert =
-        workspace_root.join("crates/worth-ui-runtime/src/evidence/planning/certification.rs");
-    let evidence_cert_text = read_file(&evidence_cert);
+        inventory.absolute_path("crates/worth-ui-runtime/src/evidence/planning/certification.rs");
+    let evidence_cert_text = read_file(inventory, &evidence_cert);
     if evidence_cert_text.contains("planning_pair_for_certification_suite")
         && !evidence_cert_text.contains("pub(crate) fn suite_contract_satisfied")
     {
@@ -300,23 +306,23 @@ fn authority_mixing_findings(workspace_root: &Path) -> Vec<StructuralCleanupFind
     }
 
     let planning_mod =
-        workspace_root.join("crates/worth-ui-runtime/src/runtime/allocation_planning/mod.rs");
-    if read_file(&planning_mod).contains("mod certification_fixture") {
+        inventory.absolute_path("crates/worth-ui-runtime/src/runtime/allocation_planning/mod.rs");
+    if read_file(inventory, &planning_mod).contains("mod certification_fixture") {
         findings.push(finding(
             "A-02",
             CleanupFailureMode::AuthorityMixing,
-            workspace_root.join("crates/worth-ui-runtime/src/runtime/allocation_planning"),
+            inventory.absolute_path("crates/worth-ui-runtime/src/runtime/allocation_planning"),
             6,
             "cert_fixture_fence",
             "production allocation_planning tree still hosts certification_fixture modules",
         ));
     }
 
-    let app = workspace_root.join("crates/worth-ui-runtime/src/facade/entry/app.rs");
-    let app_text = read_file(&app);
+    let app = inventory.absolute_path("crates/worth-ui-runtime/src/facade/entry/app.rs");
+    let app_text = read_file(inventory, &app);
     let inspect_is_thin_delegate = app_text.contains("route_inspection(self, query)");
-    let graph_evidence_delegated = app_text.contains("build_graph_evidence_indexes(");
-    if (!inspect_is_thin_delegate || !graph_evidence_delegated)
+    let app_assembles_graph_evidence = app_text.contains("build_graph_evidence_indexes(");
+    if (!inspect_is_thin_delegate || app_assembles_graph_evidence)
         && app_text.contains("inspect(")
         && app_text.contains("UiInspectionReceipt")
     {
@@ -331,9 +337,9 @@ fn authority_mixing_findings(workspace_root: &Path) -> Vec<StructuralCleanupFind
     }
 
     let lifecycle =
-        workspace_root.join("crates/worth-ui-runtime/src/lifecycle/support_inventory.rs");
-    if read_file(&lifecycle).contains("PHASE3_RUNTIME_SUPPORT_INVENTORY")
-        && !read_file(&lifecycle).contains("RUNTIME_SUPPORT_INVENTORY")
+        inventory.absolute_path("crates/worth-ui-runtime/src/lifecycle/support_inventory.rs");
+    if read_file(inventory, &lifecycle).contains("PHASE3_RUNTIME_SUPPORT_INVENTORY")
+        && !read_file(inventory, &lifecycle).contains("RUNTIME_SUPPORT_INVENTORY")
     {
         findings.push(finding(
             "A-04",
@@ -345,10 +351,10 @@ fn authority_mixing_findings(workspace_root: &Path) -> Vec<StructuralCleanupFind
         ));
     }
 
-    let cert_topology = workspace_root.join(
+    let cert_topology = inventory.absolute_path(
         "crates/worth-ui-certification/src/topology/allocation_planning_boundary_certification.rs",
     );
-    let cert_topology_text = read_file(&cert_topology);
+    let cert_topology_text = read_file(inventory, &cert_topology);
     if cert_topology_text.contains("worth_ui_runtime::facade::certify_")
         || (cert_topology_text
             .contains("worth_ui_runtime::facade::evidence::certify_activation_boundary_suite")
@@ -367,8 +373,10 @@ fn authority_mixing_findings(workspace_root: &Path) -> Vec<StructuralCleanupFind
     findings
 }
 
-fn function_overload_findings(workspace_root: &Path) -> Vec<StructuralCleanupFinding> {
-    milestone_37_filesystem_findings::function_overload_findings(workspace_root)
+fn function_overload_findings(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<StructuralCleanupFinding> {
+    milestone_37_filesystem_findings::function_overload_findings(inventory)
 }
 
 // Phase 7 S-01 closes on the decomposition hotspots named by the cleanup plan —

@@ -154,6 +154,7 @@ fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::Worth
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec() -> UiDslSemanticArtifactSpec {

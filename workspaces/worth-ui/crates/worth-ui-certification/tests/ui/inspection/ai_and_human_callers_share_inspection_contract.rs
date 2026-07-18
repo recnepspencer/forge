@@ -28,7 +28,7 @@ fn human_consumer(app: &WorthUiApp) -> UiInspectionReceipt {
 fn main() {
     let app = WorthUi::app()
         .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     let _ = ai_consumer(&app);
     let _ = human_consumer(&app);

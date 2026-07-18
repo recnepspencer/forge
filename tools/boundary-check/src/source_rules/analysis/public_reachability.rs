@@ -109,7 +109,7 @@ fn promote_public_chain_modules(graph: &ModuleGraph, reachability: &mut Reachabi
     let mut public_modules = reachability.public_modules.clone();
     let mut glob_expanded: BTreeSet<Vec<String>> = BTreeSet::new();
 
-    for (path, _node) in &graph.modules {
+    for path in graph.modules.keys() {
         if path.is_empty() {
             continue;
         }
@@ -326,7 +326,7 @@ fn expand_use_tree(
     current_module: &[String],
     tree: &UseTree,
 ) -> Vec<(Vec<String>, String, String)> {
-    expand_use_tree_rec(current_module, current_module, tree)
+    expand_use_tree_rec(current_module, &[], tree)
 }
 
 fn expand_use_tree_rec(
@@ -338,9 +338,14 @@ fn expand_use_tree_rec(
         UseTree::Path(path) => {
             let ident = path.ident.to_string();
             let next = match ident.as_str() {
+                "self" if prefix_module.is_empty() => current_module.to_vec(),
                 "self" => prefix_module.to_vec(),
                 "super" => {
-                    let mut p = prefix_module.to_vec();
+                    let mut p = if prefix_module.is_empty() {
+                        current_module.to_vec()
+                    } else {
+                        prefix_module.to_vec()
+                    };
                     p.pop();
                     p
                 }

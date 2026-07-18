@@ -5,9 +5,10 @@ impl UiResolvedAllocationFramePlan {
         self,
     ) -> (
         UiAllocationFramePlanIdentity,
+        UiAllocationFrameResolutionCounters,
         Box<[UiAllocationFrameSourceFact]>,
     ) {
-        (self.identity, self.sources)
+        (self.identity, self.counters, self.sources)
     }
     pub(super) fn receipt(&self) -> &UiAllocationStreamPolicyEvidenceReceipt {
         self.identity.receipt()
