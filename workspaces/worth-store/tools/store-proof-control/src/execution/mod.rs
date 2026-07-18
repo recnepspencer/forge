@@ -249,8 +249,9 @@ fn process_counts(verdicts: &[ProofUnitExecutionVerdict]) -> ProofRunProcessCoun
             .count(),
         compiler_process_observation: "not-observed-before-phase-10-runner".to_owned(),
         linker_process_observation: "not-observed-before-phase-10-runner".to_owned(),
-        child_process_observation: "declared-not-externally-counted-before-phase-8-and-phase-10"
-            .to_owned(),
+        child_process_observation:
+            "phase-8-process-evidence-recorded; external-process-counting-deferred-to-phase-10"
+                .to_owned(),
     }
 }
 

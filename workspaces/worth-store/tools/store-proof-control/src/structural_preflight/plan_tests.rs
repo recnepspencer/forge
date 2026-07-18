@@ -13,6 +13,7 @@ fn complete_preflight_plan_binds_tools_sources_and_dependency_flow() {
             StructuralPredicate::Boundary,
             StructuralPredicate::AgentContext,
             StructuralPredicate::Dependency,
+            StructuralPredicate::LineCap,
         ],
     )
     .unwrap();
@@ -21,6 +22,7 @@ fn complete_preflight_plan_binds_tools_sources_and_dependency_flow() {
     let boundary = predicate(&plan.predicates, StructuralPredicate::Boundary);
     let agent_context = predicate(&plan.predicates, StructuralPredicate::AgentContext);
     let dependency = predicate(&plan.predicates, StructuralPredicate::Dependency);
+    let line_cap = predicate(&plan.predicates, StructuralPredicate::LineCap);
     let boundary_tool = boundary.tool.as_ref().unwrap();
     let agent_context_tool = agent_context.tool.as_ref().unwrap();
     let boundary_tool_is_locked_offline = required_cargo_posture(&boundary_tool.arguments);
@@ -42,6 +44,11 @@ fn complete_preflight_plan_binds_tools_sources_and_dependency_flow() {
             .any(|path| path.ends_with("Cargo.lock"))
     });
     let dependency_is_metadata_owned = dependency.tool.is_none();
+    let line_cap_uses_the_workspace_script = line_cap.tool.as_ref().is_some_and(|tool| {
+        tool.arguments == ["scripts/ci/check_workspace_rust_line_caps.sh".to_owned()]
+            && (tool.resolved_program_path.ends_with("/bash")
+                || tool.resolved_program_path.ends_with("/bash.exe"))
+    });
     let evaluator_is_observed = plan.evaluator.responsibility
         == "store-proof-control-structural-preflight"
         && plan.evaluator.executable_sha256.len() == 64
@@ -54,6 +61,7 @@ fn complete_preflight_plan_binds_tools_sources_and_dependency_flow() {
     assert!(all_input_scopes_are_bound);
     assert!(dependency_scope_binds_store_lockfile);
     assert!(dependency_is_metadata_owned);
+    assert!(line_cap_uses_the_workspace_script);
     assert!(evaluator_is_observed);
 }
 

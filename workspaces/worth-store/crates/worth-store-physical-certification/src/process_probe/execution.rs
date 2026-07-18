@@ -170,13 +170,29 @@ pub(crate) fn admit_declared_evidence_root(
 pub(crate) fn observe_graceful_exit(
     status: ExitStatus,
 ) -> Result<ObservedProcessTermination, ProcessProbeEvidenceDenial> {
-    status
-        .success()
-        .then(|| {
-            ObservedProcessTermination(ProcessTermination::GracefulExit {
-                code: status.code(),
-            })
-        })
+    observe_required_exit(status, ProcessTerminationRequirement::GracefulExit)
+}
+
+pub(crate) fn observe_required_exit(
+    status: ExitStatus,
+    required: ProcessTerminationRequirement,
+) -> Result<ObservedProcessTermination, ProcessProbeEvidenceDenial> {
+    let platform_status = format!("{status:?}");
+    let observed = if status.success() {
+        ProcessTermination::GracefulExit {
+            code: status.code(),
+        }
+    } else if status.code() == Some(101) {
+        ProcessTermination::PanicUnwind {
+            code: status.code(),
+        }
+    } else if is_abort_status(&status) {
+        ProcessTermination::Abort { platform_status }
+    } else {
+        ProcessTermination::OsTermination { platform_status }
+    };
+    termination_satisfies(required, &observed)
+        .then_some(ObservedProcessTermination(observed))
         .ok_or(ProcessProbeEvidenceDenial::TerminationMismatch)
 }
 
@@ -221,4 +237,21 @@ pub(super) fn termination_satisfies(
 
 fn hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+#[cfg(unix)]
+fn is_abort_status(status: &ExitStatus) -> bool {
+    use std::os::unix::process::ExitStatusExt;
+
+    status.signal() == Some(6)
+}
+
+#[cfg(windows)]
+fn is_abort_status(status: &ExitStatus) -> bool {
+    matches!(status.code(), Some(3 | -1_073_740_791))
+}
+
+#[cfg(not(any(unix, windows)))]
+fn is_abort_status(_status: &ExitStatus) -> bool {
+    false
 }

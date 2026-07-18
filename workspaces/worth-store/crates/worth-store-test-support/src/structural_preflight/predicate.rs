@@ -14,6 +14,15 @@ pub enum StructuralPredicate {
     AdmittedResidue,
 }
 
+impl StructuralPredicate {
+    pub const fn requires_external_tool_authority(self) -> bool {
+        matches!(
+            self,
+            Self::Boundary | Self::AgentContext | Self::LineCap | Self::Naming
+        )
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "predicate", rename_all = "snake_case")]
 pub enum DependencyBoundaryPredicate {

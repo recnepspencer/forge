@@ -2,6 +2,8 @@ mod evaluator;
 mod execution;
 mod freshness;
 mod inputs;
+#[cfg(test)]
+mod integrity_tests;
 mod plan;
 #[cfg(test)]
 mod plan_tests;

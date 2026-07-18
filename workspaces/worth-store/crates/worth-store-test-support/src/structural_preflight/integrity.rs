@@ -16,6 +16,7 @@ pub enum StructuralPreflightIntegrityDenial {
     DuplicatePredicate,
     PredicateEvidenceMismatch,
     PredicateInputIdentityMismatch,
+    PredicateExecutionModeMismatch,
     PredicateToolIdentityMismatch,
     ToolExecutionMismatch,
     PlanIdentityMismatch,
@@ -71,6 +72,11 @@ impl StructuralPreflightPlan {
                 })
         }) {
             return Err(StructuralPreflightIntegrityDenial::PredicateInputIdentityMismatch);
+        }
+        if self.predicates.iter().any(|predicate| {
+            predicate.tool.is_some() != predicate.predicate.requires_external_tool_authority()
+        }) {
+            return Err(StructuralPreflightIntegrityDenial::PredicateExecutionModeMismatch);
         }
         if self.predicates.iter().any(|predicate| {
             predicate.tool.as_ref().is_some_and(|tool| {
@@ -180,6 +186,17 @@ impl StructuralPreflightEvidence {
                     .iter()
                     .find(|execution| execution.authority_identity == *tool_identity)
                     .ok_or(StructuralPreflightIntegrityDenial::PredicateToolIdentityMismatch)?;
+                let declared_tool = plan
+                    .tool
+                    .as_ref()
+                    .ok_or(StructuralPreflightIntegrityDenial::PredicateToolIdentityMismatch)?;
+                if execution.command_identity != tool_command_identity(declared_tool)?
+                    || !execution
+                        .declared_tool_identities
+                        .contains(&declared_tool.tool_identity)
+                {
+                    return Err(StructuralPreflightIntegrityDenial::PredicateToolIdentityMismatch);
+                }
                 if matches!(&evidence.verdict, StructuralPredicateVerdict::Passed { .. })
                     && !execution.successful
                 {

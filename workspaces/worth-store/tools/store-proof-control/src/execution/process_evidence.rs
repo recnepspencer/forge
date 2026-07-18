@@ -164,6 +164,7 @@ pub(super) fn collect(
                 &evidence.declaration.required_termination,
                 &evidence.termination,
             )
+            || !process_contract_matches(&evidence.declaration)
             || !declaration_identity_matches(&evidence.declaration)
             || !execution_identity_matches(&evidence)
             || evidence.output_artifact_identity == [0; 32]
@@ -191,6 +192,41 @@ pub(super) fn collect(
         ));
     }
     Ok(references)
+}
+
+fn process_contract_matches(declaration: &DeclarationProjection) -> bool {
+    let role_admits_isolation = matches!(
+        (declaration.role, declaration.isolation),
+        (
+            ProcessRoleProjection::Writer | ProcessRoleProjection::CrashTarget,
+            ProcessIsolationProjection::FreshProcess | ProcessIsolationProjection::ParentTerminated
+        ) | (
+            ProcessRoleProjection::RecoveredRuntime,
+            ProcessIsolationProjection::FreshProcess
+        ) | (
+            ProcessRoleProjection::OfflineVerifier | ProcessRoleProjection::FormalCheckerAdapter,
+            ProcessIsolationProjection::IndependentObserver
+        ) | (
+            ProcessRoleProjection::AllocatorIsolatedProbe,
+            ProcessIsolationProjection::IsolatedAllocator
+        )
+    );
+    let isolation_admits_termination = match declaration.isolation {
+        ProcessIsolationProjection::FreshProcess => !matches!(
+            declaration.required_termination,
+            ProcessTerminationRequirementProjection::ParentKill
+        ),
+        ProcessIsolationProjection::ParentTerminated => matches!(
+            declaration.required_termination,
+            ProcessTerminationRequirementProjection::ParentKill
+        ),
+        ProcessIsolationProjection::IndependentObserver
+        | ProcessIsolationProjection::IsolatedAllocator => matches!(
+            declaration.required_termination,
+            ProcessTerminationRequirementProjection::GracefulExit
+        ),
+    };
+    role_admits_isolation && isolation_admits_termination
 }
 
 fn declaration_identity_matches(declaration: &DeclarationProjection) -> bool {
@@ -322,3 +358,7 @@ fn normalized_path(workspace_root: &Path, path: &Path) -> String {
 fn hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
+
+#[cfg(test)]
+#[path = "process_evidence_tests.rs"]
+mod tests;

@@ -7348,6 +7348,40 @@
       "physical_reality_audit_required": false
     },
     {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/process_intent_rejects_incoherent_role_isolation_and_termination_claims::tests::process_intent_rejects_incoherent_role_isolation_and_termination_claims",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-physical-certification",
+        "responsibility": "src/process_probe/tests/process_intent_rejects_incoherent_role_isolation_and_termination_claims"
+      },
+      "products": [
+        "store-ci:physical-certification"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/unassisted_exit_observation_distinguishes_panic_abort_and_os_termination::tests::unassisted_exit_observation_distinguishes_panic_abort_and_os_termination",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-physical-certification",
+        "responsibility": "src/process_probe/tests/unassisted_exit_observation_distinguishes_panic_abort_and_os_termination"
+      },
+      "products": [
+        "store-ci:physical-certification"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
       "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/untrusted_probe_input_rejects_an_output_channel_that_became_visible::tests::untrusted_probe_input_rejects_an_output_channel_that_became_visible",
       "family": "owner_invariant",
       "owner": {

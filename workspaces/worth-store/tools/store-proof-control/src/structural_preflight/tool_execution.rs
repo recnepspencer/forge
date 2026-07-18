@@ -122,6 +122,7 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
     let successful = status.as_ref().is_some_and(ExitStatus::success)
         && !timed_out
         && observation_failure.is_none();
+    let rejection_transcript = rejection_transcript(&stdout, &stderr);
     let failure = observation_failure.clone().or_else(|| {
         (!successful).then(|| {
             if timed_out {
@@ -132,7 +133,7 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
             } else {
                 format!(
                     "{} rejected with {:?}: {}",
-                    tool.tool_identity, exit_code, stderr
+                    tool.tool_identity, exit_code, rejection_transcript
                 )
             }
         })
@@ -151,6 +152,14 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
         },
         failure,
     )
+}
+
+fn rejection_transcript(stdout: &str, stderr: &str) -> String {
+    [stdout.trim(), stderr.trim()]
+        .into_iter()
+        .filter(|stream| !stream.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn launch_failure(

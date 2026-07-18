@@ -164,6 +164,7 @@ impl ProcessProbeIntent {
         isolation: ProcessIsolationRequirement,
         required_termination: ProcessTerminationRequirement,
     ) -> Result<Self, String> {
+        validate_process_contract(role, isolation, required_termination)?;
         let executable_identity = validated_current_executable(command).ok_or_else(|| {
             "process probe command is not the current sealed executable".to_owned()
         })?;
@@ -221,6 +222,49 @@ impl ProcessProbeIntent {
 
     pub const fn input_identity(&self) -> [u8; 32] {
         self.input_identity
+    }
+}
+
+fn validate_process_contract(
+    role: ProcessRole,
+    isolation: ProcessIsolationRequirement,
+    termination: ProcessTerminationRequirement,
+) -> Result<(), String> {
+    let role_admits_isolation = matches!(
+        (role, isolation),
+        (
+            ProcessRole::Writer | ProcessRole::CrashTarget,
+            ProcessIsolationRequirement::FreshProcess
+                | ProcessIsolationRequirement::ParentTerminated
+        ) | (
+            ProcessRole::RecoveredRuntime,
+            ProcessIsolationRequirement::FreshProcess
+        ) | (
+            ProcessRole::OfflineVerifier | ProcessRole::FormalCheckerAdapter,
+            ProcessIsolationRequirement::IndependentObserver
+        ) | (
+            ProcessRole::AllocatorIsolatedProbe,
+            ProcessIsolationRequirement::IsolatedAllocator
+        )
+    );
+    let isolation_admits_termination = match isolation {
+        ProcessIsolationRequirement::FreshProcess => {
+            termination != ProcessTerminationRequirement::ParentKill
+        }
+        ProcessIsolationRequirement::ParentTerminated => {
+            termination == ProcessTerminationRequirement::ParentKill
+        }
+        ProcessIsolationRequirement::IndependentObserver
+        | ProcessIsolationRequirement::IsolatedAllocator => {
+            termination == ProcessTerminationRequirement::GracefulExit
+        }
+    };
+    if role_admits_isolation && isolation_admits_termination {
+        Ok(())
+    } else {
+        Err(format!(
+            "process role {role:?} cannot claim {isolation:?} with {termination:?} termination"
+        ))
     }
 }
 

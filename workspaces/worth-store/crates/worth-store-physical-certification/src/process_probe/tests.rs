@@ -27,6 +27,72 @@ fn graceful_exit_cannot_satisfy_a_parent_kill_declaration() {
 }
 
 #[test]
+fn process_intent_rejects_incoherent_role_isolation_and_termination_claims() {
+    let command = Command::new(std::env::current_exe().unwrap());
+    let input = SealedProcessProbeInput::new("contract", "none", Vec::new()).unwrap();
+    for (role, isolation, termination) in [
+        (
+            ProcessRole::RecoveredRuntime,
+            ProcessIsolationRequirement::ParentTerminated,
+            ProcessTerminationRequirement::ParentKill,
+        ),
+        (
+            ProcessRole::OfflineVerifier,
+            ProcessIsolationRequirement::FreshProcess,
+            ProcessTerminationRequirement::GracefulExit,
+        ),
+        (
+            ProcessRole::Writer,
+            ProcessIsolationRequirement::IndependentObserver,
+            ProcessTerminationRequirement::GracefulExit,
+        ),
+        (
+            ProcessRole::AllocatorIsolatedProbe,
+            ProcessIsolationRequirement::IsolatedAllocator,
+            ProcessTerminationRequirement::Abort,
+        ),
+        (
+            ProcessRole::Writer,
+            ProcessIsolationRequirement::FreshProcess,
+            ProcessTerminationRequirement::ParentKill,
+        ),
+    ] {
+        assert!(ProcessProbeIntent::for_current_executable(
+            &command,
+            &input,
+            role,
+            isolation,
+            termination,
+        )
+        .is_err());
+    }
+}
+
+#[test]
+fn unassisted_exit_observation_distinguishes_panic_abort_and_os_termination() {
+    if let Some(mode) = std::env::var_os(TERMINATION_CHILD_ENV) {
+        match mode.to_string_lossy().as_ref() {
+            "panic" => panic!("declared panic-unwind probe"),
+            "abort" => std::process::abort(),
+            "os" => std::process::exit(7),
+            _ => panic!("unknown termination probe mode"),
+        }
+    }
+    for (mode, required) in [
+        ("panic", ProcessTerminationRequirement::PanicUnwind),
+        ("abort", ProcessTerminationRequirement::Abort),
+        ("os", ProcessTerminationRequirement::OsTermination),
+    ] {
+        let status = Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", TERMINATION_TEST_IDENTITY, "--nocapture"])
+            .env(TERMINATION_CHILD_ENV, mode)
+            .status()
+            .unwrap();
+        assert!(super::execution::observe_required_exit(status, required).is_ok());
+    }
+}
+
+#[test]
 fn artifact_identity_observes_bytes_and_preexisting_state() {
     let directory = tempfile::tempdir().unwrap();
     let artifact = directory.path().join("artifact");
@@ -278,5 +344,8 @@ fn parse_test_role(value: &str) -> ProcessRole {
 const PROBE_CHILD_ENV: &str = "WORTH_STORE_PROCESS_PROBE_TEST_CHILD";
 const PROBE_OUTPUT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_TEST_OUTPUT";
 const UNADMITTED_EXPECTED_STATE_ENV: &str = "WORTH_STORE_PROCESS_PROBE_UNADMITTED_EXPECTED_STATE";
+const TERMINATION_CHILD_ENV: &str = "WORTH_STORE_PROCESS_PROBE_TERMINATION_CHILD";
+const TERMINATION_TEST_IDENTITY: &str =
+    "process_probe::tests::unassisted_exit_observation_distinguishes_panic_abort_and_os_termination";
 const PROBE_TEST_IDENTITY: &str =
     "process_probe::tests::fresh_process_roles_share_executable_but_not_process_or_runtime_identity";

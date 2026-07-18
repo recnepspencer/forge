@@ -131,7 +131,7 @@ fn repository_failure_has_one_owner_and_explicit_dependents() {
 
 #[test]
 fn changed_generated_context_names_only_agent_context_input() {
-    let evidence = passed_evidence();
+    let evidence = super::integrity_tests::passed_external_evidence();
     let mut current = evidence.plan.clone();
     let context = current
         .predicates
@@ -241,7 +241,7 @@ fn passed_evidence() -> StructuralPreflightEvidence {
     let request = StructuralPreflightRequest::new(
         StructuralPreflightProfile::DeveloperSmoke,
         vec![
-            StructuralPredicate::AgentContext,
+            StructuralPredicate::Inventory,
             StructuralPredicate::Dependency,
         ],
     )
@@ -251,7 +251,7 @@ fn passed_evidence() -> StructuralPreflightEvidence {
         request,
         evaluator: synthetic_evaluator(),
         predicates: vec![
-            predicate_plan(StructuralPredicate::AgentContext, "agent-context-authority"),
+            predicate_plan(StructuralPredicate::Inventory, "store-proof-inventory"),
             predicate_plan(
                 StructuralPredicate::Dependency,
                 "store-dependency-manifests",

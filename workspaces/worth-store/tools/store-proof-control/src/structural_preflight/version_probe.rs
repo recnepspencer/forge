@@ -135,7 +135,36 @@ fn resolve_program(program: &str) -> Result<PathBuf, String> {
             }
         }
     }
+    #[cfg(windows)]
+    if program.eq_ignore_ascii_case("bash") {
+        for candidate in windows_git_bash_candidates() {
+            if candidate.is_file() {
+                return admitted_invocation_path(&candidate, program);
+            }
+        }
+    }
     Err(format!("{program} is not on PATH"))
+}
+
+#[cfg(windows)]
+fn windows_git_bash_candidates() -> Vec<PathBuf> {
+    let mut roots = ["ProgramFiles", "ProgramFiles(x86)"]
+        .into_iter()
+        .filter_map(std::env::var_os)
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        roots.push(PathBuf::from(local).join("Programs"));
+    }
+    roots
+        .into_iter()
+        .flat_map(|root| {
+            [
+                root.join("Git/bin/bash.exe"),
+                root.join("Git/usr/bin/bash.exe"),
+            ]
+        })
+        .collect()
 }
 
 fn admitted_invocation_path(path: &Path, program: &str) -> Result<PathBuf, String> {

@@ -34,7 +34,7 @@ fn selection_is_deterministic_and_scenario_filterable() {
     }));
     assert!(first.units.iter().any(|unit| {
         unit.target_name == "s5_tier_movement_future_chunk_compile_fail"
-            && unit.process_model == ProofProcessModel::NestedCargoProcess
+            && unit.process_model == ProofProcessModel::StandardizedUiHarness
             && unit.case_filter.as_deref()
                 == Some("future_chunk_placeholder_boundary_misuse_does_not_compile")
     }));
