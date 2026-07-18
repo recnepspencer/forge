@@ -58,12 +58,42 @@ pub(super) fn prepare_artifact_root(
         ));
     }
     mark_disposable_artifact_root(target_root)?;
-    AdmittedArtifactRoot::admit(&workspace, target_root)?;
+    // Preserve one lexical path authority through symlink admission. On Windows,
+    // `canonicalize` adds the verbatim (`\\?\`) prefix; mixing that spelling with
+    // the caller's ordinary absolute target makes two equivalent descendants fail
+    // `strip_prefix` before either path can be admitted.
+    AdmittedArtifactRoot::admit(workspace_root, target_root)?;
     println!(
         "prepared disposable artifact root: {}",
         target_root.display()
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::prepare_artifact_root;
+
+    #[test]
+    fn prepare_preserves_one_path_spelling_through_root_admission() {
+        let workspace = std::env::temp_dir().join(format!(
+            "store-artifact-prepare-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&workspace).unwrap();
+        let target = workspace.join("disposable-target");
+
+        prepare_artifact_root(&workspace, &target).unwrap();
+
+        assert!(target
+            .join(crate::artifact_lifecycle::DISPOSABLE_ARTIFACT_ROOT_MARKER)
+            .is_file());
+        std::fs::remove_dir_all(workspace).unwrap();
+    }
 }
 
 pub(super) fn inspect_artifacts(

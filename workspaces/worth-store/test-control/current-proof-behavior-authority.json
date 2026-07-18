@@ -46,6 +46,10 @@
       "behavior_fingerprint": "sha256:6899f4c814f71ad05152b8d11d00345a6b3a342b71bd7d5832317271cc7a6b0e"
     },
     {
+      "stable_case_id": "store-proof-control::src/cli/artifact_commands/prepare_preserves_one_path_spelling_through_root_admission::artifact_commands::prepare_preserves_one_path_spelling_through_root_admission",
+      "behavior_fingerprint": "sha256:5dc12a4bc4bacbc7242778956799fd5ee04db01aa3c417111cf7632f3f4af308"
+    },
+    {
       "stable_case_id": "store-proof-control::src/closeout/c2_readiness/doctest_compile_fail_763e970f23168bbb_1::c2_readiness::doctest_compile_fail_763e970f23168bbb_1",
       "behavior_fingerprint": "doctest_compile_fail_763e970f23168bbb_1"
     },

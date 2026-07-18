@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "test_topology_digest": "d9cc2fb7b4a2b5126c7b97e2bce3e10871570901442a7788a3b58fbc135a1c55",
+  "test_topology_digest": "bc9375bf8c22e5804d941cc1338d6559a9b4121ff1be1a0982b5156c66a7f7f3",
   "environment": {
     "rustc_identity": "rustc 1.94.0 (4a4ef493e 2026-03-02)\nbinary: rustc\ncommit-hash: 4a4ef493e3a1488c6e321570238084b38948f6db\ncommit-date: 2026-03-02\nhost: x86_64-pc-windows-msvc\nrelease: 1.94.0\nLLVM version: 21.1.8",
     "cargo_identity": "cargo 1.94.0 (85eff7c80 2026-01-15)\nrelease: 1.94.0\ncommit-hash: 85eff7c80277b57f78b11e28d14154ab12fcf643\ncommit-date: 2026-01-15\nhost: x86_64-pc-windows-msvc\nlibgit2: 1.9.2 (sys:0.20.3 vendored)\nlibcurl: 8.17.0-DEV (sys:0.4.84+curl-8.17.0 vendored ssl:Schannel)\nos: Windows 10.0.26200 (Windows 11 Core) [64-bit]",
@@ -26,6 +26,7 @@
         "cli::arguments::tests::closeout_stages_and_iteration_target_roots_are_explicit",
         "cli::arguments::tests::documented_seed_and_backend_options_are_plan_bound",
         "cli::arguments::tests::malformed_seed_is_rejected_before_selection",
+        "cli::artifact_commands::tests::prepare_preserves_one_path_spelling_through_root_admission",
         "closeout::tests::developer_envelope_rejects_fake_speed_and_same_process_crash",
         "closeout::tests::mutation_report_requires_every_named_defect_and_unrelated_control",
         "closeout::tests::retrospective_policy_preserves_missing_history_as_c2_quarantine",
