@@ -1,5 +1,6 @@
 mod arguments;
 mod artifact_commands;
+mod closeout_assembly;
 mod closeout_commands;
 mod presentation;
 mod repository_validation;
@@ -74,7 +75,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
             closeout_commands::iteration(&workspace_root, Path::new(&manifest_path))
         }
         CliCommand::CloseoutAssemble { manifest_path } => {
-            closeout_commands::assemble(&workspace_root, Path::new(&manifest_path))
+            closeout_assembly::assemble(&workspace_root, Path::new(&manifest_path))
         }
         CliCommand::Proof {
             request,

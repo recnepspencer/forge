@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::evidence::sha256_serialized;
 use crate::execution::ExecutedProofRun;
+use crate::selection::RepositoryIdentity;
 use crate::selection::SelectedProofExecutionPlan;
 use crate::ValidatedProofInventory;
 
@@ -74,6 +75,8 @@ impl CiPartitionEvidence {
         run: &ExecutedProofRun,
         shard_plan: Option<CiShardPlan>,
     ) -> Result<Self, String> {
+        plan.validate_integrity()?;
+        run.validate_integrity(plan)?;
         let cache_identity = CiCacheIdentity::from_plan(workspace_root, partition, plan)?;
         let source_identity = source_identity(plan)?;
         let external_observer_authorities = run.observed_cost.observer_authorities.clone();
@@ -366,10 +369,16 @@ impl CiCertificationAggregate {
 }
 
 fn source_identity(plan: &SelectedProofExecutionPlan) -> Result<String, String> {
+    repository_source_identity(&plan.repository)
+}
+
+pub(crate) fn repository_source_identity(
+    repository: &RepositoryIdentity,
+) -> Result<String, String> {
     sha256_serialized(&(
         "worth-store-ci-source-v1",
-        &plan.repository.source_revision,
-        &plan.repository.source_tree_digest,
-        &plan.repository.lockfile_digest,
+        &repository.source_revision,
+        &repository.source_tree_digest,
+        &repository.lockfile_digest,
     ))
 }

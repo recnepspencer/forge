@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 use crate::discovery::TestTargetIdentity;
 use crate::selection::{
-    ProofExecutionUnit, ProofFailurePolicy, RepositoryIdentity, SelectedProofExecutionPlan,
-    StoreProofMode, StoreProofRequest, StoreProofSelection, StructuralPreflightReference,
+    ProofExecutionUnit, RepositoryIdentity, SelectedProofExecutionPlan, StoreProofMode,
+    StoreProofRequest, StoreProofSelection, StructuralPreflightReference,
 };
 
 use super::{
@@ -29,7 +29,7 @@ impl ScratchPackage {
         std::fs::create_dir_all(root.join("src")).unwrap();
         std::fs::write(
             root.join("Cargo.toml"),
-            "[package]\nname='runner-probe'\nversion='0.0.0'\nedition='2021'\n",
+            "[package]\nname='runner-probe'\nversion='0.0.0'\nedition='2021'\n\n[profile.ci-test]\ninherits='test'\n",
         )
         .unwrap();
         std::fs::write(
@@ -119,15 +119,15 @@ fn timeout_terminates_the_process_tree_and_retains_the_attempt() {
 #[test]
 fn failed_unit_does_not_erase_independent_success_or_run_evidence() {
     let scratch = ScratchPackage::new();
-    let mut proof_plan = plan(
+    let proof_plan = plan_for_mode(
         &scratch.root,
         [
-            unit(&scratch.root, "always_fails"),
-            unit(&scratch.root, "passes"),
+            unit_for_mode(&scratch.root, "always_fails", StoreProofMode::Ci),
+            unit_for_mode(&scratch.root, "passes", StoreProofMode::Ci),
         ],
+        StoreProofMode::Ci,
     );
-    proof_plan.failure_policy = ProofFailurePolicy::ContinueIndependent;
-    let run = execute_validated(&scratch.root, &proof_plan, preflight()).unwrap();
+    let run = execute_validated(&scratch.root, &proof_plan, preflight_for(&proof_plan)).unwrap();
     assert_eq!(run.executed_units, 2);
     assert_eq!(run.passed_units, 1);
     assert_eq!(run.failed_units, 1);
@@ -139,19 +139,22 @@ fn failed_unit_does_not_erase_independent_success_or_run_evidence() {
 #[test]
 fn failed_dependency_skips_only_its_dependents() {
     let scratch = ScratchPackage::new();
-    let failed = unit(&scratch.root, "always_fails");
-    let mut dependent = unit(&scratch.root, "passes");
+    let failed = unit_for_mode(&scratch.root, "always_fails", StoreProofMode::Ci);
+    let mut dependent = unit_for_mode(&scratch.root, "passes", StoreProofMode::Ci);
     dependent.dependencies.push(failed.identity());
-    let mut independent = unit(&scratch.root, "fails_once");
+    let mut independent = unit_for_mode(&scratch.root, "fails_once", StoreProofMode::Ci);
     let marker = scratch.root.join("independent-marker");
     std::fs::write(&marker, b"already admitted").unwrap();
     independent.resources.environment.insert(
         "RUNNER_FLAKE_MARKER".to_owned(),
         marker.to_string_lossy().to_string(),
     );
-    let mut proof_plan = plan(&scratch.root, [failed, dependent, independent]);
-    proof_plan.failure_policy = ProofFailurePolicy::ContinueIndependent;
-    let run = execute_validated(&scratch.root, &proof_plan, preflight()).unwrap();
+    let proof_plan = plan_for_mode(
+        &scratch.root,
+        [failed, dependent, independent],
+        StoreProofMode::Ci,
+    );
+    let run = execute_validated(&scratch.root, &proof_plan, preflight_for(&proof_plan)).unwrap();
     assert_eq!(run.executed_units, 2);
     assert_eq!(run.passed_units, 1);
     assert_eq!(run.failed_units, 1);
@@ -163,6 +166,10 @@ fn failed_dependency_skips_only_its_dependents() {
 }
 
 fn unit(root: &Path, filter: &str) -> ProofExecutionUnit {
+    unit_for_mode(root, filter, StoreProofMode::Smoke)
+}
+
+fn unit_for_mode(root: &Path, filter: &str, mode: StoreProofMode) -> ProofExecutionUnit {
     let target = TestTargetIdentity {
         identity: "runner-probe::lib::runner-probe".to_owned(),
         package: "runner-probe".to_owned(),
@@ -171,16 +178,24 @@ fn unit(root: &Path, filter: &str) -> ProofExecutionUnit {
         source_path: "src/lib.rs".to_owned(),
         required_features: Vec::new(),
     };
-    let request = request();
+    let request = request(mode);
     let mut unit = ProofExecutionUnit::from_target(&target, &request, Some(filter.to_owned()));
     unit.bind_workspace(root, &request);
     unit
 }
 
 fn plan<const N: usize>(root: &Path, units: [ProofExecutionUnit; N]) -> SelectedProofExecutionPlan {
+    plan_for_mode(root, units, StoreProofMode::Smoke)
+}
+
+fn plan_for_mode<const N: usize>(
+    root: &Path,
+    units: [ProofExecutionUnit; N],
+    mode: StoreProofMode,
+) -> SelectedProofExecutionPlan {
     SelectedProofExecutionPlan::lower(
         root,
-        request(),
+        request(mode),
         StoreProofSelection {
             included_products: vec!["store-ci:test-control".to_owned()],
             included_packages: vec!["runner-probe".to_owned()],
@@ -213,14 +228,21 @@ fn plan<const N: usize>(root: &Path, units: [ProofExecutionUnit; N]) -> Selected
     .unwrap()
 }
 
-fn request() -> StoreProofRequest {
-    StoreProofRequest::new(StoreProofMode::Smoke, None, None, None, None, false)
+fn request(mode: StoreProofMode) -> StoreProofRequest {
+    StoreProofRequest::new(mode, None, None, None, None, false)
 }
 
 fn preflight() -> ValidatedPreflight {
     ValidatedPreflight {
         evidence_identity: "preflight".to_owned(),
         bundle_path: "preflight.json".to_owned(),
+    }
+}
+
+fn preflight_for(plan: &SelectedProofExecutionPlan) -> ValidatedPreflight {
+    ValidatedPreflight {
+        evidence_identity: plan.structural_preflight.evidence_identity.clone(),
+        bundle_path: plan.structural_preflight.bundle_path.clone(),
     }
 }
 

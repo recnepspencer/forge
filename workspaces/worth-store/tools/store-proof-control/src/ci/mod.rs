@@ -7,6 +7,7 @@ mod partition;
 mod promotion;
 mod shard;
 
+pub(crate) use aggregate::repository_source_identity;
 pub use aggregate::{CiCertificationAggregate, CiPartitionEvidence, MissingCiProofPartition};
 pub use cache_identity::CiCacheIdentity;
 pub use compilation::{

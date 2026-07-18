@@ -282,16 +282,16 @@ pub struct SelectedProofExecutionPlan {
 }
 
 #[derive(Serialize)]
-struct PlanDigestBasis<'a> {
-    request: &'a StoreProofRequest,
-    repository: &'a RepositoryIdentity,
-    selection: &'a StoreProofSelection,
-    units: &'a [ProofExecutionUnit],
-    ci_shard_plan: &'a Option<crate::ci::CiShardPlan>,
-    maximum_concurrency: usize,
-    failure_policy: ProofFailurePolicy,
-    structural_preflight: &'a StructuralPreflightReference,
-    source_edit: &'a Option<super::ObservedSourceEditIdentity>,
+pub(super) struct PlanDigestBasis<'a> {
+    pub(super) request: &'a StoreProofRequest,
+    pub(super) repository: &'a RepositoryIdentity,
+    pub(super) selection: &'a StoreProofSelection,
+    pub(super) units: &'a [ProofExecutionUnit],
+    pub(super) ci_shard_plan: &'a Option<crate::ci::CiShardPlan>,
+    pub(super) maximum_concurrency: usize,
+    pub(super) failure_policy: ProofFailurePolicy,
+    pub(super) structural_preflight: &'a StructuralPreflightReference,
+    pub(super) source_edit: &'a Option<super::ObservedSourceEditIdentity>,
 }
 
 impl SelectedProofExecutionPlan {

@@ -27,14 +27,22 @@ fn mutation_report_requires_every_named_defect_and_unrelated_control() {
         .into_iter()
         .map(observation)
         .collect();
-    let report = ProofMutationSensitivityReport::certify(observations.clone()).unwrap();
+    let report =
+        ProofMutationSensitivityReport::certify("c".repeat(64), observations.clone()).unwrap();
     report.validate().unwrap();
     assert_eq!(report.observations().len(), 8);
+    assert!(
+        ProofMutationSensitivityReport::certify("d".repeat(64), observations.clone())
+            .unwrap_err()
+            .contains("preservation control")
+    );
 
     let missing = observations.into_iter().skip(1).collect();
-    assert!(ProofMutationSensitivityReport::certify(missing)
-        .unwrap_err()
-        .contains("incomplete"));
+    assert!(
+        ProofMutationSensitivityReport::certify("c".repeat(64), missing)
+            .unwrap_err()
+            .contains("incomplete")
+    );
 }
 
 #[test]
@@ -67,6 +75,18 @@ fn developer_envelope_rejects_fake_speed_and_same_process_crash() {
         DeveloperIterationEnvelope::certify(reference_profile(), same_process)
             .unwrap_err()
             .contains("fresh-process")
+    );
+
+    let mut foreign_source: Vec<_> = DeveloperEditCase::ALL
+        .into_iter()
+        .map(iteration_case)
+        .collect();
+    foreign_source[0].cold.source_revision = "9".repeat(40);
+    foreign_source[0].warm.source_revision = "9".repeat(40);
+    assert!(
+        DeveloperIterationEnvelope::certify(reference_profile(), foreign_source)
+            .unwrap_err()
+            .contains("different repository")
     );
 }
 
@@ -141,7 +161,13 @@ fn run_observation(
         product: product.to_owned(),
         plan_digest: "a".repeat(64),
         run_identity: "run".to_owned(),
+        run_evidence_identity: "f".repeat(64),
+        source_revision: "d".repeat(40),
         repository_source_tree_digest: "b".repeat(64),
+        lockfile_sha256: "e".repeat(64),
+        rustc_identity: "rustc 1.90.0".to_owned(),
+        operating_system: "windows".to_owned(),
+        architecture: "x86_64".to_owned(),
         target_root: target_root.clone(),
         elapsed_millis: 1_000,
         included_packages: vec!["worth-store-physical-format".to_owned()],
@@ -179,6 +205,7 @@ fn footprint(target_root: &str, file_count: u64) -> ObservedArtifactFootprint {
 fn reference_profile() -> ReferenceDevelopmentProfile {
     ReferenceDevelopmentProfile {
         operating_system: "windows".to_owned(),
+        architecture: "x86_64".to_owned(),
         filesystem: "ntfs".to_owned(),
         cpu: "reference-cpu".to_owned(),
         storage_class: "nvme".to_owned(),

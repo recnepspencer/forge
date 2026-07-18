@@ -1166,6 +1166,20 @@ remaining physical claim.
 - The closeout bundle contains plan digests, product verdicts, preservation
   ledger, mutation report, cold/warm cost evidence, dependency closures,
   artifact footprint, commands, profiles, and residual quarantines.
+- Closeout assembly re-derives the current proof inventory, owner closures,
+  suite topology, preservation verdict, and mutation matrix from their
+  production validators. Its manifest cannot substitute arbitrary files or a
+  previously serialized verdict for those authorities.
+- CI closeout is certified from raw source-bound partition bundles. A prebuilt
+  aggregate is an output for inspection, never an assembly input.
+- Each developer-iteration specimen is one tracked source edit against `HEAD`.
+  The edited file must be the only dirty Store source, its original bytes must
+  match the committed worktree representation, and the cold/warm plan and run
+  content seals must validate before cost evidence is admitted.
+- Assembly runs only from a clean Store source tree and requires the current
+  revision, lockfile, toolchain, OS, and architecture to agree with the five
+  iteration specimens. CI partitions must agree with the current revision,
+  clean source-tree digest, and lockfile through one source identity.
 - `C2TestArchitectureReadiness` exposes the validated proof inventory,
   quarantined-claim inventory, production-subject map, and stable command
   contracts. It grants no physical runtime authority.
@@ -1204,6 +1218,33 @@ remaining physical claim.
 - Reference-profile timing is recorded alongside portable structural bounds so
   different machines can interpret the result honestly.
 - Residual fake physical claims are handed to C.2 as quarantined audit inputs.
+
+**Closeout DX contract**
+
+The assembly manifest names observations that cannot be re-derived locally; it
+does not name files that pretend to be current repository verdicts:
+
+```json
+{
+  "schema_version": 2,
+  "developer_iteration_manifest": ".store-proof/evidence/closeout/inputs/iteration.json",
+  "ci_evidence_root": "C:/evidence/worth-store-ci-partitions",
+  "artifact_inventory": ".store-proof/evidence/artifacts/inventories/<identity>.json",
+  "artifact_cleanup_plan": ".store-proof/evidence/artifacts/plans/<identity>.json",
+  "stable_commands": [
+    {
+      "product": "store-smoke",
+      "command": ["cargo", "store-smoke"],
+      "selection_contract": "bounded plumbing plus named behavioral specimens"
+    }
+  ]
+}
+```
+
+`cargo store-closeout assemble --manifest <path>` re-runs preservation and the
+controlled-defect matrix, derives canonical topology references, certifies the
+raw CI lanes, reconstructs the five iteration cases from sealed plans/runs,
+and only then issues the closeout bundle and C.2 readiness handoff.
 
 **Retrospective historical-evidence decision**
 

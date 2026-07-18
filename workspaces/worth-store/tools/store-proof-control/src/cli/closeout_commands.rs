@@ -2,15 +2,11 @@ use std::path::{Component, Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::artifact_lifecycle::{BuildArtifactCleanupPlan, BuildArtifactInventory};
-use crate::ci::CiCertificationAggregate;
 use crate::classification::{validate, ClassifiedInventory};
 use crate::closeout::{
-    execute_mutation_matrix, C2TestArchitectureReadiness, CloseoutArtifactReference,
-    DeveloperIterationCaseEvidence, DeveloperIterationEnvelope, IterationRunObservation,
-    PreservationAuthorityDigests, PreservationCheckedProofRun, ProofMutationSensitivityReport,
-    ReferenceDevelopmentProfile, SourceEditReceipt, StableProofCommand,
-    TestArchitectureCloseoutBundle, TestArchitectureCloseoutInputs,
+    execute_mutation_matrix, CloseoutArtifactReference, DeveloperIterationCaseEvidence,
+    DeveloperIterationEnvelope, IterationRunObservation, PreservationAuthorityDigests,
+    PreservationCheckedProofRun, ReferenceDevelopmentProfile, SourceEditReceipt,
 };
 use crate::evidence::{read_json, sha256_file, sha256_serialized, write_immutable_json};
 use crate::execution::ExecutedProofRun;
@@ -50,6 +46,19 @@ pub(super) fn mutations(workspace_root: &Path) -> Result<(), String> {
 }
 
 pub(super) fn iteration(workspace_root: &Path, manifest_path: &Path) -> Result<(), String> {
+    let envelope = build_iteration(workspace_root, manifest_path)?;
+    let path = closeout_root(workspace_root)
+        .join("developer-iteration")
+        .join(format!("{}.json", envelope.evidence_identity()));
+    write_immutable_json(&path, &envelope)?;
+    println!("developer iteration envelope: {}", path.display());
+    Ok(())
+}
+
+pub(super) fn build_iteration(
+    workspace_root: &Path,
+    manifest_path: &Path,
+) -> Result<DeveloperIterationEnvelope, String> {
     let manifest_path = input_path(workspace_root, manifest_path)?;
     let manifest: IterationEvidenceManifest = read_json(&manifest_path)?;
     manifest.validate()?;
@@ -74,61 +83,10 @@ pub(super) fn iteration(workspace_root: &Path, manifest_path: &Path) -> Result<(
             warm: IterationRunObservation::from_evidence(&warm_plan, &warm_run)?,
         });
     }
-    let envelope = DeveloperIterationEnvelope::certify(manifest.reference_profile, cases)?;
-    let path = closeout_root(workspace_root)
-        .join("developer-iteration")
-        .join(format!("{}.json", envelope.evidence_identity()));
-    write_immutable_json(&path, &envelope)?;
-    println!("developer iteration envelope: {}", path.display());
-    Ok(())
+    DeveloperIterationEnvelope::certify(manifest.reference_profile, cases)
 }
 
-pub(super) fn assemble(workspace_root: &Path, manifest_path: &Path) -> Result<(), String> {
-    let manifest_path = input_path(workspace_root, manifest_path)?;
-    let manifest: CloseoutAssemblyManifest = read_json(&manifest_path)?;
-    manifest.validate()?;
-    let proof_inventory = artifact_reference(workspace_root, &manifest.proof_inventory)?;
-    let owner_build_closures = artifact_reference(workspace_root, &manifest.owner_build_closures)?;
-    let scenario_suite_inventory =
-        artifact_reference(workspace_root, &manifest.scenario_suite_inventory)?;
-    let preservation: PreservationCheckedProofRun =
-        read_manifest_input(workspace_root, &manifest.preservation)?;
-    let mutation_sensitivity: ProofMutationSensitivityReport =
-        read_manifest_input(workspace_root, &manifest.mutation_sensitivity)?;
-    let developer_iteration: DeveloperIterationEnvelope =
-        read_manifest_input(workspace_root, &manifest.developer_iteration)?;
-    let ci: CiCertificationAggregate = read_manifest_input(workspace_root, &manifest.ci_aggregate)?;
-    let artifact_inventory: BuildArtifactInventory =
-        read_manifest_input(workspace_root, &manifest.artifact_inventory)?;
-    let artifact_cleanup_plan: BuildArtifactCleanupPlan =
-        read_manifest_input(workspace_root, &manifest.artifact_cleanup_plan)?;
-    let bundle = TestArchitectureCloseoutBundle::certify(TestArchitectureCloseoutInputs {
-        proof_inventory,
-        owner_build_closures,
-        scenario_suite_inventory,
-        preservation,
-        mutation_sensitivity,
-        developer_iteration,
-        ci,
-        artifact_inventory,
-        artifact_cleanup_plan,
-        stable_commands: manifest.stable_commands,
-    })?;
-    let readiness = C2TestArchitectureReadiness::issue(&bundle)?;
-    let bundle_path = closeout_root(workspace_root)
-        .join("bundles")
-        .join(format!("{}.json", bundle.evidence_identity()));
-    let readiness_path = closeout_root(workspace_root)
-        .join("c2-readiness")
-        .join(format!("{}.json", readiness.readiness_identity()));
-    write_immutable_json(&bundle_path, &bundle)?;
-    write_immutable_json(&readiness_path, &readiness)?;
-    println!("C1 closeout bundle: {}", bundle_path.display());
-    println!("sealed C2 readiness: {}", readiness_path.display());
-    Ok(())
-}
-
-fn build_preservation(
+pub(super) fn build_preservation(
     workspace_root: &Path,
 ) -> Result<
     (
@@ -185,7 +143,7 @@ fn build_preservation(
     Ok((current, report, inventory_path, report_path))
 }
 
-fn artifact_reference(
+pub(super) fn artifact_reference(
     workspace_root: &Path,
     raw_path: &str,
 ) -> Result<CloseoutArtifactReference, String> {
@@ -205,14 +163,14 @@ fn artifact_reference(
     })
 }
 
-fn read_manifest_input<T: serde::de::DeserializeOwned>(
+pub(super) fn read_manifest_input<T: serde::de::DeserializeOwned>(
     workspace_root: &Path,
     path: &str,
 ) -> Result<T, String> {
     read_json(&input_path(workspace_root, Path::new(path))?)
 }
 
-fn input_path(workspace_root: &Path, path: &Path) -> Result<PathBuf, String> {
+pub(super) fn input_path(workspace_root: &Path, path: &Path) -> Result<PathBuf, String> {
     if path
         .components()
         .any(|part| matches!(part, Component::ParentDir | Component::CurDir))
@@ -239,7 +197,7 @@ fn input_path(workspace_root: &Path, path: &Path) -> Result<PathBuf, String> {
         .map_err(|error| format!("could not resolve {}: {error}", path.display()))
 }
 
-fn closeout_root(workspace_root: &Path) -> PathBuf {
+pub(super) fn closeout_root(workspace_root: &Path) -> PathBuf {
     workspace_root.join(".store-proof/evidence/closeout")
 }
 
@@ -267,33 +225,6 @@ impl IterationEvidenceManifest {
     fn validate(&self) -> Result<(), String> {
         if self.schema_version != 1 || self.cases.is_empty() {
             return Err("iteration manifest has an unsupported schema or no cases".to_owned());
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct CloseoutAssemblyManifest {
-    schema_version: u32,
-    proof_inventory: String,
-    owner_build_closures: String,
-    scenario_suite_inventory: String,
-    preservation: String,
-    mutation_sensitivity: String,
-    developer_iteration: String,
-    ci_aggregate: String,
-    artifact_inventory: String,
-    artifact_cleanup_plan: String,
-    stable_commands: Vec<StableProofCommand>,
-}
-
-impl CloseoutAssemblyManifest {
-    fn validate(&self) -> Result<(), String> {
-        if self.schema_version != 1 {
-            return Err(format!(
-                "unsupported closeout assembly manifest schema: {}",
-                self.schema_version
-            ));
         }
         Ok(())
     }

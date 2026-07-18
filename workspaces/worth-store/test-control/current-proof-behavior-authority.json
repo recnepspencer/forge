@@ -55,11 +55,11 @@
     },
     {
       "stable_case_id": "store-proof-control::src/closeout/tests/developer_envelope_rejects_fake_speed_and_same_process_crash::tests::developer_envelope_rejects_fake_speed_and_same_process_crash",
-      "behavior_fingerprint": "sha256:3c08e30f3eb064d269d20319044ea58fc7b440582db885da2a24dbc8ebb96cfa"
+      "behavior_fingerprint": "sha256:18178a992ae316586d416ad610ae3b13820f9ec72d5d884332c1f8bb7417cd05"
     },
     {
       "stable_case_id": "store-proof-control::src/closeout/tests/mutation_report_requires_every_named_defect_and_unrelated_control::tests::mutation_report_requires_every_named_defect_and_unrelated_control",
-      "behavior_fingerprint": "sha256:84c0650ef8bd524f9c71239e9acb15009229b72bed79af8a10b758d1c1a9706a"
+      "behavior_fingerprint": "sha256:066ddce383c550e306fa5543be5b69e4d27975a6b28729aee62b698144d7ff87"
     },
     {
       "stable_case_id": "store-proof-control::src/closeout/tests/retrospective_policy_preserves_missing_history_as_c2_quarantine::tests::retrospective_policy_preserves_missing_history_as_c2_quarantine",
@@ -107,11 +107,11 @@
     },
     {
       "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/failed_dependency_skips_only_its_dependents::command_attempt_tests::failed_dependency_skips_only_its_dependents",
-      "behavior_fingerprint": "sha256:88553ee99b08d2436a27df3d4232bcb0d5907816b6df0475b14f3b94af2f7aab"
+      "behavior_fingerprint": "sha256:2a64f4082f953bd28b017f22b311ef311787d9f3fcb5488dff0b03571b73d0aa"
     },
     {
       "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/failed_unit_does_not_erase_independent_success_or_run_evidence::command_attempt_tests::failed_unit_does_not_erase_independent_success_or_run_evidence",
-      "behavior_fingerprint": "sha256:b41e8d429f10d458c2771d9adcefd6b18e0e2445071ebbb52f1190b9c727599b"
+      "behavior_fingerprint": "sha256:3563f279bc71cf182b27cee9b240b72cd95ed1d17670bd449a894aa6ee39941e"
     },
     {
       "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/timeout_terminates_the_process_tree_and_retains_the_attempt::command_attempt_tests::timeout_terminates_the_process_tree_and_retains_the_attempt",
@@ -130,6 +130,10 @@
       "behavior_fingerprint": "sha256:7487ba38ad4260c6773f9006bc1ad7418cdfc9ed80063b9f326229d45bf0a72c"
     },
     {
+      "stable_case_id": "store-proof-control::src/execution/run_integrity/plan_and_run_content_changes_invalidate_their_seals::run_integrity::plan_and_run_content_changes_invalidate_their_seals",
+      "behavior_fingerprint": "sha256:07cf6a546e103771bce30d966364e5fd4ee6a5f2c69e67b62dce84e9e85b95c0"
+    },
+    {
       "stable_case_id": "store-proof-control::src/execution/schedule/malformed_dependency_graph_denies_before_execution::schedule::malformed_dependency_graph_denies_before_execution",
       "behavior_fingerprint": "sha256:9e0b152a48c9554e217ea1cfa5924bbe945b93742081bd5a3709426a59dc2f05"
     },
@@ -140,6 +144,14 @@
     {
       "stable_case_id": "store-proof-control::src/selection/mod/doctest_selection_cannot_lower_a_synthetic_zero_match_filter::mod::doctest_selection_cannot_lower_a_synthetic_zero_match_filter",
       "behavior_fingerprint": "sha256:80801e0d88610d3abaa29da7b7823519453c4e3b1a104768a0a0e93c20e2532f"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/selection/source_edit/observation_rejects_a_forged_original_hash::source_edit::observation_rejects_a_forged_original_hash",
+      "behavior_fingerprint": "sha256:0e760d5b3a12e2857b6d357304ea4e0106115120a77254fae1f0bc3b78af0314"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/selection/source_edit/observation_requires_one_tracked_edit_with_a_head_backed_original::source_edit::observation_requires_one_tracked_edit_with_a_head_backed_original",
+      "behavior_fingerprint": "sha256:cf8f3d7090a9f2d15594395aa20ce2cfe333299bd9838dc30f2e2e5914dd5a9f"
     },
     {
       "stable_case_id": "store-proof-control::src/structural_preflight/integrity_tests/identical_commands_launch_once_but_admit_each_predicate_tool_identity::integrity_tests::identical_commands_launch_once_but_admit_each_predicate_tool_identity",

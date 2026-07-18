@@ -63,7 +63,13 @@ pub struct IterationRunObservation {
     pub product: String,
     pub plan_digest: String,
     pub run_identity: String,
+    pub run_evidence_identity: String,
+    pub source_revision: String,
     pub repository_source_tree_digest: String,
+    pub lockfile_sha256: String,
+    pub rustc_identity: String,
+    pub operating_system: String,
+    pub architecture: String,
     pub target_root: String,
     pub elapsed_millis: u128,
     pub included_packages: Vec<String>,
@@ -151,6 +157,8 @@ impl IterationRunObservation {
         plan: &SelectedProofExecutionPlan,
         run: &ExecutedProofRun,
     ) -> Result<Self, String> {
+        plan.validate_integrity()?;
+        run.validate_integrity(plan)?;
         validate_run(plan, run)?;
         let target_cost = run
             .observed_cost
@@ -164,7 +172,13 @@ impl IterationRunObservation {
             product: plan.product.clone(),
             plan_digest: plan.plan_digest.clone(),
             run_identity: run.run_identity.clone(),
+            run_evidence_identity: run.evidence_identity().to_owned(),
+            source_revision: plan.repository.source_revision.clone(),
             repository_source_tree_digest: plan.repository.source_tree_digest.clone(),
+            lockfile_sha256: plan.repository.lockfile_digest.clone(),
+            rustc_identity: plan.repository.rustc_identity.clone(),
+            operating_system: plan.repository.operating_system.clone(),
+            architecture: plan.repository.architecture.clone(),
             target_root: target_cost.target_root.clone(),
             elapsed_millis: wall_elapsed(run),
             included_packages: plan.selection.included_packages.clone(),
@@ -188,7 +202,13 @@ impl IterationRunObservation {
         if !case.admits_product(&self.product)
             || !is_sha256(&self.plan_digest)
             || self.run_identity.trim().is_empty()
+            || !is_sha256(&self.run_evidence_identity)
+            || !is_revision(&self.source_revision)
             || !is_sha256(&self.repository_source_tree_digest)
+            || !is_sha256(&self.lockfile_sha256)
+            || !self.rustc_identity.contains("rustc")
+            || self.operating_system.trim().is_empty()
+            || self.architecture.trim().is_empty()
             || self.target_root.trim().is_empty()
             || self.elapsed_millis == 0
             || self.included_packages.is_empty()
@@ -245,7 +265,12 @@ impl DeveloperIterationCaseEvidence {
         self.cold.validate_common(self.edit.case)?;
         self.warm.validate_common(self.edit.case)?;
         if self.cold.product != self.warm.product
+            || self.cold.source_revision != self.warm.source_revision
             || self.cold.repository_source_tree_digest != self.warm.repository_source_tree_digest
+            || self.cold.lockfile_sha256 != self.warm.lockfile_sha256
+            || self.cold.rustc_identity != self.warm.rustc_identity
+            || self.cold.operating_system != self.warm.operating_system
+            || self.cold.architecture != self.warm.architecture
             || self.cold.target_root != self.warm.target_root
             || !clean_artifact_root(&self.cold.before)
             || self.warm.before.file_count == 0
@@ -329,4 +354,8 @@ fn wall_elapsed(run: &ExecutedProofRun) -> u128 {
 
 fn is_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn is_revision(value: &str) -> bool {
+    matches!(value.len(), 40 | 64) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }

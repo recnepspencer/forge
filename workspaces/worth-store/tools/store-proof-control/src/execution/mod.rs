@@ -21,6 +21,7 @@ mod formal_evidence;
 mod formal_evidence_tests;
 mod observation;
 mod process_evidence;
+mod run_integrity;
 mod schedule;
 mod ui_evidence;
 
@@ -41,6 +42,8 @@ pub(crate) fn observe_external_request(request_path: &Path) -> Result<(), String
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutedProofRun {
+    schema_version: u32,
+    evidence_identity: String,
     pub plan_digest: String,
     pub schedule: ProofExecutionSchedule,
     pub run_identity: String,
@@ -184,7 +187,9 @@ fn execute_validated(
         .iter()
         .find(|verdict| verdict.behavioral_verdict != "passed")
         .map(|verdict| verdict.unit_identity.clone());
-    Ok(ExecutedProofRun {
+    let mut run = ExecutedProofRun {
+        schema_version: 1,
+        evidence_identity: String::new(),
         plan_digest: plan.plan_digest.clone(),
         schedule,
         run_identity,
@@ -201,7 +206,10 @@ fn execute_validated(
         observed_cost,
         structural_preflight_evidence_identity: preflight.evidence_identity,
         structural_preflight_bundle_path: preflight.bundle_path,
-    })
+    };
+    run.seal()?;
+    run.validate_integrity(plan)?;
+    Ok(run)
 }
 
 fn classify_skip(

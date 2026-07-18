@@ -50,6 +50,7 @@ pub enum InterpretableProductPosture {
 pub struct ProofMutationSensitivityReport {
     schema_version: u32,
     evidence_identity: String,
+    control_evidence_identity: String,
     observations: Vec<ControlledDefectObservation>,
 }
 
@@ -106,11 +107,15 @@ impl ControlledDefectObservation {
 }
 
 impl ProofMutationSensitivityReport {
-    pub fn certify(mut observations: Vec<ControlledDefectObservation>) -> Result<Self, String> {
+    pub fn certify(
+        control_evidence_identity: String,
+        mut observations: Vec<ControlledDefectObservation>,
+    ) -> Result<Self, String> {
         observations.sort_by_key(|observation| observation.defect);
         let mut report = Self {
             schema_version: 1,
             evidence_identity: String::new(),
+            control_evidence_identity,
             observations,
         };
         report.validate_surface()?;
@@ -136,12 +141,21 @@ impl ProofMutationSensitivityReport {
         &self.observations
     }
 
+    pub fn control_evidence_identity(&self) -> &str {
+        &self.control_evidence_identity
+    }
+
     fn validate_surface(&self) -> Result<(), String> {
         if self.schema_version != 1 {
             return Err(format!(
                 "unsupported mutation sensitivity schema: {}",
                 self.schema_version
             ));
+        }
+        if !is_sha256(&self.control_evidence_identity) {
+            return Err(
+                "mutation sensitivity matrix has no preservation control identity".to_owned(),
+            );
         }
         let observed: BTreeSet<_> = self
             .observations
@@ -156,6 +170,16 @@ impl ProofMutationSensitivityReport {
         }
         for observation in &self.observations {
             observation.validate()?;
+            if !observation
+                .unrelated_products
+                .iter()
+                .any(|product| product.evidence_identity == self.control_evidence_identity)
+            {
+                return Err(format!(
+                    "controlled defect {:?} is not localized against the declared preservation control",
+                    observation.defect
+                ));
+            }
         }
         Ok(())
     }

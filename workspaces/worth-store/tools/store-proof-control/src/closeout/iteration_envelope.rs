@@ -9,6 +9,7 @@ use super::{DeveloperEditCase, DeveloperIterationCaseEvidence};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ReferenceDevelopmentProfile {
     pub operating_system: String,
+    pub architecture: String,
     pub filesystem: String,
     pub cpu: String,
     pub storage_class: String,
@@ -82,6 +83,19 @@ impl DeveloperIterationEnvelope {
         }
         for case in &self.cases {
             case.validate()?;
+            for observation in [&case.cold, &case.warm] {
+                if observation.operating_system != self.reference_profile.operating_system
+                    || observation.architecture != self.reference_profile.architecture
+                    || observation.rustc_identity != self.reference_profile.rust_toolchain
+                    || observation.source_revision != self.reference_profile.source_revision
+                    || observation.lockfile_sha256 != self.reference_profile.lockfile_sha256
+                {
+                    return Err(format!(
+                        "developer iteration case {:?} belongs to a different repository, toolchain, or host profile",
+                        case.edit.case
+                    ));
+                }
+            }
         }
         Ok(())
     }
@@ -96,6 +110,7 @@ impl DeveloperIterationEnvelope {
 impl ReferenceDevelopmentProfile {
     fn validate(&self) -> Result<(), String> {
         if self.operating_system != "windows"
+            || self.architecture.trim().is_empty()
             || self.filesystem.trim().is_empty()
             || self.cpu.trim().is_empty()
             || self.storage_class.trim().is_empty()

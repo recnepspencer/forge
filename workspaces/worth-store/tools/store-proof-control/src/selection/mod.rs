@@ -4,6 +4,7 @@ mod execution_contract;
 mod execution_plan;
 mod feature_lane;
 mod owner_execution;
+mod plan_integrity;
 mod plan_inventory;
 mod process_model;
 mod product_selection;
@@ -29,6 +30,7 @@ pub use feature_lane::StoreFeatureLane;
 pub use process_model::ProofProcessModel;
 pub use proof_mode::{StoreProofMode, StoreProofRequest};
 pub use proof_unavailable::ProofProductUnavailable;
+pub(crate) use repository_identity::observe_repository_identity;
 pub use repository_identity::RepositoryIdentity;
 pub use source_edit::{ObservedSourceEditIdentity, RequestedSourceEdit};
 

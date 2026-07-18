@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::artifact_lifecycle::{BuildArtifactCleanupPlan, BuildArtifactInventory};
 use crate::ci::CiCertificationAggregate;
-use crate::evidence::sha256_serialized;
+use crate::evidence::{sha256_bytes, sha256_serialized};
+use crate::selection::RepositoryIdentity;
 
 use super::command_contract::validate_commands;
 use super::{
@@ -14,6 +15,7 @@ use super::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestArchitectureCloseoutInputs {
+    pub repository: RepositoryIdentity,
     pub proof_inventory: CloseoutArtifactReference,
     pub owner_build_closures: CloseoutArtifactReference,
     pub scenario_suite_inventory: CloseoutArtifactReference,
@@ -30,6 +32,7 @@ pub struct TestArchitectureCloseoutInputs {
 pub struct TestArchitectureCloseoutBundle {
     schema_version: u32,
     evidence_identity: String,
+    repository: RepositoryIdentity,
     proof_inventory: CloseoutArtifactReference,
     owner_build_closures: CloseoutArtifactReference,
     scenario_suite_inventory: CloseoutArtifactReference,
@@ -69,10 +72,19 @@ impl TestArchitectureCloseoutBundle {
         inputs.scenario_suite_inventory.validate()?;
         inputs.preservation.validate()?;
         inputs.mutation_sensitivity.validate()?;
+        if inputs.mutation_sensitivity.control_evidence_identity()
+            != inputs.preservation.evidence_identity()
+        {
+            return Err(
+                "mutation sensitivity was not executed against this preservation authority"
+                    .to_owned(),
+            );
+        }
         inputs.developer_iteration.validate()?;
         inputs.ci.validate()?;
         inputs.artifact_inventory.validate_integrity()?;
         inputs.artifact_cleanup_plan.validate_integrity()?;
+        validate_repository_conjunction(&inputs)?;
         if inputs.artifact_cleanup_plan.inventory_identity()
             != inputs.artifact_inventory.inventory_identity()
         {
@@ -109,6 +121,7 @@ impl TestArchitectureCloseoutBundle {
         let mut bundle = Self {
             schema_version: 1,
             evidence_identity: String::new(),
+            repository: inputs.repository,
             proof_inventory: inputs.proof_inventory,
             owner_build_closures: inputs.owner_build_closures,
             scenario_suite_inventory: inputs.scenario_suite_inventory,
@@ -177,10 +190,19 @@ impl TestArchitectureCloseoutBundle {
         self.scenario_suite_inventory.validate()?;
         self.preservation.validate()?;
         self.mutation_sensitivity.validate()?;
+        if self.mutation_sensitivity.control_evidence_identity()
+            != self.preservation.evidence_identity()
+        {
+            return Err(
+                "closeout mutation sensitivity belongs to another preservation authority"
+                    .to_owned(),
+            );
+        }
         self.developer_iteration.validate()?;
         self.ci.validate()?;
         self.artifact_inventory.validate_integrity()?;
         self.artifact_cleanup_plan.validate_integrity()?;
+        validate_repository_evidence(&self.repository, &self.developer_iteration, &self.ci)?;
         validate_commands(&self.stable_commands)?;
         if self.artifact_cleanup_plan.inventory_identity()
             != self.artifact_inventory.inventory_identity()
@@ -274,6 +296,34 @@ impl TestArchitectureCloseoutBundle {
     pub(super) fn artifact_lifecycle_identity(&self) -> &str {
         self.artifact_cleanup_plan.plan_identity()
     }
+}
+
+fn validate_repository_conjunction(inputs: &TestArchitectureCloseoutInputs) -> Result<(), String> {
+    validate_repository_evidence(&inputs.repository, &inputs.developer_iteration, &inputs.ci)
+}
+
+fn validate_repository_evidence(
+    repository: &RepositoryIdentity,
+    iteration: &DeveloperIterationEnvelope,
+    ci: &CiCertificationAggregate,
+) -> Result<(), String> {
+    let profile = iteration.reference_profile();
+    if repository.source_tree_digest != sha256_bytes(&[])
+        || repository.source_revision != profile.source_revision
+        || repository.lockfile_digest != profile.lockfile_sha256
+        || repository.rustc_identity != profile.rust_toolchain
+        || repository.operating_system != profile.operating_system
+        || repository.architecture != profile.architecture
+    {
+        return Err(
+            "closeout requires a clean current repository matching the iteration authority"
+                .to_owned(),
+        );
+    }
+    if crate::ci::repository_source_identity(repository)? != ci.source_identity {
+        return Err("CI certification belongs to a different repository source".to_owned());
+    }
+    Ok(())
 }
 
 fn predicate(predicate: CloseoutPredicate, identity: &str) -> CloseoutPredicateEvidence {

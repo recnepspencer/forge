@@ -36,7 +36,7 @@ pub(crate) fn execute_mutation_matrix(
         stale_preflight_evidence(workspace_root, control_identity)?,
         feature_leakage(inventory, control_identity)?,
     ];
-    ProofMutationSensitivityReport::certify(observations)
+    ProofMutationSensitivityReport::certify(control_identity.to_owned(), observations)
 }
 
 fn lost_ui_denial(
