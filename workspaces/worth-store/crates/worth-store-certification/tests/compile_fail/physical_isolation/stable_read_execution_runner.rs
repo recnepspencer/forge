@@ -1,130 +1,80 @@
-use worth_store_physical_isolation as _;
+use std::path::Path;
+
+use worth_store_test_support::compiler_boundary::{
+    cargo_dependency_manifest, run_cargo_ui_fixture_suite,
+};
 
 #[test]
 fn stable_read_execution_misuse_does_not_compile() {
-    for fixture in compile_fail_fixtures() {
-        assert_compile_fails(fixture);
-    }
+    run(FIXTURES, "stable-read-execution", "stable_read_execution");
 }
 
-#[derive(Debug, Clone, Copy)]
-struct CompileFailFixture {
-    name: &'static str,
-    expected_stderr: &'static [&'static str],
-}
+const FIXTURES: &[(&str, &[&str])] = &[
+    (
+        "plan_cannot_start_execution.rs",
+        &["from_plan", "StablePhysicalReadExecution"],
+    ),
+    (
+        "raw_bytes_cannot_be_read_by_execution.rs",
+        &["read_guarded_bytes", "PhysicalByteGuard"],
+    ),
+    (
+        "reachability_barrier_is_not_byte_guard.rs",
+        &["PhysicalByteGuard", "PhysicalReadReachabilityBarrier"],
+    ),
+    (
+        "byte_guard_does_not_expose_raw_bytes.rs",
+        &["no method named", "as_bytes"],
+    ),
+    (
+        "raw_vec_cannot_mint_owned_read_buffer_guard.rs",
+        &["from_owned_read_buffer"],
+    ),
+    (
+        "guarded_bytes_cannot_outlive_execution_completion.rs",
+        &["cannot move out of", "borrowed"],
+    ),
+    (
+        "root_witness_cannot_satisfy_logical_decode_scope.rs",
+        &["LogicalDecodeSecurityScopeEntry", "CurrentPhysicalRoot"],
+    ),
+    (
+        "raw_bytes_cannot_enter_scoped_logical_decode.rs",
+        &["PhysicalByteGuard", "[u8"],
+    ),
+    (
+        "logical_decode_scope_entry_cannot_be_constructed.rs",
+        &["from_observed_scope", "private"],
+    ),
+];
 
-fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
-    vec![
-        CompileFailFixture {
-            name: "plan_cannot_start_execution.rs",
-            expected_stderr: &["from_plan", "StablePhysicalReadExecution"],
-        },
-        CompileFailFixture {
-            name: "raw_bytes_cannot_be_read_by_execution.rs",
-            expected_stderr: &["read_guarded_bytes", "PhysicalByteGuard"],
-        },
-        CompileFailFixture {
-            name: "reachability_barrier_is_not_byte_guard.rs",
-            expected_stderr: &["PhysicalByteGuard", "PhysicalReadReachabilityBarrier"],
-        },
-        CompileFailFixture {
-            name: "byte_guard_does_not_expose_raw_bytes.rs",
-            expected_stderr: &["no method named", "as_bytes"],
-        },
-        CompileFailFixture {
-            name: "raw_vec_cannot_mint_owned_read_buffer_guard.rs",
-            expected_stderr: &["from_owned_read_buffer"],
-        },
-        CompileFailFixture {
-            name: "guarded_bytes_cannot_outlive_execution_completion.rs",
-            expected_stderr: &["cannot move out of", "borrowed"],
-        },
-        CompileFailFixture {
-            name: "root_witness_cannot_satisfy_logical_decode_scope.rs",
-            expected_stderr: &["LogicalDecodeSecurityScopeEntry", "CurrentPhysicalRoot"],
-        },
-        CompileFailFixture {
-            name: "raw_bytes_cannot_enter_scoped_logical_decode.rs",
-            expected_stderr: &["PhysicalByteGuard", "[u8"],
-        },
-        CompileFailFixture {
-            name: "logical_decode_scope_entry_cannot_be_constructed.rs",
-            expected_stderr: &["from_observed_scope", "private"],
-        },
-    ]
-}
-
-fn assert_compile_fails(fixture: CompileFailFixture) {
-    let case_dir = prepare_compile_fail_case(fixture.name);
-    let output = run_compile_fail_case(&case_dir);
-    assert!(
-        !output.status.success(),
-        "{} unexpectedly compiled",
-        fixture.name
-    );
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    for expected in fixture.expected_stderr {
-        assert!(
-            stderr.contains(expected),
-            "{} failed for the wrong reason; missing {expected:?}\nstderr:\n{stderr}",
-            fixture.name
-        );
-    }
-}
-
-fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
-    let case_dir = compile_fail_case_dir(fixture_name);
-    let source_dir = case_dir.join("src");
-    if case_dir.exists() {
-        std::fs::remove_dir_all(&case_dir).unwrap();
-    }
-    std::fs::create_dir_all(&source_dir).unwrap();
-    write_compile_fail_manifest(&case_dir);
-    std::fs::copy(
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("tests")
-            .join("compile_fail")
-            .join("physical_isolation")
-            .join("stable_read_execution")
-            .join(fixture_name),
-        source_dir.join("main.rs"),
-    )
-    .unwrap();
-    case_dir
-}
-
-fn run_compile_fail_case(case_dir: &std::path::Path) -> std::process::Output {
-    std::process::Command::new("cargo")
-        .arg("check")
-        .arg("--quiet")
-        .arg("--manifest-path")
-        .arg(case_dir.join("Cargo.toml"))
-        .env("CARGO_TARGET_DIR", case_dir.join("target"))
-        .output()
-        .unwrap()
-}
-
-fn compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
-    std::env::temp_dir()
-        .join("worth-store-s5-read-execution-ui")
-        .join(std::process::id().to_string())
-        .join(fixture_name.trim_end_matches(".rs"))
-}
-
-fn write_compile_fail_manifest(case_dir: &std::path::Path) {
-    std::fs::write(
-        case_dir.join("Cargo.toml"),
-        format!(
-            "[package]\nname = \"s5-read-execution-ui\"\nversion = \"0.0.0\"\nedition = \"2021\"\n\n[dependencies]\nworth-store-physical-isolation = {{ path = {:?} }}\n",
-            physical_isolation_crate_dir(),
+fn run(fixtures: &[(&str, &[&str])], suite: &str, directory: &str) {
+    let root = store_workspace_root();
+    let evidence = run_cargo_ui_fixture_suite(
+        root,
+        suite,
+        cargo_dependency_manifest(
+            &[(
+                "worth-store-physical-isolation",
+                root.join("crates/worth-store-physical-isolation").as_path(),
+                &[],
+            )],
+            &[],
         ),
+        "production",
+        "diagnostic-test",
+        &root
+            .join("crates/worth-store-certification/tests/compile_fail/physical_isolation")
+            .join(directory),
+        fixtures,
     )
     .unwrap();
+    assert_eq!(evidence.fixtures.len(), fixtures.len());
 }
 
-fn physical_isolation_crate_dir() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
+fn store_workspace_root() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
         .unwrap()
-        .join("worth-store-physical-isolation")
 }

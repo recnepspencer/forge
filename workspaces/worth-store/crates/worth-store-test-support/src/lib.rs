@@ -28,6 +28,7 @@ mod resident_pressure_fixtures;
 #[cfg(feature = "boundary-fixtures")]
 mod terminal_projection_json_fixtures;
 
+pub mod compiler_boundary;
 pub mod harness;
 
 #[cfg(feature = "boundary-fixtures")]

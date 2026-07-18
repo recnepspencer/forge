@@ -1,12 +1,11 @@
-#[path = "../cargo_artifacts.rs"]
-mod cargo_artifacts;
+use std::path::Path;
 
-const TEST_TARGET: &str = "s5_1_security_scope_admission_compile_fail";
+use worth_store_test_support::compiler_boundary::{
+    cargo_dependency_manifest, run_cargo_ui_fixture_suite,
+};
 
 #[test]
 fn security_scope_admission_rejects_forged_or_lower_authority_witnesses() {
-    ensure_compile_fail_fixture_support_crates_are_linked();
-    cargo_artifacts::discover(TEST_TARGET);
     for fixture in compile_fail_fixtures() {
         assert_compile_fails(fixture);
     }
@@ -129,104 +128,85 @@ fn ensure_compile_fail_fixture_support_crates_are_linked() {
 }
 
 fn assert_compile_fails(fixture: CompileFailFixture) {
-    let case_dir = prepare_compile_fail_case(fixture.name);
-    let output = run_compile_fail_case(&case_dir, fixture.name);
-    assert!(
-        !output.status.success(),
-        "{} unexpectedly compiled",
-        fixture.name
-    );
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    for expected in fixture.expected_stderr {
-        assert!(
-            stderr.contains(expected),
-            "{} failed for the wrong reason; missing {expected:?}\nstderr:\n{stderr}",
-            fixture.name
-        );
-    }
-}
-
-fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
-    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let case_dir = compile_fail_case_dir(fixture_name);
-    if case_dir.exists() {
-        std::fs::remove_dir_all(&case_dir).unwrap();
-    }
-    let source_dir = case_dir.join("src");
-    std::fs::create_dir_all(&source_dir).unwrap();
-    std::fs::copy(
-        manifest_dir
-            .join("tests")
-            .join("compile_fail")
-            .join("security")
-            .join("security_scope_admission")
-            .join(fixture_name),
-        source_dir.join("main.rs"),
+    let root = store_workspace_root();
+    let forge_root = root.ancestors().nth(2).unwrap();
+    let evidence = run_cargo_ui_fixture_suite(
+        root,
+        "security-scope-admission",
+        cargo_dependency_manifest(
+            &[
+                (
+                    "worth-foundational",
+                    forge_root.join("crates/worth-foundational").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-proof",
+                    forge_root.join("crates/worth-proof").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-aspect-native",
+                    root.join("crates/worth-store-aspect-native").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-authority",
+                    root.join("crates/worth-store-authority").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-contracts",
+                    root.join("crates/worth-store-contracts").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-physical-format",
+                    root.join("crates/worth-store-physical-format").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-physical-integrity",
+                    root.join("crates/worth-store-physical-integrity").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-readiness",
+                    root.join("crates/worth-store-readiness").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-recovery-physics",
+                    root.join("crates/worth-store-recovery-physics").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-security",
+                    root.join("crates/worth-store-security").as_path(),
+                    &[],
+                ),
+                (
+                    "worth-store-wal",
+                    root.join("crates/worth-store-wal").as_path(),
+                    &[],
+                ),
+            ],
+            &[("serde_json", "1")],
+        ),
+        "production",
+        "diagnostic-test",
+        &root.join(
+            "crates/worth-store-certification/tests/compile_fail/security/security_scope_admission",
+        ),
+        &[(fixture.name, fixture.expected_stderr)],
     )
     .unwrap();
-    case_dir
+    assert_eq!(evidence.fixtures.len(), 1);
 }
 
-fn run_compile_fail_case(case_dir: &std::path::Path, fixture_name: &str) -> std::process::Output {
-    let dependencies = cargo_artifacts::dependency_dir();
-    std::process::Command::new("rustc")
-        .arg("--edition=2021")
-        .arg(case_dir.join("src").join("main.rs"))
-        .arg("--crate-name")
-        .arg(fixture_name.trim_end_matches(".rs"))
-        .arg("--crate-type")
-        .arg("bin")
-        .arg("-L")
-        .arg(format!("dependency={}", dependencies.display()))
-        .args(extern_args())
-        .arg("--out-dir")
-        .arg(compile_fail_case_target_dir(case_dir))
-        .output()
-        .unwrap()
-}
-
-fn compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
-    std::env::temp_dir()
-        .join("worth-store-s51-security-scope-admission-ui")
-        .join(std::process::id().to_string())
-        .join("cases")
-        .join(fixture_name.trim_end_matches(".rs"))
-}
-
-fn compile_fail_case_target_dir(case_dir: &std::path::Path) -> std::path::PathBuf {
-    case_dir
-        .parent()
-        .expect("compile-fail case lives under a cases directory")
-        .parent()
-        .expect("compile-fail cases directory lives under a process directory")
-        .join("target")
-}
-
-fn extern_args() -> Vec<std::ffi::OsString> {
-    let crates = [
-        "worth_store_aspect_native",
-        "worth_store_authority",
-        "worth_store_contracts",
-        "worth_store_physical_format",
-        "worth_store_physical_integrity",
-        "worth_store_readiness",
-        "worth_store_recovery_physics",
-        "worth_store_security",
-        "worth_store_wal",
-        "serde_json",
-        "worth_foundational",
-        "worth_proof",
-    ];
-    let mut args = Vec::new();
-    for crate_name in crates {
-        args.push("--extern".into());
-        args.push(
-            format!(
-                "{crate_name}={}",
-                cargo_artifacts::compiled_extern(TEST_TARGET, crate_name).display()
-            )
-            .into(),
-        );
-    }
-    args
+fn store_workspace_root() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
+        .expect("certification crate lives under the Store workspace")
 }
