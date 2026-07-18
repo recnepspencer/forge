@@ -11,10 +11,12 @@ use super::settings_fixtures::{boolean_workspace_setting, enum_theme_setting, se
 fn equivalent_setting_descriptors_produce_equivalent_defaults() {
     let left = WorthUi::app()
         .register_setting(boolean_workspace_setting("workspace.setting.wrap_lines"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let right = WorthUi::app()
         .register_setting(boolean_workspace_setting("workspace.setting.wrap_lines"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let left_entry = &left.capabilities().settings().entries()[0];
     let right_entry = &right.capabilities().settings().entries()[0];
@@ -35,7 +37,8 @@ fn accepted_settings_are_canonically_ordered_and_inspectable() {
     let app = WorthUi::app()
         .register_setting(enum_theme_setting("workspace.setting.theme"))
         .register_setting(boolean_workspace_setting("workspace.setting.wrap_lines"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_setting_ids(
         app.capabilities().settings(),
@@ -52,7 +55,8 @@ fn accepted_settings_are_canonically_ordered_and_inspectable() {
 fn setting_schema_change_changes_snapshot_digest() {
     let boolean_app = WorthUi::app()
         .register_setting(boolean_workspace_setting("workspace.setting.value"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let text_app = WorthUi::app()
         .register_setting(
             SettingDescriptor::typed(
@@ -65,7 +69,8 @@ fn setting_schema_change_changes_snapshot_digest() {
             ))
             .with_validation_posture(SettingValidationPosture::schema_checked()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         boolean_app.capabilities().digest(),
@@ -77,7 +82,8 @@ fn setting_schema_change_changes_snapshot_digest() {
 fn setting_default_value_change_changes_snapshot_digest() {
     let off_app = WorthUi::app()
         .register_setting(boolean_workspace_setting("workspace.setting.value"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let on_app = WorthUi::app()
         .register_setting(
             SettingDescriptor::typed(
@@ -93,7 +99,8 @@ fn setting_default_value_change_changes_snapshot_digest() {
             .with_editor_hint(SettingEditorHint::toggle())
             .with_ownership_metadata(SettingOwnershipMetadata::platform_runtime_config()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         off_app.capabilities().digest(),
@@ -105,7 +112,8 @@ fn setting_default_value_change_changes_snapshot_digest() {
 fn setting_surface_metadata_changes_snapshot_digest() {
     let visible_app = WorthUi::app()
         .register_setting(boolean_workspace_setting("workspace.setting.metadata"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let hidden_app = WorthUi::app()
         .register_setting(
             SettingDescriptor::typed(
@@ -121,7 +129,8 @@ fn setting_surface_metadata_changes_snapshot_digest() {
             .with_editor_hint(SettingEditorHint::hidden())
             .with_ownership_metadata(SettingOwnershipMetadata::application_runtime_config()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         visible_app.capabilities().digest(),

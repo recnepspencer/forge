@@ -1,4 +1,13 @@
-const rawDocs = import.meta.glob("../../../../crates/worth-signal-wasm/docs/**/*.md", {
+import { publicDocsManifest } from "./publicDocsManifest";
+
+const rawDocs = import.meta.glob([
+  "../../../../crates/worth-signal-wasm/docs/**/*.md",
+  "!../../../../crates/worth-signal-wasm/docs/app-surface/**/*.md",
+  "!../../../../crates/worth-signal-wasm/docs/learn/**/*.md",
+  "!../../../../crates/worth-signal-wasm/docs/resource-contracts/**/*.md",
+  "!../../../../crates/worth-signal-wasm/docs/**/milestone-crosswalk.md",
+  "!../../../../crates/worth-signal-wasm/docs/README.md",
+], {
   eager: true,
   import: "default",
   query: "?raw",
@@ -13,37 +22,25 @@ export interface DocArticle {
 export interface DocNavNode {
   children: DocNavNode[];
   depth: number;
-  item?: { subpath: string; title: string };
+  item?: { kind: string; subpath: string; title: string };
   key: string;
   title: string;
   type: "folder" | "doc";
 }
 
-type InternalNavNode = DocNavNode & { childrenMap: Map<string, InternalNavNode> };
-
-const folderTitles: Record<string, string> = {
-  "api-reference": "API Reference",
-  "app-surface": "App Surface",
-  forms: "Forms",
-  learn: "Learn",
-  resources: "Resources",
-  router: "Router",
-};
+export interface DocSearchEntry {
+  sectionId: string;
+  sectionTitle: string;
+  subpath: string;
+  title: string;
+}
 
 function cleanPath(key: string) {
   return key.replace("../../../../crates/worth-signal-wasm/docs/", "").replace(/\.md$/, "");
 }
 
-function titleFromSlug(slug: string) {
-  return (folderTitles[slug] ?? slug)
-    .replace(/^README$/i, "Overview")
-    .replace(/^index$/i, "Overview")
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 function titleFromPath(subpath: string, content: string) {
-  return content.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? titleFromSlug(subpath.split("/").pop() ?? subpath);
+  return content.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? subpath;
 }
 
 const allArticles = Object.entries(rawDocs).map(([key, content]) => {
@@ -51,88 +48,132 @@ const allArticles = Object.entries(rawDocs).map(([key, content]) => {
   return { content, subpath, title: titleFromPath(subpath, content) };
 });
 
-function docRank(node: DocNavNode) {
-  const leaf = node.item?.subpath.split("/").pop()?.toLowerCase();
-  if (node.item?.subpath === "start_here") return -4;
-  if (leaf === "readme") return -3;
-  if (leaf === "index") return -2;
-  return node.type === "folder" ? -1 : 0;
-}
+const articleByPath = new Map(allArticles.map((article) => [article.subpath, article]));
+const redirectByPath = new Map(
+  publicDocsManifest.redirects.map((redirect) => [redirect.from, redirect.to]),
+);
 
-function sortTree(nodes: DocNavNode[]): DocNavNode[] {
-  return nodes
-    .map((node) => ({ ...node, children: sortTree(node.children) }))
-    .sort((left, right) => docRank(left) - docRank(right) || left.title.localeCompare(right.title));
-}
-
-function rootOrder(node: DocNavNode) {
-  const order = ["start_here", "README", "learn", "app-surface", "forms", "router", "resources", "api-reference"];
-  const index = order.indexOf(node.key);
-  return index === -1 ? 99 : index;
-}
-
-function buildNavigation() {
-  const roots = new Map<string, InternalNavNode>();
-  const folders = new Map<string, InternalNavNode>();
-  const ensureFolder = (segments: string[]): InternalNavNode => {
-    const key = segments.join("/");
-    const existing = folders.get(key);
-    if (existing) return existing;
-    const node: InternalNavNode = {
-      children: [],
-      childrenMap: new Map<string, InternalNavNode>(),
-      depth: segments.length - 1,
-      key,
-      title: titleFromSlug(segments[segments.length - 1] ?? key),
-      type: "folder",
-    };
-    folders.set(key, node);
-    if (segments.length === 1) {
-      roots.set(key, node);
-    } else {
-      ensureFolder(segments.slice(0, -1)).childrenMap.set(key, node);
-    }
-    return node;
-  };
-
-  for (const article of allArticles) {
-    const segments = article.subpath.split("/");
-    const docNode: DocNavNode = {
-      children: [],
-      depth: segments.length - 1,
-      item: { subpath: article.subpath, title: article.title },
-      key: article.subpath,
-      title: article.title,
-      type: "doc",
-    };
-    if (segments.length === 1) {
-      roots.set(article.subpath, { ...docNode, childrenMap: new Map() });
-      continue;
-    }
-    ensureFolder(segments.slice(0, -1)).childrenMap.set(article.subpath, { ...docNode, childrenMap: new Map() });
+function normalizeDocTarget(currentSubpath: string, href: string): string | null {
+  const targetWithoutFragment = href.split("#", 1)[0]?.split("?", 1)[0] ?? "";
+  if (
+    !targetWithoutFragment
+    || /^[a-z]+:/iu.test(targetWithoutFragment)
+    || targetWithoutFragment.startsWith("/")
+  ) {
+    return null;
   }
 
-  const materialize = (node: InternalNavNode): DocNavNode => ({
-    children: sortTree(Array.from(node.childrenMap.values()).map(materialize)),
-    depth: node.depth,
-    item: node.item,
-    key: node.key,
-    title: node.title,
-    type: node.type,
-  });
+  const segments = [...currentSubpath.split("/").slice(0, -1)];
+  for (const segment of targetWithoutFragment.replace(/\.md$/u, "").split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") segments.pop();
+    else segments.push(segment);
+  }
+  return segments.join("/");
+}
 
-  return sortTree(Array.from(roots.values()).map(materialize)).sort(
-    (left, right) => rootOrder(left) - rootOrder(right) || left.title.localeCompare(right.title),
+function localDocTargets(article: DocArticle): string[] {
+  return [...article.content.matchAll(/\[[^\]]+\]\(([^)]+)\)/gu)]
+    .map((match) => normalizeDocTarget(article.subpath, match[1]))
+    .filter((target): target is string => Boolean(target))
+    .filter((target) => articleByPath.has(target) || redirectByPath.has(target));
+}
+
+function canonicalPath(subpath: string): string {
+  const visited = new Set<string>();
+  let current = subpath;
+  while (redirectByPath.has(current)) {
+    if (visited.has(current)) throw new Error(`Public documentation redirect cycle at ${current}`);
+    visited.add(current);
+    current = redirectByPath.get(current)!;
+  }
+  return current;
+}
+
+interface PendingPublicArticle {
+  path: string;
+  sectionId: string;
+}
+
+const publicSectionByPath = new Map<string, string>();
+
+function discoverPublicArticles(): Map<string, DocArticle> {
+  const discovered = new Map<string, DocArticle>();
+  const pending: PendingPublicArticle[] = publicDocsManifest.sections.flatMap((section) =>
+    section.items.map((item) => ({ path: item.path, sectionId: section.id }))
   );
+
+  while (pending.length > 0) {
+    const request = pending.shift()!;
+    const requestedPath = request.path;
+    const path = canonicalPath(requestedPath);
+    if (discovered.has(path)) continue;
+    const article = articleByPath.get(path);
+    if (!article) throw new Error(`Public documentation references missing article: ${path}`);
+    discovered.set(path, article);
+    publicSectionByPath.set(path, request.sectionId);
+    pending.push(...localDocTargets(article).map((target) => ({
+      path: target,
+      sectionId: request.sectionId,
+    })));
+  }
+  return discovered;
+}
+
+const publicArticleByPath = discoverPublicArticles();
+
+function buildNavigation(): DocNavNode[] {
+  const articlePaths = new Set(publicArticleByPath.keys());
+  return publicDocsManifest.sections.map((section) => ({
+    children: section.items.map((item) => {
+      if (!articlePaths.has(item.path)) {
+        throw new Error(`Public documentation manifest references missing article: ${item.path}`);
+      }
+      return {
+        children: [],
+        depth: 1,
+        item: { kind: item.kind, subpath: item.path, title: item.title },
+        key: item.path,
+        title: item.title,
+        type: "doc" as const,
+      };
+    }),
+    depth: 0,
+    key: section.id,
+    title: section.title,
+    type: "folder" as const,
+  }));
 }
 
 export function getDocArticle(subpath: string): DocArticle | null {
   const normalized = subpath.replace(/\.md$/, "");
-  return allArticles.find((article) => article.subpath === normalized) ?? null;
+  return publicArticleByPath.get(normalized) ?? null;
 }
 
-export function getAllSubpaths(): string[] {
-  return allArticles.map((article) => article.subpath);
+export function getDocRedirect(subpath: string): string | null {
+  const normalized = subpath.replace(/\.md$/, "");
+  const target = redirectByPath.get(normalized);
+  return target ? canonicalPath(target) : null;
+}
+
+export function getDocSection(subpath: string): { id: string; title: string } | null {
+  const normalized = canonicalPath(subpath.replace(/\.md$/, ""));
+  const sectionId = publicSectionByPath.get(normalized);
+  if (!sectionId) return null;
+  const section = publicDocsManifest.sections.find((candidate) => candidate.id === sectionId);
+  return section ? { id: section.id, title: section.title } : null;
 }
 
 export const docsNavigation: DocNavNode[] = buildNavigation();
+
+export const docsSearchEntries: DocSearchEntry[] = [...publicArticleByPath.values()]
+  .map((article) => {
+    const section = getDocSection(article.subpath);
+    return {
+      sectionId: section?.id ?? "reference",
+      sectionTitle: section?.title ?? "Reference",
+      subpath: article.subpath,
+      title: article.title,
+    };
+  })
+  .sort((left, right) => left.title.localeCompare(right.title));

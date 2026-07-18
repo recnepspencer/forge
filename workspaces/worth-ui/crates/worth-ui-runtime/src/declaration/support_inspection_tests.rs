@@ -76,7 +76,8 @@ fn assert_app_freeze_measurement_posture(
             WorthUiDslPackage::named("worth-ui.runtime.declaration-support.app")
                 .with_semantic_artifact_spec(spec),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let query = UiInspectionQuery::new(
         UiInspectionTarget::declared_surface(module_path, declaration_index),

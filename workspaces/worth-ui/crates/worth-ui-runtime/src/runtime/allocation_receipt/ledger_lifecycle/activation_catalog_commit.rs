@@ -17,13 +17,13 @@ impl UiAllocationReceiptLedger {
         let candidates = catalog.candidates_for_commit();
         for (ordinal, candidate) in candidates.iter().enumerate() {
             let ordinal = u16::try_from(ordinal).map_err(|_| {
-                super::UiAllocationReceiptCommitOutcome::Denied(
+                super::UiAllocationReceiptCommitOutcome::denied(
                     super::UiAllocationReceiptCommitDenial::CatalogBindingCardinalityMismatch,
                 )
             })?;
-            let admission = candidate.replan_admission_opt().ok_or_else(|| {
-                super::UiAllocationReceiptCommitOutcome::Denied(
-                    super::UiAllocationReceiptCommitDenial::CatalogActivationAuthority(
+            let admission = candidate.replan_admission_opt().ok_or({
+                super::UiAllocationReceiptCommitOutcome::denied(
+                    super::UiAllocationReceiptCommitDenial::catalog_activation(
                         super::UiCommittedAllocationCatalogActivationDenial::MissingReplanAdmission {
                             ordinal,
                         },
@@ -31,8 +31,8 @@ impl UiAllocationReceiptLedger {
                 )
             })?;
             admission.committed_scroll_sources().map_err(|denial| {
-                super::UiAllocationReceiptCommitOutcome::Denied(
-                    super::UiAllocationReceiptCommitDenial::CatalogActivationAuthority(
+                super::UiAllocationReceiptCommitOutcome::denied(
+                    super::UiAllocationReceiptCommitDenial::catalog_activation(
                         super::UiCommittedAllocationCatalogActivationDenial::ScrollAuthority {
                             ordinal,
                             denial,
@@ -50,8 +50,8 @@ impl UiAllocationReceiptLedger {
             frame_epoch,
         )
         .map_err(|_| {
-            super::UiAllocationReceiptCommitOutcome::Denied(
-                super::UiAllocationReceiptCommitDenial::CandidatePlanningDenied(
+            super::UiAllocationReceiptCommitOutcome::denied(
+                super::UiAllocationReceiptCommitDenial::candidate_planning(
                     super::UiAllocationReceiptDenialReport::candidate_planning_denied(
                         candidates
                             .first()
@@ -78,7 +78,7 @@ impl UiAllocationReceiptLedger {
             successor.truth_revision = successor
                 .checked_truth_successor(0, false, replacement)
                 .map_err(|denial| {
-                    super::UiAllocationReceiptCommitOutcome::Denied(
+                    super::UiAllocationReceiptCommitOutcome::denied(
                         super::UiAllocationReceiptCommitDenial::AuthorityCounterExhausted(denial),
                     )
                 })?;
@@ -87,14 +87,12 @@ impl UiAllocationReceiptLedger {
             }
             let bindings =
                 super::UiCommittedAllocationCatalogBindings::seal(candidates, previous.receipts())
-                    .map_err(super::UiAllocationReceiptCommitOutcome::Denied)?;
+                    .map_err(super::UiAllocationReceiptCommitOutcome::denied)?;
             let activation =
                 super::UiCommittedAllocationCatalogActivation::seal(candidates, &bindings)
                     .map_err(|denial| {
-                        super::UiAllocationReceiptCommitOutcome::Denied(
-                            super::UiAllocationReceiptCommitDenial::CatalogActivationAuthority(
-                                denial,
-                            ),
+                        super::UiAllocationReceiptCommitOutcome::denied(
+                            super::UiAllocationReceiptCommitDenial::catalog_activation(denial),
                         )
                     })?;
             let committed = previous.clone();
@@ -111,7 +109,7 @@ impl UiAllocationReceiptLedger {
             ));
         }
         transaction_generation.map_err(|denial| {
-            super::UiAllocationReceiptCommitOutcome::Denied(
+            super::UiAllocationReceiptCommitOutcome::denied(
                 super::UiAllocationReceiptCommitDenial::AuthorityCounterExhausted(denial),
             )
         })?;
@@ -120,22 +118,50 @@ impl UiAllocationReceiptLedger {
             let scope = UiAllocationNeighborhoodScope::from_neighborhood(
                 candidate.allocation_neighborhood(),
             );
-            verdicts.push(super::receipt_commit::admit_allocation_receipt_candidate(
-                candidate,
-                state.committed_by_scope.get(&scope),
-            )?);
+            verdicts.push(
+                super::receipt_commit::admit_replacement_allocation_receipt_candidate(
+                    candidate,
+                    state.committed_by_scope.get(&scope),
+                )?,
+            );
         }
         drop(state);
+        let mut counters = UiAllocationReplanTransactionCounters::preflight(candidates.len())
+            .map_err(|()| {
+                super::UiAllocationReceiptCommitOutcome::denied(
+                    super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
+                )
+            })?;
+        for verdict in &verdicts {
+            let counted = match verdict {
+                UiAllocationReuseVerdict::FullReuse => counters.reused(),
+                UiAllocationReuseVerdict::NewCommit => counters.replanned(),
+                _ => unreachable!("catalog preflight admitted only publishable verdicts"),
+            };
+            counted.map_err(|()| {
+                super::UiAllocationReceiptCommitOutcome::denied(
+                    super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
+                )
+            })?;
+        }
+        counters.committed(candidates.len()).map_err(|()| {
+            super::UiAllocationReceiptCommitOutcome::denied(
+                super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
+            )
+        })?;
+        let counter_report = super::UiAllocationCounterReport::from_commit(&transaction, counters);
         let receipts = candidates
             .iter()
             .cloned()
             .zip(verdicts)
             .map(|(candidate, verdict)| {
-                super::receipt_commit::commit_admitted_allocation_receipt(
+                let mut receipt = super::receipt_commit::commit_admitted_allocation_receipt(
                     candidate,
                     verdict,
                     transaction.clone(),
-                )
+                );
+                receipt.attach_counter_report(counter_report.clone());
+                receipt
             })
             .collect::<Vec<_>>()
             .into_boxed_slice();
@@ -146,58 +172,17 @@ impl UiAllocationReceiptLedger {
         successor.truth_revision = successor
             .checked_truth_successor(receipts.len(), false, replacement)
             .map_err(|denial| {
-                super::UiAllocationReceiptCommitOutcome::Denied(
+                super::UiAllocationReceiptCommitOutcome::denied(
                     super::UiAllocationReceiptCommitDenial::AuthorityCounterExhausted(denial),
                 )
             })?;
         if replacement {
             successor.durable_semantic_state = Some(durable);
         }
-        for receipt in &receipts {
-            successor.committed_by_scope.insert(
-                UiAllocationNeighborhoodScope::from_neighborhood(
-                    receipt.committed_allocation().allocation_neighborhood(),
-                ),
-                receipt.clone(),
-            );
-        }
-        let mut counters = UiAllocationReplanTransactionCounters::preflight(receipts.len())
-            .map_err(|()| {
-                super::UiAllocationReceiptCommitOutcome::Denied(
-                    super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
-                )
-            })?;
-        for verdict in candidates.iter().map(|candidate| {
-            let scope = UiAllocationNeighborhoodScope::from_neighborhood(
-                candidate.allocation_neighborhood(),
-            );
-            predecessor.committed_by_scope.get(&scope).map_or(
-                UiAllocationReuseVerdict::NewCommit,
-                |previous| {
-                    super::receipt_commit::evaluate_allocation_receipt_reuse(candidate, previous)
-                },
-            )
-        }) {
-            let counted = match verdict {
-                UiAllocationReuseVerdict::FullReuse => counters.reused(),
-                UiAllocationReuseVerdict::NewCommit => counters.replanned(),
-                _ => unreachable!("catalog preflight admitted only publishable verdicts"),
-            };
-            counted.map_err(|()| {
-                super::UiAllocationReceiptCommitOutcome::Denied(
-                    super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
-                )
-            })?;
-        }
-        counters.committed(receipts.len()).map_err(|()| {
-            super::UiAllocationReceiptCommitOutcome::Denied(
-                super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
-            )
-        })?;
         let receipts = receipts.into_vec();
         let catalog_bindings =
             super::UiCommittedAllocationCatalogBindings::seal(candidates, &receipts)
-                .map_err(|denial| super::UiAllocationReceiptCommitOutcome::Denied(denial))?;
+                .map_err(super::UiAllocationReceiptCommitOutcome::denied)?;
         let outcome = UiCommittedAllocationReplan::new(
             transaction.clone(),
             receipts,
@@ -205,7 +190,7 @@ impl UiAllocationReceiptLedger {
             catalog_bindings,
         )
         .map_err(|()| {
-            super::UiAllocationReceiptCommitOutcome::Denied(
+            super::UiAllocationReceiptCommitOutcome::denied(
                 super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
             )
         })?;
@@ -214,10 +199,18 @@ impl UiAllocationReceiptLedger {
             outcome.catalog_bindings(),
         )
         .map_err(|denial| {
-            super::UiAllocationReceiptCommitOutcome::Denied(
-                super::UiAllocationReceiptCommitDenial::CatalogActivationAuthority(denial),
+            super::UiAllocationReceiptCommitOutcome::denied(
+                super::UiAllocationReceiptCommitDenial::catalog_activation(denial),
             )
         })?;
+        for receipt in outcome.receipts() {
+            successor.committed_by_scope.insert(
+                UiAllocationNeighborhoodScope::from_neighborhood(
+                    receipt.committed_allocation().allocation_neighborhood(),
+                ),
+                receipt.clone(),
+            );
+        }
         successor.next_transaction_generation = transaction.transaction_generation();
         successor.latest_frame_epoch = Some(frame_epoch);
         successor

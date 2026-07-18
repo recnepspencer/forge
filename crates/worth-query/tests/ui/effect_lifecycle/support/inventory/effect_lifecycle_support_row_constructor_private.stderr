@@ -1,7 +1,0 @@
-error[E0560]: struct `EffectLifecycleSupportRow` has no field named `row_digest`
-  --> tests/ui/effect_lifecycle/support/inventory/effect_lifecycle_support_row_constructor_private.rs:12:9
-   |
-12 |         row_digest: String::new(),
-   |         ^^^^^^^^^^ `EffectLifecycleSupportRow` does not have this field
-   |
-   = note: all struct fields are already assigned

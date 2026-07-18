@@ -121,13 +121,3 @@ pub(crate) fn extra_root_page_spec() -> UiDslSemanticArtifactSpec {
     )
     .with_structural_token(UiDslStructuralToken::new("page:product-root"))
 }
-
-pub(crate) fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
-    }
-}

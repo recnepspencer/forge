@@ -14,6 +14,7 @@ pub use worth_ui_identity_match_denial::WorthUiIdentityMatchDenial;
 pub use worth_ui_identity_match_edge::WorthUiIdentityMatchEdge;
 pub use worth_ui_identity_match_graph::WorthUiIdentityMatchGraph;
 pub(crate) use worth_ui_identity_match_graph_builder::WorthUiIdentityMatchGraphBuilder;
+pub(crate) use worth_ui_identity_match_node::WorthUiIdentityMatchNodeInput;
 pub use worth_ui_identity_match_node::{
     WorthUiIdentityMatchNode, WorthUiIdentityMatchNodeKind, WorthUiIdentityMatchNodeSide,
 };

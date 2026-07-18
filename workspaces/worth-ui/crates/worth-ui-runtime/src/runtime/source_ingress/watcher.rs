@@ -75,8 +75,8 @@ impl WorthUiSourceIngressSession {
             for module in hook.provider().source_modules() {
                 provider = provider.with_file(module.relative_path(), module.source_text());
             }
-            for input in hook.provider().artifact_inputs() {
-                provider = provider.with_artifact_input(input.clone());
+            for input in hook.provider().rust_authored_inputs() {
+                provider = provider.with_rust_authored_input(input.clone());
             }
         }
         Ok(provider)

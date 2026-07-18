@@ -1,86 +1,69 @@
 # Browser History Story
 
-## What This Feature Is
-
-A browser-history story is the retained router-owned history of admitted
-browser-boundary reports.
-
-## Why You Use It
-
-- keep one retained route-history story from ingress and writeback reports
-- derive back provenance, breadcrumb trails, inspection, and auditability from
-  one canonical artifact stream
-
-## Stable Entry Points
-
-- `signals.router.browserHistory.story(...)`
-- `story.record(...)`
-- `story.current()`
-- `story.latestBoundaryEvent()`
-- `story.currentRouteTruthEvent()`
-- `story.backProvenance()`
-- `story.breadcrumbTrail()`
-- `story.inspection()`
-- `story.auditability(...)`
-
-## Core Mental Model
-
-The story is the retained history authority for browser-boundary route truth.
-It consumes explicit reports and derives richer inspection surfaces from them.
-
-## How It Executes
-
-1. create a story
-2. record ingress or writeback reports
-3. derive retained entries and boundary events
-4. read back, breadcrumb, inspection, or auditability surfaces
-
-## Small Example
+A browser-history story retains the router reports your host records. From that
+one stream it derives current route truth, back provenance, breadcrumbs,
+inspection, and auditability.
 
 ```ts
-const story = signals.router.browserHistory.story();
+const ingress = signals.router.browserHistory.load(window.location.href);
+const report = await routes.admitBrowserHistoryIngress(ingress);
+const story = signals.router.browserHistory.story(report);
 
-story.record(await routes.admitBrowserHistoryIngress(ingress));
-console.log(story.current()?.routeId);
+console.log(story.current()?.href);
 ```
 
-## Real Example
+## The Host Still Owns The Browser
+
+Worth creates typed ingress and writeback artifacts. It does not install a
+`popstate` listener or call `history.pushState` for you.
+
+In API vocabulary, the host packages **raw location authority** and the route
+tree performs **browser-history admission** before the story records a report.
 
 ```ts
-const story = signals.router.browserHistory.story();
-
-story.record(await routes.admitBrowserHistoryIngress(loadReport));
-story.record(await routes.applyBrowserHistoryWriteback(writebackReport));
-
-console.log(story.currentRouteTruthEvent()?.boundaryArtifact);
-console.log(story.auditability().summary());
+async function recordPopstate(href: string) {
+  const ingress = signals.router.browserHistory.pop(href);
+  const report = await routes.admitBrowserHistoryIngress(ingress);
+  return story.record(report);
+}
 ```
 
-## How It Relates To Other Features
+For an application-initiated navigation, create and admit the writeback first,
+then let the host perform the browser mutation only when that is appropriate:
 
-- use [Route History Entries](./route_history_entries.md) for each retained
-  admitted entry
-- use [History Inspection](./history_inspection.md) and
-  [Navigation Auditability](./navigation_auditability.md) for explanation
-  surfaces
+```ts
+const writeback = signals.router.browserHistory.writeback.push(
+  routes.projectDetail.to({ params: { projectId: "p7" } }),
+  { routeIdentity: routes.projectDetail.descriptor().routeId },
+);
+const writebackReport = await routes.applyBrowserHistoryWriteback(writeback);
 
-## Inspection And Debugging
+story.record(writebackReport);
+const targetOutcome = writebackReport.outcome();
 
-- `events()`
-- `admittedEntries()`
-- `verification()`
+if (targetOutcome?.kind === "admitted") {
+  window.history.pushState(null, "", writeback.targetHref);
+}
+```
 
-## Anti-Patterns
+## Reports Versus Retained Truth
 
-- inventing your own retained route-history list beside the story
-- recording only current hrefs and losing boundary provenance
+Every report becomes a boundary event. Only admitted, converged or explicitly
+drifted local route truth advances the retained route entry. A failed admission
+or external escape remains visible as an event without pretending it became the
+current app route.
 
-## Current Limits
+Useful reads:
 
-- the story only knows what you record through explicit boundary reports
+- `latestBoundaryEvent()` — the last thing seen at the boundary
+- `currentRouteTruthEvent()` — the event that last advanced route truth
+- `current()` and `back()` — retained admitted entries
+- `inspection()` — what the story currently retains
+- `auditability()` — why the current route is visible
 
-## Related Docs
+The story is not the browser's native stack and is not durable storage. It only
+knows the reports this application instance recorded.
 
-- [Route History Entries](./route_history_entries.md)
-- [History Inspection](./history_inspection.md)
-- [Navigation Auditability](./navigation_auditability.md)
+Next: [Browser History Ingress](./browser_history_ingress.md),
+[History Inspection](./history_inspection.md), and
+[Navigation Auditability](./navigation_auditability.md).

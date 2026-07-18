@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::worth_query_intent_admission_certification_output_manifest`
- --> tests/ui/public_authority_surface/certification_tooling_not_in_ordinary_facade.rs:1:5
-  |
-1 | use worth_query::facade::worth_query_intent_admission_certification_output_manifest;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `worth_query_intent_admission_certification_output_manifest` in `facade`

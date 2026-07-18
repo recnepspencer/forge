@@ -104,15 +104,20 @@ pub(crate) fn collected_text_result_for_request(
     WorthUiHostMeasurementCollector::for_internal_proof()
         .collect(
             &CountingAdapter::new(),
-            request_identity,
-            worth_ui_host_contract::UiMeasurementEvidenceFamily::TextIntrinsicSize,
-            UiHostMeasurementNeed::TextIntrinsicSize(UiTextIntrinsicSizeRequest::single_line(
-                "Inbox",
-                UiFontMeasurementKey::new("body-md"),
-            )),
-            report,
-            generation,
-            context,
+            crate::host::UiHostMeasurementCollectionInput {
+                identity: request_identity,
+                evidence_family:
+                    worth_ui_host_contract::UiMeasurementEvidenceFamily::TextIntrinsicSize,
+                need: UiHostMeasurementNeed::TextIntrinsicSize(
+                    UiTextIntrinsicSizeRequest::single_line(
+                        "Inbox",
+                        UiFontMeasurementKey::new("body-md"),
+                    ),
+                ),
+                capability_report: report,
+                evidence_generation: generation,
+                normalization_context: context,
+            },
         )
         .unwrap()
 }
@@ -126,12 +131,16 @@ pub(crate) fn normalized_viewport_result(
     WorthUiHostMeasurementCollector::for_internal_proof()
         .collect(
             &CountingAdapter::new(),
-            request_identity,
-            worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
-            UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-            report,
-            generation,
-            UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+            crate::host::UiHostMeasurementCollectionInput {
+                identity: request_identity,
+                evidence_family:
+                    worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
+                need: UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
+                capability_report: report,
+                evidence_generation: generation,
+                normalization_context:
+                    UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+            },
         )
         .unwrap()
 }

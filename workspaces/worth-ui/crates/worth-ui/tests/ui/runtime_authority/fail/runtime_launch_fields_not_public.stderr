@@ -21,12 +21,3 @@ error: cannot construct `WorthUiRuntimeLaunch` with struct literal syntax due to
   |         ------------------------------------------------------------ private field
   |
   = note: ...and other private fields `candidate_snapshot_digest` and `candidate_artifact_digest` that were not provided
-help: you might have meant to use the `from_candidate` associated function
-  |
-4 -     let _launch = WorthUiRuntimeLaunch {
-5 -         artifact: todo!(),
-6 -         frame_epoch: WorthUiRuntimeFrameEpoch::initial(),
-7 -         diagnostic_policy: WorthUiRuntimeDiagnosticPolicy::minimal(),
-8 -     };
-4 +     let _launch = WorthUiRuntimeLaunch::from_candidate(_);
-  |

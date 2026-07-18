@@ -5,7 +5,10 @@
 //! inline parents), `cfg_attr(..., path = ...)`, and cfg-exclusive duplicates
 //! merged fail-closed.
 
-use super::module_source::{child_module_dir, directory_after_loading_file, resolve_child_sources};
+use super::module_source::{
+    all_path_selectors, child_module_dir, directory_after_loading_file, path_attribute_dir,
+    resolve_child_sources,
+};
 use crate::cargo_graph::{normalize_path, package_name_from_manifest};
 use crate::config::SubworkspaceConfig;
 use std::collections::BTreeMap;
@@ -76,7 +79,7 @@ pub(super) fn discover_governed_crates(
 }
 
 pub(super) fn parse_crate_modules(governed: &GovernedCrate) -> Result<ModuleGraph, String> {
-    let lib_source = resolve_lib_source_path(&governed.crate_root)?;
+    let lib_source = super::library_target::resolve_lib_source_path(&governed.crate_root)?;
     if !lib_source.is_file() {
         return Err(format!(
             "governed crate {} library target missing: {}",
@@ -118,6 +121,41 @@ pub(super) fn parse_additional_source_targets(
         collect_rust_files(&governed.crate_root.join(relative), &mut paths)?;
     }
     collect_manifest_target_paths(governed, &mut paths)?;
+    paths.sort();
+    paths.dedup();
+
+    let mut nodes = Vec::new();
+    for path in paths {
+        let root_dir = path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
+        let mut target_modules = BTreeMap::new();
+        parse_module_tree(
+            &governed.crate_root,
+            &path,
+            &root_dir,
+            Vec::new(),
+            false,
+            &mut target_modules,
+        )?;
+        nodes.extend(target_modules.into_values());
+    }
+    Ok(nodes)
+}
+
+pub(super) fn parse_additional_production_targets(
+    governed: &GovernedCrate,
+) -> Result<Vec<ModuleNode>, String> {
+    let source_root = governed.crate_root.join("src");
+    let mut paths = Vec::new();
+    let main = source_root.join("main.rs");
+    if main.is_file() {
+        paths.push(main);
+    }
+    collect_rust_files(&source_root.join("bin"), &mut paths)?;
+    collect_manifest_target_paths(governed, &mut paths)?;
+    paths.retain(|path| path.starts_with(&source_root));
     paths.sort();
     paths.dedup();
 
@@ -194,20 +232,6 @@ fn collect_rust_files(directory: &Path, paths: &mut Vec<PathBuf>) -> Result<(), 
         }
     }
     Ok(())
-}
-
-pub(super) fn resolve_lib_source_path(crate_root: &Path) -> Result<PathBuf, String> {
-    let manifest_path = crate_root.join("Cargo.toml");
-    let text = fs::read_to_string(&manifest_path)
-        .map_err(|e| format!("read {}: {e}", manifest_path.display()))?;
-    let value: toml::Value =
-        toml::from_str(&text).map_err(|e| format!("parse {}: {e}", manifest_path.display()))?;
-    let rel = value
-        .get("lib")
-        .and_then(|lib| lib.get("path"))
-        .and_then(|p| p.as_str())
-        .unwrap_or("src/lib.rs");
-    Ok(crate_root.join(rel))
 }
 
 fn parse_module_tree(
@@ -295,9 +319,21 @@ fn load_child_module(
         return Ok(());
     }
 
-    let sources = resolve_child_sources(parent_dir, &name, &item_mod.attrs)?;
+    let path_parent_dir = path_attribute_dir(parent_source, parent_dir);
+    let path_selected_sources = all_path_selectors(&item_mod.attrs)
+        .into_iter()
+        .map(|selector| path_parent_dir.join(selector))
+        .collect::<Vec<_>>();
+    let sources = resolve_child_sources(parent_dir, &path_parent_dir, &name, &item_mod.attrs)?;
     for source in sources {
-        let loaded_dir = directory_after_loading_file(&source);
+        let loaded_dir = if path_selected_sources.contains(&source) {
+            source
+                .parent()
+                .unwrap_or_else(|| Path::new("."))
+                .to_path_buf()
+        } else {
+            directory_after_loading_file(&source)
+        };
         parse_module_tree(
             crate_root,
             &source,

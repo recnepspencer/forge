@@ -21,10 +21,12 @@ pub(crate) use framework_turn::{
     UiAllocationFrameFrameworkScheduler, UiPendingAllocationFrameHandoff,
 };
 pub use framework_turn::{
-    WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
-    WorthUiFrameworkTurnExecution, WorthUiHostMeasurementTurnSource, WorthUiInteractionTurnSource,
-    WorthUiPreviewPaintFollowOn, WorthUiQueryProjectionTurnSource,
-    WorthUiResolvedPreviewPaintCompletion, WorthUiScrollOffsetTurnSource,
+    UiFrameworkTransitionExecutionDenial, UiFrameworkTransitionPlanningCounters,
+    UiFrameworkTransitionPlanningDenial, WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn,
+    WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
+    WorthUiHostMeasurementTurnSource, WorthUiInteractionTurnSource, WorthUiPreviewPaintFollowOn,
+    WorthUiQueryProjectionTurnSource, WorthUiResolvedPreviewPaintCompletion,
+    WorthUiScrollOffsetTurnSource,
 };
 pub(crate) use gateway::UiAllocationFrameGatewayState;
 pub use gateway::{

@@ -19,7 +19,7 @@ fn main() {
             ThemeTokenSource::application(),
             ThemeTokenAlias::to(primary),
         ))
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().theme_tokens().len(), 2);
     assert!(app.capabilities().theme_tokens().get(&alias).is_some());

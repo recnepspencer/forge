@@ -1,32 +1,9 @@
 import React from "react";
+import { DEMO_THREE_CODE } from "../state/demoCodeSamples";
 import { tokenizeCodeLine } from "./SignalsSectionCodeSample";
 import "./signalsSection.css";
 
-export const FORMS_CODE_SAMPLE = `const form = signals.form({
-  source: payoutPolicy,
-  collaboration: {
-    mode: "fieldLease",
-    actorId: session.userId,
-    supportsPresence: true,
-    supportsComments: true,
-  },
-  fields: ({ field }) => ({
-    limit: field("limit"),
-    justification: field("justification"),
-  }),
-});
-
-// your transport relays whatever is happening…
-channel.on("collaboration", (event) => {
-  form.reportCollaboration({
-    posture: event.posture,
-    leasedFields: event.leases,
-    presence: event.presence,
-  });
-});
-
-// …the runtime decides what it means for this client
-form.fieldWritePosture("limit");`;
+export const FORMS_CODE_SAMPLE = DEMO_THREE_CODE;
 
 interface FormsCodeSampleProps {
   liveLine: string | null;

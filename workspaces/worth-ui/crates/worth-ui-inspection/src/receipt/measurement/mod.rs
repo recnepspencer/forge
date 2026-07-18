@@ -6,8 +6,8 @@ pub use inspection_measurement_evidence_receipt::{
     UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
     UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
     UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
-    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
-    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
-    UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
-    UiInspectionQueryWorldCompatibilityFailure,
+    UiInspectionMeasurementEvidenceViewInput, UiInspectionMeasurementFailureSource,
+    UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
+    UiInspectionMeasurementOwnershipPosture, UiInspectionMeasurementQueryFactFamily,
+    UiInspectionMeasurementQueryUnsupportedReason, UiInspectionQueryWorldCompatibilityFailure,
 };

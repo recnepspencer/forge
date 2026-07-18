@@ -13,10 +13,7 @@ pub enum FrontierPerturbationClass {
     UnsupportedFrontierFamilyRejection,
     UnsupportedBundleCompositionRejection,
     MixedBasisBundleRejection,
-    ExecutorSpeculativeAdmissionRejection,
     HiddenSerialFallbackRejection,
-    RoutePostureOverrideRejection,
-    SerialRouteOnParallelEntrypointRejection,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -58,7 +55,6 @@ pub enum FrontierFailureClass {
     UnsupportedBundleComposition,
     MixedBasisBundleDenied,
     HiddenSerialFallbackDenied,
-    CompileFail,
 }
 
 impl FrontierFailureClass {
@@ -68,7 +64,6 @@ impl FrontierFailureClass {
             Self::UnsupportedBundleComposition => "unsupported-bundle-composition",
             Self::MixedBasisBundleDenied => "mixed-basis-bundle-denied",
             Self::HiddenSerialFallbackDenied => "hidden-serial-fallback-denied",
-            Self::CompileFail => "compile_fail",
         }
     }
 }
@@ -110,14 +105,11 @@ pub struct FrontierCertificationRejection {
     pub failure_class: FrontierFailureClass,
     pub failure_digest: String,
     pub counter_snapshot: FrontierCounterSnapshot,
-    pub compile_fail_case: Option<&'static str>,
 }
 
 impl FrontierCertificationRejection {
     pub fn has_required_outputs(&self) -> bool {
-        !self.failure_digest.is_empty()
-            && (self.counter_snapshot.frontier_lookup_count() > 0
-                || self.compile_fail_case.is_some())
+        !self.failure_digest.is_empty() && self.counter_snapshot.frontier_lookup_count() > 0
     }
 }
 
@@ -155,7 +147,6 @@ pub struct FrontierCloseoutRequirement {
     pub status: FrontierCloseoutStatus,
     pub production_artifacts: &'static [&'static str],
     pub certification_rows: &'static [&'static str],
-    pub compile_fail_cases: &'static [&'static str],
     pub notes: &'static str,
 }
 
@@ -292,9 +283,6 @@ fn rejection_digest_parts(bundle: &FrontierCertificationRejection, label: &str) 
         format!("{label}.failure_class:{}", bundle.failure_class.as_str()),
         format!("{label}.failure_digest:{}", bundle.failure_digest),
     ];
-    if let Some(case) = bundle.compile_fail_case {
-        parts.push(format!("{label}.compile_fail_case:{case}"));
-    }
     parts.extend(bundle.counter_snapshot.digest_parts(label));
     parts
 }
@@ -316,9 +304,6 @@ pub fn closeout_matrix_digest_parts(
             }
             for row in requirement.certification_rows {
                 parts.push(format!("row:{row}"));
-            }
-            for case in requirement.compile_fail_cases {
-                parts.push(format!("compile_fail:{case}"));
             }
             parts.push(format!("notes:{}", requirement.notes));
         }

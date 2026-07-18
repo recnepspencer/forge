@@ -10,11 +10,13 @@ fn equivalent_native_capabilities_produce_equivalent_support_entries() {
     let first = WorthUi::app()
         .register_native_capability(native_capability("platform.native.clipboard"))
         .register_native_capability(native_capability("platform.native.file_dialog"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_native_capability(native_capability("platform.native.file_dialog"))
         .register_native_capability(native_capability("platform.native.clipboard"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().native_capabilities(),
@@ -44,7 +46,8 @@ fn all_domain_agnostic_builtin_native_capability_families_are_admitted() {
                 .with_platform_posture(NativePlatformPosture::runtime_declared()),
             )
         })
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().native_capabilities().len(), 9);
     assert_eq!(
@@ -75,7 +78,8 @@ fn frozen_native_capabilities_support_index_lookup_by_typed_id() {
     let app = WorthUi::app()
         .register_native_capability(native_capability("platform.native.clipboard_backup"))
         .register_native_capability(native_capability(native_id.as_str()))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()
@@ -99,7 +103,8 @@ fn explicit_unsupported_platform_posture_is_registered_as_declared_support_seam(
                 .with_family(NativeCapabilityFamily::clipboard())
                 .with_platform_posture(NativePlatformPosture::unsupported()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()
@@ -117,13 +122,15 @@ fn explicit_unsupported_platform_posture_is_registered_as_declared_support_seam(
 fn different_native_platform_posture_changes_snapshot_digest() {
     let runtime_declared = WorthUi::app()
         .register_native_capability(native_capability("platform.native.clipboard"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let deferred = WorthUi::app()
         .register_native_capability(
             native_capability("platform.native.clipboard")
                 .with_platform_posture(NativePlatformPosture::deferred()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         runtime_declared.capabilities().native_capabilities(),

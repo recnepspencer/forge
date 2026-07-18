@@ -1,5 +1,4 @@
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionTarget};
 use worth_ui::facade::app::WorthUiApp;
@@ -9,8 +8,8 @@ use worth_ui_runtime::facade::admission::UiSupportSnapshot;
 use worth_ui_runtime::facade::obligations::UiSelectedObligationSet;
 
 use self::obligation_dispatch_prerequisite_support::{
-    apps::query_touch_app, query_support::query_prerequisites, targets::selection_target,
-    touches::query_touch,
+    admission_targets::selection_target, application_authority::query_touch_app,
+    graph_touches::query_touch, query_prerequisites::query_prerequisites,
 };
 
 #[derive(Debug, Eq, PartialEq)]

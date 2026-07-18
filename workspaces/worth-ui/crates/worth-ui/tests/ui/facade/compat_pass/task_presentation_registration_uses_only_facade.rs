@@ -20,7 +20,7 @@ fn main() {
                 TaskPresentationRuntimeAuthorityPosture::presentation_only(),
             ),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().task_presentations().len(), 1);
 }

@@ -27,7 +27,7 @@ fn component_descriptor_change_changes_digest_for_same_authored_input() {
     assert!(!equivalence.is_equivalent());
     assert!(matches!(
         equivalence.first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemanticMismatch {
+        Some(WorthUiArtifactDifference::NodeSemantics {
             node_kind: WorthUiArtifactNodeKind::Component,
             ..
         })
@@ -53,7 +53,7 @@ fn surface_descriptor_change_changes_digest_for_same_authored_input() {
     assert!(!equivalence.is_equivalent());
     assert!(matches!(
         equivalence.first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemanticMismatch {
+        Some(WorthUiArtifactDifference::NodeSemantics {
             node_kind: WorthUiArtifactNodeKind::Surface,
             ..
         })
@@ -109,7 +109,7 @@ fn token_entry_change_changes_digest_when_resolved_target_stays_the_same() {
     assert!(!equivalence.is_equivalent());
     assert!(matches!(
         equivalence.first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemanticMismatch {
+        Some(WorthUiArtifactDifference::NodeSemantics {
             node_kind: WorthUiArtifactNodeKind::Token,
             ..
         })

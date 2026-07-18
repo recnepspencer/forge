@@ -10,8 +10,7 @@ use worth_ui_dsl::{
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 #[test]
 fn ordinary_35_covered_queries_stay_narrow_index_backed_and_log_free() {
@@ -65,8 +64,8 @@ fn ordinary_35_covered_queries_stay_narrow_index_backed_and_log_free() {
 
 #[test]
 fn ai_harness_and_query_citation_stay_on_the_ordinary_boundary() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let ai = UiInspectionAiHarness::new(&app);
     let query = obligation_query(
         touch.target().graph_node_identity().digest(),
@@ -103,7 +102,8 @@ fn ai_harness_and_query_citation_stay_on_the_ordinary_boundary() {
 fn unsupported_queries_do_not_fall_back_to_renderer_or_log_local_explanation() {
     let app = WorthUi::app()
         .with_dsl_package(WorthUiDslPackage::empty())
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
         UiInspectionTarget::product_root(),
         UiInspectionScope::graph(),
@@ -142,6 +142,7 @@ fn boundary_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn graph_node_digest(app: &WorthUiApp) -> u64 {

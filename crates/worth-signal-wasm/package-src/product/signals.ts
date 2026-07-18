@@ -1,20 +1,9 @@
-import {
-  parseComputedCallbackArgs,
-  parseOutputCallbackArgs,
-  withComputedCallbackFrame,
-} from "./callback_frames.js";
+import { withComputedCallbackFrame } from "./callback_frames.js";
 import { buildControllerContract } from "./controllers.js";
-import {
-  clockCapability,
-  createHostCapabilities,
-  hostCapabilityPlan,
-  onlineCapability,
-  persistenceCapability,
-  viewportCapability,
-  visibilityCapability,
-} from "./host_capabilities.js";
+import { createHostCapabilities } from "./host_capabilities.js";
 import { wrapDiagnostics } from "./diagnostics.js";
 import { createFormController } from "./forms/form_controller.js";
+import { defineFormDeclaration } from "./forms/form_declaration.js";
 import { createFormSourceFactory } from "./forms/sources/form_sources.js";
 import { requireRouteFormsAuthorityArtifact } from "./router/projection/admission/router_forms_authority_artifact.js";
 import { createApiFactory, createApiScopeFactory } from "./api/api_namespace.js";
@@ -32,355 +21,35 @@ import {
 } from "./handles.js";
 import { createLinkedSignal } from "./linked.js";
 import { createLocalNamespace } from "./local/local_namespace.js";
+import { createCompatibilityLocalTruthFactory } from "./local_truth/signals_local_truth_factory.js";
 import {
   nextOutputProjectionId,
   outputProjectionSpec,
 } from "./output_projection_ids.js";
 import { createPublicGraphInputEntry } from "./public_inputs.js";
-import {
-  createResourceNamespace,
-  resourceBinaryDescriptor,
-  resourceBinaryValue,
-  resourceAuth,
-  resourceCollectionShape,
-  resourceContinuation,
-  resourceDetailFields,
-  resourceDetailRegions,
-  resourceDetailJsonPaths,
-  resourceDelivery,
-  resourceDownload,
-  resourceItemAspects,
-  resourceParamIdentity,
-  resourcePatch,
-  resourceValueSummaries,
-  resourceParams,
-  resourcePolicyProfiles,
-  resourceProcessingJob,
-  resourceProcessingResult,
-  resourceMutationResponses,
-  resourceResponse,
-  resourceUploadResult,
-  resourceUploadTransport,
-  resourceRequestContext,
-} from "./resource/facade.js";
-import {
-  sealConcurrentResourceEffectBranchDagCertificationRun,
-} from "./resource/effects/certification/concurrent_resource_effect_branch_dag_certification.js";
-import {
-  forbidOpaqueIdOption,
-  isPlainObject,
-  looksLikeInputMetadataOptions,
-  looksLikeOpaqueAuthoringOptions,
-  requireAuthoringOptions,
-  requireOptionalDebugName,
-} from "./authoring_option_validation.js";
+import { createResourceNamespace } from "./resource/facade.js";
 import { withReservedSignalId } from "./reserved_authoring_ids.js";
-import {
-  createScopedSignalNamespace,
-  nextGeneratedAuthoringSignalId,
-} from "./scopes.js";
+import { createScopedSignalNamespace } from "./scopes.js";
 import { wrapSpecialist } from "./specialist.js";
 import {
   assertSignalsRuntimeCompatibility,
   createSignalsRuntimeContract,
 } from "./runtime_contract.js";
-import { PRIVATE_AUTHORING_ID, RAW_SIGNALS } from "./symbols.js";
+import { RAW_SIGNALS } from "./symbols.js";
 import { wrapAdapters, wrapTransaction } from "./transactions.js";
+import {
+  cloneSignalValue,
+  explicitSignalSpecNamespace,
+  parseOpaqueCallbackOptions,
+  parseOpaqueInputArgs,
+  parseOpaqueSpecOptions,
+} from "./authoring/compatibility_signal_authoring.js";
+import {
+  createCompatibilityObservation,
+  RAW_OBSERVATION_HANDLE,
+} from "./authoring/compatibility_observation.js";
 
-const RAW_OBSERVATION_HANDLE = Symbol("worth.rawObservationHandle");
-
-function cloneSignalValue(value) {
-  if (typeof globalThis.structuredClone === "function") {
-    try {
-      return globalThis.structuredClone(value);
-    } catch {
-      return value;
-    }
-  }
-  if (Array.isArray(value)) {
-    return value.slice();
-  }
-  if (isPlainObject(value)) {
-    return { ...value };
-  }
-  return value;
-}
-
-function parseOpaqueInputArgs(rawSignals, firstArg, secondArg, thirdArg) {
-  if (
-    (typeof firstArg === "string" &&
-      secondArg !== undefined &&
-      !looksLikeOpaqueAuthoringOptions(secondArg)) ||
-    looksLikeInputMetadataOptions(secondArg)
-  ) {
-    throw new TypeError(
-      "input app authoring does not accept an explicit id; use signals.spec.input(...) when you need an explicit structural name",
-    );
-  }
-  const options =
-    secondArg === undefined
-      ? undefined
-      : requireAuthoringOptions("input", secondArg);
-  if (thirdArg !== undefined) {
-    throw new TypeError("input app form does not accept a third argument");
-  }
-  if (options) {
-    forbidOpaqueIdOption("input", options);
-  }
-  return {
-    id:
-      options?.[PRIVATE_AUTHORING_ID] ??
-      nextGeneratedAuthoringSignalId(rawSignals, "input"),
-    initial: firstArg,
-    debugName: options ? requireOptionalDebugName("input", options) : null,
-    options: options
-      ? {
-          ...(options.producesAspects === undefined
-            ? {}
-            : { producesAspects: options.producesAspects }),
-        }
-      : undefined,
-  };
-}
-
-function parseOpaqueCallbackOptions(
-  rawSignals,
-  family,
-  computeOrSpec,
-  options,
-  maybeOptions,
-) {
-  if (typeof computeOrSpec === "string" && typeof options === "function") {
-    throw new TypeError(
-      `${family} app authoring does not accept an explicit id; use signals.spec.${family}Callback(...) when you need an explicit structural name`,
-    );
-  }
-  const callbackArgs =
-    family === "computed"
-      ? parseComputedCallbackArgs(
-          rawSignals,
-          computeOrSpec,
-          options,
-          maybeOptions,
-        )
-      : parseOutputCallbackArgs(
-          rawSignals,
-          computeOrSpec,
-          options,
-          maybeOptions,
-        );
-  if (!callbackArgs) {
-    return null;
-  }
-  const callbackOptions =
-    typeof computeOrSpec === "function" ? (options ?? {}) : {};
-  if (isPlainObject(callbackOptions)) {
-    forbidOpaqueIdOption(family, callbackOptions);
-  }
-  return {
-    ...callbackArgs,
-    debugName: requireOptionalDebugName(family, callbackOptions),
-  };
-}
-
-function parseOpaqueSpecOptions(
-  rawSignals,
-  family,
-  firstArg,
-  secondArg,
-  thirdArg,
-) {
-  if (typeof firstArg === "string") {
-    throw new TypeError(
-      `${family} app authoring does not accept an explicit id; use signals.spec.${family}(...) when you need an explicit structural name`,
-    );
-  }
-  const options =
-    secondArg === undefined
-      ? undefined
-      : requireAuthoringOptions(family, secondArg);
-  if (thirdArg !== undefined) {
-    throw new TypeError(
-      `${family} app spec form does not accept a third argument`,
-    );
-  }
-  if (options) {
-    forbidOpaqueIdOption(family, options);
-  }
-  return {
-    id:
-      options?.[PRIVATE_AUTHORING_ID] ??
-      nextGeneratedAuthoringSignalId(rawSignals, family),
-    spec: firstArg,
-    debugName: options ? requireOptionalDebugName(family, options) : null,
-  };
-}
-
-function isNamedCallbackDefinition(spec) {
-  return isPlainObject(spec) && typeof spec.compute === "function";
-}
-
-function createExplicitNamedSignal(rawSignals, family, id, specOrCallback, debugName) {
-  if (isNamedCallbackDefinition(specOrCallback)) {
-    const callback = withComputedCallbackFrame(rawSignals, specOrCallback.compute);
-    if (family === "computed") {
-      return wrapReadableSignal(
-        rawSignals.computedCallback(id, callback),
-        rawSignals,
-        "computed",
-        debugName,
-      );
-    }
-    const hiddenComputedId = nextOutputProjectionId(rawSignals, id);
-    rawSignals.computedCallback(hiddenComputedId, callback);
-    return wrapReadableSignal(
-      rawSignals.outputSpec(id, outputProjectionSpec(hiddenComputedId)),
-      rawSignals,
-      "output",
-      debugName,
-    );
-  }
-  if (family === "computed") {
-    return wrapReadableSignal(
-      rawSignals.computedSpec(id, specOrCallback),
-      rawSignals,
-      "computed",
-      debugName,
-    );
-  }
-  return wrapReadableSignal(
-    rawSignals.outputSpec(id, specOrCallback),
-    rawSignals,
-    "output",
-    debugName,
-  );
-}
-
-function explicitSignalSpecNamespace(rawSignals) {
-  return Object.freeze({
-    input(id, initial, options) {
-      const specOptions =
-        options === undefined
-          ? undefined
-          : requireAuthoringOptions("input", options);
-      const debugName = specOptions
-        ? requireOptionalDebugName("input", specOptions)
-        : null;
-      const inputOptions = specOptions
-        ? {
-            ...(specOptions.producesAspects === undefined
-              ? {}
-              : { producesAspects: specOptions.producesAspects }),
-          }
-        : undefined;
-      return withReservedSignalId(rawSignals, "input", id, () =>
-        wrapInputSignal(
-          rawSignals.input(id, initial, inputOptions),
-          rawSignals,
-          cloneSignalValue(initial),
-          debugName,
-        ),
-      );
-    },
-    computed(id, spec, options) {
-      const specOptions =
-        options === undefined
-          ? undefined
-          : requireAuthoringOptions("computed", options);
-      const debugName = specOptions
-          ? requireOptionalDebugName("computed", specOptions)
-          : null;
-      return withReservedSignalId(rawSignals, "computed", id, () =>
-        createExplicitNamedSignal(rawSignals, "computed", id, spec, debugName),
-      );
-    },
-    computedCallback(id, callback, options) {
-      const callbackOptions =
-        options === undefined
-          ? undefined
-          : requireAuthoringOptions("computed", options);
-      const debugName = callbackOptions
-        ? requireOptionalDebugName("computed", callbackOptions)
-        : null;
-      return withReservedSignalId(rawSignals, "computed", id, () =>
-        wrapReadableSignal(
-          rawSignals.computedCallback(
-            id,
-            withComputedCallbackFrame(rawSignals, callback),
-          ),
-          rawSignals,
-          "computed",
-          debugName,
-        ),
-      );
-    },
-    output(id, spec, options) {
-      const specOptions =
-        options === undefined
-          ? undefined
-          : requireAuthoringOptions("output", options);
-      const debugName = specOptions
-          ? requireOptionalDebugName("output", specOptions)
-          : null;
-      return withReservedSignalId(rawSignals, "output", id, () =>
-        createExplicitNamedSignal(rawSignals, "output", id, spec, debugName),
-      );
-    },
-    outputCallback(id, callback, options) {
-      const callbackOptions =
-        options === undefined
-          ? undefined
-          : requireAuthoringOptions("output", options);
-      const debugName = callbackOptions
-        ? requireOptionalDebugName("output", callbackOptions)
-        : null;
-      const wrappedCallback = withComputedCallbackFrame(rawSignals, callback);
-      const hiddenComputedId = nextOutputProjectionId(rawSignals, id);
-      return withReservedSignalId(rawSignals, "output", id, () => {
-        rawSignals.computedCallback(hiddenComputedId, wrappedCallback);
-        return wrapReadableSignal(
-          rawSignals.outputSpec(id, outputProjectionSpec(hiddenComputedId)),
-          rawSignals,
-          "output",
-          debugName,
-        );
-      });
-    },
-  });
-}
-
-export {
-  clockCapability,
-  hostCapabilityPlan,
-  onlineCapability,
-  persistenceCapability,
-  resourceBinaryDescriptor,
-  resourceBinaryValue,
-  resourceAuth,
-  resourceCollectionShape,
-  resourceContinuation,
-  resourceDetailFields,
-  resourceDetailRegions,
-  resourceDetailJsonPaths,
-  resourceDelivery,
-  resourceDownload,
-  resourceItemAspects,
-  resourceParamIdentity,
-  resourcePatch,
-  resourceValueSummaries,
-  resourceParams,
-  resourcePolicyProfiles,
-  resourceProcessingJob,
-  resourceProcessingResult,
-  resourceMutationResponses,
-  resourceUploadResult,
-  resourceUploadTransport,
-  resourceRequestContext,
-  resourceResponse,
-  sealConcurrentResourceEffectBranchDagCertificationRun,
-  viewportCapability,
-  visibilityCapability,
-};
+export * from "./public_helpers.js";
 
 export function wrapSignals(rawSignals, options) {
   const hostCapabilities = createHostCapabilities(rawSignals, options);
@@ -407,6 +76,10 @@ export function wrapSignals(rawSignals, options) {
     enumerable: true,
     value: formSourceFactory,
   });
+  Object.defineProperty(createForm, "define", {
+    enumerable: true,
+    value: defineFormDeclaration,
+  });
   const callableSignals = {
     host: hostCapabilities.host,
     resource: createResourceNamespace(null, rawSignals),
@@ -414,6 +87,7 @@ export function wrapSignals(rawSignals, options) {
     apiScope: null,
     featureStore: null,
     local: null,
+    localTruth: null,
     router: null,
     spec: explicitSpec,
     scope(localScopeId) {
@@ -596,48 +270,10 @@ export function wrapSignals(rawSignals, options) {
       );
     },
     watch(target, callback) {
-      const deferred = createDeferredObservationCallback(callback);
-      const rawHandle = rawSignals.watch(
-        unwrapSignalTarget(target, rawSignals, "signals.watch"),
-        deferred.callback,
-      );
-      return Object.freeze({
-        free() {
-          deferred.dispose();
-          rawHandle.free();
-        },
-        [Symbol.dispose]() {
-          deferred.dispose();
-          if (typeof rawHandle[Symbol.dispose] === "function") {
-            rawHandle[Symbol.dispose]();
-            return;
-          }
-          rawHandle.free();
-        },
-        [RAW_OBSERVATION_HANDLE]: rawHandle,
-      });
+      return createCompatibilityObservation(rawSignals, "watch", target, callback);
     },
     effect(target, callback) {
-      const deferred = createDeferredEffectCallback(callback);
-      const rawHandle = rawSignals.effect(
-        unwrapSignalTarget(target, rawSignals, "signals.effect"),
-        deferred.callback,
-      );
-      return Object.freeze({
-        free() {
-          deferred.dispose();
-          rawHandle.free();
-        },
-        [Symbol.dispose]() {
-          deferred.dispose();
-          if (typeof rawHandle[Symbol.dispose] === "function") {
-            rawHandle[Symbol.dispose]();
-            return;
-          }
-          rawHandle.free();
-        },
-        [RAW_OBSERVATION_HANDLE]: rawHandle,
-      });
+      return createCompatibilityObservation(rawSignals, "effect", target, callback);
     },
     transaction(callback) {
       return rawSignals.transaction((rawTx) =>
@@ -725,40 +361,7 @@ export function wrapSignals(rawSignals, options) {
   callableSignals.apiScope = createApiScopeFactory(callableSignals);
   callableSignals.featureStore = createFeatureStoreFactory(callableSignals);
   callableSignals.local = createLocalNamespace(callableSignals);
+  callableSignals.localTruth = createCompatibilityLocalTruthFactory(callableSignals);
   callableSignals.router = createRouterNamespace();
   return callableSignals;
-}
-
-function createDeferredObservationCallback(callback) {
-  let active = true;
-  return Object.freeze({
-    callback(notice) {
-      queueMicrotask(() => {
-        if (!active) {
-          return;
-        }
-        callback(notice);
-      });
-    },
-    dispose() {
-      active = false;
-    },
-  });
-}
-
-function createDeferredEffectCallback(callback) {
-  let active = true;
-  return Object.freeze({
-    callback() {
-      queueMicrotask(() => {
-        if (!active) {
-          return;
-        }
-        callback();
-      });
-    },
-    dispose() {
-      active = false;
-    },
-  });
 }

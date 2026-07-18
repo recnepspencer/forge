@@ -1,5 +1,4 @@
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::obligations::UiObligationFamily;
 use worth_ui_query_binding::{
@@ -8,9 +7,8 @@ use worth_ui_query_binding::{
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    apps::query_touch_app,
-    targets::{execute_for_target, graph_aligned_query_target},
-    touches::query_touch,
+    admission_targets::graph_aligned_query_target, application_authority::query_touch_app,
+    dispatch_execution::execute_for_target, graph_touches::query_touch,
 };
 
 #[test]

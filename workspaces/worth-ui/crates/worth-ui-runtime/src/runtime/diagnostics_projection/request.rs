@@ -165,17 +165,17 @@ impl<'a> WorthUiDiagnosticsProjectionRequest<'a> {
         );
         let query_status = WorthUiQueryStatusSurface::from_sources(&rows, self.plan_inspection);
         let projection_digest = self.projection_digest(report, &rows);
-        WorthUiDiagnosticsProjection::new(
-            report.active_artifact_digest(),
-            report.active_plan_digest(),
+        WorthUiDiagnosticsProjection::new(super::WorthUiDiagnosticsProjectionInput {
+            active_artifact_digest: report.active_artifact_digest(),
+            active_plan_digest: report.active_plan_digest(),
             projection_digest,
             rows,
             reload_status,
             plan_inspection,
-            self.frame_costs,
+            frame_costs: self.frame_costs,
             query_status,
-            self.counters,
-        )
+            counters: self.counters,
+        })
     }
 
     fn projection_digest(

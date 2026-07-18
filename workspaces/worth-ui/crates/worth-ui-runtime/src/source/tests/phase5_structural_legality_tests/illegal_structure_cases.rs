@@ -76,14 +76,14 @@ fn platform_internal_references_fail_here_with_deterministic_sorted_report() {
     let app = standard_app();
     let snapshot = app.capabilities();
     let platform_internal_snapshot = snapshot_with_support_catalog(
-        &snapshot,
+        snapshot,
         support_catalog_with_extra([RegistrationCandidate::with_support(
             MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
             "workspace.placement.primary",
             CapabilitySupportKind::PlatformInternal,
         )]),
     );
-    let resolved = resolved_artifact_input_from_modules([standard_component_module()], &snapshot);
+    let resolved = resolved_artifact_input_from_modules([standard_component_module()], snapshot);
 
     let report = WorthUiStructuralLegalityLowerer::lower(&resolved, &platform_internal_snapshot)
         .unwrap_err();

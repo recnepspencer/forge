@@ -7,7 +7,7 @@ use crate::runtime::{
 
 pub(crate) fn certify_query_rebind_step(
     step: &crate::runtime::WorthUiQueryDriftCertificationScenarioStep,
-    active_observation: WorthUiActiveRuntimeObservation,
+    active_observation: &WorthUiActiveRuntimeObservation,
     counters: &mut WorthUiIdentityStateQueryCertificationCounters,
 ) -> Result<(), WorthUiIdentityStateQueryCertificationDenial> {
     reject_query_plan_active_runtime_mismatch(step, active_observation, *counters)?;
@@ -49,7 +49,7 @@ fn classify_query_step_denial_expectation(
 
 fn reject_query_plan_active_runtime_mismatch(
     step: &crate::runtime::WorthUiQueryDriftCertificationScenarioStep,
-    active_observation: WorthUiActiveRuntimeObservation,
+    active_observation: &WorthUiActiveRuntimeObservation,
     counters: WorthUiIdentityStateQueryCertificationCounters,
 ) -> Result<(), WorthUiIdentityStateQueryCertificationDenial> {
     if step.rebind_plan().active_artifact_digest() == active_observation.artifact_digest() {

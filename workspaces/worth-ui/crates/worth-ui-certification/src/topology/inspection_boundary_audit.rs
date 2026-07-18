@@ -1,10 +1,8 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-
 use super::dependency_audit::{
-    collect_file_paths, collect_rust_files, manifest_dependency_crate_aliases,
-    manifests_dependencies, normalize_manifest_alias_path, path_starts_with,
+    collect_file_paths, manifest_dependency_crate_aliases, manifests_dependencies,
+    normalize_manifest_alias_path, path_starts_with,
 };
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 const INSPECTION_OWNER_CRATES: [&str; 5] = [
     "worth-ui",
@@ -17,12 +15,11 @@ const INSPECTION_OWNER_CRATES: [&str; 5] = [
 const FORBIDDEN_INSPECTION_BYPASS_DEPS: [&str; 2] = ["worth-ui-runtime", "worth-ui-inspection"];
 
 pub fn audit_consumers_route_inspection_through_worth_ui_facade(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let crates_root = workspace_root.join("crates");
     let mut violations = Vec::new();
 
-    for crate_root in workspace_crate_roots(&crates_root) {
+    for crate_root in workspace_crate_roots(inventory) {
         let crate_name = crate_root
             .file_name()
             .expect("crate roots should have final path component")
@@ -33,8 +30,8 @@ pub fn audit_consumers_route_inspection_through_worth_ui_facade(
         }
 
         let manifest = crate_root.join("Cargo.toml");
-        if manifest.exists() {
-            let dependencies = manifests_dependencies(&manifest);
+        if inventory.source(&manifest).is_some() {
+            let dependencies = manifests_dependencies(inventory, &manifest);
             for forbidden_dep in FORBIDDEN_INSPECTION_BYPASS_DEPS {
                 if dependencies
                     .iter()
@@ -49,20 +46,22 @@ pub fn audit_consumers_route_inspection_through_worth_ui_facade(
         }
 
         let src_root = crate_root.join("src");
-        if !src_root.exists() {
+        let source_relative = src_root
+            .strip_prefix(inventory.root())
+            .expect("source is in inventory");
+        if !inventory.contains(source_relative) {
             continue;
         }
 
-        let mut rust_files = Vec::new();
-        collect_rust_files(&src_root, &mut rust_files);
-        let manifest_aliases = if manifest.exists() {
-            manifest_dependency_crate_aliases(&manifest)
+        let rust_files = inventory.rust_files_under(source_relative);
+        let manifest_aliases = if inventory.source(&manifest).is_some() {
+            manifest_dependency_crate_aliases(inventory, &manifest)
         } else {
             Default::default()
         };
         for file in rust_files {
-            let file_text = fs::read_to_string(&file).expect("consumer source file should decode");
-            for segments in collect_file_paths(&file) {
+            let file_text = file.text();
+            for segments in collect_file_paths(inventory, file.absolute_path()) {
                 let normalized_segments =
                     normalize_manifest_alias_path(&segments, &manifest_aliases);
                 if path_starts_with(&normalized_segments, "worth_ui_runtime")
@@ -70,7 +69,7 @@ pub fn audit_consumers_route_inspection_through_worth_ui_facade(
                 {
                     violations.push(format!(
                         "{} reaches runtime-owned inspection surfaces directly; external consumers must enter through worth_ui::facade",
-                        file.display()
+                        file.absolute_path().display()
                     ));
                 }
             }
@@ -80,7 +79,7 @@ pub fn audit_consumers_route_inspection_through_worth_ui_facade(
                 {
                     violations.push(format!(
                         "{} reaches runtime-owned inspection surfaces directly; external consumers must enter through worth_ui::facade",
-                        file.display()
+                        file.absolute_path().display()
                     ));
                 }
             }
@@ -92,17 +91,12 @@ pub fn audit_consumers_route_inspection_through_worth_ui_facade(
     violations
 }
 
-fn workspace_crate_roots(crates_root: &Path) -> Vec<PathBuf> {
-    let mut roots = Vec::new();
-
-    for entry in fs::read_dir(crates_root).expect("workspace crates directory should read") {
-        let entry = entry.expect("workspace crate directory entry should read");
-        let path = entry.path();
-        if path.is_dir() {
-            roots.push(path);
-        }
-    }
-
+fn workspace_crate_roots(inventory: &WorkspaceSourceInventory) -> Vec<std::path::PathBuf> {
+    let mut roots = inventory
+        .direct_entries_under("crates")
+        .filter(|path| inventory.contains(path.join("Cargo.toml")))
+        .map(|path| inventory.absolute_path(path))
+        .collect::<Vec<_>>();
     roots.sort();
     roots
 }

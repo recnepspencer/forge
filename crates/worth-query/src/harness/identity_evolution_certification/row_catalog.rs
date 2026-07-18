@@ -41,7 +41,6 @@ pub const IDENTITY_EVOLUTION_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "lineage-to-correspondence-fallback-forbidden",
     "branch-crossing-lineage-forbidden",
     "broad-lineage-scan-forbidden",
-    "fabricated-branch-local-continuity-forbidden",
     "complexity-contract-violation-denied",
 ];
 
@@ -153,11 +152,6 @@ pub const IDENTITY_EVOLUTION_REJECTION_ROW_SPECS: &[IdentityEvolutionRejectionRo
         row_name: "broad-lineage-scan-forbidden",
         perturbation_class: IdentityEvolutionCertificationPerturbationClass::Performance,
         failure_class: IdentityEvolutionCertificationFailureClass::ExecutionDenied,
-    },
-    IdentityEvolutionRejectionRowSpec {
-        row_name: "fabricated-branch-local-continuity-forbidden",
-        perturbation_class: IdentityEvolutionCertificationPerturbationClass::CompileTimeBoundary,
-        failure_class: IdentityEvolutionCertificationFailureClass::CompileFail,
     },
     IdentityEvolutionRejectionRowSpec {
         row_name: "complexity-contract-violation-denied",

@@ -89,12 +89,19 @@ fn host_source_distinguishes_equal_truth_at_later_monotonic_positions() {
         collector
             .collect_admitted(
                 &ViewportAdapter(width),
-                UiMeasurementRequestIdentity::new(91),
-                UiMeasurementEvidenceFamily::ViewportExtent,
-                crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-                &report,
-                generation,
-                crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+                crate::host::UiHostMeasurementCollectionInput {
+                    identity: UiMeasurementRequestIdentity::new(91),
+                    evidence_family: UiMeasurementEvidenceFamily::ViewportExtent,
+                    need: crate::host::UiHostMeasurementNeed::ViewportExtent(
+                        UiViewportExtentRequest,
+                    ),
+                    capability_report: &report,
+                    evidence_generation: generation,
+                    normalization_context:
+                        crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                            profile,
+                        ),
+                },
             )
             .expect("host observation admits")
     });
@@ -169,14 +176,19 @@ fn framework_turn_capability_routes_all_four_admitted_sources_once() {
                 source
                     .collect_and_submit(
                         &ViewportAdapter(800.0),
-                        UiMeasurementRequestIdentity::new(91),
-                        UiMeasurementEvidenceFamily::ViewportExtent,
-                        crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-                        &report,
-                        UiEvidenceAuthorityGeneration::new(11),
-                        crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
-                            profile,
-                        ),
+                        crate::host::UiHostMeasurementCollectionInput {
+                            identity: UiMeasurementRequestIdentity::new(91),
+                            evidence_family: UiMeasurementEvidenceFamily::ViewportExtent,
+                            need: crate::host::UiHostMeasurementNeed::ViewportExtent(
+                                UiViewportExtentRequest,
+                            ),
+                            capability_report: &report,
+                            evidence_generation: UiEvidenceAuthorityGeneration::new(11),
+                            normalization_context:
+                                crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                                    profile,
+                                ),
+                        },
                     )
                     .expect("host source admits"),
             );
@@ -220,5 +232,4 @@ fn framework_turn_capability_routes_all_four_admitted_sources_once() {
     assert!(submissions.iter().all(|outcome| outcome
         .submission()
         .is_some_and(|submission| submission.is_queued())));
-    assert!(runtime.pending_narrowed_allocation_frame.is_none());
 }

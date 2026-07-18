@@ -1,0 +1,19 @@
+error[E0432]: unresolved import `worth_ui::facade::registry::CapabilitySnapshot`
+ --> tests/ui/runtime_authority/fail/prepared_application_constituent_cannot_be_replaced.rs:2:5
+  |
+2 | use worth_ui::facade::registry::CapabilitySnapshot;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `CapabilitySnapshot` in `facade::registry`
+  |
+help: consider importing one of these structs instead
+  |
+2 - use worth_ui::facade::registry::CapabilitySnapshot;
+2 + use worth_ui::facade::CapabilitySnapshot;
+  |
+2 | use worth_ui_runtime::facade::registry::CapabilitySnapshot;
+  |             ++++++++
+
+error[E0616]: field `capability_snapshot` of struct `WorthUiPreparedApplicationAuthority` is private
+ --> tests/ui/runtime_authority/fail/prepared_application_constituent_cannot_be_replaced.rs:8:15
+  |
+8 |     authority.capability_snapshot = replacement;
+  |               ^^^^^^^^^^^^^^^^^^^ private field

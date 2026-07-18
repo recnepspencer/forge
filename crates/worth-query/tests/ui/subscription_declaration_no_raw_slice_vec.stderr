@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::declare_query_subscription`
- --> tests/ui/subscription_declaration_no_raw_slice_vec.rs:1:36
-  |
-1 | use worth_query::facade::runtime::{declare_query_subscription, QuerySubscriptionSliceBudget};
-  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `declare_query_subscription` in `facade::runtime`

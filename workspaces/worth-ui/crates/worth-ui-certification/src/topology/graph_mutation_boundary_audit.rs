@@ -1,23 +1,12 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 struct ForbiddenCall<'a> {
     type_name: &'a str,
     method_name: &'a str,
     allowed_paths: &'a [&'a Path],
     message: &'a str,
-}
-
-fn collect_rust_files(root: &Path, output: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("read_dir should succeed") {
-        let entry = entry.expect("dir entry should load");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_files(&path, output);
-        } else if path.extension().is_some_and(|ext| ext == "rs") {
-            output.push(path);
-        }
-    }
 }
 
 fn strip_comments_and_literals(text: &str) -> String {
@@ -283,11 +272,7 @@ fn audit_forbidden_call(
     text: &str,
     forbidden_call: &ForbiddenCall<'_>,
 ) -> Option<String> {
-    if forbidden_call
-        .allowed_paths
-        .iter()
-        .any(|allowed| path == *allowed)
-    {
+    if forbidden_call.allowed_paths.contains(&path) {
         return None;
     }
 
@@ -299,64 +284,10 @@ fn audit_forbidden_call(
         .then(|| format!("{} {}", path.display(), forbidden_call.message))
 }
 
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::{audit_forbidden_call, ForbiddenCall};
-
-    fn forbidden_call() -> ForbiddenCall<'static> {
-        ForbiddenCall {
-            type_name: "UiGraphCoreIndexes",
-            method_name: "build",
-            allowed_paths: &[],
-            message: "rebuilds core indexes outside the graph mutation boundary",
-        }
-    }
-
-    fn violates(source: &str) -> bool {
-        audit_forbidden_call(Path::new("graph/fake.rs"), source, &forbidden_call()).is_some()
-    }
-
-    #[test]
-    fn detects_direct_qualified_calls() {
-        assert!(violates("fn bad() { UiGraphCoreIndexes::build(plan); }"));
-    }
-
-    #[test]
-    fn detects_use_alias_calls() {
-        assert!(violates(
-            "use crate::graph::UiGraphCoreIndexes as Indexes; fn bad() { Indexes::build(plan); }"
-        ));
-    }
-
-    #[test]
-    fn detects_type_alias_calls() {
-        assert!(violates(
-            "type Indexes = UiGraphCoreIndexes; fn bad() { Indexes::build(plan); }"
-        ));
-    }
-
-    #[test]
-    fn detects_local_rebinding_calls() {
-        assert!(violates(
-            "fn bad() { let build = UiGraphCoreIndexes::build; build(plan); }"
-        ));
-    }
-
-    #[test]
-    fn ignores_comments_and_strings() {
-        assert!(!violates(
-            r#"fn okay() { let _ = "UiGraphCoreIndexes::build(plan)"; // UiGraphCoreIndexes::build(plan)
-            /* UiGraphCoreIndexes::build(plan) */ }"#
-        ));
-    }
-}
-
 pub fn audit_graph_mutation_boundary_owns_snapshot_and_index_commit(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let runtime_root = workspace_root.join("crates/worth-ui-runtime/src");
+    let runtime_root = inventory.absolute_path("crates/worth-ui-runtime/src");
     let mutation_stage_file = runtime_root.join("graph/mutation/graph_mutation_stage.rs");
     let snapshot_file = runtime_root.join("graph/snapshot/graph_snapshot.rs");
     let topology_mutation_file = runtime_root.join("graph/topology/topology_mutation.rs");
@@ -412,15 +343,13 @@ pub fn audit_graph_mutation_boundary_owns_snapshot_and_index_commit(
             message: "constructs mounted-receipt authority slots outside the graph mutation boundary",
         },
     ];
-    let mut files = Vec::new();
     let mut violations = Vec::new();
 
-    collect_rust_files(&runtime_root, &mut files);
-
-    for path in files {
-        let text = fs::read_to_string(&path).expect("source file should decode");
+    for source in inventory.rust_files_under("crates/worth-ui-runtime/src") {
+        let path = source.absolute_path();
+        let text = source.text();
         for forbidden_call in forbidden_calls.iter() {
-            if let Some(violation) = audit_forbidden_call(&path, &text, forbidden_call) {
+            if let Some(violation) = audit_forbidden_call(path, text, forbidden_call) {
                 violations.push(violation);
             }
         }
@@ -429,4 +358,58 @@ pub fn audit_graph_mutation_boundary_owns_snapshot_and_index_commit(
     violations.sort();
     violations.dedup();
     violations
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::{audit_forbidden_call, ForbiddenCall};
+
+    fn forbidden_call() -> ForbiddenCall<'static> {
+        ForbiddenCall {
+            type_name: "UiGraphCoreIndexes",
+            method_name: "build",
+            allowed_paths: &[],
+            message: "rebuilds core indexes outside the graph mutation boundary",
+        }
+    }
+
+    fn violates(source: &str) -> bool {
+        audit_forbidden_call(Path::new("graph/fake.rs"), source, &forbidden_call()).is_some()
+    }
+
+    #[test]
+    fn detects_direct_qualified_calls() {
+        assert!(violates("fn bad() { UiGraphCoreIndexes::build(plan); }"));
+    }
+
+    #[test]
+    fn detects_use_alias_calls() {
+        assert!(violates(
+            "use crate::graph::UiGraphCoreIndexes as Indexes; fn bad() { Indexes::build(plan); }"
+        ));
+    }
+
+    #[test]
+    fn detects_type_alias_calls() {
+        assert!(violates(
+            "type Indexes = UiGraphCoreIndexes; fn bad() { Indexes::build(plan); }"
+        ));
+    }
+
+    #[test]
+    fn detects_local_rebinding_calls() {
+        assert!(violates(
+            "fn bad() { let build = UiGraphCoreIndexes::build; build(plan); }"
+        ));
+    }
+
+    #[test]
+    fn ignores_comments_and_strings() {
+        assert!(!violates(
+            r#"fn okay() { let _ = "UiGraphCoreIndexes::build(plan)"; // UiGraphCoreIndexes::build(plan)
+            /* UiGraphCoreIndexes::build(plan) */ }"#
+        ));
+    }
 }

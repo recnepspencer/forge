@@ -1,0 +1,15 @@
+error[E0382]: use of moved value: `app`
+ --> tests/ui/runtime_authority/fail/prepared_application_cannot_launch_twice.rs:5:19
+  |
+3 | fn launch_twice(app: WorthUiApp) {
+  |                 --- move occurs because `app` has type `WorthUiApp`, which does not implement the `Copy` trait
+4 |     let _first = app.launch();
+  |                      -------- `app` moved due to this method call
+5 |     let _second = app.launch();
+  |                   ^^^ value used here after move
+  |
+note: `WorthUiApp::launch` takes ownership of the receiver `self`, which moves `app`
+ --> $WORKSPACE/crates/worth-ui-runtime/src/facade/entry/app.rs
+  |
+  |         self,
+  |         ^^^^

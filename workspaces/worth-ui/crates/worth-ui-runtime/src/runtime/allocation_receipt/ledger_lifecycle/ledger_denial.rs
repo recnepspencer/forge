@@ -20,9 +20,9 @@ where
         .iter_mut()
         .find(|(item, _)| item.same_idempotency_basis(transaction))
     {
-        *retained = denial.clone();
+        *retained = denial;
     } else {
-        bucket.push((transaction.clone(), denial.clone()));
+        bucket.push((transaction.clone(), denial));
     }
     super::UiAllocationReplanTransactionOutcome::Denied(denial).into()
 }

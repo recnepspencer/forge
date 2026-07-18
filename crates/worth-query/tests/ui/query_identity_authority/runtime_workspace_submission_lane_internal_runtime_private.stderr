@@ -1,5 +1,0 @@
-error[E0616]: field `runtime` of struct `WorthQueryWorkspaceSubmissionLane` is private
- --> tests/ui/runtime_workspace_submission_lane_internal_runtime_private.rs:5:18
-  |
-5 |     let _ = lane.runtime;
-  |                  ^^^^^^^ private field

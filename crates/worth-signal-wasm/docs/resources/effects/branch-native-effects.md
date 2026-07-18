@@ -133,4 +133,4 @@ merging for two incompatible server responses.
 
 - [Concurrent Optimistic Effects](./concurrency-and-dependencies.md)
 - [Effect Envelopes And Closeout](./effect-envelopes-and-closeout.md)
-- [History And Restore](../../resource-contracts/history-and-restore.md)
+- [History And Restore](../debugging/restore-replay-and-recover.md)

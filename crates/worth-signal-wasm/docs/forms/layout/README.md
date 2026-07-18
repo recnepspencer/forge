@@ -1,17 +1,64 @@
-# Layout And Accessibility
+# Layout, Inputs, And Accessibility
 
-This section covers declared layout configuration, row and section placement,
-label/help/message/control tracks, control sizing, layout measurement, and
-accessibility reads.
+Worth can describe what a form control means to a renderer: its label, help and
+message tracks, row and column, density, responsive hints, focus order, raw
+input posture, and required capabilities. It does not render, measure, focus,
+or resize the DOM by itself.
 
-Docs in this section:
+```ts
+const form = signals.form({
+  source: { title: "Draft", seats: 1 },
+  fields: ({ field }) => ({
+    title: field<string>("title", {
+      label: "Title",
+      description: "Shown to reviewers",
+      row: "summary",
+      density: "comfortable",
+      accessibility: {
+        readingOrder: 1,
+        focusOrder: 1,
+        describedBy: ["title-help"],
+      },
+    }),
+    seats: field<number, string>("seats", {
+      parse: (raw) => Number.parseInt(raw, 10),
+      adapter: {
+        tier: "externalImperative",
+        reportsRawInput: true,
+        reportsCommitBoundary: true,
+      },
+    }),
+  }),
+});
+```
+
+## Three Boundaries
+
+1. **Field declaration** describes stable semantics and layout hints.
+2. **Input adapter** reports raw input, composition, commit, focus, blur,
+   touch, and visit events it actually supports.
+3. **Renderer** turns artifacts into DOM, native controls, or another UI.
+
+Do not mark an adapter as supporting focus, label tracks, or responsive tokens
+unless it truly reports or renders them. Capability reports exist so the host
+can explain missing behavior instead of assuming it.
+
+Layout measurement is explicit host ingress. A renderer may report observed
+sizes and causes; the controller retains the admitted artifacts and counters.
+The controller never reaches into browser globals to measure elements.
+
+Attachments and evidence fields follow the same rule: the controller owns
+identity and patch posture, while a transfer service owns upload bytes and
+progress. Resource-owned transfer truth can be projected back when the binding
+is unambiguous.
+
+## Go Deeper
 
 - [Layout Overview](./layout-overview.md)
-- [Layout Configuration Reference](./layout-configuration-reference.md)
-- [Layout Hints](./layout-hints.md)
 - [Rows, Sections, And Placement](./rows-sections-and-placement.md)
 - [Label, Help, Message, And Control Tracks](./label-help-and-message-tracks.md)
-- [Control Sizing](./control-sizing.md)
-- [Label Size And Control Sizing](./label-size-and-control-sizing.md)
-- [Layout Measurement](./layout-measurement.md)
 - [Accessibility Artifacts](./accessibility-artifacts.md)
+- [Inputs And Controls](../inputs/README.md)
+- [Interaction And Host Facts](../interaction/README.md)
+- [Attachments And Media](../media/README.md)
+- [Label Size And Control Sizing](./label-size-and-control-sizing.md)

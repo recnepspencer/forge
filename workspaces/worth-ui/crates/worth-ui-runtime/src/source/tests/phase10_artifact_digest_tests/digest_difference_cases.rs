@@ -27,7 +27,7 @@ fn meaningful_artifact_difference_changes_digest() {
     assert!(!equivalence.is_equivalent());
     assert!(matches!(
         equivalence.first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemanticMismatch { .. })
+        Some(WorthUiArtifactDifference::NodeSemantics { .. })
     ));
     assert_eq!(equivalence.metrics().broad_scans(), 0);
 }
@@ -46,6 +46,6 @@ fn semantically_different_token_artifact_breaks_equivalence() {
     assert!(!equivalence.is_equivalent());
     assert!(matches!(
         equivalence.first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemanticMismatch { .. })
+        Some(WorthUiArtifactDifference::NodeSemantics { .. })
     ));
 }

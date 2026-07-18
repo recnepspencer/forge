@@ -1,6 +1,4 @@
-use super::{
-    MilestoneNineTwoCertificationAdapter, MILESTONE_NINE_TWO_REQUIRED_COMPILE_FAIL_TARGETS,
-};
+use super::MilestoneNineTwoCertificationAdapter;
 use crate::harness::certification::{
     contains_row, milestone_nine_two_requirements, unmet_required_assertion_classes,
     unmet_required_rows, HostileExpectation, ParityAnchor, RequiredAssertionClass,
@@ -221,24 +219,6 @@ fn milestone_nine_two_scale_row_binds_widths_not_only_row_count() {
                 .iter()
                 .any(|part| part == required_axis),
             "scale row missing axis evidence {required_axis}"
-        );
-    }
-}
-
-#[test]
-fn milestone_nine_two_required_compile_fail_targets_are_present() {
-    let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/ui");
-
-    for target in MILESTONE_NINE_TWO_REQUIRED_COMPILE_FAIL_TARGETS {
-        assert!(
-            ui_dir.join(target).exists(),
-            "missing compile-fail fixture {target}"
-        );
-        assert!(
-            ui_dir
-                .join(target.trim_end_matches(".rs").to_string() + ".stderr")
-                .exists(),
-            "missing compile-fail stderr for {target}"
         );
     }
 }

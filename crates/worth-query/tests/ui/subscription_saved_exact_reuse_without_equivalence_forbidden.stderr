@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::declare_query_subscription`
- --> tests/ui/subscription_saved_exact_reuse_without_equivalence_forbidden.rs:1:36
-  |
-1 | use worth_query::facade::runtime::{declare_query_subscription, QuerySubscriptionSliceBudget, SavedQueryArtifact};
-  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `declare_query_subscription` in `facade::runtime`

@@ -6,15 +6,32 @@ use crate::runtime::{
 
 #[derive(Debug)]
 pub enum WorthUiAllocationCatalogActivationDenial {
-    Preparation,
+    Preparation(WorthUiAllocationCatalogPreparationStage),
     PlanInput,
     HandleAllocation,
-    TopologyAssembly,
-    Attempt(crate::runtime::UiCommittedAllocationActivationDenial),
+    Freshness(crate::runtime::UiAllocationFreshnessConsumptionDenial),
+    TopologyAssembly(crate::runtime::WorthUiPlanTopologyDenial),
+    CertificationBoundary(&'static str),
+    Attempt(Box<crate::runtime::UiCommittedAllocationActivationDenial>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiAllocationCatalogPreparationStage {
+    PlanningAdmission,
+    CatalogPlanning,
+    ReceiptRecomputePending,
+    ReceiptCatalogBindingCardinalityMismatch,
+    ReceiptCatalogBindingIdentityMismatch,
+    ReceiptCatalogActivationAuthority,
+    ReceiptCandidatePlanningDenied,
+    ReceiptReuseDenied,
+    ReceiptAuthorityCounterExhausted,
+    ReceiptEvidenceCounterExhausted,
+    UnexpectedCommittedReceipt,
 }
 
 impl WorthUiRuntime {
-    pub fn activate_admitted_allocation_catalog_at_frame_boundary(
+    pub(crate) fn activate_admitted_allocation_catalog_at_frame_boundary(
         &mut self,
         pending_activation: WorthUiPendingActivation,
         admitted_catalog: crate::graph::UiAdmittedAllocationCatalogBasisSet,
@@ -50,28 +67,53 @@ impl WorthUiRuntime {
             .map_err(|_| WorthUiAllocationCatalogActivationDenial::PlanInput)?;
         let prepared = self
             .prepare_allocation_catalog_activation(&pending_activation, admitted_catalog)
-            .map_err(|_| WorthUiAllocationCatalogActivationDenial::Preparation)?;
+            .map_err(|denial| {
+                let stage = match denial {
+                    crate::runtime::launch::UiAllocationCatalogPreparationDenial::PlanningAdmission(_) => WorthUiAllocationCatalogPreparationStage::PlanningAdmission,
+                    crate::runtime::launch::UiAllocationCatalogPreparationDenial::CatalogPlanning(_) => WorthUiAllocationCatalogPreparationStage::CatalogPlanning,
+                    crate::runtime::launch::UiAllocationCatalogPreparationDenial::ReceiptCommit(outcome) => match outcome.as_ref() {
+                        crate::runtime::UiAllocationReceiptCommitOutcome::RecomputePending(_) => WorthUiAllocationCatalogPreparationStage::ReceiptRecomputePending,
+                        crate::runtime::UiAllocationReceiptCommitOutcome::Denied(denial) => match denial.as_ref() {
+                            crate::runtime::UiAllocationReceiptCommitDenial::CatalogBindingCardinalityMismatch => WorthUiAllocationCatalogPreparationStage::ReceiptCatalogBindingCardinalityMismatch,
+                            crate::runtime::UiAllocationReceiptCommitDenial::CatalogBindingIdentityMismatch { .. } => WorthUiAllocationCatalogPreparationStage::ReceiptCatalogBindingIdentityMismatch,
+                            crate::runtime::UiAllocationReceiptCommitDenial::CatalogActivationAuthority(_) => WorthUiAllocationCatalogPreparationStage::ReceiptCatalogActivationAuthority,
+                            crate::runtime::UiAllocationReceiptCommitDenial::CandidatePlanningDenied(_) => WorthUiAllocationCatalogPreparationStage::ReceiptCandidatePlanningDenied,
+                            crate::runtime::UiAllocationReceiptCommitDenial::ReuseDenied(_) => WorthUiAllocationCatalogPreparationStage::ReceiptReuseDenied,
+                            crate::runtime::UiAllocationReceiptCommitDenial::AuthorityCounterExhausted(_) => WorthUiAllocationCatalogPreparationStage::ReceiptAuthorityCounterExhausted,
+                            crate::runtime::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted => WorthUiAllocationCatalogPreparationStage::ReceiptEvidenceCounterExhausted,
+                        },
+                        crate::runtime::UiAllocationReceiptCommitOutcome::Committed(_) => WorthUiAllocationCatalogPreparationStage::UnexpectedCommittedReceipt,
+                    },
+                };
+                WorthUiAllocationCatalogActivationDenial::Preparation(stage)
+            })?;
         let receipt = prepared.primary_receipt().clone();
+        let lowering_input = receipt
+            .lowering_input()
+            .map_err(WorthUiAllocationCatalogActivationDenial::Freshness)?;
         let handles = self
             .allocate_runtime_handles(&receipt)
             .map_err(|_| WorthUiAllocationCatalogActivationDenial::HandleAllocation)?;
-        let candidate_plan = match self.assemble_execution_plan_topology(&receipt, &handles) {
-            Ok(plan) => plan,
-            Err(_) => return Err(WorthUiAllocationCatalogActivationDenial::TopologyAssembly),
-        };
+        let candidate_plan = self
+            .assemble_execution_plan_topology(&lowering_input, &handles)
+            .map_err(WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
         let (boundary, lane_parity_report) =
             boundary_source(self, &receipt, &candidate_plan, prepared.primary_planning())?;
         match prepared.activate(
             self,
-            pending_activation,
-            &plan_input,
-            &handles,
-            candidate_plan,
-            boundary,
-            lane_parity_report.as_ref(),
+            super::committed_allocation_attempt::UiCommittedAllocationActivationInput {
+                pending_activation,
+                plan_input: &plan_input,
+                handle_allocation: &handles,
+                candidate_plan,
+                boundary,
+                lane_parity_report: lane_parity_report.as_ref(),
+            },
         ) {
             Ok(receipt) => Ok(receipt),
-            Err(denial) => Err(WorthUiAllocationCatalogActivationDenial::Attempt(denial)),
+            Err(denial) => Err(WorthUiAllocationCatalogActivationDenial::Attempt(Box::new(
+                denial,
+            ))),
         }
     }
 

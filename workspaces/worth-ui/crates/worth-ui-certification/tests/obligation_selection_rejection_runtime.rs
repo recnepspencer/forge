@@ -20,13 +20,15 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
                 .with_semantic_artifact_spec(supported_control_spec())
                 .with_semantic_artifact_spec(deferred_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.obligation-selection.foreign")
                 .with_semantic_artifact_spec(foreign_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let preview_app = WorthUi::app()
         .with_graph_world_profile(UiGraphWorldProfile::preview_session_label(
             UiGraphSessionLabel::new("worth-ui.selection.preview")
@@ -36,7 +38,8 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
             WorthUiDslPackage::named("worth-ui.certification.obligation-selection.preview")
                 .with_semantic_artifact_spec(supported_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let supported_artifact =
         artifact_from_file_provenance(&app, "app/obligation_selection_rejection.wui", 0);

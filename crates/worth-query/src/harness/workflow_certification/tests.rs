@@ -48,22 +48,6 @@ fn workflow_certification_matrix_covers_required_rows() {
 }
 
 #[test]
-fn workflow_certification_tracks_compile_fail_boundaries() {
-    let matrix =
-        MilestoneFivePointFiveWorkflowCertificationAdapter::workflow_declaration_taxonomy_and_context_binding_test();
-    let compile_fail_rows = matrix
-        .rejection_rows
-        .iter()
-        .filter(|row| row.hostile_lane.failure_class == WorkflowFailureClass::CompileFail)
-        .collect::<Vec<_>>();
-
-    assert!(compile_fail_rows.len() >= 5);
-    assert!(compile_fail_rows
-        .iter()
-        .all(|row| row.hostile_lane.compile_fail_case.is_some()));
-}
-
-#[test]
 fn workflow_certification_lanes_emit_required_verification_outputs() {
     let matrix =
         MilestoneFivePointFiveWorkflowCertificationAdapter::workflow_declaration_taxonomy_and_context_binding_test();

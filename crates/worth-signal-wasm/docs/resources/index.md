@@ -1,104 +1,158 @@
-# Resource Overview
+# Resources
 
-This is the shortest path into the shipped resource surface.
+Most endpoints are not a thesis. Declare a route, choose whether it returns one
+record, a list, or pages, and materialize a line. You get stable identity,
+reactive value, lifecycle state, and useful inspection without assembling a
+second client-side state machine.
 
-If you are building ordinary app code, the default lane is:
+If the endpoint stays ordinary, stop there. When it becomes less ordinary, the
+same family and line can grow into scoped auth and policy, narrow item or aspect
+updates, server-response reconciliation, concurrent optimistic effects,
+transfers, history, recovery, forms, routes, and verification. You add the proof
+the endpoint needs; you do not replace the simple API with a different
+framework.
 
-1. `signals.api(...)`
-2. `api.scope(...)` when one area shares request defaults
-3. `api.url(...)`
-4. `.detail(...)`, `.list(...)`, `.paged(...)`, `.create(...)`, `.update(...)`,
-   or `.remove(...)`
-5. `family.line(...)`
-6. `line.summary()`
+Worth describes the request and owns the browser-local resource lifecycle. Your
+`load(params, request)` function performs the actual I/O, and your server remains
+the authority for durable server data. If exact recovery, a narrow update, or a
+merge cannot be proved from the declared shape and available runtime support,
+Worth reports that honestly instead of approximating it.
 
-## Start With The Question You Actually Have
+## The Common Path
 
-- "How do I get my first resource working?"
-  [Your First Resource](./start-here/your-first-resource.md)
-- "Should this be one record, a collection, or a paged list?"
-  [Choose A Resource Shape](./start-here/choose-a-resource-shape.md)
-- "How do I fetch one thing?"
-  [Fetch A Single Record](./fetching/fetch-a-single-record.md)
-- "How do I fetch a list?"
-  [Fetch A Collection](./fetching/fetch-a-collection.md)
-- "How do I fetch pages?"
-  [Fetch A Paged List](./fetching/fetch-a-paged-list.md)
-- "How do I set auth, headers, basis, or correlation ids?"
-  [Request Auth And Context](./fetching/request-auth-and-context.md)
-- "How do I choose retry or stale behavior?"
-  [Request Policies](./fetching/request-policies.md)
-- "How do I create, update, or remove?"
-  [Write A Resource](./updating/write-a-resource.md)
-- "How do I patch a loaded line locally?"
-  [Submit Patches And Replacements](./updating/submit-patches-and-replacements.md)
-- "Which effect profile should I use?"
-  [Choose An Effect Profile](./updating/choose-an-effect-profile.md)
-- "What does the runtime expose after a write runs?"
-  [What Happens After A Write](./updating/what-happens-after-a-write.md)
-- "How do I understand what a write response changed?"
-  [Handling Server Responses](./responses/README.md)
-- "How do I update one row without replacing the whole list?"
-  [Update One Item Without Replacing Everything](./lists/update-one-item-without-replacing-everything.md)
-- "Why is this line stale or still showing the previous visible value?"
-  [Caching And Refresh](./caching/README.md)
-- "How do I update just part of a resource?"
-  [Partial Updates And Derived Views](./partial-updates/README.md)
-- "How do I prepare uploads or accepted processing work?"
-  [Uploads And Transfers](./transfers/README.md)
-- "How do I attach downloads to ordinary resource value?"
-  [Downloads And Binary Data](./downloads/README.md)
-- "How do I inspect one live line or debug why it changed?"
-  [Inspecting And Debugging Resources](./debugging/README.md)
-- "How do optimistic effects, rollback, or merge/rebase work?"
-  [Effects And Recovery](./effects/README.md)
-- "How do several optimistic requests settle independently or depend on one
-  another?"
-  [Concurrent Optimistic Effects](./effects/concurrency-and-dependencies.md)
-- "How do I use this resource line as a form source?"
-  [Using Resources In Forms](./forms/README.md)
-- "How do I bind this resource to a route?"
-  [Using Resources In Routes](./router/README.md)
-- "How do I drop to raw family authoring?"
-  [Advanced Resource Modeling](./advanced/README.md)
-- "How do I inspect the proof package or support matrices?"
-  [Verification And Proof](./verification/README.md)
+```ts
+import { createSignals } from "worth-signals-wasm";
 
-## Default Mental Model
+const signals = await createSignals();
+const api = signals.api({ baseUrl: "/api" });
 
-A resource family is the recipe.
-A line is one live member of that recipe.
+const invoiceDetail = api.url("/invoices/:invoiceId").detail({
+  async load({ invoiceId }, request) {
+    if (!request.target.url) throw new Error("invoice URL was not admitted");
 
-The family decides:
+    const response = await fetch(request.target.url);
+    if (!response.ok) {
+      throw new Error(`invoice ${invoiceId} failed: ${response.status}`);
+    }
+    return response.json();
+  },
+});
 
-- how params become stable identity
-- what request posture gets admitted
-- what kind of value is loaded
-- for collections and pages, how items are identified
+const invoice = invoiceDetail.line({ invoiceId: "inv-42" });
+const settled = await invoice.awaitSettlement();
 
-The line is where you read and act:
+if (settled.resultKind === "fulfilled" || settled.resultKind === "partial") {
+  console.log(invoice.value());
+} else {
+  console.error(invoice.summary());
+}
+```
 
-- `line.value()`
-- `line.summary()`
-- `line.request()`
-- `line.status()`
-- `line.freshness()`
-- `line.diagnostics()`
+This is the whole starting model:
 
-## When To Reach For The Raw Lane
+1. `signals.api(...)` declares shared API defaults.
+2. `api.url(...)` turns route params into a canonical request identity.
+3. `.detail(...)`, `.list(...)`, or `.paged(...)` declares the value shape.
+4. `family.line(params)` gives you one live resource member.
+5. `load(params, request)` performs the network call.
+6. The line keeps value, pending state, freshness, diagnostics, and history
+   aligned around that identity.
 
-Start with `signals.api(...)` unless you already know you need:
+A newly materialized asynchronous line can have `null` visible value while its
+first load is pending. Await settlement when later work requires a fulfilled
+value; render the line's explicit status when the UI should remain responsive.
 
-- manual canonical identity control with `resourceParamIdentity(...)`
-- direct `signals.resource.detail(...)` / `collection(...)` / `paged(...)`
-- compatibility-oriented external definitions
+## The Two Objects To Remember
 
-That raw lane is still supported. It is just not the first stop for ordinary
-app-facing work.
+The **family** is the reusable recipe. It owns param normalization, canonical
+identity, request posture, value shape, and any declared update structure.
 
-## Related Docs
+The **line** is one live member of that family. It exposes the current projected
+value and the lifecycle evidence for one canonical identity:
 
-- [Resources Docs Home](./README.md)
-- [Glossary](./glossary.md)
-- [Recipes](./recipes.md)
-- [Older Flat Resource Overview](./overview.md)
+```ts
+invoice.value();
+invoice.signal();
+invoice.summary();
+invoice.status();
+invoice.freshness();
+invoice.request();
+invoice.diagnostics();
+invoice.history();
+```
+
+The line is browser-local resource state, not your durable database. Confirmed
+server observations are canonical for the line. Open optimistic effects may
+temporarily contribute to its projected value, but they remain separately
+identified intent until confirmed.
+
+## When The Endpoint Grows
+
+Keep the family and line. Add only the capability the problem now requires.
+
+| Need | Add | Read next |
+| --- | --- | --- |
+| Auth, headers, retry, or stale policy | API scope and request posture | [Reading And Caching](./caching/README.md) |
+| Create, update, remove, or reconcile a response | Write finalizers and declared response targets | [Writing And Server Reconciliation](./updating/README.md) |
+| Immediate UI with independent request outcomes | A declared effect profile | [Optimistic Updates](./effects/README.md) |
+| Update one item, field, region, or semantic view | Declared identity and narrow update structure | [Collections And Partial Updates](./partial-updates/README.md) |
+| Explain stale data, delivery, rollback, or replay | Line summaries, diagnostics, and history | [Debugging And Recovery](./debugging/README.md) |
+| Transfers, downloads, external delivery, forms, or routes | The adjacent capability on the same line | [Advanced Resource Capabilities](./advanced/README.md) |
+
+## Stable Entry Points
+
+Use the route-first lane for ordinary application code:
+
+- `signals.api(...)`
+- `api.scope(...)`
+- `api.url(...)`
+- `.detail(...)`, `.list(...)`, `.paged(...)`
+- `.create(...)`, `.update(...)`, `.remove(...)`, `.command(...)`
+- `family.line(...)`, `family.optionalLine(...)`, `family.execute(...)`
+
+Use `signals.resource.detail(...)`, `signals.resource.collection(...)`, and
+`signals.resource.paged(...)` when you intentionally need manual canonical
+identity or compatibility-oriented declarations. That raw lane uses the same
+resource runtime; it simply gives you more authoring responsibility.
+
+## Boundaries That Matter
+
+- `api.url(...)` constructs request metadata. It does not send HTTP.
+- A collection needs stable item identity. A paged family also needs an honest
+  rule for accumulating pages.
+- Narrow patches and response mapping exist only for fields, regions, paths,
+  items, aspects, and summaries the family can identify.
+- Mutation responses update declared targets. Partial or stale responses remain
+  visibly partial, stale, delivery-awaited, or refetch-required.
+- Optimistic rollback and exact recovery depend on the selected effect profile
+  and retained runtime support.
+- Replay, restore, merge, and rebase can return a typed unavailable result.
+  Worth does not invent missing history or arbitrary JavaScript deep-merge
+  semantics.
+- Named `apiScope` defaults must be stable. Put parameter-dependent defaults in
+  `api.scope({...})`.
+
+## Choose Your Next Page
+
+- [Your First Resource](./start-here/your-first-resource.md) — build one real
+  fetched detail line.
+- [Reading And Caching](./caching/README.md) — identity, pending state,
+  freshness, invalidation, and refresh.
+- [Writing And Server Reconciliation](./updating/README.md) — writes, local
+  patches, and server-owned results.
+- [Optimistic Updates](./effects/README.md) — isolated effects, concurrency,
+  dependencies, rollback, and recovery.
+- [Collections And Partial Updates](./partial-updates/README.md) — stable item
+  identity and narrow changes.
+- [Debugging And Recovery](./debugging/README.md) — summaries, diagnostics,
+  history, restore, and replay.
+- [Advanced Resource Capabilities](./advanced/README.md) — transfers,
+  downloads, external delivery, forms, routes, and the raw lane.
+- [Resource API Reference](../api-reference/resources.md) — exact family and
+  line surface maps.
+- [Resource Glossary](./glossary.md) — the short version of every resource term
+  used across these guides.
+
+If you are still choosing the shape, start with [Choose A Resource Shape](./start-here/choose-a-resource-shape.md).
+For task-first examples, use [Common Resource Recipes](./start-here/common-resource-recipes.md)
+or the broader [Resource Recipes](./recipes.md) index.

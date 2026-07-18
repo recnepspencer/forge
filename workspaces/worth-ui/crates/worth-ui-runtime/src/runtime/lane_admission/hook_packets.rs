@@ -22,7 +22,7 @@ pub enum WorthUiUnsupportedHookDenialReason {
 pub struct WorthUiUnsupportedHookDenial {
     hook: WorthUiLaneAdapterHook,
     reason: WorthUiUnsupportedHookDenialReason,
-    counters: WorthUiLaneAdmissionCounters,
+    counters: Box<WorthUiLaneAdmissionCounters>,
 }
 
 impl WorthUiExtensionHookAdmission {
@@ -61,7 +61,7 @@ impl WorthUiUnsupportedHookDenial {
         Self {
             hook,
             reason,
-            counters,
+            counters: Box::new(counters),
         }
     }
 
@@ -74,6 +74,6 @@ impl WorthUiUnsupportedHookDenial {
     }
 
     pub fn counters(&self) -> WorthUiLaneAdmissionCounters {
-        self.counters
+        *self.counters
     }
 }

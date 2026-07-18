@@ -3,6 +3,7 @@ name = "worth-ui"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
+autotests = false
 
 [lib]
 name = "worth_ui"
@@ -23,3 +24,15 @@ worth-signal = { path = "../../../../crates/worth-signal" }
 trybuild = { workspace = true }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
+
+[[test]]
+name = "capability_contracts"
+path = "tests/suites/capability_contracts.rs"
+
+[[test]]
+name = "registry_contracts"
+path = "tests/suites/registry_contracts.rs"
+
+[[test]]
+name = "compile_contracts"
+path = "tests/suites/compile_contracts.rs"

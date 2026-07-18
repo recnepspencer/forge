@@ -1,20 +1,15 @@
-# Router Transitions
+# Route Transitions
 
-These docs cover route transition artifacts, pending visibility policy,
-resource-continuity preservation, visible route truth, and prefetch admission.
+A transition compares current admitted truth with a target admission result and
+records what should become visible. Pending resources may preserve the current
+screen or show target continuity, but neither posture changes what is admitted.
 
-Docs in this section:
+Start with [Transition Artifacts](./transition_artifacts.md), then read:
 
-- [Transition Artifacts](./transition_artifacts.md)
+- [Visible Route Truth](./visible_route_truth.md)
 - [Pending Visibility](./pending_visibility.md)
 - [Continuity Preservation](./continuity_preservation.md)
-- [Visible Route Truth](./visible_route_truth.md)
 - [Prefetch Admission](./prefetch_admission.md)
 
-Suggested order:
-
-1. transition artifacts
-2. pending visibility
-3. continuity preservation
-4. visible route truth
-5. prefetch admission
+Transition artifacts describe route truth. The renderer owns pixels and the
+browser host owns history side effects.

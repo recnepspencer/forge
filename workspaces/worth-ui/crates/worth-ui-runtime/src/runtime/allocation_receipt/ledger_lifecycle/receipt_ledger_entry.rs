@@ -133,7 +133,7 @@ impl UiAllocationReceiptLedger {
     pub(in crate::runtime) fn prepare_viewport(
         &self,
         owner: &crate::runtime::allocation_frame_dispatch::UiAllocationTransactionAuthority,
-        basis: crate::runtime::UiViewportResizeCommitBasis<'_>,
+        basis: crate::runtime::UiViewportResizeCommitBasis,
     ) -> super::UiAllocationLedgerPreparation {
         if !owner.certifies_selection(basis.selection()) {
             return UiAllocationReplanTransactionOutcome::Denied(
@@ -141,7 +141,7 @@ impl UiAllocationReceiptLedger {
             )
             .into();
         }
-        self.prepare_selected_mode(UiAllocationReplanCommitMode::Viewport(basis))
+        self.prepare_selected_mode(UiAllocationReplanCommitMode::Viewport(Box::new(basis)))
     }
 
     pub(in crate::runtime) fn prepare_durable_resize(

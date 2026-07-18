@@ -10,27 +10,27 @@ pub(crate) enum WorthUiArtifactSemanticDelta {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum WorthUiArtifactDifference {
-    ModuleCountMismatch {
+    ModuleCount {
         left_module_count: usize,
         right_module_count: usize,
     },
-    ModuleOrderMismatch {
+    ModuleOrder {
         module_index: usize,
         left_module_id: String,
         right_module_id: String,
     },
-    ModuleNodeCountMismatch {
+    ModuleNodeCount {
         module_id: String,
         left_node_count: usize,
         right_node_count: usize,
     },
-    NodeKindMismatch {
+    NodeKind {
         module_id: String,
         node_index: usize,
         left_kind: WorthUiArtifactNodeKind,
         right_kind: WorthUiArtifactNodeKind,
     },
-    NodeSemanticMismatch {
+    NodeSemantics {
         module_id: String,
         node_index: usize,
         node_kind: WorthUiArtifactNodeKind,

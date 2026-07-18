@@ -5,7 +5,6 @@ mod denial;
 mod digest;
 mod iteration_outcome;
 mod ordered_truth;
-mod receipt_binding;
 mod scenario;
 
 pub use bundle::WorthUiReloadCertificationBundle;
@@ -17,10 +16,9 @@ pub use denial::{
 };
 pub use iteration_outcome::{
     WorthUiReloadStormDeniedIteration, WorthUiReloadStormIterationOutcome,
-    WorthUiReloadStormNoOpIteration, WorthUiReloadStormSuccessfulIteration,
+    WorthUiReloadStormPreparedIteration,
 };
 pub use ordered_truth::WorthUiReloadStormOrderedTruth;
-pub use receipt_binding::WorthUiReloadStormReceiptBinding;
 pub use scenario::{
     WorthUiReloadStormCandidateStep, WorthUiReloadStormCandidateStepKind,
     WorthUiReloadStormScenario,

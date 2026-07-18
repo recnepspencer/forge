@@ -11,11 +11,13 @@ fn equivalent_query_view_references_produce_equivalent_bindings() {
     let left = WorthUi::app()
         .register_query_view(table_view_binding("workspace.view_binding.tasks"))
         .expect("installed view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let right = WorthUi::app()
         .register_query_view(table_view_binding("workspace.view_binding.tasks"))
         .expect("installed view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(left.capabilities().digest(), right.capabilities().digest());
     assert_eq!(
@@ -29,11 +31,13 @@ fn different_query_view_reference_meaning_changes_snapshot_digest() {
     let table = WorthUi::app()
         .register_query_view(table_view_binding("workspace.view_binding.main"))
         .expect("installed snapshot view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let detail = WorthUi::app()
         .register_query_view(detail_view_binding("workspace.view_binding.main"))
         .expect("installed live view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         table.capabilities().digest(),
@@ -55,7 +59,8 @@ fn accepted_view_bindings_remain_inspectable_after_freeze() {
             "workspace.view_binding.task_detail",
         ))
         .expect("installed live view from the same workspace should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_view_binding_ids(
         app.capabilities().view_bindings(),
@@ -79,11 +84,13 @@ fn admitted_definition_lifecycle_participates_in_view_binding_key_equivalence() 
     let left_app = WorthUi::app()
         .register_query_view(left)
         .expect("installed snapshot view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let right_app = WorthUi::app()
         .register_query_view(right)
         .expect("installed live view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         left_app.capabilities().view_bindings().entries()[0].identity(),
@@ -100,11 +107,13 @@ fn visible_state_bindings_participate_in_view_binding_key_equivalence() {
     let left_app = WorthUi::app()
         .register_query_view(left)
         .expect("installed view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let right_app = WorthUi::app()
         .register_query_view(right)
         .expect("installed view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         left_app.capabilities().view_bindings().entries()[0].identity(),
@@ -123,11 +132,13 @@ fn visible_state_binding_key_basis_is_not_delimiter_collision_prone() {
     let split_app = WorthUi::app()
         .register_query_view(split_bindings)
         .expect("installed view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let joined_app = WorthUi::app()
         .register_query_view(joined_binding)
         .expect("installed view should register")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         split_app.capabilities().view_bindings().entries()[0].identity(),

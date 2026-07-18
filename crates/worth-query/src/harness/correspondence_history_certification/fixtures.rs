@@ -8,7 +8,7 @@ pub(crate) use lanes::{
     CertificationLanes,
 };
 pub(crate) use rejections::{
-    broad_candidate_scan_rejection, compile_fail_rejection, executor_path_mutation_rejection,
+    broad_candidate_scan_rejection, executor_path_mutation_rejection,
     hidden_materialization_substitution_rejection, host_cache_history_authority_rejection,
     unsupported_correspondence_family_rejection, unsupported_historical_materialization_rejection,
 };

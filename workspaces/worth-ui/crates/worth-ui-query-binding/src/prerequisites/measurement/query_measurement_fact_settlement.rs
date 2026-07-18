@@ -83,8 +83,8 @@ impl WorthUiQueryAllocationSourceAuthority {
         installed_execution: WorthQueryInstalledDomainExecutionReceipt,
     ) -> Result<WorthUiQueryMeasurementFactSettlement, WorthUiQueryMeasurementFactSettlementDenial>
     {
-        let (query_authority, warnings) =
-            WorthUiQueryAuthorityHandle::from_outcome(outcome).map_err(map_authority_denial)?;
+        let (query_authority, warnings) = WorthUiQueryAuthorityHandle::from_outcome(outcome)
+            .map_err(|outcome| map_authority_denial(*outcome))?;
         let admitted_basis = query_authority.authority().basis_authority().clone();
         let generation = if self.basis_authority.as_ref() == Some(&admitted_basis) {
             self.generation

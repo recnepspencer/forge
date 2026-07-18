@@ -1,7 +1,10 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
-use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::declaration::{UiDeclarationArtifact, UiDeclarationStructuralRole};
+use worth_ui::facade::app::{
+    WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
+};
+use worth_ui::facade::declaration::{
+    UiDeclarationArtifact, UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial,
+    UiDeclarationStructuralRole, UiDeclaredPostureAdmissionDenial, UiDeclaredPostureLaneKind,
+};
 use worth_ui::facade::graph::{
     UiGraphContainmentClaim, UiGraphInstantiationPlan, UiGraphParticipationAxis,
     UiGraphParticipationEvidenceHandle, UiGraphParticipationReasonCode,
@@ -20,7 +23,8 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
             WorthUiDslPackage::named("worth-ui.certification.graph-instantiation")
                 .with_semantic_artifact_spec(control_graph_input_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
         .graph_handoff()
         .expect("control declaration should lower to graph handoff");
@@ -147,7 +151,8 @@ fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
             WorthUiDslPackage::named("worth-ui.certification.graph-instantiation.duplicate")
                 .with_semantic_artifact_spec(control_graph_input_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
         .graph_handoff()
         .expect("declaration artifact should lower to graph handoff");
@@ -168,27 +173,34 @@ fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
 }
 
 #[test]
-fn freeze_path_panics_instead_of_silently_dropping_graph_handoff_denials() {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named(
-                    "worth-ui.certification.graph-instantiation.freeze-denial",
-                )
+fn freeze_path_returns_the_exact_graph_handoff_denial() {
+    let denial = match WorthUi::app()
+        .with_dsl_package(
+            WorthUiDslPackage::named("worth-ui.certification.graph-instantiation.freeze-denial")
                 .with_semantic_artifact_spec(control_graph_input_spec())
                 .with_semantic_artifact_spec(invalid_graph_input_spec()),
-            )
-            .freeze();
-    }));
+        )
+        .freeze()
+    {
+        Ok(_) => panic!("denied graph handoff must deny application preparation"),
+        Err(denial) => denial,
+    };
 
-    let panic_message = panic_message(
-        result.expect_err("freeze path must panic when sealed graph handoff lowering is denied"),
+    assert_eq!(
+        denial.phase(),
+        WorthUiApplicationPreparationPhase::GraphHandoff
     );
-    assert!(
-        panic_message.contains(
-            "freeze path must deny graph instantiation before mutation when sealed handoff lowering fails"
-        ),
-        "expected freeze panic to name sealed handoff denial path, got: {panic_message}"
+    assert_eq!(
+        denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::DeclaredPostureNotAdmitted {
+                denial: UiDeclaredPostureAdmissionDenial::InvalidLaneClaim {
+                    family: UiDeclarationFamilyKind::Control,
+                    lane: UiDeclaredPostureLaneKind::ServiceUsage,
+                    observed: vec!["service:unknown".to_owned()],
+                },
+            },
+        )
     );
 }
 
@@ -199,13 +211,15 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
             WorthUiDslPackage::named("worth-ui.certification.graph-instantiation.invariance")
                 .with_semantic_artifact_spec(graph_input_without_non_graph_obligations()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let enriched = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.graph-instantiation.invariance")
                 .with_semantic_artifact_spec(graph_input_with_non_graph_obligations()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let baseline_handoff =
         artifact_from_file_provenance(&baseline, "app/graph_instantiation.wui", 0)
@@ -376,16 +390,6 @@ fn invalid_graph_input_spec() -> UiDslSemanticArtifactSpec {
     )
     .with_structural_token(UiDslStructuralToken::new("control:save"))
     .with_posture_token(UiDslPostureToken::new("service:unknown"))
-}
-
-fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
-    }
 }
 
 fn assert_participation_seed_axis(

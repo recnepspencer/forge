@@ -1,0 +1,5 @@
+error[E0599]: no method named `into_candidate` found for struct `WorthUiWatchedCandidateSubmission` in the current scope
+ --> tests/ui/runtime_source_ingress/fail/candidate_submission_has_no_candidate_extraction.rs:4:24
+  |
+4 |     let _ = submission.into_candidate();
+  |                        ^^^^^^^^^^^^^^ method not found in `WorthUiWatchedCandidateSubmission`

@@ -1,5 +1,4 @@
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{
     UiAdmissionFamily, UiAdmissionOutcome, UiAdmissionTarget, UiAdmissionWorld, UiSupportPosture,
@@ -17,12 +16,12 @@ use worth_ui_test_support::{
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    apps::{focus_touch_app, motion_touch_app, service_touch_app},
-    targets::{
-        available_host_capability_target, diagnostic_only_host_capability_target,
-        execute_for_target, selection_target,
+    admission_targets::{
+        available_host_capability_target, diagnostic_only_host_capability_target, selection_target,
     },
-    touches::{focus_touch, motion_touch, service_touch},
+    application_authority::{focus_touch_app, motion_touch_app, service_touch_app},
+    dispatch_execution::execute_for_target,
+    graph_touches::{focus_touch, motion_touch, service_touch},
 };
 
 #[test]

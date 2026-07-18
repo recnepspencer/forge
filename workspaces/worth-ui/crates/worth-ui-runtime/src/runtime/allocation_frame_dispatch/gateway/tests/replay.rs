@@ -2,19 +2,20 @@ use super::*;
 
 fn interaction_denial(targets: &[u64]) -> String {
     let mut framework = framework_from_artifact(empty_artifact());
-    let mut admission = framework.interaction_admission();
-    let admitted = [3_u64, 5, 7].map(|target| {
-        (
-            target,
-            admission
-                .admit(
-                    UiGraphNodeIdentity::new(target),
-                    WorthUiTransientInteractionState::DragCapture,
-                )
-                .expect("interaction source should admit"),
-        )
-    });
-    drop(admission);
+    let admitted = {
+        let mut admission = framework.interaction_admission();
+        [3_u64, 5, 7].map(|target| {
+            (
+                target,
+                admission
+                    .admit(
+                        UiGraphNodeIdentity::new(target),
+                        WorthUiTransientInteractionState::DragCapture,
+                    )
+                    .expect("interaction source should admit"),
+            )
+        })
+    };
     let posture = run_framework_turn(&mut framework, |turn| {
         for target in targets {
             let source_fact = admitted

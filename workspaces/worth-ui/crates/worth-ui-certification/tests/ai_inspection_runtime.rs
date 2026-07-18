@@ -9,8 +9,7 @@ use worth_ui_dsl::{
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 const AI_ARTIFACT_MODULE: &str = "app/ai_inspection_runtime.wui";
 
@@ -158,8 +157,8 @@ fn ai_harness_uses_refs_first_followup_queries_for_declaration_source_graph_and_
 
 #[test]
 fn ai_harness_matches_ordinary_receipts_and_expansion_for_obligation_neighborhoods() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let ai = UiInspectionAiHarness::new(&app);
     let query = UiInspectionQuery::new(
         UiInspectionTarget::obligation_touch(
@@ -247,6 +246,7 @@ fn ai_surface_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn graph_node_digest(app: &WorthUiApp) -> u64 {

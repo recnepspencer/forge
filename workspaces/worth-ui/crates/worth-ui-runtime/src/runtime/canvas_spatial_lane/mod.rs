@@ -28,12 +28,14 @@ pub use denial::{
 };
 pub use draw_hook::WorthUiCanvasDrawHook;
 pub use frame_receipt::WorthUiCanvasSpatialFrameReceipt;
+pub(crate) use frame_receipt::WorthUiCanvasSpatialFrameReceiptInput;
 pub use frame_target::WorthUiCanvasSpatialFrameTarget;
 pub use hit_test_hook::WorthUiSpatialHitTestHook;
 pub use hit_test_plan::WorthUiSpatialHitTestPlan;
 pub use lane::WorthUiCanvasSpatialLane;
 pub use overlay_plan::WorthUiCanvasOverlayPlan;
 pub use plan::WorthUiCanvasSpatialPlan;
+pub(crate) use plan::WorthUiCanvasSpatialPlanInput;
 pub use spatial_point::WorthUiSpatialViewportPoint;
 pub use tool_state_hook::WorthUiSpatialToolStateHook;
 pub use viewport_plan::{

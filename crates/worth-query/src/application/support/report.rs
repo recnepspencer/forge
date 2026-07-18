@@ -1,7 +1,4 @@
 use super::closure::WorthQueryIdentityBoundaryClosure;
-use super::consumer_kit_closure::{
-    milestone_nine_eight_consumer_kit_closure, WorthQueryConsumerKitClosure,
-};
 use super::identity_boundary_hostile_matrix::identity_boundary_hostile_matrix_artifact;
 use super::registry::{
     WorthQueryCapabilityFamily, WorthQueryCapabilityRegistry, WorthQueryCapabilityStatus,
@@ -120,7 +117,6 @@ pub struct WorthQuerySupportReport {
     query_composition_support_profile: Option<WorthQueryQueryCompositionSupportProfile>,
     identity_evolution_support_profile: Option<WorthQueryIdentityEvolutionSupportProfile>,
     identity_boundary_closure: WorthQueryIdentityBoundaryClosure,
-    consumer_kit_closure: WorthQueryConsumerKitClosure,
     validated_config_digest: String,
     counters: WorthQuerySupportReportCounters,
     report_identity: WorthQueryEvidenceIdentity,
@@ -210,7 +206,6 @@ impl WorthQuerySupportReport {
             query_read_surface_available,
             preview_session_surface_available,
         );
-        let consumer_kit_closure = milestone_nine_eight_consumer_kit_closure();
         let validated_config_digest = config.validated_digest().to_string();
         let counters = WorthQuerySupportReportCounters::generated_once();
         let report_identity =
@@ -281,10 +276,6 @@ impl WorthQuerySupportReport {
                     WorthQueryEvidenceTag::new("identity_boundary_closure_digest"),
                     identity_boundary_closure.closure_digest(),
                 )
-                .field_value(
-                    WorthQueryEvidenceTag::new("consumer_kit_closure_digest"),
-                    consumer_kit_closure.closure_digest(),
-                )
                 .field_usize(
                     WorthQueryEvidenceTag::new("support_report_generation_count"),
                     counters.support_report_generation_count(),
@@ -304,7 +295,6 @@ impl WorthQuerySupportReport {
             query_composition_support_profile,
             identity_evolution_support_profile,
             identity_boundary_closure,
-            consumer_kit_closure,
             validated_config_digest,
             counters,
             report_identity,
@@ -361,10 +351,6 @@ impl WorthQuerySupportReport {
 
     pub fn identity_boundary_closure(&self) -> &WorthQueryIdentityBoundaryClosure {
         &self.identity_boundary_closure
-    }
-
-    pub fn consumer_kit_closure(&self) -> &WorthQueryConsumerKitClosure {
-        &self.consumer_kit_closure
     }
 
     pub fn validated_config_digest(&self) -> &str {

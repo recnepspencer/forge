@@ -284,7 +284,6 @@ mod tests {
         for pixels in [410.0, 420.0, 410.0] {
             let before_port = UiPreviewPaintIsolationPort::new(&runtime.allocation_receipt_ledger);
             let before = before_port.capture();
-            drop(before_port);
             let extent =
                 crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(pixels).unwrap();
             let completion = runtime.execute_framework_turn(|turn| {

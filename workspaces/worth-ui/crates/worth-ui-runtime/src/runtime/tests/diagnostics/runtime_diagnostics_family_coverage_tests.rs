@@ -265,7 +265,7 @@ fn plan_inspection_report() -> WorthUiRuntimeDiagnosticReport {
         .expect("runtime handles allocate");
     let plan = runtime
         .assemble_execution_plan_topology(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
         )
         .expect("execution plan topology assembles");
@@ -317,7 +317,7 @@ fn lane_admission_report() -> WorthUiRuntimeDiagnosticReport {
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
         .admit_execution_lanes(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &support_without_query,
         )
         .expect_err("unsupported Query lane denies");

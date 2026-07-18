@@ -27,6 +27,14 @@ use super::verify_construct::{
     apply_cyclic_bound_reconciliation_posture, verify_required_special_inputs,
 };
 
+pub(in crate::graph::allocation_neighborhood::constraint_pipeline) struct NegotiationAndReconciliationEdges
+{
+    sibling_negotiation: Option<crate::evidence::UiConstraintSiblingNegotiationResult>,
+    equal_share_distribution: Option<crate::evidence::UiConstraintEqualShareDistributionResult>,
+    bound_reconciliation: Option<UiConstraintBoundReconciliationResult>,
+    edges: Vec<UiConstraintPropagationEdge>,
+}
+
 pub(super) fn admit_propagation_edge_families(
     measurement_basis: &UiMeasurementBasis,
     neighborhood: &UiAllocationNeighborhood,
@@ -75,15 +83,19 @@ pub(super) fn admit_propagation_edge_families(
         neighborhood,
         summary,
     )?;
-    let (sibling_negotiation, equal_share_distribution, bound_reconciliation, mut edges) =
-        admit_negotiation_and_reconciliation_edges(
-            measurement_basis,
-            neighborhood,
-            context,
-            summary,
-            &downward_bounded_targets,
-            edges,
-        )?;
+    let NegotiationAndReconciliationEdges {
+        sibling_negotiation,
+        equal_share_distribution,
+        bound_reconciliation,
+        mut edges,
+    } = admit_negotiation_and_reconciliation_edges(
+        measurement_basis,
+        neighborhood,
+        context,
+        summary,
+        &downward_bounded_targets,
+        edges,
+    )?;
 
     edges = admit_cycle_postures(
         edges,
@@ -174,15 +186,7 @@ pub(super) fn admit_negotiation_and_reconciliation_edges(
     summary: crate::evidence::UiAllocationConstraintSummary,
     downward_bounded_targets: &[(u64, crate::evidence::UiConstraintAxisScope)],
     mut edges: Vec<UiConstraintPropagationEdge>,
-) -> Result<
-    (
-        Option<crate::evidence::UiConstraintSiblingNegotiationResult>,
-        Option<crate::evidence::UiConstraintEqualShareDistributionResult>,
-        Option<UiConstraintBoundReconciliationResult>,
-        Vec<UiConstraintPropagationEdge>,
-    ),
-    UiConstraintPropagationDenial,
-> {
+) -> Result<NegotiationAndReconciliationEdges, UiConstraintPropagationDenial> {
     let sibling_negotiation_admission =
         admit_sibling_negotiation(neighborhood, summary, &edges, context.allowed_families)?;
     let sibling_negotiation = sibling_negotiation_admission.result().cloned();
@@ -208,10 +212,10 @@ pub(super) fn admit_negotiation_and_reconciliation_edges(
     let bound_reconciliation = bound_reconciliation_admission.result().cloned();
     let (_, bound_edges) = bound_reconciliation_admission.into_parts();
     edges.extend(bound_edges);
-    Ok((
+    Ok(NegotiationAndReconciliationEdges {
         sibling_negotiation,
         equal_share_distribution,
         bound_reconciliation,
         edges,
-    ))
+    })
 }

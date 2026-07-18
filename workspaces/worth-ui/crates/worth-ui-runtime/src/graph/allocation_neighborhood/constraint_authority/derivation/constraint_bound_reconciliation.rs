@@ -15,6 +15,13 @@ pub(super) struct UiAdmittedBoundReconciliation {
     edges: Vec<UiConstraintPropagationEdge>,
 }
 
+struct UiBoundReconciliationParticipation<'a> {
+    downward_bounded_targets: &'a [(u64, UiConstraintAxisScope)],
+    member_count: usize,
+    axis_scope: UiConstraintAxisScope,
+    mixed_bounded_participation: bool,
+}
+
 impl UiAdmittedBoundReconciliation {
     pub(super) fn empty() -> Self {
         Self {
@@ -74,25 +81,29 @@ pub(super) fn admit_bound_reconciliation(
         summary,
         sibling_negotiation,
         equal_share_distribution,
-        downward_bounded_targets,
-        members.len(),
-        axis_scope,
-        mixed_bounded_participation,
+        UiBoundReconciliationParticipation {
+            downward_bounded_targets,
+            member_count: members.len(),
+            axis_scope,
+            mixed_bounded_participation,
+        },
     );
     let result = UiConstraintBoundReconciliationResult::new(
-        neighborhood.identity().identity_digest(),
-        axis_scope,
-        summary.bounded_min_max_requirements(),
-        UiBoundReconciliationSolveOrder::AfterEqualShareBeforePlanCloseout,
-        posture,
-        summary.incoming_available_space_posture(),
-        summary.viewport_requirement(),
-        summary.scroll_owner_requirement(),
-        summary.portal_anchor_requirement(),
-        summary.unit_posture(),
-        summary.coordinate_space(),
-        summary.rounding_posture(),
-        members,
+        crate::evidence::UiConstraintBoundReconciliationInput {
+            neighborhood_identity_digest: neighborhood.identity().identity_digest(),
+            axis_scope,
+            requirement: summary.bounded_min_max_requirements(),
+            solve_order: UiBoundReconciliationSolveOrder::AfterEqualShareBeforePlanCloseout,
+            posture,
+            incoming_available_space_posture: summary.incoming_available_space_posture(),
+            viewport_requirement: summary.viewport_requirement(),
+            scroll_owner_requirement: summary.scroll_owner_requirement(),
+            portal_anchor_requirement: summary.portal_anchor_requirement(),
+            unit_posture: summary.unit_posture(),
+            coordinate_space: summary.coordinate_space(),
+            rounding_posture: summary.rounding_posture(),
+            members,
+        },
     );
     let root_identity_digest = neighborhood
         .members()
@@ -152,11 +163,14 @@ fn resolve_bound_posture(
     summary: UiAllocationConstraintSummary,
     sibling_negotiation: Option<&UiConstraintSiblingNegotiationResult>,
     equal_share_distribution: Option<&UiConstraintEqualShareDistributionResult>,
-    downward_bounded_targets: &[(u64, UiConstraintAxisScope)],
-    member_count: usize,
-    axis_scope: UiConstraintAxisScope,
-    mixed_bounded_participation: bool,
+    participation: UiBoundReconciliationParticipation<'_>,
 ) -> UiBoundReconciliationPosture {
+    let UiBoundReconciliationParticipation {
+        downward_bounded_targets,
+        member_count,
+        axis_scope,
+        mixed_bounded_participation,
+    } = participation;
     if !measurement_basis.generation_compatibility().is_compatible() {
         return UiBoundReconciliationPosture::StaleInput;
     }

@@ -21,9 +21,7 @@ use crate::domain_capabilities::certification::reports::fixtures::{
     support_traceability_requested, workflow_requested,
 };
 use crate::domain_capabilities::certification::{
-    install_domain_capability_certification,
-    worth_query_domain_capability_compile_fail_boundary_digest,
-    worth_query_domain_capability_public_surface_inventory,
+    install_domain_capability_certification, worth_query_domain_capability_public_surface_inventory,
 };
 use crate::domain_capabilities::identity::compose_canonical_runtime_materialization_digest;
 use crate::domain_capabilities::{
@@ -53,7 +51,6 @@ pub struct WorthQueryDomainCapabilityRepresentativeReport {
     decision_trace_digest: String,
     support_traceability_digest: String,
     public_boundary_digest: String,
-    compile_fail_boundary_digest: String,
     failure_digest: String,
     contribution_width: usize,
     trace_width: usize,
@@ -90,7 +87,6 @@ impl WorthQueryDomainCapabilityRepresentativeReport {
             "decision_trace_digest" => Some(self.decision_trace_digest.clone()),
             "support_traceability_digest" => Some(self.support_traceability_digest.clone()),
             "public_boundary_digest" => Some(self.public_boundary_digest.clone()),
-            "compile_fail_boundary_digest" => Some(self.compile_fail_boundary_digest.clone()),
             "failure_digest" => Some(self.failure_digest.clone()),
             "contribution_width" => Some(self.contribution_width.to_string()),
             "trace_width" => Some(self.trace_width.to_string()),
@@ -369,7 +365,6 @@ pub(crate) fn worth_query_domain_capability_representative_report_in(
             .decision_support_traceability_digest()
             .to_string(),
         public_boundary_digest,
-        compile_fail_boundary_digest: worth_query_domain_capability_compile_fail_boundary_digest(),
         failure_digest: denial.failure_for_reporting().to_string(),
         contribution_width: worth_query_domain_capability_public_surface_inventory()
             .rows()

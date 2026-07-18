@@ -21,6 +21,12 @@ pub struct UiAdmittedAllocationCatalogBasisSet {
     >,
 }
 
+impl UiAdmittedAllocationCatalogBasisSet {
+    pub(crate) fn graph_authority_identity(&self) -> crate::graph::UiGraphAuthorityIdentity {
+        self.snapshot.authority_identity()
+    }
+}
+
 impl crate::graph::UiGraphSnapshot {
     pub fn admit_allocation_catalog_basis_set(
         &self,

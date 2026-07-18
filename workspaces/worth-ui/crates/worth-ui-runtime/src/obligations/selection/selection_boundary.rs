@@ -25,6 +25,17 @@ pub struct UiObligationSelectionBoundary<'a> {
     family_catalog: UiObligationFamilyCatalog,
 }
 
+struct UiSelectedObligationConstruction<'a> {
+    touch: &'a UiGraphTouchDescriptor,
+    family: crate::obligations::catalog::UiObligationFamily,
+    row: super::UiObligationSelectionMatrixRow,
+    support_posture: UiObligationSupportSelectionPosture,
+    check_kind: UiObligationCheckKind,
+    evidence_handle: UiObligationEvidenceHandle,
+    selection_reasons: Box<[super::UiObligationSelectionReason]>,
+    prerequisite_evidence_refs: Box<[UiObligationPrerequisiteEvidenceRef]>,
+}
+
 impl<'a> UiObligationSelectionBoundary<'a> {
     pub(crate) const fn new(
         support_artifacts: &'a [UiDeclarationArtifact],
@@ -142,16 +153,16 @@ impl<'a> UiObligationSelectionBoundary<'a> {
                     );
                     let prerequisite_evidence_refs =
                         prerequisite_evidence_refs(row.support_basis(), target);
-                    obligations.push(self.obligation(
+                    obligations.push(self.obligation(UiSelectedObligationConstruction {
                         touch,
                         family,
                         row,
-                        row_support_posture,
-                        row.check_kind(),
+                        support_posture: row_support_posture,
+                        check_kind: row.check_kind(),
                         evidence_handle,
-                        base_reasons,
+                        selection_reasons: base_reasons,
                         prerequisite_evidence_refs,
-                    ));
+                    }));
                 }
                 UiObligationSupportSelectionPosture::WrongWorld => {
                     evidence_records.push(not_selected_obligation_evidence_record(
@@ -172,25 +183,24 @@ impl<'a> UiObligationSelectionBoundary<'a> {
 
     fn obligation(
         &self,
-        touch: &UiGraphTouchDescriptor,
-        family: crate::obligations::catalog::UiObligationFamily,
-        row: super::UiObligationSelectionMatrixRow,
-        support_posture: UiObligationSupportSelectionPosture,
-        check_kind: UiObligationCheckKind,
-        evidence_handle: UiObligationEvidenceHandle,
-        selection_reasons: Box<[super::UiObligationSelectionReason]>,
-        prerequisite_evidence_refs: Box<[UiObligationPrerequisiteEvidenceRef]>,
+        construction: UiSelectedObligationConstruction<'_>,
     ) -> UiSelectedObligation {
+        let UiSelectedObligationConstruction {
+            touch,
+            family,
+            row,
+            support_posture,
+            check_kind,
+            evidence_handle,
+            selection_reasons,
+            prerequisite_evidence_refs,
+        } = construction;
         debug_assert!(self.family_catalog.contains(family));
         let identity = UiSelectedObligationIdentity::new(
             touch.identity_digest(),
             family,
             touch.target(),
-            row.aspect_scope()
-                .iter()
-                .copied()
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
+            row.aspect_scope().to_vec().into_boxed_slice(),
             touch.world(),
             row.support_basis(),
         );
@@ -312,9 +322,9 @@ fn prerequisite_evidence_refs(
     let mut refs = Vec::new();
     if matches!(support_basis, UiObligationSupportBasis::QueryBinding) {
         if let Some(query_prerequisites) = target.query_prerequisites() {
-            refs.push(UiObligationPrerequisiteEvidenceRef::Query(
+            refs.push(UiObligationPrerequisiteEvidenceRef::Query(Box::new(
                 query_prerequisites.clone(),
-            ));
+            )));
         }
     }
     if matches!(

@@ -246,10 +246,10 @@ mod outer {
         pub fn admit(_authority: impl AuthorityMarker) {}
     }
 
-    pub use secret::*;
+    pub use self::secret::*;
 }
 
-pub use outer::*;
+pub use self::outer::*;
 "#
 }
 

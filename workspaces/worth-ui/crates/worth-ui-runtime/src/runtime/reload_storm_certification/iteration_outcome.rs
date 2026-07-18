@@ -1,28 +1,23 @@
 use crate::runtime::{
-    WorthUiFileRustReplacementPipelineReport, WorthUiReloadFailure,
-    WorthUiReloadStormCandidateDenialReason, WorthUiReloadStormReceiptBinding,
+    WorthUiCandidateAuthoringLane, WorthUiCandidateCompositionBasis,
+    WorthUiCandidateOrderingReceipt, WorthUiReloadFailure, WorthUiReloadStormCandidateDenialReason,
+    WorthUiSourceIngressCounters, WorthUiSourcePackageRevision, WorthUiWatchedCandidateSubmission,
 };
 
 #[derive(Debug, PartialEq)]
 pub enum WorthUiReloadStormIterationOutcome {
-    Activated(WorthUiReloadStormSuccessfulIteration),
-    EquivalentNoOp(WorthUiReloadStormNoOpIteration),
-    DeniedPreserved(WorthUiReloadStormDeniedIteration),
+    PreparedPendingCutover(Box<WorthUiReloadStormPreparedIteration>),
+    DeniedPreserved(Box<WorthUiReloadStormDeniedIteration>),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct WorthUiReloadStormSuccessfulIteration {
+/// A whole source submission retained without exposing artifact-only runtime
+/// truth before application-authority cutover exists.
+#[derive(Debug, Eq, PartialEq)]
+pub struct WorthUiReloadStormPreparedIteration {
     label: String,
-    binding: WorthUiReloadStormReceiptBinding,
-    report: WorthUiFileRustReplacementPipelineReport,
+    submission: WorthUiWatchedCandidateSubmission,
     active_plan_digest_after: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthUiReloadStormNoOpIteration {
-    label: String,
-    binding: WorthUiReloadStormReceiptBinding,
-    active_plan_digest: u64,
+    last_valid_plan_digest_after: u64,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -34,18 +29,18 @@ pub struct WorthUiReloadStormDeniedIteration {
     last_valid_plan_digest_after: u64,
 }
 
-impl WorthUiReloadStormSuccessfulIteration {
+impl WorthUiReloadStormPreparedIteration {
     pub(crate) fn new(
         label: impl Into<String>,
-        binding: WorthUiReloadStormReceiptBinding,
-        report: WorthUiFileRustReplacementPipelineReport,
+        submission: WorthUiWatchedCandidateSubmission,
         active_plan_digest_after: u64,
+        last_valid_plan_digest_after: u64,
     ) -> Self {
         Self {
             label: label.into(),
-            binding,
-            report,
+            submission,
             active_plan_digest_after,
+            last_valid_plan_digest_after,
         }
     }
 
@@ -53,42 +48,32 @@ impl WorthUiReloadStormSuccessfulIteration {
         &self.label
     }
 
-    pub fn binding(&self) -> WorthUiReloadStormReceiptBinding {
-        self.binding
+    pub fn authoring_lane(&self) -> WorthUiCandidateAuthoringLane {
+        self.submission.authoring_lane()
     }
 
-    pub fn report(&self) -> &WorthUiFileRustReplacementPipelineReport {
-        &self.report
+    pub fn composition_basis(&self) -> &WorthUiCandidateCompositionBasis {
+        self.submission.composition_basis()
+    }
+
+    pub fn source_revision(&self) -> &WorthUiSourcePackageRevision {
+        self.submission.source_revision()
+    }
+
+    pub fn ordering_receipt(&self) -> &WorthUiCandidateOrderingReceipt {
+        self.submission.ordering_receipt()
+    }
+
+    pub fn ingress_counters(&self) -> WorthUiSourceIngressCounters {
+        self.submission.counters()
     }
 
     pub fn active_plan_digest_after(&self) -> u64 {
         self.active_plan_digest_after
     }
-}
 
-impl WorthUiReloadStormNoOpIteration {
-    pub(crate) fn new(
-        label: impl Into<String>,
-        binding: WorthUiReloadStormReceiptBinding,
-        active_plan_digest: u64,
-    ) -> Self {
-        Self {
-            label: label.into(),
-            binding,
-            active_plan_digest,
-        }
-    }
-
-    pub fn label(&self) -> &str {
-        &self.label
-    }
-
-    pub fn binding(&self) -> WorthUiReloadStormReceiptBinding {
-        self.binding
-    }
-
-    pub fn active_plan_digest(&self) -> u64 {
-        self.active_plan_digest
+    pub fn last_valid_plan_digest_after(&self) -> u64 {
+        self.last_valid_plan_digest_after
     }
 }
 

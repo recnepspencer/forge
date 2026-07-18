@@ -1,7 +1,5 @@
-use std::fs;
-use std::path::Path;
-
-use super::dependency_audit::{collect_rust_files, path_starts_with};
+use super::dependency_audit::path_starts_with;
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 mod declaration_residue_ast;
 
@@ -13,7 +11,7 @@ use declaration_residue_ast::{
 
 const DECLARATION_SOURCE_REOPENING_ALLOWED_FILES: &[&str] = &[
     "crates/worth-ui-runtime/src/declaration/artifact/ui_declaration_lowering.rs",
-    "crates/worth-ui-runtime/src/declaration/aspect_contract/aspect_contract.rs",
+    "crates/worth-ui-runtime/src/declaration/aspect_contract/contract.rs",
     "crates/worth-ui-runtime/src/declaration/aspect_contract/aspect_name.rs",
     "crates/worth-ui-runtime/src/declaration/aspect_contract/consumed.rs",
     "crates/worth-ui-runtime/src/declaration/aspect_contract/published.rs",
@@ -68,7 +66,7 @@ const DECLARATION_SEMANTIC_TOKEN_MARKERS: &[&str] = &[
 ];
 
 pub fn audit_non_owner_code_does_not_reopen_declaration_source(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let scoped_roots = [
         "crates/worth-ui/src",
@@ -78,13 +76,13 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
         "crates/worth-ui-host-egui/src",
     ];
     let mut violations = Vec::new();
-    let mut files = Vec::new();
+    let files = scoped_roots
+        .into_iter()
+        .flat_map(|scoped_root| inventory.rust_files_under(scoped_root))
+        .collect::<Vec<_>>();
 
-    for scoped_root in scoped_roots {
-        collect_rust_files(&workspace_root.join(scoped_root), &mut files);
-    }
-
-    for path in files {
+    for source_file in files {
+        let path = source_file.absolute_path();
         let file_name = path
             .file_name()
             .and_then(|name| name.to_str())
@@ -94,7 +92,7 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
         }
 
         let relative = path
-            .strip_prefix(workspace_root)
+            .strip_prefix(inventory.root())
             .expect("workspace file should strip to relative path");
         let relative_text = relative.to_string_lossy().replace('\\', "/");
 
@@ -109,9 +107,9 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
             continue;
         }
 
-        for segments in collect_file_paths(&path)
+        for segments in collect_file_paths(inventory, path)
             .into_iter()
-            .chain(collect_file_use_paths(&path))
+            .chain(collect_file_use_paths(inventory, path))
         {
             if let Some(authority_name) = declaration_semantic_authority_path(&segments) {
                 violations.push(format!(
@@ -121,7 +119,7 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
             }
         }
 
-        for method_name in collect_method_names(&path) {
+        for method_name in collect_method_names(inventory, path) {
             if DECLARATION_SOURCE_REOPENING_METHODS.contains(&method_name.as_str()) {
                 violations.push(format!(
                     "{} reopens declaration meaning through DSL semantic accessor `{method_name}()` outside the owning declaration lowering/admission lanes",
@@ -130,7 +128,7 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
             }
         }
 
-        let source = production_source_text(&path);
+        let source = production_source_text(inventory, path);
         for marker in DECLARATION_SEMANTIC_TOKEN_MARKERS {
             if source.contains(marker) {
                 violations.push(format!(
@@ -147,7 +145,7 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
 }
 
 pub fn audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let scoped_files = [
         "crates/worth-ui-runtime/src/facade/entry/app.rs",
@@ -156,22 +154,21 @@ pub fn audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source(
     ];
     let files = scoped_files
         .iter()
-        .map(|relative| workspace_root.join(relative))
+        .map(|relative| inventory.absolute_path(relative))
         .collect::<Vec<_>>();
 
-    audit_files_do_not_reopen_declaration_source(workspace_root, &files)
+    audit_files_do_not_reopen_declaration_source(inventory, &files)
 }
 
 pub fn audit_phase4_authored_lookup_lane_is_indexed_not_scan_first(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let authored_lookup_boundary = workspace_root
-        .join("crates/worth-ui-runtime/src/facade/inspection/authored_lookup_boundary.rs");
-    let authored_evidence_index = workspace_root.join(
+    let authored_lookup_boundary = inventory
+        .absolute_path("crates/worth-ui-runtime/src/facade/inspection/authored_lookup_boundary.rs");
+    let authored_evidence_index = inventory.absolute_path(
         "crates/worth-ui-runtime/src/declaration/inspection/index/authored_evidence_index.rs",
     );
-    let boundary_source =
-        fs::read_to_string(&authored_lookup_boundary).expect("source file should decode");
+    let boundary_source = inventory.text(&authored_lookup_boundary);
     let mut violations = Vec::new();
 
     for required in ["lookup_declaration_identity", "lookup_authored_provenance"] {
@@ -185,7 +182,7 @@ pub fn audit_phase4_authored_lookup_lane_is_indexed_not_scan_first(
 
     for function_name in ["lookup_declaration_identity", "lookup_authored_provenance"] {
         let method_names =
-            collect_method_names_for_function(&authored_evidence_index, function_name);
+            collect_method_names_for_function(inventory, &authored_evidence_index, function_name);
         if !method_names.iter().any(|name| name == "get") {
             violations.push(format!(
                 "{} no longer proves indexed authored lookup because `{function_name}` does not call map lookup `get()` on the authoritative authored index",
@@ -208,7 +205,7 @@ pub fn audit_phase4_authored_lookup_lane_is_indexed_not_scan_first(
 }
 
 pub fn audit_host_and_inspection_layers_do_not_import_declaration_authority(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let scoped_roots = [
         "crates/worth-ui-inspection/src",
@@ -216,14 +213,14 @@ pub fn audit_host_and_inspection_layers_do_not_import_declaration_authority(
         "crates/worth-ui-host-egui/src",
     ];
     let mut violations = Vec::new();
-    let mut files = Vec::new();
+    let files = scoped_roots
+        .into_iter()
+        .flat_map(|scoped_root| inventory.rust_files_under(scoped_root))
+        .collect::<Vec<_>>();
 
-    for scoped_root in scoped_roots {
-        collect_rust_files(&workspace_root.join(scoped_root), &mut files);
-    }
-
-    for path in files {
-        for segments in collect_file_paths(&path) {
+    for source_file in files {
+        let path = source_file.absolute_path();
+        for segments in collect_file_paths(inventory, path) {
             if starts_with_declaration_surface(&segments) {
                 violations.push(format!(
                     "{} imports declaration authority into a host/inspection layer instead of consuming lowered receipts or host-contract facts",

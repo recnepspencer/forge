@@ -113,7 +113,7 @@ fn impl_self_is_reachable(item_impl: &syn::ItemImpl, reachable: &Reachability) -
     reachable
         .items
         .iter()
-        .any(|key| key.item_name == name.ident.to_string())
+        .any(|key| name.ident == key.item_name)
 }
 
 fn inspect_impl(
@@ -135,39 +135,34 @@ fn inspect_impl(
         item_impl
             .items
             .iter()
-            .filter_map(|item| {
-                let (name, inspect): (String, Box<dyn FnOnce(&mut QueryTypeVisitor<'_>)>) =
-                    match item {
-                        ImplItem::Fn(method)
-                            if trait_impl || matches!(method.vis, Visibility::Public(_)) =>
-                        {
-                            let signature = &method.sig;
-                            (
-                                method.sig.ident.to_string(),
-                                Box::new(move |v| v.visit_signature(signature)),
-                            )
-                        }
-                        ImplItem::Type(assoc)
-                            if trait_impl || matches!(assoc.vis, Visibility::Public(_)) =>
-                        {
-                            let ty = &assoc.ty;
-                            (assoc.ident.to_string(), Box::new(move |v| v.visit_type(ty)))
-                        }
-                        ImplItem::Const(assoc)
-                            if trait_impl || matches!(assoc.vis, Visibility::Public(_)) =>
-                        {
-                            let ty = &assoc.ty;
-                            (assoc.ident.to_string(), Box::new(move |v| v.visit_type(ty)))
-                        }
-                        _ => return None,
-                    };
-                let mut visitor = QueryTypeVisitor::new(vocabulary);
-                inspect(&mut visitor);
-                Some((name, visitor.hits))
-            })
+            .filter_map(|item| inspect_impl_item(item, trait_impl, vocabulary))
             .collect::<Vec<_>>(),
     );
     surfaces
+}
+
+fn inspect_impl_item(
+    item: &ImplItem,
+    trait_impl: bool,
+    vocabulary: &QueryVocabulary,
+) -> Option<(String, BTreeSet<String>)> {
+    let mut visitor = QueryTypeVisitor::new(vocabulary);
+    let name = match item {
+        ImplItem::Fn(method) if trait_impl || matches!(method.vis, Visibility::Public(_)) => {
+            visitor.visit_signature(&method.sig);
+            method.sig.ident.to_string()
+        }
+        ImplItem::Type(assoc) if trait_impl || matches!(assoc.vis, Visibility::Public(_)) => {
+            visitor.visit_type(&assoc.ty);
+            assoc.ident.to_string()
+        }
+        ImplItem::Const(assoc) if trait_impl || matches!(assoc.vis, Visibility::Public(_)) => {
+            visitor.visit_type(&assoc.ty);
+            assoc.ident.to_string()
+        }
+        _ => return None,
+    };
+    Some((name, visitor.hits))
 }
 
 fn inspect_foreign(

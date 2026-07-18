@@ -59,7 +59,7 @@ impl UiGraphTouchAuthority<'_> {
         observation: WorthUiActiveRuntimeObservation,
         inspection: &WorthUiExecutionPlanInspection,
     ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
-        require_host_observation_alignment(observation, inspection)?;
+        require_host_observation_alignment(&observation, inspection)?;
         let digests = inspection_authored_provenance_digests(inspection.provenance().iter());
         if digests.is_empty() {
             return Err(UiGraphTouchDenial::OriginAuthorityUnavailable {

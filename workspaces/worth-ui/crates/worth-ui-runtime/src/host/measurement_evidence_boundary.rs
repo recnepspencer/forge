@@ -44,6 +44,15 @@ pub struct WorthUiHostMeasurementCollector {
     authority: Rc<RefCell<UiHostMeasurementSourceAuthority>>,
 }
 
+pub struct UiHostMeasurementCollectionInput<'a> {
+    pub identity: UiMeasurementRequestIdentity,
+    pub evidence_family: UiMeasurementEvidenceFamily,
+    pub need: UiHostMeasurementNeed,
+    pub capability_report: &'a WorthUiHostCapabilityReport,
+    pub evidence_generation: UiEvidenceAuthorityGeneration,
+    pub normalization_context: UiHostMeasurementNormalizationContext,
+}
+
 impl WorthUiHostMeasurementCollector {
     pub(crate) fn new(authority: Rc<RefCell<UiHostMeasurementSourceAuthority>>) -> Self {
         Self { authority }
@@ -53,62 +62,38 @@ impl WorthUiHostMeasurementCollector {
         Self::new(Rc::new(RefCell::new(Default::default())))
     }
 
-    pub fn collect<A: WorthUiMeasurementHostAdapter>(
+    pub(crate) fn collect<A: WorthUiMeasurementHostAdapter + ?Sized>(
         &self,
         adapter: &A,
-        identity: UiMeasurementRequestIdentity,
-        evidence_family: UiMeasurementEvidenceFamily,
-        need: UiHostMeasurementNeed,
-        capability_report: &WorthUiHostCapabilityReport,
-        evidence_generation: UiEvidenceAuthorityGeneration,
-        normalization_context: UiHostMeasurementNormalizationContext,
+        input: UiHostMeasurementCollectionInput<'_>,
     ) -> Result<UiMeasurementResult, UiHostMeasurementEvidenceDenial> {
-        collect_host_measurement_evidence(
-            &mut self.authority.borrow_mut(),
-            adapter,
-            identity,
-            evidence_family,
-            need,
-            capability_report,
-            evidence_generation,
-            normalization_context,
-        )
+        collect_host_measurement_evidence(&mut self.authority.borrow_mut(), adapter, input)
     }
 
     /// Collect, normalize, freshness-admit, and source-position one host fact.
-    pub fn collect_admitted<A: WorthUiMeasurementHostAdapter>(
+    pub(crate) fn collect_admitted<A: WorthUiMeasurementHostAdapter + ?Sized>(
         &self,
         adapter: &A,
-        identity: UiMeasurementRequestIdentity,
-        evidence_family: UiMeasurementEvidenceFamily,
-        need: UiHostMeasurementNeed,
-        capability_report: &WorthUiHostCapabilityReport,
-        evidence_generation: UiEvidenceAuthorityGeneration,
-        normalization_context: UiHostMeasurementNormalizationContext,
+        input: UiHostMeasurementCollectionInput<'_>,
     ) -> Result<crate::host::UiAdmittedHostMeasurement, UiHostMeasurementEvidenceDenial> {
-        self.collect(
-            adapter,
-            identity,
-            evidence_family,
-            need,
-            capability_report,
-            evidence_generation,
-            normalization_context,
-        )
-        .map(crate::host::UiAdmittedHostMeasurement::from_collected)
+        self.collect(adapter, input)
+            .map(crate::host::UiAdmittedHostMeasurement::from_collected)
     }
 }
 
-pub(crate) fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter>(
+pub(crate) fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter + ?Sized>(
     source: &mut UiHostMeasurementSourceAuthority,
     adapter: &A,
-    identity: UiMeasurementRequestIdentity,
-    evidence_family: UiMeasurementEvidenceFamily,
-    need: UiHostMeasurementNeed,
-    capability_report: &WorthUiHostCapabilityReport,
-    evidence_generation: UiEvidenceAuthorityGeneration,
-    normalization_context: UiHostMeasurementNormalizationContext,
+    input: UiHostMeasurementCollectionInput<'_>,
 ) -> Result<UiMeasurementResult, UiHostMeasurementEvidenceDenial> {
+    let UiHostMeasurementCollectionInput {
+        identity,
+        evidence_family,
+        need,
+        capability_report,
+        evidence_generation,
+        normalization_context,
+    } = input;
     let observation =
         observe_host_measurement(adapter, identity, evidence_family, need, capability_report)?;
     let mut normalized =

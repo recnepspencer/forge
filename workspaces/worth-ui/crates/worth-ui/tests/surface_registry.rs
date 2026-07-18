@@ -34,7 +34,8 @@ fn equivalent_app_defined_surfaces_produce_equivalent_entries() {
             "workspace.surface.sidebar",
             "workspace.component.sidebar",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_surface(surface_descriptor(
             "workspace.surface.sidebar",
@@ -46,7 +47,8 @@ fn equivalent_app_defined_surfaces_produce_equivalent_entries() {
             "workspace.component.editor",
         ))
         .register_component(component_descriptor("workspace.component.editor"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().surfaces(),
@@ -302,7 +304,8 @@ fn surface_command_slot_resolves_against_registered_command() {
             surface_descriptor("workspace.surface.editor", "workspace.component.editor")
                 .with_command_slot(command_id("workspace.command.open")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()
@@ -329,7 +332,8 @@ fn surface_metadata_survives_freeze() {
             )
             .with_label("Overlay"),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()

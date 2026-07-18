@@ -20,9 +20,10 @@ pub(crate) use artifact::{
     WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactHandle,
     WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactModule,
     WorthUiArtifactNode, WorthUiArtifactNodeKind, WorthUiArtifactSurfaceHandle,
-    WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
+    WorthUiArtifactSurfaceNode, WorthUiArtifactSurfaceNodeInput, WorthUiArtifactThemeTokenHandle,
+    WorthUiArtifactThemeTokenNode,
 };
-pub(crate) use artifact_input::WorthUiArtifactInputBodyAtom;
+pub use artifact_input::WorthUiArtifactInputBodyAtom;
 #[cfg(test)]
 pub(crate) use artifact_input::WorthUiArtifactInputEquivalentShape;
 pub(crate) use artifact_input::{
@@ -76,8 +77,7 @@ pub(crate) use inspection::{
     WorthUiArtifactNodeInspection, WorthUiArtifactProvenanceMap, WorthUiArtifactSourceOrigin,
     WorthUiQueryInspectionLink, WorthUiQueryInspectionLinkRole,
 };
-#[cfg(any(test, feature = "certification-support"))]
-pub(crate) use lower::WorthUiRustAuthoredArtifactInputModule;
+pub(crate) use lower::WorthUiRustAuthoredToArtifactInputLowerer;
 pub(crate) use lower::{
     WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyMetrics,
     WorthUiArtifactAssemblyReport, WorthUiArtifactDependencyDeriver,
@@ -106,10 +106,7 @@ pub(crate) use lower::{
     WorthUiArtifactInspectionMetrics, WorthUiArtifactInspectionReport, WorthUiRustCompositionInput,
     WorthUiRustCompositionMetrics, WorthUiRustCompositionModule, WorthUiRustCompositionReport,
 };
-#[cfg(any(test, feature = "certification-support"))]
-pub(crate) use lower::{
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredToArtifactInputLowerer,
-};
+pub use lower::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 pub(crate) use module::{WorthUiSourceModuleId, WorthUiSourceModuleRecord};
 pub(crate) use package::{
     WorthUiSourcePackage, WorthUiSourcePackageDiagnostic, WorthUiSourcePackageDiagnosticCode,

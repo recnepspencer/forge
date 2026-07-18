@@ -3,8 +3,8 @@ use worth_ui::facade::{
     MosaicStateReplacementRule, MosaicStateTruthPosture, WorthUi,
 };
 
-use crate::state_assertions::assert_diagnostic_codes;
-use crate::state_fixtures::{complete_state_slot, splitter_position_slot};
+use super::state_assertions::assert_diagnostic_codes;
+use super::state_fixtures::{complete_state_slot, splitter_position_slot};
 
 #[test]
 fn state_slot_without_owner_identity_rejected() {
@@ -79,7 +79,8 @@ fn derived_runtime_state_is_admitted_without_authority_claim() {
                 MosaicStateTruthPosture::derived_from_authoritative_runtime_truth(),
             ),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().mosaic_state_slots().len(), 1);
 }
@@ -125,7 +126,7 @@ fn rejected_state_slot_does_not_poison_valid_state_slot() {
     assert!(report
         .accepted_snapshot()
         .mosaic_state_slots()
-        .get(&crate::state_fixtures::state_slot_id(
+        .get(&super::state_fixtures::state_slot_id(
             "workspace.state.valid"
         ))
         .is_some());

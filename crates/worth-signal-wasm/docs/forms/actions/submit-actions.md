@@ -12,7 +12,7 @@ This page covers the ordinary submit lane.
 
 ## Stable Entry Points
 
-- `submit()`
+- declaration factory `submit()` inside `actions: ({ submit }) => ...`
 - `form.actionPlan("submit")`
 - `form.executeAction("submit")`
 - `form.fulfillAction(operationId, { canonicalValue })`
@@ -33,19 +33,22 @@ and execution surfaces as every other action.
 ## Small Example
 
 ```ts
-const pending = form.executeAction("submit");
-form.fulfillAction(pending.operationId, {
-  canonicalValue: { title: "Ship docs", status: "published" },
-});
+const execution = await form.executeAction("submit");
+if (execution.resultKind === "pending") {
+  form.fulfillAction(execution.operationId, {
+    canonicalValue: { title: "Ship docs", status: "published" },
+  });
+}
 ```
 
 ## Real Example
 
 ```ts
 const plan = form.actionPlan("submit");
-const pending = form.executeAction("submit");
+const execution = await form.executeAction("submit");
 
 console.log(plan.patch);
+console.log(execution.resultKind);
 console.log(form.actionExecutionHistory());
 ```
 

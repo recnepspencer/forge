@@ -12,9 +12,6 @@ use super::audits::{
 use super::bundle_outputs::assemble_closeout_bundle_outputs;
 use super::fixtures::control_row_set_lifecycle;
 use super::oracle::{projection_consumption_oracle_report, ProjectionConsumptionOracleReport};
-use super::proof_artifacts::{
-    compile_fail_boundary_bundle_digest, golden_transcript_bundle_digest,
-};
 use super::seeded::{
     projection_consumption_seeded_certification_report,
     ProjectionConsumptionSeededCertificationReport,
@@ -33,8 +30,6 @@ pub enum ProjectionConsumptionCertificationLane {
     PublicBoundarySurface,
     ProofShapeSurface,
     ForbiddenFallbackSurface,
-    DxTranscriptSurface,
-    CompileFailBoundary,
     OracleSurface,
     SeededReplaySurface,
     DownstreamAuthoritySurface,
@@ -156,8 +151,6 @@ pub fn certify_projection_consumption_closeout_core() -> ProjectionConsumptionCe
         &oracle_report,
         &seeded_report,
         &slope_report,
-        compile_fail_boundary_bundle_digest(),
-        golden_transcript_bundle_digest(),
     );
     let authority_detail = consumed_authority_certification.bundle_digest().to_string();
     assembled.rows.push(ProjectionConsumptionCertificationRow {

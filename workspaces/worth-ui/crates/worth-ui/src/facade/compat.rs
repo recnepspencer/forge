@@ -2,7 +2,7 @@
 //!
 //! Prefer the named facade submodules such as `app`, `inspection`, `diagnostics`,
 //! `dsl`, `host`, `registry`, and `support` for new code.
-pub use crate::facade::app::{WorthUiApp, WorthUiAppBuilder, WorthUiBuilder};
+pub use crate::facade::app::{WorthUi, WorthUiApp, WorthUiAppBuilder, WorthUiBuilder};
 pub use crate::facade::diagnostics::{
     CapabilityDiagnosticCode, CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity,
     CapabilityRegistrationDiagnostic, CapabilityRegistrationReport, CapabilitySnapshot,
@@ -118,8 +118,8 @@ pub use worth_ui_runtime::facade::inspection_bridge::{
     classify_inspection_dispatch, InspectionDispatchLane,
 };
 pub use worth_ui_runtime::facade::runtime_handoff::{
-    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, WorthUiActivationLaneInput,
-    WorthUiExecutionLaneInput, WorthUiPlanningLaneInput, WorthUiReplacementLoweringReady,
+    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, WorthUiExecutionLaneInput,
+    WorthUiPlanningLaneInput, WorthUiReplacementLoweringReady,
 };
 pub use worth_ui_runtime::facade::runtime_handoff::{
     WorthUiActiveRuntimeObservation, WorthUiRuntime, WorthUiRuntimeDiagnostic,

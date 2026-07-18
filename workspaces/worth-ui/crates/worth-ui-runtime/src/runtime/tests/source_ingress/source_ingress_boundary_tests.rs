@@ -1,21 +1,21 @@
 use crate::facade::WorthUi;
 use crate::runtime::tests::source_ingress_boundary_test_support::{
-    assert_source_denial_reason, lower_file_submission, lower_rust_submission,
-    source_backed_package_component, source_backed_package_region, source_backed_package_sizing,
+    assert_source_denial_reason, lower_file_submission,
 };
 use crate::runtime::tests::source_ingress_test_support::{
-    empty_artifact, file_import_provider, runtime_from_artifact, rust_import_artifact,
-    rust_import_provider,
+    empty_artifact, file_import_provider, runtime_from_artifact, rust_import_input,
 };
 use crate::runtime::{
     WorthUiReloadDebounce, WorthUiSourceIngressDenialReason, WorthUiSourceProvider,
-    WorthUiWatchedArtifactInput, WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
+    WorthUiWatcherEvent,
 };
 use std::time::Duration;
 
 #[test]
 fn equivalent_file_event_bursts_debounce_to_equivalent_candidates() {
-    let snapshot = WorthUi::app().freeze();
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let provider = file_import_provider();
     let first = lower_file_submission(
         provider.clone(),
@@ -42,10 +42,7 @@ fn equivalent_file_event_bursts_debounce_to_equivalent_candidates() {
         first.source_revision().final_package_digest(),
         second.source_revision().final_package_digest()
     );
-    assert_eq!(
-        first.into_candidate().basis(),
-        second.into_candidate().basis()
-    );
+    assert_eq!(first.composition_basis(), second.composition_basis());
 }
 
 #[test]
@@ -59,30 +56,6 @@ fn watcher_event_without_lowered_candidate_cannot_mutate_active_runtime() {
 
     assert_eq!(batch.counters().active_runtime_mutations(), 0);
     assert_eq!(batch.counters().frame_path_work(), 0);
-}
-
-#[test]
-fn file_watcher_uses_candidate_pipeline_for_file_and_rust_artifact_inputs() {
-    let snapshot = WorthUi::app().freeze();
-    let file_submission = lower_file_submission(
-        file_import_provider(),
-        [WorthUiWatcherEvent::modified("app/main.wui")],
-        snapshot.capabilities(),
-    );
-    let rust_submission = lower_rust_submission(
-        rust_import_provider(),
-        [WorthUiWatcherEvent::provider_revision("rust-authored")],
-        snapshot.capabilities(),
-    );
-    let file_candidate = file_submission.into_candidate();
-    let rust_candidate = rust_submission.into_candidate();
-
-    assert_eq!(file_candidate.basis(), rust_candidate.basis());
-    assert_eq!(file_candidate.cause().kind_name(), "file-source-changed");
-    assert_eq!(
-        rust_candidate.cause().kind_name(),
-        "rust-authored-input-changed"
-    );
 }
 
 #[test]
@@ -116,7 +89,9 @@ fn watcher_event_reorder_does_not_change_final_candidate_sequence() {
 
 #[test]
 fn partial_write_and_atomic_rename_emit_one_ordered_candidate() {
-    let snapshot = WorthUi::app().freeze();
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let submission = lower_file_submission(
         file_import_provider(),
         [
@@ -149,7 +124,9 @@ fn partial_write_without_stable_snapshot_is_denied_before_candidate_submission()
 
 #[test]
 fn in_memory_source_provider_uses_same_candidate_admission() {
-    let snapshot = WorthUi::app().freeze();
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let file_submission = lower_file_submission(
         file_import_provider(),
         [WorthUiWatcherEvent::modified("app/main.wui")],
@@ -164,44 +141,33 @@ fn in_memory_source_provider_uses_same_candidate_admission() {
     );
 
     assert_eq!(
-        file_submission.into_candidate().basis(),
-        memory_submission.into_candidate().basis()
+        file_submission.composition_basis(),
+        memory_submission.composition_basis()
     );
 }
 
 #[test]
-fn watched_artifact_without_material_cannot_be_candidate() {
-    let snapshot = WorthUi::app().freeze();
+fn rust_authored_provider_without_composition_cannot_be_candidate() {
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(
-            WorthUiSourceProvider::rust_authored_artifact("rust-authored")
-                .with_artifact_input(WorthUiWatchedArtifactInput::rust_authored("input", 42)),
-        )
+        .source_ingress(WorthUiSourceProvider::rust_authored("rust-authored"))
         .start();
-    let batch = session
+    let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("rust-authored")])
-        .expect("synthetic descriptor can debounce");
+        .expect_err("an empty provider is denied before debounce");
 
-    let denial = batch
-        .lower_to_candidate_submission(snapshot.capabilities())
-        .expect_err("candidate material is required");
-
-    assert!(matches!(
-        denial,
-        WorthUiWatchedCandidateSubmissionDenial::SourceIngress(_)
-    ));
+    assert_eq!(
+        denial.reason(),
+        WorthUiSourceIngressDenialReason::EmptyProvider
+    );
 }
 
 #[test]
-fn mixed_file_and_artifact_provider_is_denied_before_candidate_selection() {
-    let snapshot = WorthUi::app().freeze();
+fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection() {
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(file_import_provider().with_artifact_input(
-            WorthUiWatchedArtifactInput::from_rust_authored_artifact(
-                "import-provider",
-                rust_import_artifact(),
-            ),
-        ))
+        .source_ingress(file_import_provider().with_rust_authored_input(rust_import_input()))
         .start();
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("mixed")])
@@ -216,19 +182,19 @@ fn mixed_file_and_artifact_provider_is_denied_before_candidate_selection() {
 }
 
 #[test]
-fn multiple_artifact_inputs_are_denied_instead_of_first_artifact_winning() {
-    let snapshot = WorthUi::app().freeze();
+fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() {
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
         .source_ingress(
-            WorthUiSourceProvider::rust_authored_artifact("rust-authored")
-                .with_artifact_input(WorthUiWatchedArtifactInput::from_rust_authored_artifact(
-                    "first",
-                    rust_import_artifact(),
-                ))
-                .with_artifact_input(WorthUiWatchedArtifactInput::from_rust_authored_artifact(
-                    "second",
-                    empty_artifact(),
-                )),
+            WorthUiSourceProvider::rust_authored("rust-authored")
+                .with_rust_authored_input(rust_import_input())
+                .with_rust_authored_input(
+                    crate::source::WorthUiRustAuthoredArtifactInput::from_modules([
+                        crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui"),
+                    ]),
+                ),
         )
         .start();
     let denial = session
@@ -239,7 +205,7 @@ fn multiple_artifact_inputs_are_denied_instead_of_first_artifact_winning() {
 
     assert_source_denial_reason(
         denial,
-        WorthUiSourceIngressDenialReason::MultipleArtifactInputs,
+        WorthUiSourceIngressDenialReason::MultipleRustAuthoredInputs,
     );
 }
 
@@ -264,7 +230,9 @@ fn empty_source_ingress_hook_is_denied_before_debounce() {
 
 #[test]
 fn duplicate_source_modules_report_source_package_rejection() {
-    let snapshot = WorthUi::app().freeze();
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let provider = WorthUiSourceProvider::in_memory("duplicate-source")
         .with_file("app/main.wui", "")
         .with_file("app/./main.wui", "");
@@ -285,7 +253,9 @@ fn duplicate_source_modules_report_source_package_rejection() {
 
 #[test]
 fn malformed_source_reports_parse_rejection_not_missing_material() {
-    let snapshot = WorthUi::app().freeze();
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let provider = WorthUiSourceProvider::in_memory("malformed-source")
         .with_file("app/main.wui", "component MissingBrace {");
     let mut session = runtime_from_artifact(empty_artifact())
@@ -304,84 +274,10 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
 }
 
 #[test]
-fn file_authored_source_ingress_emits_the_sealed_source_backed_package_on_the_ordinary_lane() {
-    let snapshot = WorthUi::app()
-        .register_component(source_backed_package_component(
-            "workspace.component.workflow_editor",
-        ))
-        .register_component(source_backed_package_component(
-            "workspace.component.workflow_editor.peer_a",
-        ))
-        .register_component(source_backed_package_component(
-            "workspace.component.workflow_editor.peer_b",
-        ))
-        .register_mosaic_region_kind(source_backed_package_region())
-        .register_mosaic_sizing_contract(source_backed_package_sizing())
-        .freeze();
-    let provider = WorthUiSourceProvider::in_memory("source-backed-package").with_file(
-        "app/source_backed_package.wui",
-        r#"
-component workspace.component.workflow_editor {
-    region workspace.region.primary {
-        sizing workspace.sizing.mosaic_support;
-    }
-}
-component workspace.component.workflow_editor.peer_a {
-    region workspace.region.primary {
-        sizing workspace.sizing.mosaic_support;
-    }
-}
-component workspace.component.workflow_editor.peer_b {
-    region workspace.region.primary {
-        sizing workspace.sizing.mosaic_support;
-    }
-}
-"#,
-    );
-    let submission = lower_file_submission(
-        provider,
-        [WorthUiWatcherEvent::provider_revision(
-            "source-backed-package",
-        )],
-        snapshot.capabilities(),
-    );
-    let source_backed_package = submission
-        .source_backed_dsl_package()
-        .expect("ordinary file-authored ingress should emit the sealed source-backed package");
-
-    let mut observed = source_backed_package
-        .dsl_package()
-        .admitted_declarations()
-        .iter()
-        .map(|receipt| {
-            (
-                receipt.source_provenance().module_path().to_owned(),
-                receipt.source_provenance().declaration_index(),
-            )
-        })
-        .collect::<Vec<_>>();
-    observed.sort();
-
-    assert_eq!(
-        observed,
-        vec![
-            ("app/source_backed_package.wui".to_owned(), 0),
-            ("app/source_backed_package.wui".to_owned(), 1),
-            ("app/source_backed_package.wui".to_owned(), 2),
-        ]
-    );
-    assert_eq!(
-        source_backed_package
-            .declaration_witness()
-            .claims_for("app/source_backed_package.wui", 0)
-            .map(|claims| claims.mosaic_sizing_contract_id().as_str()),
-        Some("workspace.sizing.mosaic_support")
-    );
-}
-
-#[test]
 fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
-    let snapshot = WorthUi::app().freeze();
+    let snapshot = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
         .source_ingress(file_import_provider())
         .start();

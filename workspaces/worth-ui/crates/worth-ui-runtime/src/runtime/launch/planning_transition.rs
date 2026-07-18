@@ -35,7 +35,7 @@ pub(crate) enum UiAllocationPlanningCatalogAdmissionDenial {
 pub(crate) enum UiAllocationCatalogPreparationDenial {
     PlanningAdmission(UiAllocationPlanningCatalogAdmissionDenial),
     CatalogPlanning(crate::runtime::invalidation_narrowing::UiAllocationActivationCatalogDenial),
-    ReceiptCommit(crate::runtime::UiAllocationReceiptCommitOutcome),
+    ReceiptCommit(Box<crate::runtime::UiAllocationReceiptCommitOutcome>),
 }
 
 impl UiAllocationCatalogMintAuthority {
@@ -64,7 +64,7 @@ impl WorthUiRuntime {
             pending.frame_epoch(),
             pending.staged_replacement().reconciliation_plan(),
         )
-        .map_err(UiAllocationCatalogPreparationDenial::ReceiptCommit)
+        .map_err(|denial| UiAllocationCatalogPreparationDenial::ReceiptCommit(Box::new(denial)))
     }
 
     pub(crate) fn admit_allocation_planning_catalog<'pending>(

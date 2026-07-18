@@ -164,24 +164,43 @@ pub struct UiObligationEvidenceRecord {
     legality_reason: Option<UiObligationLegalityReasonEvidence>,
 }
 
+pub(crate) struct UiObligationEvidenceRecordInput {
+    pub handle: UiObligationEvidenceHandle,
+    pub authority_source: UiObligationEvidenceAuthoritySource,
+    pub authority_digest: u64,
+    pub graph_node_digest: u64,
+    pub touch_identity_digest: Option<u64>,
+    pub family: Option<UiObligationFamily>,
+    pub decision: UiObligationEvidenceDecision,
+    pub dispatch_posture: Option<UiObligationEvidenceDispatchPosture>,
+    pub verdict_posture: Option<UiObligationEvidenceVerdictPosture>,
+    pub denial_posture: Option<UiObligationEvidenceDenialPosture>,
+    pub selection_reasons: Box<[UiObligationSelectionReason]>,
+    pub prerequisite_sources: Box<[UiObligationEvidencePrerequisiteSource]>,
+    pub query_prerequisite_evidence: Box<[WorthUiQueryPrerequisiteEvidence]>,
+    pub non_selection_reason: Option<UiObligationNonSelectionReason>,
+    pub legality_reason: Option<UiObligationLegalityReasonEvidence>,
+}
+
 impl UiObligationEvidenceRecord {
-    pub(crate) fn new(
-        handle: UiObligationEvidenceHandle,
-        authority_source: UiObligationEvidenceAuthoritySource,
-        authority_digest: u64,
-        graph_node_digest: u64,
-        touch_identity_digest: Option<u64>,
-        family: Option<UiObligationFamily>,
-        decision: UiObligationEvidenceDecision,
-        dispatch_posture: Option<UiObligationEvidenceDispatchPosture>,
-        verdict_posture: Option<UiObligationEvidenceVerdictPosture>,
-        denial_posture: Option<UiObligationEvidenceDenialPosture>,
-        selection_reasons: Box<[UiObligationSelectionReason]>,
-        prerequisite_sources: Box<[UiObligationEvidencePrerequisiteSource]>,
-        query_prerequisite_evidence: Box<[WorthUiQueryPrerequisiteEvidence]>,
-        non_selection_reason: Option<UiObligationNonSelectionReason>,
-        legality_reason: Option<UiObligationLegalityReasonEvidence>,
-    ) -> Self {
+    pub(crate) fn new(input: UiObligationEvidenceRecordInput) -> Self {
+        let UiObligationEvidenceRecordInput {
+            handle,
+            authority_source,
+            authority_digest,
+            graph_node_digest,
+            touch_identity_digest,
+            family,
+            decision,
+            dispatch_posture,
+            verdict_posture,
+            denial_posture,
+            selection_reasons,
+            prerequisite_sources,
+            query_prerequisite_evidence,
+            non_selection_reason,
+            legality_reason,
+        } = input;
         Self {
             handle,
             authority_source,
@@ -270,32 +289,39 @@ impl UiObligationEvidenceRecord {
 
     pub(crate) fn to_projection(&self) -> UiInspectionObligationReasonProjection {
         UiInspectionObligationReasonProjection::new(
-            self.handle.digest(),
-            self.graph_node_digest,
-            self.touch_identity_digest,
-            self.family.map(inspection_family),
-            inspection_decision(self.decision),
-            self.dispatch_posture.map(inspection_dispatch_posture),
-            self.verdict_posture
-                .map(|posture| inspection_verdict_class(posture.class())),
-            self.verdict_posture
-                .map(|posture| inspection_verdict_posture(posture.stop_posture())),
-            self.denial_posture.map(inspection_denial_posture),
-            self.selection_reasons
-                .iter()
-                .copied()
-                .map(inspection_selection_reason)
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
-            self.prerequisite_sources
-                .iter()
-                .copied()
-                .map(inspection_source)
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
-            self.non_selection_reason
-                .map(inspection_non_selection_reason),
-            self.legality_reason.map(inspection_legality_reason),
+            crate::evidence::UiInspectionObligationReasonProjectionInput {
+                handle_digest: self.handle.digest(),
+                graph_node_digest: self.graph_node_digest,
+                touch_identity_digest: self.touch_identity_digest,
+                family: self.family.map(inspection_family),
+                decision: inspection_decision(self.decision),
+                dispatch_posture: self.dispatch_posture.map(inspection_dispatch_posture),
+                verdict_class: self
+                    .verdict_posture
+                    .map(|posture| inspection_verdict_class(posture.class())),
+                verdict_posture: self
+                    .verdict_posture
+                    .map(|posture| inspection_verdict_posture(posture.stop_posture())),
+                denial_posture: self.denial_posture.map(inspection_denial_posture),
+                selection_reasons: self
+                    .selection_reasons
+                    .iter()
+                    .copied()
+                    .map(inspection_selection_reason)
+                    .collect::<Vec<_>>()
+                    .into_boxed_slice(),
+                prerequisite_sources: self
+                    .prerequisite_sources
+                    .iter()
+                    .copied()
+                    .map(inspection_source)
+                    .collect::<Vec<_>>()
+                    .into_boxed_slice(),
+                non_selection_reason: self
+                    .non_selection_reason
+                    .map(inspection_non_selection_reason),
+                legality_reason: self.legality_reason.map(inspection_legality_reason),
+            },
         )
     }
 }

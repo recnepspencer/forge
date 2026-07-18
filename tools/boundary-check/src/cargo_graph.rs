@@ -121,7 +121,7 @@ pub(crate) fn discover_query_audience_packages(
             let package = metadata
                 .packages
                 .iter()
-                .find(|package| PathBuf::from(&package.manifest_path) == manifest_path)
+                .find(|package| Path::new(&package.manifest_path) == manifest_path)
                 .ok_or_else(|| {
                     format!(
                         "cargo metadata omitted configured audience {}",

@@ -1,6 +1,6 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
-use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::app::{
+    WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
+};
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
     UiGraphContainmentClaim, UiGraphInstantiationLocalDenialKind, UiGraphInstantiationPlan,
@@ -24,7 +24,8 @@ fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
                 .with_semantic_artifact_spec(local_composition_spec())
                 .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page_id = graph_node_identity(graph, root_page_artifact(&app));
     let cases = [
@@ -184,13 +185,17 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
             WorthUiDslPackage::named("worth-ui.certification.graph-topology.zero-root-denial")
                 .with_semantic_artifact_spec(slotted_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let control_handoff =
         artifact_from_file_provenance(&app, "app/graph_topology_authority.wui", 0)
             .graph_handoff()
             .expect("control declaration should lower to a sealed graph handoff");
-    let plan = UiGraphInstantiationPlan::admit_handoffs(&[control_handoff.clone()], &[])
-        .expect("zero-root topology should deny locally inside graph instantiation plan admission");
+    let plan =
+        UiGraphInstantiationPlan::admit_handoffs(std::slice::from_ref(&control_handoff), &[])
+            .expect(
+                "zero-root topology should deny locally inside graph instantiation plan admission",
+            );
 
     assert!(plan.node_entries().is_empty());
     assert_eq!(plan.local_denials().len(), 1);
@@ -207,25 +212,33 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
 }
 
 #[test]
-fn freeze_still_panics_when_public_topology_path_reaches_root_cardinality_denial() {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.graph-topology.root-denial")
-                    .with_semantic_artifact_spec(extra_root_page_spec())
-                    .with_semantic_artifact_spec(slotted_control_spec()),
-            )
-            .freeze();
-    }));
+fn public_freeze_returns_typed_root_cardinality_denial() {
+    let denial = match WorthUi::app()
+        .with_dsl_package(
+            WorthUiDslPackage::named("worth-ui.certification.graph-topology.root-denial")
+                .with_semantic_artifact_spec(extra_root_page_spec())
+                .with_semantic_artifact_spec(slotted_control_spec()),
+        )
+        .freeze()
+    {
+        Ok(_) => panic!("ambiguous root topology must deny application preparation"),
+        Err(denial) => denial,
+    };
 
-    let panic_message =
-        panic_message(result.expect_err(
-            "freeze path must panic when graph topology cannot resolve to one root page",
-        ));
-    assert!(
-        panic_message.contains("freeze path must deny before publishing graph authority"),
-        "expected topology denial panic to name unresolved topology path, got: {panic_message}"
+    assert_eq!(
+        denial.phase(),
+        WorthUiApplicationPreparationPhase::GraphCommit
     );
+    let WorthUiApplicationPreparationDenial::GraphCommit(denial) = denial else {
+        panic!("expected graph-commit denial");
+    };
+    assert_eq!(denial.local_denials().len(), 3);
+    assert!(denial.local_denials().iter().all(|local| {
+        local.topology_denial()
+            == Some(&UiGraphTopologyLocalDenial::RootPageCardinality {
+                observed_root_pages: 2,
+            })
+    }));
 }
 
 #[derive(Clone)]
@@ -365,14 +378,4 @@ fn extra_root_page_spec() -> UiDslSemanticArtifactSpec {
         UiDslSourceProvenance::file_authored("app/graph_topology_root_denial.wui", 0),
     )
     .with_structural_token(UiDslStructuralToken::new("page:product-root"))
-}
-
-fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
-    }
 }

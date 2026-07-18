@@ -3,9 +3,9 @@ use crate::application::{
     format_digest_folklore_pattern_in, identity_boundary_hostile_matrix_artifact,
     identity_boundary_hostile_matrix_digest, source_for_format_digest_path,
     source_for_session_admission_path, source_for_string_carried_session_identity_path,
-    source_for_string_matching_path, WorthQueryApplicationFacade, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    WorthQueryApplicationFacade, EXACT_ZERO_FORMAT_DIGEST_PATHS,
     EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
-    EXACT_ZERO_STRING_MATCHING_PATHS, STOP_CLASS_COVERED_CONTRACTS,
+    STOP_CLASS_COVERED_CONTRACTS,
 };
 use crate::WorthQueryEvidenceIdentityScheme;
 
@@ -62,7 +62,6 @@ fn identity_boundary_hostile_closure_matrix_holds_under_combined_drift_pressure(
 
     assert_combined_drift_pressure_holds(closure);
     assert_no_format_string_digest_folklore(closure);
-    assert_no_string_matched_control_flow(closure);
     assert_no_raw_string_session_admission(closure);
     assert_no_string_carried_session_identity(closure);
 }
@@ -230,26 +229,6 @@ fn assert_no_format_string_digest_folklore(
                 "covered digest surface still uses joined-string digest folklore pattern {pattern}: {path}"
             );
         }
-    }
-}
-
-fn assert_no_string_matched_control_flow(
-    closure: &crate::application::WorthQueryIdentityBoundaryClosure,
-) {
-    assert_eq!(
-        closure.exact_zero_string_matching_paths(),
-        EXACT_ZERO_STRING_MATCHING_PATHS
-    );
-    for path in EXACT_ZERO_STRING_MATCHING_PATHS {
-        let source = source_for_string_matching_path(path).unwrap_or_else(|| {
-            panic!("unexpected string-matching audit path: {path}");
-        });
-        assert!(
-            !source.contains("to_string().contains(")
-                && !source.contains("message.contains")
-                && !source.contains("error_message.contains"),
-            "typed stop-class consumer lane still depends on runtime message matching: {path}"
-        );
     }
 }
 

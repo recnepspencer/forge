@@ -27,7 +27,9 @@ pub(super) fn narrow_host_measurement(
             counters.record_authority_probes(movement.authority_probes()),
             ordinal,
         )?;
-        return Ok(UiAllocationInvalidationTarget::PortalAnchor { movement });
+        return Ok(UiAllocationInvalidationTarget::PortalAnchor {
+            movement: Box::new(movement),
+        });
     }
     if matches!(
         family,

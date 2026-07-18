@@ -23,7 +23,7 @@ use crate::obligations::touch::{
 };
 
 pub(super) enum MeasurementInspectionOutcome {
-    Basis(UiMeasurementBasis),
+    Basis(Box<UiMeasurementBasis>),
     Denial(
         UiInspectionMeasurementDenialPosture,
         Option<UiInspectionMeasurementFailureSource>,

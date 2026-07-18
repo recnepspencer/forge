@@ -13,14 +13,16 @@ fn equivalent_token_graphs_resolve_equivalent_entries() {
             "theme.text.default",
             "theme.text.primary",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let right = WorthUi::app()
         .register_theme_token(alias_theme_token(
             "theme.text.default",
             "theme.text.primary",
         ))
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let token_id = theme_token_id("theme.text.default");
     let left_entry = left
@@ -57,7 +59,8 @@ fn multi_hop_alias_graph_resolves_to_terminal_token_definition() {
             "theme.text.control",
             "theme.text.default",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let control_entry = app
         .capabilities()
@@ -76,7 +79,8 @@ fn accepted_theme_tokens_are_canonically_ordered_and_inspectable() {
     let app = WorthUi::app()
         .register_theme_token(color_theme_token("theme.text.secondary", "#506070"))
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_theme_token_ids(
         app.capabilities().theme_tokens(),
@@ -102,7 +106,8 @@ fn all_builtin_theme_token_families_are_admitted() {
                 color_value("#112233"),
             ))
         })
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().theme_tokens().len(), 17);
 }
@@ -111,10 +116,12 @@ fn all_builtin_theme_token_families_are_admitted() {
 fn theme_token_value_change_changes_snapshot_digest() {
     let light = WorthUi::app()
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let dark = WorthUi::app()
         .register_theme_token(color_theme_token("theme.text.primary", "#f6f7f9"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(light.capabilities().digest(), dark.capabilities().digest());
 }

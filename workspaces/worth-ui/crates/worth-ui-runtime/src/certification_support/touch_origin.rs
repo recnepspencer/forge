@@ -29,6 +29,8 @@ pub struct WorthUiTouchOriginCertificationFixture {
     pub frame_receipt: WorthUiOrdinaryLaneFrameReceipt,
     pub intent_candidate: WorthUiReplacementCandidate,
     pub diagnostic_report: WorthUiRuntimeDiagnosticReport,
+    pub allocation_receipt: crate::runtime::UiAllocationReceipt,
+    pub allocation_inspection: crate::evidence::UiAllocationReceiptInspectionReceipt,
 }
 
 impl WorthUiTouchOriginCertificationFixture {
@@ -106,9 +108,11 @@ pub fn runtime_origin_fixture(
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation),
-            Some(&query_rebind),
-            Some(&pending_input),
+            crate::runtime::WorthUiActivationStagingPlans {
+                reconciliation_plan: Some(&reconciliation),
+                query_rebind_plan: Some(&query_rebind),
+                pending_execution_plan_lowering_input: Some(&pending_input),
+            },
         )
         .expect("activation staging succeeds");
     let (planning_snapshot, planning_basis, planning_obligations) =
@@ -130,36 +134,41 @@ pub fn runtime_origin_fixture(
     let planning = runtime.plan_allocation(planning_input);
     let mut inspection = None;
     let mut frame_receipt = None;
+    let mut committed_allocation_receipt = None;
     runtime
         .activate_admitted_allocation_catalog_with_boundary_source(
             pending,
             admitted_catalog,
             |runtime, allocation_receipt, plan, _planning| {
+                committed_allocation_receipt = Some(allocation_receipt.clone());
+                let lowering_input = allocation_receipt
+                    .lowering_input()
+                    .map_err(crate::runtime::WorthUiAllocationCatalogActivationDenial::Freshness)?;
                 let lane_admission = runtime
                     .admit_execution_lanes(
-                        allocation_receipt,
+                        &lowering_input,
                         &WorthUiExecutionLaneSupport::platform_default(),
                     )
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("lane admission"))?;
                 inspection = Some(
                     runtime
                         .inspect_execution_plan(plan, planning.planning())
-                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("plan inspection"))?,
                 );
                 let ordinary_plan = runtime
                     .prepare_ordinary_lane_plan(plan, &lane_admission)
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("ordinary plan preparation"))?;
                 let execution = runtime
                     .execute_framework_turn(|_| {})
                     .into_execution()
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("framework turn"))?;
                 frame_receipt = Some(
                     execution
                         .execute_ordinary_lane_frame(
                             &ordinary_plan,
                             WorthUiOrdinaryFrameTarget::root_shell(),
                         )
-                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("ordinary frame"))?,
                 );
                 Ok((execution.into_activation_boundary(), None))
             },
@@ -173,6 +182,9 @@ pub fn runtime_origin_fixture(
             "touch.origin.diagnostics",
         ))
         .materialize();
+    let allocation_receipt =
+        committed_allocation_receipt.expect("activation exposes its committed receipt");
+    let allocation_inspection = allocation_receipt.inspection_receipt();
 
     WorthUiTouchOriginCertificationFixture {
         app,
@@ -181,6 +193,8 @@ pub fn runtime_origin_fixture(
         frame_receipt,
         intent_candidate,
         diagnostic_report,
+        allocation_receipt,
+        allocation_inspection,
     }
 }
 

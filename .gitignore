@@ -3,6 +3,10 @@
 **/target/
 /target-*/
 **/target-*/
+!workspaces/worth-ui/crates/worth-ui-inspection/src/target/
+!workspaces/worth-ui/crates/worth-ui-inspection/src/target/**
+!workspaces/worth-ui/crates/worth-ui-certification/tests/fixtures/topology_negative/inspection_role_purity_drift/crates/worth-ui-inspection/src/target/
+!workspaces/worth-ui/crates/worth-ui-certification/tests/fixtures/topology_negative/inspection_role_purity_drift/crates/worth-ui-inspection/src/target/**
 !crates/worth-runtime-bridge/src/input/envelope/target/
 !crates/worth-runtime-bridge/src/input/envelope/target/native_basis.rs
 

@@ -7,12 +7,15 @@ use super::{
     UiAllocationReplanTransactionOutcome, UiAllocationReuseVerdict, UiCommittedAllocationReplan,
 };
 use {crate::evidence::UiAllocationNeighborhoodScope, std::cell::RefCell};
-#[derive(Debug)] #[rustfmt::skip]
-pub(crate) struct UiAllocationReceiptLedger { pub(super) state: RefCell<UiAllocationReceiptLedgerState> }
+#[derive(Debug)]
+pub(crate) struct UiAllocationReceiptLedger {
+    pub(super) state: RefCell<UiAllocationReceiptLedgerState>,
+}
 impl UiAllocationReceiptLedger {
-    #[rustfmt::skip]
     pub(crate) fn for_runtime_generation(runtime_generation: u64) -> Self {
-        Self { state: RefCell::new(UiAllocationReceiptLedgerState::initial(runtime_generation)) }
+        Self {
+            state: RefCell::new(UiAllocationReceiptLedgerState::initial(runtime_generation)),
+        }
     }
     pub(super) fn prepare_selected_mode(
         &self,
@@ -75,7 +78,7 @@ impl UiAllocationReceiptLedger {
                 })
             })
         {
-            return UiAllocationReplanTransactionOutcome::Denied(previous.clone()).into();
+            return UiAllocationReplanTransactionOutcome::Denied(*previous).into();
         }
         let generation = match generation {
             Ok(generation) => generation,
@@ -167,12 +170,13 @@ impl UiAllocationReceiptLedger {
                 verdict = UiAllocationReuseVerdict::NewCommit;
             }
             let counted = match verdict {
-                UiAllocationReuseVerdict::Denied(_) => {
+                UiAllocationReuseVerdict::Denied(reason) => {
                     return retain_denial(
                         &mut state,
                         &transaction,
                         UiAllocationReplanTransactionCommitDenial::ReuseDenied {
                             ordinal: ordinal as u16,
+                            reason,
                         },
                     )
                 }
@@ -198,6 +202,21 @@ impl UiAllocationReceiptLedger {
             verdicts.push(verdict);
         }
         drop(state);
+        let committed =
+            match Self::commit_candidates(&mode, transaction, candidates, verdicts, counters) {
+                Ok(committed) => committed,
+                Err(denial) => return UiAllocationReplanTransactionOutcome::Denied(denial).into(),
+            };
+        self.prepare_transition(&mode, generation, replay_key, committed)
+    }
+
+    fn commit_candidates(
+        mode: &super::replan_commit_mode::UiAllocationReplanCommitMode<'_>,
+        transaction: super::UiAllocationReplanTransaction,
+        candidates: Vec<crate::runtime::UiAllocationCandidate>,
+        verdicts: Vec<UiAllocationReuseVerdict>,
+        mut counters: UiAllocationReplanTransactionCounters,
+    ) -> Result<UiCommittedAllocationReplan, UiAllocationReplanTransactionCommitDenial> {
         let catalog_candidates = candidates.clone();
         let receipts = candidates
             .into_iter()
@@ -210,41 +229,31 @@ impl UiAllocationReceiptLedger {
                 )
             })
             .collect::<Vec<_>>();
-        if counters.committed(receipts.len()).is_err() {
-            return UiAllocationReplanTransactionOutcome::Denied(
-                UiAllocationReplanTransactionCommitDenial::EvidenceCounterExhausted,
-            )
-            .into();
-        }
-        let committed_frame_epoch = transaction.frame_epoch();
+        counters
+            .committed(receipts.len())
+            .map_err(|_| UiAllocationReplanTransactionCommitDenial::EvidenceCounterExhausted)?;
         let catalog_bindings =
-            match super::UiCommittedAllocationCatalogBindings::seal(&catalog_candidates, &receipts)
-            {
-                Ok(bindings) => bindings,
-                Err(_) => {
-                    return UiAllocationReplanTransactionOutcome::Denied(
-                        UiAllocationReplanTransactionCommitDenial::CatalogBindingMismatch,
-                    )
-                    .into()
-                }
-            };
-        let Ok(mut committed) =
+            super::UiCommittedAllocationCatalogBindings::seal(&catalog_candidates, &receipts)
+                .map_err(|_| UiAllocationReplanTransactionCommitDenial::CatalogBindingMismatch)?;
+        let committed =
             UiCommittedAllocationReplan::new(transaction, receipts, counters, catalog_bindings)
-        else {
-            return UiAllocationReplanTransactionOutcome::Denied(
-                UiAllocationReplanTransactionCommitDenial::EvidenceCounterExhausted,
-            )
-            .into();
-        };
-        committed = match &mode {
-            super::replan_commit_mode::UiAllocationReplanCommitMode::Ordinary(_) => committed,
+                .map_err(|_| UiAllocationReplanTransactionCommitDenial::EvidenceCounterExhausted)?;
+        Ok(match mode {
             super::replan_commit_mode::UiAllocationReplanCommitMode::Viewport(basis) => {
                 super::viewport_inspection::attach_viewport_inspection(committed, basis)
             }
-            super::replan_commit_mode::UiAllocationReplanCommitMode::DurableResize { .. } => {
-                committed
-            }
-        };
+            _ => committed,
+        })
+    }
+
+    fn prepare_transition(
+        &self,
+        mode: &super::replan_commit_mode::UiAllocationReplanCommitMode<'_>,
+        generation: u64,
+        replay_key: u64,
+        committed: UiCommittedAllocationReplan,
+    ) -> super::UiAllocationLedgerPreparation {
+        let committed_frame_epoch = committed.transaction().frame_epoch();
         let predecessor = self.state.borrow().clone();
         let mut successor = predecessor.clone();
         let resize_mutated = mode.durable_resize().is_some_and(|basis| {
@@ -293,8 +302,8 @@ impl UiAllocationReceiptLedger {
             .entry(replay_key)
             .or_default()
             .push(committed.clone());
-        super::UiAllocationLedgerPreparation::Prepared(
+        super::UiAllocationLedgerPreparation::Prepared(Box::new(
             super::UiPreparedAllocationLedgerTransition::new(predecessor, successor, committed),
-        )
+        ))
     }
 }

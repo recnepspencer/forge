@@ -1,7 +1,0 @@
-error[E0560]: struct `QuerySubscriptionSignalStrategyRequest` has no field named `digest`
- --> tests/ui/subscription_signal_strategy_request_constructor_private.rs:6:9
-  |
-6 |         digest: String::new(),
-  |         ^^^^^^ `QuerySubscriptionSignalStrategyRequest` does not have this field
-  |
-  = note: all struct fields are already assigned

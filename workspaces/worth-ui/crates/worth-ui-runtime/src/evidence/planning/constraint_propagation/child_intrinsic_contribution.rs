@@ -36,18 +36,31 @@ pub struct UiConstraintChildIntrinsicContribution {
     identity_digest: u64,
 }
 
+pub(crate) struct UiConstraintChildIntrinsicContributionInput {
+    pub(crate) contributor_graph_node_identity: UiGraphNodeIdentity,
+    pub(crate) axis_scope: UiConstraintAxisScope,
+    pub(crate) primary_extent: CanonicalF32,
+    pub(crate) cross_extent: Option<CanonicalF32>,
+    pub(crate) source_posture: UiConstraintIntrinsicSourcePosture,
+    pub(crate) host_kind: UiConstraintHostIntrinsicKind,
+    pub(crate) unit_posture: UiMeasurementUnitPosture,
+    pub(crate) coordinate_space: UiMeasurementCoordinateSpace,
+    pub(crate) rounding_posture: UiMeasurementRoundingPosture,
+}
+
 impl UiConstraintChildIntrinsicContribution {
-    pub fn new(
-        contributor_graph_node_identity: UiGraphNodeIdentity,
-        axis_scope: UiConstraintAxisScope,
-        primary_extent: CanonicalF32,
-        cross_extent: Option<CanonicalF32>,
-        source_posture: UiConstraintIntrinsicSourcePosture,
-        host_kind: UiConstraintHostIntrinsicKind,
-        unit_posture: UiMeasurementUnitPosture,
-        coordinate_space: UiMeasurementCoordinateSpace,
-        rounding_posture: UiMeasurementRoundingPosture,
-    ) -> Self {
+    pub(crate) fn new(input: UiConstraintChildIntrinsicContributionInput) -> Self {
+        let UiConstraintChildIntrinsicContributionInput {
+            contributor_graph_node_identity,
+            axis_scope,
+            primary_extent,
+            cross_extent,
+            source_posture,
+            host_kind,
+            unit_posture,
+            coordinate_space,
+            rounding_posture,
+        } = input;
         let identity_digest = stable_text_digest("worth-ui.constraint-child-intrinsic")
             ^ contributor_graph_node_identity.digest().rotate_left(7)
             ^ axis_scope_digest(axis_scope).rotate_left(13)

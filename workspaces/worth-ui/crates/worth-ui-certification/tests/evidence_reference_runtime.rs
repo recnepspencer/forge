@@ -14,15 +14,16 @@ use worth_ui_dsl::{
     UiDslStructuralToken, WorthUiDslPackage,
 };
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 #[test]
 fn refs_only_receipts_preserve_selected_relevance_and_slice_reference() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let target =
-        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
+        obligation_dispatch_prerequisite_support::admission_targets::graph_aligned_query_target(
+            &touch,
+        );
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target);
@@ -60,10 +61,12 @@ fn refs_only_receipts_preserve_selected_relevance_and_slice_reference() {
 
 #[test]
 fn equivalent_queries_over_one_generation_converge_on_equivalent_refs() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let target =
-        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
+        obligation_dispatch_prerequisite_support::admission_targets::graph_aligned_query_target(
+            &touch,
+        );
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target);
@@ -86,8 +89,8 @@ fn equivalent_queries_over_one_generation_converge_on_equivalent_refs() {
 
 #[test]
 fn expanding_a_same_generation_ref_keeps_identity_and_returns_typed_availability() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let refs_only_receipt = app.inspect(
         obligation_query(
             touch.target().graph_node_identity().digest(),
@@ -206,6 +209,29 @@ fn graph_family_refs_expand_to_followup_queries_on_public_path() {
 }
 
 #[test]
+fn graph_ref_from_unrelated_same_generation_app_is_not_reported_as_available() {
+    let source = graph_evidence_app();
+    let evidence_ref = source
+        .graph()
+        .evidence_ref_for_node(first_graph_node_identity(&source))
+        .expect("source graph should derive its node evidence ref");
+    let unrelated = WorthUi::app()
+        .freeze()
+        .expect("unrelated empty application should prepare");
+    assert_eq!(
+        unrelated.graph().generation(),
+        source.graph().generation(),
+        "the attack exercises equal numeric generations"
+    );
+
+    let expansion = unrelated.expand_evidence_ref(evidence_ref, UiEvidenceRichness::summary());
+
+    assert_eq!(expansion.outcome(), UiEvidenceExpansionOutcome::Unsupported);
+    assert!(expansion.followup_query().is_none());
+    assert!(expansion.materialized_detail().is_none());
+}
+
+#[test]
 fn stale_generation_refs_expand_as_wrong_generation_after_real_graph_successor_commit() {
     let app = graph_evidence_app();
     let stale_ref = app
@@ -233,8 +259,8 @@ fn stale_generation_refs_expand_as_wrong_generation_after_real_graph_successor_c
 
 #[test]
 fn public_refs_only_inspection_stays_cheap_until_explicit_expansion() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let observation_before = app.inspection_observation();
     let receipt = app.inspect(
         obligation_query(
@@ -272,8 +298,8 @@ fn public_refs_only_inspection_stays_cheap_until_explicit_expansion() {
 
 #[test]
 fn discarded_slice_closeout_makes_public_ref_expansion_return_tombstone_discarded() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let receipt = app.inspect(
         obligation_query(
             touch.target().graph_node_identity().digest(),
@@ -331,12 +357,21 @@ fn graph_evidence_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 type WorthUiApp = worth_ui::facade::app::WorthUiApp;
 
 fn first_graph_node_identity(app: &WorthUiApp) -> worth_ui::facade::graph::UiGraphNodeIdentity {
-    let declaration_identity = app.declaration_artifacts()[0].identity();
+    let declaration_identity = app
+        .declaration_artifacts()
+        .iter()
+        .find(|artifact| {
+            artifact.provenance().source_provenance().module_path()
+                == "app/evidence_reference_runtime.wui"
+        })
+        .expect("graph evidence fixture declaration should exist")
+        .identity();
     app.graph()
         .lookup()
         .declaration_instances(declaration_identity)

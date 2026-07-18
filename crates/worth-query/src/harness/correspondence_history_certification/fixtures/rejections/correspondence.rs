@@ -42,7 +42,6 @@ pub(crate) fn unsupported_correspondence_family_rejection(
             .as_str()
             .to_string(),
         counter_snapshot_digest: Some(parity_bundle.counter_snapshot_digest().as_str().to_string()),
-        compile_fail_case: None,
     }
 }
 
@@ -72,6 +71,5 @@ pub(crate) fn broad_candidate_scan_rejection() -> CorrespondenceHistoryCertifica
             .as_str()
             .to_string(),
         ),
-        compile_fail_case: None,
     }
 }

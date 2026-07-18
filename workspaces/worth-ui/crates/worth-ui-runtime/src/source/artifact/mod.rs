@@ -12,5 +12,6 @@ pub(crate) use worth_ui_artifact_handle::{
 pub(crate) use worth_ui_artifact_module::WorthUiArtifactModule;
 pub(crate) use worth_ui_artifact_node::{
     WorthUiArtifactBindingNode, WorthUiArtifactComponentNode, WorthUiArtifactImportNode,
-    WorthUiArtifactNode, WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenNode,
+    WorthUiArtifactNode, WorthUiArtifactSurfaceNode, WorthUiArtifactSurfaceNodeInput,
+    WorthUiArtifactThemeTokenNode,
 };

@@ -1,18 +1,17 @@
 use std::collections::BTreeSet;
-use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 use syn::{Item, UseTree, Visibility};
 
 const FORBIDDEN_PUBLIC_MODULE_NAMES: [&str; 7] = [
     "internal", "common", "helpers", "utils", "data", "manager", "debug",
 ];
 
-pub fn audit_inspection_public_module_names(workspace_root: &Path) -> Vec<String> {
-    let inspection_root = workspace_root.join("crates/worth-ui-inspection/src");
+pub fn audit_inspection_public_module_names(inventory: &WorkspaceSourceInventory) -> Vec<String> {
     let mut violations = Vec::new();
 
-    for declaration in collect_public_module_declarations(&inspection_root) {
+    for declaration in collect_public_module_declarations(inventory) {
         if FORBIDDEN_PUBLIC_MODULE_NAMES.contains(&declaration.module_name.as_str()) {
             violations.push(format!(
                 "{} exposes forbidden public module `{}`",
@@ -27,8 +26,10 @@ pub fn audit_inspection_public_module_names(workspace_root: &Path) -> Vec<String
     violations
 }
 
-pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<String> {
-    let inspection_root = workspace_root.join("crates/worth-ui-inspection/src");
+pub fn audit_inspection_public_module_role_purity(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
+    let inspection_root = inventory.absolute_path("crates/worth-ui-inspection/src");
     let expected_exports = [
         (
             "facade/mod.rs",
@@ -93,6 +94,7 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
                 "UiInspectionMeasurementEvidenceCategory".to_string(),
                 "UiInspectionMeasurementEvidenceSlot".to_string(),
                 "UiInspectionMeasurementEvidenceView".to_string(),
+                "UiInspectionMeasurementEvidenceViewInput".to_string(),
                 "UiInspectionMeasurementFailureSource".to_string(),
                 "UiInspectionMeasurementGenerationCompatibility".to_string(),
                 "UiInspectionMeasurementNeighborhoodClassHint".to_string(),
@@ -127,7 +129,7 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
 
     for (relative_path, expected_names) in expected_exports {
         let path = inspection_root.join(relative_path);
-        let actual_names = collect_public_export_names(&path);
+        let actual_names = collect_public_export_names(inventory, &path);
         if actual_names != expected_names {
             violations.push(format!(
                 "{} exports {:?}; expected {:?} for its single public responsibility",
@@ -138,7 +140,7 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
         }
     }
 
-    for declaration in collect_public_module_declarations(&inspection_root) {
+    for declaration in collect_public_module_declarations(inventory) {
         violations.push(format!(
             "{} introduces public child module `{}`; inspection topology must stay on the curated root re-export surface instead of growing nested public module trees by default",
             declaration.declaring_file.display(),
@@ -151,8 +153,10 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
     violations
 }
 
-pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> Vec<String> {
-    let inspection_root = workspace_root.join("crates/worth-ui-inspection/src");
+pub fn audit_inspection_future_artifact_seed_topology(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
+    let inspection_root = inventory.absolute_path("crates/worth-ui-inspection/src");
     let receipt_mod = inspection_root.join("receipt/mod.rs");
     let expected_seed_modules = [
         ("evidence", inspection_root.join("receipt/evidence/mod.rs")),
@@ -177,7 +181,7 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
     let mut violations = Vec::new();
 
     for (module_name, module_path) in &expected_seed_modules {
-        if !module_path.exists() {
+        if inventory.source(module_path).is_none() {
             violations.push(format!(
                 "{} is missing; future {module_name} inspection artifacts lack an honest internal home",
                 module_path.display()
@@ -185,7 +189,7 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
         }
     }
 
-    let parsed = parse_rust_file(&receipt_mod);
+    let parsed = parse_rust_file(inventory, &receipt_mod);
     for (module_name, _) in &expected_seed_modules {
         let has_private_module = parsed.items.iter().any(|item| match item {
             Item::Mod(item_mod) => {
@@ -202,7 +206,7 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
     }
 
     for (module_name, module_path) in &expected_evidence_seed_modules {
-        if !module_path.exists() {
+        if inventory.source(module_path).is_none() {
             violations.push(format!(
                 "{} is missing; future {module_name} evidence lacks one obvious typed substrate home",
                 module_path.display()
@@ -210,7 +214,7 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
         }
     }
 
-    let parsed_evidence = parse_rust_file(&evidence_mod);
+    let parsed_evidence = parse_rust_file(inventory, &evidence_mod);
     for (module_name, _) in &expected_evidence_seed_modules {
         let has_private_module = parsed_evidence.items.iter().any(|item| match item {
             Item::Mod(item_mod) => {
@@ -231,8 +235,11 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
     violations
 }
 
-fn collect_public_export_names(path: &Path) -> BTreeSet<String> {
-    let parsed = parse_rust_file(path);
+fn collect_public_export_names(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> BTreeSet<String> {
+    let parsed = parse_rust_file(inventory, path);
     let mut names = BTreeSet::new();
 
     for item in parsed.items {
@@ -265,16 +272,19 @@ struct PublicModuleDeclaration {
     module_name: String,
 }
 
-fn collect_public_module_declarations(inspection_root: &Path) -> Vec<PublicModuleDeclaration> {
+fn collect_public_module_declarations(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<PublicModuleDeclaration> {
     let mut declarations = Vec::new();
 
-    for path in collect_rust_files(inspection_root) {
-        let parsed = parse_rust_file(&path);
+    for source in inventory.rust_files_under("crates/worth-ui-inspection/src") {
+        let path = source.absolute_path();
+        let parsed = parse_rust_file(inventory, path);
         for item in parsed.items {
             if let Item::Mod(item_mod) = item {
                 if matches!(item_mod.vis, Visibility::Public(_)) {
                     declarations.push(PublicModuleDeclaration {
-                        declaring_file: path.clone(),
+                        declaring_file: path.to_path_buf(),
                         module_name: item_mod.ident.to_string(),
                     });
                 }
@@ -289,25 +299,6 @@ fn collect_public_module_declarations(inspection_root: &Path) -> Vec<PublicModul
     });
     declarations.dedup();
     declarations
-}
-
-fn collect_rust_files(root: &Path) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    collect_rust_files_into(root, &mut files);
-    files.sort();
-    files
-}
-
-fn collect_rust_files_into(root: &Path, files: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("source directory should read") {
-        let entry = entry.expect("directory entry should read");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_files_into(&path, files);
-        } else if path.extension().is_some_and(|ext| ext == "rs") {
-            files.push(path);
-        }
-    }
 }
 
 fn collect_public_use_names(tree: &UseTree, output: &mut BTreeSet<String>) {
@@ -328,9 +319,9 @@ fn collect_public_use_names(tree: &UseTree, output: &mut BTreeSet<String>) {
     }
 }
 
-fn parse_rust_file(path: &Path) -> syn::File {
-    let text = fs::read_to_string(path).expect("source file should decode");
-    syn::parse_file(&text).unwrap_or_else(|error| {
+fn parse_rust_file(inventory: &WorkspaceSourceInventory, path: &Path) -> syn::File {
+    let text = inventory.text(path);
+    syn::parse_file(text).unwrap_or_else(|error| {
         panic!("{} should parse as Rust source: {error}", path.display());
     })
 }

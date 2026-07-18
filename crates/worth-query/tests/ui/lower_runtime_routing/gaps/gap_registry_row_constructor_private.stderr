@@ -1,8 +1,0 @@
-error[E0599]: no function or associated item named `new` found for struct `WorthQueryLowerRuntimeGapRegistryRow` in the current scope
- --> tests/ui/lower_runtime_routing/gaps/gap_registry_row_constructor_private.rs:4:51
-  |
-4 |     let _ = WorthQueryLowerRuntimeGapRegistryRow::new(
-  |                                                   ^^^ function or associated item not found in `WorthQueryLowerRuntimeGapRegistryRow`
-  |
-help: there is a method `ne` with a similar name, but with different arguments
- --> $RUST/core/src/cmp.rs

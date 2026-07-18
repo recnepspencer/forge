@@ -17,5 +17,6 @@ pub use worth_ui_query_dependency_invalidation::{
 pub use worth_ui_renderer_resource_invalidation::WorthUiRendererResourceInvalidation;
 pub use worth_ui_runtime_impact_narrower::WorthUiRuntimeImpactNarrower;
 pub use worth_ui_runtime_impact_narrowing::WorthUiRuntimeImpactNarrowing;
+pub(crate) use worth_ui_runtime_impact_narrowing::WorthUiRuntimeImpactNarrowingInput;
 pub use worth_ui_runtime_impact_narrowing_denial::WorthUiRuntimeImpactNarrowingDenial;
 pub use worth_ui_token_invalidation::WorthUiTokenInvalidation;

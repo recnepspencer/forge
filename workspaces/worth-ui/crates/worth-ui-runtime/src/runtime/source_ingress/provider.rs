@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-use crate::runtime::source_ingress::digest::fold_texts;
-use crate::runtime::source_ingress::watched_artifact_input::WorthUiWatchedArtifactInput;
+use crate::source::WorthUiRustAuthoredArtifactInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiSourceProvider {
@@ -9,7 +8,7 @@ pub struct WorthUiSourceProvider {
     id: String,
     workspace_root: PathBuf,
     source_modules: Vec<WorthUiProvidedSourceModule>,
-    artifact_inputs: Vec<WorthUiWatchedArtifactInput>,
+    rust_authored_inputs: Vec<WorthUiRustAuthoredArtifactInput>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -18,7 +17,7 @@ pub enum WorthUiSourceProviderKind {
     EditorBuffer,
     Generated,
     InMemory,
-    RustAuthoredArtifact,
+    RustAuthoredComposition,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,9 +49,9 @@ impl WorthUiSourceProvider {
         Self::new(WorthUiSourceProviderKind::InMemory, id, PathBuf::from("."))
     }
 
-    pub fn rust_authored_artifact(id: impl Into<String>) -> Self {
+    pub fn rust_authored(id: impl Into<String>) -> Self {
         Self::new(
-            WorthUiSourceProviderKind::RustAuthoredArtifact,
+            WorthUiSourceProviderKind::RustAuthoredComposition,
             id,
             PathBuf::from("."),
         )
@@ -70,13 +69,13 @@ impl WorthUiSourceProvider {
         self
     }
 
-    pub fn with_artifact_input(mut self, input: WorthUiWatchedArtifactInput) -> Self {
-        self.artifact_inputs.push(input);
+    pub fn with_rust_authored_input(mut self, input: WorthUiRustAuthoredArtifactInput) -> Self {
+        self.rust_authored_inputs.push(input);
         self
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.source_modules.is_empty() && self.artifact_inputs.is_empty()
+        self.source_modules.is_empty() && self.rust_authored_inputs.is_empty()
     }
 
     pub fn id(&self) -> &str {
@@ -95,26 +94,66 @@ impl WorthUiSourceProvider {
         &self.source_modules
     }
 
-    pub(crate) fn artifact_inputs(&self) -> &[WorthUiWatchedArtifactInput] {
-        &self.artifact_inputs
+    pub(crate) fn rust_authored_inputs(&self) -> &[WorthUiRustAuthoredArtifactInput] {
+        &self.rust_authored_inputs
     }
 
     pub(crate) fn final_package_digest(&self) -> u64 {
-        let mut basis = vec![
-            format!("provider-kind:{:?}", self.kind),
-            format!("provider-id:{}", self.id),
-        ];
-        for module in &self.source_modules {
-            basis.push(format!(
-                "module:{}|source:{}",
-                module.relative_path, module.source_text
-            ));
+        let mut digest = 0xcbf2_9ce4_8422_2325u64;
+        fold_text(&mut digest, "worth-ui:source-provider-revision:v1");
+        fold_text(&mut digest, self.kind.source_revision_tag());
+        fold_text(&mut digest, &self.id);
+
+        let mut modules = self.source_modules.iter().collect::<Vec<_>>();
+        modules.sort_by(|left, right| {
+            left.relative_path
+                .cmp(&right.relative_path)
+                .then_with(|| left.source_text.cmp(&right.source_text))
+        });
+        fold_u64(&mut digest, modules.len() as u64);
+        for module in modules {
+            fold_text(&mut digest, &module.relative_path);
+            fold_text(&mut digest, &module.source_text);
         }
-        for input in &self.artifact_inputs {
-            basis.push(format!("artifact:{}|{}", input.label(), input.digest()));
+
+        let mut rust_inputs = self
+            .rust_authored_inputs
+            .iter()
+            .map(WorthUiRustAuthoredArtifactInput::source_revision_digest)
+            .collect::<Vec<_>>();
+        rust_inputs.sort_unstable();
+        fold_u64(&mut digest, rust_inputs.len() as u64);
+        for input_digest in rust_inputs {
+            fold_u64(&mut digest, input_digest);
         }
-        basis.sort();
-        fold_texts(basis)
+        digest
+    }
+}
+
+fn fold_text(digest: &mut u64, text: &str) {
+    fold_u64(digest, text.len() as u64);
+    for byte in text.as_bytes() {
+        *digest ^= u64::from(*byte);
+        *digest = digest.wrapping_mul(0x100_0000_01b3);
+    }
+}
+
+fn fold_u64(digest: &mut u64, value: u64) {
+    for byte in value.to_le_bytes() {
+        *digest ^= u64::from(byte);
+        *digest = digest.wrapping_mul(0x100_0000_01b3);
+    }
+}
+
+impl WorthUiSourceProviderKind {
+    fn source_revision_tag(self) -> &'static str {
+        match self {
+            Self::Filesystem => "filesystem",
+            Self::EditorBuffer => "editor-buffer",
+            Self::Generated => "generated",
+            Self::InMemory => "in-memory",
+            Self::RustAuthoredComposition => "rust-authored-composition",
+        }
     }
 }
 
@@ -139,7 +178,35 @@ impl WorthUiSourceProvider {
             id: id.into(),
             workspace_root,
             source_modules: Vec::new(),
-            artifact_inputs: Vec::new(),
+            rust_authored_inputs: Vec::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WorthUiSourceProvider;
+
+    #[test]
+    fn source_revision_digest_is_order_independent_and_field_delimited() {
+        let ordered = WorthUiSourceProvider::in_memory("provider")
+            .with_file("app/a.wui", "token a = \"a\";")
+            .with_file("app/b.wui", "token b = \"b\";");
+        let reordered = WorthUiSourceProvider::in_memory("provider")
+            .with_file("app/b.wui", "token b = \"b\";")
+            .with_file("app/a.wui", "token a = \"a\";");
+        let left_ambiguous_under_delimiter_concatenation =
+            WorthUiSourceProvider::in_memory("provider").with_file("a|source:b", "c");
+        let right_ambiguous_under_delimiter_concatenation =
+            WorthUiSourceProvider::in_memory("provider").with_file("a", "b|source:c");
+
+        assert_eq!(
+            ordered.final_package_digest(),
+            reordered.final_package_digest()
+        );
+        assert_ne!(
+            left_ambiguous_under_delimiter_concatenation.final_package_digest(),
+            right_ambiguous_under_delimiter_concatenation.final_package_digest()
+        );
     }
 }

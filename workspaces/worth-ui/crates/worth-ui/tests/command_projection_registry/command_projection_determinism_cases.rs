@@ -14,11 +14,13 @@ fn equivalent_command_projections_produce_equivalent_entries() {
     let first = WorthUi::app()
         .register_command_projection(command_projection("workspace.projection.palette"))
         .register_command_projection(command_projection("workspace.projection.toolbar"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_command_projection(command_projection("workspace.projection.toolbar"))
         .register_command_projection(command_projection("workspace.projection.palette"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().command_projections(),
@@ -55,7 +57,8 @@ fn equivalent_command_projection_command_references_are_canonicalized() {
             )))
             .with_ordering(worth_ui::facade::CommandProjectionOrdering::ByCommandId),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_command(command_descriptor("workspace.command.open", "Open"))
         .register_command(command_descriptor("workspace.command.save", "Save"))
@@ -75,7 +78,8 @@ fn equivalent_command_projection_command_references_are_canonicalized() {
             )))
             .with_ordering(worth_ui::facade::CommandProjectionOrdering::ByCommandId),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().command_projections(),
@@ -118,7 +122,8 @@ fn declaration_ordered_command_projection_references_preserve_ordering_meaning()
                 "workspace.command.save",
             ))),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let save_then_open = WorthUi::app()
         .register_command(command_descriptor("workspace.command.open", "Open"))
         .register_command(command_descriptor("workspace.command.save", "Save"))
@@ -134,7 +139,8 @@ fn declaration_ordered_command_projection_references_preserve_ordering_meaning()
                 "workspace.command.open",
             ))),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         open_then_save.capabilities().command_projections(),
@@ -166,7 +172,8 @@ fn declaration_ordered_command_projection_references_deduplicate_without_reorder
                 "workspace.command.save",
             ))),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         app.capabilities()
@@ -190,14 +197,16 @@ fn duplicate_command_projection_groupings_do_not_change_snapshot_meaning() {
             command_projection("workspace.projection.palette")
                 .with_grouping(CommandProjectionGrouping::optional("workspace")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let duplicated_grouping = WorthUi::app()
         .register_command_projection(
             command_projection("workspace.projection.palette")
                 .with_grouping(CommandProjectionGrouping::optional("workspace"))
                 .with_grouping(CommandProjectionGrouping::optional("workspace")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         single_grouping.capabilities().command_projections(),
@@ -213,7 +222,8 @@ fn duplicate_command_projection_groupings_do_not_change_snapshot_meaning() {
 fn different_projection_policy_changes_snapshot_digest() {
     let plain = WorthUi::app()
         .register_command_projection(command_projection("workspace.projection.palette"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let richer = WorthUi::app()
         .register_command_projection(
             worth_ui::facade::CommandProjectionDescriptor::new(
@@ -226,7 +236,8 @@ fn different_projection_policy_changes_snapshot_digest() {
             .show_readiness()
             .with_overflow_behavior(CommandProjectionOverflowBehavior::collapse_to_more()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         plain.capabilities().command_projections(),

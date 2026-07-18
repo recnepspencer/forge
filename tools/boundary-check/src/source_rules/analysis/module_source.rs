@@ -1,7 +1,7 @@
 //! Rustc-compatible module source selection for the sealing inventory.
 //!
-//! `#[path]` is resolved against the **containing module's virtual directory**
-//! (inline modules append their name), not merely the parent file's folder.
+//! `#[path]` is resolved from the containing source file's physical directory;
+//! inline module nesting appends its virtual components to that base.
 //! Every selectable `path` / `cfg_attr(..., path = ...)` branch is collected
 //! fail-closed so conditional path selection cannot hide a hostile body.
 
@@ -23,6 +23,22 @@ pub(super) fn directory_after_loading_file(source_path: &Path) -> PathBuf {
     } else {
         // `foo.rs` → virtual directory `foo/`
         source_path.with_extension("")
+    }
+}
+
+/// Base directory rustc uses for `#[path]` inside the current source module.
+///
+/// Conventional `foo.rs` children live under `foo/`, but a path attribute in
+/// `foo.rs` is relative to the physical directory containing `foo.rs`. Inline
+/// module nesting is retained on top of that physical directory.
+pub(super) fn path_attribute_dir(parent_source: &Path, module_dir: &Path) -> PathBuf {
+    let conventional_base = directory_after_loading_file(parent_source);
+    let Some(physical_parent) = parent_source.parent() else {
+        return module_dir.to_path_buf();
+    };
+    match module_dir.strip_prefix(&conventional_base) {
+        Ok(inline_suffix) => physical_parent.join(inline_suffix),
+        Err(_) => module_dir.to_path_buf(),
     }
 }
 
@@ -121,25 +137,27 @@ fn split_top_level_comma_groups(tokens: proc_macro2::TokenStream) -> Vec<proc_ma
     groups
 }
 
-/// Resolve out-of-line module sources for a child `mod` under `parent_dir`.
+/// Resolve out-of-line module sources for a child `mod` under its two rustc
+/// bases: the conventional module directory and the path-attribute directory.
 ///
 /// Returns every concrete file that may be compiled: all path-attribute targets
 /// plus conventional candidates when present (covers conditional `cfg_attr(path)`).
 pub(super) fn resolve_child_sources(
-    parent_dir: &Path,
+    conventional_parent_dir: &Path,
+    path_attribute_parent_dir: &Path,
     child_name: &str,
     attrs: &[Attribute],
 ) -> Result<Vec<PathBuf>, String> {
     let mut sources = Vec::new();
     let selectors = all_path_selectors(attrs);
     for rel in &selectors {
-        let resolved = parent_dir.join(rel);
+        let resolved = path_attribute_parent_dir.join(rel);
         if resolved.is_file() {
             sources.push(resolved);
         } else {
             return Err(format!(
                 "unresolved #[path = \"{rel}\"] for module `{child_name}` under {}",
-                parent_dir.display()
+                path_attribute_parent_dir.display()
             ));
         }
     }
@@ -148,8 +166,8 @@ pub(super) fn resolve_child_sources(
     // that is inactive still cannot hide behind a decoy-only conventional scan,
     // and so path-less modules resolve normally.
     let conventional = [
-        parent_dir.join(child_name).join("mod.rs"),
-        parent_dir.join(format!("{child_name}.rs")),
+        conventional_parent_dir.join(child_name).join("mod.rs"),
+        conventional_parent_dir.join(format!("{child_name}.rs")),
     ];
     for candidate in conventional {
         if candidate.is_file() && !sources.iter().any(|s| s == &candidate) {
@@ -160,7 +178,7 @@ pub(super) fn resolve_child_sources(
     if sources.is_empty() {
         return Err(format!(
             "unresolved module `{child_name}` under {}; expected path attribute or conventional file",
-            parent_dir.display()
+            conventional_parent_dir.display()
         ));
     }
     Ok(sources)

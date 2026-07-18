@@ -134,6 +134,7 @@ fn touch_neighborhood_app(world_profile: UiGraphWorldProfile) -> crate::facade::
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(

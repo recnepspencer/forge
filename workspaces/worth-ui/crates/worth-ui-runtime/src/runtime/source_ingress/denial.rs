@@ -7,7 +7,7 @@ pub struct WorthUiSourceIngressDenial {
 pub enum WorthUiSourceIngressDenialReason {
     EmptyProvider,
     MixedCandidateMaterial,
-    MultipleArtifactInputs,
+    MultipleRustAuthoredInputs,
     PartialWriteWithoutStableSnapshot,
     MissingOrderingReceipt,
     OrderingReceiptDrift,
@@ -17,6 +17,7 @@ pub enum WorthUiSourceIngressDenialReason {
     SourceParseRejected,
     ArtifactResolutionRejected,
     StructuralLegalityRejected,
+    SourceBackedDeclarationProjectionRejected,
     BindingSemanticsRejected,
     IdentitySeedingRejected,
     CanonicalAssemblyRejected,

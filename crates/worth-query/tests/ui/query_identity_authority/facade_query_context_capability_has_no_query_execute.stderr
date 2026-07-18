@@ -1,5 +1,0 @@
-error[E0609]: no field `execute_preflight` on type `&QueryContextCapability`
- --> tests/ui/facade_query_context_capability_has_no_query_execute.rs:6:35
-  |
-6 |     let _ = contexts.capability().execute_preflight;
-  |                                   ^^^^^^^^^^^^^^^^^ unknown field

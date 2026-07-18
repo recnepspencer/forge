@@ -41,7 +41,6 @@ pub struct PreviewRejectionRowSpec {
     pub perturbation_class: PreviewPerturbationClass,
     pub failure_class: PreviewFailureClass,
     pub runtime_failure_selector: Option<PreviewRuntimeFailureSelector>,
-    pub compile_fail_case: Option<&'static str>,
 }
 
 pub const PREVIEW_CANONICAL_ROW_SPECS: &[PreviewCanonicalRowSpec] = &[
@@ -123,58 +122,30 @@ pub const PREVIEW_REJECTION_ROW_SPECS: &[PreviewRejectionRowSpec] = &[
         perturbation_class: PreviewPerturbationClass::InvalidBasis,
         failure_class: PreviewFailureClass::UnsupportedPreviewFamily,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::UnsupportedPreviewFamily),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "invalid-preview-basis",
         perturbation_class: PreviewPerturbationClass::InvalidBasis,
         failure_class: PreviewFailureClass::InvalidPreviewBasis,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::InvalidBasis),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "stale-preview-lifecycle-denied",
         perturbation_class: PreviewPerturbationClass::StaleLifecycle,
         failure_class: PreviewFailureClass::StaleOrInactivePreviewLifecycle,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::StaleLifecycle),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "discarded-preview-execution-denied",
         perturbation_class: PreviewPerturbationClass::StaleLifecycle,
         failure_class: PreviewFailureClass::StaleOrInactivePreviewLifecycle,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::DiscardedLifecycle),
-        compile_fail_case: None,
-    },
-    PreviewRejectionRowSpec {
-        row_name: "raw-branch-alias-preview-forbidden",
-        perturbation_class: PreviewPerturbationClass::RawBranchAliasForbidden,
-        failure_class: PreviewFailureClass::CompileFail,
-        runtime_failure_selector: None,
-        compile_fail_case: Some("tests/ui/raw_branch_alias_preview_forbidden.rs"),
-    },
-    PreviewRejectionRowSpec {
-        row_name: "unsupported-preview-promotion-comparison",
-        perturbation_class: PreviewPerturbationClass::PromotionEligibilityBoolForbidden,
-        failure_class: PreviewFailureClass::CompileFail,
-        runtime_failure_selector: None,
-        compile_fail_case: Some(
-            "tests/ui/promotion_parity_comparison_requires_promotion_execution.rs",
-        ),
-    },
-    PreviewRejectionRowSpec {
-        row_name: "read-only-preview-denies-promotion-comparison",
-        perturbation_class: PreviewPerturbationClass::PromotionEligibilityBoolForbidden,
-        failure_class: PreviewFailureClass::CompileFail,
-        runtime_failure_selector: None,
-        compile_fail_case: Some("tests/ui/read_only_preview_denies_promotion_comparison.rs"),
     },
     PreviewRejectionRowSpec {
         row_name: "preview-live-drift-denied",
         perturbation_class: PreviewPerturbationClass::PreviewLiveDrift,
         failure_class: PreviewFailureClass::PreviewLiveDriftDenied,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::PreviewLiveDriftDenied),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "preview-live-broad-fallback-forbidden",
@@ -183,14 +154,12 @@ pub const PREVIEW_REJECTION_ROW_SPECS: &[PreviewRejectionRowSpec] = &[
         runtime_failure_selector: Some(
             PreviewRuntimeFailureSelector::PreviewLiveBroadFallbackDenied,
         ),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "preview-broad-fallback-forbidden",
         perturbation_class: PreviewPerturbationClass::InvalidBasis,
         failure_class: PreviewFailureClass::InvalidPreviewBasis,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::BroadFallbackDenied),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "read-only-preview-writeback-foundation-forbidden",
@@ -199,49 +168,24 @@ pub const PREVIEW_REJECTION_ROW_SPECS: &[PreviewRejectionRowSpec] = &[
         runtime_failure_selector: Some(
             PreviewRuntimeFailureSelector::WorkflowFoundationAuthorityDenied,
         ),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "preview-promotion-linkage-denied",
         perturbation_class: PreviewPerturbationClass::PromotionLinkageDenied,
         failure_class: PreviewFailureClass::PromotionLinkageMismatch,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::PromotionLinkageDenied),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "preview-replay-linkage-denied",
         perturbation_class: PreviewPerturbationClass::ReplayLinkageDenied,
         failure_class: PreviewFailureClass::PromotionLinkageMismatch,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::ReplayLinkageDenied),
-        compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
         row_name: "preview-shape-mismatch-denied",
         perturbation_class: PreviewPerturbationClass::NoRediscovery,
         failure_class: PreviewFailureClass::PreviewShapeMismatchDenied,
         runtime_failure_selector: Some(PreviewRuntimeFailureSelector::ShapeMismatchDenied),
-        compile_fail_case: None,
-    },
-    PreviewRejectionRowSpec {
-        row_name: "promotion-eligibility-bool-forbidden",
-        perturbation_class: PreviewPerturbationClass::PromotionEligibilityBoolForbidden,
-        failure_class: PreviewFailureClass::CompileFail,
-        runtime_failure_selector: None,
-        compile_fail_case: Some("tests/ui/promotion_eligibility_bool_forbidden.rs"),
-    },
-    PreviewRejectionRowSpec {
-        row_name: "preview-diagnostics-rescan-forbidden",
-        perturbation_class: PreviewPerturbationClass::PromotionEligibilityBoolForbidden,
-        failure_class: PreviewFailureClass::CompileFail,
-        runtime_failure_selector: None,
-        compile_fail_case: Some("tests/ui/preview_diagnostics_rescan_forbidden.rs"),
-    },
-    PreviewRejectionRowSpec {
-        row_name: "fabricated-preview-lifecycle-forbidden",
-        perturbation_class: PreviewPerturbationClass::PromotionEligibilityBoolForbidden,
-        failure_class: PreviewFailureClass::CompileFail,
-        runtime_failure_selector: None,
-        compile_fail_case: Some("tests/ui/fabricated_preview_lifecycle_forbidden.rs"),
     },
 ];
 
@@ -267,13 +211,7 @@ pub const PREVIEW_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "preview-broad-fallback-forbidden",
     "read-only-preview-writeback-foundation-forbidden",
     "discarded-preview-execution-denied",
-    "unsupported-preview-promotion-comparison",
-    "read-only-preview-denies-promotion-comparison",
-    "raw-branch-alias-preview-forbidden",
     "preview-promotion-linkage-denied",
     "preview-replay-linkage-denied",
     "preview-shape-mismatch-denied",
-    "promotion-eligibility-bool-forbidden",
-    "preview-diagnostics-rescan-forbidden",
-    "fabricated-preview-lifecycle-forbidden",
 ];

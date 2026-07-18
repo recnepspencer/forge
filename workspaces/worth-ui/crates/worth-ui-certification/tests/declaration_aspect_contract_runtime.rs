@@ -1,7 +1,10 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
-use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::declaration::{UiAspectSemanticSlice, UiDeclarationArtifact};
+use worth_ui::facade::app::{
+    WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
+};
+use worth_ui::facade::declaration::{
+    UiAspectContractAdmissionDenial, UiAspectSemanticSlice, UiDeclarationArtifact,
+    UiDeclarationGraphHandoffDenial,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
@@ -14,7 +17,8 @@ fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
             WorthUiDslPackage::named("worth-ui.certification.aspect.coverage")
                 .with_semantic_artifact_spec(aspectful_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/aspect_contracts.wui", 0);
 
     assert_eq!(
@@ -64,7 +68,8 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
                     " Interaction.Operability ",
                 )),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let equivalent = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.aspect.equivalence.equivalent")
@@ -73,7 +78,8 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
                     "interaction.operability",
                 )),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let baseline_artifact =
         artifact_from_file_provenance(&baseline, "app/aspect_equivalence.wui", 0);
     let equivalent_artifact =
@@ -96,7 +102,8 @@ fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority()
             WorthUiDslPackage::named("worth-ui.certification.aspect.noise")
                 .with_semantic_artifact_spec(noise_only_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/aspect_noise.wui", 0);
 
     assert!(
@@ -131,29 +138,31 @@ fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority()
 
 #[test]
 fn unsupported_authored_aspects_deny_through_public_freeze_path() {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.aspect.unsupported")
-                    .with_semantic_artifact_spec(unsupported_aspect_spec()),
-            )
-            .freeze();
-    }));
+    let denial = match WorthUi::app()
+        .with_dsl_package(
+            WorthUiDslPackage::named("worth-ui.certification.aspect.unsupported")
+                .with_semantic_artifact_spec(unsupported_aspect_spec()),
+        )
+        .freeze()
+    {
+        Ok(_) => panic!("unsupported aspect slices must deny application preparation"),
+        Err(denial) => denial,
+    };
 
-    let panic_message =
-        panic_message(result.expect_err(
-            "freeze path must panic when unsupported aspect slices deny handoff lowering",
-        ));
-    assert!(
-        panic_message.contains(
-            "freeze path must deny graph instantiation before mutation when sealed handoff lowering fails"
-        ),
-        "expected freeze panic to name sealed handoff denial path, got: {panic_message}"
+    assert_eq!(
+        denial.phase(),
+        WorthUiApplicationPreparationPhase::GraphHandoff
     );
-    assert!(
-        panic_message.contains("UnsupportedAspectSemanticSlice")
-            && panic_message.contains("appearance.border"),
-        "expected freeze panic to preserve the typed aspect denial, got: {panic_message}"
+    assert_eq!(
+        denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::AspectContractNotAdmitted {
+                denial: UiAspectContractAdmissionDenial::UnsupportedAspectSemanticSlice {
+                    family: worth_ui::facade::declaration::UiAspectFamily::Appearance,
+                    canonical_label: "appearance.border".to_string(),
+                },
+            },
+        )
     );
 }
 
@@ -221,14 +230,4 @@ fn unsupported_aspect_spec() -> UiDslSemanticArtifactSpec {
     )
     .with_published_aspect(UiDslAspectName::new("appearance.border"))
     .with_structural_token(UiDslStructuralToken::new("control:save"))
-}
-
-fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
-    }
 }

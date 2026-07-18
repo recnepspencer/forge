@@ -93,6 +93,52 @@ never let host code recreate UI meaning
 
 That rule explains most of the architecture.
 
+## Current Ordinary Application Path
+
+The implemented application boundary is:
+
+```text
+WorthUi::app()
+-> registration plus optional sealed candidate composition
+-> WorthUiBuilder::freeze()
+-> WorthUiApp
+-> WorthUiApp::launch()
+-> WorthUiActiveApplicationSession
+```
+
+`freeze` is the only ordinary preparation lane and returns a typed denial. Its
+success binds the runtime artifact, declarations, graph, capabilities, Query
+binding plan, host-session plan, and inspection indexes into one prepared
+application generation.
+
+`launch` consumes that prepared authority. The resulting active application
+session owns framework turns, host observation capability, active inspection,
+retained allocation evidence, Query projection submission, and atomic
+replacement. Framework completions and active inspection receipts carry the
+same application-generation identity. Graph-bound allocation receipts carry
+the graph generation that admitted their neighborhood.
+
+File and Rust composition both enter through `facade::source` and converge as
+one `WorthUiWatchedCandidateSubmission`. The Rust lane uses native
+`WorthUiArtifactInputBodyAtom` values. Neither lane permits callers to extract
+an independently launchable artifact or declaration source.
+
+Replacement remains session-owned:
+
+```text
+prepare replacement
+-> typed no-op or prepared candidate authority
+-> candidate graph/allocation admission
+-> lower and stage
+-> framework-turn activation boundary
+-> atomic cutover
+```
+
+Invalid or foreign input leaves the active generation intact. Host adapters
+cannot submit directly; observation capability comes from the active session.
+See `../AI_README.md` for the compact discovery guide and named facade entry
+points.
+
 Worth UI wants product code to express UI meaning once, keep that meaning
 canonically identified, and let the runtime lower it through typed public lanes
 instead of forcing every page, control, renderer, host adapter, or test to
@@ -133,6 +179,9 @@ authored UI declaration
 -> selected graph obligations
 -> query binding/projection consumption
 -> measurement/allocation plan
+-> committed allocation receipt
+-> host-neutral execution-plan lowering
+-> active-plan frame execution
 -> mounted receipt graph
 -> host adapter contract
 -> host observations
@@ -164,8 +213,12 @@ flowchart TD
     D --> I["Measurement + Allocation Planning"]
     H --> I
 
-    F --> J["Mounted Receipt Graph"]
-    I --> J
+    I --> P["Committed Allocation Receipt"]
+    F --> Q["Host-Neutral Execution-Plan Lowering"]
+    H --> Q
+    P --> Q
+    Q --> R["Active Plan + Frame Execution"]
+    R --> J["Mounted Receipt Graph"]
     X --> J
 
     J --> K["Host Adapter Contract"]
@@ -177,6 +230,7 @@ flowchart TD
     N --> O["Invalidation + Rebind Planning"]
     O --> D
     O --> I
+    O --> Q
     O --> J
 ```
 
@@ -186,6 +240,8 @@ Interpretation:
 - The UI graph is runtime truth for mounted structure.
 - Query binding consumes Query artifacts; it does not reopen Query authority.
 - Measurement is runtime-owned even when host measurements are required.
+- Execution-plan lowering resolves frame strategy once from sealed upstream
+  authority; the active session is the only ordinary plan executor.
 - Mounted receipts are the only host-consumable output.
 - Host events are observations, not semantic decisions.
 - Rebind is planned from consumed facts and aspect truth, not guessed from tree
@@ -210,6 +266,9 @@ Interpretation:
 | Layout meaning | Measurement/allocation runtime |
 | Intrinsic measurement request | Measurement runtime |
 | Native measurement result | Host observation returned through host contract |
+| Executable plan meaning | Execution-plan lowering over sealed upstream authority |
+| Active plan and frame execution | Active application session |
+| Reload/lowering and steady-frame cost evidence | Runtime counter boundaries |
 | Mounted screen output | Mounted receipt graph |
 | Native paint/input mechanics | Host adapter |
 | Pointer/key/focus/viewport input | Host observations |
@@ -250,6 +309,11 @@ UiMeasurementRequest
 UiMeasurementResult
 UiAllocationPlan
 UiAllocationReceipt
+UiExecutionPlanLoweringAuthority
+UiCandidateExecutionPlan
+UiActiveExecutionPlan
+UiPlanEquivalenceDecision
+UiFrameExecutionReceipt
 UiProjectionBinding
 UiProjectionFactReceipt
 UiIntentDeclaration
@@ -776,14 +840,22 @@ install worth_ui_domain_package() in the Query runtime
 -> resolve workspace.worth_ui()
 -> derive measurement_view(...) or live_measurement_view(...)
 -> register_query_view(...) on WorthUi::app()
+-> freeze and launch one active application session
 -> execute through the installed view
--> submit its projection outcome during the runtime framework turn
+-> submit its projection outcome during the active session's framework turn
 ```
 
 The installed view is one semantic object: it carries its UI definition and the
 exact runtime-affine Query domain authority. Application code does not assemble
 result shape, basis, lifecycle, capability status, or projection identity as
 independent fields.
+
+Projection crosses the UI boundary as one sealed
+`WorthUiQueryProjectionOutcome`. The binding edge may derive indexed UI facts,
+but it may not split that outcome into independently trusted basis, receipt,
+support, source-label, fact-bag, or digest fields. Foundational native aspect
+values remain native through refinement and allocation/plan admission; they do
+not take a JSON, string, or widened-number detour.
 
 See [Query-backed UI views](./query-binding.md) for the public entry points and
 worked examples.
@@ -807,6 +879,11 @@ made the binding honest, the UI runtime has already lost its proof boundary.
 The UI may project product-facing state from Query results, but Query remains
 the authority for query meaning, basis, projection facts, async posture, live
 state, and intent admission.
+
+Query also remains the owner of installed-domain and live-resource activation,
+maintenance, recovery, and disposal. Worth UI binds admitted references to its
+application/plan generation and coordinates exact-once succession at cutover;
+it does not become a subscription manager or local Query runtime.
 
 View shape is not UI-only sugar. It can affect planning, invalidation, live
 patch shape, delivery formatting, and binding support.
@@ -837,6 +914,9 @@ Mistakes to avoid:
 - schema swaps handled by component conditionals
 - UI reading relational/bridge internals directly
 - reopening materialized facts instead of consuming projection receipts
+- splitting a consumed projection into UI-local basis/status/fact/digest truth
+- stringifying or JSON-encoding native aspect values for operational UI use
+- implementing live-view activation, recovery, or disposal in the UI runtime
 - constructing a detached `ViewBindingDescriptor` for Query-backed UI
 - registering a bare UI view definition without installed Query authority
 
@@ -916,6 +996,59 @@ Mistakes to avoid:
 - whole-tree relayout when affected subgraph is known
 - text measurement cached as authoritative truth
 - portal layout performed outside runtime allocation
+
+---
+
+## Execution-Plan Lowering And Frame Authority
+
+Use this category when canonical UI meaning becomes frame-executable work.
+Milestone 3.9 closes this boundary; until that cutover is complete, provisional
+plan APIs are implementation substrate rather than an application contract.
+
+The target path is:
+
+```text
+prepared candidate application authority
++ exact graph, capability, Query, and host-support authority
++ committed allocation receipt
+-> sealed execution-plan lowering authority
+-> host-neutral candidate plan bundle
+   { topology, compact typed handles, lane-ready plans, equivalence evidence }
+-> semantic no-op, bounded replacement, initial activation, or typed denial
+-> atomic application + active-plan publication
+-> active-session frame execution
+-> lane and frame-cost receipts
+```
+
+The plan caches decisions that would otherwise be rediscovered every frame. It
+does not replace declaration, graph, Query, allocation, host-support, or durable
+state authority. A digest can index or describe a plan but cannot prove
+identity, freshness, equivalence, or permission to execute it.
+
+The ordinary caller does not construct a plan, choose a lane, allocate runtime
+handles, compare plan digests, or pass a plan into an executor. The active
+application session owns the executable generation. Handles are compact sealed
+locators into that exact generation and family; a stale or foreign handle opens
+no door even when its numeric fields match.
+
+Plan equivalence is exact executable meaning, not visual similarity. A change
+to capability/host support, Query binding, lane policy, extension hook,
+resource, durable-state contract, or another execution-bearing field must not
+be hidden by equal output or equal hashes. Diagnostic formatting and incidental
+candidate generations do not cause operational churn when executable meaning
+is unchanged.
+
+Ordinary frame work is bounded by intentionally touched plan rows. Source
+parsing, artifact validation, registry string lookup, broad graph/plan scans,
+rich diagnostic materialization, and general-purpose heap allocation do not
+belong on that path. Reload/lowering counters and steady-frame counters are
+different evidence families because reconstructive and ordinary cost are
+different claims.
+
+Inspection may explain the lowering basis, active generation, lane partition,
+equivalence/no-op decision, affected closure, handle family, and frame cost. It
+may not mint handles, promote a candidate, submit a plan, or turn a receipt or
+digest into authority.
 
 ---
 
@@ -1748,12 +1881,22 @@ certification
 - Do not let renderer code decide layout semantics.
 - Do not let controls own canonical state meaning.
 - Do not implement hot reload as a renderer patch loop.
+- Do not construct, assemble, compare, or submit execution plans from product
+  code or a host adapter.
+- Do not treat a plan digest as plan identity, equivalence proof, freshness, or
+  execution authority.
+- Do not let an executor rediscover declaration, graph, Query, allocation, or
+  lane strategy during an ordinary frame.
 - Do not use tree position as canonical identity.
 - Do not smuggle identity through strings when a typed artifact is required.
 - Do not handle portals as host-local floating widgets.
 - Do not handle focus only through native widget state.
 - Do not model Query state with local loading/error enums.
 - Do not rebuild Query projection meaning inside UI code.
+- Do not split sealed Query projection authority into local basis, fact,
+  support, label, or digest truth.
+- Do not convert native aspect values through JSON or text on an operational
+  UI boundary.
 - Do not flatten denied/stale/rebind-required/wrong-world into booleans.
 - Do not add a `components` folder that owns behavior across declaration,
   graph, state, layout, and host.
@@ -1788,12 +1931,14 @@ Before editing, classify the work.
 7. What Query projection, basis, view shape, or result posture is being
    consumed?
 8. What measurement or host observation facts are required?
-9. What mounted receipt should the host receive?
-10. What host observation may return?
-11. What must be preserved across hot rebind?
-12. What denial/diagnostic artifact should exist if this fails?
-13. What test or certification assertion proves this did not become folklore?
-14. Does the import graph prove the same boundary the directory tree claims?
+9. What sealed authority lowers this into the active execution plan, and which
+   plan rows or handles may the frame touch?
+10. What mounted receipt should the host receive?
+11. What host observation may return?
+12. What must be preserved across hot rebind?
+13. What denial/diagnostic artifact should exist if this fails?
+14. What test or certification assertion proves this did not become folklore?
+15. Does the import graph prove the same boundary the directory tree claims?
 
 If these cannot be answered, do not patch locally. Identify the missing
 category, support row, artifact, or boundary contract.

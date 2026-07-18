@@ -54,61 +54,23 @@ impl ProjectionConsumptionForbiddenFallbackSeam {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionOrdinaryPathSurface {
     CommonPathDx,
-    RetainedLiveHostileTests,
-    RetainedLivePhaseTwelveTests,
-    CommonReadGolden,
-    CommonWriteGolden,
-    CommonQueryContextGolden,
-    RetainedLiveGolden,
 }
 
 impl ProjectionConsumptionOrdinaryPathSurface {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::CommonPathDx => "common_path_dx",
-            Self::RetainedLiveHostileTests => "retained_live_hostile_tests",
-            Self::RetainedLivePhaseTwelveTests => "retained_live_phase_twelve_tests",
-            Self::CommonReadGolden => "common_read_golden",
-            Self::CommonWriteGolden => "common_write_golden",
-            Self::CommonQueryContextGolden => "common_query_context_golden",
-            Self::RetainedLiveGolden => "retained_live_golden",
         }
     }
 
     fn source(&self) -> &'static str {
         match self {
             Self::CommonPathDx => include_str!("../../dx.rs"),
-            Self::RetainedLiveHostileTests => {
-                include_str!("../../tests/retained_live/phase_eleven.rs")
-            }
-            Self::RetainedLivePhaseTwelveTests => {
-                include_str!("../../tests/retained_live/phase_twelve.rs")
-            }
-            Self::CommonReadGolden => include_str!(
-                "../../../../tests/ui/projection_consumption/golden/projection_consumption_common_read_golden_path_compiles.rs"
-            ),
-            Self::CommonWriteGolden => include_str!(
-                "../../../../tests/ui/projection_consumption/golden/projection_consumption_common_write_golden_path_compiles.rs"
-            ),
-            Self::CommonQueryContextGolden => include_str!(
-                "../../../../tests/ui/projection_consumption/golden/projection_consumption_common_query_context_golden_path_compiles.rs"
-            ),
-            Self::RetainedLiveGolden => include_str!(
-                "../../../../tests/ui/projection_consumption/golden/projection_consumption_retained_live_ordinary_path_compiles.rs"
-            ),
         }
     }
 
     fn all() -> &'static [Self] {
-        &[
-            Self::CommonPathDx,
-            Self::RetainedLiveHostileTests,
-            Self::RetainedLivePhaseTwelveTests,
-            Self::CommonReadGolden,
-            Self::CommonWriteGolden,
-            Self::CommonQueryContextGolden,
-            Self::RetainedLiveGolden,
-        ]
+        &[Self::CommonPathDx]
     }
 }
 

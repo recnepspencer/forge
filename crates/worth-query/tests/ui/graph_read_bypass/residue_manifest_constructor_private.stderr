@@ -1,9 +1,0 @@
-error[E0451]: fields `rows` and `manifest_digest` of struct `WorthQueryGraphReadBypassResidueManifest` are private
- --> tests/ui/graph_read_bypass/residue_manifest_constructor_private.rs:5:9
-  |
-4 |     let _ = WorthQueryGraphReadBypassResidueManifest {
-  |             ---------------------------------------- in this type
-5 |         rows: Vec::new(),
-  |         ^^^^ private field
-6 |         manifest_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^ private field

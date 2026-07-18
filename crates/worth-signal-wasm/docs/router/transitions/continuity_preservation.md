@@ -33,24 +33,32 @@ in pending state."
 ## Small Example
 
 ```ts
-const transition = await routes.transition(home, prefetched, {
-  continuity: "preserve-visible-while-pending",
-});
+if (prefetched) {
+  const transition = await routes.transition(home, prefetched, {
+    continuity: "preserve-visible-while-pending",
+  });
+}
 ```
 
 ## Real Example
 
 ```ts
 const prefetched = routes.project("/users/user-2")?.prefetch("hover");
-const prefetchedLine = prefetched?.resource("detail").line();
-prefetchedLine?.refresh();
 
-const transition = await routes.transition(home, prefetched, {
-  continuity: "preserve-visible-while-pending",
-});
+if (prefetched) {
+  try {
+    prefetched.resource("detail").line().refresh();
 
-console.log(transition.diagnostics().visibleChangeSource);
-console.log(transition.diagnostics().pendingResourceNames);
+    const transition = await routes.transition(home, prefetched, {
+      continuity: "preserve-visible-while-pending",
+    });
+
+    console.log(transition.diagnostics().visibleChangeSource);
+    console.log(transition.diagnostics().pendingResourceNames);
+  } finally {
+    prefetched.free();
+  }
+}
 ```
 
 ## How It Relates To Other Features

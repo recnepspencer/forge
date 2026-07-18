@@ -1,72 +1,52 @@
 # Worker-First Default
 
-## What This Feature Is
-
-Worker-first default is the intended deployment posture where the router runtime
-executes in a worker unless you intentionally choose a compatibility posture.
-
-## Why You Use It
-
-- keep the router on the product's default runtime lane
-- understand which boundary semantics are normal, not optional
-- know when you are relying on fallback rather than full route capability
-
-## Stable Entry Points
-
-- router deployment choice at runtime creation
-- worker bridge router boundary surfaces
-
-## Core Mental Model
-
-Worker-first is the default runtime lane, not a separate router product. These
-docs exist because default placement still has explicit boundary semantics.
-
-## How It Executes
-
-1. route truth lives in the worker runtime
-2. host-owned browser and capability events cross a bridge
-3. the worker mirrors or reconstructs the public router surfaces it can support
-
-## Small Example
+Worth's default deployment posture is worker-first, and the public
+`signals.router` namespace is available in both deployment modes.
 
 ```ts
 const signals = await createSignals({ deployment: "workerFirst" });
-```
-
-## Real Example
-
-```ts
-const bridge = createWorkerRuntimeBridge();
-
-const report = await bridge.admitBrowserHistoryIngress({
-  navigationKind: "popstate",
-  rawLocation: "/search?q=Worth",
-  routeIdentity: "searchRoute:WORTH",
+const routes = signals.router.define({
+  home: signals.router.route("/"),
 });
 ```
 
-## How It Relates To Other Features
+That is the useful starting point. It does **not** mean browser APIs moved into
+the worker, or that every JavaScript callback declared on a route is proven to
+execute there.
 
-- the actual bridge surface is covered in [Host And Worker Boundary](./host_worker_boundary.md)
-- reduced route-history fallback is covered in [Worker History Fallback](./worker_history_fallback.md)
+## The Honest Boundary
 
-## Inspection And Debugging
+The browser host observes `location`, `popstate`, clicks, and external
+navigation. It packages those observations with the public router namespace:
 
-- worker bridge browser-history reports
-- worker browser-history story
-- worker inspection and auditability summaries
+```ts
+const ingress = signals.router.browserHistory.pop(window.location.href);
+const report = await routes.admitBrowserHistoryIngress(ingress);
+story.record(report);
+```
 
-## Anti-Patterns
+Worth admits that typed ingress against the route tree and returns a report.
+The host remains responsible for installing listeners, rendering the result,
+and performing `pushState`, `replaceState`, or external navigation.
 
-- thinking worker-first means there is no boundary to document
-- treating compatibility posture as the default mental model
+## Compatibility Is Explicit
 
-## Current Limits
+Use `mainThreadCompatibility` when the application intentionally needs that
+deployment:
 
-- some worker surfaces can be reduced compared with the main runtime and fail
-  closed explicitly
+```ts
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
+});
+```
 
-## Related Docs
+Construction should fail explicitly when the requested worker deployment is
+unavailable. A silent fallback would make performance and placement impossible
+to reason about.
 
-- [Host And Worker Boundary](./host_worker_boundary.md)
-- [Worker Navigation Auditability](./worker_navigation_auditability.md)
+Public router docs intentionally teach `signals.router` and resolved route-tree
+methods, not raw worker bridge methods. The bridge is runtime infrastructure,
+not the application authoring surface.
+
+Next: [Host And Worker Boundary](./host_worker_boundary.md) and
+[Worker Navigation Auditability](./worker_navigation_auditability.md).

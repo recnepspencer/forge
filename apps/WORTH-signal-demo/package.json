@@ -1,5 +1,5 @@
 {
-  "name": "worth-signals",
+  "name": "worth-signals-demo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,16 +7,15 @@
     "refresh:signal": "powershell -NoProfile -Command \"Set-Location ../../packages/worth-signal; npm run build:wasm\"",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test:demo-docs": "node --test tests/demo_documentation_contract.test.mjs",
     "test:demo5": "node --test tests/demo_five_concurrency.test.mjs",
+    "test:demo6": "node --experimental-wasm-modules --test tests/demo_six_aspect_merge.test.mjs tests/demo_six_code_evidence.test.mjs tests/worker_bundle_integrity.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@WORTH/signal": "file:../../packages/worth-signal",
     "@tanstack/react-query": "^5.100.14",
-    "@types/three": "^0.184.1",
-    "flubber": "^0.4.2",
-    "worth-signals-wasm": "1.2.0",
+    "worth-signals-wasm": "file:../../crates/worth-signal-wasm/pkg",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "react": "^19.2.4",
@@ -27,10 +26,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "@types/flubber": "^0.4.0",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",

@@ -4,13 +4,13 @@ use crate::runtime::admission::{
 };
 use crate::runtime::candidate::WorthUiReplacementCandidateBasis;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiCandidateAdmissionReport {
     candidate_basis: WorthUiReplacementCandidateBasis,
     active_basis: WorthUiActiveReplacementBasis,
-    query_support_receipt: WorthUiQuerySupportReceipt,
-    counters: WorthUiCandidateAdmissionCounters,
-    denial: Option<WorthUiCandidateAdmissionDenial>,
+    query_support_receipt: Box<WorthUiQuerySupportReceipt>,
+    counters: Box<WorthUiCandidateAdmissionCounters>,
+    denial: Option<Box<WorthUiCandidateAdmissionDenial>>,
 }
 
 impl WorthUiCandidateAdmissionReport {
@@ -23,8 +23,8 @@ impl WorthUiCandidateAdmissionReport {
         Self {
             candidate_basis,
             active_basis,
-            query_support_receipt,
-            counters,
+            query_support_receipt: Box::new(query_support_receipt),
+            counters: Box::new(counters),
             denial: None,
         }
     }
@@ -39,9 +39,9 @@ impl WorthUiCandidateAdmissionReport {
         Self {
             candidate_basis,
             active_basis,
-            query_support_receipt,
-            counters,
-            denial: Some(denial),
+            query_support_receipt: Box::new(query_support_receipt),
+            counters: Box::new(counters),
+            denial: Some(Box::new(denial)),
         }
     }
 
@@ -54,14 +54,14 @@ impl WorthUiCandidateAdmissionReport {
     }
 
     pub fn query_support_receipt(&self) -> WorthUiQuerySupportReceipt {
-        self.query_support_receipt
+        *self.query_support_receipt
     }
 
     pub fn counters(&self) -> WorthUiCandidateAdmissionCounters {
-        self.counters
+        *self.counters
     }
 
     pub fn denial(&self) -> Option<WorthUiCandidateAdmissionDenial> {
-        self.denial
+        self.denial.as_deref().copied()
     }
 }

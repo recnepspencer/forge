@@ -1,18 +1,14 @@
 # Router And Forms
 
-These docs cover the explicit router-to-forms authority seam: handoff posture,
-draft continuity, route-coupled behavior, and continuity audit surfaces.
+The router decides route authority. A form owns source, draft, and effective
+values. The seam is a typed handoff that tells a route-coupled form whether to
+preserve, freeze, discard, or defer its draft.
 
-Docs in this section:
+Start with [Route Authority Handoff](./route_authority_handoff.md), then read:
 
-- [Route Authority Handoff](./route_authority_handoff.md)
 - [Draft Continuity](./draft_continuity.md)
 - [Route-Coupled Behavior](./route_coupled_behavior.md)
 - [Continuity Audit](./continuity_audit.md)
 
-Suggested order:
-
-1. route authority handoff
-2. draft continuity
-3. route-coupled behavior
-4. continuity audit
+Do not copy route ids into form state or let navigation silently erase a draft.
+The handoff makes the decision visible and verifiable.

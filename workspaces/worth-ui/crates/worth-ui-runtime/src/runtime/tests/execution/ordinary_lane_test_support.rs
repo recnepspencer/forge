@@ -36,7 +36,7 @@ pub(super) fn ordinary_lane_denial_for_missing_family(
     );
     let narrower_admission = receipt_runtime
         .admit_execution_lanes(
-            &receipt_runtime.detached_allocation_receipt_for_test(&narrower_planning),
+            &receipt_runtime.detached_allocation_lowering_input_for_test(&narrower_planning),
             &WorthUiExecutionLaneSupport::without_lane_for_test(removed_lane),
         )
         .expect("narrower input can be admitted without removed lane");
@@ -105,9 +105,11 @@ fn ordinary_execution_context() -> OrdinaryExecutionContext {
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation_plan),
-            Some(&query_rebind_plan),
-            Some(&pending_execution_plan_lowering_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation_plan),
+                Some(&query_rebind_plan),
+                Some(&pending_execution_plan_lowering_input),
+            ),
         )
         .expect("activation staging succeeds");
     let plan_input = runtime
@@ -125,7 +127,7 @@ fn ordinary_execution_context() -> OrdinaryExecutionContext {
     let lane_admission = ordinary_lane_admission(&runtime, &planning);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_receipt_for_test(&planning),
+            &runtime.detached_allocation_lowering_input_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -179,9 +181,12 @@ fn ordinary_lane_admission(
     runtime: &WorthUiRuntime,
     planning: &crate::runtime::UiAllocationCandidate,
 ) -> WorthUiLaneAdmission {
-    let receipt = runtime.detached_allocation_receipt_for_test(planning);
+    let lowering_input = runtime.detached_allocation_lowering_input_for_test(planning);
     runtime
-        .admit_execution_lanes(&receipt, &WorthUiExecutionLaneSupport::platform_default())
+        .admit_execution_lanes(
+            &lowering_input,
+            &WorthUiExecutionLaneSupport::platform_default(),
+        )
         .expect("lane admission succeeds")
 }
 

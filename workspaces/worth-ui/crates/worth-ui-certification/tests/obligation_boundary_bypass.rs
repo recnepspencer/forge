@@ -13,9 +13,10 @@ fn fixture_root(name: &str) -> PathBuf {
 
 #[test]
 fn anti_bypass_certification_rejects_hostile_obligation_consumer_fixture() {
-    let violations = audit_consumers_route_obligations_through_worth_ui_facade(&fixture_root(
-        "obligation_facade_bypass_consumer",
-    ));
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        fixture_root("obligation_facade_bypass_consumer"),
+    );
+    let violations = audit_consumers_route_obligations_through_worth_ui_facade(&inventory);
 
     assert_fixture_violation(
         &violations,
@@ -31,10 +32,11 @@ fn anti_bypass_certification_rejects_hostile_obligation_consumer_fixture() {
 
 #[test]
 fn anti_bypass_certification_rejects_hostile_runtime_admission_consumer_fixture() {
-    let violations = certify_consumers_route_admission_through_worth_ui_facade(&fixture_root(
-        "admission_facade_bypass_consumer",
-    ))
-    .expect_err("hostile admission consumer fixture should fail certification");
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        fixture_root("admission_facade_bypass_consumer"),
+    );
+    let violations = certify_consumers_route_admission_through_worth_ui_facade(&inventory)
+        .expect_err("hostile admission consumer fixture should fail certification");
 
     assert_fixture_violation(
         &violations,

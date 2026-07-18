@@ -17,19 +17,31 @@ pub struct WorthUiCanvasSpatialFrameReceipt {
     certification: WorthUiCanvasSpatialCertification,
 }
 
+pub(crate) struct WorthUiCanvasSpatialFrameReceiptInput {
+    pub target: WorthUiCanvasSpatialFrameTarget,
+    pub lane: WorthUiCanvasSpatialLane,
+    pub touched_plan_indexes: Vec<u32>,
+    pub touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
+    pub command_plan_indexes: Vec<u32>,
+    pub diagnostics_plan_indexes: Vec<u32>,
+    pub selection_state_slot_handles: Vec<WorthUiStateSlotHandle>,
+    pub counters: WorthUiCanvasSpatialCounters,
+    pub certification: WorthUiCanvasSpatialCertification,
+}
+
 impl WorthUiCanvasSpatialFrameReceipt {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        target: WorthUiCanvasSpatialFrameTarget,
-        lane: WorthUiCanvasSpatialLane,
-        touched_plan_indexes: Vec<u32>,
-        touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
-        command_plan_indexes: Vec<u32>,
-        diagnostics_plan_indexes: Vec<u32>,
-        selection_state_slot_handles: Vec<WorthUiStateSlotHandle>,
-        counters: WorthUiCanvasSpatialCounters,
-        certification: WorthUiCanvasSpatialCertification,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiCanvasSpatialFrameReceiptInput) -> Self {
+        let WorthUiCanvasSpatialFrameReceiptInput {
+            target,
+            lane,
+            touched_plan_indexes,
+            touched_runtime_handles,
+            command_plan_indexes,
+            diagnostics_plan_indexes,
+            selection_state_slot_handles,
+            counters,
+            certification,
+        } = input;
         Self {
             target,
             lane,

@@ -50,6 +50,7 @@ pub use projection::{
     consume_declared_measurement_projection_facts, UiProjectionFactReceipt,
     UiProjectionFactReceiptDenial,
 };
+pub(crate) use result::UiHostMeasurementResultInput;
 pub use result::{UiCurrentMeasurementResult, UiMeasurementResult, UiMeasurementValue};
 #[cfg(test)]
 pub(crate) use result_identity_digest::measurement_result_identity_digest;

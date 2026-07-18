@@ -55,16 +55,21 @@ impl<'a> UiAdmissionBoundary<'a> {
         let target = measurement_admission.target().clone();
         let admission = |posture, projection_fact_receipt: Option<UiProjectionFactReceipt>| {
             UiQueryMeasurementEligibility::new(
-                target.clone(),
-                measurement_admission.graph_node_identity(),
-                measurement_admission.declaration_identity().cloned(),
-                measurement_admission.touch_identity_digest(),
-                measurement_admission.selected_measurement_obligation_identity_digest(),
-                measurement_admission.selected_support_authority_generation(),
-                measurement_admission.boundary_support_authority_generation(),
-                required_families.clone(),
-                projection_fact_receipt,
-                posture,
+                crate::admission::UiQueryMeasurementEligibilityInput {
+                    target: target.clone(),
+                    graph_node_identity: measurement_admission.graph_node_identity(),
+                    declaration_identity: measurement_admission.declaration_identity().cloned(),
+                    touch_identity_digest: measurement_admission.touch_identity_digest(),
+                    selected_measurement_obligation_identity_digest: measurement_admission
+                        .selected_measurement_obligation_identity_digest(),
+                    selected_support_authority_generation: measurement_admission
+                        .selected_support_authority_generation(),
+                    boundary_support_authority_generation: measurement_admission
+                        .boundary_support_authority_generation(),
+                    required_families: required_families.clone(),
+                    projection_fact_receipt,
+                    posture,
+                },
             )
         };
 

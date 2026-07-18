@@ -20,16 +20,15 @@ pub struct WorthUiRuntimeFrameworkLoop {
     pub(crate) allocation_invalidation_index:
         RefCell<crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority>,
     pub(crate) allocation_frame_scheduler: UiAllocationFrameFrameworkScheduler,
-    pub(crate) pending_allocation_frame_handoff:
-        Option<crate::runtime::allocation_frame_dispatch::UiPendingAllocationFrameHandoff>,
-    pub(crate) pending_narrowed_allocation_frame:
-        Option<crate::runtime::UiNarrowedAllocationFramePlan>,
     pub(crate) allocation_source_order_ledger:
         crate::runtime::stream_policy::UiAllocationSourceOrderLedger,
     pub(crate) query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     pub(crate) transient_interaction_admission:
         crate::runtime::replacement::state_inventory::WorthUiTransientInteractionAdmissionAuthority,
     pub(crate) host_measurement_source: Rc<RefCell<crate::host::UiHostMeasurementSourceAuthority>>,
+    pub(crate) host_session_identity: Option<crate::facade::WorthUiHostSessionIdentity>,
+    pub(crate) host_observation_generation:
+        Option<worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration>,
     pub(crate) durable_resize_source:
         crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
     pub(crate) scroll_offset_projection:

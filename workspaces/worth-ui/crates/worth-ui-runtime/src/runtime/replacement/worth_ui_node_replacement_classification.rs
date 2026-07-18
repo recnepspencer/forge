@@ -18,22 +18,39 @@ pub struct WorthUiNodeReplacementClassification {
     candidate_resize_shape_digest: Option<u64>,
 }
 
+pub(crate) struct WorthUiNodeReplacementClassificationInput {
+    pub identity_basis: String,
+    pub authored_provenance_digest: Option<u64>,
+    pub transition: WorthUiNodeLifecycleTransition,
+    pub active_kind: Option<WorthUiIdentityMatchNodeKind>,
+    pub candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
+    pub active_durable_state_eligible: bool,
+    pub candidate_durable_state_eligible: bool,
+    pub active_resize_contract_id: Option<MosaicSizingContractId>,
+    pub candidate_resize_contract_id: Option<MosaicSizingContractId>,
+    pub active_resize_permission: Option<MosaicResizePermission>,
+    pub candidate_resize_permission: Option<MosaicResizePermission>,
+    pub active_resize_shape_digest: Option<u64>,
+    pub candidate_resize_shape_digest: Option<u64>,
+}
+
 impl WorthUiNodeReplacementClassification {
-    pub(crate) fn new(
-        identity_basis: String,
-        authored_provenance_digest: Option<u64>,
-        transition: WorthUiNodeLifecycleTransition,
-        active_kind: Option<WorthUiIdentityMatchNodeKind>,
-        candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
-        active_durable_state_eligible: bool,
-        candidate_durable_state_eligible: bool,
-        active_resize_contract_id: Option<MosaicSizingContractId>,
-        candidate_resize_contract_id: Option<MosaicSizingContractId>,
-        active_resize_permission: Option<MosaicResizePermission>,
-        candidate_resize_permission: Option<MosaicResizePermission>,
-        active_resize_shape_digest: Option<u64>,
-        candidate_resize_shape_digest: Option<u64>,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiNodeReplacementClassificationInput) -> Self {
+        let WorthUiNodeReplacementClassificationInput {
+            identity_basis,
+            authored_provenance_digest,
+            transition,
+            active_kind,
+            candidate_kind,
+            active_durable_state_eligible,
+            candidate_durable_state_eligible,
+            active_resize_contract_id,
+            candidate_resize_contract_id,
+            active_resize_permission,
+            candidate_resize_permission,
+            active_resize_shape_digest,
+            candidate_resize_shape_digest,
+        } = input;
         Self {
             identity_basis,
             authored_provenance_digest,

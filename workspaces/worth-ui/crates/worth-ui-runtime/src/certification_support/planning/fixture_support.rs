@@ -96,6 +96,7 @@ pub(super) fn query_app() -> WorthUiApp {
             definition,
         ))
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn artifact_from_modules<const N: usize>(
@@ -176,6 +177,7 @@ fn multi_control_app(
         .with_graph_world_profile(world_profile)
         .with_dsl_package(package)
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn declaration_identity_for(

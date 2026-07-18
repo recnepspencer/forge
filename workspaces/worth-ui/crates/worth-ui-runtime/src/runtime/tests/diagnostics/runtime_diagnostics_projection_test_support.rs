@@ -97,6 +97,7 @@ pub(super) fn runtime_from_import_target(
 ) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     WorthUi::app()
         .freeze()
+        .expect("application preparation should succeed")
         .launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(
             artifact_from_import_target(target),
         ))

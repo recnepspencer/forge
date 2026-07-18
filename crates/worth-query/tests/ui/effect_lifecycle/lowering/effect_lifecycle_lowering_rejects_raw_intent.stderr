@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::foundation::lower_authority_scoped_effect_plan`
- --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowering_rejects_raw_intent.rs:1:39
-  |
-1 | use worth_query::facade::foundation::{lower_authority_scoped_effect_plan, RawEffectIntent};
-  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_authority_scoped_effect_plan` in `facade::foundation`

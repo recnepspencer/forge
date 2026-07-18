@@ -12,7 +12,7 @@ use crate::source::{
 pub(crate) enum WorthUiArtifactNode {
     Import(WorthUiArtifactImportNode),
     Component(WorthUiArtifactComponentNode),
-    Surface(WorthUiArtifactSurfaceNode),
+    Surface(Box<WorthUiArtifactSurfaceNode>),
     Binding(WorthUiArtifactBindingNode),
     Token(WorthUiArtifactThemeTokenNode),
 }
@@ -47,6 +47,17 @@ pub(crate) struct WorthUiArtifactSurfaceNode {
     authored_provenance_digest: u64,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
+}
+
+pub(crate) struct WorthUiArtifactSurfaceNodeInput {
+    pub handle: WorthUiArtifactHandle,
+    pub surface: AdmittedCapability<SurfaceId>,
+    pub descriptor: SurfaceDescriptor,
+    pub structure: WorthUiMosaicStructureFacts,
+    pub semantics: WorthUiBoundSurfaceSemantics,
+    pub authored_provenance_digest: u64,
+    pub identity_seed: WorthUiArtifactIdentitySeed,
+    pub durable_state_eligibility: WorthUiDurableStateEligibility,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -177,16 +188,17 @@ impl WorthUiArtifactComponentNode {
 }
 
 impl WorthUiArtifactSurfaceNode {
-    pub(crate) fn new(
-        handle: WorthUiArtifactHandle,
-        surface: AdmittedCapability<SurfaceId>,
-        descriptor: SurfaceDescriptor,
-        structure: WorthUiMosaicStructureFacts,
-        semantics: WorthUiBoundSurfaceSemantics,
-        authored_provenance_digest: u64,
-        identity_seed: WorthUiArtifactIdentitySeed,
-        durable_state_eligibility: WorthUiDurableStateEligibility,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiArtifactSurfaceNodeInput) -> Self {
+        let WorthUiArtifactSurfaceNodeInput {
+            handle,
+            surface,
+            descriptor,
+            structure,
+            semantics,
+            authored_provenance_digest,
+            identity_seed,
+            durable_state_eligibility,
+        } = input;
         Self {
             handle,
             surface,

@@ -24,7 +24,7 @@ use crate::naming::validate_package_names;
 use crate::query_audience::{validate_query_audience_facades, validate_query_audience_rules};
 use crate::seed_contracts::validate_seed_crate_contracts;
 use crate::snapshots::{SnapshotMode, SnapshotSession};
-use crate::source_rules::validate_source_rules;
+use crate::source_rules::{validate_source_rules, validate_workspace_source_reachability};
 use crate::subworkspace_rules::validate_root_and_subworkspaces;
 use std::env;
 use std::fs;
@@ -155,13 +155,26 @@ fn run(
         &config.law_substrates,
     ));
     if let Some(contract) = &config.rule_contracts.worth_ui_query_edge {
-        diagnostics.extend(validate_worth_ui_query_edge(&root, contract).map_err(|error| {
-            vec![Diagnostic::new(
-                crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-                "worth-ui-query-edge",
-                error,
-            )]
-        })?);
+        diagnostics.extend(
+            validate_worth_ui_query_edge(&root, contract).map_err(|error| {
+                vec![Diagnostic::new(
+                    crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+                    "worth-ui-query-edge",
+                    error,
+                )]
+            })?,
+        );
+        diagnostics.extend(
+            validate_workspace_source_reachability(&root, &contract.workspace).map_err(
+                |error| {
+                    vec![Diagnostic::new(
+                        crate::diagnostics::DiagnosticCode::Bc7003SourceReachability,
+                        contract.workspace.clone(),
+                        error,
+                    )]
+                },
+            )?,
+        );
     }
     diagnostics.extend(validate_query_audience_rules(
         &packages,

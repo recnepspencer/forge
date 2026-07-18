@@ -66,7 +66,7 @@ console.log(verification.historyReplayRestore.lastLifecycleEvent);
   posture.
 - Use [Check Status, Freshness, And History](./check-status-settlement-and-history.md)
   for the broader line-history read.
-- Use [History And Restore](../../resource-contracts/history-and-restore.md)
+- Use [History And Restore](./restore-replay-and-recover.md)
   for the deeper retained-history contract.
 
 ## Inspection And Debugging
@@ -88,5 +88,5 @@ depends on the runtime-issued effect identity and its retained branch proof.
 
 ## Related Docs
 
-- [History And Restore](../../resource-contracts/history-and-restore.md)
+- [History And Restore](./restore-replay-and-recover.md)
 - [Branch-Native Effects](../effects/branch-native-effects.md)

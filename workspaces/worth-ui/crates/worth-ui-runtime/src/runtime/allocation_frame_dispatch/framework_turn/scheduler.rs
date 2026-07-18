@@ -18,7 +18,6 @@ use super::{UiAllocationFrameDispatchAuthority, UiAllocationFrameTurnOutcome};
 pub(in crate::runtime::allocation_frame_dispatch) struct UiAllocationFrameIngressMailbox {
     dispatcher: UiAllocationFrameDispatcher,
     gateways: UiAllocationFrameGatewayState,
-    pending_epoch_assignment: Option<UiAllocationFrameEpochAssignment>,
 }
 
 #[derive(Clone, Debug)]
@@ -38,7 +37,6 @@ impl UiPreparedFrameReplacementCommit<'_> {
             .dispatcher
             .install_replacement_successor(&transition);
         self.mailbox.gateways = UiAllocationFrameGatewayState::launch();
-        self.mailbox.pending_epoch_assignment = None;
         transition
     }
 
@@ -55,7 +53,6 @@ impl UiAllocationFrameFrameworkScheduler {
             mailbox: Rc::new(RefCell::new(UiAllocationFrameIngressMailbox {
                 dispatcher,
                 gateways,
-                pending_epoch_assignment: None,
             })),
         }
     }
@@ -66,18 +63,12 @@ impl UiAllocationFrameFrameworkScheduler {
         Rc::clone(&self.mailbox)
     }
 
-    pub(super) fn run_turn(
-        &self,
-    ) -> (
-        UiAllocationFrameTurnOutcome,
-        Option<UiAllocationFrameEpochAssignment>,
-    ) {
+    pub(super) fn run_turn(&self) -> UiAllocationFrameTurnOutcome {
         let mut mailbox = self.mailbox.borrow_mut();
         let transition = mailbox
             .dispatcher
             .dispatch(UiAllocationFrameDispatchAuthority::issue());
-        let outcome = turn_outcome(transition, mailbox.dispatcher.counters());
-        (outcome, mailbox.pending_epoch_assignment.take())
+        turn_outcome(transition, mailbox.dispatcher.counters())
     }
 
     pub(crate) fn state(&self) -> UiAllocationFrameDispatcherState {
@@ -119,12 +110,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::HostMeasurement,
-            source_identity.into(),
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::HostMeasurement,
+                source_identity: source_identity.into(),
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -140,12 +133,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::QueryProjection,
-            source_identity,
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::QueryProjection,
+                source_identity,
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -161,12 +156,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::Interaction,
-            source_identity.into(),
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::Interaction,
+                source_identity: source_identity.into(),
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -182,12 +179,14 @@ impl UiAllocationFrameIngressMailbox {
         let attempt = super::super::gateway::submit_admitted_source_fact(
             &mut self.dispatcher,
             &mut self.gateways,
-            UiAllocationFrameSourceLane::DurableState,
-            source_identity.into(),
-            generation,
-            ingress_identity,
-            order,
-            fact,
+            super::super::gateway::UiAllocationFrameSourceSubmission {
+                lane: UiAllocationFrameSourceLane::DurableState,
+                source_identity: source_identity.into(),
+                source_generation: generation,
+                ingress_identity,
+                source_order: order,
+                fact,
+            },
         );
         self.finish_submission(attempt)
     }
@@ -211,14 +210,11 @@ impl UiAllocationFrameIngressMailbox {
             };
             return UiAllocationFrameGatewayOutcome::source_admission_denied(
                 denial,
-                source_fact,
+                *source_fact,
                 self.dispatcher.counters(),
             );
         };
-        let (outcome, epoch_assignment, rejected_ingress) = transition.into_parts();
-        if let Some(assignment) = epoch_assignment {
-            self.pending_epoch_assignment = Some(assignment);
-        }
+        let (outcome, _, rejected_ingress) = transition.into_parts();
         UiAllocationFrameGatewayOutcome::attempted(
             outcome,
             descriptor,
@@ -232,7 +228,13 @@ fn turn_outcome(
     counters: UiAllocationFrameDispatcherCounters,
 ) -> UiAllocationFrameTurnOutcome {
     match outcome.into_dispatched_frame() {
-        Ok(sealed_frame) => UiAllocationFrameTurnOutcome::DownstreamBackpressured { sealed_frame },
+        Ok(sealed_frame) => {
+            let frame_epoch_assignment = sealed_frame.frame_epoch_assignment();
+            UiAllocationFrameTurnOutcome::SealedFrameReady {
+                sealed_frame: Box::new(sealed_frame),
+                frame_epoch_assignment,
+            }
+        }
         Err(UiAllocationFrameDispatchDenial::EmptyFrame) => {
             UiAllocationFrameTurnOutcome::NoAdmittedIngress { counters }
         }

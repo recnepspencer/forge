@@ -13,6 +13,16 @@ export {
   useFormField,
 } from "./form.js";
 export { useSignalsForm } from "./signals_form.js";
+export type {
+  SignalsFormActionBinding,
+  SignalsFormBinding,
+  SignalsFormCheckboxBinding,
+  SignalsFormFieldBinding,
+  SignalsFormFieldState,
+  SignalsFormMultiSelectBinding,
+  SignalsFormOption,
+  SignalsFormSelectBinding,
+} from "./model.js";
 export {
   useOptionalResourceLine,
   useOptionalSignalValue,

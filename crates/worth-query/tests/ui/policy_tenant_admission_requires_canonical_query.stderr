@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::policy::admit_policy_tenant_context`
- --> tests/ui/policy_tenant_admission_requires_canonical_query.rs:1:35
-  |
-1 | ...cade::policy::{admit_policy_tenant_context, BranchAccessGrant, PolicyEpoch, PolicyExecutionModeRequest, PolicyRuleSnapshot};
-  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |                   |
-  |                   no `admit_policy_tenant_context` in `facade::policy`
-  |                   help: a similar name exists in the module: `AdmittedPolicyTenantContext`

@@ -154,6 +154,7 @@ fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::Worth
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec() -> UiDslSemanticArtifactSpec {
@@ -224,7 +225,7 @@ fn query_snapshot_world_profile(
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
-            &schema_basis_parts
+            schema_basis_parts
                 .into_iter()
                 .map(str::to_owned)
                 .collect::<Vec<_>>(),

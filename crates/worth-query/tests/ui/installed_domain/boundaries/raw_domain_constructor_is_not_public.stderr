@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::worth_query_domain`
- --> tests/ui/installed_domain/boundaries/raw_domain_constructor_is_not_public.rs:1:5
-  |
-1 | use worth_query::facade::runtime::worth_query_domain;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `worth_query_domain` in `facade::runtime`

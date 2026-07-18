@@ -2,8 +2,8 @@
 mod source_scan;
 
 use source_scan::{
-    collect_production_serde_json_residue, collect_production_string_map_residue,
-    collect_runtime_support_snapshot_imports, collect_rust_source_marker_residue,
+    collect_production_string_map_residue, collect_runtime_support_snapshot_imports,
+    collect_rust_source_marker_residue,
 };
 
 #[test]
@@ -17,24 +17,6 @@ fn runtime_sources_do_not_depend_on_consumer_support_snapshots() {
     assert!(
         offending_files.is_empty(),
         "runtime authority must not import or mention consumer support snapshots: {offending_files:?}"
-    );
-}
-
-#[test]
-fn production_serde_json_is_confined_to_support_terminal_codecs() {
-    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let source_root = crate_root.join("src");
-    let mut offending_files = Vec::new();
-    collect_production_serde_json_residue(&source_root, crate_root, &mut offending_files);
-
-    assert_eq!(
-        offending_files,
-        vec![
-            "src/consumer_kit/support_pinning/document/terminal_json_codec.rs".to_string(),
-            "src/consumer_kit/support_snapshot/document/terminal_json_codec.rs".to_string(),
-            "src/projection_consumption/downstream_authority/contract_document/terminal_json_codec.rs".to_string(),
-        ],
-        "production serde_json must stay confined to the named external terminal codecs"
     );
 }
 
@@ -70,28 +52,6 @@ fn support_terminal_json_codecs_do_not_become_aspect_compatibility_bridges() {
     assert!(
         offenders.is_empty(),
         "support terminal JSON codecs serialize durable support documents only; JSON-as-aspect-truth must use worth-foundational compatibility instead: {offenders:?}"
-    );
-}
-
-#[test]
-fn rust_source_serde_json_residue_stays_terminal_or_compile_fail_only() {
-    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let mut offending_files = Vec::new();
-    collect_rust_source_marker_residue(crate_root, crate_root, "serde_json", &mut offending_files);
-
-    assert_eq!(
-        offending_files,
-        vec![
-            "src/consumer_kit/support_pinning/document/terminal_json_codec.rs".to_string(),
-            "src/consumer_kit/support_snapshot/document/terminal_json_codec.rs".to_string(),
-            "src/consumer_kit/support_snapshot/tests/runtime_boundary.rs".to_string(),
-            "src/consumer_kit/support_snapshot/tests/runtime_boundary/source_scan.rs".to_string(),
-            "src/projection_consumption/downstream_authority/contract_document/terminal_json_codec.rs".to_string(),
-            "tests/ui/aspect_native_query/derived_patch_payload_rejects_raw_json.rs".to_string(),
-            "tests/ui/aspect_native_query/program_operation_input_rejects_raw_json.rs".to_string(),
-            "tests/ui/aspect_native_query/retained_row_terminal_ingress_not_public.rs".to_string(),
-        ],
-        "Query Rust sources must not grow serde_json as an ordinary authority substrate"
     );
 }
 

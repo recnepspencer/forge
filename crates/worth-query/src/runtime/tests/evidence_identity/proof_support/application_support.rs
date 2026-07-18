@@ -74,10 +74,6 @@ pub(in super::super) fn compose_support_report_identity(
         crate::WorthQueryEvidenceTag::new("identity_boundary_closure_digest"),
         report.identity_boundary_closure().closure_digest(),
     )
-    .field_value(
-        crate::WorthQueryEvidenceTag::new("consumer_kit_closure_digest"),
-        report.consumer_kit_closure().closure_digest(),
-    )
     .field_usize(
         crate::WorthQueryEvidenceTag::new("support_report_generation_count"),
         report.counters().support_report_generation_count(),

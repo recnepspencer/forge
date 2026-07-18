@@ -48,9 +48,4 @@ pub(crate) use intent_admission_fixtures::{
     intent_admission_admitted_projection_declaration,
     intent_admission_warning_projection_declaration,
 };
-#[cfg(test)]
-pub(crate) use proof_artifacts::{
-    compile_fail_boundary_bundle_digest, golden_transcript_bundle_digest,
-    projection_consumption_compile_fail_proofs, projection_consumption_golden_transcripts,
-};
 pub use slopes::ProjectionConsumptionCertificationCounterSnapshot;

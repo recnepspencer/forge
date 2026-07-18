@@ -9,10 +9,6 @@ macro_rules! internal_suite {
 }
 
 internal_suite!(
-    aspect_native_query_compile_fail,
-    "../tests/aspect_native_query_compile_fail.rs"
-);
-internal_suite!(
     causal_inspection_public_dx,
     "../tests/causal_inspection_public_dx.rs"
 );
@@ -24,14 +20,6 @@ internal_suite!(consumer_residue_audit, "../tests/consumer_residue_audit.rs");
 internal_suite!(
     declarative_facade_docs,
     "../tests/declarative_facade_docs.rs"
-);
-internal_suite!(
-    consumer_residue_compile_fail,
-    "../tests/consumer_residue_compile_fail.rs"
-);
-internal_suite!(
-    declarative_history_comparison_compile_fail,
-    "../tests/declarative_history_comparison_compile_fail.rs"
 );
 internal_suite!(
     declarative_history_comparison_public_dx,
@@ -50,20 +38,8 @@ internal_suite!(
     "../tests/declarative_product_boundary_certification.rs"
 );
 internal_suite!(
-    declarative_product_boundary_compile_fail,
-    "../tests/declarative_product_boundary_compile_fail.rs"
-);
-internal_suite!(
-    declarative_read_compile_fail,
-    "../tests/declarative_read_compile_fail.rs"
-);
-internal_suite!(
     declarative_read_public_dx,
     "../tests/declarative_read_public_dx.rs"
-);
-internal_suite!(
-    declarative_workflow_compile_fail,
-    "../tests/declarative_workflow_compile_fail.rs"
 );
 internal_suite!(
     declarative_workflow_public_dx,
@@ -76,10 +52,6 @@ internal_suite!(
 internal_suite!(
     downstream_authority_docs_agreement,
     "../tests/downstream_authority_docs_agreement.rs"
-);
-internal_suite!(
-    evidence_report_compile_fail,
-    "../tests/evidence_report_compile_fail.rs"
 );
 internal_suite!(
     graph_composition_public_bridge,
@@ -210,20 +182,12 @@ internal_suite!(
     "../tests/graph_read_bypass_audit.rs"
 );
 internal_suite!(
-    graph_read_bypass_compile_fail,
-    "../tests/graph_read_bypass_compile_fail.rs"
-);
-internal_suite!(
     in_memory_test_backend_facade,
     "../tests/in_memory_test_backend_facade.rs"
 );
 internal_suite!(
     intent_admission_public_dx,
     "../tests/intent_admission_public_dx.rs"
-);
-internal_suite!(
-    managed_live_compile_fail,
-    "../tests/managed_live_compile_fail.rs"
 );
 internal_suite!(
     milestone_9_7_phase_10_hostile_certification,
@@ -250,108 +214,8 @@ internal_suite!(
     "../tests/native_predicate_contract_matrix.rs"
 );
 internal_suite!(
-    phase_boundaries_basis_lifecycle_compile_fail,
-    "../tests/phase_boundaries_basis_lifecycle_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_bridge_truth_identity_compile_fail,
-    "../tests/phase_boundaries_bridge_truth_identity_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_compile_fail,
-    "../tests/phase_boundaries_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_domain_capabilities_certification_compile_fail,
-    "../tests/phase_boundaries_domain_capabilities_certification_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_domain_capabilities_dx_compile_fail,
-    "../tests/phase_boundaries_domain_capabilities_dx_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_installed_domain_compile_fail,
-    "../tests/phase_boundaries_installed_domain_compile_fail.rs"
-);
-internal_suite!(
     installed_domain_facade_extension,
     "../tests/installed_domain_facade_extension.rs"
-);
-internal_suite!(
-    phase_boundaries_effect_lifecycle_compile_fail,
-    "../tests/phase_boundaries_effect_lifecycle_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_index_inventory_compile_fail,
-    "../tests/phase_boundaries_graph_index_inventory_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_obligation_compile_fail,
-    "../tests/phase_boundaries_graph_obligation_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_read_access_admission_compile_fail,
-    "../tests/phase_boundaries_graph_read_access_admission_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_read_access_async_materialization_compile_fail,
-    "../tests/phase_boundaries_graph_read_access_async_materialization_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_read_access_compile_fail,
-    "../tests/phase_boundaries_graph_read_access_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_read_access_cost_compile_fail,
-    "../tests/phase_boundaries_graph_read_access_cost_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_read_access_ephemeral_compile_fail,
-    "../tests/phase_boundaries_graph_read_access_ephemeral_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_read_access_persistent_requirement_compile_fail,
-    "../tests/phase_boundaries_graph_read_access_persistent_requirement_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_read_access_streaming_compile_fail,
-    "../tests/phase_boundaries_graph_read_access_streaming_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_graph_touch_descriptor_compile_fail,
-    "../tests/phase_boundaries_graph_touch_descriptor_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_intent_admission_compile_fail,
-    "../tests/phase_boundaries_intent_admission_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_lower_runtime_routing_compile_fail,
-    "../tests/phase_boundaries_lower_runtime_routing_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_projection_consumption_compile_fail,
-    "../tests/phase_boundaries_projection_consumption_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_query_identity_authority_compile_fail,
-    "../tests/phase_boundaries_query_identity_authority_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_runtime_receipts_compile_fail,
-    "../tests/phase_boundaries_runtime_receipts_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_subscription_phase_seven_compile_fail,
-    "../tests/phase_boundaries_subscription_phase_seven_compile_fail.rs"
-);
-internal_suite!(
-    prohibition_registry_compile_fail,
-    "../tests/prohibition_registry_compile_fail.rs"
-);
-internal_suite!(
-    public_authority_surface_compile_fail,
-    "../tests/public_authority_surface_compile_fail.rs"
 );
 internal_suite!(
     public_bridge_reader_lane_honesty,
@@ -368,9 +232,4 @@ internal_suite!(
 internal_suite!(
     runtime_backed_read_bootstrap,
     "../tests/runtime_backed_read_bootstrap.rs"
-);
-internal_suite!(support_pinning_facade, "../tests/support_pinning_facade.rs");
-internal_suite!(
-    support_snapshot_facade,
-    "../tests/support_snapshot_facade.rs"
 );

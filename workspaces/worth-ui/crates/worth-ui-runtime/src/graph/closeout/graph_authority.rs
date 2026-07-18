@@ -25,6 +25,24 @@ impl<'a> UiGraphAuthority<'a> {
         self.snapshot.node_count()
     }
 
+    /// Enumerate graph-owned node identities without asking callers to
+    /// reconstruct membership from declaration or topology indexes.
+    pub fn node_identities(self) -> impl Iterator<Item = UiGraphNodeIdentity> + 'a {
+        self.snapshot
+            .nodes()
+            .iter()
+            .map(|node| node.graph_node_identity())
+    }
+
+    /// Enumerate exactly the graph nodes that require allocation-catalog
+    /// coverage. This is a projection of graph authority, not caller-owned
+    /// participation inference.
+    pub fn allocation_planning_node_identities(
+        self,
+    ) -> impl Iterator<Item = UiGraphNodeIdentity> + 'a {
+        self.snapshot.allocation_planning_node_identities()
+    }
+
     pub fn mounted_receipt_slot_count(self) -> usize {
         self.snapshot.mounted_receipt_slot_count()
     }

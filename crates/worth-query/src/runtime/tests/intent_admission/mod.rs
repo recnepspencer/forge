@@ -3,8 +3,7 @@ use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
 use crate::facade::certification::{
     certify_intent_admission, worth_query_intent_admission_certification_output_manifest,
     worth_query_intent_admission_closeout_extension_outputs,
-    worth_query_intent_admission_compile_fail_targets,
-    worth_query_intent_admission_golden_transcripts, worth_query_intent_admission_mutation_audit,
+    worth_query_intent_admission_mutation_audit,
     worth_query_intent_admission_required_certification_outputs,
     worth_query_intent_admission_support_matrix,
 };

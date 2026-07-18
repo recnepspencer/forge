@@ -1,73 +1,8 @@
 use super::scope::{
     compose_certification_sequence_digest, domain_capability_certification_scope_encoder, seal,
 };
-use crate::domain_capabilities::certification::{
-    WorthQueryDomainCapabilityCompileFailBoundary, WorthQueryDomainCapabilityGoldenTranscript,
-};
 use crate::domain_capabilities::WorthQueryDomainCapabilityCategory;
 use crate::WorthQueryEvidenceTag;
-
-pub(crate) fn compose_compile_fail_boundary_row_digest(label: &str, path: &str) -> String {
-    seal(
-        domain_capability_certification_scope_encoder(
-            "domain_capability_compile_fail_boundary_row_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("label"), label)
-        .field_shape(WorthQueryEvidenceTag::new("path"), path),
-    )
-}
-
-pub(crate) fn compose_compile_fail_boundary_digest(
-    boundaries: &[WorthQueryDomainCapabilityCompileFailBoundary],
-) -> String {
-    compose_certification_sequence_digest(
-        "domain_capability_compile_fail_boundary_v1",
-        "row",
-        boundaries
-            .iter()
-            .map(|row| compose_compile_fail_boundary_row_digest(row.label(), row.path())),
-    )
-}
-
-pub(crate) fn compose_golden_transcript_row_digest(label: &str, path: &str) -> String {
-    seal(
-        domain_capability_certification_scope_encoder("domain_capability_golden_transcript_row_v1")
-            .field_shape(WorthQueryEvidenceTag::new("label"), label)
-            .field_shape(WorthQueryEvidenceTag::new("path"), path),
-    )
-}
-
-pub(crate) fn compose_target_dx_row_digest(label: &str, dx_focus: &str) -> String {
-    seal(
-        domain_capability_certification_scope_encoder("domain_capability_target_dx_row_v1")
-            .field_shape(WorthQueryEvidenceTag::new("label"), label)
-            .field_shape(WorthQueryEvidenceTag::new("dx_focus"), dx_focus),
-    )
-}
-
-pub(crate) fn compose_golden_transcript_digest(
-    transcripts: &[WorthQueryDomainCapabilityGoldenTranscript],
-) -> String {
-    compose_certification_sequence_digest(
-        "domain_capability_golden_transcript_v1",
-        "row",
-        transcripts
-            .iter()
-            .map(|row| compose_golden_transcript_row_digest(row.label(), row.path())),
-    )
-}
-
-pub(crate) fn compose_target_dx_digest(
-    transcripts: &[WorthQueryDomainCapabilityGoldenTranscript],
-) -> String {
-    compose_certification_sequence_digest(
-        "domain_capability_target_dx_v1",
-        "row",
-        transcripts
-            .iter()
-            .map(|row| compose_target_dx_row_digest(row.label(), row.dx_focus())),
-    )
-}
 
 pub(crate) fn compose_certified_surface_row_digest(
     category: &str,
@@ -102,12 +37,7 @@ pub(crate) fn compose_public_surface_digest(
 
 pub(crate) fn compose_certification_surface_digest(
     public_surface_digest: &str,
-    target_dx_digest: &str,
-    golden_transcript_digest: &str,
-    compile_fail_boundary_digest: &str,
     category_count: usize,
-    golden_transcript_count: usize,
-    compile_fail_boundary_count: usize,
 ) -> String {
     seal(
         domain_capability_certification_scope_encoder(
@@ -117,24 +47,7 @@ pub(crate) fn compose_certification_surface_digest(
             WorthQueryEvidenceTag::new("public_surface"),
             public_surface_digest,
         )
-        .field_shape(WorthQueryEvidenceTag::new("target_dx"), target_dx_digest)
-        .field_shape(
-            WorthQueryEvidenceTag::new("golden_transcript"),
-            golden_transcript_digest,
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("compile_fail_boundary"),
-            compile_fail_boundary_digest,
-        )
-        .field_usize(WorthQueryEvidenceTag::new("category_count"), category_count)
-        .field_usize(
-            WorthQueryEvidenceTag::new("golden_transcript_count"),
-            golden_transcript_count,
-        )
-        .field_usize(
-            WorthQueryEvidenceTag::new("compile_fail_boundary_count"),
-            compile_fail_boundary_count,
-        ),
+        .field_usize(WorthQueryEvidenceTag::new("category_count"), category_count),
     )
 }
 

@@ -5,7 +5,7 @@ fn register(view: WorthUiInstalledQueryView) {
     let _app = WorthUi::app()
         .register_query_view(view)
         .expect("installed view registration")
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }
 
 fn main() {}

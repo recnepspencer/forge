@@ -124,18 +124,19 @@ impl<'a> UiAdmissionBoundary<'a> {
             .map(worth_ui_host_contract::WorthUiHostCapabilityReport::observation_generation);
 
         let admission = |posture| {
-            UiMeasurementAdmission::new(
-                target.clone(),
-                target.graph_node_identity(),
-                declaration_identity.clone(),
-                selected.touch().identity_digest(),
-                measurement_obligation.map(|obligation| obligation.identity().identity_digest()),
-                selected.authority_generation(),
-                boundary_generation,
+            UiMeasurementAdmission::new(crate::admission::UiMeasurementAdmissionInput {
+                target: target.clone(),
+                graph_node_identity: target.graph_node_identity(),
+                declaration_identity: declaration_identity.clone(),
+                touch_identity_digest: selected.touch().identity_digest(),
+                selected_measurement_obligation_identity_digest: measurement_obligation
+                    .map(|obligation| obligation.identity().identity_digest()),
+                selected_support_authority_generation: selected.authority_generation(),
+                boundary_support_authority_generation: boundary_generation,
                 host_capability_profile_digest,
                 host_capability_observation_generation,
                 posture,
-            )
+            })
         };
 
         if target.graph_node_identity() != selected.touch().target().graph_node_identity() {

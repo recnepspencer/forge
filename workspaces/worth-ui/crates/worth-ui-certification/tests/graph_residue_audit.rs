@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use worth_ui_certification::topology::{
     audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source,
     audit_phase5_graph_lookup_lane_is_indexed_not_scan_first,
@@ -7,12 +5,8 @@ use worth_ui_certification::topology::{
     audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first,
 };
 
-fn workspace_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate parent")
-        .parent()
-        .expect("workspace root")
+fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
+    super::workspace_source_inventory()
 }
 
 #[test]

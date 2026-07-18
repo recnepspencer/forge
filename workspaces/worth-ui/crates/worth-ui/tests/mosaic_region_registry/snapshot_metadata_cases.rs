@@ -18,7 +18,8 @@ fn mosaic_region_metadata_survives_freeze() {
             .with_hit_test(MosaicHitTestPosture::modal_capture())
             .with_label("Overlay"),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()

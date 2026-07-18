@@ -2,9 +2,7 @@ use crate::capability::CapabilitySnapshotDigest;
 use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeState,
 };
-use crate::runtime::{
-    WorthUiRuntimeActivationStatus, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
-};
+use crate::runtime::WorthUiRuntimeFrameEpoch;
 
 pub(super) struct PreparedActiveSuccessor {
     active_artifact: WorthUiActiveArtifact,
@@ -29,7 +27,7 @@ impl PreparedActiveSuccessor {
             .admitted_candidate()
             .artifact_bundle();
         let active_artifact = WorthUiActiveArtifact::new(
-            candidate_bundle.artifact().clone(),
+            candidate_bundle.artifact_authority(),
             candidate_bundle.artifact_digest(),
         );
         let committed = ready.committed().clone();
@@ -52,14 +50,12 @@ pub(super) fn prepare_active_successor(
     crate::runtime::allocation_receipt::UiAllocationCatalogLedgerTransition,
     crate::runtime::UiCommittedAllocationReplan,
 ) {
-    let next_active = WorthUiActiveRuntimeState::from_preserved_authority(
+    let next_active = WorthUiActiveRuntimeState::replacement_successor(
+        active,
         payload.active_artifact,
         payload.active_plan,
         payload.snapshot_digest,
-        WorthUiRuntimeLifecycle::Active,
-        WorthUiRuntimeActivationStatus::Active,
         runtime_frame_epoch,
-        active.diagnostic_policy(),
     );
     (next_active, payload.ledger_transition, payload.committed)
 }

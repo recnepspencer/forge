@@ -31,6 +31,7 @@ pub fn query_measurement_app(world_profile: UiGraphWorldProfile) -> WorthUiApp {
                 .with_semantic_artifact_spec(portal_measurement_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub fn measurement_touch(app: &WorthUiApp, declaration_index: usize) -> UiGraphTouchDescriptor {

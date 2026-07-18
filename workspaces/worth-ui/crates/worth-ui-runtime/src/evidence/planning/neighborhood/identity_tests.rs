@@ -16,7 +16,8 @@ use crate::evidence::{
     UiAllocationNeighborhoodMember, UiAllocationNeighborhoodMemberRole,
     UiAllocationNeighborhoodMembershipRule, UiLayoutOperatorContainmentKind,
     UiLayoutOperatorFamily, UiLayoutOperatorPlanningContract,
-    UiLayoutOperatorSlotParticipationKind, UiMeasurementDependencyMap,
+    UiLayoutOperatorPlanningContractInput, UiLayoutOperatorSlotParticipationKind,
+    UiMeasurementDependencyMap,
 };
 use crate::facade::WorthUi;
 use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_layout;
@@ -90,114 +91,94 @@ fn equivalent_declared_operator_contracts_converge_across_declarations() {
 
 #[test]
 fn distinct_planning_contracts_do_not_collapse_with_shared_policy_knobs() {
-    let left = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Control,
-        UiLayoutOperatorFamily::Control,
-        UiLayoutOperatorContainmentKind::Control,
-        None,
-        UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        Some(UiDeclaredMeasurementMode::HugHeight),
-        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
-        None,
-        None,
-        vec![],
-    );
-    let right = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Mosaic,
-        UiLayoutOperatorFamily::Mosaic,
-        UiLayoutOperatorContainmentKind::Mosaic,
-        None,
-        UiLayoutOperatorSlotParticipationKind::None,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        UiAllocationNeighborhoodClass::LocalIntrinsicContent,
-        UiAllocationNeighborhoodMembershipRule::RootOnly,
-        Some(UiDeclaredMeasurementMode::HugHeight),
-        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
-        None,
-        None,
-        vec![],
-    );
+    let left = UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::Control,
+        operator_family: UiLayoutOperatorFamily::Control,
+        containment_kind: UiLayoutOperatorContainmentKind::Control,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: UiAllocationNeighborhoodClass::ContainerPeerGroup,
+        membership_rule: UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
+        measurement_mode: Some(UiDeclaredMeasurementMode::HugHeight),
+        constraint_modifier: Some(UiDeclaredMeasurementConstraintModifier::Bounded),
+        basis_source: None,
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    });
+    let right = UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::Mosaic,
+        operator_family: UiLayoutOperatorFamily::Mosaic,
+        containment_kind: UiLayoutOperatorContainmentKind::Mosaic,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::None,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: UiAllocationNeighborhoodClass::LocalIntrinsicContent,
+        membership_rule: UiAllocationNeighborhoodMembershipRule::RootOnly,
+        measurement_mode: Some(UiDeclaredMeasurementMode::HugHeight),
+        constraint_modifier: Some(UiDeclaredMeasurementConstraintModifier::Bounded),
+        basis_source: None,
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    });
 
     assert_ne!(left.identity(), right.identity());
 }
 
 #[test]
 fn distinct_containment_kinds_do_not_collapse_with_identical_policy_and_scope() {
-    let left = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Control,
-        UiLayoutOperatorFamily::Control,
-        UiLayoutOperatorContainmentKind::Control,
-        None,
-        UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        Some(UiDeclaredMeasurementMode::HugHeight),
-        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
-        Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
-        None,
-        vec![],
-    );
-    let right = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Control,
-        UiLayoutOperatorFamily::Control,
-        UiLayoutOperatorContainmentKind::DiagnosticSurface,
-        None,
-        UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        Some(UiDeclaredMeasurementMode::HugHeight),
-        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
-        Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
-        None,
-        vec![],
-    );
+    let left = UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::Control,
+        operator_family: UiLayoutOperatorFamily::Control,
+        containment_kind: UiLayoutOperatorContainmentKind::Control,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: UiAllocationNeighborhoodClass::ContainerPeerGroup,
+        membership_rule: UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
+        measurement_mode: Some(UiDeclaredMeasurementMode::HugHeight),
+        constraint_modifier: Some(UiDeclaredMeasurementConstraintModifier::Bounded),
+        basis_source: Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    });
+    let right = UiLayoutOperatorPlanningContract::new(UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::Control,
+        operator_family: UiLayoutOperatorFamily::Control,
+        containment_kind: UiLayoutOperatorContainmentKind::DiagnosticSurface,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind: UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: UiAllocationNeighborhoodClass::ContainerPeerGroup,
+        membership_rule: UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
+        measurement_mode: Some(UiDeclaredMeasurementMode::HugHeight),
+        constraint_modifier: Some(UiDeclaredMeasurementConstraintModifier::Bounded),
+        basis_source: Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
+        ownership_posture: None,
+        evidence_requirements: vec![],
+    });
 
     assert_ne!(left.identity(), right.identity());
 }
 
 #[test]
 fn distinct_slot_participation_kinds_do_not_collapse_with_identical_family_and_policy() {
-    let left = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Control,
-        UiLayoutOperatorFamily::Control,
+    let left = UiLayoutOperatorPlanningContract::new(control_contract_input(
         UiLayoutOperatorContainmentKind::Control,
-        None,
         UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        Some(UiDeclaredMeasurementMode::HugHeight),
-        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
         Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
-        None,
         vec![],
-    );
-    let right = UiLayoutOperatorPlanningContract::new(
-        UiDeclarationPlanningOperatorKind::Control,
-        UiLayoutOperatorFamily::Control,
+    ));
+    let right = UiLayoutOperatorPlanningContract::new(control_contract_input(
         UiLayoutOperatorContainmentKind::Control,
-        None,
         UiLayoutOperatorSlotParticipationKind::None,
-        UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-        UiDeclarationRepetitionPosture::NotAdmitted,
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        Some(UiDeclaredMeasurementMode::HugHeight),
-        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
         Some(UiDeclaredMeasurementBasisSource::PortalAnchor),
-        None,
         vec![],
-    );
+    ));
 
     assert_ne!(left.identity(), right.identity());
 }
@@ -207,44 +188,64 @@ fn synthetic_neighborhood(
 ) -> UiAllocationNeighborhood {
     let authority = super::UiAllocationNeighborhoodEvidenceTestAuthority::mint();
     UiAllocationNeighborhood::new_for_evidence_test(
-        UiGraphNodeIdentity::new(801),
-        UiGraphGeneration::initial(),
-        77,
-        88,
-        UiLayoutOperatorPlanningContract::new(
-            UiDeclarationPlanningOperatorKind::Control,
-            UiLayoutOperatorFamily::Control,
-            UiLayoutOperatorContainmentKind::Control,
-            None,
-            UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-            UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-            UiDeclarationRepetitionPosture::NotAdmitted,
-            UiAllocationNeighborhoodClass::ContainerPeerGroup,
-            UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-            None,
-            None,
-            None,
-            None,
-            vec![if layout_operator_contract_identity_digest == 101 {
-                crate::declaration::UiDeclaredMeasurementEvidenceRequirement::HostFontMetrics
-            } else {
-                crate::declaration::UiDeclaredMeasurementEvidenceRequirement::PortalAnchorMetrics
-            }],
-        ),
-        UiMeasurementDependencyMap::new(vec![]),
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        vec![UiAllocationNeighborhoodMember::new_for_evidence_test(
-            UiGraphNodeIdentity::new(801),
-            801,
-            UiRepeatedInstanceBasis::unavailable(),
-            UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Admitted),
-            UiAllocationNeighborhoodMemberRole::Root,
-            None,
-            &authority,
-        )],
+        super::UiAllocationNeighborhoodInput {
+            root_graph_node_identity: UiGraphNodeIdentity::new(801),
+            graph_generation: UiGraphGeneration::initial(),
+            world_identity_digest: 77,
+            graph_snapshot_authority_digest: 77
+                ^ UiGraphGeneration::initial().as_u64().rotate_left(11),
+            measurement_basis_identity_digest: 88,
+            layout_operator_planning_contract: UiLayoutOperatorPlanningContract::new(
+                control_contract_input(
+                    UiLayoutOperatorContainmentKind::Control,
+                    UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
+                    None,
+                    vec![if layout_operator_contract_identity_digest == 101 {
+                        crate::declaration::UiDeclaredMeasurementEvidenceRequirement::HostFontMetrics
+                    } else {
+                        crate::declaration::UiDeclaredMeasurementEvidenceRequirement::PortalAnchorMetrics
+                    }],
+                ),
+            ),
+            dependency_map: UiMeasurementDependencyMap::new(vec![]),
+            neighborhood_class: UiAllocationNeighborhoodClass::ContainerPeerGroup,
+            membership_rule: UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
+            members: vec![UiAllocationNeighborhoodMember::new_for_evidence_test(
+                UiGraphNodeIdentity::new(801),
+                801,
+                UiRepeatedInstanceBasis::unavailable(),
+                UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Admitted),
+                UiAllocationNeighborhoodMemberRole::Root,
+                None,
+                &authority,
+            )],
+        },
         &authority,
     )
+}
+
+fn control_contract_input(
+    containment_kind: UiLayoutOperatorContainmentKind,
+    slot_participation_kind: UiLayoutOperatorSlotParticipationKind,
+    basis_source: Option<UiDeclaredMeasurementBasisSource>,
+    evidence_requirements: Vec<crate::declaration::UiDeclaredMeasurementEvidenceRequirement>,
+) -> UiLayoutOperatorPlanningContractInput {
+    UiLayoutOperatorPlanningContractInput {
+        operator_kind: UiDeclarationPlanningOperatorKind::Control,
+        operator_family: UiLayoutOperatorFamily::Control,
+        containment_kind,
+        mosaic_sizing_contract_id: None,
+        slot_participation_kind,
+        ordering_guarantee: UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
+        repetition_posture: UiDeclarationRepetitionPosture::NotAdmitted,
+        neighborhood_class: UiAllocationNeighborhoodClass::ContainerPeerGroup,
+        membership_rule: UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
+        measurement_mode: Some(UiDeclaredMeasurementMode::HugHeight),
+        constraint_modifier: Some(UiDeclaredMeasurementConstraintModifier::Bounded),
+        basis_source,
+        ownership_posture: None,
+        evidence_requirements,
+    }
 }
 
 #[test]
@@ -316,6 +317,7 @@ fn equivalent_contract_app(world_profile: UiGraphWorldProfile) -> crate::facade:
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn distinct_operator_kind_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
@@ -337,6 +339,7 @@ fn distinct_operator_kind_app(world_profile: UiGraphWorldProfile) -> crate::faca
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(
@@ -356,12 +359,10 @@ fn control_spec(
     .with_structural_token(UiDslStructuralToken::new(structural_token))
     .with_structural_token(UiDslStructuralToken::new("slot:footer"));
 
-    match operator_token {
-        Some(operator_token) => {
-            spec.with_structural_token(UiDslStructuralToken::new(operator_token))
-        }
-        None => spec,
+    if let Some(operator_token) = operator_token {
+        return spec.with_structural_token(UiDslStructuralToken::new(operator_token));
     }
+    spec
 }
 
 fn container_policy() -> UiDeclaredMeasurementPolicyPosture {

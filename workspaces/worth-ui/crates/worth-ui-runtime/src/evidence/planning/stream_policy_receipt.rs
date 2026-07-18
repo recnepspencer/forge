@@ -23,6 +23,21 @@ pub struct UiAllocationStreamPolicyEvidenceReceipt {
     payload_counters: UiAllocationStreamPolicyPayloadCounters,
 }
 
+pub(crate) struct UiAllocationStreamPolicyEvidenceInput {
+    pub epoch: UiAllocationFrameEpoch,
+    pub families: Box<[UiAllocationStreamFamily]>,
+    pub order_verdicts: Box<[UiAllocationSourceOrderVerdict]>,
+    pub duplicate_witness: UiAllocationFrameDuplicateWitness,
+    pub invalidations: Box<[UiAllocationInvalidationIntent]>,
+    pub policy: UiResolvedAllocationStreamPolicy,
+    pub intermediate: Box<[UiAllocationIntermediatePolicyVerdict]>,
+    pub branches: Box<[UiResolvedAllocationPolicyBranch]>,
+    pub ingress_policy_verdicts: Box<[UiAllocationIngressPolicyVerdict]>,
+    pub cadence: UiAllocationFrameCadenceVerdict,
+    pub composition_counters: UiAllocationStreamCompositionCounters,
+    pub payload_counters: UiAllocationStreamPolicyPayloadCounters,
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct UiAllocationStreamPolicyPayloadCounters {
     vector_capacity_reservations: u8,
@@ -52,21 +67,21 @@ pub enum UiAllocationStreamPolicyEvidenceOutcome {
 }
 
 impl UiAllocationStreamPolicyEvidenceReceipt {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        epoch: UiAllocationFrameEpoch,
-        families: Box<[UiAllocationStreamFamily]>,
-        order_verdicts: Box<[UiAllocationSourceOrderVerdict]>,
-        duplicate_witness: UiAllocationFrameDuplicateWitness,
-        invalidations: Box<[UiAllocationInvalidationIntent]>,
-        policy: UiResolvedAllocationStreamPolicy,
-        intermediate: Box<[UiAllocationIntermediatePolicyVerdict]>,
-        branches: Box<[UiResolvedAllocationPolicyBranch]>,
-        ingress_policy_verdicts: Box<[UiAllocationIngressPolicyVerdict]>,
-        cadence: UiAllocationFrameCadenceVerdict,
-        composition_counters: UiAllocationStreamCompositionCounters,
-        payload_counters: UiAllocationStreamPolicyPayloadCounters,
-    ) -> Self {
+    pub(crate) fn new(input: UiAllocationStreamPolicyEvidenceInput) -> Self {
+        let UiAllocationStreamPolicyEvidenceInput {
+            epoch,
+            families,
+            order_verdicts,
+            duplicate_witness,
+            invalidations,
+            policy,
+            intermediate,
+            branches,
+            ingress_policy_verdicts,
+            cadence,
+            composition_counters,
+            payload_counters,
+        } = input;
         Self {
             epoch,
             families,

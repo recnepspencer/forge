@@ -13,10 +13,12 @@ use super::runtime_outcome_projection_fixtures::{
 fn equivalent_outcome_projections_preserve_family_identity() {
     let left = WorthUi::app()
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let right = WorthUi::app()
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let left_entry = &left.capabilities().runtime_outcome_projections().entries()[0];
     let right_entry = &right.capabilities().runtime_outcome_projections().entries()[0];
@@ -32,7 +34,8 @@ fn equivalent_outcome_projections_preserve_family_identity() {
 fn outcome_projection_does_not_change_runtime_meaning() {
     let plain = WorthUi::app()
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let renamed = WorthUi::app()
         .register_runtime_outcome_projection(
             denied_projection("workspace.outcome.denied").with_presentation(
@@ -44,7 +47,8 @@ fn outcome_projection_does_not_change_runtime_meaning() {
             ),
         )
         .register_icon(command_icon("workspace.icon.shield"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let plain_entry = &plain.capabilities().runtime_outcome_projections().entries()[0];
     let renamed_entry = &renamed
@@ -72,7 +76,8 @@ fn async_result_state_family_is_preserved_without_local_bool_flattening() {
         .register_runtime_outcome_projection(ready_projection("workspace.outcome.ready"))
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
         .register_runtime_outcome_projection(failed_projection("workspace.outcome.failed"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let runtime_families = app
         .capabilities()
@@ -109,7 +114,8 @@ fn ui_outcome_sources_project_distinct_typed_families() {
             RuntimeOutcomeSourceReference::new(RuntimeOutcomeFamily::loading()),
         ))
         .register_runtime_outcome_projection(ready_projection("workspace.outcome.async_ready"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let runtime_families = app
         .capabilities()
@@ -134,7 +140,8 @@ fn accepted_runtime_outcome_projections_remain_inspectable_after_freeze() {
     let app = WorthUi::app()
         .register_runtime_outcome_projection(failed_projection("workspace.outcome.failed"))
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_runtime_outcome_projection_ids(
         app.capabilities().runtime_outcome_projections(),
@@ -151,10 +158,12 @@ fn projection_key_basis_is_not_delimiter_collision_prone_for_presentation_text()
 
     let split_app = WorthUi::app()
         .register_runtime_outcome_projection(split)
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let joined_app = WorthUi::app()
         .register_runtime_outcome_projection(joined)
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         split_app

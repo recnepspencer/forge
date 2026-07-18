@@ -8,7 +8,8 @@ fn different_surface_descriptor_meaning_produces_different_snapshot_digest() {
             "workspace.surface.editor",
             "workspace.component.editor",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let modal = WorthUi::app()
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(SurfaceDescriptor::new(
@@ -18,7 +19,8 @@ fn different_surface_descriptor_meaning_produces_different_snapshot_digest() {
             SurfacePlacementClass::modal_layer(),
             SurfaceStateClass::persistent(),
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         primary.capabilities().surfaces(),
@@ -41,7 +43,8 @@ fn surface_command_slot_boundaries_affect_snapshot_digest() {
                 .with_command_slot(command_id("workspace.command.ab"))
                 .with_command_slot(command_id("workspace.command.c")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let split = WorthUi::app()
         .register_command(command_descriptor("workspace.command.a", "A"))
         .register_command(command_descriptor("workspace.command.bc", "BC"))
@@ -51,7 +54,8 @@ fn surface_command_slot_boundaries_affect_snapshot_digest() {
                 .with_command_slot(command_id("workspace.command.a"))
                 .with_command_slot(command_id("workspace.command.bc")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         combined.capabilities().surfaces(),

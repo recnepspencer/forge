@@ -17,6 +17,21 @@ use crate::evidence::measurement::{
     UiMeasurementNeighborhoodClassHint, UiMeasurementResult, UiProjectionFactReceipt,
 };
 
+pub(super) struct UiMeasurementBasisIdentityInput<'a> {
+    pub(super) requirements: &'a UiDeclaredMeasurementBasisRequirementSet,
+    pub(super) declaration_identity: &'a UiDeclarationIdentity,
+    pub(super) graph_node_identity: UiGraphNodeIdentity,
+    pub(super) world_profile: &'a UiGraphWorldProfile,
+    pub(super) declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
+    pub(super) declared_measurement_policy: &'a UiDeclaredMeasurementPolicyPosture,
+    pub(super) evidence_inputs: &'a [MeasurementEvidenceInput],
+    pub(super) dependency_lineage: &'a UiMeasurementDependencyLineage,
+    pub(super) dependency_map: &'a UiMeasurementDependencyMap,
+    pub(super) neighborhood_class_hint: UiMeasurementNeighborhoodClassHint,
+    pub(super) generation_compatibility: &'a UiMeasurementGenerationCompatibility,
+    pub(super) denial_posture: Option<&'a UiMeasurementBasisDenial>,
+}
+
 pub(super) fn basis_generation(
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     query_receipt: Option<&UiProjectionFactReceipt>,
@@ -57,20 +72,21 @@ pub(super) fn basis_generation(
     )
 }
 
-pub(super) fn basis_identity_digest(
-    requirements: &UiDeclaredMeasurementBasisRequirementSet,
-    declaration_identity: &UiDeclarationIdentity,
-    graph_node_identity: UiGraphNodeIdentity,
-    world_profile: &UiGraphWorldProfile,
-    declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-    declared_measurement_policy: &UiDeclaredMeasurementPolicyPosture,
-    evidence_inputs: &[MeasurementEvidenceInput],
-    dependency_lineage: &UiMeasurementDependencyLineage,
-    dependency_map: &UiMeasurementDependencyMap,
-    neighborhood_class_hint: UiMeasurementNeighborhoodClassHint,
-    generation_compatibility: &UiMeasurementGenerationCompatibility,
-    denial_posture: Option<&UiMeasurementBasisDenial>,
-) -> u64 {
+pub(super) fn basis_identity_digest(input: UiMeasurementBasisIdentityInput<'_>) -> u64 {
+    let UiMeasurementBasisIdentityInput {
+        requirements,
+        declaration_identity,
+        graph_node_identity,
+        world_profile,
+        declaration_support_authority_generation,
+        declared_measurement_policy,
+        evidence_inputs,
+        dependency_lineage,
+        dependency_map,
+        neighborhood_class_hint,
+        generation_compatibility,
+        denial_posture,
+    } = input;
     let policy_digest = requirements
         .required_measurement_dependencies()
         .iter()

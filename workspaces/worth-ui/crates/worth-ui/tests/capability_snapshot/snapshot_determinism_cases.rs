@@ -15,7 +15,8 @@ fn snapshot_digest_stable_under_registration_permutation() {
                     "theme.text.primary",
                 )),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_component(
             component("component.editor")
@@ -27,7 +28,8 @@ fn snapshot_digest_stable_under_registration_permutation() {
         .register_command(command_with_icon("command.save", "icon.save"))
         .register_icon(command_icon("icon.save"))
         .register_theme_token(theme_token("theme.text.primary"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().digest(),

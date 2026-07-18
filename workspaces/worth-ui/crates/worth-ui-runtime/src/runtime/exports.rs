@@ -2,6 +2,7 @@
 
 mod replacement;
 
+pub use crate::source::WorthUiArtifactInputBodyAtom;
 pub use replacement::*;
 
 // --- graph-owned allocation locality ---
@@ -22,10 +23,12 @@ pub use super::allocation_frame_dispatch::{
     UiAllocationFrameQuerySettlementPosture, UiAllocationFrameQueryWarningPosture,
     UiAllocationFrameSourceFact, UiAllocationFrameSourceFactPosture,
     UiAllocationFrameSubmissionAssignment, UiAllocationFrameSubmissionOutcome,
-    WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
-    WorthUiFrameworkTurnExecution, WorthUiHostMeasurementTurnSource, WorthUiInteractionTurnSource,
-    WorthUiPreviewPaintFollowOn, WorthUiQueryProjectionTurnSource,
-    WorthUiResolvedPreviewPaintCompletion, WorthUiScrollOffsetTurnSource,
+    UiFrameworkTransitionExecutionDenial, UiFrameworkTransitionPlanningCounters,
+    UiFrameworkTransitionPlanningDenial, WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn,
+    WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
+    WorthUiHostMeasurementTurnSource, WorthUiInteractionTurnSource, WorthUiPreviewPaintFollowOn,
+    WorthUiQueryProjectionTurnSource, WorthUiResolvedPreviewPaintCompletion,
+    WorthUiScrollOffsetTurnSource,
 };
 pub(crate) use super::allocation_frame_dispatch::{
     UiAllocationFrameQueueDisposition, UiAllocationFrameReplacementTransition,
@@ -53,16 +56,20 @@ pub use super::allocation_frame_dispatch::{
 };
 pub(crate) use super::allocation_receipt::UiCommittedAllocation;
 pub use super::allocation_receipt::{
-    UiAllocationAnchorPosture, UiAllocationAuthorityCounter,
+    admit_host_paint, UiAllocationAnchorPosture, UiAllocationAuthorityCounter,
     UiAllocationAuthorityCounterExhaustion, UiAllocationAxis, UiAllocationAxisAlignedBounds,
     UiAllocationCandidate, UiAllocationConstraintPayloadShape,
-    UiAllocationConstraintPropagationShape, UiAllocationDurableSemanticState,
-    UiAllocationEdgeReference, UiAllocationGeometryKnowledge, UiAllocationLeafRemeasureWitness,
-    UiAllocationPreviewCandidate, UiAllocationReceipt, UiAllocationReceiptCommitDenial,
-    UiAllocationReceiptCommitOutcome, UiAllocationReceiptConstraintShape,
-    UiAllocationReceiptDenialCause, UiAllocationReceiptDenialReport,
-    UiAllocationReceiptEquivalenceBasis, UiAllocationReceiptFreshnessPosture,
-    UiAllocationReceiptGeneration, UiAllocationReceiptIdentity, UiAllocationReceiptReport,
+    UiAllocationConstraintPropagationShape, UiAllocationCounterName, UiAllocationCounterReport,
+    UiAllocationCounterValue, UiAllocationDenialEvidence, UiAllocationDenialEvidenceIdentity,
+    UiAllocationDenialFamily, UiAllocationDurableSemanticState, UiAllocationEdgeReference,
+    UiAllocationFreshnessConsumptionDenial, UiAllocationFreshnessTransition,
+    UiAllocationFreshnessTransitionCause, UiAllocationFreshnessTransitionDenial,
+    UiAllocationGeometryKnowledge, UiAllocationLeafRemeasureWitness, UiAllocationPreviewCandidate,
+    UiAllocationReceipt, UiAllocationReceiptCommitDenial, UiAllocationReceiptCommitOutcome,
+    UiAllocationReceiptConstraintShape, UiAllocationReceiptDenialCause,
+    UiAllocationReceiptDenialReport, UiAllocationReceiptEquivalenceBasis,
+    UiAllocationReceiptFreshnessPosture, UiAllocationReceiptGeneration,
+    UiAllocationReceiptIdentity, UiAllocationReceiptLagBound, UiAllocationReceiptReport,
     UiAllocationReplanTransaction, UiAllocationReplanTransactionCommitDenial,
     UiAllocationReplanTransactionCounters, UiAllocationReplanTransactionDenial,
     UiAllocationReplanTransactionOutcome, UiAllocationReuseDenial, UiAllocationReuseVerdict,
@@ -158,8 +165,8 @@ pub use super::activation::{
     UiCommittedAllocationActivationDenial, UiCommittedAllocationActivationDenialEvidence,
     UiCommittedAllocationActivationDenialReason, UiCommittedAllocationActivationInspection,
     UiCommittedAllocationActivationInspectionDenialKind,
-    UiCommittedAllocationActivationInspectionOutcome, WorthUiActivationLaneInput,
-    WorthUiAllocationCatalogActivationDenial,
+    UiCommittedAllocationActivationInspectionOutcome, WorthUiAllocationCatalogActivationDenial,
+    WorthUiAllocationCatalogPreparationStage,
 };
 pub use super::activation::{WorthUiPlanSwapReceipt, WorthUiPriorValidPlanObservation};
 
@@ -287,23 +294,25 @@ pub use super::host_observation::reload_storm_certification::{
     WorthUiReloadStormCandidateStepKind, WorthUiReloadStormCertification,
     WorthUiReloadStormCertificationDenial, WorthUiReloadStormCertificationDenialReason,
     WorthUiReloadStormDeniedIteration, WorthUiReloadStormIterationOutcome,
-    WorthUiReloadStormNoOpIteration, WorthUiReloadStormOrderedTruth,
-    WorthUiReloadStormReceiptBinding, WorthUiReloadStormScenario,
-    WorthUiReloadStormSuccessfulIteration,
+    WorthUiReloadStormOrderedTruth, WorthUiReloadStormPreparedIteration,
+    WorthUiReloadStormScenario,
 };
 pub use super::host_observation::{
     WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics, WorthUiRuntimeInspectionAiHarness,
 };
 
 // --- source ingress ---
-pub(crate) use super::source_ingress::WorthUiSourceBackedDeclarationWitness;
 pub use super::source_ingress::{
-    WorthUiCandidateOrderingReceipt, WorthUiDebouncedWatcherBatch, WorthUiReloadDebounce,
-    WorthUiSourceBackedDslPackage, WorthUiSourceIngressCounters, WorthUiSourceIngressDenial,
-    WorthUiSourceIngressDenialReason, WorthUiSourceIngressHook, WorthUiSourceIngressSession,
-    WorthUiSourcePackageRevision, WorthUiSourceProvider, WorthUiSourceProviderKind,
-    WorthUiSourceWatcher, WorthUiWatchedArtifactInput, WorthUiWatchedCandidateSubmission,
+    WorthUiCandidateComposition, WorthUiCandidateCompositionBasis, WorthUiCandidateOrderingReceipt,
+    WorthUiDebouncedWatcherBatch, WorthUiReloadDebounce, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule, WorthUiSourceIngressCounters,
+    WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason, WorthUiSourceIngressHook,
+    WorthUiSourceIngressSession, WorthUiSourcePackageRevision, WorthUiSourceProvider,
+    WorthUiSourceProviderKind, WorthUiSourceWatcher, WorthUiWatchedCandidateSubmission,
     WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
+};
+pub(crate) use super::source_ingress::{
+    WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage,
 };
 
 // --- measurement ---

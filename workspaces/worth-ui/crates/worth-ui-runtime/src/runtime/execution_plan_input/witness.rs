@@ -28,6 +28,9 @@ impl WorthUiExecutionPlanInputWitness {
         let mut node_inputs = Vec::new();
 
         for classification in staged.node_plan().classifications() {
+            if classification.candidate_kind().is_none() {
+                continue;
+            }
             let topology_input = topology_index
                 .input_for_identity(classification.identity_basis())
                 .unwrap_or_default();

@@ -11,7 +11,7 @@ fn main() {
                 .with_family(NativeCapabilityFamily::clipboard())
                 .with_platform_posture(NativePlatformPosture::runtime_declared()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     let _ = app.capabilities().native_capabilities().get(&native_id);
 }

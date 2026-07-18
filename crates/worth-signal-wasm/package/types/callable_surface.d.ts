@@ -336,8 +336,12 @@ export interface SignalsConstructionArtifact {
 
 export interface SignalsConstructionExplanation {
   requestedDeployment: SignalsDeployment;
-  selectedFamily: "mainThreadCompatibility" | "workerUnavailable" | "denied";
-  selectedDeployment: "mainThreadCompatibility" | null;
+  selectedFamily:
+    | "workerFirst"
+    | "mainThreadCompatibility"
+    | "workerUnavailable"
+    | "denied";
+  selectedDeployment: SignalsDeployment | null;
   reason: string;
   compatibilityRecovery: SignalsCompatibilityRecovery | null;
 }

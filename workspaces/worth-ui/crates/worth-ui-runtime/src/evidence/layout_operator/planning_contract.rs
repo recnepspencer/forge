@@ -47,23 +47,41 @@ pub struct UiLayoutOperatorPlanningContract {
     semantics: UiLayoutOperatorPlanningSemantics,
 }
 
+pub(crate) struct UiLayoutOperatorPlanningContractInput {
+    pub(crate) operator_kind: UiDeclarationPlanningOperatorKind,
+    pub(crate) operator_family: UiLayoutOperatorFamily,
+    pub(crate) containment_kind: UiLayoutOperatorContainmentKind,
+    pub(crate) mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
+    pub(crate) slot_participation_kind: UiLayoutOperatorSlotParticipationKind,
+    pub(crate) ordering_guarantee: UiDeclarationOrderingGuarantee,
+    pub(crate) repetition_posture: UiDeclarationRepetitionPosture,
+    pub(crate) neighborhood_class: UiAllocationNeighborhoodClass,
+    pub(crate) membership_rule: UiAllocationNeighborhoodMembershipRule,
+    pub(crate) measurement_mode: Option<UiDeclaredMeasurementMode>,
+    pub(crate) constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    pub(crate) basis_source: Option<UiDeclaredMeasurementBasisSource>,
+    pub(crate) ownership_posture: Option<UiDeclaredMeasurementOwnershipPosture>,
+    pub(crate) evidence_requirements: Vec<UiDeclaredMeasurementEvidenceRequirement>,
+}
+
 impl UiLayoutOperatorPlanningContract {
-    pub(crate) fn new(
-        operator_kind: UiDeclarationPlanningOperatorKind,
-        operator_family: UiLayoutOperatorFamily,
-        containment_kind: UiLayoutOperatorContainmentKind,
-        mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
-        slot_participation_kind: UiLayoutOperatorSlotParticipationKind,
-        ordering_guarantee: UiDeclarationOrderingGuarantee,
-        repetition_posture: UiDeclarationRepetitionPosture,
-        neighborhood_class: UiAllocationNeighborhoodClass,
-        membership_rule: UiAllocationNeighborhoodMembershipRule,
-        measurement_mode: Option<UiDeclaredMeasurementMode>,
-        constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
-        basis_source: Option<UiDeclaredMeasurementBasisSource>,
-        ownership_posture: Option<UiDeclaredMeasurementOwnershipPosture>,
-        mut evidence_requirements: Vec<UiDeclaredMeasurementEvidenceRequirement>,
-    ) -> Self {
+    pub(crate) fn new(input: UiLayoutOperatorPlanningContractInput) -> Self {
+        let UiLayoutOperatorPlanningContractInput {
+            operator_kind,
+            operator_family,
+            containment_kind,
+            mosaic_sizing_contract_id,
+            slot_participation_kind,
+            ordering_guarantee,
+            repetition_posture,
+            neighborhood_class,
+            membership_rule,
+            measurement_mode,
+            constraint_modifier,
+            basis_source,
+            ownership_posture,
+            mut evidence_requirements,
+        } = input;
         evidence_requirements.sort_unstable_by_key(evidence_requirement_rank);
         let semantics = UiLayoutOperatorPlanningSemantics::for_operator_kind(
             operator_kind,

@@ -64,23 +64,23 @@ pub(super) fn publish_validated_committed_allocation(
         .map_err(|denial| {
             let reason = match denial {
                 UiCommittedAllocationPreflightDenial::ActivationGate { denial, counters } => {
-                    activation_counters = counters;
+                    activation_counters = *counters;
                     crate::runtime::UiCommittedAllocationActivationDenialReason::FrameBoundary(
-                        denial,
+                        *denial,
                     )
                 }
                 UiCommittedAllocationPreflightDenial::CandidatePlanDigestMismatch { counters } => {
-                    activation_counters = counters;
+                    activation_counters = *counters;
                     crate::runtime::UiCommittedAllocationActivationDenialReason::CandidatePlanDigestMismatch
                 }
                 UiCommittedAllocationPreflightDenial::LedgerCommittedOutcomeMismatch { counters } => {
-                    activation_counters = counters;
+                    activation_counters = *counters;
                     crate::runtime::UiCommittedAllocationActivationDenialReason::LedgerCommittedOutcomeMismatch
                 }
                 UiCommittedAllocationPreflightDenial::CounterExhausted { counters, exhaustion } => {
                     return crate::runtime::UiCommittedAllocationActivationDenial::counter_exhausted(
                         attempt_identity.clone(),
-                        counters,
+                        *counters,
                         exhaustion,
                     );
                 }
@@ -141,14 +141,14 @@ pub(super) fn publish_validated_committed_allocation(
     let (prepared, ledger_commit, invalidation) =
         truth_resources.seal(scroll_catalog_evidence, prepared_catalog_transition);
     Ok(prepared
-        .bind_commit_resources(
+        .bind_commit_resources(super::UiCommittedAllocationCommitResources {
             ledger_commit,
             invalidation,
             frame_commit,
-            &mut runtime.active,
-            &mut runtime.last_valid,
-            &mut runtime.transient_interaction_admission,
-            &mut runtime.durable_resize_source,
-        )
+            active: &mut runtime.active,
+            last_valid: &mut runtime.last_valid,
+            transient_interaction_admission: &mut runtime.transient_interaction_admission,
+            durable_resize_source: &mut runtime.durable_resize_source,
+        })
         .commit_once())
 }

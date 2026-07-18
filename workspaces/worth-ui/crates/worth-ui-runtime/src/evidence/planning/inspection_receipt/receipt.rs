@@ -132,9 +132,9 @@ fn construct_planning_evidence_slice(
         authority_generation,
         Box::new([evidence_ref]),
         Box::new([evidence_family_summary(evidence_family, 1)]),
-        Some(UiEvidenceMaterializedDetail::AllocationPlanning(
+        Some(UiEvidenceMaterializedDetail::AllocationPlanning(Box::new(
             UiAllocationPlanningEvidenceDetail::from_inspection(inspection),
-        )),
+        ))),
         None,
     )
 }

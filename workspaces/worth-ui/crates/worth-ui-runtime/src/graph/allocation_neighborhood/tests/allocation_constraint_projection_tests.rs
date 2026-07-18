@@ -334,6 +334,7 @@ pub(crate) fn control_app(
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(

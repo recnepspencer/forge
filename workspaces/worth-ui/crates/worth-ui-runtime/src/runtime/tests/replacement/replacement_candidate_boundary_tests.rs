@@ -193,7 +193,11 @@ fn candidate_from_bundle(
 }
 
 fn default_snapshot_digest() -> crate::capability::CapabilitySnapshotDigest {
-    WorthUi::app().freeze().capabilities().digest()
+    WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed")
+        .capabilities()
+        .digest()
 }
 
 fn test_lowering_basis(snapshot_digest: u64) -> WorthUiCandidateLoweringBasis {
@@ -273,7 +277,9 @@ fn rust_authored_import_artifact(target_module_path: &str) -> WorthUiArtifact {
 fn canonical_artifact_from_input(
     artifact_input: crate::source::WorthUiArtifactInput,
 ) -> WorthUiArtifact {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let snapshot = app.capabilities();
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("artifact input resolves");

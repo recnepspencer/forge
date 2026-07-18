@@ -46,6 +46,14 @@ impl UiDeclaredMeasurementPolicyPosture {
         self.constraint_modifier
     }
 
+    pub(crate) fn with_constraint_modifier(
+        mut self,
+        modifier: UiDeclaredMeasurementConstraintModifier,
+    ) -> Self {
+        self.constraint_modifier = Some(modifier);
+        self
+    }
+
     pub const fn basis_source(&self) -> Option<UiDeclaredMeasurementBasisSource> {
         self.basis_source
     }

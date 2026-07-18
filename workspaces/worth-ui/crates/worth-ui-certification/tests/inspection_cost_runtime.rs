@@ -10,8 +10,7 @@ use worth_ui_dsl::{
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 #[test]
 fn declaration_and_graph_receipts_expose_bounded_indexed_costs() {
@@ -69,8 +68,8 @@ fn declaration_and_graph_receipts_expose_bounded_indexed_costs() {
 
 #[test]
 fn obligation_receipts_expose_scope_omission_and_materialization_costs() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let refs_only = app.inspect(
         obligation_touch_query(
             touch.target().graph_node_identity().digest(),
@@ -112,8 +111,8 @@ fn obligation_receipts_expose_scope_omission_and_materialization_costs() {
 
 #[test]
 fn narrow_budget_rich_obligation_queries_omit_detail_by_budget_without_widening() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let receipt = app.inspect(
         obligation_touch_query(
             touch.target().graph_node_identity().digest(),
@@ -265,6 +264,7 @@ fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn aspect_cost_app() -> worth_ui::facade::app::WorthUiApp {
@@ -299,6 +299,7 @@ fn aspect_cost_app() -> worth_ui::facade::app::WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn authored_artifact(

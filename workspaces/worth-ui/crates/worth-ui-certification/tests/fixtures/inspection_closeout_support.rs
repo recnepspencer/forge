@@ -27,6 +27,7 @@ pub fn closeout_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub fn graph_node_digest(app: &WorthUiApp) -> u64 {
@@ -116,9 +117,7 @@ pub fn family_counts(
         .collect()
 }
 
-pub fn receipt_snapshot(
-    receipt: &worth_ui::facade::inspection::UiInspectionReceipt,
-) -> (
+pub type InspectionReceiptSnapshot = (
     Option<u64>,
     Option<u64>,
     Vec<UiEvidenceRef>,
@@ -131,7 +130,11 @@ pub fn receipt_snapshot(
     usize,
     usize,
     bool,
-) {
+);
+
+pub fn receipt_snapshot(
+    receipt: &worth_ui::facade::inspection::UiInspectionReceipt,
+) -> InspectionReceiptSnapshot {
     let slice = receipt
         .evidence_slice()
         .expect("receipt should retain a slice");

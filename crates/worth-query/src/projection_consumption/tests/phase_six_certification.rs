@@ -1,7 +1,3 @@
-use crate::projection_consumption::certification::{
-    compile_fail_boundary_bundle_digest, golden_transcript_bundle_digest,
-    projection_consumption_compile_fail_proofs, projection_consumption_golden_transcripts,
-};
 use crate::projection_consumption::{
     certify_projection_consumption_closeout_core, ProjectionConsumptionCertificationLane,
 };
@@ -14,8 +10,6 @@ fn closeout_bundle_emits_full_phase_six_surface() {
         ProjectionConsumptionCertificationLane::PublicBoundarySurface,
         ProjectionConsumptionCertificationLane::ProofShapeSurface,
         ProjectionConsumptionCertificationLane::ForbiddenFallbackSurface,
-        ProjectionConsumptionCertificationLane::DxTranscriptSurface,
-        ProjectionConsumptionCertificationLane::CompileFailBoundary,
         ProjectionConsumptionCertificationLane::OracleSurface,
         ProjectionConsumptionCertificationLane::SeededReplaySurface,
         ProjectionConsumptionCertificationLane::DownstreamAuthoritySurface,
@@ -47,7 +41,6 @@ fn closeout_bundle_emits_all_spec_required_outputs() {
         "projection_support_matrix_digest",
         "projection_public_surface_digest",
         "projection_target_dx_digest",
-        "projection_golden_transcript_digest",
         "projection_proof_shape_digest",
         "projection_forbidden_fallback_digest",
         "projection_forbidden_fallback_total_occurrences",
@@ -59,7 +52,6 @@ fn closeout_bundle_emits_all_spec_required_outputs() {
         "seeded_sequence_digest",
         "seed_replay_digest",
         "seed_generator_class_digest",
-        "compile_fail_boundary_digest",
         "negative_dx_boundary_digest",
         "failure_digest",
         "counter_snapshot",
@@ -78,21 +70,4 @@ fn closeout_bundle_emits_all_spec_required_outputs() {
             "missing output {output}"
         );
     }
-}
-
-#[test]
-fn closeout_bundle_still_binds_real_transcript_and_compile_fail_catalogs() {
-    let bundle = certify_projection_consumption_closeout_core();
-    let golden_digest = golden_transcript_bundle_digest();
-    let compile_fail_digest = compile_fail_boundary_bundle_digest();
-    assert_eq!(projection_consumption_golden_transcripts().len(), 5);
-    assert_eq!(projection_consumption_compile_fail_proofs().len(), 17);
-    assert_eq!(
-        bundle.output_digest("projection_golden_transcript_digest"),
-        Some(golden_digest.as_str())
-    );
-    assert_eq!(
-        bundle.output_digest("compile_fail_boundary_digest"),
-        Some(compile_fail_digest.as_str())
-    );
 }

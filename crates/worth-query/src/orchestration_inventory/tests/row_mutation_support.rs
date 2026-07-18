@@ -59,21 +59,6 @@ pub(super) fn row_with_binding_projection(
     )
 }
 
-pub(super) fn row_with_doc_reference(
-    row: &WorthQueryOrchestrationSurfaceRow,
-    path: &'static str,
-    section: &'static str,
-) -> WorthQueryOrchestrationSurfaceRow {
-    rebuild_row(
-        row,
-        row.binding_projection(),
-        row.proof_contract(),
-        WorthQueryOrchestrationSurfaceDocReference::new(path, section),
-        row.certification_reference(),
-        row.semantic_profile().clone(),
-    )
-}
-
 pub(super) fn row_with_aspect_posture(
     row: &WorthQueryOrchestrationSurfaceRow,
     aspect_posture: WorthQueryOrchestrationAspectPosture,

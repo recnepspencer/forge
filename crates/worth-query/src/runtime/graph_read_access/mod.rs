@@ -5,7 +5,6 @@ mod access_shape;
 mod async_materialized_read;
 mod basis_binding;
 mod boolean_expression;
-mod compile_fail_boundary;
 mod cost_model;
 mod ephemeral_index_provisioning;
 mod explanation_api;
@@ -96,15 +95,6 @@ pub use boolean_expression::{
     WorthQueryAdmittedBooleanExpressionCounters, WorthQueryAdmittedBooleanExpressionTopology,
     WorthQueryAdmittedBooleanPredicateExpression, WorthQueryAdmittedBooleanPredicateLeaf,
     WorthQueryBooleanExpressionAdmissionError, WorthQueryBooleanExpressionAdmissionErrorKind,
-};
-pub use compile_fail_boundary::{
-    worth_query_graph_read_access_compile_fail_boundary_digest,
-    worth_query_graph_read_access_compile_fail_target_count,
-    worth_query_graph_read_access_compile_fail_targets,
-    worth_query_graph_read_proof_transition_manifest,
-    worth_query_graph_read_proof_transition_manifest_count,
-    worth_query_graph_read_proof_transition_manifest_digest,
-    WorthQueryGraphReadProofBoundaryEvidenceKind, WorthQueryGraphReadProofTransitionManifestRow,
 };
 pub use cost_model::{
     derive_graph_read_cost_evidence, estimate_graph_read_access_cost,

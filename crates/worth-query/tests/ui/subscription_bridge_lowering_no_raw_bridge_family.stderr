@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::lower_query_subscription_to_bridge`
- --> tests/ui/subscription_bridge_lowering_no_raw_bridge_family.rs:1:36
-  |
-1 | use worth_query::facade::runtime::{lower_query_subscription_to_bridge, BridgeSubscriptionDeclarationFamilyKind, QuerySubscriptionBrid...
-  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_query_subscription_to_bridge` in `facade::runtime`

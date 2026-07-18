@@ -47,4 +47,12 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
-result_large_err = "allow"
+
+# Worth UI is a nested workspace and does not inherit the root workspace's
+# profiles. Keep Windows test/debug metadata useful without paying for full PDB
+# generation in every semantic test suite and compile-contract fixture.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.test]
+debug = "line-tables-only"

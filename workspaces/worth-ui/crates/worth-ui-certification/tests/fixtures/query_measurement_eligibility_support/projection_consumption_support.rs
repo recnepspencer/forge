@@ -31,7 +31,7 @@ pub(super) fn measurement_projection_workspace(
         .expect("size aspect should admit");
     let mut workspace = in_memory_test_runtime()
         .with_schema(schema)
-        .workspace(&format!("worth-ui.phase5.query-measurement.{lane_label}"))
+        .workspace(format!("worth-ui.phase5.query-measurement.{lane_label}"))
         .expect("in-memory test backend should build a workspace");
     let write_receipt = workspace
         .insert("task", |task| {

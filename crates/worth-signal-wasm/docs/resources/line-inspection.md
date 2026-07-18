@@ -55,8 +55,8 @@ Drop below `line.summary()` when you need:
 ## Where To Go Next
 
 - task-first examples:
-  [Resource Recipes](../learn/recipes.md)
+  [Resource Recipes](../start_here.md)
 - low-level line reference:
   [Resource Line Reference](../api-reference/resource-line.md)
 - diagnostics/history reference:
-  [Inspection And History Contract](../resource-contracts/inspection-and-history.md)
+  [Inspection And History Contract](./debugging/README.md)

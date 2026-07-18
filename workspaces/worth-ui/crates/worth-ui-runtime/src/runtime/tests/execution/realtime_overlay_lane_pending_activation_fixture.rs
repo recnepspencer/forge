@@ -45,9 +45,11 @@ pub(super) fn pending_plan_input(
             &impact,
             &narrowing,
             &node_plan,
-            Some(&reconciliation_plan),
-            Some(&query_rebind_plan),
-            Some(&pending_input),
+            crate::runtime::WorthUiActivationStagingPlans::new(
+                Some(&reconciliation_plan),
+                Some(&query_rebind_plan),
+                Some(&pending_input),
+            ),
         )
         .expect("activation staging succeeds")
 }

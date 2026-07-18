@@ -28,18 +28,29 @@ pub struct WorthUiQueryBindingPosture {
     denial_presentation: QueryDenialPresentation,
 }
 
+pub(crate) struct WorthUiQueryBindingPostureInput {
+    pub support_receipt: WorthUiQuerySupportReceipt,
+    pub installed_basis_authority: bool,
+    pub lifecycle: worth_ui_query_binding::WorthUiQueryViewLifecycle,
+    pub async_result_state_available: bool,
+    pub recovery_available: bool,
+    pub inspection_available: bool,
+    pub projection_consumption_available: bool,
+    pub denial_presentation: QueryDenialPresentation,
+}
+
 impl WorthUiQueryBindingPosture {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        support_receipt: WorthUiQuerySupportReceipt,
-        installed_basis_authority: bool,
-        lifecycle: worth_ui_query_binding::WorthUiQueryViewLifecycle,
-        async_result_state_available: bool,
-        recovery_available: bool,
-        inspection_available: bool,
-        projection_consumption_available: bool,
-        denial_presentation: QueryDenialPresentation,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiQueryBindingPostureInput) -> Self {
+        let WorthUiQueryBindingPostureInput {
+            support_receipt,
+            installed_basis_authority,
+            lifecycle,
+            async_result_state_available,
+            recovery_available,
+            inspection_available,
+            projection_consumption_available,
+            denial_presentation,
+        } = input;
         Self {
             query_support_status: support_receipt.status(),
             support_contract_identity: support_receipt.contract_identity(),

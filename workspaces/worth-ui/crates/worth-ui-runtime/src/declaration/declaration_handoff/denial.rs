@@ -1,4 +1,3 @@
-use crate::capability::MosaicSizingContractId;
 use crate::declaration::{
     UiAspectContractAdmissionDenial, UiDeclarationFamilyAdmissionDenial,
     UiDeclarationStructuralSemanticsAdmissionDenial, UiDeclaredPostureAdmissionDenial,
@@ -17,12 +16,5 @@ pub enum UiDeclarationGraphHandoffDenial {
     },
     DeclaredPostureNotAdmitted {
         denial: UiDeclaredPostureAdmissionDenial,
-    },
-    SourceBackedMosaicSizingContractProjectionDenied {
-        observed: Vec<MosaicSizingContractId>,
-    },
-    SourceBackedMosaicSizingContractConflict {
-        declared: MosaicSizingContractId,
-        sourced: MosaicSizingContractId,
     },
 }

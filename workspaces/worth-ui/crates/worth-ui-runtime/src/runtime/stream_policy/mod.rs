@@ -3,9 +3,9 @@ mod family;
 mod invalidation;
 mod policy;
 mod resolution;
-pub(crate) use composition::{
-    resolve_stream_families, UiAllocationResolvedCommitLane, UiAllocationStreamCommitDecision,
-};
+pub(crate) use composition::{replacement_activation_policy, UiAllocationResolvedCommitLane};
+#[cfg(test)]
+pub(crate) use composition::{resolve_stream_families, UiAllocationStreamCommitDecision};
 pub use composition::{
     UiAllocationFamilyPairOutcome, UiAllocationIntermediatePolicyVerdict,
     UiAllocationStreamCompositionCounters, UiAllocationStreamCompositionDenial,
@@ -24,6 +24,7 @@ pub use policy::{
 };
 pub(crate) use resolution::{
     consume_pending_frame, UiAllocationFrameConsumptionDisposition, UiAllocationSourceOrderLedger,
+    UiAllocationSourceOrderTransition,
 };
 pub use resolution::{
     UiAllocationDuplicatePosture, UiAllocationFrameCadenceVerdict, UiAllocationFramePlanIdentity,

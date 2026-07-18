@@ -11,5 +11,5 @@ fn main() {
             ComponentChildPolicy::no_children(),
             ComponentStateOwnership::runtime_owned(),
         ))
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

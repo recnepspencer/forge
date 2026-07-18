@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::admit_query_subscription`
- --> tests/ui/subscription_admission_requires_bridge_lowering.rs:1:36
-  |
-1 | use worth_query::facade::runtime::{admit_query_subscription, QuerySubscriptionAdmissionBudget, QuerySubscriptionDeclarationArtifact};
-  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_query_subscription` in `facade::runtime`

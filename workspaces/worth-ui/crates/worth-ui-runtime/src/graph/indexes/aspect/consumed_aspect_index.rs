@@ -34,13 +34,6 @@ pub struct UiGraphConsumedAspectIndex {
 }
 
 impl UiGraphConsumedAspectIndex {
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn empty() -> Self {
-        Self {
-            consumers_by_aspect: BTreeMap::new(),
-        }
-    }
-
     pub(crate) fn build(
         node_aspects: &[(&UiAspectContract, UiGraphNodeIdentity)],
         mounted_receipts: &UiGraphMountedReceiptAuthoritySeedStore,

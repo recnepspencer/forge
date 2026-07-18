@@ -77,12 +77,11 @@ fn naming_doc_and_config_agree_on_query_audience_framework_family() {
         !config_text.contains("query_host_bands"),
         "retired query_host_bands must not remain in road1.toml"
     );
-    assert_eq!(
+    assert!(
         config_text
-            .matches("engine_package = \"worth-query\"")
-            .count(),
-        1,
-        "engine package must appear in exactly one engine_package key"
+            .replace("\r\n", "\n")
+            .contains("[rule_contracts.query_audience]\nengine_package = \"worth-query\""),
+        "the Query audience contract must name the canonical engine package"
     );
 }
 

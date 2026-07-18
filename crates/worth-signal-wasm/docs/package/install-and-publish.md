@@ -381,11 +381,11 @@ acceptable.
 
 ## What To Read Next
 
-- [App Surface Overview](../app-surface/overview.md)
+- [App Surface Overview](../getting-started/choosing-a-surface.md)
 - [Resource Overview](../resources/overview.md)
 - [Resource Family Authoring Reference](../api-reference/resource-family-authoring.md)
 - [Resource Line Reference](../api-reference/resource-line.md)
-- [Resource Recipes](../learn/recipes.md)
-- [Host Capabilities](../app-surface/host-capabilities.md)
-- [Diagnostics And History](../app-surface/diagnostics-and-history.md)
-- [React Adapter](../app-surface/react-adapter.md)
+- [Resource Recipes](../start_here.md)
+- [Host Capabilities](../integrations/host-capabilities.md)
+- [Diagnostics And History](../core/diagnostics.md)
+- [React Adapter](../integrations/react.md)

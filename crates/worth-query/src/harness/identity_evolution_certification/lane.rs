@@ -19,14 +19,12 @@ pub enum IdentityEvolutionCertificationPerturbationClass {
     Performance,
     ComplexityContract,
     FallbackBoundary,
-    CompileTimeBoundary,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IdentityEvolutionCertificationFailureClass {
     AdmissionDenied,
     ExecutionDenied,
-    CompileFail,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -130,7 +128,6 @@ pub struct IdentityEvolutionCertificationRejection {
     pub replay_digest: String,
     pub counter_snapshot_digest: String,
     pub exact_counter_values: Vec<String>,
-    pub compile_fail_case: Option<&'static str>,
 }
 
 impl IdentityEvolutionCertificationRejection {
@@ -161,7 +158,6 @@ impl IdentityEvolutionCertificationRejection {
                 .as_str()
                 .to_string(),
             exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
-            compile_fail_case: None,
         }
     }
 
@@ -185,39 +181,6 @@ impl IdentityEvolutionCertificationRejection {
                 .as_str()
                 .to_string(),
             exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
-            compile_fail_case: None,
-        }
-    }
-
-    pub fn compile_fail(
-        row_name: &'static str,
-        file: &'static str,
-        query_digest: &CanonicalQueryDigest,
-        basis_digest: &BasisDigest,
-    ) -> Self {
-        let evidence = IdentityEvolutionCertificationDenialEvidence::compile_fail(
-            row_name,
-            query_digest,
-            basis_digest,
-        );
-        let replay = compare_identity_evolution_denial_replay(&evidence, &evidence);
-        Self {
-            failure_class: IdentityEvolutionCertificationFailureClass::CompileFail,
-            query_digest: evidence.query_digest().as_str().to_string(),
-            basis_digest: evidence.basis_digest().as_str().to_string(),
-            lineage_digest: evidence.lineage_digest().as_str().to_string(),
-            branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
-            complexity_contract_digest: evidence.complexity_contract_digest().as_str().to_string(),
-            result_digest: evidence.result_digest().to_string(),
-            failure_digest: evidence.failure_digest().as_str().to_string(),
-            replay_digest: replay.replay_digest().as_str().to_string(),
-            counter_snapshot_digest: evidence
-                .counter_snapshot()
-                .counter_snapshot_digest()
-                .as_str()
-                .to_string(),
-            exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
-            compile_fail_case: Some(file),
         }
     }
 }

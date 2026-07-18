@@ -81,6 +81,13 @@ impl WorthUiInstalledQueryTestFixture {
             .expect("installed view registration")
     }
 
+    /// Clone the installed view as input to a production registration facade.
+    /// The fixture retains its workspace so later projections carry the same
+    /// installed Query authority as the registered view.
+    pub fn installed_view(&self) -> WorthUiInstalledQueryView {
+        self.view.clone()
+    }
+
     pub fn project(&mut self) -> WorthUiQueryProjectionOutcome {
         let completion = self
             .view

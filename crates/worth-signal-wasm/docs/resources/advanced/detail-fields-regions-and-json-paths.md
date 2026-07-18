@@ -137,5 +137,5 @@ is the common path only for ordinary top-level object fields.
 
 ## Related Docs
 
-- [Reconciliation Contract](../../resource-contracts/reconciliation.md)
+- [Reconciliation Contract](../responses/README.md)
 - [Json Path Effects](../json-effects.md)

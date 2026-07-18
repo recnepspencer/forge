@@ -3,10 +3,15 @@ impl crate::runtime::WorthUiRuntime {
         &mut self,
         selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
     ) -> crate::runtime::UiAllocationReplanTransactionOutcome {
-        super::allocation_transaction::commit_selected(
+        let pending = super::allocation_transaction::prepare_selected(
+            &self.allocation_receipt_ledger,
+            &self.allocation_invalidation_index.borrow(),
+            selection,
+        );
+        super::allocation_transaction::publish_pending(
             &self.allocation_receipt_ledger,
             &mut self.allocation_invalidation_index.borrow_mut(),
-            selection,
+            pending,
         )
     }
 
@@ -20,13 +25,27 @@ impl crate::runtime::WorthUiRuntime {
         Option<crate::runtime::UiAllocationDurableSemanticState>,
         bool,
     ) {
-        super::allocation_transaction::commit_durable_resize(
+        let previous = self.allocation_receipt_ledger.durable_semantic_state();
+        let (pending, requested_mutation) =
+            super::allocation_transaction::prepare_pending_durable_resize(
+                &self.allocation_receipt_ledger,
+                &self.allocation_invalidation_index.borrow(),
+                selection,
+                identity,
+                extent,
+            );
+        let outcome = super::allocation_transaction::publish_pending(
             &self.allocation_receipt_ledger,
             &mut self.allocation_invalidation_index.borrow_mut(),
-            selection,
-            identity,
-            extent,
-        )
+            pending,
+        );
+        let state = self.allocation_receipt_ledger.durable_semantic_state();
+        let mutated = matches!(
+            outcome,
+            crate::runtime::UiAllocationReplanTransactionOutcome::Committed(_)
+        ) && requested_mutation
+            && previous != state;
+        (outcome, state, mutated)
     }
 
     pub(crate) fn into_runtime(self) -> Self {

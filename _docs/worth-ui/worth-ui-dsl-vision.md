@@ -13,8 +13,8 @@ The central question is:
 
 ```text
 What kind of language must the Worth UI DSL be so that authored meaning lowers
-honestly into canonical declaration artifacts, runtime graph truth, mounted
-receipts, and bounded rebind?
+honestly into canonical declaration artifacts, runtime graph truth, lowered
+execution plans, mounted receipts, and bounded rebind?
 ```
 
 ## Thesis
@@ -267,7 +267,8 @@ Worth UI needs these layers to stay asymmetric:
 ```text
 DSL source tree != canonical declaration artifact
 canonical declaration artifact != runtime UI graph
-runtime UI graph != mounted receipt graph
+runtime UI graph != lowered execution plan
+lowered execution plan != mounted receipt graph
 mounted receipt graph != host widget tree
 ```
 
@@ -276,6 +277,19 @@ proof obligations.
 
 The DSL may support fragments, templates, and sugar, but they must be lowering
 constructs rather than runtime authority objects.
+
+The execution plan is also a lowering product, not an authoring surface. DSL
+syntax may declare semantic requirements that affect a plan, but it may not
+name runtime handles, choose internal lane strategy, author host contacts, or
+make egui-specific mechanics part of canonical UI meaning. Source spans and
+provenance remain available for plan inspection; ordinary frame execution does
+not reopen DSL source.
+
+Equivalent sugar, fragments, and non-semantic source ordering must converge on
+the same executable meaning. A source change that affects capability support,
+Query binding, host requirements, lane policy, or another execution-bearing
+contract must remain visible to plan equivalence even when its rendered output
+happens to look unchanged.
 
 Bad:
 
@@ -615,6 +629,8 @@ can it lower into:
   index contributions
   consumed facts
   support requirements
+  host/lane support requirements
+  canonical execution-plan contribution
   diagnostic contract
 ?
 ```
@@ -653,6 +669,8 @@ At minimum:
 - Milestone 3.2 must carry declaration artifacts and aspect contracts that can
   honestly support this authoring shape
 - Milestone 3.3 through 3.12 must close the runtime lanes this DSL relies on
+- Milestone 3.9 must lower admitted semantic lanes into host-neutral execution
+  plans without exposing handles or executor strategy in the DSL
 - later product milestones must consume this runtime-backed authoring model
   instead of smuggling semantics back into widget-local abstractions
 

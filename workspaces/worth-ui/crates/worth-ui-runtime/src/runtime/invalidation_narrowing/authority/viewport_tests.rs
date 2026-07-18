@@ -16,6 +16,22 @@ impl WorthUiMeasurementHostAdapter for ViewportAdapter {
     }
 }
 
+fn viewport_collection_input(
+    report: &worth_ui_host_contract::WorthUiHostCapabilityReport,
+    evidence_generation: UiEvidenceAuthorityGeneration,
+    profile: crate::host::UiHostMeasurementAssumptionProfile,
+) -> crate::host::UiHostMeasurementCollectionInput<'_> {
+    crate::host::UiHostMeasurementCollectionInput {
+        identity: UiMeasurementRequestIdentity::new(900),
+        evidence_family: UiMeasurementEvidenceFamily::ViewportExtent,
+        need: crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
+        capability_report: report,
+        evidence_generation,
+        normalization_context:
+            crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+    }
+}
+
 #[test]
 fn viewport_fanout_at_receipt_ceiling_commits_exactly_four_neighborhoods() {
     let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(4);
@@ -74,12 +90,9 @@ fn cumulative_viewport_target_ceiling_denies_the_first_excess_sample() {
                 source
                     .collect_and_submit(
                         &ViewportAdapter(width),
-                        UiMeasurementRequestIdentity::new(900),
-                        UiMeasurementEvidenceFamily::ViewportExtent,
-                        crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-                        &report,
-                        UiEvidenceAuthorityGeneration::new(17),
-                        crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                        viewport_collection_input(
+                            &report,
+                            UiEvidenceAuthorityGeneration::new(17),
                             profile,
                         ),
                     )
@@ -123,6 +136,7 @@ fn viewport_receipt_ceiling_denies_post_locality_without_ledger_mutation() {
                 selected: 5,
                 maximum: 4,
             },
+            ..
         }
     ));
     assert_eq!(
@@ -144,12 +158,9 @@ fn submit_viewport_observation<'a>(
             source
                 .collect_and_submit(
                     &ViewportAdapter(width),
-                    UiMeasurementRequestIdentity::new(900),
-                    UiMeasurementEvidenceFamily::ViewportExtent,
-                    crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-                    &report,
-                    UiEvidenceAuthorityGeneration::new(17),
-                    crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                    viewport_collection_input(
+                        &report,
+                        UiEvidenceAuthorityGeneration::new(17),
                         profile,
                     ),
                 )
@@ -173,14 +184,7 @@ fn ordinary_viewport_churn_resolves_with_bounded_receipts_and_no_durable_mutatio
                 source
                     .collect_and_submit(
                         &ViewportAdapter(width),
-                        UiMeasurementRequestIdentity::new(900),
-                        UiMeasurementEvidenceFamily::ViewportExtent,
-                        crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-                        &report,
-                        generation,
-                        crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
-                            profile,
-                        ),
+                        viewport_collection_input(&report, generation, profile),
                     )
                     .expect("ordinary viewport observation admits");
             }
@@ -253,12 +257,9 @@ fn mixed_viewport_and_semantic_input_denies_before_locality_or_commit() {
             source
                 .collect_and_submit(
                     &ViewportAdapter(900.0),
-                    UiMeasurementRequestIdentity::new(900),
-                    UiMeasurementEvidenceFamily::ViewportExtent,
-                    crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-                    &report,
-                    UiEvidenceAuthorityGeneration::new(17),
-                    crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                    viewport_collection_input(
+                        &report,
+                        UiEvidenceAuthorityGeneration::new(17),
                         profile,
                     ),
                 )
@@ -306,14 +307,9 @@ fn identical_ordinary_viewport_churn_replays_to_identical_evidence() {
                     source
                         .collect_and_submit(
                             &ViewportAdapter(width),
-                            UiMeasurementRequestIdentity::new(900),
-                            UiMeasurementEvidenceFamily::ViewportExtent,
-                            crate::host::UiHostMeasurementNeed::ViewportExtent(
-                                UiViewportExtentRequest,
-                            ),
-                            &report,
-                            UiEvidenceAuthorityGeneration::new(17),
-                            crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                            viewport_collection_input(
+                                &report,
+                                UiEvidenceAuthorityGeneration::new(17),
                                 profile,
                             ),
                         )
@@ -346,12 +342,9 @@ fn incompatible_viewport_normalization_cannot_reuse_admitted_target_authority() 
             source
                 .collect_and_submit(
                     &ViewportAdapter(900.0),
-                    UiMeasurementRequestIdentity::new(900),
-                    UiMeasurementEvidenceFamily::ViewportExtent,
-                    crate::host::UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-                    &report,
-                    UiEvidenceAuthorityGeneration::new(17),
-                    crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                    viewport_collection_input(
+                        &report,
+                        UiEvidenceAuthorityGeneration::new(17),
                         incompatible_profile,
                     ),
                 )

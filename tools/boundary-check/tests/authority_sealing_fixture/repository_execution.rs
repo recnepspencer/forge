@@ -8,6 +8,7 @@ use std::process::Command;
 impl AuthoritySealingTestRepository {
     pub fn run_boundary_check(&self) -> (bool, String) {
         let displaced_sources = self.displace_hostile_sources_for_snapshot_seed();
+        let prior_exemptions = self.install_snapshot_seed_exemptions();
         let seed = Command::new(env!("CARGO_BIN_EXE_boundary-check"))
             .arg("--root")
             .arg(&self.root)
@@ -16,6 +17,7 @@ impl AuthoritySealingTestRepository {
             .arg("--update-snapshots")
             .output()
             .expect("seed Phase 6 snapshots");
+        self.restore_snapshot_seed_exemptions(prior_exemptions);
         self.restore_displaced_sources(displaced_sources);
         if !seed.status.success() {
             return (
@@ -60,8 +62,56 @@ impl AuthoritySealingTestRepository {
         }
     }
 
+    fn install_snapshot_seed_exemptions(&self) -> Option<String> {
+        let exemption_path = self
+            .root
+            .join("tools/boundary-check/config/generated_source_exemptions.txt");
+        let prior = fs::read_to_string(&exemption_path).ok();
+        let mut sources = Vec::new();
+        collect_rust_source_paths(
+            &self
+                .root
+                .join("cad/workspaces/worth-entry/crates/worth-entry-adoption/src"),
+            &mut sources,
+        );
+        sources.sort();
+        let exemptions = sources
+            .iter()
+            .filter_map(|path| path.strip_prefix(&self.root).ok())
+            .map(|path| path.to_string_lossy().replace('\\', "/"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        fs::write(&exemption_path, exemptions).expect("write snapshot seed exemptions");
+        prior
+    }
+
+    fn restore_snapshot_seed_exemptions(&self, prior: Option<String>) {
+        let exemption_path = self
+            .root
+            .join("tools/boundary-check/config/generated_source_exemptions.txt");
+        if let Some(prior) = prior {
+            fs::write(exemption_path, prior).expect("restore generated-source exemptions");
+        } else {
+            let _ = fs::remove_file(exemption_path);
+        }
+    }
+
     pub fn cleanup(self) {
         let _ = fs::remove_dir_all(&self.root);
+    }
+}
+
+fn collect_rust_source_paths(root: &std::path::Path, sources: &mut Vec<PathBuf>) {
+    let Ok(entries) = fs::read_dir(root) else {
+        return;
+    };
+    for entry in entries.filter_map(Result::ok) {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_rust_source_paths(&path, sources);
+        } else if path.extension().and_then(|value| value.to_str()) == Some("rs") {
+            sources.push(path);
+        }
     }
 }
 

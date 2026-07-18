@@ -99,16 +99,22 @@ fn construct_allocation_neighborhood(
 
     let authority = super::UiAllocationNeighborhoodMintAuthority::mint();
     Ok(UiAllocationNeighborhood::new_with_graph_authority(
-        expected,
-        snapshot.generation(),
-        basis.world_profile().identity_digest(),
-        snapshot.authority_digest(),
-        basis.identity_digest(),
-        construct_allocation_neighborhood_operator_contract(basis, root_record, root_topology),
-        basis.dependency_map().clone(),
-        neighborhood_class,
-        membership_rule,
-        members,
+        crate::evidence::UiAllocationNeighborhoodInput {
+            root_graph_node_identity: expected,
+            graph_generation: snapshot.generation(),
+            world_identity_digest: basis.world_profile().identity_digest(),
+            graph_snapshot_authority_digest: snapshot.authority_digest(),
+            measurement_basis_identity_digest: basis.identity_digest(),
+            layout_operator_planning_contract: construct_allocation_neighborhood_operator_contract(
+                basis,
+                root_record,
+                root_topology,
+            ),
+            dependency_map: basis.dependency_map().clone(),
+            neighborhood_class,
+            membership_rule,
+            members,
+        },
         &authority,
     ))
 }

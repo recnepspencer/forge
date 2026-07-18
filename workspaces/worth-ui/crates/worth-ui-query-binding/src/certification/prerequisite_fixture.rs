@@ -1,9 +1,15 @@
+use std::sync::Arc;
 use worth_foundational::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::certification::resolve_runtime_current_snapshot_basis_for_certification;
+
+use worth_query::facade::certification::{
+    admit_runtime_current_snapshot_basis_for_certification,
+    resolve_runtime_current_snapshot_basis_for_certification,
+};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::foundation::{
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectionFactFieldPath, WorthQueryPredicateOperand,
+    ProjectionFactFieldPath, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    WorthQueryPredicateOperand, WorthQuerySnapshotIdentity,
 };
 use worth_query::facade::read::{current, declare, project_facts};
 use worth_query::facade::runtime::{
@@ -20,6 +26,29 @@ pub enum WorthUiQueryCertificationProjection {
     DisplayField,
     EntityIdentities,
     DisplayFieldAndEntityIdentities,
+}
+
+pub fn worth_ui_query_snapshot_prerequisites(
+    snapshot_label: &str,
+    schema_basis_parts: [&str; 3],
+) -> WorthUiQueryPrerequisiteEvidence {
+    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
+        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
+    );
+    let basis = admit_runtime_current_snapshot_basis_for_certification(
+        snapshot_identity.evidence_identity(),
+        QueryExternalSchemaBasisToken::from_domain_parts(
+            schema_basis_parts
+                .into_iter()
+                .map(str::to_owned)
+                .collect::<Vec<_>>(),
+        ),
+    )
+    .expect("runtime current snapshot basis should resolve");
+
+    WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit")
 }
 
 pub fn worth_ui_query_prerequisite_fixture(

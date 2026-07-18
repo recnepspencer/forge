@@ -82,15 +82,19 @@ where
         | crate::runtime::WorthUiFrameworkTurnCompletion::DragResizePreviewPending { .. } => {
             TestFrameworkTurnPosture::Resolved
         }
-        crate::runtime::WorthUiFrameworkTurnCompletion::UnacceptedFrameBackpressured
-        | crate::runtime::WorthUiFrameworkTurnCompletion::Phase6Backpressured
-        | crate::runtime::WorthUiFrameworkTurnCompletion::AllocationFrameResolutionDenied {
+        crate::runtime::WorthUiFrameworkTurnCompletion::AllocationFrameResolutionDenied {
             ..
         }
         | crate::runtime::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied {
             ..
         }
         | crate::runtime::WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied {
+            ..
+        }
+        | crate::runtime::WorthUiFrameworkTurnCompletion::FrameworkTransitionPlanningDenied {
+            ..
+        }
+        | crate::runtime::WorthUiFrameworkTurnCompletion::FrameworkTransitionExecutionDenied {
             ..
         }
         | crate::runtime::WorthUiFrameworkTurnCompletion::ViewportResizeDenied { .. } => {
@@ -131,24 +135,24 @@ fn interaction_gateway_reaches_only_the_framework_turn_capability() {
     );
 
     assert_eq!(turn_outcome, TestFrameworkTurnPosture::Denied);
-    assert!(framework.pending_narrowed_allocation_frame.is_none());
 }
 
 #[test]
 fn gateway_admission_is_bounded_by_dispatcher_transport_backpressure() {
     let mut framework = framework_from_artifact(empty_artifact());
-    let mut admission = framework.interaction_admission();
-    let admitted = (0..=64)
-        .map(|_| {
-            admission
-                .admit(
-                    UiGraphNodeIdentity::new(7),
-                    WorthUiTransientInteractionState::DragCapture,
-                )
-                .expect("interaction source should admit")
-        })
-        .collect::<Vec<_>>();
-    drop(admission);
+    let admitted = {
+        let mut admission = framework.interaction_admission();
+        (0..=64)
+            .map(|_| {
+                admission
+                    .admit(
+                        UiGraphNodeIdentity::new(7),
+                        WorthUiTransientInteractionState::DragCapture,
+                    )
+                    .expect("interaction source should admit")
+            })
+            .collect::<Vec<_>>()
+    };
     let mut overflow = None;
     run_framework_turn(&mut framework, |turn| {
         for admitted in admitted.iter().copied().take(64) {

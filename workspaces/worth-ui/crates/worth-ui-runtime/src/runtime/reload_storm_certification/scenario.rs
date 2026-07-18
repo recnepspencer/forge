@@ -108,15 +108,24 @@ impl WorthUiReloadStormScenario {
         let mut entries = vec![format!("scenario:{}", self.name)];
         for step in &self.steps {
             entries.push(format!(
-                "{}|{:?}|{}|{}|{}",
+                "{}|{}|{}|{}|{}",
                 step.label,
-                step.kind,
+                step.kind.digest_tag(),
                 step.provider.id(),
                 step.provider.final_package_digest(),
                 step.event_burst_digest()
             ));
         }
         super::digest::fold_texts(entries)
+    }
+}
+
+impl WorthUiReloadStormCandidateStepKind {
+    fn digest_tag(self) -> &'static str {
+        match self {
+            Self::FileAuthored => "file-authored",
+            Self::RustAuthored => "rust-authored",
+        }
     }
 }
 
@@ -183,29 +192,25 @@ impl WorthUiReloadStormCandidateStep {
     }
 
     pub(crate) fn expected_provider_kind_matches(&self) -> bool {
-        match (self.kind, self.provider.kind()) {
+        matches!(
+            (self.kind, self.provider.kind()),
             (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::Filesystem,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::EditorBuffer,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::Generated,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::FileAuthored,
                 WorthUiSourceProviderKind::InMemory,
-            )
-            | (
+            ) | (
                 WorthUiReloadStormCandidateStepKind::RustAuthored,
-                WorthUiSourceProviderKind::RustAuthoredArtifact,
-            ) => true,
-            _ => false,
-        }
+                WorthUiSourceProviderKind::RustAuthoredComposition,
+            )
+        )
     }
 
     pub(crate) fn reuse_previous_receipt_probe(&self) -> bool {

@@ -1,63 +1,19 @@
 import { useMemo } from "react";
 
+import type { FormFieldWritePosture } from "../package/types/forms/core.js";
+import {
+  commitTextInput,
+  setCheckboxInput,
+} from "./form_input_events.js";
 import { useSignalValue, useSignalsDiagnostics } from "./hooks.js";
 
 import type {
   FormControllerReactLike,
   FormFieldHandleReactLike,
+  FormInteractionFieldReactLike,
+  FormVisibleMessageReactLike,
   ReactSignalsStore,
 } from "./model.js";
-
-function eventValue(eventOrValue: unknown): unknown {
-  if (
-    eventOrValue
-    && typeof eventOrValue === "object"
-    && "currentTarget" in eventOrValue
-  ) {
-    const currentTarget = (eventOrValue as { currentTarget?: { value?: unknown } }).currentTarget;
-    if (currentTarget && "value" in currentTarget) {
-      return currentTarget.value;
-    }
-  }
-  if (
-    eventOrValue
-    && typeof eventOrValue === "object"
-    && "target" in eventOrValue
-  ) {
-    const target = (eventOrValue as { target?: { value?: unknown } }).target;
-    if (target && "value" in target) {
-      return target.value;
-    }
-  }
-  return eventOrValue;
-}
-
-function eventChecked(eventOrChecked: unknown): boolean {
-  if (typeof eventOrChecked === "boolean") {
-    return eventOrChecked;
-  }
-  if (
-    eventOrChecked
-    && typeof eventOrChecked === "object"
-    && "currentTarget" in eventOrChecked
-  ) {
-    const currentTarget = (eventOrChecked as { currentTarget?: { checked?: unknown } }).currentTarget;
-    if (currentTarget && typeof currentTarget.checked === "boolean") {
-      return currentTarget.checked;
-    }
-  }
-  if (
-    eventOrChecked
-    && typeof eventOrChecked === "object"
-    && "target" in eventOrChecked
-  ) {
-    const target = (eventOrChecked as { target?: { checked?: unknown } }).target;
-    if (target && typeof target.checked === "boolean") {
-      return target.checked;
-    }
-  }
-  return Boolean(eventOrChecked);
-}
 
 export function useFormField<
   TValue = unknown,
@@ -76,9 +32,9 @@ export function useFormField<
   value: TValue;
   dirty: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["dirty"]>;
   diagnostics: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["diagnostics"]>;
-  messages: readonly unknown[];
-  interaction: unknown | null;
-  writePosture: unknown;
+  messages: readonly FormVisibleMessageReactLike[];
+  interaction: FormInteractionFieldReactLike | null;
+  writePosture: FormFieldWritePosture;
   textInput(): {
     readonly name: string;
     readonly value: TValue;
@@ -122,7 +78,7 @@ export function useFormField<
           name: fieldId,
           value,
           onChange(next: unknown) {
-            binding.input(eventValue(next) as TRaw);
+            commitTextInput(binding, next);
           },
           onBlur() {
             binding.blur();
@@ -137,7 +93,7 @@ export function useFormField<
           name: fieldId,
           checked: Boolean(value),
           onChange(next: unknown) {
-            binding.set(eventChecked(next) as TValue);
+            setCheckboxInput(binding, next);
           },
           onBlur() {
             binding.blur();
@@ -154,9 +110,9 @@ export function useFormField<
       value: TValue;
       dirty: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["dirty"]>;
       diagnostics: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["diagnostics"]>;
-      messages: readonly unknown[];
-      interaction: unknown | null;
-      writePosture: unknown;
+      messages: readonly FormVisibleMessageReactLike[];
+      interaction: FormInteractionFieldReactLike | null;
+      writePosture: FormFieldWritePosture;
       textInput(): {
         readonly name: string;
         readonly value: TValue;

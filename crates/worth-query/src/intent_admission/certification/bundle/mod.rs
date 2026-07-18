@@ -10,7 +10,6 @@ use super::oracles::{
 };
 use super::output_manifest::worth_query_intent_admission_certification_output_manifest;
 use super::reports::{
-    worth_query_intent_admission_doc_example_report,
     worth_query_intent_admission_legacy_parity_report,
     worth_query_intent_admission_representative_family_report,
     worth_query_intent_admission_representative_output_report,
@@ -18,7 +17,7 @@ use super::reports::{
     worth_query_intent_admission_slope_report,
     worth_query_intent_admission_support_traceability_report,
     WorthQueryIntentAdmissionCertificationCounterSnapshot,
-    WorthQueryIntentAdmissionDocExampleReport, WorthQueryIntentAdmissionLegacyParityReport,
+    WorthQueryIntentAdmissionLegacyParityReport,
     WorthQueryIntentAdmissionRepresentativeFamilyReport,
     WorthQueryIntentAdmissionRepresentativeOutputReport,
     WorthQueryIntentAdmissionSeededCertificationReport, WorthQueryIntentAdmissionSlopeReport,
@@ -61,7 +60,6 @@ pub struct WorthQueryIntentAdmissionCertificationBundle {
     topology_audit: WorthQueryIntentAdmissionTopologyAudit,
     representative_output_report: WorthQueryIntentAdmissionRepresentativeOutputReport,
     representative_family_report: WorthQueryIntentAdmissionRepresentativeFamilyReport,
-    doc_example_report: WorthQueryIntentAdmissionDocExampleReport,
     oracle_report: WorthQueryIntentAdmissionOracleReport,
     legacy_parity_report: WorthQueryIntentAdmissionLegacyParityReport,
     support_traceability_report: WorthQueryIntentAdmissionSupportTraceabilityReport,
@@ -81,7 +79,6 @@ impl WorthQueryIntentAdmissionCertificationBundle {
         topology_audit: WorthQueryIntentAdmissionTopologyAudit,
         representative_output_report: WorthQueryIntentAdmissionRepresentativeOutputReport,
         representative_family_report: WorthQueryIntentAdmissionRepresentativeFamilyReport,
-        doc_example_report: WorthQueryIntentAdmissionDocExampleReport,
         oracle_report: WorthQueryIntentAdmissionOracleReport,
         legacy_parity_report: WorthQueryIntentAdmissionLegacyParityReport,
         support_traceability_report: WorthQueryIntentAdmissionSupportTraceabilityReport,
@@ -98,7 +95,6 @@ impl WorthQueryIntentAdmissionCertificationBundle {
             &topology_audit,
             &representative_output_report,
             &representative_family_report,
-            &doc_example_report,
             &oracle_report,
             &legacy_parity_report,
             &support_traceability_report,
@@ -126,7 +122,6 @@ impl WorthQueryIntentAdmissionCertificationBundle {
             topology_audit,
             representative_output_report,
             representative_family_report,
-            doc_example_report,
             oracle_report,
             legacy_parity_report,
             support_traceability_report,
@@ -175,10 +170,6 @@ impl WorthQueryIntentAdmissionCertificationBundle {
         &self,
     ) -> &WorthQueryIntentAdmissionRepresentativeFamilyReport {
         &self.representative_family_report
-    }
-
-    pub fn doc_example_report(&self) -> &WorthQueryIntentAdmissionDocExampleReport {
-        &self.doc_example_report
     }
 
     pub fn oracle_report(&self) -> &WorthQueryIntentAdmissionOracleReport {
@@ -233,7 +224,6 @@ pub fn certify_intent_admission() -> WorthQueryIntentAdmissionCertificationBundl
         WorthQueryIntentAdmissionTopologyAudit::new(),
         worth_query_intent_admission_representative_output_report(),
         worth_query_intent_admission_representative_family_report(),
-        worth_query_intent_admission_doc_example_report(),
         worth_query_intent_admission_oracle_report(),
         worth_query_intent_admission_legacy_parity_report(),
         worth_query_intent_admission_support_traceability_report(),

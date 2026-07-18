@@ -52,21 +52,19 @@ impl UiGraphCoreIndexes {
         }
     }
 
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn build_without_aspects(
+    pub(crate) fn rebuild_participation_for_successor(
         nodes: &[UiGraphNode],
-        declaration_correspondence: UiGraphDeclarationCorrespondence,
         topology: &UiGraphTopology,
-        mounted_receipts: &UiGraphMountedReceiptAuthoritySeedStore,
+        prior: &Self,
     ) -> Self {
         Self {
             node_identity_index: UiGraphNodeIdentityIndex::build(nodes),
+            declaration_correspondence: prior.declaration_correspondence.clone(),
             topology_indexes: UiGraphTopologyIndexes::build(topology),
             participation_indexes: UiGraphParticipationIndexes::build(nodes, topology),
-            mounted_receipt_index: UiGraphMountedReceiptIndex::build(mounted_receipts),
-            published_aspect_index: UiGraphPublishedAspectIndex::empty(),
-            consumed_aspect_index: UiGraphConsumedAspectIndex::empty(),
-            declaration_correspondence,
+            mounted_receipt_index: prior.mounted_receipt_index.clone(),
+            published_aspect_index: prior.published_aspect_index.clone(),
+            consumed_aspect_index: prior.consumed_aspect_index.clone(),
         }
     }
 

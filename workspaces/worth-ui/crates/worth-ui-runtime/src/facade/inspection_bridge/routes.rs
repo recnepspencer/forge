@@ -46,7 +46,7 @@ fn route_measurement_scope(
     authority: InspectionAuthority,
 ) -> UiInspectionReceipt {
     match decide_relevance_admission(query.clone(), &authority) {
-        RelevanceAdmissionDecision::Denied(receipt) => receipt,
+        RelevanceAdmissionDecision::Denied(receipt) => *receipt,
         RelevanceAdmissionDecision::Matched(_) => {
             if let Some(receipt) = measurement_inspection_boundary(app).inspect(
                 app,
@@ -89,7 +89,7 @@ fn route_product_root(
 ) -> UiInspectionReceipt {
     let support_report = inspection_support_report_for(app, &query);
     match decide_support_admission(query.clone(), support_report, app.lifecycle(), &authority) {
-        SupportAdmissionDecision::Denied(receipt) => receipt,
+        SupportAdmissionDecision::Denied(receipt) => *receipt,
         SupportAdmissionDecision::Matched {
             admission,
             support_report,
@@ -103,7 +103,7 @@ fn route_authored_lookup(
     authority: InspectionAuthority,
 ) -> UiInspectionReceipt {
     match decide_relevance_admission(query.clone(), &authority) {
-        RelevanceAdmissionDecision::Denied(receipt) => receipt,
+        RelevanceAdmissionDecision::Denied(receipt) => *receipt,
         RelevanceAdmissionDecision::Matched(_) => {
             app.lifecycle().record_authored_lookup();
             let fallback_query = query.clone();
@@ -131,7 +131,7 @@ fn route_graph_node(
     authority: InspectionAuthority,
 ) -> UiInspectionReceipt {
     match decide_relevance_admission(query.clone(), &authority) {
-        RelevanceAdmissionDecision::Denied(receipt) => receipt,
+        RelevanceAdmissionDecision::Denied(receipt) => *receipt,
         RelevanceAdmissionDecision::Matched(_) => graph_inspection_boundary(app)
             .inspect(
                 query.clone(),
@@ -152,7 +152,7 @@ fn route_aspect_evidence(
 ) -> UiInspectionReceipt {
     let support_report = inspection_support_report_for(app, &query);
     match decide_support_admission(query.clone(), support_report, app.lifecycle(), &authority) {
-        SupportAdmissionDecision::Denied(receipt) => receipt,
+        SupportAdmissionDecision::Denied(receipt) => *receipt,
         SupportAdmissionDecision::Matched {
             admission: _,
             support_report,
@@ -182,7 +182,7 @@ fn route_retained_obligation(
     authority: InspectionAuthority,
 ) -> UiInspectionReceipt {
     match decide_relevance_admission(query.clone(), &authority) {
-        RelevanceAdmissionDecision::Denied(receipt) => receipt,
+        RelevanceAdmissionDecision::Denied(receipt) => *receipt,
         RelevanceAdmissionDecision::Matched(admission) => {
             if let Some(receipt) = inspect_retained_obligation_query(app, query.clone()) {
                 return receipt;

@@ -30,8 +30,12 @@ mod participation;
 mod snapshot;
 mod topology;
 
+pub(crate) use snapshot::UiGraphAuthorityIdentity;
+
 // --- admission (declaration → graph instantiation) ---
-pub(crate) use admission::admit_graph_handoffs;
+pub(crate) use admission::{
+    admit_graph_handoffs, UiGraphNodeInstantiationInput, UiGraphTopologySeedInput,
+};
 pub use admission::{
     UiGraphCoreIndexContributionSeed, UiGraphInstantiationDenial, UiGraphInstantiationLocalDenial,
     UiGraphInstantiationLocalDenialKind, UiGraphInstantiationPlan, UiGraphNodeInstantiationEntry,
@@ -109,9 +113,10 @@ pub use mounted_receipt::{
 };
 
 // --- mutation ---
-#[cfg(any(test, feature = "certification-support"))]
 pub(crate) use mutation::UiGraphMutationStage;
-pub use mutation::{UiGraphMutationCommitDenial, UiGraphMutationCommitResult};
+pub use mutation::{
+    UiGraphMountedLayoutAdmissionDenial, UiGraphMutationCommitDenial, UiGraphMutationCommitResult,
+};
 
 // --- participation ---
 pub(crate) use participation::materialize_graph_participation_posture;
@@ -123,6 +128,7 @@ pub use participation::{
 };
 
 // --- snapshot ---
+pub(crate) use snapshot::UiGraphNodeInput;
 pub use snapshot::{
     UiGraphAttachmentPosture, UiGraphDeclarationCorrespondence, UiGraphNode, UiGraphSnapshot,
 };

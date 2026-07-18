@@ -6,7 +6,7 @@ use super::super::audits::{
 };
 use super::super::oracles::WorthQueryIntentAdmissionOracleReport;
 use super::super::reports::{
-    WorthQueryIntentAdmissionDocExampleReport, WorthQueryIntentAdmissionLegacyParityReport,
+    WorthQueryIntentAdmissionLegacyParityReport,
     WorthQueryIntentAdmissionRepresentativeFamilyReport,
     WorthQueryIntentAdmissionRepresentativeOutputReport,
     WorthQueryIntentAdmissionSeededCertificationReport, WorthQueryIntentAdmissionSlopeReport,
@@ -47,7 +47,6 @@ pub(crate) fn assemble_certification_outputs(
     topology_audit: &WorthQueryIntentAdmissionTopologyAudit,
     representative_output_report: &WorthQueryIntentAdmissionRepresentativeOutputReport,
     representative_family_report: &WorthQueryIntentAdmissionRepresentativeFamilyReport,
-    doc_example_report: &WorthQueryIntentAdmissionDocExampleReport,
     oracle_report: &WorthQueryIntentAdmissionOracleReport,
     legacy_parity_report: &WorthQueryIntentAdmissionLegacyParityReport,
     support_traceability_report: &WorthQueryIntentAdmissionSupportTraceabilityReport,
@@ -106,22 +105,6 @@ pub(crate) fn assemble_certification_outputs(
             public_boundary_audit.target_dx_digest().to_string(),
         ),
         WorthQueryIntentAdmissionCertificationOutputSpec::new(
-            "intent_golden_transcript_digest",
-            public_boundary_audit.golden_transcript_digest().to_string(),
-        ),
-        WorthQueryIntentAdmissionCertificationOutputSpec::new(
-            "negative_dx_boundary_digest",
-            public_boundary_audit
-                .negative_dx_boundary_digest()
-                .to_string(),
-        ),
-        WorthQueryIntentAdmissionCertificationOutputSpec::new(
-            "compile_fail_boundary_digest",
-            public_boundary_audit
-                .compile_fail_boundary_digest()
-                .to_string(),
-        ),
-        WorthQueryIntentAdmissionCertificationOutputSpec::new(
             "decision_phase_progression_digest",
             proof_shape_audit
                 .decision_phase_progression_digest()
@@ -157,10 +140,6 @@ pub(crate) fn assemble_certification_outputs(
             .collect::<Vec<_>>(),
     );
     outputs.extend(vec![
-        WorthQueryIntentAdmissionCertificationOutputSpec::new(
-            "crate_doc_example_digest",
-            doc_example_report.crate_doc_example_digest().to_string(),
-        ),
         WorthQueryIntentAdmissionCertificationOutputSpec::new(
             "decision_oracle_digest",
             oracle_report.oracle_digest().to_string(),

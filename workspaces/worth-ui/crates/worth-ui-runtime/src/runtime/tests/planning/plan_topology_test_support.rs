@@ -51,7 +51,7 @@ pub(super) fn assemble(
     let runtime = fresh_runtime();
     runtime
         .assemble_execution_plan_topology(
-            &runtime.detached_allocation_receipt_for_test(planning),
+            &runtime.detached_allocation_lowering_input_for_test(planning),
             allocation,
         )
         .expect("topology assembles")
@@ -64,7 +64,7 @@ pub(super) fn assemble_err(
     let runtime = fresh_runtime();
     runtime
         .assemble_execution_plan_topology(
-            &runtime.detached_allocation_receipt_for_test(planning),
+            &runtime.detached_allocation_lowering_input_for_test(planning),
             allocation,
         )
         .expect_err("topology assembly denies")
@@ -158,17 +158,19 @@ fn rebuilt_allocation(
     child_range_handles: Vec<WorthUiChildRangeHandle>,
 ) -> WorthUiRuntimeHandleAllocation {
     WorthUiRuntimeHandleAllocation::new(
-        allocation.basis().clone(),
-        allocation.receipt(),
-        allocation.family_widths(),
-        allocation.counters(),
-        runtime_handles,
-        allocation.component_handles().to_vec(),
-        allocation.command_handles().to_vec(),
-        allocation.token_handles().to_vec(),
-        child_range_handles,
-        allocation.view_binding_handles().to_vec(),
-        allocation.lane_handles().to_vec(),
-        allocation.state_slot_handles().to_vec(),
+        crate::runtime::execution::handle_allocation::WorthUiRuntimeHandleAllocationInput {
+            basis: allocation.basis().clone(),
+            receipt: allocation.receipt(),
+            family_widths: allocation.family_widths(),
+            counters: allocation.counters(),
+            runtime_handles,
+            component_handles: allocation.component_handles().to_vec(),
+            command_handles: allocation.command_handles().to_vec(),
+            token_handles: allocation.token_handles().to_vec(),
+            child_range_handles,
+            view_binding_handles: allocation.view_binding_handles().to_vec(),
+            lane_handles: allocation.lane_handles().to_vec(),
+            state_slot_handles: allocation.state_slot_handles().to_vec(),
+        },
     )
 }

@@ -181,10 +181,12 @@ fn bind_surface_icon(
         icon_id,
         &locus,
         surface_node.provenance(),
-        WorthUiBindingDiagnosticCode::MissingSemanticSurfaceIconReference,
-        WorthUiBindingDiagnosticCode::DeferredSemanticSurfaceIconReference,
-        WorthUiBindingDiagnosticCode::UnsupportedSemanticSurfaceIconReference,
-        WorthUiBindingDiagnosticCode::PlatformInternalSemanticSurfaceIconReference,
+        [
+            WorthUiBindingDiagnosticCode::MissingSemanticSurfaceIconReference,
+            WorthUiBindingDiagnosticCode::DeferredSemanticSurfaceIconReference,
+            WorthUiBindingDiagnosticCode::UnsupportedSemanticSurfaceIconReference,
+            WorthUiBindingDiagnosticCode::PlatformInternalSemanticSurfaceIconReference,
+        ],
     )?;
     Ok(WorthUiBoundIconReference::new(icon, descriptor))
 }
@@ -259,10 +261,12 @@ fn bind_command_icon(
         icon_id,
         &locus,
         surface_node.provenance(),
-        WorthUiBindingDiagnosticCode::MissingSemanticCommandIconReference,
-        WorthUiBindingDiagnosticCode::DeferredSemanticCommandIconReference,
-        WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandIconReference,
-        WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandIconReference,
+        [
+            WorthUiBindingDiagnosticCode::MissingSemanticCommandIconReference,
+            WorthUiBindingDiagnosticCode::DeferredSemanticCommandIconReference,
+            WorthUiBindingDiagnosticCode::UnsupportedSemanticCommandIconReference,
+            WorthUiBindingDiagnosticCode::PlatformInternalSemanticCommandIconReference,
+        ],
     )?;
     Ok(WorthUiBoundIconReference::new(icon, descriptor))
 }

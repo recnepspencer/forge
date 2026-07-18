@@ -251,8 +251,8 @@ export function RouterSection({ onNavigate }: RouterSectionProps) {
       ) : null}
 
       <div className="signals-docs-row">
-        <button onClick={() => onNavigate("#/docs/router/index")} type="button">
-          Explore routing in the documentation <span aria-hidden="true">→</span>
+        <button onClick={() => onNavigate("#/docs/router/admission/admit")} type="button">
+          Read route admission <span aria-hidden="true">→</span>
         </button>
       </div>
     </div>

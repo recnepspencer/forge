@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::admit_active_subscription_lane`
- --> tests/ui/active_subscription_raw_activation_forbidden.rs:1:36
-  |
-1 | use worth_query::facade::runtime::{admit_active_subscription_lane, ActiveSubscriptionWorkBudget};
-  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |                                    |
-  |                                    no `admit_active_subscription_lane` in `facade::runtime`
-  |                                    help: a similar name exists in the module: `join_active_subscription_lane`

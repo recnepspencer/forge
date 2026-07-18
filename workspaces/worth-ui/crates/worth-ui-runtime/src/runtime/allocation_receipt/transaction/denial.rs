@@ -3,9 +3,26 @@
 pub enum UiAllocationReceiptCommitDenial {
     CatalogBindingCardinalityMismatch,
     CatalogBindingIdentityMismatch { ordinal: u16 },
-    CatalogActivationAuthority(super::UiCommittedAllocationCatalogActivationDenial),
-    CandidatePlanningDenied(super::UiAllocationReceiptDenialReport),
-    ReuseDenied(super::UiAllocationReceiptDenialReport),
+    CatalogActivationAuthority(Box<super::UiCommittedAllocationCatalogActivationDenial>),
+    CandidatePlanningDenied(Box<super::UiAllocationReceiptDenialReport>),
+    ReuseDenied(Box<super::UiAllocationReceiptDenialReport>),
     AuthorityCounterExhausted(super::UiAllocationAuthorityCounterExhaustion),
     EvidenceCounterExhausted,
+}
+
+impl UiAllocationReceiptCommitDenial {
+    pub(super) fn catalog_activation(
+        denial: super::UiCommittedAllocationCatalogActivationDenial,
+    ) -> Self {
+        Self::CatalogActivationAuthority(Box::new(denial))
+    }
+
+    pub(super) fn candidate_planning(report: super::UiAllocationReceiptDenialReport) -> Self {
+        Self::CandidatePlanningDenied(Box::new(report))
+    }
+
+    #[cfg(test)]
+    pub(super) fn reuse(report: super::UiAllocationReceiptDenialReport) -> Self {
+        Self::ReuseDenied(Box::new(report))
+    }
 }

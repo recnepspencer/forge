@@ -195,12 +195,14 @@ fn materialize_measurement_basis_for_certification<Adapter: WorthUiMeasurementHo
         let result = host_measurement_collector
             .collect(
                 host_adapter,
-                host_request.request_identity,
-                host_request.evidence_family,
-                host_request.need.clone(),
-                &scenario.host_capability_report,
-                scenario.declaration_support_authority_generation,
-                host_request.normalization_context,
+                crate::host::UiHostMeasurementCollectionInput {
+                    identity: host_request.request_identity,
+                    evidence_family: host_request.evidence_family,
+                    need: host_request.need.clone(),
+                    capability_report: &scenario.host_capability_report,
+                    evidence_generation: scenario.declaration_support_authority_generation,
+                    normalization_context: host_request.normalization_context,
+                },
             )
             .map_err(UiMeasurementBasisCertificationScenarioError::HostMeasurementEvidenceDenied)?;
         inputs.push(MeasurementEvidenceInput::host_measurement_result(&result));

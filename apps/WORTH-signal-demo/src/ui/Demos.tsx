@@ -33,7 +33,12 @@ export function useSignal<T>(signals: any, handle: any): T {
     React.useCallback((onChange) => {
       if (!signals || !handle) return () => {};
       const disposable = signals.watch(handle, onChange);
-      return () => signals.nuke(disposable);
+      let subscribed = true;
+      return () => {
+        if (!subscribed) return;
+        subscribed = false;
+        signals.nuke(disposable);
+      };
     }, [signals, handle]),
     getSnapshot,
     getSnapshot,

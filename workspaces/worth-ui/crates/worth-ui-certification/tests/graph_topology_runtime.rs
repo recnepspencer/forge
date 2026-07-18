@@ -1,15 +1,17 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
 #[path = "fixtures/graph_topology_test_support.rs"]
 mod graph_topology_test_support;
 
 use graph_topology_test_support::{
     artifact_from_file_provenance, diagnostic_surface_spec, extra_root_page_spec,
-    graph_node_identity, local_composition_spec, mosaic_spec, page_set_spec, panic_message,
-    region_spec, root_page_artifact, slotted_control_spec,
+    graph_node_identity, local_composition_spec, mosaic_spec, page_set_spec, region_spec,
+    root_page_artifact, slotted_control_spec,
 };
-use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::graph::{UiGraphContainmentClaim, UiGraphParentResolutionClaim};
+use worth_ui::facade::app::{
+    WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
+};
+use worth_ui::facade::graph::{
+    UiGraphContainmentClaim, UiGraphParentResolutionClaim, UiGraphTopologyLocalDenial,
+};
 use worth_ui::facade::registry::MosaicSizingContractId;
 use worth_ui_dsl::WorthUiDslPackage;
 
@@ -20,7 +22,8 @@ fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
             WorthUiDslPackage::named("worth-ui.certification.graph-topology.slot")
                 .with_semantic_artifact_spec(slotted_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
     let control = artifact_from_file_provenance(&app, "app/graph_topology.wui", 0);
@@ -106,7 +109,8 @@ fn public_freeze_exposes_explicit_region_and_mosaic_membership_indexes() {
                 .with_semantic_artifact_spec(region_spec())
                 .with_semantic_artifact_spec(mosaic_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
     let region = artifact_from_file_provenance(&app, "app/graph_topology.wui", 1);
@@ -184,7 +188,8 @@ fn topology_indexes_locate_nodes_while_attachment_posture_stays_on_node_truth() 
             WorthUiDslPackage::named("worth-ui.certification.graph-topology.attachment")
                 .with_semantic_artifact_spec(slotted_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
     let root_page_id = graph_node_identity(graph, root_page);
@@ -214,7 +219,8 @@ fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membershi
                 .with_semantic_artifact_spec(local_composition_spec())
                 .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
     let page_set = artifact_from_file_provenance(&app, "app/graph_topology_claims.wui", 0);
@@ -278,23 +284,31 @@ fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membershi
 }
 
 #[test]
-fn freeze_panics_when_topology_cannot_resolve_to_one_root_page() {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.graph-topology.root-denial")
-                    .with_semantic_artifact_spec(extra_root_page_spec())
-                    .with_semantic_artifact_spec(slotted_control_spec()),
-            )
-            .freeze();
-    }));
+fn freeze_returns_typed_denial_when_topology_has_multiple_root_pages() {
+    let denial = match WorthUi::app()
+        .with_dsl_package(
+            WorthUiDslPackage::named("worth-ui.certification.graph-topology.root-denial")
+                .with_semantic_artifact_spec(extra_root_page_spec())
+                .with_semantic_artifact_spec(slotted_control_spec()),
+        )
+        .freeze()
+    {
+        Ok(_) => panic!("ambiguous root topology must deny application preparation"),
+        Err(denial) => denial,
+    };
 
-    let panic_message =
-        panic_message(result.expect_err(
-            "freeze path must panic when graph topology cannot resolve to one root page",
-        ));
-    assert!(
-        panic_message.contains("freeze path must deny before publishing graph authority"),
-        "expected topology denial panic to name unresolved topology path, got: {panic_message}"
+    assert_eq!(
+        denial.phase(),
+        WorthUiApplicationPreparationPhase::GraphCommit
     );
+    let WorthUiApplicationPreparationDenial::GraphCommit(denial) = denial else {
+        panic!("expected graph-commit denial");
+    };
+    assert_eq!(denial.local_denials().len(), 3);
+    assert!(denial.local_denials().iter().all(|local| {
+        local.topology_denial()
+            == Some(&UiGraphTopologyLocalDenial::RootPageCardinality {
+                observed_root_pages: 2,
+            })
+    }));
 }

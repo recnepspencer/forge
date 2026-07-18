@@ -22,12 +22,19 @@ pub(crate) fn rust_import_provider() -> WorthUiSourceProvider {
 }
 
 pub(crate) fn rust_import_provider_for(target_module_path: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::rust_authored_artifact("rust-authored").with_artifact_input(
-        crate::runtime::WorthUiWatchedArtifactInput::from_rust_authored_artifact(
-            "import-provider",
-            rust_import_artifact_for(target_module_path),
-        ),
-    )
+    WorthUiSourceProvider::rust_authored("rust-authored")
+        .with_rust_authored_input(rust_import_input_for(target_module_path))
+}
+
+pub(crate) fn rust_import_input() -> WorthUiRustAuthoredArtifactInput {
+    rust_import_input_for("app/panels/inspector.wui")
+}
+
+pub(crate) fn rust_import_input_for(target_module_path: &str) -> WorthUiRustAuthoredArtifactInput {
+    WorthUiRustAuthoredArtifactInput::from_modules([
+        WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_import(target_module_path),
+        WorthUiRustAuthoredArtifactInputModule::new(target_module_path),
+    ])
 }
 
 pub(crate) fn rust_import_artifact() -> WorthUiArtifact {
@@ -35,10 +42,9 @@ pub(crate) fn rust_import_artifact() -> WorthUiArtifact {
 }
 
 pub(crate) fn rust_import_artifact_for(target_module_path: &str) -> WorthUiArtifact {
-    canonical_artifact_from_rust_modules([
-        WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_import(target_module_path),
-        WorthUiRustAuthoredArtifactInputModule::new(target_module_path),
-    ])
+    canonical_artifact_from_input(WorthUiRustAuthoredToArtifactInputLowerer::lower(
+        &rust_import_input_for(target_module_path),
+    ))
 }
 
 pub(crate) fn empty_artifact() -> WorthUiArtifact {
@@ -54,7 +60,9 @@ pub(crate) fn runtime_from_artifact(artifact: WorthUiArtifact) -> crate::runtime
 pub(crate) fn framework_from_artifact(
     artifact: WorthUiArtifact,
 ) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let candidate = crate::runtime::candidate::rust_authored_replacement_candidate(
         artifact,
         app.capabilities().digest(),
@@ -77,7 +85,9 @@ fn canonical_artifact_from_rust_modules<const N: usize>(
 fn canonical_artifact_from_input(
     artifact_input: crate::source::WorthUiArtifactInput,
 ) -> WorthUiArtifact {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let snapshot = app.capabilities();
     let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("artifact input resolves");

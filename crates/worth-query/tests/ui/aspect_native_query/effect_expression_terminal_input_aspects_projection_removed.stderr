@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_input_aspects_projection` found for reference `&WorthQueryEffectExpression` in the current scope
- --> tests/ui/aspect_native_query/effect_expression_terminal_input_aspects_projection_removed.rs:4:24
-  |
-4 |     let _ = expression.terminal_input_aspects_projection();
-  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryEffectExpression`

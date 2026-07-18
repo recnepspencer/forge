@@ -1,17 +1,11 @@
-use std::path::Path;
-
 use worth_ui_certification::topology::{
     audit_admission_facades_are_curated_and_glob_free,
     audit_consumers_route_admission_through_worth_ui_facade,
     audit_runtime_admission_surface_routes_through_curated_submodule,
 };
 
-fn workspace_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate parent")
-        .parent()
-        .expect("workspace root")
+fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
+    super::workspace_source_inventory()
 }
 
 #[test]

@@ -1,5 +1,7 @@
 //! Allocation truth progression: candidate -> preview or committed receipt.
 
+#[path = "report_freshness/allocation_counters.rs"]
+mod allocation_counters;
 #[path = "committed_truth/candidate.rs"]
 mod candidate;
 #[path = "transaction/commit_outcome.rs"]
@@ -14,10 +16,14 @@ mod committed_evidence;
 mod committed_lowering_input;
 #[path = "committed_truth/committed_receipt.rs"]
 mod committed_receipt;
+#[path = "report_freshness/consumer_admission.rs"]
+mod consumer_admission;
 #[path = "transaction/denial.rs"]
 mod denial;
 #[path = "transaction/denial_report.rs"]
 mod denial_report;
+#[path = "transaction/denial_taxonomy.rs"]
+mod denial_taxonomy;
 #[path = "committed_truth/durable_semantic_state.rs"]
 mod durable_semantic_state;
 #[path = "committed_truth/equivalence_basis.rs"]
@@ -55,6 +61,10 @@ mod receipt_ledger_test_support;
 pub(crate) use receipt_ledger_test_support::{
     detached_non_portal_receipt, UiNonPortalReceiptLawCandidate,
 };
+#[cfg(test)]
+mod allocation_contract_tests;
+#[cfg(test)]
+mod hostile_workbench_tests;
 #[path = "report_freshness/receipt_report.rs"]
 mod receipt_report;
 #[path = "transaction/replan_commit_mode.rs"]
@@ -70,6 +80,9 @@ mod truth_revision;
 #[path = "report_freshness/viewport_inspection.rs"]
 mod viewport_inspection;
 
+pub use allocation_counters::{
+    UiAllocationCounterName, UiAllocationCounterReport, UiAllocationCounterValue,
+};
 pub use candidate::UiAllocationCandidate;
 pub use commit_outcome::UiAllocationReceiptCommitOutcome;
 pub(crate) use committed_allocation::UiCommittedAllocation;
@@ -81,8 +94,14 @@ pub(crate) use committed_catalog_binding::UiCommittedScrollActivationSource;
 pub use committed_evidence::{UiCommittedAllocationEvidenceSet, UiCommittedPortalAnchorEvidence};
 pub use committed_lowering_input::UiCommittedAllocationLoweringInput;
 pub use committed_receipt::UiAllocationReceipt;
+pub use consumer_admission::{
+    admit_execution_lowering, admit_host_paint, UiAllocationFreshnessConsumptionDenial,
+};
 pub use denial::UiAllocationReceiptCommitDenial;
 pub use denial_report::{UiAllocationReceiptDenialCause, UiAllocationReceiptDenialReport};
+pub use denial_taxonomy::{
+    UiAllocationDenialEvidence, UiAllocationDenialEvidenceIdentity, UiAllocationDenialFamily,
+};
 pub use durable_semantic_state::UiAllocationDurableSemanticState;
 pub use equivalence_basis::{
     UiAllocationConstraintPayloadShape, UiAllocationConstraintPropagationShape,
@@ -101,7 +120,11 @@ pub use preview_isolation::{
 };
 pub use receipt_generation::UiAllocationReceiptGeneration;
 pub use receipt_identity::UiAllocationReceiptIdentity;
-pub use receipt_report::{UiAllocationReceiptFreshnessPosture, UiAllocationReceiptReport};
+pub use receipt_report::{
+    UiAllocationFreshnessTransition, UiAllocationFreshnessTransitionCause,
+    UiAllocationFreshnessTransitionDenial, UiAllocationReceiptFreshnessPosture,
+    UiAllocationReceiptLagBound, UiAllocationReceiptReport,
+};
 pub use replan_transaction::{UiAllocationReplanTransaction, UiAllocationReplanTransactionDenial};
 pub use reuse_verdict::{
     UiAllocationLeafRemeasureWitness, UiAllocationReuseDenial, UiAllocationReuseVerdict,

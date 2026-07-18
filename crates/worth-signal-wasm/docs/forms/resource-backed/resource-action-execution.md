@@ -33,8 +33,8 @@ resource lifecycle, and resource recovery.
 ## Small Example
 
 ```ts
-const pending = form.executeAction("submit");
-console.log(pending.resourceSubmission);
+const execution = await form.executeAction("submit");
+console.log(execution.resourceSubmission);
 ```
 
 ## Real Example

@@ -46,12 +46,12 @@ export interface ReplayPersona {
 export const REPLAY_PERSONAS: ReplayPersona[] = [
   {
     id: "operator-revB",
-    label: "Operator Â· trained rev B",
+    label: "Operator · trained rev B",
     facts: { role: "operator", trainedRev: "B", effectiveRev: "C" },
   },
   {
     id: "operator-revC",
-    label: "Operator Â· retrained rev C",
+    label: "Operator · retrained rev C",
     facts: { role: "operator", trainedRev: "C", effectiveRev: "C" },
   },
   {
@@ -63,11 +63,11 @@ export const REPLAY_PERSONAS: ReplayPersona[] = [
 
 const pageData = {
   overview: {
-    line: "Line L-03 Â· Infusion pump assembly",
-    shift: "Day shift Â· 2 of 3 stations active",
+    line: "Line L-03 · Infusion pump assembly",
+    shift: "Day shift · 2 of 3 stations active",
     wip: [
       { batch: "B-2213", status: "Quality release pending" },
-      { batch: "B-2214", status: "In process Â· step 4 of 7" },
+      { batch: "B-2214", status: "In process · step 4 of 7" },
     ],
   },
   batchRecord: {
@@ -75,23 +75,23 @@ const pageData = {
     product: "IP-400 infusion pump",
     status: "In process",
     steps: [
-      { step: "1 Â· Line clearance", status: "complete" },
-      { step: "2 Â· Sub-assembly install", status: "complete" },
-      { step: "3 Â· Firmware load", status: "complete" },
-      { step: "4 Â· Torque verification", status: "pending" },
-      { step: "5 Â· Leak test", status: "not started" },
+      { step: "1 · Line clearance", status: "complete" },
+      { step: "2 · Sub-assembly install", status: "complete" },
+      { step: "3 · Firmware load", status: "complete" },
+      { step: "4 · Torque verification", status: "pending" },
+      { step: "5 · Leak test", status: "not started" },
     ],
   },
   stepFour: {
-    step: "Step 4 Â· Torque verification",
-    sop: "SOP-042 Â· Torque verification procedure",
-    spec: "0.9 â€“ 1.1 NÂ·m on fasteners F1â€“F4",
-    instrument: "Calibrated driver TD-118 Â· cal due 2026-09-02",
+    step: "Step 4 · Torque verification",
+    sop: "SOP-042 · Torque verification procedure",
+    spec: "0.9 – 1.1 N·m on fasteners F1–F4",
+    instrument: "Calibrated driver TD-118 · cal due 2026-09-02",
   },
   release: {
     batch: "B-2214",
     checklist: [
-      { item: "All steps executed", state: "blocked Â· step 4 pending" },
+      { item: "All steps executed", state: "blocked · step 4 pending" },
       { item: "Deviations reviewed", state: "0 open" },
       { item: "Device history record complete", state: "pending" },
     ],
@@ -243,12 +243,12 @@ export function describeOutcome(report: any, underDeviation: boolean): OutcomeVi
 
   if (kind === "admitted") {
     if (underDeviation && reason === null) {
-      return { kind, tone: "deviation", label: "admitted Â· deviation", reason: "deviationRecorded", detail };
+      return { kind, tone: "deviation", label: "admitted · deviation", reason: "deviationRecorded", detail };
     }
     return {
       kind,
       tone: reason === "deviationRecorded" ? "deviation" : "admitted",
-      label: reason === "deviationRecorded" ? "admitted Â· deviation" : "admitted",
+      label: reason === "deviationRecorded" ? "admitted · deviation" : "admitted",
       reason,
       detail,
     };

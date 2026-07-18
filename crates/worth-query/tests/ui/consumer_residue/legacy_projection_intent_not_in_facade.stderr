@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::worth_query_projection_consumption_intent`
- --> tests/ui/consumer_residue/legacy_projection_intent_not_in_facade.rs:1:5
-  |
-1 | use worth_query::facade::worth_query_projection_consumption_intent;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `worth_query_projection_consumption_intent` in `facade`

@@ -1,15 +1,14 @@
 use std::collections::BTreeMap;
 
+#[cfg(any(test, feature = "certification-support"))]
+use crate::graph::UiGraphParticipationMutation;
 use crate::graph::{
     materialize_graph_mounted_receipts, materialize_graph_participation_posture,
-    materialize_graph_topology, UiGraphCoreIndexes, UiGraphDeclarationCorrespondence,
-    UiGraphGeneration, UiGraphInstantiationPlan, UiGraphMountedReceiptAuthoritySeedStore,
-    UiGraphNode, UiGraphNodeIdentity, UiGraphSnapshot, UiGraphTopology, UiGraphWorldProfile,
-};
-#[cfg(any(test, feature = "certification-support"))]
-use crate::graph::{
-    UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationMutation,
-    UiGraphParticipationStatus,
+    materialize_graph_topology, UiGraphAxisParticipation, UiGraphCoreIndexes,
+    UiGraphDeclarationCorrespondence, UiGraphGeneration, UiGraphInstantiationPlan,
+    UiGraphMountedReceiptAuthoritySeedStore, UiGraphMountedReceiptTransition, UiGraphNode,
+    UiGraphNodeIdentity, UiGraphParticipationAxis, UiGraphParticipationPosture,
+    UiGraphParticipationStatus, UiGraphSnapshot, UiGraphTopology, UiGraphWorldProfile,
 };
 
 pub(crate) struct UiGraphMutationStage {
@@ -40,19 +39,19 @@ impl UiGraphMutationStage {
             .zip(mounted_receipt_reservations.iter().copied())
         {
             let graph_node_identity = reservation.graph_node_identity();
-            let node = UiGraphNode::new(
+            let node = UiGraphNode::new(crate::graph::UiGraphNodeInput {
                 graph_node_identity,
-                entry.declaration_identity().clone(),
-                entry.topology_seed().structural_digest(),
-                entry.topology_seed().role(),
-                entry.topology_seed().operator_kind(),
-                entry.topology_seed().repetition_posture(),
-                entry.measurement_constraint_modifier(),
-                entry.authored_provenance_digest(),
-                entry.repeated_instance_basis().clone(),
-                entry.attachment_posture(),
-                materialize_graph_participation_posture(entry),
-            );
+                declaration_identity: entry.declaration_identity().clone(),
+                structural_digest: entry.topology_seed().structural_digest(),
+                structural_role: entry.topology_seed().role(),
+                operator_kind: entry.topology_seed().operator_kind(),
+                repetition_posture: entry.topology_seed().repetition_posture(),
+                measurement_constraint_modifier: entry.measurement_constraint_modifier(),
+                authored_provenance_digest: entry.authored_provenance_digest(),
+                repeated_instance_basis: entry.repeated_instance_basis().clone(),
+                attachment_posture: entry.attachment_posture(),
+                participation_posture: materialize_graph_participation_posture(entry),
+            });
 
             declaration_to_nodes
                 .entry(entry.declaration_identity().digest().raw())
@@ -133,30 +132,57 @@ impl UiGraphMutationStage {
                 } else {
                     node.participation_posture()
                 };
-                UiGraphNode::new(
-                    node.graph_node_identity(),
-                    node.declaration_identity().clone(),
-                    node.structural_digest(),
-                    node.structural_role(),
-                    node.operator_kind(),
-                    node.repetition_posture(),
-                    node.measurement_constraint_modifier(),
-                    node.authored_provenance_digest(),
-                    node.repeated_instance_basis().clone(),
-                    node.attachment_posture(),
-                    posture,
-                )
+                clone_node_with_posture(node, posture)
             })
             .collect::<Vec<_>>();
 
-        let core_indexes = UiGraphCoreIndexes::build_without_aspects(
+        Self::successor_with_nodes(prior_snapshot, nodes)
+    }
+
+    pub(crate) fn mounted_layout_admitted_successor(
+        prior_snapshot: &UiGraphSnapshot,
+        transitions: &[UiGraphMountedReceiptTransition],
+    ) -> Self {
+        let transitions = transitions
+            .iter()
+            .map(|transition| {
+                (
+                    transition.authority_record().graph_node_identity(),
+                    *transition,
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let nodes = prior_snapshot
+            .nodes()
+            .iter()
+            .map(|node| {
+                let Some(transition) = transitions.get(&node.graph_node_identity()) else {
+                    return node.clone();
+                };
+                let posture = node
+                    .participation_posture()
+                    .with_axis(
+                        UiGraphParticipationAxis::Mounted,
+                        transition.next_mounted_axis_participation(),
+                    )
+                    .with_axis(
+                        UiGraphParticipationAxis::Layout,
+                        UiGraphAxisParticipation::runtime_mutation(
+                            UiGraphParticipationStatus::Admitted,
+                        ),
+                    );
+                clone_node_with_posture(node, posture)
+            })
+            .collect::<Vec<_>>();
+
+        Self::successor_with_nodes(prior_snapshot, nodes)
+    }
+
+    fn successor_with_nodes(prior_snapshot: &UiGraphSnapshot, nodes: Vec<UiGraphNode>) -> Self {
+        let core_indexes = UiGraphCoreIndexes::rebuild_participation_for_successor(
             &nodes,
-            prior_snapshot
-                .core_indexes()
-                .declaration_correspondence()
-                .clone(),
             prior_snapshot.topology(),
-            prior_snapshot.mounted_receipts(),
+            prior_snapshot.core_indexes(),
         );
 
         Self {
@@ -179,4 +205,23 @@ impl UiGraphMutationStage {
             self.core_indexes,
         )
     }
+}
+
+fn clone_node_with_posture(
+    node: &UiGraphNode,
+    participation_posture: UiGraphParticipationPosture,
+) -> UiGraphNode {
+    UiGraphNode::new(crate::graph::UiGraphNodeInput {
+        graph_node_identity: node.graph_node_identity(),
+        declaration_identity: node.declaration_identity().clone(),
+        structural_digest: node.structural_digest(),
+        structural_role: node.structural_role(),
+        operator_kind: node.operator_kind(),
+        repetition_posture: node.repetition_posture(),
+        measurement_constraint_modifier: node.measurement_constraint_modifier(),
+        authored_provenance_digest: node.authored_provenance_digest(),
+        repeated_instance_basis: node.repeated_instance_basis().clone(),
+        attachment_posture: node.attachment_posture(),
+        participation_posture,
+    })
 }

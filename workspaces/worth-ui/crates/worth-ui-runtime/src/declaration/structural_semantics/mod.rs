@@ -4,8 +4,8 @@ mod denial;
 mod ordering_guarantee;
 mod planning_operator_kind;
 mod repetition_posture;
+mod semantics;
 mod slot_participation_intent;
-mod structural_semantics;
 mod topology_role;
 
 pub(crate) use admission::admit_declaration_structural_semantics;
@@ -15,6 +15,7 @@ pub use denial::UiDeclarationStructuralSemanticsAdmissionDenial;
 pub use ordering_guarantee::UiDeclarationOrderingGuarantee;
 pub use planning_operator_kind::UiDeclarationPlanningOperatorKind;
 pub use repetition_posture::UiDeclarationRepetitionPosture;
+pub use semantics::UiDeclarationStructuralSemantics;
+pub(crate) use semantics::UiDeclarationStructuralSemanticsInput;
 pub use slot_participation_intent::UiDeclarationSlotParticipationIntent;
-pub use structural_semantics::UiDeclarationStructuralSemantics;
 pub use topology_role::UiDeclarationStructuralRole;

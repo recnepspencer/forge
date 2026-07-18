@@ -94,5 +94,5 @@ comparison, and audit, not for every ordinary render.
 
 ## Related Docs
 
-- [Inspection And History Contract](../../resource-contracts/inspection-and-history.md)
-- [Line Facade Stability Test](../../package/product/resource_runtime/authoring/line_facade_stability.test.mjs)
+- [Inspection And History Contract](../debugging/README.md)
+- [Line Facade Stability Test](../../../package/product/resource_runtime/authoring/line_facade_stability.test.mjs)

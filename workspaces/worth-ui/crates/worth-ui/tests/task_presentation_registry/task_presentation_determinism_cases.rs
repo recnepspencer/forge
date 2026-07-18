@@ -14,10 +14,12 @@ use super::task_presentation_fixtures::{
 fn equivalent_task_presentations_produce_equivalent_projection_eligibility() {
     let left = WorthUi::app()
         .register_task_presentation(progress_task_presentation("workspace.task.progress"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let right = WorthUi::app()
         .register_task_presentation(progress_task_presentation("workspace.task.progress"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let left_entry = &left.capabilities().task_presentations().entries()[0];
     let right_entry = &right.capabilities().task_presentations().entries()[0];
@@ -38,7 +40,8 @@ fn accepted_task_presentations_are_canonically_ordered_and_inspectable() {
     let app = WorthUi::app()
         .register_task_presentation(retryable_task_presentation("workspace.task.retry"))
         .register_task_presentation(progress_task_presentation("workspace.task.progress"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_task_presentation_ids(
         app.capabilities().task_presentations(),
@@ -82,7 +85,8 @@ fn all_builtin_task_presentation_families_are_admitted() {
             TaskPresentationFamily::status_projected(),
             TaskPresentationProjectionEligibility::status_summary(),
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().task_presentations().len(), 8);
 }
@@ -95,14 +99,16 @@ fn task_presentation_projection_eligibility_change_changes_snapshot_digest() {
             TaskPresentationFamily::background(),
             TaskPresentationProjectionEligibility::status_summary(),
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let hidden_app = WorthUi::app()
         .register_task_presentation(presentation_with_family(
             "workspace.task.status",
             TaskPresentationFamily::background(),
             TaskPresentationProjectionEligibility::hidden_from_projection(),
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         status_summary_app.capabilities().digest(),
@@ -127,10 +133,12 @@ fn presentation_with_family(
 fn task_presentation_family_metadata_change_changes_snapshot_digest() {
     let progress_app = WorthUi::app()
         .register_task_presentation(progress_task_presentation("workspace.task.family"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let cancellable_app = WorthUi::app()
         .register_task_presentation(cancellable_task_presentation("workspace.task.family"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         progress_app.capabilities().digest(),

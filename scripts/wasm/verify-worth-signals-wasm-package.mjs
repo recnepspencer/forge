@@ -189,6 +189,7 @@ async function main() {
   assert.equal(packageJson.exports["./raw_surface.js"].types, "./raw_surface.d.ts");
   assert.equal(packageJson.exports["./react"].import, "./react/index.js");
   assert.equal(packageJson.exports["./react"].types, "./react/index.d.ts");
+  assert.equal(packageJson.peerDependencies["@types/react"], ">=18.0.0");
 
   await rm(tarballPath, { force: true });
   const { stdout: packStdout } = await runNpm(["pack", "--json"], { cwd: pkgDir });
@@ -222,21 +223,24 @@ async function main() {
     "package/react/index.d.ts",
     "package/react/model.d.ts",
     "package/README.md",
-    "package/docs/README.md",
     "package/docs/start_here.md",
-    "package/docs/learn/feature-index.md",
-    "package/docs/learn/recipes.md",
+    "package/docs/core/README.md",
+    "package/docs/core/aspects.md",
+    "package/docs/core/diagnostics.md",
+    "package/docs/forms/index.md",
+    "package/docs/forms/getting-started/your-first-form.md",
     "package/docs/package/install-and-publish.md",
-    "package/docs/app-surface/overview.md",
-    "package/docs/app-surface/diagnostics-and-history.md",
+    "package/docs/local-truth/README.md",
+    "package/docs/local-truth/branch-merge.md",
+    "package/docs/reference/support-status.md",
     "package/docs/resources/overview.md",
     "package/docs/resources/branch-native-effects.md",
     "package/docs/resources/merge-and-rebase.md",
     "package/docs/resources/json-effects.md",
-    "package/docs/resource-contracts/effect-envelope.md",
-    "package/docs/resource-contracts/response-topology-proof.md",
-    "package/docs/resource-contracts/closeout-matrix.md",
-    "package/docs/resource-contracts/reconciliation.md",
+    "package/docs/resources/effects/effect-envelopes-and-closeout.md",
+    "package/docs/resources/verification/response-topology-proof.md",
+    "package/docs/router/index.md",
+    "package/docs/router/runtime_placement/worker_first_default.md",
     "package/docs/api-reference/route-authoring.md",
   ];
   const forbiddenEntries = [

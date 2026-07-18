@@ -28,7 +28,8 @@ fn component_theme_token_dependency_resolves_when_token_is_registered() {
             "component.label",
             "theme.text.primary",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().components().len(), 1);
     assert_registered_theme_token_ids(app.capabilities().theme_tokens(), &["theme.text.primary"]);

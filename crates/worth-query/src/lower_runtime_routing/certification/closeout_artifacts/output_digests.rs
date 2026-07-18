@@ -7,8 +7,7 @@ use crate::lower_runtime_routing::{
 use super::bundle_types::WorthQueryLowerRuntimeCertificationOutputDigest;
 use crate::lower_runtime_routing::certification::performance::WorthQueryLowerRuntimePerformanceSlopeReport;
 use crate::lower_runtime_routing::certification::surface::{
-    allowed_phase_six_synthetic_seams, worth_query_lower_runtime_golden_transcript_digest,
-    worth_query_lower_runtime_synthetic_tail_report, worth_query_lower_runtime_target_dx_digest,
+    allowed_phase_six_synthetic_seams, worth_query_lower_runtime_synthetic_tail_report,
     WorthQueryLowerRuntimeAcceptanceSuite, WorthQueryLowerRuntimeRepresentativeSurface,
 };
 use crate::lower_runtime_routing::certification::{
@@ -102,14 +101,6 @@ pub(super) fn certification_output_digests(
                 .to_string(),
         ),
         output(
-            "route_target_dx_digest",
-            worth_query_lower_runtime_target_dx_digest(),
-        ),
-        output(
-            "route_golden_transcript_digest",
-            worth_query_lower_runtime_golden_transcript_digest(),
-        ),
-        output(
             "route_concrete_surface_digest",
             surface.concrete_surface_digest(),
         ),
@@ -158,10 +149,6 @@ pub(super) fn certification_output_digests(
             non_bypass.route_non_bypass_digest().to_string(),
         ),
         output("lower_runtime_gap_registry_digest", gaps.registry_digest()),
-        output(
-            "compile_fail_boundary_digest",
-            non_bypass.compile_fail_boundary_digest().to_string(),
-        ),
         output(
             "failure_digest",
             hash_parts(

@@ -1,6 +1,5 @@
-use std::path::Path;
-
 use super::allocation_planning_anti_bypass_audit::audit_allocation_planning_anti_bypass_boundaries;
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 #[cfg(test)]
 use worth_ui_runtime::facade::evidence::UiAllocationPlanningCertificationSuiteKind;
@@ -28,8 +27,10 @@ pub use super::certification_entry::{
     plan_handoff_suite, sibling_negotiation_suite, special_input_suite,
 };
 
-pub fn certify_allocation_anti_bypass_boundaries(workspace_root: &Path) -> Result<(), Vec<String>> {
-    let violations = audit_allocation_planning_anti_bypass_boundaries(workspace_root);
+pub fn certify_allocation_anti_bypass_boundaries(
+    inventory: &WorkspaceSourceInventory,
+) -> Result<(), Vec<String>> {
+    let violations = audit_allocation_planning_anti_bypass_boundaries(inventory);
     if violations.is_empty() {
         Ok(())
     } else {
@@ -44,7 +45,8 @@ mod tests {
         bounded_reconciliation_suite, certify_allocation_anti_bypass_boundaries,
         constraint_edge_suite, durable_resize_input_suite, equal_share_suite,
         intrinsic_return_flow_suite, parent_child_propagation_suite, plan_handoff_suite,
-        sibling_negotiation_suite, special_input_suite, NAMED_PLANNING_SUITE_KINDS,
+        sibling_negotiation_suite, special_input_suite, WorkspaceSourceInventory,
+        NAMED_PLANNING_SUITE_KINDS,
     };
     use std::collections::BTreeSet;
     use std::path::Path;
@@ -126,7 +128,8 @@ mod tests {
     #[test]
     fn workspace_passes_allocation_anti_bypass_boundary_certification() {
         let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        certify_allocation_anti_bypass_boundaries(&workspace_root)
+        let inventory = WorkspaceSourceInventory::capture(workspace_root);
+        certify_allocation_anti_bypass_boundaries(&inventory)
             .expect("workspace should keep allocation planning semantics in the admitted lane");
     }
 }

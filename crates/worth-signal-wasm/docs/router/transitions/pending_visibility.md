@@ -41,12 +41,14 @@ const transition = await routes.transition(home, "/about", {
 ## Real Example
 
 ```ts
-const transition = await routes.transition(home, prefetched, {
-  continuity: "preserve-visible-while-pending",
-});
+if (prefetched) {
+  const transition = await routes.transition(home, prefetched, {
+    continuity: "preserve-visible-while-pending",
+  });
 
-console.log(transition.diagnostics().visiblePolicy);
-console.log(transition.diagnostics().pendingResourceNames);
+  console.log(transition.diagnostics().visiblePolicy);
+  console.log(transition.diagnostics().pendingResourceNames);
+}
 ```
 
 ## How It Relates To Other Features

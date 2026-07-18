@@ -606,11 +606,11 @@ structural closeout bundle and 3.8 start-here capabilities).
 
 Detailed spec: [milestone-3.8.md](./milestone-3.8.md)
 
-**Current implementation position:** Phases 1-11 have landed. Query Milestone
-9.13 changed the downstream authority and native-value contract while 3.8 was
-in progress, so Phases 12-18 now close the installed-domain, declarative
-binding, native projection, identity, facade, and topology cutover before
-Phases 19-22 finish inspection, freshness, counters, and certification.
+**Status: Closed.** Phases 1-22 have landed. The post-Query-9.13 cutover closes
+installed-domain composition, declarative binding, native projection,
+identity, facade, and topology authority; the final phases close local
+inspection, freshness, counters, typed denials, hostile runtime integration,
+and anti-bypass certification.
 
 This slice closes committed allocation truth and churn-heavy measurement
 behavior after 3.6a and 3.6b planning semantics already exist **and after 3.7
@@ -689,21 +689,100 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 - new receipts attach to verified planning/measurement transitions, not host
   folklore or reconstructed booleans
 
-### Milestone 3.9: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
+### Milestone 3.8.1: Test-Program Topology and Runtime Authority Closure Gate
 
-This slice ensures execution consumes lowered plans instead of reconstructing
-strategy from graph or declaration artifacts every frame.
+Detailed spec: [milestone-3.8.1.md](./milestone-3.8.1.md)
+
+**Status: Complete. Phases 1 through 14 and every closure gate are green.
+Milestone 3.9 is unblocked.**
+
+This closure slice first repairs the test program's compilation, linking,
+fixture, and nested-build topology so repeated hostile certification is an
+ordinary affordable workflow. It then binds the artifact, declarations,
+committed graph, Query binding, capability snapshot, host session, runtime
+execution, and inspection surfaces into one application generation before
+execution-plan lowering builds on the 3.8 substrate.
 
 **Must ship**
 
-- execution-plan lowering from canonical declaration + graph + allocation into
-  active runtime plans
+- a proof-preserving test-topology cutover before production-authority work:
+  batched compile contracts, bounded integration targets, compiled-once named
+  scenario authority, no ordinary nested Cargo builds, explicit fast/full CI
+  lanes, a proof-equivalent parallel premerge aggregate, pinned and
+  cache-observable CI execution, and measured cold/warm improvement
+- one sealed prepared application authority and one active application session
+  that cannot be split into independently launchable runtime and inspection
+  truth
+- inseparable file- and Rust-authored candidate composition through
+  preparation and atomic replacement cutover
+- typed fallible freeze/preparation with no panic for publicly constructible
+  invalid declarations or graph topology
+- operational host-session authority; arbitrary per-turn adapter substitution
+  is mechanically unavailable
+- proof-bearing framework-turn transition planning and policy-family execution
+  beneath one thin close/pump owner
+- deletion of unreachable GPU/theme source and a mechanical production-source
+  reachability gate
+- hostile end-to-end and anti-bypass certification across application, Query,
+  host, allocation, replacement, and inspection generations
+
+**Must preserve**
+
+- canonical artifact meaning, Query-owned binding authority, runtime-owned UI
+  semantics, and host adapters limited to native mechanics
+- invalid replacement preservation of the last complete active generation
+- delta-bounded allocation work with explicit structural counters
+- Query-free and headless paths without unnecessary ceremony
+- no compatibility lane retaining artifact-only launch, split source ingress,
+  decorative host configuration, or infallible public freeze
+
+**Acceptance evidence**
+
+- every pre-cutover test maps to a retained or stronger proof, test-target and
+  compiler-session budgets are mechanically enforced, and isolated warm/cold
+  measurements meet the milestone's relative performance gates
+- mixed artifact/declaration/graph/Query/host/application generations are
+  unrepresentable or deny before mutation even when capability digests match
+- active runtime and active inspection report the same generation through
+  launch, ordinary frames, valid replacement, no-op replacement, and denied
+  replacement
+- public invalid input returns typed denial without unwind or partial authority
+  publication
+- framework-turn planning is mutation-free, execution is transactional, and
+  close/pump ownership remains exactly once
+- every production Rust source file participates in a declared compiled module
+  graph and all workspace quality/boundary/certification gates are green
+
+### Milestone 3.9: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
+
+Detailed spec: [milestone-3.9.md](./milestone-3.9.md)
+
+This slice begins only after Milestone 3.8.1 has closed the application,
+replacement, host-session, and framework-turn composition boundaries.
+
+This slice ensures execution consumes lowered plans instead of reconstructing
+strategy from graph or declaration artifacts every frame. It consolidates the
+existing provisional plan, handle, lane, equivalence, and counter surfaces into
+one active-session-owned lifecycle; it does not add a parallel planner.
+
+**Must ship**
+
+- execution-plan lowering from one sealed application + graph + capability/
+  Query + host-support + committed-allocation authority into active runtime
+  plans
+- binding-owned Query projection/installed authority carried as one sealed
+  constituent, with native aspect values preserved and no UI-local basis,
+  status, fact, or lifecycle mirrors
 - equivalence and no-op classification for candidate replacements
 - compact runtime handles for commands, components, children, tokens, and view
   bindings
+- active-session-owned plan execution with no caller-built or caller-submitted
+  lane plans
 - named counters for reload/lowering work and steady-frame execution work
 - WORTH Foundational performance-envelope integration for shared claim
   vocabulary and certified claim bundles
+- frozen compiler-session/target/case budgets and compiled-once adversarial
+  scenarios that preserve iteration time
 
 **Acceptance evidence**
 
@@ -712,6 +791,14 @@ strategy from graph or declaration artifacts every frame.
 - equivalent replacements avoid needless plan swaps
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
+- initial lowering is bounded by plan width, replacement lowering by admitted
+  affected scope, and frame execution by intentionally touched rows
+- Query-backed rows retain runtime-affine authority and Query-owned live-resource
+  lifecycle; UI activation coordinates succession and exact-once release but
+  cannot recreate Query authority
+- no new compiler session, compile target, executable compile case, physical
+  compile fixture, nested Cargo invocation, or generated fixture workspace is
+  added
 
 ### Milestone 3.10: Mounted Receipts and Host Contract
 

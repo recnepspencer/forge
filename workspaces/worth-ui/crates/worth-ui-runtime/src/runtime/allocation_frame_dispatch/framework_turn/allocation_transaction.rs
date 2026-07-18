@@ -14,6 +14,40 @@ pub(super) struct UiPendingAllocationTransaction {
     preparation: UiAllocationLedgerPreparation,
 }
 
+pub(super) fn prepare_selected(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
+) -> UiPendingAllocationTransaction {
+    let transaction_authority = UiAllocationTransactionAuthority::for_selection(selection);
+    let preparation = if authority.certifies_selection(selection) {
+        ledger.prepare_selected(&transaction_authority, selection)
+    } else {
+        denied_generation().into()
+    };
+    UiPendingAllocationTransaction {
+        authority: transaction_authority,
+        preparation,
+    }
+}
+
+pub(super) fn prepare_viewport(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    basis: crate::runtime::UiViewportResizeCommitBasis,
+) -> UiPendingAllocationTransaction {
+    let transaction_authority = UiAllocationTransactionAuthority::for_selection(basis.selection());
+    let preparation = if authority.certifies_selection(basis.selection()) {
+        ledger.prepare_viewport(&transaction_authority, basis)
+    } else {
+        denied_generation().into()
+    };
+    UiPendingAllocationTransaction {
+        authority: transaction_authority,
+        preparation,
+    }
+}
+
 impl UiAllocationTransactionAuthority {
     fn for_selection(selection: &crate::graph::UiAdmittedReplanNeighborhoodSet) -> Self {
         Self {
@@ -44,81 +78,28 @@ impl UiAllocationTransactionAuthority {
     }
 }
 
-pub(super) fn commit_selected(
-    ledger: &UiAllocationReceiptLedger,
-    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-    selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
-) -> crate::runtime::UiAllocationReplanTransactionOutcome {
-    if !authority.certifies_selection(selection) {
-        return denied_generation();
-    }
-    let mut transaction_authority = UiAllocationTransactionAuthority::for_selection(selection);
-    let preparation = ledger.prepare_selected(&transaction_authority, selection);
-    publish_prepared(ledger, authority, &mut transaction_authority, preparation)
-}
-
-pub(super) fn commit_viewport(
-    ledger: &UiAllocationReceiptLedger,
-    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-    basis: crate::runtime::UiViewportResizeCommitBasis<'_>,
-) -> crate::runtime::UiAllocationReplanTransactionOutcome {
-    if !authority.certifies_selection(basis.selection()) {
-        return denied_generation();
-    }
-    let mut transaction_authority =
-        UiAllocationTransactionAuthority::for_selection(basis.selection());
-    let preparation = ledger.prepare_viewport(&transaction_authority, basis);
-    publish_prepared(ledger, authority, &mut transaction_authority, preparation)
-}
-
-pub(super) fn commit_durable_resize(
-    ledger: &UiAllocationReceiptLedger,
-    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-    selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
-    identity: u64,
-    extent: crate::runtime::UiResizeLogicalExtent,
-) -> (
-    crate::runtime::UiAllocationReplanTransactionOutcome,
-    Option<crate::runtime::UiAllocationDurableSemanticState>,
-    bool,
-) {
-    if !authority.certifies_selection(selection) {
-        return (denied_generation(), ledger.durable_semantic_state(), false);
-    }
-    let previous = ledger
-        .durable_semantic_state()
-        .and_then(|state| state.committed_resize(identity).map(|basis| basis.extent()));
-    let mut transaction_authority = UiAllocationTransactionAuthority::for_selection(selection);
-    let (preparation, _, requested_mutation) =
-        ledger.prepare_durable_resize(&transaction_authority, selection, identity, extent);
-    let outcome = publish_prepared(ledger, authority, &mut transaction_authority, preparation);
-    let mutated = matches!(
-        outcome,
-        crate::runtime::UiAllocationReplanTransactionOutcome::Committed(_)
-    ) && requested_mutation
-        && previous != Some(extent);
-    (outcome, ledger.durable_semantic_state(), mutated)
-}
-
 pub(super) fn prepare_pending_durable_resize(
     ledger: &UiAllocationReceiptLedger,
     authority: &crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
     selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
     identity: u64,
     extent: crate::runtime::UiResizeLogicalExtent,
-) -> UiPendingAllocationTransaction {
+) -> (UiPendingAllocationTransaction, bool) {
     let transaction_authority = UiAllocationTransactionAuthority::for_selection(selection);
-    let preparation = if authority.certifies_selection(selection) {
-        ledger
-            .prepare_durable_resize(&transaction_authority, selection, identity, extent)
-            .0
+    let (preparation, requested_mutation) = if authority.certifies_selection(selection) {
+        let (preparation, _, requested_mutation) =
+            ledger.prepare_durable_resize(&transaction_authority, selection, identity, extent);
+        (preparation, requested_mutation)
     } else {
-        denied_generation().into()
+        (denied_generation().into(), false)
     };
-    UiPendingAllocationTransaction {
-        authority: transaction_authority,
-        preparation,
-    }
+    (
+        UiPendingAllocationTransaction {
+            authority: transaction_authority,
+            preparation,
+        },
+        requested_mutation,
+    )
 }
 
 pub(super) fn publish_pending(
@@ -140,12 +121,13 @@ pub(super) fn publish_prepared(
     transaction_authority: &mut UiAllocationTransactionAuthority,
     preparation: UiAllocationLedgerPreparation,
 ) -> crate::runtime::UiAllocationReplanTransactionOutcome {
-    let UiAllocationLedgerPreparation::Prepared(mut transition) = preparation else {
+    let UiAllocationLedgerPreparation::Prepared(transition) = preparation else {
         let UiAllocationLedgerPreparation::Resolved(outcome) = preparation else {
             unreachable!()
         };
-        return outcome;
+        return *outcome;
     };
+    let mut transition = *transition;
     transaction_authority.bind_transition(&transition);
     let portal = !transition
         .committed()

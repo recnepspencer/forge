@@ -1,84 +1,55 @@
 # Host And Worker Boundary
 
-## What This Feature Is
+The host owns browser side effects. The Worth runtime owns typed route meaning.
+The boundary between them is a small set of public ingress and writeback
+artifacts.
 
-This is the router boundary where host-owned browser and capability events are
-admitted into the worker runtime bridge.
-
-## Why You Use It
-
-- keep worker-side route truth synchronized with host-owned events
-- understand what the worker bridge really guarantees
-- avoid assuming the worker sees richer route structure than the bridge carries
-
-## Stable Entry Points
-
-- `bridge.admitBrowserHistoryIngress(...)`
-- `bridge.applyBrowserHistoryWriteback(...)`
-- `bridge.browserHistoryStory(...)`
-
-## Core Mental Model
-
-The worker bridge mirrors the public router contract. It should preserve the
-same semantic categories where the public types already promise them and fail
-closed where richer route truth is unavailable.
-
-## How It Executes
-
-1. the host creates browser ingress or writeback artifacts
-2. the bridge normalizes them into worker-safe boundary reports
-3. worker-side history story, inspection, and auditability consume those
-   reports
-
-## Small Example
+## Browser To Router
 
 ```ts
-const report = await bridge.admitBrowserHistoryIngress(
-  {
-    navigationKind: "load",
-    rawLocation: "/",
-    routeIdentity: "homeRoute",
-  },
-);
+async function admitCurrentLocation(navigationKind: "load" | "pop") {
+  const ingress = navigationKind === "load"
+    ? signals.router.browserHistory.load(window.location.href)
+    : signals.router.browserHistory.pop(window.location.href);
+
+  return routes.admitBrowserHistoryIngress(ingress, admissionFacts);
+}
 ```
 
-## Real Example
+The report says whether browser authority converged with admitted route truth,
+drifted from it, or did not admit. Recording that report advances the router
+story only when the report honestly contains route truth.
+
+## Router To Browser
 
 ```ts
-const story = bridge.browserHistoryStory(homeIngress);
-story.record(localWriteback);
-story.record(crossTabDrift);
-story.record(externalMiss);
+const target = routes.settings.to();
+const writeback = signals.router.browserHistory.writeback.push(target, {
+  routeIdentity: target.routeId,
+});
+const report = await routes.applyBrowserHistoryWriteback(writeback);
 
-console.log(story.inspection().summary());
-console.log(story.auditability().summary());
+story.record(report);
+
+if (report.outcome()?.kind === "admitted") {
+  window.history.pushState(null, "", writeback.targetHref);
+}
 ```
 
-## How It Relates To Other Features
+`applyBrowserHistoryWriteback` validates and explains the intended writeback.
+It does not call the browser. This split is intentional: browser mutation is a
+host capability and route admission remains inspectable before it happens.
 
-- browser authority categories are defined in
-  [Browser Authority Coherence](../boundaries/browser_authority_coherence.md)
-- fallback breadcrumb behavior is covered in [Worker History Fallback](./worker_history_fallback.md)
+## What Crosses The Boundary
 
-## Inspection And Debugging
+Ingress and writeback may carry route identity, coherence, runtime continuity,
+breadcrumbs, or an exact restore boundary. Missing evidence stays missing;
+worker-first placement does not grant richer authority than the envelope
+actually carries.
 
-- `report.diagnostics()`
-- `story.events()`
-- `story.inspection()`
-- `story.auditability()`
+Do not call raw bridge APIs from application code or build a second worker-only
+router story. Use the same public router artifacts in both deployments.
 
-## Anti-Patterns
-
-- assuming the worker bridge always has full declared breadcrumb capability
-- overclaiming coherence or restore authority that the bridge did not actually
-  carry
-
-## Current Limits
-
-- some worker-side artifacts remain thinner than the main runtime and expose
-  fallback truth instead of richer route structure
-
-## Related Docs
-
-- [Worker History Fallback](./worker_history_fallback.md)
-- [Worker Navigation Auditability](./worker_navigation_auditability.md)
+Next: [Browser Authority Coherence](../boundaries/browser_authority_coherence.md),
+[Browser History Story](../history/browser_history_story.md), and
+[Worker History Fallback](./worker_history_fallback.md).

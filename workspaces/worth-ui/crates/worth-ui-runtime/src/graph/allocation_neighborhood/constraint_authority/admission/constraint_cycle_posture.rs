@@ -68,12 +68,12 @@ fn adjacency_lists(edges: &[UiConstraintPropagationEdge], node_digests: &[u64]) 
 
 fn reachable_matrix(adjacency: &[Vec<usize>]) -> Vec<Vec<bool>> {
     let mut reachable = vec![vec![false; adjacency.len()]; adjacency.len()];
-    for start in 0..adjacency.len() {
+    for (start, reachable_from_start) in reachable.iter_mut().enumerate() {
         let mut stack = vec![start];
         while let Some(current) = stack.pop() {
             for &neighbor in &adjacency[current] {
-                if !reachable[start][neighbor] {
-                    reachable[start][neighbor] = true;
+                if !reachable_from_start[neighbor] {
+                    reachable_from_start[neighbor] = true;
                     stack.push(neighbor);
                 }
             }

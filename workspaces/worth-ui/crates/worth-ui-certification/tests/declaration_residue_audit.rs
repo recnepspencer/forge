@@ -7,12 +7,8 @@ use worth_ui_certification::topology::{
     audit_phase4_authored_lookup_lane_is_indexed_not_scan_first,
 };
 
-fn workspace_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate parent")
-        .parent()
-        .expect("workspace root")
+fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
+    super::workspace_source_inventory()
 }
 
 fn topology_negative_fixture_root(name: &str) -> PathBuf {
@@ -57,9 +53,10 @@ fn phase4_authored_lookup_lane_is_indexed_not_scan_first() {
 
 #[test]
 fn declaration_residue_audit_rejects_known_bad_source_reopening_fixture() {
-    let violations = audit_non_owner_code_does_not_reopen_declaration_source(
-        &topology_negative_fixture_root("declaration_source_reopening_non_owner"),
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        topology_negative_fixture_root("declaration_source_reopening_non_owner"),
     );
+    let violations = audit_non_owner_code_does_not_reopen_declaration_source(&inventory);
     assert_has_violation(
         &violations,
         "worth-ui-inspection",

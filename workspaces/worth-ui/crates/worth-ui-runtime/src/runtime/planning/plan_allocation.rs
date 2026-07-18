@@ -77,11 +77,11 @@ pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingAct
     let pending_activation = pending_activation.borrow();
     match classify_constraint_set_admission(measurement_basis, allocation_neighborhood) {
         ConstraintSetAdmissionDecision::Denied(constraint_set_denial) => {
-            return build_constraint_set_denial_planning(
+            build_constraint_set_denial_planning(
                 measurement_basis,
                 allocation_neighborhood,
                 constraint_set_denial,
-            );
+            )
         }
         ConstraintSetAdmissionDecision::Admitted(constraint_basis) => {
             let handoff =

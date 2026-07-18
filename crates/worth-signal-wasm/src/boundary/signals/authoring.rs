@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::boundary::serde::from_js;
 use crate::expression::model::SignalValue;
-use crate::recipe::model::SetValueWithRegions;
+use crate::recipe::model::{SetValueWithRegions, TransactionOp};
 use crate::runtime::compute_callbacks;
 
 use super::super::signals_model::{ComputedSpec, OutputSpec};
@@ -118,6 +118,14 @@ impl Signals {
         };
         callback.call1(&JsValue::NULL, &JsValue::from(builder.clone()))?;
         apply_transaction_ops(&self.core, builder.drain_ops())
+    }
+
+    /// Ambient op-level transaction on the active branch, mirroring the worker
+    /// shell's `applyTransaction` so both deployments share one contract.
+    #[wasm_bindgen(js_name = applyTransaction)]
+    pub fn apply_transaction(&self, transaction_ops: JsValue) -> Result<JsValue, JsValue> {
+        let transaction_ops: Vec<TransactionOp> = from_js(transaction_ops)?;
+        apply_transaction_ops(&self.core, transaction_ops)
     }
 
     pub fn batch(&self, callback: &Function) -> Result<JsValue, JsValue> {

@@ -33,29 +33,59 @@ fn unknown_graph_targets_replay_to_the_same_typed_denial() {
 #[test]
 fn empty_framework_invocation_returns_typed_empty_outcome() {
     let mut runtime = framework_from_artifact(empty_artifact());
-    let completion = runtime.execute_framework_turn(|_| {});
-    let execution = completion.into_execution().expect("empty turn executes");
-    let _boundary = execution.activation_boundary();
-    drop(execution);
-    assert!(runtime.pending_allocation_frame_handoff.is_none());
+    {
+        let completion = runtime.execute_framework_turn(|_| {});
+        let execution = completion.into_execution().expect("empty turn executes");
+        assert_eq!(
+            execution.planning_counters(),
+            super::UiFrameworkTransitionPlanningCounters::default()
+        );
+        let _boundary = execution.activation_boundary();
+    }
 }
 
 #[test]
 fn denied_narrowing_releases_the_next_framework_turn() {
     let mut runtime = framework_from_artifact(empty_artifact());
-    let first_completion = runtime.execute_framework_turn(|turn| {
-        turn.resize_preview(|source| {
-            source
-                .admit_and_submit(preview_sample(42))
-                .expect("interaction admits");
+    let frame_epoch_before = runtime.frame_epoch();
+    let source_order_before = runtime.allocation_source_order_ledger.clone();
+    let truth_revision_before = runtime.allocation_receipt_ledger.truth_revision();
+    let durable_state_before = runtime.allocation_receipt_ledger.durable_semantic_state();
+    let portal_binding_before = runtime
+        .allocation_invalidation_index
+        .borrow()
+        .portal_binding_identity_digest();
+    {
+        let first_completion = runtime.execute_framework_turn(|turn| {
+            turn.resize_preview(|source| {
+                source
+                    .admit_and_submit(preview_sample(42))
+                    .expect("interaction admits");
+            });
         });
-    });
-    assert!(matches!(
-        first_completion,
-        super::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied { .. }
-    ));
-    drop(first_completion);
-    assert!(runtime.pending_narrowed_allocation_frame.is_none());
+        assert!(matches!(
+            first_completion,
+            super::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied { .. }
+        ));
+    }
+
+    assert_eq!(runtime.frame_epoch(), frame_epoch_before);
+    assert_eq!(runtime.allocation_source_order_ledger, source_order_before);
+    assert_eq!(
+        runtime.allocation_receipt_ledger.truth_revision(),
+        truth_revision_before
+    );
+    assert_eq!(
+        runtime.allocation_receipt_ledger.durable_semantic_state(),
+        durable_state_before
+    );
+    assert_eq!(
+        runtime
+            .allocation_invalidation_index
+            .borrow()
+            .portal_binding_identity_digest(),
+        portal_binding_before
+    );
 
     let second_completion = runtime.execute_framework_turn(|_| {});
     assert!(second_completion.into_execution().is_ok());
@@ -64,6 +94,7 @@ fn denied_narrowing_releases_the_next_framework_turn() {
 #[test]
 fn callback_unwind_still_closes_and_pumps_the_turn() {
     let mut runtime = framework_from_artifact(empty_artifact());
+    let before = runtime.allocation_frame_dispatcher_counters();
     let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let _ = runtime.execute_framework_turn(|turn| {
             turn.resize_preview(|source| {
@@ -76,7 +107,30 @@ fn callback_unwind_still_closes_and_pumps_the_turn() {
     }));
 
     assert!(unwind.is_err());
-    assert!(runtime.pending_narrowed_allocation_frame.is_none());
+    let after = runtime.allocation_frame_dispatcher_counters();
+    assert_eq!(after.frame_count(), before.frame_count() + 1);
+    assert_eq!(
+        after.canonical_drain_count(),
+        before.canonical_drain_count() + 1
+    );
+}
+
+#[test]
+fn policy_family_executors_cannot_reach_framework_clock_or_whole_runtime() {
+    let executors = [
+        include_str!("policy_execution/ordinary.rs"),
+        include_str!("policy_execution/viewport.rs"),
+        include_str!("policy_execution/resize_preview.rs"),
+        include_str!("policy_execution/durable_resize.rs"),
+        include_str!("policy_execution/drag_resize.rs"),
+    ];
+    for source in executors {
+        assert!(!source.contains("WorthUiRuntime"));
+        assert!(!source.contains("allocation_frame_scheduler"));
+        assert!(!source.contains("run_turn("));
+        assert!(!source.contains("select_replan_neighborhoods"));
+        assert!(!source.contains("narrow_resolved_frame"));
+    }
 }
 
 fn preview_sample(identity: u64) -> crate::runtime::UiResizePreviewSample {
@@ -129,7 +183,6 @@ fn rejected_frame_returns_exact_disposition_and_releases_next_turn() {
         evidence.payload_counters().denial_source_posture_copies(),
         1
     );
-    assert!(runtime.pending_allocation_frame_handoff.is_none());
 
     let next = runtime.execute_framework_turn(|_| {});
     assert!(next.into_execution().is_ok());

@@ -23,6 +23,8 @@ impl UiAllocationReceipt {
     ) -> Self {
         let identity = UiAllocationReceiptIdentity::from_candidate(candidate);
         let generation = UiAllocationReceiptGeneration::from_candidate(candidate);
+        let report = UiAllocationReceiptReport::new(identity.clone(), generation, reuse_verdict)
+            .apply_committed_transaction_freshness(&transaction);
         Self {
             geometry_evidence: super::UiCommittedAllocationGeometryEvidence::from_candidate(
                 candidate,
@@ -30,7 +32,7 @@ impl UiAllocationReceipt {
             committed_allocation: super::UiCommittedAllocation::from_candidate(candidate),
             generation,
             equivalence_basis: UiAllocationReceiptEquivalenceBasis::from_candidate(candidate),
-            report: UiAllocationReceiptReport::new(identity.clone(), generation, reuse_verdict),
+            report,
             transaction,
             identity,
         }
@@ -58,8 +60,16 @@ impl UiAllocationReceipt {
     pub fn geometry_evidence(&self) -> &super::UiCommittedAllocationGeometryEvidence {
         &self.geometry_evidence
     }
-    pub fn lowering_input(&self) -> super::UiCommittedAllocationLoweringInput {
+    pub fn lowering_input(
+        &self,
+    ) -> Result<
+        super::UiCommittedAllocationLoweringInput,
+        super::UiAllocationFreshnessConsumptionDenial,
+    > {
         super::UiCommittedAllocationLoweringInput::from_receipt(self)
+    }
+    pub(super) fn attach_counter_report(&mut self, counters: super::UiAllocationCounterReport) {
+        self.report.attach_counters(counters);
     }
     pub fn resize_basis(&self) -> Option<&crate::runtime::UiResizeAllocationPlanningBasis> {
         self.committed_allocation.resize_basis()

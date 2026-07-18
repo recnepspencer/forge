@@ -28,17 +28,29 @@ pub struct UiDeclarationArtifact {
     source_backed_measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
 }
 
+pub(crate) struct UiDeclarationArtifactInput {
+    pub(crate) identity: UiDeclarationIdentity,
+    pub(crate) digests: UiDeclarationDigestProjection,
+    pub(crate) aspect_contract_admission: UiAspectContractAdmission,
+    pub(crate) declared_posture_admission: UiDeclaredPostureAdmission,
+    pub(crate) declaration_support_snapshot_admission: UiDeclarationSupportSnapshotAdmission,
+    pub(crate) structural_semantics_admission: UiDeclarationStructuralSemanticsAdmission,
+    pub(crate) family_admission: UiDeclarationFamilyAdmission,
+    pub(crate) provenance: UiDeclarationProvenance,
+}
+
 impl UiDeclarationArtifact {
-    pub(crate) fn new(
-        identity: UiDeclarationIdentity,
-        digests: UiDeclarationDigestProjection,
-        aspect_contract_admission: UiAspectContractAdmission,
-        declared_posture_admission: UiDeclaredPostureAdmission,
-        declaration_support_snapshot_admission: UiDeclarationSupportSnapshotAdmission,
-        structural_semantics_admission: UiDeclarationStructuralSemanticsAdmission,
-        family_admission: UiDeclarationFamilyAdmission,
-        provenance: UiDeclarationProvenance,
-    ) -> Self {
+    pub(crate) fn new(input: UiDeclarationArtifactInput) -> Self {
+        let UiDeclarationArtifactInput {
+            identity,
+            digests,
+            aspect_contract_admission,
+            declared_posture_admission,
+            declaration_support_snapshot_admission,
+            structural_semantics_admission,
+            family_admission,
+            provenance,
+        } = input;
         Self {
             identity,
             digests,
@@ -145,27 +157,8 @@ impl UiDeclarationArtifact {
     pub(crate) fn admit_source_backed_mosaic_sizing_contract_id(
         &mut self,
         source_mosaic_sizing_contract_id: MosaicSizingContractId,
-    ) -> Result<(), UiDeclarationGraphHandoffDenial> {
-        if let Some(declared_mosaic_sizing_contract_id) = self
-            .structural_semantics()
-            .map_err(
-                |denial| UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                    denial: denial.clone(),
-                },
-            )?
-            .mosaic_sizing_contract_id()
-        {
-            if declared_mosaic_sizing_contract_id != &source_mosaic_sizing_contract_id {
-                return Err(
-                    UiDeclarationGraphHandoffDenial::SourceBackedMosaicSizingContractConflict {
-                        declared: declared_mosaic_sizing_contract_id.clone(),
-                        sourced: source_mosaic_sizing_contract_id,
-                    },
-                );
-            }
-        }
+    ) {
         self.source_backed_mosaic_sizing_contract_id = Some(source_mosaic_sizing_contract_id);
-        Ok(())
     }
 
     pub(crate) fn admit_source_backed_mosaic_membership_name(
@@ -276,14 +269,17 @@ impl UiDeclarationArtifact {
             .unwrap_or_else(|| admitted.containment_intent().clone());
 
         UiDeclarationStructuralSemantics::new(
-            admitted.family_kind(),
-            admitted.role(),
-            admitted.operator_kind(),
-            mosaic_sizing_contract_id.or_else(|| admitted.mosaic_sizing_contract_id().cloned()),
-            containment_intent,
-            admitted.slot_participation_intent().clone(),
-            admitted.ordering_guarantee(),
-            admitted.repetition_posture(),
+            crate::declaration::UiDeclarationStructuralSemanticsInput {
+                family_kind: admitted.family_kind(),
+                role: admitted.role(),
+                operator_kind: admitted.operator_kind(),
+                mosaic_sizing_contract_id: mosaic_sizing_contract_id
+                    .or_else(|| admitted.mosaic_sizing_contract_id().cloned()),
+                containment_intent,
+                slot_participation_intent: admitted.slot_participation_intent().clone(),
+                ordering_guarantee: admitted.ordering_guarantee(),
+                repetition_posture: admitted.repetition_posture(),
+            },
         )
     }
 
@@ -302,14 +298,7 @@ impl UiDeclarationArtifact {
             if policy.constraint_modifier().is_some() {
                 policy
             } else {
-                UiDeclaredMeasurementPolicyPosture::new(
-                    policy.mode(),
-                    Some(modifier),
-                    policy.basis_source(),
-                    policy.ownership_posture(),
-                    policy.evidence_requirements().to_vec(),
-                )
-                .expect("source-backed measurement modifier should preserve admitted policy shape")
+                policy.with_constraint_modifier(modifier)
             }
         });
 

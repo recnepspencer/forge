@@ -12,13 +12,12 @@ use worth_ui_inspection::{
 };
 
 use crate::admission::{UiAdmissionTarget, UiAdmissionWorld};
-use crate::declaration::{UiDeclarationArtifact, UiDeclarationStructuralRole};
+use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::{
     admit_measurement_basis, project_measurement_inspection_view, MeasurementEvidenceInput,
 };
 use crate::graph::{
-    UiGraphInstantiationPlan, UiGraphWorldProfile, UiRuntimeDataInstanceKeyToken,
-    UiRuntimeInstanceBasisAdmission,
+    UiGraphWorldProfile, UiRuntimeDataInstanceKeyToken, UiRuntimeInstanceBasisAdmission,
 };
 use crate::obligations::touch::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
@@ -68,7 +67,9 @@ pub(super) fn measurement_app_in_world(
     if let Some(bundle) = evidence {
         builder = builder.with_measurement_inspection_evidence(bundle);
     }
-    builder.freeze()
+    builder
+        .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn graph_node_identity(app: &WorthUiApp) -> crate::graph::UiGraphNodeIdentity {
@@ -81,38 +82,20 @@ pub(super) fn graph_node_identity(app: &WorthUiApp) -> crate::graph::UiGraphNode
 
 pub(super) fn repeated_instance_app() -> WorthUiApp {
     let baseline = host_measurement_app();
-    let root_page_handoff = root_page_artifact(&baseline)
-        .graph_handoff()
-        .expect("bootstrap root page should lower to graph handoff")
-        .clone();
     let control_handoff = control_artifact(&baseline)
         .graph_handoff()
         .expect("control should lower to graph handoff")
         .clone();
-    let (capability_snapshot, declaration_artifacts, _, lifecycle) =
-        baseline.into_authority_parts();
-    let graph_snapshot = UiGraphInstantiationPlan::admit_handoffs(
-        &[
-            root_page_handoff,
-            control_handoff.clone(),
-            control_handoff.clone(),
-        ],
-        &[
-            runtime_basis("row:user-7", control_handoff.identity()),
-            runtime_basis("row:user-8", control_handoff.identity()),
-        ],
-    )
-    .expect("typed repeated-instance runtime basis should admit internal graph plan")
-    .commit_initial_generation(UiGraphWorldProfile::authoritative())
-    .expect("typed repeated-instance graph plan should publish authoritative graph")
-    .into_committed_snapshot();
+    let runtime_bases = [
+        runtime_basis("row:user-7", control_handoff.identity()),
+        runtime_basis("row:user-8", control_handoff.identity()),
+    ];
 
-    WorthUiApp::from_authority_parts(
-        capability_snapshot,
-        declaration_artifacts,
-        graph_snapshot,
-        lifecycle,
-    )
+    WorthUi::app()
+        .with_dsl_package(host_measurement_package())
+        .with_runtime_instance_basis_admissions(runtime_bases)
+        .freeze()
+        .expect("typed repeated-instance input should prepare one complete app authority")
 }
 
 pub(super) fn direct_measurement_view_for_graph_node(
@@ -255,18 +238,6 @@ fn control_artifact(app: &WorthUiApp) -> &UiDeclarationArtifact {
                 == "app/measurement_inspection.wui"
         })
         .expect("control artifact should exist")
-}
-
-fn root_page_artifact(app: &WorthUiApp) -> &UiDeclarationArtifact {
-    app.declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            artifact
-                .graph_handoff()
-                .map(|handoff| handoff.role() == UiDeclarationStructuralRole::Page)
-                .unwrap_or(false)
-        })
-        .expect("bootstrap root page artifact should exist")
 }
 
 fn measurement_support_report(artifact: &UiDeclarationArtifact) -> UiInspectionSupportReport {

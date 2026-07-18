@@ -15,18 +15,29 @@ pub struct WorthUiOrdinaryLanePlan {
     counters: WorthUiOrdinaryLaneCounters,
 }
 
+pub(crate) struct WorthUiOrdinaryLanePlanInput {
+    pub handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
+    pub support_digest: u64,
+    pub ordinary_plan_digest: u64,
+    pub rows: Vec<WorthUiOrdinaryLaneNode>,
+    pub component_plan_indexes: Vec<u32>,
+    pub command_plan_indexes: Vec<u32>,
+    pub token_plan_indexes: Vec<u32>,
+    pub counters: WorthUiOrdinaryLaneCounters,
+}
+
 impl WorthUiOrdinaryLanePlan {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
-        support_digest: u64,
-        ordinary_plan_digest: u64,
-        rows: Vec<WorthUiOrdinaryLaneNode>,
-        component_plan_indexes: Vec<u32>,
-        command_plan_indexes: Vec<u32>,
-        token_plan_indexes: Vec<u32>,
-        counters: WorthUiOrdinaryLaneCounters,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiOrdinaryLanePlanInput) -> Self {
+        let WorthUiOrdinaryLanePlanInput {
+            handle_receipt,
+            support_digest,
+            ordinary_plan_digest,
+            rows,
+            component_plan_indexes,
+            command_plan_indexes,
+            token_plan_indexes,
+            counters,
+        } = input;
         Self {
             handle_receipt,
             support_digest,

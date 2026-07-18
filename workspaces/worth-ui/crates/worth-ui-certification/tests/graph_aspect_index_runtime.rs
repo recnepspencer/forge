@@ -23,7 +23,8 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
                 .with_semantic_artifact_spec(competing_publishing_control_spec())
                 .with_semantic_artifact_spec(competing_consuming_region_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let graph = app.graph();
     let first_publisher = artifact_from_file_provenance(&app, "app/graph_aspect_runtime.wui", 0);
     let second_publisher = artifact_from_file_provenance(&app, "app/graph_aspect_runtime.wui", 1);

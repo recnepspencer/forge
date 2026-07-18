@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::WorthQueryGraphReadOperationRegistry`
- --> tests/ui/graph_read_access/operation_registry_constructor_private.rs:1:5
-  |
-1 | use worth_query::facade::runtime::WorthQueryGraphReadOperationRegistry;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
-  |     |                             |
-  |     |                             help: a similar name exists in the module: `WorthQueryGraphReadOperationResolution`
-  |     no `WorthQueryGraphReadOperationRegistry` in `facade::runtime`

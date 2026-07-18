@@ -39,25 +39,7 @@ fn digest_for_input(
     metrics: SnapshotMetrics,
     input: &CapabilitySnapshotFreezeInput,
 ) -> CapabilitySnapshotDigest {
-    CapabilitySnapshotDigest::from_metrics_and_registry_bases(
-        metrics,
-        input.commands.digest_basis(),
-        input.command_projections.digest_basis(),
-        input.components.digest_basis(),
-        input.icons.digest_basis(),
-        input.surfaces.digest_basis(),
-        input.mosaic_regions.digest_basis(),
-        input.mosaic_placement_policies.digest_basis(),
-        input.mosaic_sizing_contracts.digest_basis(),
-        input.mosaic_state_slots.digest_basis(),
-        input.native_capabilities.digest_basis(),
-        input.plugin_slots.digest_basis(),
-        input.view_bindings.digest_basis(),
-        input.runtime_outcome_projections.digest_basis(),
-        input.settings.digest_basis(),
-        input.task_presentations.digest_basis(),
-        input.theme_tokens.digest_basis(),
-    )
+    CapabilitySnapshotDigest::from_freeze_input(metrics, input)
 }
 
 fn freeze_report_for_input(input: &CapabilitySnapshotFreezeInput) -> SnapshotFreezeReport {

@@ -1,8 +1,6 @@
-mod compile_fail;
 mod correspondence;
 mod historical;
 
-pub(crate) use compile_fail::compile_fail_rejection;
 pub(crate) use correspondence::{
     broad_candidate_scan_rejection, unsupported_correspondence_family_rejection,
 };

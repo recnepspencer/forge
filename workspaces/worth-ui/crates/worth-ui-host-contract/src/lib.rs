@@ -15,8 +15,8 @@ pub use runtime::{
     UiPortalAnchorRectRequest, UiPortalAnchorTargetIdentity, UiScrollContainerViewportObservation,
     UiScrollContainerViewportRequest, UiTextBaselineMetricsObservation,
     UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
-    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHostAdapter,
+    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHeadlessHost, WorthUiHostAdapter,
     WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration,
     WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport, WorthUiHostContract,
-    WorthUiHostKind, WorthUiMeasurementHostAdapter,
+    WorthUiHostKind, WorthUiMeasurementHostAdapter, WorthUiOperationalHostAdapter,
 };

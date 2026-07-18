@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "product": "worth-signals-wasm",
+  "sections": [
+    {
+      "id": "start",
+      "title": "Start",
+      "items": [
+        { "path": "start_here", "title": "Start Here", "kind": "landing" },
+        { "path": "getting-started/installation", "title": "Installation And Deployment", "kind": "guide" },
+        { "path": "getting-started/first-signal", "title": "Your First Signal", "kind": "tutorial" },
+        { "path": "getting-started/mental-model", "title": "How Worth Signals Thinks About State", "kind": "concept" },
+        { "path": "getting-started/choosing-a-surface", "title": "Choose The Right Surface", "kind": "guide" }
+      ]
+    },
+    {
+      "id": "core",
+      "title": "Core Signals",
+      "items": [
+        { "path": "core/README", "title": "Core Signals Overview", "kind": "landing" },
+        { "path": "core/inputs-and-computed", "title": "Inputs And Computed State", "kind": "guide" },
+        { "path": "core/transactions", "title": "Transactions And Coordinated Writes", "kind": "guide" },
+        { "path": "core/linked-state", "title": "Linked Writable State", "kind": "guide" },
+        { "path": "core/graphs-and-controllers", "title": "Graphs And Controllers", "kind": "guide" },
+        { "path": "core/aspects", "title": "Aspects: Semantic Invalidation", "kind": "guide" },
+        { "path": "core/diagnostics", "title": "Diagnostics And Explanation", "kind": "guide" },
+        { "path": "core/history", "title": "History, Replay, And Runtime Branches", "kind": "guide" }
+      ]
+    },
+    {
+      "id": "resources",
+      "title": "Resources",
+      "items": [
+        { "path": "resources/index", "title": "Resources Overview", "kind": "landing" },
+        { "path": "resources/start-here/your-first-resource", "title": "Your First Resource", "kind": "tutorial" },
+        { "path": "resources/caching/README", "title": "Reading And Caching", "kind": "guide" },
+        { "path": "resources/updating/README", "title": "Writing And Server Reconciliation", "kind": "guide" },
+        { "path": "resources/effects/README", "title": "Optimistic Updates", "kind": "guide" },
+        { "path": "resources/partial-updates/README", "title": "Collections And Partial Updates", "kind": "guide" },
+        { "path": "resources/debugging/README", "title": "Debugging And Recovery", "kind": "troubleshooting" },
+        { "path": "resources/advanced/README", "title": "Advanced Resource Capabilities", "kind": "guide" },
+        { "path": "api-reference/resources", "title": "Resource API Reference", "kind": "reference" }
+      ]
+    },
+    {
+      "id": "forms",
+      "title": "Forms",
+      "items": [
+        { "path": "forms/index", "title": "Forms Overview", "kind": "landing" },
+        { "path": "forms/getting-started/your-first-form", "title": "Your First Form", "kind": "tutorial" },
+        { "path": "forms/state/README", "title": "State, Fields, And Changes", "kind": "guide" },
+        { "path": "forms/validation/README", "title": "Validation And Messages", "kind": "guide" },
+        { "path": "forms/availability/README", "title": "Readiness And Permissions", "kind": "guide" },
+        { "path": "forms/actions/README", "title": "Actions And Submission", "kind": "guide" },
+        { "path": "forms/steps/README", "title": "Multi-Step Flows", "kind": "guide" },
+        { "path": "forms/layout/README", "title": "Layout, Inputs, And Accessibility", "kind": "guide" },
+        { "path": "forms/resource-backed/README", "title": "Resource-Backed Forms", "kind": "guide" },
+        { "path": "forms/lifecycle/README", "title": "Lifecycle And Route Continuity", "kind": "guide" },
+        { "path": "forms/collaboration/README", "title": "Collaboration", "kind": "guide" },
+        { "path": "forms/diagnostics/README", "title": "Diagnostics And Recovery", "kind": "troubleshooting" },
+        { "path": "api-reference/forms", "title": "Form API Reference", "kind": "reference" },
+        { "path": "api-reference/form-export-catalog", "title": "Complete Form Export Catalog", "kind": "reference" }
+      ]
+    },
+    {
+      "id": "router",
+      "title": "Router",
+      "items": [
+        { "path": "router/index", "title": "Router Overview", "kind": "landing" },
+        { "path": "router/projection/route_schema_authoring", "title": "Declare Routes", "kind": "guide" },
+        { "path": "router/projection/projected_candidates", "title": "Match And Project", "kind": "concept" },
+        { "path": "router/admission/admit", "title": "Admission", "kind": "guide" },
+        { "path": "router/transitions/transition_artifacts", "title": "Transitions", "kind": "guide" },
+        { "path": "router/history/browser_history_story", "title": "Browser History", "kind": "guide" },
+        { "path": "router/recovery/stale_deep_link_recovery", "title": "Recovery", "kind": "troubleshooting" },
+        { "path": "router/breadcrumbs/breadcrumb_declarations", "title": "Breadcrumbs", "kind": "guide" },
+        { "path": "router/resources/route_resource_declarations", "title": "Route Resources", "kind": "guide" },
+        { "path": "router/speculation/speculative_sessions", "title": "Speculative Navigation", "kind": "guide" },
+        { "path": "router/forms/route_authority_handoff", "title": "Forms And Continuity", "kind": "guide" },
+        { "path": "router/runtime_placement/worker_first_default", "title": "Runtime Placement", "kind": "concept" },
+        { "path": "router/diagnostics/diagnostics_surfaces", "title": "Router Diagnostics", "kind": "troubleshooting" }
+      ]
+    },
+    {
+      "id": "local-truth",
+      "title": "Local Truth",
+      "items": [
+        { "path": "local-truth/README", "title": "Local Truth Overview", "kind": "landing" },
+        { "path": "local-truth/getting-started", "title": "Create Local Truth", "kind": "tutorial" },
+        { "path": "local-truth/branches-and-snapshots", "title": "Branches And Snapshots", "kind": "guide" },
+        { "path": "local-truth/branch-merge", "title": "Branch Merge And Manual Resolution", "kind": "guide" },
+        { "path": "local-truth/history-and-rebuild", "title": "History, Compaction, And Rebuild", "kind": "guide" },
+        { "path": "local-truth/authority-boundaries", "title": "Standalone And Platform Boundaries", "kind": "concept" },
+        { "path": "local-truth/api-reference", "title": "Local Truth API Reference", "kind": "reference" }
+      ]
+    },
+    {
+      "id": "integrations",
+      "title": "Integrations",
+      "items": [
+        { "path": "integrations/deployment", "title": "Worker-First And Compatibility Deployment", "kind": "guide" },
+        { "path": "integrations/react", "title": "React", "kind": "guide" },
+        { "path": "integrations/host-capabilities", "title": "Browser Host Capabilities", "kind": "guide" }
+      ]
+    },
+    {
+      "id": "reference",
+      "title": "Reference",
+      "items": [
+        { "path": "reference/README", "title": "Reference Overview", "kind": "landing" },
+        { "path": "reference/support-status", "title": "Support Status", "kind": "reference" },
+        { "path": "reference/package-entrypoints-and-contracts", "title": "Package Entrypoints And Contracts", "kind": "reference" },
+        { "path": "package/install-and-publish", "title": "Package Consumption And Publishing", "kind": "reference" },
+        { "path": "reference/typed-results-and-unavailability", "title": "Typed Results And Unavailability", "kind": "reference" },
+        { "path": "api-reference/construction", "title": "Construction API", "kind": "reference" },
+        { "path": "api-reference/callable-signals", "title": "Callable Signals API", "kind": "reference" },
+        { "path": "api-reference/compatibility-surface", "title": "Compatibility Surface", "kind": "reference" },
+        { "path": "api-reference/route-authoring", "title": "API Route Authoring", "kind": "reference" },
+        { "path": "api-reference/resource-family-authoring", "title": "Resource Families", "kind": "reference" },
+        { "path": "api-reference/resource-line", "title": "Resource Lines", "kind": "reference" }
+      ]
+    }
+  ],
+  "redirects": [
+    { "from": "README", "to": "start_here" },
+    { "from": "app-surface/overview", "to": "getting-started/choosing-a-surface" },
+    { "from": "app-surface/explainable-derived-state", "to": "core/diagnostics" },
+    { "from": "app-surface/aspects", "to": "core/aspects" },
+    { "from": "app-surface/diagnostics-and-history", "to": "core/diagnostics" },
+    { "from": "app-surface/host-capabilities", "to": "integrations/host-capabilities" },
+    { "from": "app-surface/react-adapter", "to": "integrations/react" },
+    { "from": "learn/feature-index", "to": "getting-started/choosing-a-surface" },
+    { "from": "learn/recipes", "to": "start_here" },
+    { "from": "forms/README", "to": "forms/index" },
+    { "from": "forms/getting-started/README", "to": "forms/getting-started/your-first-form" },
+    { "from": "forms/milestone-crosswalk", "to": "forms/index" },
+    { "from": "resources/README", "to": "resources/index" },
+    { "from": "resources/start-here/README", "to": "resources/start-here/your-first-resource" },
+    { "from": "resources/milestone-crosswalk", "to": "resources/index" },
+    { "from": "router/README", "to": "router/index" },
+    { "from": "router/authority/README", "to": "router/projection/route_schema_authoring" },
+    { "from": "router/boundaries/README", "to": "router/history/browser_history_story" },
+    { "from": "router/breadcrumbs/README", "to": "router/breadcrumbs/breadcrumb_declarations" },
+    { "from": "router/diagnostics/README", "to": "router/diagnostics/diagnostics_surfaces" },
+    { "from": "router/milestone-crosswalk", "to": "router/index" },
+    { "from": "router/recovery/README", "to": "router/recovery/stale_deep_link_recovery" },
+    { "from": "router/restore/README", "to": "router/recovery/stale_deep_link_recovery" },
+    { "from": "router/runtime_placement/README", "to": "router/runtime_placement/worker_first_default" },
+    { "from": "resource-contracts/closeout-matrix", "to": "resources/effects/README" },
+    { "from": "resource-contracts/delivery-and-compatibility", "to": "resources/debugging/read-delivery-and-compatibility" },
+    { "from": "resource-contracts/effect-envelope", "to": "resources/effects/effect-envelopes-and-closeout" },
+    { "from": "resource-contracts/history-and-restore", "to": "resources/debugging/restore-replay-and-recover" },
+    { "from": "resource-contracts/inspection-and-history", "to": "resources/debugging/README" },
+    { "from": "resource-contracts/mutation-response-closeout-matrix", "to": "resources/responses/README" },
+    { "from": "resource-contracts/reconciliation", "to": "resources/responses/README" },
+    { "from": "resource-contracts/response-topology-proof", "to": "resources/verification/response-topology-proof" }
+  ],
+  "features": [
+    {
+      "id": "construction",
+      "canonicalPath": "getting-started/installation",
+      "status": "stable",
+      "publicEntrypoints": ["createSignals", "planCreateSignalsDeployment", "explainCreateSignalsConstruction"],
+      "truthOwner": "The selected Worth Signals runtime owns signal execution; the host chooses the deployment explicitly.",
+      "limits": ["The default worker-first lane never silently falls back to the main thread."],
+      "evidence": [
+        "package/product/signals_runtime/entrypoint/construction/async_worker_first_entrypoint_construction.test.mjs",
+        "package/product/signals_runtime/entrypoint/construction/no_hidden_main_thread_fallback.test.mjs"
+      ]
+    },
+    {
+      "id": "inputs-and-computed",
+      "canonicalPath": "core/inputs-and-computed",
+      "status": "stable",
+      "publicEntrypoints": ["signals.input", "signals.computed", "signals.output"],
+      "truthOwner": "Inputs own writable runtime state; computed and output handles derive from reads captured by the runtime.",
+      "limits": ["debugName is human-readable metadata, never stable identity."],
+      "evidence": [
+        "package/product/signals_runtime/authoring/opaque_authoring_equivalence.test.mjs",
+        "package/product/signals_runtime/authoring/debug_name_not_identity.test.mjs"
+      ]
+    },
+    {
+      "id": "transactions",
+      "canonicalPath": "core/transactions",
+      "status": "stable",
+      "publicEntrypoints": ["signals.transaction", "signals.batch", "signals.transactionAsync", "signals.batchAsync"],
+      "truthOwner": "The runtime validates and commits the coordinated mutation as one execution boundary.",
+      "limits": ["A worker-first transaction rejects handles owned by another runtime."],
+      "evidence": [
+        "package/product/signals_runtime/entrypoint/construction/worker_first_callable_async_transaction.test.mjs"
+      ]
+    },
+    {
+      "id": "linked-state",
+      "canonicalPath": "core/linked-state",
+      "status": "stable",
+      "publicEntrypoints": ["signals.linked", "linked.set", "linked.reset", "linked.relink"],
+      "truthOwner": "The linked handle owns the current writable value while its declared source supplies the re-anchoring baseline.",
+      "limits": ["Linked state is not a synchronization protocol for server truth."],
+      "evidence": [
+        "package/product/signals_runtime/authoring/linked_writable_derived_state.test.mjs"
+      ]
+    },
+    {
+      "id": "graphs-and-controllers",
+      "canonicalPath": "core/graphs-and-controllers",
+      "status": "stable",
+      "publicEntrypoints": ["signals.graph", "graph.controller", "graph.expose", "signals.controller"],
+      "truthOwner": "The runtime owns local handles; a published graph owns the named application boundary and its input authority contract.",
+      "limits": ["Names become contractual only at an explicit published or spec boundary."],
+      "evidence": [
+        "package/product/signals_runtime/publication/controller_composition_flat_runtime_equivalence.test.mjs",
+        "package/product/signals_runtime/inputs/public_graph_input_output_contract.test.mjs"
+      ]
+    },
+    {
+      "id": "aspects",
+      "canonicalPath": "core/aspects",
+      "status": "stable",
+        "publicEntrypoints": ["producesAspects", "reads[].aspect", "tx.setWithAspects", "tx.setWithRegionsAndAspects"],
+      "truthOwner": "The runtime owns aspect-aware invalidation; application code declares the semantic lanes attached to a write.",
+        "limits": ["The active native profile supports at most 32 numeric aspects."],
+        "evidence": [
+          "package/product/documentation/aspects_guide_runtime.test.mjs"
+        ]
+    },
+    {
+      "id": "diagnostics",
+      "canonicalPath": "core/diagnostics",
+      "status": "mixed",
+      "publicEntrypoints": ["signals.diagnostics", "diagnostics.why", "diagnostics.latestFlow", "graph.inspectDiagnostics"],
+      "truthOwner": "The runtime produces diagnostic evidence; applications decide whether and how long to retain a presentation of it.",
+      "limits": ["Worker-first host-capability event replay is explicitly unavailable."],
+      "evidence": [
+        "package/product/signals_runtime/entrypoint/sessions/worker_first_diagnostics.test.mjs"
+      ]
+    },
+    {
+      "id": "history",
+      "canonicalPath": "core/history",
+      "status": "stable",
+      "publicEntrypoints": ["signals.history", "history.snapshot", "history.create_branch", "history.restore_exact_snapshot"],
+      "truthOwner": "The active runtime owns its runtime history, branches, snapshots, and restore authority.",
+      "limits": ["Runtime branches are derived execution history, not durable application truth."],
+      "evidence": [
+        "package/product/signals_runtime/entrypoint/sessions/worker_first_history.test.mjs"
+      ]
+    },
+    {
+      "id": "host-capabilities",
+      "canonicalPath": "integrations/host-capabilities",
+      "status": "mixed",
+      "publicEntrypoints": ["hostCapabilityPlan", "visibilityCapability", "viewportCapability", "onlineCapability", "clockCapability", "persistenceCapability"],
+      "truthOwner": "The browser host owns ambient facts; registered capabilities admit those facts through an explicit runtime boundary.",
+      "limits": ["Some host-event replay diagnostics are unavailable in worker-first deployment."],
+      "evidence": [
+        "package/product/signals_runtime/entrypoint/construction/async_worker_first_entrypoint_construction.test.mjs"
+      ]
+    },
+    {
+      "id": "react",
+      "canonicalPath": "integrations/react",
+      "status": "stable",
+      "publicEntrypoints": ["createReactSignalsStore", "useSignalValue", "useOutputValue", "useSignalsForm", "SignalsFormFieldBinding"],
+      "truthOwner": "Worth Signals owns state; the React adapter subscribes and renders without creating a second state engine.",
+      "limits": ["React component state remains application-owned when you explicitly choose to retain UI-only data."],
+      "evidence": [
+        "package/product/host_capabilities_certification/zombie_delivery_and_react_consumer_boundary.test.mjs",
+        "package/documentation-form-react-smoke.tsx"
+      ]
+    },
+    {
+      "id": "resources",
+      "canonicalPath": "resources/index",
+      "status": "stable",
+      "publicEntrypoints": ["signals.api", "signals.resource", "family.line"],
+      "truthOwner": "A resource line owns browser-local request, lifecycle, projected value, and evidence for one resource identity.",
+      "limits": [
+        "A resource line is not the durable server database.",
+        "Narrow updates, exact recovery, and merge require declared shape and available proof."
+      ],
+      "evidence": [
+        "package/product/resource_runtime/authoring/api_route/api_url_semantic_finalizers.test.mjs",
+        "package/product/resource_runtime/lifecycle/initial_async_materialization.test.mjs",
+        "package/product/resource_runtime/effects/certification/concurrent_resource_effect_branch_dag_certification.test.mjs"
+      ]
+    },
+    {
+      "id": "forms",
+      "canonicalPath": "forms/index",
+      "status": "stable",
+      "publicEntrypoints": ["signals.form", "signals.form.define", "signals.form.source", "form.fields", "form.effective", "form.patchPlan", "form.readiness", "form.executeAction"],
+      "truthOwner": "The form controller owns draft and form lifecycle; its declared source owns source truth.",
+      "limits": [
+        "The TypeScript form controller does not render controls, perform arbitrary host I/O, provide a collaboration transport, or turn process-local history into durable audit truth.",
+        "Resource replay, restore, merge, and rollback require compatible retained resource authority and can report unavailable."
+      ],
+      "evidence": [
+        "package/product/signals_runtime/forms/closeout/full_forms_hostile_convergence.test.mjs",
+        "package/product/documentation/form_export_catalog.test.mjs"
+      ]
+    },
+    {
+      "id": "router",
+      "canonicalPath": "router/index",
+      "status": "stable",
+      "publicEntrypoints": ["signals.router.define", "routes.project", "routes.admit", "routes.transition", "routes.browserHistory"],
+      "truthOwner": "The router owns admitted visible route state while the browser owns raw location ingress.",
+      "limits": [
+        "The host owns browser history and external navigation side effects; the Router returns typed envelopes for the host to apply.",
+        "A projected route candidate is structural matching, not permission and not visible route truth."
+      ],
+      "evidence": ["package/product/signals_runtime/authoring/router/phase11/callable_router_phase11_sequence_simulation.test.mjs"]
+    },
+    {
+      "id": "local-truth",
+      "canonicalPath": "local-truth/README",
+      "status": "stable",
+      "publicEntrypoints": ["localTruthSchema", "signals.localTruth"],
+      "truthOwner": "TypeScript Local Truth owns process-local application values; Signal consumes committed values as disposable derivation.",
+      "limits": [
+        "Local Truth is neither durable nor shared across processes.",
+        "Query and Relational remain the platform path for durable domain truth; Signal consumes Local Truth commits only as disposable derivation."
+      ],
+      "evidence": ["package/product/signals_runtime/local_truth/local_truth_closeout_certification.test.mjs"]
+    },
+    {
+      "id": "compatibility-surface",
+      "canonicalPath": "reference/support-status",
+      "status": "compatibility",
+      "publicEntrypoints": ["createCallableSignals", "signals.compatibilityApp", "signals.compatibilityRuntime"],
+      "truthOwner": "The main-thread runtime owns the lower-level compatibility surface.",
+      "limits": ["This is supported for migration and specialist work, not the normal application starting point."],
+      "evidence": ["package/product/signals_runtime/entrypoint/construction/explicit_compatibility_construction.test.mjs"]
+    }
+  ]
+}

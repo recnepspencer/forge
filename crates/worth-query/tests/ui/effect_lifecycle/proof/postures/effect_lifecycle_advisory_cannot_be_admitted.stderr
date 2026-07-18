@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::foundation::admit_effect_intent`
- --> tests/ui/effect_lifecycle/proof/postures/effect_lifecycle_advisory_cannot_be_admitted.rs:1:39
-  |
-1 | use worth_query::facade::foundation::{admit_effect_intent, AdvisoryEffectEligibility};
-  |                                       ^^^^^^^^^^^^^^^^^^^
-  |                                       |
-  |                                       no `admit_effect_intent` in `facade::foundation`
-  |                                       help: a similar name exists in the module: `AdmittedEffectIntent`

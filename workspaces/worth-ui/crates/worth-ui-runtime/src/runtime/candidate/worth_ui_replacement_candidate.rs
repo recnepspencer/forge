@@ -50,8 +50,4 @@ impl WorthUiReplacementCandidate {
     pub(crate) fn artifact_bundle(&self) -> &WorthUiCandidateArtifactBundle {
         &self.bundle
     }
-
-    pub(crate) fn into_artifact(self) -> crate::source::WorthUiArtifact {
-        self.bundle.into_artifact()
-    }
 }

@@ -8,8 +8,10 @@ mod owner;
 mod owner_test_support;
 mod pending_durable_transaction;
 mod pending_handoff;
+mod policy_execution;
 mod scheduler;
 mod source_capabilities;
+mod transition_planning;
 
 pub use completion::{
     WorthUiFrameworkTurnCompletion, WorthUiPreviewPaintFollowOn,
@@ -28,6 +30,10 @@ pub(crate) use pending_handoff::UiPendingAllocationFrameHandoff;
 pub(crate) use scheduler::UiAllocationFrameFrameworkScheduler;
 pub(in crate::runtime::allocation_frame_dispatch) use scheduler::UiAllocationFrameIngressMailbox;
 pub(in crate::runtime) use scheduler::UiPreparedFrameReplacementCommit;
+pub use transition_planning::{
+    UiFrameworkTransitionExecutionDenial, UiFrameworkTransitionPlanningCounters,
+    UiFrameworkTransitionPlanningDenial,
+};
 
 #[cfg(test)]
 mod tests;

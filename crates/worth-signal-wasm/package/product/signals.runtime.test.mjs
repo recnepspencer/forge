@@ -1,4 +1,14 @@
 import "./signals_runtime/authoring/linked_writable_derived_state.test.mjs";
+import "./signals_runtime/local_truth/local_truth_schema_and_commit.test.mjs";
+import "./signals_runtime/local_truth/local_truth_merge_semantics.test.mjs";
+import "./signals_runtime/local_truth/local_truth_history_recovery.test.mjs";
+import "./signals_runtime/local_truth/local_truth_conflict_scale.test.mjs";
+import "./signals_runtime/local_truth/local_truth_projection_boundary.test.mjs";
+import "./signals_runtime/local_truth/local_truth_projection_active_branch.test.mjs";
+import "./signals_runtime/local_truth/local_truth_protocol_admission.test.mjs";
+import "./signals_runtime/local_truth/local_truth_generated_parity.test.mjs";
+import "./signals_runtime/local_truth/local_truth_boundedness_certification.test.mjs";
+import "./signals_runtime/local_truth/local_truth_closeout_certification.test.mjs";
 import "./signals_runtime/authoring/portable_lane_explicit_naming.test.mjs";
 import "./signals_runtime/authoring/wrap_signals_callback_metadata_validation.test.mjs";
 import "./signals_runtime/authoring/wrap_signals_named_spec_shorthand.test.mjs";
@@ -14,6 +24,7 @@ import "./signals_runtime/entrypoint/construction/explicit_compatibility_constru
 import "./signals_runtime/entrypoint/construction/no_hidden_main_thread_fallback.test.mjs";
 import "./signals_runtime/entrypoint/construction/worker_unavailable_construction_artifact.test.mjs";
 import "./signals_runtime/entrypoint/construction/worker_first_callable_api.test.mjs";
+import "./signals_runtime/entrypoint/construction/local_truth_deployment_parity.test.mjs";
 import "./signals_runtime/entrypoint/construction/worker_first_callable_async_transaction.test.mjs";
 import "./signals_runtime/entrypoint/construction/worker_first_callable_form.test.mjs";
 import "./signals_runtime/entrypoint/construction/worker_first_callable_imported_graph.test.mjs";

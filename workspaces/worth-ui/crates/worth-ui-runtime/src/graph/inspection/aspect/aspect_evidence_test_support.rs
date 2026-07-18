@@ -63,6 +63,7 @@ pub(super) fn aspect_identity_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn published_aspect_query(aspect_name: &str) -> UiInspectionQuery {

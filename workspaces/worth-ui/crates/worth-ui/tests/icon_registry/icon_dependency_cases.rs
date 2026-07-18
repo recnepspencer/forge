@@ -31,7 +31,8 @@ fn command_icon_reference_resolves_against_registered_icon() {
             command_descriptor("workspace.command.save", "Save")
                 .with_icon(icon_id("workspace.icon.save")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_icon_ids(app.capabilities().icons(), &["workspace.icon.save"]);
     assert_eq!(app.capabilities().commands().len(), 1);
@@ -64,7 +65,8 @@ fn surface_icon_reference_survives_freeze_when_registered() {
             surface_descriptor("workspace.surface.editor", "workspace.component.editor")
                 .with_icon(icon_id("workspace.icon.surface")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()
@@ -127,7 +129,8 @@ fn runtime_outcome_icon_reference_resolves_when_registered() {
             "workspace.outcome.denied",
             "workspace.icon.denied",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().runtime_outcome_projections().len(), 1);
 }

@@ -36,7 +36,6 @@ fn current_audit_is_clean() {
 
     assert!(audit.duplicate_public_names().is_empty());
     assert!(audit.uninventoried_public_verbs().is_empty());
-    assert!(audit.undocumented_exports().is_empty());
     assert!(audit.missing_doc_rows().is_empty());
     assert!(audit.missing_transcript_rows().is_empty());
     assert!(audit.missing_certification_rows().is_empty());

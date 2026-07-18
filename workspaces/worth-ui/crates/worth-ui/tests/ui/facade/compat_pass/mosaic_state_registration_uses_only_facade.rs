@@ -18,5 +18,5 @@ fn main() {
             .with_replacement_rule(MosaicStateReplacementRule::preserve_when_owner_matches())
             .with_truth_posture(MosaicStateTruthPosture::ui_runtime_state()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

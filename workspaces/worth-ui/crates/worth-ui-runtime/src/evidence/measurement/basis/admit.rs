@@ -80,20 +80,20 @@ pub fn admit_measurement_basis(
             selected.host_results.scroll_container_viewport,
         ],
     );
-    let identity_digest = basis_identity_digest(
-        &requirements,
-        &declaration_identity,
+    let identity_digest = basis_identity_digest(super::UiMeasurementBasisIdentityInput {
+        requirements: &requirements,
+        declaration_identity: &declaration_identity,
         graph_node_identity,
-        &world_profile,
+        world_profile: &world_profile,
         declaration_support_authority_generation,
         declared_measurement_policy,
-        &evidence_inputs,
-        &dependency_lineage,
-        &dependency_map,
+        evidence_inputs: &evidence_inputs,
+        dependency_lineage: &dependency_lineage,
+        dependency_map: &dependency_map,
         neighborhood_class_hint,
-        &generation_compatibility,
-        denial_posture.as_ref(),
-    );
+        generation_compatibility: &generation_compatibility,
+        denial_posture: denial_posture.as_ref(),
+    });
 
     UiMeasurementBasis {
         identity_digest,

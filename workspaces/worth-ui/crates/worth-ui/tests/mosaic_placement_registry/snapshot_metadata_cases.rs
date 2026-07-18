@@ -4,7 +4,7 @@ use worth_ui::facade::{
     WorthUi,
 };
 
-use crate::mosaic_placement_registry_fixtures::{complete_policy, placement_id};
+use super::mosaic_placement_registry_fixtures::{complete_policy, placement_id};
 
 #[test]
 fn overlay_policy_with_explicit_runtime_support_is_admitted() {
@@ -23,7 +23,8 @@ fn overlay_policy_with_explicit_runtime_support_is_admitted() {
             .with_support(MosaicPlacementSupport::supported())
             .with_label("Overlay placement"),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()

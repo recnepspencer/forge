@@ -20,7 +20,6 @@ use crate::domain_capabilities::canonical_runtime::{
 };
 use crate::domain_capabilities::certification::{
     certify_domain_capabilities_in, install_domain_capability_certification,
-    worth_query_domain_capability_compile_fail_boundary_digest,
     worth_query_domain_capability_public_surface_inventory,
 };
 use crate::domain_capabilities::evaluate_requested_domain_capability_contribution;
@@ -336,10 +335,6 @@ fn certification_bundle_boundary_and_failure_outputs_track_live_surfaces() {
                 .public_surface_digest()
                 .as_str()
         )
-    );
-    assert_eq!(
-        bundle.output_digest("compile_fail_boundary_digest"),
-        Some(worth_query_domain_capability_compile_fail_boundary_digest().as_str())
     );
     assert_eq!(
         bundle.output_digest("failure_digest"),

@@ -34,13 +34,15 @@ fn admission_report_keeps_support_truth_separate_from_legality_truth() {
                 .with_semantic_artifact_spec(deferred_region_spec())
                 .with_semantic_artifact_spec(diagnostic_only_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.admission.foreign")
                 .with_semantic_artifact_spec(foreign_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let boundary = app.admission();
     let admitted = artifact_from_file_provenance(&app, "app/admission_report.wui", 0);
     let advisory = artifact_from_file_provenance(&app, "app/admission_report.wui", 1);
@@ -299,7 +301,7 @@ fn query_snapshot_world_profile() -> UiGraphWorldProfile {
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
-            &["worth-ui.phase5", "admission", "report"]
+            ["worth-ui.phase5", "admission", "report"]
                 .into_iter()
                 .map(str::to_owned)
                 .collect::<Vec<_>>(),

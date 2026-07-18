@@ -1,19 +1,17 @@
 use crate::capability::CapabilitySnapshot;
 use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
-    WorthUiCandidateAdmission, WorthUiCounterCaptureRichness,
-    WorthUiFileRustReplacementParityCounters, WorthUiFoundationalCounterBridge,
-    WorthUiFoundationalCounterEvidence, WorthUiFrameCostCounter, WorthUiMeasurementBoundary,
-    WorthUiMeasurementCertificationDenial, WorthUiReloadCertificationBundle, WorthUiReloadDenial,
-    WorthUiReloadFailure, WorthUiReloadFailureStage, WorthUiReloadLatencyCounters,
+    WorthUiCandidateOrderingReceipt, WorthUiCounterCaptureRichness,
+    WorthUiFoundationalCounterBridge, WorthUiFoundationalCounterEvidence, WorthUiFrameCostCounter,
+    WorthUiMeasurementBoundary, WorthUiMeasurementCertificationDenial,
+    WorthUiReloadCertificationBundle, WorthUiReloadDenial, WorthUiReloadFailure,
+    WorthUiReloadFailureStage, WorthUiReloadLatencyCounters,
     WorthUiReloadStormCandidateDenialReason, WorthUiReloadStormCandidateStep,
     WorthUiReloadStormCandidateStepKind, WorthUiReloadStormCertification,
     WorthUiReloadStormCertificationDenial, WorthUiReloadStormCertificationDenialReason,
     WorthUiReloadStormDeniedIteration, WorthUiReloadStormIterationOutcome,
-    WorthUiReloadStormNoOpIteration, WorthUiReloadStormOrderedTruth,
-    WorthUiReloadStormReceiptBinding, WorthUiReloadStormScenario,
-    WorthUiReloadStormSuccessfulIteration, WorthUiReplacementCandidate,
-    WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeCounterFamily,
+    WorthUiReloadStormOrderedTruth, WorthUiReloadStormPreparedIteration,
+    WorthUiReloadStormScenario, WorthUiRuntimeCounterFamily, WorthUiWatchedCandidateSubmission,
 };
 
 struct WorthUiReloadStormCandidateLoweringFailure {
@@ -35,7 +33,7 @@ impl WorthUiRuntime {
         let scenario_digest = scenario.scenario_digest();
         let scenario_name = scenario.name().to_owned();
         let mut outcomes = Vec::new();
-        let mut previous_binding: Option<WorthUiReloadStormReceiptBinding> = None;
+        let mut previous_ordering_receipt: Option<WorthUiCandidateOrderingReceipt> = None;
 
         for step in scenario.steps() {
             counters.record_iteration();
@@ -48,24 +46,24 @@ impl WorthUiRuntime {
                 ));
             }
 
-            let candidate = match self.lower_step_candidate(step, snapshot, counters) {
-                Ok(candidate) => candidate,
+            let submission = match self.lower_step_submission(step, snapshot, counters) {
+                Ok(submission) => submission,
                 Err(lowering_failure) => {
                     counters = lowering_failure.counters;
                     outcomes.push(WorthUiReloadStormIterationOutcome::DeniedPreserved(
-                        WorthUiReloadStormDeniedIteration::new(
+                        Box::new(WorthUiReloadStormDeniedIteration::new(
                             step.label(),
                             lowering_failure.candidate_denial_reason,
                             lowering_failure.failure,
                             self.inspect_active().active_plan_digest(),
                             self.last_valid().active_plan_digest(),
-                        ),
+                        )),
                     ));
                     continue;
                 }
             };
 
-            let lane = candidate.authoring_lane();
+            let lane = submission.authoring_lane();
             counters.record_candidate_lane(lane);
             if !lane_matches_step_kind(lane, step.kind()) {
                 return Err(denial(
@@ -77,17 +75,13 @@ impl WorthUiRuntime {
             }
 
             if step.reuse_previous_receipt_probe() {
-                let Some(previous) = previous_binding else {
+                let Some(previous) = previous_ordering_receipt.as_ref() else {
                     return Err(denial(
                         WorthUiReloadStormCertificationDenialReason::ForgedReceiptReuseAcrossCandidates,
                         counters,
                     ));
                 };
-                if !previous.reusable_for_candidate(
-                    lane,
-                    candidate.basis(),
-                    step.provider().final_package_digest(),
-                ) {
+                if !previous.matches_revision(submission.source_revision()) {
                     counters.record_forged_receipt_reuse_denial();
                     return Err(denial(
                         WorthUiReloadStormCertificationDenialReason::ForgedReceiptReuseAcrossCandidates,
@@ -96,20 +90,23 @@ impl WorthUiRuntime {
                 }
             }
 
-            let outcome = self.classify_or_activate_step(
-                step,
-                candidate,
-                &mut counters,
-                &mut previous_binding,
-            )?;
-            outcomes.push(outcome);
+            previous_ordering_receipt = Some(submission.ordering_receipt().clone());
+            counters.record_prepared_pending_cutover();
+            outcomes.push(WorthUiReloadStormIterationOutcome::PreparedPendingCutover(
+                Box::new(WorthUiReloadStormPreparedIteration::new(
+                    step.label(),
+                    submission,
+                    self.inspect_active().active_plan_digest(),
+                    self.last_valid().active_plan_digest(),
+                )),
+            ));
         }
 
         let final_active = self.inspect_active();
         let final_last_valid = self.last_valid();
         let ordered_truth = WorthUiReloadStormOrderedTruth::from_outcomes(
             initial_active,
-            final_active,
+            final_active.clone(),
             final_last_valid,
             &outcomes,
         );
@@ -128,87 +125,13 @@ impl WorthUiRuntime {
         ))
     }
 
-    fn classify_or_activate_step(
-        &mut self,
-        step: &WorthUiReloadStormCandidateStep,
-        candidate: WorthUiReplacementCandidate,
-        counters: &mut WorthUiReloadLatencyCounters,
-        previous_binding: &mut Option<WorthUiReloadStormReceiptBinding>,
-    ) -> Result<WorthUiReloadStormIterationOutcome, WorthUiReloadStormCertificationDenial> {
-        let lane = candidate.authoring_lane();
-        let candidate_basis = candidate.basis();
-        let admitted =
-            WorthUiCandidateAdmission::for_active_basis(self.replacement_admission_basis())
-                .admit(candidate)
-                .map_err(|_| {
-                    denial(
-                        WorthUiReloadStormCertificationDenialReason::CandidateAdmissionDenied,
-                        *counters,
-                    )
-                })?;
-        let comparison = self.compare_admitted_replacement(&admitted).map_err(|_| {
-            denial(
-                WorthUiReloadStormCertificationDenialReason::ArtifactComparisonDenied,
-                *counters,
-            )
-        })?;
-
-        if comparison.outcome() == WorthUiRuntimeArtifactComparisonOutcome::EquivalentNoOp {
-            counters.record_candidate_screening();
-            counters.record_no_op();
-            let binding = WorthUiReloadStormReceiptBinding::from_no_op(
-                lane,
-                candidate_basis,
-                &comparison,
-                step.provider().final_package_digest(),
-            );
-            *previous_binding = Some(binding);
-            return Ok(WorthUiReloadStormIterationOutcome::EquivalentNoOp(
-                WorthUiReloadStormNoOpIteration::new(
-                    step.label(),
-                    binding,
-                    self.inspect_active().active_plan_digest(),
-                ),
-            ));
-        }
-
-        let parity_counters = replacement_parity_counters_after_screening(lane);
-        let report = self
-            .activate_admitted_replacement_for_file_rust_parity_report(
-                admitted,
-                comparison,
-                parity_counters,
-            )
-            .map_err(|activation_denial| {
-                denial(
-                    WorthUiReloadStormCertificationDenialReason::ActivationDenied(
-                        activation_denial,
-                    ),
-                    *counters,
-                )
-            })?;
-        counters.record_activated_pipeline(report.counters());
-        let binding = WorthUiReloadStormReceiptBinding::from_activation(
-            &report,
-            step.provider().final_package_digest(),
-        );
-        *previous_binding = Some(binding);
-        Ok(WorthUiReloadStormIterationOutcome::Activated(
-            WorthUiReloadStormSuccessfulIteration::new(
-                step.label(),
-                binding,
-                report,
-                self.inspect_active().active_plan_digest(),
-            ),
-        ))
-    }
-
-    fn lower_step_candidate(
+    fn lower_step_submission(
         &self,
         step: &WorthUiReloadStormCandidateStep,
         snapshot: &CapabilitySnapshot,
         mut counters: WorthUiReloadLatencyCounters,
-    ) -> Result<WorthUiReplacementCandidate, WorthUiReloadStormCandidateLoweringFailure> {
+    ) -> Result<WorthUiWatchedCandidateSubmission, Box<WorthUiReloadStormCandidateLoweringFailure>>
+    {
         let provider = step.provider().clone();
         let mut session = self.source_ingress(provider).start();
         let batch = match session.ingest(step.events()) {
@@ -221,15 +144,15 @@ impl WorthUiRuntime {
                     WorthUiReloadFailureStage::InvalidCandidate,
                     Some(step.provider().final_package_digest()),
                 ));
-                return Err(WorthUiReloadStormCandidateLoweringFailure {
+                return Err(Box::new(WorthUiReloadStormCandidateLoweringFailure {
                     candidate_denial_reason,
                     failure,
                     counters,
-                });
+                }));
             }
         };
         match batch.lower_to_candidate_submission(snapshot) {
-            Ok(submission) => Ok(submission.into_candidate()),
+            Ok(submission) => Ok(submission),
             Err(submission_denial) => {
                 counters.record_denied_preservation();
                 let candidate_denial_reason =
@@ -240,24 +163,14 @@ impl WorthUiRuntime {
                     WorthUiReloadFailureStage::InvalidCandidate,
                     Some(step.provider().final_package_digest()),
                 ));
-                Err(WorthUiReloadStormCandidateLoweringFailure {
+                Err(Box::new(WorthUiReloadStormCandidateLoweringFailure {
                     candidate_denial_reason,
                     failure,
                     counters,
-                })
+                }))
             }
         }
     }
-}
-
-fn replacement_parity_counters_after_screening(
-    lane: crate::runtime::WorthUiCandidateAuthoringLane,
-) -> WorthUiFileRustReplacementParityCounters {
-    let mut counters = WorthUiFileRustReplacementParityCounters::default();
-    counters.record_candidate(lane);
-    counters.record_candidate_admission();
-    counters.record_artifact_comparison();
-    counters
 }
 
 fn validate_scenario(
@@ -299,27 +212,27 @@ fn lower_storm_counters_to_foundational(
     counters: WorthUiReloadLatencyCounters,
     active_plan_digest: u64,
 ) -> Result<Vec<WorthUiFoundationalCounterEvidence>, WorthUiReloadStormCertificationDenialReason> {
-    let family = WorthUiRuntimeCounterFamily::ReloadCandidateAdmission;
-    let boundary = WorthUiMeasurementBoundary::ReloadCandidateAdmission;
+    let family = WorthUiRuntimeCounterFamily::SourceIngress;
+    let boundary = WorthUiMeasurementBoundary::SourceIngress;
     let packet = family
         .at_boundary(boundary)
         .with_capture_richness(WorthUiCounterCaptureRichness::Full)
         .with_active_plan_digest(active_plan_digest)
         .record(WorthUiFrameCostCounter::count(
-            "reload.candidate_admission.candidate_proof_checks",
+            "reload.source_ingress.iterations",
             counters.iteration_count() as u64,
         ))
         .record(WorthUiFrameCostCounter::count(
-            "reload.candidate_admission.snapshot_compatibility_checks",
-            counters.valid_candidate_count() as u64,
+            "reload.source_ingress.prepared_pending_cutover",
+            counters.prepared_pending_cutover_count() as u64,
         ))
         .record(WorthUiFrameCostCounter::count(
-            "reload.candidate_admission.runtime_posture_checks",
-            counters.activated_candidate_count() as u64,
+            "reload.source_ingress.denied",
+            counters.denied_candidate_count() as u64,
         ))
         .record(WorthUiFrameCostCounter::count(
-            "reload.candidate_admission.query_support_checks",
-            counters.no_op_candidate_count() as u64 + counters.activated_candidate_count() as u64,
+            "reload.source_ingress.active_truth_preservations",
+            counters.preservation_count() as u64,
         ))
         .seal()
         .map_err(WorthUiReloadStormCertificationDenialReason::FoundationalMeasurementDenied)?;

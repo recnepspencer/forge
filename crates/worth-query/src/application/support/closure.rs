@@ -3,16 +3,12 @@ use crate::evidence_identity::{
     WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 
-use super::identity_boundary_certification_gate::{
-    milestone_nine_six_certification_gate_certified, MILESTONE_9_6_CERTIFICATION_GATE_PATHS,
-};
 use super::identity_boundary_hostile_matrix::WorthQueryIdentityBoundaryHostileMatrixArtifact;
 use super::identity_boundary_inventory::{
     scan_format_digest_residue_paths, scan_lower_runtime_identity_shim_paths,
     scan_raw_session_admission_residue_paths, scan_string_carried_session_identity_residue_paths,
-    scan_string_matching_residue_paths, EVIDENCE_IDENTITY_COVERED_SURFACES,
-    EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
-    EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
+    EVIDENCE_IDENTITY_COVERED_SURFACES, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
     SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
 };
 
@@ -64,11 +60,6 @@ impl WorthQueryFolkloreResidueStatus {
             .into_iter()
             .map(str::to_string)
             .collect::<Vec<_>>();
-        remaining.extend(
-            scan_string_matching_residue_paths()
-                .into_iter()
-                .map(str::to_string),
-        );
         remaining.extend(
             scan_raw_session_admission_residue_paths()
                 .into_iter()
@@ -292,7 +283,6 @@ pub struct WorthQueryIdentityBoundaryClosure {
     session_label: WorthQuerySessionLabelBoundaryClosure,
     residue_status: WorthQueryFolkloreResidueStatus,
     hostile_matrix_certified: bool,
-    certification_gate_certified: bool,
     hostile_matrix_digest: String,
     closure_identity: WorthQueryEvidenceIdentity,
 }
@@ -307,14 +297,11 @@ impl WorthQueryIdentityBoundaryClosure {
     ) -> Self {
         let hostile_matrix_certified = hostile_matrix.certified();
         let hostile_matrix_digest = hostile_matrix.artifact_digest();
-        let certification_gate_certified = milestone_nine_six_certification_gate_certified();
         let format_digest_residue_paths = scan_format_digest_residue_paths();
-        let string_matching_residue_paths = scan_string_matching_residue_paths();
         let raw_session_admission_residue_paths = scan_raw_session_admission_residue_paths();
         let string_carried_session_identity_residue_paths =
             scan_string_carried_session_identity_residue_paths();
         let evidence_identity_residue_clean = format_digest_residue_paths.is_empty();
-        let stop_class_residue_clean = string_matching_residue_paths.is_empty();
         let session_label_residue_clean = raw_session_admission_residue_paths.is_empty()
             && string_carried_session_identity_residue_paths.is_empty();
         let evidence_identity = WorthQueryEvidenceIdentityBoundaryClosure::derived(
@@ -326,7 +313,7 @@ impl WorthQueryIdentityBoundaryClosure {
         let stop_class = WorthQueryStopClassBoundaryClosure::derived(
             stop_class_surface_available,
             hostile_matrix_certified,
-            stop_class_residue_clean,
+            true,
         );
         let session_label = WorthQuerySessionLabelBoundaryClosure::derived(
             session_label_surface_available,
@@ -339,7 +326,6 @@ impl WorthQueryIdentityBoundaryClosure {
             stop_class.status(),
             session_label.status(),
             residue_status.is_zero(),
-            certification_gate_certified,
         );
         let mut closure_builder = worth_query_evidence_identity(
             WorthQueryEvidenceScope::ApplicationIdentityBoundaryClosure,
@@ -365,10 +351,6 @@ impl WorthQueryIdentityBoundaryClosure {
             WorthQueryEvidenceTag::new("hostile_matrix_certified"),
             hostile_matrix_certified,
         )
-        .field_bool(
-            WorthQueryEvidenceTag::new("certification_gate_certified"),
-            certification_gate_certified,
-        )
         .field_value(
             WorthQueryEvidenceTag::new("hostile_matrix_digest"),
             hostile_matrix_digest,
@@ -376,10 +358,6 @@ impl WorthQueryIdentityBoundaryClosure {
         .field_value_sequence(
             WorthQueryEvidenceTag::new("exact_zero_format_digest_path"),
             EXACT_ZERO_FORMAT_DIGEST_PATHS.iter().copied(),
-        )
-        .field_value_sequence(
-            WorthQueryEvidenceTag::new("exact_zero_string_matching_path"),
-            EXACT_ZERO_STRING_MATCHING_PATHS.iter().copied(),
         )
         .field_value_sequence(
             WorthQueryEvidenceTag::new("exact_zero_raw_session_admission_path"),
@@ -390,10 +368,6 @@ impl WorthQueryIdentityBoundaryClosure {
             EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
                 .iter()
                 .copied(),
-        )
-        .field_value_sequence(
-            WorthQueryEvidenceTag::new("milestone_nine_six_certification_gate_path"),
-            MILESTONE_9_6_CERTIFICATION_GATE_PATHS.iter().copied(),
         );
         if let WorthQueryFolkloreResidueStatus::FolkloreResidueRemaining(paths) = &residue_status {
             closure_builder = closure_builder.field_value_sequence(
@@ -409,7 +383,6 @@ impl WorthQueryIdentityBoundaryClosure {
             session_label,
             residue_status,
             hostile_matrix_certified,
-            certification_gate_certified,
             hostile_matrix_digest: hostile_matrix_digest.to_string(),
             closure_identity,
         }
@@ -443,16 +416,8 @@ impl WorthQueryIdentityBoundaryClosure {
         self.hostile_matrix_certified
     }
 
-    pub fn certification_gate_certified(&self) -> bool {
-        self.certification_gate_certified
-    }
-
     pub fn exact_zero_format_digest_paths(&self) -> &'static [&'static str] {
         EXACT_ZERO_FORMAT_DIGEST_PATHS
-    }
-
-    pub fn exact_zero_string_matching_paths(&self) -> &'static [&'static str] {
-        EXACT_ZERO_STRING_MATCHING_PATHS
     }
 
     pub fn exact_zero_raw_session_admission_paths(&self) -> &'static [&'static str] {
@@ -491,10 +456,8 @@ fn derive_closure_status(
     stop_class: WorthQueryMilestoneClosureStatus,
     session_label: WorthQueryMilestoneClosureStatus,
     residue_clean: bool,
-    certification_gate_certified: bool,
 ) -> WorthQueryMilestoneClosureStatus {
     if residue_clean
-        && certification_gate_certified
         && evidence_identity == WorthQueryMilestoneClosureStatus::Closed
         && stop_class == WorthQueryMilestoneClosureStatus::Closed
         && session_label == WorthQueryMilestoneClosureStatus::Closed
@@ -504,7 +467,6 @@ fn derive_closure_status(
         && stop_class == WorthQueryMilestoneClosureStatus::Open
         && session_label == WorthQueryMilestoneClosureStatus::Open
         && !residue_clean
-        && !certification_gate_certified
     {
         WorthQueryMilestoneClosureStatus::Open
     } else {

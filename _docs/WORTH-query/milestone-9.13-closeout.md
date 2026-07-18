@@ -41,11 +41,12 @@ operation is count over an admitted collection declaration, producing
 
 ## Closure Evidence
 
-The Phase 12 product-boundary bundle is assembled by
-`certify_declarative_product_boundary()` from a source-backed evidence
-registry. It covers:
+The original Phase 12 closeout used a source-backed product-boundary bundle.
+Milestone 9.13.1 retired that bundle, its golden source digests, and its test-
+source registry because production code must not certify that tests or source
+tokens exist. The retained ordinary tests cover the product behavior directly:
 
-- the complete capability grammar and executable transcript ownership
+- complete public capability journeys across all ten namespaces
 - equivalent declaration convergence and ordinary/internal oracle parity
 - cross-capability, cross-basis, stale-context, and receipt-promotion denial
 - one-shot/live parity, historical ambiguity, preview/workflow denial, and
@@ -53,8 +54,8 @@ registry. It covers:
 - managed live open/close lifecycle evidence
 - exact-zero planning/runtime work for invalid context and bounded ergonomic
   lowering under unrelated workspace growth
-- facade snapshots, hard prohibitions, residue audits, sabotage cases, and
-  reference-consumer adoption
+- hard prohibitions, residue audits, sabotage cases, and consumer-owned
+  adoption
 
 The documentation closeout additionally proves that all ten ordinary
 namespaces are discoverable, the read/projection/inspection and aggregate

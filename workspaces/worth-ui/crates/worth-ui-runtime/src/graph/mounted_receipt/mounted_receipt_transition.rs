@@ -5,6 +5,7 @@ use crate::graph::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiGraphMountedReceiptTransition {
+    graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
     slot: UiGraphMountedReceiptSlot,
     prior_mounted_axis_participation: UiGraphAxisParticipation,
     next_mounted_axis_participation: UiGraphAxisParticipation,
@@ -13,6 +14,7 @@ pub struct UiGraphMountedReceiptTransition {
 
 impl UiGraphMountedReceiptTransition {
     pub(crate) fn from_slot_axis_transition(
+        graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
         slot: UiGraphMountedReceiptSlot,
         prior_mounted_axis_participation: UiGraphAxisParticipation,
         next_mounted_axis_participation: UiGraphAxisParticipation,
@@ -27,6 +29,7 @@ impl UiGraphMountedReceiptTransition {
         };
 
         Some(Self {
+            graph_authority_identity,
             slot,
             prior_mounted_axis_participation,
             next_mounted_axis_participation,
@@ -52,5 +55,9 @@ impl UiGraphMountedReceiptTransition {
 
     pub fn mutation(self) -> UiGraphMountedReceiptMutation {
         UiGraphMountedReceiptMutation::from_transition(self)
+    }
+
+    pub(crate) fn graph_authority_identity(self) -> crate::graph::UiGraphAuthorityIdentity {
+        self.graph_authority_identity
     }
 }

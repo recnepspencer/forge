@@ -68,7 +68,8 @@ fn projection_command_reference_resolves_against_registered_command() {
             "workspace.projection.toolbar",
             "workspace.command.save",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().commands().len(), 1);
     assert_registered_command_projection_ids(
@@ -86,7 +87,8 @@ fn command_projection_eligibility_resolves_against_registered_projection() {
             command_descriptor("workspace.command.open", "Open")
                 .with_projection_eligibility(projection_id.clone()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(app.capabilities().commands().len(), 1);
     assert_eq!(
@@ -147,7 +149,8 @@ fn projection_mosaic_scope_resolves_against_registered_placement_policy() {
                 ),
             ),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_registered_command_projection_ids(
         app.capabilities().command_projections(),

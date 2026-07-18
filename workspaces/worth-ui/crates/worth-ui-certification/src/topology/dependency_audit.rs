@@ -1,25 +1,14 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use syn::visit::{self, Visit};
 use syn::{File, ItemExternCrate, ItemUse, UseTree};
 
-pub(crate) fn collect_rust_files(root: &Path, output: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("read_dir should succeed") {
-        let entry = entry.expect("dir entry should load");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_files(&path, output);
-        } else if path.extension().is_some_and(|ext| ext == "rs") {
-            output.push(path);
-        }
-    }
-}
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
-fn parse_rust_file(path: &Path) -> File {
-    let text = fs::read_to_string(path).expect("source file should decode");
-    syn::parse_file(&text).unwrap_or_else(|error| {
+fn parse_rust_file(inventory: &WorkspaceSourceInventory, path: &Path) -> File {
+    let text = inventory.text(path);
+    syn::parse_file(text).unwrap_or_else(|error| {
         panic!("{} should parse as Rust source: {error}", path.display());
     })
 }
@@ -121,8 +110,11 @@ fn expand_use_alias_path(
     }
 }
 
-pub(crate) fn collect_file_paths(path: &Path) -> Vec<Vec<String>> {
-    let parsed = parse_rust_file(path);
+pub(crate) fn collect_file_paths(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(inventory, path);
     let mut alias_collector = AliasCollector::default();
     alias_collector.visit_file(&parsed);
 
@@ -146,8 +138,11 @@ impl Visit<'_> for UsePathCollector {
     }
 }
 
-pub(crate) fn collect_file_use_paths(path: &Path) -> Vec<Vec<String>> {
-    let parsed = parse_rust_file(path);
+pub(crate) fn collect_file_use_paths(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = UsePathCollector::default();
     collector.visit_file(&parsed);
     collector.collected_paths
@@ -185,8 +180,11 @@ pub(crate) struct ManifestDependency {
     pub(crate) package: String,
 }
 
-pub(crate) fn manifests_dependencies(path: &Path) -> Vec<ManifestDependency> {
-    let text = fs::read_to_string(path).expect("manifest should decode");
+pub(crate) fn manifests_dependencies(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> Vec<ManifestDependency> {
+    let text = inventory.text(path);
     let manifest = text
         .parse::<toml::Value>()
         .unwrap_or_else(|error| panic!("{} should parse as TOML: {error}", path.display()));
@@ -209,8 +207,11 @@ pub(crate) fn manifests_dependencies(path: &Path) -> Vec<ManifestDependency> {
         .collect()
 }
 
-pub(crate) fn manifest_dependency_crate_aliases(path: &Path) -> HashMap<String, String> {
-    manifests_dependencies(path)
+pub(crate) fn manifest_dependency_crate_aliases(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> HashMap<String, String> {
+    manifests_dependencies(inventory, path)
         .into_iter()
         .map(|dependency| {
             (
@@ -231,7 +232,7 @@ pub(crate) fn path_starts_with(segments: &[String], crate_name: &str) -> bool {
         .is_some_and(|segment| segment == crate_name)
 }
 
-pub fn audit_no_cross_crate_deep_imports(workspace_root: &Path) -> Vec<String> {
+pub fn audit_no_cross_crate_deep_imports(inventory: &WorkspaceSourceInventory) -> Vec<String> {
     let crate_paths = [
         "crates/worth-ui/src",
         "crates/worth-ui-dsl/src",
@@ -259,22 +260,21 @@ pub fn audit_no_cross_crate_deep_imports(workspace_root: &Path) -> Vec<String> {
         ("worth_ui_query_binding", "facade"),
     ];
     let mut violations = Vec::new();
-    let mut files = Vec::new();
-
-    for crate_path in crate_paths {
-        collect_rust_files(&workspace_root.join(crate_path), &mut files);
-    }
+    let files = crate_paths
+        .into_iter()
+        .flat_map(|crate_path| inventory.rust_files_under(crate_path))
+        .collect::<Vec<_>>();
 
     for file in files {
-        for segments in collect_file_paths(&file)
+        for segments in collect_file_paths(inventory, file.absolute_path())
             .into_iter()
-            .chain(collect_file_use_paths(&file))
+            .chain(collect_file_use_paths(inventory, file.absolute_path()))
         {
             for (crate_name, internal_root) in forbidden_boundaries {
                 if path_matches(&segments, crate_name, internal_root) {
                     violations.push(format!(
                         "{} deep-imports `{crate_name}::{internal_root}` through structured Rust paths",
-                        file.display()
+                        file.absolute_path().display()
                     ));
                 }
             }
@@ -287,7 +287,7 @@ pub fn audit_no_cross_crate_deep_imports(workspace_root: &Path) -> Vec<String> {
 }
 
 pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let crate_paths = [
         "crates/worth-ui-inspection/src",
@@ -296,16 +296,15 @@ pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
         "crates/worth-ui-query-binding/src",
     ];
     let mut violations = Vec::new();
-    let mut files = Vec::new();
-
-    for crate_path in crate_paths {
-        collect_rust_files(&workspace_root.join(crate_path), &mut files);
-    }
+    let files = crate_paths
+        .into_iter()
+        .flat_map(|crate_path| inventory.rust_files_under(crate_path))
+        .collect::<Vec<_>>();
 
     for file in files {
-        for segments in collect_file_paths(&file)
+        for segments in collect_file_paths(inventory, file.absolute_path())
             .into_iter()
-            .chain(collect_file_use_paths(&file))
+            .chain(collect_file_use_paths(inventory, file.absolute_path()))
         {
             if path_matches(&segments, "worth_ui_runtime", "facade")
                 && segments
@@ -314,7 +313,7 @@ pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
             {
                 violations.push(format!(
                     "{} bypasses the product declaration facade and reaches `worth_ui_runtime::facade::declaration`; declaration consumers must enter through `worth_ui::facade::declaration`",
-                    file.display()
+                    file.absolute_path().display()
                 ));
             }
         }
@@ -325,10 +324,10 @@ pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
     violations
 }
 
-pub fn audit_host_egui_dependency_boundary(workspace_root: &Path) -> Vec<String> {
+pub fn audit_host_egui_dependency_boundary(inventory: &WorkspaceSourceInventory) -> Vec<String> {
     let mut violations = Vec::new();
-    let cargo_toml = workspace_root.join("crates/worth-ui-host-egui/Cargo.toml");
-    let dependencies = manifests_dependencies(&cargo_toml);
+    let cargo_toml = inventory.absolute_path("crates/worth-ui-host-egui/Cargo.toml");
+    let dependencies = manifests_dependencies(inventory, &cargo_toml);
 
     for forbidden_dep in ["worth-ui", "worth-ui-runtime", "worth-ui-inspection"] {
         if dependencies
@@ -341,15 +340,13 @@ pub fn audit_host_egui_dependency_boundary(workspace_root: &Path) -> Vec<String>
         }
     }
 
-    let mut rust_files = Vec::new();
-    collect_rust_files(
-        &workspace_root.join("crates/worth-ui-host-egui/src"),
-        &mut rust_files,
-    );
-    let manifest_aliases = manifest_dependency_crate_aliases(&cargo_toml);
+    let rust_files = inventory
+        .rust_files_under("crates/worth-ui-host-egui/src")
+        .collect::<Vec<_>>();
+    let manifest_aliases = manifest_dependency_crate_aliases(inventory, &cargo_toml);
 
     for file in rust_files {
-        for segments in collect_file_paths(&file) {
+        for segments in collect_file_paths(inventory, file.absolute_path()) {
             let normalized_segments = normalize_manifest_alias_path(&segments, &manifest_aliases);
             if path_matches(&normalized_segments, "worth_ui_runtime", "lifecycle")
                 || path_matches(&normalized_segments, "worth_ui_runtime", "source")
@@ -357,7 +354,7 @@ pub fn audit_host_egui_dependency_boundary(workspace_root: &Path) -> Vec<String>
             {
                 violations.push(format!(
                     "{} reaches worth-ui-runtime internals through structured Rust paths",
-                    file.display()
+                    file.absolute_path().display()
                 ));
             }
             if ["facade", "query", "target", "scope", "receipt", "posture"]
@@ -366,19 +363,19 @@ pub fn audit_host_egui_dependency_boundary(workspace_root: &Path) -> Vec<String>
             {
                 violations.push(format!(
                     "{} reaches worth-ui-inspection internals through structured Rust paths",
-                    file.display()
+                    file.absolute_path().display()
                 ));
             }
             if path_matches(&normalized_segments, "worth_ui", "runtime") {
                 violations.push(format!(
                     "{} reaches the worth-ui shadow runtime module through structured Rust paths",
-                    file.display()
+                    file.absolute_path().display()
                 ));
             }
             if path_starts_with(&normalized_segments, "worth_ui") {
                 violations.push(format!(
                     "{} reaches the worth-ui product facade; host adapters must stay on host-contract-only surfaces",
-                    file.display()
+                    file.absolute_path().display()
                 ));
             }
         }

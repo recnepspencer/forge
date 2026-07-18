@@ -46,6 +46,9 @@ pub enum UiHostMeasurementInvalidationReason {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiHostMeasurementEvidenceDenial {
+    MissingOperationalHostSession,
+    ForeignHostSession,
+    StaleHostObservationGeneration,
     SourceOrderExhausted,
     Execution(UiHostMeasurementExecutionDenial),
     Normalization(UiHostMeasurementNormalizationDenial),

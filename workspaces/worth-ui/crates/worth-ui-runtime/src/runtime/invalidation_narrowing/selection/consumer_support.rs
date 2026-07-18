@@ -28,12 +28,10 @@ pub(super) fn enforce_drag_resize_target_budget(
 }
 
 pub(super) fn map_lookup_denial(
-    denial: super::authority::UiInvalidationAuthorityLookupDenial,
+    _denial: super::authority::UiInvalidationAuthorityLookupDenial,
     _ordinal: u16,
 ) -> UiAllocationInvalidationNarrowingDenial {
-    match denial {
-        _ => unreachable!("graph and durable lookups cannot deny after active projection lookup"),
-    }
+    unreachable!("graph and durable lookups cannot deny after active projection lookup")
 }
 
 pub(super) fn target_count(target: &UiAllocationInvalidationTarget) -> Option<usize> {

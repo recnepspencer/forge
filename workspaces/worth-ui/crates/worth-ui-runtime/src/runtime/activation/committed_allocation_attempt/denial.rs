@@ -15,9 +15,9 @@ pub enum UiCommittedAllocationActivationDenialReason {
 
 #[derive(Debug, PartialEq)]
 pub struct UiCommittedAllocationActivationDenial {
-    identity: super::UiCommittedAllocationActivationIdentity,
-    reason: UiCommittedAllocationActivationDenialReason,
-    evidence: super::UiCommittedAllocationActivationDenialEvidence,
+    identity: Box<super::UiCommittedAllocationActivationIdentity>,
+    reason: Box<UiCommittedAllocationActivationDenialReason>,
+    evidence: Box<super::UiCommittedAllocationActivationDenialEvidence>,
 }
 
 impl UiCommittedAllocationActivationDenial {
@@ -48,9 +48,9 @@ impl UiCommittedAllocationActivationDenial {
         let evidence =
             super::UiCommittedAllocationActivationDenialEvidence::unchanged(&identity, counters);
         Self {
-            identity,
-            reason,
-            evidence,
+            identity: Box::new(identity),
+            reason: Box::new(reason),
+            evidence: Box::new(evidence),
         }
     }
 
@@ -62,9 +62,11 @@ impl UiCommittedAllocationActivationDenial {
         let evidence =
             super::UiCommittedAllocationActivationDenialEvidence::unchanged(&identity, counters);
         Self {
-            identity,
-            reason: UiCommittedAllocationActivationDenialReason::CounterExhausted(exhaustion),
-            evidence,
+            identity: Box::new(identity),
+            reason: Box::new(
+                UiCommittedAllocationActivationDenialReason::CounterExhausted(exhaustion),
+            ),
+            evidence: Box::new(evidence),
         }
     }
 
@@ -82,9 +84,9 @@ impl UiCommittedAllocationActivationDenial {
         let evidence =
             super::UiCommittedAllocationActivationDenialEvidence::unchanged(&identity, counters);
         Self {
-            identity,
-            reason,
-            evidence,
+            identity: Box::new(identity),
+            reason: Box::new(reason),
+            evidence: Box::new(evidence),
         }
     }
 

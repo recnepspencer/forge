@@ -54,7 +54,7 @@ pub(crate) struct WorthUiStructuralLegalityDiagnostic {
     module_id: WorthUiSourceModuleId,
     authored_text: String,
     structural_locus: String,
-    provenance: WorthUiArtifactInputProvenance,
+    provenance: Box<WorthUiArtifactInputProvenance>,
 }
 
 impl WorthUiStructuralLegalityDiagnostic {
@@ -70,7 +70,7 @@ impl WorthUiStructuralLegalityDiagnostic {
             module_id,
             authored_text: authored_text.into(),
             structural_locus: structural_locus.into(),
-            provenance,
+            provenance: Box::new(provenance),
         }
     }
 
@@ -108,7 +108,6 @@ fn stable_provenance_cmp(
         ) => stable_span_cmp(left_declaration, right_declaration)
             .then_with(|| stable_optional_span_cmp(left_detail.as_ref(), right_detail.as_ref()))
             .then_with(|| left_index.cmp(right_index)),
-        #[cfg(any(test, feature = "certification-support"))]
         (
             WorthUiArtifactInputProvenance::RustAuthoredDeclaration {
                 authored_module_path: left_path,
@@ -121,9 +120,7 @@ fn stable_provenance_cmp(
         ) => left_path
             .cmp(right_path)
             .then_with(|| left_index.cmp(right_index)),
-        #[cfg(any(test, feature = "certification-support"))]
         (WorthUiArtifactInputProvenance::ParsedSourceDeclaration { .. }, _) => Ordering::Less,
-        #[cfg(any(test, feature = "certification-support"))]
         (_, WorthUiArtifactInputProvenance::ParsedSourceDeclaration { .. }) => Ordering::Greater,
     }
 }

@@ -1,12 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import {
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { docsNavigation, getDocArticle, type DocNavNode } from "../state/docsContent";
+import { getDocArticle, getDocRedirect, getDocSection } from "../state/docsContent";
+import { DocsNavigation } from "./docs-navigation/DocsNavigation";
 import "./docsPage.css";
 
 interface DocsPageProps {
+  menuOpen: boolean;
+  menuTriggerRef: RefObject<HTMLAnchorElement | null>;
+  onMenuOpenChange: (open: boolean) => void;
   onNavigate: (path: string) => void;
   subpath: string;
+}
+
+const docsMobileQuery = "(max-width: 960px)";
+
+function subscribeToDocsLayout(onChange: () => void): () => void {
+  const query = window.matchMedia(docsMobileQuery);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function docsLayoutIsMobile(): boolean {
+  return window.matchMedia(docsMobileQuery).matches;
 }
 
 function normalizeLink(currentSubpath: string, href: string) {
@@ -61,133 +86,137 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
 }
 
 function MarkdownContent({ content, currentSubpath, onNavigate }: { content: string; currentSubpath: string; onNavigate: (path: string) => void }) {
+  const components: Components = {
+    a({ href = "", children }) {
+      const resolvedHref = normalizeLink(currentSubpath, href);
+      const internal = resolvedHref.startsWith("#/docs/");
+      return (
+        <a
+          href={resolvedHref}
+          onClick={(event) => {
+            if (!internal) return;
+            event.preventDefault();
+            onNavigate(resolvedHref);
+          }}
+          rel="noreferrer"
+          target={internal ? "_self" : "_blank"}
+        >
+          {children}
+        </a>
+      );
+    },
+    code({ children, className }) {
+      return <code className={className}>{children}</code>;
+    },
+    pre({ children }) {
+      const child = Array.isArray(children) ? children[0] : children;
+      const props = isValidElement<{ children?: ReactNode; className?: string }>(child)
+        ? child.props
+        : {};
+      const code = String(props.children ?? "").replace(/\n$/, "");
+      const lang = /language-(\w+)/.exec(props.className ?? "")?.[1] ?? "";
+      return <CodeBlock code={code} lang={lang} />;
+    },
+  };
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      components={{
-        a({ href = "", children }: any) {
-          const resolvedHref = normalizeLink(currentSubpath, href);
-          const internal = resolvedHref.startsWith("#/docs/");
-          return (
-            <a
-              href={resolvedHref}
-              onClick={(event) => {
-                if (!internal) return;
-                event.preventDefault();
-                onNavigate(resolvedHref);
-              }}
-              rel="noreferrer"
-              target={internal ? "_self" : "_blank"}
-            >
-              {children}
-            </a>
-          );
-        },
-        code({ children, className }: any) {
-          return <code className={className}>{children}</code>;
-        },
-        pre({ children }: any) {
-          const child = Array.isArray(children) ? children[0] : children;
-          const props = typeof child === "object" && child && "props" in child ? (child as any).props : {};
-          const code = String(props.children ?? "").replace(/\n$/, "");
-          const lang = /language-(\w+)/.exec(props.className ?? "")?.[1] ?? "";
-          return <CodeBlock code={code} lang={lang} />;
-        },
-      }}
+      components={components}
     >
       {content}
     </ReactMarkdown>
   );
 }
 
-function nodeContains(node: DocNavNode, activeSubpath: string): boolean {
-  return node.item?.subpath === activeSubpath || node.children.some((child) => nodeContains(child, activeSubpath));
-}
-
-function DocsNavNodeView({
-  node,
-  onNavigate,
-  openNodes,
-  setOpenNodes,
+export function DocsPage({
+  menuOpen,
+  menuTriggerRef,
+  onMenuOpenChange,
   subpath,
-}: {
-  node: DocNavNode;
-  onNavigate: (path: string) => void;
-  openNodes: Record<string, boolean>;
-  setOpenNodes: (updater: (state: Record<string, boolean>) => Record<string, boolean>) => void;
-  subpath: string;
-}) {
-  const open = openNodes[node.key] ?? nodeContains(node, subpath);
-  if (node.type === "doc") {
-    return (
-      <a
-        className={node.item?.subpath === subpath ? "active" : ""}
-        href={`#/docs/${node.item?.subpath}`}
-        onClick={(event) => {
-          event.preventDefault();
-          if (node.item) onNavigate(`#/docs/${node.item.subpath}`);
-        }}
-        style={{ "--depth": node.depth } as any}
-      >
-        {node.title}
-      </a>
-    );
-  }
-
-  return (
-    <section className="docs-nav-folder">
-      <button className="docs-nav-toggle" onClick={() => setOpenNodes((state) => ({ ...state, [node.key]: !open }))} style={{ "--depth": node.depth } as any} type="button">
-        <span>{node.title}</span>
-        <span>{open ? "−" : "+"}</span>
-      </button>
-      {open ? (
-        <div className="docs-nav-items">
-          {node.children.map((child) => (
-            <DocsNavNodeView key={child.key} node={child} onNavigate={onNavigate} openNodes={openNodes} setOpenNodes={setOpenNodes} subpath={subpath} />
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-export function DocsPage({ subpath, onNavigate }: DocsPageProps) {
+  onNavigate,
+}: DocsPageProps) {
   const article = useMemo(() => getDocArticle(subpath), [subpath]);
-  const [openNodes, setOpenNodes] = useState<Record<string, boolean>>({});
+  const redirect = useMemo(() => getDocRedirect(subpath), [subpath]);
+  const section = useMemo(() => getDocSection(subpath), [subpath]);
+  const mobileLayout = useSyncExternalStore(subscribeToDocsLayout, docsLayoutIsMobile, () => false);
+  const closeMenuRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const openActive = (nodes: DocNavNode[], state: Record<string, boolean>) => {
-      for (const node of nodes) {
-        if (nodeContains(node, subpath)) state[node.key] = true;
-        openActive(node.children, state);
-      }
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const menuTrigger = menuTriggerRef.current;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onMenuOpenChange(false);
     };
-    setOpenNodes((state) => {
-      const next = { ...state };
-      openActive(docsNavigation, next);
-      return next;
-    });
-  }, [subpath]);
+    document.body.style.overflow = "hidden";
+    closeMenuRef.current?.focus();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+      menuTrigger?.focus();
+    };
+  }, [menuOpen, menuTriggerRef, onMenuOpenChange]);
+
+  useEffect(() => {
+    if (redirect) onNavigate(`#/docs/${redirect}`);
+  }, [onNavigate, redirect]);
 
   return (
     <div className="docs-page">
-      <aside className="docs-sidebar">
-        {docsNavigation.map((node) => (
-          <DocsNavNodeView key={node.key} node={node} onNavigate={onNavigate} openNodes={openNodes} setOpenNodes={setOpenNodes} subpath={subpath} />
-        ))}
+      {menuOpen ? (
+        <button
+          aria-label="Close documentation menu"
+          className="docs-menu-scrim"
+          onClick={() => onMenuOpenChange(false)}
+          type="button"
+        />
+      ) : null}
+      <aside
+        aria-hidden={mobileLayout && !menuOpen ? true : undefined}
+        aria-modal={mobileLayout && menuOpen ? true : undefined}
+        className={menuOpen ? "docs-sidebar open" : "docs-sidebar"}
+        id="docs-navigation"
+        inert={mobileLayout && !menuOpen ? true : undefined}
+        role={mobileLayout ? "dialog" : undefined}
+      >
+        <DocsNavigation
+          closeButtonRef={closeMenuRef}
+          onClose={() => onMenuOpenChange(false)}
+          onNavigate={onNavigate}
+          subpath={subpath}
+        />
       </aside>
-      <section className="docs-reading-pane">
-        {article ? (
-          <article className="docs-article">
-            <MarkdownContent content={article.content} currentSubpath={article.subpath} onNavigate={onNavigate} />
-          </article>
-        ) : (
-          <div className="docs-empty">
-            <h2>Article not found</h2>
-            <p>The docs index could not find that page.</p>
-            <button onClick={() => onNavigate("#/docs/start_here")} type="button">Back to start here</button>
-          </div>
-        )}
+      <section
+        aria-hidden={mobileLayout && menuOpen ? true : undefined}
+        className="docs-reading-pane"
+        inert={mobileLayout && menuOpen ? true : undefined}
+      >
+        <div className="docs-reading-inner">
+          {article ? (
+            <div className="docs-article-context" aria-label="Documentation location">
+              <span>{section?.title ?? "Documentation"}</span>
+              <i aria-hidden="true" />
+              <strong>{article.title}</strong>
+            </div>
+          ) : null}
+          {redirect ? (
+            <div className="docs-empty">
+              <h2>Opening the current guide…</h2>
+            </div>
+          ) : article ? (
+            <article className="docs-article">
+              <MarkdownContent content={article.content} currentSubpath={article.subpath} onNavigate={onNavigate} />
+            </article>
+          ) : (
+            <div className="docs-empty">
+              <h2>Article not found</h2>
+              <p>The docs index could not find that page.</p>
+              <button onClick={() => onNavigate("#/docs/start_here")} type="button">Back to start here</button>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
