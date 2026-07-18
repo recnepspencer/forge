@@ -150,7 +150,7 @@ pub fn build_consolidated_suite_inventory(
     validate_consolidation_coverage(inventory, &suites, &mut violations);
     if violations.is_empty() {
         Ok(ConsolidatedSuiteInventory {
-            schema_version: 1,
+            schema_version: 2,
             pre_cleanup_scenario_executables: pre_cleanup_scenario_executable_count(workspace_root)
                 .map_err(|violation| vec![violation])?,
             consolidated_suite_executables: suites.len(),

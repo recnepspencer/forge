@@ -7,11 +7,12 @@ use crate::certification_child_process::{
     encode_hex_32, fresh_challenge, validated_current_executable,
 };
 use crate::process_probe::{
-    classify_exit, configure_process_probe, persist_execution, read_process_observation,
+    configure_process_probe, observe_graceful_exit, persist_execution, read_process_observation,
+    terminate_by_parent,
 };
 use crate::{
     ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessProbeIntent,
-    ProcessTermination, ProcessTerminationRequirement, SealedProcessProbeInput,
+    ProcessTerminationRequirement, SealedProcessProbeInput,
 };
 
 impl OperationalRecoveryFreshProcessRunner {
@@ -163,23 +164,11 @@ fn execute_cut(
             OperationalRecoveryProcessCrashDenial::CutProcessExitedBeforeParentKill(status.code()),
         );
     }
-    child
-        .kill()
+    let termination = terminate_by_parent(&mut child)
         .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessDidNotCrash(None))?;
-    let status = child
-        .wait()
-        .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
     let identity = read_process_observation(&paths.cut_process, &declaration, child.id())?;
-    ProcessProbeExecution::observed(
-        declaration,
-        input,
-        identity,
-        ProcessTermination::ParentKill {
-            platform_status: format!("{status:?}"),
-        },
-        &paths.cut,
-    )
-    .map_err(Into::into)
+    ProcessProbeExecution::observed(declaration, input, identity, termination, &paths.cut)
+        .map_err(Into::into)
 }
 
 fn execute_reopen(
@@ -205,7 +194,7 @@ fn execute_reopen(
         declaration,
         input,
         identity,
-        classify_exit(status),
+        observe_graceful_exit(status)?,
         &paths.reopen,
     )
     .map_err(Into::into)

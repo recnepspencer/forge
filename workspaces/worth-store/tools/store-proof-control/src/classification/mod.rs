@@ -1,4 +1,5 @@
 mod build_graph_policy;
+mod compiler_boundary_policy;
 mod proof_behavior_authority;
 mod proof_disposition;
 mod proof_family;
@@ -82,6 +83,7 @@ pub fn validate(
         .map(|target| target.identity.as_str())
         .collect();
     for proof in &inventory.proofs {
+        violations.extend(compiler_boundary_policy::violations(proof));
         if !identities.insert(&proof.case.identity.stable_id) {
             violations.push(format!(
                 "duplicate proof identity: {}",

@@ -7,6 +7,7 @@ mod process_model;
 mod proof_mode;
 mod repository_identity;
 mod scenario_execution;
+mod ui_execution;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -29,6 +30,7 @@ use plan_inventory::proof_selection;
 use scenario_execution::{
     declared_suite_filters, suite_case_responsibilities, DeclaredScenarioExecution,
 };
+use ui_execution::{selected_ui_runner_cases, ui_doctest_execution_units};
 
 pub(super) type SelectedCases = BTreeMap<String, BTreeMap<String, BTreeSet<String>>>;
 
@@ -48,27 +50,26 @@ pub fn select(
     .map_err(|violations| ProofProductUnavailable::ScenarioTopology(violations.join("\n  - ")))?;
     let suite_filters = declared_suite_filters(&suite_inventory);
     let suite_responsibilities = suite_case_responsibilities(&suite_inventory);
-    let selected_case_targets = selected_case_targets(
-        inventory,
-        &selected_products,
-        &request,
-        &suite_responsibilities,
-    );
+    let selected_case_targets = if request.mode() == StoreProofMode::Ui {
+        selected_ui_runner_cases(
+            inventory,
+            &selected_products,
+            &request,
+            &suite_responsibilities,
+        )?
+    } else {
+        selected_case_targets(
+            inventory,
+            &selected_products,
+            &request,
+            &suite_responsibilities,
+        )
+    };
     let mut units = execution_units(inventory, &request, &selected_case_targets, &suite_filters)?;
     if selected_products.contains("store-ci:feature-compatibility") {
         units.extend(feature_compatibility_units(inventory));
     }
     if request.mode() == StoreProofMode::Ui {
-        units = units
-            .into_iter()
-            .map(|unit| {
-                if unit.process_model == ProofProcessModel::RustdocTestProcess {
-                    unit
-                } else {
-                    unit.with_process_model(ProofProcessModel::StandardizedUiHarness)
-                }
-            })
-            .collect();
         units.extend(ui_doctest_execution_units(inventory, &request));
     }
     validate_owner_execution_locality(&request, &units)?;
@@ -212,16 +213,20 @@ fn execution_units(
             let selected_cases = selected
                 .get(&target.identity)
                 .expect("selected target carries selected cases");
-            let units =
-                execution_filters(target, selected_cases, suite_filters.get(&target.identity))?
-                    .into_iter()
-                    .map(|execution| {
-                        let filter = executable_case_filter(execution.filter);
-                        ProofExecutionUnit::from_target(target, request, filter)
-                            .with_feature_lane(feature_lane_for_target(inventory, target))
-                            .with_process_model(execution.process_model)
-                    })
-                    .collect::<Vec<_>>();
+            let units = execution_filters(
+                inventory,
+                target,
+                selected_cases,
+                suite_filters.get(&target.identity),
+            )?
+            .into_iter()
+            .map(|execution| {
+                let filter = executable_case_filter(execution.filter);
+                ProofExecutionUnit::from_target(target, request, filter)
+                    .with_feature_lane(feature_lane_for_target(inventory, target))
+                    .with_process_model(execution.process_model)
+            })
+            .collect::<Vec<_>>();
             Ok(units)
         })
         .collect::<Result<Vec<_>, _>>()
@@ -238,6 +243,7 @@ fn executable_case_filter(filter: String) -> Option<String> {
 }
 
 fn execution_filters(
+    inventory: &ValidatedProofInventory,
     target: &TestTargetIdentity,
     selected: &BTreeMap<String, BTreeSet<String>>,
     declared_suite_filters: Option<&BTreeMap<String, DeclaredScenarioExecution>>,
@@ -267,11 +273,6 @@ fn execution_filters(
             })
             .collect();
     }
-    let process_model = if target.name.contains("compile_fail") {
-        ProofProcessModel::NestedCargoProcess
-    } else {
-        ProofProcessModel::LibtestProcess
-    };
     Ok(selected
         .values()
         .flat_map(|case_names| {
@@ -279,33 +280,28 @@ fn execution_filters(
                 .iter()
                 .map(|case_name| DeclaredScenarioExecution {
                     filter: case_name.clone(),
-                    process_model,
+                    process_model: process_model_for_case(inventory, target, case_name),
                 })
         })
         .collect())
 }
 
-fn ui_doctest_execution_units(
+fn process_model_for_case(
     inventory: &ValidatedProofInventory,
-    request: &StoreProofRequest,
-) -> Vec<ProofExecutionUnit> {
-    inventory
-        .inventory()
-        .discovered
-        .targets
-        .iter()
-        .filter(|target| {
-            target.kinds.iter().any(|kind| kind == "doc")
-                && inventory.inventory().proofs.iter().any(|proof| {
-                    proof.case.target_identity.as_deref() == Some(target.identity.as_str())
-                        && proof.products.contains("store-ui")
-                })
-        })
-        .map(|target| {
-            ProofExecutionUnit::from_target(target, request, None)
-                .with_feature_lane(feature_lane_for_target(inventory, target))
-        })
-        .collect()
+    target: &TestTargetIdentity,
+    case_name: &str,
+) -> ProofProcessModel {
+    let case = inventory.inventory().proofs.iter().find(|proof| {
+        proof.case.target_identity.as_deref() == Some(target.identity.as_str())
+            && proof.case.identity.case_name == case_name
+    });
+    if case.is_some_and(|proof| proof.case.compiler_boundary_harness.is_some()) {
+        ProofProcessModel::StandardizedUiHarness
+    } else if case.is_some_and(|proof| proof.case.launches_nested_cargo) {
+        ProofProcessModel::NestedCargoProcess
+    } else {
+        ProofProcessModel::LibtestProcess
+    }
 }
 
 fn excluded_products(included: &BTreeSet<String>) -> BTreeMap<String, String> {
@@ -336,12 +332,10 @@ fn excluded_products(included: &BTreeSet<String>) -> BTreeMap<String, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        aggregates_entire_target, executable_case_filter, execution_filters, ProofExecutionUnit,
-        ProofProcessModel,
+        aggregates_entire_target, executable_case_filter, ProofExecutionUnit, ProofProcessModel,
     };
     use crate::discovery::TestTargetIdentity;
     use crate::selection::{StoreProofMode, StoreProofRequest};
-    use std::collections::{BTreeMap, BTreeSet};
 
     #[test]
     fn doctest_selection_cannot_lower_a_synthetic_zero_match_filter() {
@@ -353,11 +347,10 @@ mod tests {
             source_path: "src/lib.rs".to_owned(),
             required_features: Vec::new(),
         };
-        let selected = BTreeMap::from([(
-            "owner/docs".to_owned(),
-            BTreeSet::from(["doctest_runnable_synthetic".to_owned()]),
-        )]);
-        let execution = execution_filters(&target, &selected, None).unwrap();
+        let execution = vec![super::DeclaredScenarioExecution {
+            filter: String::new(),
+            process_model: ProofProcessModel::RustdocTestProcess,
+        }];
         assert_eq!(execution.len(), 1);
         assert_eq!(
             execution[0].process_model,

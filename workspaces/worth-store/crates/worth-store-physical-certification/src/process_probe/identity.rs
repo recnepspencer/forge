@@ -40,6 +40,15 @@ pub struct AdmittedProcessProbe {
     input_identity: [u8; 32],
 }
 
+#[derive(Debug)]
+pub(crate) struct ObservedProcessIdentity(ProcessIdentityEvidence);
+
+impl ObservedProcessIdentity {
+    pub(crate) fn into_evidence(self) -> ProcessIdentityEvidence {
+        self.0
+    }
+}
+
 pub(crate) fn configure_process_probe(
     command: &mut Command,
     intent: ProcessProbeIntent,
@@ -198,12 +207,12 @@ pub(crate) fn read_process_observation(
     path: &Path,
     declaration: &ProcessProbeDeclaration,
     spawned_process_id: u32,
-) -> Result<ProcessIdentityEvidence, ProcessProbeEvidenceDenial> {
+) -> Result<ObservedProcessIdentity, ProcessProbeEvidenceDenial> {
     let bytes = fs::read(path).map_err(|_| ProcessProbeEvidenceDenial::MissingChildObservation)?;
     let evidence: ProcessIdentityEvidence = serde_json::from_slice(&bytes)
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     evidence.validate_against(declaration, spawned_process_id)?;
-    Ok(evidence)
+    Ok(ObservedProcessIdentity(evidence))
 }
 
 impl ProcessIdentityEvidence {

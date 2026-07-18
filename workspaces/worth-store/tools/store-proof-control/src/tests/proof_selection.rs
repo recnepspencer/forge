@@ -39,6 +39,46 @@ fn selection_is_deterministic_and_scenario_filterable() {
                 == Some("future_chunk_placeholder_boundary_misuse_does_not_compile")
     }));
 
+    let ui = select(
+        &root,
+        &current,
+        StoreProofRequest::new(StoreProofMode::Ui, None, None, None, None, true),
+        selection_preflight(&root),
+    )
+    .unwrap();
+    assert!(ui
+        .units
+        .iter()
+        .filter(|unit| unit.target_selector != "doc")
+        .all(|unit| {
+            unit.process_model == ProofProcessModel::StandardizedUiHarness
+                && unit.case_filter.is_some()
+                && unit
+                    .expected_evidence
+                    .iter()
+                    .any(|evidence| evidence == "ui_proof_run_evidence")
+        }));
+    assert!(ui.units.iter().any(|unit| {
+        unit.target_name == "aspect_native_authority_ui"
+            && unit.case_filter.as_deref()
+                == Some("aspect_native_authority_denies_raw_public_callers")
+    }));
+    assert!(ui.units.iter().any(|unit| {
+        unit.target_name == "terminal_projection_quarantine_ui"
+            && unit.case_filter.as_deref()
+                == Some("terminal_projection_quarantine_denies_neutral_public_callers")
+    }));
+    let recovery_ui: Vec<_> = ui
+        .units
+        .iter()
+        .filter(|unit| unit.target_name == "durability_recovery")
+        .collect();
+    assert_eq!(recovery_ui.len(), 1);
+    assert_eq!(
+        recovery_ui[0].case_filter.as_deref(),
+        Some("recovery_harness_ui")
+    );
+
     let proof = current
         .inventory()
         .proofs

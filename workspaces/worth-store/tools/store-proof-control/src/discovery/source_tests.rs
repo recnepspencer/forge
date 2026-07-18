@@ -14,6 +14,7 @@ use doctest_parser::{declared_doctest_features, declared_doctests, DoctestKind};
 use module_reachability::reachable_target_files;
 use rust_test_parser::{
     external_tools, launches_child_process, launches_nested_cargo, rust_test_functions,
+    uses_standardized_ui_harness,
 };
 use source_inventory::{candidate_source_paths, is_ui_fixture, read_source_snapshot, rust_sources};
 use test_identity::{
@@ -30,6 +31,12 @@ pub enum CaseKind {
     DoctestCompileFail,
     DoctestIgnored,
     TestExecutable,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "kebab-case")]
+pub enum CompilerBoundaryHarness {
+    StandardizedCargoUi,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -59,6 +66,8 @@ pub struct TestCaseSurface {
     pub process_model: String,
     #[serde(default)]
     pub external_tools: Vec<String>,
+    #[serde(default)]
+    pub compiler_boundary_harness: Option<CompilerBoundaryHarness>,
     pub launches_child_process: bool,
     pub launches_nested_cargo: bool,
     pub assertion_predicates: Vec<String>,
@@ -133,9 +142,11 @@ pub(crate) fn discover_test_cases(surface: &CargoSurface) -> Result<Vec<TestCase
             let tests = rust_test_functions(&text);
             let tests_were_empty = tests.is_empty();
             for test in tests {
-                let execution_text = text.as_str();
+                let execution_text = test.execution_source.as_str();
                 let child_process = launches_child_process(execution_text);
                 let nested_cargo = launches_nested_cargo(execution_text);
+                let compiler_boundary_harness = uses_standardized_ui_harness(execution_text)
+                    .then_some(CompilerBoundaryHarness::StandardizedCargoUi);
                 let responsibility = responsibility_for(package_root, &source, &test.name);
                 let identity = explicit_stable_identity(&text, &test.name)?.unwrap_or_else(|| {
                     stable_identity(&package.name, &responsibility, &source, &test.name)
@@ -155,8 +166,14 @@ pub(crate) fn discover_test_cases(surface: &CargoSurface) -> Result<Vec<TestCase
                     ignored: test.ignored,
                     runs_by_default: !test.ignored
                         && assignment.is_some_and(|target| target.required_features.is_empty()),
-                    process_model: process_model(child_process, nested_cargo).to_owned(),
+                    process_model: process_model(
+                        child_process,
+                        nested_cargo,
+                        compiler_boundary_harness,
+                    )
+                    .to_owned(),
                     external_tools: external_tools(execution_text),
+                    compiler_boundary_harness,
                     launches_child_process: child_process,
                     launches_nested_cargo: nested_cargo,
                     assertion_predicates: test.assertion_predicates,
@@ -173,6 +190,8 @@ pub(crate) fn discover_test_cases(surface: &CargoSurface) -> Result<Vec<TestCase
                     .unwrap_or(&text);
                 let child_process = launches_child_process(execution_text);
                 let nested_cargo = launches_nested_cargo(execution_text);
+                let compiler_boundary_harness = uses_standardized_ui_harness(execution_text)
+                    .then_some(CompilerBoundaryHarness::StandardizedCargoUi);
                 let responsibility = responsibility_for(package_root, &source, "compile_denial");
                 let case_name = source
                     .file_stem()
@@ -190,8 +209,14 @@ pub(crate) fn discover_test_cases(surface: &CargoSurface) -> Result<Vec<TestCase
                     ignored: false,
                     runs_by_default: assignment
                         .is_some_and(|target| target.required_features.is_empty()),
-                    process_model: process_model(child_process, nested_cargo).to_owned(),
+                    process_model: process_model(
+                        child_process,
+                        nested_cargo,
+                        compiler_boundary_harness,
+                    )
+                    .to_owned(),
                     external_tools: external_tools(execution_text),
+                    compiler_boundary_harness,
                     launches_child_process: child_process,
                     launches_nested_cargo: nested_cargo,
                     assertion_predicates: vec!["compiler_denial".to_owned()],
@@ -237,6 +262,7 @@ pub(crate) fn discover_test_cases(surface: &CargoSurface) -> Result<Vec<TestCase
                     runs_by_default: !ignored && doc_target.required_features.is_empty(),
                     process_model: "rustdoc-test-process".to_owned(),
                     external_tools: vec!["rustdoc".to_owned()],
+                    compiler_boundary_harness: None,
                     launches_child_process: true,
                     launches_nested_cargo: false,
                     assertion_predicates: vec![match doctest.kind {
@@ -260,8 +286,14 @@ fn source_fingerprint(source: &str) -> String {
     format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
 }
 
-fn process_model(child_process: bool, nested_cargo: bool) -> &'static str {
-    if nested_cargo {
+fn process_model(
+    child_process: bool,
+    nested_cargo: bool,
+    compiler_boundary_harness: Option<CompilerBoundaryHarness>,
+) -> &'static str {
+    if compiler_boundary_harness.is_some() {
+        "standardized-ui-harness"
+    } else if nested_cargo {
         "nested-cargo-process"
     } else if child_process {
         "fresh-child-process"

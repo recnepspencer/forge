@@ -70,6 +70,12 @@ pub fn execute(
         let arguments = unit.cargo_arguments(plan.request.mode());
         let started = Instant::now();
         let unit_identity = format!("{}::{}", unit.package, unit.target_name);
+        let unit_execution_identity = crate::evidence::sha256_serialized(&(
+            "worth-store-proof-unit-execution-v1",
+            &plan.plan_digest,
+            unit_index,
+            unit,
+        ))?;
         let ui_evidence_root = ui_evidence::attempt_root(
             workspace_root,
             &attempt_identity,
@@ -90,6 +96,10 @@ pub fn execute(
                 worth_store_test_support::compiler_boundary::UI_EVIDENCE_ROOT_ENV,
                 &ui_evidence_root,
             )
+            .env(
+                worth_store_test_support::compiler_boundary::UI_EXECUTION_IDENTITY_ENV,
+                &unit_execution_identity,
+            )
             .env(STRUCTURAL_PREFLIGHT_BUNDLE_ENV, &preflight.bundle_path)
             .env(
                 process_evidence::PROCESS_PROBE_EVIDENCE_ROOT_ENV,
@@ -108,6 +118,7 @@ pub fn execute(
             workspace_root,
             &ui_evidence_root,
             &unit_identity,
+            &unit_execution_identity,
             unit.process_model.requires_ui_proof_evidence() && status.success(),
         )?;
         let process_probe_evidence = process_evidence::collect(

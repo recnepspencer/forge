@@ -20,45 +20,10 @@ fn probe_input_rejects_decoded_expected_runtime_truth() {
 
 #[test]
 fn graceful_exit_cannot_satisfy_a_parent_kill_declaration() {
-    let executable = std::env::current_exe().unwrap();
-    let mut command = Command::new(executable);
-    let input = SealedProcessProbeInput::new("cut", "fault", Vec::new()).unwrap();
-    let intent = ProcessProbeIntent::for_current_executable(
-        &command,
-        &input,
-        ProcessRole::CrashTarget,
-        ProcessIsolationRequirement::ParentTerminated,
+    assert!(!super::execution::termination_satisfies(
         ProcessTerminationRequirement::ParentKill,
-    )
-    .unwrap();
-    let observation = tempfile::NamedTempFile::new().unwrap();
-    let declaration =
-        configure_process_probe(&mut command, intent, &input, observation.path(), &[]).unwrap();
-    let working_directory = declaration.working_directory().to_owned();
-    let process = ProcessIdentityEvidence {
-        role: ProcessRole::CrashTarget,
-        executable_identity: declaration.executable_identity(),
-        process_id: std::process::id().saturating_add(1),
-        launch_parent_process_id: std::process::id(),
-        working_directory_identity: sha2::Sha256::digest(working_directory.as_bytes()).into(),
-        working_directory,
-        environment: Vec::new(),
-        environment_identity: sha2::Sha256::digest(b"[]").into(),
-        input_artifact_identity: declaration.input_identity(),
-        runtime_identity: None,
-    };
-    let output = tempfile::NamedTempFile::new().unwrap();
-
-    assert_eq!(
-        ProcessProbeExecution::observed(
-            declaration,
-            &input,
-            process,
-            ProcessTermination::GracefulExit { code: Some(0) },
-            output.path(),
-        ),
-        Err(ProcessProbeEvidenceDenial::TerminationMismatch)
-    );
+        &ProcessTermination::GracefulExit { code: Some(0) },
+    ));
 }
 
 #[test]
@@ -242,13 +207,9 @@ fn run_role(
     wait_for_paths(&mut child, &[&observation, &output]);
     let process_id = child.id();
     let observed_termination = if termination == ProcessTerminationRequirement::ParentKill {
-        child.kill().unwrap();
-        let status = child.wait().unwrap();
-        ProcessTermination::ParentKill {
-            platform_status: format!("{status:?}"),
-        }
+        terminate_by_parent(&mut child).unwrap()
     } else {
-        classify_exit(child.wait().unwrap())
+        observe_graceful_exit(child.wait().unwrap()).unwrap()
     };
     let process = read_process_observation(&observation, &declaration, process_id).unwrap();
     let execution = ProcessProbeExecution::observed(

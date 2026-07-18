@@ -29,6 +29,11 @@ pub use evidence::{
 /// evidence tree.
 pub const UI_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_UI_EVIDENCE_ROOT";
 
+/// Binds emitted evidence to one immutable controller execution unit. Direct
+/// harness callers derive a standalone identity instead; controlled runs must
+/// preserve the controller-provided value exactly.
+pub const UI_EXECUTION_IDENTITY_ENV: &str = "WORTH_STORE_UI_EXECUTION_IDENTITY";
+
 /// Executes one declared compiler-boundary suite in its canonical cache-sharing
 /// Cargo environment and persists checked diagnostic evidence.
 pub fn run_ui_proof_suite(

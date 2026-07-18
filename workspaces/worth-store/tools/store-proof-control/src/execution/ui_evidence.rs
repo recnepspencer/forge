@@ -34,6 +34,7 @@ pub(super) fn collect(
     workspace_root: &Path,
     evidence_root: &Path,
     unit_identity: &str,
+    execution_identity: &str,
     evidence_required: bool,
 ) -> Result<Vec<UiProofEvidenceReference>, String> {
     let run_root = evidence_root.join("runs");
@@ -60,6 +61,12 @@ pub(super) fn collect(
         let evidence: UiProofRunEvidence = serde_json::from_slice(&bytes)
             .map_err(|error| format!("could not decode {}: {error}", path.display()))?;
         evidence.validate_integrity()?;
+        if evidence.execution_identity != execution_identity {
+            return Err(format!(
+                "UI evidence {} belongs to execution {}, expected {}",
+                evidence.evidence_identity, evidence.execution_identity, execution_identity
+            ));
+        }
         if path.file_stem().and_then(|value| value.to_str())
             != Some(evidence.evidence_identity.as_str())
         {

@@ -1,13 +1,13 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::ExitStatus;
+use std::process::{Child, ExitStatus};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    artifact::output_artifact_identity, ProcessIdentityEvidence, ProcessProbeDeclaration,
-    ProcessTerminationRequirement, SealedProcessProbeInput,
+    artifact::output_artifact_identity, identity::ObservedProcessIdentity, ProcessIdentityEvidence,
+    ProcessProbeDeclaration, ProcessTerminationRequirement, SealedProcessProbeInput,
 };
 use crate::certification_child_process::publish_new_synced;
 
@@ -22,6 +22,9 @@ pub enum ProcessTermination {
     ParentKill { platform_status: String },
     OsTermination { platform_status: String },
 }
+
+#[derive(Debug)]
+pub(crate) struct ObservedProcessTermination(ProcessTermination);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProcessProbeExecution {
@@ -54,11 +57,11 @@ impl ProcessProbeExecution {
     pub(crate) fn observed(
         declaration: ProcessProbeDeclaration,
         input: &SealedProcessProbeInput,
-        process: ProcessIdentityEvidence,
-        termination: ProcessTermination,
+        process: ObservedProcessIdentity,
+        termination: ObservedProcessTermination,
         output_artifact: &Path,
     ) -> Result<Self, ProcessProbeEvidenceDenial> {
-        if !termination_satisfies(declaration.required_termination(), &termination) {
+        if !termination_satisfies(declaration.required_termination(), &termination.0) {
             return Err(ProcessProbeEvidenceDenial::TerminationMismatch);
         }
         if declaration.input_identity() != input.identity() {
@@ -70,14 +73,14 @@ impl ProcessProbeExecution {
         {
             return Err(ProcessProbeEvidenceDenial::OutputArtifactMismatch);
         }
-        process.validate_against(&declaration, process.process_id)?;
+        let process = process.into_evidence();
         let output_artifact_identity = output_artifact_identity(output_artifact)
             .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactUnavailable)?;
         let mut evidence = Self {
             schema_version: 1,
             declaration,
             process,
-            termination,
+            termination: termination.0,
             output_artifact_identity,
             evidence_identity: [0; 32],
         };
@@ -164,13 +167,34 @@ pub(crate) fn admit_declared_evidence_root(
     Ok(())
 }
 
-pub(crate) fn classify_exit(status: ExitStatus) -> ProcessTermination {
-    ProcessTermination::GracefulExit {
-        code: status.code(),
-    }
+pub(crate) fn observe_graceful_exit(
+    status: ExitStatus,
+) -> Result<ObservedProcessTermination, ProcessProbeEvidenceDenial> {
+    status
+        .success()
+        .then(|| {
+            ObservedProcessTermination(ProcessTermination::GracefulExit {
+                code: status.code(),
+            })
+        })
+        .ok_or(ProcessProbeEvidenceDenial::TerminationMismatch)
 }
 
-fn termination_satisfies(
+pub(crate) fn terminate_by_parent(
+    child: &mut Child,
+) -> Result<ObservedProcessTermination, ProcessProbeEvidenceDenial> {
+    child
+        .kill()
+        .map_err(|_| ProcessProbeEvidenceDenial::TerminationMismatch)?;
+    let status = child
+        .wait()
+        .map_err(|_| ProcessProbeEvidenceDenial::TerminationMismatch)?;
+    Ok(ObservedProcessTermination(ProcessTermination::ParentKill {
+        platform_status: format!("{status:?}"),
+    }))
+}
+
+pub(super) fn termination_satisfies(
     required: ProcessTerminationRequirement,
     observed: &ProcessTermination,
 ) -> bool {

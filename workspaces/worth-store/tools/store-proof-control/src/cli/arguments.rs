@@ -1,13 +1,18 @@
 use crate::selection::{StoreProofMode, StoreProofRequest};
 
 pub enum CliCommand {
-    Baseline { observe_artifacts: bool },
+    Baseline {
+        observe_artifacts: bool,
+    },
     AuditExecutableListing,
     Validate,
     SealProofAuthority,
     SealProofBehaviorAuthority,
     SealScenarioAuthority,
-    Proof(StoreProofRequest),
+    Proof {
+        request: StoreProofRequest,
+        preflight_bundle: Option<String>,
+    },
 }
 
 pub struct ParsedArguments {
@@ -64,11 +69,12 @@ impl ParsedArguments {
             })
             .transpose()?;
         let backend = option_value(&remaining, "--backend");
+        let preflight_bundle = option_value(&remaining, "--preflight-bundle");
         let plan_only = remaining.iter().any(|argument| argument == "--plan-only");
         reject_unknown_options(&remaining)?;
         Ok(Self {
-            command: CliCommand::Proof(
-                StoreProofRequest::new(
+            command: CliCommand::Proof {
+                request: StoreProofRequest::new(
                     mode,
                     package,
                     partition,
@@ -78,7 +84,8 @@ impl ParsedArguments {
                 )
                 .with_seed(seed)
                 .with_backend(backend),
-            ),
+                preflight_bundle,
+            },
         })
     }
 }
@@ -112,6 +119,7 @@ fn reject_unknown_options(arguments: &[String]) -> Result<(), String> {
         "--scenario",
         "--seed",
         "--backend",
+        "--preflight-bundle",
     ];
     let mut index = 0;
     while index < arguments.len() {
@@ -149,22 +157,36 @@ mod tests {
                 .map(str::to_owned),
         )
         .unwrap();
-        let CliCommand::Proof(soak) = soak.command else {
+        let CliCommand::Proof { request: soak, .. } = soak.command else {
             panic!("soak parsed as a non-proof command");
         };
         assert_eq!(soak.proof_profile(), Some("checkpoint-heavy"));
         assert_eq!(soak.seed(), Some(42));
 
         let release = ParsedArguments::parse(
-            ["release", "--backend", "windows-file"]
-                .into_iter()
-                .map(str::to_owned),
+            [
+                "release",
+                "--backend",
+                "windows-file",
+                "--preflight-bundle",
+                ".store-proof/evidence/preflight/complete.json",
+            ]
+            .into_iter()
+            .map(str::to_owned),
         )
         .unwrap();
-        let CliCommand::Proof(release) = release.command else {
+        let CliCommand::Proof {
+            request: release,
+            preflight_bundle,
+        } = release.command
+        else {
             panic!("release parsed as a non-proof command");
         };
         assert_eq!(release.backend(), Some("windows-file"));
+        assert_eq!(
+            preflight_bundle.as_deref(),
+            Some(".store-proof/evidence/preflight/complete.json")
+        );
     }
 
     #[test]

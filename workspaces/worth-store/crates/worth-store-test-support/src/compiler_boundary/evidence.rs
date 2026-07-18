@@ -7,6 +7,7 @@ use super::{CheckedCompilerDiagnostic, UiFixtureIdentity};
 pub struct UiProofRunEvidence {
     pub schema_version: u32,
     pub suite_identity: String,
+    pub execution_identity: String,
     pub environment_identity: String,
     pub environment_root_identity: String,
     pub profile_identity: String,
@@ -136,8 +137,9 @@ impl UiProofRunEvidence {
         ))
         .map(|bytes| format!("{:x}", Sha256::digest(bytes)))
         .map_err(|error| format!("could not validate UI environment identity: {error}"))?;
-        if self.schema_version != 1
+        if self.schema_version != 2
             || self.suite_identity.trim().is_empty()
+            || !is_sha256(&self.execution_identity)
             || !is_sha256(&self.environment_identity)
             || !is_sha256(&self.environment_root_identity)
             || self.environment_identity != expected_environment_identity

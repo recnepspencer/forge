@@ -4,6 +4,7 @@ pub(super) struct RustTestFunction {
     pub(super) ignored: bool,
     pub(super) assertion_predicates: Vec<String>,
     pub(super) behavior_fingerprint: String,
+    pub(super) execution_source: String,
 }
 
 pub(super) fn rust_test_functions(source: &str) -> Vec<RustTestFunction> {
@@ -24,12 +25,30 @@ pub(super) fn rust_test_functions(source: &str) -> Vec<RustTestFunction> {
                     ignored,
                     assertion_predicates: assertion_predicates(&lines, index + 1),
                     behavior_fingerprint: behavior_fingerprint(&lines, index + 1),
+                    execution_source: function_source(&lines, index + 1),
                 });
                 break;
             }
         }
     }
     tests
+}
+
+fn function_source(lines: &[&str], function_start: usize) -> String {
+    let mut depth = 0_i32;
+    let mut entered_body = false;
+    let mut source = String::new();
+    for line in lines.iter().skip(function_start) {
+        depth += line.matches('{').count() as i32;
+        entered_body |= depth > 0;
+        source.push_str(line);
+        source.push('\n');
+        depth -= line.matches('}').count() as i32;
+        if entered_body && depth <= 0 {
+            break;
+        }
+    }
+    source
 }
 
 fn behavior_fingerprint(lines: &[&str], function_start: usize) -> String {
@@ -86,15 +105,22 @@ fn function_name(line: &str) -> Option<String> {
 }
 
 pub(super) fn launches_child_process(source: &str) -> bool {
-    source.contains("Command::new") || source.contains("std::process::Command")
+    source.contains("Command::new")
+        || source.contains("std::process::Command")
+        || uses_standardized_ui_harness(source)
 }
 
 pub(super) fn launches_nested_cargo(source: &str) -> bool {
-    launches_child_process(source)
-        && (source.contains("Command::new(\"cargo\")")
-            || source.contains("Command::new(cargo")
-            || source.contains("var_os(\"CARGO\")")
-            || source.contains("var(\"CARGO\")"))
+    uses_standardized_ui_harness(source)
+        || (launches_child_process(source)
+            && (source.contains("Command::new(\"cargo\")")
+                || source.contains("Command::new(cargo")
+                || source.contains("var_os(\"CARGO\")")
+                || source.contains("var(\"CARGO\")")))
+}
+
+pub(super) fn uses_standardized_ui_harness(source: &str) -> bool {
+    source.contains("run_cargo_ui_fixture_suite") || source.contains("run_ui_proof_suite")
 }
 
 pub(super) fn external_tools(source: &str) -> Vec<String> {
@@ -107,7 +133,9 @@ pub(super) fn external_tools(source: &str) -> Vec<String> {
         }
     }
     if !tools.iter().any(|tool| tool == "cargo")
-        && (source.contains("var_os(\"CARGO\")") || source.contains("var(\"CARGO\")"))
+        && (source.contains("var_os(\"CARGO\")")
+            || source.contains("var(\"CARGO\")")
+            || uses_standardized_ui_harness(source))
     {
         tools.push("cargo".to_owned());
     }

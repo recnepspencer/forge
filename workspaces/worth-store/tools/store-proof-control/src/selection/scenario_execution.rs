@@ -61,6 +61,7 @@ fn scenario_process_model(topology: ScenarioProcessTopology) -> ProofProcessMode
         ScenarioProcessTopology::NestedCargoProcess => {
             ProofProcessModel::LibtestWithNestedCargoProcess
         }
+        ScenarioProcessTopology::StandardizedUiHarness => ProofProcessModel::StandardizedUiHarness,
         ScenarioProcessTopology::AllocatorGlobalProcess => {
             ProofProcessModel::AllocatorGlobalProcess
         }

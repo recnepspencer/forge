@@ -24,7 +24,9 @@ use crate::preservation::{
     build_ledger, semantic_authority_from_ledger, validate_ledger, ProofPreservationLedger,
 };
 use crate::selection::{select, StructuralPreflightReference};
-use crate::structural_preflight::{execute as execute_preflight, forge_root};
+use crate::structural_preflight::{
+    consume as consume_preflight, execute as execute_preflight, forge_root,
+};
 use crate::{ClassifiedProofInventory, DiscoveredTestSurface};
 
 pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
@@ -39,7 +41,10 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
         CliCommand::SealProofAuthority => seal_proof_authority(&workspace_root),
         CliCommand::SealProofBehaviorAuthority => seal_proof_behavior_authority(&workspace_root),
         CliCommand::SealScenarioAuthority => seal_scenario_authority(&workspace_root),
-        CliCommand::Proof(request) => run_product(&workspace_root, request),
+        CliCommand::Proof {
+            request,
+            preflight_bundle,
+        } => run_product(&workspace_root, request, preflight_bundle.as_deref()),
     }
 }
 
@@ -201,16 +206,20 @@ fn create_baseline(workspace_root: &Path, observe_artifacts: bool) -> Result<(),
 fn run_product(
     workspace_root: &Path,
     request: crate::selection::StoreProofRequest,
+    preflight_bundle: Option<&str>,
 ) -> Result<(), String> {
     let validation = validate_repository_inputs(workspace_root);
     let forge_root = forge_root(workspace_root)?;
-    let preflight = execute_preflight(
-        &forge_root,
-        workspace_root,
-        request.mode(),
-        validation.as_ref().ok(),
-        validation.as_ref().err(),
-    )?;
+    let preflight = match preflight_bundle {
+        Some(path) => consume_preflight(&forge_root, request.mode(), Path::new(path))?,
+        None => execute_preflight(
+            &forge_root,
+            workspace_root,
+            request.mode(),
+            validation.as_ref().ok(),
+            validation.as_ref().err(),
+        )?,
+    };
     let failures = preflight.evidence.failures();
     if !failures.is_empty() {
         return Err(format!(

@@ -11,7 +11,7 @@ use super::toolchain;
 use super::{artifact_store, bounded_process, environment_lock, environment_manifest};
 use super::{
     UiCompilerToolchainIdentity, UiFixtureIdentity, UiFixtureRunEvidence, UiProofRunEvidence,
-    UiProofRunFailure, UiProofSuiteDeclaration,
+    UiProofRunFailure, UiProofSuiteDeclaration, UI_EXECUTION_IDENTITY_ENV,
 };
 
 struct FixtureEnvironment<'a> {
@@ -98,8 +98,9 @@ pub(super) fn run(
     }
     toolchain::validate_unchanged(&workspace_root, &toolchain)?;
     let mut evidence = UiProofRunEvidence {
-        schema_version: 1,
+        schema_version: 2,
         suite_identity: declaration.suite_identity().to_owned(),
+        execution_identity: execution_identity(declaration)?,
         environment_identity,
         environment_root_identity,
         profile_identity: declaration.environment().profile_identity().to_owned(),
@@ -122,6 +123,26 @@ pub(super) fn run(
         .join(format!("{}.json", evidence.evidence_identity));
     artifact_store::persist_suite_evidence(&suite_path, &evidence)?;
     Ok(evidence)
+}
+
+fn execution_identity(declaration: &UiProofSuiteDeclaration) -> Result<String, UiProofRunFailure> {
+    match std::env::var(UI_EXECUTION_IDENTITY_ENV) {
+        Ok(identity)
+            if identity.len() == 64 && identity.bytes().all(|byte| byte.is_ascii_hexdigit()) =>
+        {
+            Ok(identity)
+        }
+        Ok(_) => Err(UiProofRunFailure::EnvironmentObservation(format!(
+            "{UI_EXECUTION_IDENTITY_ENV} is not a SHA-256 identity"
+        ))),
+        Err(std::env::VarError::NotPresent) => digest_serialized(&(
+            "worth-store-standalone-ui-execution-v1",
+            declaration.suite_identity(),
+        )),
+        Err(error) => Err(UiProofRunFailure::EnvironmentObservation(format!(
+            "could not read {UI_EXECUTION_IDENTITY_ENV}: {error}"
+        ))),
+    }
 }
 
 fn run_fixture(

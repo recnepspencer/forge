@@ -27,7 +27,7 @@ pub use owner_build_closure::{
 };
 pub use owner_fixture_policy::OwnerFixtureDependency;
 use serde::{Deserialize, Serialize};
-pub use source_tests::{CaseKind, TestCaseIdentity, TestCaseSurface};
+pub use source_tests::{CaseKind, CompilerBoundaryHarness, TestCaseIdentity, TestCaseSurface};
 pub use workflow_commands::WorkflowProofCommand;
 
 use crate::classification::FeatureSemanticAuthority;
@@ -67,7 +67,7 @@ pub fn discover_workspace(
     let feature_semantic_authority =
         read_json(&workspace_root.join("test-control/feature-semantic-authority.json"))?;
     let inventory = TestSurfaceInventory {
-        schema_version: 2,
+        schema_version: 3,
         workspace_root: cargo_surface.workspace_root,
         target_root: cargo_surface.target_root,
         packages: cargo_surface.packages,

@@ -18,6 +18,7 @@ pub(super) struct ScenarioProofContractBuilder {
     evidence: BTreeSet<String>,
     products: BTreeSet<String>,
     controlled_defects: BTreeSet<String>,
+    standardized_ui_harness: bool,
     child_process: bool,
     nested_cargo: bool,
 }
@@ -46,6 +47,7 @@ impl ScenarioProofContractBuilder {
         }
         self.child_process |= proof.case.launches_child_process;
         self.nested_cargo |= proof.case.launches_nested_cargo;
+        self.standardized_ui_harness |= proof.case.compiler_boundary_harness.is_some();
         self.subjects.extend(subjects.iter().cloned());
     }
 
@@ -55,7 +57,9 @@ impl ScenarioProofContractBuilder {
         libtest_filter_prefix: String,
     ) -> CertificationScenarioDeclaration {
         self.cases.sort();
-        let process_topology = if self.nested_cargo {
+        let process_topology = if self.standardized_ui_harness {
+            ScenarioProcessTopology::StandardizedUiHarness
+        } else if self.nested_cargo {
             ScenarioProcessTopology::NestedCargoProcess
         } else if self.child_process {
             ScenarioProcessTopology::FreshChildProcess

@@ -54,6 +54,94 @@ pub(crate) fn execute(
     })
 }
 
+pub(crate) fn consume(
+    forge_root: &Path,
+    mode: StoreProofMode,
+    bundle_path: &Path,
+) -> Result<StructuralPreflightProduct, String> {
+    let evidence: StructuralPreflightEvidence = crate::evidence::read_json(bundle_path)?;
+    evidence
+        .validate_integrity()
+        .map_err(|denial| denial.to_string())?;
+    if bundle_path.file_stem().and_then(|value| value.to_str())
+        != Some(evidence.evidence_identity.0.as_str())
+    {
+        return Err(format!(
+            "preflight bundle path does not carry evidence identity {}: {}",
+            evidence.evidence_identity.0,
+            bundle_path.display()
+        ));
+    }
+    require_compatible_predicates(mode, &evidence)?;
+    let failures = evidence.failures();
+    if !failures.is_empty() {
+        return Err(format!(
+            "preflight bundle contains failed predicates: {}",
+            failures
+                .iter()
+                .map(|failure| format!("{:?}/{}", failure.predicate, failure.failure_code))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    match require_fresh(forge_root, &evidence)? {
+        PreflightEvidenceFreshness::Fresh { .. } => Ok(StructuralPreflightProduct {
+            evidence,
+            bundle_path: bundle_path.to_path_buf(),
+        }),
+        PreflightEvidenceFreshness::Stale { failures } => Err(format!(
+            "preflight bundle is stale: {}",
+            failures
+                .iter()
+                .map(|failure| format!(
+                    "{:?}/{} invalidated {:?}",
+                    failure.predicate, failure.failure_code, failure.invalidated_inputs
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )),
+    }
+}
+
+fn require_compatible_predicates(
+    mode: StoreProofMode,
+    evidence: &StructuralPreflightEvidence,
+) -> Result<(), String> {
+    let required = request_for_mode(mode)?;
+    let observed = evidence
+        .plan
+        .request
+        .predicates
+        .iter()
+        .copied()
+        .collect::<std::collections::BTreeSet<_>>();
+    let missing = required
+        .predicates
+        .iter()
+        .filter(|predicate| !observed.contains(predicate))
+        .collect::<Vec<_>>();
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "preflight bundle is incompatible with {}: missing {missing:?}",
+            mode_identity(mode)
+        ))
+    }
+}
+
+const fn mode_identity(mode: StoreProofMode) -> &'static str {
+    match mode {
+        StoreProofMode::Owner => "store-owner",
+        StoreProofMode::Smoke => "store-smoke",
+        StoreProofMode::Ui => "store-ui",
+        StoreProofMode::Ci => "store-ci",
+        StoreProofMode::Soak => "store-soak",
+        StoreProofMode::Release => "store-release",
+        StoreProofMode::Hardware => "store-hardware",
+    }
+}
+
 pub fn forge_root(store_root: &Path) -> Result<PathBuf, String> {
     store_root
         .ancestors()

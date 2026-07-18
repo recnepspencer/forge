@@ -9,7 +9,7 @@ pub fn validate_suite_semantic_authority(
     let declared = scenario_map(authority);
     let current = scenario_map(observed);
     let mut violations = Vec::new();
-    if authority.schema_version != 1 || observed.schema_version != 1 {
+    if authority.schema_version != 2 || observed.schema_version != 2 {
         violations.push(format!(
             "unsupported scenario authority schema: declared={}, observed={}",
             authority.schema_version, observed.schema_version

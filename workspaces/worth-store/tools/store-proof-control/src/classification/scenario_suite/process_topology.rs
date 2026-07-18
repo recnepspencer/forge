@@ -10,6 +10,7 @@ pub enum ScenarioProcessTopology {
     InProcessLibtest,
     FreshChildProcess,
     NestedCargoProcess,
+    StandardizedUiHarness,
     AllocatorGlobalProcess,
 }
 
@@ -19,6 +20,7 @@ pub(super) fn admitted_process_topologies(suite_name: &str) -> BTreeSet<Scenario
         admitted.extend([
             ScenarioProcessTopology::FreshChildProcess,
             ScenarioProcessTopology::NestedCargoProcess,
+            ScenarioProcessTopology::StandardizedUiHarness,
         ]);
     }
     admitted

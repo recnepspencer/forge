@@ -9,7 +9,7 @@ use crate::certification_child_process::{
     decode_hex_32, encode_hex_32, fresh_challenge, validated_current_executable,
 };
 use crate::process_probe::{
-    classify_exit, configure_process_probe, persist_execution, read_process_observation,
+    configure_process_probe, observe_graceful_exit, persist_execution, read_process_observation,
     write_current_process_observation,
 };
 use crate::{
@@ -191,7 +191,7 @@ impl FreshProcessOfflineTruthRunner {
             declaration,
             &input,
             process,
-            classify_exit(status),
+            observe_graceful_exit(status)?,
             &report_path,
         )?;
         persist_execution(&self.evidence_directory, &execution)?;
