@@ -8,6 +8,7 @@ pub mod evidence;
 pub mod execution;
 pub mod preservation;
 pub mod selection;
+pub mod structural_preflight;
 
 pub use authority_progression::{
     ClassifiedProofInventory, DiscoveredTestSurface, ValidatedProofInventory,

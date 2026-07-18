@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use super::{
-    cargo_dependency_manifest, run_cargo_ui_fixture_suite, DependencyBoundaryPredicate,
-    UiProofRunFailure,
+    cargo_dependency_manifest, run_cargo_ui_fixture_suite, UiProofRunFailure,
 };
+use crate::structural_preflight::DependencyBoundaryPredicate;
 
 #[test]
 fn fixtures_in_one_environment_share_manifest_and_target_root() {

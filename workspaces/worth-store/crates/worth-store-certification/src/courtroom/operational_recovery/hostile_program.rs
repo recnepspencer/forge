@@ -146,7 +146,7 @@ impl S10HostileProgramEvidence {
         source.update(footprint_rejection.evidence_identity());
         source.update(staging_resume.evidence_identity());
         source.update(published_readmission.evidence_identity());
-        source.update(structural_preflight.reverse_flow_compile_identity());
+        source.update(structural_preflight.dependency_boundary_identity());
         Ok(Self::bind(
             S10OperationalScenarioKind::BurningPrimary,
             source.finalize().into(),

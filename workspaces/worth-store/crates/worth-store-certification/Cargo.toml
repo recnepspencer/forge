@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 1 generic and domain Store certification suites."
 
 [dependencies]
+serde_json = "1"
 sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
@@ -54,7 +55,6 @@ worth-store-physical-certification = { workspace = true, features = ["certificat
 worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
 worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
-serde_json = "1"
 tempfile = "3"
 
 [[test]]

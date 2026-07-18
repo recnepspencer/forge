@@ -1,20 +1,20 @@
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 
 use worth_store_operations::{OperationalControlSessionObservation, OperationalControlStore};
 
-use crate::certification_child_process::{
-    decode_hex_32, encode_hex_32, fresh_challenge, validated_current_executable,
-};
+use crate::certification_child_process::{decode_hex_32, encode_hex_32};
 use crate::{
     OperationalRecoveryCrashCutDenial, OperationalRecoveryCrashCutEvidence,
-    OperationalRecoveryDriverTrace, OperationalRecoveryYieldpoint,
+    OperationalRecoveryDriverTrace, OperationalRecoveryYieldpoint, ProcessProbeEvidenceDenial,
+    ProcessProbeExecution, ProcessRole,
 };
+use crate::process_probe::write_current_process_observation;
 
 const CUT_ROLE: &str = "cut";
 const REOPEN_ROLE: &str = "reopen";
-const CRASH_EXIT_CODE: i32 = 73;
 mod wire;
+mod runner;
 use wire::{read_report, write_report, ProcessObservationReport};
 pub const PROCESS_CRASH_ROLE_ENV: &str = "WORTH_STORE_S10_CRASH_ROLE";
 pub const PROCESS_CRASH_REPORT_ENV: &str = "WORTH_STORE_S10_CRASH_REPORT";
@@ -34,17 +34,27 @@ pub struct OperationalRecoveryFreshProcessRunner {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OperationalRecoveryProcessCrashEvidence {
+    crash_cut: OperationalRecoveryCrashCutEvidence,
+    cut_process: ProcessProbeExecution,
+    reopen_process: ProcessProbeExecution,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OperationalRecoveryProcessCrashDenial {
     InvalidEnvironment,
     CutProcessLaunch,
     ReopenProcessLaunch,
     CutProcessDidNotCrash(Option<i32>),
+    CutProcessExitedBeforeParentKill(Option<i32>),
+    CutProcessReadinessTimedOut,
     ReopenProcessFailed(Option<i32>),
     MissingOrMalformedReport,
     ChallengeMismatch,
     YieldpointMismatch,
     TraceMismatch,
     ExecutableMismatch,
+    ProcessProbe(ProcessProbeEvidenceDenial),
     CrashCut(OperationalRecoveryCrashCutDenial),
 }
 
@@ -89,7 +99,14 @@ impl OperationalRecoveryProcessCrashConfig {
             operations: trace.operation_identities().to_vec(),
         };
         write_report(&self.report_path, &report).expect("write durable S10 crash-cut report");
-        std::process::exit(CRASH_EXIT_CODE)
+        write_current_process_observation(
+            ProcessRole::CrashTarget,
+            Some(observation.process().fingerprint()),
+        )
+        .expect("write S10 crash-target process observation");
+        loop {
+            std::thread::park();
+        }
     }
 }
 
@@ -111,19 +128,24 @@ pub fn write_reopen_observation_from_environment(
         .map_err(|_| OperationalRecoveryProcessCrashDenial::InvalidEnvironment)?;
     let yieldpoint = OperationalRecoveryYieldpoint::from_token(&token)
         .ok_or(OperationalRecoveryProcessCrashDenial::InvalidEnvironment)?;
+    let observation = store
+        .session_observation()
+        .map_err(|_| OperationalRecoveryProcessCrashDenial::MissingOrMalformedReport)?;
     write_report(
         &report_path,
         &ProcessObservationReport {
             challenge,
             yieldpoint,
-            observation: store
-                .session_observation()
-                .map_err(|_| OperationalRecoveryProcessCrashDenial::MissingOrMalformedReport)?,
+            observation,
             trace_identity: [0; 32],
             operations: Vec::new(),
         },
     )
     .map_err(|_| OperationalRecoveryProcessCrashDenial::MissingOrMalformedReport)?;
+    write_current_process_observation(
+        ProcessRole::RecoveredRuntime,
+        Some(observation.process().fingerprint()),
+    )?;
     Ok(true)
 }
 
@@ -134,109 +156,16 @@ impl OperationalRecoveryFreshProcessRunner {
         }
     }
 
-    pub fn certify_control_cut(
-        &self,
-        cut_command: &mut Command,
-        reopen_command: &mut Command,
-        yieldpoint: OperationalRecoveryYieldpoint,
-        uninterrupted_trace: &OperationalRecoveryDriverTrace,
-    ) -> Result<OperationalRecoveryCrashCutEvidence, OperationalRecoveryProcessCrashDenial> {
-        std::fs::create_dir_all(&self.evidence_directory)
-            .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
-        let executable_identity = validated_executable_identity(cut_command, reopen_command)?;
-        let challenge = fresh_challenge(
-            b"worth-store-s10-process-crash-challenge-v1",
-            yieldpoint.token().as_bytes(),
-            executable_identity,
-        );
-        let stem = encode_hex_32(&challenge);
-        let cut_path = self.evidence_directory.join(format!("{stem}.cut"));
-        let reopen_path = self.evidence_directory.join(format!("{stem}.reopen"));
-        configure_command(cut_command, CUT_ROLE, &cut_path, challenge, yieldpoint);
-        configure_command(
-            reopen_command,
-            REOPEN_ROLE,
-            &reopen_path,
-            challenge,
-            yieldpoint,
-        );
-        let cut_status = cut_command
-            .status()
-            .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
-        require_crash_exit(cut_status)?;
-        let reopen_status = reopen_command
-            .status()
-            .map_err(|_| OperationalRecoveryProcessCrashDenial::ReopenProcessLaunch)?;
-        if !reopen_status.success() {
-            return Err(OperationalRecoveryProcessCrashDenial::ReopenProcessFailed(
-                reopen_status.code(),
-            ));
-        }
-        let cut = read_report(&cut_path)?;
-        let reopened = read_report(&reopen_path)?;
-        let _ = std::fs::remove_file(cut_path);
-        let _ = std::fs::remove_file(reopen_path);
-        if cut.challenge != challenge || reopened.challenge != challenge {
-            return Err(OperationalRecoveryProcessCrashDenial::ChallengeMismatch);
-        }
-        if cut.yieldpoint != yieldpoint || reopened.yieldpoint != yieldpoint {
-            return Err(OperationalRecoveryProcessCrashDenial::YieldpointMismatch);
-        }
-        if cut.trace_identity == [0; 32]
-            || cut.operations.is_empty()
-            || cut.operations.iter().any(|operation| {
-                !uninterrupted_trace
-                    .operation_identities()
-                    .contains(operation)
-            })
-        {
-            return Err(OperationalRecoveryProcessCrashDenial::TraceMismatch);
-        }
-        OperationalRecoveryCrashCutEvidence::from_external_process_reopen(
-            yieldpoint,
-            cut.trace_identity,
-            cut.operations,
-            cut.observation,
-            reopened.observation,
-            challenge,
-        )
-        .map_err(OperationalRecoveryProcessCrashDenial::CrashCut)
+}
+
+impl From<ProcessProbeEvidenceDenial> for OperationalRecoveryProcessCrashDenial {
+    fn from(value: ProcessProbeEvidenceDenial) -> Self {
+        Self::ProcessProbe(value)
     }
 }
 
-fn configure_command(
-    command: &mut Command,
-    role: &str,
-    report_path: &Path,
-    challenge: [u8; 32],
-    yieldpoint: OperationalRecoveryYieldpoint,
-) {
-    command
-        .env(PROCESS_CRASH_ROLE_ENV, role)
-        .env(PROCESS_CRASH_REPORT_ENV, report_path)
-        .env(PROCESS_CRASH_CHALLENGE_ENV, encode_hex_32(&challenge))
-        .env(PROCESS_CRASH_YIELDPOINT_ENV, yieldpoint.token());
-}
-
-fn require_crash_exit(status: ExitStatus) -> Result<(), OperationalRecoveryProcessCrashDenial> {
-    if status.code() == Some(CRASH_EXIT_CODE) {
-        Ok(())
-    } else {
-        Err(OperationalRecoveryProcessCrashDenial::CutProcessDidNotCrash(status.code()))
-    }
-}
-
-fn validated_executable_identity(
-    cut_command: &Command,
-    reopen_command: &Command,
-) -> Result<[u8; 32], OperationalRecoveryProcessCrashDenial> {
-    let cut = validated_current_executable(cut_command)
-        .ok_or(OperationalRecoveryProcessCrashDenial::ExecutableMismatch)?;
-    let reopened = validated_current_executable(reopen_command)
-        .ok_or(OperationalRecoveryProcessCrashDenial::ExecutableMismatch)?;
-    if cut == reopened {
-        Ok(cut)
-    } else {
-        Err(OperationalRecoveryProcessCrashDenial::ExecutableMismatch)
+impl From<String> for OperationalRecoveryProcessCrashDenial {
+    fn from(_: String) -> Self {
+        Self::InvalidEnvironment
     }
 }

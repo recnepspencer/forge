@@ -1,6 +1,6 @@
 use crate::selection::{select, ProofProductUnavailable, StoreProofMode, StoreProofRequest};
 
-use super::{current_inventory, workspace_root};
+use super::{current_inventory, selection_preflight, workspace_root};
 
 #[test]
 fn selection_is_deterministic_and_scenario_filterable() {
@@ -11,6 +11,7 @@ fn selection_is_deterministic_and_scenario_filterable() {
             &root,
             &current,
             StoreProofRequest::new(StoreProofMode::Smoke, None, None, None, None, true),
+            selection_preflight(&root),
         )
         .unwrap()
     };
@@ -67,6 +68,7 @@ fn selection_is_deterministic_and_scenario_filterable() {
             Some(scenario),
             true,
         ),
+        selection_preflight(&root),
     )
     .unwrap();
     assert_eq!(selected.units.len(), 1);
@@ -150,6 +152,7 @@ fn full_ci_denies_when_a_required_partition_loses_reachability() {
         &root,
         &missing_recovery,
         StoreProofRequest::new(StoreProofMode::Ci, None, None, None, None, true),
+        selection_preflight(&root),
     )
     .unwrap_err();
     assert!(matches!(
@@ -167,6 +170,7 @@ fn full_ci_and_owner_plans_keep_their_declared_boundaries() {
         &root,
         current,
         StoreProofRequest::new(StoreProofMode::Ci, None, None, None, None, true),
+        selection_preflight(&root),
     )
     .unwrap();
     for required in [
@@ -201,6 +205,7 @@ fn full_ci_and_owner_plans_keep_their_declared_boundaries() {
             None,
             true,
         ),
+        selection_preflight(&root),
     )
     .unwrap();
     assert!(owner.units.iter().all(|unit| unit.package == owner_name));

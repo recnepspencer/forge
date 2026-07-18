@@ -46,3 +46,7 @@ fn workspace_root() -> PathBuf {
         .unwrap()
         .to_path_buf()
 }
+
+fn selection_preflight(root: &Path) -> crate::selection::StructuralPreflightReference {
+    crate::selection::StructuralPreflightReference::synthetic_for_selection(root)
+}

@@ -8,6 +8,15 @@ use worth_store_offline_verifier::OperationalTruthReport;
 use crate::certification_child_process::{
     decode_hex_32, encode_hex_32, fresh_challenge, validated_current_executable,
 };
+use crate::process_probe::{
+    classify_exit, configure_process_probe, persist_execution, read_process_observation,
+    write_current_process_observation,
+};
+use crate::{
+    ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration,
+    ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessRole, ProcessTerminationRequirement,
+    SealedProcessProbeInput,
+};
 
 mod wire;
 use wire::{read_report, write_report, FreshProcessTruthReport, TruthRegionKind};
@@ -34,6 +43,12 @@ pub struct FreshProcessDestroyedPrimaryEvidence {
     evidence_identity: [u8; 32],
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FreshProcessDestroyedPrimaryCertification {
+    destroyed_primary: FreshProcessDestroyedPrimaryEvidence,
+    observer_process: ProcessProbeExecution,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FreshProcessOfflineTruthDenial {
     BaselineUnavailable,
@@ -50,6 +65,7 @@ pub enum FreshProcessOfflineTruthDenial {
     TargetRemainedTrustedAuthority,
     InvalidTruthIdentity,
     RegionCoverageMismatch,
+    ProcessProbe(ProcessProbeEvidenceDenial),
 }
 
 #[derive(Debug)]
@@ -86,6 +102,15 @@ impl FreshProcessOfflineTruthRunner {
         baseline: &FreshProcessOfflineTruthBaseline,
         observer_command: &mut Command,
     ) -> Result<FreshProcessDestroyedPrimaryEvidence, FreshProcessOfflineTruthDenial> {
+        self.certify_destroyed_primary_with_process_evidence(baseline, observer_command)
+            .map(FreshProcessDestroyedPrimaryCertification::into_destroyed_primary)
+    }
+
+    pub fn certify_destroyed_primary_with_process_evidence(
+        &self,
+        baseline: &FreshProcessOfflineTruthBaseline,
+        observer_command: &mut Command,
+    ) -> Result<FreshProcessDestroyedPrimaryCertification, FreshProcessOfflineTruthDenial> {
         std::fs::create_dir_all(&self.evidence_directory)
             .map_err(|_| FreshProcessOfflineTruthDenial::ObserverLaunch)?;
         let executable_identity = validated_current_executable(observer_command)
@@ -106,13 +131,40 @@ impl FreshProcessOfflineTruthRunner {
         let report_path = self
             .evidence_directory
             .join(format!("{}.truth", encode_hex_32(&challenge)));
+        let process_path = self
+            .evidence_directory
+            .join(format!("{}.truth-process.json", encode_hex_32(&challenge)));
         observer_command
             .env(OFFLINE_TRUTH_ROLE_ENV, OBSERVER_ROLE)
             .env(OFFLINE_TRUTH_REPORT_ENV, &report_path)
             .env(OFFLINE_TRUTH_CHALLENGE_ENV, encode_hex_32(&challenge))
             .env(OFFLINE_TRUTH_TARGET_ENV, &baseline.target);
-        let status = observer_command
-            .status()
+        let input = SealedProcessProbeInput::new(
+            "destroyed-primary-offline-truth",
+            "observe-damaged-primary-without-live-runtime",
+            vec![ProcessArtifactPath::new("damaged-primary", &baseline.target)?],
+        )
+        .map_err(|_| FreshProcessOfflineTruthDenial::InvalidEnvironment)?;
+        let declaration = ProcessProbeDeclaration::for_current_executable(
+            observer_command,
+            &input,
+            ProcessRole::OfflineVerifier,
+            ProcessIsolationRequirement::IndependentObserver,
+            ProcessTerminationRequirement::GracefulExit,
+        )
+        .map_err(|_| FreshProcessOfflineTruthDenial::InvalidEnvironment)?;
+        configure_process_probe(
+            observer_command,
+            &declaration,
+            &process_path,
+            OFFLINE_ENVIRONMENT_KEYS,
+        )?;
+        let mut child = observer_command
+            .spawn()
+            .map_err(|_| FreshProcessOfflineTruthDenial::ObserverLaunch)?;
+        let process_id = child.id();
+        let status = child
+            .wait()
             .map_err(|_| FreshProcessOfflineTruthDenial::ObserverLaunch)?;
         if !status.success() {
             return Err(FreshProcessOfflineTruthDenial::ObserverFailed(
@@ -120,14 +172,27 @@ impl FreshProcessOfflineTruthRunner {
             ));
         }
         let report = read_report(&report_path)?;
-        let _ = std::fs::remove_file(report_path);
-        validate_report(
+        let process = read_process_observation(&process_path, &declaration, process_id)?;
+        let execution = ProcessProbeExecution::observed(
+            declaration,
+            process,
+            classify_exit(status),
+            &report_path,
+        )?;
+        persist_execution(&self.evidence_directory, &execution)?;
+        let destroyed_primary = validate_report(
             report,
             challenge,
             baseline,
             damaged_digest,
             executable_identity,
-        )
+        )?;
+        let _ = std::fs::remove_file(report_path);
+        let _ = std::fs::remove_file(process_path);
+        Ok(FreshProcessDestroyedPrimaryCertification {
+            destroyed_primary,
+            observer_process: execution,
+        })
     }
 }
 
@@ -168,6 +233,7 @@ pub fn write_offline_truth_observation_from_environment(
             end,
         },
     )?;
+    write_current_process_observation(ProcessRole::OfflineVerifier, None)?;
     Ok(true)
 }
 
@@ -261,8 +327,41 @@ impl FreshProcessDestroyedPrimaryEvidence {
     }
 }
 
+impl FreshProcessDestroyedPrimaryCertification {
+    pub const fn destroyed_primary(&self) -> FreshProcessDestroyedPrimaryEvidence {
+        self.destroyed_primary
+    }
+
+    pub const fn observer_process(&self) -> &ProcessProbeExecution {
+        &self.observer_process
+    }
+
+    pub fn into_destroyed_primary(self) -> FreshProcessDestroyedPrimaryEvidence {
+        self.destroyed_primary
+    }
+}
+
 impl From<std::io::Error> for FreshProcessOfflineTruthDenial {
     fn from(_: std::io::Error) -> Self {
         Self::MissingOrMalformedReport
     }
 }
+
+impl From<ProcessProbeEvidenceDenial> for FreshProcessOfflineTruthDenial {
+    fn from(value: ProcessProbeEvidenceDenial) -> Self {
+        Self::ProcessProbe(value)
+    }
+}
+
+impl From<String> for FreshProcessOfflineTruthDenial {
+    fn from(_: String) -> Self {
+        Self::InvalidEnvironment
+    }
+}
+
+const OFFLINE_ENVIRONMENT_KEYS: &[&str] = &[
+    OFFLINE_TRUTH_ROLE_ENV,
+    OFFLINE_TRUTH_REPORT_ENV,
+    OFFLINE_TRUTH_CHALLENGE_ENV,
+    OFFLINE_TRUTH_TARGET_ENV,
+];

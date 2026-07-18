@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use super::diagnostics::{checked_diagnostics, validate_denial};
 use super::{
     UiFixtureIdentity, UiFixtureRunEvidence, UiProofRunEvidence, UiProofRunFailure,
-    UiProofSuiteDeclaration,
+    UiProofSuiteDeclaration, UI_EVIDENCE_ROOT_ENV,
 };
 
 pub(super) fn run(
@@ -23,6 +23,7 @@ pub(super) fn run(
         ))
     })?;
     let environment_identity = environment_identity(&workspace_root, declaration)?;
+    let evidence_root = admitted_evidence_root(&workspace_root)?;
     let environment_root = workspace_root
         .join(".store-proof/ui/environments")
         .join(&environment_identity);
@@ -63,8 +64,8 @@ pub(super) fn run(
         fixtures,
         evidence_identity,
     };
-    let suite_path = workspace_root
-        .join(".store-proof/evidence/ui/runs")
+    let suite_path = evidence_root
+        .join("runs")
         .join(format!("{}.json", evidence.evidence_identity));
     persist_suite_evidence(&suite_path, &evidence)?;
     Ok(evidence)
@@ -141,8 +142,8 @@ fn run_fixture(
         evidence_path: String::new(),
     };
     let attempt_identity = digest_serialized(&evidence)?;
-    let evidence_path = workspace_root
-        .join(".store-proof/evidence/ui/checked-diagnostics")
+    let evidence_path = admitted_evidence_root(workspace_root)?
+        .join("checked-diagnostics")
         .join(environment_identity)
         .join(format!("{attempt_identity}.json"));
     evidence.evidence_path = normalized_path(workspace_root, &evidence_path);
@@ -156,6 +157,26 @@ fn run_fixture(
     .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
     evidence.semantic_denial_matched = checked.semantic_denial_matched;
     Ok(evidence)
+}
+
+fn admitted_evidence_root(workspace_root: &Path) -> Result<PathBuf, UiProofRunFailure> {
+    let default = workspace_root.join(".store-proof/evidence/ui");
+    let Some(declared) = std::env::var_os(UI_EVIDENCE_ROOT_ENV).map(PathBuf::from) else {
+        return Ok(default);
+    };
+    let declared = if declared.is_absolute() {
+        declared
+    } else {
+        workspace_root.join(declared)
+    };
+    let admitted = workspace_root.join(".store-proof/evidence");
+    if !declared.starts_with(&admitted) {
+        return Err(UiProofRunFailure::EnvironmentObservation(format!(
+            "{UI_EVIDENCE_ROOT_ENV} must remain under {}",
+            admitted.display()
+        )));
+    }
+    Ok(declared)
 }
 
 fn environment_identity(

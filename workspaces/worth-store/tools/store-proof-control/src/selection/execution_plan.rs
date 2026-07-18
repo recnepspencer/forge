@@ -10,6 +10,14 @@ use super::proof_mode::{ProofProductUnavailable, StoreProofMode, StoreProofReque
 use super::repository_identity::RepositoryIdentity;
 use super::{StoreBuildProfileIdentity, StoreFeatureLane};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StructuralPreflightReference {
+    pub evidence_identity: String,
+    pub bundle_path: String,
+    pub profile: String,
+    pub predicates: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoreProofSelection {
     pub included_products: Vec<String>,
@@ -79,6 +87,15 @@ impl ProofExecutionUnit {
 
     pub(crate) fn with_process_model(mut self, process_model: impl Into<String>) -> Self {
         self.process_model = process_model.into();
+        if self.process_model == "compiler-boundary-suite"
+            && !self
+                .expected_evidence
+                .iter()
+                .any(|item| item == "ui_proof_run_evidence")
+        {
+            self.expected_evidence
+                .push("ui_proof_run_evidence".to_owned());
+        }
         self
     }
 
@@ -160,6 +177,7 @@ pub struct SelectedProofExecutionPlan {
     pub cache_posture: String,
     pub evidence_destination: String,
     pub closeout_posture: String,
+    pub structural_preflight: StructuralPreflightReference,
 }
 
 #[derive(Serialize)]
@@ -168,6 +186,7 @@ struct PlanDigestBasis<'a> {
     repository: &'a RepositoryIdentity,
     selection: &'a StoreProofSelection,
     units: &'a [ProofExecutionUnit],
+    structural_preflight: &'a StructuralPreflightReference,
 }
 
 impl SelectedProofExecutionPlan {
@@ -178,12 +197,14 @@ impl SelectedProofExecutionPlan {
         units: Vec<ProofExecutionUnit>,
         excluded_products: BTreeMap<String, String>,
         repository: RepositoryIdentity,
+        structural_preflight: StructuralPreflightReference,
     ) -> Result<Self, ProofProductUnavailable> {
         let digest = sha256_serialized(&PlanDigestBasis {
             request: &request,
             repository: &repository,
             selection: &selection,
             units: &units,
+            structural_preflight: &structural_preflight,
         })
         .map_err(ProofProductUnavailable::RepositoryObservation)?;
         let destination = workspace_root
@@ -203,7 +224,41 @@ impl SelectedProofExecutionPlan {
             evidence_destination: destination.to_string_lossy().replace('\\', "/"),
             closeout_posture: "product-evidence-only; C.1 closeout is unavailable before phase 13"
                 .to_owned(),
+            structural_preflight,
         })
+    }
+}
+
+impl StructuralPreflightReference {
+    pub fn from_evidence(
+        bundle_path: &Path,
+        evidence: &worth_store_test_support::structural_preflight::StructuralPreflightEvidence,
+    ) -> Self {
+        Self {
+            evidence_identity: evidence.evidence_identity.0.clone(),
+            bundle_path: bundle_path.to_string_lossy().replace('\\', "/"),
+            profile: format!("{:?}", evidence.plan.request.profile),
+            predicates: evidence
+                .plan
+                .request
+                .predicates
+                .iter()
+                .map(|predicate| format!("{predicate:?}"))
+                .collect(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn synthetic_for_selection(workspace_root: &Path) -> Self {
+        Self {
+            evidence_identity: "selection-test-preflight".to_owned(),
+            bundle_path: workspace_root
+                .join(".store-proof/evidence/preflight/selection-test.json")
+                .to_string_lossy()
+                .replace('\\', "/"),
+            profile: "SelectionTest".to_owned(),
+            predicates: vec!["Inventory".to_owned()],
+        }
     }
 }
 

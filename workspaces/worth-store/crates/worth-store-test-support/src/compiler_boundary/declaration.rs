@@ -40,24 +40,6 @@ pub struct ExpectedCompilerDenial {
     pub forbidden_setup_fragments: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "predicate", rename_all = "snake_case")]
-pub enum DependencyBoundaryPredicate {
-    ManifestDependencyDirection {
-        source_package: String,
-        forbidden_dependency: String,
-    },
-    ForbiddenFeatureEdge {
-        source_package: String,
-        feature: String,
-        forbidden_dependency: String,
-    },
-    SourceBoundary {
-        source_scope: String,
-        forbidden_import: String,
-    },
-}
-
 impl UiProofSuiteDeclaration {
     pub fn new(
         suite_identity: impl Into<String>,

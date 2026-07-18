@@ -6,8 +6,8 @@ use std::time::{Duration, Instant};
 use sha2::{Digest, Sha256};
 
 use super::{
-    interpret_tlc_output, ExecutedProtocolCheck, PinnedTlcToolchain, ProtocolCheckArtifactIdentity,
-    ProtocolCheckInvocation, ProtocolCheckVerdict,
+    interpret_tlc_output, ExecutedProtocolCheck, ExternalToolIdentity, PinnedTlcToolchain,
+    ProtocolCheckArtifactIdentity, ProtocolCheckInvocation, ProtocolCheckVerdict,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,6 +28,7 @@ pub enum ProtocolRunnerFailure {
     MissingConfiguration,
     ProcessLaunch(String),
     ProcessTimedOut,
+    ToolIdentityUnavailable(String),
     CheckerOutput {
         denial: super::ProtocolCheckerOutputDenial,
         output: String,
@@ -76,6 +77,12 @@ pub fn execute_protocol_check_with_identity(
         file_digest(invocation.configuration_path())?,
         tool_sha256,
     );
+    let external_tool_identity = observe_external_tool_identity(
+        &runner.java_executable,
+        &runner.tool_jar,
+        tool_sha256,
+        invocation.bounds().maximum_runtime_millis().get(),
+    )?;
     std::fs::create_dir_all(&runner.state_directory)
         .map_err(|error| ProtocolRunnerFailure::ProcessLaunch(error.to_string()))?;
 
@@ -135,7 +142,54 @@ pub fn execute_protocol_check_with_identity(
     Ok(ExecutedProtocolCheck::observed(
         invocation.clone(),
         artifact_identity,
+        external_tool_identity,
         verdict,
+    ))
+}
+
+fn observe_external_tool_identity(
+    java_executable: &Path,
+    tool_jar: &Path,
+    tool_sha256: [u8; 32],
+    timeout_millis: u64,
+) -> Result<ExternalToolIdentity, ProtocolRunnerFailure> {
+    let executable_path = std::fs::canonicalize(java_executable)
+        .map_err(|error| ProtocolRunnerFailure::ToolIdentityUnavailable(error.to_string()))?;
+    let tool_artifact_path = std::fs::canonicalize(tool_jar)
+        .map_err(|error| ProtocolRunnerFailure::ToolIdentityUnavailable(error.to_string()))?;
+    let executable_sha256 = file_digest(&executable_path)?;
+    let version = Command::new(&executable_path)
+        .arg("-version")
+        .output()
+        .map_err(|error| ProtocolRunnerFailure::ToolIdentityUnavailable(error.to_string()))?;
+    if !version.status.success() {
+        return Err(ProtocolRunnerFailure::ToolIdentityUnavailable(
+            "java -version did not complete successfully".to_owned(),
+        ));
+    }
+    let executable_version = format!(
+        "{}{}",
+        String::from_utf8_lossy(&version.stdout),
+        String::from_utf8_lossy(&version.stderr)
+    )
+    .trim()
+    .to_owned();
+    if executable_version.is_empty() {
+        return Err(ProtocolRunnerFailure::ToolIdentityUnavailable(
+            "java -version returned no identity".to_owned(),
+        ));
+    }
+    Ok(ExternalToolIdentity::observed(
+        "tlc2.TLC",
+        PinnedTlcToolchain::VERSION,
+        PinnedTlcToolchain::DOWNLOAD_URL,
+        executable_path,
+        executable_sha256,
+        executable_version,
+        tool_artifact_path,
+        tool_sha256,
+        timeout_millis,
+        "workers=auto; deadlock-check=true; state-directory=attempt-scoped",
     ))
 }
 

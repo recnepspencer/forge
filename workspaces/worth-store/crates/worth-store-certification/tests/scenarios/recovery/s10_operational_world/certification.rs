@@ -1,7 +1,5 @@
-use std::path::Path;
-
 use worth_store_certification::courtroom::operational_recovery::{
-    certify_s10_operational_scenario, execute_s10_structural_preflight,
+    certify_s10_operational_scenario, require_s10_structural_preflight,
     S10OperationalScenarioEvidence, S10OperationalScenarioKind, S10OperationalScenarioProgram,
     S10ScenarioProductionEvidence, S10ScenarioSuiteEvidence, ScenarioScaleProfile,
 };
@@ -25,8 +23,7 @@ pub fn certify_scenario(
 ) {
     let identity = format!("s10-certifier/{}/{}", kind.token(), profile.token());
     let world = owner_world::execute_scenario_world_for_profile(kind, profile, &identity);
-    let preflight =
-        execute_s10_structural_preflight(forge_root()).expect("S10 structural preflight");
+    let preflight = require_s10_structural_preflight().expect("S10 structural preflight");
     let crash_coverage =
         super::crash_coverage::scenario_crash_coverage(kind, &identity, &world.trace);
     let execution =
@@ -137,11 +134,4 @@ pub fn certify_suite(profile: ScenarioScaleProfile) -> S10ScenarioSuiteEvidence 
         .map(|kind| certify_scenario(kind, profile).0),
     )
     .expect("all three ordinary scenario programs form the profile suite")
-}
-
-fn forge_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(4)
-        .expect("worth-store certification lives under the Forge root")
 }

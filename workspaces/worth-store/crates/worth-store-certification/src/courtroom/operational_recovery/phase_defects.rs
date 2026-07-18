@@ -8,7 +8,7 @@ pub use localizers::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S10PhaseDefectSourceKind {
-    StructuralCompileGate,
+    StructuralBoundaryPredicate,
     ControlSelection,
     IndependentInspection,
     RuntimeArtifactOmission,

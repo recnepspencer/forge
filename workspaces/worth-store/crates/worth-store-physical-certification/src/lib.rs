@@ -23,6 +23,7 @@ mod operational_recovery_driver;
 #[cfg(test)]
 mod operational_recovery_driver_tests;
 mod operational_recovery_process_crash;
+mod process_probe;
 mod operational_recovery_rejoin_driver;
 #[cfg(test)]
 mod operational_recovery_replica_driver_fixture;
@@ -147,8 +148,8 @@ pub use fixtures::{
     ResolvedFixtureConstructionRecipe, StoreFixtureAuthority, SyntheticFixtureAuthorityDenied,
 };
 pub use fresh_process_offline_truth::{
-    write_offline_truth_observation_from_environment, FreshProcessDestroyedPrimaryEvidence,
-    FreshProcessOfflineTruthBaseline, FreshProcessOfflineTruthDenial,
+    write_offline_truth_observation_from_environment, FreshProcessDestroyedPrimaryCertification,
+    FreshProcessDestroyedPrimaryEvidence, FreshProcessOfflineTruthBaseline, FreshProcessOfflineTruthDenial,
     FreshProcessOfflineTruthRunner, OFFLINE_TRUTH_CHALLENGE_ENV, OFFLINE_TRUTH_REPORT_ENV,
     OFFLINE_TRUTH_ROLE_ENV, OFFLINE_TRUTH_TARGET_ENV,
 };
@@ -194,8 +195,15 @@ pub use operational_recovery_driver::{
 pub use operational_recovery_process_crash::{
     write_reopen_observation_from_environment, OperationalRecoveryFreshProcessRunner,
     OperationalRecoveryProcessCrashConfig, OperationalRecoveryProcessCrashDenial,
+    OperationalRecoveryProcessCrashEvidence,
     PROCESS_CRASH_CHALLENGE_ENV, PROCESS_CRASH_REPORT_ENV, PROCESS_CRASH_ROLE_ENV,
     PROCESS_CRASH_YIELDPOINT_ENV,
+};
+pub use process_probe::{
+    ProcessArtifactPath, ProcessEnvironmentBindingEvidence, ProcessIdentityEvidence,
+    ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessProbeEvidenceDenial,
+    ProcessProbeExecution, ProcessRole, ProcessTermination, ProcessTerminationRequirement,
+    SealedProcessProbeInput, PROCESS_PROBE_EVIDENCE_ROOT_ENV,
 };
 pub use operational_recovery_trace::{
     OperationalRecoveryDriverTrace, OperationalRecoveryTraceJoinDenial,

@@ -1,15 +1,13 @@
-use std::path::Path;
-
 use super::certification;
 use worth_store_certification::courtroom::operational_recovery::{
-    close_s10_certification, execute_s10_structural_preflight, localize_s10_audit_phase_defect,
+    close_s10_certification, localize_s10_audit_phase_defect,
     localize_s10_closeout_join_phase_defect, localize_s10_control_selection_phase_defect,
     localize_s10_counter_phase_defect, localize_s10_formal_phase_defect,
     localize_s10_harness_phase_defect, localize_s10_observation_join_omission,
     localize_s10_runtime_record_omission, localize_s10_structural_phase_defect,
     PromotionRemoteExclusionEvidence, S10CloseoutDenial, S10OperationalScenarioKind,
     S10PhaseDefectLocalization, S10PhaseDefectSuite, S10ScenarioProductionEvidence,
-    S10ScenarioSuiteEvidence, ScenarioScaleProfile,
+    require_s10_structural_preflight, S10ScenarioSuiteEvidence, ScenarioScaleProfile,
 };
 
 pub fn closeout_denial() -> S10CloseoutDenial {
@@ -25,7 +23,7 @@ pub fn closeout_denial() -> S10CloseoutDenial {
         S10OperationalScenarioKind::AuthorityRepairRollback,
         ScenarioScaleProfile::Ci,
     );
-    let preflight = execute_s10_structural_preflight(forge_root()).unwrap();
+    let preflight = require_s10_structural_preflight().unwrap();
     let defects = S10PhaseDefectSuite::join(localizations(
         &burning,
         &burning_world,
@@ -96,11 +94,4 @@ fn localizations(
         localize_s10_closeout_join_phase_defect(burning).unwrap(),
     ]);
     defects
-}
-
-fn forge_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(4)
-        .expect("worth-store certification lives under the Forge root")
 }

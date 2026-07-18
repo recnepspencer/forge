@@ -221,10 +221,8 @@ fn split_brain_world_reconciles_only_after_independent_survivors_and_lease_expir
 
 #[test]
 fn a_scenario_cannot_be_relabelled_as_another_owner_topology() {
-    use std::path::Path;
-
     use worth_store_certification::courtroom::operational_recovery::{
-        certify_s10_operational_scenario, execute_s10_structural_preflight,
+        certify_s10_operational_scenario, require_s10_structural_preflight,
         S10HostileProgramEvidence, S10OperationalScenarioKind, S10OperationalScenarioProgram,
         S10ScenarioCertificationDenial, S10ScenarioProductionEvidence, ScenarioScaleProfile,
     };
@@ -243,13 +241,7 @@ fn a_scenario_cannot_be_relabelled_as_another_owner_topology() {
         world.trace.clone(),
         [],
     );
-    let preflight = execute_s10_structural_preflight(
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(4)
-            .unwrap(),
-    )
-    .unwrap();
+    let preflight = require_s10_structural_preflight().unwrap();
     let denial = certify_s10_operational_scenario(
         S10OperationalScenarioProgram::new(
             S10OperationalScenarioKind::SplitBrainPromotion,

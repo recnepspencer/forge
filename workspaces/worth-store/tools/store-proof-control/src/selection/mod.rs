@@ -11,7 +11,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 pub use build_profile::StoreBuildProfileIdentity;
-pub use execution_plan::{ProofExecutionUnit, SelectedProofExecutionPlan, StoreProofSelection};
+pub use execution_plan::{
+    ProofExecutionUnit, SelectedProofExecutionPlan, StoreProofSelection,
+    StructuralPreflightReference,
+};
 pub use feature_lane::StoreFeatureLane;
 pub use proof_mode::{ProofProductUnavailable, StoreProofMode, StoreProofRequest};
 pub use repository_identity::RepositoryIdentity;
@@ -31,6 +34,7 @@ pub fn select(
     workspace_root: &Path,
     inventory: &ValidatedProofInventory,
     request: StoreProofRequest,
+    structural_preflight: StructuralPreflightReference,
 ) -> Result<SelectedProofExecutionPlan, ProofProductUnavailable> {
     let selected_products = request.selected_product_names(inventory)?;
     request.validate_host()?;
@@ -79,6 +83,7 @@ pub fn select(
         units,
         excluded_products(&selected_products),
         repository_identity::observe_repository_identity(workspace_root)?,
+        structural_preflight,
     )
 }
 
@@ -285,6 +290,7 @@ fn ui_execution_units(
         .map(|target| {
             ProofExecutionUnit::from_target(target, request, None)
                 .with_feature_lane(feature_lane_for_target(inventory, target))
+                .with_process_model("compiler-boundary-suite")
         })
         .collect()
 }

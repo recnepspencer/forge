@@ -26,6 +26,8 @@ done < <(
   git ls-files -z \
     'crates/**/*.rs' \
     'workspaces/worth-ui/crates/**/*.rs' \
+    'workspaces/worth-store/crates/**/*.rs' \
+    'workspaces/worth-store/tools/**/*.rs' \
     | while IFS= read -r -d '' file; do
         [[ -f "$file" ]] && printf '%s\0' "$file"
       done \

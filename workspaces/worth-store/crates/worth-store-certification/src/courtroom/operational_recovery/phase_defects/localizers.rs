@@ -29,8 +29,8 @@ pub fn localize_s10_structural_phase_defect(
     Ok(localization(
         scenario,
         invocation,
-        S10PhaseDefectSourceKind::StructuralCompileGate,
-        preflight.reverse_flow_compile_identity(),
+        S10PhaseDefectSourceKind::StructuralBoundaryPredicate,
+        preflight.dependency_boundary_identity(),
         6,
     ))
 }

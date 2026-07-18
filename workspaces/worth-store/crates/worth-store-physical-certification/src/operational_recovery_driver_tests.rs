@@ -131,10 +131,30 @@ fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
     let point =
         OperationalRecoveryYieldpoint::AfterDurableControlTransition(Control::BackupSourceLease);
     let evidence = OperationalRecoveryFreshProcessRunner::new(evidence_root)
-        .certify_control_cut(&mut cut, &mut reopen, point, &trace)
+        .certify_control_cut_with_process_evidence(&mut cut, &mut reopen, point, &trace)
         .unwrap();
 
-    assert_eq!(evidence.yieldpoint(), point);
-    assert!(!evidence.operation_identities().is_empty());
-    assert_ne!(evidence.evidence_identity(), [0; 32]);
+    assert_eq!(evidence.crash_cut().yieldpoint(), point);
+    assert!(!evidence.crash_cut().operation_identities().is_empty());
+    assert_ne!(evidence.crash_cut().evidence_identity(), [0; 32]);
+    assert_ne!(
+        evidence.cut_process().process.process_id,
+        evidence.reopen_process().process.process_id
+    );
+    assert_ne!(
+        evidence.cut_process().process.runtime_identity,
+        evidence.reopen_process().process.runtime_identity
+    );
+    assert_eq!(
+        evidence.cut_process().process.executable_identity,
+        evidence.reopen_process().process.executable_identity
+    );
+    assert!(matches!(
+        evidence.cut_process().termination,
+        crate::ProcessTermination::ParentKill { .. }
+    ));
+    assert!(matches!(
+        evidence.reopen_process().termination,
+        crate::ProcessTermination::GracefulExit { code: Some(0) }
+    ));
 }

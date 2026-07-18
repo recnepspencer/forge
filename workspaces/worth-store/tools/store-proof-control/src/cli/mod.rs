@@ -26,7 +26,8 @@ use crate::preservation::{
     build_ledger, historical_non_case_aggregate_ids, semantic_authority_from_ledger,
     validate_current_reachability, validate_ledger, ProofPreservationLedger,
 };
-use crate::selection::select;
+use crate::selection::{select, StructuralPreflightReference};
+use crate::structural_preflight::{execute as execute_preflight, forge_root};
 use crate::{ClassifiedProofInventory, DiscoveredTestSurface};
 
 pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
@@ -287,8 +288,35 @@ fn run_product(
     workspace_root: &Path,
     request: crate::selection::StoreProofRequest,
 ) -> Result<(), String> {
-    let inventory = validate_repository(workspace_root)?;
-    let plan = select(workspace_root, &inventory, request).map_err(|error| error.to_string())?;
+    let validation = validate_repository(workspace_root);
+    let forge_root = forge_root(workspace_root)?;
+    let preflight = execute_preflight(
+        &forge_root,
+        workspace_root,
+        request.mode(),
+        validation.as_ref().ok(),
+        validation.as_ref().err().map(String::as_str),
+    )?;
+    let failures = preflight.evidence.failures();
+    if !failures.is_empty() {
+        return Err(format!(
+            "structural preflight {} failed:\n  - {}",
+            preflight.bundle_path.display(),
+            failures
+                .iter()
+                .map(|failure| format!(
+                    "{:?}/{}: {}",
+                    failure.predicate, failure.failure_code, failure.message
+                ))
+                .collect::<Vec<_>>()
+                .join("\n  - ")
+        ));
+    }
+    let inventory = validation?;
+    let preflight_reference =
+        StructuralPreflightReference::from_evidence(&preflight.bundle_path, &preflight.evidence);
+    let plan = select(workspace_root, &inventory, request, preflight_reference)
+        .map_err(|error| error.to_string())?;
     presentation::print_plan(&plan);
     write_immutable_json(
         &evidence_plan_path(workspace_root, &plan.plan_digest),

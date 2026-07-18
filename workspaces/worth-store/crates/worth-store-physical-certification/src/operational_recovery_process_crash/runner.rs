@@ -1,0 +1,329 @@
+use std::path::Path;
+use std::process::{Child, Command};
+use std::time::{Duration, Instant};
+
+use super::*;
+use crate::certification_child_process::{
+    encode_hex_32, fresh_challenge, validated_current_executable,
+};
+use crate::process_probe::{
+    classify_exit, configure_process_probe, persist_execution, read_process_observation,
+};
+use crate::{
+    ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration,
+    ProcessTermination, ProcessTerminationRequirement, SealedProcessProbeInput,
+};
+
+impl OperationalRecoveryFreshProcessRunner {
+    pub fn certify_control_cut(
+        &self,
+        cut_command: &mut Command,
+        reopen_command: &mut Command,
+        yieldpoint: OperationalRecoveryYieldpoint,
+        uninterrupted_trace: &OperationalRecoveryDriverTrace,
+    ) -> Result<OperationalRecoveryCrashCutEvidence, OperationalRecoveryProcessCrashDenial> {
+        self.certify_control_cut_with_process_evidence(
+            cut_command,
+            reopen_command,
+            yieldpoint,
+            uninterrupted_trace,
+        )
+        .map(OperationalRecoveryProcessCrashEvidence::into_crash_cut)
+    }
+
+    pub fn certify_control_cut_with_process_evidence(
+        &self,
+        cut_command: &mut Command,
+        reopen_command: &mut Command,
+        yieldpoint: OperationalRecoveryYieldpoint,
+        uninterrupted_trace: &OperationalRecoveryDriverTrace,
+    ) -> Result<OperationalRecoveryProcessCrashEvidence, OperationalRecoveryProcessCrashDenial> {
+        std::fs::create_dir_all(&self.evidence_directory)
+            .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
+        let executable_identity = validated_executable_identity(cut_command, reopen_command)?;
+        let challenge = fresh_challenge(
+            b"worth-store-s10-process-crash-challenge-v1",
+            yieldpoint.token().as_bytes(),
+            executable_identity,
+        );
+        let paths = ProbePaths::new(&self.evidence_directory, challenge);
+        configure_crash_command(cut_command, CUT_ROLE, &paths.cut, challenge, yieldpoint);
+        configure_crash_command(
+            reopen_command,
+            REOPEN_ROLE,
+            &paths.reopen,
+            challenge,
+            yieldpoint,
+        );
+        let cut_input = process_input("operational-recovery-cut", yieldpoint, &paths.cut)?;
+        let reopen_input = process_input("operational-recovery-reopen", yieldpoint, &paths.reopen)?;
+        let cut_declaration = declaration(
+            cut_command,
+            &cut_input,
+            ProcessRole::CrashTarget,
+            ProcessIsolationRequirement::ParentTerminated,
+            ProcessTerminationRequirement::ParentKill,
+        )?;
+        let reopen_declaration = declaration(
+            reopen_command,
+            &reopen_input,
+            ProcessRole::RecoveredRuntime,
+            ProcessIsolationRequirement::FreshProcess,
+            ProcessTerminationRequirement::GracefulExit,
+        )?;
+        configure_process_probe(
+            cut_command,
+            &cut_declaration,
+            &paths.cut_process,
+            CRASH_ENVIRONMENT_KEYS,
+        )?;
+        configure_process_probe(
+            reopen_command,
+            &reopen_declaration,
+            &paths.reopen_process,
+            CRASH_ENVIRONMENT_KEYS,
+        )?;
+
+        let cut_execution = execute_cut(cut_command, cut_declaration, &paths)?;
+        persist_execution(&self.evidence_directory, &cut_execution)?;
+        let reopen_execution = execute_reopen(reopen_command, reopen_declaration, &paths)?;
+        persist_execution(&self.evidence_directory, &reopen_execution)?;
+        let crash_cut = validate_semantic_reports(
+            &paths,
+            challenge,
+            yieldpoint,
+            uninterrupted_trace,
+        )?;
+        paths.remove_transient();
+        Ok(OperationalRecoveryProcessCrashEvidence {
+            crash_cut,
+            cut_process: cut_execution,
+            reopen_process: reopen_execution,
+        })
+    }
+}
+
+impl OperationalRecoveryProcessCrashEvidence {
+    pub const fn crash_cut(&self) -> &OperationalRecoveryCrashCutEvidence {
+        &self.crash_cut
+    }
+    pub const fn cut_process(&self) -> &ProcessProbeExecution {
+        &self.cut_process
+    }
+    pub const fn reopen_process(&self) -> &ProcessProbeExecution {
+        &self.reopen_process
+    }
+    pub fn into_crash_cut(self) -> OperationalRecoveryCrashCutEvidence {
+        self.crash_cut
+    }
+}
+
+fn execute_cut(
+    command: &mut Command,
+    declaration: ProcessProbeDeclaration,
+    paths: &ProbePaths,
+) -> Result<ProcessProbeExecution, OperationalRecoveryProcessCrashDenial> {
+    let mut child = command
+        .spawn()
+        .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
+    wait_for_cut_readiness(&mut child, &[&paths.cut, &paths.cut_process])?;
+    if let Some(status) = child
+        .try_wait()
+        .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?
+    {
+        return Err(
+            OperationalRecoveryProcessCrashDenial::CutProcessExitedBeforeParentKill(status.code()),
+        );
+    }
+    child
+        .kill()
+        .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessDidNotCrash(None))?;
+    let status = child
+        .wait()
+        .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
+    let identity = read_process_observation(&paths.cut_process, &declaration, child.id())?;
+    ProcessProbeExecution::observed(
+        declaration,
+        identity,
+        ProcessTermination::ParentKill {
+            platform_status: format!("{status:?}"),
+        },
+        &paths.cut,
+    )
+    .map_err(Into::into)
+}
+
+fn execute_reopen(
+    command: &mut Command,
+    declaration: ProcessProbeDeclaration,
+    paths: &ProbePaths,
+) -> Result<ProcessProbeExecution, OperationalRecoveryProcessCrashDenial> {
+    let mut child = command
+        .spawn()
+        .map_err(|_| OperationalRecoveryProcessCrashDenial::ReopenProcessLaunch)?;
+    let process_id = child.id();
+    let status = child
+        .wait()
+        .map_err(|_| OperationalRecoveryProcessCrashDenial::ReopenProcessLaunch)?;
+    if !status.success() {
+        return Err(OperationalRecoveryProcessCrashDenial::ReopenProcessFailed(
+            status.code(),
+        ));
+    }
+    let identity = read_process_observation(&paths.reopen_process, &declaration, process_id)?;
+    ProcessProbeExecution::observed(declaration, identity, classify_exit(status), &paths.reopen)
+        .map_err(Into::into)
+}
+
+fn validate_semantic_reports(
+    paths: &ProbePaths,
+    challenge: [u8; 32],
+    yieldpoint: OperationalRecoveryYieldpoint,
+    uninterrupted_trace: &OperationalRecoveryDriverTrace,
+) -> Result<OperationalRecoveryCrashCutEvidence, OperationalRecoveryProcessCrashDenial> {
+    let cut = read_report(&paths.cut)?;
+    let reopened = read_report(&paths.reopen)?;
+    if cut.challenge != challenge || reopened.challenge != challenge {
+        return Err(OperationalRecoveryProcessCrashDenial::ChallengeMismatch);
+    }
+    if cut.yieldpoint != yieldpoint || reopened.yieldpoint != yieldpoint {
+        return Err(OperationalRecoveryProcessCrashDenial::YieldpointMismatch);
+    }
+    if cut.trace_identity == [0; 32]
+        || cut.operations.is_empty()
+        || cut.operations.iter().any(|operation| {
+            !uninterrupted_trace
+                .operation_identities()
+                .contains(operation)
+        })
+    {
+        return Err(OperationalRecoveryProcessCrashDenial::TraceMismatch);
+    }
+    OperationalRecoveryCrashCutEvidence::from_external_process_reopen(
+        yieldpoint,
+        cut.trace_identity,
+        cut.operations,
+        cut.observation,
+        reopened.observation,
+        challenge,
+    )
+    .map_err(OperationalRecoveryProcessCrashDenial::CrashCut)
+}
+
+fn declaration(
+    command: &Command,
+    input: &SealedProcessProbeInput,
+    role: ProcessRole,
+    isolation: ProcessIsolationRequirement,
+    termination: ProcessTerminationRequirement,
+) -> Result<ProcessProbeDeclaration, OperationalRecoveryProcessCrashDenial> {
+    ProcessProbeDeclaration::for_current_executable(command, input, role, isolation, termination)
+        .map_err(Into::into)
+}
+
+fn configure_crash_command(
+    command: &mut Command,
+    role: &str,
+    report_path: &Path,
+    challenge: [u8; 32],
+    yieldpoint: OperationalRecoveryYieldpoint,
+) {
+    command
+        .env(PROCESS_CRASH_ROLE_ENV, role)
+        .env(PROCESS_CRASH_REPORT_ENV, report_path)
+        .env(PROCESS_CRASH_CHALLENGE_ENV, encode_hex_32(&challenge))
+        .env(PROCESS_CRASH_YIELDPOINT_ENV, yieldpoint.token());
+}
+
+fn process_input(
+    scenario: &str,
+    yieldpoint: OperationalRecoveryYieldpoint,
+    report_path: &Path,
+) -> Result<SealedProcessProbeInput, OperationalRecoveryProcessCrashDenial> {
+    SealedProcessProbeInput::new(
+        scenario,
+        yieldpoint.token(),
+        vec![ProcessArtifactPath::new("semantic-report", report_path)?],
+    )
+    .map_err(Into::into)
+}
+
+fn wait_for_cut_readiness(
+    child: &mut Child,
+    required_paths: &[&Path],
+) -> Result<(), OperationalRecoveryProcessCrashDenial> {
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        if required_paths.iter().all(|path| path.is_file()) {
+            return Ok(());
+        }
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?
+        {
+            return Err(
+                OperationalRecoveryProcessCrashDenial::CutProcessExitedBeforeParentKill(
+                    status.code(),
+                ),
+            );
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(OperationalRecoveryProcessCrashDenial::CutProcessReadinessTimedOut);
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
+fn validated_executable_identity(
+    cut_command: &Command,
+    reopen_command: &Command,
+) -> Result<[u8; 32], OperationalRecoveryProcessCrashDenial> {
+    let cut = validated_current_executable(cut_command)
+        .ok_or(OperationalRecoveryProcessCrashDenial::ExecutableMismatch)?;
+    let reopened = validated_current_executable(reopen_command)
+        .ok_or(OperationalRecoveryProcessCrashDenial::ExecutableMismatch)?;
+    if cut == reopened {
+        Ok(cut)
+    } else {
+        Err(OperationalRecoveryProcessCrashDenial::ExecutableMismatch)
+    }
+}
+
+struct ProbePaths {
+    cut: PathBuf,
+    reopen: PathBuf,
+    cut_process: PathBuf,
+    reopen_process: PathBuf,
+}
+
+impl ProbePaths {
+    fn new(root: &Path, challenge: [u8; 32]) -> Self {
+        let stem = encode_hex_32(&challenge);
+        Self {
+            cut: root.join(format!("{stem}.cut")),
+            reopen: root.join(format!("{stem}.reopen")),
+            cut_process: root.join(format!("{stem}.cut-process.json")),
+            reopen_process: root.join(format!("{stem}.reopen-process.json")),
+        }
+    }
+
+    fn remove_transient(&self) {
+        for path in [
+            &self.cut,
+            &self.reopen,
+            &self.cut_process,
+            &self.reopen_process,
+        ] {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+}
+
+const CRASH_ENVIRONMENT_KEYS: &[&str] = &[
+    PROCESS_CRASH_ROLE_ENV,
+    PROCESS_CRASH_REPORT_ENV,
+    PROCESS_CRASH_CHALLENGE_ENV,
+    PROCESS_CRASH_YIELDPOINT_ENV,
+];

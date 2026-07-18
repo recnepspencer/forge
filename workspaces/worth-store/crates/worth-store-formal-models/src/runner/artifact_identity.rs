@@ -2,7 +2,9 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use super::{PinnedTlcToolchain, ProtocolCheckInvocation, ProtocolCheckVerdict};
+use super::{
+    ExternalToolIdentity, PinnedTlcToolchain, ProtocolCheckInvocation, ProtocolCheckVerdict,
+};
 use crate::ProtocolFamily;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,6 +18,7 @@ pub struct ProtocolCheckArtifactIdentity {
 pub struct ExecutedProtocolCheck {
     invocation: ProtocolCheckInvocation,
     artifact_identity: ProtocolCheckArtifactIdentity,
+    external_tool_identity: ExternalToolIdentity,
     verdict: ProtocolCheckVerdict,
 }
 
@@ -95,11 +98,13 @@ impl ExecutedProtocolCheck {
     pub(super) const fn observed(
         invocation: ProtocolCheckInvocation,
         artifact_identity: ProtocolCheckArtifactIdentity,
+        external_tool_identity: ExternalToolIdentity,
         verdict: ProtocolCheckVerdict,
     ) -> Self {
         Self {
             invocation,
             artifact_identity,
+            external_tool_identity,
             verdict,
         }
     }
@@ -116,6 +121,10 @@ impl ExecutedProtocolCheck {
         &self.artifact_identity
     }
 
+    pub const fn external_tool_identity(&self) -> &ExternalToolIdentity {
+        &self.external_tool_identity
+    }
+
     pub const fn verdict(&self) -> &ProtocolCheckVerdict {
         &self.verdict
     }
@@ -125,9 +134,15 @@ impl ExecutedProtocolCheck {
     ) -> (
         ProtocolCheckInvocation,
         ProtocolCheckArtifactIdentity,
+        ExternalToolIdentity,
         ProtocolCheckVerdict,
     ) {
-        (self.invocation, self.artifact_identity, self.verdict)
+        (
+            self.invocation,
+            self.artifact_identity,
+            self.external_tool_identity,
+            self.verdict,
+        )
     }
 
     pub fn into_verdict(self) -> ProtocolCheckVerdict {

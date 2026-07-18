@@ -8,6 +8,7 @@ mod counterexample;
 mod counters;
 mod cross_protocol;
 mod execution;
+mod external_tool_identity;
 mod invariant_configuration;
 mod invocation;
 mod localization;
@@ -46,6 +47,7 @@ pub use execution::{
     execute_protocol_check, execute_protocol_check_with_identity, ProtocolRunnerFailure,
     TlcRunnerPaths,
 };
+pub use external_tool_identity::ExternalToolIdentity;
 pub use invariant_configuration::{
     configured_invariant_count, ProtocolInvariantConfigurationDenial,
 };

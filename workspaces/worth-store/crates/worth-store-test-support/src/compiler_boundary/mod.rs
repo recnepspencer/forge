@@ -8,11 +8,17 @@ mod tests;
 use std::path::Path;
 
 pub use declaration::{
-    DependencyBoundaryPredicate, ExpectedCompilerDenial, UiFixtureDeclaration, UiFixtureIdentity,
-    UiProofEnvironment, UiProofSuiteDeclaration,
+    ExpectedCompilerDenial, UiFixtureDeclaration, UiFixtureIdentity, UiProofEnvironment,
+    UiProofSuiteDeclaration,
 };
 pub use diagnostics::CheckedCompilerDiagnostic;
 pub use evidence::{UiFixtureRunEvidence, UiProofRunEvidence, UiProofRunFailure};
+
+/// An outer proof controller may bind this to an attempt-scoped directory so
+/// compiler-boundary evidence is handed directly into the owning proof run.
+/// The harness rejects roots outside the Store workspace's `.store-proof`
+/// evidence tree.
+pub const UI_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_UI_EVIDENCE_ROOT";
 
 /// Executes one declared compiler-boundary suite in its canonical cache-sharing
 /// Cargo environment and persists checked diagnostic evidence.

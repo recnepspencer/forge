@@ -64,7 +64,7 @@ impl S10HostileProgramEvidence {
         source.update(cancellation_recovery.evidence_identity());
         source.update(mutants.evidence_identity());
         source.update(rollback.evidence_identity());
-        source.update(structural_preflight.reverse_flow_compile_identity());
+        source.update(structural_preflight.dependency_boundary_identity());
         Ok(Self::bind(
             S10OperationalScenarioKind::AuthorityRepairRollback,
             source.finalize().into(),
