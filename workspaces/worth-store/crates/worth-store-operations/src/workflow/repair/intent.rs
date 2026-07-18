@@ -1,16 +1,28 @@
 use sha2::{Digest, Sha256};
 use worth_store_authority::StoreCurrentAuthorityIdentity;
 use worth_store_layout_indexes::DerivedIndexRepairRequest;
-use worth_store_offline_verifier::{
-    OfflineAuthorityClass, OperationalTruthRegion, OperationalTruthReport,
-};
+use worth_store_offline_verifier::{OperationalTruthRegion, OperationalTruthReport};
 use worth_store_physical_integrity::{
     IntegrityRepairArtifactFamily, IntegrityRepairOwnerBinding, IntegrityRepairRegion,
     IntegrityRepairRegionClass, OfflineIntegrityPosture,
 };
 
-use crate::ProductionRestoreAdmissibleBackupBundle;
-use crate::{OperationalOperationId, OperationalSecurityScope};
+use crate::{
+    OperationalOperationId, OperationalSecurityScope, ProductionRestoreAdmissibleBackupBundle,
+};
+
+#[cfg(feature = "certification-test-authority")]
+mod certification_fixtures;
+mod physical_target;
+mod region_class;
+#[cfg(feature = "certification-test-authority")]
+pub(crate) use certification_fixtures::{
+    certification_authority_repair_candidates_from_backup_observation,
+    certification_authority_repair_from_backup_observation,
+    certification_derived_maintenance_from_fixture_observation,
+};
+pub(super) use physical_target::physical_target_identity;
+use region_class::repair_class;
 
 #[derive(Debug)]
 pub struct RepairIntent {
@@ -146,6 +158,7 @@ pub enum RepairResolutionDenial {
     UnrecoverableDamage,
     IndeterminateDamage,
     StaleTrustedSourceAuthority,
+    WrongTrustedSourceSecurityScope,
     InvalidOwnerTarget,
 }
 
@@ -255,6 +268,20 @@ impl RepairCandidateSet {
         if backup.admission().admitting_authority() != self.authority_identity {
             return Err(RepairResolutionDenial::StaleTrustedSourceAuthority);
         }
+        let source_scope = backup
+            .custody()
+            .custody_receipt()
+            .identity()
+            .stable_fingerprint();
+        if self.damaged.iter().any(|region| {
+            region
+                .integrity()
+                .owner_binding()
+                .security_scope_identity()
+                .is_some_and(|required| required != source_scope)
+        }) {
+            return Err(RepairResolutionDenial::WrongTrustedSourceSecurityScope);
+        }
         Ok(super::AuthorityAffectingStagedRepairPlan::from_resolved(
             self,
             backup,
@@ -318,33 +345,6 @@ pub struct EvidenceBoundRepairPlan {
     pub(super) security_scope: OperationalSecurityScope,
 }
 
-fn repair_class(
-    region: &OperationalTruthRegion,
-    authority: OfflineAuthorityClass,
-) -> IntegrityRepairRegionClass {
-    match region {
-        OperationalTruthRegion::DegradedDerivedRegion(_)
-        | OperationalTruthRegion::RebuildableRegion(_)
-            if authority == OfflineAuthorityClass::Derived =>
-        {
-            IntegrityRepairRegionClass::DerivedRebuildable
-        }
-        OperationalTruthRegion::UnrecoverableAuthorityRegion(_) => {
-            IntegrityRepairRegionClass::Unrecoverable
-        }
-        OperationalTruthRegion::IndeterminateTruthRegion(_) => {
-            IntegrityRepairRegionClass::Indeterminate
-        }
-        OperationalTruthRegion::QuarantinedRegion(_) => {
-            IntegrityRepairRegionClass::QuarantineRequired
-        }
-        _ if authority == OfflineAuthorityClass::ContentAuthority => {
-            IntegrityRepairRegionClass::ContentTrustedSourceRequired
-        }
-        _ => IntegrityRepairRegionClass::AuthorityTrustedSourceRequired,
-    }
-}
-
 fn region_identity(region: &OperationalTruthRegion) -> [u8; 32] {
     let evidence = region.evidence();
     let mut digest = Sha256::new();
@@ -374,14 +374,4 @@ fn repair_basis_identity(
         digest.update(region.evidence_digest());
     }
     digest.finalize().into()
-}
-
-pub(super) fn physical_target_identity(path: &std::path::Path) -> Option<[u8; 32]> {
-    let canonical = std::fs::canonicalize(path).ok()?;
-    let value = canonical.as_os_str().to_string_lossy();
-    let mut digest = Sha256::new();
-    digest.update(b"worth-store-repair-physical-target-v1");
-    digest.update((value.len() as u64).to_be_bytes());
-    digest.update(value.as_bytes());
-    Some(digest.finalize().into())
 }

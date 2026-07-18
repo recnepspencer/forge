@@ -240,6 +240,7 @@ pub(super) fn verify_owner_artifact(
                 actual_bytes,
                 BoundedLayoutIndexVerificationRequest::new(
                     format,
+                    row.identity(),
                     row.bytes(),
                     row.content_digest(),
                     max_buffer_bytes,

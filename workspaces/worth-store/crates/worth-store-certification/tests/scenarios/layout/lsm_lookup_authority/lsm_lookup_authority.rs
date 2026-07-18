@@ -1,6 +1,6 @@
 mod activation_mutation;
 
-use activation_mutation::{mutate_activation_field, ALL_ACTIVATION_FIELDS};
+use activation_mutation::{corrupt_persisted_byte, mutate_activation_field, ALL_ACTIVATION_FIELDS};
 use worth_store_budgets::PreExecutionBudgetEnvelope;
 use worth_store_contracts::WalRecordFamily;
 use worth_store_layout_indexes::{
@@ -323,17 +323,13 @@ fn wal_store_handle_rejects_an_equal_scope_append_from_another_store() {
 #[test]
 fn same_length_replacement_artifact_substitution_fails_closed_on_reopen() {
     let fixture = lsm_membership_replacement_crash_fixture();
-    let mut substituted = std::fs::read(fixture.replacement_path()).unwrap();
-    let byte = substituted
-        .last_mut()
-        .expect("replacement artifact is nonempty");
-    *byte ^= 0x01;
-    std::fs::write(fixture.replacement_path(), substituted).unwrap();
+    let final_byte = fixture.replacement_offset() + fixture.replacement_bytes() - 1;
+    corrupt_persisted_byte(fixture.replacement_path(), final_byte);
 
-    assert!(matches!(
-        reopen(fixture.anchor()),
-        Err(BaselineLsmExecutionAdmissionDenial::OutputPublicationMismatch)
-    ));
+    assert_eq!(
+        reopen(fixture.anchor()).unwrap_err(),
+        BaselineLsmExecutionAdmissionDenial::PersistedArtifactInvalid,
+    );
 }
 
 #[test]

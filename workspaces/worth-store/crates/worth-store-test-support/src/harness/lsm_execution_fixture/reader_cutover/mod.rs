@@ -24,10 +24,12 @@ struct ReaderCutoverWorld {
 }
 
 pub fn execute_lsm_compaction_reader_cutover_fixture() -> ExecutedLsmCompactionFixture {
+    let directory = begin_durability_fixture();
     let world = build_reader_cutover_world();
     let replay_source = replay::adjudicate_replay_sources(&world);
     let (published, reader_cutover) = publication::execute_compaction_publication(world);
     ExecutedLsmCompactionFixture {
+        _directory: directory,
         published,
         reader_cutover,
         replay_source,
@@ -35,7 +37,6 @@ pub fn execute_lsm_compaction_reader_cutover_fixture() -> ExecutedLsmCompactionF
 }
 
 fn build_reader_cutover_world() -> ReaderCutoverWorld {
-    begin_durability_fixture();
     let access = lsm_strategy();
     let physical_plan = crate::harness::physical_isolation::compaction::admitted_compaction_plan();
     let physical_manifest_epoch = physical_plan.protected().root().manifest_epoch().get() + 1;

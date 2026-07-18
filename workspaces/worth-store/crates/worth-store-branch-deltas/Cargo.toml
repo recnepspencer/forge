@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-branch-deltas"
 edition.workspace = true
 version.workspace = true
@@ -13,11 +14,6 @@ worth-store-live-query.workspace = true
 [features]
 default = []
 phase23-layout-rule-construction = []
-
-[dev-dependencies]
-worth-store-aspect-native.workspace = true
-worth-store-budgets.workspace = true
-worth-store-test-support.workspace = true
 
 [lints]
 workspace = true

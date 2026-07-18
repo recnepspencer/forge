@@ -9,8 +9,7 @@ use worth_store_physical_format::PhysicalAlignmentClass;
 
 #[path = "../../../support/scheduling/access_policy_support/extended.rs"]
 mod extended_access_policy_support;
-#[path = "../../../support/scheduling/access_policy_support/access_policy_support.rs"]
-mod s6_access_policy_support;
+use crate::access_policy_support as s6_access_policy_support;
 
 use extended_access_policy_support::{backend_with_access, direct_io_request, mixed_request};
 use s6_access_policy_support::{

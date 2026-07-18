@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
-#[path = "../recovery_offline_verifier/runtime_recovery_fixture.rs"]
-mod runtime_recovery_fixture;
+use crate::runtime_recovery_fixture;
 
 use worth_foundational::{BoundaryArtifactId, BoundaryEpoch};
 use worth_store_recovery_physics::{

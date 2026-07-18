@@ -14,7 +14,7 @@ fn torn_first_snapshot_reopens_as_no_committed_peer_progress() {
     let first = source(90, 7, "lineage-a", 0, 1, "sha256:first-torn");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -38,7 +38,7 @@ fn torn_first_snapshot_reopens_as_no_committed_peer_progress() {
     drop(runtime);
 
     let reopened = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -56,7 +56,7 @@ fn interruption_after_snapshot_durability_reopens_as_committed_progress() {
     let first = source(100, 7, "lineage-a", 0, 1, "sha256:durable-interrupted");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -80,7 +80,7 @@ fn interruption_after_snapshot_durability_reopens_as_committed_progress() {
     drop(runtime);
 
     let reopened = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -100,7 +100,7 @@ fn generated_first_snapshot_tears_reopen_without_inventing_peer_progress() {
         let first = source(200, 7, "lineage-a", 0, 1, "sha256:generated-first");
         let authority = first.security_scope().current_authority().clone();
         let mut runtime = ReplicationAdmissionRuntime::open(
-            &directory,
+            directory.path(),
             &authority,
             ReplicationPeerCapacity::new(1).unwrap(),
         )
@@ -122,7 +122,7 @@ fn generated_first_snapshot_tears_reopen_without_inventing_peer_progress() {
         drop(runtime);
 
         let reopened = ReplicationAdmissionRuntime::open(
-            &directory,
+            directory.path(),
             &authority,
             ReplicationPeerCapacity::new(1).unwrap(),
         )
@@ -140,7 +140,7 @@ fn first_snapshot_encoded_bytes() -> u64 {
     let first = source(200, 7, "lineage-a", 0, 1, "sha256:generated-first");
     let authority = first.security_scope().current_authority().clone();
     let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
+        directory.path(),
         &authority,
         ReplicationPeerCapacity::new(1).unwrap(),
     )
@@ -155,7 +155,7 @@ fn first_snapshot_encoded_bytes() -> u64 {
         .publish(readiness, &authority)
         .into_result()
         .unwrap();
-    std::fs::metadata(directory.join("replication-progress-1.snapshot"))
+    std::fs::metadata(directory.path().join("replication-progress-1.snapshot"))
         .unwrap()
         .len()
 }

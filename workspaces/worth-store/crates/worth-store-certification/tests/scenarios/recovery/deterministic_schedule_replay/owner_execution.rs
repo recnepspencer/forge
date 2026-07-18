@@ -7,7 +7,7 @@ use worth_store_physical_certification::{
     PhysicalScheduleOwnerExecution, PhysicalSimulationBoundaryObservation,
     PhysicalSimulationObservationBasis, PhysicalStorageFaultInjection,
 };
-use worth_store_physical_isolation::{PhysicalPublicationDenial, PhysicalRootPublicationRuntime};
+use worth_store_physical_isolation::PhysicalPublicationDenial;
 use worth_store_test_support::deterministic_developer_smoke_schedule;
 use worth_store_test_support::harness::physical_isolation::publication::{
     admitted_copy_on_write_plan, publication_inputs,
@@ -19,10 +19,8 @@ fn schedule_dispatches_owner_work_and_observation_requires_the_reached_storage_s
     let schedule = deterministic_developer_smoke_schedule(&plan).unwrap();
     let first_inputs = publication_inputs();
     let second_inputs = publication_inputs();
-    let mut first_runtime =
-        PhysicalRootPublicationRuntime::open_for_testing(first_inputs.old_root).unwrap();
-    let mut second_runtime =
-        PhysicalRootPublicationRuntime::open_for_testing(second_inputs.old_root).unwrap();
+    let mut first_runtime = worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(first_inputs.old_root).unwrap();
+    let mut second_runtime = worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(second_inputs.old_root).unwrap();
     let fault_locus = root_fault_locus();
     let fault = PhysicalFaultEvent::byte_corruption(
         ProductionStorageBoundarySeam::RootPublicationBeforeObserve,
@@ -92,7 +90,7 @@ fn schedule_dispatches_owner_work_and_observation_requires_the_reached_storage_s
 #[test]
 fn publication_attempt_from_another_control_cannot_substitute_for_actor_execution() {
     let inputs = publication_inputs();
-    let mut runtime = PhysicalRootPublicationRuntime::open_for_testing(inputs.old_root).unwrap();
+    let mut runtime = worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(inputs.old_root).unwrap();
     let other_control = ScriptedStorageBoundaryControl::observe(
         ProductionStorageBoundarySeam::RootPublicationBeforeObserve,
     );

@@ -46,8 +46,15 @@ pub(crate) fn acquire_read_only_media(
     budget: OfflineInspectionBudget,
     cancellation: &crate::OfflineInspectionCancellation,
     started_at: std::time::Instant,
+    clock: &dyn crate::OfflineInspectionClock,
 ) -> Result<ReadOnlyOfflineMediaCapability, OfflineMediaAcquisitionDenial> {
-    reject_interruption(budget, cancellation, started_at)?;
+    let interruption = AcquisitionInterruption {
+        budget,
+        cancellation,
+        started_at,
+        clock,
+    };
+    interruption.reject()?;
     let (root, basis) = media.into_parts();
     if !root.exists() {
         return Err(OfflineMediaAcquisitionDenial::MissingRoot { root });
@@ -74,9 +81,7 @@ pub(crate) fn acquire_read_only_media(
         budget.acquisition(),
         basis_owned,
         budget.maximum_owned_allocation_bytes(),
-        budget,
-        cancellation,
-        started_at,
+        interruption,
     )?;
     ReadOnlyOfflineMediaCapability::open_bounded_from_owned_paths(
         files,
@@ -91,11 +96,9 @@ fn collect_files(
     budget: OfflineMediaAcquisitionBudget,
     basis_owned_bytes: u64,
     maximum_owned_allocation_bytes: u64,
-    inspection_budget: OfflineInspectionBudget,
-    cancellation: &crate::OfflineInspectionCancellation,
-    started_at: std::time::Instant,
+    interruption: AcquisitionInterruption<'_>,
 ) -> Result<Vec<PathBuf>, OfflineMediaAcquisitionDenial> {
-    reject_interruption(inspection_budget, cancellation, started_at)?;
+    interruption.reject()?;
     let mut files = Vec::new();
     let mut directories = 1u64;
     let mut total_path_bytes = path_bytes(root);
@@ -117,7 +120,7 @@ fn collect_files(
         maximum_owned_allocation_bytes,
     )?;
     while let Some((path, depth)) = pending.pop() {
-        reject_interruption(inspection_budget, cancellation, started_at)?;
+        interruption.reject()?;
         let entries = std::fs::read_dir(&path).map_err(|source| {
             OfflineMediaAcquisitionDenial::DirectoryRead {
                 path: path.clone(),
@@ -125,7 +128,7 @@ fn collect_files(
             }
         })?;
         for entry in entries {
-            reject_interruption(inspection_budget, cancellation, started_at)?;
+            interruption.reject()?;
             let entry = entry.map_err(|source| OfflineMediaAcquisitionDenial::DirectoryRead {
                 path: path.to_path_buf(),
                 source,
@@ -219,13 +222,24 @@ fn collect_files(
     Ok(files)
 }
 
-fn reject_interruption(
+#[derive(Clone, Copy)]
+struct AcquisitionInterruption<'a> {
     budget: OfflineInspectionBudget,
-    cancellation: &crate::OfflineInspectionCancellation,
+    cancellation: &'a crate::OfflineInspectionCancellation,
     started_at: std::time::Instant,
-) -> Result<(), OfflineMediaAcquisitionDenial> {
-    crate::inspection::reject_inspection_interruption(budget, cancellation, started_at)
+    clock: &'a dyn crate::OfflineInspectionClock,
+}
+
+impl AcquisitionInterruption<'_> {
+    fn reject(self) -> Result<(), OfflineMediaAcquisitionDenial> {
+        crate::inspection::reject_inspection_interruption_at(
+            self.budget,
+            self.cancellation,
+            self.started_at,
+            self.clock.now(),
+        )
         .map_err(OfflineMediaAcquisitionDenial::Interrupted)
+    }
 }
 
 fn enforce_owned_allocation(

@@ -33,16 +33,16 @@ fn backup_checkpoint_round_trips_through_the_owner_decoder() {
         .expect("owner checkpoint artifact");
     let mut bytes = Vec::new();
     checkpoint.encode(&mut bytes).expect("checkpoint encoding");
-    let path = temporary_checkpoint_path("round-trip");
-    std::fs::write(&path, &bytes).expect("checkpoint media");
+    let file = temporary_checkpoint_file("round-trip");
+    let path = file.path();
+    std::fs::write(path, &bytes).expect("checkpoint media");
     let request = checkpoint_request(&checkpoint, &bytes);
 
-    let observation = verify_bounded_checkpoint_backup_artifact(&path, request)
+    let observation = verify_bounded_checkpoint_backup_artifact(path, request)
         .expect("bounded owner verification");
 
     assert_eq!(observation.page_count(), 1);
     assert_eq!(observation.bytes_read(), bytes.len() as u64);
-    let _ = std::fs::remove_file(path);
 }
 
 #[test]
@@ -52,11 +52,12 @@ fn rehashed_checkpoint_row_corruption_fails_owner_integrity() {
     let mut bytes = Vec::new();
     checkpoint.encode(&mut bytes).expect("checkpoint encoding");
     bytes[78] ^= 0x20;
-    let path = temporary_checkpoint_path("corrupt-row");
-    std::fs::write(&path, &bytes).expect("corrupt checkpoint media");
+    let file = temporary_checkpoint_file("corrupt-row");
+    let path = file.path();
+    std::fs::write(path, &bytes).expect("corrupt checkpoint media");
 
     let denial =
-        verify_bounded_checkpoint_backup_artifact(&path, checkpoint_request(&checkpoint, &bytes))
+        verify_bounded_checkpoint_backup_artifact(path, checkpoint_request(&checkpoint, &bytes))
             .expect_err("outer digest cannot replace checkpoint owner integrity");
 
     assert!(matches!(
@@ -64,7 +65,6 @@ fn rehashed_checkpoint_row_corruption_fails_owner_integrity() {
         BoundedCheckpointBackupDenial::InvalidPageFrontier
             | BoundedCheckpointBackupDenial::InternalDigestMismatch
     ));
-    let _ = std::fs::remove_file(path);
 }
 
 fn checkpoint_request<'a>(
@@ -82,12 +82,12 @@ fn checkpoint_request<'a>(
     }
 }
 
-fn temporary_checkpoint_path(case: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!(
-        "worth-store-checkpoint-{case}-{}-{:?}.bin",
-        std::process::id(),
-        std::thread::current().id()
-    ))
+fn temporary_checkpoint_file(case: &str) -> tempfile::NamedTempFile {
+    tempfile::Builder::new()
+        .prefix(&format!("worth-store-checkpoint-{case}-"))
+        .suffix(".bin")
+        .tempfile()
+        .unwrap()
 }
 
 fn manifest(start: u64, end: u64, redo: u64) -> CheckpointManifest {

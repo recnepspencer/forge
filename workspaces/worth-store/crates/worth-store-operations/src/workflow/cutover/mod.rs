@@ -42,6 +42,7 @@ pub use post_verification::{
     ResolvedPointInTimeRecoveryCutoverCandidate, ResolvedRollbackCutoverCandidate,
 };
 pub use protocol::RecoveryCutoverExecutionDenial;
+pub use readmitted_source_lease::CompletedRetainedAuthorityRollback;
 pub(crate) use recovered_publication::recover_pending;
 pub use recovered_publication::{
     RecoveredAuthorityAffectingRepairPendingReadmission,

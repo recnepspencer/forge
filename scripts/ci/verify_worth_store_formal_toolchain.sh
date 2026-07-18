@@ -61,4 +61,52 @@ cargo run --quiet \
   --bin worth_store_protocol_closeout -- \
   "$(command -v java)" "$jar_path" "$tool_cache/states"
 
+if [[ -n "${WORTH_STORE_FORMAL_EVIDENCE_PATH:-}" ]]; then
+  toolchain_sha256="$(sha256sum "$toolchain" | awk '{print $1}')"
+  python3 - \
+    "$WORTH_STORE_FORMAL_EVIDENCE_PATH" \
+    "$version" \
+    "$actual_sha256" \
+    "$toolchain_sha256" \
+    "$main_class" \
+    "$model_relative" \
+    "$configuration_relative" \
+    "$(command -v java)" \
+    "$protocol_count" <<'PY'
+import json
+import pathlib
+import sys
+
+(
+    output_path,
+    version,
+    jar_sha256,
+    toolchain_sha256,
+    main_class,
+    model,
+    configuration,
+    java_executable,
+    protocol_count,
+) = sys.argv[1:]
+receipt = {
+    "schema_version": 1,
+    "tool": "tlc",
+    "version": version,
+    "jar_sha256": jar_sha256,
+    "toolchain_sha256": toolchain_sha256,
+    "main_class": main_class,
+    "model": model,
+    "configuration": configuration,
+    "java_executable": java_executable,
+    "protocol_count": int(protocol_count),
+    "verdict": "passed",
+}
+path = pathlib.Path(output_path)
+path.parent.mkdir(parents=True, exist_ok=True)
+with path.open("x", encoding="utf-8", newline="\n") as handle:
+    json.dump(receipt, handle, sort_keys=True, indent=2)
+    handle.write("\n")
+PY
+fi
+
 echo "verified TLC $version ($actual_sha256) across $protocol_count protocol models"

@@ -262,4 +262,8 @@ impl OperationalRecoveryYieldpoint {
             Self::AfterAuditExport => "s10-audit-after-export",
         }
     }
+
+    pub fn from_token(token: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|point| point.token() == token)
+    }
 }

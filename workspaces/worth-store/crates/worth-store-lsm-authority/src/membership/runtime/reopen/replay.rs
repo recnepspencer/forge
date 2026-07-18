@@ -44,7 +44,10 @@ pub(super) fn rebuild_from_store(
 ) -> Result<(), LsmMembershipDenial> {
     const MAX_MEMBERSHIP_ARTIFACT_BYTES: u64 = 4 * 1024 * 1024;
 
-    let artifacts = session.store.scan().map_err(|_| LsmMembershipDenial::Io)?;
+    let artifacts = session
+        .store
+        .scan()
+        .map_err(super::operation::map_store_denial)?;
     session.reopen_counters.artifacts_examined = artifacts.artifacts().len() as u64;
     session.reopen_counters.bytes_examined = artifacts.counters().bytes_read();
     let mut events = Vec::new();

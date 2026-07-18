@@ -12,8 +12,7 @@ use worth_store_physical_isolation::{
     CompactionSourceIntegrityEvidence, CurrentPhysicalRoot, NewRootPublicationProof,
     OldReachabilityPreservation, PhysicalIsolationEntryRequest, PhysicalPublicationIntent,
     PhysicalPublicationReadiness, PublicationLatchReadiness, PublicationRootCandidate,
-    ReadCopyUpdateRootPublication, RootSwapOrderingContract, StablePhysicalReadExecution,
-    StablePhysicalReadReceipt,
+    RootSwapOrderingContract, StablePhysicalReadExecution, StablePhysicalReadReceipt,
 };
 use worth_store_recovery_physics::{CompactionCutoverRecoveryPosture, RecoveryCompletion};
 
@@ -118,7 +117,7 @@ pub fn execute_compaction_cutover_for_manifest(
         NewRootPublicationProof::from_root_validation(new_validation),
         PublicationLatchReadiness::declared_publish_latches_released_before_blocking_io(),
     );
-    let receipt = ReadCopyUpdateRootPublication::publish(
+    let receipt = crate::harness::physical_isolation::publish_in_temporary_store(
         validated
             .lower_with_ordering(RootSwapOrderingContract::acquire_release_or_stronger())
             .expect("publication ordering")

@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/independent_verifier_observation.rs"]
-mod independent_verifier_observation;
+use crate::independent_verifier_observation;
 
 use worth_store_test_support::harness::recovery::counter_evidence as counter_support;
 

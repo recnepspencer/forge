@@ -6,7 +6,10 @@ use worth_store_physical_format::{
     PhysicalSegmentId, PlatformPhysicalReplayArtifact, SlotAppendRequest,
 };
 
-use super::{FixtureScaleDeclaration, LargeStoreFixtureProfile, SyntheticFixtureAuthorityDenied};
+use super::{
+    FixtureScaleDeclaration, LargeStoreFixtureProfile, MaterializedFixtureScaleEvidence,
+    SyntheticFixtureAuthorityDenied,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProductionBackedFixtureSource {
@@ -26,6 +29,7 @@ pub struct ProductionBackedFixtureMaterialization {
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
     replay_artifact: Option<PlatformPhysicalReplayArtifact>,
+    materialized_scale: Option<MaterializedFixtureScaleEvidence>,
 }
 
 impl ProductionBackedFixtureMaterialization {
@@ -42,6 +46,7 @@ impl ProductionBackedFixtureMaterialization {
             source,
             layout: build_persisted_layout(root_reference),
             replay_artifact: None,
+            materialized_scale: None,
         })
     }
 
@@ -59,6 +64,7 @@ impl ProductionBackedFixtureMaterialization {
             source,
             layout: replay_artifact.persisted_layout().clone(),
             replay_artifact: Some(replay_artifact),
+            materialized_scale: None,
         })
     }
 
@@ -82,6 +88,17 @@ impl ProductionBackedFixtureMaterialization {
         self.replay_artifact.as_ref()
     }
 
+    pub fn bind_materialized_scale(
+        mut self,
+        evidence: MaterializedFixtureScaleEvidence,
+    ) -> Result<Self, SyntheticFixtureAuthorityDenied> {
+        if evidence.scale() != self.scale || !evidence.matches_declared_scale() {
+            return Err(SyntheticFixtureAuthorityDenied::ScaleMediaMismatch);
+        }
+        self.materialized_scale = Some(evidence);
+        Ok(self)
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -90,6 +107,7 @@ impl ProductionBackedFixtureMaterialization {
         ProductionBackedFixtureSource,
         PersistedPhysicalLayout,
         Option<PlatformPhysicalReplayArtifact>,
+        Option<MaterializedFixtureScaleEvidence>,
     ) {
         (
             self.profile,
@@ -97,6 +115,7 @@ impl ProductionBackedFixtureMaterialization {
             self.source,
             self.layout,
             self.replay_artifact,
+            self.materialized_scale,
         )
     }
 }

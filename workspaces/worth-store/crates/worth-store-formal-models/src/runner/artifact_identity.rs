@@ -1,8 +1,11 @@
+use std::io::Read;
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use super::{PinnedTlcToolchain, ProtocolCheckInvocation, ProtocolCheckVerdict};
+use super::{
+    ExternalToolIdentity, PinnedTlcToolchain, ProtocolCheckInvocation, ProtocolCheckVerdict,
+};
 use crate::ProtocolFamily;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,6 +19,7 @@ pub struct ProtocolCheckArtifactIdentity {
 pub struct ExecutedProtocolCheck {
     invocation: ProtocolCheckInvocation,
     artifact_identity: ProtocolCheckArtifactIdentity,
+    external_tool_identity: ExternalToolIdentity,
     verdict: ProtocolCheckVerdict,
 }
 
@@ -62,10 +66,21 @@ impl ProtocolCheckArtifactIdentity {
 }
 
 fn file_digest(path: &Path) -> Result<[u8; 32], ProtocolArtifactIdentityInspectionDenial> {
-    let bytes = std::fs::read(path).map_err(|error| {
+    let mut file = std::fs::File::open(path).map_err(|error| {
         ProtocolArtifactIdentityInspectionDenial::ArtifactRead(error.to_string())
     })?;
-    Ok(Sha256::digest(bytes).into())
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer).map_err(|error| {
+            ProtocolArtifactIdentityInspectionDenial::ArtifactRead(error.to_string())
+        })?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(digest.finalize().into())
 }
 
 fn decode_pinned_tool_digest() -> Result<[u8; 32], ProtocolArtifactIdentityInspectionDenial> {
@@ -95,11 +110,13 @@ impl ExecutedProtocolCheck {
     pub(super) const fn observed(
         invocation: ProtocolCheckInvocation,
         artifact_identity: ProtocolCheckArtifactIdentity,
+        external_tool_identity: ExternalToolIdentity,
         verdict: ProtocolCheckVerdict,
     ) -> Self {
         Self {
             invocation,
             artifact_identity,
+            external_tool_identity,
             verdict,
         }
     }
@@ -116,6 +133,10 @@ impl ExecutedProtocolCheck {
         &self.artifact_identity
     }
 
+    pub const fn external_tool_identity(&self) -> &ExternalToolIdentity {
+        &self.external_tool_identity
+    }
+
     pub const fn verdict(&self) -> &ProtocolCheckVerdict {
         &self.verdict
     }
@@ -125,9 +146,15 @@ impl ExecutedProtocolCheck {
     ) -> (
         ProtocolCheckInvocation,
         ProtocolCheckArtifactIdentity,
+        ExternalToolIdentity,
         ProtocolCheckVerdict,
     ) {
-        (self.invocation, self.artifact_identity, self.verdict)
+        (
+            self.invocation,
+            self.artifact_identity,
+            self.external_tool_identity,
+            self.verdict,
+        )
     }
 
     pub fn into_verdict(self) -> ProtocolCheckVerdict {

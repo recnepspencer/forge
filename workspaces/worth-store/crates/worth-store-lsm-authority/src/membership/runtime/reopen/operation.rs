@@ -101,7 +101,7 @@ fn execute_reopen(
     Ok(session)
 }
 
-const fn map_store_denial(denial: WalArtifactStoreDenial) -> LsmMembershipDenial {
+pub(super) const fn map_store_denial(denial: WalArtifactStoreDenial) -> LsmMembershipDenial {
     match denial {
         WalArtifactStoreDenial::Io => LsmMembershipDenial::Io,
         WalArtifactStoreDenial::InvalidArtifactPath

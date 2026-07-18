@@ -12,12 +12,12 @@ fn durable_root_reopens_only_at_the_published_identity() {
     let directory = publication_directory("reopen");
     let first = root(1, false);
     let second = root(2, false);
-    let store = PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    let store = PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     store.publish(first, second).unwrap();
 
-    PhysicalRootPublicationStore::open(&directory, second).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), second).unwrap();
     assert_eq!(
-        PhysicalRootPublicationStore::open(&directory, first).unwrap_err(),
+        PhysicalRootPublicationStore::open(directory.path(), first).unwrap_err(),
         PhysicalPublicationDenial::PersistedRootMismatch,
     );
 }
@@ -28,8 +28,8 @@ fn competing_publication_owner_observes_locked_compare_and_swap() {
     let first = root(10, false);
     let second = root(11, false);
     let third = root(12, false);
-    let winner = PhysicalRootPublicationStore::open(&directory, first).unwrap();
-    let stale = PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    let winner = PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
+    let stale = PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     winner.publish(first, second).unwrap();
     assert_eq!(
         stale.publish(first, third).unwrap_err(),
@@ -42,7 +42,7 @@ fn recovery_publication_binding_survives_reopen_and_distinguishes_same_epoch_med
     let directory = publication_directory("recovery-binding");
     let first = root(13, false);
     let second = root(14, false);
-    let store = PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    let store = PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     let binding = [0x5a; 32];
     store
         .publish_recovery_with_boundary_control(
@@ -53,7 +53,7 @@ fn recovery_publication_binding_survives_reopen_and_distinguishes_same_epoch_med
         )
         .unwrap();
 
-    let reopened = PhysicalRootPublicationStore::open(&directory, second).unwrap();
+    let reopened = PhysicalRootPublicationStore::open(directory.path(), second).unwrap();
     assert_eq!(reopened.current_recovery_binding().unwrap(), Some(binding));
     assert_ne!(
         reopened.current_recovery_binding().unwrap(),
@@ -66,9 +66,9 @@ fn torn_tail_is_truncated_before_the_next_publication() {
     let directory = publication_directory("torn-tail");
     let first = root(20, false);
     let second = root(21, false);
-    let store = PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    let store = PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     store.publish(first, second).unwrap();
-    let log = directory.join("root-publications.log");
+    let log = directory.path().join("root-publications.log");
     let durable_bytes = std::fs::metadata(&log).unwrap().len();
     std::fs::OpenOptions::new()
         .append(true)
@@ -77,7 +77,7 @@ fn torn_tail_is_truncated_before_the_next_publication() {
         .write_all(b"crash-tail")
         .unwrap();
 
-    PhysicalRootPublicationStore::open(&directory, second).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), second).unwrap();
     assert_eq!(std::fs::metadata(log).unwrap().len(), durable_bytes);
 }
 
@@ -86,9 +86,9 @@ fn ordering_contract_is_part_of_persisted_root_identity() {
     let directory = publication_directory("ordering");
     let acquire_release = root(30, false);
     let sequential = root(30, true);
-    PhysicalRootPublicationStore::open(&directory, acquire_release).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), acquire_release).unwrap();
     assert_eq!(
-        PhysicalRootPublicationStore::open(&directory, sequential).unwrap_err(),
+        PhysicalRootPublicationStore::open(directory.path(), sequential).unwrap_err(),
         PhysicalPublicationDenial::PersistedRootMismatch,
     );
 }
@@ -102,7 +102,7 @@ fn injected_torn_root_record_reopens_at_the_previous_root() {
     let directory = publication_directory("injected-torn");
     let first = root(40, false);
     let second = root(41, false);
-    let store = PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    let store = PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     let control = ScriptedStorageBoundaryControl::inject(
         ProductionStorageBoundarySeam::RootSwap,
         StorageBoundaryFault::TearWrite { retained_bytes: 11 },
@@ -113,7 +113,7 @@ fn injected_torn_root_record_reopens_at_the_previous_root() {
             .unwrap_err(),
         PhysicalPublicationDenial::PublicationStoreIo,
     );
-    PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     assert_eq!(control.trace().injected().len(), 1);
 }
 
@@ -126,7 +126,7 @@ fn interruption_after_root_durability_reopens_at_new_root_without_issuing_outcom
     let directory = publication_directory("durable-interruption");
     let first = root(50, false);
     let second = root(51, false);
-    let store = PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    let store = PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     let control = ScriptedStorageBoundaryControl::inject(
         ProductionStorageBoundarySeam::RootPublicationBeforeObserve,
         StorageBoundaryFault::Interrupt,
@@ -137,9 +137,9 @@ fn interruption_after_root_durability_reopens_at_new_root_without_issuing_outcom
             .unwrap_err(),
         PhysicalPublicationDenial::PublicationStoreIo,
     );
-    PhysicalRootPublicationStore::open(&directory, second).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), second).unwrap();
     assert_eq!(
-        PhysicalRootPublicationStore::open(&directory, first).unwrap_err(),
+        PhysicalRootPublicationStore::open(directory.path(), first).unwrap_err(),
         PhysicalPublicationDenial::PersistedRootMismatch,
     );
 }
@@ -150,10 +150,10 @@ fn concurrent_publishers_execute_against_the_same_locked_root() {
     let first = root(60, false);
     let second = root(61, false);
     let third = root(62, false);
-    PhysicalRootPublicationStore::open(&directory, first).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), first).unwrap();
     let barrier = std::sync::Arc::new(std::sync::Barrier::new(3));
     let publish = |candidate| {
-        let directory = directory.clone();
+        let directory = directory.path().to_owned();
         let barrier = barrier.clone();
         std::thread::spawn(move || {
             let store = PhysicalRootPublicationStore::open(&directory, first).unwrap();
@@ -195,7 +195,7 @@ fn fresh_process_crash_after_root_durability_reopens_at_new_root() {
     }
 
     let directory = publication_directory("fresh-process-crash");
-    PhysicalRootPublicationStore::open(&directory, root(70, false)).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), root(70, false)).unwrap();
     let status = std::process::Command::new(std::env::current_exe().unwrap())
         .args([
             "--exact",
@@ -203,11 +203,11 @@ fn fresh_process_crash_after_root_durability_reopens_at_new_root() {
             "--nocapture",
         ])
         .env(CHILD_FLAG, "1")
-        .env(DIRECTORY, &directory)
+        .env(DIRECTORY, directory.path())
         .status()
         .unwrap();
     assert!(!status.success());
-    PhysicalRootPublicationStore::open(&directory, root(71, false)).unwrap();
+    PhysicalRootPublicationStore::open(directory.path(), root(71, false)).unwrap();
 }
 
 #[test]
@@ -220,7 +220,7 @@ fn every_torn_root_offset_reopens_to_exactly_one_complete_root() {
         let directory = publication_directory(&format!("tear-{retained_bytes}"));
         let previous = root(80, false);
         let candidate = root(81, false);
-        let store = PhysicalRootPublicationStore::open(&directory, previous).unwrap();
+        let store = PhysicalRootPublicationStore::open(directory.path(), previous).unwrap();
         let control = ScriptedStorageBoundaryControl::inject(
             ProductionStorageBoundarySeam::RootSwap,
             StorageBoundaryFault::TearWrite { retained_bytes },
@@ -232,8 +232,10 @@ fn every_torn_root_offset_reopens_to_exactly_one_complete_root() {
             PhysicalPublicationDenial::PublicationStoreIo,
         );
 
-        let previous_reopens = PhysicalRootPublicationStore::open(&directory, previous).is_ok();
-        let candidate_reopens = PhysicalRootPublicationStore::open(&directory, candidate).is_ok();
+        let previous_reopens =
+            PhysicalRootPublicationStore::open(directory.path(), previous).is_ok();
+        let candidate_reopens =
+            PhysicalRootPublicationStore::open(directory.path(), candidate).is_ok();
         assert_ne!(
             previous_reopens, candidate_reopens,
             "offset {retained_bytes}"
@@ -259,12 +261,9 @@ fn root(seed: u64, sequential: bool) -> CurrentPhysicalRoot {
     .unwrap()
 }
 
-fn publication_directory(label: &str) -> std::path::PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!(
-        "worth-store-root-{label}-{}-{}",
-        std::process::id(),
-        NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed),
-    ))
+fn publication_directory(label: &str) -> tempfile::TempDir {
+    tempfile::Builder::new()
+        .prefix(&format!("worth-store-root-{label}-"))
+        .tempdir()
+        .unwrap()
 }

@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-blob-chunks"
 edition.workspace = true
 version.workspace = true
@@ -6,7 +7,15 @@ license.workspace = true
 description = "Roadmap 2 S.7 native content-addressed blob and object chunk store."
 
 [features]
-certification-test-authority = []
+certification-test-authority = [
+    "worth-store-io-scheduler/certification-test-authority",
+    "worth-store-physical-backend/certification-test-authority",
+    "worth-store-physical-integrity/test-support",
+    "worth-store-physical-isolation/certification-authority",
+    "worth-store-reclaim-policy/certification-test-authority",
+    "worth-store-recovery-physics/certification-test-authority",
+    "worth-store-tiering/certification-test-authority",
+]
 
 [dependencies]
 sha2 = "0.10"
@@ -17,16 +26,16 @@ worth-store-budgets.workspace = true
 worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
 worth-store-authority.workspace = true
-worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
+worth-store-io-scheduler.workspace = true
 worth-store-physical-backend.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-physical-integrity.workspace = true
-worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
-worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-isolation.workspace = true
+worth-store-reclaim-policy.workspace = true
 worth-store-recovery-physics.workspace = true
 worth-store-retention.workspace = true
-worth-store-security = { workspace = true, features = ["certification-test-authority"] }
-worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
+worth-store-security.workspace = true
+worth-store-tiering.workspace = true
 worth-store-wal.workspace = true
 
 [dev-dependencies]
@@ -40,7 +49,7 @@ worth-store-physical-isolation = { workspace = true, features = ["certification-
 worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
 worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
 worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
-worth-store-test-support.workspace = true
+worth-store-test-support = { workspace = true, default-features = false, features = ["physical-isolation-fixtures"] }
 
 [lints]
 workspace = true

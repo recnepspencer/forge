@@ -62,14 +62,24 @@ pub(super) fn inspect_backup_media(
             started_at,
         )
         .map_err(BackupStructuralVerificationDenial::Inspection)?;
-        component_entries.push(
-            OfflineMediaClosureEntry::new(
-                current.root().join(row.output_name()),
-                row.bytes(),
-                row.content_digest(),
-            )
-            .ok_or_else(invalid_manifest)?,
-        );
+        let path = current.root().join(row.output_name());
+        match std::fs::symlink_metadata(&path) {
+            Ok(_) => component_entries.push(
+                OfflineMediaClosureEntry::new(path, row.bytes(), row.content_digest())
+                    .ok_or_else(invalid_manifest)?,
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                // Absence is a structural defect, not a reason to hide every
+                // other independently inspectable component. The immutable
+                // basis covers the manifest and every component present at
+                // acquisition; structural comparison records the missing row.
+            }
+            Err(error) => {
+                return Err(BackupStructuralVerificationDenial::Format(
+                    worth_store_physical_format::BackupBundleFormatDenial::Read(error),
+                ));
+            }
+        }
     }
     let basis = OfflineMediaConsistencyBasis::content_addressed_closure(
         hex(&current.manifest_digest())?,

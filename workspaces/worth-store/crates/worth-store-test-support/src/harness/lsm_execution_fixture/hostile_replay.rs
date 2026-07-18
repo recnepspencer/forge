@@ -46,8 +46,8 @@ pub fn execute_lsm_replay_hostile_matrix() -> LsmReplayHostileMatrix {
         [43, 41, 42],
         [43, 42, 41],
     ];
-    let permutation_denials = permutations.map(|sequences| replay_denial(sequences, false));
-    let duplicate_sequence_denial = replay_denial([41, 41, 43], true);
+    let permutation_denials = permutations.map(replay_denial);
+    let duplicate_sequence_denial = replay_denial([41, 41, 43]);
     let unsupported_kind_denials = [
         unsupported_kind_denial(BlobWalRecordKind::ChunkAppend),
         unsupported_kind_denial(BlobWalRecordKind::RootCandidate),
@@ -95,7 +95,7 @@ pub fn execute_frontierless_lsm_replay_source_fixture() -> AdmittedLsmReplaySour
     AdmittedLsmReplaySource::admit_recovered_membership(membership, None, None).unwrap()
 }
 
-fn replay_denial(sequences: [u64; 3], duplicate: bool) -> LsmReplaySourceDenial {
+fn replay_denial(sequences: [u64; 3]) -> LsmReplaySourceDenial {
     let (access, key) = admitted_index(sequences[2]);
     let kinds = [
         BlobWalRecordKind::LsmValue,
@@ -104,18 +104,14 @@ fn replay_denial(sequences: [u64; 3], duplicate: bool) -> LsmReplaySourceDenial 
     ];
     let records: [(BlobWalRecordEnvelope, AdmittedWalAppendReceipt); 3] =
         std::array::from_fn(|index| {
-            if duplicate {
-                durable_record_binding_with_lsn(
-                    key,
-                    sequences[index],
-                    kinds[index],
-                    1,
-                    1,
-                    50 + index as u64,
-                )
-            } else {
-                durable_record_binding(key, sequences[index], kinds[index])
-            }
+            durable_record_binding_with_lsn(
+                key,
+                sequences[index],
+                kinds[index],
+                1,
+                1,
+                50 + index as u64,
+            )
         });
     let mut session = super::open_lsm_index(&records[0].1).unwrap();
     for (envelope, receipt) in records {

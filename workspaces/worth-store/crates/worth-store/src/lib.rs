@@ -27,6 +27,7 @@ pub mod aspect_native {
     };
 }
 
+#[cfg(feature = "certification-test-authority")]
 pub mod certification {
     pub use worth_store_certification::{
         certify_store_json_residue_inventory, StoreCertificationProgram, StoreJsonAuthorityRisk,

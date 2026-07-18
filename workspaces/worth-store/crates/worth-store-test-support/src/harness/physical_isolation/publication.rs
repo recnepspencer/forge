@@ -271,7 +271,10 @@ pub fn publish_copy_on_write_result(
     if let Some(reuse) = reuse {
         readiness = readiness.with_free_reuse_posture(reuse).unwrap();
     }
-    ReadCopyUpdateRootPublication::publish(lowered.join_readiness(readiness).unwrap()).unwrap()
+    let plan = lowered.join_readiness(readiness).unwrap();
+    let mut fixture =
+        super::PhysicalRootPublicationFixture::open(plan.binding().old_root()).unwrap();
+    fixture.publish(plan).unwrap()
 }
 
 pub fn execute_publication_recovery_replay(

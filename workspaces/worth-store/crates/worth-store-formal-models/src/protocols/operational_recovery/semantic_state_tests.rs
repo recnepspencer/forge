@@ -5,6 +5,28 @@ use super::{
 };
 
 #[test]
+fn one_operation_accepts_distinct_staging_and_cutover_authorizations_but_rejects_replay() {
+    let mut state = OperationalRecoverySemanticState::default();
+    for plan in [id(1), id(3)] {
+        state
+            .apply(&action(Binding::Authorization {
+                plan,
+                execution: Some(id(2)),
+                replayed: false,
+            }))
+            .unwrap();
+    }
+    assert_eq!(
+        state.apply(&action(Binding::Authorization {
+            plan: id(1),
+            execution: Some(id(2)),
+            replayed: false,
+        })),
+        Err(OperationalRecoveryInvariant::AuthorizationReplayRejected)
+    );
+}
+
+#[test]
 fn promotion_requires_exact_fence_plan_receipt_publication_and_epoch_continuity() {
     let mut state = authorized_state();
     state

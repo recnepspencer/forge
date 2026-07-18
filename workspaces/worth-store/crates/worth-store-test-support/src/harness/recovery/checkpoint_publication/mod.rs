@@ -1,9 +1,14 @@
 mod evidence;
+mod recovery;
 mod trace;
 
 use super::compaction_observation as compaction_interlock_trace;
 use evidence as checkpoint_evidence_support;
 
+pub use recovery::{
+    lower_recovery_plan, lower_recovery_plan_for_profile, recovery_trace,
+    recovery_trace_with_outcome,
+};
 pub use trace::actor_step_index;
 use trace::developer_smoke_production_trace;
 
@@ -14,9 +19,9 @@ use crate::{
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario,
     reject_same_run_self_comparison_evidence_attempt, shortcut_denial_from_evidence_bundle_denial,
-    DetachedSimulationReplayParts, ExecutedTranscriptParts, PhysicalSimulationBoundaryObservation,
-    FixtureCapabilityDeclaration, FixtureMutationBoundary, ForbiddenShortcutSet,
-    LargeStoreFixtureProfile, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
+    DetachedSimulationReplayParts, ExecutedTranscriptParts, FixtureCapabilityDeclaration,
+    FixtureMutationBoundary, ForbiddenShortcutSet, LargeStoreFixtureProfile,
+    PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
     PhysicalIsolationCheckpointPublicationCrashLaneOutput,
     PhysicalIsolationCheckpointPublicationLaneBinding,
     PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput,
@@ -24,11 +29,12 @@ use worth_store_physical_certification::{
     PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput,
     PhysicalIsolationCheckpointPublicationShortcutRejectionOutput, PhysicalScenarioActor,
     PhysicalScenarioActorRole, PhysicalScenarioExpectation, PhysicalScenarioIntent,
-    PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet, PhysicalSimulationObserver,
-    PhysicalSimulationPlan, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
-    PhysicalSimulationScenarioFamily, PhysicalSimulationTranscript,
-    ProductionBackedPhysicalFixture, RecoveryOutcomeObservation, SimulationEvidencePolicy,
-    SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
+    PhysicalScenarioSchedule, PhysicalSimulationBoundaryObservation,
+    PhysicalSimulationCapabilitySet, PhysicalSimulationObserver, PhysicalSimulationPlan,
+    PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
+    PhysicalSimulationTranscript, ProductionBackedPhysicalFixture, RecoveryOutcomeObservation,
+    SimulationEvidencePolicy, SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet,
+    SupportedOracleFamilySet,
 };
 use worth_store_physical_isolation::{
     CheckpointInterlockEvidenceOrigin, CheckpointInterlockFoundationalEvidence,
@@ -98,25 +104,6 @@ pub fn lower_checkpoint_crash_replay_plan() -> PhysicalSimulationPlan {
 
 pub fn lower_checkpoint_shortcut_plan() -> PhysicalSimulationPlan {
     lower_physical_simulation_plan(checkpoint_shortcut_scenario(), complete_context()).unwrap()
-}
-
-pub fn lower_recovery_plan() -> PhysicalSimulationPlan {
-    lower_physical_simulation_plan(recovery_scenario(), complete_context()).unwrap()
-}
-
-pub fn recovery_trace(
-    plan: &PhysicalSimulationPlan,
-) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    PhysicalSimulationObserver::recovery_outcome()
-        .observe_plan(plan)
-        .unwrap()
-        .with_runtime_trace(developer_smoke_production_trace())
-        .with_recovery_outcome_observation(RecoveryOutcomeObservation::recovered_new_root())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
-        .complete()
-        .unwrap()
 }
 
 pub fn checkpoint_shortcut_trace(
@@ -294,7 +281,13 @@ fn checkpoint_evidence_for_operation(
 }
 
 fn complete_context() -> SimulationPlanningContext {
-    SimulationPlanningContext::for_profile(PhysicalSimulationProfile::DeveloperSmoke)
+    complete_context_for_profile(PhysicalSimulationProfile::DeveloperSmoke)
+}
+
+pub(super) fn complete_context_for_profile(
+    profile: PhysicalSimulationProfile,
+) -> SimulationPlanningContext {
+    SimulationPlanningContext::for_profile(profile)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
         .with_capabilities(
             PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
@@ -365,25 +358,6 @@ fn checkpoint_shortcut_scenario() -> worth_store_physical_certification::Certifi
         .expectation(
             PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_with_shortcut_rejection(),
         )
-        .certify_definition()
-        .unwrap()
-}
-
-fn recovery_scenario() -> worth_store_physical_certification::CertifiedPhysicalScenario {
-    physical_scenario("store.physical.s45.phase9.checkpoint-recovery-replay")
-        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
-        .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
-        .fixture(
-            NativeStoreAspectFixture::segment_header("phase9-checkpoint-recovery", 9)
-                .boundary_fact()
-                .clone(),
-        )
-        .actor(PhysicalScenarioActor::recovery_driver("recovery"))
-        .actor(PhysicalScenarioActor::foreground_reader("reader"))
-        .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
-            "fresh-runtime-replay-open",
-        ))
-        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }

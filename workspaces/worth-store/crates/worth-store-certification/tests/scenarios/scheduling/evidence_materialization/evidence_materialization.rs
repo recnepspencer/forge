@@ -280,5 +280,4 @@ fn materialization_rejects_near_miss_store_execution_bindings() {
         S6CertificationMaterializationDenial::EmptyQualificationMatrix
     );
 }
-#[path = "../../../support/scheduling/access_policy_support/access_policy_support.rs"]
-mod s6_access_policy_support;
+use crate::access_policy_support as s6_access_policy_support;

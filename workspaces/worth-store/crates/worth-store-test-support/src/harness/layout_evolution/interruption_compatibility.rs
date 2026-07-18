@@ -8,7 +8,6 @@ use worth_store_layout_indexes::evolution::migration::{
     LayoutRollbackInterruptionCaseId, LayoutRollbackRequest, LayoutWriteCompatibilityPosture,
 };
 use worth_store_layout_indexes::{ObserveOwnerCase, OwnerCaseObservation};
-use worth_store_physical_isolation::PhysicalRootPublicationRuntime;
 
 use super::world;
 
@@ -42,8 +41,10 @@ fn observe_migration_interruption() -> Vec<OwnerCaseObservation<LayoutMigrationI
         world::migration_plan(rollback_declaration, &authority),
         world::publication_plan(&authority, "migration-interruption-target", 13_001),
     );
-    let mut publication =
-        PhysicalRootPublicationRuntime::from_current_root(request.publication_source_root());
+    let mut publication = crate::harness::physical_isolation::PhysicalRootPublicationFixture::open(
+        request.publication_source_root(),
+    )
+    .unwrap();
     let target = layout_migration_execution(&mut publication)
         .execute(request)
         .into_published()
@@ -96,8 +97,10 @@ fn observe_rollback_interruption() -> Vec<OwnerCaseObservation<LayoutRollbackInt
     let matching = request.clone();
     let resume = matching.classify_interruption(source_state);
 
-    let mut publication =
-        PhysicalRootPublicationRuntime::from_current_root(request.publication_source_root());
+    let mut publication = crate::harness::physical_isolation::PhysicalRootPublicationFixture::open(
+        request.publication_source_root(),
+    )
+    .unwrap();
     let target_state = layout_rollback_execution(&mut publication)
         .execute(request)
         .into_published()

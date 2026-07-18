@@ -10,7 +10,9 @@ mod recovery;
 pub use counters::{
     OperationalCounterDenial, OperationalCounterReceipt, OperationalCounterStructureDenial,
 };
-pub use identity::{OperationalSessionIdentity, OperationalSessionKind};
+pub use identity::{
+    OperationalSessionDisposition, OperationalSessionIdentity, OperationalSessionKind,
+};
 pub use interruption::{
     admit_operational_session, OperationalInterruptionReason, OperationalSessionAdmissionDenial,
     OperationalSessionInterruption,

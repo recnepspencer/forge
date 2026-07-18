@@ -13,7 +13,8 @@ use super::operational_recovery_authorization_fixture::{operator_assertion, Exac
 use super::operational_recovery_replica_driver_fixture::DisasterRecoveryFixture;
 use crate::{
     DrivenOperationalControlStore, DrivenOperationalTransition,
-    OperationalRecoveryControlTransitionKind as Control, OperationalRecoveryProductionDriver,
+    OperationalRecoveryControlTransitionKind as Control, OperationalRecoveryCrashCutDenial,
+    OperationalRecoveryCrashCutEvidence, OperationalRecoveryProductionDriver,
     OperationalRecoveryYieldpoint as Point,
 };
 
@@ -73,11 +74,43 @@ fn replica_bootstrap_transfer_cutpoints_reopen_the_exact_durable_prefix() {
             Control::ReplicaBootstrapTransfer,
         )));
     assert_eq!(after.trace.control_artifact_identities().len(), 2);
+
+    assert_eq!(
+        before.crash_evidence_denial(),
+        OperationalRecoveryCrashCutDenial::SameProcess
+    );
+    assert_eq!(
+        after.crash_evidence_denial(),
+        OperationalRecoveryCrashCutDenial::SameProcess
+    );
+}
+
+#[test]
+fn control_crash_evidence_rejects_same_session_and_same_process_reopen() {
+    let before = run_bootstrap(Some(Point::BeforeDurableControlTransition(
+        Control::ReplicaBootstrapTransfer,
+    )));
+    assert_eq!(
+        OperationalRecoveryCrashCutEvidence::from_fresh_process_reopen(
+            Point::BeforeDurableControlTransition(Control::ReplicaBootstrapTransfer),
+            &before.trace,
+            before.before_transition,
+            before.before_transition,
+        )
+        .unwrap_err(),
+        OperationalRecoveryCrashCutDenial::SameControlSession
+    );
+    assert_eq!(
+        before.crash_evidence_denial(),
+        OperationalRecoveryCrashCutDenial::SameProcess
+    );
 }
 
 struct BootstrapRun {
     fixture: DisasterRecoveryFixture,
     trace: crate::OperationalRecoveryDriverTrace,
+    pause: Option<Point>,
+    before_transition: worth_store_operations::OperationalControlSessionObservation,
     durable_generation: u64,
     persist_succeeded: bool,
 }
@@ -91,6 +124,20 @@ impl BootstrapRun {
             .unwrap()
             .generation()
             .get()
+    }
+
+    fn reopened_observation(&self) -> worth_store_operations::OperationalControlSessionObservation {
+        self.fixture.control_store().session_observation().unwrap()
+    }
+
+    fn crash_evidence_denial(&self) -> OperationalRecoveryCrashCutDenial {
+        OperationalRecoveryCrashCutEvidence::from_fresh_process_reopen(
+            self.pause.expect("crash run has a pause"),
+            &self.trace,
+            self.before_transition,
+            self.reopened_observation(),
+        )
+        .unwrap_err()
     }
 }
 
@@ -130,7 +177,7 @@ fn run_bootstrap(pause: Option<Point>) -> BootstrapRun {
             AuthorizationRevocationObservation::NotRevoked { observed_at: 20 },
         )
         .unwrap();
-    let (trace, durable_generation, persist_succeeded) = {
+    let (trace, before_transition, durable_generation, persist_succeeded) = {
         let control = fixture.control_store();
         let driver = pause.map_or_else(
             OperationalRecoveryProductionDriver::uninterrupted,
@@ -155,6 +202,7 @@ fn run_bootstrap(pause: Option<Point>) -> BootstrapRun {
             DrivenOperationalTransition::Completed(transferred) => transferred,
             other => panic!("uninterrupted driver returned {other:?}"),
         };
+        let before_transition = control.session_observation().unwrap();
         let persisted = driver.persist_bootstrap_transfer(
             &transferred,
             OperationalTransitionId::new("bootstrap-transfer").unwrap(),
@@ -174,11 +222,18 @@ fn run_bootstrap(pause: Option<Point>) -> BootstrapRun {
             .unwrap()
             .generation()
             .get();
-        (trace, durable_generation, persist_succeeded)
+        (
+            trace,
+            before_transition,
+            durable_generation,
+            persist_succeeded,
+        )
     };
     BootstrapRun {
         fixture,
         trace,
+        pause,
+        before_transition,
         durable_generation,
         persist_succeeded,
     }

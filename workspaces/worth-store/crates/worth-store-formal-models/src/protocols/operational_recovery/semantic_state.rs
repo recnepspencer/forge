@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use super::{
     binding::{OperationalRecoveryActionBinding as Binding, PublicationBinding},
     OperationalRecoveryAction, OperationalRecoveryControlledDefect as Defect,
@@ -8,8 +10,7 @@ mod promotion;
 
 #[derive(Debug, Default)]
 pub(super) struct OperationalRecoverySemanticState {
-    authorization_plan: Option<[u8; 32]>,
-    authorization_execution: Option<[u8; 32]>,
+    authorizations: BTreeMap<[u8; 32], Option<[u8; 32]>>,
     publication: Option<PublicationBinding>,
     bootstrap: Option<BootstrapBinding>,
     promotion: PromotionBinding,
@@ -157,14 +158,13 @@ impl OperationalRecoverySemanticState {
         replayed: bool,
     ) -> Result<(), Invariant> {
         require_nonzero(plan)?;
-        if replayed || self.authorization_plan.is_some() {
+        if replayed || self.authorizations.contains_key(&plan) {
             return Err(Invariant::AuthorizationReplayRejected);
         }
         if execution == Some([0; 32]) {
             return Err(Invariant::SemanticIdentityNonZero);
         }
-        self.authorization_plan = Some(plan);
-        self.authorization_execution = execution;
+        self.authorizations.insert(plan, execution);
         Ok(())
     }
 
@@ -269,10 +269,10 @@ impl OperationalRecoverySemanticState {
         execution_plan: [u8; 32],
         defect: Option<Defect>,
     ) -> Result<(), Invariant> {
-        if self.authorization_plan != Some(authorization_plan)
-            || self
-                .authorization_execution
-                .is_some_and(|expected| expected != execution_plan)
+        if self
+            .authorizations
+            .get(&authorization_plan)
+            .is_none_or(|expected| expected.is_some_and(|value| value != execution_plan))
         {
             if defect == Some(Defect::ExecutionWithoutAuthorization) {
                 return Ok(());
