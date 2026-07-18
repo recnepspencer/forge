@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
 use crate::discovery::{observe_artifact_footprint, ObservedArtifactFootprint};
 use crate::selection::SelectedProofExecutionPlan;
 
-use super::ProofRunAttempt;
+use super::{ObservedCargoArtifact, ProofRunAttempt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObservedTargetRootCost {
@@ -27,6 +27,8 @@ pub struct ObservedProofRunCost {
     pub peak_observed_descendants: usize,
     pub observer_authorities: Vec<String>,
     pub cargo_compiler_artifact_messages: usize,
+    pub freshly_compiled_cargo_artifacts: usize,
+    pub reused_cargo_artifacts: usize,
     pub linked_executable_artifacts: Vec<String>,
     pub compiler_process_observation: String,
     pub linker_process_observation: String,
@@ -68,6 +70,16 @@ pub(crate) fn finish_observation(
         .iter()
         .map(|attempt| attempt.cargo_compiler_artifact_messages)
         .sum();
+    let freshly_compiled_cargo_artifacts = attempts
+        .iter()
+        .flat_map(|attempt| &attempt.observed_cargo_artifacts)
+        .filter(|artifact| !artifact.fresh)
+        .count();
+    let reused_cargo_artifacts = attempts
+        .iter()
+        .flat_map(|attempt| &attempt.observed_cargo_artifacts)
+        .filter(|artifact| artifact.fresh)
+        .count();
     let declared_subprocess_evidence = attempts
         .iter()
         .map(|attempt| attempt.process_probe_evidence.len())
@@ -112,6 +124,8 @@ pub(crate) fn finish_observation(
         peak_observed_descendants,
         observer_authorities,
         cargo_compiler_artifact_messages,
+        freshly_compiled_cargo_artifacts,
+        reused_cargo_artifacts,
         linked_executable_artifacts,
         compiler_process_observation: format!(
             "external observer sampled {externally_observed_compilers} compiler processes; Cargo emitted {cargo_compiler_artifact_messages} exact completed compiler-artifact messages"
@@ -126,26 +140,8 @@ pub(crate) fn finish_observation(
     })
 }
 
-pub(crate) fn cargo_artifacts(stdout_path: &Path) -> Result<(usize, Vec<String>), String> {
-    let contents = std::fs::read_to_string(stdout_path)
-        .map_err(|error| format!("could not read {}: {error}", stdout_path.display()))?;
-    let mut compiler_units = 0;
-    let mut executables = Vec::new();
-    for line in contents.lines() {
-        let Ok(message) = serde_json::from_str::<serde_json::Value>(line) else {
-            continue;
-        };
-        if message["reason"] != "compiler-artifact" {
-            continue;
-        }
-        compiler_units += 1;
-        if let Some(executable) = message["executable"].as_str() {
-            executables.push(normalized(PathBuf::from(executable)));
-        }
-    }
-    executables.sort();
-    executables.dedup();
-    Ok((compiler_units, executables))
+pub(crate) fn cargo_artifacts(stdout_path: &Path) -> Result<Vec<ObservedCargoArtifact>, String> {
+    super::cargo_artifact::read_cargo_artifacts(stdout_path)
 }
 
 fn unique_target_roots(plan: &SelectedProofExecutionPlan) -> Vec<String> {
@@ -157,8 +153,4 @@ fn unique_target_roots(plan: &SelectedProofExecutionPlan) -> Vec<String> {
     roots.sort();
     roots.dedup();
     roots
-}
-
-fn normalized(path: PathBuf) -> String {
-    path.to_string_lossy().replace('\\', "/")
 }

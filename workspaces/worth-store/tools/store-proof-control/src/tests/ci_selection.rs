@@ -77,6 +77,15 @@ fn structural_preflight_partition_is_an_explicit_zero_behavior_unit_product() {
     assert_eq!(plan.request.partition(), Some("structural-preflight"));
 }
 
+#[test]
+fn formal_tool_partition_admits_only_its_declared_linux_host() {
+    let result = request("formal-external").validate_host();
+    assert_eq!(result.is_ok(), cfg!(target_os = "linux"));
+    if let Err(denial) = result {
+        assert!(denial.to_string().contains("requires linux"));
+    }
+}
+
 fn request(partition: &str) -> StoreProofRequest {
     StoreProofRequest::new(
         StoreProofMode::Ci,

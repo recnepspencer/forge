@@ -1,9 +1,12 @@
 use std::collections::BTreeSet;
 
 use crate::ci::{
-    catalog, required_lanes, CiCacheIdentity, CiCertificationAggregate, CiPartitionEvidence,
+    catalog, required_lanes, CiCacheIdentity, CiCertificationAggregate,
+    CiCompilerArtifactObservation, CiPartitionEvidence,
 };
 use crate::evidence::sha256_serialized;
+use crate::execution::ObservedCargoArtifact;
+use crate::selection::StructuralPreflightReference;
 
 use super::{current_inventory, workspace_root};
 
@@ -76,6 +79,66 @@ fn cache_identity_rejects_toolchain_feature_and_profile_poisoning() {
     }
 }
 
+#[test]
+fn aggregate_denies_unexplained_equivalent_compilation_across_partitions() {
+    let inventory = current_inventory(&workspace_root());
+    let mut evidence: Vec<_> = required_lanes(&inventory)
+        .into_iter()
+        .map(|lane| synthetic_evidence(&lane.partition, &lane.operating_system, 1, true))
+        .collect();
+    attach_compilation(
+        &mut evidence,
+        "owner-unit",
+        "linux",
+        artifact("profile", vec![]),
+    );
+    attach_compilation(
+        &mut evidence,
+        "formal-external",
+        "linux",
+        artifact("profile", vec![]),
+    );
+    let denial = CiCertificationAggregate::certify(&inventory, &evidence).unwrap_err();
+    assert!(denial.iter().any(|missing| {
+        missing.partition == "cross-partition-compilation"
+            && missing.reason.contains("equivalent OS/profile/features")
+    }));
+
+    let formal = evidence
+        .iter_mut()
+        .find(|bundle| bundle.partition == "formal-external")
+        .unwrap();
+    formal.compiler_artifacts[0].artifact.features = vec!["formal".to_owned()];
+    reseal(formal);
+    let aggregate = CiCertificationAggregate::certify(&inventory, &evidence).unwrap();
+    assert_eq!(
+        aggregate
+            .compilation_audit
+            .explained_semantic_duplicates
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn formal_and_structural_lanes_cannot_forge_their_specialized_evidence() {
+    let mut formal = synthetic_evidence("formal-external", "linux", 1, true);
+    formal.formal_tool_receipts.clear();
+    reseal(&mut formal);
+    assert!(formal
+        .validate()
+        .unwrap_err()
+        .contains("without a TLC receipt"));
+
+    let mut structural = synthetic_evidence("structural-preflight", "linux", 1, true);
+    structural.structural_preflight.predicates.clear();
+    reseal(&mut structural);
+    assert!(structural
+        .validate()
+        .unwrap_err()
+        .contains("omits its structural preflight authority"));
+}
+
 fn synthetic_evidence(
     partition: &str,
     operating_system: &str,
@@ -83,7 +146,7 @@ fn synthetic_evidence(
     closeout_eligible: bool,
 ) -> CiPartitionEvidence {
     let mut evidence = CiPartitionEvidence {
-        schema_version: 1,
+        schema_version: 2,
         evidence_identity: String::new(),
         partition: partition.to_owned(),
         operating_system: operating_system.to_owned(),
@@ -113,11 +176,58 @@ fn synthetic_evidence(
         } else {
             Vec::new()
         },
+        structural_preflight: StructuralPreflightReference {
+            evidence_identity: "preflight".to_owned(),
+            bundle_path: "preflight.json".to_owned(),
+            profile: "ci".to_owned(),
+            predicates: vec!["inventory".to_owned()],
+        },
+        compiler_artifacts: Vec::new(),
         closeout_eligible,
         observed_unix_millis,
     };
     evidence.evidence_identity = sha256_serialized(&evidence).unwrap();
     evidence
+}
+
+fn attach_compilation(
+    evidence: &mut [CiPartitionEvidence],
+    partition: &str,
+    operating_system: &str,
+    artifact: ObservedCargoArtifact,
+) {
+    let bundle = evidence
+        .iter_mut()
+        .find(|bundle| bundle.partition == partition && bundle.operating_system == operating_system)
+        .unwrap();
+    bundle
+        .compiler_artifacts
+        .push(CiCompilerArtifactObservation {
+            attempt_identity: bundle.attempt_identities[0].clone(),
+            unit_identity: format!("unit-{partition}"),
+            artifact,
+        });
+    reseal(bundle);
+}
+
+fn artifact(profile_identity: &str, features: Vec<String>) -> ObservedCargoArtifact {
+    ObservedCargoArtifact {
+        package_id: "path+file:///repo#shared@0.1.0".to_owned(),
+        canonical_package: "shared@0.1.0".to_owned(),
+        target_name: "shared".to_owned(),
+        target_kinds: vec!["lib".to_owned()],
+        crate_types: vec!["lib".to_owned()],
+        features,
+        profile_identity: profile_identity.to_owned(),
+        filenames: vec!["target/shared.rlib".to_owned()],
+        executable: None,
+        fresh: false,
+    }
+}
+
+fn reseal(evidence: &mut CiPartitionEvidence) {
+    evidence.evidence_identity.clear();
+    evidence.evidence_identity = sha256_serialized(evidence).unwrap();
 }
 
 fn synthetic_cache() -> CiCacheIdentity {

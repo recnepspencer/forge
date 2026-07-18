@@ -15,6 +15,17 @@ pub enum CliCommand {
     CiAggregate {
         evidence_root: String,
     },
+    ArtifactInspect {
+        target_root: String,
+        protected_run: Option<String>,
+    },
+    ArtifactPlan {
+        inventory_path: String,
+        policy: String,
+    },
+    ArtifactExecute {
+        plan_path: String,
+    },
     Proof {
         request: StoreProofRequest,
         preflight_bundle: Option<String>,
@@ -82,6 +93,9 @@ impl ParsedArguments {
                 command: CliCommand::CiAggregate { evidence_root },
             });
         }
+        if command == "artifacts" {
+            return parse_artifact_command(arguments.collect());
+        }
         let mode = parse_mode(&command).ok_or_else(usage)?;
         let remaining: Vec<_> = arguments.collect();
         let package =
@@ -119,6 +133,57 @@ impl ParsedArguments {
             },
         })
     }
+}
+
+fn parse_artifact_command(arguments: Vec<String>) -> Result<ParsedArguments, String> {
+    let action = arguments
+        .first()
+        .ok_or_else(|| "artifacts requires inspect, plan, or execute".to_owned())?;
+    let options = &arguments[1..];
+    let command = match action.as_str() {
+        "inspect" => {
+            let target_root = option_value(options, "--target-root").ok_or_else(|| {
+                "artifacts inspect requires --target-root <absolute-path>".to_owned()
+            })?;
+            let protected_run = option_value(options, "--protected-run");
+            let expected = if protected_run.is_some() { 4 } else { 2 };
+            if options.len() != expected {
+                return Err(
+                    "artifacts inspect accepts --target-root and optional --protected-run"
+                        .to_owned(),
+                );
+            }
+            CliCommand::ArtifactInspect {
+                target_root,
+                protected_run,
+            }
+        }
+        "plan" => {
+            let inventory_path = option_value(options, "--inventory")
+                .ok_or_else(|| "artifacts plan requires --inventory <path>".to_owned())?;
+            let policy = option_value(options, "--policy")
+                .ok_or_else(|| "artifacts plan requires --policy bounded-local".to_owned())?;
+            if options.len() != 4 {
+                return Err(
+                    "artifacts plan accepts --inventory <path> --policy bounded-local".to_owned(),
+                );
+            }
+            CliCommand::ArtifactPlan {
+                inventory_path,
+                policy,
+            }
+        }
+        "execute" => {
+            let plan_path = option_value(options, "--plan")
+                .ok_or_else(|| "artifacts execute requires --plan <path>".to_owned())?;
+            if options.len() != 2 {
+                return Err("artifacts execute accepts only --plan <path>".to_owned());
+            }
+            CliCommand::ArtifactExecute { plan_path }
+        }
+        _ => return Err(format!("unknown artifacts action: {action}")),
+    };
+    Ok(ParsedArguments { command })
 }
 
 fn parse_mode(value: &str) -> Option<StoreProofMode> {
@@ -184,7 +249,7 @@ fn parsed_usize_option(arguments: &[String], name: &str) -> Result<Option<usize>
 }
 
 fn usage() -> String {
-    "usage: store-proof-control <baseline|audit-executable-listing|validate|seal-proof-authority|seal-proof-behavior-authority|seal-scenario-authority|owner|smoke|ui|ci|soak|release|hardware>"
+    "usage: store-proof-control <baseline|audit-executable-listing|validate|seal-proof-authority|seal-proof-behavior-authority|seal-scenario-authority|artifacts|owner|smoke|ui|ci|soak|release|hardware>"
         .to_owned()
 }
 
@@ -242,5 +307,48 @@ mod tests {
         .err()
         .unwrap();
         assert!(denial.contains("unsigned 64-bit integer"));
+    }
+
+    #[test]
+    fn artifact_lifecycle_commands_require_explicit_stage_inputs() {
+        let inspect = ParsedArguments::parse(
+            [
+                "artifacts",
+                "inspect",
+                "--target-root",
+                "C:/workspace/target",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        )
+        .unwrap();
+        assert!(matches!(
+            inspect.command,
+            CliCommand::ArtifactInspect { .. }
+        ));
+
+        let execute = ParsedArguments::parse(
+            ["artifacts", "execute", "--plan", "cleanup.json"]
+                .into_iter()
+                .map(str::to_owned),
+        )
+        .unwrap();
+        assert!(matches!(
+            execute.command,
+            CliCommand::ArtifactExecute { .. }
+        ));
+        let denial = ParsedArguments::parse(
+            [
+                "artifacts",
+                "execute",
+                "--target-root",
+                "C:/workspace/target",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        )
+        .err()
+        .unwrap();
+        assert!(denial.contains("requires --plan"));
     }
 }

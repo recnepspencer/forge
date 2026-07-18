@@ -1,4 +1,5 @@
 mod arguments;
+mod artifact_commands;
 mod presentation;
 mod repository_validation;
 
@@ -46,6 +47,21 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
         }
         CliCommand::CiAggregate { evidence_root } => {
             aggregate_ci_evidence(&workspace_root, Path::new(&evidence_root))
+        }
+        CliCommand::ArtifactInspect {
+            target_root,
+            protected_run,
+        } => artifact_commands::inspect_artifacts(
+            &workspace_root,
+            Path::new(&target_root),
+            protected_run.as_deref().map(Path::new),
+        ),
+        CliCommand::ArtifactPlan {
+            inventory_path,
+            policy,
+        } => artifact_commands::plan_artifact_cleanup(Path::new(&inventory_path), &policy),
+        CliCommand::ArtifactExecute { plan_path } => {
+            artifact_commands::execute_artifact_cleanup(Path::new(&plan_path))
         }
         CliCommand::Proof {
             request,

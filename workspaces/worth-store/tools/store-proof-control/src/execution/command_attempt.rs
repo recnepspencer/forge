@@ -142,7 +142,7 @@ fn execute_attempt(
             wait_for_child(&mut child, unit.timeout_millis)?
         }
         Err(error) => ProofAttemptOutcome::LaunchDenied {
-            reason: format!("could not launch cargo: {error}"),
+            reason: format!("could not launch {program}: {error}"),
         },
     };
     let external_observation = match observer.take() {
@@ -198,8 +198,12 @@ fn execute_attempt(
             denials: evidence_denials.clone(),
         };
     }
-    let (cargo_compiler_artifact_messages, linked_executable_artifacts) =
-        observation::cargo_artifacts(&stdout_path)?;
+    let observed_cargo_artifacts = observation::cargo_artifacts(&stdout_path)?;
+    let cargo_compiler_artifact_messages = observed_cargo_artifacts.len();
+    let linked_executable_artifacts = observed_cargo_artifacts
+        .iter()
+        .filter_map(|artifact| artifact.executable.clone())
+        .collect();
     let attempt = ProofRunAttempt {
         attempt_identity,
         plan_digest: plan.plan_digest.clone(),
@@ -214,6 +218,7 @@ fn execute_attempt(
         stderr: log_evidence(&stderr_path)?,
         cargo_compiler_artifact_messages,
         linked_executable_artifacts,
+        observed_cargo_artifacts,
         evidence_denials,
         external_observation,
         formal_tool_evidence,

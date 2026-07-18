@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::selection::ProofProcessModel;
 
 use super::{
-    ExternalObservationReceipt, FormalToolEvidenceReference, ProcessProbeEvidenceReference,
-    UiProofEvidenceReference,
+    ExternalObservationReceipt, FormalToolEvidenceReference, ObservedCargoArtifact,
+    ProcessProbeEvidenceReference, UiProofEvidenceReference,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -57,6 +57,7 @@ pub struct ProofRunAttempt {
     pub stderr: ProofAttemptLog,
     pub cargo_compiler_artifact_messages: usize,
     pub linked_executable_artifacts: Vec<String>,
+    pub observed_cargo_artifacts: Vec<ObservedCargoArtifact>,
     pub evidence_denials: Vec<String>,
     pub external_observation: Option<ExternalObservationReceipt>,
     pub formal_tool_evidence: Option<FormalToolEvidenceReference>,
@@ -147,6 +148,7 @@ mod tests {
             },
             cargo_compiler_artifact_messages: 0,
             linked_executable_artifacts: Vec::new(),
+            observed_cargo_artifacts: Vec::new(),
             evidence_denials: Vec::new(),
             external_observation: None,
             formal_tool_evidence: None,

@@ -101,8 +101,10 @@ pub fn print_run(plan: &SelectedProofExecutionPlan, run: &ExecutedProofRun) {
         run.observed_cost.child_process_observation
     );
     println!(
-        "structural build breadth: compiler-artifacts={} linked-executables={}",
+        "structural build breadth: compiler-artifacts={} freshly-compiled={} reused={} linked-executables={}",
         run.observed_cost.cargo_compiler_artifact_messages,
+        run.observed_cost.freshly_compiled_cargo_artifacts,
+        run.observed_cost.reused_cargo_artifacts,
         run.observed_cost.linked_executable_artifacts.len()
     );
     println!(

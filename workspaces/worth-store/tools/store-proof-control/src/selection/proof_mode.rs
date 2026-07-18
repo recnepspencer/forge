@@ -205,24 +205,30 @@ impl StoreProofRequest {
     }
 
     pub(crate) fn validate_host(&self) -> Result<(), ProofProductUnavailable> {
-        let required = match self.mode {
-            StoreProofMode::Hardware => {
-                let profile = self.proof_profile.as_deref().unwrap_or_default();
-                hardware_profile_host(profile).ok_or_else(|| {
-                    ProofProductUnavailable::UnknownProofProfile {
-                        product: self.display_name(),
-                        profile: profile.to_owned(),
-                    }
-                })?
+        let required = if self.semantic_ci_partition()
+            == Some(crate::ci::CiProofPartitionKind::FormalExternal)
+        {
+            "linux"
+        } else {
+            match self.mode {
+                StoreProofMode::Hardware => {
+                    let profile = self.proof_profile.as_deref().unwrap_or_default();
+                    hardware_profile_host(profile).ok_or_else(|| {
+                        ProofProductUnavailable::UnknownProofProfile {
+                            product: self.display_name(),
+                            profile: profile.to_owned(),
+                        }
+                    })?
+                }
+                StoreProofMode::Release => release_backend_host(
+                    self.backend.as_deref().unwrap_or_default(),
+                )
+                .ok_or_else(|| ProofProductUnavailable::UnknownBackend {
+                    product: self.display_name(),
+                    backend: self.backend.clone().unwrap_or_default(),
+                })?,
+                _ => return Ok(()),
             }
-            StoreProofMode::Release => release_backend_host(
-                self.backend.as_deref().unwrap_or_default(),
-            )
-            .ok_or_else(|| ProofProductUnavailable::UnknownBackend {
-                product: self.display_name(),
-                backend: self.backend.clone().unwrap_or_default(),
-            })?,
-            _ => return Ok(()),
         };
         if required != std::env::consts::OS {
             return Err(ProofProductUnavailable::UnsupportedHost {

@@ -11,17 +11,23 @@ use crate::structural_preflight::{forge_root, require_fresh, PreflightEvidenceFr
 use worth_store_test_support::structural_preflight::StructuralPreflightEvidence;
 
 mod attempt;
+mod cargo_artifact;
 mod command_attempt;
 #[cfg(test)]
 mod command_attempt_tests;
 mod external_observer;
 mod formal_evidence;
+#[cfg(test)]
+mod formal_evidence_tests;
 mod observation;
 mod process_evidence;
 mod schedule;
 mod ui_evidence;
 
 pub use attempt::{ProofAttemptOutcome, ProofRunAttempt, ProofUnitExecutionVerdict};
+pub use cargo_artifact::{
+    CargoArtifactEquivalenceIdentity, CargoArtifactSemanticIdentity, ObservedCargoArtifact,
+};
 pub use external_observer::{ExternalObservationReceipt, ExternalObservedProcess};
 pub use formal_evidence::FormalToolEvidenceReference;
 pub use observation::ObservedProofRunCost;

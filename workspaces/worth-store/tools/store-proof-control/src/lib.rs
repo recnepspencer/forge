@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod artifact_lifecycle;
 mod authority_progression;
 pub mod ci;
 pub mod classification;
