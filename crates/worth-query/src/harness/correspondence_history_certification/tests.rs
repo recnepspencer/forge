@@ -245,25 +245,6 @@ fn correspondence_history_rejections_bind_typed_failures() {
     let matrix = MilestoneFivePointFourCorrespondenceHistoryCertificationAdapter::
         structural_correspondence_and_historical_materialization_path_test();
 
-    let compile_fail = matrix
-        .rejection_rows
-        .iter()
-        .find(|row| row.row_name == "structural-as-authoritative-forbidden")
-        .expect("compile fail row should exist");
-    assert_eq!(
-        compile_fail.hostile_lane.failure_class,
-        CorrespondenceHistoryFailureClass::CompileFail
-    );
-    assert_eq!(
-        compile_fail.hostile_lane.failure_digest,
-        "compile_fail:structural-as-authoritative-forbidden"
-    );
-    assert_eq!(
-        compile_fail.hostile_lane.compile_fail_case,
-        Some("tests/ui/advisory_structural_unique_is_not_lineage_continuity.rs")
-    );
-    assert!(compile_fail.hostile_lane.counter_snapshot_digest.is_none());
-
     let substitution = matrix
         .rejection_rows
         .iter()
@@ -275,7 +256,6 @@ fn correspondence_history_rejections_bind_typed_failures() {
     );
     assert!(!substitution.hostile_lane.failure_digest.is_empty());
     assert!(substitution.hostile_lane.counter_snapshot_digest.is_some());
-    assert!(substitution.hostile_lane.compile_fail_case.is_none());
 
     let unsupported = matrix
         .rejection_rows
@@ -287,7 +267,6 @@ fn correspondence_history_rejections_bind_typed_failures() {
         CorrespondenceHistoryFailureClass::CorrespondenceDenied
     );
     assert!(unsupported.hostile_lane.counter_snapshot_digest.is_some());
-    assert!(unsupported.hostile_lane.compile_fail_case.is_none());
 
     let host_cache = matrix
         .rejection_rows
@@ -299,48 +278,6 @@ fn correspondence_history_rejections_bind_typed_failures() {
         CorrespondenceHistoryFailureClass::HistoricalPathDenied
     );
     assert!(host_cache.hostile_lane.counter_snapshot_digest.is_some());
-    assert!(host_cache.hostile_lane.compile_fail_case.is_none());
-
-    let raw_ambiguity = matrix
-        .rejection_rows
-        .iter()
-        .find(|row| row.row_name == "raw-ambiguity-bool-forbidden")
-        .expect("raw ambiguity row should exist");
-    assert_eq!(
-        raw_ambiguity.hostile_lane.failure_class,
-        CorrespondenceHistoryFailureClass::CompileFail
-    );
-    assert_eq!(
-        raw_ambiguity.hostile_lane.failure_digest,
-        "compile_fail:raw-ambiguity-bool-forbidden"
-    );
-    assert_eq!(
-        raw_ambiguity.hostile_lane.compile_fail_case,
-        Some("tests/ui/raw_ambiguity_bool_forbidden.rs")
-    );
-    assert!(raw_ambiguity.hostile_lane.counter_snapshot_digest.is_none());
-
-    let naked_historical = matrix
-        .rejection_rows
-        .iter()
-        .find(|row| row.row_name == "naked-historical-payload-forbidden")
-        .expect("naked historical payload row should exist");
-    assert_eq!(
-        naked_historical.hostile_lane.failure_class,
-        CorrespondenceHistoryFailureClass::CompileFail
-    );
-    assert_eq!(
-        naked_historical.hostile_lane.failure_digest,
-        "compile_fail:naked-historical-payload-forbidden"
-    );
-    assert_eq!(
-        naked_historical.hostile_lane.compile_fail_case,
-        Some("tests/ui/naked_historical_payload_forbidden.rs")
-    );
-    assert!(naked_historical
-        .hostile_lane
-        .counter_snapshot_digest
-        .is_none());
 }
 
 #[test]

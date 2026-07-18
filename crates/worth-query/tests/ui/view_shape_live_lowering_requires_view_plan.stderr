@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::lower_view_shape_plan_to_live`
- --> tests/ui/view_shape_live_lowering_requires_view_plan.rs:2:5
-  |
-2 | use worth_query::facade::runtime::lower_view_shape_plan_to_live;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_view_shape_plan_to_live` in `facade::runtime`

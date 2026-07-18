@@ -1,6 +1,4 @@
-use super::{
-    MilestoneNineThreeCertificationAdapter, MILESTONE_NINE_THREE_REQUIRED_COMPILE_FAIL_TARGETS,
-};
+use super::MilestoneNineThreeCertificationAdapter;
 use crate::harness::certification::{
     contains_row, milestone_nine_three_requirements, unmet_required_assertion_classes,
     unmet_required_rows, HostileExpectation, ParityAnchor, RequiredAssertionClass,
@@ -302,23 +300,5 @@ fn milestone_nine_three_covers_required_named_rows() {
     }
     for row_name in milestone_nine_three_requirements().required_rejection_rows {
         assert!(contains_row(&matrix, row_name), "missing {row_name}");
-    }
-}
-
-#[test]
-fn milestone_nine_three_required_compile_fail_targets_are_present() {
-    let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/ui");
-
-    for target in MILESTONE_NINE_THREE_REQUIRED_COMPILE_FAIL_TARGETS {
-        assert!(
-            ui_dir.join(target).exists(),
-            "missing compile-fail fixture {target}"
-        );
-        assert!(
-            ui_dir
-                .join(target.trim_end_matches(".rs").to_string() + ".stderr")
-                .exists(),
-            "missing compile-fail stderr for {target}"
-        );
     }
 }

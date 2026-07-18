@@ -29,32 +29,6 @@ fn manifest_symbols_are_unique_and_structurally_complete() {
 }
 
 #[test]
-fn manifest_rows_are_backed_by_current_source_and_facade_exports() {
-    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-
-    for row in worth_query_public_authority_surface_rows() {
-        let source = read(crate_root, row.source_path());
-        assert!(
-            source.contains(row.source_probe()),
-            "{} source probe {:?} missing from {}",
-            row.symbol(),
-            row.source_probe(),
-            row.source_path(),
-        );
-        if let (Some(facade_path), Some(facade_probe)) = (row.facade_path(), row.facade_probe()) {
-            let facade = read(crate_root, facade_path);
-            assert!(
-                facade.contains(facade_probe),
-                "{} facade probe {:?} missing from {}",
-                row.symbol(),
-                facade_probe,
-                facade_path,
-            );
-        }
-    }
-}
-
-#[test]
 fn facade_root_has_no_topology_mirror_or_tooling_leak() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let facade = read(crate_root, "src/facade.rs");

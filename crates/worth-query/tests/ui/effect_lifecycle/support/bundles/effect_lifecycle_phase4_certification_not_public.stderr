@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::certify_effect_lifecycle_phase4`
- --> tests/ui/effect_lifecycle/support/bundles/effect_lifecycle_phase4_certification_not_public.rs:1:5
-  |
-1 | use worth_query::facade::certify_effect_lifecycle_phase4;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `certify_effect_lifecycle_phase4` in `facade`

@@ -11,7 +11,6 @@ pub enum WorthQueryLowerRuntimeCertificationLane {
     DeferredNeighborDenial,
     DownstreamBoundaryAudit,
     ProofShapeSurface,
-    CompileFailBoundary,
     Performance,
 }
 
@@ -27,7 +26,6 @@ impl WorthQueryLowerRuntimeCertificationLane {
             Self::DeferredNeighborDenial => "deferred-neighbor-denial",
             Self::DownstreamBoundaryAudit => "downstream-boundary-audit",
             Self::ProofShapeSurface => "proof-shape-surface",
-            Self::CompileFailBoundary => "compile-fail-boundary",
             Self::Performance => "performance",
         }
     }

@@ -1,5 +1,0 @@
-error[E0609]: no field `execute_basis_result_bundle` on type `&QueryReadCapability`
- --> tests/ui/facade_query_read_capability_has_no_query_context_basis_bundle.rs:6:32
-  |
-6 |     let _ = reads.capability().execute_basis_result_bundle;
-  |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^ unknown field

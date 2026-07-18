@@ -39,22 +39,6 @@ pub const UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "broad-collection-diff-denied",
 ];
 
-pub const UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES: &[&str] = &[
-    "query_read_capability_constructor_private",
-    "live_query_capability_constructor_private",
-    "preview_session_capability_constructor_private",
-    "workflow_orchestration_capability_constructor_private",
-    "historical_evaluation_capability_constructor_private",
-    "query_context_capability_constructor_private",
-    "identity_evolution_capability_constructor_private",
-    "validated_worth_query_config_constructor_private",
-    "worth_query_support_report_constructor_private",
-    "capability_admission_decision_constructor_private",
-    "legacy_broad_facade_has_no_preview_workflow_shortcut",
-    "query_basis_result_bundle_constructor_private",
-    "query_diff_result_bundle_constructor_private",
-];
-
 pub const UNIFIED_FACADE_CANONICAL_ROW_SPECS: &[UnifiedFacadeCanonicalRowSpec] = &[
     UnifiedFacadeCanonicalRowSpec {
         row_name: "unified-query-read-capability",

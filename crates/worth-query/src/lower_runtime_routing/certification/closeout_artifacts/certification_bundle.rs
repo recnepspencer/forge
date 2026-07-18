@@ -13,7 +13,6 @@ use super::bundle_types::{
 use super::output_digests::certification_output_digests;
 use crate::lower_runtime_routing::certification::boundary_certification::{
     worth_query_lower_runtime_boundary_reconciliation_report,
-    worth_query_lower_runtime_compile_fail_boundary_target_count,
     worth_query_lower_runtime_proof_shape_audit,
 };
 use crate::lower_runtime_routing::certification::performance::certify_lower_runtime_performance_slopes;
@@ -155,16 +154,6 @@ pub fn certify_lower_runtime_routing() -> WorthQueryLowerRuntimeCertificationBun
             None,
         ),
         certification_row(
-            WorthQueryLowerRuntimeCertificationLane::CompileFailBoundary,
-            non_bypass.compile_fail_boundary_digest().to_string(),
-            "lower-runtime routing constructors and certification bundles remain sealed to ordinary callers".to_string(),
-            counter_digest(&[format!(
-                "compile_fail_targets:{}",
-                worth_query_lower_runtime_compile_fail_boundary_target_count()
-            )]),
-            None,
-        ),
-        certification_row(
             WorthQueryLowerRuntimeCertificationLane::Performance,
             hash_parts(
                 &slopes
@@ -269,7 +258,6 @@ fn downstream_boundary_failure_digest(
     hash_parts(&[
         "hostile_projection_file_outside_runtime_boundary_is_rejected".to_string(),
         non_bypass.route_public_surface_digest().to_string(),
-        non_bypass.compile_fail_boundary_digest().to_string(),
     ])
 }
 

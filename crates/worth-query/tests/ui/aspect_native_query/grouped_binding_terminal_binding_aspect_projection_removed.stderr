@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_binding_aspect_projection` found for reference `&QueryResultBindingProof` in the current scope
- --> tests/ui/aspect_native_query/grouped_binding_terminal_binding_aspect_projection_removed.rs:4:21
-  |
-4 |     let _ = binding.terminal_binding_aspect_projection();
-  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&QueryResultBindingProof`

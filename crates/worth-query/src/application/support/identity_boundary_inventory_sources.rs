@@ -599,7 +599,6 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         "domain_capabilities/canonical_runtime/workflow/preview.rs" => Some(include_str!("../../domain_capabilities/canonical_runtime/workflow/preview.rs")),
         "domain_capabilities/canonical_runtime/workflow/preview_identity.rs" => Some(include_str!("../../domain_capabilities/canonical_runtime/workflow/preview_identity.rs")),
         "domain_capabilities/canonical_runtime/workflow/semantics.rs" => Some(include_str!("../../domain_capabilities/canonical_runtime/workflow/semantics.rs")),
-        "domain_capabilities/certification/boundaries.rs" => Some(include_str!("../../domain_capabilities/certification/boundaries.rs")),
         "domain_capabilities/certification/bundle/mod.rs" => Some(include_str!("../../domain_capabilities/certification/bundle/mod.rs")),
         "domain_capabilities/certification/bundle/outputs.rs" => Some(include_str!("../../domain_capabilities/certification/bundle/outputs.rs")),
         "domain_capabilities/certification/certification_surface.rs" => Some(include_str!("../../domain_capabilities/certification/certification_surface.rs")),
@@ -611,7 +610,6 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         "domain_capabilities/certification/reports/scaled.rs" => Some(include_str!("../../domain_capabilities/certification/reports/scaled.rs")),
         "domain_capabilities/certification/reports/slopes.rs" => Some(include_str!("../../domain_capabilities/certification/reports/slopes.rs")),
         "domain_capabilities/certification/surface/mod.rs" => Some(include_str!("../../domain_capabilities/certification/surface/mod.rs")),
-        "domain_capabilities/certification/transcripts.rs" => Some(include_str!("../../domain_capabilities/certification/transcripts.rs")),
         "domain_capabilities/continuity/mod.rs" => Some(include_str!("../../domain_capabilities/continuity/mod.rs")),
         "domain_capabilities/denials.rs" => Some(include_str!("../../domain_capabilities/denials.rs")),
         "domain_capabilities/dx/checked.rs" => Some(include_str!("../../domain_capabilities/dx/checked.rs")),
@@ -942,33 +940,6 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         )),
         "view_shape_live/grouped_execution.rs" => {
             Some(include_str!("../../view_shape_live/grouped_execution.rs"))
-        }
-        _ => None,
-    }
-}
-
-pub fn source_for_string_matching_path(path: &str) -> Option<&'static str> {
-    match path {
-        "runtime/tests/stop_class/consumer_support/routing.rs" => Some(include_str!(
-            "../../runtime/tests/stop_class/consumer_support/routing.rs"
-        )),
-        _ => None,
-    }
-}
-
-pub fn source_for_certification_gate_path(path: &str) -> Option<&'static str> {
-    match path {
-        "runtime/tests/session_label.rs" => {
-            Some(include_str!("../../runtime/tests/session_label.rs"))
-        }
-        "runtime/tests/evidence_identity/mod.rs" => {
-            Some(include_str!("../../runtime/tests/evidence_identity/mod.rs"))
-        }
-        "runtime/tests/stop_class/mod.rs" => {
-            Some(include_str!("../../runtime/tests/stop_class/mod.rs"))
-        }
-        "runtime/tests/identity_boundary/mod.rs" => {
-            Some(include_str!("../../runtime/tests/identity_boundary/mod.rs"))
         }
         _ => None,
     }

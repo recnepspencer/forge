@@ -331,16 +331,6 @@ fn rejection_row(
                 ),
             )
         }
-        "fabricated-branch-local-continuity-forbidden" => {
-            let query_digest = query_digest("fabricated-branch-local-continuity-forbidden");
-            let basis_digest = basis_digest("basis:compile-fail");
-            IdentityEvolutionCertificationRejection::compile_fail(
-                spec.row_name,
-                "tests/ui/identity_evolution_branch_local_promotion_forbidden.rs",
-                &query_digest,
-                &basis_digest,
-            )
-        }
         "complexity-contract-violation-denied" => {
             IdentityEvolutionCertificationRejection::from_execution_artifact(
                 &execute_artifact_for_lineage(

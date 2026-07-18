@@ -90,7 +90,6 @@ pub const MILESTONE_EIGHT_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "unsupported-template-family",
     "saved-query-support-profile-drift",
     "durable-saved-query-deferred-debt",
-    "post-admission-view-mutation-forbidden",
     "grouped-hidden-refresh-forbidden",
 ];
 
@@ -115,7 +114,6 @@ pub enum MilestoneEightPerturbationClass {
     UnsupportedTemplateFamily,
     SavedQuerySupportProfileDrift,
     DurableSavedQueryDeferredDebt,
-    PostAdmissionViewMutationForbidden,
     GroupedHiddenRefreshForbidden,
 }
 
@@ -125,7 +123,6 @@ pub enum MilestoneEightFailureClass {
     UnsupportedTemplateFamily,
     SavedQuerySupportProfileDrift,
     DurableSavedQueryDeferredDebt,
-    PostAdmissionViewMutationForbidden,
     GroupedHiddenRefreshForbidden,
 }
 
@@ -1491,20 +1488,6 @@ fn grouped_hidden_refresh_forbidden_rejection_bundle() -> MilestoneEightRejectio
     }
 }
 
-fn post_admission_view_mutation_forbidden_rejection_bundle() -> MilestoneEightRejectionBundle {
-    let stderr = include_str!("../../../tests/ui/post_admission_view_mutation_forbidden.stderr");
-    MilestoneEightRejectionBundle {
-        failure_class: MilestoneEightFailureClass::PostAdmissionViewMutationForbidden,
-        failure_digest: digest_parts(&[
-            "compile_fail:tests/ui/post_admission_view_mutation_forbidden.rs".to_string(),
-            stderr.to_string(),
-        ]),
-        counter_snapshot_digest: digest_parts(&[
-            "compile_fail:post_admission_view_mutation_forbidden".to_string(),
-        ]),
-    }
-}
-
 fn bundle_from_view_execution(
     query_digest: String,
     plan_digest: String,
@@ -1866,13 +1849,6 @@ fn rejection_rows() -> Vec<MilestoneEightRejectionRow> {
             parity_lane: saved_query_bundle(false),
         },
         MilestoneEightRejectionRow {
-            row_name: "post-admission-view-mutation-forbidden",
-            perturbation_class: MilestoneEightPerturbationClass::PostAdmissionViewMutationForbidden,
-            control_lane: detail_live_bundle(&direct_detail_canonical("Alice")),
-            hostile_lane: post_admission_view_mutation_forbidden_rejection_bundle(),
-            parity_lane: detail_live_bundle(&direct_detail_canonical("Alice")),
-        },
-        MilestoneEightRejectionRow {
             row_name: "grouped-hidden-refresh-forbidden",
             perturbation_class: MilestoneEightPerturbationClass::GroupedHiddenRefreshForbidden,
             control_lane: grouped_live_bundle(true),
@@ -1933,9 +1909,6 @@ fn bundle_digest_parts(matrix: &MilestoneEightCertificationMatrix) -> Vec<String
                 }
                 MilestoneEightFailureClass::DurableSavedQueryDeferredDebt => {
                     "durable_saved_query_deferred_debt"
-                }
-                MilestoneEightFailureClass::PostAdmissionViewMutationForbidden => {
-                    "post_admission_view_mutation_forbidden"
                 }
                 MilestoneEightFailureClass::GroupedHiddenRefreshForbidden => {
                     "grouped_hidden_refresh_forbidden"

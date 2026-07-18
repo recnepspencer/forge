@@ -15,37 +15,10 @@ const LOWER_RUNTIME_IMPORT_MARKERS: &[&str] = &[
     "worth_signal::facade",
 ];
 
-const COMPILE_FAIL_TARGETS: &[&str] = &[
-    "tests/ui/lower_runtime_routing/inventory/crossing_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/inventory/crossing_inventory_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/gaps/gap_registry_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/audit/audit_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/closeout/closeout_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/closeout/closeout_registry_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/envelopes/boundary_envelope_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/protocol/boundary_execution_receipt_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/public_surface/public_surface_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/public_surface/public_surface_inventory_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/non_bypass/non_bypass_audit_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/bundle/certification_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/bundle/certification_bundle_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/acceptance/acceptance_suite_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/reconciliation/boundary_reconciliation_report_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/closeout/closeout_report_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/closeout/closure_test_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/proof_shape/proof_shape_audit_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/synthetic_tail/synthetic_tail_report_constructor_private.rs",
-];
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryLowerRuntimeNonBypassAudit {
     route_public_surface_digest: String,
     route_non_bypass_digest: String,
-    compile_fail_boundary_digest: String,
     checked_file_count: usize,
 }
 
@@ -53,13 +26,11 @@ impl WorthQueryLowerRuntimeNonBypassAudit {
     pub(crate) fn new(
         route_public_surface_digest: String,
         route_non_bypass_digest: String,
-        compile_fail_boundary_digest: String,
         checked_file_count: usize,
     ) -> Self {
         Self {
             route_public_surface_digest,
             route_non_bypass_digest,
-            compile_fail_boundary_digest,
             checked_file_count,
         }
     }
@@ -70,10 +41,6 @@ impl WorthQueryLowerRuntimeNonBypassAudit {
 
     pub fn route_non_bypass_digest(&self) -> &str {
         &self.route_non_bypass_digest
-    }
-
-    pub fn compile_fail_boundary_digest(&self) -> &str {
-        &self.compile_fail_boundary_digest
     }
 
     pub fn checked_file_count(&self) -> usize {
@@ -102,27 +69,16 @@ pub fn certify_lower_runtime_non_bypass() -> Result<WorthQueryLowerRuntimeNonByp
     }
 
     let route_public_surface_digest = inventory.public_surface_digest();
-    let compile_fail_boundary_digest = compile_fail_boundary_digest();
     let route_non_bypass_digest = hash_parts(&[
         route_public_surface_digest.clone(),
-        compile_fail_boundary_digest.clone(),
         checked_files.to_string(),
         "query-runtime-routed-surfaces:no-lower-runtime-imports".to_string(),
     ]);
     Ok(WorthQueryLowerRuntimeNonBypassAudit::new(
         route_public_surface_digest,
         route_non_bypass_digest,
-        compile_fail_boundary_digest,
         checked_files,
     ))
-}
-
-pub fn worth_query_lower_runtime_compile_fail_boundary_digest() -> String {
-    compile_fail_boundary_digest()
-}
-
-pub fn worth_query_lower_runtime_compile_fail_boundary_target_count() -> usize {
-    COMPILE_FAIL_TARGETS.len()
 }
 
 fn routed_surface_scan_targets() -> Vec<(&'static str, bool)> {
@@ -147,15 +103,6 @@ fn workspace_root() -> Result<PathBuf, String> {
         .and_then(Path::parent)
         .map(Path::to_path_buf)
         .ok_or_else(|| "could not derive workspace root from CARGO_MANIFEST_DIR".to_string())
-}
-
-fn compile_fail_boundary_digest() -> String {
-    hash_parts(
-        &COMPILE_FAIL_TARGETS
-            .iter()
-            .map(|target| target.to_string())
-            .collect::<Vec<_>>(),
-    )
 }
 
 fn scan_allowed_query_boundary(

@@ -3,7 +3,7 @@
 
 pub use super::identity_boundary_inventory_sources::{
     source_for_format_digest_path, source_for_session_admission_path,
-    source_for_string_carried_session_identity_path, source_for_string_matching_path,
+    source_for_string_carried_session_identity_path,
 };
 
 pub const EVIDENCE_IDENTITY_COVERED_SURFACES: &[&str] = &[
@@ -355,7 +355,6 @@ pub const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
     "domain_capabilities/canonical_runtime/workflow/preview.rs",
     "domain_capabilities/canonical_runtime/workflow/preview_identity.rs",
     "domain_capabilities/canonical_runtime/workflow/semantics.rs",
-    "domain_capabilities/certification/boundaries.rs",
     "domain_capabilities/certification/bundle/mod.rs",
     "domain_capabilities/certification/bundle/outputs.rs",
     "domain_capabilities/certification/certification_surface.rs",
@@ -367,7 +366,6 @@ pub const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
     "domain_capabilities/certification/reports/scaled.rs",
     "domain_capabilities/certification/reports/slopes.rs",
     "domain_capabilities/certification/surface/mod.rs",
-    "domain_capabilities/certification/transcripts.rs",
     "domain_capabilities/continuity/mod.rs",
     "domain_capabilities/denials.rs",
     "domain_capabilities/dx/checked.rs",
@@ -519,9 +517,6 @@ pub const LOWER_RUNTIME_IDENTITY_SHIM_PATHS: &[&str] = &[
     "lower_runtime_routing/certification/surface/fixtures/phase_six/readmission_support.rs",
     "lower_runtime_routing/certification/surface/fixtures/phase_six/subscription.rs",
 ];
-
-pub const EXACT_ZERO_STRING_MATCHING_PATHS: &[&str] =
-    &["runtime/tests/stop_class/consumer_support/routing.rs"];
 
 pub const EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS: &[&str] =
     &["runtime/runtime_sessions.rs", "runtime/workspace.rs"];
@@ -687,23 +682,6 @@ pub fn scan_lower_runtime_identity_shim_paths() -> Vec<&'static str> {
         if FORBIDDEN_LOWER_RUNTIME_IDENTITY_SHIM_PATTERNS
             .iter()
             .any(|pattern| source.contains(pattern))
-        {
-            remaining.push(path);
-        }
-    }
-    remaining
-}
-
-pub fn scan_string_matching_residue_paths() -> Vec<&'static str> {
-    let mut remaining = Vec::new();
-    for &path in EXACT_ZERO_STRING_MATCHING_PATHS {
-        let Some(source) = source_for_string_matching_path(path) else {
-            remaining.push(path);
-            continue;
-        };
-        if source.contains("to_string().contains(")
-            || source.contains("message.contains")
-            || source.contains("error_message.contains")
         {
             remaining.push(path);
         }

@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn certification_closes_all_runtime_backed_authority_seams() {
-        let bundle = certify_milestone_nine_twelve("worth-ui-reference-consumer-adoption-v1");
+        let bundle = certify_milestone_nine_twelve("reference-consumer-adoption-v1");
         assert!(bundle.is_closed(), "bundle: {bundle:#?}");
         assert!(!bundle.certification_digest().is_empty());
     }

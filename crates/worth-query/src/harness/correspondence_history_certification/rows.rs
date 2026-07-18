@@ -1,7 +1,7 @@
 use crate::harness::certification::ParityAnchor;
 
 use super::fixtures::{
-    broad_candidate_scan_rejection, compile_fail_rejection, executor_path_mutation_rejection,
+    broad_candidate_scan_rejection, executor_path_mutation_rejection,
     hidden_materialization_substitution_rejection, host_cache_history_authority_rejection,
     unsupported_correspondence_family_rejection, unsupported_historical_materialization_rejection,
     CertificationLanes,
@@ -89,16 +89,6 @@ pub(crate) fn rejection_row(
     lanes: &CertificationLanes,
 ) -> model::CorrespondenceHistoryRejectionRow {
     let (control_lane, hostile_lane, parity_lane) = match spec.row_name {
-        "structural-as-authoritative-forbidden" => (
-            lanes.lineage.clone(),
-            compile_fail_rejection(spec),
-            lanes.lineage.clone(),
-        ),
-        "ambiguous-correspondence-not-collapsed" | "raw-ambiguity-bool-forbidden" => (
-            lanes.structural.clone(),
-            compile_fail_rejection(spec),
-            lanes.structural.clone(),
-        ),
         "unsupported-correspondence-family" => (
             lanes.structural.clone(),
             unsupported_correspondence_family_rejection(),
@@ -127,11 +117,6 @@ pub(crate) fn rejection_row(
         "host-cache-history-authority-forbidden" => (
             lanes.replay.clone(),
             host_cache_history_authority_rejection(),
-            lanes.replay.clone(),
-        ),
-        "naked-historical-payload-forbidden" => (
-            lanes.replay.clone(),
-            compile_fail_rejection(spec),
             lanes.replay.clone(),
         ),
         other => panic!("unknown 5.4 rejection row {other}"),

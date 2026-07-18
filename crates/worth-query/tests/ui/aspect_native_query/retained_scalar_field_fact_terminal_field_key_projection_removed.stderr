@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_field_key_projection` found for reference `&WorthQueryRetainedScalarFieldFact` in the current scope
- --> tests/ui/aspect_native_query/retained_scalar_field_fact_terminal_field_key_projection_removed.rs:4:17
-  |
-4 |     let _ = row.terminal_field_key_projection();
-  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryRetainedScalarFieldFact`

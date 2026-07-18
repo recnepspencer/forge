@@ -66,7 +66,6 @@ pub(crate) fn unsupported_historical_materialization_rejection(
             .as_str()
             .to_string(),
         counter_snapshot_digest: Some(parity_bundle.counter_snapshot_digest().as_str().to_string()),
-        compile_fail_case: None,
     }
 }
 
@@ -122,7 +121,6 @@ pub(crate) fn hidden_materialization_substitution_rejection(
             .as_str()
             .to_string(),
         counter_snapshot_digest: Some(parity_bundle.counter_snapshot_digest().as_str().to_string()),
-        compile_fail_case: None,
     }
 }
 
@@ -177,7 +175,6 @@ pub(crate) fn executor_path_mutation_rejection() -> CorrespondenceHistoryCertifi
             .as_str()
             .to_string(),
         counter_snapshot_digest: Some(parity_bundle.counter_snapshot_digest().as_str().to_string()),
-        compile_fail_case: None,
     }
 }
 
@@ -218,6 +215,5 @@ pub(crate) fn host_cache_history_authority_rejection() -> CorrespondenceHistoryC
             .as_str()
             .to_string(),
         counter_snapshot_digest: Some(parity_bundle.counter_snapshot_digest().as_str().to_string()),
-        compile_fail_case: None,
     }
 }

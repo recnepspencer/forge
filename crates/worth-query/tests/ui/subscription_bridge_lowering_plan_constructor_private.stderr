@@ -1,7 +1,0 @@
-error[E0560]: struct `BridgeSubscriptionLoweringPlan` has no field named `query_declaration_digest`
- --> tests/ui/subscription_bridge_lowering_plan_constructor_private.rs:5:9
-  |
-5 |         query_declaration_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^ `BridgeSubscriptionLoweringPlan` does not have this field
-  |
-  = note: all struct fields are already assigned

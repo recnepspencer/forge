@@ -120,10 +120,6 @@ fn must_ship_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "parallel-admitted-parity",
                 "serial-fallback-parity",
             ],
-            compile_fail_cases: &[
-                "tests/ui/private_parallel_admission_route_fields.rs",
-                "tests/ui/private_serial_fallback_route_fields.rs",
-            ],
             notes: "Proof-bearing frontier planning and route artifacts are crate-owned and sealed.",
         },
         FrontierCloseoutRequirement {
@@ -136,7 +132,6 @@ fn must_ship_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "FrontierPlanningReport",
             ],
             certification_rows: &["frontier-serial-control", "parallel-admitted-parity"],
-            compile_fail_cases: &["tests/ui/private_frontier_planning_module.rs"],
             notes: "Planner-owned packet and merge contracts are lowered before execution.",
         },
         FrontierCloseoutRequirement {
@@ -149,7 +144,6 @@ fn must_ship_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "FrontierRouteReport",
             ],
             certification_rows: &["serial-fallback-parity", "predicted-vs-realized-breadth"],
-            compile_fail_cases: &[],
             notes: "Fallback and drift semantics are explicit in route construction and reports.",
         },
         FrontierCloseoutRequirement {
@@ -167,25 +161,9 @@ fn must_ship_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "unsupported-frontier-family",
                 "unsupported-bundle-composition",
                 "mixed-basis-bundle-denied",
-                "forbidden-executor-speculative-admission",
                 "forbidden-hidden-serial-fallback",
-                "invalid-route-posture-override",
-                "forbidden-serial-route-on-parallel-entrypoint",
             ],
-            compile_fail_cases: &[],
             notes: "Named canonical and rejection rows are emitted by the frontier certification adapter.",
-        },
-        FrontierCloseoutRequirement {
-            requirement_name: "compile-time and privacy hardening",
-            status: FrontierCloseoutStatus::Satisfied,
-            production_artifacts: &["ParallelAdmissionRoute", "SerialFallbackRoute"],
-            certification_rows: &[],
-            compile_fail_cases: &[
-                "tests/ui/serial_route_cannot_use_parallel_entrypoint.rs",
-                "tests/ui/frontier_route_evidence_constructor_not_public.rs",
-                "tests/ui/signal_frontier_adapter_route_minting_not_public.rs",
-            ],
-            notes: "Route forging, override, and wrong-entrypoint execution are compile-fail or privacy-blocked.",
         },
     ]
 }
@@ -201,7 +179,6 @@ fn must_preserve_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "parallel-admitted-parity",
                 "exact-basis-bundle-parity",
             ],
-            compile_fail_cases: &[],
             notes: "Frontier posture lowers from existing plan/basis artifacts rather than redefining them.",
         },
         FrontierCloseoutRequirement {
@@ -214,7 +191,6 @@ fn must_preserve_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "unsupported-frontier-family",
                 "unsupported-bundle-composition",
             ],
-            compile_fail_cases: &[],
             notes: "Only already-admitted families enter frontier lowering; unsupported families fail closed.",
         },
         FrontierCloseoutRequirement {
@@ -226,7 +202,6 @@ fn must_preserve_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "ExecutionResultEnvelope",
             ],
             certification_rows: &["parallel-admitted-parity", "serial-fallback-parity"],
-            compile_fail_cases: &["tests/ui/serial_route_cannot_use_parallel_entrypoint.rs"],
             notes: "Typed executor entrypoints preserve planner-owned posture and zero rediscovery invariants.",
         },
     ]
@@ -243,7 +218,6 @@ fn proof_obligation_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "bundle-route-posture-parity",
                 "work-avoided-counter-parity",
             ],
-            compile_fail_cases: &[],
             notes: "Counter snapshots now expose all required 5.3 proof counters through production-owned parity artifacts.",
         },
         FrontierCloseoutRequirement {
@@ -259,7 +233,6 @@ fn proof_obligation_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "exact-basis-bundle-parity",
                 "mixed-basis-bundle-denied",
             ],
-            compile_fail_cases: &[],
             notes: "Parallel and serial bundle lanes both carry bundle posture and bundle counters.",
         },
         FrontierCloseoutRequirement {
@@ -271,7 +244,6 @@ fn proof_obligation_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "FrontierRouteReport",
             ],
             certification_rows: &["predicted-vs-realized-breadth"],
-            compile_fail_cases: &[],
             notes: "DeniedByDrift blocks route construction while SerialFallbackRequired changes route posture explicitly.",
         },
     ]
@@ -294,12 +266,8 @@ fn acceptance_evidence_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "unsupported-frontier-family",
                 "unsupported-bundle-composition",
                 "mixed-basis-bundle-denied",
-                "forbidden-executor-speculative-admission",
                 "forbidden-hidden-serial-fallback",
-                "invalid-route-posture-override",
-                "forbidden-serial-route-on-parallel-entrypoint",
             ],
-            compile_fail_cases: &[],
             notes: "The frontier certification suite provides the canonical machine-checkable acceptance proof.",
         },
         FrontierCloseoutRequirement {
@@ -311,7 +279,6 @@ fn acceptance_evidence_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "parallel-admitted-parity",
                 "serial-fallback-parity",
             ],
-            compile_fail_cases: &[],
             notes: "Parity bundles carry query_digest, plan_digest, result_digest, and counter_snapshot directly.",
         },
         FrontierCloseoutRequirement {
@@ -328,7 +295,6 @@ fn acceptance_evidence_requirements() -> Vec<FrontierCloseoutRequirement> {
                 "mixed-basis-bundle-denied",
                 "forbidden-hidden-serial-fallback",
             ],
-            compile_fail_cases: &[],
             notes: "Typed denial surfaces back frontier-family rejection, bundle-composition denial, and mixed-basis rejection before execution.",
         },
     ]
@@ -499,15 +465,7 @@ fn rejection_row(
         "unsupported-bundle-composition" => unsupported_bundle_composition_rejection(),
         "mixed-basis-bundle-denied" => mixed_basis_bundle_rejection(),
         "forbidden-hidden-serial-fallback" => hidden_serial_fallback_rejection(),
-        _ => FrontierCertificationRejection {
-            failure_class: FrontierFailureClass::CompileFail,
-            failure_digest: format!(
-                "compile_fail:{}",
-                spec.compile_fail_case.unwrap_or("unknown")
-            ),
-            counter_snapshot: crate::planning::FrontierCounterSnapshot::compile_fail(),
-            compile_fail_case: spec.compile_fail_case,
-        },
+        other => panic!("unknown frontier rejection row {other}"),
     };
 
     RejectionCertificationRow {
@@ -526,7 +484,6 @@ fn unsupported_frontier_family_rejection() -> FrontierCertificationRejection {
         failure_class: FrontierFailureClass::UnsupportedFrontierFamily,
         failure_digest: format!("unsupported_frontier_family:{error:?}"),
         counter_snapshot: crate::planning::FrontierCounterSnapshot::parallel_admission_denial(),
-        compile_fail_case: None,
     }
 }
 
@@ -542,7 +499,6 @@ fn unsupported_bundle_composition_rejection() -> FrontierCertificationRejection 
         failure_class: FrontierFailureClass::UnsupportedBundleComposition,
         failure_digest: format!("unsupported_bundle_composition:{error:?}"),
         counter_snapshot: crate::planning::FrontierCounterSnapshot::parallel_admission_denial(),
-        compile_fail_case: None,
     }
 }
 
@@ -558,7 +514,6 @@ fn mixed_basis_bundle_rejection() -> FrontierCertificationRejection {
         failure_class: FrontierFailureClass::MixedBasisBundleDenied,
         failure_digest: format!("mixed_basis_bundle:{error:?}"),
         counter_snapshot: crate::planning::FrontierCounterSnapshot::mixed_basis_bundle_denial(),
-        compile_fail_case: None,
     }
 }
 
@@ -577,7 +532,6 @@ fn hidden_serial_fallback_rejection() -> FrontierCertificationRejection {
         failure_class: FrontierFailureClass::HiddenSerialFallbackDenied,
         failure_digest: format!("hidden_serial_fallback:{error:?}"),
         counter_snapshot: crate::planning::FrontierCounterSnapshot::parallel_admission_denial(),
-        compile_fail_case: None,
     }
 }
 

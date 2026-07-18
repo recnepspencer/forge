@@ -1,7 +1,6 @@
 mod audits;
 mod bundle;
 mod fixtures;
-mod manifests;
 mod oracles;
 mod output_manifest;
 mod reports;
@@ -12,7 +11,6 @@ pub(crate) const INTENT_ADMISSION_CERTIFICATION_CHILD_MODULES: &[&str] = &[
     "audits",
     "bundle",
     "fixtures",
-    "manifests",
     "oracles",
     "output_manifest",
     "reports",
@@ -26,21 +24,12 @@ pub(crate) const INTENT_ADMISSION_CERTIFICATION_EXPORTED_SURFACE: &[&str] = &[
     "certify_intent_admission",
     "WorthQueryIntentAdmissionCertificationBundle",
     "WorthQueryIntentAdmissionCertificationOutput",
-    "worth_query_intent_admission_compile_fail_targets",
-    "worth_query_intent_admission_crate_doc_example_targets",
-    "worth_query_intent_admission_golden_transcripts",
-    "WorthQueryIntentAdmissionCompileFailTarget",
-    "WorthQueryIntentAdmissionCrateDocExampleTarget",
-    "WorthQueryIntentAdmissionGoldenTranscript",
     "worth_query_intent_admission_oracle_report",
     "WorthQueryIntentAdmissionOracleComparisonRow",
     "WorthQueryIntentAdmissionOracleLane",
     "WorthQueryIntentAdmissionOracleManifestRow",
     "WorthQueryIntentAdmissionOracleReport",
     "worth_query_intent_admission_certification_output_manifest",
-    "worth_query_intent_admission_doc_example_report",
-    "WorthQueryIntentAdmissionDocExampleReport",
-    "WorthQueryIntentAdmissionDocExampleRow",
     "worth_query_intent_admission_legacy_parity_report",
     "WorthQueryIntentAdmissionLegacyParityCheck",
     "WorthQueryIntentAdmissionLegacyParityLane",
@@ -77,12 +66,6 @@ pub use bundle::{
     WorthQueryIntentAdmissionCertificationOutput,
 };
 pub(crate) use fixtures::{certification_bridge, certification_runtime};
-pub use manifests::{
-    worth_query_intent_admission_compile_fail_targets,
-    worth_query_intent_admission_crate_doc_example_targets,
-    worth_query_intent_admission_golden_transcripts, WorthQueryIntentAdmissionCompileFailTarget,
-    WorthQueryIntentAdmissionGoldenTranscript,
-};
 pub use oracles::{
     worth_query_intent_admission_oracle_report, WorthQueryIntentAdmissionOracleComparisonRow,
     WorthQueryIntentAdmissionOracleLane, WorthQueryIntentAdmissionOracleManifestRow,

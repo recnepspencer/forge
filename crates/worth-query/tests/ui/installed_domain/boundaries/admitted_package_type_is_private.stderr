@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::domain::WorthQueryAdmittedDomainPackage`
- --> tests/ui/installed_domain/boundaries/admitted_package_type_is_private.rs:1:5
-  |
-1 | use worth_query::facade::domain::WorthQueryAdmittedDomainPackage;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-------------------------------
-  |     |                            |
-  |     |                            help: a similar name exists in the module: `WorthQueryDomainPackage`
-  |     no `WorthQueryAdmittedDomainPackage` in `facade::domain`

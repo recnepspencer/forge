@@ -240,10 +240,6 @@ pub enum WorthQueryEvidenceScope {
     ApplicationStopClassBoundaryClosure,
     ApplicationSessionLabelBoundaryClosure,
     ApplicationIdentityBoundaryClosure,
-    ApplicationConsumerKitFamilyClosure,
-    ApplicationConsumerKitHostileCertification,
-    ApplicationConsumerKitReferenceResidue,
-    ApplicationConsumerKitClosure,
 }
 
 impl WorthQueryEvidenceScope {

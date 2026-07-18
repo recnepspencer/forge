@@ -246,7 +246,7 @@ const HOSTILE_CERTIFICATION_SOURCES: &[(WorthQueryConsumerResidueClass, &str)] =
     ),
     (
         WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
-        "struct WorthUiQueryMeasurementConsumptionIdentity;",
+        "struct ConsumerMeasurementConsumptionIdentity;",
     ),
     (
         WorthQueryConsumerResidueClass::LocalProjectionContractBinding,

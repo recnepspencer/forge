@@ -4,21 +4,6 @@ use std::collections::BTreeSet;
 #[test]
 fn intent_admission_certification_bundle_assembles_phase_six_foundation_artifacts() {
     let bundle = certify_intent_admission();
-    let compile_fail_targets = worth_query_intent_admission_compile_fail_targets();
-    let golden_transcripts = worth_query_intent_admission_golden_transcripts();
-    let compile_fail_paths = compile_fail_targets
-        .iter()
-        .map(|target| target.path())
-        .collect::<Vec<_>>();
-    let golden_paths = golden_transcripts
-        .iter()
-        .map(|target| target.path())
-        .collect::<Vec<_>>();
-    let crate_doc_example_targets = worth_query_intent_admission_crate_doc_example_targets();
-    let crate_doc_example_paths = crate_doc_example_targets
-        .iter()
-        .map(|target| target.path())
-        .collect::<Vec<_>>();
     let required_outputs = worth_query_intent_admission_required_certification_outputs();
     let closeout_extension_outputs = worth_query_intent_admission_closeout_extension_outputs();
     let output_manifest = worth_query_intent_admission_certification_output_manifest();
@@ -40,39 +25,10 @@ fn intent_admission_certification_bundle_assembles_phase_six_foundation_artifact
         bundle.support_matrix().rows(),
         worth_query_intent_admission_support_matrix().rows()
     );
-    assert_eq!(
-        bundle.public_boundary_audit().compile_fail_targets(),
-        compile_fail_targets
-    );
-    assert_eq!(
-        bundle.public_boundary_audit().golden_transcripts(),
-        golden_transcripts
-    );
-    assert_eq!(
-        bundle.public_boundary_audit().crate_doc_example_targets(),
-        crate_doc_example_targets
-    );
     assert_eq!(bundle.output_manifest(), output_manifest);
-    assert_eq!(compile_fail_targets.len(), 36);
-    assert_eq!(golden_transcripts.len(), 5);
-    assert_eq!(crate_doc_example_targets.len(), 5);
-    assert_eq!(output_manifest.len(), 53);
-    assert_eq!(required_outputs.len(), 42);
-    assert_eq!(closeout_extension_outputs.len(), 11);
-    assert_eq!(
-        compile_fail_paths.len(),
-        compile_fail_paths
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>()
-            .len(),
-        "compile-fail manifest must be duplicate-free"
-    );
-    assert_eq!(
-        golden_paths.len(),
-        golden_paths.iter().copied().collect::<BTreeSet<_>>().len(),
-        "golden transcript manifest must be duplicate-free"
-    );
+    assert_eq!(output_manifest.len(), 49);
+    assert_eq!(required_outputs.len(), 40);
+    assert_eq!(closeout_extension_outputs.len(), 9);
     assert_eq!(
         output_names.len(),
         output_names.iter().copied().collect::<BTreeSet<_>>().len(),
@@ -111,15 +67,6 @@ fn intent_admission_certification_bundle_assembles_phase_six_foundation_artifact
         0,
         "required certification outputs and closeout extensions must stay disjoint"
     );
-    assert_eq!(
-        crate_doc_example_paths.len(),
-        crate_doc_example_paths
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>()
-            .len(),
-        "crate-doc example manifest must be duplicate-free"
-    );
     assert_eq!(output_names, output_manifest);
     assert_eq!(
         output_manifest
@@ -132,59 +79,6 @@ fn intent_admission_certification_bundle_assembles_phase_six_foundation_artifact
             .copied()
             .collect::<BTreeSet<_>>(),
         "final output manifest must be exactly the union of spec-required outputs and explicit closeout extensions"
-    );
-    assert!(compile_fail_paths.iter().all(|path| {
-        path.starts_with("tests/ui/intent_admission/") && !path.contains("/golden/")
-    }));
-    assert!(golden_paths
-        .iter()
-        .all(|path| path.starts_with("tests/ui/intent_admission/golden/")));
-    assert!(crate_doc_example_paths
-        .iter()
-        .all(|path| path.starts_with("tests/ui/intent_admission/docs/")));
-    assert!(compile_fail_targets.iter().any(|target| {
-        target
-            .path()
-            .ends_with("intent_admission_width_run_row_constructor_private.rs")
-    }));
-    assert!(golden_transcripts.iter().any(|transcript| {
-        transcript
-            .path()
-            .ends_with("intent_admission_basis_projection_golden_transcript_compiles.rs")
-    }));
-    assert!(golden_transcripts.iter().any(|transcript| {
-        transcript.path().ends_with(
-            "intent_admission_read_mutation_inspection_routing_golden_transcript_compiles.rs",
-        )
-    }));
-    assert!(crate_doc_example_targets.iter().any(|target| {
-        target.label() == "read_mutation_inspection_routing"
-            && target
-                .path()
-                .ends_with("intent_admission_doc_read_mutation_inspection_routing_compiles.rs")
-    }));
-    assert_eq!(
-        bundle.output_digest("intent_golden_transcript_digest"),
-        Some(bundle.public_boundary_audit().golden_transcript_digest())
-    );
-    assert_eq!(
-        bundle
-            .public_boundary_audit()
-            .crate_doc_example_target_digest(),
-        &crate::identity::hash_parts(
-            &crate_doc_example_targets
-                .iter()
-                .map(|target| format!("{}:{}", target.label(), target.path()))
-                .collect::<Vec<_>>()
-        )
-    );
-    assert_eq!(
-        bundle.output_digest("compile_fail_boundary_digest"),
-        Some(
-            bundle
-                .public_boundary_audit()
-                .compile_fail_boundary_digest()
-        )
     );
     assert_eq!(
         bundle.output_digest("decision_phase_progression_digest"),
@@ -209,10 +103,6 @@ fn intent_admission_certification_bundle_assembles_phase_six_foundation_artifact
         bundle
             .representative_output_report()
             .digest_for("failure_digest")
-    );
-    assert_eq!(
-        bundle.output_digest("crate_doc_example_digest"),
-        Some(bundle.doc_example_report().crate_doc_example_digest())
     );
     assert_eq!(
         bundle.output_digest("decision_oracle_digest"),

@@ -1,4 +1,4 @@
-pub const REQUIRED_CERTIFICATION_OUTPUT_MANIFEST: [&str; 37] = [
+pub const REQUIRED_CERTIFICATION_OUTPUT_MANIFEST: [&str; 34] = [
     "query_digest",
     "capability_request_digest",
     "capability_family_digest",
@@ -16,14 +16,11 @@ pub const REQUIRED_CERTIFICATION_OUTPUT_MANIFEST: [&str; 37] = [
     "route_failure_topology_digest",
     "route_support_matrix_digest",
     "route_public_surface_digest",
-    "route_target_dx_digest",
-    "route_golden_transcript_digest",
     "route_proof_shape_digest",
     "route_phase_progression_digest",
     "route_parity_digest",
     "route_non_bypass_digest",
     "lower_runtime_gap_registry_digest",
-    "compile_fail_boundary_digest",
     "failure_digest",
     "counter_snapshot",
     "crossing_inventory_width",
@@ -53,7 +50,7 @@ pub const CLOSEOUT_EXTENSION_OUTPUT_MANIFEST: [&str; 12] = [
     "route_typestate_transition_digest",
 ];
 
-pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 49] = [
+pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 46] = [
     "query_digest",
     "capability_request_digest",
     "capability_family_digest",
@@ -72,8 +69,6 @@ pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 49] = [
     "route_support_matrix_digest",
     "route_public_surface_digest",
     "route_boundary_reconciliation_digest",
-    "route_target_dx_digest",
-    "route_golden_transcript_digest",
     "route_concrete_surface_digest",
     "route_phase_artifact_manifest_digest",
     "route_synthetic_surface_digest",
@@ -86,7 +81,6 @@ pub const CERTIFICATION_OUTPUT_MANIFEST: [&str; 49] = [
     "route_non_bypass_digest",
     "route_typestate_transition_digest",
     "lower_runtime_gap_registry_digest",
-    "compile_fail_boundary_digest",
     "failure_digest",
     "counter_snapshot",
     "crossing_inventory_width",

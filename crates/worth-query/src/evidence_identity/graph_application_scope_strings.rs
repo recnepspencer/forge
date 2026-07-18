@@ -112,18 +112,6 @@ pub(crate) fn graph_application_evidence_scope_as_str(
         WorthQueryEvidenceScope::ApplicationIdentityBoundaryClosure => {
             "application-identity-boundary-closure"
         }
-        WorthQueryEvidenceScope::ApplicationConsumerKitFamilyClosure => {
-            "application-consumer-kit-family-closure"
-        }
-        WorthQueryEvidenceScope::ApplicationConsumerKitHostileCertification => {
-            "application-consumer-kit-hostile-certification"
-        }
-        WorthQueryEvidenceScope::ApplicationConsumerKitReferenceResidue => {
-            "application-consumer-kit-reference-residue"
-        }
-        WorthQueryEvidenceScope::ApplicationConsumerKitClosure => {
-            "application-consumer-kit-closure"
-        }
         _ => unreachable!("graph/application scope helper called with unrelated scope"),
     }
 }

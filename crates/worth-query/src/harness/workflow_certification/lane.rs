@@ -29,7 +29,6 @@ pub enum WorkflowPerturbationClass {
     DeniedMergeClass,
     ExplicitRebindRequired,
     PostMergeOutcomeForbidden,
-    CompileFailBoundary,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,7 +42,6 @@ pub enum WorkflowFailureClass {
     ExplicitRebindRequired,
     AmbientBasisFallbackForbidden,
     PostMergeOutcomeForbidden,
-    CompileFail,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -164,7 +162,6 @@ pub struct WorkflowCertificationRejection {
     pub counter_snapshot_digest: String,
     pub drift_outcome: Option<WorkflowPredictionDriftOutcome>,
     pub counters: Option<WorkflowCounters>,
-    pub compile_fail_case: Option<&'static str>,
 }
 
 impl WorkflowCertificationRejection {
@@ -226,23 +223,6 @@ impl WorkflowCertificationRejection {
             ]),
             drift_outcome: Some(error.drift_outcome().clone()),
             counters: Some(error.counters().clone()),
-            compile_fail_case: None,
-        }
-    }
-
-    pub(crate) fn compile_fail(case: &'static str) -> Self {
-        Self {
-            failure_class: WorkflowFailureClass::CompileFail,
-            failure_digest: digest_parts(&[
-                "failure:CompileFail".to_string(),
-                format!("case:{case}"),
-            ]),
-            counter_snapshot_digest: digest_parts(
-                &["compile_fail:no_runtime_counters".to_string()],
-            ),
-            drift_outcome: None,
-            counters: None,
-            compile_fail_case: Some(case),
         }
     }
 
@@ -354,7 +334,6 @@ impl WorkflowCertificationRejection {
             ]),
             drift_outcome: None,
             counters: None,
-            compile_fail_case: None,
         }
     }
 
@@ -383,7 +362,6 @@ impl WorkflowCertificationRejection {
             ]),
             drift_outcome: None,
             counters: None,
-            compile_fail_case: None,
         }
     }
 }

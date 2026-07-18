@@ -26,5 +26,9 @@ syn = { version = "2", features = ["full", "visit"] }
 [dev-dependencies]
 trybuild.workspace = true
 
+[[test]]
+name = "compile_certification"
+path = "tests/compile_certification.rs"
+
 [lints]
 workspace = true

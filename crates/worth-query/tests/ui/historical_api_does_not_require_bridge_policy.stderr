@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::foundation::admit_historical_evaluation_path`
- --> tests/ui/historical_api_does_not_require_bridge_policy.rs:1:39
-  |
-1 | use worth_query::facade::foundation::{admit_historical_evaluation_path, HistoricalEvaluationRequest};
-  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_historical_evaluation_path` in `facade::foundation`

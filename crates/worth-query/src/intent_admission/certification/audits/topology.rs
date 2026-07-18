@@ -140,7 +140,7 @@ impl WorthQueryIntentAdmissionTopologyAudit {
                 INTENT_ADMISSION_CERTIFICATION_MODULE_ROOT,
                 INTENT_ADMISSION_CERTIFICATION_CHILD_MODULES,
                 INTENT_ADMISSION_CERTIFICATION_EXPORTED_SURFACE,
-                "owns audits bundles representative rows slope reports and compile-fail manifests",
+                "owns audits bundles representative rows and slope reports",
             ),
         ];
         let topology_digest = hash_parts(

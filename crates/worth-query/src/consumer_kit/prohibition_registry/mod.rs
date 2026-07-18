@@ -1,4 +1,3 @@
-mod compile_fail_manifest;
 mod documentation;
 mod enforcement;
 mod registry;
@@ -8,9 +7,6 @@ mod seam;
 #[cfg(test)]
 mod tests;
 
-pub use compile_fail_manifest::{
-    hard_prohibition_compile_fail_fixtures, WorthQueryProhibitionCompileFailFixture,
-};
 pub use documentation::{
     hard_prohibition_documentation_rows, hard_prohibition_documented_seam_keys,
     render_hard_prohibition_reference, WorthQueryHardProhibitionDocumentationRow,

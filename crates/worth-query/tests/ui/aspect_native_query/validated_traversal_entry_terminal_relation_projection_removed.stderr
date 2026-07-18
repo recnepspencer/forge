@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_relation_projection` found for struct `ValidatedTraversalEntry` in the current scope
- --> tests/ui/aspect_native_query/validated_traversal_entry_terminal_relation_projection_removed.rs:5:19
-  |
-5 |     let _ = entry.terminal_relation_projection();
-  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ValidatedTraversalEntry`

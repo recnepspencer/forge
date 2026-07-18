@@ -1,5 +1,0 @@
-error[E0425]: cannot find type `NormalizedBasisIntent` in module `worth_query::facade`
- --> tests/ui/basis_lifecycle/proof/basis_lifecycle_admitted_capability_constructor_private.rs:3:41
-  |
-3 | fn normalized() -> worth_query::facade::NormalizedBasisIntent {
-  |                                         ^^^^^^^^^^^^^^^^^^^^^ not found in `worth_query::facade`

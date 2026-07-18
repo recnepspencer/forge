@@ -853,10 +853,7 @@ fn rejection_row(
                 .expect_err("mutation outcome should deny post-merge inspection");
             WorkflowCertificationRejection::from_inspection_error(&error)
         }
-        _ => WorkflowCertificationRejection::compile_fail(
-            spec.compile_fail_case
-                .expect("compile-fail workflow rejection rows must declare a case"),
-        ),
+        other => panic!("unknown workflow rejection row {other}"),
     };
 
     RejectionCertificationRow {

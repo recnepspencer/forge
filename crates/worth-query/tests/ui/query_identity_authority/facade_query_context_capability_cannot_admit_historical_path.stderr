@@ -1,5 +1,0 @@
-error[E0609]: no field `admit_path` on type `&QueryContextCapability`
- --> tests/ui/facade_query_context_capability_cannot_admit_historical_path.rs:6:35
-  |
-6 |     let _ = contexts.capability().admit_path;
-  |                                   ^^^^^^^^^^ unknown field

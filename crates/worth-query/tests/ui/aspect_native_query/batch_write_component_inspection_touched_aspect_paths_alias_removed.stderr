@@ -1,5 +1,0 @@
-error[E0599]: no method named `touched_aspect_paths` found for reference `&WorthQueryBatchWriteComponentInspection` in the current scope
- --> tests/ui/aspect_native_query/batch_write_component_inspection_touched_aspect_paths_alias_removed.rs:4:24
-  |
-4 |     let _ = inspection.touched_aspect_paths();
-  |                        ^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryBatchWriteComponentInspection`

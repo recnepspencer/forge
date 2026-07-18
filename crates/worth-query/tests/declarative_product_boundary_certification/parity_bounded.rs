@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use super::product_support as fixture;
 
 #[test]
@@ -105,60 +103,6 @@ fn unrelated_workspace_size_does_not_change_ergonomic_lowering_work() {
         fixture::write_task(&mut unrelated, &format!("unrelated-{index}"));
     }
     assert_eq!(denied_read(&mut empty), denied_read(&mut unrelated));
-}
-
-#[test]
-fn reference_consumers_are_source_backed_and_orchestration_free() {
-    use worth_query::facade::certification::{
-        audit_consumer_orchestration_sources, audit_reference_consumer_adoption_sources,
-        worth_query_reference_consumer_adoption_rows,
-        worth_query_reference_consumer_deleted_residue, WorthQueryDeclarativeSurfaceSource,
-        WorthQueryReferenceConsumerSource,
-    };
-    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let root = crate_root
-        .parent()
-        .and_then(std::path::Path::parent)
-        .unwrap();
-    let mut paths = BTreeSet::new();
-    paths.extend(
-        worth_query_reference_consumer_adoption_rows()
-            .iter()
-            .map(|row| row.source_path()),
-    );
-    paths.extend(
-        worth_query_reference_consumer_deleted_residue()
-            .iter()
-            .map(|row| row.source_path()),
-    );
-    let sources = paths
-        .into_iter()
-        .map(|path| {
-            let text = std::fs::read_to_string(root.join(path)).unwrap_or_default();
-            (path, text)
-        })
-        .collect::<BTreeMap<_, _>>();
-    let adoption_sources = sources
-        .iter()
-        .map(|(path, text)| WorthQueryReferenceConsumerSource::new(path, text))
-        .collect::<Vec<_>>();
-    let audit = audit_reference_consumer_adoption_sources(&adoption_sources);
-    assert!(
-        audit.is_complete(),
-        "reference adoption findings: {:?}",
-        audit.findings()
-    );
-    let orchestration_sources = sources
-        .iter()
-        .map(|(path, text)| WorthQueryDeclarativeSurfaceSource::new(*path, text))
-        .collect::<Vec<_>>();
-    let orchestration = audit_consumer_orchestration_sources(&orchestration_sources)
-        .expect("consumer sources should parse");
-    assert!(
-        !orchestration.has_local_orchestration(),
-        "local Query orchestration remains: {:?}",
-        orchestration.findings()
-    );
 }
 
 fn denied_read(

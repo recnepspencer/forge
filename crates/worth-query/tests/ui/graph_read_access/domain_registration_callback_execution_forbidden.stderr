@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::WorthQueryGraphReadOperationRegistration`
- --> tests/ui/graph_read_access/domain_registration_callback_execution_forbidden.rs:1:5
-  |
-1 | use worth_query::facade::runtime::WorthQueryGraphReadOperationRegistration;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------------------------------------
-  |     |                             |
-  |     |                             help: a similar name exists in the module: `WorthQueryGraphReadOperationResolution`
-  |     no `WorthQueryGraphReadOperationRegistration` in `facade::runtime`

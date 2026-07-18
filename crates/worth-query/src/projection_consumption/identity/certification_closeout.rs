@@ -67,32 +67,6 @@ pub(crate) fn compose_closeout_forbidden_fallback_surface_row_digest(
     )
 }
 
-pub(crate) fn compose_closeout_dx_transcript_surface_row_digest(
-    target_dx_digest: &str,
-    golden_transcript_digest: &str,
-) -> String {
-    compose_certification_row_digest(
-        "projection_consumption_certification_row_v1",
-        &[
-            ("lane", "dx_transcript_surface"),
-            ("target_dx", target_dx_digest),
-            ("golden", golden_transcript_digest),
-        ],
-    )
-}
-
-pub(crate) fn compose_closeout_compile_fail_boundary_row_digest(
-    compile_fail_digest: &str,
-) -> String {
-    compose_certification_row_digest(
-        "projection_consumption_certification_row_v1",
-        &[
-            ("lane", "compile_fail_boundary"),
-            ("compile_fail", compile_fail_digest),
-        ],
-    )
-}
-
 pub(crate) fn compose_closeout_oracle_surface_row_digest(
     oracle_digest: &str,
     manifest_digest: &str,

@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::AdmittedQueryBasisContext`
- --> tests/ui/admitted_diff_query_context_constructor_private.rs:2:5
-  |
-2 | use worth_query::facade::AdmittedQueryBasisContext;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `AdmittedQueryBasisContext` in `facade`

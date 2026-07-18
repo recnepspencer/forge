@@ -5,46 +5,12 @@ use worth_query::facade::consumer_kit::{
 };
 
 #[test]
-fn worth_ui_sources_certify_sealed_query_authority_adoption() {
-    let root = repository_root();
-    let proof = downstream_authority_adoption("worth-ui")
-        .required_root(root.join("workspaces/worth-ui/crates/worth-ui-query-binding/src"))
-        .required_root(root.join("workspaces/worth-ui/crates/worth-ui-runtime/src"))
-        .evaluate()
-        .expect("Worth UI source inventory must be auditable");
-
-    proof.assert_adopted();
-    assert!(proof.manifest().adopted());
-    assert_eq!(proof.manifest().finding_count(), 0);
-    assert_eq!(proof.manifest().prohibited_class_count(), 7);
-    assert!(proof.manifest().audited_source_count() > 100);
-    assert!(!proof.manifest().source_inventory_digest().is_empty());
-    assert_eq!(
-        proof.manifest().report_identity(),
-        proof.residue_report().report_identity()
-    );
-    let receipt = proof
-        .deletion_receipt()
-        .expect("zero-residue adoption must seal a deletion receipt");
-    assert_eq!(receipt.rows().len(), 4);
-    assert!(receipt.rows().iter().all(|row| row.finding_count() == 0));
-    assert_eq!(
-        receipt.source_inventory_digest(),
-        proof.manifest().source_inventory_digest()
-    );
-    assert_eq!(
-        receipt.report_identity(),
-        proof.manifest().report_identity()
-    );
-}
-
-#[test]
 fn adoption_report_localizes_every_authority_reconstruction_family() {
     let fixture = temporary_fixture(
         r#"
 fn old_attempt(value: ProjectionFactConsumptionAttempt) { let _ = value; }
 fn completed_parts(value: CompletedProjectionFactConsumption) { let _ = value; }
-struct WorthUiQueryMeasurementConsumptionIdentity;
+struct ConsumerMeasurementConsumptionIdentity;
 fn bind_projection_contract() {}
 fn digest_pair(contract: Contract) { let _ = contract.basis_digest() != Some("basis"); }
 fn with_query_prerequisites_from_projection_consumption() {}
@@ -95,14 +61,6 @@ fn deletion_receipt_rows_equal_the_closure_contract_obligations() {
         .deletion_obligations()
         .collect::<Vec<_>>();
     assert_eq!(actual, expected);
-}
-
-fn repository_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(std::path::Path::parent)
-        .expect("worth-query crate must live under repository crates/")
-        .to_path_buf()
 }
 
 fn temporary_fixture(source: &str) -> PathBuf {

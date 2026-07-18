@@ -14,8 +14,6 @@ pub enum CorrespondenceHistoryPerturbationClass {
     HistoricalReplayPathParity,
     HistoricalReconstructionPathParity,
     PredictionDriftExplicitness,
-    StructuralAuthorityPromotionForbidden,
-    AmbiguityCollapseForbidden,
     UnsupportedCorrespondenceFamily,
     UnsupportedHistoricalMaterializationPath,
     HiddenMaterializationSubstitutionForbidden,
@@ -28,7 +26,6 @@ pub enum CorrespondenceHistoryPerturbationClass {
 pub enum CorrespondenceHistoryFailureClass {
     CorrespondenceDenied,
     HistoricalPathDenied,
-    CompileFail,
 }
 
 impl CorrespondenceHistoryFailureClass {
@@ -36,7 +33,6 @@ impl CorrespondenceHistoryFailureClass {
         match self {
             Self::CorrespondenceDenied => "correspondence_denied",
             Self::HistoricalPathDenied => "historical_path_denied",
-            Self::CompileFail => "compile_fail",
         }
     }
 }
@@ -77,18 +73,15 @@ pub struct CorrespondenceHistoryCertificationRejection {
     pub failure_class: CorrespondenceHistoryFailureClass,
     pub failure_digest: String,
     pub counter_snapshot_digest: Option<String>,
-    pub compile_fail_case: Option<&'static str>,
 }
 
 impl CorrespondenceHistoryCertificationRejection {
     pub fn has_required_outputs(&self) -> bool {
         !self.failure_digest.is_empty()
-            && (!self
+            && self
                 .counter_snapshot_digest
                 .as_ref()
-                .map(|digest| digest.is_empty())
-                .unwrap_or(true)
-                || self.compile_fail_case.is_some())
+                .is_some_and(|digest| !digest.is_empty())
     }
 }
 
@@ -168,9 +161,6 @@ fn bundle_digest_parts(matrix: &CorrespondenceHistoryCertificationMatrix) -> Vec
             parts.push(format!(
                 "hostile.counter_snapshot_digest:{counter_snapshot_digest}"
             ));
-        }
-        if let Some(case) = row.hostile_lane.compile_fail_case {
-            parts.push(format!("hostile.compile_fail_case:{case}"));
         }
         parts.extend(lane_digest_parts(&row.parity_lane, "parity"));
     }

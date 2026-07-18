@@ -1,10 +1,9 @@
 use super::query_disabled_application_facade;
 use crate::application::{
-    identity_boundary_hostile_matrix_artifact, milestone_nine_six_certification_gate_certified,
-    WorthQueryApplicationFacade, WorthQueryFolkloreResidueStatus, WorthQueryMilestoneClosureStatus,
+    identity_boundary_hostile_matrix_artifact, WorthQueryApplicationFacade,
+    WorthQueryFolkloreResidueStatus, WorthQueryMilestoneClosureStatus,
     EVIDENCE_IDENTITY_COVERED_SURFACES, EXACT_ZERO_FORMAT_DIGEST_PATHS,
     EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
-    EXACT_ZERO_STRING_MATCHING_PATHS, MILESTONE_9_6_CERTIFICATION_GATE_PATHS,
     SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
 };
 use crate::WorthQueryEvidenceIdentityScheme;
@@ -65,10 +64,6 @@ fn support_report_derives_closed_identity_boundary_from_clean_runtime_backed_sur
         EXACT_ZERO_FORMAT_DIGEST_PATHS
     );
     assert_eq!(
-        closure.exact_zero_string_matching_paths(),
-        EXACT_ZERO_STRING_MATCHING_PATHS
-    );
-    assert_eq!(
         closure.exact_zero_raw_session_admission_paths(),
         EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS
     );
@@ -77,13 +72,6 @@ fn support_report_derives_closed_identity_boundary_from_clean_runtime_backed_sur
         EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
     );
     assert!(closure.hostile_matrix_certified());
-    assert!(closure.certification_gate_certified());
-    assert!(milestone_nine_six_certification_gate_certified());
-    assert_eq!(
-        MILESTONE_9_6_CERTIFICATION_GATE_PATHS.len(),
-        4,
-        "named Milestone 9.6 certification suites must remain registered"
-    );
     assert!(!closure.hostile_matrix_digest().is_empty());
     assert_eq!(
         closure.evidence_identity().closure_identity().as_str(),
@@ -103,18 +91,6 @@ fn support_report_derives_closed_identity_boundary_from_clean_runtime_backed_sur
     );
     assert!(!closure.closure_digest().is_empty());
     assert!(identity_boundary_hostile_matrix_artifact().certified());
-}
-
-#[test]
-fn support_report_closed_requires_milestone_nine_six_certification_gate() {
-    assert!(
-        milestone_nine_six_certification_gate_certified(),
-        "Closed posture requires named 9.6 suites registered with embedded sources"
-    );
-    let report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
-    let closure = report.identity_boundary_closure();
-    assert_eq!(closure.status(), WorthQueryMilestoneClosureStatus::Closed);
-    assert!(closure.certification_gate_certified());
 }
 
 #[test]

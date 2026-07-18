@@ -119,20 +119,6 @@ pub(crate) fn compose_certified_source_receipt_digest(
     )
 }
 
-pub(crate) fn compose_proof_artifact_bundle_digest(
-    identity_family: &str,
-    entries: impl IntoIterator<Item = impl AsRef<str>>,
-) -> String {
-    compose_certification_sequence_digest(identity_family, "artifact", entries)
-}
-
-pub(crate) fn compose_proof_artifact_entry_digest(
-    identity_family: &str,
-    fields: impl IntoIterator<Item = impl AsRef<str>>,
-) -> String {
-    compose_certification_sequence_digest(identity_family, "field", fields)
-}
-
 pub(crate) fn compose_negative_dx_boundary_digest(
     public_boundary_audit_digest: &str,
     compile_fail_boundary_digest: &str,

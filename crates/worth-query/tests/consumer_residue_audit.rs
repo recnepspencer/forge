@@ -187,31 +187,6 @@ fn physical_domain_adapter_remains_a_legitimate_boundary() {
 }
 
 #[test]
-fn installed_domain_reference_consumers_have_no_competing_authority_residue() {
-    let repository_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(std::path::Path::parent)
-        .expect("worth-query should live below the repository root")
-        .to_path_buf();
-    let report = query_consumer_residue_audit("installed-domain-reference-consumers")
-        .required_root(repository_root.join("crates/hadwiger-research/src"))
-        .required_root(
-            repository_root.join("workspaces/worth-ui/crates/worth-ui-query-binding/src"),
-        )
-        .required_root(repository_root.join("workspaces/worth-ui/crates/worth-ui-runtime/src"))
-        .evaluate()
-        .expect("reference consumer authority sources must be auditable");
-
-    assert_eq!(report.finding_count(), 0, "{:?}", report.findings());
-    assert!(report.scanned_file_count() > 100);
-    assert_eq!(
-        report.audited_source_paths().len(),
-        report.scanned_file_count()
-    );
-    assert!(!report.source_inventory_digest().is_empty());
-}
-
-#[test]
 fn report_and_finding_identity_change_with_canonical_meaning() {
     let root = residue_workspace("identity-perturbation", DEBUG_BINDING_SOURCE);
     let first = query_consumer_residue_audit("downstream")

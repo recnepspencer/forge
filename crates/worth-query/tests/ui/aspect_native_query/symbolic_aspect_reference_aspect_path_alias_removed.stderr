@@ -1,5 +1,0 @@
-error[E0599]: no method named `aspect_path` found for struct `WorthQuerySymbolicAspectReference` in the current scope
- --> tests/ui/aspect_native_query/symbolic_aspect_reference_aspect_path_alias_removed.rs:9:23
-  |
-9 |     let _ = reference.aspect_path();
-  |                       ^^^^^^^^^^^ method not found in `WorthQuerySymbolicAspectReference`

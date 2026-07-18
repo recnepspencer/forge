@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::QueryCanonicalizer`
- --> tests/ui/facade_does_not_export_query_canonicalizer.rs:1:5
-  |
-1 | use worth_query::facade::QueryCanonicalizer;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `QueryCanonicalizer` in `facade`

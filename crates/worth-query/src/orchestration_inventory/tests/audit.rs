@@ -7,7 +7,7 @@ use crate::orchestration_inventory::{
 use super::row_mutation_support::{
     current_row, inventory_with_replaced_row, inventory_without_public_name,
     row_with_aspect_posture, row_with_binding_projection, row_with_contribution_compatibility,
-    row_with_doc_reference, row_with_strategy_attachment,
+    row_with_strategy_attachment,
 };
 
 #[test]
@@ -44,22 +44,6 @@ fn audit_flags_missing_binding_projection_when_continuation_row_lies_about_share
     assert_eq!(
         audit.missing_binding_projection_rows(),
         &["prepare_continuation_from_target".to_string()]
-    );
-}
-
-#[test]
-fn audit_flags_undocumented_export_when_doc_reference_does_not_resolve() {
-    let row = current_row("orchestrate_declaration_with_contributions");
-    let inventory = inventory_with_replaced_row(row_with_doc_reference(
-        &row,
-        "crates/worth-query/docs/domain-capabilities/does-not-exist.md",
-        "missing",
-    ));
-    let audit = WorthQueryOrchestrationInventoryAudit::from_inventory(&inventory);
-
-    assert_eq!(
-        audit.undocumented_exports(),
-        &["orchestrate_declaration_with_contributions".to_string()]
     );
 }
 

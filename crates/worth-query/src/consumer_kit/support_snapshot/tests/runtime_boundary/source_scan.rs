@@ -19,14 +19,6 @@ pub(super) fn collect_runtime_support_snapshot_imports(
     }
 }
 
-pub(super) fn collect_production_serde_json_residue(
-    directory: &std::path::Path,
-    crate_root: &std::path::Path,
-    files_with_residue: &mut Vec<String>,
-) {
-    collect_production_marker_residue(directory, crate_root, "serde_json", files_with_residue);
-}
-
 pub(super) fn collect_production_string_map_residue(
     directory: &std::path::Path,
     crate_root: &std::path::Path,

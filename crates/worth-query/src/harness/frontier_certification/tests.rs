@@ -182,9 +182,8 @@ fn frontier_closeout_artifact_is_complete_and_full_spec_ready() {
             requirement.requirement_name
         );
         assert!(
-            !requirement.certification_rows.is_empty()
-                || !requirement.compile_fail_cases.is_empty(),
-            "requirement {:?} must map to certification rows or compile-fail proof",
+            !requirement.certification_rows.is_empty(),
+            "requirement {:?} must map to a behavioral certification row",
             requirement.requirement_name
         );
     }

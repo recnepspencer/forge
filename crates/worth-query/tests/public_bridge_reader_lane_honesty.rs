@@ -111,14 +111,6 @@ fn public_bridge_reader_lane_inventory_rejects_direct_materialization_reads() {
     assert!(direct_materialization_read_count(sabotaged_source) > 0);
 }
 
-#[test]
-fn public_bridge_reader_lane_compile_fail_boundaries_hold() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail(
-        "tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs",
-    );
-}
-
 fn assert_projection_reads_are_real(reads: &[WorthQueryPublicBridgeProjectionConsumptionEvidence]) {
     let titles = reads
         .iter()
