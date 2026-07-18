@@ -89,7 +89,8 @@ pub use inspection::{
     OfflineInspectionCheckpointCodecDenial, OfflineInspectionCounters, OfflineInspectionDenial,
     OfflineInspectionProgress, OfflineInspectionScope, OfflineInspectionSession,
     OfflineMediaAcquisitionBudget, OfflineStoreInspection, OfflineStructuralIdentification,
-    OfflineWalkedFile, StructurallyWalkedMedia,
+    OfflineWalkedFile, RestartingOfflineScanDenial, RestartingOfflineScanReceipt,
+    StructurallyWalkedMedia,
 };
 pub use media_acquisition::{
     OfflineMediaAcquisitionDenial, OfflineMediaAcquisitionDimension, UntrustedOfflineMediaSet,

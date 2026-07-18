@@ -4,6 +4,7 @@ use std::sync::{Mutex, OnceLock};
 
 #[path = "cargo_artifact_message.rs"]
 mod cargo_artifact_message;
+pub use cargo_artifact_message::parse;
 
 pub fn dependency_dir() -> PathBuf {
     store_workspace_root()

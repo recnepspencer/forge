@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "declarations": [
+    { "package": "worth-store", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-blob-chunks", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-branch-deltas", "feature": "phase23-layout-rule-construction", "authority": "production" },
+    { "package": "worth-store-buffer-pool", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-certification", "feature": "certification-test-support", "authority": "test_authority" },
+    { "package": "worth-store-io-scheduler", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-operations", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-physical-backend", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-physical-certification", "feature": "certification-test-support", "authority": "test_authority" },
+    { "package": "worth-store-physical-format", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-physical-integrity", "feature": "test-support", "authority": "test_authority" },
+    { "package": "worth-store-physical-isolation", "feature": "certification-authority", "authority": "test_authority" },
+    { "package": "worth-store-physical-isolation", "feature": "phase20-layout-rule-construction", "authority": "production" },
+    { "package": "worth-store-readiness", "feature": "certification-authority", "authority": "test_authority" },
+    { "package": "worth-store-readiness", "feature": "certification-test-support", "authority": "test_authority" },
+    { "package": "worth-store-reclaim-policy", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-recovery-physics", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-recovery-physics", "feature": "phase21-layout-rule-construction", "authority": "production" },
+    { "package": "worth-store-recovery-physics", "feature": "phase22-layout-rule-construction", "authority": "production" },
+    { "package": "worth-store-replication", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-security", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-snapshots", "feature": "phase23-layout-rule-construction", "authority": "production" },
+    { "package": "worth-store-test-support", "feature": "boundary-fixtures", "authority": "test_authority" },
+    { "package": "worth-store-test-support", "feature": "certification-world", "authority": "test_authority" },
+    { "package": "worth-store-test-support", "feature": "layout-fixtures", "authority": "test_authority" },
+    { "package": "worth-store-test-support", "feature": "physical-isolation-fixtures", "authority": "test_authority" },
+    { "package": "worth-store-tiering", "feature": "certification-test-authority", "authority": "test_authority" },
+    { "package": "worth-store-wal", "feature": "certification-authority", "authority": "test_authority" }
+  ]
+}

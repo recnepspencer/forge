@@ -165,13 +165,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            workspaces/worth-store/target
-          key: ${{ runner.os }}-worth-store-${{ hashFiles('workspaces/worth-store/Cargo.lock') }}
+          key: ${{ runner.os }}-worth-store-registry-${{ hashFiles('workspaces/worth-store/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-worth-store-
+            ${{ runner.os }}-worth-store-registry-
 
-      - name: Test WORTH Store workspace
-        run: cargo test --manifest-path workspaces/worth-store/Cargo.toml --workspace --all-features
+      - name: Execute WORTH Store CI proof product
+        working-directory: workspaces/worth-store
+        run: cargo store-ci
 
       - name: Run WORTH Store Phase 6 release-scale backup lane
         if: runner.os == 'Linux' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')

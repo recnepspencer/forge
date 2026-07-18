@@ -25,6 +25,37 @@ pub struct ReplicaPromotionCandidate {
     acknowledged_data_loss_lsn: u64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReplicaPromotionRejectionReceipt {
+    candidate_peer: ReplicationPeerId,
+    candidate_frontier: ReplicaRecoveryFrontier,
+    current_frontier: ReplicaRecoveryFrontier,
+    denial: ReplicaPromotionDenial,
+    receipt_identity: [u8; 32],
+}
+
+impl ReplicaPromotionRejectionReceipt {
+    pub fn candidate_peer(&self) -> &ReplicationPeerId {
+        &self.candidate_peer
+    }
+
+    pub const fn candidate_frontier(&self) -> ReplicaRecoveryFrontier {
+        self.candidate_frontier
+    }
+
+    pub const fn current_frontier(&self) -> ReplicaRecoveryFrontier {
+        self.current_frontier
+    }
+
+    pub const fn denial(&self) -> ReplicaPromotionDenial {
+        self.denial
+    }
+
+    pub const fn receipt_identity(&self) -> [u8; 32] {
+        self.receipt_identity
+    }
+}
+
 impl ReplicaPromotionCandidate {
     pub const fn acknowledged_data_loss_lsn(&self) -> u64 {
         self.acknowledged_data_loss_lsn
@@ -171,6 +202,46 @@ impl ReplicaPromotionOwner {
         })
     }
 
+    pub fn resolve_candidate_with_rejection_receipt(
+        intent: ReplicaPromotionIntent,
+        history: DivergentReplicaHistoryReport,
+    ) -> Result<ReplicaPromotionCandidate, ReplicaPromotionRejectionReceipt> {
+        let candidate_peer = intent.candidate_peer.clone();
+        let candidate_frontier = history.observation().frontier();
+        let current_frontier = intent.current_frontier;
+        Self::resolve_candidate(intent, history).map_err(|denial| {
+            let mut digest = Sha256::new();
+            digest.update(b"worth-store-replica-promotion-rejection-receipt-v1");
+            digest.update(candidate_peer.as_str().as_bytes());
+            digest.update(candidate_frontier.observed_lsn().to_be_bytes());
+            digest.update(candidate_frontier.durable_lsn().to_be_bytes());
+            digest.update(candidate_frontier.client_acknowledged_lsn().to_be_bytes());
+            digest.update(
+                candidate_frontier
+                    .replication_acknowledged_lsn()
+                    .to_be_bytes(),
+            );
+            digest.update(candidate_frontier.authority_epoch().to_be_bytes());
+            digest.update(current_frontier.observed_lsn().to_be_bytes());
+            digest.update(current_frontier.durable_lsn().to_be_bytes());
+            digest.update(current_frontier.client_acknowledged_lsn().to_be_bytes());
+            digest.update(
+                current_frontier
+                    .replication_acknowledged_lsn()
+                    .to_be_bytes(),
+            );
+            digest.update(current_frontier.authority_epoch().to_be_bytes());
+            digest.update([denial as u8]);
+            ReplicaPromotionRejectionReceipt {
+                candidate_peer,
+                candidate_frontier,
+                current_frontier,
+                denial,
+                receipt_identity: digest.finalize().into(),
+            }
+        })
+    }
+
     pub fn lower(candidate: ReplicaPromotionCandidate) -> LoweredReplicaPromotionPlan {
         let fingerprint = promotion_fingerprint(&candidate);
         LoweredReplicaPromotionPlan {
@@ -216,4 +287,56 @@ fn promotion_fingerprint(candidate: &ReplicaPromotionCandidate) -> [u8; 32] {
     digest.update(candidate.acknowledged_data_loss_lsn.to_be_bytes());
     digest.update(candidate.history.observation().durable_media_identity());
     digest.finalize().into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ReplicaHistoryObservation, ReplicationLineageIdentity};
+
+    #[test]
+    fn divergent_highest_observed_candidate_returns_bound_rejection_evidence() {
+        let peer = ReplicationPeerId::from_declared_peer("highest-observed").unwrap();
+        let current_lineage = ReplicationLineageIdentity::from_declared_lineage("current").unwrap();
+        let divergent_lineage =
+            ReplicationLineageIdentity::from_declared_lineage("divergent").unwrap();
+        let frontier = ReplicaRecoveryFrontier::admit(120, 119, 80, 80, 9).unwrap();
+        let report = DivergentReplicaHistoryReport::classify(
+            ReplicaHistoryObservation {
+                peer: peer.clone(),
+                lineage: divergent_lineage,
+                frontier,
+                blob_closure_complete: true,
+                authoritative_media_admissible: true,
+                durable_media_identity: [7; 32],
+            },
+            current_lineage,
+        );
+        let intent = ReplicaPromotionOwner::intent(
+            peer.clone(),
+            ReplicaRecoveryFrontier::admit(94, 93, 92, 92, 9).unwrap(),
+        );
+
+        let rejection =
+            ReplicaPromotionOwner::resolve_candidate_with_rejection_receipt(intent, report.clone())
+                .unwrap_err();
+        let other_basis = ReplicaPromotionOwner::resolve_candidate_with_rejection_receipt(
+            ReplicaPromotionOwner::intent(
+                peer.clone(),
+                ReplicaRecoveryFrontier::admit(95, 94, 93, 93, 9).unwrap(),
+            ),
+            report,
+        )
+        .unwrap_err();
+
+        assert_eq!(rejection.candidate_peer(), &peer);
+        assert_eq!(rejection.candidate_frontier(), frontier);
+        assert_eq!(
+            rejection.current_frontier(),
+            ReplicaRecoveryFrontier::admit(94, 93, 92, 92, 9).unwrap()
+        );
+        assert_eq!(rejection.denial(), ReplicaPromotionDenial::DivergentHistory);
+        assert_ne!(rejection.receipt_identity(), [0; 32]);
+        assert_ne!(rejection.receipt_identity(), other_basis.receipt_identity());
+    }
 }

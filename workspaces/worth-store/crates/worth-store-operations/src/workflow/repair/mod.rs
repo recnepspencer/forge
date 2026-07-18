@@ -18,6 +18,8 @@ mod resolved_region;
 #[cfg(test)]
 mod authority_affecting_tests;
 #[cfg(test)]
+mod crash_matrix_tests;
+#[cfg(test)]
 mod crash_recovery_tests;
 #[cfg(test)]
 mod derived_maintenance_tests;
@@ -28,7 +30,13 @@ pub use execution::{
 };
 pub use execution_control::{
     RepairExecutionBoundary, RepairExecutionBoundaryMoment, RepairExecutionControlPort,
-    RepairExecutionInterrupted, UninterruptedRepairExecution,
+    RepairExecutionInterrupted, RepairExecutionInterruptionCause, UninterruptedRepairExecution,
+};
+#[cfg(feature = "certification-test-authority")]
+pub(crate) use intent::{
+    certification_authority_repair_candidates_from_backup_observation,
+    certification_authority_repair_from_backup_observation,
+    certification_derived_maintenance_from_fixture_observation,
 };
 pub use intent::{
     CurrentAuthorityPreservingMaintenancePlan, EvidenceBoundRepairPlan, RepairCandidateSet,

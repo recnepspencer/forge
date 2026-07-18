@@ -10,6 +10,28 @@ use record_artifacts::{
     repair_execution_identity, repair_plan_identity, replica_identity, staged_workflow_identity,
 };
 
+pub(super) fn require_runtime_phase_artifact(
+    kind: S10OperationalScenarioKind,
+    phase: u8,
+    records: &[OperationalControlRecord],
+) -> Result<(), S10PhaseInvocationDenial> {
+    match phase {
+        5 => backup_cut_identity(records).map(drop),
+        6 => backup_bundle_identity(records).map(drop),
+        7 => authorization_identity(records).map(drop),
+        8 => staged_workflow_identity(records, 1).map(drop),
+        9 => staged_workflow_identity(records, 2).map(drop),
+        10 => staged_workflow_identity(records, 3).map(drop),
+        11 => repair_plan_identity(records).map(drop),
+        12 => repair_execution_identity(records).map(drop),
+        13 => publication_identity(records).map(drop),
+        14 => replica_identity(kind, records).map(drop),
+        _ => Err(S10PhaseInvocationDenial::EmptyProductionArtifact(S10Phase(
+            phase,
+        ))),
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct S10ScenarioProductionEvidence<'a> {
     control: &'a SelectedOperationalControlState,

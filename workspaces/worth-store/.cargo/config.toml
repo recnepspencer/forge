@@ -1,0 +1,8 @@
+[alias]
+store-owner = "run -p store-proof-control -- owner"
+store-smoke = "run -p store-proof-control -- smoke"
+store-ui = "run -p store-proof-control -- ui"
+store-ci = "run -p store-proof-control -- ci"
+store-soak = "run -p store-proof-control -- soak"
+store-release = "run -p store-proof-control -- release"
+store-hardware = "run -p store-proof-control -- hardware"

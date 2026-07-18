@@ -1,4 +1,4 @@
-pub const CASES: [(&str, &str); 28] = [
+pub const CASES: [(&str, &str); 35] = [
     (
         "artifact_family_admission_outcome_is_not_constructible.rs",
         "field `case` of struct `ArtifactFamilyAdmissionOutcome` is private",
@@ -110,5 +110,33 @@ pub const CASES: [(&str, &str); 28] = [
     (
         "declared_case_is_not_an_observed_case.rs",
         "expected struct `OwnerCaseObservation<BTreeLookupReadinessCaseId>`",
+    ),
+    (
+        "caller_cannot_construct_admitted_family.rs",
+        "AdmittedLayoutFamily",
+    ),
+    (
+        "caller_cannot_construct_current_binding.rs",
+        "CurrentMaterializationBinding",
+    ),
+    (
+        "caller_cannot_construct_plan_identity.rs",
+        "LayoutPlanIdentity",
+    ),
+    (
+        "caller_cannot_construct_ready_indexed_access.rs",
+        "ReadyIndexedAccess",
+    ),
+    (
+        "caller_cannot_mint_strategy_evidence.rs",
+        "StrategyInvariantEvidence",
+    ),
+    (
+        "caller_cannot_pair_access_with_copied_counters.rs",
+        "PhysicalAccessCounterReceipt",
+    ),
+    (
+        "removed_access_lowering_facade_is_private.rs",
+        "access_lowering",
     ),
 ];

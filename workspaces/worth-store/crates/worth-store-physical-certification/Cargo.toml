@@ -33,7 +33,7 @@ worth-store-tiering = { workspace = true, features = ["certification-test-author
 [dev-dependencies]
 tempfile = "3"
 worth-store-formal-models.workspace = true
-worth-store-test-support.workspace = true
+worth-store-test-support = { workspace = true, features = ["certification-world"] }
 
 [features]
 certification-test-support = []

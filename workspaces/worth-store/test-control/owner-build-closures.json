@@ -1,0 +1,2356 @@
+[
+  {
+    "boundary": {
+      "owner_package": "worth-store",
+      "admitted_direct_production_dependencies": [
+        "worth-store-analysis",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-blob-chunks",
+        "worth-store-branch-deltas",
+        "worth-store-budgets",
+        "worth-store-buffer-pool",
+        "worth-store-claim-boundaries",
+        "worth-store-compatibility",
+        "worth-store-contracts",
+        "worth-store-extensions",
+        "worth-store-io-scheduler",
+        "worth-store-layout-indexes",
+        "worth-store-live-query",
+        "worth-store-maintenance",
+        "worth-store-modes",
+        "worth-store-offline-verifier",
+        "worth-store-operations",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-integrity",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-replication",
+        "worth-store-retention",
+        "worth-store-schema-lineage",
+        "worth-store-security",
+        "worth-store-snapshots",
+        "worth-store-subscription-support",
+        "worth-store-tiering",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-foundational",
+        "worth-proof"
+      ],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store",
+      "worth-store-analysis",
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-branch-deltas",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-claim-boundaries",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-extensions",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-live-query",
+      "worth-store-lsm-authority",
+      "worth-store-maintenance",
+      "worth-store-modes",
+      "worth-store-offline-verifier",
+      "worth-store-operations",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-replication",
+      "worth-store-retention",
+      "worth-store-schema-lineage",
+      "worth-store-security",
+      "worth-store-snapshots",
+      "worth-store-subscription-support",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store": [
+        "default"
+      ],
+      "worth-store-analysis": [],
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-branch-deltas": [
+        "default"
+      ],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-claim-boundaries": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-extensions": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-live-query": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-maintenance": [],
+      "worth-store-modes": [],
+      "worth-store-offline-verifier": [],
+      "worth-store-operations": [
+        "default"
+      ],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-replication": [
+        "default"
+      ],
+      "worth-store-retention": [],
+      "worth-store-schema-lineage": [],
+      "worth-store-security": [],
+      "worth-store-snapshots": [
+        "default"
+      ],
+      "worth-store-subscription-support": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-analysis",
+      "admitted_direct_production_dependencies": [
+        "worth-store-contracts",
+        "worth-store-extensions"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-analysis",
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-claim-boundaries",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-extensions",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-claim-boundaries": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-extensions": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-aspect-native",
+      "admitted_direct_production_dependencies": [
+        "serde_json",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-contracts"
+    ],
+    "activated_features": {
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-authority",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-foundational"
+      ],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-contracts"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-blob-chunks",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-budgets",
+        "worth-store-buffer-pool",
+        "worth-store-contracts",
+        "worth-store-io-scheduler",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-integrity",
+        "worth-store-physical-isolation",
+        "worth-store-reclaim-policy",
+        "worth-store-recovery-physics",
+        "worth-store-retention",
+        "worth-store-security",
+        "worth-store-tiering",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "tempfile",
+        "worth-store-aspect-native",
+        "worth-store-io-scheduler",
+        "worth-store-offline-verifier",
+        "worth-store-physical-backend",
+        "worth-store-physical-integrity",
+        "worth-store-physical-isolation",
+        "worth-store-reclaim-policy",
+        "worth-store-recovery-physics",
+        "worth-store-test-support",
+        "worth-store-tiering"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-offline-verifier",
+          "rationale": "blob backup artifacts are checked through the offline verifier public contract"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-offline-verifier",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-readiness",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-replication",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-test-support",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [
+        "certification-test-authority"
+      ],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-offline-verifier": [],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [
+        "test-support"
+      ],
+      "worth-store-physical-isolation": [
+        "certification-authority",
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-readiness": [],
+      "worth-store-reclaim-policy": [
+        "certification-test-authority"
+      ],
+      "worth-store-recovery-physics": [
+        "certification-test-authority",
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-replication": [
+        "default"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-test-support": [
+        "physical-isolation-fixtures"
+      ],
+      "worth-store-tiering": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "certification-authority",
+        "default"
+      ]
+    },
+    "test_support_authority": "shared-physical-mechanic"
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-branch-deltas",
+      "admitted_direct_production_dependencies": [
+        "worth-store-contracts",
+        "worth-store-layout-indexes",
+        "worth-store-live-query"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-branch-deltas",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-live-query",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-schema-lineage",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-branch-deltas": [
+        "default"
+      ],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-live-query": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-schema-lineage": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-budgets",
+      "admitted_direct_production_dependencies": [
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-budgets",
+      "worth-store-contracts"
+    ],
+    "activated_features": {
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-buffer-pool",
+      "admitted_direct_production_dependencies": [
+        "worth-store-budgets",
+        "worth-store-contracts",
+        "worth-store-physical-format",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-store-readiness"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-readiness",
+          "rationale": "resident-frame owner tests enter through physical-substrate readiness"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-readiness",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-readiness": [],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-bulk",
+      "admitted_direct_production_dependencies": [
+        "worth-store-authority",
+        "worth-store-contracts",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-bulk",
+      "worth-store-contracts",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-security": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-claim-boundaries",
+      "admitted_direct_production_dependencies": [
+        "worth-store-contracts",
+        "worth-store-layout-indexes",
+        "worth-store-physical-format"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-claim-boundaries",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-compatibility",
+      "admitted_direct_production_dependencies": [
+        "worth-store-authority",
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-compatibility",
+      "worth-store-contracts"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-contracts",
+      "admitted_direct_production_dependencies": [
+        "serde"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-contracts"
+    ],
+    "activated_features": {},
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-extensions",
+      "admitted_direct_production_dependencies": [
+        "worth-proof",
+        "worth-store-claim-boundaries",
+        "worth-store-contracts",
+        "worth-store-layout-indexes"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-foundational",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-security"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-aspect-native",
+          "rationale": "extension admission is bound to native aspect identity"
+        },
+        {
+          "provider": "worth-store-authority",
+          "rationale": "extension admission requires current store authority"
+        },
+        {
+          "provider": "worth-store-security",
+          "rationale": "extension target tests exercise the public security-scope contract"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-claim-boundaries",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-extensions",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-claim-boundaries": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-formal-models",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-store-layout-indexes",
+        "worth-store-lsm-authority",
+        "worth-store-operations",
+        "worth-store-physical-backend",
+        "worth-store-physical-integrity",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-replication",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-formal-models",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-offline-verifier",
+      "worth-store-operations",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-replication",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-offline-verifier": [],
+      "worth-store-operations": [
+        "default"
+      ],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-replication": [
+        "default"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-io-scheduler",
+      "admitted_direct_production_dependencies": [
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-budgets",
+        "worth-store-buffer-pool",
+        "worth-store-contracts",
+        "worth-store-physical-backend",
+        "worth-store-physical-isolation",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-store-physical-backend",
+        "worth-store-physical-isolation",
+        "worth-store-security"
+      ],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-recovery-physics",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "certification-authority"
+      ],
+      "worth-store-recovery-physics": [
+        "certification-test-authority",
+        "default"
+      ],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "certification-authority",
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-layout-indexes",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-authority",
+        "worth-store-blob-chunks",
+        "worth-store-budgets",
+        "worth-store-compatibility",
+        "worth-store-contracts",
+        "worth-store-io-scheduler",
+        "worth-store-lsm-authority",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-integrity",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "tempfile",
+        "worth-store-aspect-native",
+        "worth-store-blob-chunks",
+        "worth-store-budgets",
+        "worth-store-io-scheduler",
+        "worth-store-physical-format",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-security",
+        "worth-store-test-support",
+        "worth-store-wal"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-aspect-native",
+          "rationale": "layout owner fixtures bind physical stores to native aspect identity"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-test-support",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [
+        "certification-test-authority"
+      ],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [
+        "certification-test-authority"
+      ],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [
+        "test-support"
+      ],
+      "worth-store-physical-isolation": [
+        "certification-authority",
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [
+        "certification-test-authority"
+      ],
+      "worth-store-recovery-physics": [
+        "certification-test-authority",
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-test-support": [
+        "boundary-fixtures"
+      ],
+      "worth-store-tiering": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "certification-authority",
+        "default"
+      ]
+    },
+    "test_support_authority": "compiler-boundary-fixture"
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-live-query",
+      "admitted_direct_production_dependencies": [
+        "worth-store-contracts",
+        "worth-store-schema-lineage"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-contracts",
+      "worth-store-live-query",
+      "worth-store-schema-lineage"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-contracts": [],
+      "worth-store-schema-lineage": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-lsm-authority",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-store-authority",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-store-security"
+      ],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-recovery-physics",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [],
+      "worth-store-recovery-physics": [
+        "default"
+      ],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-maintenance",
+      "admitted_direct_production_dependencies": [
+        "worth-store-buffer-pool",
+        "worth-store-contracts",
+        "worth-store-io-scheduler",
+        "worth-store-layout-indexes",
+        "worth-store-physical-integrity",
+        "worth-store-retention"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-maintenance",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-modes",
+      "admitted_direct_production_dependencies": [
+        "worth-store-authority",
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-contracts",
+      "worth-store-modes"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-offline-verifier",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-store-blob-chunks",
+        "worth-store-contracts",
+        "worth-store-layout-indexes",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-integrity",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-replication",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "filetime",
+        "tempfile",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-security"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-aspect-native",
+          "rationale": "offline observations verify aspect-bound physical artifacts"
+        },
+        {
+          "provider": "worth-store-authority",
+          "rationale": "offline hostile tests distinguish current authority from observed evidence"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-offline-verifier",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-replication",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-replication": [
+        "default"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-operations",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "tempfile",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-blob-chunks",
+        "worth-store-contracts",
+        "worth-store-io-scheduler",
+        "worth-store-layout-indexes",
+        "worth-store-offline-verifier",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-integrity",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-replication",
+        "worth-store-security",
+        "worth-store-tiering",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-foundational",
+        "worth-store-aspect-native",
+        "worth-store-blob-chunks",
+        "worth-store-physical-format",
+        "worth-store-physical-isolation",
+        "worth-store-readiness",
+        "worth-store-test-support"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-readiness",
+          "rationale": "operational owner tests exercise readiness-gated recovery admission"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-offline-verifier",
+      "worth-store-operations",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-readiness",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-replication",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-test-support",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [
+        "certification-test-authority"
+      ],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [
+        "certification-test-authority"
+      ],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-offline-verifier": [],
+      "worth-store-operations": [
+        "default"
+      ],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [
+        "test-support"
+      ],
+      "worth-store-physical-isolation": [
+        "certification-authority",
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-readiness": [],
+      "worth-store-reclaim-policy": [
+        "certification-test-authority"
+      ],
+      "worth-store-recovery-physics": [
+        "certification-test-authority",
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-replication": [
+        "default"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-test-support": [
+        "layout-fixtures"
+      ],
+      "worth-store-tiering": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "certification-authority",
+        "default"
+      ]
+    },
+    "test_support_authority": "shared-layout-mechanic"
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-physical-backend",
+      "admitted_direct_production_dependencies": [
+        "file-id",
+        "fs4",
+        "getrandom",
+        "sha2",
+        "tempfile",
+        "worth-proof",
+        "worth-store-authority",
+        "worth-store-buffer-pool",
+        "worth-store-contracts",
+        "worth-store-physical-format",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-store-aspect-native",
+        "worth-store-buffer-pool",
+        "worth-store-readiness",
+        "worth-store-security"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-aspect-native",
+          "rationale": "backend placement tests bind target identity to native aspects"
+        },
+        {
+          "provider": "worth-store-readiness",
+          "rationale": "backend dirty-mmap tests enter through substrate readiness"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-readiness",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-readiness": [],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-physical-format",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-budgets",
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [
+        "tempfile"
+      ],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-contracts",
+      "worth-store-physical-format"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-physical-integrity",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-buffer-pool",
+        "worth-store-contracts",
+        "worth-store-physical-format",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-security"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-contracts": [],
+      "worth-store-physical-format": [],
+      "worth-store-security": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-physical-isolation",
+      "admitted_direct_production_dependencies": [
+        "fs4",
+        "sha2",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-authority",
+        "worth-store-budgets",
+        "worth-store-buffer-pool",
+        "worth-store-contracts",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-integrity",
+        "worth-store-recovery-physics",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "tempfile",
+        "worth-store-physical-backend",
+        "worth-store-recovery-physics",
+        "worth-store-wal"
+      ],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-recovery-physics",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-recovery-physics": [
+        "certification-test-authority",
+        "default"
+      ],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "certification-authority",
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-readiness",
+      "admitted_direct_production_dependencies": [
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-blob-chunks",
+        "worth-store-contracts",
+        "worth-store-layout-indexes",
+        "worth-store-physical-format",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-readiness",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-reclaim-policy",
+      "admitted_direct_production_dependencies": [
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-isolation",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-store-physical-backend",
+        "worth-store-security"
+      ],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [],
+      "worth-store-recovery-physics": [
+        "default"
+      ],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-recovery-physics",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-budgets",
+        "worth-store-buffer-pool",
+        "worth-store-contracts",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-integrity",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-store-authority",
+        "worth-store-readiness"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-readiness",
+          "rationale": "page-LSN publication tests require a closed substrate readiness chain"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-readiness",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-readiness": [],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-replication",
+      "admitted_direct_production_dependencies": [
+        "fs4",
+        "sha2",
+        "worth-proof",
+        "worth-store-authority",
+        "worth-store-physical-backend",
+        "worth-store-physical-isolation",
+        "worth-store-recovery-physics",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [
+        "worth-store-recovery-physics",
+        "worth-store-security",
+        "worth-store-wal"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-wal",
+          "rationale": "replication owner tests consume the WAL record contract they replicate"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-recovery-physics",
+      "worth-store-replication",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [],
+      "worth-store-recovery-physics": [
+        "certification-test-authority",
+        "default"
+      ],
+      "worth-store-replication": [
+        "default"
+      ],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-retention",
+      "admitted_direct_production_dependencies": [
+        "worth-store-authority",
+        "worth-store-contracts",
+        "worth-store-physical-isolation"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [],
+      "worth-store-recovery-physics": [
+        "default"
+      ],
+      "worth-store-security": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-schema-lineage",
+      "admitted_direct_production_dependencies": [
+        "worth-store-authority",
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-contracts",
+      "worth-store-schema-lineage"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-security",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-authority",
+        "worth-store-contracts"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-contracts",
+      "worth-store-security"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-contracts": []
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-snapshots",
+      "admitted_direct_production_dependencies": [
+        "worth-store-contracts",
+        "worth-store-layout-indexes",
+        "worth-store-physical-backend"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-snapshots",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-snapshots": [
+        "default"
+      ],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-subscription-support",
+      "admitted_direct_production_dependencies": [
+        "worth-store-compatibility",
+        "worth-store-contracts",
+        "worth-store-maintenance",
+        "worth-store-replication",
+        "worth-store-retention"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-blob-chunks",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-compatibility",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-layout-indexes",
+      "worth-store-lsm-authority",
+      "worth-store-maintenance",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-replication",
+      "worth-store-retention",
+      "worth-store-security",
+      "worth-store-subscription-support",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-blob-chunks": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-compatibility": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-layout-indexes": [],
+      "worth-store-lsm-authority": [],
+      "worth-store-maintenance": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [
+        "phase20-layout-rule-construction"
+      ],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default",
+        "phase21-layout-rule-construction",
+        "phase22-layout-rule-construction"
+      ],
+      "worth-store-replication": [
+        "default"
+      ],
+      "worth-store-retention": [],
+      "worth-store-security": [],
+      "worth-store-tiering": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-tiering",
+      "admitted_direct_production_dependencies": [
+        "worth-store-contracts",
+        "worth-store-io-scheduler",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-physical-isolation",
+        "worth-store-reclaim-policy",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [],
+      "admitted_cross_owner_test_dependencies": []
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-io-scheduler",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-physical-integrity",
+      "worth-store-physical-isolation",
+      "worth-store-reclaim-policy",
+      "worth-store-recovery-physics",
+      "worth-store-security",
+      "worth-store-tiering",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [],
+      "worth-store-contracts": [],
+      "worth-store-io-scheduler": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [],
+      "worth-store-physical-format": [],
+      "worth-store-physical-integrity": [],
+      "worth-store-physical-isolation": [],
+      "worth-store-reclaim-policy": [],
+      "worth-store-recovery-physics": [
+        "default"
+      ],
+      "worth-store-security": [],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  },
+  {
+    "boundary": {
+      "owner_package": "worth-store-wal",
+      "admitted_direct_production_dependencies": [
+        "sha2",
+        "worth-store-authority",
+        "worth-store-contracts",
+        "worth-store-modes",
+        "worth-store-physical-backend",
+        "worth-store-physical-format",
+        "worth-store-security"
+      ],
+      "observed_direct_test_dependencies": [
+        "tempfile",
+        "worth-foundational",
+        "worth-proof",
+        "worth-store-aspect-native",
+        "worth-store-physical-backend",
+        "worth-store-security"
+      ],
+      "admitted_cross_owner_test_dependencies": [
+        {
+          "provider": "worth-store-aspect-native",
+          "rationale": "WAL security metadata tests bind records to native aspect identity"
+        }
+      ]
+    },
+    "compiled_workspace_packages": [
+      "worth-store-aspect-native",
+      "worth-store-authority",
+      "worth-store-budgets",
+      "worth-store-buffer-pool",
+      "worth-store-contracts",
+      "worth-store-modes",
+      "worth-store-physical-backend",
+      "worth-store-physical-format",
+      "worth-store-security",
+      "worth-store-wal"
+    ],
+    "activated_features": {
+      "worth-store-aspect-native": [],
+      "worth-store-authority": [],
+      "worth-store-budgets": [],
+      "worth-store-buffer-pool": [
+        "certification-test-authority"
+      ],
+      "worth-store-contracts": [],
+      "worth-store-modes": [],
+      "worth-store-physical-backend": [
+        "certification-test-authority"
+      ],
+      "worth-store-physical-format": [],
+      "worth-store-security": [
+        "certification-test-authority"
+      ],
+      "worth-store-wal": [
+        "default"
+      ]
+    },
+    "test_support_authority": null
+  }
+]

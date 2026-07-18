@@ -4,6 +4,7 @@
 //! admission lanes and must not satisfy production capability APIs directly.
 
 pub use super::physical_reference::{harness_physical_reference, HarnessPhysicalReference};
+#[cfg(feature = "certification-world")]
 pub use super::physical_simulation::{
     ambiguous_locus_fault_attempt_fixture, arbitrary_byte_scribble_fault_attempt_fixture,
     crash_recovery_fault_locus, fake_in_memory_only_driver_attempt, io_pressure_fault_locus,

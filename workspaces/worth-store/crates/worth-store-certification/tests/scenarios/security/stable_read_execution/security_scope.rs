@@ -11,9 +11,8 @@ use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATI
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalDecodedHeader, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageHeader, PhysicalPageId,
-    PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalSecurityMetadataEnvelope, PhysicalSegmentId, SegmentPageManifestEntry,
-    PHYSICAL_HEADER_LENGTH,
+    PhysicalPageKind, PhysicalRecordSlot, PhysicalSecurityMetadataEnvelope, PhysicalSegmentId,
+    SegmentPageManifestEntry,
 };
 use worth_store_physical_isolation::{
     LogicalDecodeSecurityScopeEntry, PhysicalByteGuardScope, StablePhysicalReadHandle,
@@ -26,14 +25,14 @@ use worth_store_security::{
 
 #[test]
 fn logical_decode_rejects_matching_guard_with_mismatched_carrier_basis_before_bytes() {
-    use crate::execution_support::bounded_copy_for_reference;
-    use crate::plan_admission::{admit_plan, protected_set};
-    use crate::support::{current_generation_page_reference, current_root_from_authority};
+    use super::execution_support::bounded_copy_for_reference;
+    use super::plan_admission::{admit_plan, protected_set};
+    use super::support::{current_generation_page_reference, current_root_from_authority};
     use worth_store_physical_isolation::{
         PhysicalByteGuard, PhysicalReadExecutionDenial, StablePhysicalReadExecution,
     };
 
-    let authority = crate::support::physical_authority_from_complete_closeout();
+    let authority = super::support::physical_authority_from_complete_closeout();
     let root = current_root_from_authority(&authority);
     let reference = current_generation_page_reference(120);
     let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
@@ -126,20 +125,17 @@ fn decoded_page_header(generation_value: u64) -> PhysicalPageHeader {
     let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(1), page(2))
         .with_page_generation(generation(generation_value));
-    let report = PhysicalHeaderAuthority::for_canonical_physical_format(
+    let authority = PhysicalHeaderAuthority::for_canonical_physical_format(
         PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
-    )
-    .decode_page_header(
-        cell,
-        &header_bytes(
-            PhysicalPageKind::DataPage.tag(),
-            generation_value,
-            PhysicalPublicationState::Published,
-            b"page",
-        ),
-        PhysicalPageKind::DataPage,
-    )
-    .unwrap();
+    );
+    let payload = b"page";
+    let mut encoded = authority
+        .encode_page_header(cell, PhysicalPageKind::DataPage, payload.len() as u32)
+        .to_vec();
+    encoded.extend_from_slice(payload);
+    let report = authority
+        .decode_page_header(cell, &encoded, PhysicalPageKind::DataPage)
+        .unwrap();
     match report.witness().header() {
         PhysicalDecodedHeader::Page(header) => header,
         PhysicalDecodedHeader::Frame(_) => panic!("expected decoded page header"),
@@ -210,25 +206,6 @@ fn physical_witness() -> StorePhysicalBoundaryWitness {
         .unwrap(),
     )
     .unwrap()
-}
-
-fn header_bytes(
-    kind_tag: u8,
-    generation_value: u64,
-    publication: PhysicalPublicationState,
-    payload: &[u8],
-) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(kind_tag);
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(publication.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
-    bytes
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

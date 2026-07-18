@@ -8,6 +8,7 @@ mod inspection_scope;
 mod inspection_session;
 mod interruption;
 mod offline_store_inspection;
+mod restart_matrix;
 mod resume_checkpoint;
 mod resume_checkpoint_codec;
 mod resume_revalidation;
@@ -27,6 +28,7 @@ pub use inspection_session::{
 };
 pub(crate) use interruption::reject_inspection_interruption;
 pub use offline_store_inspection::OfflineStoreInspection;
+pub use restart_matrix::{RestartingOfflineScanDenial, RestartingOfflineScanReceipt};
 pub use resume_checkpoint::{OfflineInspectionCheckpoint, OfflineInspectionCheckpointCodecDenial};
 pub use structurally_walked_media::{
     OfflineStructuralIdentification, OfflineWalkedFile, StructurallyWalkedMedia,

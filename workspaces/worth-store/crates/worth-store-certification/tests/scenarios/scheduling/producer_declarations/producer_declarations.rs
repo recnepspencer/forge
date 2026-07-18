@@ -1,9 +1,10 @@
-use super::test_support::World;
-use crate::{
-    admit_background_pacing, BackgroundIoPressureClass, BackgroundIoPressureShape,
-    BackgroundPacingDenial, BackgroundPacingOutcome,
+use worth_store_io_scheduler::{
+    execute_background_pressure_for_certification_test,
+    mismatched_background_pressure_denial_for_certification_test, BackgroundIoPressureClass,
+    BackgroundIoPressureShape, BackgroundPacingDenial, BackgroundPacingOutcome,
 };
 
+// store-proof-identity[producer_pressure_declarations_lower_into_scheduler_shapes]: worth-store-io-scheduler::src/background_pacing/tests/producer_declarations/producer_pressure_declarations_lower_into_scheduler_shapes::producer_declarations::producer_pressure_declarations_lower_into_scheduler_shapes
 #[test]
 fn producer_pressure_declarations_lower_into_scheduler_shapes() {
     let cases = [
@@ -59,6 +60,7 @@ fn producer_pressure_declarations_lower_into_scheduler_shapes() {
     }
 }
 
+// store-proof-identity[physical_isolation_declarations_lower_concrete_resource_units]: worth-store-io-scheduler::src/background_pacing/tests/producer_declarations/physical_isolation_declarations_lower_concrete_resource_units::producer_declarations::physical_isolation_declarations_lower_concrete_resource_units
 #[test]
 fn physical_isolation_declarations_lower_concrete_resource_units() {
     let compaction = BackgroundIoPressureShape::from_background_pressure_declaration(
@@ -83,6 +85,7 @@ fn physical_isolation_declarations_lower_concrete_resource_units() {
     assert!(scrub.requested_budget().read_ahead_window() > 0);
 }
 
+// store-proof-identity[quantity_bearing_producer_declarations_survive_scheduler_lowering]: worth-store-io-scheduler::src/background_pacing/tests/producer_declarations/quantity_bearing_producer_declarations_survive_scheduler_lowering::producer_declarations::quantity_bearing_producer_declarations_survive_scheduler_lowering
 #[test]
 fn quantity_bearing_producer_declarations_survive_scheduler_lowering() {
     let replication = BackgroundIoPressureShape::from_background_pressure_declaration(
@@ -110,52 +113,24 @@ fn quantity_bearing_producer_declarations_survive_scheduler_lowering() {
     assert!(verification.requested_budget().queue_slots() > 0);
 }
 
+// store-proof-identity[producer_pressure_declarations_are_scheduler_consumable]: worth-store-io-scheduler::src/background_pacing/tests/producer_declarations/producer_pressure_declarations_are_scheduler_consumable::producer_declarations::producer_pressure_declarations_are_scheduler_consumable
 #[test]
 fn producer_pressure_declarations_are_scheduler_consumable() {
     let cases = [
-        (
-            World::new(),
-            worth_store_physical_isolation::compaction_rewrite_scheduler_demand(),
-        ),
-        (
-            World::commit_wal(),
-            worth_store_physical_isolation::checkpoint_flush_scheduler_demand(),
-        ),
-        (
-            World::new(),
-            worth_store_physical_integrity::scrub_scan_scheduler_demand(),
-        ),
-        (
-            World::new(),
-            worth_store_operations::replication_prep_background_pressure_shape(4),
-        ),
-        (
-            World::new(),
-            worth_store_blob_chunks::blob_migration_background_pressure_shape(4096),
-        ),
-        (
-            World::new(),
-            worth_store_operations::backup_prep_background_pressure_shape(4096, 4),
-        ),
-        (
-            World::new(),
-            worth_store_operations::repair_background_pressure_shape(4),
-        ),
-        (
-            World::new(),
-            worth_store_offline_verifier::offline_repair_scan_background_pressure_shape(4),
-        ),
-        (
-            World::new(),
-            worth_store_offline_verifier::offline_verification_pressure_background_pressure_shape(
-                4,
-            ),
-        ),
+        worth_store_physical_isolation::compaction_rewrite_scheduler_demand(),
+        worth_store_physical_isolation::checkpoint_flush_scheduler_demand(),
+        worth_store_physical_integrity::scrub_scan_scheduler_demand(),
+        worth_store_operations::replication_prep_background_pressure_shape(4),
+        worth_store_blob_chunks::blob_migration_background_pressure_shape(4096),
+        worth_store_operations::backup_prep_background_pressure_shape(4096, 4),
+        worth_store_operations::repair_background_pressure_shape(4),
+        worth_store_offline_verifier::offline_repair_scan_background_pressure_shape(4),
+        worth_store_offline_verifier::offline_verification_pressure_background_pressure_shape(4),
     ];
 
-    for (world, declaration) in cases {
+    for declaration in cases {
         let shape = BackgroundIoPressureShape::from_background_pressure_declaration(declaration);
-        let outcome = admit_background_pacing(world.request(shape));
+        let outcome = execute_background_pressure_for_certification_test(shape);
         assert!(matches!(
             outcome,
             BackgroundPacingOutcome::AdmittedWithDebt(_)
@@ -166,11 +141,12 @@ fn producer_pressure_declarations_are_scheduler_consumable() {
         worth_store_blob_chunks::blob_ingest_background_pressure_shape(4096),
     );
     assert!(matches!(
-        World::new().capacity_denial(blob_ingest),
+        mismatched_background_pressure_denial_for_certification_test(blob_ingest),
         BackgroundPacingDenial::BackendRequirementMismatch { .. }
     ));
 }
 
+// store-proof-identity[equivalent_repair_declarations_have_parity_under_same_basis]: worth-store-io-scheduler::src/background_pacing/tests/producer_declarations/equivalent_repair_declarations_have_parity_under_same_basis::producer_declarations::equivalent_repair_declarations_have_parity_under_same_basis
 #[test]
 fn equivalent_repair_declarations_have_parity_under_same_basis() {
     let operations = BackgroundIoPressureShape::from_background_pressure_declaration(
@@ -181,7 +157,7 @@ fn equivalent_repair_declarations_have_parity_under_same_basis() {
     );
     assert_eq!(operations.requested_budget(), offline.requested_budget());
 
-    let operations_outcome = admit_background_pacing(World::new().request(operations));
-    let offline_outcome = admit_background_pacing(World::new().request(offline));
+    let operations_outcome = execute_background_pressure_for_certification_test(operations);
+    let offline_outcome = execute_background_pressure_for_certification_test(offline);
     assert_eq!(operations_outcome, offline_outcome);
 }

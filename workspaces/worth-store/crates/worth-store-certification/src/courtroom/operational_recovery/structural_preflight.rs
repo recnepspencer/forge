@@ -333,7 +333,7 @@ fn toolchain_identity(root: &Path) -> Result<[u8; 32], S10StructuralPreflightDen
     Ok(digest.finalize().into())
 }
 
-const fn reverse_flow_cases() -> [(&'static str, &'static str, &'static str); 6] {
+const fn reverse_flow_cases() -> [(&'static str, &'static str, &'static str); 7] {
     [
         (
             "shared_audit_record_cannot_construct_control_record",
@@ -365,6 +365,11 @@ const fn reverse_flow_cases() -> [(&'static str, &'static str, &'static str); 6]
             "OperationalCounterReceipt",
             "ExecutionReadyRepair",
         ),
+        (
+            "derived_index_cannot_construct_repair_trusted_source",
+            "DerivedIndexRepairReceipt",
+            "ProductionRestoreAdmissibleBackupBundle",
+        ),
     ]
 }
 
@@ -373,7 +378,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "runs workspace constitution tools and six nested compile-fail gates"]
+    #[ignore = "runs workspace constitution tools and seven nested compile-fail gates"]
     fn real_workspace_preflight_binds_tools_sources_and_reverse_flow_gates() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..");
         let evidence = execute_s10_structural_preflight(&root).unwrap();

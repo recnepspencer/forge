@@ -5,9 +5,10 @@ use worth_store_certification::courtroom::operational_recovery::{
 use worth_store_physical_certification::{
     CounterContractOracle, DetachedSimulationReplayParts, ExecutedTranscriptParts,
     FixtureCapabilityDeclaration, FixtureMutationBoundary, LargeStoreFixtureProfile,
-    OperationalRecoveryProductionDriver, OperationalRecoveryTraceJoinDenial,
-    PhysicalCertificationEvidenceBundle, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
-    PhysicalSimulationPlan, ReusablePhysicalOracleFamily, StateSpaceBudget,
+    MaterializedFixtureScaleEvidence, OperationalRecoveryProductionDriver,
+    OperationalRecoveryTraceJoinDenial, PhysicalCertificationEvidenceBundle,
+    PhysicalFixtureBuilder, PhysicalInterleavingSchedule, PhysicalSimulationPlan,
+    ReusablePhysicalOracleFamily, StateSpaceBudget,
 };
 use worth_store_test_support::harness::recovery::counter_evidence as counter_support;
 use worth_store_test_support::{
@@ -85,13 +86,22 @@ fn run_with_root(
     seed: worth_store_physical_certification::ReplaySeed,
     root_reference: u64,
 ) -> PhysicalCertificationEvidenceBundle {
+    let scale_workspace = tempfile::tempdir().unwrap();
+    let materialization = production_backed_physical_fixture_materialization(
+        LargeStoreFixtureProfile::StoreLargerThanMemory,
+        root_reference,
+    )
+    .unwrap();
+    let materialized_scale = MaterializedFixtureScaleEvidence::materialize(
+        scale_workspace.path(),
+        materialization.scale(),
+    )
+    .unwrap();
     let fixture = PhysicalFixtureBuilder::production_backed("s10-execution-matrix")
         .materialize_with(
-            production_backed_physical_fixture_materialization(
-                LargeStoreFixtureProfile::StoreLargerThanMemory,
-                root_reference,
-            )
-            .unwrap(),
+            materialization
+                .bind_materialized_scale(materialized_scale)
+                .unwrap(),
         )
         .capability(FixtureCapabilityDeclaration::for_mutation_boundary(
             FixtureMutationBoundary::Manifest,

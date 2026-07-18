@@ -1,6 +1,6 @@
 use worth_store_wal::{WalTopologyDenial, WalTopologyDenialKind};
 
-use crate::scan_fixtures::{generation, lsn, range, segment};
+use super::scan_fixtures::{generation, lsn, range, segment};
 
 pub fn assert_denial_has_no_context<T>(
     result: Result<T, WalTopologyDenial>,

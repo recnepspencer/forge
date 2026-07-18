@@ -15,9 +15,6 @@ worth-store-aspect-native.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
 
-[dev-dependencies]
-worth-store-readiness.workspace = true
-
 [features]
 test-support = []
 

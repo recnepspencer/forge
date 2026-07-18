@@ -4,12 +4,15 @@ use crate::{
     ExecutedReplicaPromotion, ExecutedRollback, OperationalOperationId,
 };
 
-use super::{OperationalSessionIdentity, OperationalSessionKind};
+use super::{OperationalSessionDisposition, OperationalSessionIdentity, OperationalSessionKind};
+
+mod validation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OperationalCounterReceipt {
     session: OperationalSessionIdentity,
     kind: OperationalSessionKind,
+    disposition: OperationalSessionDisposition,
     source_bytes_read: u64,
     output_bytes_written: u64,
     durable_protocol_transitions: u64,
@@ -47,6 +50,7 @@ impl OperationalCounterReceipt {
                 &OperationalOperationId::new("counter-test").expect("valid test operation"),
             ),
             kind,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: 0,
             output_bytes_written: 0,
             durable_protocol_transitions: 0,
@@ -84,6 +88,7 @@ impl OperationalCounterReceipt {
         Self {
             session: OperationalSessionIdentity::from_operation(executed.operation_id()),
             kind: OperationalSessionKind::ReplicaBootstrap,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: counters.source_bytes_read(),
             output_bytes_written: counters.output_bytes_written(),
             durable_protocol_transitions: 2,
@@ -102,6 +107,7 @@ impl OperationalCounterReceipt {
         Self {
             session: OperationalSessionIdentity::from_operation(executed.operation_id()),
             kind: OperationalSessionKind::ReplicaPromotion,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: 0,
             output_bytes_written: 0,
             durable_protocol_transitions: 3,
@@ -123,6 +129,7 @@ impl OperationalCounterReceipt {
         Self {
             session: OperationalSessionIdentity::from_operation(operation),
             kind: OperationalSessionKind::ForensicAcquisition,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: counters.source_bytes_read(),
             output_bytes_written: counters.output_bytes_written(),
             durable_protocol_transitions: counters.source_files(),
@@ -144,6 +151,7 @@ impl OperationalCounterReceipt {
         Ok(Self {
             session: OperationalSessionIdentity::from_operation(completed.operation_id()),
             kind: OperationalSessionKind::Backup,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: counters.source_bytes_read(),
             output_bytes_written: counters
                 .total_output_bytes_written()
@@ -158,6 +166,28 @@ impl OperationalCounterReceipt {
             forbidden_full_materializations: 0,
             foreign_work_units: 0,
         })
+    }
+
+    pub fn from_backup_abandonment(
+        operation: &OperationalOperationId,
+        _receipt: &worth_store_physical_isolation::BackupCutAbandonmentReceipt,
+    ) -> Self {
+        Self {
+            session: OperationalSessionIdentity::from_operation(operation),
+            kind: OperationalSessionKind::Backup,
+            disposition: OperationalSessionDisposition::Abandoned,
+            source_bytes_read: 0,
+            output_bytes_written: 0,
+            durable_protocol_transitions: 2,
+            external_fence_grants: 0,
+            retained_source_leases: 1,
+            work_units: 1,
+            maximum_resident_bytes: 0,
+            authorization_consumptions: 0,
+            owner_receipts: 1,
+            forbidden_full_materializations: 0,
+            foreign_work_units: 0,
+        }
     }
 
     pub fn from_backup_restore(executed: &ExecutedBackupRestore) -> Self {
@@ -192,6 +222,7 @@ impl OperationalCounterReceipt {
         Self {
             session: OperationalSessionIdentity::from_operation(executed.operation_id()),
             kind: OperationalSessionKind::Repair,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: 0,
             output_bytes_written: 0,
             durable_protocol_transitions: owner_receipts.saturating_mul(2).saturating_add(3),
@@ -212,6 +243,7 @@ impl OperationalCounterReceipt {
         Self {
             session: OperationalSessionIdentity::from_operation(executed.operation_id()),
             kind: OperationalSessionKind::Repair,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: executed.backend().bytes_copied(),
             output_bytes_written: executed.backend().bytes_copied(),
             durable_protocol_transitions: owner_receipts.saturating_mul(2).saturating_add(3),
@@ -234,6 +266,7 @@ impl OperationalCounterReceipt {
         Self {
             session: OperationalSessionIdentity::from_operation(operation),
             kind: OperationalSessionKind::OfflineVerification,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: counters.bytes_read(),
             output_bytes_written: 0,
             durable_protocol_transitions: 0,
@@ -259,6 +292,7 @@ impl OperationalCounterReceipt {
         Self {
             session: OperationalSessionIdentity::from_operation(operation),
             kind,
+            disposition: OperationalSessionDisposition::Completed,
             source_bytes_read: receipt.bytes_copied(),
             output_bytes_written: receipt.bytes_copied(),
             durable_protocol_transitions: 4,
@@ -278,6 +312,9 @@ impl OperationalCounterReceipt {
     }
     pub const fn kind(self) -> OperationalSessionKind {
         self.kind
+    }
+    pub const fn disposition(self) -> OperationalSessionDisposition {
+        self.disposition
     }
     pub const fn source_bytes_read(self) -> u64 {
         self.source_bytes_read
@@ -311,88 +348,5 @@ impl OperationalCounterReceipt {
     }
     pub const fn foreign_work_units(self) -> u64 {
         self.foreign_work_units
-    }
-
-    pub fn validate_structure(self) -> Result<(), OperationalCounterStructureDenial> {
-        if self.work_units == 0 {
-            return Err(OperationalCounterStructureDenial::EmptyWork);
-        }
-        self.require_streaming_breadth()?;
-        self.require_authority_counts()?;
-        self.require_owner_receipts()?;
-        Ok(())
-    }
-
-    fn require_streaming_breadth(self) -> Result<(), OperationalCounterStructureDenial> {
-        let reconstructive = matches!(
-            self.kind,
-            OperationalSessionKind::Backup
-                | OperationalSessionKind::Restore
-                | OperationalSessionKind::PointInTimeRecovery
-                | OperationalSessionKind::Rollback
-                | OperationalSessionKind::ReplicaBootstrap
-                | OperationalSessionKind::ForensicAcquisition
-        );
-        let inspecting = self.kind == OperationalSessionKind::OfflineVerification;
-        if (reconstructive || inspecting) && self.source_bytes_read == 0 {
-            return Err(OperationalCounterStructureDenial::MissingStreamingBreadth);
-        }
-        if reconstructive && self.output_bytes_written == 0 {
-            return Err(OperationalCounterStructureDenial::MissingStreamingBreadth);
-        }
-        if (reconstructive || inspecting) && self.maximum_resident_bytes == 0 {
-            return Err(OperationalCounterStructureDenial::MissingResidentBound);
-        }
-        Ok(())
-    }
-
-    fn require_authority_counts(self) -> Result<(), OperationalCounterStructureDenial> {
-        let expected_authorizations = u64::from(matches!(
-            self.kind,
-            OperationalSessionKind::Restore
-                | OperationalSessionKind::PointInTimeRecovery
-                | OperationalSessionKind::Rollback
-                | OperationalSessionKind::Repair
-                | OperationalSessionKind::ReplicaBootstrap
-                | OperationalSessionKind::ReplicaPromotion
-        ));
-        if self.authorization_consumptions != expected_authorizations {
-            return Err(OperationalCounterStructureDenial::InvalidAuthorizationCount);
-        }
-        let expected_fences = u64::from(self.kind == OperationalSessionKind::ReplicaPromotion);
-        if self.external_fence_grants != expected_fences {
-            return Err(OperationalCounterStructureDenial::InvalidFenceCount);
-        }
-        let expected_leases = u64::from(matches!(
-            self.kind,
-            OperationalSessionKind::Backup
-                | OperationalSessionKind::PointInTimeRecovery
-                | OperationalSessionKind::Rollback
-                | OperationalSessionKind::ReplicaBootstrap
-        ));
-        if self.retained_source_leases != expected_leases {
-            return Err(OperationalCounterStructureDenial::InvalidLeaseCount);
-        }
-        Ok(())
-    }
-
-    fn require_owner_receipts(self) -> Result<(), OperationalCounterStructureDenial> {
-        let valid = match self.kind {
-            OperationalSessionKind::OfflineVerification => self.owner_receipts == 0,
-            OperationalSessionKind::Restore
-            | OperationalSessionKind::PointInTimeRecovery
-            | OperationalSessionKind::Rollback
-            | OperationalSessionKind::ReplicaPromotion => self.owner_receipts == 2,
-            OperationalSessionKind::Backup | OperationalSessionKind::ReplicaBootstrap => {
-                self.owner_receipts == 1
-            }
-            OperationalSessionKind::Repair | OperationalSessionKind::ForensicAcquisition => {
-                self.owner_receipts > 0
-            }
-        };
-        if !valid {
-            return Err(OperationalCounterStructureDenial::InvalidOwnerReceiptCount);
-        }
-        Ok(())
     }
 }

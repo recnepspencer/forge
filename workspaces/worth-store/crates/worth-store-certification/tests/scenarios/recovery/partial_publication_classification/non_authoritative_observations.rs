@@ -1,6 +1,6 @@
 use worth_store_recovery_physics::{BackendResidueKind, PartialPublicationObservationSet};
 
-use crate::crash_edge_observations::after_durability_before_ack_edge;
+use super::crash_edge_observations::after_durability_before_ack_edge;
 
 pub(crate) fn replayable_wal_with_non_authoritative_observations(
     start: u64,

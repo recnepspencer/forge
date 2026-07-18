@@ -16,6 +16,7 @@ use worth_store_physical_format::{
     PhysicalStoreRuntime, PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
 };
 
+// store-proof-identity[bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access]: worth-store-layout-indexes::layout/bootstrap::bootstrap_catalog::bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access
 #[test]
 fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
     let published = published_layout();
@@ -72,6 +73,7 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
     );
 }
 
+// store-proof-identity[bootstrap_only_lane_denies_ordinary_family_access]: worth-store-layout-indexes::layout/bootstrap::bootstrap_catalog::bootstrap_only_lane_denies_ordinary_family_access
 #[test]
 fn bootstrap_only_lane_denies_ordinary_family_access() {
     let denial = bootstrap_catalog().deny_ordinary_family_access(
@@ -87,6 +89,7 @@ fn bootstrap_only_lane_denies_ordinary_family_access() {
     ));
 }
 
+// store-proof-identity[mismatched_current_root_readmission_is_rejected]: worth-store-layout-indexes::layout/bootstrap::bootstrap_catalog::mismatched_current_root_readmission_is_rejected
 #[test]
 fn mismatched_current_root_readmission_is_rejected() {
     let published = published_layout();
@@ -118,6 +121,7 @@ fn mismatched_current_root_readmission_is_rejected() {
     ));
 }
 
+// store-proof-identity[bootstrap_admission_cannot_unlock_a_different_same_version_catalog]: worth-store-layout-indexes::layout/bootstrap::bootstrap_catalog::bootstrap_admission_cannot_unlock_a_different_same_version_catalog
 #[test]
 fn bootstrap_admission_cannot_unlock_a_different_same_version_catalog() {
     let published = published_layout();
@@ -158,6 +162,7 @@ fn bootstrap_admission_cannot_unlock_a_different_same_version_catalog() {
     assert_ne!(first_admission, other_admission);
 }
 
+// store-proof-identity[bootstrap_catalog_replays_stably_across_certification_replay]: worth-store-layout-indexes::layout/bootstrap::bootstrap_catalog::bootstrap_catalog_replays_stably_across_certification_replay
 #[test]
 fn bootstrap_catalog_replays_stably_across_certification_replay() {
     let published = published_layout();

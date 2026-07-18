@@ -5,6 +5,7 @@ mod capability;
 mod denial;
 mod manifest;
 mod materialization;
+mod materialized_scale;
 mod mutation_boundary;
 mod production_backed;
 mod profile;
@@ -21,6 +22,7 @@ pub use denial::SyntheticFixtureAuthorityDenied;
 pub use manifest::PersistedStoreFixtureManifest;
 pub(crate) use manifest::ReopenedFixtureManifestParts;
 pub use materialization::{ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource};
+pub use materialized_scale::MaterializedFixtureScaleEvidence;
 pub use mutation_boundary::{FixtureMutationBoundary, FixtureMutationBoundarySet};
 pub use production_backed::ProductionBackedPhysicalFixture;
 pub use profile::{

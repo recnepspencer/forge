@@ -7,6 +7,21 @@ mod cargo_artifacts;
 
 const TEST_TARGET: &str = "s5_physical_semantic_isolation_compile_fail";
 
+// store-proof-identity[parses_library_artifact_with_windows_path]: worth-store-certification::compiler/cargo_artifact_message::cargo_artifact_message::parses_library_artifact_with_windows_path
+#[test]
+fn parses_library_artifact_with_windows_path() {
+    let message = cargo_artifacts::parse(
+        r#"{"reason":"compiler-artifact","target":{"kind":["lib"],"name":"worth-store-certification"},"filenames":["C:\\target\\libworth_store_certification.rlib"]}"#,
+    )
+    .expect("compiler artifact parses");
+
+    assert_eq!(message.target_name, "worth-store-certification");
+    assert_eq!(
+        message.filenames[0].to_string_lossy(),
+        r"C:\target\libworth_store_certification.rlib"
+    );
+}
+
 #[test]
 fn semantic_visibility_cannot_satisfy_physical_read_stability_authority() {
     cargo_artifacts::discover(TEST_TARGET);

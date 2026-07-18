@@ -18,7 +18,7 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 43] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 45] {
     [
         fixture(
             "raw_struct_cannot_construct_admitted_layout_strategy.rs",
@@ -265,6 +265,16 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 43] {
                 "found `PhysicalReference`",
             ],
             &["worth_store_physical_format"],
+        ),
+        fixture(
+            "raw_readmitted_security_scope_cannot_be_constructed.rs",
+            &["StoreReadmittedSecurityScope"],
+            &["worth_store_security"],
+        ),
+        fixture(
+            "raw_restore_identity_cannot_construct_materialization_source.rs",
+            &["RestoredArtifactMaterializationSourceIdentity"],
+            &[],
         ),
     ]
 }

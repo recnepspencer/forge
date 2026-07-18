@@ -123,9 +123,13 @@ fn compiled_artifact_graph() -> &'static std::collections::HashMap<String, std::
                 .arg("--offline")
                 .arg("--message-format=json")
                 .arg("-p")
-                .arg("worth-store-layout-indexes")
-                .arg("--test")
-                .arg("layout_scenarios")
+                // The fixture set deliberately proves that certification and
+                // physical-certification values cannot impersonate owner
+                // authority. Build the widest declared fixture world once so
+                // every explicit --extern comes from this invocation rather
+                // than from an accidental warm target directory.
+                .arg("worth-store-certification")
+                .arg("--lib")
                 .current_dir(workspace_root)
                 .output()
                 .expect("Cargo must be available for compile-fail artifact discovery");

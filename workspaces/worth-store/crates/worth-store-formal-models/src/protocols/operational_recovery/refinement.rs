@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use worth_store_operations::OperationalControlRecord;
 
@@ -39,7 +39,8 @@ pub fn check_operational_recovery_refinement(
     records: &[OperationalControlRecord],
     controlled_defect: Option<OperationalRecoveryControlledDefect>,
 ) -> Result<OperationalRecoveryRefinementReceipt, OperationalRecoveryCounterexample> {
-    let mut model = OperationalRecoveryModel::default();
+    let mut models = BTreeMap::new();
+    let mut reached_model_transitions = BTreeSet::new();
     let mut operation_identities = BTreeSet::new();
     let mut operation_scopes = BTreeSet::new();
     let mut digest = sha2::Sha256::new();
@@ -53,11 +54,19 @@ pub fn check_operational_recovery_refinement(
             action.operation_identity().to_owned(),
         ));
         digest.update(action.evidence_identity());
+        let scope = (
+            action.authority_identity(),
+            action.operation_identity().to_owned(),
+        );
+        let model = models
+            .entry(scope)
+            .or_insert_with(OperationalRecoveryModel::default);
         model.apply(&action, controlled_defect)?;
+        reached_model_transitions.extend(model.reached_transitions().iter().copied());
     }
     Ok(OperationalRecoveryRefinementReceipt {
         concrete_transition_count: records.len() as u64,
-        reached_model_transitions: model.reached_transitions().clone(),
+        reached_model_transitions,
         operation_identities,
         operation_scopes,
         refinement_identity: digest.finalize().into(),

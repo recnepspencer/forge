@@ -26,7 +26,6 @@ tempfile = "3"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
-worth-store-layout-indexes = { path = "../worth-store-layout-indexes" }
 worth-store-physical-backend = { path = "../worth-store-physical-backend", features = ["certification-test-authority"] }
 worth-store-security = { path = "../worth-store-security", features = ["certification-test-authority"] }
 

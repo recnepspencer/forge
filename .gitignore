@@ -43,3 +43,6 @@ mb_n4_log.txt
 
 # Cross-provider runner handoff artifacts (plan/findings passed between provider sessions)
 .runner-handoff/
+
+# Repository-owned test control runtime evidence and attempt logs
+.store-proof/

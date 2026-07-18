@@ -6,7 +6,7 @@ use crate::media_acquisition::{
     acquire_read_only_media, OfflineMediaAcquisitionDenial, UntrustedOfflineMediaSet,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OfflineStoreInspection {
     media: UntrustedOfflineMediaSet,
     scope: OfflineInspectionScope,
@@ -76,5 +76,9 @@ impl OfflineStoreInspection {
             self.cancellation,
             started_at,
         )
+    }
+
+    pub(super) const fn inspection_budget(&self) -> OfflineInspectionBudget {
+        self.budget
     }
 }

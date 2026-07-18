@@ -28,7 +28,6 @@ phase22-layout-rule-construction = []
 
 [dev-dependencies]
 worth-store-authority.workspace = true
-worth-store-layout-indexes = { path = "../worth-store-layout-indexes" }
 worth-store-readiness.workspace = true
 
 [lints]

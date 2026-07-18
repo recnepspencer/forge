@@ -9,10 +9,14 @@ use crate::courtroom::operational_recovery::phase_invocation::control_generation
 use crate::courtroom::operational_recovery::scenario_audit_binding::require_audits_from_control_history;
 use crate::courtroom::operational_recovery::scenario_counter_binding::require_operation_counter_bindings;
 use crate::courtroom::operational_recovery::scenario_identity::phase_19_join_identity;
+use crate::courtroom::operational_recovery::scenario_trace_binding::require_production_observation_identities;
 use crate::courtroom::operational_recovery::{
     S10OperationalScenarioEvidence, S10Phase, S10PhaseInvocationEvidence,
     S10ScenarioProductionEvidence, S10StructuralPreflightEvidence,
 };
+
+mod runtime_record_omission;
+pub use runtime_record_omission::localize_s10_runtime_record_omission;
 
 pub fn localize_s10_structural_phase_defect(
     scenario: &S10OperationalScenarioEvidence,
@@ -59,7 +63,7 @@ pub fn localize_s10_control_selection_phase_defect(
             );
         }
         ControlStoreSelectionIndeterminate::SelectedPrefixDigestMismatch { selected, observed }
-            if members.contains(selected) =>
+            if members.contains(selected) || members.contains(observed) =>
         {
             digest.update([3]);
             digest.update(selected);
@@ -110,6 +114,42 @@ pub fn localize_s10_observation_phase_defect(
         S10PhaseDefectSourceKind::IndependentInspection,
         rejection,
         failed_oracle_count(mutant),
+    ))
+}
+
+pub fn localize_s10_observation_join_omission(
+    scenario: &S10OperationalScenarioEvidence,
+    production: S10ScenarioProductionEvidence<'_>,
+    phase: u8,
+) -> Result<S10PhaseDefectLocalization, S10PhaseDefectDenial> {
+    let invocation = phase_invocation(scenario, phase)?;
+    let trace = scenario.driver_trace();
+    let (inspection, semantic_truth, omitted) = match phase {
+        3 => (
+            None,
+            trace.truth_evidence_identity(),
+            production.truth().source_inspection_identity(),
+        ),
+        4 => (
+            trace.inspection_evidence_identity(),
+            None,
+            production.truth().truth_evidence_identity(),
+        ),
+        _ => return Err(S10PhaseDefectDenial::PhaseNotInvoked),
+    };
+    if require_production_observation_identities(production, inspection, semantic_truth).is_ok() {
+        return Err(S10PhaseDefectDenial::ObservationDefectAmbiguous);
+    }
+    let mut digest = Sha256::new();
+    digest.update(b"worth-store-s10-observation-join-omission-v1");
+    digest.update([phase]);
+    digest.update(omitted);
+    Ok(localization(
+        scenario,
+        invocation,
+        S10PhaseDefectSourceKind::IndependentInspection,
+        digest.finalize().into(),
+        1,
     ))
 }
 
@@ -188,6 +228,27 @@ pub fn localize_s10_harness_phase_defect(
     ))
 }
 
+pub fn localize_s10_harness_join_omission(
+    scenario: &S10OperationalScenarioEvidence,
+) -> Result<S10PhaseDefectLocalization, S10PhaseDefectDenial> {
+    let denial = crate::courtroom::operational_recovery::S10ScenarioExecutionMatrix::join(
+        Vec::<PhysicalCertificationEvidenceBundle>::new(),
+        [scenario.driver_trace().clone()],
+    )
+    .expect_err("a scenario matrix without physical executions must fail closed");
+    let mut digest = Sha256::new();
+    digest.update(b"worth-store-s10-harness-join-omission-v1");
+    digest.update(format!("{denial:?}").as_bytes());
+    digest.update(scenario.execution_matrix().matrix_identity());
+    Ok(localization(
+        scenario,
+        phase_invocation(scenario, 16)?,
+        S10PhaseDefectSourceKind::PhysicalHarness,
+        digest.finalize().into(),
+        1,
+    ))
+}
+
 pub fn localize_s10_formal_phase_defect(
     scenario: &S10OperationalScenarioEvidence,
 ) -> Result<S10PhaseDefectLocalization, S10PhaseDefectDenial> {
@@ -251,7 +312,7 @@ pub fn localize_s10_closeout_join_phase_defect(
     ))
 }
 
-fn phase_invocation(
+pub(super) fn phase_invocation(
     scenario: &S10OperationalScenarioEvidence,
     phase: u8,
 ) -> Result<&S10PhaseInvocationEvidence, S10PhaseDefectDenial> {
@@ -303,7 +364,7 @@ fn failed_oracle_count(mutant: &PhysicalCertificationEvidenceBundle) -> u64 {
         .map_or(0, |failure| failure.failed_oracle_count() as u64)
 }
 
-fn localization(
+pub(super) fn localization(
     scenario: &S10OperationalScenarioEvidence,
     invocation: &S10PhaseInvocationEvidence,
     source_kind: S10PhaseDefectSourceKind,

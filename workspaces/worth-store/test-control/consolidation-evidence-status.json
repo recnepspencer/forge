@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "pre_consolidation_execution_evidence": "not-captured-before-consolidation",
+  "identity_predicate_preservation": "ledger-validated-not-execution-compared",
+  "failure_localization_evidence": "executable-fixture-validated",
+  "shared_source_codegen_evidence": "executable-fixture-validated",
+  "closeout_eligible": false,
+  "limitation": "The pre-consolidation scenario binaries were removed before same-seed, same-profile verdict, counter, and evidence transcripts were captured. Stable identities, destinations, and products are mechanically preserved. Historical assertion predicates are only source-token approximations; the sealed full-body fingerprints protect current proofs from future drift but cannot reconstruct pre-consolidation behavior. Executable fixtures verify current failure localization and one-codegen-per-suite behavior. Historical behavioral parity remains unknowable, so Phase 6 and C.1 closeout remain unavailable until an explicitly reviewed replacement evidence policy is satisfied."
+}

@@ -9,6 +9,25 @@ use crate::{
     UntrustedOfflineMediaSet,
 };
 
+mod file_facts;
+use file_facts::file_facts;
+
+#[test]
+fn owner_issued_restart_matrix_covers_every_chunk_boundary() {
+    let fixture = ResumeFixture::new();
+    let receipt = fixture
+        .inspection(OfflineInspectionBudget::bounded(7, 256).unwrap())
+        .certify_every_chunk_restart()
+        .unwrap();
+
+    assert_eq!(receipt.scanned_bytes(), 128);
+    assert!(receipt.crash_boundaries() > 2);
+    assert_eq!(receipt.crash_boundaries(), receipt.available_boundaries());
+    assert!(receipt.maximum_revalidated_bytes() <= receipt.scanned_bytes());
+    assert!(receipt.maximum_resident_buffer_bytes() <= 7);
+    assert_ne!(receipt.receipt_identity(), [0; 32]);
+}
+
 #[test]
 fn every_chunk_boundary_crash_and_cancellation_converges_across_buffer_widths() {
     let fixture = ResumeFixture::new();
@@ -371,18 +390,4 @@ fn reseal(mut body: Vec<u8>) -> Vec<u8> {
     let checksum: [u8; 32] = Sha256::digest(&body).into();
     body.extend_from_slice(&checksum);
     body
-}
-
-fn file_facts(
-    walked: &crate::StructurallyWalkedMedia,
-) -> Vec<(
-    worth_store_physical_format::OfflinePhysicalArtifactFamily,
-    u64,
-    [u8; 32],
-)> {
-    walked
-        .files()
-        .iter()
-        .map(|file| (file.family(), file.length(), file.content_digest()))
-        .collect()
 }

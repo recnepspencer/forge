@@ -1,8 +1,11 @@
 use std::cell::RefCell;
 use std::path::Path;
 
-use crate::operational_recovery_trace::OperationalRecoveryDriverTrace;
+mod construction;
+mod process_crash;
+
 pub use crate::operational_recovery_yieldpoint::OperationalRecoveryYieldpoint;
+use crate::OperationalRecoveryProcessCrashConfig;
 use worth_store_authority::PrimaryServingAuthority;
 use worth_store_offline_verifier::{
     ForensicAcquisitionCounters, ForensicAcquisitionDenial, ForensicAcquisitionProgress,
@@ -37,51 +40,17 @@ pub struct OperationalRecoveryProductionDriver {
 #[derive(Debug)]
 struct OperationalRecoveryDriverState {
     pause_at: Option<OperationalRecoveryYieldpoint>,
+    process_crash: Option<OperationalRecoveryProcessCrashConfig>,
     reached: Vec<OperationalRecoveryYieldpoint>,
     operation_identities: Vec<String>,
     control_artifact_identities: Vec<[u8; 32]>,
     inspection_evidence_identity: Option<[u8; 32]>,
     truth_evidence_identity: Option<[u8; 32]>,
+    latest_control_observation:
+        Option<worth_store_operations::OperationalControlSessionObservation>,
 }
 
 impl OperationalRecoveryProductionDriver {
-    pub const fn uninterrupted() -> Self {
-        Self {
-            state: RefCell::new(OperationalRecoveryDriverState {
-                pause_at: None,
-                reached: Vec::new(),
-                operation_identities: Vec::new(),
-                control_artifact_identities: Vec::new(),
-                inspection_evidence_identity: None,
-                truth_evidence_identity: None,
-            }),
-        }
-    }
-
-    pub const fn pause_once_at(yieldpoint: OperationalRecoveryYieldpoint) -> Self {
-        Self {
-            state: RefCell::new(OperationalRecoveryDriverState {
-                pause_at: Some(yieldpoint),
-                reached: Vec::new(),
-                operation_identities: Vec::new(),
-                control_artifact_identities: Vec::new(),
-                inspection_evidence_identity: None,
-                truth_evidence_identity: None,
-            }),
-        }
-    }
-
-    pub fn trace(&self) -> OperationalRecoveryDriverTrace {
-        let state = self.state.borrow();
-        OperationalRecoveryDriverTrace::from_observations(
-            state.reached.clone(),
-            state.operation_identities.clone(),
-            state.control_artifact_identities.clone(),
-            state.inspection_evidence_identity,
-            state.truth_evidence_identity,
-        )
-    }
-
     /// Binds a durable production transition to this scenario invocation.
     /// The driver accepts only the owner-produced control artifact and derives
     /// its identity itself; callers cannot supply a phase label or digest.
@@ -100,7 +69,12 @@ impl OperationalRecoveryProductionDriver {
 
     /// Binds the completed bounded media walk and canonical semantic truth to
     /// the invocation without accepting caller-authored evidence bytes.
-    pub fn observe_completed_truth_composition(&self, truth: &OperationalTruthReport) {
+    pub fn observe_completed_truth_composition(
+        &self,
+        operation: &OperationalOperationId,
+        truth: &OperationalTruthReport,
+    ) {
+        self.observe_operation(operation);
         let mut state = self.state.borrow_mut();
         state.inspection_evidence_identity = Some(truth.source_inspection_identity());
         state.truth_evidence_identity = Some(truth.truth_evidence_identity());
@@ -341,9 +315,9 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub(super) fn before(&self, point: OperationalRecoveryYieldpoint) -> bool {
-        let mut state = self.state.borrow_mut();
-        state.reached.push(point);
-        take_pause(&mut state, point)
+        let paused = self.record_yieldpoint(point);
+        self.crash_at_latest_control_if_scheduled(point);
+        paused
     }
 
     pub(super) fn after<T>(
@@ -351,13 +325,30 @@ impl OperationalRecoveryProductionDriver {
         point: OperationalRecoveryYieldpoint,
         value: T,
     ) -> DrivenOperationalTransition<T> {
-        let mut state = self.state.borrow_mut();
-        state.reached.push(point);
-        if take_pause(&mut state, point) {
+        let paused = self.record_yieldpoint(point);
+        self.crash_at_latest_control_if_scheduled(point);
+        if paused {
             DrivenOperationalTransition::InterruptedAfter(value)
         } else {
             DrivenOperationalTransition::Completed(value)
         }
+    }
+
+    pub(super) fn record_control_yieldpoint(&self, point: OperationalRecoveryYieldpoint) -> bool {
+        self.record_yieldpoint(point)
+    }
+
+    fn record_yieldpoint(&self, point: OperationalRecoveryYieldpoint) -> bool {
+        let mut state = self.state.borrow_mut();
+        state.reached.push(point);
+        take_pause(&mut state, point)
+    }
+
+    pub(super) fn observe_control_session(
+        &self,
+        observation: worth_store_operations::OperationalControlSessionObservation,
+    ) {
+        self.state.borrow_mut().latest_control_observation = Some(observation);
     }
 
     pub(super) fn observe_operation(&self, operation: &OperationalOperationId) {

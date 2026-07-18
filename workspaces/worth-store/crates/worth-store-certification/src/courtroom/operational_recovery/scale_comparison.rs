@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use sha2::{Digest, Sha256};
-use worth_store_operations::{OperationalCounterReceipt, OperationalSessionKind};
+use worth_store_operations::{
+    OperationalCounterReceipt, OperationalSessionDisposition, OperationalSessionKind,
+};
 
 use super::{S10OperationalScenarioEvidence, S10OperationalScenarioKind, S10ScenarioSuiteEvidence};
 
@@ -9,34 +11,42 @@ use super::{S10OperationalScenarioEvidence, S10OperationalScenarioKind, S10Scena
 pub enum S10ScaleComparisonDenial {
     DimensionRegressed(S10OperationalScenarioKind),
     WorkloadDidNotExpand(S10OperationalScenarioKind),
+    MeasuredOperationBreadthDidNotExpand(S10OperationalScenarioKind),
     ScheduleBreadthRegressed(S10OperationalScenarioKind),
     CounterKindMissing {
         scenario: S10OperationalScenarioKind,
         kind: OperationalSessionKind,
+        disposition: OperationalSessionDisposition,
     },
     UnexpectedReleaseCounterKind {
         scenario: S10OperationalScenarioKind,
         kind: OperationalSessionKind,
+        disposition: OperationalSessionDisposition,
     },
     CounterAggregateOverflow {
         scenario: S10OperationalScenarioKind,
         kind: OperationalSessionKind,
+        disposition: OperationalSessionDisposition,
     },
     CounterSessionCountChanged {
         scenario: S10OperationalScenarioKind,
         kind: OperationalSessionKind,
+        disposition: OperationalSessionDisposition,
     },
     CounterBreadthRegressed {
         scenario: S10OperationalScenarioKind,
         kind: OperationalSessionKind,
+        disposition: OperationalSessionDisposition,
     },
     DeclaredSlopeExceeded {
         scenario: S10OperationalScenarioKind,
         kind: OperationalSessionKind,
+        disposition: OperationalSessionDisposition,
     },
     ResidentBudgetExceeded {
         scenario: S10OperationalScenarioKind,
         kind: OperationalSessionKind,
+        disposition: OperationalSessionDisposition,
     },
 }
 
@@ -123,28 +133,53 @@ fn compare_scenario(
     if release.scale().schedules_executed() < ci.scale().schedules_executed() {
         return Err(S10ScaleComparisonDenial::ScheduleBreadthRegressed(scenario));
     }
-    let ci_counters = aggregate_counters(ci.counters())
-        .map_err(|kind| S10ScaleComparisonDenial::CounterAggregateOverflow { scenario, kind })?;
-    let release_counters = aggregate_counters(release.counters())
-        .map_err(|kind| S10ScaleComparisonDenial::CounterAggregateOverflow { scenario, kind })?;
-    if let Some(kind) = release_counters
+    let ci_counters = aggregate_counters(ci.counters()).map_err(|key| {
+        S10ScaleComparisonDenial::CounterAggregateOverflow {
+            scenario,
+            kind: key.kind,
+            disposition: key.disposition,
+        }
+    })?;
+    let release_counters = aggregate_counters(release.counters()).map_err(|key| {
+        S10ScaleComparisonDenial::CounterAggregateOverflow {
+            scenario,
+            kind: key.kind,
+            disposition: key.disposition,
+        }
+    })?;
+    if let Some(key) = release_counters
         .keys()
-        .find(|kind| !ci_counters.contains_key(kind))
+        .find(|key| !ci_counters.contains_key(key))
     {
         return Err(S10ScaleComparisonDenial::UnexpectedReleaseCounterKind {
             scenario,
-            kind: *kind,
+            kind: key.kind,
+            disposition: key.disposition,
         });
     }
-    for (kind, ci_counter) in ci_counters {
-        let release_counter = release_counters
-            .get(&kind)
-            .copied()
-            .ok_or(S10ScaleComparisonDenial::CounterKindMissing { scenario, kind })?;
+    let mut measured_breadth_expanded = false;
+    for (key, ci_counter) in ci_counters {
+        let release_counter = release_counters.get(&key).copied().ok_or(
+            S10ScaleComparisonDenial::CounterKindMissing {
+                scenario,
+                kind: key.kind,
+                disposition: key.disposition,
+            },
+        )?;
         if release_counter.session_count != ci_counter.session_count {
-            return Err(S10ScaleComparisonDenial::CounterSessionCountChanged { scenario, kind });
+            return Err(S10ScaleComparisonDenial::CounterSessionCountChanged {
+                scenario,
+                kind: key.kind,
+                disposition: key.disposition,
+            });
         }
-        compare_counter(ci, release, kind, ci_counter, release_counter)?;
+        measured_breadth_expanded |= release_counter.work_units > ci_counter.work_units
+            || release_counter.source_bytes_read > ci_counter.source_bytes_read
+            || release_counter.output_bytes_written > ci_counter.output_bytes_written;
+        compare_counter(ci, release, key, ci_counter, release_counter)?;
+    }
+    if !measured_breadth_expanded {
+        return Err(S10ScaleComparisonDenial::MeasuredOperationBreadthDidNotExpand(scenario));
     }
     let mut digest = Sha256::new();
     digest.update(b"worth-store-s10-scale-comparison-row-v1");
@@ -162,7 +197,7 @@ fn compare_scenario(
 fn compare_counter(
     ci: &S10OperationalScenarioEvidence,
     release: &S10OperationalScenarioEvidence,
-    kind: OperationalSessionKind,
+    key: OperationalCounterClass,
     ci_counter: CounterAggregate,
     release_counter: CounterAggregate,
 ) -> Result<(), S10ScaleComparisonDenial> {
@@ -170,13 +205,21 @@ fn compare_counter(
     if ci_counter.maximum_resident_bytes > ci.scale().resident_budget_bytes()
         || release_counter.maximum_resident_bytes > release.scale().resident_budget_bytes()
     {
-        return Err(S10ScaleComparisonDenial::ResidentBudgetExceeded { scenario, kind });
+        return Err(S10ScaleComparisonDenial::ResidentBudgetExceeded {
+            scenario,
+            kind: key.kind,
+            disposition: key.disposition,
+        });
     }
     if release_counter.work_units < ci_counter.work_units
         || release_counter.source_bytes_read < ci_counter.source_bytes_read
         || release_counter.output_bytes_written < ci_counter.output_bytes_written
     {
-        return Err(S10ScaleComparisonDenial::CounterBreadthRegressed { scenario, kind });
+        return Err(S10ScaleComparisonDenial::CounterBreadthRegressed {
+            scenario,
+            kind: key.kind,
+            disposition: key.disposition,
+        });
     }
     let ci_breadth = ci.scale().dimensions().total_breadth();
     let release_breadth = release.scale().dimensions().total_breadth();
@@ -195,7 +238,11 @@ fn compare_counter(
         ci_breadth,
         release_breadth,
     ) {
-        return Err(S10ScaleComparisonDenial::DeclaredSlopeExceeded { scenario, kind });
+        return Err(S10ScaleComparisonDenial::DeclaredSlopeExceeded {
+            scenario,
+            kind: key.kind,
+            disposition: key.disposition,
+        });
     }
     Ok(())
 }
@@ -217,31 +264,38 @@ struct CounterAggregate {
     maximum_resident_bytes: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct OperationalCounterClass {
+    kind: OperationalSessionKind,
+    disposition: OperationalSessionDisposition,
+}
+
 fn aggregate_counters(
     counters: &[OperationalCounterReceipt],
-) -> Result<BTreeMap<OperationalSessionKind, CounterAggregate>, OperationalSessionKind> {
-    let mut by_kind: BTreeMap<OperationalSessionKind, CounterAggregate> = BTreeMap::new();
+) -> Result<BTreeMap<OperationalCounterClass, CounterAggregate>, OperationalCounterClass> {
+    let mut by_class: BTreeMap<OperationalCounterClass, CounterAggregate> = BTreeMap::new();
     for counter in counters {
-        let aggregate = by_kind.entry(counter.kind()).or_default();
-        aggregate.session_count = aggregate
-            .session_count
-            .checked_add(1)
-            .ok_or(counter.kind())?;
+        let class = OperationalCounterClass {
+            kind: counter.kind(),
+            disposition: counter.disposition(),
+        };
+        let aggregate = by_class.entry(class).or_default();
+        aggregate.session_count = aggregate.session_count.checked_add(1).ok_or(class)?;
         aggregate.work_units = aggregate
             .work_units
             .checked_add(counter.work_units())
-            .ok_or(counter.kind())?;
+            .ok_or(class)?;
         aggregate.source_bytes_read = aggregate
             .source_bytes_read
             .checked_add(counter.source_bytes_read())
-            .ok_or(counter.kind())?;
+            .ok_or(class)?;
         aggregate.output_bytes_written = aggregate
             .output_bytes_written
             .checked_add(counter.output_bytes_written())
-            .ok_or(counter.kind())?;
+            .ok_or(class)?;
         aggregate.maximum_resident_bytes = aggregate
             .maximum_resident_bytes
             .max(counter.maximum_resident_bytes());
     }
-    Ok(by_kind)
+    Ok(by_class)
 }

@@ -412,6 +412,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "store-proof-control"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "syn"
 version = "2.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -790,7 +799,6 @@ dependencies = [
  "worth-store-offline-verifier",
  "worth-store-operations",
  "worth-store-physical-backend",
- "worth-store-physical-certification",
  "worth-store-physical-format",
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
@@ -866,12 +874,9 @@ dependencies = [
 name = "worth-store-branch-deltas"
 version = "0.1.0"
 dependencies = [
- "worth-store-aspect-native",
- "worth-store-budgets",
  "worth-store-contracts",
  "worth-store-layout-indexes",
  "worth-store-live-query",
- "worth-store-test-support",
 ]
 
 [[package]]
@@ -907,6 +912,7 @@ version = "0.1.0"
 dependencies = [
  "serde_json",
  "sha2",
+ "tempfile",
  "worth-foundational",
  "worth-proof",
  "worth-relational",
@@ -1003,16 +1009,11 @@ version = "0.1.0"
 dependencies = [
  "worth-foundational",
  "worth-proof",
- "worth-store-blob-chunks",
  "worth-store-budgets",
  "worth-store-buffer-pool",
  "worth-store-contracts",
- "worth-store-offline-verifier",
- "worth-store-operations",
  "worth-store-physical-backend",
- "worth-store-physical-integrity",
  "worth-store-physical-isolation",
- "worth-store-readiness",
  "worth-store-security",
  "worth-store-wal",
 ]
@@ -1025,18 +1026,15 @@ dependencies = [
  "tempfile",
  "worth-foundational",
  "worth-proof",
- "worth-store",
  "worth-store-aspect-native",
  "worth-store-authority",
  "worth-store-blob-chunks",
  "worth-store-budgets",
- "worth-store-certification",
  "worth-store-compatibility",
  "worth-store-contracts",
  "worth-store-io-scheduler",
  "worth-store-lsm-authority",
  "worth-store-physical-backend",
- "worth-store-physical-certification",
  "worth-store-physical-format",
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
@@ -1201,7 +1199,6 @@ dependencies = [
  "worth-store-authority",
  "worth-store-budgets",
  "worth-store-contracts",
- "worth-store-security",
 ]
 
 [[package]]
@@ -1215,7 +1212,6 @@ dependencies = [
  "worth-store-buffer-pool",
  "worth-store-contracts",
  "worth-store-physical-format",
- "worth-store-readiness",
  "worth-store-security",
 ]
 
@@ -1232,7 +1228,6 @@ dependencies = [
  "worth-store-budgets",
  "worth-store-buffer-pool",
  "worth-store-contracts",
- "worth-store-layout-indexes",
  "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-physical-integrity",
@@ -1260,11 +1255,9 @@ dependencies = [
 name = "worth-store-reclaim-policy"
 version = "0.1.0"
 dependencies = [
- "worth-store-aspect-native",
  "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-physical-isolation",
- "worth-store-readiness",
  "worth-store-security",
 ]
 
@@ -1280,7 +1273,6 @@ dependencies = [
  "worth-store-budgets",
  "worth-store-buffer-pool",
  "worth-store-contracts",
- "worth-store-layout-indexes",
  "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-physical-integrity",
@@ -1337,12 +1329,9 @@ dependencies = [
 name = "worth-store-snapshots"
 version = "0.1.0"
 dependencies = [
- "worth-store-aspect-native",
- "worth-store-budgets",
  "worth-store-contracts",
  "worth-store-layout-indexes",
  "worth-store-physical-backend",
- "worth-store-test-support",
 ]
 
 [[package]]
@@ -1407,7 +1396,6 @@ dependencies = [
  "worth-store-aspect-native",
  "worth-store-authority",
  "worth-store-contracts",
- "worth-store-layout-indexes",
  "worth-store-modes",
  "worth-store-physical-backend",
  "worth-store-physical-format",

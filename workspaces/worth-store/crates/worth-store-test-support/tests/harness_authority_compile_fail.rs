@@ -118,7 +118,7 @@ fn compile_fail_case_target_dir(case_dir: &std::path::Path) -> std::path::PathBu
 
 fn fixture_manifest(repo_root: &std::path::Path, include_physical_certification: bool) -> String {
     let mut manifest = format!(
-        "[package]\nname = \"worth_store_test_support_harness_authority_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nworth-store-contracts = {{ path = \"{}\" }}\nworth-store-physical-format = {{ path = \"{}\" }}\nworth-store-test-support = {{ path = \"{}\" }}\nworth-store-physical-certification = {{ path = \"{}\" }}\n",
+        "[package]\nname = \"worth_store_test_support_harness_authority_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nworth-store-contracts = {{ path = \"{}\" }}\nworth-store-physical-format = {{ path = \"{}\" }}\nworth-store-test-support = {{ path = \"{}\", features = [\"physical-isolation-fixtures\"] }}\nworth-store-physical-certification = {{ path = \"{}\" }}\n",
         manifest_path(
             &repo_root
                 .join("workspaces")
@@ -151,7 +151,7 @@ fn fixture_manifest(repo_root: &std::path::Path, include_physical_certification:
     if !include_physical_certification {
         manifest = manifest.replace(
             &format!(
-                "worth-store-test-support = {{ path = \"{}\" }}\n",
+                "worth-store-test-support = {{ path = \"{}\", features = [\"physical-isolation-fixtures\"] }}\n",
                 manifest_path(
                     &repo_root
                         .join("workspaces")

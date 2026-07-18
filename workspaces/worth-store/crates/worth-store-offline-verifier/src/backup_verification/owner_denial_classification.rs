@@ -119,6 +119,9 @@ pub(super) fn classify_index_denial(
         BoundedLayoutIndexDenial::DigestMismatch => {
             BackupArtifactSemanticDefectKind::DigestMismatch
         }
+        BoundedLayoutIndexDenial::IdentityMismatch => {
+            BackupArtifactSemanticDefectKind::OwnerBindingMismatch
+        }
         BoundedLayoutIndexDenial::MalformedIndex => {
             BackupArtifactSemanticDefectKind::MalformedOwnerEncoding
         }

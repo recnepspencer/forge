@@ -1,5 +1,4 @@
-#[path = "../recovery_offline_verifier/runtime_recovery_fixture.rs"]
-mod runtime_recovery_fixture;
+use crate::runtime_recovery_fixture;
 
 use worth_store_physical_backend::ProductionStorageBoundarySeam;
 use worth_store_physical_certification::{

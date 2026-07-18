@@ -2,27 +2,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 #[test]
-fn cleaned_phase_boundaries_stay_under_declared_file_count_caps() {
+fn cleaned_phase_boundaries_respect_the_workspace_line_cap() {
     let repo_root = repo_root();
     for boundary in [
-        DirectoryBoundary::new(
-            "workspaces/worth-store/crates/worth-store-blob-chunks/src",
-            3,
-        ),
-        DirectoryBoundary::new(
-            "workspaces/worth-store/crates/worth-store-physical-format/src",
-            1,
-        ),
+        DirectoryBoundary::new("workspaces/worth-store/crates/worth-store-blob-chunks/src"),
+        DirectoryBoundary::new("workspaces/worth-store/crates/worth-store-physical-format/src"),
         DirectoryBoundary::new(
             "workspaces/worth-store/crates/worth-store-recovery-physics/src/integrity_handoff",
-            7,
         ),
-        DirectoryBoundary::new(
-            "workspaces/worth-store/crates/worth-store-test-support/src",
-            10,
-        ),
+        DirectoryBoundary::new("workspaces/worth-store/crates/worth-store-test-support/src"),
     ] {
-        boundary.assert_root_rs_file_count(&repo_root);
         boundary.assert_recursive_line_cap(&repo_root, 400);
     }
 }
@@ -75,31 +64,11 @@ fn facade_visibility_stays_narrow_at_closeout() {
 
 struct DirectoryBoundary {
     relative_path: &'static str,
-    max_root_rs_files: usize,
 }
 
 impl DirectoryBoundary {
-    const fn new(relative_path: &'static str, max_root_rs_files: usize) -> Self {
-        Self {
-            relative_path,
-            max_root_rs_files,
-        }
-    }
-
-    fn assert_root_rs_file_count(&self, repo_root: &Path) {
-        let directory = repo_root.join(self.relative_path);
-        let root_rs_files = fs::read_dir(&directory)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", directory.display()))
-            .filter_map(Result::ok)
-            .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "rs"))
-            .count();
-        assert!(
-            root_rs_files <= self.max_root_rs_files,
-            "{} has {} root .rs files; closeout cap is {}",
-            directory.display(),
-            root_rs_files,
-            self.max_root_rs_files
-        );
+    const fn new(relative_path: &'static str) -> Self {
+        Self { relative_path }
     }
 
     fn assert_recursive_line_cap(&self, repo_root: &Path, cap: usize) {

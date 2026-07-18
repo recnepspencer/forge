@@ -6,6 +6,7 @@ mod control_record;
 mod control_record_identity;
 mod control_record_kind;
 mod control_store_port;
+mod divergent_generation_selection;
 mod failure_domain;
 mod operation_identity;
 mod operational_media_path;
@@ -44,6 +45,7 @@ mod selected_control_replay_state;
 mod selected_control_replay_workflow_open;
 mod selected_control_state;
 mod selected_recovery_handles;
+mod session_observation;
 mod terminal_fence_release_handle;
 mod trust_posture;
 
@@ -54,6 +56,9 @@ pub use control_record_kind::{
 pub use control_store_port::{
     NonCurrentRecoveryTargetDenial, OperationalControlAppendDenial, OperationalControlStore,
     OperationalControlStoreOpenDenial, OperationalControlStorePort,
+};
+pub use divergent_generation_selection::{
+    DivergentControlGenerationSelectionDenial, DivergentControlGenerationSelectionReceipt,
 };
 pub use failure_domain::{
     ConfiguredFailureDomainId, OperationalControlLocation, ProtectedOperationalMediaLocation,
@@ -87,6 +92,10 @@ pub use selected_control_replay_contract::{
 };
 pub use selected_control_state::{
     inspect_control_store_copies, inspect_control_store_copies_with_budget,
+};
+pub use session_observation::{
+    OperationalControlProcessIdentity, OperationalControlSessionIdentity,
+    OperationalControlSessionObservation,
 };
 pub use terminal_fence_release_handle::{
     TerminalRecoveryFenceReleaseDenial, TerminalRecoveryFenceReleaseHandle,

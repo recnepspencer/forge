@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/independent_verifier_observation.rs"]
-mod independent_verifier_observation;
+use crate::independent_verifier_observation;
 
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, oracle_verdict_topology, physical_scenario,

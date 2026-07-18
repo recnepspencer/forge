@@ -62,6 +62,7 @@ mod promotion;
 mod publication;
 mod rejoin;
 mod runtime;
+mod split_brain_reconciliation;
 #[cfg(test)]
 mod tests;
 
@@ -102,6 +103,7 @@ pub use progress_store::ReplicationPeerCapacity;
 pub use promotion::{
     LoweredReplicaPromotionPlan, ReplicaPromotionCandidate, ReplicaPromotionDenial,
     ReplicaPromotionIntent, ReplicaPromotionOwner, ReplicaPromotionReceipt,
+    ReplicaPromotionRejectionReceipt,
 };
 pub use publication::{
     PublishedReplication, ReplicationPublicationDenial, ReplicationPublicationOutcome,
@@ -113,3 +115,7 @@ pub use rejoin::{
     OldPrimaryRejoinReceipt, ReplicationRejoinOwner,
 };
 pub use runtime::ReplicationAdmissionRuntime;
+pub use split_brain_reconciliation::{
+    PartitionSurvivorObservation, ReplicationPartitionWindow, SplitBrainReconciliationDenial,
+    SplitBrainReconciliationReceipt,
+};

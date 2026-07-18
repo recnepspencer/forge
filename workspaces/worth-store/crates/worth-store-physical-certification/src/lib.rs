@@ -11,15 +11,18 @@ mod drivers;
 mod evidence;
 mod faults;
 mod fixtures;
+mod fresh_process_offline_truth;
 mod observation;
 mod operational_recovery_audit_driver;
 #[cfg(test)]
 mod operational_recovery_authorization_fixture;
 mod operational_recovery_control_driver;
 mod operational_recovery_control_transition;
+mod operational_recovery_crash_evidence;
 mod operational_recovery_driver;
 #[cfg(test)]
 mod operational_recovery_driver_tests;
+mod operational_recovery_process_crash;
 mod operational_recovery_rejoin_driver;
 #[cfg(test)]
 mod operational_recovery_replica_driver_fixture;
@@ -138,10 +141,16 @@ pub use fixtures::{
     FixtureMutationBoundary, FixtureMutationBoundarySet, FixtureNeedsBoundary,
     FixtureNeedsMaterialization, FixtureProfileNonClaim, FixtureProvenance,
     FixtureScaleDeclaration, FixtureStorageScale, LargeStoreFixtureProfile,
-    PersistedStoreFixtureManifest, PhysicalArtifactFixtureCatalog, PhysicalFixtureBuilder,
-    ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource,
-    ProductionBackedPhysicalFixture, ResolvedFixtureConstructionRecipe, StoreFixtureAuthority,
-    SyntheticFixtureAuthorityDenied,
+    MaterializedFixtureScaleEvidence, PersistedStoreFixtureManifest,
+    PhysicalArtifactFixtureCatalog, PhysicalFixtureBuilder, ProductionBackedFixtureMaterialization,
+    ProductionBackedFixtureSource, ProductionBackedPhysicalFixture,
+    ResolvedFixtureConstructionRecipe, StoreFixtureAuthority, SyntheticFixtureAuthorityDenied,
+};
+pub use fresh_process_offline_truth::{
+    write_offline_truth_observation_from_environment, FreshProcessDestroyedPrimaryEvidence,
+    FreshProcessOfflineTruthBaseline, FreshProcessOfflineTruthDenial,
+    FreshProcessOfflineTruthRunner, OFFLINE_TRUTH_CHALLENGE_ENV, OFFLINE_TRUTH_REPORT_ENV,
+    OFFLINE_TRUTH_ROLE_ENV, OFFLINE_TRUTH_TARGET_ENV,
 };
 #[cfg(any(test, feature = "certification-test-support"))]
 pub use harness::blob::{
@@ -176,8 +185,17 @@ pub use observation::{
 };
 pub use operational_recovery_control_driver::DrivenOperationalControlStore;
 pub use operational_recovery_control_transition::OperationalRecoveryControlTransitionKind;
+pub use operational_recovery_crash_evidence::{
+    OperationalRecoveryCrashCutDenial, OperationalRecoveryCrashCutEvidence,
+};
 pub use operational_recovery_driver::{
     DrivenOperationalTransition, OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
+};
+pub use operational_recovery_process_crash::{
+    write_reopen_observation_from_environment, OperationalRecoveryFreshProcessRunner,
+    OperationalRecoveryProcessCrashConfig, OperationalRecoveryProcessCrashDenial,
+    PROCESS_CRASH_CHALLENGE_ENV, PROCESS_CRASH_REPORT_ENV, PROCESS_CRASH_ROLE_ENV,
+    PROCESS_CRASH_YIELDPOINT_ENV,
 };
 pub use operational_recovery_trace::{
     OperationalRecoveryDriverTrace, OperationalRecoveryTraceJoinDenial,
@@ -321,3 +339,4 @@ pub enum PhysicalCertificationLane {
     BlobScale,
     PhysicalIsolation,
 }
+mod certification_child_process;

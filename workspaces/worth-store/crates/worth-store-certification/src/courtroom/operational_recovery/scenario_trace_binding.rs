@@ -9,13 +9,11 @@ pub(super) fn require_production_trace_binding(
     production: S10ScenarioProductionEvidence<'_>,
     trace: &OperationalRecoveryDriverTrace,
 ) -> Result<(), S10ScenarioCertificationDenial> {
-    let truth = production.truth();
-    if trace.inspection_evidence_identity() != Some(truth.source_inspection_identity()) {
-        return Err(S10ScenarioCertificationDenial::DriverInspectionEvidenceMismatch);
-    }
-    if trace.truth_evidence_identity() != Some(truth.truth_evidence_identity()) {
-        return Err(S10ScenarioCertificationDenial::DriverTruthEvidenceMismatch);
-    }
+    require_production_observation_identities(
+        production,
+        trace.inspection_evidence_identity(),
+        trace.truth_evidence_identity(),
+    )?;
     for record in production.control_records().iter().filter(|record| {
         OperationalRecoveryControlTransitionKind::from_record(record.kind()).is_some()
     }) {
@@ -47,6 +45,21 @@ pub(super) fn require_production_trace_binding(
         if before < expected || after < expected {
             return Err(S10ScenarioCertificationDenial::DriverControlTransitionCountMismatch(kind));
         }
+    }
+    Ok(())
+}
+
+pub(super) fn require_production_observation_identities(
+    production: S10ScenarioProductionEvidence<'_>,
+    inspection: Option<[u8; 32]>,
+    semantic_truth: Option<[u8; 32]>,
+) -> Result<(), S10ScenarioCertificationDenial> {
+    let truth = production.truth();
+    if inspection != Some(truth.source_inspection_identity()) {
+        return Err(S10ScenarioCertificationDenial::DriverInspectionEvidenceMismatch);
+    }
+    if semantic_truth != Some(truth.truth_evidence_identity()) {
+        return Err(S10ScenarioCertificationDenial::DriverTruthEvidenceMismatch);
     }
     Ok(())
 }

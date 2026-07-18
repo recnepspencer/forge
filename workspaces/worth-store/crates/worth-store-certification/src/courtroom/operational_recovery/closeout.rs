@@ -2,12 +2,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 use worth_store_operations::{CurrentReplicaPromotion, SelectedOperationalControlState};
+use worth_store_physical_certification::OperationalRecoveryYieldpoint;
 
 use super::{
-    OperationalRecoveryCapabilityMatrix, S10OperationalScenarioEvidence,
-    S10OperationalScenarioKind, S10Phase, S10ProofFoundationalAdoptionMatrix,
-    S10ScaleComparisonDenial, S10ScaleComparisonMatrix, S11StructuredAuditHardeningHandoff,
-    S12PhysicalQualificationHandoff, ScenarioScaleProfile,
+    OperationalRecoveryCapabilityMatrix, S10HostileProgramRequirement,
+    S10OperationalScenarioEvidence, S10OperationalScenarioKind, S10Phase,
+    S10ProofFoundationalAdoptionMatrix, S10ScaleComparisonDenial, S10ScaleComparisonMatrix,
+    S11StructuredAuditHardeningHandoff, S12PhysicalQualificationHandoff, ScenarioScaleProfile,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -141,6 +142,16 @@ pub enum S10CloseoutDenial {
     ReusedScenarioEvidenceAcrossProfiles,
     ControlStoreHasNoDurableHistory,
     RemoteExclusionNotProven,
+    MissingFreshProcessCrashCoverage {
+        profile: ScenarioScaleProfile,
+        scenario: S10OperationalScenarioKind,
+        yieldpoint: OperationalRecoveryYieldpoint,
+    },
+    IncompleteHostileProgram {
+        profile: ScenarioScaleProfile,
+        scenario: S10OperationalScenarioKind,
+        requirement: S10HostileProgramRequirement,
+    },
     PhaseDefectSuite(super::S10PhaseDefectSuiteDenial),
     ScaleComparison(S10ScaleComparisonDenial),
 }
@@ -188,6 +199,10 @@ pub fn close_s10_certification(
     if exclusion.serving_epoch < exclusion.promoted_epoch {
         return Err(S10CloseoutDenial::RemoteExclusionNotProven);
     }
+    require_fresh_process_crash_coverage(&ci)?;
+    require_fresh_process_crash_coverage(&release)?;
+    require_complete_hostile_program(&ci)?;
+    require_complete_hostile_program(&release)?;
     let scenario_evidence_identities = six_scenario_identities(&ci, &release);
     let scenario_identity_set = scenario_evidence_identities.into_iter().collect();
     phase_defects
@@ -231,6 +246,36 @@ pub fn close_s10_certification(
             scenario_evidence_identities,
         ),
     })
+}
+
+fn require_fresh_process_crash_coverage(
+    suite: &S10ScenarioSuiteEvidence,
+) -> Result<(), S10CloseoutDenial> {
+    for scenario in suite.scenarios() {
+        if let Some(yieldpoint) = scenario.missing_crash_reopen_yieldpoint() {
+            return Err(S10CloseoutDenial::MissingFreshProcessCrashCoverage {
+                profile: suite.profile(),
+                scenario: scenario.program().kind(),
+                yieldpoint,
+            });
+        }
+    }
+    Ok(())
+}
+
+fn require_complete_hostile_program(
+    suite: &S10ScenarioSuiteEvidence,
+) -> Result<(), S10CloseoutDenial> {
+    for scenario in suite.scenarios() {
+        if let Some(requirement) = scenario.hostile_program().missing_requirement() {
+            return Err(S10CloseoutDenial::IncompleteHostileProgram {
+                profile: suite.profile(),
+                scenario: scenario.program().kind(),
+                requirement,
+            });
+        }
+    }
+    Ok(())
 }
 
 impl S10CertificationCloseout {

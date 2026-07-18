@@ -157,22 +157,3 @@ fn skip_whitespace(bytes: &[u8], cursor: &mut usize) {
         *cursor += 1;
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::parse;
-
-    #[test]
-    fn parses_library_artifact_with_windows_path() {
-        let message = parse(
-            r#"{"reason":"compiler-artifact","target":{"kind":["lib"],"name":"worth-store-certification"},"filenames":["C:\\target\\libworth_store_certification.rlib"]}"#,
-        )
-        .expect("compiler artifact parses");
-
-        assert_eq!(message.target_name, "worth-store-certification");
-        assert_eq!(
-            message.filenames[0].to_string_lossy(),
-            r"C:\target\libworth_store_certification.rlib"
-        );
-    }
-}

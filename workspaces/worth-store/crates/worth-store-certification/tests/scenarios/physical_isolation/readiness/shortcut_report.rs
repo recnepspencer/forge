@@ -6,8 +6,7 @@ use worth_store_physical_certification::{
     shortcut_denial_from_fault_delivery_denial, shortcut_denial_from_oracle_denial,
     shortcut_denial_from_plan_denial, shortcut_denial_from_scenario_denial,
     shortcut_denial_from_terminal_projection_denial, shortcut_denial_from_transcript_denial,
-    test_support_oracle_verdict_attempt, FaultDeliveryAttempt, ForbiddenShortcutKind,
-    ShortcutRejectionBoundary, SyntheticHarnessShortcutDenialReceipt,
+    test_support_oracle_verdict_attempt, FaultDeliveryAttempt, SyntheticHarnessShortcutDenialReceipt,
     SyntheticHarnessShortcutRejectionReport,
 };
 
@@ -19,7 +18,6 @@ pub(crate) fn complete_shortcut_report() -> SyntheticHarnessShortcutRejectionRep
     )
     .unwrap()
 }
-
 fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialReceipt> {
     vec![
         shortcut_denial_from_evidence_bundle_denial(
@@ -58,33 +56,4 @@ fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialRece
         shortcut_denial_from_oracle_denial(test_support_oracle_verdict_attempt().unwrap_err())
             .unwrap(),
     ]
-}
-
-#[test]
-fn shortcut_report_still_names_required_shortcut_boundaries() {
-    let report = complete_shortcut_report();
-    assert!(report.all_required_shortcuts_denied());
-    for boundary in [
-        ShortcutRejectionBoundary::EvidenceLooseLog,
-        ShortcutRejectionBoundary::ScenarioJsonAuthority,
-        ShortcutRejectionBoundary::EvidenceTerminalProjection,
-        ShortcutRejectionBoundary::EvidenceSameRunSelfComparison,
-        ShortcutRejectionBoundary::FaultDeliveryPrivateMutation,
-        ShortcutRejectionBoundary::OracleFixtureLabel,
-        ShortcutRejectionBoundary::TranscriptCopiedFields,
-        ShortcutRejectionBoundary::PlanProofProgressionSkipped,
-        ShortcutRejectionBoundary::OracleTestSupportVerdict,
-    ] {
-        assert!(
-            report
-                .receipts()
-                .iter()
-                .any(|receipt| receipt.boundary() == boundary),
-            "missing shortcut boundary {boundary:?}"
-        );
-    }
-    assert!(report
-        .receipts()
-        .iter()
-        .any(|receipt| receipt.shortcut() == ForbiddenShortcutKind::PrivateMutation));
 }

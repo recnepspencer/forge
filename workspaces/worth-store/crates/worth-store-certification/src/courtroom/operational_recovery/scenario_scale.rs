@@ -42,6 +42,8 @@ pub enum ScenarioScaleDenial {
     PhysicalProfileMismatch,
     StoreBelowProfileRatio,
     ReleaseBlobBreadthMissing,
+    MaterializedScaleMissing,
+    MaterializedScaleMismatch,
 }
 
 impl ScenarioScaleEvidence {
@@ -51,6 +53,12 @@ impl ScenarioScaleEvidence {
     ) -> Result<Self, ScenarioScaleDenial> {
         let manifest = execution.primary().replay().fixture_manifest();
         let scale = manifest.scale();
+        let materialized = manifest
+            .materialized_scale()
+            .ok_or(ScenarioScaleDenial::MaterializedScaleMissing)?;
+        if materialized.scale() != scale || !materialized.traversed_declared_media() {
+            return Err(ScenarioScaleDenial::MaterializedScaleMismatch);
+        }
         let dimensions = ScenarioWorkloadDimensions::from_execution(execution);
         let resident_budget_bytes = scale.resident_memory_budget_bytes();
         let schedules_executed = execution.schedules_executed();

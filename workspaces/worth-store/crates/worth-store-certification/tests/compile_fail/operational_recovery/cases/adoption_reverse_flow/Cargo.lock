@@ -774,6 +774,7 @@ name = "worth-store-s10-adoption-reverse-flow-compile-fail"
 version = "0.0.0"
 dependencies = [
  "worth-store-authority",
+ "worth-store-layout-indexes",
  "worth-store-offline-verifier",
  "worth-store-operations",
  "worth-store-replication",

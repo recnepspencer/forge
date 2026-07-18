@@ -11,6 +11,12 @@ mod rollback;
 
 pub(crate) use cutover::recover_pending;
 pub(crate) use recovery_owner_receipt::persist_recovery_owner_receipts;
+#[cfg(feature = "certification-test-authority")]
+pub(crate) use repair::{
+    certification_authority_repair_candidates_from_backup_observation,
+    certification_authority_repair_from_backup_observation,
+    certification_derived_maintenance_from_fixture_observation,
+};
 
 pub use backup::{
     admit_backup_for_production_restore, qualify_backup_custody,
@@ -30,9 +36,9 @@ pub use backup::{
 pub use cutover::{
     AuthorityAffectingRepairReadmissionOutcome, AuthorizedAuthorityAffectingRepairCutover,
     AuthorizedBackupRestoreCutover, AuthorizedPointInTimeRecoveryCutover,
-    AuthorizedRollbackCutover, BackupRestoreReadmissionOutcome, CurrentRecoveryAuthoritySnapshot,
-    FencedAuthorityAffectingRepairCutover, FencedBackupRestoreCutover,
-    FencedPointInTimeRecoveryCutover, FencedRollbackCutover,
+    AuthorizedRollbackCutover, BackupRestoreReadmissionOutcome, CompletedRetainedAuthorityRollback,
+    CurrentRecoveryAuthoritySnapshot, FencedAuthorityAffectingRepairCutover,
+    FencedBackupRestoreCutover, FencedPointInTimeRecoveryCutover, FencedRollbackCutover,
     LoweredAuthorityAffectingRepairCutoverPlanDag, LoweredBackupRestoreCutoverPlanDag,
     LoweredPointInTimeRecoveryCutoverPlanDag, LoweredRollbackCutoverPlanDag,
     PointInTimeRecoveryReadmissionOutcome, PostVerifiedAuthorityAffectingRepair,
@@ -79,9 +85,10 @@ pub use repair::{
     ExecutedRepairOwnerReceiptDag, ExecutionReadyAuthorityAffectingRepair, ExecutionReadyRepair,
     LoweredAuthorityAffectingRepairOwnerPlanDag, LoweredRepairOwnerPlanDag, RepairCandidateSet,
     RepairExecutionBoundary, RepairExecutionBoundaryMoment, RepairExecutionControlPort,
-    RepairExecutionDenial, RepairExecutionDisposition, RepairExecutionInterrupted, RepairIntent,
-    RepairJournalDenial, RepairLoweringDenial, RepairPlanExplanation, RepairReadinessDenial,
-    RepairResolutionDenial, UnrecoverableDamageReport,
+    RepairExecutionDenial, RepairExecutionDisposition, RepairExecutionInterrupted,
+    RepairExecutionInterruptionCause, RepairIntent, RepairJournalDenial, RepairLoweringDenial,
+    RepairPlanExplanation, RepairReadinessDenial, RepairResolutionDenial,
+    UnrecoverableDamageReport,
 };
 pub use replica_bootstrap::{
     AbandonedReplicaBootstrap, AuthorizedReplicaBootstrapPlan, CompletedReplicaBootstrap,

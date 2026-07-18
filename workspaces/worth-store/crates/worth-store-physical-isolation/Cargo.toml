@@ -27,7 +27,6 @@ phase20-layout-rule-construction = []
 
 [dev-dependencies]
 tempfile = "3"
-worth-store-layout-indexes = { path = "../worth-store-layout-indexes" }
 worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
 worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
 worth-store-wal = { workspace = true, features = ["certification-authority"] }

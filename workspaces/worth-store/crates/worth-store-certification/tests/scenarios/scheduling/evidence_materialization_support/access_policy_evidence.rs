@@ -1,4 +1,4 @@
-use crate::s6_access_policy_support;
+use super::super::s6_access_policy_support;
 
 use worth_store_certification::S6AccessPolicyEvidenceRow;
 use worth_store_physical_backend::{

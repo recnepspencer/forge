@@ -30,6 +30,7 @@ use crate::{
 
 mod blob_ingest_outcomes;
 mod foreground_budgets;
+mod producer_pressure;
 mod secure_io;
 mod verification_outcomes;
 pub use blob_ingest_outcomes::{
@@ -39,7 +40,13 @@ pub use blob_ingest_outcomes::{
     blob_ingest_stale_background_capacity_for_certification_test,
     blob_ingest_throttled_background_capacity_for_certification_test,
 };
-use foreground_budgets::{full_foreground_capacity, page_write_budget, wal_write_budget};
+use foreground_budgets::{
+    full_foreground_capacity, page_write_budget, point_read_budget, wal_write_budget,
+};
+pub use producer_pressure::{
+    execute_background_pressure_for_certification_test,
+    mismatched_background_pressure_denial_for_certification_test,
+};
 use secure_io::secure_io_for_pressure;
 pub use verification_outcomes::{
     verification_deferred_background_capacity_for_certification_test,
