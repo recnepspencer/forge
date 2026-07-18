@@ -48,10 +48,7 @@ fn load_s10_structural_preflight(
         ));
     }
     Ok(S10StructuralPreflightEvidence {
-        dependency_boundary_identity: required_identity(
-            &bundle,
-            StructuralPredicate::Dependency,
-        )?,
+        dependency_boundary_identity: required_identity(&bundle, StructuralPredicate::Dependency)?,
         inventory_identity: required_identity(&bundle, StructuralPredicate::Inventory)?,
         preservation_identity: required_identity(&bundle, StructuralPredicate::Preservation)?,
         admitted_residue_identity: required_identity(

@@ -8,8 +8,8 @@ use worth_store_physical_backend::SimulatedStrictDurableProfile;
 use worth_store_physical_isolation::{
     reject_copied_checkpoint_report_as_checkpoint_interlock,
     reject_same_run_self_comparison_as_checkpoint_interlock, CheckpointPublicationIdentity,
-    CheckpointPublicationReadmission, CheckpointPublicationRoot,
-    CheckpointReadInterlockDenial, PhysicalOrderingContract,
+    CheckpointPublicationReadmission, CheckpointPublicationRoot, CheckpointReadInterlockDenial,
+    PhysicalOrderingContract,
 };
 use worth_store_recovery_physics::{
     CheckpointCutoverReceipt, CheckpointManifest, CheckpointPublicationPlan,

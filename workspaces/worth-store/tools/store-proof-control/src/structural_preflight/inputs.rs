@@ -13,11 +13,7 @@ pub(super) fn scope(
 ) -> Result<PreflightInputScope, String> {
     let mut files = Vec::new();
     for source in source_paths {
-        collect(
-            &forge_root.join(source),
-            included_extensions,
-            &mut files,
-        )?;
+        collect(&forge_root.join(source), included_extensions, &mut files)?;
     }
     files.sort();
     files.dedup();
@@ -63,11 +59,7 @@ pub(super) fn scope(
     })
 }
 
-fn collect(
-    path: &Path,
-    extensions: &[&str],
-    files: &mut Vec<PathBuf>,
-) -> Result<(), String> {
+fn collect(path: &Path, extensions: &[&str], files: &mut Vec<PathBuf>) -> Result<(), String> {
     let metadata = fs::symlink_metadata(path)
         .map_err(|error| format!("could not inspect {}: {error}", path.display()))?;
     if metadata.file_type().is_symlink() {

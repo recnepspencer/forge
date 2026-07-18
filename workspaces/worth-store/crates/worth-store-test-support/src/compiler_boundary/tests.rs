@@ -1,8 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::{
-    cargo_dependency_manifest, run_cargo_ui_fixture_suite, UiProofRunFailure,
-};
+use super::{cargo_dependency_manifest, run_cargo_ui_fixture_suite, UiProofRunFailure};
 use crate::structural_preflight::DependencyBoundaryPredicate;
 
 #[test]
@@ -23,8 +21,12 @@ fn fixtures_in_one_environment_share_manifest_and_target_root() {
     )
     .unwrap();
 
+    evidence.validate_integrity().unwrap();
     assert_eq!(evidence.fixtures.len(), 2);
     assert!(evidence.environment_manifest_created);
+    assert!(evidence.environment_lock_created);
+    assert!(evidence.environment_lock_path.ends_with("/Cargo.lock"));
+    assert_eq!(evidence.environment_lock_sha256.len(), 64);
     assert!(evidence
         .shared_target_root
         .contains(&evidence.environment_identity));

@@ -5,11 +5,9 @@ mod identity;
 #[cfg(test)]
 mod tests;
 
-pub use artifact::{
-    ProcessArtifactDisposition, ProcessArtifactObservation, ProcessArtifactPath,
-};
+pub use artifact::{ProcessArtifactDisposition, ProcessArtifactObservation, ProcessArtifactPath};
 pub use declaration::{
-    ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessRole,
+    ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessProbeIntent, ProcessRole,
     ProcessTerminationRequirement, SealedProcessProbeInput,
 };
 pub use execution::{

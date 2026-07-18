@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 
@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    ProcessIdentityEvidence, ProcessProbeDeclaration, ProcessTerminationRequirement,
-    SealedProcessProbeInput,
+    artifact::output_artifact_identity, ProcessIdentityEvidence, ProcessProbeDeclaration,
+    ProcessTerminationRequirement, SealedProcessProbeInput,
 };
 
 pub const PROCESS_PROBE_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_EVIDENCE_ROOT";
@@ -33,7 +33,7 @@ pub struct ProcessProbeExecution {
     pub evidence_identity: [u8; 32],
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProcessProbeEvidenceDenial {
     UnadmittedEnvironment,
     InvalidChildObservation,
@@ -51,7 +51,7 @@ pub enum ProcessProbeEvidenceDenial {
 }
 
 impl ProcessProbeExecution {
-    pub fn observed(
+    pub(crate) fn observed(
         declaration: ProcessProbeDeclaration,
         input: &SealedProcessProbeInput,
         process: ProcessIdentityEvidence,
@@ -69,7 +69,8 @@ impl ProcessProbeExecution {
             return Err(ProcessProbeEvidenceDenial::OutputArtifactMismatch);
         }
         process.validate_against(&declaration, process.process_id)?;
-        let output_artifact_identity = file_digest(output_artifact)?;
+        let output_artifact_identity = output_artifact_identity(output_artifact)
+            .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactUnavailable)?;
         let mut evidence = Self {
             schema_version: 1,
             declaration,
@@ -89,15 +90,34 @@ pub(crate) fn persist_execution(
     fallback_root: &Path,
     execution: &ProcessProbeExecution,
 ) -> Result<PathBuf, ProcessProbeEvidenceDenial> {
-    let root = std::env::var_os(PROCESS_PROBE_EVIDENCE_ROOT_ENV)
-        .map(PathBuf::from)
+    let declared_root = std::env::var_os(PROCESS_PROBE_EVIDENCE_ROOT_ENV).map(PathBuf::from);
+    let root = declared_root
+        .clone()
         .unwrap_or_else(|| fallback_root.join("process-probes"));
     fs::create_dir_all(&root).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+    if declared_root.is_some() {
+        let workspace = std::env::current_dir()
+            .and_then(fs::canonicalize)
+            .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+        let admitted = workspace.join(".store-proof/evidence");
+        fs::create_dir_all(&admitted).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+        let admitted =
+            fs::canonicalize(admitted).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+        let observed =
+            fs::canonicalize(&root).map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
+        if !observed.starts_with(admitted) {
+            return Err(ProcessProbeEvidenceDenial::EvidenceWrite);
+        }
+    }
     let path = root.join(format!("{}.json", hex(&execution.evidence_identity)));
     let mut bytes = serde_json::to_vec_pretty(execution)
         .map_err(|_| ProcessProbeEvidenceDenial::EvidenceWrite)?;
     bytes.push(b'\n');
-    match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+    {
         Ok(mut file) => {
             file.write_all(&bytes)
                 .and_then(|()| file.sync_all())
@@ -148,21 +168,4 @@ fn termination_satisfies(
 
 fn hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
-fn file_digest(path: &Path) -> Result<[u8; 32], ProcessProbeEvidenceDenial> {
-    let mut file = fs::File::open(path)
-        .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactUnavailable)?;
-    let mut digest = Sha256::new();
-    let mut buffer = [0_u8; 64 * 1024];
-    loop {
-        let read = file
-            .read(&mut buffer)
-            .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactUnavailable)?;
-        if read == 0 {
-            break;
-        }
-        digest.update(&buffer[..read]);
-    }
-    Ok(digest.finalize().into())
 }

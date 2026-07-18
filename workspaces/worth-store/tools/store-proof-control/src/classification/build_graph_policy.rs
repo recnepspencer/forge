@@ -1,8 +1,16 @@
 use serde::{Deserialize, Serialize};
-
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use worth_store_test_support::structural_preflight::DependencyBoundaryPredicate;
 
 use crate::discovery::{ObservedBuildGraph, PackageSurface, TestSurfaceInventory};
+
+mod violation;
+
+pub use violation::{
+    BuildGraphPolicyViolation, DependencyBoundaryDenial, DependencyBoundaryViolation,
+    FeatureSemanticAuthorityDenial, FeatureSemanticAuthoritySubject,
+    FeatureSemanticAuthorityViolation,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FeatureSemanticAuthority {
@@ -24,34 +32,15 @@ pub enum FeatureAuthorityClass {
     TestAuthority,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct BuildGraphPolicyViolation {
-    pub consumer: String,
-    pub provider: String,
-    pub feature: String,
-    pub dependency_kind: String,
-    pub reason: String,
-}
-
 #[derive(Debug)]
 pub struct ValidatedFeatureSemanticAuthority {
     test_authority_features: BTreeSet<(String, String)>,
 }
 
-impl std::fmt::Display for BuildGraphPolicyViolation {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            formatter,
-            "{} enables {} feature {} through a {} dependency: {}",
-            self.consumer, self.provider, self.feature, self.dependency_kind, self.reason
-        )
-    }
-}
-
 pub fn validate_build_graph_policy(
     graph: &ObservedBuildGraph,
     test_authority_features: &BTreeSet<(String, String)>,
-) -> Result<(), Vec<BuildGraphPolicyViolation>> {
+) -> Result<(), Vec<DependencyBoundaryViolation>> {
     let violations: Vec<_> = graph
         .dependency_edges
         .iter()
@@ -63,13 +52,14 @@ pub fn validate_build_graph_policy(
                 .filter(|feature| {
                     test_authority_features.contains(&(edge.provider.clone(), (*feature).clone()))
                 })
-                .map(|feature| BuildGraphPolicyViolation {
-                    consumer: edge.consumer.clone(),
-                    provider: edge.provider.clone(),
-                    feature: feature.clone(),
+                .map(|feature| DependencyBoundaryViolation {
+                    predicate: DependencyBoundaryPredicate::ForbiddenFeatureEdge {
+                        source_package: edge.consumer.clone(),
+                        feature: feature.clone(),
+                        forbidden_dependency: edge.provider.clone(),
+                    },
                     dependency_kind: edge.dependency_kind.clone(),
-                    reason: "normal production graphs may not activate certification authority"
-                        .to_owned(),
+                    denial: DependencyBoundaryDenial::DirectProductionActivation,
                 })
         })
         .collect();
@@ -83,16 +73,26 @@ pub fn validate_build_graph_policy(
 pub fn validate_inventory_build_graph_policy(
     inventory: &TestSurfaceInventory,
 ) -> Result<(), Vec<BuildGraphPolicyViolation>> {
-    let authority = validate_feature_semantic_authority_policy(inventory)?;
-    validate_production_dependency_policy(inventory, &authority)
+    let authority =
+        validate_feature_semantic_authority_policy(inventory).map_err(|violations| {
+            violations
+                .into_iter()
+                .map(BuildGraphPolicyViolation::FeatureSemanticAuthority)
+                .collect::<Vec<_>>()
+        })?;
+    validate_production_dependency_policy(inventory, &authority).map_err(|violations| {
+        violations
+            .into_iter()
+            .map(BuildGraphPolicyViolation::DependencyBoundary)
+            .collect::<Vec<_>>()
+    })
 }
 
 pub fn validate_feature_semantic_authority_policy(
     inventory: &TestSurfaceInventory,
-) -> Result<ValidatedFeatureSemanticAuthority, Vec<BuildGraphPolicyViolation>> {
+) -> Result<ValidatedFeatureSemanticAuthority, Vec<FeatureSemanticAuthorityViolation>> {
     let mut violations = Vec::new();
-    let test_authority_features =
-        collect_feature_semantic_authority(inventory, &mut violations);
+    let test_authority_features = collect_feature_semantic_authority(inventory, &mut violations);
     if violations.is_empty() {
         Ok(ValidatedFeatureSemanticAuthority {
             test_authority_features,
@@ -105,7 +105,7 @@ pub fn validate_feature_semantic_authority_policy(
 pub fn validate_production_dependency_policy(
     inventory: &TestSurfaceInventory,
     authority: &ValidatedFeatureSemanticAuthority,
-) -> Result<(), Vec<BuildGraphPolicyViolation>> {
+) -> Result<(), Vec<DependencyBoundaryViolation>> {
     let packages: BTreeMap<_, _> = inventory
         .packages
         .iter()
@@ -152,7 +152,7 @@ fn resolve_production_root(
     edges: &BTreeMap<&str, Vec<&crate::discovery::DependencyEdge>>,
     test_authority_features: &BTreeSet<(String, String)>,
     seen_violations: &mut BTreeSet<String>,
-    violations: &mut Vec<BuildGraphPolicyViolation>,
+    violations: &mut Vec<DependencyBoundaryViolation>,
 ) {
     let mut queue = VecDeque::from([(root.name.clone(), BTreeSet::from(["default".to_owned()]))]);
     let mut activated = BTreeMap::<String, BTreeSet<String>>::new();
@@ -194,14 +194,15 @@ fn resolve_production_root(
 
 fn collect_feature_semantic_authority(
     inventory: &TestSurfaceInventory,
-    violations: &mut Vec<BuildGraphPolicyViolation>,
+    violations: &mut Vec<FeatureSemanticAuthorityViolation>,
 ) -> BTreeSet<(String, String)> {
     if inventory.feature_semantic_authority.schema_version != 1 {
-        violations.push(feature_authority_violation(
-            "feature-semantic-authority",
-            "schema-version",
-            "unsupported feature semantic authority schema",
-        ));
+        violations.push(FeatureSemanticAuthorityViolation {
+            subject: FeatureSemanticAuthoritySubject::Schema {
+                observed_version: inventory.feature_semantic_authority.schema_version,
+            },
+            denial: FeatureSemanticAuthorityDenial::UnsupportedSchema,
+        });
     }
     let mut declared = BTreeMap::new();
     for declaration in &inventory.feature_semantic_authority.declarations {
@@ -213,7 +214,7 @@ fn collect_feature_semantic_authority(
             violations.push(feature_authority_violation(
                 &key.0,
                 &key.1,
-                "feature semantic authority contains a duplicate declaration",
+                FeatureSemanticAuthorityDenial::DuplicateDeclaration,
             ));
         }
     }
@@ -235,14 +236,14 @@ fn collect_feature_semantic_authority(
         violations.push(feature_authority_violation(
             &missing.0,
             &missing.1,
-            "workspace feature has no reviewed production/test-authority classification",
+            FeatureSemanticAuthorityDenial::MissingDeclaration,
         ));
     }
     for phantom in declared.keys().filter(|feature| !known.contains(*feature)) {
         violations.push(feature_authority_violation(
             &phantom.0,
             &phantom.1,
-            "feature semantic authority names a feature absent from Cargo metadata",
+            FeatureSemanticAuthorityDenial::PhantomDeclaration,
         ));
     }
     declared
@@ -256,14 +257,14 @@ fn collect_feature_semantic_authority(
 fn feature_authority_violation(
     package: &str,
     feature: &str,
-    reason: &str,
-) -> BuildGraphPolicyViolation {
-    BuildGraphPolicyViolation {
-        consumer: "feature-semantic-authority".to_owned(),
-        provider: package.to_owned(),
-        feature: feature.to_owned(),
-        dependency_kind: "classification".to_owned(),
-        reason: reason.to_owned(),
+    denial: FeatureSemanticAuthorityDenial,
+) -> FeatureSemanticAuthorityViolation {
+    FeatureSemanticAuthorityViolation {
+        subject: FeatureSemanticAuthoritySubject::Feature {
+            package: package.to_owned(),
+            feature: feature.to_owned(),
+        },
+        denial,
     }
 }
 
@@ -324,17 +325,18 @@ fn record_violation(
     edge: &crate::discovery::DependencyEdge,
     feature: &str,
     seen: &mut BTreeSet<String>,
-    violations: &mut Vec<BuildGraphPolicyViolation>,
+    violations: &mut Vec<DependencyBoundaryViolation>,
 ) {
     let identity = format!("{}::{}::{feature}", edge.consumer, edge.provider);
     if seen.insert(identity) {
-        violations.push(BuildGraphPolicyViolation {
-            consumer: edge.consumer.clone(),
-            provider: edge.provider.clone(),
-            feature: feature.to_owned(),
+        violations.push(DependencyBoundaryViolation {
+            predicate: DependencyBoundaryPredicate::ForbiddenFeatureEdge {
+                source_package: edge.consumer.clone(),
+                feature: feature.to_owned(),
+                forbidden_dependency: edge.provider.clone(),
+            },
             dependency_kind: edge.dependency_kind.clone(),
-            reason: "resolved production feature closure activates certification authority"
-                .to_owned(),
+            denial: DependencyBoundaryDenial::ResolvedProductionFeatureClosure,
         });
     }
 }

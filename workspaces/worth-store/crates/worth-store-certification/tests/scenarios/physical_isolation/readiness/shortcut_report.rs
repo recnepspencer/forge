@@ -6,8 +6,8 @@ use worth_store_physical_certification::{
     shortcut_denial_from_fault_delivery_denial, shortcut_denial_from_oracle_denial,
     shortcut_denial_from_plan_denial, shortcut_denial_from_scenario_denial,
     shortcut_denial_from_terminal_projection_denial, shortcut_denial_from_transcript_denial,
-    test_support_oracle_verdict_attempt, FaultDeliveryAttempt, SyntheticHarnessShortcutDenialReceipt,
-    SyntheticHarnessShortcutRejectionReport,
+    test_support_oracle_verdict_attempt, FaultDeliveryAttempt,
+    SyntheticHarnessShortcutDenialReceipt, SyntheticHarnessShortcutRejectionReport,
 };
 
 use worth_store_test_support::harness::recovery::coverage as coverage_support;

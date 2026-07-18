@@ -4,6 +4,7 @@ use std::path::Path;
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
+use sha2::{Digest, Sha256};
 use worth_store_test_support::structural_preflight::{
     StructuralPreflightPlan, StructuralToolDeclaration, StructuralToolExecutionEvidence,
 };
@@ -58,17 +59,29 @@ pub(super) fn execute_once(
 pub(super) fn evidence(
     tools: &BTreeMap<String, ToolOutcome>,
 ) -> Vec<StructuralToolExecutionEvidence> {
-    tools.values().map(|outcome| outcome.execution.clone()).collect()
+    tools
+        .values()
+        .map(|outcome| outcome.execution.clone())
+        .collect()
 }
 
 fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
     let identity = command_identity(tool);
+    if let Err(reason) = validate_program_identities(tool) {
+        return launch_failure(tool, identity, reason);
+    }
     let mut command = Command::new(&tool.resolved_program_path);
     command
         .args(&tool.arguments)
         .current_dir(root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    for binding in &tool.environment {
+        command.env(&binding.name, &binding.value);
+    }
+    for name in &tool.removed_environment {
+        command.env_remove(name);
+    }
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
@@ -80,10 +93,7 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
     let stderr = child.stderr.take().expect("piped structural-tool stderr");
     let stdout_reader = std::thread::spawn(move || read_stream(stdout));
     let stderr_reader = std::thread::spawn(move || read_stream(stderr));
-    let completion = wait_bounded(
-        &mut child,
-        Duration::from_millis(tool.timeout_millis),
-    );
+    let completion = wait_bounded(&mut child, Duration::from_millis(tool.timeout_millis));
     let stdout = join_stream(stdout_reader, "stdout");
     let stderr = join_stream(stderr_reader, "stderr");
     let (status, timed_out, mut observation_failure) = match completion {
@@ -95,6 +105,9 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
     }
     if let Err(error) = &stderr {
         observation_failure.get_or_insert_with(|| error.clone());
+    }
+    if let Err(error) = validate_program_identities(tool) {
+        observation_failure.get_or_insert(error);
     }
     let root_text = root.to_string_lossy();
     let stdout = stdout
@@ -119,9 +132,7 @@ fn run(root: &Path, tool: &StructuralToolDeclaration) -> ToolOutcome {
             } else {
                 format!(
                     "{} rejected with {:?}: {}",
-                    tool.tool_identity,
-                    exit_code,
-                    stderr
+                    tool.tool_identity, exit_code, stderr
                 )
             }
         })
@@ -178,6 +189,9 @@ fn outcome(
         program_sha256: tool.program_sha256.clone(),
         program_version_identity: tool.program_version_identity.clone(),
         arguments: tool.arguments.clone(),
+        supporting_tools: tool.supporting_tools.clone(),
+        environment: tool.environment.clone(),
+        removed_environment: tool.removed_environment.clone(),
         declared_tool_identities: vec![tool.tool_identity.clone()],
         timeout_millis: tool.timeout_millis,
         resource_posture: tool.resource_posture.clone(),
@@ -281,11 +295,53 @@ pub(super) fn command_identity(tool: &StructuralToolDeclaration) -> String {
         &tool.program_sha256,
         &tool.program_version_identity,
         &tool.arguments,
+        &tool.supporting_tools,
+        &tool.environment,
+        &tool.removed_environment,
         tool.timeout_millis,
         &tool.resource_posture,
     ))
     .expect("structural tool command identity is serializable");
     sha256_bytes(&encoded)
+}
+
+fn validate_program_identities(tool: &StructuralToolDeclaration) -> Result<(), String> {
+    let identities = std::iter::once((
+        "primary",
+        tool.resolved_program_path.as_str(),
+        tool.program_sha256.as_str(),
+    ))
+    .chain(tool.supporting_tools.iter().map(|support| {
+        (
+            support.purpose.as_str(),
+            support.resolved_program_path.as_str(),
+            support.program_sha256.as_str(),
+        )
+    }));
+    for (purpose, path, expected) in identities {
+        let observed = file_sha256(path)
+            .map_err(|error| format!("could not reobserve {purpose} tool {path}: {error}"))?;
+        if observed != expected {
+            return Err(format!(
+                "{purpose} structural tool changed during preflight: {path}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn file_sha256(path: &str) -> Result<String, std::io::Error> {
+    let mut file = std::fs::File::open(path)?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", digest.finalize()))
 }
 
 fn normalize(bytes: &[u8], root: &str) -> String {

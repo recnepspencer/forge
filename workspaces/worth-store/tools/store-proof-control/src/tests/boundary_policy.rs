@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::classification::validate_build_graph_policy;
+use crate::classification::{validate_build_graph_policy, DependencyBoundaryDenial};
 use crate::discovery::{
     validate_owner_build_closures, DependencyEdge, ObservedBuildGraph, OwnerBuildClosure,
     OwnerTestBoundary,
@@ -25,7 +25,18 @@ fn feature_leaks_and_support_radius_mutants_are_denied() {
         "opaque-fixture-surface".to_owned(),
     )]);
     let violations = validate_build_graph_policy(&graph, &test_authority_features).unwrap_err();
-    assert_eq!(violations[0].consumer, "worth-store-blob-chunks");
+    assert_eq!(
+        violations[0].denial,
+        DependencyBoundaryDenial::DirectProductionActivation
+    );
+    assert_eq!(
+        violations[0].predicate,
+        worth_store_test_support::structural_preflight::DependencyBoundaryPredicate::ForbiddenFeatureEdge {
+            source_package: "worth-store-blob-chunks".to_owned(),
+            feature: "opaque-fixture-surface".to_owned(),
+            forbidden_dependency: "worth-store-io-scheduler".to_owned(),
+        }
+    );
 
     let closure = OwnerBuildClosure {
         boundary: OwnerTestBoundary {

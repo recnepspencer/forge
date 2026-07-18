@@ -7,9 +7,8 @@ use crate::{
 use worth_store_physical_format::{
     FramedRecordView, PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalPageRecordAuthority, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalSegmentId, SlotAppendRequest, SlotGenerationCell,
-    PHYSICAL_HEADER_LENGTH,
+    PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId,
+    SlotAppendRequest, SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
 };
 
 #[test]

@@ -23,7 +23,9 @@ pub(super) fn validate(forge_root: &Path) -> Result<String, Vec<String>> {
             "CRASH_EXIT_CODE",
         ] {
             if source.contains(forbidden) {
-                violations.push(format!("{relative} retains forbidden residue {forbidden:?}"));
+                violations.push(format!(
+                    "{relative} retains forbidden residue {forbidden:?}"
+                ));
             }
         }
         if path.file_name().is_some_and(|name| {
@@ -37,8 +39,10 @@ pub(super) fn validate(forge_root: &Path) -> Result<String, Vec<String>> {
         }
     }
     if violations.is_empty() {
-        Ok("legacy compiler runners, nested structural Cargo, and self-exit crash seams absent"
-            .to_owned())
+        Ok(
+            "legacy compiler runners, nested structural Cargo, and self-exit crash seams absent"
+                .to_owned(),
+        )
     } else {
         Err(violations)
     }

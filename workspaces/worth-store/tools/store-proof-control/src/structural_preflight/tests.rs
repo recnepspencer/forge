@@ -1,9 +1,8 @@
 use worth_store_test_support::structural_preflight::{
     PreflightEvidenceFreshness, PreflightEvidenceIdentity, PreflightInputScope,
-    StructuralPredicate, StructuralPredicateEvidence, StructuralPredicateFailure,
-    StructuralPredicatePlan, StructuralPredicateVerdict, StructuralPreflightEvidence,
-    StructuralPreflightPlan, StructuralPreflightProfile, StructuralPreflightRequest,
-    StructuralToolDeclaration,
+    StructuralPredicate, StructuralPredicateEvidence, StructuralPredicatePlan,
+    StructuralPredicateVerdict, StructuralPreflightEvidence, StructuralPreflightPlan,
+    StructuralPreflightProfile, StructuralPreflightRequest, StructuralToolDeclaration,
 };
 
 use crate::classification::{
@@ -70,7 +69,7 @@ fn forbidden_production_edge_fails_dependency_without_poisoning_feature_authorit
         predicate_plan(StructuralPredicate::Dependency, "dependency-manifests"),
     ]);
 
-    let evidence = super::execution::execute(
+    let evidence = super::execution::execute_with_stable_test_plan(
         std::path::Path::new("."),
         plan,
         Some(&inventory),
@@ -90,6 +89,46 @@ fn forbidden_production_edge_fails_dependency_without_poisoning_feature_authorit
 }
 
 #[test]
+fn repository_failure_has_one_owner_and_explicit_dependents() {
+    let failure = super::RepositoryPredicateFailure::new(
+        StructuralPredicate::Inventory,
+        "current_inventory_invalid",
+        "current proof inventory drifted",
+        ["store-proof-inventory"],
+    );
+    let plan = unsigned_plan(vec![
+        predicate_plan(StructuralPredicate::Inventory, "inventory"),
+        predicate_plan(StructuralPredicate::Preservation, "preservation"),
+        predicate_plan(StructuralPredicate::Feature, "feature"),
+        predicate_plan(StructuralPredicate::Dependency, "dependency"),
+    ]);
+
+    let evidence = super::execution::execute_with_stable_test_plan(
+        std::path::Path::new("."),
+        plan,
+        None,
+        Some(&failure),
+    )
+    .unwrap();
+    let failures = evidence.failures();
+    assert_eq!(failures.len(), 4);
+    assert_eq!(
+        failures
+            .iter()
+            .filter(|failure| failure.failure_code == "current_inventory_invalid")
+            .count(),
+        1
+    );
+    assert_eq!(
+        failures
+            .iter()
+            .filter(|failure| failure.failure_code == "prerequisite_unavailable")
+            .count(),
+        3
+    );
+}
+
+#[test]
 fn changed_generated_context_names_only_agent_context_input() {
     let evidence = passed_evidence();
     let mut current = evidence.plan.clone();
@@ -98,8 +137,7 @@ fn changed_generated_context_names_only_agent_context_input() {
         .iter_mut()
         .find(|predicate| predicate.predicate == StructuralPredicate::AgentContext)
         .unwrap();
-    context.input_scopes[0].input_identity =
-        sha256_serialized(&"stale-generated-context").unwrap();
+    context.input_scopes[0].input_identity = sha256_serialized(&"stale-generated-context").unwrap();
     current.plan_identity.clear();
     current.plan_identity = sha256_serialized(&current).unwrap();
 
@@ -160,7 +198,8 @@ fn identical_boundary_and_naming_commands_launch_one_observed_tool_process() {
     plan.plan_identity = sha256_serialized(&plan).unwrap();
     let root = std::env::current_dir().unwrap();
 
-    let evidence = super::execution::execute(&root, plan, None, None).unwrap();
+    let evidence =
+        super::execution::execute_with_stable_test_plan(&root, plan, None, None).unwrap();
 
     assert_eq!(evidence.tool_executions.len(), 1);
     assert_ne!(evidence.tool_executions[0].process_id, 0);
@@ -173,8 +212,7 @@ fn identical_boundary_and_naming_commands_launch_one_observed_tool_process() {
     let mut forged = evidence.clone();
     forged.tool_executions[0].exit_code = Some(7);
     forged.evidence_identity = PreflightEvidenceIdentity(String::new());
-    forged.evidence_identity =
-        PreflightEvidenceIdentity(sha256_serialized(&forged).unwrap());
+    forged.evidence_identity = PreflightEvidenceIdentity(sha256_serialized(&forged).unwrap());
     assert!(forged.validate_integrity().is_err());
 }
 
@@ -191,10 +229,7 @@ fn passed_evidence() -> StructuralPreflightEvidence {
         schema_version: 1,
         request,
         predicates: vec![
-            predicate_plan(
-                StructuralPredicate::AgentContext,
-                "agent-context-authority",
-            ),
+            predicate_plan(StructuralPredicate::AgentContext, "agent-context-authority"),
             predicate_plan(
                 StructuralPredicate::Dependency,
                 "store-dependency-manifests",
@@ -241,16 +276,12 @@ fn passed_evidence() -> StructuralPreflightEvidence {
         tool_executions: Vec::new(),
         evidence_identity: PreflightEvidenceIdentity(String::new()),
     };
-    evidence.evidence_identity =
-        PreflightEvidenceIdentity(sha256_serialized(&evidence).unwrap());
+    evidence.evidence_identity = PreflightEvidenceIdentity(sha256_serialized(&evidence).unwrap());
     evidence.validate_integrity().unwrap();
     evidence
 }
 
-fn predicate_plan(
-    predicate: StructuralPredicate,
-    scope_identity: &str,
-) -> StructuralPredicatePlan {
+fn predicate_plan(predicate: StructuralPredicate, scope_identity: &str) -> StructuralPredicatePlan {
     StructuralPredicatePlan {
         predicate,
         input_scopes: vec![PreflightInputScope {
@@ -298,12 +329,9 @@ fn inventory_with_forbidden_feature_edge() -> ValidatedProofInventory {
                 manifest_path: "fixture-substrate/Cargo.toml".to_owned(),
                 package_root: "fixture-substrate".to_owned(),
                 features: vec![provider_feature.clone()],
-                feature_definitions: [(
-                    provider_feature.clone(),
-                    Vec::new(),
-                )]
-                .into_iter()
-                .collect(),
+                feature_definitions: [(provider_feature.clone(), Vec::new())]
+                    .into_iter()
+                    .collect(),
             },
         ],
         targets: Vec::new(),

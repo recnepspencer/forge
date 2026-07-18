@@ -76,6 +76,32 @@ impl StructuralPreflightPlan {
                     || tool.source_scope_identity.trim().is_empty()
                     || tool.timeout_millis == 0
                     || tool.resource_posture.trim().is_empty()
+                    || tool
+                        .supporting_tools
+                        .windows(2)
+                        .any(|pair| pair[0].purpose >= pair[1].purpose)
+                    || tool.supporting_tools.iter().any(|support| {
+                        support.purpose.trim().is_empty()
+                            || support.resolved_program_path.trim().is_empty()
+                            || !is_sha256(&support.program_sha256)
+                            || support.program_version_identity.trim().is_empty()
+                    })
+                    || tool
+                        .environment
+                        .windows(2)
+                        .any(|pair| pair[0].name >= pair[1].name)
+                    || tool
+                        .environment
+                        .iter()
+                        .any(|binding| binding.name.trim().is_empty() || binding.value.is_empty())
+                    || tool
+                        .removed_environment
+                        .windows(2)
+                        .any(|pair| pair[0] >= pair[1])
+                    || tool.removed_environment.iter().any(|name| {
+                        name.trim().is_empty()
+                            || tool.environment.iter().any(|binding| binding.name == *name)
+                    })
                     || !predicate
                         .input_scopes
                         .iter()
@@ -146,17 +172,11 @@ impl StructuralPreflightEvidence {
                     .tool_executions
                     .iter()
                     .find(|execution| execution.authority_identity == *tool_identity)
-                    .ok_or(
-                        StructuralPreflightIntegrityDenial::PredicateToolIdentityMismatch,
-                    )?;
-                if matches!(
-                    &evidence.verdict,
-                    StructuralPredicateVerdict::Passed { .. }
-                ) && !execution.successful
+                    .ok_or(StructuralPreflightIntegrityDenial::PredicateToolIdentityMismatch)?;
+                if matches!(&evidence.verdict, StructuralPredicateVerdict::Passed { .. })
+                    && !execution.successful
                 {
-                    return Err(
-                        StructuralPreflightIntegrityDenial::PredicateToolIdentityMismatch,
-                    );
+                    return Err(StructuralPreflightIntegrityDenial::PredicateToolIdentityMismatch);
                 }
             }
             if let StructuralPredicateVerdict::Passed {
@@ -167,11 +187,11 @@ impl StructuralPreflightEvidence {
                 if !is_sha256(authority_basis_identity)
                     || !is_sha256(authority_identity)
                     || authority_identity
-                    != &digest_serialized(&(
-                        evidence.predicate,
-                        &evidence.input_identity,
-                        authority_basis_identity,
-                    ))?
+                        != &digest_serialized(&(
+                            evidence.predicate,
+                            &evidence.input_identity,
+                            authority_basis_identity,
+                        ))?
                     || evidence
                         .tool_identity
                         .as_ref()
@@ -238,6 +258,9 @@ impl StructuralPreflightEvidence {
                 || execution.program_sha256 != exemplar.program_sha256
                 || execution.program_version_identity != exemplar.program_version_identity
                 || execution.arguments != exemplar.arguments
+                || execution.supporting_tools != exemplar.supporting_tools
+                || execution.environment != exemplar.environment
+                || execution.removed_environment != exemplar.removed_environment
                 || execution.timeout_millis != exemplar.timeout_millis
                 || execution.resource_posture != exemplar.resource_posture
                 || !is_sha256(&execution.stdout_sha256)
@@ -266,16 +289,12 @@ fn is_sha256(value: &str) -> bool {
 }
 
 impl StructuralToolExecutionEvidence {
-    pub fn seal_authority_identity(
-        &mut self,
-    ) -> Result<(), StructuralPreflightIntegrityDenial> {
+    pub fn seal_authority_identity(&mut self) -> Result<(), StructuralPreflightIntegrityDenial> {
         self.authority_identity = self.expected_authority_identity()?;
         Ok(())
     }
 
-    fn expected_authority_identity(
-        &self,
-    ) -> Result<String, StructuralPreflightIntegrityDenial> {
+    fn expected_authority_identity(&self) -> Result<String, StructuralPreflightIntegrityDenial> {
         let mut unsigned = self.clone();
         unsigned.authority_identity.clear();
         digest_serialized(&unsigned)
@@ -290,9 +309,7 @@ impl std::fmt::Display for StructuralPreflightIntegrityDenial {
 
 impl std::error::Error for StructuralPreflightIntegrityDenial {}
 
-fn digest_serialized(
-    value: &impl Serialize,
-) -> Result<String, StructuralPreflightIntegrityDenial> {
+fn digest_serialized(value: &impl Serialize) -> Result<String, StructuralPreflightIntegrityDenial> {
     serde_json::to_vec(value)
         .map(|bytes| {
             Sha256::digest(bytes)
@@ -313,6 +330,9 @@ fn tool_command_identity(
         &tool.program_sha256,
         &tool.program_version_identity,
         &tool.arguments,
+        &tool.supporting_tools,
+        &tool.environment,
+        &tool.removed_environment,
         tool.timeout_millis,
         &tool.resource_posture,
     ))

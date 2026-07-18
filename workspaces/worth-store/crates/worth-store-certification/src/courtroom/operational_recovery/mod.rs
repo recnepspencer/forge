@@ -67,6 +67,5 @@ pub use scenario_scale::{
 };
 pub use scenario_topology::{S10OperationalScenarioKind, S10OperationalScenarioProgram, S10Phase};
 pub use structural_preflight::{
-    require_s10_structural_preflight, S10StructuralPreflightDenial,
-    S10StructuralPreflightEvidence,
+    require_s10_structural_preflight, S10StructuralPreflightDenial, S10StructuralPreflightEvidence,
 };

@@ -10,7 +10,7 @@ use crate::process_probe::{
     classify_exit, configure_process_probe, persist_execution, read_process_observation,
 };
 use crate::{
-    ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration,
+    ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessProbeIntent,
     ProcessTermination, ProcessTerminationRequirement, SealedProcessProbeInput,
 };
 
@@ -43,7 +43,8 @@ impl OperationalRecoveryFreshProcessRunner {
         reopen_command: &mut Command,
         yieldpoint: OperationalRecoveryYieldpoint,
         uninterrupted_trace: &OperationalRecoveryDriverTrace,
-    ) -> Result<OperationalRecoveryProcessCrashEvidence, OperationalRecoveryProcessCrashDenial> {
+    ) -> Result<OperationalRecoveryProcessCrashEvidence, OperationalRecoveryProcessCrashDenial>
+    {
         std::fs::create_dir_all(&self.evidence_directory)
             .map_err(|_| OperationalRecoveryProcessCrashDenial::CutProcessLaunch)?;
         require_media_binding(cut_command, media_root)?;
@@ -64,23 +65,18 @@ impl OperationalRecoveryFreshProcessRunner {
             challenge,
             yieldpoint,
         );
-        let cut_input = process_input(
-            scenario_identity,
-            "cut",
-            yieldpoint,
-            media_root,
-            &paths.cut,
-        )?;
-        let cut_declaration = declaration(
+        let cut_input =
+            process_input(scenario_identity, "cut", yieldpoint, media_root, &paths.cut)?;
+        let cut_intent = declaration(
             cut_command,
             &cut_input,
             ProcessRole::Writer,
             ProcessIsolationRequirement::ParentTerminated,
             ProcessTerminationRequirement::ParentKill,
         )?;
-        configure_process_probe(
+        let cut_declaration = configure_process_probe(
             cut_command,
-            &cut_declaration,
+            cut_intent,
             &cut_input,
             &paths.cut_process,
             CRASH_ENVIRONMENT_KEYS,
@@ -94,16 +90,16 @@ impl OperationalRecoveryFreshProcessRunner {
             media_root,
             &paths.reopen,
         )?;
-        let reopen_declaration = declaration(
+        let reopen_intent = declaration(
             reopen_command,
             &reopen_input,
             ProcessRole::RecoveredRuntime,
             ProcessIsolationRequirement::FreshProcess,
             ProcessTerminationRequirement::GracefulExit,
         )?;
-        configure_process_probe(
+        let reopen_declaration = configure_process_probe(
             reopen_command,
-            &reopen_declaration,
+            reopen_intent,
             &reopen_input,
             &paths.reopen_process,
             CRASH_ENVIRONMENT_KEYS,
@@ -111,12 +107,8 @@ impl OperationalRecoveryFreshProcessRunner {
         let reopen_execution =
             execute_reopen(reopen_command, reopen_declaration, &reopen_input, &paths)?;
         persist_execution(&self.evidence_directory, &reopen_execution)?;
-        let crash_cut = validate_semantic_reports(
-            &paths,
-            challenge,
-            yieldpoint,
-            uninterrupted_trace,
-        )?;
+        let crash_cut =
+            validate_semantic_reports(&paths, challenge, yieldpoint, uninterrupted_trace)?;
         paths.remove_transient();
         Ok(OperationalRecoveryProcessCrashEvidence {
             crash_cut,
@@ -248,8 +240,8 @@ fn declaration(
     role: ProcessRole,
     isolation: ProcessIsolationRequirement,
     termination: ProcessTerminationRequirement,
-) -> Result<ProcessProbeDeclaration, OperationalRecoveryProcessCrashDenial> {
-    ProcessProbeDeclaration::for_current_executable(command, input, role, isolation, termination)
+) -> Result<ProcessProbeIntent, OperationalRecoveryProcessCrashDenial> {
+    ProcessProbeIntent::for_current_executable(command, input, role, isolation, termination)
         .map_err(Into::into)
 }
 

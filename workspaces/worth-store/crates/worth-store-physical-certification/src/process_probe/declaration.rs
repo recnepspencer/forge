@@ -4,8 +4,8 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::certification_child_process::validated_current_executable;
 use super::ProcessArtifactPath;
+use crate::certification_child_process::validated_current_executable;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -55,7 +55,19 @@ pub struct ProcessProbeDeclaration {
     input_identity: [u8; 32],
     executable_identity: [u8; 32],
     working_directory: String,
+    environment_identity: [u8; 32],
     declaration_identity: [u8; 32],
+}
+
+#[derive(Debug, Clone)]
+pub struct ProcessProbeIntent {
+    scenario_identity: String,
+    role: ProcessRole,
+    isolation: ProcessIsolationRequirement,
+    required_termination: ProcessTerminationRequirement,
+    input_identity: [u8; 32],
+    executable_identity: [u8; 32],
+    working_directory: String,
 }
 
 impl SealedProcessProbeInput {
@@ -67,12 +79,14 @@ impl SealedProcessProbeInput {
         let scenario_identity = scenario_identity.into();
         let fault_schedule_identity = fault_schedule_identity.into();
         if scenario_identity.trim().is_empty() || fault_schedule_identity.trim().is_empty() {
-            return Err("process scenario and fault-schedule identities cannot be empty".to_owned());
+            return Err(
+                "process scenario and fault-schedule identities cannot be empty".to_owned(),
+            );
         }
-        artifacts.sort_by(|left, right| left.purpose.cmp(&right.purpose));
+        artifacts.sort_by(|left, right| left.purpose().cmp(right.purpose()));
         if artifacts
             .windows(2)
-            .any(|pair| pair[0].purpose == pair[1].purpose)
+            .any(|pair| pair[0].purpose() == pair[1].purpose())
         {
             return Err("process input repeats an artifact purpose".to_owned());
         }
@@ -107,13 +121,11 @@ impl SealedProcessProbeInput {
     }
 
     pub(crate) fn admits_output_path(&self, path: &std::path::Path) -> Result<bool, String> {
-        self.artifacts
-            .iter()
-            .try_fold(false, |admitted, artifact| {
-                artifact
-                    .admits_output_path(path)
-                    .map(|matches| admitted || matches)
-            })
+        self.artifacts.iter().try_fold(false, |admitted, artifact| {
+            artifact
+                .admits_output_path(path)
+                .map(|matches| admitted || matches)
+        })
     }
 
     pub fn decode_untrusted(bytes: &[u8]) -> Result<Self, String> {
@@ -144,7 +156,7 @@ impl SealedProcessProbeInput {
     }
 }
 
-impl ProcessProbeDeclaration {
+impl ProcessProbeIntent {
     pub fn for_current_executable(
         command: &Command,
         input: &SealedProcessProbeInput,
@@ -152,8 +164,9 @@ impl ProcessProbeDeclaration {
         isolation: ProcessIsolationRequirement,
         required_termination: ProcessTerminationRequirement,
     ) -> Result<Self, String> {
-        let executable_identity = validated_current_executable(command)
-            .ok_or_else(|| "process probe command is not the current sealed executable".to_owned())?;
+        let executable_identity = validated_current_executable(command).ok_or_else(|| {
+            "process probe command is not the current sealed executable".to_owned()
+        })?;
         let working_directory = command
             .get_current_dir()
             .map(PathBuf::from)
@@ -163,16 +176,6 @@ impl ProcessProbeDeclaration {
             .unwrap_or(working_directory)
             .to_string_lossy()
             .replace('\\', "/");
-        let declaration_identity = digest_serialized(&(
-            "worth-store-process-probe-declaration-v1",
-            input.scenario_identity(),
-            role,
-            isolation,
-            required_termination,
-            input.identity(),
-            executable_identity,
-            &working_directory,
-        ))?;
         Ok(Self {
             scenario_identity: input.scenario_identity().to_owned(),
             role,
@@ -181,10 +184,47 @@ impl ProcessProbeDeclaration {
             input_identity: input.identity(),
             executable_identity,
             working_directory,
+        })
+    }
+
+    pub(crate) fn bind_environment(
+        self,
+        environment_identity: [u8; 32],
+    ) -> Result<ProcessProbeDeclaration, String> {
+        let declaration_identity = digest_serialized(&(
+            "worth-store-process-probe-declaration-v2",
+            &self.scenario_identity,
+            self.role,
+            self.isolation,
+            self.required_termination,
+            self.input_identity,
+            self.executable_identity,
+            &self.working_directory,
+            environment_identity,
+        ))?;
+        Ok(ProcessProbeDeclaration {
+            scenario_identity: self.scenario_identity,
+            role: self.role,
+            isolation: self.isolation,
+            required_termination: self.required_termination,
+            input_identity: self.input_identity,
+            executable_identity: self.executable_identity,
+            working_directory: self.working_directory,
+            environment_identity,
             declaration_identity,
         })
     }
 
+    pub const fn role(&self) -> ProcessRole {
+        self.role
+    }
+
+    pub const fn input_identity(&self) -> [u8; 32] {
+        self.input_identity
+    }
+}
+
+impl ProcessProbeDeclaration {
     pub fn scenario_identity(&self) -> &str {
         &self.scenario_identity
     }
@@ -211,6 +251,10 @@ impl ProcessProbeDeclaration {
 
     pub fn working_directory(&self) -> &str {
         &self.working_directory
+    }
+
+    pub const fn environment_identity(&self) -> [u8; 32] {
+        self.environment_identity
     }
 
     pub const fn declaration_identity(&self) -> [u8; 32] {

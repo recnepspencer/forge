@@ -11,8 +11,8 @@ mod replication;
 fn fresh_process_destroyed_primary_observer_child() {
     use worth_store_operations::certification_scenario::inspect_scenario_truth;
     use worth_store_physical_certification::{
-        admit_current_process_probe, write_offline_truth_observation_from_environment,
-        ProcessRole, OFFLINE_TRUTH_TARGET_ENV,
+        admit_current_process_probe, write_offline_truth_observation_from_environment, ProcessRole,
+        OFFLINE_TRUTH_TARGET_ENV,
     };
 
     let Some(target) = std::env::var_os(OFFLINE_TRUTH_TARGET_ENV) else {
@@ -24,9 +24,7 @@ fn fresh_process_destroyed_primary_observer_child() {
         .expect("destroyed primary parent")
         .to_path_buf();
     let truth = inspect_scenario_truth("fresh-process/destroyed-primary", &root);
-    assert!(
-        write_offline_truth_observation_from_environment(&admission, truth.report()).unwrap()
-    );
+    assert!(write_offline_truth_observation_from_environment(&admission, truth.report()).unwrap());
 }
 
 #[test]

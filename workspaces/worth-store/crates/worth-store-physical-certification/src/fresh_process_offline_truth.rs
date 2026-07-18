@@ -13,9 +13,9 @@ use crate::process_probe::{
     write_current_process_observation,
 };
 use crate::{
-    AdmittedProcessProbe, ProcessArtifactPath, ProcessIsolationRequirement, ProcessProbeDeclaration,
-    ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessRole, ProcessTerminationRequirement,
-    SealedProcessProbeInput,
+    AdmittedProcessProbe, ProcessArtifactPath, ProcessIsolationRequirement,
+    ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessProbeIntent, ProcessRole,
+    ProcessTerminationRequirement, SealedProcessProbeInput,
 };
 
 mod wire;
@@ -158,7 +158,7 @@ impl FreshProcessOfflineTruthRunner {
             ],
         )
         .map_err(|_| FreshProcessOfflineTruthDenial::InvalidEnvironment)?;
-        let declaration = ProcessProbeDeclaration::for_current_executable(
+        let intent = ProcessProbeIntent::for_current_executable(
             observer_command,
             &input,
             ProcessRole::OfflineVerifier,
@@ -166,9 +166,9 @@ impl FreshProcessOfflineTruthRunner {
             ProcessTerminationRequirement::GracefulExit,
         )
         .map_err(|_| FreshProcessOfflineTruthDenial::InvalidEnvironment)?;
-        configure_process_probe(
+        let declaration = configure_process_probe(
             observer_command,
-            &declaration,
+            intent,
             &input,
             &process_path,
             OFFLINE_ENVIRONMENT_KEYS,

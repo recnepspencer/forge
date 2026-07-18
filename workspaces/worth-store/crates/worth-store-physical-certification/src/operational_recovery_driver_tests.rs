@@ -82,9 +82,9 @@ fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
 
     use crate::{
         admit_current_process_probe, write_reopen_observation_from_environment,
-        DrivenOperationalControlStore,
-        OperationalRecoveryControlTransitionKind as Control, OperationalRecoveryFreshProcessRunner,
-        OperationalRecoveryProcessCrashConfig, ProcessRole, PROCESS_CRASH_ROLE_ENV,
+        DrivenOperationalControlStore, OperationalRecoveryControlTransitionKind as Control,
+        OperationalRecoveryFreshProcessRunner, OperationalRecoveryProcessCrashConfig, ProcessRole,
+        PROCESS_CRASH_ROLE_ENV,
     };
 
     const ROOT_ENV: &str = "WORTH_STORE_S10_PROCESS_CRASH_MEDIA_ROOT";

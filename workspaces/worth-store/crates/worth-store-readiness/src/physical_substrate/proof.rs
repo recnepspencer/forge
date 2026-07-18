@@ -6,8 +6,8 @@ use super::{
 use worth_store_contracts::{AcceptedHandoffReadiness, ROADMAP_2_S1_SCOPE};
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId, PhysicalStoreRuntime,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalRecordSlot,
+    PhysicalReferenceAuthority, PhysicalSegmentId, PhysicalStoreRuntime,
     PhysicalStoreRuntimeCounterSnapshot, PlatformPhysicalAppendRequest,
     PlatformPhysicalOpenRequest, PHYSICAL_HEADER_LENGTH,
 };
@@ -224,8 +224,8 @@ fn header_bytes(
     let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1)?, page(1)?, slot(11)?)
         .with_slot_generation(generation(generation_value)?);
-    let binary = PhysicalBinaryEncodingWitness::physical_format_canonical()
-        .map_err(|_| proof_rejected())?;
+    let binary =
+        PhysicalBinaryEncodingWitness::physical_format_canonical().map_err(|_| proof_rejected())?;
     let authority = PhysicalHeaderAuthority::for_canonical_physical_format(binary);
     let mut bytes = Vec::new();
     bytes

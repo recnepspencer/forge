@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::{StructuralPredicate, StructuralPreflightPlan};
+use super::{
+    StructuralPredicate, StructuralPreflightPlan, StructuralSupportingToolIdentity,
+    StructuralToolEnvironmentBinding,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(transparent)]
@@ -21,7 +24,9 @@ pub enum StructuralPredicateVerdict {
         authority_basis_identity: String,
         authority_identity: String,
     },
-    Failed { failure: StructuralPredicateFailure },
+    Failed {
+        failure: StructuralPredicateFailure,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -41,6 +46,9 @@ pub struct StructuralToolExecutionEvidence {
     pub program_sha256: String,
     pub program_version_identity: String,
     pub arguments: Vec<String>,
+    pub supporting_tools: Vec<StructuralSupportingToolIdentity>,
+    pub environment: Vec<StructuralToolEnvironmentBinding>,
+    pub removed_environment: Vec<String>,
     pub declared_tool_identities: Vec<String>,
     pub timeout_millis: u64,
     pub resource_posture: String,
@@ -93,9 +101,7 @@ impl StructuralPreflightEvidence {
             match &evidence.verdict {
                 StructuralPredicateVerdict::Passed {
                     authority_identity, ..
-                } => {
-                    Some(authority_identity.as_str())
-                }
+                } => Some(authority_identity.as_str()),
                 StructuralPredicateVerdict::Failed { .. } => None,
             }
         })

@@ -1,8 +1,6 @@
 use super::*;
 
-pub(super) fn collect_publication_denials(
-    actions: &mut BTreeSet<ReplicationAdmissionAction>,
-) {
+pub(super) fn collect_publication_denials(actions: &mut BTreeSet<ReplicationAdmissionAction>) {
     collect_current_authority_publication_denial(actions);
     collect_stale_progress_publication_denial(actions);
     collect_peer_capacity_publication_denial(actions);

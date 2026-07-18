@@ -11,9 +11,9 @@ pub use evidence::{
 pub use integrity::StructuralPreflightIntegrityDenial;
 pub use plan::{
     PreflightInputScope, StructuralPredicatePlan, StructuralPreflightPlan,
-    StructuralPreflightProfile, StructuralPreflightRequest, StructuralToolDeclaration,
+    StructuralPreflightProfile, StructuralPreflightRequest, StructuralSupportingToolIdentity,
+    StructuralToolDeclaration, StructuralToolEnvironmentBinding,
 };
 pub use predicate::{DependencyBoundaryPredicate, StructuralPredicate};
 
-pub const STRUCTURAL_PREFLIGHT_BUNDLE_ENV: &str =
-    "WORTH_STORE_STRUCTURAL_PREFLIGHT_BUNDLE";
+pub const STRUCTURAL_PREFLIGHT_BUNDLE_ENV: &str = "WORTH_STORE_STRUCTURAL_PREFLIGHT_BUNDLE";

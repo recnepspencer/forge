@@ -1,11 +1,14 @@
+mod artifact_store;
 mod bounded_process;
+mod cargo_configuration;
 mod cargo_environment;
 mod declaration;
 mod diagnostics;
+mod environment_lock;
 mod evidence;
-mod toolchain;
 #[cfg(test)]
 mod tests;
+mod toolchain;
 
 use std::path::Path;
 
@@ -15,8 +18,8 @@ pub use declaration::{
 };
 pub use diagnostics::CheckedCompilerDiagnostic;
 pub use evidence::{
-    UiCompilerToolIdentity, UiCompilerToolchainIdentity, UiFixtureRunEvidence,
-    UiProofRunEvidence, UiProofRunFailure,
+    UiCargoConfigurationIdentity, UiCompilerResourcePosture, UiCompilerToolIdentity,
+    UiCompilerToolchainIdentity, UiFixtureRunEvidence, UiProofRunEvidence, UiProofRunFailure,
 };
 
 /// An outer proof controller may bind this to an attempt-scoped directory so

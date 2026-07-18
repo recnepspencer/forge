@@ -1,18 +1,17 @@
 use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use super::bounded_process;
 use super::diagnostics::{checked_diagnostics, validate_denial};
 use super::toolchain;
+use super::{artifact_store, bounded_process, environment_lock};
 use super::{
     UiCompilerToolchainIdentity, UiFixtureIdentity, UiFixtureRunEvidence, UiProofRunEvidence,
-    UiProofRunFailure, UiProofSuiteDeclaration, UI_EVIDENCE_ROOT_ENV,
+    UiProofRunFailure, UiProofSuiteDeclaration,
 };
 
 struct FixtureEnvironment<'a> {
@@ -36,20 +35,35 @@ pub(super) fn run(
         ))
     })?;
     let toolchain = toolchain::observe(&workspace_root)?;
-    let environment_identity = environment_identity(&workspace_root, declaration, &toolchain)?;
-    let evidence_root = admitted_evidence_root(&workspace_root)?;
+    let environment_root_identity =
+        environment_basis_identity(&workspace_root, declaration, &toolchain)?;
+    let evidence_root = artifact_store::admitted_evidence_root(&workspace_root)?;
     let environment_root = workspace_root
         .join(".store-proof/ui/environments")
-        .join(&environment_identity);
+        .join(&environment_root_identity);
+    fs::create_dir_all(environment_root.join("src/bin"))
+        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+    let manifest_path = environment_root.join("Cargo.toml");
+    let manifest = environment_manifest(&environment_root_identity, declaration);
+    let manifest_created =
+        artifact_store::write_immutable_file(&manifest_path, manifest.as_bytes())?;
+    let lock = environment_lock::seal(
+        &workspace_root,
+        &environment_root,
+        &manifest_path,
+        &manifest,
+        &toolchain,
+    )?;
+    let environment_identity = digest_serialized(&(
+        "worth-store-ui-environment-v2",
+        &environment_root_identity,
+        &lock.sha256,
+    ))?;
     let target_root = workspace_root
         .join(".store-proof/cache/ui")
         .join(&environment_identity);
-    fs::create_dir_all(environment_root.join("src/bin"))
-        .and_then(|()| fs::create_dir_all(&target_root))
+    fs::create_dir_all(&target_root)
         .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
-    let manifest_path = environment_root.join("Cargo.toml");
-    let manifest = environment_manifest(&environment_identity, declaration);
-    let manifest_created = write_immutable_file(&manifest_path, manifest.as_bytes())?;
 
     let mut fixtures = Vec::new();
     let environment = FixtureEnvironment {
@@ -64,14 +78,19 @@ pub(super) fn run(
     for fixture in declaration.fixtures() {
         fixtures.push(run_fixture(&environment, fixture)?);
     }
+    toolchain::validate_unchanged(&workspace_root, &toolchain)?;
     let mut evidence = UiProofRunEvidence {
         schema_version: 1,
         suite_identity: declaration.suite_identity().to_owned(),
         environment_identity,
+        environment_root_identity,
         toolchain,
         environment_manifest_path: normalized_path(&workspace_root, &manifest_path),
+        environment_lock_path: normalized_path(&workspace_root, &lock.path),
+        environment_lock_sha256: lock.sha256,
         shared_target_root: normalized_path(&workspace_root, &target_root),
         environment_manifest_created: manifest_created,
+        environment_lock_created: lock.created,
         fixtures,
         evidence_identity: String::new(),
     };
@@ -82,7 +101,7 @@ pub(super) fn run(
     let suite_path = evidence_root
         .join("runs")
         .join(format!("{}.json", evidence.evidence_identity));
-    persist_suite_evidence(&suite_path, &evidence)?;
+    artifact_store::persist_suite_evidence(&suite_path, &evidence)?;
     Ok(evidence)
 }
 
@@ -112,15 +131,27 @@ fn run_fixture(
         .environment_root
         .join("src/bin")
         .join(format!("{bin_name}.rs"));
-    write_immutable_file(&fixture_path, &source)?;
+    artifact_store::write_immutable_file(&fixture_path, &source)?;
     let before = artifact_count(environment.target_root);
     let mut command = Command::new(&environment.toolchain.cargo.executable_path);
     command
-        .args(["check", "--offline", "--message-format=json", "--bin"])
+        .args([
+            "check",
+            "--offline",
+            "--locked",
+            "--message-format=json",
+            "--bin",
+        ])
         .arg(&bin_name)
         .arg("--manifest-path")
         .arg(environment.manifest_path)
         .env("CARGO_TARGET_DIR", environment.target_root)
+        .env("RUSTC", &environment.toolchain.rustc.executable_path)
+        .env_remove("RUSTC_WRAPPER")
+        .env_remove("RUSTC_WORKSPACE_WRAPPER")
+        .env_remove("RUSTC_BOOTSTRAP")
+        .env_remove("RUSTFLAGS")
+        .env_remove("CARGO_ENCODED_RUSTFLAGS")
         .current_dir(environment.workspace_root);
     let output = bounded_process::run(
         &mut command,
@@ -166,12 +197,12 @@ fn run_fixture(
         evidence_path: String::new(),
     };
     let attempt_identity = digest_serialized(&evidence)?;
-    let evidence_path = admitted_evidence_root(environment.workspace_root)?
+    let evidence_path = artifact_store::admitted_evidence_root(environment.workspace_root)?
         .join("checked-diagnostics")
         .join(environment.environment_identity)
         .join(format!("{attempt_identity}.json"));
     evidence.evidence_path = normalized_path(environment.workspace_root, &evidence_path);
-    persist_evidence(&evidence_path, &evidence)?;
+    artifact_store::persist_fixture_evidence(&evidence_path, &evidence)?;
     // The evidence file path is a projection, never compiler authority. The
     // immutable round trip still has to preserve the complete checked row.
     let checked: UiFixtureRunEvidence = serde_json::from_slice(
@@ -188,39 +219,18 @@ fn run_fixture(
     Ok(evidence)
 }
 
-fn admitted_evidence_root(workspace_root: &Path) -> Result<PathBuf, UiProofRunFailure> {
-    let default = workspace_root.join(".store-proof/evidence/ui");
-    let Some(declared) = std::env::var_os(UI_EVIDENCE_ROOT_ENV).map(PathBuf::from) else {
-        return Ok(default);
-    };
-    let declared = if declared.is_absolute() {
-        declared
-    } else {
-        workspace_root.join(declared)
-    };
-    let admitted = workspace_root.join(".store-proof/evidence");
-    if !declared.starts_with(&admitted) {
-        return Err(UiProofRunFailure::EnvironmentObservation(format!(
-            "{UI_EVIDENCE_ROOT_ENV} must remain under {}",
-            admitted.display()
-        )));
-    }
-    Ok(declared)
-}
-
-fn environment_identity(
+fn environment_basis_identity(
     workspace_root: &Path,
     declaration: &UiProofSuiteDeclaration,
     toolchain: &UiCompilerToolchainIdentity,
 ) -> Result<String, UiProofRunFailure> {
-    let lock = fs::read(workspace_root.join("Cargo.lock"))
-        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+    let lock = digest_file(&workspace_root.join("Cargo.lock"))?;
     digest_serialized(&(
         declaration.environment().dependency_manifest(),
         declaration.environment().feature_identity(),
         declaration.environment().profile_identity(),
         toolchain,
-        digest_bytes(&lock),
+        lock,
     ))
 }
 
@@ -230,80 +240,6 @@ fn environment_manifest(identity: &str, declaration: &UiProofSuiteDeclaration) -
         &identity[..16],
         declaration.environment().dependency_manifest()
     )
-}
-
-fn write_immutable_file(path: &Path, bytes: &[u8]) -> Result<bool, UiProofRunFailure> {
-    let parent = path.parent().ok_or_else(|| {
-        UiProofRunFailure::EnvironmentObservation(format!("{} has no parent", path.display()))
-    })?;
-    fs::create_dir_all(parent)
-        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
-    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(mut file) => {
-            file.write_all(bytes)
-                .and_then(|()| file.sync_all())
-                .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
-            Ok(true)
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            let existing = fs::read(path)
-                .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
-            if existing == bytes {
-                Ok(false)
-            } else {
-                Err(UiProofRunFailure::EnvironmentObservation(format!(
-                    "immutable UI environment collision at {}",
-                    path.display()
-                )))
-            }
-        }
-        Err(error) => Err(UiProofRunFailure::EnvironmentObservation(error.to_string())),
-    }
-}
-
-fn persist_evidence(path: &Path, evidence: &UiFixtureRunEvidence) -> Result<(), UiProofRunFailure> {
-    let parent = path.parent().ok_or_else(|| {
-        UiProofRunFailure::EvidenceWrite(format!("{} has no parent", path.display()))
-    })?;
-    fs::create_dir_all(parent)
-        .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
-    let mut encoded = serde_json::to_vec_pretty(evidence)
-        .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
-    encoded.push(b'\n');
-    persist_encoded(path, &encoded, "checked diagnostic")
-}
-
-fn persist_suite_evidence(
-    path: &Path,
-    evidence: &UiProofRunEvidence,
-) -> Result<(), UiProofRunFailure> {
-    let parent = path.parent().ok_or_else(|| {
-        UiProofRunFailure::EvidenceWrite(format!("{} has no parent", path.display()))
-    })?;
-    fs::create_dir_all(parent)
-        .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
-    let mut encoded = serde_json::to_vec_pretty(evidence)
-        .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
-    encoded.push(b'\n');
-    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(mut file) => file
-            .write_all(&encoded)
-            .and_then(|()| file.sync_all())
-            .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string())),
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            let existing = fs::read(path)
-                .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
-            if existing == encoded {
-                Ok(())
-            } else {
-                Err(UiProofRunFailure::EvidenceWrite(format!(
-                    "UI run evidence identity collision at {}",
-                    path.display()
-                )))
-            }
-        }
-        Err(error) => Err(UiProofRunFailure::EvidenceWrite(error.to_string())),
-    }
 }
 
 fn fixture_bin_name(suite: &str, case: &str, source_digest: &str) -> String {
@@ -318,37 +254,7 @@ fn fixture_bin_name(suite: &str, case: &str, source_digest: &str) -> String {
         })
         .collect::<String>();
     let identity = digest_bytes(format!("{readable}\0{source_digest}").as_bytes());
-    format!(
-        "{}_{}",
-        readable.trim_matches('_'),
-        &identity[..12]
-    )
-}
-
-fn persist_encoded(
-    path: &Path,
-    encoded: &[u8],
-    evidence_kind: &str,
-) -> Result<(), UiProofRunFailure> {
-    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(mut file) => file
-            .write_all(encoded)
-            .and_then(|()| file.sync_all())
-            .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string())),
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            let existing = fs::read(path)
-                .map_err(|error| UiProofRunFailure::EvidenceWrite(error.to_string()))?;
-            if existing == encoded {
-                Ok(())
-            } else {
-                Err(UiProofRunFailure::EvidenceWrite(format!(
-                    "{evidence_kind} identity collision at {}",
-                    path.display()
-                )))
-            }
-        }
-        Err(error) => Err(UiProofRunFailure::EvidenceWrite(error.to_string())),
-    }
+    format!("{}_{}", readable.trim_matches('_'), &identity[..12])
 }
 
 fn artifact_count(root: &Path) -> usize {
@@ -375,8 +281,7 @@ fn dependency_artifacts(stdout: &[u8], fixture_bin: &str) -> DependencyArtifactO
         let Ok(value) = serde_json::from_slice::<serde_json::Value>(line) else {
             continue;
         };
-        if value.get("reason").and_then(serde_json::Value::as_str)
-            != Some("compiler-artifact")
+        if value.get("reason").and_then(serde_json::Value::as_str) != Some("compiler-artifact")
             || value
                 .pointer("/target/name")
                 .and_then(serde_json::Value::as_str)
@@ -418,4 +323,20 @@ fn digest_serialized(value: &impl Serialize) -> Result<String, UiProofRunFailure
 
 fn digest_bytes(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
+}
+
+fn digest_file(path: &Path) -> Result<String, UiProofRunFailure> {
+    let mut file = fs::File::open(path)
+        .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = std::io::Read::read(&mut file, &mut buffer)
+            .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", digest.finalize()))
 }

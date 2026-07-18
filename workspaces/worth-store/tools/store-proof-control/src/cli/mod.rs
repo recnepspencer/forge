@@ -5,17 +5,16 @@ mod repository_validation;
 use std::path::{Path, PathBuf};
 
 use arguments::{CliCommand, ParsedArguments};
-use repository_validation::{
-    current_inventory, validate_repository, validate_repository_inputs,
-};
+use repository_validation::{current_inventory, validate_repository, validate_repository_inputs};
 
 use crate::classification::{
-    build_consolidated_suite_inventory, classify, validate, ClassifiedInventory,
-    PostBaselineProofAuthority, ProofBehaviorAuthority, ProofSemanticDeclaration,
+    build_consolidated_suite_inventory, classify, validate, validate_proof_behavior_authority,
+    ClassifiedInventory, PostBaselineProofAuthority, ProofBehaviorAuthority,
+    ProofSemanticDeclaration,
 };
 use crate::discovery::{
     discover_workspace, observe_executable_listing, validate_executable_listing,
-    BaselineCaptureStatus, CurrentExecutableListing,
+    BaselineCaptureStatus,
 };
 use crate::evidence::{
     evidence_plan_path, read_json, write_immutable_json, write_json, write_new_json,
@@ -210,7 +209,7 @@ fn run_product(
         workspace_root,
         request.mode(),
         validation.as_ref().ok(),
-        validation.as_ref().err().map(String::as_str),
+        validation.as_ref().err(),
     )?;
     let failures = preflight.evidence.failures();
     if !failures.is_empty() {
@@ -227,7 +226,7 @@ fn run_product(
                 .join("\n  - ")
         ));
     }
-    let inventory = validation?;
+    let inventory = validation.map_err(|failure| failure.to_string())?;
     let preflight_reference =
         StructuralPreflightReference::from_evidence(&preflight.bundle_path, &preflight.evidence);
     let plan = select(workspace_root, &inventory, request, preflight_reference)

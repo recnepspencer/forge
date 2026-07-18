@@ -1,21 +1,19 @@
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::PathBuf;
 
 use worth_store_operations::{OperationalControlSessionObservation, OperationalControlStore};
 
-use crate::certification_child_process::{decode_hex_32, encode_hex_32};
+use crate::certification_child_process::decode_hex_32;
+use crate::process_probe::write_current_process_observation;
 use crate::{
     admit_current_process_probe, AdmittedProcessProbe, OperationalRecoveryCrashCutDenial,
-    OperationalRecoveryCrashCutEvidence,
-    OperationalRecoveryDriverTrace, OperationalRecoveryYieldpoint, ProcessProbeEvidenceDenial,
-    ProcessProbeExecution, ProcessRole,
+    OperationalRecoveryCrashCutEvidence, OperationalRecoveryDriverTrace,
+    OperationalRecoveryYieldpoint, ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessRole,
 };
-use crate::process_probe::write_current_process_observation;
 
 const CUT_ROLE: &str = "cut";
 const REOPEN_ROLE: &str = "reopen";
-mod wire;
 mod runner;
+mod wire;
 use wire::{read_report, write_report, ProcessObservationReport};
 pub const PROCESS_CRASH_ROLE_ENV: &str = "WORTH_STORE_S10_CRASH_ROLE";
 pub const PROCESS_CRASH_REPORT_ENV: &str = "WORTH_STORE_S10_CRASH_REPORT";
@@ -158,7 +156,6 @@ impl OperationalRecoveryFreshProcessRunner {
             evidence_directory: evidence_directory.into(),
         }
     }
-
 }
 
 impl From<ProcessProbeEvidenceDenial> for OperationalRecoveryProcessCrashDenial {

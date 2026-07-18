@@ -2,25 +2,50 @@ use std::path::Path;
 
 use worth_store_test_support::structural_preflight::{
     PreflightEvidenceIdentity, StructuralPredicate, StructuralPredicateEvidence,
-    StructuralPredicateFailure, StructuralPredicateVerdict, StructuralPreflightEvidence,
-    StructuralPreflightPlan,
+    StructuralPredicateFailure, StructuralPredicatePlan, StructuralPredicateVerdict,
+    StructuralPreflightEvidence, StructuralPreflightPlan,
 };
 
-use crate::evidence::sha256_serialized;
 use crate::classification::{
     validate_feature_semantic_authority_policy, validate_production_dependency_policy,
 };
+use crate::evidence::sha256_serialized;
 use crate::ValidatedProofInventory;
 
-use super::{residue, tool_execution};
+use super::{residue, tool_execution, RepositoryPredicateFailure};
 
 pub(super) fn execute(
     forge_root: &Path,
     plan: StructuralPreflightPlan,
     inventory: Option<&ValidatedProofInventory>,
-    validation_failure: Option<&str>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
+) -> Result<StructuralPreflightEvidence, String> {
+    execute_with_refresh(forge_root, plan, inventory, validation_failure, |plan| {
+        super::plan::build(forge_root, plan.request.clone())
+    })
+}
+
+#[cfg(test)]
+pub(super) fn execute_with_stable_test_plan(
+    forge_root: &Path,
+    plan: StructuralPreflightPlan,
+    inventory: Option<&ValidatedProofInventory>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
+) -> Result<StructuralPreflightEvidence, String> {
+    execute_with_refresh(forge_root, plan, inventory, validation_failure, |plan| {
+        Ok(plan.clone())
+    })
+}
+
+fn execute_with_refresh(
+    forge_root: &Path,
+    plan: StructuralPreflightPlan,
+    inventory: Option<&ValidatedProofInventory>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
+    refresh: impl FnOnce(&StructuralPreflightPlan) -> Result<StructuralPreflightPlan, String>,
 ) -> Result<StructuralPreflightEvidence, String> {
     let tools = tool_execution::execute_once(forge_root, &plan);
+    let refreshed = refresh(&plan)?;
     let mut predicates = Vec::with_capacity(plan.predicates.len());
     for predicate in &plan.predicates {
         let input_identity = sha256_serialized(
@@ -33,15 +58,15 @@ pub(super) fn execute(
         let tool_outcome = predicate
             .tool
             .as_ref()
-            .and_then(|tool| tools.get(&tool_key(tool)));
-        let verdict = evaluate_predicate(
+            .and_then(|tool| tools.get(&tool_execution::command_identity(tool)));
+        let verdict = input_drift_failure(predicate, &refreshed).unwrap_or(evaluate_predicate(
             forge_root,
             predicate.predicate,
             &input_identity,
             inventory,
             validation_failure,
             tool_outcome,
-        )?;
+        )?);
         predicates.push(StructuralPredicateEvidence {
             predicate: predicate.predicate,
             input_identity,
@@ -60,13 +85,59 @@ pub(super) fn execute(
     Ok(evidence)
 }
 
+fn input_drift_failure(
+    declared: &StructuralPredicatePlan,
+    refreshed: &StructuralPreflightPlan,
+) -> Option<StructuralPredicateVerdict> {
+    let current = refreshed
+        .predicates
+        .iter()
+        .find(|candidate| candidate.predicate == declared.predicate);
+    let Some(current) = current else {
+        return Some(failed(
+            declared.predicate,
+            "inputs_changed_during_execution",
+            "predicate disappeared while preflight was executing",
+            vec!["predicate-set".to_owned()],
+        ));
+    };
+    let mut changed = declared
+        .input_scopes
+        .iter()
+        .filter(|scope| {
+            current
+                .input_scopes
+                .iter()
+                .find(|candidate| candidate.scope_identity == scope.scope_identity)
+                != Some(scope)
+        })
+        .map(|scope| scope.scope_identity.clone())
+        .collect::<Vec<_>>();
+    if declared.input_scopes.len() != current.input_scopes.len() {
+        changed.push("predicate-input-scope-set".to_owned());
+    }
+    if declared.tool != current.tool {
+        changed.push("tool-declaration".to_owned());
+    }
+    changed.sort();
+    changed.dedup();
+    (!changed.is_empty()).then(|| {
+        failed(
+            declared.predicate,
+            "inputs_changed_during_execution",
+            "predicate inputs changed while preflight was executing",
+            changed,
+        )
+    })
+}
+
 fn evaluate_predicate(
     forge_root: &Path,
     predicate: StructuralPredicate,
     input_identity: &str,
     inventory: Option<&ValidatedProofInventory>,
-    validation_failure: Option<&str>,
-    tool: Option<&ToolOutcome>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
+    tool: Option<&tool_execution::ToolOutcome>,
 ) -> Result<StructuralPredicateVerdict, String> {
     use StructuralPredicate as Predicate;
     if let Some(tool) = tool {
@@ -86,11 +157,10 @@ fn evaluate_predicate(
         }
         Predicate::Inventory | Predicate::Preservation => {
             let Some(inventory) = inventory else {
-                return Ok(failed(
+                return Ok(repository_validation_failed(
                     predicate,
-                    "repository_validation_failed",
-                    validation_failure.unwrap_or("repository validation produced no inventory"),
-                    vec![input_identity.to_owned()],
+                    input_identity,
+                    validation_failure,
                 ));
             };
             let inventory_identity = match predicate {
@@ -104,18 +174,12 @@ fn evaluate_predicate(
             };
             Ok(passed(predicate, input_identity, &inventory_identity))
         }
-        Predicate::Feature => evaluate_feature_predicate(
-            predicate,
-            input_identity,
-            inventory,
-            validation_failure,
-        ),
-        Predicate::Dependency => evaluate_dependency_predicate(
-            predicate,
-            input_identity,
-            inventory,
-            validation_failure,
-        ),
+        Predicate::Feature => {
+            evaluate_feature_predicate(predicate, input_identity, inventory, validation_failure)
+        }
+        Predicate::Dependency => {
+            evaluate_dependency_predicate(predicate, input_identity, inventory, validation_failure)
+        }
         Predicate::AdmittedResidue => match residue::validate(forge_root) {
             Ok(posture) => Ok(passed(
                 predicate,
@@ -136,7 +200,7 @@ fn evaluate_feature_predicate(
     predicate: StructuralPredicate,
     input_identity: &str,
     inventory: Option<&ValidatedProofInventory>,
-    validation_failure: Option<&str>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
 ) -> Result<StructuralPredicateVerdict, String> {
     let Some(inventory) = inventory else {
         return Ok(repository_validation_failed(
@@ -167,7 +231,7 @@ fn evaluate_dependency_predicate(
     predicate: StructuralPredicate,
     input_identity: &str,
     inventory: Option<&ValidatedProofInventory>,
-    validation_failure: Option<&str>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
 ) -> Result<StructuralPredicateVerdict, String> {
     let Some(inventory) = inventory else {
         return Ok(repository_validation_failed(
@@ -210,13 +274,32 @@ fn evaluate_dependency_predicate(
 fn repository_validation_failed(
     predicate: StructuralPredicate,
     input_identity: &str,
-    validation_failure: Option<&str>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
 ) -> StructuralPredicateVerdict {
+    let Some(failure) = validation_failure else {
+        return failed(
+            predicate,
+            "repository_validation_failed",
+            "repository validation produced no inventory or typed failure",
+            vec![input_identity.to_owned()],
+        );
+    };
+    if failure.predicate == predicate {
+        return failed(
+            predicate,
+            failure.failure_code,
+            &failure.message,
+            failure.invalidated_inputs.clone(),
+        );
+    }
     failed(
         predicate,
-        "repository_validation_failed",
-        validation_failure.unwrap_or("repository validation produced no inventory"),
-        vec![input_identity.to_owned()],
+        "prerequisite_unavailable",
+        &format!(
+            "{:?} could not run because {:?}/{} was rejected",
+            predicate, failure.predicate, failure.failure_code
+        ),
+        vec![format!("repository-predicate::{:?}", failure.predicate)],
     )
 }
 

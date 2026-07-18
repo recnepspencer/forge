@@ -9,7 +9,9 @@ use sha2::{Digest, Sha256};
 #[serde(tag = "observation", rename_all = "snake_case")]
 pub enum ProcessArtifactObservation {
     Absent,
-    File { content_sha256: [u8; 32] },
+    File {
+        content_sha256: [u8; 32],
+    },
     Directory {
         tree_sha256: [u8; 32],
         entry_count: usize,
@@ -116,9 +118,24 @@ impl ProcessArtifactPath {
     }
 
     pub(crate) fn admits_output_path(&self, path: &Path) -> Result<bool, String> {
-        Ok(self.disposition == ProcessArtifactDisposition::OutputChannel
-            && self.path == normalized_path(&absolute_path(path)?))
+        Ok(
+            self.disposition == ProcessArtifactDisposition::OutputChannel
+                && self.path == normalized_path(&absolute_path(path)?),
+        )
     }
+}
+
+pub(crate) fn output_artifact_identity(path: &Path) -> Result<[u8; 32], String> {
+    let observation = observe(&absolute_path(path)?)?;
+    if observation == ProcessArtifactObservation::Absent {
+        return Err(format!(
+            "process output artifact {} is absent",
+            path.display()
+        ));
+    }
+    serde_json::to_vec(&("worth-store-process-output-artifact-v1", observation))
+        .map(|bytes| Sha256::digest(bytes).into())
+        .map_err(|error| format!("could not encode process output identity: {error}"))
 }
 
 fn observe(path: &Path) -> Result<ProcessArtifactObservation, String> {

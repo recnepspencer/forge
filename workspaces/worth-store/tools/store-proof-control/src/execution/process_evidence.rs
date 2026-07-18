@@ -4,8 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-pub(super) const PROCESS_PROBE_EVIDENCE_ROOT_ENV: &str =
-    "WORTH_STORE_PROCESS_PROBE_EVIDENCE_ROOT";
+pub(super) const PROCESS_PROBE_EVIDENCE_ROOT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_EVIDENCE_ROOT";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProcessProbeEvidenceReference {
@@ -38,6 +37,7 @@ struct DeclarationProjection {
     input_identity: [u8; 32],
     executable_identity: [u8; 32],
     working_directory: String,
+    environment_identity: [u8; 32],
     declaration_identity: [u8; 32],
 }
 
@@ -140,20 +140,23 @@ pub(super) fn collect(
         let evidence: ProcessProbeEnvelope = serde_json::from_slice(&bytes)
             .map_err(|error| format!("could not decode {}: {error}", path.display()))?;
         let evidence_identity = hex(&evidence.evidence_identity);
+        let working_directory_identity: [u8; 32] =
+            Sha256::digest(evidence.process.working_directory.as_bytes()).into();
         if path.extension().and_then(|value| value.to_str()) != Some("json")
             || evidence.schema_version != 1
             || evidence.declaration.role != evidence.process.role
             || evidence.declaration.executable_identity != evidence.process.executable_identity
             || evidence.declaration.input_identity != evidence.process.input_artifact_identity
             || evidence.declaration.working_directory != evidence.process.working_directory
+            || evidence.declaration.environment_identity != evidence.process.environment_identity
             || evidence.process.process_id == 0
             || evidence.process.launch_parent_process_id == 0
             || evidence.process.process_id == evidence.process.launch_parent_process_id
             || evidence.declaration.input_identity == [0; 32]
             || evidence.declaration.executable_identity == [0; 32]
             || evidence.declaration.declaration_identity == [0; 32]
-            || evidence.process.working_directory_identity
-                != Sha256::digest(evidence.process.working_directory.as_bytes()).into()
+            || evidence.declaration.environment_identity == [0; 32]
+            || evidence.process.working_directory_identity != working_directory_identity
             || !environment_is_admitted(&evidence.process.environment)
             || environment_identity(&evidence.process.environment)
                 != evidence.process.environment_identity
@@ -164,8 +167,7 @@ pub(super) fn collect(
             || !declaration_identity_matches(&evidence.declaration)
             || !execution_identity_matches(&evidence)
             || evidence.output_artifact_identity == [0; 32]
-            || path.file_stem().and_then(|value| value.to_str())
-                != Some(evidence_identity.as_str())
+            || path.file_stem().and_then(|value| value.to_str()) != Some(evidence_identity.as_str())
         {
             return Err(format!(
                 "process probe artifact {} has inconsistent identity fields",
@@ -193,7 +195,7 @@ pub(super) fn collect(
 
 fn declaration_identity_matches(declaration: &DeclarationProjection) -> bool {
     serde_json::to_vec(&(
-        "worth-store-process-probe-declaration-v1",
+        "worth-store-process-probe-declaration-v2",
         &declaration.scenario_identity,
         &declaration.role,
         &declaration.isolation,
@@ -201,6 +203,7 @@ fn declaration_identity_matches(declaration: &DeclarationProjection) -> bool {
         declaration.input_identity,
         declaration.executable_identity,
         &declaration.working_directory,
+        declaration.environment_identity,
     ))
     .is_ok_and(|bytes| {
         let identity: [u8; 32] = Sha256::digest(bytes).into();
@@ -279,7 +282,6 @@ const fn termination_mode(termination: &TerminationProjection) -> &'static str {
         TerminationProjection::OsTermination { .. } => "os_termination",
     }
 }
-
 
 fn filesystem_identity(value: &str) -> String {
     value

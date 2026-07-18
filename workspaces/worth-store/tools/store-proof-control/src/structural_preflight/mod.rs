@@ -1,8 +1,8 @@
-pub mod dependency_boundary;
 mod execution;
 mod freshness;
 mod inputs;
 mod plan;
+mod repository_failure;
 mod residue;
 #[cfg(test)]
 mod tests;
@@ -21,27 +21,24 @@ pub use worth_store_test_support::structural_preflight::{
 use crate::selection::StoreProofMode;
 use crate::ValidatedProofInventory;
 
+pub(crate) use repository_failure::RepositoryPredicateFailure;
+
 #[derive(Debug)]
 pub struct StructuralPreflightProduct {
     pub evidence: StructuralPreflightEvidence,
     pub bundle_path: PathBuf,
 }
 
-pub fn execute(
+pub(crate) fn execute(
     forge_root: &Path,
     store_root: &Path,
     mode: StoreProofMode,
     inventory: Option<&ValidatedProofInventory>,
-    validation_failure: Option<&str>,
+    validation_failure: Option<&RepositoryPredicateFailure>,
 ) -> Result<StructuralPreflightProduct, String> {
     let request = request_for_mode(mode)?;
     let plan = plan::build(forge_root, request)?;
-    let evidence = execution::execute(
-        forge_root,
-        plan,
-        inventory,
-        validation_failure,
-    )?;
+    let evidence = execution::execute(forge_root, plan, inventory, validation_failure)?;
     evidence
         .validate_integrity()
         .map_err(|denial| denial.to_string())?;
@@ -58,12 +55,7 @@ pub fn forge_root(store_root: &Path) -> Result<PathBuf, String> {
         .ancestors()
         .find(|candidate| candidate.join("tools/boundary-check/Cargo.toml").is_file())
         .map(Path::to_path_buf)
-        .ok_or_else(|| {
-            format!(
-                "could not locate Forge root above {}",
-                store_root.display()
-            )
-        })
+        .ok_or_else(|| format!("could not locate Forge root above {}", store_root.display()))
 }
 
 pub fn bundle_path(store_root: &Path, identity: &PreflightEvidenceIdentity) -> PathBuf {

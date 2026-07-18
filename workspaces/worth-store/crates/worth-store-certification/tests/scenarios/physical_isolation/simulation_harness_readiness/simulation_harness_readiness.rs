@@ -1,7 +1,7 @@
 use worth_store_test_support::harness::recovery::coverage as coverage_support;
+mod shortcut_boundary_coverage;
 #[path = "../readiness/shortcut_report.rs"]
 mod shortcut_report;
-mod shortcut_boundary_coverage;
 
 use std::collections::BTreeSet;
 

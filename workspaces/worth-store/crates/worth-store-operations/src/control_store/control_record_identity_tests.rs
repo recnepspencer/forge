@@ -32,10 +32,9 @@ fn publication_binding_fingerprint_binds_authority_posture_and_policy() {
     let trusted = posture(1, 0);
     let residual = posture(1, 1);
     let strict = RecoveryAuthorityAdmissionPolicy::fully_trusted_only();
-    let admitted = RecoveryAuthorityAdmissionPolicy::admit_exact_declared_residual_posture(
-        residual, [9; 32],
-    )
-    .unwrap();
+    let admitted =
+        RecoveryAuthorityAdmissionPolicy::admit_exact_declared_residual_posture(residual, [9; 32])
+            .unwrap();
 
     let trusted_binding = publication_binding(trusted, strict);
     let residual_binding = publication_binding(residual, admitted);

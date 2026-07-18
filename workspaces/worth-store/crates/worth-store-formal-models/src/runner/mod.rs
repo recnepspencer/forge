@@ -47,8 +47,8 @@ pub use execution::{
     execute_protocol_check, execute_protocol_check_with_identity, ProtocolRunnerFailure,
     TlcRunnerPaths,
 };
-pub use external_tool_identity::ExternalToolIdentity;
 pub(super) use external_tool_identity::ExternalToolObservation;
+pub use external_tool_identity::{ExternalToolIdentity, ExternalToolResourcePosture};
 pub use invariant_configuration::{
     configured_invariant_count, ProtocolInvariantConfigurationDenial,
 };

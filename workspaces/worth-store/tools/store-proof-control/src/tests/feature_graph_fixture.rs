@@ -1,4 +1,7 @@
-use crate::classification::validate_inventory_build_graph_policy;
+use crate::classification::{
+    validate_inventory_build_graph_policy, BuildGraphPolicyViolation, DependencyBoundaryDenial,
+    FeatureSemanticAuthorityDenial,
+};
 use crate::discovery::discover_workspace;
 
 use super::scratch_workspace::ScratchCargoWorkspace;
@@ -27,11 +30,15 @@ fn transitive_default_feature_authority_leak_names_the_manifest_edge() {
 
     let discovered = discover_workspace(workspace.root(), false).unwrap();
     let denials = validate_inventory_build_graph_policy(discovered.inventory()).unwrap_err();
-    assert!(denials.iter().any(|denial| {
-        denial.consumer == "fixture-app"
-            && denial.provider == "fixture-substrate"
-            && denial.feature == "certification-test-authority"
-    }));
+    assert!(denials.iter().any(|denial| matches!(
+        denial,
+        BuildGraphPolicyViolation::DependencyBoundary(violation)
+            if violation.denial == DependencyBoundaryDenial::ResolvedProductionFeatureClosure
+    )));
+    assert!(denials[0].to_string().contains("fixture-app"));
+    assert!(denials[0]
+        .to_string()
+        .contains("certification-test-authority"));
 }
 
 #[test]
@@ -49,11 +56,13 @@ fn new_workspace_feature_requires_explicit_semantic_classification() {
 
     let discovered = discover_workspace(workspace.root(), false).unwrap();
     let denials = validate_inventory_build_graph_policy(discovered.inventory()).unwrap_err();
-    assert!(denials.iter().any(|denial| {
-        denial.provider == "fixture-owner"
-            && denial.feature == "opaque-fixture-surface"
-            && denial.reason.contains("no reviewed")
-    }));
+    assert!(denials.iter().any(|denial| matches!(
+        denial,
+        BuildGraphPolicyViolation::FeatureSemanticAuthority(violation)
+            if violation.denial == FeatureSemanticAuthorityDenial::MissingDeclaration
+    )));
+    assert!(denials[0].to_string().contains("fixture-owner"));
+    assert!(denials[0].to_string().contains("opaque-fixture-surface"));
 }
 
 #[test]
@@ -74,7 +83,10 @@ fn feature_semantic_authority_schema_is_enforced() {
     );
     let discovered = discover_workspace(workspace.root(), false).unwrap();
     let denials = validate_inventory_build_graph_policy(discovered.inventory()).unwrap_err();
-    assert!(denials.iter().any(|denial| denial
-        .reason
-        .contains("unsupported feature semantic authority schema")));
+    assert!(denials.iter().any(|denial| matches!(
+        denial,
+        BuildGraphPolicyViolation::FeatureSemanticAuthority(violation)
+            if violation.denial == FeatureSemanticAuthorityDenial::UnsupportedSchema
+    )));
+    assert!(denials[0].to_string().contains("schema 99"));
 }

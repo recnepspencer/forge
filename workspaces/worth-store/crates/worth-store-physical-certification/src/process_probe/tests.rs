@@ -21,9 +21,9 @@ fn probe_input_rejects_decoded_expected_runtime_truth() {
 #[test]
 fn graceful_exit_cannot_satisfy_a_parent_kill_declaration() {
     let executable = std::env::current_exe().unwrap();
-    let command = Command::new(executable);
+    let mut command = Command::new(executable);
     let input = SealedProcessProbeInput::new("cut", "fault", Vec::new()).unwrap();
-    let declaration = ProcessProbeDeclaration::for_current_executable(
+    let intent = ProcessProbeIntent::for_current_executable(
         &command,
         &input,
         ProcessRole::CrashTarget,
@@ -31,6 +31,9 @@ fn graceful_exit_cannot_satisfy_a_parent_kill_declaration() {
         ProcessTerminationRequirement::ParentKill,
     )
     .unwrap();
+    let observation = tempfile::NamedTempFile::new().unwrap();
+    let declaration =
+        configure_process_probe(&mut command, intent, &input, observation.path(), &[]).unwrap();
     let working_directory = declaration.working_directory().to_owned();
     let process = ProcessIdentityEvidence {
         role: ProcessRole::CrashTarget,
@@ -134,14 +137,12 @@ fn fresh_process_roles_share_executable_but_not_process_or_runtime_identity() {
     );
     let executions = [&writer, &recovered, &verifier, &second_verifier];
 
+    assert!(executions.iter().all(
+        |execution| execution.process.executable_identity == writer.process.executable_identity
+    ));
     assert!(executions
         .iter()
-        .all(|execution| execution.process.executable_identity
-            == writer.process.executable_identity));
-    assert!(executions
-        .iter()
-        .all(|execution| execution.output_artifact_identity
-            == writer.output_artifact_identity));
+        .all(|execution| execution.output_artifact_identity == writer.output_artifact_identity));
     let process_ids = executions
         .iter()
         .map(|execution| execution.process.process_id)
@@ -157,7 +158,10 @@ fn fresh_process_roles_share_executable_but_not_process_or_runtime_identity() {
     assert_eq!(process_ids.len(), executions.len());
     assert_eq!(runtime_ids.len(), executions.len());
     assert_eq!(evidence_ids.len(), executions.len());
-    assert!(matches!(writer.termination, ProcessTermination::ParentKill { .. }));
+    assert!(matches!(
+        writer.termination,
+        ProcessTermination::ParentKill { .. }
+    ));
     assert!(matches!(
         recovered.termination,
         ProcessTermination::GracefulExit { code: Some(0) }
@@ -179,7 +183,8 @@ fn run_role(
     command
         .args(["--exact", PROBE_TEST_IDENTITY, "--nocapture"])
         .env(PROBE_CHILD_ENV, role_token(role))
-        .env(PROBE_OUTPUT_ENV, &output);
+        .env(PROBE_OUTPUT_ENV, &output)
+        .env(UNADMITTED_EXPECTED_STATE_ENV, "decoded-runtime-truth");
     let input = SealedProcessProbeInput::new(
         scenario,
         "declared-process-role",
@@ -189,17 +194,12 @@ fn run_role(
         ],
     )
     .unwrap();
-    let declaration = ProcessProbeDeclaration::for_current_executable(
-        &command,
-        &input,
-        role,
-        isolation,
-        termination,
-    )
-    .unwrap();
-    configure_process_probe(
+    let intent =
+        ProcessProbeIntent::for_current_executable(&command, &input, role, isolation, termination)
+            .unwrap();
+    let declaration = configure_process_probe(
         &mut command,
-        &declaration,
+        intent,
         &input,
         &observation,
         &[PROBE_CHILD_ENV, PROBE_OUTPUT_ENV],
@@ -218,29 +218,31 @@ fn run_role(
         classify_exit(child.wait().unwrap())
     };
     let process = read_process_observation(&observation, &declaration, process_id).unwrap();
-    let execution =
-        ProcessProbeExecution::observed(
-            declaration,
-            &input,
-            process,
-            observed_termination,
-            &output,
-        )
-        .unwrap();
+    let execution = ProcessProbeExecution::observed(
+        declaration,
+        &input,
+        process,
+        observed_termination,
+        &output,
+    )
+    .unwrap();
     persist_execution(root, &execution).unwrap();
     execution
 }
 
 fn run_probe_child() {
+    assert!(
+        std::env::var_os(UNADMITTED_EXPECTED_STATE_ENV).is_none(),
+        "unadmitted ambient expected state crossed the process boundary"
+    );
     let role = parse_test_role(&std::env::var(PROBE_CHILD_ENV).unwrap());
     let admission = admit_current_process_probe(role).unwrap();
     let output = std::path::PathBuf::from(std::env::var_os(PROBE_OUTPUT_ENV).unwrap());
     crate::certification_child_process::publish_new_synced(&output, b"persisted-agreement")
         .unwrap();
-    let runtime_identity = sha2::Sha256::digest(
-        format!("fresh-runtime-{}-{role:?}", std::process::id()).as_bytes(),
-    )
-    .into();
+    let runtime_identity =
+        sha2::Sha256::digest(format!("fresh-runtime-{}-{role:?}", std::process::id()).as_bytes())
+            .into();
     write_current_process_observation(&admission, Some(runtime_identity)).unwrap();
     if role == ProcessRole::Writer {
         loop {
@@ -252,7 +254,10 @@ fn run_probe_child() {
 fn wait_for_paths(child: &mut std::process::Child, paths: &[&std::path::Path]) {
     let deadline = Instant::now() + Duration::from_secs(10);
     while !paths.iter().all(|path| path.is_file()) {
-        assert!(child.try_wait().unwrap().is_none(), "probe child exited early");
+        assert!(
+            child.try_wait().unwrap().is_none(),
+            "probe child exited early"
+        );
         assert!(Instant::now() < deadline, "probe child readiness timed out");
         std::thread::sleep(Duration::from_millis(5));
     }
@@ -278,5 +283,6 @@ fn parse_test_role(value: &str) -> ProcessRole {
 
 const PROBE_CHILD_ENV: &str = "WORTH_STORE_PROCESS_PROBE_TEST_CHILD";
 const PROBE_OUTPUT_ENV: &str = "WORTH_STORE_PROCESS_PROBE_TEST_OUTPUT";
+const UNADMITTED_EXPECTED_STATE_ENV: &str = "WORTH_STORE_PROCESS_PROBE_UNADMITTED_EXPECTED_STATE";
 const PROBE_TEST_IDENTITY: &str =
     "process_probe::tests::fresh_process_roles_share_executable_but_not_process_or_runtime_identity";

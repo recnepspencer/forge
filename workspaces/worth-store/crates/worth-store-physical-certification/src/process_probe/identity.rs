@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    ProcessProbeDeclaration, ProcessProbeEvidenceDenial, ProcessRole, SealedProcessProbeInput,
+    ProcessProbeDeclaration, ProcessProbeEvidenceDenial, ProcessProbeIntent, ProcessRole,
+    SealedProcessProbeInput,
 };
 use crate::certification_child_process::{decode_hex_32, encode_hex_32, publish_new_synced};
 
@@ -47,17 +48,17 @@ pub struct AdmittedProcessProbe {
 
 pub(crate) fn configure_process_probe(
     command: &mut Command,
-    declaration: &ProcessProbeDeclaration,
+    intent: ProcessProbeIntent,
     input: &SealedProcessProbeInput,
     observation_path: &Path,
     additional_environment_keys: &[&str],
-) -> Result<(), ProcessProbeEvidenceDenial> {
-    if input.identity() != declaration.input_identity() {
+) -> Result<ProcessProbeDeclaration, ProcessProbeEvidenceDenial> {
+    if input.identity() != intent.input_identity() {
         return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
     }
     let sealed_input = serde_json::to_string(input)
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    let mut keys = vec![
+    let protocol_keys = [
         ROLE_ENV,
         PARENT_ENV,
         INPUT_ENV,
@@ -65,6 +66,14 @@ pub(crate) fn configure_process_probe(
         OBSERVATION_ENV,
         ENVIRONMENT_KEYS_ENV,
     ];
+    if additional_environment_keys
+        .iter()
+        .any(|key| protocol_keys.contains(key) || *key == ENVIRONMENT_IDENTITY_ENV)
+    {
+        return Err(ProcessProbeEvidenceDenial::UnadmittedEnvironment);
+    }
+    let additional_bindings = explicit_command_environment(command, additional_environment_keys)?;
+    let mut keys = protocol_keys.to_vec();
     keys.extend(additional_environment_keys.iter().copied());
     keys.sort_unstable();
     keys.dedup();
@@ -74,17 +83,23 @@ pub(crate) fn configure_process_probe(
     {
         return Err(ProcessProbeEvidenceDenial::UnadmittedEnvironment);
     }
+    command.env_clear();
+    for (name, value) in additional_bindings {
+        command.env(name, value);
+    }
     command
-        .env(ROLE_ENV, role_token(declaration.role()))
+        .env(ROLE_ENV, role_token(intent.role()))
         .env(PARENT_ENV, std::process::id().to_string())
-        .env(INPUT_ENV, encode_hex_32(&declaration.input_identity()))
+        .env(INPUT_ENV, encode_hex_32(&intent.input_identity()))
         .env(SEALED_INPUT_ENV, sealed_input)
         .env(OBSERVATION_ENV, observation_path)
         .env(ENVIRONMENT_KEYS_ENV, keys.join(";"));
     let bindings = command_bindings(command, &keys)?;
     let identity = environment_identity(&bindings)?;
     command.env(ENVIRONMENT_IDENTITY_ENV, encode_hex_32(&identity));
-    Ok(())
+    intent
+        .bind_environment(identity)
+        .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)
 }
 
 pub fn admit_current_process_probe(
@@ -97,10 +112,9 @@ pub fn admit_current_process_probe(
     }
     let input_identity = decode_hex_32(&required_string(INPUT_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    let sealed_input = SealedProcessProbeInput::decode_untrusted(
-        required_string(SEALED_INPUT_ENV)?.as_bytes(),
-    )
-    .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
+    let sealed_input =
+        SealedProcessProbeInput::decode_untrusted(required_string(SEALED_INPUT_ENV)?.as_bytes())
+            .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
     if sealed_input.identity() != input_identity {
         return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
     }
@@ -126,10 +140,9 @@ pub(crate) fn write_current_process_observation(
         .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     let input_artifact_identity = decode_hex_32(&required_string(INPUT_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
-    let sealed_input = SealedProcessProbeInput::decode_declared(
-        required_string(SEALED_INPUT_ENV)?.as_bytes(),
-    )
-    .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
+    let sealed_input =
+        SealedProcessProbeInput::decode_declared(required_string(SEALED_INPUT_ENV)?.as_bytes())
+            .map_err(|_| ProcessProbeEvidenceDenial::InputIdentityMismatch)?;
     if sealed_input.identity() != input_artifact_identity
         || input_artifact_identity != admission.input_identity
     {
@@ -161,10 +174,7 @@ pub(crate) fn write_current_process_observation(
 }
 
 fn validate_current_environment(
-) -> Result<
-    (Vec<ProcessEnvironmentBindingEvidence>, [u8; 32]),
-    ProcessProbeEvidenceDenial,
-> {
+) -> Result<(Vec<ProcessEnvironmentBindingEvidence>, [u8; 32]), ProcessProbeEvidenceDenial> {
     let declared_environment_identity = decode_hex_32(&required_string(ENVIRONMENT_IDENTITY_ENV)?)
         .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     let keys = required_string(ENVIRONMENT_KEYS_ENV)?
@@ -216,14 +226,16 @@ impl ProcessIdentityEvidence {
         if self.input_artifact_identity != declaration.input_identity() {
             return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
         }
+        let working_directory_identity: [u8; 32] =
+            Sha256::digest(self.working_directory.as_bytes()).into();
         if self.working_directory != declaration.working_directory()
-            || self.working_directory_identity
-                != Sha256::digest(self.working_directory.as_bytes()).into()
+            || self.working_directory_identity != working_directory_identity
         {
             return Err(ProcessProbeEvidenceDenial::WorkingDirectoryMismatch);
         }
         if !environment_is_admitted(&self.environment)
             || environment_identity(&self.environment)? != self.environment_identity
+            || self.environment_identity != declaration.environment_identity()
         {
             return Err(ProcessProbeEvidenceDenial::EnvironmentMismatch);
         }
@@ -239,13 +251,29 @@ fn command_bindings(
         .map(|key| {
             let value = command
                 .get_envs()
-                .find(|(name, _)| name == std::ffi::OsStr::new(key))
+                .find(|(name, _)| *name == std::ffi::OsStr::new(key))
                 .and_then(|(_, value)| value)
                 .ok_or(ProcessProbeEvidenceDenial::UnadmittedEnvironment)?;
             Ok(ProcessEnvironmentBindingEvidence {
                 name: (*key).to_owned(),
                 value_sha256: Sha256::digest(value.to_string_lossy().as_bytes()).into(),
             })
+        })
+        .collect()
+}
+
+fn explicit_command_environment(
+    command: &Command,
+    keys: &[&str],
+) -> Result<Vec<(String, std::ffi::OsString)>, ProcessProbeEvidenceDenial> {
+    keys.iter()
+        .map(|key| {
+            let value = command
+                .get_envs()
+                .find(|(name, _)| *name == std::ffi::OsStr::new(key))
+                .and_then(|(_, value)| value)
+                .ok_or(ProcessProbeEvidenceDenial::UnadmittedEnvironment)?;
+            Ok(((*key).to_owned(), value.to_owned()))
         })
         .collect()
 }
@@ -258,8 +286,8 @@ fn current_bindings(
     }
     keys.iter()
         .map(|key| {
-            let value = std::env::var_os(key)
-                .ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+            let value =
+                std::env::var_os(key).ok_or(ProcessProbeEvidenceDenial::InvalidChildObservation)?;
             Ok(ProcessEnvironmentBindingEvidence {
                 name: key.clone(),
                 value_sha256: Sha256::digest(value.to_string_lossy().as_bytes()).into(),
@@ -281,9 +309,7 @@ fn environment_is_admitted(bindings: &[ProcessEnvironmentBindingEvidence]) -> bo
         && bindings.iter().all(|binding| {
             binding.name.starts_with("WORTH_STORE_") && binding.value_sha256 != [0; 32]
         })
-        && bindings
-            .windows(2)
-            .all(|pair| pair[0].name < pair[1].name)
+        && bindings.windows(2).all(|pair| pair[0].name < pair[1].name)
 }
 
 fn write_new_json(
@@ -297,8 +323,8 @@ fn write_new_json(
 }
 
 fn file_digest(path: &Path) -> Result<[u8; 32], ProcessProbeEvidenceDenial> {
-    let mut file = fs::File::open(path)
-        .map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
+    let mut file =
+        fs::File::open(path).map_err(|_| ProcessProbeEvidenceDenial::InvalidChildObservation)?;
     let mut digest = Sha256::new();
     let mut buffer = [0_u8; 64 * 1024];
     loop {

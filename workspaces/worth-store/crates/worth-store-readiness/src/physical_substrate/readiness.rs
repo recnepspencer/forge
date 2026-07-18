@@ -63,8 +63,7 @@ mod tests {
     use worth_store_physical_format::{
         PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
         PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalRecordSlot,
-        PhysicalReference,
-        PhysicalReferenceAuthority, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+        PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
     };
 
     #[test]

@@ -13,8 +13,10 @@ use serde::{Deserialize, Serialize};
 pub use build_graph_policy::{
     validate_build_graph_policy, validate_feature_semantic_authority_policy,
     validate_inventory_build_graph_policy, validate_production_dependency_policy,
-    BuildGraphPolicyViolation, FeatureAuthorityClass, FeatureSemanticAuthority,
-    FeatureSemanticDeclaration, ValidatedFeatureSemanticAuthority,
+    BuildGraphPolicyViolation, DependencyBoundaryDenial, DependencyBoundaryViolation,
+    FeatureAuthorityClass, FeatureSemanticAuthority, FeatureSemanticAuthorityDenial,
+    FeatureSemanticAuthoritySubject, FeatureSemanticAuthorityViolation, FeatureSemanticDeclaration,
+    ValidatedFeatureSemanticAuthority,
 };
 pub use proof_behavior_authority::{
     validate_proof_behavior_authority, ProofBehaviorAuthority, ProofBehaviorDeclaration,

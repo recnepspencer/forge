@@ -418,6 +418,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "worth-store-test-support",
 ]
 
 [[package]]
@@ -1159,6 +1160,8 @@ dependencies = [
 name = "worth-store-physical-certification"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "sha2",
  "tempfile",
  "worth-foundational",
@@ -1349,6 +1352,9 @@ dependencies = [
 name = "worth-store-test-support"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
  "worth-foundational",
  "worth-proof",
  "worth-store-aspect-native",

@@ -6,19 +6,49 @@ use std::time::Duration;
 
 use sha2::{Digest, Sha256};
 
-use super::bounded_process;
-use super::{UiCompilerToolIdentity, UiCompilerToolchainIdentity, UiProofRunFailure};
+use super::{bounded_process, cargo_configuration};
+use super::{
+    UiCompilerResourcePosture, UiCompilerToolIdentity, UiCompilerToolchainIdentity,
+    UiProofRunFailure,
+};
 
 pub(super) fn observe(root: &Path) -> Result<UiCompilerToolchainIdentity, UiProofRunFailure> {
     Ok(UiCompilerToolchainIdentity {
         cargo: observe_program(root, selected_program("CARGO", "cargo"), &["-Vv"])?,
         rustc: observe_program(root, selected_program("RUSTC", "rustc"), &["-Vv"])?,
+        cargo_configuration: cargo_configuration::observe(root)?,
         version_probe_timeout_millis: 10_000,
         compile_timeout_millis: 300_000,
         output_cap_bytes_per_stream: 16 * 1024 * 1024,
-        resource_posture: "one-process-per-fixture; shared-environment-target; offline; bounded-output"
-            .to_owned(),
+        resource_posture: UiCompilerResourcePosture {
+            one_process_per_fixture: true,
+            shared_environment_target: true,
+            offline: true,
+            locked_dependencies: true,
+            bounded_output: true,
+        },
     })
+}
+
+pub(super) fn validate_unchanged(
+    root: &Path,
+    identity: &UiCompilerToolchainIdentity,
+) -> Result<(), UiProofRunFailure> {
+    for tool in [&identity.cargo, &identity.rustc] {
+        let observed = file_digest(Path::new(&tool.executable_path))?;
+        if observed != tool.executable_sha256 {
+            return Err(UiProofRunFailure::EnvironmentObservation(format!(
+                "compiler tool changed during UI run: {}",
+                tool.executable_path
+            )));
+        }
+    }
+    if cargo_configuration::observe(root)? != identity.cargo_configuration {
+        return Err(UiProofRunFailure::EnvironmentObservation(
+            "Cargo configuration changed during UI run".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 fn observe_program(
@@ -30,12 +60,8 @@ fn observe_program(
     let executable_sha256 = file_digest(&path)?;
     let mut command = Command::new(&path);
     command.args(arguments).current_dir(root);
-    let output = bounded_process::run(
-        &mut command,
-        Duration::from_secs(10),
-        1024 * 1024,
-    )
-    .map_err(UiProofRunFailure::EnvironmentObservation)?;
+    let output = bounded_process::run(&mut command, Duration::from_secs(10), 1024 * 1024)
+        .map_err(UiProofRunFailure::EnvironmentObservation)?;
     if output.timed_out || !output.status.success() {
         return Err(UiProofRunFailure::EnvironmentObservation(format!(
             "{} version probe failed with {:?}",
@@ -77,8 +103,9 @@ fn resolve_program(program: &OsStr) -> Result<PathBuf, String> {
         for extension in executable_extensions() {
             let candidate = root.join(format!("{}{}", path.to_string_lossy(), extension));
             if candidate.is_file() {
-                return std::fs::canonicalize(&candidate)
-                    .map_err(|error| format!("could not resolve {}: {error}", candidate.display()));
+                return std::fs::canonicalize(&candidate).map_err(|error| {
+                    format!("could not resolve {}: {error}", candidate.display())
+                });
             }
         }
     }

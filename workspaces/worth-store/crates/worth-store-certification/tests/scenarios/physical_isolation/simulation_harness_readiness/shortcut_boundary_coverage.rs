@@ -1,6 +1,4 @@
-use worth_store_physical_certification::{
-    ForbiddenShortcutKind, ShortcutRejectionBoundary,
-};
+use worth_store_physical_certification::{ForbiddenShortcutKind, ShortcutRejectionBoundary};
 
 // store-proof-identity[shortcut_report_still_names_required_shortcut_boundaries]: worth-store-certification::physical_isolation/readiness::shortcut_report::shortcut_report_still_names_required_shortcut_boundaries
 #[test]

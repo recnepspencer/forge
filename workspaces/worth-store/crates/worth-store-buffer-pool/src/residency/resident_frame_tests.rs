@@ -10,9 +10,8 @@ use worth_store_contracts::{
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalSegmentId,
-    PHYSICAL_HEADER_LENGTH,
+    PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalReferenceValidationWitness, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 use worth_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,

@@ -23,7 +23,6 @@ mod operational_recovery_driver;
 #[cfg(test)]
 mod operational_recovery_driver_tests;
 mod operational_recovery_process_crash;
-mod process_probe;
 mod operational_recovery_rejoin_driver;
 #[cfg(test)]
 mod operational_recovery_replica_driver_fixture;
@@ -37,6 +36,7 @@ mod oracles;
 mod physical_isolation_handoff;
 mod planning;
 mod pressure_harness;
+mod process_probe;
 mod qualification;
 mod scenario;
 mod scenarios;
@@ -149,9 +149,9 @@ pub use fixtures::{
 };
 pub use fresh_process_offline_truth::{
     write_offline_truth_observation_from_environment, FreshProcessDestroyedPrimaryCertification,
-    FreshProcessDestroyedPrimaryEvidence, FreshProcessOfflineTruthBaseline, FreshProcessOfflineTruthDenial,
-    FreshProcessOfflineTruthRunner, OFFLINE_TRUTH_CHALLENGE_ENV, OFFLINE_TRUTH_REPORT_ENV,
-    OFFLINE_TRUTH_ROLE_ENV, OFFLINE_TRUTH_TARGET_ENV,
+    FreshProcessDestroyedPrimaryEvidence, FreshProcessOfflineTruthBaseline,
+    FreshProcessOfflineTruthDenial, FreshProcessOfflineTruthRunner, OFFLINE_TRUTH_CHALLENGE_ENV,
+    OFFLINE_TRUTH_REPORT_ENV, OFFLINE_TRUTH_ROLE_ENV, OFFLINE_TRUTH_TARGET_ENV,
 };
 #[cfg(any(test, feature = "certification-test-support"))]
 pub use harness::blob::{
@@ -195,17 +195,8 @@ pub use operational_recovery_driver::{
 pub use operational_recovery_process_crash::{
     write_reopen_observation_from_environment, OperationalRecoveryFreshProcessRunner,
     OperationalRecoveryProcessCrashConfig, OperationalRecoveryProcessCrashDenial,
-    OperationalRecoveryProcessCrashEvidence,
-    PROCESS_CRASH_CHALLENGE_ENV, PROCESS_CRASH_REPORT_ENV, PROCESS_CRASH_ROLE_ENV,
-    PROCESS_CRASH_YIELDPOINT_ENV,
-};
-pub use process_probe::{
-    admit_current_process_probe, AdmittedProcessProbe, ProcessArtifactDisposition,
-    ProcessArtifactObservation, ProcessArtifactPath, ProcessEnvironmentBindingEvidence,
-    ProcessIdentityEvidence,
-    ProcessIsolationRequirement, ProcessProbeDeclaration, ProcessProbeEvidenceDenial,
-    ProcessProbeExecution, ProcessRole, ProcessTermination, ProcessTerminationRequirement,
-    SealedProcessProbeInput, PROCESS_PROBE_EVIDENCE_ROOT_ENV,
+    OperationalRecoveryProcessCrashEvidence, PROCESS_CRASH_CHALLENGE_ENV, PROCESS_CRASH_REPORT_ENV,
+    PROCESS_CRASH_ROLE_ENV, PROCESS_CRASH_YIELDPOINT_ENV,
 };
 pub use operational_recovery_trace::{
     OperationalRecoveryDriverTrace, OperationalRecoveryTraceJoinDenial,
@@ -268,6 +259,14 @@ pub use pressure_harness::{
     IoPressureHarnessEvidence, IoPressureHarnessEvidenceDenial, IoPressureHarnessScenario,
     IoPressureHarnessSecureIoPosture, IoPressureOracleObservation, PhysicalFaultEvidenceClass,
     RealBackendSafetyQualification,
+};
+pub use process_probe::{
+    admit_current_process_probe, AdmittedProcessProbe, ProcessArtifactDisposition,
+    ProcessArtifactObservation, ProcessArtifactPath, ProcessEnvironmentBindingEvidence,
+    ProcessIdentityEvidence, ProcessIsolationRequirement, ProcessProbeDeclaration,
+    ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessProbeIntent, ProcessRole,
+    ProcessTermination, ProcessTerminationRequirement, SealedProcessProbeInput,
+    PROCESS_PROBE_EVIDENCE_ROOT_ENV,
 };
 pub use qualification::{
     evaluate_row_rebind, reject_copied_backend_qualification_row,

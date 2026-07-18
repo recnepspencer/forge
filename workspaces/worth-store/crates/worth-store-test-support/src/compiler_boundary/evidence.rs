@@ -8,10 +8,14 @@ pub struct UiProofRunEvidence {
     pub schema_version: u32,
     pub suite_identity: String,
     pub environment_identity: String,
+    pub environment_root_identity: String,
     pub toolchain: UiCompilerToolchainIdentity,
     pub environment_manifest_path: String,
+    pub environment_lock_path: String,
+    pub environment_lock_sha256: String,
     pub shared_target_root: String,
     pub environment_manifest_created: bool,
+    pub environment_lock_created: bool,
     pub fixtures: Vec<UiFixtureRunEvidence>,
     pub evidence_identity: String,
 }
@@ -20,10 +24,26 @@ pub struct UiProofRunEvidence {
 pub struct UiCompilerToolchainIdentity {
     pub cargo: UiCompilerToolIdentity,
     pub rustc: UiCompilerToolIdentity,
+    pub cargo_configuration: Vec<UiCargoConfigurationIdentity>,
     pub version_probe_timeout_millis: u64,
     pub compile_timeout_millis: u64,
     pub output_cap_bytes_per_stream: usize,
-    pub resource_posture: String,
+    pub resource_posture: UiCompilerResourcePosture,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UiCargoConfigurationIdentity {
+    pub path: String,
+    pub content_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UiCompilerResourcePosture {
+    pub one_process_per_fixture: bool,
+    pub shared_environment_target: bool,
+    pub offline: bool,
+    pub locked_dependencies: bool,
+    pub bounded_output: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -97,14 +117,29 @@ impl std::error::Error for UiProofRunFailure {}
 
 impl UiProofRunEvidence {
     pub fn validate_integrity(&self) -> Result<(), String> {
+        let expected_environment_identity = serde_json::to_vec(&(
+            "worth-store-ui-environment-v2",
+            &self.environment_root_identity,
+            &self.environment_lock_sha256,
+        ))
+        .map(|bytes| format!("{:x}", Sha256::digest(bytes)))
+        .map_err(|error| format!("could not validate UI environment identity: {error}"))?;
         if self.schema_version != 1
             || self.suite_identity.trim().is_empty()
-            || self.environment_identity.trim().is_empty()
+            || !is_sha256(&self.environment_identity)
+            || !is_sha256(&self.environment_root_identity)
+            || self.environment_identity != expected_environment_identity
             || !valid_toolchain(&self.toolchain)
             || !self
                 .environment_manifest_path
-                .contains(&self.environment_identity)
-            || !self.shared_target_root.contains(&self.environment_identity)
+                .ends_with(&format!("/{}/Cargo.toml", self.environment_root_identity))
+            || !self
+                .environment_lock_path
+                .ends_with(&format!("/{}/Cargo.lock", self.environment_root_identity))
+            || !is_sha256(&self.environment_lock_sha256)
+            || !self
+                .shared_target_root
+                .ends_with(&format!("/{}", self.environment_identity))
             || self.fixtures.is_empty()
             || self.fixtures.iter().any(|fixture| {
                 fixture.fixture.suite_identity != self.suite_identity
@@ -117,8 +152,7 @@ impl UiProofRunEvidence {
                     || fixture.cargo_exit_code == Some(0)
                     || !is_sha256(&fixture.cargo_stdout_sha256)
                     || !is_sha256(&fixture.cargo_stderr_sha256)
-                    || fixture.dependency_artifacts_compiled
-                        + fixture.dependency_artifacts_reused
+                    || fixture.dependency_artifacts_compiled + fixture.dependency_artifacts_reused
                         == 0
                     || fixture.target_artifact_count_after < fixture.target_artifact_count_before
                     || fixture.evidence_path.trim().is_empty()
@@ -133,7 +167,10 @@ impl UiProofRunEvidence {
             let identity = serde_json::to_vec(&unsigned)
                 .map(|bytes| format!("{:x}", Sha256::digest(bytes)))
                 .map_err(|error| format!("could not validate UI fixture evidence: {error}"))?;
-            if !fixture.evidence_path.ends_with(&format!("/{identity}.json")) {
+            if !fixture
+                .evidence_path
+                .ends_with(&format!("/{identity}.json"))
+            {
                 return Err("UI fixture evidence path identity mismatch".to_owned());
             }
         }
@@ -153,7 +190,15 @@ fn valid_toolchain(toolchain: &UiCompilerToolchainIdentity) -> bool {
     toolchain.version_probe_timeout_millis > 0
         && toolchain.compile_timeout_millis > 0
         && toolchain.output_cap_bytes_per_stream > 0
-        && !toolchain.resource_posture.trim().is_empty()
+        && toolchain.resource_posture.one_process_per_fixture
+        && toolchain.resource_posture.shared_environment_target
+        && toolchain.resource_posture.offline
+        && toolchain.resource_posture.locked_dependencies
+        && toolchain.resource_posture.bounded_output
+        && !toolchain.cargo_configuration.is_empty()
+        && toolchain.cargo_configuration.iter().all(|config| {
+            !config.path.trim().is_empty() && config.content_sha256.as_deref().is_none_or(is_sha256)
+        })
         && [&toolchain.cargo, &toolchain.rustc]
             .into_iter()
             .all(|tool| {

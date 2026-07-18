@@ -10,8 +10,8 @@ use worth_store_test_support::structural_preflight::{
     StructuralPreflightEvidence, STRUCTURAL_PREFLIGHT_BUNDLE_ENV,
 };
 
-mod ui_evidence;
 mod process_evidence;
+mod ui_evidence;
 pub use process_evidence::ProcessProbeEvidenceReference;
 pub use ui_evidence::UiProofEvidenceReference;
 

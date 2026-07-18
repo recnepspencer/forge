@@ -30,12 +30,44 @@
       "behavior_fingerprint": "sha256:eb35ec6c7faa62c741502da6ef0d04af690c35994c9c706a06c8cffa4c0bae24"
     },
     {
+      "stable_case_id": "store-proof-control::src/execution/mod/green_preflight_cannot_substitute_for_a_failed_behavioral_unit::mod::green_preflight_cannot_substitute_for_a_failed_behavioral_unit",
+      "behavior_fingerprint": "sha256:846044834012a3b2a5992b16a9a1a12f2783db705f4b532a00cc4677faad0e04"
+    },
+    {
       "stable_case_id": "store-proof-control::src/selection/mod/doctest_selection_cannot_lower_a_synthetic_zero_match_filter::mod::doctest_selection_cannot_lower_a_synthetic_zero_match_filter",
       "behavior_fingerprint": "sha256:a4b4a2f3e565dae2164b08b2c3a6a0e434b0aeacb2f766701ba3207dff581585"
     },
     {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/changed_generated_context_names_only_agent_context_input::tests::changed_generated_context_names_only_agent_context_input",
+      "behavior_fingerprint": "sha256:bbd5a993761731aeb2e23a4b2960dd77e1f6b0840ee343619a20922400d817e3"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/changed_manifest_scope_names_only_the_invalidated_dependency_input::tests::changed_manifest_scope_names_only_the_invalidated_dependency_input",
+      "behavior_fingerprint": "sha256:4c587ccc8682cf7d538bfbd2e85339309f44dc1c5b27d56082897b9179a7f6da"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/claimed_bundle_identity_cannot_hide_mutated_predicate_evidence::tests::claimed_bundle_identity_cannot_hide_mutated_predicate_evidence",
+      "behavior_fingerprint": "sha256:df5d81d379805608a8fba6d7da20f9475b7ac4d5ffd444272b84d22dc63f6d86"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/forbidden_production_edge_fails_dependency_without_poisoning_feature_authority::tests::forbidden_production_edge_fails_dependency_without_poisoning_feature_authority",
+      "behavior_fingerprint": "sha256:136efc83010091ce404065418c51194c981c139cd2972b9092ed1fcfd9340d7c"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/fresh_evidence_identity_is_reused_by_multiple_compatible_consumers::tests::fresh_evidence_identity_is_reused_by_multiple_compatible_consumers",
+      "behavior_fingerprint": "sha256:dc8524b0e1c198ecdb09882470c3901bb4377a815da12529fe294b201fec503f"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/identical_boundary_and_naming_commands_launch_one_observed_tool_process::tests::identical_boundary_and_naming_commands_launch_one_observed_tool_process",
+      "behavior_fingerprint": "sha256:add5e2a6602ea8d63736f3d656b068e18953d79338e3e6134e851ed74f70a868"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/repository_failure_has_one_owner_and_explicit_dependents::tests::repository_failure_has_one_owner_and_explicit_dependents",
+      "behavior_fingerprint": "sha256:194a8e1d12d3675f57059fd888a0165453963e21f825e2fde35ec19c8c236fb0"
+    },
+    {
       "stable_case_id": "store-proof-control::src/tests/boundary_policy/feature_leaks_and_support_radius_mutants_are_denied::boundary_policy::feature_leaks_and_support_radius_mutants_are_denied",
-      "behavior_fingerprint": "sha256:231c4d1fca29b979986feadcc44f453ea615142a9b9223a60eab7bf04477c585"
+      "behavior_fingerprint": "sha256:caf1d8e9708739eca144b769c12695c175710b7d2506087dd12afbdbea6bfeba"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/cache_identity/profile_and_feature_lanes_change_cache_identity::cache_identity::profile_and_feature_lanes_change_cache_identity",
@@ -83,15 +115,15 @@
     },
     {
       "stable_case_id": "store-proof-control::src/tests/feature_graph_fixture/feature_semantic_authority_schema_is_enforced::feature_graph_fixture::feature_semantic_authority_schema_is_enforced",
-      "behavior_fingerprint": "sha256:b0530ed7155acec2c72f9bdadc78c1a72a2af7f349a05a0a2266497dd5397fad"
+      "behavior_fingerprint": "sha256:2b9f39b108607fb3ff076629d43d722629cad7258f6dc3058a25f428e7bae481"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/feature_graph_fixture/new_workspace_feature_requires_explicit_semantic_classification::feature_graph_fixture::new_workspace_feature_requires_explicit_semantic_classification",
-      "behavior_fingerprint": "sha256:b1ed9a03b7ca64135d0bc56160feeb19712b9cf2207de5ac685a700c687a0876"
+      "behavior_fingerprint": "sha256:167c4e3c681b4759374aa4e4ea95a8d3e311b9c107813ab249204f85cf398c60"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/feature_graph_fixture/transitive_default_feature_authority_leak_names_the_manifest_edge::feature_graph_fixture::transitive_default_feature_authority_leak_names_the_manifest_edge",
-      "behavior_fingerprint": "sha256:70910dc009f2d452276a8d7490abdaf408326c091dd79c1042bf3601759c9c6e"
+      "behavior_fingerprint": "sha256:3fb5130dc5faf27e66d1ac049e24c88527566572ea6b757dc3746f861bad0cfe"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/owner_closure_fixture/renamed_optional_dependency_features_are_resolved_by_manifest_alias::owner_closure_fixture::renamed_optional_dependency_features_are_resolved_by_manifest_alias",
@@ -103,15 +135,15 @@
     },
     {
       "stable_case_id": "store-proof-control::src/tests/proof_selection/full_ci_and_owner_plans_keep_their_declared_boundaries::proof_selection::full_ci_and_owner_plans_keep_their_declared_boundaries",
-      "behavior_fingerprint": "sha256:465a2daadec18a984a9bf28cfef71809a10310bd2fcf47a9c8f9756ecce880aa"
+      "behavior_fingerprint": "sha256:529db61cd30801703bceb856c5ec3421ba9caed47fa4572a89ac4f8cad9e5669"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/proof_selection/full_ci_denies_when_a_required_partition_loses_reachability::proof_selection::full_ci_denies_when_a_required_partition_loses_reachability",
-      "behavior_fingerprint": "sha256:22c47772b8da70d333a468e863c9a7966129dac1c5627d86fff6edb7ae93ee33"
+      "behavior_fingerprint": "sha256:6167c76354cf9a5ca043faa97384d3147d12c10a428f6ede47f8c18440fbf114"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/proof_selection/selection_is_deterministic_and_scenario_filterable::proof_selection::selection_is_deterministic_and_scenario_filterable",
-      "behavior_fingerprint": "sha256:a4bdb30f3f7c3d7af7f2a67f305be0b76690dbc4103abb3a2748b6ba9806f3cc"
+      "behavior_fingerprint": "sha256:98d3fb54337f7e5e6c1d3448aff3564f6235610b76974404e61f6fde1f78e7b8"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/proof_selection/soak_and_release_require_registered_execution_inputs::proof_selection::soak_and_release_require_registered_execution_inputs",
@@ -2083,19 +2115,15 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/blobs/tier_movement_future_chunk_runner::tier_movement_future_chunk_runner::future_chunk_placeholder_boundary_misuse_does_not_compile",
-      "behavior_fingerprint": "sha256:7aae9e4770ea288e86fe226b02bc5756c1902bd2e7e35f7229e7bbc6c72b6ae4"
-    },
-    {
-      "stable_case_id": "worth-store-certification::compiler/cargo_artifact_message::cargo_artifact_message::parses_library_artifact_with_windows_path",
-      "behavior_fingerprint": "sha256:05b89d0d74844e213c1dfc711d39fe7f96d1e661456279ca1ba2b33e24837a9e"
+      "behavior_fingerprint": "sha256:026fb0604a4e3386ae235ef8fb17922e249160bf2b24fb6970d3bb16daee89b7"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/operational_recovery/adoption_reverse_flow_runner::adoption_reverse_flow_runner::descriptive_shared_artifacts_cannot_reenter_store_authority",
-      "behavior_fingerprint": "sha256:84b6f8323a057347675a80d74f0bf5ae2dac99044e4b9f7fb22ec4b7f77fe6b7"
+      "behavior_fingerprint": "sha256:a9953af9a261e7491fc871f2b59795ddd972f12594a1f5a3b2bf0fdc00aa13e4"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/operational_recovery/handoff_public_boundary_runner::handoff_public_boundary_runner::later_milestone_consumers_compile_but_cannot_reinterpret_handoffs_as_authority",
-      "behavior_fingerprint": "sha256:c627d0a79c11209d6e525489f75ff887e2b3cfd87db12a58f41e75d2428fb93d"
+      "behavior_fingerprint": "sha256:0979985941590726b11d0c5f0c6c6cd95e86efe78487ace617fd329ce7a56344"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/copy_on_write_publication/checkpoint_receipt_cannot_publish::checkpoint_receipt_cannot_publish::checkpoint_receipt_cannot_publish",
@@ -2123,7 +2151,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/copy_on_write_publication_runner::copy_on_write_publication_runner::copy_on_write_publication_misuse_does_not_compile",
-      "behavior_fingerprint": "sha256:abafe1aea2cdedb5965cc40b476b1c4b120dd8d8e81bb1a6500dad723e57f629"
+      "behavior_fingerprint": "sha256:8d66a10ce9aacefa2858176bf2c5c381cb260cefa2b1732f4e1d152cb25fdbb8"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/epoch_scope_and_root_kind/checkpoint_root_cannot_admit_stable_read_plan::checkpoint_root_cannot_admit_stable_read_plan::checkpoint_root_cannot_admit_stable_read_plan",
@@ -2167,7 +2195,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/epoch_scope_and_root_kind_runner::epoch_scope_and_root_kind_runner::epoch_scope_and_root_kind_misuse_does_not_compile",
-      "behavior_fingerprint": "sha256:f9944be01d1c144b4c5bd17f436d904444d81ed57da50ea42c85f2a86b7973b6"
+      "behavior_fingerprint": "sha256:e2fb0f912c51f1239d32dced00f960b4c2fc988248e29fa02e9f5b31c6234e92"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/latch_acquisition_order/latch_key_cannot_be_struct_literal::latch_key_cannot_be_struct_literal::latch_key_cannot_be_struct_literal",
@@ -2187,7 +2215,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/latch_acquisition_order_runner::latch_acquisition_order_runner::latch_acquisition_misuse_does_not_compile",
-      "behavior_fingerprint": "sha256:56a6de25b9c59f763322b13a7eb381830fbfe9a90ad58a7ec957195bad215cc6"
+      "behavior_fingerprint": "sha256:61b0a23c5426e1c1bcac76b690cb05e7724a3b0048b3290c667f4b667dff0265"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/physical_isolation_entry/copied_recovery_fields_cannot_admit_entry::copied_recovery_fields_cannot_admit_entry::copied_recovery_fields_cannot_admit_entry",
@@ -2239,7 +2267,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/physical_isolation_entry_runner::physical_isolation_entry_runner::physical_isolation_physical_isolation_entry_authority_cannot_be_forged_at_compile_time",
-      "behavior_fingerprint": "sha256:be0a9ff735971319f8d95d677630a14880a087ca0da04c6d2abb86f3a5c8a757"
+      "behavior_fingerprint": "sha256:15aab86115b0011f1e9470cc42062d21ce98d18561f4939fab8114feda319c15"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/physical_semantic_isolation/branch_id_cannot_satisfy_physical_authority::branch_id_cannot_satisfy_physical_authority::branch_id_cannot_satisfy_physical_authority",
@@ -2271,7 +2299,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/physical_semantic_isolation_runner::physical_semantic_isolation_runner::semantic_visibility_cannot_satisfy_physical_read_stability_authority",
-      "behavior_fingerprint": "sha256:b39c82f6325ce950ed3d4bdda4b65d773bd4f89f29507c278773db8a86a8b018"
+      "behavior_fingerprint": "sha256:8c84e1e5c1e80e35c0ab0ca2fc97711b9e8f76a56cfcb601c7668ef1daceea98"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/readiness/future_slot_cannot_be_readiness::future_slot_cannot_be_readiness::future_slot_cannot_be_readiness",
@@ -2287,7 +2315,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/simulation_harness_readiness_runner::simulation_harness_readiness_runner::physical_isolation_readiness_handoff_authority_cannot_be_forged_at_compile_time",
-      "behavior_fingerprint": "sha256:63baf3b957f5c0a20add1bf179ec40d585090314a87b655dd6e60427420c0471"
+      "behavior_fingerprint": "sha256:9f466c322052f50bfd481c3aca4d67a9efad7c1ad1bb8527600c9f262b63f567"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/stable_read_execution/byte_guard_does_not_expose_raw_bytes::byte_guard_does_not_expose_raw_bytes::byte_guard_does_not_expose_raw_bytes",
@@ -2327,7 +2355,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/stable_read_execution_runner::stable_read_execution_runner::stable_read_execution_misuse_does_not_compile",
-      "behavior_fingerprint": "sha256:c19b839b78ee8bf05b78f435a0eff00cd413169b40a1285c6ad068739f6418c4"
+      "behavior_fingerprint": "sha256:6b600dfaff9db1d8447c06d1f9abddf92bffcf8be22b9e8634fbba20298f0663"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/stable_read_plan_admission/epoch_checked_plan_cannot_issue_handle::epoch_checked_plan_cannot_issue_handle::epoch_checked_plan_cannot_issue_handle",
@@ -2355,11 +2383,11 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/physical_isolation/stable_read_plan_admission_runner::stable_read_plan_admission_runner::stable_read_plan_admission_misuse_does_not_compile",
-      "behavior_fingerprint": "sha256:3a1c9a0612deeb2e6374dbea20fb4c28aaf7ac5353253d5e08ea0bd9a1919432"
+      "behavior_fingerprint": "sha256:550361984e073a4cabae860b017ae86f834722d8889d921d68b1d9d4286434e9"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/protocol_models/authority_inversion_runner::authority_inversion_runner::diagnostic_model_surfaces_cannot_open_production_authority_doors",
-      "behavior_fingerprint": "sha256:59b156df7fbf2ab8664dadef93519ea811e2593cae10dbe5daae2c6829d24382"
+      "behavior_fingerprint": "sha256:4ed084bc123ef1b93e8d40b264f5550f1bff3b0971a93f21488ae5ebd5753964"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/coverage/coverage_row_cannot_be_struct_literal::coverage_row_cannot_be_struct_literal::coverage_row_cannot_be_struct_literal",
@@ -2383,7 +2411,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/coverage_runner::coverage_runner::coverage_and_readiness_authority_cannot_be_hand_filled",
-      "behavior_fingerprint": "sha256:099111b12db1f81b87419769b65324eae3e16253527c2c355efcbe41d3891d16"
+      "behavior_fingerprint": "sha256:1876932fa8f2d1fee7511192a169359c5866379cff5f630c5ffdb903d3194884"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/driver_contract_boundary/named_yieldpoint_authority_cannot_be_minted::named_yieldpoint_authority_cannot_be_minted::named_yieldpoint_authority_cannot_be_minted",
@@ -2411,27 +2439,27 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/driver_contract_boundary_runner::driver_contract_boundary_runner::driver_contract_boundary_rejects_arbitrary_named_yieldpoint_authority",
-      "behavior_fingerprint": "sha256:dac47ede978283faa778307c697c7b381a16c1386978d0d64efc2940c323a0be"
+      "behavior_fingerprint": "sha256:f8fd52ceb180df1ba56ddb1173349439ca9fc909462d3c60aff74eb109cd52a4"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/driver_contract_boundary_runner::driver_contract_boundary_runner::driver_contract_boundary_rejects_declaration_struct_literal_minting",
-      "behavior_fingerprint": "sha256:a6131c290ac2ec857bde2c59044970868924b136eddebdc915ccc4392e476074"
+      "behavior_fingerprint": "sha256:f32a6e9b27063c61728375108ef4349ebff3c48516b8c7fa1e495887875e33b8"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/driver_contract_boundary_runner::driver_contract_boundary_runner::driver_contract_boundary_rejects_driver_struct_literal_minting",
-      "behavior_fingerprint": "sha256:26e5b9c50bdd159b1b6fd8de5be78e5614777d3f8ab901c62293285dcb56016b"
+      "behavior_fingerprint": "sha256:39aeb69b1661cf9a914bb0f069622c4ccff78e2bfea37cfde985c010565edfb3"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/driver_contract_boundary_runner::driver_contract_boundary_runner::driver_contract_boundary_rejects_receipt_minting_at_compile_time",
-      "behavior_fingerprint": "sha256:c4d131d156382022fff987fcf8ff08c0688825eec48ff18e64cb6e2b5eabf2e3"
+      "behavior_fingerprint": "sha256:4c3a72c73b0a0cacc1a1e695765c0d8b16fca926e25a80d275eccfa58deffc27"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/driver_contract_boundary_runner::driver_contract_boundary_runner::driver_contract_boundary_rejects_schedule_binding_struct_literal_minting",
-      "behavior_fingerprint": "sha256:1fdba7c9ee103b80a13dc4387afe41e38356aac0dbf813510cc8e90eab04c79d"
+      "behavior_fingerprint": "sha256:a8fc93ee40d0b24a21174aff9decc68a506910ccf7b736fa919ccc9f09bf9051"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/driver_contract_boundary_runner::driver_contract_boundary_runner::driver_contract_boundary_rejects_yieldpoint_struct_literal_minting",
-      "behavior_fingerprint": "sha256:1cfc4cbebbc731be7498ddf77f3016b0ee9a2ca8f318330fc890982519c7a3a0"
+      "behavior_fingerprint": "sha256:516bba690ec6dd3d6f88b2a59b933eed2e19a21d5761232d370cffafc420d6c7"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/entry_boundary/copied_report_cannot_enter::copied_report_cannot_enter::copied_report_cannot_enter",
@@ -2451,7 +2479,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/entry_boundary_runner::entry_boundary_runner::simulation_harness_entry_boundary_rejects_lower_authority_callers_at_compile_time",
-      "behavior_fingerprint": "sha256:fa11ec1439665e6e1bb4f92ed4eefd62e917eaa13b11ff59ccc90092779d7781"
+      "behavior_fingerprint": "sha256:80f7a3424304a64e82233012b9eaea6bea4799a5e27d37225164fda4105b5a0b"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/fixture_authority/fixture_builder_cannot_reopen_without_boundary::fixture_builder_cannot_reopen_without_boundary::fixture_builder_cannot_reopen_without_boundary",
@@ -2491,11 +2519,11 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/fixture_authority_runner::fixture_authority_runner::fixture_authority_rejects_hand_filled_and_skipped_progression_at_compile_time",
-      "behavior_fingerprint": "sha256:82b2f623b4846f34e7dbab659a1b37ece4d739d7ae22de776e2b46af8f66fc47"
+      "behavior_fingerprint": "sha256:b2469f3aa425f2ef4186a6701e79f6c6e09d45747fab73a86201f640f766372c"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/forbidden_shortcut_rejection_runner::forbidden_shortcut_rejection_runner::forbidden_shortcut_authority_cannot_be_forged_at_compile_time",
-      "behavior_fingerprint": "sha256:0ae110e68a9fa33d019bbfbcacf61f5bc40bb756b17f5d926e2760cc5fadc024"
+      "behavior_fingerprint": "sha256:4b522e93986ed522d81349be93de79634303e3a3bf92a0016cfd82b95dc581d0"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/forbidden_shortcuts/closeout_report_constructor_is_private::closeout_report_constructor_is_private::closeout_report_constructor_is_private",
@@ -2567,7 +2595,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/observer_oracle_boundary_runner::observer_oracle_boundary_runner::observer_oracle_boundary_rejects_forbidden_sources_at_compile_time",
-      "behavior_fingerprint": "sha256:89a7519c2963f57198d113942ffbad4b39f2313a075f80f2aebe2d928515c42c"
+      "behavior_fingerprint": "sha256:0a9c69ffc351cb11bf651c75115ed8f3262d2e26737a9efd7fb4b238cf27d85d"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/recovery_harness/direct_private_mutation_cannot_certify::direct_private_mutation_cannot_certify::direct_private_mutation_cannot_certify",
@@ -2623,7 +2651,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/scenario_authority_runner::scenario_authority_runner::scenario_authority_rejects_lower_authority_callers_at_compile_time",
-      "behavior_fingerprint": "sha256:b5400d1311c5b492d8b23684584d2623a22f762ef2edcf61b10cb12b044ad3f8"
+      "behavior_fingerprint": "sha256:3a3f218b2fd5dfa30f71592a468e54d0c4839cdbd99f5f5bd7adf68ca6b0d872"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/simulation_plan_boundary/certified_scenario_cannot_satisfy_lowered_plan::certified_scenario_cannot_satisfy_lowered_plan::certified_scenario_cannot_satisfy_lowered_plan",
@@ -2675,7 +2703,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/simulation_plan_boundary_runner::simulation_plan_boundary_runner::simulation_plan_boundary_rejects_lower_authority_callers_at_compile_time",
-      "behavior_fingerprint": "sha256:73835312434d912ba8c535d4d842705d516e63f1d0c46207c97307b8a5be0699"
+      "behavior_fingerprint": "sha256:333696c9960141d60e0511d322ca9615dc5add74d82fa4b5409377ed3740892a"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/transcript_evidence/copied_digest_cannot_be_transcript_identity::copied_digest_cannot_be_transcript_identity::copied_digest_cannot_be_transcript_identity",
@@ -2711,7 +2739,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/recovery/transcript_evidence_runner::transcript_evidence_runner::transcript_evidence_boundaries_reject_shortcuts_at_compile_time",
-      "behavior_fingerprint": "sha256:1e388281dbd053fbec1dec762d5bfdd5a6af3c84eec4940c6ed6028d799e05ec"
+      "behavior_fingerprint": "sha256:6336f0b99c3388d873410879a83456bc65f9130327aae286d6cfa9a7dd4f6a52"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/scheduling/evidence_materialization/bundle_fields_cannot_be_minted::bundle_fields_cannot_be_minted::bundle_fields_cannot_be_minted",
@@ -2747,7 +2775,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/scheduling/evidence_materialization_runner::evidence_materialization_runner::materialized_authority_boundaries_reject_public_forgery",
-      "behavior_fingerprint": "sha256:1f0d11520b7b8aa96de2466cc5f32f6a1c09035ed26ebfc68a0f22ea40cab833"
+      "behavior_fingerprint": "sha256:3b1a44fe2edad72219de2052b8bebbc18347be142244d981e6cd89e8f0b0f8fc"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/scheduling/io_qos_readiness_handoff/raw_counts_cannot_materialize_readiness::raw_counts_cannot_materialize_readiness::raw_counts_cannot_materialize_readiness",
@@ -2763,7 +2791,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/scheduling/io_qos_readiness_handoff_runner::io_qos_readiness_handoff_runner::io_qos_readiness_handoff_denies_public_raw_materialization_paths",
-      "behavior_fingerprint": "sha256:cb926461b991b362baf657ea823bd16e23184f4f1e534df652254f80fa466512"
+      "behavior_fingerprint": "sha256:dfe451bea9b2e312317e93d8c6ed4d249e0724017889954cc9148c40300def9e"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/scheduling/secure_io_authority/iam_role_cannot_satisfy_secure_io_scope::iam_role_cannot_satisfy_secure_io_scope::iam_role_cannot_satisfy_secure_io_scope",
@@ -2791,7 +2819,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/scheduling/secure_io_authority_runner::secure_io_authority_runner::io_qos_secure_io_authority_rejects_lower_authority_sources",
-      "behavior_fingerprint": "sha256:0007b65ed95df63fe47f9d4946b41f7935d104b6dd7607dc028e852add1ab681"
+      "behavior_fingerprint": "sha256:4c36f97fb92dda067510585175ad74211367817f1b72a14f4eb2e806cd67325e"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/security/certification_closeout/closeout_evidence_cannot_satisfy_readiness::closeout_evidence_cannot_satisfy_readiness::closeout_evidence_cannot_satisfy_readiness",
@@ -2807,7 +2835,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/security/certification_closeout_runner::certification_closeout_runner::closeout_rejects_certification_owned_authority_shortcuts",
-      "behavior_fingerprint": "sha256:9789dbdac47b4b49dffacc09a0e35238da16c93e2882c4d916e559949ec938a0"
+      "behavior_fingerprint": "sha256:3adc1ec48c566b9edb51bb11effe4135d0f4c64145b6ebdb9b528476c961db76"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/security/security_scope_admission/admission_counters_cannot_satisfy_key_witness::admission_counters_cannot_satisfy_key_witness::admission_counters_cannot_satisfy_key_witness",
@@ -2891,7 +2919,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/security/security_scope_admission_runner::security_scope_admission_runner::security_scope_admission_rejects_forged_or_lower_authority_witnesses",
-      "behavior_fingerprint": "sha256:c9efd9f4f554885fb1864207aeb2b9fefc2bc34bf7ef2c330b15e85ecbb5f8eb"
+      "behavior_fingerprint": "sha256:0ce668dc4e5fdc693a52fd230cd99ff95f378e9eab2101dbd019b2f02cf754c7"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/security/security_scope_vocabulary/app_org_id_cannot_satisfy_tenant_scope::app_org_id_cannot_satisfy_tenant_scope::app_org_id_cannot_satisfy_tenant_scope",
@@ -3003,7 +3031,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/security/security_scope_vocabulary_runner::security_scope_vocabulary_runner::security_scope_vocabulary_rejects_lower_authority_sources",
-      "behavior_fingerprint": "sha256:bb101608e8cd303665183f03f0975ea0d25f6fd3147cbded85c53cd19442e117"
+      "behavior_fingerprint": "sha256:ba9940a5a9b4d1daf16ddd10be6f8486f2f323d0533f154edf4be8d2256954d8"
     },
     {
       "stable_case_id": "worth-store-certification::compiler/terminal_projection_quarantine/store_identity_does_not_implement_display::store_identity_does_not_implement_display::store_identity_does_not_implement_display",
@@ -4355,7 +4383,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::recovery/recovery_harness_ui::recovery_harness_ui::recovery_harness_public_facade_rejects_shortcut_authority",
-      "behavior_fingerprint": "sha256:aab004e324d45da860e63001abbf9fef76f0e1ca805fe592680fac55749bd3ef"
+      "behavior_fingerprint": "sha256:3b21a28a81b95430970cc3a3cfbf6e05a6cdc46b9cb3d22d8bf157f2512a5062"
     },
     {
       "stable_case_id": "worth-store-certification::recovery/recovery_offline_verifier::recovery_offline_verifier::allowed_nondeterministic_metadata_is_canonicalized_before_comparison",
@@ -4435,11 +4463,11 @@
     },
     {
       "stable_case_id": "worth-store-certification::recovery/s10_operational_world::crash_coverage::scenario_process_crash_probe",
-      "behavior_fingerprint": "sha256:91a3ef01a4026451f64d5724f0c3d485503cfb9c74389f49245513d15cc5607e"
+      "behavior_fingerprint": "sha256:5aeb033b7aa3acebbbdd7fe96f7c8f446a1fa82c9035fef8884d0951f5c4f15c"
     },
     {
       "stable_case_id": "worth-store-certification::recovery/s10_operational_world::s10_operational_world::a_scenario_cannot_be_relabelled_as_another_owner_topology",
-      "behavior_fingerprint": "sha256:00bf74746690c5b5d8eb3c12e95316ed61da7e3f6c7be91b358b4c75542be457"
+      "behavior_fingerprint": "sha256:1b6485f5c6721f1f6e27012d6bbb9a555dc29aae50c15e3dfe5d5988d4742b4f"
     },
     {
       "stable_case_id": "worth-store-certification::recovery/s10_operational_world::s10_operational_world::a_small_real_repair_receipt_cannot_claim_the_hundreds_region_program",
@@ -4447,7 +4475,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::recovery/s10_operational_world::s10_operational_world::an_unchanged_primary_cannot_claim_destroyed_primary_evidence",
-      "behavior_fingerprint": "sha256:b162e8ac901a1da71c86c54b844c4cc64566eed371f46521f35ba1f52957b0b2"
+      "behavior_fingerprint": "sha256:7cf15023a00ee581994fe6dd5136f9bcabcd19cacf6ced90ab512e98a72eb391"
     },
     {
       "stable_case_id": "worth-store-certification::recovery/s10_operational_world::s10_operational_world::authority_repair_rollback_world_reaches_the_public_s10_certifier",
@@ -4479,7 +4507,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::recovery/s10_operational_world::s10_operational_world::fresh_process_destroyed_primary_observer_child",
-      "behavior_fingerprint": "sha256:60789b4bae53178635eaa8597c5becc632667f7ddbeb701f6f1bf72e2142040a"
+      "behavior_fingerprint": "sha256:f06881b295b37997f26a2e70e81998f1da040889ed1c013810599bbb89d525b2"
     },
     {
       "stable_case_id": "worth-store-certification::recovery/s10_operational_world::s10_operational_world::one_control_history_binds_real_owner_media_truth_audit_and_counters",
@@ -5462,8 +5490,8 @@
       "behavior_fingerprint": "sha256:c9c65176628ba7f3e08550af7ce4f4ee590829b12a764948a38d27261cf009df"
     },
     {
-      "stable_case_id": "worth-store-certification::src/courtroom/operational_recovery/structural_preflight/real_workspace_preflight_binds_tools_sources_and_reverse_flow_gates::structural_preflight::real_workspace_preflight_binds_tools_sources_and_reverse_flow_gates",
-      "behavior_fingerprint": "sha256:95585169bde7b3c24ae1add25143bed1d3a1fee721fe39c6d2b4e710aacd1016"
+      "stable_case_id": "worth-store-certification::src/courtroom/operational_recovery/structural_preflight/missing_preflight_bundle_path_denies_without_mutating_process_environment::structural_preflight::missing_preflight_bundle_path_denies_without_mutating_process_environment",
+      "behavior_fingerprint": "sha256:2ff5abc6721c3da3550e16c3e715e3f318792b43b41927f61c59c061c3c5a09b"
     },
     {
       "stable_case_id": "worth-store-certification::src/courtroom/operational_recovery/tests/execution_matrix_rejects_an_empty_schedule_claim::tests::execution_matrix_rejects_an_empty_schedule_claim",
@@ -6911,11 +6939,11 @@
     },
     {
       "stable_case_id": "worth-store-certification::tests/aspect_native_authority_ui/aspect_native_authority_denies_raw_public_callers::aspect_native_authority_ui::aspect_native_authority_denies_raw_public_callers",
-      "behavior_fingerprint": "sha256:adba8fc4d72ca0e3b3089e881b99fe58368d885d1ae318077ee65eb4064f33de"
+      "behavior_fingerprint": "sha256:100abb9ab6f3b5e4111be7b49dc107030de8bce811ab52263713e0ab69794cc4"
     },
     {
       "stable_case_id": "worth-store-certification::tests/aspect_native_harness_authoring_ui/aspect_native_harness_public_facade_rejects_json_shortcuts::aspect_native_harness_authoring_ui::aspect_native_harness_public_facade_rejects_json_shortcuts",
-      "behavior_fingerprint": "sha256:701ee388ed9e823e2e1357796728e09919d2a8eeb5ba6449d4d31744ff73a3c8"
+      "behavior_fingerprint": "sha256:12ec3c4af7c0687a07b1362c8f926db491262830e0b3db1fbbcc6b07992355c7"
     },
     {
       "stable_case_id": "worth-store-certification::tests/aspect_native_terminal_projection/external_terminal_json_ingress_must_use_store_readmission::aspect_native_terminal_projection::external_terminal_json_ingress_must_use_store_readmission",
@@ -6951,7 +6979,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::tests/authority_projection_readmission_ui/authority_projection_readmission_denies_lower_authority_inputs::authority_projection_readmission_ui::authority_projection_readmission_denies_lower_authority_inputs",
-      "behavior_fingerprint": "sha256:4baa46bc0f2a4c6f5aa26690de80a13ac7ab3dc096dffad42c406f5b229d3ba9"
+      "behavior_fingerprint": "sha256:0932e5eb4bbc9ecc0a07ede82218774838cce3c182dc3328c7b7733debfa566d"
     },
     {
       "stable_case_id": "worth-store-certification::tests/scheduler_queue_execution/backend_secure_io/backend_secure_io_preservation_rejects_wrong_read_ahead_scope::backend_secure_io::backend_secure_io_preservation_rejects_wrong_read_ahead_scope",
@@ -6983,7 +7011,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::tests/terminal_projection_quarantine_ui/terminal_projection_quarantine_denies_neutral_public_callers::terminal_projection_quarantine_ui::terminal_projection_quarantine_denies_neutral_public_callers",
-      "behavior_fingerprint": "sha256:2d17eaa42010eaff112d1b8b46e0404489deb98210a08609f08be056dc19f322"
+      "behavior_fingerprint": "sha256:65f7bbd34787bf680a89f1b1d9827d29f05af9ce0dbc2b972a6ce555d89387e9"
     },
     {
       "stable_case_id": "worth-store-claim-boundaries::src/claim_request/legacy_file_platform_grade_claim_is_forbidden::claim_request::legacy_file_platform_grade_claim_is_forbidden",
@@ -7624,14 +7652,6 @@
     {
       "stable_case_id": "worth-store-io-scheduler::src/queue_execution/tests/grouping/ready_queue_grouping_is_typed_and_replay_visible::grouping::ready_queue_grouping_is_typed_and_replay_visible",
       "behavior_fingerprint": "sha256:eb42ec0d2c729cee0a96aa22d1c25d4277545fe2b744306fd355adc9b358d942"
-    },
-    {
-      "stable_case_id": "worth-store-layout-indexes::compiler/cargo_artifact_message::cargo_artifact_message::ignores_non_artifact_and_binary_messages",
-      "behavior_fingerprint": "sha256:a78b45e7e7c1d3551dd6b7448ed5fdf8b86c851d07a0e904b03a720d2f0136ae"
-    },
-    {
-      "stable_case_id": "worth-store-layout-indexes::compiler/cargo_artifact_message::cargo_artifact_message::parses_library_artifact_with_windows_path",
-      "behavior_fingerprint": "sha256:9ed58f2c830a56a8a35f68bd58f116adc4293ce1a4adc817f87a3f7db392bc4e"
     },
     {
       "stable_case_id": "worth-store-layout-indexes::compiler/layout/bootstrap/bootstrap_catalog_read_admission_struct_literal_is_not_public::bootstrap_catalog_read_admission_struct_literal_is_not_public::bootstrap_catalog_read_admission_struct_literal_is_not_public",
@@ -9694,15 +9714,15 @@
       "behavior_fingerprint": "sha256:d833ffbe42dfa1f85ce83ba47ace1012f2e0661b9bad2d0b096ae16d1c3c3c1b"
     },
     {
-      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity/optional_execution_plan_identity_has_an_explicit_presence_tag::control_record_identity::optional_execution_plan_identity_has_an_explicit_presence_tag",
+      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/optional_execution_plan_identity_has_an_explicit_presence_tag::control_record_identity_tests::optional_execution_plan_identity_has_an_explicit_presence_tag",
       "behavior_fingerprint": "sha256:349f226cf086f9c6ab5348d51d2abb3009af1c3a02b3391b722533e85b95b779"
     },
     {
-      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity/publication_binding_fingerprint_binds_authority_posture_and_policy::control_record_identity::publication_binding_fingerprint_binds_authority_posture_and_policy",
-      "behavior_fingerprint": "sha256:adac8322806c4b16b3b9559078895e44ece834ad2a7fe6f942ec6a7438061855"
+      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/publication_binding_fingerprint_binds_authority_posture_and_policy::control_record_identity_tests::publication_binding_fingerprint_binds_authority_posture_and_policy",
+      "behavior_fingerprint": "sha256:9ff3299b5d58d6c45638ea17c8cb7ac0db64a976e16ce943dddb2a39bab8d368"
     },
     {
-      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity/stable_fingerprint_binds_the_complete_control_payload::control_record_identity::stable_fingerprint_binds_the_complete_control_payload",
+      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/stable_fingerprint_binds_the_complete_control_payload::control_record_identity_tests::stable_fingerprint_binds_the_complete_control_payload",
       "behavior_fingerprint": "sha256:d7143f4fb382273f48f480abcbd3c0a27690d2e0f4718e11a93c4e5fe9513297"
     },
     {
@@ -10983,7 +11003,7 @@
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/operational_recovery_driver_tests/external_process_death_and_independent_reopen_mint_a_real_control_cut::operational_recovery_driver_tests::external_process_death_and_independent_reopen_mint_a_real_control_cut",
-      "behavior_fingerprint": "sha256:ba2170b482238da581cae09ec3ef983c7950a1fafffc6e64f8b5e177d5552fd0"
+      "behavior_fingerprint": "sha256:3edb0b7e23d2144e01dd969ca8b386fe53891f17af745091f6ca477c485cc490"
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/operational_recovery_driver_tests/interrupted_after_forensic_record_reopens_real_production_state::operational_recovery_driver_tests::interrupted_after_forensic_record_reopens_real_production_state",
@@ -11078,6 +11098,26 @@
       "behavior_fingerprint": "sha256:dba9ef66e23255d35f580cb8215704b9c2291b942861cf07b85b1dd136d39109"
     },
     {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/artifact_identity_observes_bytes_and_preexisting_state::tests::artifact_identity_observes_bytes_and_preexisting_state",
+      "behavior_fingerprint": "sha256:82eb8055992da13e37de6895e1f7f8a7a70b3f6e032a313d4e37928df8d91084"
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/fresh_process_roles_share_executable_but_not_process_or_runtime_identity::tests::fresh_process_roles_share_executable_but_not_process_or_runtime_identity",
+      "behavior_fingerprint": "sha256:a5e1360eb04c5d9ab8c85cd725a9363067bcddbc9dc16a48fa301f0dcede295e"
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/graceful_exit_cannot_satisfy_a_parent_kill_declaration::tests::graceful_exit_cannot_satisfy_a_parent_kill_declaration",
+      "behavior_fingerprint": "sha256:2fe82631a6794877bf1a34760f23568f979d2081473e419f76680018be40b63a"
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/probe_input_rejects_decoded_expected_runtime_truth::tests::probe_input_rejects_decoded_expected_runtime_truth",
+      "behavior_fingerprint": "sha256:30bd14dc536be8864c6cddce25fb266f16ece1fb94c23c1a755b198dbd39aaf9"
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/untrusted_probe_input_rejects_an_output_channel_that_became_visible::tests::untrusted_probe_input_rejects_an_output_channel_that_became_visible",
+      "behavior_fingerprint": "sha256:b422b03efd3976ec96985bcbcfea89047176fc7c20c6ce67022ee8374d24b5ad"
+    },
+    {
       "stable_case_id": "worth-store-physical-certification::src/qualification/scheduling/backends/tests/backend_qualification_cross_backend_tests/cross_backend_parity_preserves_causes_for_every_capability::backend_qualification_cross_backend_tests::cross_backend_parity_preserves_causes_for_every_capability",
       "behavior_fingerprint": "sha256:67ec35b044e77032d9080e13fe6aabe4cad5f6a74e75320c3afee3541f483a72"
     },
@@ -11151,23 +11191,23 @@
     },
     {
       "stable_case_id": "worth-store-physical-certification::tests/backend_qualification_public_boundary_compile_fail/copied_rows_and_proof_authority_cannot_enter_public_publication_boundary::backend_qualification_public_boundary_compile_fail::copied_rows_and_proof_authority_cannot_enter_public_publication_boundary",
-      "behavior_fingerprint": "sha256:645a5417e0b4650cfc904c8bb526f3fe5565310851f5db6e9e1dac8506b87835"
+      "behavior_fingerprint": "sha256:605ea20eaab96132025a2de1aeb15f5bead2be2f207ae691c5f5b4700a34d6f5"
     },
     {
       "stable_case_id": "worth-store-physical-certification::tests/blob_harness_public_boundary_compile_fail/blob_harness_envelope_raw_constructor_is_not_public::blob_harness_public_boundary_compile_fail::blob_harness_envelope_raw_constructor_is_not_public",
-      "behavior_fingerprint": "sha256:55a9977ca9c34afb20d26ea3b75b7a0a601752984f47a555d08343ea8691906e"
+      "behavior_fingerprint": "sha256:54b9e50929886fb854b00c62a29cf6ee76876c73f55dea67f2be47115104bd83"
     },
     {
       "stable_case_id": "worth-store-physical-certification::tests/blob_harness_public_boundary_compile_fail/blob_harness_executed_witness_cannot_be_forged_from_raw_fields::blob_harness_public_boundary_compile_fail::blob_harness_executed_witness_cannot_be_forged_from_raw_fields",
-      "behavior_fingerprint": "sha256:2c7916398d107ca747bf90639dc190a5bc8ff521ae25ce4be088fdb0b217bab1"
+      "behavior_fingerprint": "sha256:dc1e0a9da7c87bd41ef4e08d00db0df87a9a5743f32e436ea5ce9451b3f001f0"
     },
     {
       "stable_case_id": "worth-store-physical-certification::tests/blob_harness_public_boundary_compile_fail/blob_harness_execution_authority_is_not_public_on_default_surface::blob_harness_public_boundary_compile_fail::blob_harness_execution_authority_is_not_public_on_default_surface",
-      "behavior_fingerprint": "sha256:b027049ea66b647dd805737aff7f487d1fec2a0fa3088f775701fe0c887ed8c2"
+      "behavior_fingerprint": "sha256:84e60a53ef27d339f3bbbf38a441443b235b168d36eee7c05868530529745c32"
     },
     {
       "stable_case_id": "worth-store-physical-certification::tests/blob_harness_public_boundary_compile_fail/blob_harness_synthetic_replay_helpers_are_not_public_api::blob_harness_public_boundary_compile_fail::blob_harness_synthetic_replay_helpers_are_not_public_api",
-      "behavior_fingerprint": "sha256:c8374128fccea91a39dcf492df6b7d992b9f81e3a8f4e2c6f8637576b031d0f7"
+      "behavior_fingerprint": "sha256:bbdd9c9b6204d0b949161943c96b17ffabbd5f27e4e14dce16c7ae8fd920825d"
     },
     {
       "stable_case_id": "worth-store-physical-format::compiler/construction_boundaries::construction_boundaries::doctest_compile_fail_1bfaa8711990bed6_1",
@@ -12658,6 +12698,18 @@
       "behavior_fingerprint": "sha256:e2b5afd3c59d9aa525b42820c71be456f910361673f7a71184f8824c7c966813"
     },
     {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/dependency_topology_predicates_are_not_disguised_as_compile_fixtures::tests::dependency_topology_predicates_are_not_disguised_as_compile_fixtures",
+      "behavior_fingerprint": "sha256:4bd73fbcee492140a8337af92b4d3895817df5cf43e2daf8ce602dbb9b079a6a"
+    },
+    {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/fixtures_in_one_environment_share_manifest_and_target_root::tests::fixtures_in_one_environment_share_manifest_and_target_root",
+      "behavior_fingerprint": "sha256:14f5ad2f9aeb5ae96edade174f6a451800c27a192481315c97796994ebe79845"
+    },
+    {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/unrelated_compile_failure_cannot_satisfy_declared_semantic_denial::tests::unrelated_compile_failure_cannot_satisfy_declared_semantic_denial",
+      "behavior_fingerprint": "sha256:01de27f3c0163cda46aea3baffc6f1306dece444e0b90f788cb461a5497b1701"
+    },
+    {
       "stable_case_id": "worth-store-test-support::src/harness/layout_evolution/mod/evolution_inventory_equals_ordinary_owner_observations::mod::evolution_inventory_equals_ordinary_owner_observations",
       "behavior_fingerprint": "sha256:dc075f809852eefa1c1d92968170907d31014219ed9ec6e7ff8f48b9133ab31a"
     },
@@ -12715,7 +12767,7 @@
     },
     {
       "stable_case_id": "worth-store-test-support::tests/harness_authority_compile_fail/courtroom_test_authority_cannot_satisfy_production_surfaces::harness_authority_compile_fail::courtroom_test_authority_cannot_satisfy_production_surfaces",
-      "behavior_fingerprint": "sha256:23ec48d6d60d4c8b9063933ffa53fd3525c71d2c41a4645fe447421531636afd"
+      "behavior_fingerprint": "sha256:583047a3d11dab6cb80c8786e4dd9cb0e72d132ed121e5e8cb5d60bed8680856"
     },
     {
       "stable_case_id": "worth-store-tiering::src/layout_projection/tests/tiering_layout_reports_preserve_budget_and_owner_identity_basis::tests::tiering_layout_reports_preserve_budget_and_owner_identity_basis",

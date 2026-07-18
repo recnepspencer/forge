@@ -61,23 +61,16 @@ pub(super) fn compare(
             invalidated_inputs.push("predicate-input-scope-set".to_owned());
         }
         if observed.tool != declared.tool {
-            invalidated_inputs.push(
-                declared
-                    .tool
-                    .as_ref()
-                    .map_or_else(|| "tool-declaration".to_owned(), |tool| {
-                        format!("tool: {}", tool.tool_identity)
-                    }),
-            );
+            invalidated_inputs.push(declared.tool.as_ref().map_or_else(
+                || "tool-declaration".to_owned(),
+                |tool| format!("tool: {}", tool.tool_identity),
+            ));
         }
         if !invalidated_inputs.is_empty() {
             failures.push(StructuralPredicateFailure {
                 predicate: declared.predicate,
                 failure_code: "stale_evidence".to_owned(),
-                message: format!(
-                    "preflight inputs changed for {:?}",
-                    declared.predicate
-                ),
+                message: format!("preflight inputs changed for {:?}", declared.predicate),
                 invalidated_inputs,
             });
         }

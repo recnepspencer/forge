@@ -11,20 +11,68 @@ pub struct ExternalToolIdentity {
     tool_artifact_path: PathBuf,
     tool_artifact_sha256: [u8; 32],
     timeout_millis: u64,
-    resource_posture: String,
+    resource_posture: ExternalToolResourcePosture,
 }
 
-pub(super) struct ExternalToolObservation {
-    pub(super) adapter_name: String,
-    pub(super) adapter_version: String,
-    pub(super) provenance: String,
-    pub(super) executable_path: PathBuf,
-    pub(super) executable_sha256: [u8; 32],
-    pub(super) executable_version: String,
-    pub(super) tool_artifact_path: PathBuf,
-    pub(super) tool_artifact_sha256: [u8; 32],
-    pub(super) timeout_millis: u64,
-    pub(super) resource_posture: String,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalToolResourcePosture {
+    worker_strategy: String,
+    available_parallelism: usize,
+    deadlock_check: bool,
+    state_directory: PathBuf,
+    state_directory_fresh_exclusive: bool,
+    version_probe_timeout_millis: u64,
+    output_cap_bytes_per_stream: usize,
+}
+
+pub(crate) struct ExternalToolObservation {
+    pub(crate) adapter_name: String,
+    pub(crate) adapter_version: String,
+    pub(crate) provenance: String,
+    pub(crate) executable_path: PathBuf,
+    pub(crate) executable_sha256: [u8; 32],
+    pub(crate) executable_version: String,
+    pub(crate) tool_artifact_path: PathBuf,
+    pub(crate) tool_artifact_sha256: [u8; 32],
+    pub(crate) timeout_millis: u64,
+    pub(crate) resource_posture: ExternalToolResourcePosture,
+}
+
+impl ExternalToolResourcePosture {
+    pub(super) fn tlc(state_directory: &Path) -> Self {
+        Self {
+            worker_strategy: "auto".to_owned(),
+            available_parallelism: std::thread::available_parallelism()
+                .map_or(1, std::num::NonZeroUsize::get),
+            deadlock_check: true,
+            state_directory: state_directory.to_path_buf(),
+            state_directory_fresh_exclusive: true,
+            version_probe_timeout_millis: 10_000,
+            output_cap_bytes_per_stream: 64 * 1024 * 1024,
+        }
+    }
+
+    pub fn worker_strategy(&self) -> &str {
+        &self.worker_strategy
+    }
+    pub const fn available_parallelism(&self) -> usize {
+        self.available_parallelism
+    }
+    pub const fn deadlock_check(&self) -> bool {
+        self.deadlock_check
+    }
+    pub fn state_directory(&self) -> &Path {
+        &self.state_directory
+    }
+    pub const fn state_directory_fresh_exclusive(&self) -> bool {
+        self.state_directory_fresh_exclusive
+    }
+    pub const fn version_probe_timeout_millis(&self) -> u64 {
+        self.version_probe_timeout_millis
+    }
+    pub const fn output_cap_bytes_per_stream(&self) -> usize {
+        self.output_cap_bytes_per_stream
+    }
 }
 
 impl ExternalToolIdentity {
@@ -70,7 +118,7 @@ impl ExternalToolIdentity {
     pub const fn timeout_millis(&self) -> u64 {
         self.timeout_millis
     }
-    pub fn resource_posture(&self) -> &str {
+    pub const fn resource_posture(&self) -> &ExternalToolResourcePosture {
         &self.resource_posture
     }
 }

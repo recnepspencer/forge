@@ -5,9 +5,9 @@ use worth_store_certification::courtroom::operational_recovery::{
     localize_s10_counter_phase_defect, localize_s10_formal_phase_defect,
     localize_s10_harness_phase_defect, localize_s10_observation_join_omission,
     localize_s10_runtime_record_omission, localize_s10_structural_phase_defect,
-    PromotionRemoteExclusionEvidence, S10CloseoutDenial, S10OperationalScenarioKind,
-    S10PhaseDefectLocalization, S10PhaseDefectSuite, S10ScenarioProductionEvidence,
-    require_s10_structural_preflight, S10ScenarioSuiteEvidence, ScenarioScaleProfile,
+    require_s10_structural_preflight, PromotionRemoteExclusionEvidence, S10CloseoutDenial,
+    S10OperationalScenarioKind, S10PhaseDefectLocalization, S10PhaseDefectSuite,
+    S10ScenarioProductionEvidence, S10ScenarioSuiteEvidence, ScenarioScaleProfile,
 };
 
 pub fn closeout_denial() -> S10CloseoutDenial {

@@ -16,6 +16,7 @@ use crate::preservation::{
     historical_non_case_aggregate_ids, semantic_authority_from_ledger,
     validate_current_reachability, validate_ledger, ProofPreservationLedger,
 };
+use crate::structural_preflight::{RepositoryPredicateFailure, StructuralPredicate};
 use crate::ClassifiedProofInventory;
 
 use super::{authority_root, join_violations};
@@ -23,7 +24,8 @@ use super::{authority_root, join_violations};
 pub(super) fn validate_repository(
     workspace_root: &Path,
 ) -> Result<crate::ValidatedProofInventory, String> {
-    let inventory = validate_repository_inputs(workspace_root)?;
+    let inventory =
+        validate_repository_inputs(workspace_root).map_err(|failure| failure.to_string())?;
     validate_inventory_build_graph_policy(&inventory.inventory().discovered).map_err(
         |violations| {
             join_violations(
@@ -39,69 +41,195 @@ pub(super) fn validate_repository(
 
 pub(super) fn validate_repository_inputs(
     workspace_root: &Path,
-) -> Result<crate::ValidatedProofInventory, String> {
+) -> Result<crate::ValidatedProofInventory, RepositoryPredicateFailure> {
     let started = Instant::now();
     let baseline_root = authority_root(workspace_root);
+    let baseline_discovery_path = baseline_root.join("discovered-test-surface.json");
     let baseline_discovery: TestSurfaceInventory =
-        read_json(&baseline_root.join("discovered-test-surface.json"))?;
+        read_json(&baseline_discovery_path).map_err(|error| {
+            preservation_failure(
+                "baseline_discovery_unavailable",
+                error,
+                &baseline_discovery_path,
+            )
+        })?;
+    let baseline_classified_path = baseline_root.join("classified-proof-inventory.json");
     let baseline_classified: ClassifiedInventory =
-        read_json(&baseline_root.join("classified-proof-inventory.json"))?;
-    let ledger: ProofPreservationLedger =
-        read_json(&baseline_root.join("proof-preservation-ledger.json"))?;
+        read_json(&baseline_classified_path).map_err(|error| {
+            preservation_failure(
+                "baseline_classification_unavailable",
+                error,
+                &baseline_classified_path,
+            )
+        })?;
+    let ledger_path = baseline_root.join("proof-preservation-ledger.json");
+    let ledger: ProofPreservationLedger = read_json(&ledger_path).map_err(|error| {
+        preservation_failure("preservation_ledger_unavailable", error, &ledger_path)
+    })?;
+    let baseline_capture_path = baseline_root.join("baseline-capture-status.json");
     let baseline_capture: BaselineCaptureStatus =
-        read_json(&baseline_root.join("baseline-capture-status.json"))?;
+        read_json(&baseline_capture_path).map_err(|error| {
+            preservation_failure("baseline_status_unavailable", error, &baseline_capture_path)
+        })?;
+    let post_baseline_path = workspace_root.join("test-control/post-baseline-proof-authority.json");
     let post_baseline: PostBaselineProofAuthority =
-        read_json(&workspace_root.join("test-control/post-baseline-proof-authority.json"))?;
-    baseline_capture.validate()?;
+        read_json(&post_baseline_path).map_err(|error| {
+            preservation_failure(
+                "post_baseline_authority_unavailable",
+                error,
+                &post_baseline_path,
+            )
+        })?;
+    baseline_capture.validate().map_err(|error| {
+        preservation_failure("baseline_status_invalid", error, &baseline_capture_path)
+    })?;
     if baseline_discovery.cases.len() != baseline_classified.proofs.len() {
-        return Err("baseline discovery/classification cardinality mismatch".to_owned());
+        return Err(preservation_failure(
+            "baseline_cardinality_mismatch",
+            "baseline discovery/classification cardinality mismatch",
+            &baseline_classified_path,
+        ));
     }
     let baseline_validated = validate(ClassifiedProofInventory::from_discovered(
         baseline_classified.clone(),
     ))
-    .map_err(join_violations)?;
-    validate_ledger(&baseline_validated, &ledger).map_err(join_violations)?;
-    let current_authority = semantic_authority_from_ledger(&baseline_classified, &ledger)?;
+    .map_err(|violations| {
+        preservation_failure(
+            "baseline_inventory_invalid",
+            join_violations(violations),
+            &baseline_classified_path,
+        )
+    })?;
+    validate_ledger(&baseline_validated, &ledger).map_err(|violations| {
+        preservation_failure(
+            "preservation_ledger_invalid",
+            join_violations(violations),
+            &ledger_path,
+        )
+    })?;
+    let current_authority =
+        semantic_authority_from_ledger(&baseline_classified, &ledger).map_err(|error| {
+            preservation_failure("preservation_authority_invalid", error, &ledger_path)
+        })?;
     let baseline_elapsed = started.elapsed();
     let current = current_inventory_without_build_graph_policy(
         workspace_root,
         &current_authority,
         &post_baseline,
-    )?;
+    )
+    .map_err(|error| inventory_failure("current_inventory_invalid", error, workspace_root))?;
+    let behavior_authority_path =
+        workspace_root.join("test-control/current-proof-behavior-authority.json");
     let behavior_authority: ProofBehaviorAuthority =
-        read_json(&workspace_root.join("test-control/current-proof-behavior-authority.json"))?;
-    validate_proof_behavior_authority(&behavior_authority, current.inventory())
-        .map_err(join_violations)?;
+        read_json(&behavior_authority_path).map_err(|error| {
+            inventory_failure(
+                "behavior_authority_unavailable",
+                error,
+                &behavior_authority_path,
+            )
+        })?;
+    validate_proof_behavior_authority(&behavior_authority, current.inventory()).map_err(
+        |violations| {
+            inventory_failure(
+                "behavior_authority_invalid",
+                join_violations(violations),
+                &behavior_authority_path,
+            )
+        },
+    )?;
     let discovery_elapsed = started.elapsed();
-    let executable_listing: CurrentExecutableListing =
-        read_json(&workspace_root.join("test-control/current-executable-listing.json"))?;
-    validate_executable_listing(&current.inventory().discovered, &executable_listing)
-        .map_err(join_violations)?;
+    let executable_listing_path =
+        workspace_root.join("test-control/current-executable-listing.json");
+    let executable_listing: CurrentExecutableListing = read_json(&executable_listing_path)
+        .map_err(|error| {
+            inventory_failure(
+                "executable_listing_unavailable",
+                error,
+                &executable_listing_path,
+            )
+        })?;
+    validate_executable_listing(&current.inventory().discovered, &executable_listing).map_err(
+        |violations| {
+            inventory_failure(
+                "executable_listing_invalid",
+                join_violations(violations),
+                &executable_listing_path,
+            )
+        },
+    )?;
     validate_current_reachability(
         &ledger,
         &current,
         &historical_non_case_aggregate_ids(&baseline_classified),
     )
-    .map_err(join_violations)?;
+    .map_err(|violations| {
+        preservation_failure(
+            "current_reachability_invalid",
+            join_violations(violations),
+            &ledger_path,
+        )
+    })?;
     let owner_closures = generate_owner_build_closures(&current.inventory().discovered);
-    validate_owner_build_closures(&owner_closures).map_err(join_violations)?;
-    let suites = build_consolidated_suite_inventory(workspace_root, current.inventory())
-        .map_err(join_violations)?;
+    validate_owner_build_closures(&owner_closures).map_err(|violations| {
+        inventory_failure(
+            "owner_build_closure_invalid",
+            join_violations(violations),
+            workspace_root,
+        )
+    })?;
+    let suites = build_consolidated_suite_inventory(workspace_root, current.inventory()).map_err(
+        |violations| {
+            inventory_failure(
+                "suite_inventory_invalid",
+                join_violations(violations),
+                workspace_root,
+            )
+        },
+    )?;
+    let suite_authority_path = workspace_root.join("test-control/scenario-semantic-authority.json");
     let suite_authority: ConsolidatedSuiteInventory =
-        read_json(&workspace_root.join("test-control/scenario-semantic-authority.json"))?;
-    validate_suite_semantic_authority(&suite_authority, &suites).map_err(join_violations)?;
-    let consolidation_status: ConsolidationEvidenceStatus =
-        read_json(&workspace_root.join("test-control/consolidation-evidence-status.json"))?;
-    consolidation_status.validate()?;
+        read_json(&suite_authority_path).map_err(|error| {
+            inventory_failure(
+                "scenario_authority_unavailable",
+                error,
+                &suite_authority_path,
+            )
+        })?;
+    validate_suite_semantic_authority(&suite_authority, &suites).map_err(|violations| {
+        inventory_failure(
+            "scenario_authority_invalid",
+            join_violations(violations),
+            &suite_authority_path,
+        )
+    })?;
+    let consolidation_status_path =
+        workspace_root.join("test-control/consolidation-evidence-status.json");
+    let consolidation_status: ConsolidationEvidenceStatus = read_json(&consolidation_status_path)
+        .map_err(|error| {
+        preservation_failure(
+            "consolidation_status_unavailable",
+            error,
+            &consolidation_status_path,
+        )
+    })?;
+    consolidation_status.validate().map_err(|error| {
+        preservation_failure(
+            "consolidation_status_invalid",
+            error,
+            &consolidation_status_path,
+        )
+    })?;
     let topology_elapsed = started.elapsed();
     write_json(
         &workspace_root.join("test-control/owner-build-closures.json"),
         &owner_closures,
-    )?;
+    )
+    .map_err(|error| inventory_failure("owner_projection_write_failed", error, workspace_root))?;
     write_json(
         &workspace_root.join("test-control/consolidated-suite-inventory.json"),
         &suites,
-    )?;
+    )
+    .map_err(|error| inventory_failure("suite_projection_write_failed", error, workspace_root))?;
     println!(
         "proof preservation valid: {} baseline cases remain reachable through {} current targets",
         ledger.rows.len(),
@@ -165,4 +293,34 @@ fn current_inventory_without_build_graph_policy(
         (started.elapsed() - discovery_elapsed).as_millis()
     );
     Ok(validated)
+}
+
+fn inventory_failure(
+    code: &'static str,
+    message: impl Into<String>,
+    input: &Path,
+) -> RepositoryPredicateFailure {
+    repository_failure(StructuralPredicate::Inventory, code, message, input)
+}
+
+fn preservation_failure(
+    code: &'static str,
+    message: impl Into<String>,
+    input: &Path,
+) -> RepositoryPredicateFailure {
+    repository_failure(StructuralPredicate::Preservation, code, message, input)
+}
+
+fn repository_failure(
+    predicate: StructuralPredicate,
+    code: &'static str,
+    message: impl Into<String>,
+    input: &Path,
+) -> RepositoryPredicateFailure {
+    RepositoryPredicateFailure::new(
+        predicate,
+        code,
+        message,
+        [input.to_string_lossy().replace('\\', "/")],
+    )
 }

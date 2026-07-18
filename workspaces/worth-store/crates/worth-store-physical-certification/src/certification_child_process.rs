@@ -50,7 +50,10 @@ pub(crate) fn fresh_challenge(
 pub(crate) fn publish_new_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     static NEXT_PUBLICATION: AtomicU64 = AtomicU64::new(1);
     let parent = path.parent().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::InvalidInput, "evidence path has no parent")
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "evidence path has no parent",
+        )
     })?;
     std::fs::create_dir_all(parent)?;
     let temporary = parent.join(format!(

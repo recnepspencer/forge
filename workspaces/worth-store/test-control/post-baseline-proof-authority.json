@@ -3,7 +3,7 @@
   "declarations": [
     {
       "stable_case_id": "worth-store-certification::blobs/structural_closeout::structural_closeout::cleaned_phase_boundaries_respect_the_workspace_line_cap",
-      "family": "structural_topology",
+      "family": "cross_owner_integration",
       "owner": {
         "package": "worth-store-certification",
         "responsibility": "blobs/structural_closeout"
@@ -37,23 +37,6 @@
     },
     {
       "stable_case_id": "worth-store-certification::compiler/blobs/tier_movement_future_chunk/future_chunk_variant_cannot_be_constructed_directly::future_chunk_variant_cannot_be_constructed_directly::future_chunk_variant_cannot_be_constructed_directly",
-      "family": "compiler_boundary",
-      "owner": {
-        "package": "worth-store-certification",
-        "responsibility": "compiler-boundary"
-      },
-      "products": [
-        "store-ui"
-      ],
-      "disposition": "preserve_unchanged",
-      "expected_evidence": [
-        "behavioral_verdict",
-        "assertion_predicates"
-      ],
-      "physical_reality_audit_required": false
-    },
-    {
-      "stable_case_id": "worth-store-certification::compiler/cargo_artifacts::cargo_artifacts::cargo_artifacts",
       "family": "compiler_boundary",
       "owner": {
         "package": "worth-store-certification",
@@ -3427,6 +3410,23 @@
       },
       "products": [
         "store-ui"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-certification::src/courtroom/operational_recovery/structural_preflight/missing_preflight_bundle_path_denies_without_mutating_process_environment::structural_preflight::missing_preflight_bundle_path_denies_without_mutating_process_environment",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-certification",
+        "responsibility": "src/courtroom/operational_recovery/structural_preflight/missing_preflight_bundle_path_denies_without_mutating_process_environment"
+      },
+      "products": [
+        "store-ci:certification-owner"
       ],
       "disposition": "preserve_unchanged",
       "expected_evidence": [
@@ -7142,40 +7142,6 @@
       "physical_reality_audit_required": false
     },
     {
-      "stable_case_id": "worth-store-layout-indexes::compiler/layout/runtime_authority_additional_cases::runtime_authority_additional_cases::runtime_authority_additional_cases",
-      "family": "compiler_boundary",
-      "owner": {
-        "package": "worth-store-layout-indexes",
-        "responsibility": "compiler-boundary"
-      },
-      "products": [
-        "store-ui"
-      ],
-      "disposition": "preserve_unchanged",
-      "expected_evidence": [
-        "behavioral_verdict",
-        "assertion_predicates"
-      ],
-      "physical_reality_audit_required": false
-    },
-    {
-      "stable_case_id": "worth-store-layout-indexes::compiler/layout/runtime_authority_cases::runtime_authority_cases::runtime_authority_cases",
-      "family": "compiler_boundary",
-      "owner": {
-        "package": "worth-store-layout-indexes",
-        "responsibility": "compiler-boundary"
-      },
-      "products": [
-        "store-ui"
-      ],
-      "disposition": "preserve_unchanged",
-      "expected_evidence": [
-        "behavioral_verdict",
-        "assertion_predicates"
-      ],
-      "physical_reality_audit_required": false
-    },
-    {
       "stable_case_id": "worth-store-layout-indexes::compiler/layout/strategy_admission/admitted_checkpoint_layout_rule_constructor_is_not_public::admitted_checkpoint_layout_rule_constructor_is_not_public::admitted_checkpoint_layout_rule_constructor_is_not_public",
       "family": "compiler_boundary",
       "owner": {
@@ -7244,14 +7210,186 @@
       "physical_reality_audit_required": false
     },
     {
-      "stable_case_id": "worth-store-layout-indexes::compiler/support::support::support",
-      "family": "compiler_boundary",
+      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/optional_execution_plan_identity_has_an_explicit_presence_tag::control_record_identity_tests::optional_execution_plan_identity_has_an_explicit_presence_tag",
+      "family": "owner_invariant",
       "owner": {
-        "package": "worth-store-layout-indexes",
-        "responsibility": "compiler-boundary"
+        "package": "worth-store-operations",
+        "responsibility": "src/control_store/control_record_identity_tests/optional_execution_plan_identity_has_an_explicit_presence_tag"
       },
       "products": [
-        "store-ui"
+        "store-owner:worth-store-operations"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/publication_binding_fingerprint_binds_authority_posture_and_policy::control_record_identity_tests::publication_binding_fingerprint_binds_authority_posture_and_policy",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-operations",
+        "responsibility": "src/control_store/control_record_identity_tests/publication_binding_fingerprint_binds_authority_posture_and_policy"
+      },
+      "products": [
+        "store-owner:worth-store-operations"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-operations::src/control_store/control_record_identity_tests/stable_fingerprint_binds_the_complete_control_payload::control_record_identity_tests::stable_fingerprint_binds_the_complete_control_payload",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-operations",
+        "responsibility": "src/control_store/control_record_identity_tests/stable_fingerprint_binds_the_complete_control_payload"
+      },
+      "products": [
+        "store-owner:worth-store-operations"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/artifact_identity_observes_bytes_and_preexisting_state::tests::artifact_identity_observes_bytes_and_preexisting_state",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-physical-certification",
+        "responsibility": "src/process_probe/tests/artifact_identity_observes_bytes_and_preexisting_state"
+      },
+      "products": [
+        "store-ci:physical-certification"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/fresh_process_roles_share_executable_but_not_process_or_runtime_identity::tests::fresh_process_roles_share_executable_but_not_process_or_runtime_identity",
+      "family": "fresh_process_isolation",
+      "owner": {
+        "package": "worth-store-physical-certification",
+        "responsibility": "src/process_probe/tests/fresh_process_roles_share_executable_but_not_process_or_runtime_identity"
+      },
+      "products": [
+        "store-ci:physical-certification"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates",
+        "process_identity",
+        "termination_mode"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/graceful_exit_cannot_satisfy_a_parent_kill_declaration::tests::graceful_exit_cannot_satisfy_a_parent_kill_declaration",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-physical-certification",
+        "responsibility": "src/process_probe/tests/graceful_exit_cannot_satisfy_a_parent_kill_declaration"
+      },
+      "products": [
+        "store-ci:physical-certification"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/probe_input_rejects_decoded_expected_runtime_truth::tests::probe_input_rejects_decoded_expected_runtime_truth",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-physical-certification",
+        "responsibility": "src/process_probe/tests/probe_input_rejects_decoded_expected_runtime_truth"
+      },
+      "products": [
+        "store-ci:physical-certification"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/untrusted_probe_input_rejects_an_output_channel_that_became_visible::tests::untrusted_probe_input_rejects_an_output_channel_that_became_visible",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-physical-certification",
+        "responsibility": "src/process_probe/tests/untrusted_probe_input_rejects_an_output_channel_that_became_visible"
+      },
+      "products": [
+        "store-ci:physical-certification"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/dependency_topology_predicates_are_not_disguised_as_compile_fixtures::tests::dependency_topology_predicates_are_not_disguised_as_compile_fixtures",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-test-support",
+        "responsibility": "src/compiler_boundary/tests/dependency_topology_predicates_are_not_disguised_as_compile_fixtures"
+      },
+      "products": [
+        "store-owner:worth-store-test-support"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/fixtures_in_one_environment_share_manifest_and_target_root::tests::fixtures_in_one_environment_share_manifest_and_target_root",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-test-support",
+        "responsibility": "src/compiler_boundary/tests/fixtures_in_one_environment_share_manifest_and_target_root"
+      },
+      "products": [
+        "store-owner:worth-store-test-support"
+      ],
+      "disposition": "preserve_unchanged",
+      "expected_evidence": [
+        "behavioral_verdict",
+        "assertion_predicates"
+      ],
+      "physical_reality_audit_required": false
+    },
+    {
+      "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/unrelated_compile_failure_cannot_satisfy_declared_semantic_denial::tests::unrelated_compile_failure_cannot_satisfy_declared_semantic_denial",
+      "family": "owner_invariant",
+      "owner": {
+        "package": "worth-store-test-support",
+        "responsibility": "src/compiler_boundary/tests/unrelated_compile_failure_cannot_satisfy_declared_semantic_denial"
+      },
+      "products": [
+        "store-owner:worth-store-test-support"
       ],
       "disposition": "preserve_unchanged",
       "expected_evidence": [

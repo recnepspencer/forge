@@ -2,7 +2,8 @@ use std::path::Path;
 
 use worth_store_test_support::structural_preflight::{
     PreflightInputScope, StructuralPredicate, StructuralPredicatePlan, StructuralPreflightPlan,
-    StructuralPreflightRequest, StructuralToolDeclaration,
+    StructuralPreflightRequest, StructuralSupportingToolIdentity, StructuralToolDeclaration,
+    StructuralToolEnvironmentBinding,
 };
 
 use crate::evidence::sha256_serialized;
@@ -12,6 +13,7 @@ use super::version_probe::{self, ObservedProgramVersion};
 
 struct RustToolchainIdentity {
     cargo: ObservedProgramVersion,
+    rustc: ObservedProgramVersion,
     identity: String,
 }
 
@@ -67,7 +69,9 @@ fn predicate_plan(
                 ],
                 &["rs", "toml", "md"],
             )?],
-            Some(StructuralToolDeclaration::workspace_owned(
+            Some(cargo_tool(
+                required_toolchain(toolchain)?,
+                StructuralToolDeclaration::workspace_owned(
                 format!("agent-context::{}", required_toolchain(toolchain)?.identity),
                 &required_toolchain(toolchain)?.cargo.program_path,
                 &required_toolchain(toolchain)?.identity,
@@ -82,6 +86,7 @@ fn predicate_plan(
                 "agent-context-authority",
                 300_000,
                 "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
+                )?,
             )?),
         ),
         Predicate::Inventory => (vec![inventory_scope(root)?], None),
@@ -142,20 +147,18 @@ fn predicate_plan(
     })
 }
 
-fn line_cap_tool(
-    root: &Path,
-) -> Result<StructuralToolDeclaration, String> {
+fn line_cap_tool(root: &Path) -> Result<StructuralToolDeclaration, String> {
     let bash = version_probe::observe(root, "bash", &["--version"])?;
     let version_identity = sha256_serialized(&bash)?;
     StructuralToolDeclaration::workspace_owned(
-                format!("workspace-rust-line-caps::{version_identity}"),
-                &bash.program_path,
-                version_identity,
-                vec!["scripts/ci/check_workspace_rust_line_caps.sh".to_owned()],
-                "workspace-rust-line-cap-authority",
-                120_000,
-                "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
-            )
+        format!("workspace-rust-line-caps::{version_identity}"),
+        &bash.program_path,
+        version_identity,
+        vec!["scripts/ci/check_workspace_rust_line_caps.sh".to_owned()],
+        "workspace-rust-line-cap-authority",
+        120_000,
+        "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
+    )
 }
 
 fn required_toolchain(
@@ -197,8 +200,14 @@ fn manifest_scope(root: &Path) -> Result<PreflightInputScope, String> {
     scope(
         root,
         "store-dependency-manifests",
-        &["Cargo.toml", "workspaces/worth-store"],
-        &["toml"],
+        &[
+            "Cargo.toml",
+            "workspaces/worth-store/Cargo.toml",
+            "workspaces/worth-store/Cargo.lock",
+            "workspaces/worth-store/crates",
+            "workspaces/worth-store/test-control/feature-semantic-authority.json",
+        ],
+        &["toml", "lock", "json"],
     )
 }
 
@@ -206,28 +215,64 @@ fn boundary_tool(
     toolchain: &RustToolchainIdentity,
     projection: &str,
 ) -> Result<StructuralToolDeclaration, String> {
-    StructuralToolDeclaration::workspace_owned(
-        format!("boundary-check::{projection}::{}", toolchain.identity),
-        &toolchain.cargo.program_path,
-        &toolchain.identity,
-        vec![
-            "run".to_owned(),
-            "--quiet".to_owned(),
-            "--manifest-path".to_owned(),
-            "tools/boundary-check/Cargo.toml".to_owned(),
-            "--".to_owned(),
-            "--root".to_owned(),
-            ".".to_owned(),
-        ],
-        "road1-boundary-authority",
-        300_000,
-        "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
+    cargo_tool(
+        toolchain,
+        StructuralToolDeclaration::workspace_owned(
+            format!("boundary-check::{projection}::{}", toolchain.identity),
+            &toolchain.cargo.program_path,
+            &toolchain.identity,
+            vec![
+                "run".to_owned(),
+                "--quiet".to_owned(),
+                "--manifest-path".to_owned(),
+                "tools/boundary-check/Cargo.toml".to_owned(),
+                "--".to_owned(),
+                "--root".to_owned(),
+                ".".to_owned(),
+            ],
+            "road1-boundary-authority",
+            300_000,
+            "single-process; inherited-memory-limit; output-cap-bytes=8388608; no-network-required",
+        )?,
     )
+}
+
+fn cargo_tool(
+    toolchain: &RustToolchainIdentity,
+    declaration: StructuralToolDeclaration,
+) -> Result<StructuralToolDeclaration, String> {
+    declaration
+        .with_supporting_tools(vec![StructuralSupportingToolIdentity {
+            purpose: "rustc".to_owned(),
+            resolved_program_path: toolchain.rustc.program_path.clone(),
+            program_sha256: toolchain.rustc.program_sha256.clone(),
+            program_version_identity: toolchain.rustc.version_output.clone(),
+        }])?
+        .with_environment(
+            vec![StructuralToolEnvironmentBinding {
+                name: "RUSTC".to_owned(),
+                value: toolchain.rustc.program_path.clone(),
+            }],
+            [
+                "CARGO_ENCODED_RUSTFLAGS",
+                "RUSTC_BOOTSTRAP",
+                "RUSTC_WORKSPACE_WRAPPER",
+                "RUSTC_WRAPPER",
+                "RUSTFLAGS",
+            ]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
+        )
 }
 
 fn toolchain_identity(root: &Path) -> Result<RustToolchainIdentity, String> {
     let cargo = version_probe::observe(root, "cargo", &["-Vv"])?;
     let rustc = version_probe::observe(root, "rustc", &["-Vv"])?;
     let identity = sha256_serialized(&(&cargo, &rustc))?;
-    Ok(RustToolchainIdentity { cargo, identity })
+    Ok(RustToolchainIdentity {
+        cargo,
+        rustc,
+        identity,
+    })
 }
