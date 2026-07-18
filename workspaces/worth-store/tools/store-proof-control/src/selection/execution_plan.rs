@@ -8,7 +8,7 @@ use crate::evidence::sha256_serialized;
 
 use super::proof_mode::{ProofProductUnavailable, StoreProofMode, StoreProofRequest};
 use super::repository_identity::RepositoryIdentity;
-use super::{StoreBuildProfileIdentity, StoreFeatureLane};
+use super::{ProofProcessModel, StoreBuildProfileIdentity, StoreFeatureLane};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructuralPreflightReference {
@@ -43,7 +43,7 @@ pub struct ProofExecutionUnit {
     pub case_filter: Option<String>,
     pub feature_lane: StoreFeatureLane,
     pub build_profile: StoreBuildProfileIdentity,
-    pub process_model: String,
+    pub process_model: ProofProcessModel,
     pub expected_evidence: Vec<String>,
 }
 
@@ -63,11 +63,11 @@ impl ProofExecutionUnit {
             "test".to_owned()
         };
         let process_model = if target.kinds.iter().any(|kind| kind == "doc") {
-            "rustdoc-test-process".to_owned()
+            ProofProcessModel::RustdocTestProcess
         } else if target.name.contains("compile_fail") {
-            "nested-cargo-process".to_owned()
+            ProofProcessModel::NestedCargoProcess
         } else {
-            "libtest-process".to_owned()
+            ProofProcessModel::LibtestProcess
         };
         Self {
             package: target.package.clone(),
@@ -85,9 +85,9 @@ impl ProofExecutionUnit {
         }
     }
 
-    pub(crate) fn with_process_model(mut self, process_model: impl Into<String>) -> Self {
-        self.process_model = process_model.into();
-        if self.process_model == "compiler-boundary-suite"
+    pub(crate) fn with_process_model(mut self, process_model: ProofProcessModel) -> Self {
+        self.process_model = process_model;
+        if self.process_model.requires_ui_proof_evidence()
             && !self
                 .expected_evidence
                 .iter()
@@ -112,7 +112,7 @@ impl ProofExecutionUnit {
             case_filter: None,
             feature_lane: StoreFeatureLane::declared(features),
             build_profile: StoreBuildProfileIdentity::CiTest,
-            process_model: "cargo-check-process".to_owned(),
+            process_model: ProofProcessModel::CargoCheckProcess,
             expected_evidence: vec![
                 "compiler_verdict".to_owned(),
                 "resolved_feature_graph".to_owned(),

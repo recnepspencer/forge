@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-reclaim-policy"
 edition.workspace = true
 version.workspace = true

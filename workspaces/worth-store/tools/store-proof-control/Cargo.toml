@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "store-proof-control"
 edition.workspace = true
 version.workspace = true

@@ -1,4 +1,6 @@
-use crate::selection::{select, ProofProductUnavailable, StoreProofMode, StoreProofRequest};
+use crate::selection::{
+    select, ProofProcessModel, ProofProductUnavailable, StoreProofMode, StoreProofRequest,
+};
 
 use super::{current_inventory, selection_preflight, workspace_root};
 
@@ -32,7 +34,7 @@ fn selection_is_deterministic_and_scenario_filterable() {
     }));
     assert!(first.units.iter().any(|unit| {
         unit.target_name == "s5_tier_movement_future_chunk_compile_fail"
-            && unit.process_model == "nested-cargo-process"
+            && unit.process_model == ProofProcessModel::NestedCargoProcess
             && unit.case_filter.as_deref()
                 == Some("future_chunk_placeholder_boundary_misuse_does_not_compile")
     }));

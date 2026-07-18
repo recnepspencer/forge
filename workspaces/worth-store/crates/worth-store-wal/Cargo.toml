@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-wal"
 edition.workspace = true
 version.workspace = true

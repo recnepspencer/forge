@@ -111,7 +111,7 @@ pub(super) fn proof_selection(
             .collect(),
         subprocess_probes: units
             .iter()
-            .filter(|unit| unit.process_model != "libtest-process")
+            .filter(|unit| !unit.process_model.is_plain_libtest())
             .map(|unit| {
                 format!(
                     "{}::{}={}",

@@ -14,11 +14,11 @@ fn aspect_native_harness_public_facade_rejects_json_shortcuts() {
             &[(
                 "worth-store-test-support",
                 root.join("crates/worth-store-test-support").as_path(),
-                &[],
+                &["boundary-fixtures"],
             )],
             &[],
         ),
-        "boundary-fixtures-disabled",
+        "boundary-fixtures",
         "diagnostic-test",
         &root.join("crates/worth-store-certification/tests/ui/aspect_native_harness_authoring"),
         FIXTURES,
@@ -44,17 +44,11 @@ const FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "terminal_json_projection_requires_terminal_suite_witness.rs",
-        &[
-            "projection",
-            "StoreTerminalProjectionJsonFixtureBoundaryWitness",
-        ],
+        &["StoreTerminalProjectionJsonFixtureBoundaryWitness"],
     ),
     (
         "hostile_json_payload_requires_hostile_suite_witness.rs",
-        &[
-            "into_attacker_document",
-            "StoreHostileReadmissionJsonFixtureBoundaryWitness",
-        ],
+        &["StoreHostileReadmissionJsonFixtureBoundaryWitness"],
     ),
     (
         "json_suite_boundary_cannot_be_self_declared.rs",

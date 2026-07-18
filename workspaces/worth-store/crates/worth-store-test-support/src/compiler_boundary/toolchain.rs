@@ -25,6 +25,7 @@ pub(super) fn observe(root: &Path) -> Result<UiCompilerToolchainIdentity, UiProo
             shared_environment_target: true,
             offline: true,
             locked_dependencies: true,
+            declared_profile_applied: true,
             bounded_output: true,
         },
     })

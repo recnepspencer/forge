@@ -31,11 +31,11 @@
     },
     {
       "stable_case_id": "store-proof-control::src/execution/mod/green_preflight_cannot_substitute_for_a_failed_behavioral_unit::mod::green_preflight_cannot_substitute_for_a_failed_behavioral_unit",
-      "behavior_fingerprint": "sha256:846044834012a3b2a5992b16a9a1a12f2783db705f4b532a00cc4677faad0e04"
+      "behavior_fingerprint": "sha256:3cf40d9b41359e8b8ded3344828bd5c98f72b5226a13ac374c9ff67638a07d3e"
     },
     {
       "stable_case_id": "store-proof-control::src/selection/mod/doctest_selection_cannot_lower_a_synthetic_zero_match_filter::mod::doctest_selection_cannot_lower_a_synthetic_zero_match_filter",
-      "behavior_fingerprint": "sha256:a4b4a2f3e565dae2164b08b2c3a6a0e434b0aeacb2f766701ba3207dff581585"
+      "behavior_fingerprint": "sha256:2d1cbc636973ca2d5edcd2816f406d7f6858055ddd8b892bf0b5f207a4a452bf"
     },
     {
       "stable_case_id": "store-proof-control::src/structural_preflight/plan_tests/complete_preflight_plan_binds_tools_sources_and_dependency_flow::plan_tests::complete_preflight_plan_binds_tools_sources_and_dependency_flow",
@@ -147,7 +147,7 @@
     },
     {
       "stable_case_id": "store-proof-control::src/tests/proof_selection/selection_is_deterministic_and_scenario_filterable::proof_selection::selection_is_deterministic_and_scenario_filterable",
-      "behavior_fingerprint": "sha256:98d3fb54337f7e5e6c1d3448aff3564f6235610b76974404e61f6fde1f78e7b8"
+      "behavior_fingerprint": "sha256:99eb6ac2b7344562b4a1dcd82af71c134a014e99f39c426e6e8867c7f1b54184"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/proof_selection/soak_and_release_require_registered_execution_inputs::proof_selection::soak_and_release_require_registered_execution_inputs",
@@ -6947,7 +6947,7 @@
     },
     {
       "stable_case_id": "worth-store-certification::tests/aspect_native_harness_authoring_ui/aspect_native_harness_public_facade_rejects_json_shortcuts::aspect_native_harness_authoring_ui::aspect_native_harness_public_facade_rejects_json_shortcuts",
-      "behavior_fingerprint": "sha256:12ec3c4af7c0687a07b1362c8f926db491262830e0b3db1fbbcc6b07992355c7"
+      "behavior_fingerprint": "sha256:902a756c07cc0ae416eae88c2c9ac610bd7413910eb361982c939f1222661a66"
     },
     {
       "stable_case_id": "worth-store-certification::tests/aspect_native_terminal_projection/external_terminal_json_ingress_must_use_store_readmission::aspect_native_terminal_projection::external_terminal_json_ingress_must_use_store_readmission",
@@ -11119,7 +11119,7 @@
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/process_evidence_root_rejects_parent_traversal_before_creation::tests::process_evidence_root_rejects_parent_traversal_before_creation",
-      "behavior_fingerprint": "sha256:efba4b1f922ac1533b8e858d05c43e950c7fc4e8060e650b7a1a280207ecce3a"
+      "behavior_fingerprint": "sha256:6595a86305ff44e163891624b2b328ee3c79b7e9e563828ecdc3d33447000715"
     },
     {
       "stable_case_id": "worth-store-physical-certification::src/process_probe/tests/untrusted_probe_input_rejects_an_output_channel_that_became_visible::tests::untrusted_probe_input_rejects_an_output_channel_that_became_visible",
@@ -12707,7 +12707,7 @@
     },
     {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/evidence_root_parent_traversal_is_rejected_before_publication::tests::evidence_root_parent_traversal_is_rejected_before_publication",
-      "behavior_fingerprint": "sha256:864234f05c8f0f09329b07477ad788c6ef0abf81ebd9554a1b06f537b06d0441"
+      "behavior_fingerprint": "sha256:457aff1d882e5c453e814ee940310ccfe3dcaaf5e28662cc3e9cfe5f89c87e65"
     },
     {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/fixture_source_text_cannot_impersonate_a_semantic_compiler_message::tests::fixture_source_text_cannot_impersonate_a_semantic_compiler_message",

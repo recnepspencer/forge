@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-blob-chunks"
 edition.workspace = true
 version.workspace = true

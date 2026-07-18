@@ -84,8 +84,15 @@ fn evidence_root_parent_traversal_is_rejected_before_publication() {
     let admitted = scratch.root().join(".store-proof/evidence");
     std::fs::create_dir_all(&admitted).unwrap();
     let admitted = admitted.canonicalize().unwrap();
+    let safe = scratch
+        .root()
+        .join(".store-proof/evidence/runs/attempt/ui/unit");
     let escaped = admitted.join("ui/../../outside");
 
+    assert_eq!(
+        super::artifact_store::admit_declared_root(&admitted, &safe).unwrap(),
+        safe
+    );
     let denial = super::artifact_store::admit_declared_root(&admitted, &escaped).unwrap_err();
 
     assert!(denial.to_string().contains("parent traversal"));
@@ -110,6 +117,11 @@ impl ScratchUiWorld {
         let fixture_root = root.join("fixtures");
         std::fs::create_dir_all(root.join("dependency/src")).unwrap();
         std::fs::create_dir_all(&fixture_root).unwrap();
+        std::fs::write(
+            root.join("Cargo.toml"),
+            "[workspace]\nresolver = \"2\"\n\n[workspace.package]\nedition = \"2021\"\nversion = \"0.0.0\"\nlicense = \"UNLICENSED\"\n\n[workspace.dependencies]\n\n[workspace.lints.rust]\nunsafe_code = \"forbid\"\n\n[profile.test]\n\n[profile.diagnostic-test]\ninherits = \"test\"\n",
+        )
+        .unwrap();
         std::fs::write(root.join("Cargo.lock"), "# UI harness identity lock\n").unwrap();
         std::fs::write(
             root.join("dependency/Cargo.toml"),

@@ -84,8 +84,15 @@ fn process_evidence_root_rejects_parent_traversal_before_creation() {
     let admitted = root.path().join("evidence");
     std::fs::create_dir_all(&admitted).unwrap();
     let admitted = admitted.canonicalize().unwrap();
+    let safe = root
+        .path()
+        .join("evidence/runs/attempt/process-probes/unit");
     let escaped = admitted.join("process/../../outside");
 
+    assert_eq!(
+        super::execution::admit_declared_evidence_root(&admitted, &safe),
+        Ok(())
+    );
     assert_eq!(
         super::execution::admit_declared_evidence_root(&admitted, &escaped),
         Err(ProcessProbeEvidenceDenial::EvidenceWrite)

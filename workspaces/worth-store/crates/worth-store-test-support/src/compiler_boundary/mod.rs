@@ -5,6 +5,7 @@ mod cargo_environment;
 mod declaration;
 mod diagnostics;
 mod environment_lock;
+mod environment_manifest;
 mod evidence;
 #[cfg(test)]
 mod tests;

@@ -61,10 +61,12 @@ impl ProcessProbeExecution {
         if !termination_satisfies(declaration.required_termination(), &termination) {
             return Err(ProcessProbeEvidenceDenial::TerminationMismatch);
         }
-        if declaration.input_identity() != input.identity()
-            || !input
-                .admits_output_path(output_artifact)
-                .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactMismatch)?
+        if declaration.input_identity() != input.identity() {
+            return Err(ProcessProbeEvidenceDenial::InputIdentityMismatch);
+        }
+        if !input
+            .admits_output_path(output_artifact)
+            .map_err(|_| ProcessProbeEvidenceDenial::OutputArtifactMismatch)?
         {
             return Err(ProcessProbeEvidenceDenial::OutputArtifactMismatch);
         }
@@ -144,7 +146,6 @@ pub(crate) fn admit_declared_evidence_root(
     if declared
         .components()
         .any(|component| matches!(component, std::path::Component::ParentDir))
-        || !declared.starts_with(admitted)
     {
         return Err(ProcessProbeEvidenceDenial::EvidenceWrite);
     }

@@ -9,6 +9,7 @@ pub struct UiProofRunEvidence {
     pub suite_identity: String,
     pub environment_identity: String,
     pub environment_root_identity: String,
+    pub profile_identity: String,
     pub toolchain: UiCompilerToolchainIdentity,
     pub environment_manifest_path: String,
     pub environment_lock_path: String,
@@ -43,6 +44,7 @@ pub struct UiCompilerResourcePosture {
     pub shared_environment_target: bool,
     pub offline: bool,
     pub locked_dependencies: bool,
+    pub declared_profile_applied: bool,
     pub bounded_output: bool,
 }
 
@@ -118,7 +120,7 @@ impl std::error::Error for UiProofRunFailure {}
 impl UiProofRunEvidence {
     pub fn validate_integrity(&self) -> Result<(), String> {
         let expected_environment_identity = serde_json::to_vec(&(
-            "worth-store-ui-environment-v2",
+            "worth-store-ui-environment-v5",
             &self.environment_root_identity,
             &self.environment_lock_sha256,
         ))
@@ -129,6 +131,7 @@ impl UiProofRunEvidence {
             || !is_sha256(&self.environment_identity)
             || !is_sha256(&self.environment_root_identity)
             || self.environment_identity != expected_environment_identity
+            || self.profile_identity.trim().is_empty()
             || !valid_toolchain(&self.toolchain)
             || !self
                 .environment_manifest_path
@@ -139,7 +142,7 @@ impl UiProofRunEvidence {
             || !is_sha256(&self.environment_lock_sha256)
             || !self
                 .shared_target_root
-                .ends_with(&format!("/{}", self.environment_identity))
+                .ends_with(&format!("/{}", &self.environment_identity[..24]))
             || self.fixtures.is_empty()
             || self.fixtures.iter().any(|fixture| {
                 fixture.fixture.suite_identity != self.suite_identity
@@ -194,6 +197,7 @@ fn valid_toolchain(toolchain: &UiCompilerToolchainIdentity) -> bool {
         && toolchain.resource_posture.shared_environment_target
         && toolchain.resource_posture.offline
         && toolchain.resource_posture.locked_dependencies
+        && toolchain.resource_posture.declared_profile_applied
         && toolchain.resource_posture.bounded_output
         && !toolchain.cargo_configuration.is_empty()
         && toolchain.cargo_configuration.iter().all(|config| {

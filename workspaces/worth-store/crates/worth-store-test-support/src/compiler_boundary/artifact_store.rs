@@ -39,7 +39,6 @@ pub(super) fn admit_declared_root(
     if declared
         .components()
         .any(|component| matches!(component, std::path::Component::ParentDir))
-        || !declared.starts_with(admitted)
     {
         return Err(outside_evidence_root(admitted));
     }

@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
-use crate::selection::SelectedProofExecutionPlan;
+use crate::selection::{ProofProcessModel, SelectedProofExecutionPlan};
 use crate::structural_preflight::{forge_root, require_fresh, PreflightEvidenceFreshness};
 use worth_store_test_support::structural_preflight::{
     StructuralPreflightEvidence, STRUCTURAL_PREFLIGHT_BUNDLE_ENV,
@@ -34,7 +34,7 @@ pub struct ExecutedProofRun {
 pub struct ProofUnitExecutionVerdict {
     pub unit_identity: String,
     pub case_filter: Option<String>,
-    pub process_model: String,
+    pub process_model: ProofProcessModel,
     pub behavioral_verdict: String,
     pub elapsed_millis: u128,
     pub ui_proof_evidence: Vec<UiProofEvidenceReference>,
@@ -108,22 +108,18 @@ pub fn execute(
             workspace_root,
             &ui_evidence_root,
             &unit_identity,
-            unit.process_model == "compiler-boundary-suite" && status.success(),
+            unit.process_model.requires_ui_proof_evidence() && status.success(),
         )?;
         let process_probe_evidence = process_evidence::collect(
             workspace_root,
             &process_evidence_root,
             &unit_identity,
-            status.success()
-                && matches!(
-                    unit.process_model.as_str(),
-                    "libtest-with-fresh-child-process" | "libtest-with-declared-subprocesses"
-                ),
+            status.success() && unit.process_model.requires_process_probe_evidence(),
         )?;
         unit_verdicts.push(ProofUnitExecutionVerdict {
             unit_identity: unit_identity.clone(),
             case_filter: unit.case_filter.clone(),
-            process_model: unit.process_model.clone(),
+            process_model: unit.process_model,
             behavioral_verdict: if status.success() { "passed" } else { "failed" }.to_owned(),
             elapsed_millis: started.elapsed().as_millis(),
             ui_proof_evidence,
@@ -238,7 +234,7 @@ fn process_counts(verdicts: &[ProofUnitExecutionVerdict]) -> ProofRunProcessCoun
         test_or_check_processes_requested: verdicts.len(),
         declared_subprocess_units: verdicts
             .iter()
-            .filter(|verdict| verdict.process_model != "libtest-process")
+            .filter(|verdict| !verdict.process_model.is_plain_libtest())
             .count(),
         compiler_process_observation: "not-observed-before-phase-10-runner".to_owned(),
         linker_process_observation: "not-observed-before-phase-10-runner".to_owned(),
@@ -260,7 +256,7 @@ mod tests {
         let verdicts = vec![ProofUnitExecutionVerdict {
             unit_identity: "worth-store-certification::inverted-assertion".to_owned(),
             case_filter: None,
-            process_model: "libtest-process".to_owned(),
+            process_model: ProofProcessModel::LibtestProcess,
             behavioral_verdict: "failed".to_owned(),
             elapsed_millis: 1,
             ui_proof_evidence: Vec::new(),

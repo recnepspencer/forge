@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 
 use super::diagnostics::{checked_diagnostics, validate_denial};
 use super::toolchain;
-use super::{artifact_store, bounded_process, environment_lock};
+use super::{artifact_store, bounded_process, environment_lock, environment_manifest};
 use super::{
     UiCompilerToolchainIdentity, UiFixtureIdentity, UiFixtureRunEvidence, UiProofRunEvidence,
     UiProofRunFailure, UiProofSuiteDeclaration,
@@ -21,6 +21,7 @@ struct FixtureEnvironment<'a> {
     manifest_path: &'a Path,
     environment_identity: &'a str,
     suite_identity: &'a str,
+    profile_identity: &'a str,
     toolchain: &'a UiCompilerToolchainIdentity,
 }
 
@@ -34,9 +35,18 @@ pub(super) fn run(
             workspace_root.display()
         ))
     })?;
+    let workspace_root = cargo_compatible_path(&workspace_root);
     let toolchain = toolchain::observe(&workspace_root)?;
-    let environment_root_identity =
-        environment_basis_identity(&workspace_root, declaration, &toolchain)?;
+    let environment_manifest = environment_manifest::UiEnvironmentManifestContract::load(
+        &workspace_root,
+        declaration.environment().profile_identity(),
+    )?;
+    let environment_root_identity = environment_basis_identity(
+        &workspace_root,
+        declaration,
+        &toolchain,
+        &environment_manifest,
+    )?;
     let evidence_root = artifact_store::admitted_evidence_root(&workspace_root)?;
     let environment_root = workspace_root
         .join(".store-proof/ui/environments")
@@ -44,7 +54,10 @@ pub(super) fn run(
     fs::create_dir_all(environment_root.join("src/bin"))
         .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
     let manifest_path = environment_root.join("Cargo.toml");
-    let manifest = environment_manifest(&environment_root_identity, declaration);
+    let manifest = environment_manifest.render(
+        &environment_root_identity,
+        declaration.environment().dependency_manifest(),
+    )?;
     let manifest_created =
         artifact_store::write_immutable_file(&manifest_path, manifest.as_bytes())?;
     let lock = environment_lock::seal(
@@ -55,15 +68,19 @@ pub(super) fn run(
         &toolchain,
     )?;
     let environment_identity = digest_serialized(&(
-        "worth-store-ui-environment-v2",
+        "worth-store-ui-environment-v5",
         &environment_root_identity,
         &lock.sha256,
     ))?;
     let target_root = workspace_root
-        .join(".store-proof/cache/ui")
-        .join(&environment_identity);
+        .join("target/store-ui")
+        .join(&environment_identity[..24]);
     fs::create_dir_all(&target_root)
         .map_err(|error| UiProofRunFailure::EnvironmentObservation(error.to_string()))?;
+    artifact_store::write_immutable_file(
+        &target_root.join(".environment-identity"),
+        environment_identity.as_bytes(),
+    )?;
 
     let mut fixtures = Vec::new();
     let environment = FixtureEnvironment {
@@ -73,6 +90,7 @@ pub(super) fn run(
         manifest_path: &manifest_path,
         environment_identity: &environment_identity,
         suite_identity: declaration.suite_identity(),
+        profile_identity: declaration.environment().profile_identity(),
         toolchain: &toolchain,
     };
     for fixture in declaration.fixtures() {
@@ -84,6 +102,7 @@ pub(super) fn run(
         suite_identity: declaration.suite_identity().to_owned(),
         environment_identity,
         environment_root_identity,
+        profile_identity: declaration.environment().profile_identity().to_owned(),
         toolchain,
         environment_manifest_path: normalized_path(&workspace_root, &manifest_path),
         environment_lock_path: normalized_path(&workspace_root, &lock.path),
@@ -140,6 +159,8 @@ fn run_fixture(
             "--offline",
             "--locked",
             "--message-format=json",
+            "--profile",
+            environment.profile_identity,
             "--bin",
         ])
         .arg(&bin_name)
@@ -223,23 +244,17 @@ fn environment_basis_identity(
     workspace_root: &Path,
     declaration: &UiProofSuiteDeclaration,
     toolchain: &UiCompilerToolchainIdentity,
+    environment_manifest: &environment_manifest::UiEnvironmentManifestContract,
 ) -> Result<String, UiProofRunFailure> {
     let lock = digest_file(&workspace_root.join("Cargo.lock"))?;
     digest_serialized(&(
         declaration.environment().dependency_manifest(),
         declaration.environment().feature_identity(),
         declaration.environment().profile_identity(),
+        environment_manifest,
         toolchain,
         lock,
     ))
-}
-
-fn environment_manifest(identity: &str, declaration: &UiProofSuiteDeclaration) -> String {
-    format!(
-        "[package]\nname = \"store_ui_{}\"\nversion = \"0.0.0\"\nedition = \"2021\"\n\n[workspace]\n\n{}",
-        &identity[..16],
-        declaration.environment().dependency_manifest()
-    )
 }
 
 fn fixture_bin_name(suite: &str, case: &str, source_digest: &str) -> String {
@@ -313,6 +328,22 @@ fn normalized_path(workspace_root: &Path, path: &Path) -> String {
         .unwrap_or(path)
         .to_string_lossy()
         .replace('\\', "/")
+}
+
+#[cfg(windows)]
+fn cargo_compatible_path(path: &Path) -> std::path::PathBuf {
+    let value = path.to_string_lossy();
+    if let Some(unc) = value.strip_prefix(r"\\?\UNC\") {
+        return std::path::PathBuf::from(format!(r"\\{unc}"));
+    }
+    value
+        .strip_prefix(r"\\?\")
+        .map_or_else(|| path.to_path_buf(), std::path::PathBuf::from)
+}
+
+#[cfg(not(windows))]
+fn cargo_compatible_path(path: &Path) -> std::path::PathBuf {
+    path.to_path_buf()
 }
 
 fn digest_serialized(value: &impl Serialize) -> Result<String, UiProofRunFailure> {

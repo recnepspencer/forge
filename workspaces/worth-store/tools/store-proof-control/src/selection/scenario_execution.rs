@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 
 use crate::classification::{ConsolidatedSuiteInventory, ScenarioProcessTopology};
+use crate::selection::ProofProcessModel;
 
 #[derive(Clone)]
 pub(super) struct DeclaredScenarioExecution {
     pub(super) filter: String,
-    pub(super) process_model: String,
+    pub(super) process_model: ProofProcessModel,
 }
 
 pub(super) fn declared_suite_filters(
@@ -23,8 +24,7 @@ pub(super) fn declared_suite_filters(
                         scenario.identity.responsibility.clone(),
                         DeclaredScenarioExecution {
                             filter: scenario.libtest_filter_prefix.clone(),
-                            process_model: scenario_process_model(scenario.process_topology)
-                                .to_owned(),
+                            process_model: scenario_process_model(scenario.process_topology),
                         },
                     )
                 })
@@ -52,11 +52,17 @@ pub(super) fn suite_case_responsibilities(
         .collect()
 }
 
-fn scenario_process_model(topology: ScenarioProcessTopology) -> &'static str {
+fn scenario_process_model(topology: ScenarioProcessTopology) -> ProofProcessModel {
     match topology {
-        ScenarioProcessTopology::InProcessLibtest => "libtest-process",
-        ScenarioProcessTopology::FreshChildProcess => "libtest-with-fresh-child-process",
-        ScenarioProcessTopology::NestedCargoProcess => "libtest-with-nested-cargo-process",
-        ScenarioProcessTopology::AllocatorGlobalProcess => "allocator-global-process",
+        ScenarioProcessTopology::InProcessLibtest => ProofProcessModel::LibtestProcess,
+        ScenarioProcessTopology::FreshChildProcess => {
+            ProofProcessModel::LibtestWithFreshChildProcess
+        }
+        ScenarioProcessTopology::NestedCargoProcess => {
+            ProofProcessModel::LibtestWithNestedCargoProcess
+        }
+        ScenarioProcessTopology::AllocatorGlobalProcess => {
+            ProofProcessModel::AllocatorGlobalProcess
+        }
     }
 }

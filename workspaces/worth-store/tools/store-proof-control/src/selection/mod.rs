@@ -3,6 +3,7 @@ mod execution_plan;
 mod feature_lane;
 mod owner_execution;
 mod plan_inventory;
+mod process_model;
 mod proof_mode;
 mod repository_identity;
 mod scenario_execution;
@@ -16,6 +17,7 @@ pub use execution_plan::{
     StructuralPreflightReference,
 };
 pub use feature_lane::StoreFeatureLane;
+pub use process_model::ProofProcessModel;
 pub use proof_mode::{ProofProductUnavailable, StoreProofMode, StoreProofRequest};
 pub use repository_identity::RepositoryIdentity;
 
@@ -192,9 +194,9 @@ fn execution_units(
                     .is_some_and(|scenarios| {
                         scenarios
                             .values()
-                            .any(|scenario| scenario.process_model != "libtest-process")
+                            .any(|scenario| !scenario.process_model.is_plain_libtest())
                     })
-                    .then_some("libtest-with-declared-subprocesses");
+                    .then_some(ProofProcessModel::LibtestWithDeclaredSubprocesses);
                 let unit = ProofExecutionUnit::from_target(target, request, None)
                     .with_feature_lane(feature_lane_for_target(inventory, target));
                 return Ok(vec![
@@ -232,7 +234,7 @@ fn execution_filters(
     if target.kinds.iter().any(|kind| kind == "doc") {
         return Ok(vec![DeclaredScenarioExecution {
             filter: String::new(),
-            process_model: "rustdoc-test-process".to_owned(),
+            process_model: ProofProcessModel::RustdocTestProcess,
         }]);
     }
     if target.source_path.contains("/tests/suites/") {
@@ -255,9 +257,9 @@ fn execution_filters(
             .collect();
     }
     let process_model = if target.name.contains("compile_fail") {
-        "nested-cargo-process"
+        ProofProcessModel::NestedCargoProcess
     } else {
-        "libtest-process"
+        ProofProcessModel::LibtestProcess
     };
     Ok(selected
         .values()
@@ -266,7 +268,7 @@ fn execution_filters(
                 .iter()
                 .map(|case_name| DeclaredScenarioExecution {
                     filter: case_name.clone(),
-                    process_model: process_model.to_owned(),
+                    process_model,
                 })
         })
         .collect())
@@ -288,9 +290,13 @@ fn ui_execution_units(
             })
         })
         .map(|target| {
-            ProofExecutionUnit::from_target(target, request, None)
-                .with_feature_lane(feature_lane_for_target(inventory, target))
-                .with_process_model("compiler-boundary-suite")
+            let unit = ProofExecutionUnit::from_target(target, request, None)
+                .with_feature_lane(feature_lane_for_target(inventory, target));
+            if target.kinds.iter().any(|kind| kind == "doc") {
+                unit
+            } else {
+                unit.with_process_model(ProofProcessModel::StandardizedUiHarness)
+            }
         })
         .collect()
 }
@@ -322,8 +328,9 @@ fn excluded_products(included: &BTreeSet<String>) -> BTreeMap<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{executable_case_filter, execution_filters};
+    use super::{executable_case_filter, execution_filters, ProofExecutionUnit, ProofProcessModel};
     use crate::discovery::TestTargetIdentity;
+    use crate::selection::{StoreProofMode, StoreProofRequest};
     use std::collections::{BTreeMap, BTreeSet};
 
     #[test]
@@ -342,7 +349,22 @@ mod tests {
         )]);
         let execution = execution_filters(&target, &selected, None).unwrap();
         assert_eq!(execution.len(), 1);
-        assert_eq!(execution[0].process_model, "rustdoc-test-process");
+        assert_eq!(
+            execution[0].process_model,
+            ProofProcessModel::RustdocTestProcess
+        );
         assert!(executable_case_filter(execution[0].filter.clone()).is_none());
+
+        let request = StoreProofRequest::new(StoreProofMode::Ui, None, None, None, None, true);
+        let native = ProofExecutionUnit::from_target(&target, &request, None);
+        assert_eq!(native.process_model, ProofProcessModel::RustdocTestProcess);
+        assert!(!native.process_model.requires_ui_proof_evidence());
+
+        let standardized = native.with_process_model(ProofProcessModel::StandardizedUiHarness);
+        assert!(standardized.process_model.requires_ui_proof_evidence());
+        assert!(standardized
+            .expected_evidence
+            .iter()
+            .any(|item| item == "ui_proof_run_evidence"));
     }
 }

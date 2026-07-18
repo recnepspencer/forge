@@ -57,7 +57,7 @@ const FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "raw_struct_cannot_satisfy_authority_input.rs",
-        &["StoreAspectAuthorityInput", "AspectStruct"],
+        &["StoreAspectAuthorityInput", "StructAspectValue"],
     ),
     (
         "terminal_projection_text_cannot_satisfy_locator.rs",
