@@ -52,12 +52,13 @@ export function buildGearCodeEvidence(sources: GearCodeSources) {
 }
 
 function excerpt({ end, file, source, start }: SourceExcerpt) {
-  const startIndex = source.indexOf(start);
-  const endIndex = source.indexOf(end, startIndex);
+  const normalizedSource = source.replace(/\r\n?/g, "\n");
+  const startIndex = normalizedSource.indexOf(start);
+  const endIndex = normalizedSource.indexOf(end, startIndex);
   if (startIndex < 0 || endIndex < 0) {
     throw new Error(`Demo 6 code evidence is missing its ${file} production excerpt.`);
   }
-  return `// ${file} — production source\n${dedent(source.slice(startIndex, endIndex))}`;
+  return `// ${file} — production source\n${dedent(normalizedSource.slice(startIndex, endIndex))}`;
 }
 
 function dedent(source: string) {

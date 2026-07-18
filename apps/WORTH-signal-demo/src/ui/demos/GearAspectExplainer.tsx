@@ -1,14 +1,7 @@
 import type { ReactNode } from "react";
+import { GEAR_ASPECT_CODE } from "virtual:gear-code-evidence";
 
-import gearScenarioSource from "../../local-truth-gear/gear_scenario.ts?raw";
-import compositionSectionSource from "../CompositionSection.tsx?raw";
-import { buildGearCodeEvidence } from "./gear_code_evidence";
 import "./gearAspectExplainer.css";
-
-const GEAR_ASPECT_CODE = buildGearCodeEvidence({
-  compositionSection: compositionSectionSource,
-  gearScenario: gearScenarioSource,
-});
 
 const KEYWORDS = new Set(["async", "await", "const", "let", "return"]);
 const TOKEN_PATTERN =
