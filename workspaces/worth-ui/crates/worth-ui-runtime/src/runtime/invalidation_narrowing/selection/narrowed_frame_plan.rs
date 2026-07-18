@@ -17,6 +17,7 @@ pub struct UiAllocationInvalidationNarrowingCounters {
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiNarrowedAllocationFramePlan {
     frame_identity: UiAllocationFramePlanIdentity,
+    resolution_counters: crate::runtime::UiAllocationFrameResolutionCounters,
     invalidations: Box<[super::UiNarrowedAllocationInvalidation]>,
     counters: UiAllocationInvalidationNarrowingCounters,
 }
@@ -24,11 +25,13 @@ pub struct UiNarrowedAllocationFramePlan {
 impl UiNarrowedAllocationFramePlan {
     pub(super) fn new(
         frame_identity: UiAllocationFramePlanIdentity,
+        resolution_counters: crate::runtime::UiAllocationFrameResolutionCounters,
         invalidations: Box<[super::UiNarrowedAllocationInvalidation]>,
         counters: UiAllocationInvalidationNarrowingCounters,
     ) -> Self {
         Self {
             frame_identity,
+            resolution_counters,
             invalidations,
             counters,
         }
@@ -87,6 +90,9 @@ impl UiNarrowedAllocationFramePlan {
     }
     pub fn counters(&self) -> UiAllocationInvalidationNarrowingCounters {
         self.counters
+    }
+    pub fn resolution_counters(&self) -> crate::runtime::UiAllocationFrameResolutionCounters {
+        self.resolution_counters
     }
     pub fn families(&self) -> &[crate::runtime::UiAllocationStreamFamily] {
         self.frame_identity.families()

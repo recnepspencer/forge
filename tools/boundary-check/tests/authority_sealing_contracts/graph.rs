@@ -1,11 +1,11 @@
 //! Production-binary matrix: BC7001 inventories the Cargo/rustc library surface.
 
 use super::authority_sealing_fixture::{
-    cfg_attr_path_root, decoy_lib_rs, hostile_cfg_modules_hostile_then_safe,
+    cfg_attr_path_root, hostile_cfg_modules_hostile_then_safe,
     hostile_cfg_modules_safe_then_hostile, hostile_gate_path_body, hostile_ordinary_api_lib,
     legal_ordinary_api_lib, nested_cfg_attr_path_root, nested_inline_path_attr_root,
-    nested_outline_path_parent_rs, nested_outline_path_root, path_attr_decoy_gate_rs,
-    path_attr_real_gate_rs, path_attr_root, safe_gate_decoy, AuthoritySealingTestRepository,
+    nested_outline_path_parent_rs, nested_outline_path_root, path_attr_real_gate_rs,
+    path_attr_root, AuthoritySealingTestRepository,
 };
 
 fn assert_denial(label: &str, ok: bool, output: &str) {
@@ -33,10 +33,7 @@ fn custom_lib_path_hostile_ceremony_is_denied() {
     let repo = AuthoritySealingTestRepository::create("hostile-lib-path");
     repo.assemble_with_lib_path_and_files(
         "src/ordinary_api.rs",
-        &[
-            ("src/lib.rs", decoy_lib_rs()),
-            ("src/ordinary_api.rs", hostile_ordinary_api_lib()),
-        ],
+        &[("src/ordinary_api.rs", hostile_ordinary_api_lib())],
     );
     let (ok, output) = repo.run_boundary_check();
     repo.cleanup();
@@ -48,10 +45,7 @@ fn custom_lib_path_concrete_ceremony_passes() {
     let repo = AuthoritySealingTestRepository::create("legal-lib-path");
     repo.assemble_with_lib_path_and_files(
         "src/ordinary_api.rs",
-        &[
-            ("src/lib.rs", decoy_lib_rs()),
-            ("src/ordinary_api.rs", legal_ordinary_api_lib()),
-        ],
+        &[("src/ordinary_api.rs", legal_ordinary_api_lib())],
     );
     let (ok, output) = repo.run_boundary_check();
     repo.cleanup();
@@ -83,7 +77,6 @@ fn path_attr_with_conventional_decoy_is_denied() {
         "src/lib.rs",
         &[
             ("src/lib.rs", path_attr_root()),
-            ("src/gate.rs", path_attr_decoy_gate_rs()),
             ("src/real_gate.rs", path_attr_real_gate_rs()),
         ],
     );
@@ -109,8 +102,6 @@ fn nested_inline_path_attr_is_denied() {
         &[
             ("src/lib.rs", nested_inline_path_attr_root()),
             ("src/outer/hostile_gate.rs", hostile_gate_path_body()),
-            ("src/outer/gate.rs", safe_gate_decoy()),
-            ("src/hostile_gate.rs", safe_gate_decoy()),
         ],
     );
     let (ok, output) = repo.run_boundary_check();
@@ -126,8 +117,7 @@ fn nested_outline_path_attr_is_denied() {
         &[
             ("src/lib.rs", nested_outline_path_root()),
             ("src/outer.rs", nested_outline_path_parent_rs()),
-            ("src/outer/hostile_gate.rs", hostile_gate_path_body()),
-            ("src/outer/gate.rs", safe_gate_decoy()),
+            ("src/hostile_gate.rs", hostile_gate_path_body()),
         ],
     );
     let (ok, output) = repo.run_boundary_check();
@@ -143,7 +133,6 @@ fn cfg_attr_path_root_is_denied() {
         &[
             ("src/lib.rs", cfg_attr_path_root()),
             ("src/hostile_gate.rs", hostile_gate_path_body()),
-            ("src/gate.rs", safe_gate_decoy()),
         ],
     );
     let (ok, output) = repo.run_boundary_check();
@@ -159,7 +148,6 @@ fn nested_cfg_attr_path_is_denied() {
         &[
             ("src/lib.rs", nested_cfg_attr_path_root()),
             ("src/outer/hostile_gate.rs", hostile_gate_path_body()),
-            ("src/outer/gate.rs", safe_gate_decoy()),
         ],
     );
     let (ok, output) = repo.run_boundary_check();

@@ -149,26 +149,26 @@ pub fn runtime_origin_fixture(
                         &lowering_input,
                         &WorthUiExecutionLaneSupport::platform_default(),
                     )
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("lane admission"))?;
                 inspection = Some(
                     runtime
                         .inspect_execution_plan(plan, planning.planning())
-                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("plan inspection"))?,
                 );
                 let ordinary_plan = runtime
                     .prepare_ordinary_lane_plan(plan, &lane_admission)
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("ordinary plan preparation"))?;
                 let execution = runtime
                     .execute_framework_turn(|_| {})
                     .into_execution()
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("framework turn"))?;
                 frame_receipt = Some(
                     execution
                         .execute_ordinary_lane_frame(
                             &ordinary_plan,
                             WorthUiOrdinaryFrameTarget::root_shell(),
                         )
-                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("ordinary frame"))?,
                 );
                 Ok((execution.into_activation_boundary(), None))
             },

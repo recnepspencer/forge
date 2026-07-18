@@ -12,14 +12,17 @@ use worth_ui_runtime::facade::admission::UiAdmissionReport;
 
 #[test]
 fn distinct_global_stop_reports_keep_distinct_public_refs_for_the_same_stop_posture() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let foreign = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.foreign-global-stop")
                 .with_semantic_artifact_spec(foreign_spec("foreign/one.wui", "foreign.one"))
                 .with_semantic_artifact_spec(foreign_spec("foreign/two.wui", "foreign.two")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let left_touch =
         foreign_declaration_touch(&foreign, foreign_artifact(&foreign, "foreign/one.wui"));

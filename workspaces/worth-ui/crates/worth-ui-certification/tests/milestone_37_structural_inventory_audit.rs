@@ -1,18 +1,12 @@
 use std::collections::BTreeSet;
-use std::path::Path;
-
 use worth_ui_certification::topology::{
     audit_milestone_37_structural_inventory, milestone_37_active_failure_modes,
     milestone_37_cleared_finding_ids, milestone_37_critical_finding_ids,
     rejected_cosmetic_candidate_ids, structural_inventory_digest,
 };
 
-fn workspace_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate parent")
-        .parent()
-        .expect("workspace root")
+fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
+    super::workspace_source_inventory()
 }
 
 #[test]

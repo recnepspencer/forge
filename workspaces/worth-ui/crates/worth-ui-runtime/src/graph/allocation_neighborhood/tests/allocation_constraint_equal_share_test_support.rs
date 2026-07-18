@@ -74,6 +74,7 @@ pub(crate) fn peer_app(
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(crate) fn three_peer_app(
@@ -111,6 +112,7 @@ pub(crate) fn three_peer_app(
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec(

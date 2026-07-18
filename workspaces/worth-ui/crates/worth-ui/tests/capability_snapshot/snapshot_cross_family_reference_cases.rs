@@ -44,7 +44,8 @@ fn snapshot_deferred_entry_used_as_admitted_rejected() {
             "plugin.slot.consumer",
             "plugin.slot.deferred",
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         violation_kinds(app.capabilities().validation_summary()),
@@ -60,7 +61,8 @@ fn snapshot_deferred_entry_used_as_admitted_rejected() {
 fn snapshot_deferred_entry_not_used_as_admitted_remains_later_lowering_vocabulary() {
     let app = WorthUi::app()
         .register_native_capability(deferred_native_capability("platform.native.clipboard"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert!(app
         .capabilities()

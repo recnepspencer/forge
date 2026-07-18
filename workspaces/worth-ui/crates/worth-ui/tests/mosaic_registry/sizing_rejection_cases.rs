@@ -4,8 +4,8 @@ use worth_ui::facade::{
     MosaicViewportConstraint, RawLayoutMeasurementForDiagnostics, WorthUi,
 };
 
-use crate::sizing_assertions::assert_diagnostic_codes;
-use crate::sizing_fixtures::{
+use super::sizing_assertions::assert_diagnostic_codes;
+use super::sizing_fixtures::{
     bounded_sidebar_contract, complete_sizing_contract, inverted_constraint_sizing_contract,
     mixed_unit_constraint_sizing_contract, unitless_constraint_sizing_contract,
     unitless_sizing_contract,

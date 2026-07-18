@@ -154,14 +154,22 @@ impl<'a> UiGraphTouchAuthority<'a> {
         transition: UiGraphMountedReceiptTransition,
         aspects: UiGraphTouchAspects,
     ) -> Result<UiGraphTouchDescriptor, UiGraphTouchDenial> {
-        self.require_origin_graph_node(
-            &origin,
-            transition.authority_record().graph_node_identity(),
-            true,
-        )?;
+        let graph_node_identity = transition.authority_record().graph_node_identity();
+        let exact_slot = self
+            .snapshot
+            .mounted_receipt_slot_for_node(graph_node_identity)
+            .is_some_and(|slot| transition.authority_record() == (*slot).into());
+        if transition.graph_authority_identity() != self.snapshot.authority_identity()
+            || !exact_slot
+        {
+            return Err(UiGraphTouchDenial::ForeignMountedReceiptTransition {
+                graph_node_identity,
+            });
+        }
+        self.require_origin_graph_node(&origin, graph_node_identity, true)?;
         self.descriptor_from_target(
             UiGraphTouchTarget::mounted_receipt_slot(
-                transition.authority_record().graph_node_identity(),
+                graph_node_identity,
                 transition.authority_record().mounted_receipt_identity(),
             ),
             origin,

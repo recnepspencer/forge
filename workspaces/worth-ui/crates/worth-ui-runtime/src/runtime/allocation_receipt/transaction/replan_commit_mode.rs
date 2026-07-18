@@ -1,6 +1,6 @@
 pub(super) enum UiAllocationReplanCommitMode<'a> {
     Ordinary(&'a crate::graph::UiAdmittedReplanNeighborhoodSet),
-    Viewport(Box<crate::runtime::UiViewportResizeCommitBasis<'a>>),
+    Viewport(Box<crate::runtime::UiViewportResizeCommitBasis>),
     DurableResize {
         selection: &'a crate::graph::UiAdmittedReplanNeighborhoodSet,
         basis: crate::runtime::UiResizeAllocationPlanningBasis,

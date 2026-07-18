@@ -1,6 +1,6 @@
 use crate::runtime::{
-    WorthUiFileRustReplacementParityDenial, WorthUiMeasurementCertificationDenial,
-    WorthUiReloadCounterBoundaryDenial, WorthUiReloadLatencyCounters, WorthUiSourceIngressDenial,
+    WorthUiMeasurementCertificationDenial, WorthUiReloadCounterBoundaryDenial,
+    WorthUiReloadLatencyCounters, WorthUiSourceIngressDenial,
     WorthUiWatchedCandidateSubmissionDenial,
 };
 
@@ -17,9 +17,6 @@ pub enum WorthUiReloadStormCertificationDenialReason {
     ProviderKindDoesNotMatchStepKind { label: String },
     SourceIngressDenied(WorthUiSourceIngressDenial),
     CandidateSubmissionDenied(WorthUiWatchedCandidateSubmissionDenial),
-    CandidateAdmissionDenied,
-    ArtifactComparisonDenied,
-    ActivationDenied(WorthUiFileRustReplacementParityDenial),
     ForgedReceiptReuseAcrossCandidates,
     FoundationalMeasurementDenied(WorthUiMeasurementCertificationDenial),
     FoundationalLoweringDenied(WorthUiMeasurementCertificationDenial),

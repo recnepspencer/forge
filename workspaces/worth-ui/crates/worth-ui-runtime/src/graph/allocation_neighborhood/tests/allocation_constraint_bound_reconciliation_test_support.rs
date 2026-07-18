@@ -64,6 +64,7 @@ pub(crate) fn peer_app(
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(crate) fn graph_node_identity_for_provenance(

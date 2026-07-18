@@ -85,6 +85,7 @@ fn aspect_slice_app() -> WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn published_aspect_query() -> UiInspectionQuery {

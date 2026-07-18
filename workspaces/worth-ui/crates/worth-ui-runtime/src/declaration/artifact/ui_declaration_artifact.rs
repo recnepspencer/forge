@@ -157,27 +157,8 @@ impl UiDeclarationArtifact {
     pub(crate) fn admit_source_backed_mosaic_sizing_contract_id(
         &mut self,
         source_mosaic_sizing_contract_id: MosaicSizingContractId,
-    ) -> Result<(), UiDeclarationGraphHandoffDenial> {
-        if let Some(declared_mosaic_sizing_contract_id) = self
-            .structural_semantics()
-            .map_err(
-                |denial| UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                    denial: denial.clone(),
-                },
-            )?
-            .mosaic_sizing_contract_id()
-        {
-            if declared_mosaic_sizing_contract_id != &source_mosaic_sizing_contract_id {
-                return Err(
-                    UiDeclarationGraphHandoffDenial::SourceBackedMosaicSizingContractConflict {
-                        declared: declared_mosaic_sizing_contract_id.clone(),
-                        sourced: source_mosaic_sizing_contract_id,
-                    },
-                );
-            }
-        }
+    ) {
         self.source_backed_mosaic_sizing_contract_id = Some(source_mosaic_sizing_contract_id);
-        Ok(())
     }
 
     pub(crate) fn admit_source_backed_mosaic_membership_name(
@@ -317,14 +298,7 @@ impl UiDeclarationArtifact {
             if policy.constraint_modifier().is_some() {
                 policy
             } else {
-                UiDeclaredMeasurementPolicyPosture::new(
-                    policy.mode(),
-                    Some(modifier),
-                    policy.basis_source(),
-                    policy.ownership_posture(),
-                    policy.evidence_requirements().to_vec(),
-                )
-                .expect("source-backed measurement modifier should preserve admitted policy shape")
+                policy.with_constraint_modifier(modifier)
             }
         });
 

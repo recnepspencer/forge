@@ -60,20 +60,40 @@ impl WorthUiSourceBackedDeclarationWitness {
             .get(&(module_path.to_owned(), declaration_index))
     }
 
-    #[cfg(test)]
-    pub(crate) fn sorted_mosaic_membership_names(&self) -> Vec<&str> {
-        let mut names = self
-            .declaration_claims
-            .values()
-            .map(WorthUiSourceBackedDeclarationClaims::mosaic_membership_name)
-            .collect::<Vec<_>>();
-        names.sort_unstable();
-        names
+    pub(crate) fn identity_digest(&self) -> u64 {
+        self.declaration_claims.iter().fold(
+            fold_text("source-backed-declaration-witness"),
+            |digest, ((module_path, declaration_index), claims)| {
+                digest.rotate_left(7)
+                    ^ fold_text(module_path)
+                    ^ (*declaration_index as u64).rotate_left(11)
+                    ^ fold_text(claims.mosaic_membership_name()).rotate_left(17)
+                    ^ claims
+                        .measurement_constraint_modifier()
+                        .map_or(0, measurement_modifier_digest)
+                        .rotate_left(23)
+                    ^ fold_text(claims.mosaic_sizing_contract_id().as_str()).rotate_left(29)
+            },
+        )
     }
 }
 
+fn measurement_modifier_digest(modifier: UiDeclaredMeasurementConstraintModifier) -> u64 {
+    match modifier {
+        UiDeclaredMeasurementConstraintModifier::Bounded => fold_text("bounded"),
+    }
+}
+
+fn fold_text(text: &str) -> u64 {
+    text.as_bytes()
+        .iter()
+        .fold(0xcbf2_9ce4_8422_2325, |digest, byte| {
+            (digest ^ u64::from(*byte)).wrapping_mul(0x100_0000_01b3)
+        })
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthUiSourceBackedDslPackage {
+pub(crate) struct WorthUiSourceBackedDslPackage {
     dsl_package: WorthUiDslPackage,
     declaration_witness: WorthUiSourceBackedDeclarationWitness,
 }
@@ -89,16 +109,11 @@ impl WorthUiSourceBackedDslPackage {
         }
     }
 
-    pub fn dsl_package(&self) -> &WorthUiDslPackage {
+    pub(crate) fn dsl_package(&self) -> &WorthUiDslPackage {
         &self.dsl_package
     }
 
-    #[cfg(test)]
     pub(crate) fn declaration_witness(&self) -> &WorthUiSourceBackedDeclarationWitness {
         &self.declaration_witness
-    }
-
-    pub(crate) fn into_parts(self) -> (WorthUiDslPackage, WorthUiSourceBackedDeclarationWitness) {
-        (self.dsl_package, self.declaration_witness)
     }
 }

@@ -20,7 +20,8 @@ fn public_freeze_derives_support_snapshot_from_admitted_declaration_authority() 
             WorthUiDslPackage::named("worth-ui.certification.declaration-support")
                 .with_semantic_artifact_spec(control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/declaration_support.wui", 0);
     let snapshot = artifact
         .support_snapshot()
@@ -44,7 +45,8 @@ fn public_freeze_localizes_future_semantics_to_exact_support_rows() {
             WorthUiDslPackage::named("worth-ui.certification.declaration-support.localization")
                 .with_semantic_artifact_spec(page_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/declaration_support.wui", 1);
     let snapshot = artifact
         .support_snapshot()
@@ -87,7 +89,8 @@ fn public_freeze_preserves_representative_support_shapes_across_family_classes()
                 .with_semantic_artifact_spec(control_spec())
                 .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let page = artifact_from_file_provenance(&app, "app/declaration_support.wui", 1);
     let region = artifact_from_file_provenance(&app, "app/declaration_support.wui", 2);
@@ -147,7 +150,8 @@ fn public_app_inspection_surfaces_use_declaration_support_projection() {
             WorthUiDslPackage::named("worth-ui.certification.declaration-support.inspection")
                 .with_semantic_artifact_spec(page_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let mounting_report = app.inspection_support_report(UiInspectionScope::Mounting);
     assert_eq!(
         mounting_report.status(),
@@ -205,7 +209,8 @@ fn public_app_inspection_receipts_keep_diagnostic_only_support_visible() {
             )
             .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
         UiInspectionTarget::declared_surface("app/declaration_support.wui", 3),
         UiInspectionScope::Mounting,
@@ -242,7 +247,8 @@ fn public_declaration_support_projection_keeps_diagnostic_only_rows_visible() {
             WorthUiDslPackage::named("worth-ui.certification.declaration-support.diagnostic")
                 .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/declaration_support.wui", 3);
     let rows = artifact
         .support_snapshot()

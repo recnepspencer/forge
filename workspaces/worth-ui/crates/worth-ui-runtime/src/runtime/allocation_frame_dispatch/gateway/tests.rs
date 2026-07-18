@@ -82,15 +82,19 @@ where
         | crate::runtime::WorthUiFrameworkTurnCompletion::DragResizePreviewPending { .. } => {
             TestFrameworkTurnPosture::Resolved
         }
-        crate::runtime::WorthUiFrameworkTurnCompletion::UnacceptedFrameBackpressured
-        | crate::runtime::WorthUiFrameworkTurnCompletion::Phase6Backpressured
-        | crate::runtime::WorthUiFrameworkTurnCompletion::AllocationFrameResolutionDenied {
+        crate::runtime::WorthUiFrameworkTurnCompletion::AllocationFrameResolutionDenied {
             ..
         }
         | crate::runtime::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied {
             ..
         }
         | crate::runtime::WorthUiFrameworkTurnCompletion::AllocationReplanSelectionDenied {
+            ..
+        }
+        | crate::runtime::WorthUiFrameworkTurnCompletion::FrameworkTransitionPlanningDenied {
+            ..
+        }
+        | crate::runtime::WorthUiFrameworkTurnCompletion::FrameworkTransitionExecutionDenied {
             ..
         }
         | crate::runtime::WorthUiFrameworkTurnCompletion::ViewportResizeDenied { .. } => {
@@ -131,7 +135,6 @@ fn interaction_gateway_reaches_only_the_framework_turn_capability() {
     );
 
     assert_eq!(turn_outcome, TestFrameworkTurnPosture::Denied);
-    assert!(framework.pending_narrowed_allocation_frame.is_none());
 }
 
 #[test]

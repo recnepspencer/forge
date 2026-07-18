@@ -24,8 +24,8 @@ pub(super) fn assert_failure_preserves_active_runtime(
     );
     assert_preservation_receipt(
         failure.preservation_receipt(),
-        previous_active,
-        previous_last_valid,
+        &previous_active,
+        &previous_last_valid,
     );
     assert_preserved_counters(failure.counters());
     assert_preserved_counters(failure.failed_activation_report().counters());
@@ -48,8 +48,8 @@ pub(super) fn assert_failure_preserves_active_runtime(
 
 fn assert_preservation_receipt(
     receipt: WorthUiReloadPreservationReceipt,
-    previous_active: WorthUiActiveRuntimeObservation,
-    previous_last_valid: WorthUiLastValidObservation,
+    previous_active: &WorthUiActiveRuntimeObservation,
+    previous_last_valid: &WorthUiLastValidObservation,
 ) {
     assert_eq!(
         receipt.active_artifact_digest(),
@@ -139,7 +139,11 @@ pub(super) fn stale_dependency_candidate_denial() -> WorthUiReplacementCandidate
     WorthUiCandidateArtifactBundle::seal(
         candidate_artifact,
         stale_metadata,
-        WorthUi::app().freeze().capabilities().digest(),
+        WorthUi::app()
+            .freeze()
+            .expect("application preparation should succeed")
+            .capabilities()
+            .digest(),
     )
     .expect_err("stale dependency metadata denies")
 }

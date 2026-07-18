@@ -1,7 +1,7 @@
 use worth_ui::facade::{MeasurementValue, MosaicSizingKind, WorthUi};
 
-use crate::sizing_assertions::assert_registered_mosaic_sizing_ids;
-use crate::sizing_fixtures::{
+use super::sizing_assertions::assert_registered_mosaic_sizing_ids;
+use super::sizing_fixtures::{
     bounded_sidebar_contract, complete_sizing_contract, fixed_toolbar_contract,
 };
 
@@ -10,11 +10,13 @@ fn equivalent_named_sizing_contracts_produce_equivalent_entries() {
     let first = WorthUi::app()
         .register_mosaic_sizing_contract(bounded_sidebar_contract("workspace.sizing.sidebar"))
         .register_mosaic_sizing_contract(fixed_toolbar_contract("workspace.sizing.toolbar"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_mosaic_sizing_contract(fixed_toolbar_contract("workspace.sizing.toolbar"))
         .register_mosaic_sizing_contract(bounded_sidebar_contract("workspace.sizing.sidebar"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().mosaic_sizing_contracts(),
@@ -34,13 +36,15 @@ fn equivalent_named_sizing_contracts_produce_equivalent_entries() {
 fn different_named_sizing_meaning_changes_snapshot_digest() {
     let bounded = WorthUi::app()
         .register_mosaic_sizing_contract(bounded_sidebar_contract("workspace.sizing.sidebar"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let fill = WorthUi::app()
         .register_mosaic_sizing_contract(complete_sizing_contract(
             "workspace.sizing.sidebar",
             MosaicSizingKind::fill(),
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         bounded.capabilities().mosaic_sizing_contracts(),
@@ -56,7 +60,8 @@ fn different_named_sizing_meaning_changes_snapshot_digest() {
 fn named_measurement_values_remain_inspectable_after_freeze() {
     let app = WorthUi::app()
         .register_mosaic_sizing_contract(bounded_sidebar_contract("workspace.sizing.sidebar"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let descriptor = &app.capabilities().mosaic_sizing_contracts().descriptors()[0];
 
     assert_eq!(descriptor.kind(), &MosaicSizingKind::bounded());

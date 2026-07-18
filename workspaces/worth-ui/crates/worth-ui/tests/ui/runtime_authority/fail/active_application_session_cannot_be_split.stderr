@@ -1,0 +1,11 @@
+error[E0616]: field `runtime` of struct `WorthUiActiveApplicationSession` is private
+ --> tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs:4:28
+  |
+4 |     let _runtime = session.runtime;
+  |                            ^^^^^^^ private field
+
+error[E0616]: field `app` of struct `WorthUiActiveApplicationSession` is private
+ --> tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs:5:31
+  |
+5 |     let _inspection = session.app;
+  |                               ^^^ private field

@@ -1,21 +1,7 @@
-error: cannot construct `WorthUiApp` with struct literal syntax due to private fields
- --> tests/ui/facade/construction/sealed_lifecycle/direct_app_construction_fails.rs:4:13
+error[E0560]: struct `WorthUiApp` has no field named `capability_snapshot`
+ --> tests/ui/facade/construction/sealed_lifecycle/direct_app_construction_fails.rs:5:9
   |
-4 |     let _ = WorthUiApp {
-  |             ^^^^^^^^^^
 5 |         capability_snapshot: capability_snapshot(),
-  |         ------------------------------------------ private field
+  |         ^^^^^^^^^^^^^^^^^^^ `WorthUiApp` does not have this field
   |
-  = note: ...and other private fields that were not provided
-help: you might have meant to use an associated function to build this type
-  |
-4 -     let _ = WorthUiApp {
-5 -         capability_snapshot: capability_snapshot(),
-6 -     };
-4 +     let _ = WorthUiApp::from_freeze_core_with_query_binding(_, _);
-  |
-4 -     let _ = WorthUiApp {
-5 -         capability_snapshot: capability_snapshot(),
-6 -     };
-4 +     let _ = WorthUiApp::from_authority_parts(_, _, _, _);
-  |
+  = note: all struct fields are already assigned

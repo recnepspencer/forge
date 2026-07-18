@@ -28,13 +28,15 @@ fn verdict_stop_posture_keeps_support_and_world_denials_structurally_distinct() 
                 .with_semantic_artifact_spec(deferred_surface_spec())
                 .with_semantic_artifact_spec(diagnostic_only_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.obligation-verdict.foreign")
                 .with_semantic_artifact_spec(foreign_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let preview_app = WorthUi::app()
         .with_graph_world_profile(UiGraphWorldProfile::preview_session_label(
             UiGraphSessionLabel::new("worth-ui.phase5.preview")
@@ -44,7 +46,8 @@ fn verdict_stop_posture_keeps_support_and_world_denials_structurally_distinct() 
             WorthUiDslPackage::named("worth-ui.certification.obligation-verdict.preview")
                 .with_semantic_artifact_spec(supported_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let supported = artifact_from_file_provenance(&app, "app/obligation_verdict_runtime.wui", 0);
     let deferred = artifact_from_file_provenance(&app, "app/obligation_verdict_runtime.wui", 1);
@@ -141,17 +144,18 @@ fn verdict_stop_posture_keeps_support_and_world_denials_structurally_distinct() 
     );
 }
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 #[test]
 fn blocked_selected_entry_verdicts_keep_identity_check_kind_and_reasons() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
-    let bundle = obligation_dispatch_prerequisite_support::targets::execute_for_target(
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
+    let bundle = obligation_dispatch_prerequisite_support::dispatch_execution::execute_for_target(
         &app,
         &touch,
-        obligation_dispatch_prerequisite_support::targets::wrong_query_basis_target(&touch),
+        obligation_dispatch_prerequisite_support::admission_targets::wrong_query_basis_target(
+            &touch,
+        ),
     );
 
     assert_eq!(bundle.verdicts.len(), bundle.selected.obligations().len());

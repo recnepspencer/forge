@@ -143,6 +143,7 @@ fn page_root_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiAp
     WorthUi::app()
         .with_graph_world_profile(world_profile)
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn graph_node_identity_for_provenance(app: &crate::facade::WorthUiApp) -> UiGraphNodeIdentity {

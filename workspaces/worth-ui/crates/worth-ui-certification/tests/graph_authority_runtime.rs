@@ -23,7 +23,8 @@ fn public_app_freeze_exposes_committed_graph_authority_with_typed_identity_basis
             WorthUiDslPackage::named("worth-ui.certification.graph-authority")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let artifact = artifact_from_file_provenance(&app, "app/graph_authority_primary.wui", 0);
     let graph = app.graph();
@@ -57,7 +58,8 @@ fn unrelated_sibling_churn_does_not_rewrite_primary_runtime_graph_identity() {
                 .with_semantic_artifact_spec(primary_control_spec())
                 .with_semantic_artifact_spec(secondary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let churned = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.graph-identity.stable")
@@ -65,7 +67,8 @@ fn unrelated_sibling_churn_does_not_rewrite_primary_runtime_graph_identity() {
                 .with_semantic_artifact_spec(unrelated_inserted_control_spec())
                 .with_semantic_artifact_spec(secondary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let baseline_artifact =
         artifact_from_file_provenance(&baseline, "app/graph_authority_primary.wui", 0);
@@ -108,21 +111,24 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
             WorthUiDslPackage::named("worth-ui.certification.graph-world.alpha")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let alpha_again = WorthUi::app()
         .with_graph_world_profile(alpha_world)
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.graph-world.alpha")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let beta = WorthUi::app()
         .with_graph_world_profile(beta_world)
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.graph-world.alpha")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         alpha.graph().compare_to(alpha_again.graph()).kind(),
@@ -147,21 +153,24 @@ fn graph_world_profile_compare_distinguishes_query_snapshot_basis_worlds() {
             WorthUiDslPackage::named("worth-ui.certification.graph-world.query")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let alpha_again = WorthUi::app()
         .with_graph_world_profile(alpha_world)
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.graph-world.query")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let beta = WorthUi::app()
         .with_graph_world_profile(beta_world)
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.graph-world.query")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         alpha.graph().compare_to(alpha_again.graph()).kind(),
@@ -180,7 +189,8 @@ fn graph_instantiation_plan_denies_basis_free_runtime_multiplicity_before_snapsh
             WorthUiDslPackage::named("worth-ui.certification.graph-basis.denial")
                 .with_semantic_artifact_spec(primary_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let handoff = artifact_from_file_provenance(&app, "app/graph_authority_primary.wui", 0)
         .graph_handoff()

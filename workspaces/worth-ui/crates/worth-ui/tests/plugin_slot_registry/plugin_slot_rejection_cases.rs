@@ -93,13 +93,15 @@ fn plugin_slot_reports_all_missing_required_postures() {
 fn plugin_slot_support_posture_participates_in_snapshot_digest() {
     let supported = WorthUi::app()
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let deferred = WorthUi::app()
         .register_plugin_slot(
             plugin_slot("workspace.plugin_slot.commands")
                 .with_support(PluginSlotSupportPosture::deferred()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         supported.capabilities().plugin_slots(),

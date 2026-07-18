@@ -7,7 +7,6 @@ use crate::source::{
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
     WorthUiSourceModuleId,
 };
-#[cfg(test)]
 use crate::source::{
     WorthUiArtifactInputImportNode, WorthUiArtifactInputReference, WorthUiArtifactInputTokenNode,
 };
@@ -17,32 +16,44 @@ use super::worth_ui_rust_authored_artifact_input_module::WorthUiRustAuthoredDecl
 #[derive(Clone, Debug, Default)]
 pub(crate) struct WorthUiRustAuthoredToArtifactInputLowerer;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthUiRustAuthoredInputLoweringDenial {
+    InvalidModulePath,
+    DuplicateModuleIdentity,
+}
+
 impl WorthUiRustAuthoredToArtifactInputLowerer {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn lower(
         rust_authored_input: &WorthUiRustAuthoredArtifactInput,
     ) -> WorthUiArtifactInput {
+        Self::try_lower(rust_authored_input)
+            .expect("internal Rust-authored fixture should contain valid unique module paths")
+    }
+
+    pub(crate) fn try_lower(
+        rust_authored_input: &WorthUiRustAuthoredArtifactInput,
+    ) -> Result<WorthUiArtifactInput, WorthUiRustAuthoredInputLoweringDenial> {
         let mut modules = BTreeMap::new();
         let mut canonical_module_order = Vec::new();
 
         for module in rust_authored_input.modules() {
             let module_id =
                 WorthUiSourceModuleId::from_relative_path(Path::new(module.relative_module_path()))
-                    .expect("rust-authored module path should be valid");
+                    .map_err(|_| WorthUiRustAuthoredInputLoweringDenial::InvalidModulePath)?;
             let nodes = lower_rust_authored_module(module);
             canonical_module_order.push(module_id.clone());
             let previous_module = modules.insert(
                 module_id.clone(),
                 WorthUiArtifactInputModule::new(module_id, nodes),
             );
-            assert!(
-                previous_module.is_none(),
-                "rust-authored module identity must be unique after canonicalization"
-            );
+            if previous_module.is_some() {
+                return Err(WorthUiRustAuthoredInputLoweringDenial::DuplicateModuleIdentity);
+            }
         }
 
-        WorthUiArtifactInputNormalizer::normalize(WorthUiArtifactInput::new(
-            modules,
-            canonical_module_order,
+        Ok(WorthUiArtifactInputNormalizer::normalize(
+            WorthUiArtifactInput::new(modules, canonical_module_order),
         ))
     }
 }
@@ -60,14 +71,12 @@ fn lower_rust_authored_module(
                 declaration_index,
             );
             match declaration {
-                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Import { target_module_path } => {
                     WorthUiArtifactInputNode::Import(WorthUiArtifactInputImportNode::new(
                         WorthUiArtifactInputReference::new(target_module_path),
                         provenance,
                     ))
                 }
-                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Component {
                     name_text,
                     authored_identity,
@@ -78,7 +87,6 @@ fn lower_rust_authored_module(
                     body_atoms.clone(),
                     provenance,
                 )),
-                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Surface {
                     name_text,
                     authored_identity,
@@ -99,7 +107,6 @@ fn lower_rust_authored_module(
                     body_atoms.clone(),
                     provenance,
                 )),
-                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Token {
                     name_text,
                     authored_identity,

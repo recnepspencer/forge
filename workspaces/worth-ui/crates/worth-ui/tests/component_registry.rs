@@ -20,11 +20,13 @@ fn equivalent_component_descriptors_produce_equivalent_entries() {
     let first = WorthUi::app()
         .register_component(component_descriptor("workspace.component.editor"))
         .register_component(component_descriptor("workspace.component.sidebar"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_component(component_descriptor("workspace.component.sidebar"))
         .register_component(component_descriptor("workspace.component.editor"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().components(),
@@ -226,7 +228,8 @@ fn component_command_binding_resolves_against_registered_command() {
             component_descriptor("workspace.component.editor")
                 .with_command_binding_slot(command_id("workspace.command.open")),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()
@@ -296,7 +299,8 @@ fn component_descriptor_reports_multiple_independent_violations() {
 fn different_component_descriptor_meaning_produces_different_snapshot_digest() {
     let passive = WorthUi::app()
         .register_component(component_descriptor("workspace.component.editor"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let interactive = WorthUi::app()
         .register_component(
             component_descriptor("workspace.component.editor")
@@ -304,7 +308,8 @@ fn different_component_descriptor_meaning_produces_different_snapshot_digest() {
                 .with_focus(ComponentFocusSupport::focusable())
                 .with_execution_lane(ComponentExecutionLane::Interactive),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         passive.capabilities().components(),
@@ -325,7 +330,8 @@ fn component_accessibility_focus_and_execution_metadata_survive_freeze() {
                 .with_focus(ComponentFocusSupport::focus_container())
                 .with_execution_lane(ComponentExecutionLane::Virtualized),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     let descriptor = app
         .capabilities()

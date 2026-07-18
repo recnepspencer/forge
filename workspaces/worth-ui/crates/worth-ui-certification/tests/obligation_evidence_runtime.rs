@@ -7,15 +7,16 @@ use worth_ui::facade::inspection::{
 use worth_ui::facade::obligations::UiObligationEvidenceDecision;
 use worth_ui_runtime::facade::obligations::UiSelectedObligationEvidenceProjection;
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 #[test]
 fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let target =
-        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
+        obligation_dispatch_prerequisite_support::admission_targets::graph_aligned_query_target(
+            &touch,
+        );
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target.clone());
@@ -144,7 +145,9 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
     }));
 
     let denied_report = app.admission().report(
-        obligation_dispatch_prerequisite_support::targets::wrong_query_basis_target(&touch),
+        obligation_dispatch_prerequisite_support::admission_targets::wrong_query_basis_target(
+            &touch,
+        ),
     );
     let denial_receipt = denied_report.inspect(
         UiInspectionQuery::new(
@@ -220,10 +223,12 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
 
 #[test]
 fn evidence_provenance_uses_owner_artifact_identity_instead_of_surrogate_target_digests() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let target =
-        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
+        obligation_dispatch_prerequisite_support::admission_targets::graph_aligned_query_target(
+            &touch,
+        );
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target.clone());

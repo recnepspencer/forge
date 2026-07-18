@@ -24,7 +24,8 @@ fn external_consumer_installs_derives_registers_and_projects_through_public_faca
     let app = WorthUi::app()
         .register_query_view(view)
         .expect("the public builder registers installed authority")
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     assert_eq!(app.capabilities().view_bindings().len(), 1);
     let mut runtime = launch_empty_runtime_for_certification(&app);
 

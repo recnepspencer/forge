@@ -5,11 +5,13 @@ fn equivalent_mosaic_region_descriptors_produce_equivalent_entries() {
     let first = WorthUi::app()
         .register_mosaic_region_kind(mosaic_region_descriptor("workspace.region.primary"))
         .register_mosaic_region_kind(mosaic_region_descriptor("workspace.region.sidebar"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let second = WorthUi::app()
         .register_mosaic_region_kind(mosaic_region_descriptor("workspace.region.sidebar"))
         .register_mosaic_region_kind(mosaic_region_descriptor("workspace.region.primary"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_eq!(
         first.capabilities().mosaic_regions(),
@@ -75,13 +77,15 @@ fn duplicate_mosaic_region_id_rejects_only_the_duplicate_identity() {
 fn different_mosaic_region_descriptor_meaning_produces_different_snapshot_digest() {
     let primary = WorthUi::app()
         .register_mosaic_region_kind(mosaic_region_descriptor("workspace.region.primary"))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let modal = WorthUi::app()
         .register_mosaic_region_kind(mosaic_region_descriptor_with_role(
             "workspace.region.primary",
             MosaicRegionRole::modal(),
         ))
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         primary.capabilities().mosaic_regions(),
@@ -101,14 +105,16 @@ fn different_allowed_surface_classes_change_snapshot_digest() {
                 .with_allowed_surface_class(SurfacePlacementClass::primary_region())
                 .with_allowed_surface_class(SurfacePlacementClass::status_region()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let split = WorthUi::app()
         .register_mosaic_region_kind(
             mosaic_region_descriptor("workspace.region.primary")
                 .with_allowed_surface_class(SurfacePlacementClass::primary_region())
                 .with_allowed_surface_class(SurfacePlacementClass::overlay_layer()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_ne!(
         combined.capabilities().mosaic_regions(),

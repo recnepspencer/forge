@@ -1,0 +1,5 @@
+error[E0451]: field `request` of struct `UiHostObservation` is private
+  --> tests/ui/host_observation_private.rs:24:29
+   |
+24 |     let UiHostObservation { request: _, .. } = observation;
+   |                             ^^^^^^^ private field

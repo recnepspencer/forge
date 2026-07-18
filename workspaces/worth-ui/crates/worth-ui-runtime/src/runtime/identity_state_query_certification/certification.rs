@@ -36,7 +36,7 @@ impl WorthUiIdentityStateCertification {
             counters.record_state_step();
             crate::runtime::identity_state_query_certification::state_certification::certify_state_step_receipts(
                 step,
-                active_observation,
+                &active_observation,
                 &mut counters,
                 &mut state_receipts,
                 &mut carry_forward_receipts,
@@ -48,7 +48,7 @@ impl WorthUiIdentityStateCertification {
             counters.record_query_step();
             crate::runtime::identity_state_query_certification::query_step_certification::certify_query_rebind_step(
                 step,
-                active_observation,
+                &active_observation,
                 &mut counters,
             )?;
             rebind_plans.push(step.rebind_plan().clone());
@@ -85,8 +85,8 @@ impl WorthUiIdentityStateCertification {
         &self.scenario_name
     }
 
-    pub fn active_observation(&self) -> WorthUiActiveRuntimeObservation {
-        self.active_observation
+    pub fn active_observation(&self) -> &WorthUiActiveRuntimeObservation {
+        &self.active_observation
     }
 
     pub fn state_receipts(&self) -> &[WorthUiStateLifecycleReceipt] {

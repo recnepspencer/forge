@@ -49,6 +49,12 @@ pub struct UiAllocationFrameSubmissionAssignment {
 }
 
 impl UiAdmittedAllocationStreamFrame {
+    pub(in crate::runtime::allocation_frame_dispatch) fn frame_epoch_assignment(
+        &self,
+    ) -> super::super::UiAllocationFrameEpochAssignment {
+        super::super::UiAllocationFrameEpochAssignment::from_sealed_frame(self)
+    }
+
     pub(crate) fn into_policy_input(
         self,
     ) -> (
@@ -78,8 +84,7 @@ impl UiAdmittedAllocationStreamFrame {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn epoch(&self) -> UiAllocationFrameEpoch {
+    pub(in crate::runtime::allocation_frame_dispatch) fn epoch(&self) -> UiAllocationFrameEpoch {
         self.epoch
     }
     #[cfg(test)]

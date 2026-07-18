@@ -21,5 +21,5 @@ fn main() {
             .with_clipping(MosaicClippingPosture::clip_to_region())
             .with_hit_test(MosaicHitTestPosture::participates()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

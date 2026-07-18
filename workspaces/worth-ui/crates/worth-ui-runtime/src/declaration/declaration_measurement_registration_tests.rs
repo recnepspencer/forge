@@ -181,7 +181,8 @@ fn registered_measurement_artifacts_do_not_change_declaration_measurement_postur
         .with_semantic_artifact_spec(portal_measurement_control_spec());
     let baseline = WorthUi::app()
         .with_dsl_package(dsl_package.clone())
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let with_registered_measurement = WorthUi::app()
         .with_dsl_package(dsl_package)
         .register_mosaic_sizing_contract(registered_measurement_descriptor(
@@ -191,7 +192,8 @@ fn registered_measurement_artifacts_do_not_change_declaration_measurement_postur
             hostile_sizing_contract_id().as_str(),
         ))
         .register_mosaic_region_kind(hostile_scroll_region_descriptor())
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_hostile_capabilities_are_admitted(&with_registered_measurement);
 

@@ -21,6 +21,7 @@ pub(super) fn query_bound_app() -> WorthUiApp {
         .register_view_binding(query_bound_view_binding("workspace.view_binding.selection"))
         .register_view_binding(query_bound_view_binding("workspace.view_binding.detail"))
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn query_bound_surface_app() -> WorthUiApp {
@@ -48,6 +49,7 @@ pub(super) fn query_bound_surface_app() -> WorthUiApp {
         ))
         .register_view_binding(query_bound_view_binding("workspace.view_binding.selection"))
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn query_bound_artifact(app: &WorthUiApp, binding_id: &str) -> WorthUiArtifact {

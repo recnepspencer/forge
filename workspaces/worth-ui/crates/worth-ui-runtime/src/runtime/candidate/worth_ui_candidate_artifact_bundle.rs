@@ -2,18 +2,20 @@ use crate::capability::CapabilitySnapshotDigest;
 #[cfg(test)]
 use crate::runtime::candidate::worth_ui_candidate_dependency_metadata_digest::digest_dependency_report;
 use crate::runtime::candidate::WorthUiCandidateLoweringBasis;
+#[cfg(test)]
+use crate::runtime::candidate::WorthUiReplacementCandidateDenial;
 use crate::runtime::candidate::{
     WorthUiCandidateDependencyMetadata, WorthUiReplacementCandidateBasis,
-    WorthUiReplacementCandidateDenial,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDependencyDeriver, WorthUiArtifactDigest,
     WorthUiArtifactDigestReport, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
 };
+use std::rc::Rc;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthUiCandidateArtifactBundle {
-    artifact: WorthUiArtifact,
+    artifact: Rc<WorthUiArtifact>,
     artifact_digest: WorthUiArtifactDigest,
     artifact_digest_report: WorthUiArtifactDigestReport,
     dependency_metadata: WorthUiCandidateDependencyMetadata,
@@ -24,7 +26,7 @@ impl WorthUiCandidateArtifactBundle {
     pub(crate) fn derive_and_seal(
         artifact: WorthUiArtifact,
         snapshot_digest: CapabilitySnapshotDigest,
-    ) -> Result<Self, WorthUiReplacementCandidateDenial> {
+    ) -> Self {
         let (artifact_digest, artifact_digest_report) = digest_artifact(&artifact);
         let dependency_report = WorthUiArtifactDependencyDeriver::derive_with_report(&artifact);
         let dependency_metadata = WorthUiCandidateDependencyMetadata::from_derived_report(
@@ -35,13 +37,13 @@ impl WorthUiCandidateArtifactBundle {
             snapshot_digest,
             &dependency_metadata,
         );
-        Ok(Self {
-            artifact,
+        Self {
+            artifact: Rc::new(artifact),
             artifact_digest,
             artifact_digest_report,
             dependency_metadata,
             lowering_basis,
-        })
+        }
     }
 
     #[cfg(test)]
@@ -62,7 +64,7 @@ impl WorthUiCandidateArtifactBundle {
             &dependency_metadata,
         );
         Ok(Self {
-            artifact,
+            artifact: Rc::new(artifact),
             artifact_digest,
             artifact_digest_report,
             dependency_metadata,
@@ -71,11 +73,11 @@ impl WorthUiCandidateArtifactBundle {
     }
 
     pub(crate) fn artifact(&self) -> &WorthUiArtifact {
-        &self.artifact
+        self.artifact.as_ref()
     }
 
-    pub(crate) fn into_artifact(self) -> WorthUiArtifact {
-        self.artifact
+    pub(crate) fn artifact_authority(&self) -> Rc<WorthUiArtifact> {
+        Rc::clone(&self.artifact)
     }
 
     pub(crate) fn artifact_digest(&self) -> WorthUiArtifactDigest {
@@ -124,7 +126,7 @@ impl WorthUiCandidateArtifactBundle {
         }
         reject_stale_dependency_metadata(&artifact, &dependency_metadata)?;
         Ok(Self {
-            artifact,
+            artifact: Rc::new(artifact),
             artifact_digest,
             artifact_digest_report,
             dependency_metadata,

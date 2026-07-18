@@ -32,17 +32,12 @@ pub(super) fn mosaic_peer_app_with_contracts(
     include_alternate_contract: bool,
 ) -> WorthUiApp {
     let source_provider = source_backed_mosaic_source_provider(package_name, sizing_contract_ids);
-    let support_app = WorthUi::app()
-        .register_component(component_descriptor("workspace.component.workflow_editor"))
-        .register_component(component_descriptor(
-            "workspace.component.workflow_editor.peer_a",
-        ))
-        .register_component(component_descriptor(
-            "workspace.component.workflow_editor.peer_b",
-        ))
-        .register_mosaic_region_kind(primary_region())
-        .register_mosaic_sizing_contract(mosaic_runtime_sizing())
-        .freeze();
+    let support_app = mosaic_peer_builder(
+        crate::graph::UiGraphWorldProfile::authoritative(),
+        include_alternate_contract,
+    )
+    .freeze()
+    .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
         .source_ingress(source_provider)
         .start()
@@ -50,10 +45,16 @@ pub(super) fn mosaic_peer_app_with_contracts(
         .expect("source-backed mosaic provider should debounce to one candidate batch")
         .lower_to_candidate_submission(support_app.capabilities())
         .expect("source-backed mosaic candidate should lower through source ingress");
-    let source_backed_package = submission
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("file-authored source ingress should emit one sealed source-backed package");
+    mosaic_peer_builder(world_profile, include_alternate_contract)
+        .with_candidate_submission(submission)
+        .freeze()
+        .expect("application preparation should succeed")
+}
+
+fn mosaic_peer_builder(
+    world_profile: crate::graph::UiGraphWorldProfile,
+    include_alternate_contract: bool,
+) -> crate::facade::entry::WorthUiBuilder {
     let mut builder = WorthUi::app()
         .with_graph_world_profile(world_profile)
         .register_component(component_descriptor("workspace.component.workflow_editor"))
@@ -64,12 +65,11 @@ pub(super) fn mosaic_peer_app_with_contracts(
             "workspace.component.workflow_editor.peer_b",
         ))
         .register_mosaic_region_kind(primary_region())
-        .with_source_backed_dsl_package(source_backed_package)
         .register_mosaic_sizing_contract(mosaic_runtime_sizing());
     if include_alternate_contract {
         builder = builder.register_mosaic_sizing_contract(mosaic_alternate_runtime_sizing());
     }
-    builder.freeze()
+    builder
 }
 
 pub(super) fn graph_node_identity_for_provenance(

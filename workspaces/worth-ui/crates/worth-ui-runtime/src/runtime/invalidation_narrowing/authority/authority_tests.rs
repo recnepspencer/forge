@@ -103,6 +103,14 @@ fn ordinary_frame_narrows_only_through_existing_graph_authority() {
     let narrowed = completion
         .narrowed_plan()
         .expect("existing graph authority permits narrowing");
+    let counters = completion
+        .planning_counters()
+        .expect("ordinary plan publishes structural counters");
+    assert_eq!(counters.admitted_ingress_width(), 1);
+    assert_eq!(counters.invalidation_breadth(), 1);
+    assert_eq!(counters.selected_neighborhood_breadth(), 1);
+    assert_eq!(counters.policy_family_count(), 1);
+    assert_eq!(counters.policy_classification_count(), 1);
     assert_eq!(narrowed.counters().graph_target_lookups(), 1);
     assert_eq!(narrowed.counters().emitted_targets(), 1);
     let crate::runtime::UiAllocationInvalidationTarget::Graph(target) =

@@ -135,6 +135,34 @@ impl WorthUiScrollOffsetTurnSource<'_> {
 }
 
 impl WorthUiHostMeasurementTurnSource<'_> {
+    pub fn collect_and_submit_capability(
+        &mut self,
+        capability: &crate::facade::WorthUiHostMeasurementCapability,
+        input: crate::facade::WorthUiHostMeasurementSessionInput,
+    ) -> Result<UiAllocationFrameGatewayOutcome, crate::host::UiHostMeasurementEvidenceDenial> {
+        let active_identity = self
+            .runtime
+            .host_session_identity
+            .ok_or(crate::host::UiHostMeasurementEvidenceDenial::MissingOperationalHostSession)?;
+        if active_identity != capability.session_identity() {
+            return Err(crate::host::UiHostMeasurementEvidenceDenial::ForeignHostSession);
+        }
+        let active_generation = self
+            .runtime
+            .host_observation_generation
+            .ok_or(crate::host::UiHostMeasurementEvidenceDenial::MissingOperationalHostSession)?;
+        if active_generation != capability.observation_generation() {
+            return Err(
+                crate::host::UiHostMeasurementEvidenceDenial::StaleHostObservationGeneration,
+            );
+        }
+        self.runtime.collect_and_submit_host_measurement(
+            capability.adapter(),
+            input.bind_report(capability.capability_report()),
+        )
+    }
+
+    #[cfg(test)]
     pub fn collect_and_submit<A: worth_ui_host_contract::WorthUiMeasurementHostAdapter>(
         &mut self,
         adapter: &A,

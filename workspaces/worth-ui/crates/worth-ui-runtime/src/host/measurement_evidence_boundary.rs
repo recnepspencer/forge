@@ -62,7 +62,7 @@ impl WorthUiHostMeasurementCollector {
         Self::new(Rc::new(RefCell::new(Default::default())))
     }
 
-    pub fn collect<A: WorthUiMeasurementHostAdapter>(
+    pub(crate) fn collect<A: WorthUiMeasurementHostAdapter + ?Sized>(
         &self,
         adapter: &A,
         input: UiHostMeasurementCollectionInput<'_>,
@@ -71,7 +71,7 @@ impl WorthUiHostMeasurementCollector {
     }
 
     /// Collect, normalize, freshness-admit, and source-position one host fact.
-    pub fn collect_admitted<A: WorthUiMeasurementHostAdapter>(
+    pub(crate) fn collect_admitted<A: WorthUiMeasurementHostAdapter + ?Sized>(
         &self,
         adapter: &A,
         input: UiHostMeasurementCollectionInput<'_>,
@@ -81,7 +81,7 @@ impl WorthUiHostMeasurementCollector {
     }
 }
 
-pub(crate) fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter>(
+pub(crate) fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter + ?Sized>(
     source: &mut UiHostMeasurementSourceAuthority,
     adapter: &A,
     input: UiHostMeasurementCollectionInput<'_>,

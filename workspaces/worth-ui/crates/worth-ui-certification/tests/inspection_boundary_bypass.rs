@@ -10,10 +10,11 @@ fn fixture_root(name: &str) -> PathBuf {
 
 #[test]
 fn anti_bypass_certification_rejects_hostile_consumer_fixture() {
-    let violations = certify_consumers_route_inspection_through_worth_ui_facade(&fixture_root(
-        "inspection_facade_bypass_consumer",
-    ))
-    .expect_err("hostile consumer fixture should fail certification");
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        fixture_root("inspection_facade_bypass_consumer"),
+    );
+    let violations = certify_consumers_route_inspection_through_worth_ui_facade(&inventory)
+        .expect_err("hostile consumer fixture should fail certification");
 
     assert!(
         violations.iter().any(|violation| {

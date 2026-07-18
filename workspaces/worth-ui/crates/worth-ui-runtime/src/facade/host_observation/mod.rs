@@ -5,7 +5,7 @@ pub use crate::host::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
     UiHostMeasurementExecutionDenial, UiHostMeasurementInvalidationReason, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial,
-    UiPortalAnchorCoordinateSpacePosture, WorthUiHostMeasurementCollector,
+    UiPortalAnchorCoordinateSpacePosture,
 };
 pub use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,
@@ -18,7 +18,8 @@ pub use worth_ui_host_contract::{
     UiPortalAnchorTargetIdentity, UiScrollContainerViewportObservation,
     UiScrollContainerViewportRequest, UiTextBaselineMetricsObservation,
     UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
-    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHostAdapter,
+    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHeadlessHost, WorthUiHostAdapter,
     WorthUiHostCapability, WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiMeasurementHostAdapter,
+    WorthUiHostContract, WorthUiHostKind, WorthUiMeasurementHostAdapter,
+    WorthUiOperationalHostAdapter,
 };

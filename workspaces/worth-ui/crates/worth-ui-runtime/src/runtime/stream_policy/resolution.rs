@@ -3,6 +3,7 @@ use super::{composition::UiAllocationStreamCommitDecision, UiAllocationFrameIngr
 mod accessors;
 mod ordering;
 mod posture;
+mod source_order_transition;
 use crate::evidence::{
     UiAllocationStreamPolicyDenialEvidenceReceipt, UiAllocationStreamPolicyEvidenceOutcome,
     UiAllocationStreamPolicyEvidenceReceipt, UiAllocationStreamPolicyPayloadCounters,
@@ -20,6 +21,7 @@ use crate::runtime::{
     UiResolvedAllocationStreamPolicy, WorthUiTransientInteractionState,
 };
 use posture::resolve_ingress_policy_verdict;
+pub(crate) use source_order_transition::UiAllocationSourceOrderTransition;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiAllocationFrameResolutionDenial {
@@ -77,7 +79,7 @@ pub struct UiAllocationFrameRejection {
     evidence: UiAllocationStreamPolicyEvidenceOutcome,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiAllocationSourceOrderLedger {
     records: [Option<(u64, crate::runtime::UiAllocationFrameSourceGeneration, u64)>; 64],
 }
@@ -90,7 +92,10 @@ pub struct UiResolvedAllocationFramePlan {
 }
 
 pub(crate) enum UiAllocationFrameConsumptionDisposition {
-    Accepted(UiResolvedAllocationFramePlan),
+    Accepted {
+        plan: UiResolvedAllocationFramePlan,
+        source_order_transition: Box<UiAllocationSourceOrderTransition>,
+    },
     Rejected(UiAllocationFrameRejection),
 }
 
@@ -112,13 +117,10 @@ struct UiAllocationFrameResolutionFailure {
 }
 
 pub(crate) fn consume_pending_frame(
-    pending: &mut Option<UiPendingAllocationFrameHandoff>,
-    order_ledger: &mut UiAllocationSourceOrderLedger,
+    pending: UiPendingAllocationFrameHandoff,
+    order_ledger: &UiAllocationSourceOrderLedger,
 ) -> UiAllocationFrameConsumptionDisposition {
-    let frame = pending
-        .take()
-        .expect("consumption transition requires one pending sealed handoff")
-        .into_sealed_frame();
+    let frame = pending.into_sealed_frame();
     match resolve_frame(frame, order_ledger) {
         Ok(candidate) => {
             let UiResolvedAllocationFrameCandidate {
@@ -127,12 +129,17 @@ pub(crate) fn consume_pending_frame(
                 accepted_order_ledger,
                 sources,
             } = candidate;
-            *order_ledger = accepted_order_ledger;
-            UiAllocationFrameConsumptionDisposition::Accepted(UiResolvedAllocationFramePlan {
-                identity,
-                counters,
-                sources,
-            })
+            UiAllocationFrameConsumptionDisposition::Accepted {
+                plan: UiResolvedAllocationFramePlan {
+                    identity,
+                    counters,
+                    sources,
+                },
+                source_order_transition: Box::new(UiAllocationSourceOrderTransition::new(
+                    order_ledger.clone(),
+                    accepted_order_ledger,
+                )),
+            }
         }
         Err(UiAllocationFrameResolutionFailure {
             epoch,

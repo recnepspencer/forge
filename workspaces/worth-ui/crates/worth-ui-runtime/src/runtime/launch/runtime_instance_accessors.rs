@@ -10,6 +10,37 @@ use super::launch_request::WorthUiRuntimeLaunchDenial;
 use super::runtime_instance::WorthUiRuntime;
 
 impl WorthUiRuntime {
+    pub(crate) fn bind_operational_host_session(
+        &mut self,
+        identity: crate::facade::WorthUiHostSessionIdentity,
+        observation_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    ) {
+        self.host_session_identity = Some(identity);
+        self.host_observation_generation = Some(observation_generation);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_host_observation_generation_for_test(
+        &mut self,
+        observation_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    ) {
+        self.host_observation_generation = Some(observation_generation);
+    }
+
+    pub(crate) fn bind_active_application_generation(
+        &mut self,
+        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    ) {
+        self.active.bind_application_generation(generation_identity);
+    }
+
+    pub(crate) fn bind_retained_allocation_planning_evidence(
+        &mut self,
+        retained: std::rc::Rc<crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+    ) {
+        self.retained_allocation_planning_evidence = retained;
+    }
+
     pub fn lifecycle(&self) -> WorthUiRuntimeLifecycle {
         self.active.lifecycle()
     }

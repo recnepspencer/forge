@@ -6,7 +6,6 @@ mod artifact_inspection;
 mod binding_semantics;
 mod file_authored;
 mod identity_seeding;
-#[cfg(any(test, feature = "certification-support"))]
 mod rust_authored;
 #[cfg(test)]
 mod rust_composition;
@@ -47,12 +46,8 @@ pub(crate) use identity_seeding::{
     WorthUiIdentitySeedLowerer, WorthUiIdentitySeedingDiagnostic, WorthUiIdentitySeedingMetrics,
     WorthUiIdentitySeedingReport,
 };
-#[cfg(any(test, feature = "certification-support"))]
-pub use rust_authored::WorthUiRustAuthoredArtifactInputModule;
-#[cfg(any(test, feature = "certification-support"))]
-pub(crate) use rust_authored::{
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredToArtifactInputLowerer,
-};
+pub(crate) use rust_authored::WorthUiRustAuthoredToArtifactInputLowerer;
+pub use rust_authored::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 #[cfg(test)]
 pub(crate) use rust_composition::{
     WorthUiRustCompositionInput, WorthUiRustCompositionMetrics, WorthUiRustCompositionModule,

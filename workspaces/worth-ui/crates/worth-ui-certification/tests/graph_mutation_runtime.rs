@@ -1,10 +1,10 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
-use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::app::{
+    WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
+};
 use worth_ui::facade::declaration::{UiDeclarationArtifact, UiDeclarationStructuralRole};
 use worth_ui::facade::graph::{
     UiGraphInstantiationPlan, UiGraphLookupCostClass, UiGraphLookupFamily,
-    UiGraphWorldDifferenceKind, UiGraphWorldProfile,
+    UiGraphTopologyLocalDenial, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
 };
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
@@ -79,24 +79,32 @@ fn denied_graph_mutation_publishes_no_replacement_snapshot() {
 
 #[test]
 fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.graph-mutation.freeze-denial")
-                    .with_semantic_artifact_spec(extra_root_page_spec())
-                    .with_semantic_artifact_spec(control_spec()),
-            )
-            .freeze();
-    }));
+    let denial = match WorthUi::app()
+        .with_dsl_package(
+            WorthUiDslPackage::named("worth-ui.certification.graph-mutation.freeze-denial")
+                .with_semantic_artifact_spec(extra_root_page_spec())
+                .with_semantic_artifact_spec(control_spec()),
+        )
+        .freeze()
+    {
+        Ok(_) => panic!("invalid root topology must deny application preparation"),
+        Err(denial) => denial,
+    };
 
-    let panic_message =
-        panic_message(result.expect_err(
-            "public freeze path must panic when graph commit denies before publication",
-        ));
-    assert!(
-        panic_message.contains("freeze path must deny before publishing graph authority"),
-        "expected freeze denial panic to name graph publication boundary, got: {panic_message}"
+    assert_eq!(
+        denial.phase(),
+        WorthUiApplicationPreparationPhase::GraphCommit
     );
+    let WorthUiApplicationPreparationDenial::GraphCommit(denial) = denial else {
+        panic!("expected graph-commit denial");
+    };
+    assert_eq!(denial.local_denials().len(), 3);
+    assert!(denial.local_denials().iter().all(|local| {
+        local.topology_denial()
+            == Some(&UiGraphTopologyLocalDenial::RootPageCardinality {
+                observed_root_pages: 2,
+            })
+    }));
 }
 
 fn mutation_app() -> worth_ui::facade::app::WorthUiApp {
@@ -106,6 +114,7 @@ fn mutation_app() -> worth_ui::facade::app::WorthUiApp {
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn control_spec() -> UiDslSemanticArtifactSpec {
@@ -159,14 +168,4 @@ fn artifact_from_file_provenance<'a>(
                 "expected declaration artifact for {module_path}#{declaration_index} on freeze path"
             )
         })
-}
-
-fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
-    }
 }

@@ -3,8 +3,12 @@ use worth_ui::facade::diagnostics::{CapabilitySnapshot, SnapshotMetrics};
 
 #[test]
 fn equivalent_builder_inputs_freeze_to_equivalent_snapshots() {
-    let left = WorthUi::app().freeze();
-    let right = WorthUi::app().freeze();
+    let left = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
+    let right = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_equivalent_empty_snapshots(left.capabilities(), right.capabilities());
 }
@@ -14,8 +18,12 @@ fn hidden_global_registration_does_not_affect_snapshot() {
     let first_builder = WorthUi::app();
     let second_builder = WorthUi::app();
 
-    let second_snapshot = second_builder.freeze();
-    let first_snapshot = first_builder.freeze();
+    let second_snapshot = second_builder
+        .freeze()
+        .expect("application preparation should succeed");
+    let first_snapshot = first_builder
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_equivalent_empty_snapshots(
         first_snapshot.capabilities(),

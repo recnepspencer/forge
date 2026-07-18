@@ -268,7 +268,8 @@ fn admitted_planning_admissions_with_operators(
     let app = WorthUi::app()
         .with_graph_world_profile(world_profile)
         .with_dsl_package(package)
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let first_identity = app
         .declaration_artifacts()
         .iter()

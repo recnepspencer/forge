@@ -6,6 +6,18 @@ pub(crate) mod support;
 mod activation_staging_boundary_tests;
 #[path = "activation/activation_staging_test_support.rs"]
 pub(crate) mod activation_staging_test_support;
+#[path = "source_ingress/active_application_evidence_authority_tests.rs"]
+mod active_application_evidence_authority_tests;
+#[path = "source_ingress/active_application_launch_tests.rs"]
+mod active_application_launch_tests;
+#[path = "source_ingress/active_application_replacement_storm_tests.rs"]
+mod active_application_replacement_storm_tests;
+#[path = "source_ingress/active_application_replacement_tests.rs"]
+mod active_application_replacement_tests;
+#[path = "source_ingress/active_application_session_test_support.rs"]
+pub(crate) mod active_application_session_test_support;
+#[path = "source_ingress/active_host_session_tests.rs"]
+mod active_host_session_tests;
 #[path = "lifecycle/active_runtime_authority_tests.rs"]
 mod active_runtime_authority_tests;
 #[path = "planning/allocation_catalog_test_support.rs"]
@@ -28,6 +40,8 @@ mod allocation_truth_boundary_tests;
 mod artifact_equivalence_boundary_tests;
 #[path = "replacement/candidate_admission_boundary_tests.rs"]
 mod candidate_admission_boundary_tests;
+#[path = "source_ingress/candidate_composition_preparation_tests.rs"]
+mod candidate_composition_preparation_tests;
 #[path = "execution/canvas_spatial_lane_boundary_tests.rs"]
 mod canvas_spatial_lane_boundary_tests;
 #[path = "execution/canvas_spatial_lane_test_support.rs"]

@@ -62,7 +62,8 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .register_component(source_backed_boundary_peer_component())
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_boundary_sizing())
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
         .source_ingress(
             WorthUiSourceProvider::in_memory(provider_revision)
@@ -73,18 +74,14 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .expect("source-backed graph reorder provider should debounce")
         .lower_to_candidate_submission(support_app.capabilities())
         .expect("source-backed graph reorder provider should lower through ingress");
-    let source_backed_package = submission
-        .source_backed_dsl_package()
-        .cloned()
-        .expect("ordinary source ingress should emit a sealed source-backed package");
-
     WorthUi::app()
+        .with_candidate_submission(submission)
         .register_component(source_backed_boundary_component())
         .register_component(source_backed_boundary_peer_component())
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_boundary_sizing())
-        .with_source_backed_dsl_package(source_backed_package)
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn source_backed_graph_identity_rows(app: &WorthUiApp) -> Vec<(u64, u64, u64)> {

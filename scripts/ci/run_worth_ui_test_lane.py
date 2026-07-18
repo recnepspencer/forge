@@ -1,0 +1,227 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+MANIFEST = ROOT / "workspaces/worth-ui/Cargo.toml"
+DEPENDENCY_FIXTURE = (
+    ROOT
+    / "workspaces/worth-ui/crates/worth-ui-certification/tests/fixtures"
+    / "host_contract_only_adapter/Cargo.toml"
+)
+
+CERTIFICATION_TARGETS = (
+    "application_contracts",
+    "declaration_contracts",
+    "graph_contracts",
+    "inspection_contracts",
+    "measurement_contracts",
+    "obligation_contracts",
+    "topology_contracts",
+)
+
+
+def cargo(*arguments: str) -> list[str]:
+    return ["cargo", *arguments, "--manifest-path", str(MANIFEST)]
+
+
+def fast_commands() -> list[list[str]]:
+    return [
+        cargo("test", "--workspace", "--all-features", "--lib"),
+        cargo(
+            "test",
+            "--all-features",
+            "-p",
+            "worth-ui",
+            "--test",
+            "capability_contracts",
+            "--test",
+            "registry_contracts",
+        ),
+    ]
+
+
+def documentation_commands() -> list[list[str]]:
+    return [cargo("test", "--workspace", "--all-features", "--doc")]
+
+
+def platform_check_commands() -> list[list[str]]:
+    return [cargo("check", "--workspace", "--all-targets", "--all-features")]
+
+
+def compile_contract_commands() -> list[list[str]]:
+    return [
+        cargo(
+            "test",
+            "--all-features",
+            "-p",
+            "worth-ui",
+            "-p",
+            "worth-ui-certification",
+            "-p",
+            "worth-ui-host-contract",
+            "--test",
+            "compile_contracts",
+        )
+    ]
+
+
+def certification_commands() -> list[list[str]]:
+    command = cargo("test", "--all-features", "-p", "worth-ui-certification")
+    for target in CERTIFICATION_TARGETS:
+        command.extend(("--test", target))
+    return [command]
+
+
+def dependency_contract_commands() -> list[list[str]]:
+    target = ROOT / "workspaces/worth-ui/target/dependency-contracts"
+    return [
+        [
+            "cargo",
+            "check",
+            "--manifest-path",
+            str(DEPENDENCY_FIXTURE),
+            "--target-dir",
+            str(target),
+        ]
+    ]
+
+
+def full_commands() -> list[list[str]]:
+    return [
+        cargo("test", "--workspace", "--all-features"),
+        *dependency_contract_commands(),
+    ]
+
+
+def commands_for(lane: str) -> list[list[str]]:
+    if lane == "fast":
+        return fast_commands()
+    if lane == "documentation":
+        return documentation_commands()
+    if lane == "compile-contracts":
+        return compile_contract_commands()
+    if lane == "hostile-certification":
+        return certification_commands()
+    if lane == "dependency-contract":
+        return dependency_contract_commands()
+    if lane == "platform-check":
+        return platform_check_commands()
+    if lane == "full":
+        return full_commands()
+    raise ValueError(f"unknown lane: {lane}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run one explicit Worth UI proof lane")
+    parser.add_argument(
+        "lane",
+        choices=(
+            "fast",
+            "documentation",
+            "compile-contracts",
+            "hostile-certification",
+            "dependency-contract",
+            "platform-check",
+            "full",
+        ),
+    )
+    parser.add_argument(
+        "--print-only",
+        action="store_true",
+        help="print the exact commands without executing them",
+    )
+    return parser.parse_args()
+
+
+def compiler_cache_stats() -> dict[str, Any] | None:
+    wrapper = os.environ.get("RUSTC_WRAPPER", "")
+    if Path(wrapper).name.lower() not in {"sccache", "sccache.exe"}:
+        return None
+    try:
+        result = subprocess.run(
+            ["sccache", "--show-stats"],
+            cwd=ROOT,
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        return {"available": False, "error": str(error)}
+    return {
+        "available": result.returncode == 0,
+        "exit_code": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
+
+
+def write_report(lane: str, outcomes: list[dict[str, Any]]) -> None:
+    configured_directory = os.environ.get("WORTH_UI_LANE_REPORT_DIR")
+    if configured_directory is None:
+        return
+    report_directory = Path(configured_directory)
+    if not report_directory.is_absolute():
+        report_directory = ROOT / report_directory
+    report_directory.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": 1,
+        "lane": lane,
+        "captured_at": datetime.now(UTC).isoformat(),
+        "platform": sys.platform,
+        "success": all(outcome["exit_code"] == 0 for outcome in outcomes),
+        "total_duration_seconds": round(
+            sum(float(outcome["duration_seconds"]) for outcome in outcomes), 3
+        ),
+        "commands": outcomes,
+        "compiler_cache": compiler_cache_stats(),
+    }
+    destination = report_directory / f"{lane}.json"
+    destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def main() -> int:
+    args = parse_args()
+    commands = commands_for(args.lane)
+    outcomes: list[dict[str, Any]] = []
+    for command in commands:
+        rendered = subprocess.list2cmdline(command)
+        print("[worth-ui-test-lane]", rendered, flush=True)
+        if not args.print_only:
+            started = time.perf_counter()
+            try:
+                result = subprocess.run(command, cwd=ROOT, env=os.environ.copy(), check=False)
+                exit_code = result.returncode
+                error = None
+            except OSError as execution_error:
+                exit_code = 127
+                error = str(execution_error)
+            outcomes.append(
+                {
+                    "argv": command,
+                    "command": rendered,
+                    "duration_seconds": round(time.perf_counter() - started, 3),
+                    "exit_code": exit_code,
+                    "error": error,
+                }
+            )
+            if exit_code != 0:
+                write_report(args.lane, outcomes)
+                return exit_code
+    if not args.print_only:
+        write_report(args.lane, outcomes)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -305,7 +305,7 @@ fn rebuilding_graph_node_index_preserves_aspect_lookup_answers_and_records_aspec
     let consumed_before = app.inspect(consumed_aspect_with_provenance_query(SHARED_ASPECT));
     let observation_before = app.inspection_observation();
 
-    app.rebuild_graph_evidence_indexes_from_authority();
+    app.rebuild_prepared_derived_indexes();
 
     let observation_after = app.inspection_observation();
     let published_after = app.inspect(published_aspect_query(SHARED_ASPECT));

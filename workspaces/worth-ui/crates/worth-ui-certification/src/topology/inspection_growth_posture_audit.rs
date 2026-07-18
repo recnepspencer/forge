@@ -1,5 +1,4 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 const FORBIDDEN_GENERIC_GROWTH_FALLBACKS: [&str; 7] = [
     "serde_json::Value",
@@ -11,10 +10,13 @@ const FORBIDDEN_GENERIC_GROWTH_FALLBACKS: [&str; 7] = [
     "Other(",
 ];
 
-pub fn audit_inspection_materialized_detail_growth_posture(workspace_root: &Path) -> Vec<String> {
-    let path = workspace_root
-        .join("crates/worth-ui-runtime/src/evidence/shared/evidence_materialized_detail.rs");
-    let text = fs::read_to_string(&path).expect("materialized detail surface should decode");
+pub fn audit_inspection_materialized_detail_growth_posture(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
+    let path = inventory.absolute_path(
+        "crates/worth-ui-runtime/src/evidence/shared/evidence_materialized_detail.rs",
+    );
+    let text = inventory.text(&path);
     let mut violations = Vec::new();
 
     if !text.contains("#[non_exhaustive]") {
@@ -45,12 +47,23 @@ pub fn audit_inspection_materialized_detail_growth_posture(workspace_root: &Path
     violations
 }
 
-pub fn audit_dummy_future_family_extension_home(workspace_root: &Path) -> Vec<String> {
-    let crates_root = workspace_root.join("crates");
+pub fn audit_dummy_future_family_extension_home(
+    inventory: &WorkspaceSourceInventory,
+) -> Vec<String> {
+    let crates_root = inventory.absolute_path("crates");
     let mut violations = Vec::new();
-    let mut hits = Vec::new();
+    let hits = inventory
+        .entries_under("crates")
+        .filter(|path| {
+            path.file_name()
+                .is_some_and(|name| name == "dummy_future_family")
+                || path
+                    .file_stem()
+                    .is_some_and(|stem| stem == "dummy_future_family")
+        })
+        .map(|path| inventory.absolute_path(path))
+        .collect::<Vec<_>>();
 
-    collect_dummy_future_family_paths(&crates_root, &mut hits);
     if hits.is_empty() {
         violations.push(format!(
             "{} is missing a dummy future family extension proof surface",
@@ -60,8 +73,9 @@ pub fn audit_dummy_future_family_extension_home(workspace_root: &Path) -> Vec<St
     }
 
     let allowed_prefixes = [
-        workspace_root.join("crates/worth-ui-inspection/src/receipt/evidence/dummy_future_family"),
-        workspace_root.join("crates/worth-ui-runtime/src/evidence/dummy_future_family"),
+        inventory
+            .absolute_path("crates/worth-ui-inspection/src/receipt/evidence/dummy_future_family"),
+        inventory.absolute_path("crates/worth-ui-runtime/src/evidence/dummy_future_family"),
     ];
 
     for hit in hits {
@@ -85,28 +99,4 @@ pub fn audit_dummy_future_family_extension_home(workspace_root: &Path) -> Vec<St
     violations.sort();
     violations.dedup();
     violations
-}
-
-fn collect_dummy_future_family_paths(root: &Path, output: &mut Vec<PathBuf>) {
-    if !root.exists() {
-        return;
-    }
-    for entry in fs::read_dir(root).expect("source directory should read") {
-        let entry = entry.expect("directory entry should read");
-        let path = entry.path();
-        if path.is_dir() {
-            if path
-                .file_name()
-                .is_some_and(|name| name.to_string_lossy() == "dummy_future_family")
-            {
-                output.push(path.clone());
-            }
-            collect_dummy_future_family_paths(&path, output);
-        } else if path
-            .file_stem()
-            .is_some_and(|stem| stem.to_string_lossy() == "dummy_future_family")
-        {
-            output.push(path);
-        }
-    }
 }

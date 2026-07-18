@@ -78,7 +78,8 @@ mod evidence_expansion_tests {
     fn expand_evidence_ref_returns_wrong_generation_for_stale_generation_bound_refs() {
         let app = WorthUi::app()
             .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-            .freeze();
+            .freeze()
+            .expect("application preparation should succeed");
         let stale_generation =
             UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64() + 1);
         let identity = evidence_identity(UiEvidenceFamily::Obligation, 17);
@@ -107,6 +108,35 @@ mod evidence_expansion_tests {
                 ),
             }
         );
+        assert!(expansion.materialized_detail().is_none());
+    }
+
+    #[test]
+    fn unknown_current_generation_obligation_ref_is_not_reported_as_materialized() {
+        let app = WorthUi::app()
+            .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
+            .freeze()
+            .expect("application preparation should succeed");
+        let current_generation =
+            UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64());
+        let identity = evidence_identity(UiEvidenceFamily::Obligation, 31);
+        let evidence_ref = evidence_ref(
+            UiEvidenceFamily::Obligation,
+            identity,
+            evidence_authority_binding(
+                UiEvidenceAuthorityKind::ObligationAuthority,
+                37,
+                current_generation,
+                None,
+            ),
+            UiEvidenceMaterializationPosture::DetailAvailable,
+            UiEvidenceRetentionPosture::CurrentGenerationOnly,
+            evidence_handle(UiEvidenceFamily::Obligation, identity, 31),
+        );
+
+        let expansion = app.expand_evidence_ref(evidence_ref, UiEvidenceRichness::summary());
+
+        assert_eq!(expansion.outcome(), UiEvidenceExpansionOutcome::Unsupported);
         assert!(expansion.materialized_detail().is_none());
     }
 }

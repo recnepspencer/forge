@@ -6,7 +6,9 @@ use worth_ui::facade::obligations::{
 
 #[test]
 fn bootstrap_app_exposes_milestone34_obligation_closeout_report() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let report = app.obligation_closeout_report();
 
     assert_eq!(report, UiObligationCloseoutReport::milestone34());

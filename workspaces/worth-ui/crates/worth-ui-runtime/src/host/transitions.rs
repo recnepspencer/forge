@@ -40,7 +40,7 @@ impl UiHostMeasurementFreshnessWitness {
     }
 }
 
-pub(crate) fn observe_host_measurement<A: WorthUiMeasurementHostAdapter>(
+pub(crate) fn observe_host_measurement<A: WorthUiMeasurementHostAdapter + ?Sized>(
     adapter: &A,
     identity: UiMeasurementRequestIdentity,
     evidence_family: UiMeasurementEvidenceFamily,

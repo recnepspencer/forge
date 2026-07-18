@@ -3,6 +3,7 @@ name = "worth-ui-certification"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
+autotests = false
 
 [lib]
 name = "worth_ui_certification"
@@ -14,7 +15,10 @@ workspace = true
 [dependencies]
 syn = { version = "2.0", features = ["full", "visit"] }
 toml = "0.8"
+worth-ui = { path = "../worth-ui" }
+worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
 worth-ui-runtime = { path = "../worth-ui-runtime" }
 worth-ui-test-support = { path = "../worth-ui-test-support" }
 
@@ -22,7 +26,36 @@ worth-ui-test-support = { path = "../worth-ui-test-support" }
 trybuild = { workspace = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-query = { path = "../../../../crates/worth-query" }
-worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
-worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
-worth-ui = { path = "../worth-ui" }
+
+[[test]]
+name = "application_contracts"
+path = "tests/suites/application_contracts.rs"
+
+[[test]]
+name = "declaration_contracts"
+path = "tests/suites/declaration_contracts.rs"
+
+[[test]]
+name = "graph_contracts"
+path = "tests/suites/graph_contracts.rs"
+
+[[test]]
+name = "inspection_contracts"
+path = "tests/suites/inspection_contracts.rs"
+
+[[test]]
+name = "measurement_contracts"
+path = "tests/suites/measurement_contracts.rs"
+
+[[test]]
+name = "obligation_contracts"
+path = "tests/suites/obligation_contracts.rs"
+
+[[test]]
+name = "topology_contracts"
+path = "tests/suites/topology_contracts.rs"
+
+[[test]]
+name = "compile_contracts"
+path = "tests/suites/compile_contracts.rs"

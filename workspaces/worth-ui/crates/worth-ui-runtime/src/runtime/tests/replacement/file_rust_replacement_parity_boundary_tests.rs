@@ -1,12 +1,11 @@
 use super::file_rust_replacement_parity_test_support::{
-    candidate_from_provider, meaningful_token_parity_reports, parity_receipt,
-    replacement_report_from_provider, report_with_artifact_comparison_outcome,
+    candidate_for_lane, meaningful_token_parity_reports, parity_receipt,
+    replacement_report_for_lane, report_with_artifact_comparison_outcome,
     report_with_lane_support_digest, report_with_previous_active_artifact_receipt_drift,
     stale_snapshot_rust_candidate,
 };
 use super::source_ingress_test_support::{
-    empty_artifact, file_import_provider, runtime_from_artifact, rust_import_artifact,
-    rust_import_provider,
+    empty_artifact, runtime_from_artifact, rust_import_artifact,
 };
 use crate::runtime::{
     WorthUiCandidateAuthoringLane, WorthUiFileRustReplacementParityBoundary,
@@ -84,7 +83,8 @@ fn rust_replacement_cannot_bypass_candidate_admission_or_snapshot_support() {
 #[test]
 fn authoring_lane_difference_preserved_only_as_diagnostic_provenance() {
     let mut file_runtime = runtime_from_artifact(rust_import_artifact());
-    let file_candidate = candidate_from_provider(&file_runtime, file_import_provider());
+    let file_candidate =
+        candidate_for_lane(&file_runtime, WorthUiCandidateAuthoringLane::FileAuthored);
     let file_lane = file_candidate.authoring_lane();
     let file_provenance = file_candidate.provenance_handle();
     let file_basis = file_candidate.basis();
@@ -93,7 +93,8 @@ fn authoring_lane_difference_preserved_only_as_diagnostic_provenance() {
         .expect("file replacement activates");
 
     let mut rust_runtime = runtime_from_artifact(rust_import_artifact());
-    let rust_candidate = candidate_from_provider(&rust_runtime, rust_import_provider());
+    let rust_candidate =
+        candidate_for_lane(&rust_runtime, WorthUiCandidateAuthoringLane::RustAuthored);
     let rust_lane = rust_candidate.authoring_lane();
     let rust_provenance = rust_candidate.provenance_handle();
     let rust_basis = rust_candidate.basis();
@@ -116,7 +117,7 @@ fn authoring_lane_difference_preserved_only_as_diagnostic_provenance() {
 
 #[test]
 fn rust_authored_candidate_cannot_inject_active_plan_nodes_directly() {
-    let rust_report = replacement_report_from_provider(rust_import_provider());
+    let rust_report = replacement_report_for_lane(WorthUiCandidateAuthoringLane::RustAuthored);
 
     assert_eq!(
         rust_report.authoring_lane(),
@@ -136,8 +137,8 @@ fn rust_authored_candidate_cannot_inject_active_plan_nodes_directly() {
 
 #[test]
 fn parity_denies_when_a_rust_report_is_used_as_the_file_side() {
-    let rust_left = replacement_report_from_provider(rust_import_provider());
-    let rust_right = replacement_report_from_provider(rust_import_provider());
+    let rust_left = replacement_report_for_lane(WorthUiCandidateAuthoringLane::RustAuthored);
+    let rust_right = replacement_report_for_lane(WorthUiCandidateAuthoringLane::RustAuthored);
 
     let denial = WorthUiFileRustReplacementParityBoundary::compare(rust_left, rust_right)
         .expect_err("file side must be file-authored");
@@ -152,8 +153,8 @@ fn parity_denies_when_a_rust_report_is_used_as_the_file_side() {
 
 #[test]
 fn parity_denies_when_a_file_report_is_used_as_the_rust_side() {
-    let file_left = replacement_report_from_provider(file_import_provider());
-    let file_right = replacement_report_from_provider(file_import_provider());
+    let file_left = replacement_report_for_lane(WorthUiCandidateAuthoringLane::FileAuthored);
+    let file_right = replacement_report_for_lane(WorthUiCandidateAuthoringLane::FileAuthored);
 
     let denial = WorthUiFileRustReplacementParityBoundary::compare(file_left, file_right)
         .expect_err("rust side must be rust-authored");
@@ -168,7 +169,7 @@ fn parity_denies_when_a_file_report_is_used_as_the_rust_side() {
 
 #[test]
 fn parity_denies_candidate_basis_drift_before_comparing_artifacts() {
-    let file_report = replacement_report_from_provider(file_import_provider());
+    let file_report = replacement_report_for_lane(WorthUiCandidateAuthoringLane::FileAuthored);
     let (_, rust_report_with_different_basis) = meaningful_token_parity_reports();
 
     let denial = WorthUiFileRustReplacementParityBoundary::compare(
@@ -187,9 +188,9 @@ fn parity_denies_candidate_basis_drift_before_comparing_artifacts() {
 
 #[test]
 fn parity_denies_artifact_comparison_outcome_drift() {
-    let file_report = replacement_report_from_provider(file_import_provider());
+    let file_report = replacement_report_for_lane(WorthUiCandidateAuthoringLane::FileAuthored);
     let rust_report = report_with_artifact_comparison_outcome(
-        replacement_report_from_provider(rust_import_provider()),
+        replacement_report_for_lane(WorthUiCandidateAuthoringLane::RustAuthored),
         WorthUiRuntimeArtifactComparisonOutcome::MeaningfullyDifferent,
     );
 

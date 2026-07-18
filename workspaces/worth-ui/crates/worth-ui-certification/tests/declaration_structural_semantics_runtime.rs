@@ -1,24 +1,25 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
 #[path = "fixtures/declaration_structural_semantics_test_support.rs"]
 mod declaration_structural_semantics_test_support;
 
 use declaration_structural_semantics_test_support::{
     artifact_from_file_provenance, assert_structural_projection, diagnostic_surface_spec,
-    local_composition_spec, mosaic_spec, page_set_spec, page_with_slot_spec, panic_message,
-    region_spec, slotted_control_spec, slotted_control_with_noise_spec,
-    standalone_query_binding_spec, unsupported_structural_spec,
+    local_composition_spec, mosaic_spec, page_set_spec, page_with_slot_spec, region_spec,
+    slotted_control_spec, slotted_control_with_noise_spec, standalone_query_binding_spec,
+    unsupported_structural_spec,
 };
-use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::app::{WorthUi, WorthUiApplicationPreparationDenial};
 use worth_ui::facade::declaration::{
     UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
-    UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
-    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
+    UiDeclarationGraphHandoffDenial, UiDeclarationOrderingGuarantee,
+    UiDeclarationRepetitionPosture, UiDeclarationSlotParticipationIntent,
+    UiDeclarationStructuralRole, UiDeclarationStructuralSemanticsAdmissionDenial,
 };
-use worth_ui_dsl::WorthUiDslPackage;
+use worth_ui_dsl::{UiDslSemanticArtifactSpec, WorthUiDslPackage};
 #[test]
 fn public_freeze_exposes_bootstrap_page_structural_intent_and_handoff() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = &app.declaration_artifacts()[0];
     let structural = artifact
         .structural_semantics()
@@ -56,7 +57,8 @@ fn caller_authored_freeze_projects_structural_slot_participation_intent() {
             WorthUiDslPackage::named("worth-ui.certification.structural.slot")
                 .with_semantic_artifact_spec(slotted_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/structural_semantics.wui", 0);
     let structural = artifact
         .structural_semantics()
@@ -101,13 +103,15 @@ fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
             WorthUiDslPackage::named("worth-ui.certification.structural.localization")
                 .with_semantic_artifact_spec(slotted_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let changed = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.structural.localization")
                 .with_semantic_artifact_spec(slotted_control_with_noise_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let baseline_artifact =
         artifact_from_file_provenance(&baseline, "app/structural_semantics.wui", 0);
     let changed_artifact =
@@ -155,7 +159,8 @@ fn every_admitted_structural_family_projects_declared_structural_intent() {
                 .with_semantic_artifact_spec(local_composition_spec())
                 .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
 
     assert_structural_projection(
         artifact_from_file_provenance(&app, "app/structural_families.wui", 0),
@@ -206,67 +211,72 @@ fn every_admitted_structural_family_projects_declared_structural_intent() {
 
 #[test]
 fn slot_participation_not_admitted_for_page_structures_on_freeze_path() {
-    let freeze = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.structural.invalid_slot")
-                    .with_semantic_artifact_spec(page_with_slot_spec()),
-            )
-            .freeze();
-    }));
-    let panic_message = panic_message(
-        freeze
-            .expect_err("freeze path must reject page slot participation before graph publication"),
+    let denial = freeze_denial(
+        "worth-ui.certification.structural.invalid_slot",
+        page_with_slot_spec(),
     );
-    assert!(
-        panic_message.contains("StructuralSemanticsNotAdmitted")
-            && panic_message.contains("SlotParticipationNotAdmittedForFamily")
-            && panic_message.contains("Page")
-            && panic_message.contains("slot:footer"),
-        "expected page slot-participation denial to remain typed on the freeze path, got: {panic_message}"
+    assert_eq!(
+        denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
+                    SlotParticipationNotAdmittedForFamily {
+                        family: UiDeclarationFamilyKind::Page,
+                        observed: vec!["slot:footer".to_owned()],
+                    },
+            },
+        )
     );
 }
 
 #[test]
 fn unsupported_structural_tokens_deny_through_public_freeze_path() {
-    let freeze = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.structural.unsupported")
-                    .with_semantic_artifact_spec(unsupported_structural_spec()),
-            )
-            .freeze();
-    }));
-    let panic_message = panic_message(freeze.expect_err(
-        "freeze path must reject unsupported structural tokens before graph publication",
-    ));
-    assert!(
-        panic_message.contains("StructuralSemanticsNotAdmitted")
-            && panic_message.contains("UnsupportedStructuralTokens")
-            && panic_message.contains("Control")
-            && panic_message.contains("repeat:many"),
-        "expected unsupported structural token denial to remain typed on the freeze path, got: {panic_message}"
+    let denial = freeze_denial(
+        "worth-ui.certification.structural.unsupported",
+        unsupported_structural_spec(),
+    );
+    assert_eq!(
+        denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                denial:
+                    UiDeclarationStructuralSemanticsAdmissionDenial::UnsupportedStructuralTokens {
+                        family: UiDeclarationFamilyKind::Control,
+                        observed: vec!["repeat:many".to_owned()],
+                    },
+            },
+        )
     );
 }
 
 #[test]
 fn non_structural_families_cannot_smuggle_graph_handoff_authority() {
-    let freeze = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.structural.non_structural")
-                    .with_semantic_artifact_spec(standalone_query_binding_spec()),
-            )
-            .freeze();
-    }));
-    let panic_message = panic_message(
-        freeze
-            .expect_err("freeze path must reject non-structural families before graph publication"),
+    let denial = freeze_denial(
+        "worth-ui.certification.structural.non_structural",
+        standalone_query_binding_spec(),
     );
-    assert!(
-        panic_message.contains("StructuralSemanticsNotAdmitted")
-            && panic_message.contains("FamilyDoesNotProjectStructuralSemantics")
-            && panic_message.contains("QueryBinding"),
-        "expected non-structural family denial to remain typed on the freeze path, got: {panic_message}"
+    assert_eq!(
+        denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
+                    FamilyDoesNotProjectStructuralSemantics {
+                        family: UiDeclarationFamilyKind::QueryBinding,
+                    },
+            },
+        )
     );
+}
+
+fn freeze_denial(
+    package_name: &'static str,
+    spec: UiDslSemanticArtifactSpec,
+) -> WorthUiApplicationPreparationDenial {
+    match WorthUi::app()
+        .with_dsl_package(WorthUiDslPackage::named(package_name).with_semantic_artifact_spec(spec))
+        .freeze()
+    {
+        Ok(_) => panic!("invalid structural authority must deny application preparation"),
+        Err(denial) => denial,
+    }
 }

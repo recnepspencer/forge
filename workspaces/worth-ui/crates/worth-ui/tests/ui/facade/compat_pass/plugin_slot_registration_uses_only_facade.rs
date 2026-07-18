@@ -15,7 +15,7 @@ fn main() {
                 .with_diagnostics(PluginSlotDiagnostics::explain_contributions())
                 .with_support(PluginSlotSupportPosture::supported()),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 
     let _ = app.capabilities().plugin_slots().get(&slot_id);
 }

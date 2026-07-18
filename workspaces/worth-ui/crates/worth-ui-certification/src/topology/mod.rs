@@ -4,6 +4,7 @@ mod admission_public_surface_audit;
 mod allocation_closeout_anti_bypass_audit;
 mod allocation_planning_anti_bypass_audit;
 mod allocation_planning_boundary_certification;
+mod application_authority_topology_audit;
 mod certification_entry;
 mod declaration_public_surface_audit;
 mod declaration_residue_audit;
@@ -24,6 +25,7 @@ mod obligation_boundary_audit;
 mod obligation_residue_audit;
 mod ownership_audit;
 mod public_surface_audit;
+mod workspace_source_inventory;
 
 pub use admission_boundary_audit::audit_consumers_route_admission_through_worth_ui_facade;
 pub use admission_boundary_certification::certify_consumers_route_admission_through_worth_ui_facade;
@@ -40,6 +42,7 @@ pub use allocation_planning_boundary_certification::{
     parent_child_propagation_suite, plan_handoff_suite, sibling_negotiation_suite,
     special_input_suite,
 };
+pub use application_authority_topology_audit::audit_application_authority_topology;
 pub use declaration_public_surface_audit::{
     audit_declaration_facades_are_curated_and_glob_free,
     audit_runtime_declaration_surface_routes_through_curated_submodule,
@@ -108,3 +111,4 @@ pub use ownership_audit::{
     audit_public_surfaces_do_not_recreate_query_owned_lanes,
     audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option,
 };
+pub use workspace_source_inventory::{WorkspaceSourceFile, WorkspaceSourceInventory};

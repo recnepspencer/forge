@@ -184,6 +184,8 @@ fn custom_library_path_binds_snapshot_and_macro_checks_to_its_sibling_facade() {
         &format!("{base}/Cargo.toml"),
         "[package]\nname='worth-schema-core'\nversion='0.1.0'\nedition='2021'\n[lib]\npath='compiled/root.rs'\n",
     );
+    fs::remove_dir_all(repo.root.join(format!("{base}/src")))
+        .expect("remove retired default library source");
     write(
         &repo.root,
         &format!("{base}/compiled/root.rs"),

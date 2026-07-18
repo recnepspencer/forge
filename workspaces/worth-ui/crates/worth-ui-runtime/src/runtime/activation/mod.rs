@@ -15,7 +15,7 @@ pub use committed_allocation_attempt::{
     WorthUiPriorValidPlanObservation,
 };
 mod gate;
-mod transitions;
 
-pub use gate::WorthUiAllocationCatalogActivationDenial;
-pub use transitions::WorthUiActivationLaneInput;
+pub use gate::{
+    WorthUiAllocationCatalogActivationDenial, WorthUiAllocationCatalogPreparationStage,
+};

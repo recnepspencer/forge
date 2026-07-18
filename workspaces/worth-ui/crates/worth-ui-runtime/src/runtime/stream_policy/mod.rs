@@ -24,6 +24,7 @@ pub use policy::{
 };
 pub(crate) use resolution::{
     consume_pending_frame, UiAllocationFrameConsumptionDisposition, UiAllocationSourceOrderLedger,
+    UiAllocationSourceOrderTransition,
 };
 pub use resolution::{
     UiAllocationDuplicatePosture, UiAllocationFrameCadenceVerdict, UiAllocationFramePlanIdentity,

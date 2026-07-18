@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
-use worth_proof::TransitionOutcome;
 use serde::{Deserialize, Serialize};
+use worth_proof::TransitionOutcome;
 
 use crate::clock::RuntimeInstant;
 use crate::data::error::SignalError;

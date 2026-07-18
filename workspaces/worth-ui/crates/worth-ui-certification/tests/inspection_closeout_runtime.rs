@@ -14,8 +14,7 @@ use worth_ui::facade::inspection::{
 
 #[path = "fixtures/inspection_closeout_support.rs"]
 mod inspection_closeout_support;
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 use inspection_closeout_support::{
     authored_provenance_query, closeout_app, declaration_identity_query, family_counts,
@@ -25,7 +24,10 @@ use inspection_closeout_support::{
 
 #[test]
 fn inspection_closeout_report_enumerates_milestone35_lanes_guarantees_and_non_goals() {
-    let report = WorthUi::app().freeze().inspection_closeout_report();
+    let report = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed")
+        .inspection_closeout_report();
 
     assert_eq!(
         report.evidence_families(),
@@ -179,8 +181,9 @@ fn closeout_runtime_covers_exact_family_relevance_and_query_citation_lanes() {
     let provenance = app.inspect(authored_provenance_query(artifact));
     let graph = app.inspect(graph_identity_query(graph_node_digest));
     let aspect = app.inspect(published_aspect_query());
-    let touch_app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&touch_app);
+    let touch_app =
+        obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&touch_app);
     let obligation = touch_app.inspect(
         obligation_query(
             touch.target().graph_node_identity().digest(),
@@ -270,8 +273,8 @@ fn graph_query_converges_between_ordinary_and_ai_harness_paths() {
 
 #[test]
 fn ref_lifecycle_and_retention_posture_stay_explicit_on_the_closeout_path() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let receipt = app.inspect(
         obligation_query(
             touch.target().graph_node_identity().digest(),

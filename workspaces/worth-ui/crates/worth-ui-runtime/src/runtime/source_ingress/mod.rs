@@ -1,3 +1,4 @@
+mod candidate_composition;
 mod candidate_submission;
 mod counters;
 mod debounce;
@@ -7,12 +8,15 @@ mod event;
 mod ordering_receipt;
 mod provider;
 mod revision;
+mod source_backed_declaration_projection;
 mod source_backed_dsl_package;
 mod source_backed_package_lowering;
 mod source_ingress_hook;
-mod watched_artifact_input;
 mod watcher;
 
+pub use crate::source::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
+pub(crate) use candidate_composition::WorthUiCandidatePreparationHandoff;
+pub use candidate_composition::{WorthUiCandidateComposition, WorthUiCandidateCompositionBasis};
 pub use candidate_submission::{
     WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial,
 };
@@ -25,7 +29,6 @@ pub use provider::{WorthUiSourceProvider, WorthUiSourceProviderKind};
 pub use revision::WorthUiSourcePackageRevision;
 pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDeclarationClaims;
 pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDeclarationWitness;
-pub use source_backed_dsl_package::WorthUiSourceBackedDslPackage;
+pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDslPackage;
 pub use source_ingress_hook::WorthUiSourceIngressHook;
-pub use watched_artifact_input::WorthUiWatchedArtifactInput;
 pub use watcher::{WorthUiSourceIngressSession, WorthUiSourceWatcher};

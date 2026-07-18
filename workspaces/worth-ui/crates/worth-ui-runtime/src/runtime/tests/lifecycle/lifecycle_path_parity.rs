@@ -1,4 +1,3 @@
-use crate::runtime::activation::WorthUiActivationLaneInput;
 use crate::runtime::tests::activation_staging_test_support::activation_staging_inputs;
 use crate::runtime::tests::allocation_planning_test_support::admitted_planning_admission;
 use crate::runtime::tests::durable_state_inventory_test_support::platform_inventory;
@@ -19,9 +18,7 @@ fn lifecycle_path_parity_orchestrator_matches_stepwise_replacement_chain() {
         .expect("replacement lowering orchestrator succeeds");
     let orchestrated_pending = orchestrated_inputs
         .runtime
-        .stage_replacement_activation_from_lane_input(WorthUiActivationLaneInput::from_lowering(
-            lowering,
-        ))
+        .stage_replacement_activation_from_lowering(lowering)
         .expect("orchestrated staging succeeds");
 
     assert_eq!(

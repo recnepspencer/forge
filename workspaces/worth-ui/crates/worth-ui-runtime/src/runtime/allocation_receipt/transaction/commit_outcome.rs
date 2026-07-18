@@ -13,6 +13,7 @@ impl UiAllocationReceiptCommitOutcome {
         Self::Denied(Box::new(denial))
     }
 
+    #[cfg(test)]
     pub(super) fn recompute_pending(report: UiAllocationReceiptReport) -> Self {
         Self::RecomputePending(Box::new(report))
     }

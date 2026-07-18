@@ -1,8 +1,8 @@
-//! Worth UI component library.
+//! egui-backed presentational widgets using [`worth_ui_theme::WorthTheme`].
 //!
-//! DOMAIN: All visual widgets used by Worth UI. Every component is a
-//! pure function over egui::Ui + WorthTheme + props. No state, no side effects.
-//! DEPENDENCIES: worth-ui-theme, egui.
+//! Widget functions render into an `egui::Ui` and may participate in egui's
+//! response and memory model. They do not own Worth declaration or runtime
+//! semantics.
 
 // ── Atoms ────────────────────────────────────────────────────────────────────
 pub mod alert;

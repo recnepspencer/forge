@@ -10,6 +10,8 @@ use crate::runtime::{
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiActiveRuntimeState {
+    generation_identity:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     active_artifact: WorthUiActiveArtifact,
     active_plan: WorthUiActiveExecutionPlan,
     snapshot_digest: CapabilitySnapshotDigest,
@@ -21,6 +23,7 @@ pub(crate) struct WorthUiActiveRuntimeState {
 
 impl WorthUiActiveRuntimeState {
     pub(crate) fn new(
+        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
         active_artifact: WorthUiActiveArtifact,
         active_plan: WorthUiActiveExecutionPlan,
         snapshot_digest: CapabilitySnapshotDigest,
@@ -28,6 +31,7 @@ impl WorthUiActiveRuntimeState {
         diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
     ) -> Self {
         Self {
+            generation_identity,
             active_artifact,
             active_plan,
             snapshot_digest,
@@ -40,6 +44,7 @@ impl WorthUiActiveRuntimeState {
 
     pub(crate) fn observation(&self) -> WorthUiActiveRuntimeObservation {
         WorthUiActiveRuntimeObservation::new(
+            self.generation_identity.clone(),
             self.active_artifact.digest().raw(),
             self.active_plan.digest().as_u64(),
             self.snapshot_digest.as_u64(),
@@ -51,6 +56,20 @@ impl WorthUiActiveRuntimeState {
 
     pub(crate) fn active_artifact(&self) -> &WorthUiActiveArtifact {
         &self.active_artifact
+    }
+
+    pub(crate) fn generation_identity(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        &self.generation_identity
+    }
+
+    pub(crate) fn bind_application_generation(
+        &mut self,
+        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    ) {
+        self.generation_identity = generation_identity;
     }
 
     pub(crate) fn active_plan(&self) -> WorthUiActiveExecutionPlan {
@@ -73,27 +92,22 @@ impl WorthUiActiveRuntimeState {
         self.status
     }
 
-    pub(crate) fn diagnostic_policy(&self) -> WorthUiRuntimeDiagnosticPolicy {
-        self.diagnostic_policy
-    }
-
-    pub(crate) fn from_preserved_authority(
+    pub(crate) fn replacement_successor(
+        prior: &Self,
         active_artifact: WorthUiActiveArtifact,
         active_plan: WorthUiActiveExecutionPlan,
         snapshot_digest: CapabilitySnapshotDigest,
-        lifecycle: WorthUiRuntimeLifecycle,
-        status: WorthUiRuntimeActivationStatus,
         frame_epoch: WorthUiRuntimeFrameEpoch,
-        diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
     ) -> Self {
         Self {
+            generation_identity: prior.generation_identity.clone(),
             active_artifact,
             active_plan,
             snapshot_digest,
-            lifecycle,
-            status,
+            lifecycle: WorthUiRuntimeLifecycle::Active,
+            status: WorthUiRuntimeActivationStatus::Active,
             frame_epoch,
-            diagnostic_policy,
+            diagnostic_policy: prior.diagnostic_policy,
         }
     }
 

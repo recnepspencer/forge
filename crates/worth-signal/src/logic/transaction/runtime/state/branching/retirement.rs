@@ -1,6 +1,6 @@
-use worth_proof::TransitionOutcome;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+use worth_proof::TransitionOutcome;
 
 use crate::logic::transaction::canonical_digest;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};

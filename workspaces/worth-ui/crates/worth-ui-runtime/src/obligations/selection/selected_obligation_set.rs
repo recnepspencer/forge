@@ -236,6 +236,22 @@ impl UiSelectedObligationSet {
             );
         }
 
+        let Some(record) = self
+            .evidence_index
+            .records()
+            .iter()
+            .find(|record| record.evidence_ref(self.authority_generation) == evidence_ref)
+        else {
+            return UiEvidenceExpansion::new(
+                evidence_ref,
+                requested_richness,
+                UiEvidenceExpansionOutcome::Unsupported,
+                None,
+                Box::new([]),
+                None,
+            );
+        };
+
         self.inspection_observation
             .record_rich_artifact_materialization();
         let detail = UiEvidenceMaterializedDetail::Obligation(
@@ -245,13 +261,7 @@ impl UiSelectedObligationSet {
                 self.authority_generation,
             ),
         );
-        let foreign_evidence_refs = self
-            .evidence_index
-            .records()
-            .iter()
-            .find(|record| record.handle().digest() == evidence_ref.handle().handle_digest())
-            .map(foreign_evidence_refs_for_obligation_record)
-            .unwrap_or_else(|| Box::new([]));
+        let foreign_evidence_refs = foreign_evidence_refs_for_obligation_record(record);
 
         UiEvidenceExpansion::new(
             evidence_ref,

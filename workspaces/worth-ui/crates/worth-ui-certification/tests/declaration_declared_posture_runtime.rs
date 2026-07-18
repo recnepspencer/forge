@@ -1,8 +1,8 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
-
-use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::app::{WorthUi, WorthUiApplicationPreparationDenial};
 use worth_ui::facade::declaration::{
-    UiDeclarationArtifact, UiDeclaredPostureApplicability, UiDeclaredQueryBindingPosture,
+    UiDeclarationArtifact, UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial,
+    UiDeclarationStructuralSemanticsAdmissionDenial, UiDeclaredPostureAdmissionDenial,
+    UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind, UiDeclaredQueryBindingPosture,
     UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
 };
 use worth_ui_dsl::{
@@ -34,7 +34,8 @@ fn public_freeze_projects_declared_posture_contracts_from_declaration_authority(
             WorthUiDslPackage::named("worth-ui.certification.declared-posture")
                 .with_semantic_artifact_spec(control_posture_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/declared_posture.wui", 0);
     let posture = artifact
         .declared_posture()
@@ -75,7 +76,9 @@ fn public_freeze_projects_declared_posture_contracts_from_declaration_authority(
 
 #[test]
 fn public_freeze_preserves_representative_family_applicability_shapes() {
-    let page_app = WorthUi::app().freeze();
+    let page_app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let page = artifact_from_file_provenance(&page_app, "worth-ui.runtime.bootstrap", 0);
 
     let control_app = WorthUi::app()
@@ -83,7 +86,8 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
             WorthUiDslPackage::named("worth-ui.certification.declared-posture.classification")
                 .with_semantic_artifact_spec(classification_control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let control =
         artifact_from_file_provenance(&control_app, "app/declared_posture_classification.wui", 1);
 
@@ -108,70 +112,56 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
         ],
     );
 
-    let query_binding_freeze = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named(
-                    "worth-ui.certification.declared-posture.classification.query-binding",
-                )
-                .with_semantic_artifact_spec(query_binding_spec()),
-            )
-            .freeze();
-    }));
-    let query_binding_panic = panic_message(query_binding_freeze.expect_err(
-        "freeze path must reject standalone query-binding declarations before graph publication",
-    ));
-    assert!(
-        query_binding_panic.contains("StructuralSemanticsNotAdmitted")
-            && query_binding_panic.contains("FamilyDoesNotProjectStructuralSemantics")
-            && query_binding_panic.contains("QueryBinding"),
-        "expected query-binding freeze denial to preserve structural-semantics reason, got: {query_binding_panic}"
+    let query_binding_denial = freeze_denial(
+        "worth-ui.certification.declared-posture.classification.query-binding",
+        query_binding_spec(),
+    );
+    assert_eq!(
+        query_binding_denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
+                    FamilyDoesNotProjectStructuralSemantics {
+                        family: UiDeclarationFamilyKind::QueryBinding,
+                    },
+            },
+        )
     );
 
-    let intent_freeze = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named(
-                    "worth-ui.certification.declared-posture.classification.intent",
-                )
-                .with_semantic_artifact_spec(intent_spec()),
-            )
-            .freeze();
-    }));
-    let intent_panic = panic_message(intent_freeze.expect_err(
-        "freeze path must reject standalone intent declarations before graph publication",
-    ));
-    assert!(
-        intent_panic.contains("StructuralSemanticsNotAdmitted")
-            && intent_panic.contains("FamilyDoesNotProjectStructuralSemantics")
-            && intent_panic.contains("Intent"),
-        "expected intent freeze denial to preserve structural-semantics reason, got: {intent_panic}"
+    let intent_denial = freeze_denial(
+        "worth-ui.certification.declared-posture.classification.intent",
+        intent_spec(),
+    );
+    assert_eq!(
+        intent_denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
+                    FamilyDoesNotProjectStructuralSemantics {
+                        family: UiDeclarationFamilyKind::Intent,
+                    },
+            },
+        )
     );
 }
 
 #[test]
 fn invalid_declared_posture_denies_before_runtime_or_host_promotion() {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let _ = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.declared-posture.denials")
-                    .with_semantic_artifact_spec(
-                        control_posture_spec()
-                            .with_posture_token(UiDslPostureToken::new("service:scroll")),
-                    ),
-            )
-            .freeze();
-    }));
-    let panic_message = panic_message(result.expect_err(
-        "freeze path must reject invalid declared posture before runtime or host promotion",
-    ));
-    assert!(
-        panic_message.contains("DeclaredPostureNotAdmitted")
-            && panic_message.contains("ContradictoryLaneClaims")
-            && panic_message.contains("ServiceUsage")
-            && panic_message.contains("service:portal")
-            && panic_message.contains("service:scroll"),
-        "expected freeze panic to preserve declared-posture denial, got: {panic_message}"
+    let denial = freeze_denial(
+        "worth-ui.certification.declared-posture.denials",
+        control_posture_spec().with_posture_token(UiDslPostureToken::new("service:scroll")),
+    );
+    assert_eq!(
+        denial,
+        WorthUiApplicationPreparationDenial::GraphHandoff(
+            UiDeclarationGraphHandoffDenial::DeclaredPostureNotAdmitted {
+                denial: UiDeclaredPostureAdmissionDenial::ContradictoryLaneClaims {
+                    family: UiDeclarationFamilyKind::Control,
+                    lane: UiDeclaredPostureLaneKind::ServiceUsage,
+                    observed: vec!["service:portal".to_owned(), "service:scroll".to_owned()],
+                },
+            },
+        )
     );
 }
 
@@ -192,7 +182,8 @@ fn host_capability_requirements_appear_as_declared_posture_before_host_inference
                     .with_posture_token(UiDslPostureToken::new("host-capability:ime")),
                 ),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let artifact = artifact_from_file_provenance(&app, "app/declared_posture_host.wui", 0);
 
     assert_eq!(
@@ -266,12 +257,15 @@ fn artifact_from_file_provenance<'a>(
         })
 }
 
-fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
+fn freeze_denial(
+    package_name: &'static str,
+    spec: UiDslSemanticArtifactSpec,
+) -> WorthUiApplicationPreparationDenial {
+    match WorthUi::app()
+        .with_dsl_package(WorthUiDslPackage::named(package_name).with_semantic_artifact_spec(spec))
+        .freeze()
+    {
+        Ok(_) => panic!("invalid declaration authority must deny application preparation"),
+        Err(denial) => denial,
     }
 }

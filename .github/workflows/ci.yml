@@ -9,6 +9,10 @@ on:
   schedule:
     - cron: '0 6 * * *'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CARGO_TERM_COLOR: always
   SIGNAL_SNAPSHOT_DIR: ${{ runner.temp }}/signal-semantic-snapshots
@@ -202,6 +206,189 @@ jobs:
       - name: Verify generated agent context
         if: runner.os == 'Linux'
         run: cargo run --manifest-path tools/agent-context/Cargo.toml -- check
+
+  worth_ui_quality:
+    name: WORTH UI Quality and Topology
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-worth-ui
+
+      - name: Enforce WORTH UI test and CI topology
+        run: |
+          python3 scripts/ci/test_worth_ui_test_topology.py
+          python3 scripts/ci/test_worth_ui_test_lane.py
+          python3 scripts/ci/check_worth_ui_test_topology.py
+
+      - name: Check WORTH UI formatting
+        run: cargo fmt --all --manifest-path workspaces/worth-ui/Cargo.toml -- --check
+
+      - name: Lint WORTH UI
+        run: cargo clippy --workspace --all-targets --all-features --manifest-path workspaces/worth-ui/Cargo.toml -- -D warnings
+
+  worth_ui_fast:
+    name: WORTH UI Fast and Documentation Proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      WORTH_UI_LANE_REPORT_DIR: ${{ runner.temp }}/worth-ui-lane-reports
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-worth-ui
+
+      - name: WORTH UI fast developer proof
+        run: python3 scripts/ci/run_worth_ui_test_lane.py fast
+
+      - name: WORTH UI documentation proof
+        run: python3 scripts/ci/run_worth_ui_test_lane.py documentation
+
+      - name: Upload WORTH UI fast evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-ui-fast-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-ui-lane-reports
+          if-no-files-found: warn
+          retention-days: 14
+
+  worth_ui_compile_contracts:
+    name: WORTH UI Compile Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      WORTH_UI_LANE_REPORT_DIR: ${{ runner.temp }}/worth-ui-lane-reports
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-worth-ui
+
+      - name: WORTH UI compile contracts
+        run: python3 scripts/ci/run_worth_ui_test_lane.py compile-contracts
+
+      - name: Upload WORTH UI compile-contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-ui-compile-contracts-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-ui-lane-reports
+          if-no-files-found: warn
+          retention-days: 14
+
+  worth_ui_hostile_certification:
+    name: WORTH UI Hostile Certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      WORTH_UI_LANE_REPORT_DIR: ${{ runner.temp }}/worth-ui-lane-reports
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-worth-ui
+
+      - name: WORTH UI hostile certification
+        run: python3 scripts/ci/run_worth_ui_test_lane.py hostile-certification
+
+      - name: Upload WORTH UI hostile-certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-ui-hostile-certification-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-ui-lane-reports
+          if-no-files-found: warn
+          retention-days: 14
+
+  worth_ui_dependency_contract:
+    name: WORTH UI External Dependency Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      WORTH_UI_LANE_REPORT_DIR: ${{ runner.temp }}/worth-ui-lane-reports
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-worth-ui
+
+      - name: WORTH UI dependency contract
+        run: python3 scripts/ci/run_worth_ui_test_lane.py dependency-contract
+
+      - name: Upload WORTH UI dependency-contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-ui-dependency-contract-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-ui-lane-reports
+          if-no-files-found: warn
+          retention-days: 14
+
+  worth_ui_windows_check:
+    name: WORTH UI Windows Compile Check
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      WORTH_UI_LANE_REPORT_DIR: ${{ runner.temp }}/worth-ui-lane-reports
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-worth-ui
+
+      - name: WORTH UI Windows all-target compile check
+        run: python scripts/ci/run_worth_ui_test_lane.py platform-check
+
+      - name: Upload WORTH UI Windows evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-ui-windows-check-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-ui-lane-reports
+          if-no-files-found: warn
+          retention-days: 14
+
+  worth_ui_proof:
+    name: WORTH UI Proof Closure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - worth_ui_quality
+      - worth_ui_fast
+      - worth_ui_compile_contracts
+      - worth_ui_hostile_certification
+      - worth_ui_dependency_contract
+      - worth_ui_windows_check
+    env:
+      QUALITY_RESULT: ${{ needs.worth_ui_quality.result }}
+      FAST_RESULT: ${{ needs.worth_ui_fast.result }}
+      COMPILE_RESULT: ${{ needs.worth_ui_compile_contracts.result }}
+      HOSTILE_RESULT: ${{ needs.worth_ui_hostile_certification.result }}
+      DEPENDENCY_RESULT: ${{ needs.worth_ui_dependency_contract.result }}
+      WINDOWS_RESULT: ${{ needs.worth_ui_windows_check.result }}
+
+    steps:
+      - name: Require every WORTH UI proof component
+        shell: bash
+        run: |
+          for result in \
+            "$QUALITY_RESULT" \
+            "$FAST_RESULT" \
+            "$COMPILE_RESULT" \
+            "$HOSTILE_RESULT" \
+            "$DEPENDENCY_RESULT" \
+            "$WINDOWS_RESULT"
+          do
+            if [ "$result" != "success" ]; then
+              echo "A required WORTH UI proof component finished as: $result" >&2
+              exit 1
+            fi
+          done
 
   signal-perf:
     name: Signal Performance Lane

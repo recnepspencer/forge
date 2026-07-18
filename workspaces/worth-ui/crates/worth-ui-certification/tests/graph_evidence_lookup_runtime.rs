@@ -169,6 +169,7 @@ fn graph_identity_app() -> WorthUiApp {
                 )),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn graph_identity_query(

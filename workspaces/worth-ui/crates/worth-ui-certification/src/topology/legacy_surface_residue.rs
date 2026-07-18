@@ -2,6 +2,8 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
+use super::workspace_source_inventory::WorkspaceSourceInventory;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum LegacyDisposition {
     Owner,
@@ -268,26 +270,23 @@ pub fn audit_no_parallel_legacy_authority(workspace_root: &Path) -> Vec<String> 
     violations
 }
 
-pub fn audit_legacy_shim_honesty(workspace_root: &Path) -> Vec<String> {
+pub fn audit_legacy_shim_honesty(inventory: &WorkspaceSourceInventory) -> Vec<String> {
     let mut violations = Vec::new();
 
-    for retired_root in [
-        workspace_root.join("crates/worth-ui-adapters"),
-        workspace_root.join("crates/worth-ui-state"),
-        workspace_root.join("crates/worth-ui-types"),
+    for retired_relative in [
+        "crates/worth-ui-adapters",
+        "crates/worth-ui-state",
+        "crates/worth-ui-types",
     ] {
-        if !retired_root.exists() {
+        if !inventory.contains(retired_relative) {
             continue;
         }
+        let retired_root = inventory.absolute_path(retired_relative);
 
-        let residual_files: Vec<String> = fs::read_dir(&retired_root)
-            .unwrap_or_else(|error| {
-                panic!("{} should be readable: {error}", retired_root.display())
-            })
-            .filter_map(Result::ok)
-            .map(|entry| entry.path())
-            .filter(|path| path.is_file())
-            .map(|path| path.display().to_string())
+        let residual_files: Vec<String> = inventory
+            .direct_entries_under(retired_relative)
+            .filter(|path| inventory.source(path).is_some())
+            .map(|path| inventory.absolute_path(path).display().to_string())
             .collect();
 
         if !residual_files.is_empty() {

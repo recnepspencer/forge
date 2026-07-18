@@ -8,8 +8,10 @@ use crate::capability::{
     ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatchedArtifactInput};
-use crate::source::{WorthUiArtifact, WorthUiRustAuthoredArtifactInputModule};
+use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider};
+use crate::source::{
+    WorthUiArtifact, WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+};
 
 pub(super) fn storm_app() -> WorthUiApp {
     impact_test_app()
@@ -23,6 +25,7 @@ pub(super) fn rich_storm_app() -> WorthUiApp {
         .register_theme_token(theme_token("theme.text.primary", "#101820"))
         .register_theme_token(theme_token("theme.text.secondary", "#C7492A"))
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn token_artifact(app: &WorthUiApp, token_id: &str) -> WorthUiArtifact {
@@ -67,12 +70,11 @@ pub(super) fn file_token_provider(token_id: &str) -> WorthUiSourceProvider {
     )
 }
 
-pub(super) fn rust_token_provider(app: &WorthUiApp, token_id: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::rust_authored_artifact(format!("rust-authored-{token_id}"))
-        .with_artifact_input(WorthUiWatchedArtifactInput::from_rust_authored_artifact(
-            format!("rust-token-{token_id}"),
-            token_artifact(app, token_id),
-        ))
+pub(super) fn rust_token_provider(_app: &WorthUiApp, token_id: &str) -> WorthUiSourceProvider {
+    WorthUiSourceProvider::rust_authored(format!("rust-authored-{token_id}"))
+        .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([
+            token_module(token_id),
+        ]))
 }
 
 pub(super) fn rich_file_provider(token_id: &str) -> WorthUiSourceProvider {
@@ -89,12 +91,15 @@ pub(super) fn rich_file_provider(token_id: &str) -> WorthUiSourceProvider {
     )
 }
 
-pub(super) fn rich_rust_provider(app: &WorthUiApp, token_id: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::rust_authored_artifact(format!("rust-authored-rich-{token_id}"))
-        .with_artifact_input(WorthUiWatchedArtifactInput::from_rust_authored_artifact(
-            format!("rust-rich-{token_id}"),
-            rich_artifact(app, token_id),
-        ))
+pub(super) fn rich_rust_provider(_app: &WorthUiApp, token_id: &str) -> WorthUiSourceProvider {
+    WorthUiSourceProvider::rust_authored(format!("rust-authored-rich-{token_id}"))
+        .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([
+            WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+                .with_component("workspace.component.dashboard")
+                .with_surface("workspace.surface.main")
+                .with_binding("workspace.view_binding.selection")
+                .with_token(token_id, token_id),
+        ]))
 }
 
 pub(super) fn invalid_file_provider(label: &str) -> WorthUiSourceProvider {

@@ -100,7 +100,8 @@ mod tests {
                 WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.runtime-basis")
                     .with_semantic_artifact_spec(control_graph_input_spec()),
             )
-            .freeze();
+            .freeze()
+            .expect("application preparation should succeed");
         let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
             .graph_handoff()
             .expect("control declaration should lower to graph handoff");
@@ -128,7 +129,8 @@ mod tests {
                 WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.position")
                     .with_semantic_artifact_spec(control_graph_input_spec()),
             )
-            .freeze();
+            .freeze()
+            .expect("application preparation should succeed");
         let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
             .graph_handoff()
             .expect("control declaration should lower to graph handoff");
@@ -148,7 +150,8 @@ mod tests {
                 WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.orphan")
                     .with_semantic_artifact_spec(control_graph_input_spec()),
             )
-            .freeze();
+            .freeze()
+            .expect("application preparation should succeed");
         let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
             .graph_handoff()
             .expect("control declaration should lower to graph handoff");
@@ -157,7 +160,8 @@ mod tests {
                 WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.orphan.other")
                     .with_semantic_artifact_spec(other_control_spec()),
             )
-            .freeze();
+            .freeze()
+            .expect("application preparation should succeed");
         let unrelated_handoff =
             artifact_from_file_provenance(&unrelated_app, "app/graph_instantiation_other.wui", 0)
                 .graph_handoff()
@@ -195,13 +199,15 @@ mod tests {
                         control_graph_input_without_non_graph_obligations(),
                     ),
             )
-            .freeze();
+            .freeze()
+            .expect("application preparation should succeed");
         let enriched = WorthUi::app()
             .with_dsl_package(
                 WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.invariance")
                     .with_semantic_artifact_spec(control_graph_input_spec()),
             )
-            .freeze();
+            .freeze()
+            .expect("application preparation should succeed");
         let baseline_handoff =
             artifact_from_file_provenance(&baseline, "app/graph_instantiation.wui", 0)
                 .graph_handoff()

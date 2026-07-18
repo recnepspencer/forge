@@ -13,8 +13,7 @@ use worth_ui_dsl::{
     UiDslStructuralToken, WorthUiDslPackage,
 };
 
-#[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-pub mod obligation_dispatch_prerequisite_support;
+use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
 
 #[test]
 fn equivalent_declaration_slice_routes_return_the_same_canonical_slice_shape() {
@@ -82,8 +81,8 @@ fn equivalent_declaration_slice_routes_return_the_same_canonical_slice_shape() {
 
 #[test]
 fn obligation_slice_keeps_refs_and_detail_separate_with_explicit_scope_omission() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let refs_only = app.inspect(
         obligation_touch_query(
             touch.target().graph_node_identity().digest(),
@@ -153,8 +152,8 @@ fn declaration_slice_replay_and_rebuild_stay_stable_after_assembly() {
 
 #[test]
 fn obligation_slice_replay_preserves_omission_detail_and_cost_posture() {
-    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::application_authority::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::graph_touches::query_touch(&app);
     let refs_query = obligation_touch_query(
         touch.target().graph_node_identity().digest(),
         touch.identity_digest(),
@@ -189,6 +188,7 @@ fn declaration_lookup_app() -> worth_ui::facade::app::WorthUiApp {
                 ),
         )
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn authored_artifact(

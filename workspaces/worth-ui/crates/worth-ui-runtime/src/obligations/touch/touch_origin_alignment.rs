@@ -10,7 +10,7 @@ use crate::runtime::{
 };
 
 pub(crate) fn require_host_observation_alignment(
-    observation: WorthUiActiveRuntimeObservation,
+    observation: &WorthUiActiveRuntimeObservation,
     inspection: &WorthUiExecutionPlanInspection,
 ) -> Result<(), UiGraphTouchDenial> {
     if observation.artifact_digest() == inspection.active_artifact_digest()

@@ -1,47 +1,124 @@
-# Milestone 3.8.1: Runtime Authority Closure and Honest Composition Gate
+# Milestone 3.8.1: Test-Program Topology and Runtime Authority Closure Gate
 
-**Status:** Planned. Blocking prerequisite for Milestone 3.9.
+**Status:** Complete. Phases 1 through 14 and every closure gate are green.
+Milestone 3.9 is unblocked.
+
+**Phase 1-4 closeout:** The 161-target legacy proof program is reconciled into
+12 explicit integration binaries, three trybuild sessions, zero ordinary
+nested Cargo invocations, one compiled-once repeated scenario, and one
+suite-owned source inventory. On the same Windows/toolchain posture, cold
+no-run compilation fell from 502.58 seconds to 157.49 seconds (31.34%), and
+median warm full closure fell from 976.0 seconds to 210.401 seconds (21.56%).
+The machine-readable evidence is
+`milestone-3.8.1-test-topology-closeout.json`; the 161-row authority ledger is
+`milestone-3.8.1-test-proof-migration.csv`.
+
+**Phase 5-7 closeout:** Application freeze now seals one move-only prepared
+authority containing the capability, origin-typed application artifact,
+declaration, graph, Query, host-session-plan, lifecycle, and derived-index
+truth for one generation. Declaration-authored applications retain their real
+DSL package; file-backed and Rust-authored ingress retain the admitted
+candidate artifact and declaration meaning as one candidate composition
+through preparation. Freeze returns typed, phase-local denials without
+publishing partial authority. Runtime, hostile certification,
+compile-contract, dependency-contract, topology, line-cap, Clippy, and
+constitutional checks cover the cutover.
+
+**Phase 8-10 closeout:** Prepared authority now launches by consumption into
+one active application session with an opaque session identity. Replacement
+preparation carries that exact session identity and a sealed application-
+generation basis through lowering and staging; equal semantic digests cannot
+move prepared, lowered, or pending authority between sessions. Candidate graph
+touches, mounted-to-layout transitions, successor indexes, and allocation
+catalogs are candidate-owned and committed before cutover. Exact graph
+ownership is carried by an opaque authority identity, so an independently
+committed graph with the same semantic digest cannot supply cutover proof. One
+frame-boundary transition then publishes the artifact, declaration, graph,
+catalog, Query, runtime, and inspection generation together; denial and no-op
+paths retain the prior generation and host session. The configured host
+adapter is retained as the actual operational adapter behind a session-scoped
+capability, with real headless and egui lifecycle parity. Raw runtime launch,
+source ingress, staging, catalog activation, and host-submission bypasses are
+not ordinary facade surfaces. Cross-session hostile tests, a 1,000-step mixed
+replacement storm, host-adapter integration tests, and compile-fail contracts
+cover these boundaries.
+
+**Phase 11-12 closeout:** Framework turns now seal a mutation-free transition
+plan before execution. The plan carries source order, application generation,
+policy family, invalidation narrowing, neighborhood selection, receipt basis,
+resize facts, and exact breadth counters. Ordinary allocation, viewport,
+preview, durable-resize, and drag-resize mutations live in policy-specific
+executors with narrow authority, while one thin owner retains source
+collection, ingress closure, exactly-once pumping, execution dispatch, and
+completion publication. Planning denials and execution denials publish no
+partial ledger, invalidation, or durable-state truth.
+
+**Phase 13-14 closeout:** Uncompiled backdrop, metal, shader-pipeline, and
+related GPU/theme residue are removed. Boundary-check now rejects production
+Rust sources outside every declared module/target graph while understanding
+ordinary modules, explicit path selection, additional targets, and narrowly
+reviewed generated-source exemptions. Production-path certification exercises
+equivalent file/Rust composition, an operational host session with admitted
+measurement evidence, valid, invalid, and no-op replacement, Query admission,
+representative allocation, and active inspection under one application
+generation. Structural audits pin
+one preparation, launch, host-activation, and replacement-cutover owner; the
+workspace test, strict Clippy, topology-budget, line-cap, boundary, and
+agent-context gates are green.
 
 ## Goal
 
-Close the remaining composition seams in the shipped 3.8 substrate so one
-prepared application authority, one active runtime generation, one inspection
-truth, and one admitted host session cannot drift apart.
+First make the Worth UI test program mechanically efficient enough to support
+honest repeated certification, then close the remaining composition seams in
+the shipped 3.8 substrate so one prepared application authority, one active
+runtime generation, one inspection truth, and one admitted host session cannot
+drift apart.
 
 ## Why This Milestone Exists
 
 Milestone 3.8 shipped real declaration, graph, Query-binding, allocation, and
-runtime machinery, but a code-level end-to-end audit found five structural
-gaps: candidate and graph truth can be separated, configured host posture is
-not operationally enforced, public freeze converts admission denial into
-panic, the ordinary framework-turn owner contains too much policy execution,
-and dormant GPU/theme files exist outside the compiled module graph.
+runtime machinery, but its test program accumulated a structural execution
+problem: `worth-ui` and `worth-ui-certification` expose 160 integration-test
+binaries, compile contracts are spread across 58 trybuild-bearing harness
+files, repeated certification scenarios are rebuilt instead of owned once,
+and nested Cargo invocations create parallel build economies. The accumulated
+trybuild target already exceeds 12 GiB. This makes the proof program too slow
+to run as the ordinary development loop and rewards narrow or skipped QA.
 
-Milestone 3.9 would make these seams more expensive by lowering additional
-execution authority onto them. This milestone therefore closes them before
-execution-plan work continues.
+The same code-level end-to-end audit found five production structural gaps:
+candidate and graph truth can be separated, configured host posture is not
+operationally enforced, public freeze converts admission denial into panic,
+the ordinary framework-turn owner contains too much policy execution, and
+dormant GPU/theme files exist outside the compiled module graph.
+
+Milestone 3.9 would make both the slow proof topology and the production seams
+more expensive by lowering additional execution authority onto them. This
+milestone therefore repairs test execution first, without weakening proof,
+then closes the production seams before execution-plan work continues.
 
 ## Governing Summaries
 
 - `MENTALITY.md` protects foundation-first, adversarial, mechanically enforced
-  correctness. The strongest effect here is that split application truth must
-  become unrepresentable before dependent features continue.
+  correctness. The strongest effect here is that the proof infrastructure must
+  be repaired before dependent implementation continues, then split
+  application truth must become unrepresentable.
 - `arch_laws.md` protects contractual facades, proof-bearing phase progression,
   typed denials, and pre-resolved execution. Launch, freeze, host admission, and
   framework-turn transitions must consume types carrying the exact proof each
   preceding phase established.
 - `composition_laws.md` protects named semantic steps and reviewable
-  responsibilities. The framework-turn owner may orchestrate broadly, but it
-  may not inline classification, selection, mutation, receipt construction,
-  and completion mapping as one private runtime.
+  responsibilities in production and tests. Test binaries may aggregate a
+  coherent semantic suite, but test modules and scenario builders must still
+  own one predictable responsibility; neither giant harnesses nor generic
+  fixture bags are acceptable.
 - `domain_structure_laws.md` protects physical boundaries that preserve
-  authority, truth source, lifecycle, and failure meaning. Candidate
-  preparation, application authority, host session, transition planning,
-  transition execution, and visual-host mechanisms require distinct,
-  discoverable homes.
-- `perf_laws.md` protects delta-bounded execution and policy resolution before
-  the hot path. Framework-turn policy must lower once into typed dispositions,
-  and execution evidence must expose the breadth actually touched.
+  authority, truth source, lifecycle, failure meaning, and test strategy. Test
+  topology must falsify production topology, and shared support must live at
+  the narrowest real semantic authority rather than behind a global test world.
+- `perf_laws.md` protects bounded execution, amortization across honest batch
+  boundaries, and measured claims. Compiler sessions, integration binaries,
+  source scans, and fixture construction are test execution breadth and must
+  not scale with individual assertions when one semantic suite can share them.
 - The Worth UI roadmap protects one canonical artifact pipeline,
   runtime-owned meaning, host adapters as native-mechanics translators, and
   steady-state execution free of semantic rediscovery. It requires this closure
@@ -49,11 +126,18 @@ execution-plan work continues.
 
 ## Adversarial Constraint
 
+Under arbitrary test selection and repeated local or CI execution, the full
+proof program must retain its hostile coverage while avoiding per-assertion
+compiler sessions, per-file integration linking, repeated source discovery,
+fixture-local build graphs, and repeated construction of semantically identical
+certification worlds.
+
 Under arbitrary valid and invalid source replacements, arbitrary framework-turn
 source pressure, and arbitrary attempts to mix otherwise-valid application
-parts, it must be mechanically impossible for the active artifact, declaration
-authority, committed graph, Query binding, inspection surfaces, capability
-snapshot, or host session to describe different application generations.
+parts, it must also be mechanically impossible for the active artifact,
+declaration authority, committed graph, Query binding, inspection surfaces,
+capability snapshot, or host session to describe different application
+generations.
 
 Every denial must preserve the last complete admitted authority without panic,
 partial publication, adapter substitution, or derived-state residue.
@@ -62,6 +146,28 @@ partial publication, adapter substitution, or derived-state residue.
 
 - One sealed, move-only prepared application authority is the only ordinary
   input to runtime launch and replacement staging.
+- Test-topology repair is the first milestone priority. No production-authority
+  phase may begin until the baseline, compile-contract, certification-suite,
+  and build-boundary phases are closed.
+- Proof strength may not be traded for speed. Every moved, consolidated,
+  replaced, or deleted test must appear in a mechanical migration ledger that
+  names the surviving proof or explains why a stronger proof subsumes it.
+- Compile contracts are batched by semantic boundary. A compiler invocation is
+  not an assertion boundary, and private-field repetition is not a substitute
+  for one load-bearing architectural contract.
+- Shared certification setup is compiled once only when it has shared semantic
+  authority. Generic `fixtures`, `helpers`, `world`, or catch-all scenario
+  modules are forbidden.
+- Ordinary workspace test execution launches no nested Cargo build and creates
+  no fixture-local target directory. Truly distinct compile environments live
+  in explicit, separately named proof lanes.
+- Required premerge closure is one aggregate over independently executed
+  semantic proof lanes. The serial `full` lane remains the exact local/manual
+  reproduction of runtime proof closure, but CI must not rerun it after already
+  executing every component lane in the same workflow.
+- CI pins its Rust toolchain, does not persist the workspace target directory,
+  records machine-readable lane timing and compiler-cache evidence, and checks
+  at least Linux and Windows compilation posture.
 - A digest may identify or compare that authority, but a raw digest is never
   authority and cannot open a launch, replacement, host, or inspection door.
 - File-authored candidate truth and its source-backed declaration/graph truth
@@ -88,7 +194,357 @@ partial publication, adapter substitution, or derived-state residue.
 
 ## Phase Plan
 
-### Phase 1: Canonical Prepared-Application Authority
+### Phase 1: Test-Cost Baseline and Execution-Lane Contract
+
+Freeze the current proof inventory and make its compilation, linking, process,
+disk, and execution breadth measurable before any test or production topology
+changes. This is the milestone's first implementation phase and blocks every
+later phase.
+
+**Relevant subsystems**
+
+- Worth UI workspace manifest and Cargo profiles
+- Cargo test-target metadata
+- local developer test commands
+- CI orchestration
+- isolated target-directory measurement
+- test-proof migration inventory
+
+**Relevant APIs and source surfaces**
+
+- `workspaces/worth-ui/Cargo.toml`
+- root and Worth UI CI configuration
+- `cargo metadata` test-target inventory
+- trybuild harness and fixture inventory
+- new machine-readable test-topology budget and proof-migration ledger
+
+**Required design**
+
+- Record the current test inventory by package, target, semantic suite,
+  trybuild fixture, nested Cargo invocation, scenario-support owner, and proof
+  family. Every later move or deletion must reconcile against this inventory.
+- Measure cold no-run compilation, warm full-suite execution, compile-contract
+  execution, generated-artifact size, and process/target breadth in a fresh
+  isolated `CARGO_TARGET_DIR`. Record three comparable runs where warm/cold
+  posture requires a median rather than one anecdotal sample.
+- Add Worth UI-owned `dev` and `test` profiles that avoid unnecessary Windows
+  debug/PDB amplification while retaining useful failure backtraces. The
+  nested workspace must not rely on root-workspace profiles it cannot inherit.
+- Define explicit fast developer, compile-contract, hostile-certification,
+  documentation, and dependency-contract lanes plus one serial `full`
+  reproduction. The required CI aggregate's union and the serial full runtime
+  lane must cover the same reconciled runtime proof inventory; lane naming
+  cannot hide omitted tests.
+- Install hard topology budgets: at most 6 `worth-ui` integration targets, at
+  most 10 `worth-ui-certification` integration targets, at most 4
+  compile-contract binaries workspace-wide, and zero nested Cargo invocations
+  in ordinary workspace test execution.
+- Preserve `worth-ui-runtime` unit tests as a library-test compilation unit
+  unless a real external-consumer boundary requires otherwise. Moving unit
+  tests into new integration binaries is not optimization.
+
+**Warnings**
+
+- Do not begin by deleting tests or introducing an alternative test runner.
+  Scheduling cannot repair compilation and linking amplification.
+- Do not measure against the existing accumulated target directory; it cannot
+  distinguish current-run work from historical artifact churn.
+- Do not set an elapsed-time budget without recording machine, profile, target
+  posture, and exact command. A performance claim is valid only at its named
+  boundary.
+- Do not let a fast lane become the only lane run by automation. Fast feedback
+  and aggregate complete closure are separate obligations.
+
+**Test requirements**
+
+- Inventory convergence: the union of declared lanes resolves to every current
+  test target and proof family exactly once, with no silently unowned target.
+- Closure equivalence: the required parallel aggregate and serial `full`
+  reproduction retain the same reconciled runtime proof families, including
+  all-feature library, integration, documentation, and external dependency
+  contracts.
+- Budget rejection: an intentionally added integration target, trybuild
+  harness, or ordinary nested Cargo invocation causes the topology check to
+  fail with the responsible package and path.
+- Measurement replay: repeated isolated measurements preserve the same target
+  and process counts and classify cold versus warm posture explicitly.
+- Profile honesty: the Worth UI workspace proves its own dev/test profile
+  settings without depending on the parent workspace manifest.
+
+**Engineering decisions**
+
+- Target, process, and fixture breadth are first-class test-performance
+  counters, not incidental Cargo details.
+- The migration ledger is authoritative for proof preservation during Phases
+  2 through 4 and is retired only after every row maps to the final topology.
+
+**Open questions**
+
+- None.
+
+### Phase 2: Compile-Contract Batching and Proof Deduplication
+
+Collapse compile-time boundary proof into a small number of semantic harnesses
+without weakening construction, visibility, typestate, or authority denials.
+
+**Relevant subsystems**
+
+- `worth-ui` public facade compile contracts
+- `worth-ui-certification` compile contracts
+- `worth-ui-host-contract` public boundary contracts
+- trybuild fixtures and stderr snapshots
+- public-surface and dependency-boundary structural audits
+
+**Relevant APIs and source surfaces**
+
+- `worth-ui/tests/*compile*.rs`
+- `worth-ui-certification/tests/*compile*.rs`
+- both `tests/trybuild_support.rs` copies
+- `tests/ui/{pass,fail}` semantic fixture trees
+- compile-contract rows in the proof-migration ledger
+
+**Required design**
+
+- Replace per-fixture and per-family harness fragmentation with no more than
+  four workspace-wide compile-contract binaries, organized by real authority
+  boundary rather than milestone provenance.
+- Run one `trybuild::TestCases` session per semantic suite and batch compatible
+  pass/fail fixtures through stable directory globs. An individual assertion
+  must not create a fresh compiler session merely to preserve a test name.
+- Remove runtime `RUSTFLAGS` mutation from test support. Warning posture must
+  remain explicit and must not fork the test dependency fingerprint from the
+  ordinary workspace build.
+- Reconcile every existing compile fixture through the migration ledger.
+  Retain distinct relational type/phase incompatibilities; replace repeated
+  private-field or non-export assertions only when one stronger structural or
+  representative compiler proof subsumes the same invariant.
+- Preserve semantic discoverability through fixture paths and module/test
+  names even when compilation is batched. A failing fixture must still name
+  the violated boundary directly.
+- Keep pass fixtures only where compilation proves a capability not already
+  exercised by an ordinary external-consumer journey.
+
+**Warnings**
+
+- Do not turn all compile failures into one opaque golden stderr blob. Each
+  fixture remains independently attributable.
+- Do not replace compiler-enforced authority denials with source-string scans
+  when the compiler can prove the real relation.
+- Do not preserve hundreds of structurally equivalent privacy assertions out
+  of fear. Preserve the invariant with the smallest stronger proof family and
+  record the substitution explicitly.
+- Do not use glob batching across fixtures that genuinely require different
+  features, target platforms, or dependency graphs; such a distinction must
+  earn a separately named compile environment.
+
+**Test requirements**
+
+- Proof-ledger parity: every old compile-contract row maps to a retained
+  fixture, a stronger replacement proof, or a reviewed redundancy deletion;
+  no row disappears implicitly.
+- Hostile authority matrix: raw IDs, digests, candidate witnesses, host
+  adapters, and lower-phase artifacts remain unable to satisfy higher-authority
+  APIs after batching.
+- Session-budget rejection: adding a new standalone trybuild harness or
+  per-fixture `TestCases` construction fails the topology gate.
+- Diagnostic localization: each deliberately broken fixture reports its
+  semantic boundary and expected compiler denial without depending on another
+  fixture's ordering.
+
+**Engineering decisions**
+
+- Compiler proof is retained where invalid states should be unrepresentable;
+  batching changes execution topology, not architectural enforcement.
+- Public-surface inventory checks may complement trybuild but cannot replace
+  relational compiler proof.
+
+**Open questions**
+
+- None.
+
+### Phase 3: Certification Suite and Scenario Authority
+
+Reduce integration-link amplification and give repeated certification setup
+named, compiled-once ownership while preserving each hostile responsibility as
+a small, independently navigable test module.
+
+**Relevant subsystems**
+
+- `worth-ui` facade and registry journeys
+- `worth-ui-certification` runtime journeys
+- certification scenario construction
+- `worth-ui-test-support` synthetic authority
+- domain-specific test modules and assertions
+
+**Relevant APIs and source surfaces**
+
+- `worth-ui/tests/*.rs`
+- `worth-ui-certification/tests/*.rs`
+- `worth-ui-certification/src`
+- `worth-ui-test-support/src`
+- repeated declaration, graph, Query, measurement, obligation, allocation,
+  host, and inspection scenario builders
+
+**Required design**
+
+- Consolidate `worth-ui` integration targets into no more than six coherent
+  facade, registry, and public-runtime suites. Child modules preserve one
+  responsibility per file and remain subject to the workspace line cap.
+- Consolidate `worth-ui-certification` into no more than ten domain suites,
+  with distinct homes for declaration, graph, obligation, measurement,
+  inspection, allocation/runtime, application lifecycle, and topology where
+  their authority or failure fate differs.
+- Move genuinely shared certification scenario construction into named
+  modules compiled once as part of certification support. Scenario modules
+  must describe the authority they assemble, such as declaration application,
+  graph touch, or measurement admission; `fixtures`, `helpers`, `common`,
+  `shared`, and global test-world bags are forbidden.
+- Keep synthetic authority, hostile origin, and fault-injection capability in
+  `worth-ui-test-support`. Ordinary scenario composition must use production
+  facades and cannot mint admitted production artifacts.
+- Keep the critical varying input, action, and assertion visible in each test
+  body. Shared support may remove ceremony but may not conceal which production
+  edge the test falsifies.
+- Preserve stable domain-qualified test names so targeted developer commands
+  remain possible after binary consolidation.
+
+**Warnings**
+
+- Do not produce one giant certification file or one global library-test blob.
+  The goal is a small number of semantic compilation units, not erased test
+  topology.
+- Do not unify setup merely because its syntax looks similar. Shared scenario
+  authority requires the same meaning, lifecycle, failure behavior, and proof
+  strategy.
+- Do not move production authority constructors into test support for
+  convenience. Support authority can originate raw inputs and controlled
+  faults, never the proof under test.
+- Do not split `worth-ui-runtime` unit tests into external binaries to make the
+  target list look uniform.
+
+**Test requirements**
+
+- Scenario convergence: the prior inline and final compiled-once construction
+  of each representative declaration, graph, measurement, obligation, and
+  inspection world produce equivalent production-path inputs and outcomes.
+- Authority rejection: scenario support cannot construct prepared, active,
+  admitted, committed, or generation-bound production authority without the
+  proving production transition.
+- Isolation hostility: a failure in one domain suite identifies that domain
+  without requiring unrelated application worlds or cross-domain fixture
+  initialization.
+- Target-budget rejection: adding a new top-level integration binary when an
+  existing semantic suite owns the responsibility fails the topology gate.
+
+**Engineering decisions**
+
+- Integration binaries are compilation boundaries and must be justified by
+  external-consumer semantics or genuinely distinct build environments.
+- Test modules remain fine-grained even when their containing binary is
+  coarse enough to amortize compilation and linking honestly.
+
+**Open questions**
+
+- None.
+
+### Phase 4: Build-Boundary Closure and Test-Program Certification
+
+Remove parallel Cargo economies and repeated structural discovery, install the
+final automated lanes, and prove that the repaired arrangement is both faster
+and proof-equivalent before production-authority work begins.
+
+**Relevant subsystems**
+
+- custom compile-fail and adapter fixtures
+- nested Cargo manifests and fixture-local target directories
+- topology, residue, growth-posture, and source-reachability audits
+- Worth UI CI lanes
+- final test-topology budget and performance evidence
+
+**Relevant APIs and source surfaces**
+
+- `worth-ui-host-contract/tests/public_boundary_compile_fail.rs`
+- `worth-ui-certification/tests/host_replaceability_compile.rs`
+- certification topology/source audit entry points
+- fixture manifests under `tests/ui` and `tests/fixtures`
+- explicit Worth UI CI commands and topology checks
+
+**Required design**
+
+- Replace custom temporary-crate compilation with the consolidated compile
+  contracts when it proves a language/API relation. Dependency-isolation
+  claims must use a manifest/dependency-graph proof plus one explicitly named
+  compile lane rather than repeated ordinary-suite `cargo check` subprocesses.
+- Ordinary `cargo test --workspace` for the Worth UI workspace must launch no
+  nested Cargo process and create no target directory beneath `tests`.
+- Make topology and source audits consume one named workspace source inventory
+  per suite instead of repeatedly walking and parsing the same tree from
+  independent integration binaries. The inventory is derived evidence, not a
+  new source of architectural truth.
+- Add independent CI jobs for quality/topology, fast runtime plus documentation
+  proof, compile contracts, hostile certification, the external dependency
+  contract, and Windows all-target/all-feature compilation. One stable required
+  aggregate status must fail unless every component job succeeds.
+- Retain the serial `full` command as the exact local/manual runtime-proof
+  reproduction. Do not execute it after the component lanes in the same CI
+  workflow; redundant serial closure spends time without adding proof.
+- Pin the Worth UI Rust toolchain, disable incremental compilation in ephemeral
+  CI workers, share compiler objects through a content-addressed compiler cache,
+  and cache Cargo sources rather than the multi-gigabyte workspace target tree.
+- Emit machine-readable per-command and per-lane wall time together with
+  compiler-cache statistics, including on ordinary command failure.
+- Re-run the Phase 1 isolated measurements after migration. The median warm
+  full-suite wall time must be at most 50 percent of baseline, and cold no-run
+  compilation must be at most 60 percent of baseline, without reducing the
+  reconciled proof inventory.
+- Enforce the final structural budgets mechanically and publish target count,
+  compiler-session count, nested-process count, generated-artifact size, and
+  lane timing beside the proof-migration ledger.
+
+**Warnings**
+
+- Do not use shared `CARGO_TARGET_DIR` as a disguise for uncontrolled nested
+  builds. Remove the process boundary unless a distinct compile environment is
+  the actual proof.
+- Do not cache source-scan results across repository revisions or trust
+  boundaries. Reuse is valid only within one explicit suite inventory.
+- Do not accept faster timing if hostile cases, feature combinations,
+  documentation, dependency isolation, platform posture, or compile denials
+  silently leave either the aggregate or serial reproduction.
+- Do not begin Phase 5 while any proof-ledger row, target budget, nested build,
+  or timing gate remains open.
+
+**Test requirements**
+
+- Full-proof equivalence: the required CI aggregate executes every reconciled
+  proof family, while the serial `full` reproduction covers the same runtime
+  inventory and reproduces the same admitted/denied outcomes as the baseline.
+- CI-contract rejection: deleting a required component job, restoring serial
+  `full` execution after the component lanes, floating the Rust toolchain, or
+  caching `workspaces/worth-ui/target` fails the topology contract check.
+- Platform-drift rejection: Windows all-target/all-feature compilation is a
+  required aggregate member and cannot be skipped while Linux closure reports
+  success.
+- Parallel-economy rejection: a hostile fixture that launches nested Cargo or
+  writes a fixture-local target is detected with the owning test path.
+- Source-inventory convergence: multiple structural audits over one revision
+  consume the same enumerated production-source set while retaining their
+  independent domain verdicts.
+- Performance gate: fresh isolated cold and warm runs satisfy the relative
+  budgets and emit enough counters to explain any remaining dominant cost.
+
+**Engineering decisions**
+
+- A distinct build graph is allowed only as an explicit proof lane with named
+  ownership; it is never hidden inside an ordinary test function.
+- Phase 4 closes test-topology work. Later phases may add proofs only through
+  the installed suite and budget contracts.
+
+**Open questions**
+
+- None.
+
+### Phase 5: Canonical Prepared-Application Authority
 
 Define the single authority object from which an active Worth UI application
 may be launched. This phase freezes ownership and identity before changing
@@ -166,7 +622,7 @@ ingress, freeze, or runtime behavior.
 - Final public type names may follow the existing facade vocabulary, but the
   prepared-versus-active distinction and sealed ownership are not negotiable.
 
-### Phase 2: Inseparable Candidate Composition at Source Ingress
+### Phase 6: Inseparable Candidate Composition at Source Ingress
 
 Make source ingress produce one composition input whose runtime artifact and
 declaration/graph source cannot be separated or silently discarded.
@@ -240,7 +696,7 @@ declaration/graph source cannot be separated or silently discarded.
 
 - None.
 
-### Phase 3: Fallible Application Preparation and Typed Freeze Denials
+### Phase 7: Fallible Application Preparation and Typed Freeze Denials
 
 Replace panic-based freeze with a typed preparation pipeline that denies before
 publishing any application authority.
@@ -314,7 +770,7 @@ publishing any application authority.
 
 - None.
 
-### Phase 4: Active Application Session and Launch Admission
+### Phase 8: Active Application Session and Launch Admission
 
 Consume prepared authority into one active application session that owns both
 runtime execution and active inspection for the same generation.
@@ -386,7 +842,7 @@ runtime execution and active inspection for the same generation.
 
 - None.
 
-### Phase 5: Atomic Replacement and Inspection Continuity
+### Phase 9: Atomic Replacement and Inspection Continuity
 
 Make replacement cutover publish artifact, declarations, graph, Query binding,
 derived indexes, and active inspection as one generation transition.
@@ -458,7 +914,7 @@ derived indexes, and active inspection as one generation transition.
 
 - None.
 
-### Phase 6: Operational Host-Session Authority
+### Phase 10: Operational Host-Session Authority
 
 Turn configured host posture into the sole admitted source of native
 observation and measurement capabilities for an active application.
@@ -531,11 +987,11 @@ observation and measurement capabilities for an active application.
 
 **Open questions**
 
-- Whether host replacement ships now depends on existing product callers. If
-  retained, it must use the same atomic application-authority transition; it
-  may not weaken the ordinary host session.
+- None. Host replacement does not ship in this milestone. Application
+  replacement retains the configured active host session; any future host
+  replacement must be a separate atomic application transition.
 
-### Phase 7: Framework-Turn Transition Planning
+### Phase 11: Framework-Turn Transition Planning
 
 Extract policy classification, narrowing, and selection from the close/pump
 owner into a proof-bearing transition plan that is complete before mutation.
@@ -613,7 +1069,7 @@ owner into a proof-bearing transition plan that is complete before mutation.
 
 - None.
 
-### Phase 8: Policy-Family Execution and Thin Framework Ownership
+### Phase 12: Policy-Family Execution and Thin Framework Ownership
 
 Split allocation mutation into policy-family executors and reduce the
 framework-turn owner to lifecycle orchestration visible as a short semantic
@@ -686,7 +1142,7 @@ sequence.
 
 - None.
 
-### Phase 9: Dormant Theme and Rendering Residue Removal
+### Phase 13: Dormant Theme and Rendering Residue Removal
 
 Remove source files that claim GPU/theme functionality but are not part of the
 compiled crate graph, and add mechanical detection so orphan production Rust
@@ -759,7 +1215,7 @@ cannot recur.
 
 - None.
 
-### Phase 10: Hostile End-to-End Closure and Anti-Bypass Certification
+### Phase 14: Hostile End-to-End Closure and Anti-Bypass Certification
 
 Certify that the repaired workspace has one application authority from ingress
 through active execution, inspection, host observation, replacement, and
@@ -839,6 +1295,19 @@ framework-turn closeout.
 
 ## Must Ship
 
+- a machine-readable test inventory, proof-migration ledger, and enforced
+  target/process/session budgets
+- Worth UI-owned dev/test profiles; explicit fast, compile-contract,
+  hostile-certification, documentation, dependency-contract, and serial-full
+  lanes; and one proof-equivalent parallel premerge aggregate
+- no more than 6 `worth-ui` and 10 `worth-ui-certification` integration targets,
+  with no more than 4 compile-contract binaries workspace-wide
+- batched compile contracts with no runtime warning suppression or
+  per-fixture compiler-session topology
+- named, compiled-once certification scenario authority without generic test
+  worlds or production-authority minting
+- zero nested Cargo invocations in ordinary workspace tests and one derived
+  source inventory per structural-audit suite
 - one sealed prepared application authority and distinct active application
   session
 - inseparable source candidate composition for file- and Rust-authored paths
@@ -869,11 +1338,27 @@ framework-turn closeout.
 - Query-free and headless applications remain ceremony-free within the same
   honest lifecycle
 - support authority remains distinct from production authority
+- hostile compiler, runtime, topology, and boundary proof remains complete
+  after test consolidation; speed may not come from silently shrinking proof
 - all production and test Rust files remain within the workspace line-cap rule
   unless explicitly and narrowly exempted
 
 ## Acceptance Evidence
 
+- the proof-migration ledger reconciles every pre-migration test and fixture to
+  a retained proof, stronger replacement, or reviewed redundancy deletion
+- final test topology satisfies the integration-target, compile-contract, and
+  nested-process budgets mechanically
+- isolated measurements show median warm full-suite time at no more than 50
+  percent of baseline and cold no-run compilation at no more than 60 percent,
+  with the same reconciled proof families
+- explicit Worth UI CI lanes cover quality/topology, fast runtime,
+  documentation, compile contracts, hostile certification, dependency
+  isolation, and Windows compilation behind one stable required aggregate;
+  the serial full lane remains the exact local/manual runtime reproduction
+- the pinned CI toolchain, source-only Cargo cache, content-addressed compiler
+  cache, timeouts, cancellation policy, lane reports, and CI topology checker
+  make execution cost and configuration drift visible
 - external callers cannot compile any path that launches an artifact,
   replacement candidate, graph, Query binding, or host adapter independently of
   the matching prepared application authority
@@ -898,12 +1383,13 @@ framework-turn closeout.
 
 ## Sequencing Notes
 
-- Phase order is mandatory. Candidate ingress cannot be narrowed honestly
-  before canonical prepared authority exists; launch and replacement cannot be
-  repaired before fallible preparation exists; frame execution cannot be split
-  before a complete transition plan exists.
+- Phase order is mandatory. Phases 1 through 4 repair and certify test topology
+  before any production-authority implementation begins. Candidate ingress
+  cannot be narrowed honestly before canonical prepared authority exists;
+  launch and replacement cannot be repaired before fallible preparation exists;
+  frame execution cannot be split before a complete transition plan exists.
 - This milestone is a closure gate for 3.8, not an early implementation of 3.9,
   3.10, or 3.16. It does not lower the future execution plan, mount host render
   receipts, or introduce runtime appearance semantics.
-- Milestone 3.9 is blocked until Phase 10 closes with no compatibility lane or
+- Milestone 3.9 is blocked until Phase 14 closes with no compatibility lane or
   named architectural debt.

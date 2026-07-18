@@ -42,8 +42,7 @@ fn source_backed_semantic_spec(
     match node {
         WorthUiLegallyStructuredArtifactInputNode::Component(node) => Some(mosaic_semantic_spec(
             format!("component:{}", node.descriptor().id().as_str()),
-            node.provenance().module_path(),
-            node.provenance().declaration_index(),
+            dsl_provenance(node.provenance()),
             source_backed_structural_identity(
                 "component",
                 node.authored_identity(),
@@ -52,8 +51,7 @@ fn source_backed_semantic_spec(
         )),
         WorthUiLegallyStructuredArtifactInputNode::Surface(node) => Some(mosaic_semantic_spec(
             format!("surface:{}", node.descriptor().id().as_str()),
-            node.provenance().module_path(),
-            node.provenance().declaration_index(),
+            dsl_provenance(node.provenance()),
             source_backed_structural_identity(
                 "surface",
                 node.authored_identity(),
@@ -73,8 +71,7 @@ fn mosaic_binding_semantic_spec(
 ) -> UiDslSemanticArtifactSpec {
     mosaic_semantic_spec(
         format!("binding:{}", node.view_binding().id().as_str()),
-        node.provenance().module_path(),
-        node.provenance().declaration_index(),
+        dsl_provenance(node.provenance()),
         source_backed_structural_identity(
             "binding",
             node.authored_identity(),
@@ -85,19 +82,41 @@ fn mosaic_binding_semantic_spec(
 
 fn mosaic_semantic_spec(
     key_basis: String,
-    module_path: &str,
-    declaration_index: usize,
+    provenance: UiDslSourceProvenance,
     structural_identity: String,
 ) -> UiDslSemanticArtifactSpec {
+    let module_path = match &provenance {
+        UiDslSourceProvenance::FileAuthored { module_path, .. }
+        | UiDslSourceProvenance::RustAuthored { module_path, .. } => module_path.clone(),
+    };
     UiDslSemanticArtifactSpec::new(
         UiDslSemanticKey::new(key_basis),
         UiDslSemanticFamily::Mosaic,
-        UiDslSourceProvenance::file_authored(module_path, declaration_index),
+        provenance,
     )
     .with_structural_token(UiDslStructuralToken::new(format!(
         "mosaic:{}|{}",
         module_path, structural_identity
     )))
+}
+
+fn dsl_provenance(
+    provenance: &crate::source::WorthUiArtifactInputProvenance,
+) -> UiDslSourceProvenance {
+    match provenance {
+        crate::source::WorthUiArtifactInputProvenance::ParsedSourceDeclaration {
+            declaration_span,
+            declaration_index,
+            ..
+        } => UiDslSourceProvenance::file_authored(
+            declaration_span.module_id().as_str(),
+            *declaration_index,
+        ),
+        crate::source::WorthUiArtifactInputProvenance::RustAuthoredDeclaration {
+            authored_module_path,
+            declaration_index,
+        } => UiDslSourceProvenance::rust_authored(authored_module_path, *declaration_index),
+    }
 }
 
 fn source_backed_structural_identity(

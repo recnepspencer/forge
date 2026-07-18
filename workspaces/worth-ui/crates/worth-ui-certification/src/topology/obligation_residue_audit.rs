@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use super::dependency_audit::{collect_file_paths, collect_file_use_paths, collect_rust_files};
+use super::dependency_audit::{collect_file_paths, collect_file_use_paths};
+use super::workspace_source_inventory::WorkspaceSourceInventory;
 use syn::visit::{self, Visit};
 use syn::{ExprMethodCall, File};
 
@@ -41,9 +42,9 @@ const LEGALITY_RESOLUTION_ROOTS: &[&str] = &[
 ];
 
 pub fn audit_non_owner_code_does_not_reopen_obligation_declaration_source(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let files = collect_scoped_rust_files(workspace_root, OBLIGATION_DECLARATION_REOPENING_ROOTS);
+    let files = collect_scoped_rust_files(inventory, OBLIGATION_DECLARATION_REOPENING_ROOTS);
     let mut violations = Vec::new();
 
     for path in files {
@@ -51,9 +52,9 @@ pub fn audit_non_owner_code_does_not_reopen_obligation_declaration_source(
             continue;
         }
 
-        for segments in collect_file_paths(&path)
+        for segments in collect_file_paths(inventory, &path)
             .into_iter()
-            .chain(collect_file_use_paths(&path))
+            .chain(collect_file_use_paths(inventory, &path))
         {
             if let Some(type_name) = obligation_declaration_authority_name(&segments) {
                 violations.push(format!(
@@ -63,7 +64,7 @@ pub fn audit_non_owner_code_does_not_reopen_obligation_declaration_source(
             }
         }
 
-        for method_name in collect_method_names(&path) {
+        for method_name in collect_method_names(inventory, &path) {
             if OBLIGATION_DECLARATION_ACCESSORS.contains(&method_name.as_str()) {
                 violations.push(format!(
                     "{} reopens declaration semantics inside the obligation boundary via DSL accessor `{method_name}()`",
@@ -79,9 +80,9 @@ pub fn audit_non_owner_code_does_not_reopen_obligation_declaration_source(
 }
 
 pub fn audit_legality_resolution_stays_in_admission_owner_lane(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
-    let files = collect_scoped_rust_files(workspace_root, LEGALITY_RESOLUTION_ROOTS);
+    let files = collect_scoped_rust_files(inventory, LEGALITY_RESOLUTION_ROOTS);
     let mut violations = Vec::new();
 
     for path in files {
@@ -90,7 +91,7 @@ pub fn audit_legality_resolution_stays_in_admission_owner_lane(
         }
 
         let relative = path
-            .strip_prefix(workspace_root)
+            .strip_prefix(inventory.root())
             .expect("workspace file should strip to relative path")
             .to_string_lossy()
             .replace('\\', "/");
@@ -101,9 +102,9 @@ pub fn audit_legality_resolution_stays_in_admission_owner_lane(
             continue;
         }
 
-        for segments in collect_file_paths(&path)
+        for segments in collect_file_paths(inventory, &path)
             .into_iter()
-            .chain(collect_file_use_paths(&path))
+            .chain(collect_file_use_paths(inventory, &path))
         {
             if let Some(reason) = legality_resolution_edge(&segments) {
                 violations.push(format!(
@@ -119,17 +120,15 @@ pub fn audit_legality_resolution_stays_in_admission_owner_lane(
     violations
 }
 
-fn collect_scoped_rust_files(workspace_root: &Path, roots: &[&str]) -> Vec<std::path::PathBuf> {
-    let mut files = Vec::new();
-
-    for scoped_root in roots {
-        let path = workspace_root.join(scoped_root);
-        if path.exists() {
-            collect_rust_files(&path, &mut files);
-        }
-    }
-
-    files
+fn collect_scoped_rust_files(
+    inventory: &WorkspaceSourceInventory,
+    roots: &[&str],
+) -> Vec<std::path::PathBuf> {
+    roots
+        .iter()
+        .flat_map(|root| inventory.rust_files_under(root))
+        .map(|source| source.absolute_path().to_path_buf())
+        .collect()
 }
 
 fn is_test_file(path: &Path) -> bool {
@@ -178,16 +177,16 @@ fn legality_resolution_edge(segments: &[String]) -> Option<String> {
     None
 }
 
-fn collect_method_names(path: &Path) -> Vec<String> {
-    let parsed = parse_rust_file(path);
+fn collect_method_names(inventory: &WorkspaceSourceInventory, path: &Path) -> Vec<String> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = MethodCallCollector::default();
     collector.visit_file(&parsed);
     collector.method_names
 }
 
-fn parse_rust_file(path: &Path) -> File {
-    let text = std::fs::read_to_string(path).expect("source file should decode");
-    syn::parse_file(&text).unwrap_or_else(|error| {
+fn parse_rust_file(inventory: &WorkspaceSourceInventory, path: &Path) -> File {
+    let text = inventory.text(path);
+    syn::parse_file(text).unwrap_or_else(|error| {
         panic!("{} should parse as Rust source: {error}", path.display());
     })
 }

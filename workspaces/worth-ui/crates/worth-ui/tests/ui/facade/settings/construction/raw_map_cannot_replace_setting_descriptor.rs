@@ -8,5 +8,5 @@ fn main() {
         "true".to_string(),
     )]);
 
-    let _app = WorthUi::app().register_setting(raw_settings).freeze();
+    let _app = WorthUi::app().register_setting(raw_settings).freeze().expect("application preparation should succeed");
 }

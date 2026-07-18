@@ -274,7 +274,7 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
                 candidate_inspection = Some(
                     runtime
                         .inspect_execution_plan(candidate_plan, planning)
-                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("plan inspection"))?,
                 );
                 Ok((boundary, None))
             },

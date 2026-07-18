@@ -88,11 +88,27 @@ fn followup_query_for_ref(
     requested_richness: UiEvidenceRichness,
 ) -> Option<UiInspectionQuery> {
     let target = match evidence_ref.family() {
-        UiEvidenceFamily::Declaration => UiInspectionTarget::declaration_identity(
-            UiInspectionDeclarationIdentity::new(evidence_ref.identity().digest()),
-        ),
+        UiEvidenceFamily::Declaration => {
+            let identity = UiInspectionDeclarationIdentity::new(evidence_ref.identity().digest());
+            let lookup = app
+                .authored_evidence_index()
+                .lookup_declaration_identity(identity)?;
+            lookup
+                .neighborhood()
+                .refs()
+                .contains(&evidence_ref)
+                .then(|| UiInspectionTarget::declaration_identity(identity))?
+        }
         UiEvidenceFamily::Graph => {
-            UiInspectionTarget::graph_node_identity(evidence_ref.identity().digest())
+            let identity = crate::graph::UiGraphNodeIdentity::new(evidence_ref.identity().digest());
+            let lookup = app
+                .graph_node_evidence_index()
+                .lookup_graph_node_identity(identity)?;
+            lookup
+                .neighborhood()
+                .refs()
+                .contains(&evidence_ref)
+                .then(|| UiInspectionTarget::graph_node_identity(identity.digest()))?
         }
         UiEvidenceFamily::Aspect => app
             .graph_aspect_evidence_indexes()

@@ -52,6 +52,7 @@ pub(super) fn standard_app_with_dashboard_component(
         .register_mosaic_state_slot(primary_pinned_state())
         .register_mosaic_state_slot(primary_surface_state())
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn support_catalog_with_extra<const N: usize>(

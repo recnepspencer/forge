@@ -1,15 +1,13 @@
-//! Worth design token system.
+//! Semantic design tokens for egui-backed Worth widgets.
 //!
-//! DOMAIN: All color, spacing, radius, and typography tokens. Two built-in
-//! themes: dark and light. Custom themes are new functions returning WorthTheme.
-//! DEPENDENCIES: egui only.
+//! [`dark_theme`] and [`light_theme`] provide the built-in token sets.
+//! [`WorthTheme::apply_to_egui`] projects the tokens that egui's `Visuals`
+//! supports. This crate does not own mounted rendering or GPU effects.
 
 use egui::Color32;
 
-/// Complete design token set for one theme.
+/// Shared color, radius, spacing, and typography tokens for one theme.
 ///
-/// Every color, radius, and spacing value the UI needs lives here.
-/// Zero hardcoded values anywhere downstream — everything flows through this struct.
 #[derive(Debug, Clone)]
 pub struct WorthTheme {
     // ── Background layers ────────────────────────────────────────────────
@@ -19,7 +17,7 @@ pub struct WorthTheme {
     pub bg_surface: Color32,
     /// Elevated chrome: menus, dropdowns, tooltips.
     pub bg_raised: Color32,
-    /// Modal scrim / overlay backdrop.
+    /// Modal scrim / overlay color.
     pub bg_overlay: Color32,
 
     // ── Borders ──────────────────────────────────────────────────────────
@@ -231,5 +229,36 @@ pub fn light_theme() -> WorthTheme {
         font_size_md: 14.0,
         font_size_lg: 16.0,
         font_size_xl: 20.0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{dark_theme, light_theme};
+
+    #[test]
+    fn built_in_themes_expose_distinct_semantic_tokens_and_bounded_spacing() {
+        let dark = dark_theme();
+        let light = light_theme();
+
+        assert_ne!(dark.bg_base, light.bg_base);
+        assert_ne!(dark.text_primary, light.text_primary);
+        assert_eq!(dark.sp(0), 4.0);
+        assert_eq!(dark.sp(usize::MAX), 48.0);
+    }
+
+    #[test]
+    fn egui_projection_applies_reachable_theme_tokens() {
+        let theme = dark_theme();
+        let context = egui::Context::default();
+
+        theme.apply_to_egui(&context);
+
+        let visuals = context.style().visuals.clone();
+        assert_eq!(visuals.override_text_color, Some(theme.text_primary));
+        assert_eq!(visuals.panel_fill, theme.bg_surface);
+        assert_eq!(visuals.window_fill, theme.bg_raised);
+        assert_eq!(visuals.window_stroke.color, theme.border_default);
+        assert_eq!(visuals.selection.stroke.color, theme.accent_primary);
     }
 }

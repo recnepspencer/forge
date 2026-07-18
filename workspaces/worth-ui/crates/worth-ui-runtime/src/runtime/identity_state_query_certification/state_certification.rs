@@ -8,7 +8,7 @@ use crate::runtime::{
 
 pub(crate) fn certify_state_step_receipts(
     step: &crate::runtime::WorthUiStateCertificationScenarioStep,
-    active_observation: WorthUiActiveRuntimeObservation,
+    active_observation: &WorthUiActiveRuntimeObservation,
     counters: &mut WorthUiIdentityStateQueryCertificationCounters,
     state_receipts: &mut Vec<WorthUiStateLifecycleReceipt>,
     carry_forward_receipts: &mut Vec<WorthUiStateCarryForwardReceipt>,
@@ -72,7 +72,7 @@ fn certify_state_reconciliation_plan_receipts(
 
 fn reject_state_step_active_runtime_mismatch(
     step: &crate::runtime::WorthUiStateCertificationScenarioStep,
-    active_observation: WorthUiActiveRuntimeObservation,
+    active_observation: &WorthUiActiveRuntimeObservation,
     counters: WorthUiIdentityStateQueryCertificationCounters,
 ) -> Result<(), WorthUiIdentityStateQueryCertificationDenial> {
     if step.node_plan().active_artifact_digest() == active_observation.artifact_digest() {

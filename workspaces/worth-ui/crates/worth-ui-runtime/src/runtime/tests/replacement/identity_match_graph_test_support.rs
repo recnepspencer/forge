@@ -32,6 +32,7 @@ pub(super) fn identity_match_app() -> WorthUiApp {
             "workspace.component.dashboard",
         ))
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(super) fn runtime_and_narrowing(

@@ -102,6 +102,7 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
         .register_mosaic_state_slot(overlay_pinned_state())
         .register_mosaic_state_slot(primary_surface_state())
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn query_owned_view_binding_descriptor() -> ViewBindingDescriptor {

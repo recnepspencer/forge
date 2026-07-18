@@ -15,5 +15,5 @@ fn main() {
             CommandDescriptor::new(CommandId::new("workspace.command.save").unwrap(), "Save")
                 .with_icon(icon_id),
         )
-        .freeze();
+        .freeze().expect("application preparation should succeed");
 }

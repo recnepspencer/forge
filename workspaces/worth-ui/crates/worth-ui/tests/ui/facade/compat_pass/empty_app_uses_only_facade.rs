@@ -1,7 +1,7 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiAppBuilder};
 
 fn build_app() -> WorthUiApp {
-    WorthUi::app().freeze()
+    WorthUi::app().freeze().expect("application preparation should succeed")
 }
 
 fn accepts_builder(_builder: WorthUiAppBuilder) {}

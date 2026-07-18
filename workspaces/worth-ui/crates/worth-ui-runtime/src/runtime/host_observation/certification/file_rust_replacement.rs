@@ -194,7 +194,7 @@ impl WorthUiRuntime {
                             &lowering_input,
                             &WorthUiExecutionLaneSupport::platform_default(),
                         )
-                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("lane admission"))?;
                     candidate_plan_digest =
                         runtime.digest_execution_plan(candidate_plan).raw();
                     lane_support_digest = lane_admission.support_digest();

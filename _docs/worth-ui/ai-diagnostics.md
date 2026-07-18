@@ -44,8 +44,8 @@ Do not treat logs as the public inspection contract.
 
 The runtime already owns stronger semantic meaning than normal UI stacks:
 declarations, admitted identities, aspect contracts, graph topology, Query
-bindings, measurement plans, mounted receipts, host observations, rebind
-causality, and denial posture.
+bindings, measurement plans, execution-plan decisions, frame-cost receipts,
+mounted receipts, host observations, rebind causality, and denial posture.
 
 The inspection architecture must expose that meaning directly.
 
@@ -81,7 +81,7 @@ adapter-specific mechanics must not become runtime truth or public host law
 ## Relationship To The Existing Runtime
 
 This document extends the architecture in
-[WORTH_UI_README.md](../../workspaces/worth-ui/docs/WORTH_UI_README.md) and
+[Worth UI runtime orientation](../../workspaces/worth-ui/docs/worth-ui-readme.md) and
 the roadmap in [worth_ui_roadmap.md](./worth_ui_roadmap.md).
 
 It does **not** propose a second truth graph.
@@ -233,6 +233,7 @@ The inspection substrate should own typed evidence families such as:
 - graph-touch and obligation-selection evidence
 - Query binding and projection-consumption evidence
 - measurement and allocation evidence
+- execution-plan lowering, equivalence, activation, and frame-cost evidence
 - mounted receipt evidence
 - host-observation evidence
 - rebind and preservation evidence
@@ -294,6 +295,9 @@ Important indexes include:
 - declaration identity -> evidence sets
 - source span -> declaration / diagnostics / rebind evidence
 - graph node identity -> obligations / bindings / receipts / diagnostics
+- active plan identity -> lowering basis / equivalence decision / activation /
+  lane receipts / frame-cost evidence
+- plan handle -> exact plan generation / handle family / admitted target
 - mounted receipt identity -> visible region / source / graph node / services
 - published aspect -> publishing nodes / receipts
 - consumed aspect -> dependent nodes / obligations / receipts
@@ -334,6 +338,9 @@ UiInspectionQuery {
     - obligations
     - query_binding
     - measurement
+    - execution_plan
+    - plan_equivalence
+    - frame_cost
     - mounting
     - host_boundary
     - services
@@ -394,10 +401,13 @@ The formal tool lane should support capabilities like:
 - `inspect_rebind`
 - `inspect_layout`
 - `inspect_query_binding`
+- `inspect_execution_plan`
 - `inspect_host_observation`
 - `explain_visibility`
 - `explain_operability`
 - `explain_allocation`
+- `explain_plan_equivalence`
+- `explain_frame_cost`
 - `explain_rebind`
 - `diff_frames`
 - `list_relevant_diagnostics`
@@ -500,6 +510,11 @@ Replay should support meaningful stop points such as:
 - after obligation selection
 - after Query binding
 - after measurement planning
+- after committed allocation
+- after execution-plan lowering
+- after plan equivalence/no-op classification
+- after plan activation
+- after frame execution
 - after mounted receipts
 - after host observation intake
 - after rebind planning
@@ -576,20 +591,23 @@ Useful first-class views include:
    Query artifact consumed, basis/world posture, projection facts, schema
    posture, async/result posture, payload shape, and invalidation posture.
 
-7. Services Inspector  
-   Portal topology, focus routing, motion, command routing, selection, scroll,
-   and other runtime services.
+7. **Execution Plan And Frame Cost** -- lowering authority, active plan
+   generation, host-neutral lane partitions, typed handle families, exact
+   equivalence/no-op decision, affected closure, activation receipt, and
+   ordinary versus reconstructive cost counters.
 
-8. Diagnostics Feed  
-   Typed, filterable diagnostics grouped by relevance, not a console.
+8. **Services Inspector** -- portal topology, focus routing, motion, command
+   routing, selection, scroll, and other runtime services.
 
-9. Replay Timeline  
-   Source edits, artifacts, admissions, graph mutations, observations, rebinds,
-   mounted frames, and diagnostics.
+9. **Diagnostics Feed** -- typed, filterable diagnostics grouped by relevance,
+   not a console.
 
-10. Visual Evaluation  
-    Alignment groups, baselines, spacing rhythm, symmetry axes, visual bounds,
-    overlays, invariant violations, and perceptual advisories.
+10. **Replay Timeline** -- source edits, artifacts, admissions, graph mutations,
+    observations, rebinds, mounted frames, and diagnostics.
+
+11. **Visual Evaluation** -- alignment groups, baselines, spacing rhythm,
+    symmetry axes, visual bounds, overlays, invariant violations, and
+    perceptual advisories.
 
 ### Dogfooding Rule
 
@@ -720,6 +738,8 @@ At minimum, the AI harness should expose:
 - replay session creation and stepping
 - rebind explanation
 - frame diff by identity and aspect scope
+- execution-plan lowering, equivalence/no-op, activation, and frame-cost
+  inspection without exposing executable plan ownership
 - visual evaluation queries for alignment, spacing, and symmetry
 
 The harness should be:
@@ -757,6 +777,8 @@ That means:
 - admission milestones add denial and support inspection
 - graph milestones add topology and aspect inspection
 - measurement milestones add allocation and geometry inspection
+- execution-plan milestones add lowering, equivalence, activation, handle/lane,
+  and frame-cost inspection
 - mounting milestones add visible-region and mounted-receipt inspection
 - services milestones add service topology inspection
 - rebind milestones add change-diff and preservation inspection
@@ -802,11 +824,16 @@ This architecture is only real if it can prove all of the following:
 - AI can move from mounted receipt identity to declaration, source, graph, and
   evidence
 - AI can replay a change to the first denial point
+- AI can explain why a candidate was a semantic no-op, required a bounded plan
+  replacement, or was denied; which exact plan generation is active; and what
+  work an ordinary frame performed
 - humans can inspect the same evidence through the inspector
 - diagnostics are relevant, typed, identity-backed, and filterable
 - visual alignment and spacing can be evaluated from runtime geometry rather
   than screenshots alone
 - the inspector consumes evidence but does not author truth
+- plan and Query inspection cannot mint handles, activate candidates, promote
+  receipts/digests into authority, or submit an executable plan
 - no explanation path requires renderer-local semantic reconstruction
 
 ## Final Rule
@@ -819,8 +846,8 @@ not devtools plus folklore
 not AI guessing from pixels
 
 but a live, replayable, semantically indexed runtime that can explain itself
-through the same declaration, graph, aspect, Query, measurement, mounting, and
-service language that already defines product truth
+through the same declaration, graph, aspect, Query, measurement, plan,
+mounting, and service language that already defines product truth
 ```
 
 That is the standard.

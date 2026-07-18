@@ -1,19 +1,20 @@
-use crate::runtime::activation::WorthUiActivationLaneInput;
 use crate::runtime::activation_staging::{WorthUiActivationStager, WorthUiActivationStagingInput};
 use crate::runtime::replacement::WorthUiReplacementLoweringReady;
 use crate::runtime::{WorthUiActivationStagingDenial, WorthUiPendingActivation};
 
 use super::runtime_instance::WorthUiRuntime;
 
-pub struct WorthUiActivationStagingPlans<'a> {
-    pub reconciliation_plan: Option<&'a crate::runtime::WorthUiDurableStateReconciliationPlan>,
-    pub query_rebind_plan: Option<&'a crate::runtime::WorthUiQueryLiveRebindPlan>,
-    pub pending_execution_plan_lowering_input:
+pub(crate) struct WorthUiActivationStagingPlans<'a> {
+    pub(crate) reconciliation_plan:
+        Option<&'a crate::runtime::WorthUiDurableStateReconciliationPlan>,
+    pub(crate) query_rebind_plan: Option<&'a crate::runtime::WorthUiQueryLiveRebindPlan>,
+    pub(crate) pending_execution_plan_lowering_input:
         Option<&'a crate::runtime::WorthUiPendingExecutionPlanLoweringInput>,
 }
 
 impl<'a> WorthUiActivationStagingPlans<'a> {
-    pub fn new(
+    #[cfg(test)]
+    pub(crate) fn new(
         reconciliation_plan: Option<&'a crate::runtime::WorthUiDurableStateReconciliationPlan>,
         query_rebind_plan: Option<&'a crate::runtime::WorthUiQueryLiveRebindPlan>,
         pending_execution_plan_lowering_input: Option<
@@ -29,7 +30,7 @@ impl<'a> WorthUiActivationStagingPlans<'a> {
 }
 
 impl WorthUiRuntime {
-    pub fn stage_replacement_activation_from_lowering(
+    pub(crate) fn stage_replacement_activation_from_lowering(
         &self,
         lowering: WorthUiReplacementLoweringReady,
     ) -> Result<WorthUiPendingActivation, WorthUiActivationStagingDenial> {
@@ -48,14 +49,7 @@ impl WorthUiRuntime {
         )
     }
 
-    pub fn stage_replacement_activation_from_lane_input(
-        &self,
-        input: WorthUiActivationLaneInput,
-    ) -> Result<WorthUiPendingActivation, WorthUiActivationStagingDenial> {
-        self.stage_replacement_activation_from_lowering(input.0)
-    }
-
-    pub fn stage_replacement_activation(
+    pub(crate) fn stage_replacement_activation(
         &self,
         admitted: crate::runtime::WorthUiAdmittedReplacementCandidate,
         impact: &crate::runtime::WorthUiReplacementImpactClassification,

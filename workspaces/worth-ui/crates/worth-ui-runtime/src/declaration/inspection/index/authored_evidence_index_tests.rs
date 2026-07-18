@@ -10,12 +10,9 @@ use worth_ui_inspection::{
 };
 
 use super::UiDeclarationAuthoredEvidenceIndex;
-use crate::declaration::{UiDeclarationArtifact, UiDeclarationStructuralRole};
+use crate::declaration::UiDeclarationArtifact;
 use crate::facade::{WorthUi, WorthUiApp, WorthUiDslPackage};
-use crate::graph::{
-    UiGraphInstantiationPlan, UiGraphWorldProfile, UiRuntimeDataInstanceKeyToken,
-    UiRuntimeInstanceBasisAdmission,
-};
+use crate::graph::{UiRuntimeDataInstanceKeyToken, UiRuntimeInstanceBasisAdmission};
 
 #[test]
 fn authored_lookup_omits_admission_ref_when_declaration_correspondence_is_ambiguous() {
@@ -109,7 +106,8 @@ fn rebuilding_authored_index_from_authority_preserves_public_lookup_answers() {
             WorthUiDslPackage::named("worth-ui.runtime.authored-evidence-index.rebuild")
                 .with_semantic_artifact_spec(control_spec()),
         )
-        .freeze();
+        .freeze()
+        .expect("application preparation should succeed");
     let control = control_artifact(&app);
     let declaration_identity = control.identity().inspection_identity();
     let authored_provenance = control
@@ -118,7 +116,7 @@ fn rebuilding_authored_index_from_authority_preserves_public_lookup_answers() {
     let before_identity = app.inspect(declaration_identity_query(declaration_identity));
     let before_provenance = app.inspect(authored_provenance_query(authored_provenance.clone()));
 
-    app.rebuild_authored_evidence_index_from_authority();
+    app.rebuild_prepared_derived_indexes();
 
     let rebuilt_index = UiDeclarationAuthoredEvidenceIndex::rebuild(
         app.declaration_artifacts(),
@@ -233,39 +231,22 @@ fn repeated_instance_app() -> WorthUiApp {
             .with_semantic_artifact_spec(control_spec());
     let baseline = WorthUi::app()
         .with_dsl_package(dsl_package.clone())
-        .freeze();
-    let root_page_handoff = root_page_artifact(&baseline)
-        .graph_handoff()
-        .expect("bootstrap root page should lower to graph handoff")
-        .clone();
+        .freeze()
+        .expect("application preparation should succeed");
     let control_handoff = control_artifact(&baseline)
         .graph_handoff()
         .expect("control should lower to graph handoff")
         .clone();
-    let (capability_snapshot, declaration_artifacts, _, lifecycle) =
-        baseline.into_authority_parts();
-    let graph_snapshot = UiGraphInstantiationPlan::admit_handoffs(
-        &[
-            root_page_handoff,
-            control_handoff.clone(),
-            control_handoff.clone(),
-        ],
-        &[
-            runtime_basis("row:user-7", control_handoff.identity()),
-            runtime_basis("row:user-8", control_handoff.identity()),
-        ],
-    )
-    .expect("typed repeated-instance runtime basis should admit internal graph plan")
-    .commit_initial_generation(UiGraphWorldProfile::authoritative())
-    .expect("typed repeated-instance graph plan should publish authoritative graph")
-    .into_committed_snapshot();
+    let runtime_bases = [
+        runtime_basis("row:user-7", control_handoff.identity()),
+        runtime_basis("row:user-8", control_handoff.identity()),
+    ];
 
-    WorthUiApp::from_authority_parts(
-        capability_snapshot,
-        declaration_artifacts,
-        graph_snapshot,
-        lifecycle,
-    )
+    WorthUi::app()
+        .with_dsl_package(dsl_package)
+        .with_runtime_instance_basis_admissions(runtime_bases)
+        .freeze()
+        .expect("typed repeated-instance input should prepare one complete app authority")
 }
 
 fn control_artifact(app: &WorthUiApp) -> &UiDeclarationArtifact {
@@ -276,16 +257,4 @@ fn control_artifact(app: &WorthUiApp) -> &UiDeclarationArtifact {
                 == "app/authored_evidence_index.wui"
         })
         .expect("control artifact should exist")
-}
-
-fn root_page_artifact(app: &WorthUiApp) -> &UiDeclarationArtifact {
-    app.declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            artifact
-                .graph_handoff()
-                .map(|handoff| handoff.role() == UiDeclarationStructuralRole::Page)
-                .unwrap_or(false)
-        })
-        .expect("bootstrap root page artifact should exist")
 }

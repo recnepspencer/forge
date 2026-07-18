@@ -28,7 +28,9 @@ use candidate_admission_artifact_nodes::{import_node, module_id};
 
 #[test]
 fn same_candidate_and_same_active_basis_admit_equivalently() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let left = replacement_candidate(&app, ["app/panels/inspector.wui"]);
     let right = replacement_candidate(&app, ["app/panels/inspector.wui"]);
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
@@ -48,7 +50,9 @@ fn same_candidate_and_same_active_basis_admit_equivalently() {
 
 #[test]
 fn snapshot_mismatch_rejected_before_equivalence_comparison() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
     let candidate = candidate_with_lowering_basis(
@@ -82,7 +86,9 @@ fn snapshot_mismatch_rejected_before_equivalence_comparison() {
 
 #[test]
 fn deferred_runtime_posture_rejected_before_plan_lowering() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime
         .replacement_admission_basis()
@@ -107,7 +113,9 @@ fn deferred_runtime_posture_rejected_before_plan_lowering() {
 
 #[test]
 fn unsupported_runtime_posture_rejected_before_plan_lowering() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime
         .replacement_admission_basis()
@@ -132,7 +140,9 @@ fn unsupported_runtime_posture_rejected_before_plan_lowering() {
 
 #[test]
 fn deferred_query_support_rejected_before_plan_lowering() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
     let query_receipt = WorthUiQuerySupportReceipt::for_test(
@@ -164,7 +174,9 @@ fn deferred_query_support_rejected_before_plan_lowering() {
 
 #[test]
 fn unsupported_query_support_rejected_before_plan_lowering() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
     let query_receipt = WorthUiQuerySupportReceipt::for_test(
@@ -226,7 +238,9 @@ fn query_support_receipt_is_derived_from_runtime_dependency_metadata() {
 
 #[test]
 fn admitted_candidate_cannot_swap_query_support_contracts_after_admission() {
-    let app = WorthUi::app().freeze();
+    let app = WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
     let candidate = replacement_candidate(&app, ["app/panels/inspector.wui"]);
@@ -307,6 +321,7 @@ fn query_bound_app() -> WorthUiApp {
         .register_query_view(WorthUiQueryViewRegistration::new(view))
         .expect("installed live view should register")
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 fn query_contract_identity(

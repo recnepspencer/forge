@@ -216,10 +216,7 @@ fn validate_reexport_only_facade(
                         ));
                     }
                     let root_package = root.replace('_', "-");
-                    if audience_packages
-                        .iter()
-                        .any(|package| *package == root_package.as_str())
-                    {
+                    if audience_packages.contains(&root_package.as_str()) {
                         diagnostics.push(Diagnostic::new(
                             DiagnosticCode::Bc3003QueryAudienceFacadeContract,
                             format!("{relative}/src/facade.rs"),

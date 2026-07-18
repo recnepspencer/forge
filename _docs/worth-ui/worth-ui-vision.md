@@ -87,7 +87,8 @@ crate:
 - Query-bound surfaces where tables, trees, inspectors, timelines, canvases,
   and dashboards are backed by canonical declared read meaning
 - hot-lowered UI composition where source files in the codebase lower into
-  canonical runtime artifacts and egui execution plans without recompiling Rust
+  canonical runtime artifacts and host-neutral execution plans without
+  recompiling Rust
 - specialized execution lanes for desktop widgets, virtualized data surfaces,
   spatial canvases, real-time HUDs, and shader/material-backed overlays
 - live view binding through Worth Query, bridge, and signal semantics instead
@@ -386,13 +387,22 @@ What this enables:
 - UI testing and tooling can inspect the same canonical artifact that runtime
   rendering consumes
 
-#### egui execution plans
+#### Host-neutral execution plans
 
 Technical role:
-The lowered artifact should compile into frame-efficient egui execution plans.
-The frame loop consumes compact handles, pre-resolved child ranges, interned
-IDs, command handles, component handles, style-token handles, and specialized
-plans for tables, trees, inspectors, dock areas, and canvas surfaces.
+The lowered artifact should compile into frame-efficient, host-neutral execution
+plans. The active application session owns the executable plan generation; the
+egui adapter consumes admitted contacts without choosing UI meaning or plan
+strategy. The frame loop consumes compact handles, pre-resolved child ranges,
+interned IDs, command handles, component handles, style-token handles, and
+specialized plans for tables, trees, inspectors, dock areas, and canvas
+surfaces.
+
+Plan equivalence must cover complete executable meaning and remain distinct
+from activation freshness. Equal hashes or visually identical output cannot
+hide a changed Query binding, host-support contract, lane policy, resource, or
+other execution-bearing fact. Equivalent replacements should produce a typed
+no-op; non-equivalent plans publish atomically with application authority.
 
 What this enables:
 
@@ -1329,7 +1339,7 @@ should be derivable from it.
 The highest-signal Worth UI programs are:
 
 - egui-based app shell and lifecycle
-- hot-lowered UI source, canonical UI artifacts, egui execution plans, and
+- hot-lowered UI source, canonical UI artifacts, host-neutral execution plans, and
   stable-ID state reconciliation
 - component, command, Query view, settings, icon, token, and plugin capability
   registries for validating hot-reloadable UI source

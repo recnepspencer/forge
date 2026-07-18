@@ -10,13 +10,16 @@ use worth_ui::facade::{
 };
 
 pub(crate) fn empty_app() -> WorthUiApp {
-    WorthUi::app().freeze()
+    WorthUi::app()
+        .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(crate) fn single_command_app() -> WorthUiApp {
     WorthUi::app()
         .register_command(command_descriptor())
         .freeze()
+        .expect("application preparation should succeed")
 }
 
 pub(crate) fn duplicate_representative_family_registration_report() -> CapabilityRegistrationReport

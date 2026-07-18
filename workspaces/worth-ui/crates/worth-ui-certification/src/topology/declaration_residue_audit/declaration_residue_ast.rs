@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use syn::visit::{self, Visit};
@@ -11,6 +10,7 @@ use super::{
     DECLARATION_SOURCE_REOPENING_METHODS,
 };
 use crate::topology::dependency_audit::path_starts_with;
+use crate::topology::workspace_source_inventory::WorkspaceSourceInventory;
 
 pub(super) fn starts_with_declaration_surface(segments: &[String]) -> bool {
     (path_starts_with(segments, "worth_ui")
@@ -28,15 +28,22 @@ pub(super) fn starts_with_declaration_surface(segments: &[String]) -> bool {
                         .is_some_and(|segment| segment == "declaration"))))
 }
 
-pub(super) fn collect_method_names(path: &Path) -> Vec<String> {
-    let parsed = parse_rust_file(path);
+pub(super) fn collect_method_names(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> Vec<String> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = MethodCallCollector::default();
     collector.visit_file(&parsed);
     collector.method_names
 }
 
-pub(super) fn collect_method_names_for_function(path: &Path, function_name: &str) -> Vec<String> {
-    let parsed = parse_rust_file(path);
+pub(super) fn collect_method_names_for_function(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+    function_name: &str,
+) -> Vec<String> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = MethodCallCollector::default();
 
     for item in parsed.items {
@@ -60,17 +67,20 @@ pub(super) fn collect_method_names_for_function(path: &Path, function_name: &str
     collector.method_names
 }
 
-pub(super) fn production_source_text(path: &Path) -> String {
-    let text = fs::read_to_string(path).expect("source file should decode");
+pub(super) fn production_source_text(inventory: &WorkspaceSourceInventory, path: &Path) -> String {
+    let text = inventory.text(path);
     if let Some(cfg_test_start) = text.find("#[cfg(test)]") {
         text[..cfg_test_start].to_string()
     } else {
-        text
+        text.to_owned()
     }
 }
 
-pub(super) fn collect_file_paths(path: &Path) -> Vec<Vec<String>> {
-    let parsed = parse_rust_file(path);
+pub(super) fn collect_file_paths(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(inventory, path);
     let mut alias_collector = AliasCollector::default();
     alias_collector.visit_file(&parsed);
 
@@ -82,22 +92,25 @@ pub(super) fn collect_file_paths(path: &Path) -> Vec<Vec<String>> {
     path_collector.collected_paths
 }
 
-pub(super) fn collect_file_use_paths(path: &Path) -> Vec<Vec<String>> {
-    let parsed = parse_rust_file(path);
+pub(super) fn collect_file_use_paths(
+    inventory: &WorkspaceSourceInventory,
+    path: &Path,
+) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(inventory, path);
     let mut collector = UsePathCollector::default();
     collector.visit_file(&parsed);
     collector.collected_paths
 }
 
 pub(super) fn audit_files_do_not_reopen_declaration_source(
-    workspace_root: &Path,
+    inventory: &WorkspaceSourceInventory,
     files: &[PathBuf],
 ) -> Vec<String> {
     let mut violations = Vec::new();
 
     for path in files {
         let relative = path
-            .strip_prefix(workspace_root)
+            .strip_prefix(inventory.root())
             .expect("workspace file should strip to relative path");
         let relative_text = relative.to_string_lossy().replace('\\', "/");
 
@@ -112,9 +125,9 @@ pub(super) fn audit_files_do_not_reopen_declaration_source(
             continue;
         }
 
-        for segments in collect_file_paths(path)
+        for segments in collect_file_paths(inventory, path)
             .into_iter()
-            .chain(collect_file_use_paths(path))
+            .chain(collect_file_use_paths(inventory, path))
         {
             if let Some(authority_name) = declaration_semantic_authority_path(&segments) {
                 violations.push(format!(
@@ -124,7 +137,7 @@ pub(super) fn audit_files_do_not_reopen_declaration_source(
             }
         }
 
-        for method_name in collect_method_names(path) {
+        for method_name in collect_method_names(inventory, path) {
             if DECLARATION_SOURCE_REOPENING_METHODS.contains(&method_name.as_str()) {
                 violations.push(format!(
                     "{} reopens declaration meaning through DSL semantic accessor `{method_name}()` outside the owning declaration lowering/admission lanes",
@@ -133,7 +146,7 @@ pub(super) fn audit_files_do_not_reopen_declaration_source(
             }
         }
 
-        let source = production_source_text(path);
+        let source = production_source_text(inventory, path);
         for marker in DECLARATION_SEMANTIC_TOKEN_MARKERS {
             if source.contains(marker) {
                 violations.push(format!(
@@ -149,22 +162,22 @@ pub(super) fn audit_files_do_not_reopen_declaration_source(
     violations
 }
 
-fn parse_rust_file(path: &Path) -> File {
-    let text = source_without_test_module_tail(path);
+fn parse_rust_file(inventory: &WorkspaceSourceInventory, path: &Path) -> File {
+    let text = source_without_test_module_tail(inventory, path);
     syn::parse_file(&text).unwrap_or_else(|error| {
         panic!("{} should parse as Rust source: {error}", path.display());
     })
 }
 
-fn source_without_test_module_tail(path: &Path) -> String {
-    let text = fs::read_to_string(path).expect("source file should decode");
+fn source_without_test_module_tail(inventory: &WorkspaceSourceInventory, path: &Path) -> String {
+    let text = inventory.text(path);
     if let Some(test_module_start) = text
         .find("#[cfg(test)]\nmod tests")
         .or_else(|| text.find("#[cfg(test)]\r\nmod tests"))
     {
         text[..test_module_start].to_string()
     } else {
-        text
+        text.to_owned()
     }
 }
 
