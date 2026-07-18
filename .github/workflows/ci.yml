@@ -11,9 +11,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  SIGNAL_SNAPSHOT_DIR: ${{ runner.temp }}/signal-semantic-snapshots
-  SIGNAL_DETERMINISM_DIR: ${{ runner.temp }}/signal-determinism-cert
-  SIGNAL_PERF_REPORT_PATH: ${{ runner.temp }}/signal-parallel-perf-report.json
 
 jobs:
   build-and-test:
@@ -98,7 +95,7 @@ jobs:
         run: bash scripts/ci/check_signal_resource_bounds.sh
 
       - name: worth-signal semantic snapshot diff lane
-        run: bash scripts/ci/check_signal_semantic_snapshots.sh "${SIGNAL_SNAPSHOT_DIR}"
+        run: bash scripts/ci/check_signal_semantic_snapshots.sh "${RUNNER_TEMP}/signal-semantic-snapshots"
 
       - name: Run tests
         run: cargo test --workspace
@@ -108,7 +105,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: worth-signal-semantic-snapshots
-          path: ${{ env.SIGNAL_SNAPSHOT_DIR }}
+          path: ${{ runner.temp }}/signal-semantic-snapshots
           if-no-files-found: ignore
 
       - name: Clippy (deny warnings)
@@ -286,10 +283,12 @@ jobs:
             ${{ runner.os }}-signal-perf-
 
       - name: Run worth-signal performance lane
+        env:
+          SIGNAL_PERF_REPORT_PATH: ${{ runner.temp }}/signal-parallel-perf-report.json
         run: bash scripts/ci/run_signal_perf_lane.sh
 
       - name: Run worth-signal determinism certification lane
-        run: bash scripts/ci/check_signal_parallel_determinism_cert.sh 4 "${SIGNAL_DETERMINISM_DIR}"
+        run: bash scripts/ci/check_signal_parallel_determinism_cert.sh 4 "${RUNNER_TEMP}/signal-determinism-cert"
 
       - name: Run worth-signal adversarial determinism lane
         run: |
@@ -301,12 +300,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: worth-signal-parallel-perf-report
-          path: ${{ env.SIGNAL_PERF_REPORT_PATH }}
+          path: ${{ runner.temp }}/signal-parallel-perf-report.json
           if-no-files-found: error
 
       - name: Upload worth-signal determinism certification artifacts
         uses: actions/upload-artifact@v4
         with:
           name: worth-signal-determinism-cert
-          path: ${{ env.SIGNAL_DETERMINISM_DIR }}
+          path: ${{ runner.temp }}/signal-determinism-cert
           if-no-files-found: error
