@@ -38,7 +38,7 @@ impl RequestedSourceEdit {
     }
 }
 
-pub(super) fn observe(
+pub(crate) fn observe(
     workspace_root: &Path,
     requested: Option<&RequestedSourceEdit>,
 ) -> Result<Option<ObservedSourceEditIdentity>, String> {

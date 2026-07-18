@@ -34,7 +34,7 @@ impl ScratchPackage {
         .unwrap();
         std::fs::write(
             root.join("src/lib.rs"),
-            "#[cfg(test)]\nmod tests {\n    #[test]\n    fn passes() {}\n    #[test]\n    fn always_fails() { panic!(\"named deterministic failure\"); }\n    #[test]\n    fn sleeps() { std::thread::sleep(std::time::Duration::from_secs(30)); }\n    #[test]\n    fn fails_once() {\n        let marker = std::env::var(\"RUNNER_FLAKE_MARKER\").unwrap();\n        if !std::path::Path::new(&marker).exists() {\n            std::fs::write(marker, b\"first failure retained\").unwrap();\n            panic!(\"admitted first failure\");\n        }\n    }\n}\n",
+            "#[cfg(test)]\nmod tests {\n    #[test]\n    fn passes() {}\n    #[test]\n    fn always_fails() { panic!(\"named deterministic failure\"); }\n    #[test]\n    fn sleeps() {\n        let marker = std::env::var(\"RUNNER_SLEEP_MARKER\").unwrap();\n        std::fs::write(marker, b\"sleeping child launched\").unwrap();\n        std::thread::sleep(std::time::Duration::from_secs(30));\n    }\n    #[test]\n    fn fails_once() {\n        let marker = std::env::var(\"RUNNER_FLAKE_MARKER\").unwrap();\n        if !std::path::Path::new(&marker).exists() {\n            std::fs::write(marker, b\"first failure retained\").unwrap();\n            panic!(\"admitted first failure\");\n        }\n    }\n}\n",
         )
         .unwrap();
         Self { root }
@@ -107,12 +107,21 @@ fn admitted_retry_cannot_turn_fail_then_pass_green() {
 fn timeout_terminates_the_process_tree_and_retains_the_attempt() {
     let scratch = ScratchPackage::new();
     let mut sleeper = unit(&scratch.root, "sleeps");
-    sleeper.timeout_millis = 100;
+    let launch_marker = scratch.root.join("sleeping-child-launched");
+    sleeper.resources.environment.insert(
+        "RUNNER_SLEEP_MARKER".to_owned(),
+        launch_marker.to_string_lossy().into_owned(),
+    );
+    sleeper.timeout_millis = 5_000;
     let plan = plan(&scratch.root, [sleeper]);
     let attempts =
         command_attempt::execute_unit(&scratch.root, &plan, &preflight(), "timeout", 0).unwrap();
     assert_eq!(attempts.len(), 1);
     assert!(matches!(attempts[0].outcome, ProofAttemptOutcome::TimedOut));
+    assert_eq!(
+        std::fs::read(launch_marker).unwrap(),
+        b"sleeping child launched"
+    );
     assert!(attempt_receipt(&scratch.root, &plan, "timeout", 0, 0).is_file());
 }
 

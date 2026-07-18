@@ -20,15 +20,16 @@ pub use build_graph_policy::{
     ValidatedFeatureSemanticAuthority,
 };
 pub use proof_behavior_authority::{
-    validate_proof_behavior_authority, ProofBehaviorAuthority, ProofBehaviorDeclaration,
+    validate_proof_behavior_authority, validate_proof_behavior_authority_for_source_edit,
+    ProofBehaviorAuthority, ProofBehaviorDeclaration,
 };
 pub use proof_disposition::ProofDisposition;
 pub use proof_family::ProofFamily;
 pub use scenario_suite::{
     build_consolidated_suite_inventory, validate_suite_process_cohesion,
-    validate_suite_semantic_authority, CertificationScenarioDeclaration,
-    CertificationSuiteDeclaration, ConsolidatedSuiteInventory, ConsolidationEvidenceStatus,
-    ScenarioIdentity, ScenarioProcessTopology, ScenarioProofContract,
+    validate_suite_semantic_authority, validate_suite_semantic_authority_for_source_edit,
+    CertificationScenarioDeclaration, CertificationSuiteDeclaration, ConsolidatedSuiteInventory,
+    ConsolidationEvidenceStatus, ScenarioIdentity, ScenarioProcessTopology, ScenarioProofContract,
 };
 pub use semantic_authority::{
     classify, classify_from_authority, PostBaselineProofAuthority, ProofSemanticDeclaration,

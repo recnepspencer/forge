@@ -4,8 +4,10 @@ use std::time::Instant;
 use crate::classification::{
     build_consolidated_suite_inventory, classify_from_authority, validate,
     validate_inventory_build_graph_policy, validate_proof_behavior_authority,
-    validate_suite_semantic_authority, ClassifiedInventory, ConsolidatedSuiteInventory,
-    ConsolidationEvidenceStatus, PostBaselineProofAuthority, ProofBehaviorAuthority,
+    validate_proof_behavior_authority_for_source_edit, validate_suite_semantic_authority,
+    validate_suite_semantic_authority_for_source_edit, ClassifiedInventory,
+    ConsolidatedSuiteInventory, ConsolidationEvidenceStatus, PostBaselineProofAuthority,
+    ProofBehaviorAuthority,
 };
 use crate::discovery::{
     generate_owner_build_closures, validate_executable_listing, validate_owner_build_closures,
@@ -16,6 +18,7 @@ use crate::preservation::{
     historical_non_case_aggregate_ids, semantic_authority_from_ledger,
     validate_current_reachability, validate_ledger, ProofPreservationLedger,
 };
+use crate::selection::ObservedSourceEditIdentity;
 use crate::structural_preflight::{RepositoryPredicateFailure, StructuralPredicate};
 use crate::ClassifiedProofInventory;
 
@@ -42,7 +45,16 @@ pub(super) fn validate_repository(
 pub(super) fn validate_repository_inputs(
     workspace_root: &Path,
 ) -> Result<crate::ValidatedProofInventory, RepositoryPredicateFailure> {
+    validate_repository_inputs_with_source_edit(workspace_root, None)
+}
+
+pub(super) fn validate_repository_inputs_with_source_edit(
+    workspace_root: &Path,
+    source_edit: Option<&ObservedSourceEditIdentity>,
+) -> Result<crate::ValidatedProofInventory, RepositoryPredicateFailure> {
     let started = Instant::now();
+    let fingerprint_waiver = admitted_fingerprint_waiver(source_edit)
+        .map_err(|error| inventory_failure("source_edit_scope_invalid", error, workspace_root))?;
     let baseline_root = authority_root(workspace_root);
     let baseline_discovery_path = baseline_root.join("discovered-test-surface.json");
     let baseline_discovery: TestSurfaceInventory =
@@ -128,15 +140,23 @@ pub(super) fn validate_repository_inputs(
                 &behavior_authority_path,
             )
         })?;
-    validate_proof_behavior_authority(&behavior_authority, current.inventory()).map_err(
-        |violations| {
-            inventory_failure(
-                "behavior_authority_invalid",
-                join_violations(violations),
-                &behavior_authority_path,
+    let behavior_validation = fingerprint_waiver.map_or_else(
+        || validate_proof_behavior_authority(&behavior_authority, current.inventory()),
+        |source_path| {
+            validate_proof_behavior_authority_for_source_edit(
+                &behavior_authority,
+                current.inventory(),
+                source_path,
             )
         },
-    )?;
+    );
+    behavior_validation.map_err(|violations| {
+        inventory_failure(
+            "behavior_authority_invalid",
+            join_violations(violations),
+            &behavior_authority_path,
+        )
+    })?;
     let discovery_elapsed = started.elapsed();
     let executable_listing_path =
         workspace_root.join("test-control/current-executable-listing.json");
@@ -195,7 +215,17 @@ pub(super) fn validate_repository_inputs(
                 &suite_authority_path,
             )
         })?;
-    validate_suite_semantic_authority(&suite_authority, &suites).map_err(|violations| {
+    let suite_validation = fingerprint_waiver.map_or_else(
+        || validate_suite_semantic_authority(&suite_authority, &suites),
+        |source_path| {
+            validate_suite_semantic_authority_for_source_edit(
+                &suite_authority,
+                &suites,
+                source_path,
+            )
+        },
+    );
+    suite_validation.map_err(|violations| {
         inventory_failure(
             "scenario_authority_invalid",
             join_violations(violations),
@@ -252,6 +282,32 @@ pub(super) fn validate_repository_inputs(
         started.elapsed().as_millis()
     );
     Ok(current)
+}
+
+fn admitted_fingerprint_waiver(
+    edit: Option<&ObservedSourceEditIdentity>,
+) -> Result<Option<&str>, String> {
+    let Some(edit) = edit else {
+        return Ok(None);
+    };
+    if !matches!(
+        edit.purpose.as_str(),
+        "certification-scenario-assertion" | "fresh-process-crash-reopen"
+    ) {
+        return Ok(None);
+    }
+    if edit
+        .source_path
+        .starts_with("crates/worth-store-certification/tests/scenarios/")
+        && edit.source_path.ends_with(".rs")
+    {
+        Ok(Some(&edit.source_path))
+    } else {
+        Err(format!(
+            "{} may waive fingerprints only for a certification scenario source",
+            edit.purpose
+        ))
+    }
 }
 
 pub(super) fn current_inventory(

@@ -11,6 +11,7 @@ mod product_selection;
 mod proof_mode;
 mod repository_identity;
 mod scenario_execution;
+mod selection_entry;
 mod source_edit;
 mod ui_execution;
 
@@ -32,6 +33,8 @@ pub use proof_mode::{StoreProofMode, StoreProofRequest};
 pub use proof_unavailable::ProofProductUnavailable;
 pub(crate) use repository_identity::observe_repository_identity;
 pub use repository_identity::RepositoryIdentity;
+pub use selection_entry::select;
+pub(crate) use source_edit::observe as observe_source_edit;
 pub use source_edit::{ObservedSourceEditIdentity, RequestedSourceEdit};
 
 use crate::discovery::TestTargetIdentity;
@@ -50,11 +53,12 @@ use ui_execution::{selected_ui_runner_cases, ui_doctest_execution_units};
 
 pub(super) type SelectedCases = BTreeMap<String, BTreeMap<String, BTreeSet<String>>>;
 
-pub fn select(
+pub(crate) fn select_with_observed_source_edit(
     workspace_root: &Path,
     inventory: &ValidatedProofInventory,
     request: StoreProofRequest,
     structural_preflight: StructuralPreflightReference,
+    source_edit: Option<ObservedSourceEditIdentity>,
 ) -> Result<SelectedProofExecutionPlan, ProofProductUnavailable> {
     let selected_products = request.selected_product_names(inventory)?;
     request.validate_host()?;
@@ -65,8 +69,6 @@ pub fn select(
         )
         .map_err(ProofProductUnavailable::RepositoryObservation)?;
     }
-    let source_edit = source_edit::observe(workspace_root, request.source_edit())
-        .map_err(ProofProductUnavailable::RepositoryObservation)?;
     validate_selected_product_reachability(inventory, &selected_products)?;
     let suite_inventory = crate::classification::build_consolidated_suite_inventory(
         workspace_root,

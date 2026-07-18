@@ -1176,6 +1176,11 @@ remaining physical claim.
   The edited file must be the only dirty Store source, its original bytes must
   match the committed worktree representation, and the cold/warm plan and run
   content seals must validate before cost evidence is admitted.
+- An assertion-edit specimen may project the sealed behavior and suite-source
+  fingerprint for that exact observed file only. Case identity, executable
+  topology, scenario contracts, products, process models, and every other
+  source fingerprint remain strict; this projection exists only in the
+  source-bound edit execution lane.
 - Assembly runs only from a clean Store source tree and requires the current
   revision, lockfile, toolchain, OS, and architecture to agree with the five
   iteration specimens. CI partitions must agree with the current revision,

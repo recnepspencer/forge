@@ -22,7 +22,9 @@ use entrypoint_filters::scenario_filters_for_suite;
 use process_topology::admitted_process_topologies;
 pub use process_topology::{validate_suite_process_cohesion, ScenarioProcessTopology};
 use proof_contract::{subject_packages, ScenarioProofContractBuilder};
-pub use semantic_authority::validate_suite_semantic_authority;
+pub use semantic_authority::{
+    validate_suite_semantic_authority, validate_suite_semantic_authority_for_source_edit,
+};
 use suite_source_authority::suite_source_fingerprints;
 
 const SUITES: [(&str, &str); 6] = [

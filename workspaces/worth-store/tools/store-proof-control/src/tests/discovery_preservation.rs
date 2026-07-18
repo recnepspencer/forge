@@ -1,6 +1,6 @@
 use crate::classification::{
     build_consolidated_suite_inventory, validate, validate_proof_behavior_authority,
-    ClassifiedInventory, ProofBehaviorAuthority,
+    validate_proof_behavior_authority_for_source_edit, ClassifiedInventory, ProofBehaviorAuthority,
 };
 use crate::discovery::{validate_executable_listing, CurrentExecutableListing};
 use crate::evidence::read_json;
@@ -140,6 +140,22 @@ fn executable_and_behavior_authority_schemas_are_enforced() {
     assert!(denials
         .iter()
         .any(|denial| denial.contains("unsupported proof behavior authority schema")));
+
+    let authority = ProofBehaviorAuthority::from_inventory(current.inventory());
+    let mut edited = current.inventory().clone();
+    let proof = edited
+        .proofs
+        .iter_mut()
+        .find(|proof| proof.case.source_path.contains("/tests/scenarios/"))
+        .unwrap();
+    let source_path = std::path::Path::new(&proof.case.source_path)
+        .strip_prefix(&root)
+        .unwrap()
+        .to_string_lossy()
+        .replace('\\', "/");
+    proof.case.behavior_fingerprint = "sha256:controlled-edit".to_owned();
+    assert!(validate_proof_behavior_authority(&authority, &edited).is_err());
+    validate_proof_behavior_authority_for_source_edit(&authority, &edited, &source_path).unwrap();
 }
 
 #[test]

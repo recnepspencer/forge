@@ -9,7 +9,9 @@ mod stage_arguments;
 use std::path::{Path, PathBuf};
 
 use arguments::{CliCommand, ParsedArguments};
-use repository_validation::{current_inventory, validate_repository, validate_repository_inputs};
+use repository_validation::{
+    current_inventory, validate_repository, validate_repository_inputs_with_source_edit,
+};
 
 use crate::classification::{
     build_consolidated_suite_inventory, classify, validate, validate_proof_behavior_authority,
@@ -27,7 +29,9 @@ use crate::execution::execute;
 use crate::preservation::{
     build_ledger, semantic_authority_from_ledger, validate_ledger, ProofPreservationLedger,
 };
-use crate::selection::{select, StructuralPreflightReference};
+use crate::selection::{
+    observe_source_edit, select_with_observed_source_edit, StructuralPreflightReference,
+};
 use crate::structural_preflight::{
     consume as consume_preflight, execute as execute_preflight, forge_root,
 };
@@ -267,7 +271,10 @@ fn run_product(
     request: crate::selection::StoreProofRequest,
     preflight_bundle: Option<&str>,
 ) -> Result<(), String> {
-    let validation = validate_repository_inputs(workspace_root);
+    let source_edit = observe_source_edit(workspace_root, request.source_edit())
+        .map_err(|error| format!("declared source edit denied: {error}"))?;
+    let validation =
+        validate_repository_inputs_with_source_edit(workspace_root, source_edit.as_ref());
     let forge_root = forge_root(workspace_root)?;
     let preflight = match preflight_bundle {
         Some(path) => consume_preflight(&forge_root, request.mode(), Path::new(path))?,
@@ -297,8 +304,14 @@ fn run_product(
     let inventory = validation.map_err(|failure| failure.to_string())?;
     let preflight_reference =
         StructuralPreflightReference::from_evidence(&preflight.bundle_path, &preflight.evidence);
-    let plan = select(workspace_root, &inventory, request, preflight_reference)
-        .map_err(|error| error.to_string())?;
+    let plan = select_with_observed_source_edit(
+        workspace_root,
+        &inventory,
+        request,
+        preflight_reference,
+        source_edit,
+    )
+    .map_err(|error| error.to_string())?;
     presentation::print_plan(&plan);
     write_immutable_json(
         &evidence_plan_path(workspace_root, &plan.plan_digest),

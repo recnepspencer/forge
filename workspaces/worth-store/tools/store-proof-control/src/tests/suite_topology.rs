@@ -1,6 +1,7 @@
 use crate::classification::{
     build_consolidated_suite_inventory, validate_suite_process_cohesion,
-    validate_suite_semantic_authority, ScenarioProcessTopology,
+    validate_suite_semantic_authority, validate_suite_semantic_authority_for_source_edit,
+    ScenarioProcessTopology,
 };
 use crate::evidence::read_json;
 
@@ -42,6 +43,23 @@ fn scenario_subject_setup_and_oracle_contracts_cannot_drift() {
     assert!(denials
         .iter()
         .any(|denial| denial.contains("omits subject, setup, or oracle")));
+
+    let mut fingerprint_only =
+        build_consolidated_suite_inventory(&root, current.inventory()).unwrap();
+    let (source, fingerprint) = fingerprint_only.suites[0]
+        .suite_source_fingerprints
+        .iter_mut()
+        .next()
+        .unwrap();
+    *fingerprint = "controlled-source-edit".to_owned();
+    let normalized = source.replace('\\', "/");
+    let source = normalized
+        .find("crates/")
+        .map(|offset| normalized[offset..].to_owned())
+        .unwrap_or(normalized);
+    assert!(validate_suite_semantic_authority(&authority, &fingerprint_only).is_err());
+    validate_suite_semantic_authority_for_source_edit(&authority, &fingerprint_only, &source)
+        .unwrap();
 }
 
 #[test]

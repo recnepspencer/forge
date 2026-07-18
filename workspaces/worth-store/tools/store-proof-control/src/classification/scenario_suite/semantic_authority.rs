@@ -98,6 +98,44 @@ pub fn validate_suite_semantic_authority(
     }
 }
 
+pub fn validate_suite_semantic_authority_for_source_edit(
+    authority: &ConsolidatedSuiteInventory,
+    observed: &ConsolidatedSuiteInventory,
+    source_path: &str,
+) -> Result<(), Vec<String>> {
+    let mut projected = observed.clone();
+    let mut admitted_fingerprints = 0;
+    for suite in &mut projected.suites {
+        let Some(expected) = authority
+            .suites
+            .iter()
+            .find(|candidate| candidate.suite_identity == suite.suite_identity)
+        else {
+            continue;
+        };
+        for (path, fingerprint) in &mut suite.suite_source_fingerprints {
+            if !source_matches(path, source_path) {
+                continue;
+            }
+            let Some((_, sealed)) = expected
+                .suite_source_fingerprints
+                .iter()
+                .find(|(candidate, _)| source_matches(candidate, source_path))
+            else {
+                continue;
+            };
+            *fingerprint = sealed.clone();
+            admitted_fingerprints += 1;
+        }
+    }
+    if admitted_fingerprints == 0 {
+        return Err(vec![format!(
+            "declared certification source edit has no suite fingerprint: {source_path}"
+        )]);
+    }
+    validate_suite_semantic_authority(authority, &projected)
+}
+
 fn scenario_map(
     inventory: &ConsolidatedSuiteInventory,
 ) -> BTreeMap<(&str, &super::ScenarioIdentity), &super::CertificationScenarioDeclaration> {
@@ -113,4 +151,8 @@ fn scenario_map(
             })
         })
         .collect()
+}
+
+fn source_matches(observed: &str, declared: &str) -> bool {
+    observed.replace('\\', "/").ends_with(declared)
 }

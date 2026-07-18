@@ -115,7 +115,7 @@
     },
     {
       "stable_case_id": "store-proof-control::src/execution/command_attempt_tests/timeout_terminates_the_process_tree_and_retains_the_attempt::command_attempt_tests::timeout_terminates_the_process_tree_and_retains_the_attempt",
-      "behavior_fingerprint": "sha256:cecb9a0779bd0ab09ba96ffd9d83afeeda694c085d3eb6c76a289679442d7297"
+      "behavior_fingerprint": "sha256:376fcc8537cada66d213ef71c8bae360794c2a789d60e1e9e06da6b5a1459e63"
     },
     {
       "stable_case_id": "store-proof-control::src/execution/formal_evidence_tests/formal_receipt_must_match_schema_toolchain_digest_and_protocol_inventory::formal_evidence_tests::formal_receipt_must_match_schema_toolchain_digest_and_protocol_inventory",
@@ -275,7 +275,7 @@
     },
     {
       "stable_case_id": "store-proof-control::src/tests/discovery_preservation/executable_and_behavior_authority_schemas_are_enforced::discovery_preservation::executable_and_behavior_authority_schemas_are_enforced",
-      "behavior_fingerprint": "sha256:294be166820f15cd39cef1b3c1ede86dcefb2b73e7a0b252a0d11c0de12ed71c"
+      "behavior_fingerprint": "sha256:f3a9a3067870d83bb86d69f19eebc775eeef8a2ddc788c7a1c4e2b244208a481"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/discovery_preservation/executable_listing_cannot_cross_environment_identity::discovery_preservation::executable_listing_cannot_cross_environment_identity",
@@ -351,7 +351,7 @@
     },
     {
       "stable_case_id": "store-proof-control::src/tests/suite_topology/scenario_subject_setup_and_oracle_contracts_cannot_drift::suite_topology::scenario_subject_setup_and_oracle_contracts_cannot_drift",
-      "behavior_fingerprint": "sha256:1aea0851eae4c89d2e540a078aed2976a09190fb88a092679da7519f5782c571"
+      "behavior_fingerprint": "sha256:95a29f77fab212205298d709f49cc78bdffa0bee65104d41fea1aa6858d4d6ec"
     },
     {
       "stable_case_id": "store-proof-control::src/tests/suite_topology/suite_entrypoint_cannot_escape_certification_test_ownership::suite_topology::suite_entrypoint_cannot_escape_certification_test_ownership",

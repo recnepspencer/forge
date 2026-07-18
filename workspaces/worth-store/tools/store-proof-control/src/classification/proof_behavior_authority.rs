@@ -97,3 +97,37 @@ pub fn validate_proof_behavior_authority(
         Err(violations)
     }
 }
+
+pub fn validate_proof_behavior_authority_for_source_edit(
+    authority: &ProofBehaviorAuthority,
+    inventory: &ClassifiedInventory,
+    source_path: &str,
+) -> Result<(), Vec<String>> {
+    let admitted: BTreeMap<_, _> = inventory
+        .proofs
+        .iter()
+        .filter(|proof| source_matches(&proof.case.source_path, source_path))
+        .map(|proof| {
+            (
+                proof.case.identity.stable_id.as_str(),
+                proof.case.behavior_fingerprint.as_str(),
+            )
+        })
+        .collect();
+    if admitted.is_empty() {
+        return Err(vec![format!(
+            "declared source edit has no proof behavior surface: {source_path}"
+        )]);
+    }
+    let mut projected = authority.clone();
+    for declaration in &mut projected.declarations {
+        if let Some(fingerprint) = admitted.get(declaration.stable_case_id.as_str()) {
+            declaration.behavior_fingerprint = (*fingerprint).to_owned();
+        }
+    }
+    validate_proof_behavior_authority(&projected, inventory)
+}
+
+fn source_matches(observed: &str, declared: &str) -> bool {
+    observed.replace('\\', "/").ends_with(declared)
+}
