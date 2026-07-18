@@ -10,9 +10,9 @@ pub use evidence::{
 };
 pub use integrity::StructuralPreflightIntegrityDenial;
 pub use plan::{
-    PreflightInputScope, StructuralPredicatePlan, StructuralPreflightPlan,
-    StructuralPreflightProfile, StructuralPreflightRequest, StructuralSupportingToolIdentity,
-    StructuralToolDeclaration, StructuralToolEnvironmentBinding,
+    PreflightInputScope, StructuralPredicatePlan, StructuralPreflightEvaluatorIdentity,
+    StructuralPreflightPlan, StructuralPreflightProfile, StructuralPreflightRequest,
+    StructuralSupportingToolIdentity, StructuralToolDeclaration, StructuralToolEnvironmentBinding,
 };
 pub use predicate::{DependencyBoundaryPredicate, StructuralPredicate};
 

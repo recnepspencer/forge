@@ -35,11 +35,15 @@
     },
     {
       "stable_case_id": "store-proof-control::src/selection/mod/doctest_selection_cannot_lower_a_synthetic_zero_match_filter::mod::doctest_selection_cannot_lower_a_synthetic_zero_match_filter",
-      "behavior_fingerprint": "sha256:2d1cbc636973ca2d5edcd2816f406d7f6858055ddd8b892bf0b5f207a4a452bf"
+      "behavior_fingerprint": "sha256:fe244ef2c5d6ed37a507595052abc8c25097e18e70d408c83e0cdaac8a97ca29"
     },
     {
       "stable_case_id": "store-proof-control::src/structural_preflight/plan_tests/complete_preflight_plan_binds_tools_sources_and_dependency_flow::plan_tests::complete_preflight_plan_binds_tools_sources_and_dependency_flow",
-      "behavior_fingerprint": "sha256:e31237629565031580e0aa6bb4c62c9241992b3609d16e1b21a4a0325d128500"
+      "behavior_fingerprint": "sha256:03482f3095996091d6bcb8b244d664bc806d90ad54d59409148f046b6f2a342d"
+    },
+    {
+      "stable_case_id": "store-proof-control::src/structural_preflight/tests/changed_evaluator_invalidates_every_reusable_predicate::tests::changed_evaluator_invalidates_every_reusable_predicate",
+      "behavior_fingerprint": "sha256:bd9f284f35c767c6cb9cf151a23dc1667441a49832defab5abf5c546791e548d"
     },
     {
       "stable_case_id": "store-proof-control::src/structural_preflight/tests/changed_generated_context_names_only_agent_context_input::tests::changed_generated_context_names_only_agent_context_input",
@@ -63,7 +67,7 @@
     },
     {
       "stable_case_id": "store-proof-control::src/structural_preflight/tests/identical_boundary_and_naming_commands_launch_one_observed_tool_process::tests::identical_boundary_and_naming_commands_launch_one_observed_tool_process",
-      "behavior_fingerprint": "sha256:add5e2a6602ea8d63736f3d656b068e18953d79338e3e6134e851ed74f70a868"
+      "behavior_fingerprint": "sha256:ee40c3c662c6dd92a67bef0817335f0bc9065ee380427d8c77cd090e70b542a1"
     },
     {
       "stable_case_id": "store-proof-control::src/structural_preflight/tests/repository_failure_has_one_owner_and_explicit_dependents::tests::repository_failure_has_one_owner_and_explicit_dependents",
@@ -12715,7 +12719,7 @@
     },
     {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/fixtures_in_one_environment_share_manifest_and_target_root::tests::fixtures_in_one_environment_share_manifest_and_target_root",
-      "behavior_fingerprint": "sha256:14f5ad2f9aeb5ae96edade174f6a451800c27a192481315c97796994ebe79845"
+      "behavior_fingerprint": "sha256:e8b41f931a740b292812fc1e2f89ddf73bbdbc0d047cf0da9daf6e66f2eba056"
     },
     {
       "stable_case_id": "worth-store-test-support::src/compiler_boundary/tests/unrelated_compile_failure_cannot_satisfy_declared_semantic_denial::tests::unrelated_compile_failure_cannot_satisfy_declared_semantic_denial",

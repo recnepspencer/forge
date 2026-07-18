@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "test_topology_digest": "69e076709ecab4c32d22c4234e06c6bc16d20bba9c61c89f5586826482172ba5",
+  "test_topology_digest": "e887cdf2042f06348d0bc2e4ec14e7410f0dfe61120126db740a43b7a744e454",
   "environment": {
     "rustc_identity": "rustc 1.94.0 (4a4ef493e 2026-03-02)\nbinary: rustc\ncommit-hash: 4a4ef493e3a1488c6e321570238084b38948f6db\ncommit-date: 2026-03-02\nhost: x86_64-pc-windows-msvc\nrelease: 1.94.0\nLLVM version: 21.1.8",
     "cargo_identity": "cargo 1.94.0 (85eff7c80 2026-01-15)\nrelease: 1.94.0\ncommit-hash: 85eff7c80277b57f78b11e28d14154ab12fcf643\ncommit-date: 2026-01-15\nhost: x86_64-pc-windows-msvc\nlibgit2: 1.9.2 (sys:0.20.3 vendored)\nlibcurl: 8.17.0-DEV (sys:0.4.84+curl-8.17.0 vendored ssl:Schannel)\nos: Windows 10.0.26200 (Windows 11 Core) [64-bit]",
@@ -25,6 +25,7 @@
         "execution::tests::green_preflight_cannot_substitute_for_a_failed_behavioral_unit",
         "selection::tests::doctest_selection_cannot_lower_a_synthetic_zero_match_filter",
         "structural_preflight::plan_tests::complete_preflight_plan_binds_tools_sources_and_dependency_flow",
+        "structural_preflight::tests::changed_evaluator_invalidates_every_reusable_predicate",
         "structural_preflight::tests::changed_generated_context_names_only_agent_context_input",
         "structural_preflight::tests::changed_manifest_scope_names_only_the_invalidated_dependency_input",
         "structural_preflight::tests::claimed_bundle_identity_cannot_hide_mutated_predicate_evidence",

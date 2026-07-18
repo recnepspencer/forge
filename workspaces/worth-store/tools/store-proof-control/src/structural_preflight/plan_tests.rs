@@ -42,6 +42,11 @@ fn complete_preflight_plan_binds_tools_sources_and_dependency_flow() {
             .any(|path| path.ends_with("Cargo.lock"))
     });
     let dependency_is_metadata_owned = dependency.tool.is_none();
+    let evaluator_is_observed = plan.evaluator.responsibility
+        == "store-proof-control-structural-preflight"
+        && plan.evaluator.executable_sha256.len() == 64
+        && !plan.evaluator.executable_path.is_empty()
+        && !plan.evaluator.version_identity.is_empty();
 
     assert!(boundary_tool_is_locked_offline);
     assert!(agent_context_tool_is_locked_offline);
@@ -49,6 +54,7 @@ fn complete_preflight_plan_binds_tools_sources_and_dependency_flow() {
     assert!(all_input_scopes_are_bound);
     assert!(dependency_scope_binds_store_lockfile);
     assert!(dependency_is_metadata_owned);
+    assert!(evaluator_is_observed);
 }
 
 fn predicate(

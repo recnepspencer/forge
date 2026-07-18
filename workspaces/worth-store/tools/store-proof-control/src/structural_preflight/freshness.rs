@@ -28,6 +28,7 @@ pub(super) fn compare(
     current
         .validate_integrity()
         .map_err(|denial| denial.to_string())?;
+    let evaluator_changed = evidence.plan.evaluator != current.evaluator;
     let mut failures = Vec::new();
     for declared in &evidence.plan.predicates {
         let Some(observed) = current
@@ -66,6 +67,11 @@ pub(super) fn compare(
                 |tool| format!("tool: {}", tool.tool_identity),
             ));
         }
+        if evaluator_changed {
+            invalidated_inputs.push("preflight-evaluator".to_owned());
+        }
+        invalidated_inputs.sort();
+        invalidated_inputs.dedup();
         if !invalidated_inputs.is_empty() {
             failures.push(StructuralPredicateFailure {
                 predicate: declared.predicate,

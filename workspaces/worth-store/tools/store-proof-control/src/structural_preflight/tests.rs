@@ -1,8 +1,9 @@
 use worth_store_test_support::structural_preflight::{
     PreflightEvidenceFreshness, PreflightEvidenceIdentity, PreflightInputScope,
     StructuralPredicate, StructuralPredicateEvidence, StructuralPredicatePlan,
-    StructuralPredicateVerdict, StructuralPreflightEvidence, StructuralPreflightPlan,
-    StructuralPreflightProfile, StructuralPreflightRequest, StructuralToolDeclaration,
+    StructuralPredicateVerdict, StructuralPreflightEvaluatorIdentity, StructuralPreflightEvidence,
+    StructuralPreflightPlan, StructuralPreflightProfile, StructuralPreflightRequest,
+    StructuralToolDeclaration,
 };
 
 use crate::classification::{
@@ -155,6 +156,25 @@ fn changed_generated_context_names_only_agent_context_input() {
 }
 
 #[test]
+fn changed_evaluator_invalidates_every_reusable_predicate() {
+    let evidence = passed_evidence();
+    let mut current = evidence.plan.clone();
+    current.evaluator.executable_sha256 = sha256_serialized(&"new-evaluator").unwrap();
+    current.plan_identity.clear();
+    current.plan_identity = sha256_serialized(&current).unwrap();
+
+    let freshness = freshness::compare(&evidence, &current).unwrap();
+
+    let PreflightEvidenceFreshness::Stale { failures } = freshness else {
+        panic!("evidence from a displaced evaluator was accepted as fresh");
+    };
+    assert_eq!(failures.len(), evidence.plan.predicates.len());
+    assert!(failures.iter().all(|failure| failure
+        .invalidated_inputs
+        .contains(&"preflight-evaluator".to_owned())));
+}
+
+#[test]
 fn claimed_bundle_identity_cannot_hide_mutated_predicate_evidence() {
     let mut evidence = passed_evidence();
     evidence.predicates[0].verdict = StructuralPredicateVerdict::Passed {
@@ -186,6 +206,7 @@ fn identical_boundary_and_naming_commands_launch_one_observed_tool_process() {
     let mut plan = StructuralPreflightPlan {
         schema_version: 1,
         request,
+        evaluator: synthetic_evaluator(),
         predicates: vec![
             predicate_plan(StructuralPredicate::Boundary, "synthetic-structural-scope"),
             predicate_plan(StructuralPredicate::Naming, "synthetic-structural-scope"),
@@ -228,6 +249,7 @@ fn passed_evidence() -> StructuralPreflightEvidence {
     let mut plan = StructuralPreflightPlan {
         schema_version: 1,
         request,
+        evaluator: synthetic_evaluator(),
         predicates: vec![
             predicate_plan(StructuralPredicate::AgentContext, "agent-context-authority"),
             predicate_plan(
@@ -303,11 +325,21 @@ fn unsigned_plan(predicates: Vec<StructuralPredicatePlan>) -> StructuralPrefligh
     let mut plan = StructuralPreflightPlan {
         schema_version: 1,
         request,
+        evaluator: synthetic_evaluator(),
         predicates,
         plan_identity: String::new(),
     };
     plan.plan_identity = sha256_serialized(&plan).unwrap();
     plan
+}
+
+fn synthetic_evaluator() -> StructuralPreflightEvaluatorIdentity {
+    StructuralPreflightEvaluatorIdentity {
+        responsibility: "synthetic-preflight-evaluator".to_owned(),
+        executable_path: "synthetic/preflight-evaluator".to_owned(),
+        executable_sha256: sha256_serialized(&"synthetic-preflight-evaluator").unwrap(),
+        version_identity: "synthetic-preflight-evaluator/v1".to_owned(),
+    }
 }
 
 fn inventory_with_forbidden_feature_edge() -> ValidatedProofInventory {

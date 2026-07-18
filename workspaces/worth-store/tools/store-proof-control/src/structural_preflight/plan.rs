@@ -39,6 +39,7 @@ pub(super) fn build(
     let mut plan = StructuralPreflightPlan {
         schema_version: 1,
         request,
+        evaluator: super::evaluator::observe()?,
         predicates,
         plan_identity: String::new(),
     };

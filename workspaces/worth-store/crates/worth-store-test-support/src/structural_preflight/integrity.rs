@@ -30,6 +30,13 @@ impl StructuralPreflightPlan {
                 self.schema_version,
             ));
         }
+        if self.evaluator.responsibility.trim().is_empty()
+            || self.evaluator.executable_path.trim().is_empty()
+            || !is_sha256(&self.evaluator.executable_sha256)
+            || self.evaluator.version_identity.trim().is_empty()
+        {
+            return Err(StructuralPreflightIntegrityDenial::PlanIdentityMismatch);
+        }
         let requested = self
             .request
             .predicates

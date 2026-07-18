@@ -59,6 +59,14 @@ pub struct StructuralToolEnvironmentBinding {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StructuralPreflightEvaluatorIdentity {
+    pub responsibility: String,
+    pub executable_path: String,
+    pub executable_sha256: String,
+    pub version_identity: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructuralPredicatePlan {
     pub predicate: StructuralPredicate,
     pub input_scopes: Vec<PreflightInputScope>,
@@ -69,6 +77,7 @@ pub struct StructuralPredicatePlan {
 pub struct StructuralPreflightPlan {
     pub schema_version: u32,
     pub request: StructuralPreflightRequest,
+    pub evaluator: StructuralPreflightEvaluatorIdentity,
     pub predicates: Vec<StructuralPredicatePlan>,
     pub plan_identity: String,
 }

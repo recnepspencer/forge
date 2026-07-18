@@ -119,6 +119,16 @@ impl std::error::Error for UiProofRunFailure {}
 
 impl UiProofRunEvidence {
     pub fn validate_integrity(&self) -> Result<(), String> {
+        let fixture_identities = self
+            .fixtures
+            .iter()
+            .map(|fixture| fixture.fixture.case_identity.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        let fixture_evidence_paths = self
+            .fixtures
+            .iter()
+            .map(|fixture| fixture.evidence_path.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
         let expected_environment_identity = serde_json::to_vec(&(
             "worth-store-ui-environment-v5",
             &self.environment_root_identity,
@@ -144,6 +154,8 @@ impl UiProofRunEvidence {
                 .shared_target_root
                 .ends_with(&format!("/{}", &self.environment_identity[..24]))
             || self.fixtures.is_empty()
+            || fixture_identities.len() != self.fixtures.len()
+            || fixture_evidence_paths.len() != self.fixtures.len()
             || self.fixtures.iter().any(|fixture| {
                 fixture.fixture.suite_identity != self.suite_identity
                     || fixture.fixture.environment_identity != self.environment_identity
@@ -152,12 +164,17 @@ impl UiProofRunEvidence {
                     || !is_sha256(&fixture.fixture.source_digest)
                     || !is_sha256(&fixture.fixture.expected_denial_identity)
                     || fixture.cargo_process_id == 0
-                    || fixture.cargo_exit_code == Some(0)
+                    || fixture.cargo_exit_code.is_none_or(|code| code == 0)
                     || !is_sha256(&fixture.cargo_stdout_sha256)
                     || !is_sha256(&fixture.cargo_stderr_sha256)
                     || fixture.dependency_artifacts_compiled + fixture.dependency_artifacts_reused
                         == 0
                     || fixture.target_artifact_count_after < fixture.target_artifact_count_before
+                    || fixture.diagnostics.is_empty()
+                    || fixture
+                        .diagnostics
+                        .iter()
+                        .any(|diagnostic| diagnostic.level != "error")
                     || fixture.evidence_path.trim().is_empty()
                     || !fixture.semantic_denial_matched
             })

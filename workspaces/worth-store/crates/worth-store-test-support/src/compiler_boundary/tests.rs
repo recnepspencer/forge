@@ -28,7 +28,17 @@ fn fixtures_in_one_environment_share_manifest_and_target_root() {
     assert_eq!(evidence.environment_lock_sha256.len(), 64);
     assert!(evidence
         .shared_target_root
-        .contains(&evidence.environment_identity));
+        .ends_with(&format!("/{}", &evidence.environment_identity[..24])));
+    assert_eq!(
+        std::fs::read_to_string(
+            scratch
+                .root()
+                .join(&evidence.shared_target_root)
+                .join(".environment-identity")
+        )
+        .unwrap(),
+        evidence.environment_identity
+    );
     assert!(evidence
         .fixtures
         .iter()

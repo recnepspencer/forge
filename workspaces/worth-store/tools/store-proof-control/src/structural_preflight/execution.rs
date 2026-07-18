@@ -56,14 +56,15 @@ fn execute_with_refresh(
             .as_ref()
             .and_then(|tool| tools.get(&tool_execution::command_identity(tool)));
         let verdict =
-            input_drift_failure(predicate, &refreshed).unwrap_or(predicate_evaluation::evaluate(
-                forge_root,
-                predicate.predicate,
-                &input_identity,
-                inventory,
-                validation_failure,
-                tool_outcome,
-            )?);
+            input_drift_failure(predicate, &refreshed, plan.evaluator != refreshed.evaluator)
+                .unwrap_or(predicate_evaluation::evaluate(
+                    forge_root,
+                    predicate.predicate,
+                    &input_identity,
+                    inventory,
+                    validation_failure,
+                    tool_outcome,
+                )?);
         predicates.push(StructuralPredicateEvidence {
             predicate: predicate.predicate,
             input_identity,
@@ -85,6 +86,7 @@ fn execute_with_refresh(
 fn input_drift_failure(
     declared: &StructuralPredicatePlan,
     refreshed: &StructuralPreflightPlan,
+    evaluator_changed: bool,
 ) -> Option<StructuralPredicateVerdict> {
     let current = refreshed
         .predicates
@@ -115,6 +117,9 @@ fn input_drift_failure(
     }
     if declared.tool != current.tool {
         changed.push("tool-declaration".to_owned());
+    }
+    if evaluator_changed {
+        changed.push("preflight-evaluator".to_owned());
     }
     changed.sort();
     changed.dedup();

@@ -48,22 +48,28 @@ pub fn select(
     .map_err(|violations| ProofProductUnavailable::ScenarioTopology(violations.join("\n  - ")))?;
     let suite_filters = declared_suite_filters(&suite_inventory);
     let suite_responsibilities = suite_case_responsibilities(&suite_inventory);
-    let selected_case_targets = if request.mode() == StoreProofMode::Ui {
-        SelectedCases::new()
-    } else {
-        selected_case_targets(
-            inventory,
-            &selected_products,
-            &request,
-            &suite_responsibilities,
-        )
-    };
+    let selected_case_targets = selected_case_targets(
+        inventory,
+        &selected_products,
+        &request,
+        &suite_responsibilities,
+    );
     let mut units = execution_units(inventory, &request, &selected_case_targets, &suite_filters)?;
     if selected_products.contains("store-ci:feature-compatibility") {
         units.extend(feature_compatibility_units(inventory));
     }
     if request.mode() == StoreProofMode::Ui {
-        units.extend(ui_execution_units(inventory, &request));
+        units = units
+            .into_iter()
+            .map(|unit| {
+                if unit.process_model == ProofProcessModel::RustdocTestProcess {
+                    unit
+                } else {
+                    unit.with_process_model(ProofProcessModel::StandardizedUiHarness)
+                }
+            })
+            .collect();
+        units.extend(ui_doctest_execution_units(inventory, &request));
     }
     validate_owner_execution_locality(&request, &units)?;
     units.sort();
@@ -188,7 +194,7 @@ fn execution_units(
         .iter()
         .filter(|target| selected.contains_key(&target.identity))
         .map(|target| {
-            if request.mode() != StoreProofMode::Smoke && request.scenario_identity().is_none() {
+            if aggregates_entire_target(request) {
                 let process_model = suite_filters
                     .get(&target.identity)
                     .is_some_and(|scenarios| {
@@ -220,6 +226,11 @@ fn execution_units(
         })
         .collect::<Result<Vec<_>, _>>()
         .map(|units| units.into_iter().flatten().collect())
+}
+
+fn aggregates_entire_target(request: &StoreProofRequest) -> bool {
+    !matches!(request.mode(), StoreProofMode::Smoke | StoreProofMode::Ui)
+        && request.scenario_identity().is_none()
 }
 
 fn executable_case_filter(filter: String) -> Option<String> {
@@ -274,7 +285,7 @@ fn execution_filters(
         .collect())
 }
 
-fn ui_execution_units(
+fn ui_doctest_execution_units(
     inventory: &ValidatedProofInventory,
     request: &StoreProofRequest,
 ) -> Vec<ProofExecutionUnit> {
@@ -284,19 +295,15 @@ fn ui_execution_units(
         .targets
         .iter()
         .filter(|target| {
-            inventory.inventory().proofs.iter().any(|proof| {
-                proof.case.target_identity.as_deref() == Some(target.identity.as_str())
-                    && proof.products.contains("store-ui")
-            })
+            target.kinds.iter().any(|kind| kind == "doc")
+                && inventory.inventory().proofs.iter().any(|proof| {
+                    proof.case.target_identity.as_deref() == Some(target.identity.as_str())
+                        && proof.products.contains("store-ui")
+                })
         })
         .map(|target| {
-            let unit = ProofExecutionUnit::from_target(target, request, None)
-                .with_feature_lane(feature_lane_for_target(inventory, target));
-            if target.kinds.iter().any(|kind| kind == "doc") {
-                unit
-            } else {
-                unit.with_process_model(ProofProcessModel::StandardizedUiHarness)
-            }
+            ProofExecutionUnit::from_target(target, request, None)
+                .with_feature_lane(feature_lane_for_target(inventory, target))
         })
         .collect()
 }
@@ -328,7 +335,10 @@ fn excluded_products(included: &BTreeSet<String>) -> BTreeMap<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{executable_case_filter, execution_filters, ProofExecutionUnit, ProofProcessModel};
+    use super::{
+        aggregates_entire_target, executable_case_filter, execution_filters, ProofExecutionUnit,
+        ProofProcessModel,
+    };
     use crate::discovery::TestTargetIdentity;
     use crate::selection::{StoreProofMode, StoreProofRequest};
     use std::collections::{BTreeMap, BTreeSet};
@@ -356,6 +366,7 @@ mod tests {
         assert!(executable_case_filter(execution[0].filter.clone()).is_none());
 
         let request = StoreProofRequest::new(StoreProofMode::Ui, None, None, None, None, true);
+        assert!(!aggregates_entire_target(&request));
         let native = ProofExecutionUnit::from_target(&target, &request, None);
         assert_eq!(native.process_model, ProofProcessModel::RustdocTestProcess);
         assert!(!native.process_model.requires_ui_proof_evidence());
