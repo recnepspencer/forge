@@ -58,7 +58,6 @@ pub enum ForegroundReservationAdmissionDenial {
         declared: ForegroundIoLaneKind,
         attempted: ForegroundIoLaneKind,
     },
-    ReservationBasisRebindRequired,
     RawLaneLabelCannotReserve,
     SemanticPriorityCannotReserve,
     CopiedIsolationCountersCannotReserve,

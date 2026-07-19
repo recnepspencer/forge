@@ -1,0 +1,83 @@
+error[E0308]: mismatched types
+ --> tests/physical_runtime_authority/non_authority_values_cannot_admit.rs:9:41
+  |
+9 |     let _runtime = PhysicalStore::admit(identity);
+  |                    -------------------- ^^^^^^^^ expected `PhysicalRuntimeAdmission`, found `RuntimeIdentity`
+  |                    |
+  |                    arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> src/physical_runtime/admission.rs
+  |
+  |     pub fn admit(
+  |            ^^^^^
+
+error[E0308]: mismatched types
+  --> tests/physical_runtime_authority/non_authority_values_cannot_admit.rs:13:41
+   |
+13 |     let _runtime = PhysicalStore::admit(observation);
+   |                    -------------------- ^^^^^^^^^^^ expected `PhysicalRuntimeAdmission`, found `ObservationHandle`
+   |                    |
+   |                    arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> src/physical_runtime/admission.rs
+   |
+   |     pub fn admit(
+   |            ^^^^^
+
+error[E0308]: mismatched types
+  --> tests/physical_runtime_authority/non_authority_values_cannot_admit.rs:17:41
+   |
+17 |     let _runtime = PhysicalStore::admit(diagnostics);
+   |                    -------------------- ^^^^^^^^^^^ expected `PhysicalRuntimeAdmission`, found `ProcessRuntimeCounterSnapshot`
+   |                    |
+   |                    arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> src/physical_runtime/admission.rs
+   |
+   |     pub fn admit(
+   |            ^^^^^
+
+error[E0308]: mismatched types
+  --> tests/physical_runtime_authority/non_authority_values_cannot_admit.rs:21:41
+   |
+21 |     let _runtime = PhysicalStore::admit(model);
+   |                    -------------------- ^^^^^ expected `PhysicalRuntimeAdmission`, found `InMemoryPhysicalFormatModel`
+   |                    |
+   |                    arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> src/physical_runtime/admission.rs
+   |
+   |     pub fn admit(
+   |            ^^^^^
+
+error[E0308]: mismatched types
+  --> tests/physical_runtime_authority/non_authority_values_cannot_admit.rs:25:41
+   |
+25 |     let _runtime = PhysicalStore::admit(replay);
+   |                    -------------------- ^^^^^^ expected `PhysicalRuntimeAdmission`, found `InMemoryPhysicalFormatReplayArtifact`
+   |                    |
+   |                    arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> src/physical_runtime/admission.rs
+   |
+   |     pub fn admit(
+   |            ^^^^^
+
+error[E0308]: mismatched types
+  --> tests/physical_runtime_authority/non_authority_values_cannot_admit.rs:29:41
+   |
+29 |     let _runtime = PhysicalStore::admit(layout);
+   |                    -------------------- ^^^^^^ expected `PhysicalRuntimeAdmission`, found `PersistedPhysicalLayout`
+   |                    |
+   |                    arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> src/physical_runtime/admission.rs
+   |
+   |     pub fn admit(
+   |            ^^^^^

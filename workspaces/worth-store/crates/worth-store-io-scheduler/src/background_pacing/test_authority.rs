@@ -134,9 +134,8 @@ fn background_capacity_for_lane(
     let background_backend = backend_admission(pressure.backend_requirement());
     let foreground_capacity =
         admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
-            crate::foreground_reservation::ForegroundReservationCapacityAuthority::store_owned(),
             lane,
-            crate::foreground_reservation::ForegroundReservationAdmissionBoundary::new(
+            crate::foreground_reservation::ForegroundReservationCapacityBasis::new(
                 &foreground_backend,
                 &readiness,
                 &security,

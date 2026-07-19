@@ -1,6 +1,5 @@
 use worth_foundational::performance_api::lower_lane::policy::FoundationalPolicyAdmissionReceipt;
 use worth_foundational::FoundationalPerformanceBudgetKind;
-use worth_proof::prelude::{AuthorityMarker, AuthorityWitness};
 use worth_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass};
 use worth_store_security::StoreSecurityScopeIdentity;
 
@@ -17,22 +16,7 @@ use super::{
 };
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ForegroundReservationCapacityAuthority {
-    _private: (),
-}
-
-impl AuthorityMarker for ForegroundReservationCapacityAuthority {}
-
-impl ForegroundReservationCapacityAuthority {
-    #[allow(dead_code)]
-    pub(crate) fn store_owned() -> AuthorityWitness<Self> {
-        AuthorityWitness::from_authority_marker(Self { _private: () })
-    }
-}
-
-#[derive(Debug, Eq, PartialEq)]
 pub struct ForegroundReservationCapacityAdmission {
-    authority_witness: AuthorityWitness<ForegroundReservationCapacityAuthority>,
     lane: ForegroundIoLaneKind,
     backend_requirement: IoSchedulerBackendCapabilityRequirement,
     backend_profile: BackendTargetProfile,
@@ -46,12 +30,10 @@ pub struct ForegroundReservationCapacityAdmission {
     admitted: ForegroundResourceBudget,
     assumed_backend_limits: ForegroundResourceBudget,
     policy_receipt: FoundationalPolicyAdmissionReceipt,
-    freshness: ForegroundReservationCapacityFreshness,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ForegroundReservationCapacityAdmissionRequest {
-    authority_witness: AuthorityWitness<ForegroundReservationCapacityAuthority>,
     lane: ForegroundLaneDeclaration,
     backend_requirement: IoSchedulerBackendCapabilityRequirement,
     backend_profile: BackendTargetProfile,
@@ -66,14 +48,15 @@ pub struct ForegroundReservationCapacityAdmissionRequest {
     policy_receipt: FoundationalPolicyAdmissionReceipt,
 }
 
-pub(crate) struct ForegroundReservationAdmissionBoundary<'a> {
+#[derive(Debug)]
+pub struct ForegroundReservationCapacityBasis<'a> {
     backend: &'a IoSchedulerBackendCapabilityAdmission,
     stable_readiness: &'a IoSchedulerIsolationAdmission,
     security_scope: &'a IoSchedulerSecurityScopeAdmission,
 }
 
-impl<'a> ForegroundReservationAdmissionBoundary<'a> {
-    pub(crate) const fn new(
+impl<'a> ForegroundReservationCapacityBasis<'a> {
+    pub const fn new(
         backend: &'a IoSchedulerBackendCapabilityAdmission,
         stable_readiness: &'a IoSchedulerIsolationAdmission,
         security_scope: &'a IoSchedulerSecurityScopeAdmission,
@@ -102,13 +85,6 @@ pub enum ForegroundReservationCapacityAdmissionDenial {
     },
     PolicyReceiptBudgetOverflow(FoundationalPerformanceBudgetKind),
     MissingLaneEnvelope,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum ForegroundReservationCapacityFreshness {
-    Current,
-    #[allow(dead_code)]
-    RebindRequired,
 }
 
 impl ForegroundReservationCapacityAdmission {
@@ -163,37 +139,25 @@ impl ForegroundReservationCapacityAdmission {
     pub const fn policy_receipt(&self) -> &FoundationalPolicyAdmissionReceipt {
         &self.policy_receipt
     }
-
-    pub(super) const fn freshness(&self) -> ForegroundReservationCapacityFreshness {
-        self.freshness
-    }
-
-    pub(super) const fn authority_witness(
-        &self,
-    ) -> &AuthorityWitness<ForegroundReservationCapacityAuthority> {
-        &self.authority_witness
-    }
 }
 
 impl ForegroundReservationCapacityAdmissionRequest {
-    pub(crate) fn new(
-        authority_witness: AuthorityWitness<ForegroundReservationCapacityAuthority>,
+    pub fn new(
         lane: ForegroundLaneDeclaration,
-        boundary: ForegroundReservationAdmissionBoundary<'_>,
+        basis: ForegroundReservationCapacityBasis<'_>,
         arbitration: ForegroundArbitrationDeclaration,
         admitted: ForegroundResourceBudget,
         assumed_backend_limits: ForegroundResourceBudget,
         policy_receipt: FoundationalPolicyAdmissionReceipt,
     ) -> Self {
-        let readiness_counters = boundary.stable_readiness.counters();
+        let readiness_counters = basis.stable_readiness.counters();
         Self {
-            authority_witness,
             lane,
-            backend_requirement: boundary.backend.requirement(),
-            backend_profile: boundary.backend.profile(),
-            backend_evidence_class: boundary.backend.evidence_class(),
+            backend_requirement: basis.backend.requirement(),
+            backend_profile: basis.backend.profile(),
+            backend_evidence_class: basis.backend.evidence_class(),
             arbitration,
-            security_scope_identity: boundary.security_scope.permission().identity(),
+            security_scope_identity: basis.security_scope.permission().identity(),
             stable_read_wait_count: readiness_counters.wait_count(),
             stable_read_retry_count: readiness_counters.retry_count(),
             requested: lane.requested_budget(),
@@ -227,7 +191,6 @@ pub fn admit_foreground_reservation_capacity(
         }
     })?;
     Ok(ForegroundReservationCapacityAdmission {
-        authority_witness: request.authority_witness,
         lane: request.lane.lane(),
         backend_requirement: request.backend_requirement,
         backend_profile: request.backend_profile,
@@ -241,7 +204,6 @@ pub fn admit_foreground_reservation_capacity(
         admitted: request.admitted,
         assumed_backend_limits: request.assumed_backend_limits,
         policy_receipt: request.policy_receipt,
-        freshness: ForegroundReservationCapacityFreshness::Current,
     })
 }
 
@@ -386,12 +348,4 @@ fn u32_budget_sum(
     u32::try_from(total).map_err(|_| {
         ForegroundReservationCapacityAdmissionDenial::PolicyReceiptBudgetOverflow(kind)
     })
-}
-
-#[cfg(test)]
-pub(crate) fn rebind_required_capacity_admission_for_test(
-    mut admission: ForegroundReservationCapacityAdmission,
-) -> ForegroundReservationCapacityAdmission {
-    admission.freshness = ForegroundReservationCapacityFreshness::RebindRequired;
-    admission
 }

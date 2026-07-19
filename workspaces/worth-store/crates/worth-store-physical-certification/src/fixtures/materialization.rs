@@ -1,9 +1,10 @@
 use worth_store_physical_format::{
-    AllocationClassKind, FreeSpaceManifestEntry, OfflineManifestCodec, PersistedExtentBytes,
-    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalExtentId,
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalRootReference,
-    PhysicalSegmentId, PlatformPhysicalReplayArtifact, SlotAppendRequest,
+    AllocationClassKind, FreeSpaceManifestEntry, InMemoryPhysicalFormatReplayArtifact,
+    OfflineManifestCodec, PersistedExtentBytes, PersistedPageBytes, PersistedPhysicalLayout,
+    PhysicalBinaryEncodingWitness, PhysicalExtentId, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
+    PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
+    SlotAppendRequest,
 };
 
 use super::{
@@ -28,7 +29,7 @@ pub struct ProductionBackedFixtureMaterialization {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
-    replay_artifact: Option<PlatformPhysicalReplayArtifact>,
+    replay_artifact: Option<InMemoryPhysicalFormatReplayArtifact>,
     materialized_scale: Option<MaterializedFixtureScaleEvidence>,
 }
 
@@ -53,7 +54,7 @@ impl ProductionBackedFixtureMaterialization {
     pub fn from_replay_artifact(
         profile: LargeStoreFixtureProfile,
         root_reference: u64,
-        replay_artifact: PlatformPhysicalReplayArtifact,
+        replay_artifact: InMemoryPhysicalFormatReplayArtifact,
     ) -> Result<Self, SyntheticFixtureAuthorityDenied> {
         let root_reference = PhysicalRootReference::from_raw(root_reference)
             .map_err(|_| SyntheticFixtureAuthorityDenied::InvalidRootReference(root_reference))?;
@@ -84,7 +85,7 @@ impl ProductionBackedFixtureMaterialization {
         &self.layout
     }
 
-    pub const fn replay_artifact(&self) -> Option<&PlatformPhysicalReplayArtifact> {
+    pub const fn replay_artifact(&self) -> Option<&InMemoryPhysicalFormatReplayArtifact> {
         self.replay_artifact.as_ref()
     }
 
@@ -106,7 +107,7 @@ impl ProductionBackedFixtureMaterialization {
         FixtureScaleDeclaration,
         ProductionBackedFixtureSource,
         PersistedPhysicalLayout,
-        Option<PlatformPhysicalReplayArtifact>,
+        Option<InMemoryPhysicalFormatReplayArtifact>,
         Option<MaterializedFixtureScaleEvidence>,
     ) {
         (

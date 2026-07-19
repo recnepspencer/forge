@@ -1,11 +1,11 @@
 use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
 use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::{
-    ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot, ManifestDiscoveryReport,
-    OfflineManifestCodec, OfflineVerifierCounterSnapshot, PhysicalBootstrapCatalogDenial,
-    PhysicalHeaderAuthority, PhysicalReferenceAuthority, PhysicalRootManifest,
-    PhysicalRootReference, PhysicalStoreRuntime, PhysicalStoreRuntimeDenial,
-    PhysicalStoreRuntimeDenialKind,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelDenial,
+    InMemoryPhysicalFormatModelDenialKind, ManifestDiscoveryAuthority,
+    ManifestDiscoveryCounterSnapshot, ManifestDiscoveryReport, OfflineManifestCodec,
+    OfflineVerifierCounterSnapshot, PhysicalBootstrapCatalogDenial, PhysicalHeaderAuthority,
+    PhysicalReferenceAuthority, PhysicalRootManifest, PhysicalRootReference,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,17 +28,17 @@ pub(crate) struct CanonicalRootManifestAccess {
 
 #[derive(Debug)]
 pub struct RootDiscoveryAccess<'a> {
-    facade: &'a mut PhysicalStoreRuntime,
+    facade: &'a mut InMemoryPhysicalFormatModel,
 }
 
 impl<'a> RootDiscoveryAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
+    pub(crate) fn new(facade: &'a mut InMemoryPhysicalFormatModel) -> Self {
         Self { facade }
     }
 
     pub fn current_root_manifest(
         &mut self,
-    ) -> Result<RootManifestLayoutReport, PhysicalStoreRuntimeDenial> {
+    ) -> Result<RootManifestLayoutReport, InMemoryPhysicalFormatModelDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let _ = self.facade.mark_read();
         Ok(RootManifestLayoutReport {
@@ -125,8 +125,8 @@ impl CanonicalRootManifestAccess {
 }
 
 pub(crate) fn canonical_root_manifest(
-    facade: &PhysicalStoreRuntime,
-) -> Result<CanonicalRootManifestAccess, PhysicalStoreRuntimeDenial> {
+    facade: &InMemoryPhysicalFormatModel,
+) -> Result<CanonicalRootManifestAccess, InMemoryPhysicalFormatModelDenial> {
     let witness = facade
         .storage_ref()
         .admit_bootstrap_open_witness(facade.headers_ref())
@@ -137,7 +137,7 @@ pub(crate) fn canonical_root_manifest(
 fn decode_canonical_root_manifest(
     witness: &crate::PhysicalBootstrapCatalogOpenWitness,
     headers: &PhysicalHeaderAuthority,
-) -> Result<CanonicalRootManifestAccess, PhysicalStoreRuntimeDenial> {
+) -> Result<CanonicalRootManifestAccess, InMemoryPhysicalFormatModelDenial> {
     let mut decode_denial = None;
     let mut discovery_denial = None;
     for root_manifest in witness.root_manifest_candidates() {
@@ -188,8 +188,8 @@ fn decode_canonical_root_manifest(
     }
 
     if let Some(denial) = discovery_denial {
-        return Err(PhysicalStoreRuntimeDenial::new(
-            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
+        return Err(InMemoryPhysicalFormatModelDenial::new(
+            InMemoryPhysicalFormatModelDenialKind::ManifestDiscoveryDenied,
         )
         .with_manifest_denial(denial));
     }
@@ -242,23 +242,29 @@ fn exact_manifest_counters(
     )
 }
 
-fn map_bootstrap_denial(denial: PhysicalBootstrapCatalogDenial) -> PhysicalStoreRuntimeDenial {
+fn map_bootstrap_denial(
+    denial: PhysicalBootstrapCatalogDenial,
+) -> InMemoryPhysicalFormatModelDenial {
     match denial {
         PhysicalBootstrapCatalogDenial::ManifestDecodeDenied(denial) => {
             let kind = match denial.kind() {
                 crate::OfflineVerifierDenialKind::MissingRootManifest => {
-                    PhysicalStoreRuntimeDenialKind::MissingPhysicalRoot
+                    InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRoot
                 }
-                _ => PhysicalStoreRuntimeDenialKind::OfflineVerifierDenied,
+                _ => InMemoryPhysicalFormatModelDenialKind::OfflineVerifierDenied,
             };
-            PhysicalStoreRuntimeDenial::new(kind).with_verifier_denial(*denial)
+            InMemoryPhysicalFormatModelDenial::new(kind).with_verifier_denial(*denial)
         }
         PhysicalBootstrapCatalogDenial::ManifestDiscoveryDenied(denial) => {
-            PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied)
-                .with_manifest_denial(*denial)
+            InMemoryPhysicalFormatModelDenial::new(
+                InMemoryPhysicalFormatModelDenialKind::ManifestDiscoveryDenied,
+            )
+            .with_manifest_denial(*denial)
         }
         PhysicalBootstrapCatalogDenial::BootstrapChecksumDenied(_) => {
-            PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::OfflineVerifierDenied)
+            InMemoryPhysicalFormatModelDenial::new(
+                InMemoryPhysicalFormatModelDenialKind::OfflineVerifierDenied,
+            )
         }
     }
 }

@@ -40,17 +40,16 @@ pub use io_scheduler::{
 };
 pub use physical_format::{
     BinaryPhysicalFormatEvidence, BinaryPhysicalFormatEvidenceDenial,
-    PhysicalComplexityEvidenceDenial, PhysicalComplexityEvidenceReport,
-    PhysicalComplexityProofBundle, PhysicalExtentRecordFramingEvidenceDenial,
-    PhysicalExtentRecordFramingEvidenceReport, PhysicalExtentRecordFramingEvidenceRow,
-    PhysicalHeaderDecodeEvidenceDenial, PhysicalHeaderDecodeEvidenceReport,
-    PhysicalHeaderDecodeEvidenceRow, PhysicalIdentityEvidenceDenial,
-    PhysicalIdentityEvidenceReport, PhysicalIdentityEvidenceRow,
+    InMemoryPhysicalFormatModelEvidenceDenial, InMemoryPhysicalFormatModelEvidenceReport,
+    InMemoryPhysicalFormatModelEvidenceRow, PhysicalComplexityEvidenceDenial,
+    PhysicalComplexityEvidenceReport, PhysicalComplexityProofBundle,
+    PhysicalExtentRecordFramingEvidenceDenial, PhysicalExtentRecordFramingEvidenceReport,
+    PhysicalExtentRecordFramingEvidenceRow, PhysicalHeaderDecodeEvidenceDenial,
+    PhysicalHeaderDecodeEvidenceReport, PhysicalHeaderDecodeEvidenceRow,
+    PhysicalIdentityEvidenceDenial, PhysicalIdentityEvidenceReport, PhysicalIdentityEvidenceRow,
     PhysicalManifestDiscoveryEvidenceDenial, PhysicalManifestDiscoveryEvidenceReport,
     PhysicalManifestDiscoveryEvidenceRow, PhysicalPageRecordFramingEvidenceDenial,
     PhysicalPageRecordFramingEvidenceReport, PhysicalPageRecordFramingEvidenceRow,
-    PhysicalStoreRuntimeEvidenceDenial, PhysicalStoreRuntimeEvidenceReport,
-    PhysicalStoreRuntimeEvidenceRow,
 };
 pub use physical_integrity::{
     offline_observer_requires_physical_references, PhysicalOfflineVerifierEvidenceDenial,

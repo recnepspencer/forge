@@ -2,20 +2,21 @@ use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use worth_store_physical_format::{
-    PersistedPhysicalLayout, PhysicalStoreRuntime, PlatformPhysicalOpenRequest,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest, PersistedPhysicalLayout,
 };
 
 fn main() {
     let layout = PersistedPhysicalLayout::builder().build();
-    let _reopened = PhysicalStoreRuntime::reopen(
+    let _reopened = InMemoryPhysicalFormatModel::restore(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         layout,
     );
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set()).unwrap()
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+        .unwrap()
 }
 
 fn digest_set() -> HandoffEvidenceDigestSet {

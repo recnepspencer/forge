@@ -1,9 +1,8 @@
 use crate::{
-    physical_bootstrap_catalog, PhysicalBootstrapCatalogDenial,
-    PhysicalBootstrapCatalogOpenWitness, PhysicalExtentId, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference,
-    PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
-    PlatformPhysicalOpenRequest,
+    physical_bootstrap_catalog, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness, PhysicalExtentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
+    PhysicalRootReference, PhysicalSegmentId, PlatformPhysicalAppendRequest,
 };
 use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
@@ -54,7 +53,7 @@ fn corrupted_bootstrap_bytes_are_denied_before_catalog_admission() {
         builder = builder.extent(extent.clone());
     }
     let open = PhysicalBootstrapCatalogOpenWitness::admit_persisted_layout(
-        PlatformPhysicalOpenRequest::physical_format_canonical().headers(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical().headers(),
         &builder.build(),
     )
     .expect("corrupted persisted layout still admits open witness before decode");
@@ -74,9 +73,9 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
     let first = physical_bootstrap_catalog()
         .discover_catalog(&open)
         .expect("first bootstrap replay should derive");
-    let mut reopened = PhysicalStoreRuntime::reopen(
+    let mut reopened = InMemoryPhysicalFormatModel::restore(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         published.replay_artifact(),
     )
     .expect("reopen through verifier");
@@ -84,7 +83,7 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
         .scan_physical_layout()
         .expect("reopened layout should still scan");
     assert_eq!(
-        reopened_scan.runtime_report().traversal().page_slot_count(),
+        reopened_scan.model_report().traversal().page_slot_count(),
         first.page_slot_count()
     );
     let second_open = published
@@ -100,9 +99,9 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
 
 #[test]
 fn bootstrap_identity_replays_stably_across_crash_recovery() {
-    let mut facade = PhysicalStoreRuntime::open_physical_format(
+    let mut facade = InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
@@ -144,9 +143,9 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
         facade.publish_interrupted_physical_root().is_err(),
         "interrupted publish should simulate crash lane"
     );
-    let _recovered = PhysicalStoreRuntime::reopen(
+    let _recovered = InMemoryPhysicalFormatModel::restore(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         durable.replay_artifact(),
     )
     .expect("crash recovery should reopen last durable layout");
@@ -163,9 +162,9 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
 }
 
 fn published_layout() -> crate::PlatformPhysicalRootPublicationReport {
-    let mut facade = PhysicalStoreRuntime::open_physical_format(
+    let mut facade = InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();

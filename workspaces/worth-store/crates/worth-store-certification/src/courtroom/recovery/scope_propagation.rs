@@ -1,5 +1,5 @@
 use super::support::{
-    admit_entry, intact_readiness, platform_recovery_scope, recovery_security_scope,
+    admit_entry, intact_integrity_model_input, platform_recovery_scope, recovery_security_scope,
 };
 use worth_proof::TransitionOutcome;
 use worth_store_recovery_physics::{
@@ -15,7 +15,7 @@ use worth_store_security::{
 
 #[test]
 fn replay_planning_requires_recovery_entry_admission() {
-    let admission = admit_entry(intact_readiness("entry-required"));
+    let admission = admit_entry(intact_integrity_model_input("entry-required"));
     let identity = admission.entry_identity().clone();
     let security_scope = recovery_security_scope(&admission, "entry-required");
 
@@ -46,8 +46,8 @@ fn replay_planning_requires_recovery_entry_admission() {
 
 #[test]
 fn replay_gate_denies_security_scope_bound_to_different_entry_identity() {
-    let security_admission = admit_entry(intact_readiness("entry-security-scope"));
-    let replay_admission = admit_entry(intact_readiness("entry-replay-mismatch"));
+    let security_admission = admit_entry(intact_integrity_model_input("entry-security-scope"));
+    let replay_admission = admit_entry(intact_integrity_model_input("entry-replay-mismatch"));
     let security_scope = recovery_security_scope(&security_admission, "entry-security-scope");
 
     let outcome =
@@ -67,8 +67,8 @@ fn replay_gate_denies_security_scope_bound_to_different_entry_identity() {
 
 #[test]
 fn recovery_scope_propagation_denies_root_carrier_from_different_entry_admission() {
-    let wal_admission = admit_entry(intact_readiness("entry-wal-checkpoint"));
-    let root_admission = admit_entry(intact_readiness("entry-root-mismatch"));
+    let wal_admission = admit_entry(intact_integrity_model_input("entry-wal-checkpoint"));
+    let root_admission = admit_entry(intact_integrity_model_input("entry-root-mismatch"));
     let admitted = platform_recovery_scope("entry-wal-checkpoint");
     let wal = RecoveryWalRecordSecurityMetadataEnvelope::from_admitted_scope(
         RecoveryWalRecordSecurityMetadataIdentity::new(1),

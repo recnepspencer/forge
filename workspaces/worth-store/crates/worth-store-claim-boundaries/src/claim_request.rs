@@ -149,4 +149,5 @@ pub enum ClaimPromotionRejection {
     ForbiddenPlatformClaim(ForbiddenPlatformClaim),
     MissingPlatformGradeEvidence,
     PhysicalDebtCannotPromote,
+    PhysicalFoundationReconstructionOpen,
 }

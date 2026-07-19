@@ -3,17 +3,12 @@ use worth_store_buffer_pool::{
     ResidentFrameLoadRequest, ResidentFrameTable, ResidentFrameTableCapacity, ResidentMemoryBudget,
     S2PhysicalResidencyEntry,
 };
-use worth_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
-};
+use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
     PhysicalPageId, PhysicalRecordSlot, PhysicalReferenceAuthority,
     PhysicalReferenceValidationWitness, PhysicalSegmentId,
-};
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 pub(crate) fn admit_payload_frame(
@@ -34,26 +29,25 @@ pub(crate) fn admit_payload_frame(
 }
 
 pub(crate) fn resident_frame_table(frame_count: u32, dirty_pages: u32) -> ResidentFrameTable {
-    let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
-    )
-    .unwrap();
     let budget = BufferPoolBudget::declare(
         ResidentMemoryBudget::bytes(8192).unwrap(),
         PinnedPageBudget::pages(4).unwrap(),
         DirtyPageBudget::pages(dirty_pages).unwrap(),
     );
-    let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        readiness.physical_substrate_snapshot(),
-    )
-    .unwrap()
-    .with_budget(budget)
-    .admit()
-    .unwrap();
+    let admitted =
+        S2PhysicalResidencyEntry::from_physical_substrate_snapshot(algorithm_model_snapshot())
+            .unwrap()
+            .with_budget(budget)
+            .admit()
+            .unwrap();
     ResidentFrameTable::open(
         admitted,
         ResidentFrameTableCapacity::frames(frame_count).unwrap(),
     )
+}
+
+fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn load_request_from_frame(
@@ -109,26 +103,6 @@ fn slot_cell(
     PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1), page(page_value), slot(3))
         .with_slot_generation(generation(generation_value))
-}
-
-fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-        ROADMAP_2_S1_SCOPE,
-        HandoffEvidenceDigestSet::new(
-            digest("backend"),
-            digest("deferred"),
-            digest("harness"),
-            digest("terms"),
-            digest("audit"),
-            digest("complexity"),
-            digest("provenance"),
-        ),
-    )
-    .unwrap()
-}
-
-fn digest(name: &str) -> StableDigest {
-    StableDigest::new(format!("sha256:{name}")).unwrap()
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

@@ -8,6 +8,7 @@ pub enum PhysicalSubstrateCertificationDenial {
     ReadinessRejected,
     FacadeOperationDenied,
     PlatformWitnessRejected,
+    PhysicalFoundationReconstructionOpen,
     PhysicalSubstrateHandoffEvidenceRejected,
     FacadeEvidenceRejected,
     OfflineVerifierEvidenceRejected,

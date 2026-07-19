@@ -2,8 +2,8 @@ use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
 use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::access::manifest::root_discovery::canonical_root_manifest;
 use crate::{
-    PhysicalFragmentationPressureReport, PhysicalFreeSpaceSearchPolicy, PhysicalStoreRuntime,
-    PhysicalStoreRuntimeDenial,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelDenial,
+    PhysicalFragmentationPressureReport, PhysicalFreeSpaceSearchPolicy,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,18 +14,18 @@ pub struct FragmentationLayoutReport {
 
 #[derive(Debug)]
 pub struct FragmentationAccess<'a> {
-    facade: &'a mut PhysicalStoreRuntime,
+    facade: &'a mut InMemoryPhysicalFormatModel,
 }
 
 impl<'a> FragmentationAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
+    pub(crate) fn new(facade: &'a mut InMemoryPhysicalFormatModel) -> Self {
         Self { facade }
     }
 
     pub fn pressure(
         &mut self,
         policy: PhysicalFreeSpaceSearchPolicy,
-    ) -> Result<FragmentationLayoutReport, PhysicalStoreRuntimeDenial> {
+    ) -> Result<FragmentationLayoutReport, InMemoryPhysicalFormatModelDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let allocation_count = access.root().allocation_classes().len() as u32;
         let free_space_count = access.root().free_space().len() as u32;

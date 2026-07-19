@@ -49,7 +49,7 @@ pub struct PhysicalRootManifestRebuildWitness {
 
 /// Store-issued source for rebuilding a derived index from the current root manifest.
 ///
-/// The source can only be issued by an opened [`crate::PhysicalStoreRuntime`]. This keeps the
+/// The source can only be issued by an opened [`crate::InMemoryPhysicalFormatModel`]. This keeps the
 /// decoded manifest and the physical Store identity on one authority path instead of allowing a
 /// caller to pair an independently built manifest witness with copied Store metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]

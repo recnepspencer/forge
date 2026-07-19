@@ -9,7 +9,7 @@ pub enum LegacyBackendFamily {
 pub enum BackendFamily {
     Legacy(LegacyBackendFamily),
     PhysicalFoundationCandidate,
-    PhysicalStoreRuntime,
+    InMemoryPhysicalFormatModel,
 }
 
 impl BackendFamily {

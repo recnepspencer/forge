@@ -10,7 +10,9 @@ pub struct IntegrityEntryAdmission {
 }
 
 impl IntegrityEntryAdmission {
-    pub fn from_physical_integrity_payload(
+    /// Admits an algorithm-model payload without claiming physical readiness.
+    /// The joined runtime authority remains a C.9 responsibility.
+    pub fn from_integrity_model_payload(
         payload: PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, IntegrityEntryDenial> {
         payload.require_complete()?;

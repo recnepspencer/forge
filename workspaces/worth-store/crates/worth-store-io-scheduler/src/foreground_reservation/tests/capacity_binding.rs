@@ -52,9 +52,8 @@ fn policy_receipt_budget_mismatch_denies_capacity_admission() {
     let admitted = full_capacity_budget();
     let denial =
         admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
-            ForegroundReservationCapacityAuthority::store_owned(),
             lane,
-            ForegroundReservationAdmissionBoundary::new(&backend, &readiness, &security),
+            ForegroundReservationCapacityBasis::new(&backend, &readiness, &security),
             ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead),
             admitted,
             admitted,

@@ -3,17 +3,17 @@ use crate::{
     ScenarioDenialBoundary, ShortcutRejectionTrace,
 };
 use worth_store_physical_format::{
-    PhysicalStoreRuntimeCounterSnapshot, PhysicalStoreRuntimeEvidence,
+    InMemoryPhysicalFormatModelCounterSnapshot, InMemoryPhysicalFormatModelEvidence,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalStoreRuntimeEvidenceRow {
+pub enum InMemoryPhysicalFormatModelEvidenceRow {
     OperationSurface,
     RuntimeVerifierParity,
     ShortcutRejections,
 }
 
-impl PhysicalStoreRuntimeEvidenceRow {
+impl InMemoryPhysicalFormatModelEvidenceRow {
     pub const fn physical_format_required() -> [Self; 3] {
         [
             Self::OperationSurface,
@@ -28,29 +28,27 @@ impl PhysicalStoreRuntimeEvidenceRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PhysicalStoreRuntimeEvidenceReport {
-    row: PhysicalStoreRuntimeEvidenceRow,
+pub struct InMemoryPhysicalFormatModelEvidenceReport {
+    row: InMemoryPhysicalFormatModelEvidenceRow,
     lane: PhysicalSubstrateLane,
     observed_references: u32,
-    counters: PhysicalStoreRuntimeCounterSnapshot,
+    counters: InMemoryPhysicalFormatModelCounterSnapshot,
     parity: RuntimeVerifierParityTrace,
     shortcut_rejections: ShortcutRejectionTrace,
 }
 
-impl PhysicalStoreRuntimeEvidenceReport {
+impl InMemoryPhysicalFormatModelEvidenceReport {
     pub fn from_facade_evidence(
-        row: PhysicalStoreRuntimeEvidenceRow,
-        evidence: &PhysicalStoreRuntimeEvidence,
-    ) -> Result<Self, PhysicalStoreRuntimeEvidenceDenial> {
-        if row != PhysicalStoreRuntimeEvidenceRow::OperationSurface
-            && row != PhysicalStoreRuntimeEvidenceRow::RuntimeVerifierParity
+        row: InMemoryPhysicalFormatModelEvidenceRow,
+        evidence: &InMemoryPhysicalFormatModelEvidence,
+    ) -> Result<Self, InMemoryPhysicalFormatModelEvidenceDenial> {
+        if row != InMemoryPhysicalFormatModelEvidenceRow::OperationSurface
+            && row != InMemoryPhysicalFormatModelEvidenceRow::RuntimeVerifierParity
         {
-            return Err(PhysicalStoreRuntimeEvidenceDenial::UnexpectedEvidenceRow(
-                row,
-            ));
+            return Err(InMemoryPhysicalFormatModelEvidenceDenial::UnexpectedEvidenceRow(row));
         }
-        if !evidence.proves_platform_boundary() {
-            return Err(PhysicalStoreRuntimeEvidenceDenial::MissingFacadeEvidence);
+        if !evidence.satisfies_in_memory_observation_contract() {
+            return Err(InMemoryPhysicalFormatModelEvidenceDenial::MissingFacadeEvidence);
         }
         Ok(Self::new(
             row,
@@ -62,15 +60,15 @@ impl PhysicalStoreRuntimeEvidenceReport {
     }
 
     pub fn from_shortcut_counters(
-        counters: PhysicalStoreRuntimeCounterSnapshot,
-    ) -> Result<Self, PhysicalStoreRuntimeEvidenceDenial> {
+        counters: InMemoryPhysicalFormatModelCounterSnapshot,
+    ) -> Result<Self, InMemoryPhysicalFormatModelEvidenceDenial> {
         if counters.full_store_materialization_rejections() == 0
             || counters.backend_residue_guess_rejections() == 0
         {
-            return Err(PhysicalStoreRuntimeEvidenceDenial::MissingShortcutRejection);
+            return Err(InMemoryPhysicalFormatModelEvidenceDenial::MissingShortcutRejection);
         }
         Ok(Self::new(
-            PhysicalStoreRuntimeEvidenceRow::ShortcutRejections,
+            InMemoryPhysicalFormatModelEvidenceRow::ShortcutRejections,
             0,
             counters,
             RuntimeVerifierParityTrace::new(RuntimeVerifierRelationship::NotApplicable),
@@ -81,7 +79,7 @@ impl PhysicalStoreRuntimeEvidenceReport {
         ))
     }
 
-    pub const fn row(&self) -> PhysicalStoreRuntimeEvidenceRow {
+    pub const fn row(&self) -> InMemoryPhysicalFormatModelEvidenceRow {
         self.row
     }
 
@@ -93,7 +91,7 @@ impl PhysicalStoreRuntimeEvidenceReport {
         self.observed_references
     }
 
-    pub const fn counters(&self) -> PhysicalStoreRuntimeCounterSnapshot {
+    pub const fn counters(&self) -> InMemoryPhysicalFormatModelCounterSnapshot {
         self.counters
     }
 
@@ -106,9 +104,9 @@ impl PhysicalStoreRuntimeEvidenceReport {
     }
 
     const fn new(
-        row: PhysicalStoreRuntimeEvidenceRow,
+        row: InMemoryPhysicalFormatModelEvidenceRow,
         observed_references: u32,
-        counters: PhysicalStoreRuntimeCounterSnapshot,
+        counters: InMemoryPhysicalFormatModelCounterSnapshot,
         parity: RuntimeVerifierParityTrace,
         shortcut_rejections: ShortcutRejectionTrace,
     ) -> Self {
@@ -124,8 +122,8 @@ impl PhysicalStoreRuntimeEvidenceReport {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalStoreRuntimeEvidenceDenial {
-    UnexpectedEvidenceRow(PhysicalStoreRuntimeEvidenceRow),
+pub enum InMemoryPhysicalFormatModelEvidenceDenial {
+    UnexpectedEvidenceRow(InMemoryPhysicalFormatModelEvidenceRow),
     MissingFacadeEvidence,
     MissingShortcutRejection,
 }

@@ -24,7 +24,7 @@ impl DegradedScanRuntime {
     pub fn execute_physical(
         &self,
         ready: DegradedScanReady,
-        physical: &mut worth_store_physical_format::PhysicalStoreRuntime,
+        physical: &mut worth_store_physical_format::InMemoryPhysicalFormatModel,
     ) -> Result<super::DegradedScanExecution, crate::PhysicalDegradedExecutionDenial> {
         super::execute_ready(ready, physical)
     }

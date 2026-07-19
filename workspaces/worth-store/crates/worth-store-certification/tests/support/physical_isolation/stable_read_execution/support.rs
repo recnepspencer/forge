@@ -4,9 +4,7 @@ use worth_store_buffer_pool::{
     RecordViewMaterializationProfile, ResidentFrameLoadRequest, ResidentFrameTable,
     ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
 };
-use worth_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
-};
+use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_physical_format::{
     FramedRecordView, PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
@@ -15,9 +13,6 @@ use worth_store_physical_format::{
     PhysicalSegmentId, SlotAppendRequest, SlotGenerationCell,
 };
 use worth_store_physical_isolation::CurrentGenerationPhysicalReference;
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
-};
 
 pub(crate) fn bounded_copy_for_record(payload: &'static [u8]) -> BoundedCopyRecordView {
     bounded_copy_for_slot(segment(1), page(2), slot(3), generation(7), payload)
@@ -144,17 +139,13 @@ fn admit_payload_frame(
 }
 
 pub(crate) fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameTable {
-    let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
-    )
-    .unwrap();
     let budget = BufferPoolBudget::declare(
         ResidentMemoryBudget::bytes(resident_bytes).unwrap(),
         PinnedPageBudget::pages(4).unwrap(),
         DirtyPageBudget::pages(2).unwrap(),
     );
     let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        readiness.physical_substrate_snapshot(),
+        physical_substrate_model_snapshot(),
     )
     .unwrap()
     .with_budget(budget)
@@ -283,24 +274,8 @@ fn allocation_admission(bytes: u64) -> AllocationAdmission {
     AllocationAdmission::from_declaration(envelopes)
 }
 
-fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-        ROADMAP_2_S1_SCOPE,
-        HandoffEvidenceDigestSet::new(
-            digest("backend"),
-            digest("deferred"),
-            digest("harness"),
-            digest("terms"),
-            digest("audit"),
-            digest("complexity"),
-            digest("provenance"),
-        ),
-    )
-    .unwrap()
-}
-
-fn digest(name: &str) -> StableDigest {
-    StableDigest::new(format!("sha256:s5-stable-read-execution-{name}")).unwrap()
+fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn page_cell(

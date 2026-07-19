@@ -7,10 +7,10 @@ use worth_store_layout_indexes::{
     BaselineBTreeReadSource,
 };
 use worth_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
-    PhysicalReference, PhysicalSegmentId, PhysicalStoreIdentity, PhysicalStoreRuntime,
-    PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest, PlatformPhysicalReplayArtifact,
-    SlotGenerationCell,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    InMemoryPhysicalFormatReplayArtifact, PhysicalGeneration, PhysicalGenerationAuthority,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalReference, PhysicalSegmentId,
+    PhysicalStoreIdentity, PlatformPhysicalAppendRequest, SlotGenerationCell,
 };
 
 use super::bootstrap::foreign_layout_physical_store_identity;
@@ -19,7 +19,7 @@ use super::bootstrap::foreign_layout_physical_store_identity;
 pub struct DeterministicBTreeReplayWorld {
     readiness: AcceptedHandoffReadiness,
     root_reference: PhysicalReference,
-    replay_artifact: PlatformPhysicalReplayArtifact,
+    replay_artifact: InMemoryPhysicalFormatReplayArtifact,
 }
 
 impl DeterministicBTreeReplayWorld {
@@ -29,7 +29,7 @@ impl DeterministicBTreeReplayWorld {
     pub const fn root_reference(&self) -> PhysicalReference {
         self.root_reference
     }
-    pub const fn replay_artifact(&self) -> &PlatformPhysicalReplayArtifact {
+    pub const fn replay_artifact(&self) -> &InMemoryPhysicalFormatReplayArtifact {
         &self.replay_artifact
     }
 }
@@ -151,11 +151,12 @@ fn deterministic_btree_replay_world_with_damage(
 ) -> DeterministicBTreeReplayWorld {
     let readiness = readiness();
     let open_request = store_identity.map_or_else(
-        PlatformPhysicalOpenRequest::physical_format_canonical,
-        PlatformPhysicalOpenRequest::physical_format_for_store,
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical,
+        InMemoryPhysicalFormatModelRequest::physical_format_for_store,
     );
-    let mut facade = PhysicalStoreRuntime::open_physical_format(readiness.clone(), open_request)
-        .expect("open deterministic B-tree fixture");
+    let mut facade =
+        InMemoryPhysicalFormatModel::start_empty_model(readiness.clone(), open_request)
+            .expect("open deterministic B-tree fixture");
     let left_payload = match damage {
         BTreeFixtureDamage::CorruptLeftLeaf => *b"broken",
         BTreeFixtureDamage::NoncanonicalLeftLeaf => {

@@ -1,5 +1,5 @@
 use crate::{
-    courtroom::harness::test_support::integrity_readiness_test_support::physical_integrity_readiness,
+    courtroom::harness::test_support::integrity_readiness_test_support::physical_integrity_model_payload,
     courtroom::harness::test_support::physical_container_integrity_test_support::{
         inspect_page_report, page_payload_with_record,
     },
@@ -30,15 +30,15 @@ use worth_store_recovery_physics::{
 
 pub(crate) const CERTIFICATION_INSPECTION_BYTE_LIMIT: u64 = 256;
 
-pub(crate) fn intact_readiness(label: &str) -> AdmittedRecoveryIntegrityInput {
+pub(crate) fn intact_integrity_model_input(label: &str) -> AdmittedRecoveryIntegrityInput {
     admit_recovery_handoff_payload(intact_handoff_payload(label))
 }
 
 pub(crate) fn admit_recovery_handoff_payload(
     payload: IntegrityHandoffPayload,
 ) -> AdmittedRecoveryIntegrityInput {
-    IntegrityHandoffAdmission::admit(physical_integrity_readiness().payload(), payload)
-        .expect("complete S.3 readiness admits S.4 integrity handoff")
+    IntegrityHandoffAdmission::admit_model_payload(physical_integrity_model_payload(), payload)
+        .expect("complete integrity model payload admits the algorithm handoff")
 }
 
 pub(crate) fn manifest_receipt_swap_denial_kind(

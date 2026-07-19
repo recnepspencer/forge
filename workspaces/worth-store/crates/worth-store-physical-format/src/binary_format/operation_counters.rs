@@ -1,7 +1,8 @@
 use crate::{
-    ExtentRecordCounterSnapshot, ManifestDiscoveryCounterSnapshot, OfflineVerifierCounterSnapshot,
-    PageRecordCounterSnapshot, PhysicalHeaderDecodeCounterSnapshot, PhysicalOperationKind,
-    PhysicalReferenceValidationCounterSnapshot, PhysicalStoreRuntimeCounterSnapshot,
+    ExtentRecordCounterSnapshot, InMemoryPhysicalFormatModelCounterSnapshot,
+    ManifestDiscoveryCounterSnapshot, OfflineVerifierCounterSnapshot, PageRecordCounterSnapshot,
+    PhysicalHeaderDecodeCounterSnapshot, PhysicalOperationKind,
+    PhysicalReferenceValidationCounterSnapshot,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,12 +154,12 @@ impl PhysicalOperationCounterSnapshot {
         )
     }
 
-    pub fn from_root_open(counters: PhysicalStoreRuntimeCounterSnapshot) -> Self {
+    pub fn from_root_open(counters: InMemoryPhysicalFormatModelCounterSnapshot) -> Self {
         Self::new(
             PhysicalOperationKind::RootManifestOpen,
             vec![
                 row("physical.open", counters.opens()),
-                row("physical.reopen", counters.reopens()),
+                row("model.restore", counters.restores()),
                 row("physical.root_publication", counters.root_publications()),
             ],
         )

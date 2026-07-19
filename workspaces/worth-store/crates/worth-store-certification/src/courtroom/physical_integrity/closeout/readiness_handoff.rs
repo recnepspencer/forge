@@ -7,7 +7,8 @@ use worth_store_contracts::{
     BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, DeniedBoundaryKind,
     IntegrityInspectionLifetimeLaw, NoMaterializationWitness, PhysicalAuthorityRecap,
     PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessPayload,
-    ProtectedIntegrityViewCapability, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+    PhysicalSubstrateReadinessSnapshot, ProtectedIntegrityViewCapability,
+    ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
 use worth_store_readiness::{PhysicalIntegrityReadiness, PhysicalSubstrateReadiness};
 
@@ -16,7 +17,10 @@ impl BoundedMemoryCloseoutReport {
         self,
         physical_substrate_readiness: PhysicalSubstrateReadiness,
     ) -> Result<PhysicalIntegrityReadiness, PhysicalIntegrityReadinessDenial> {
-        let payload = payload_from_closeout(self.bundle(), physical_substrate_readiness)?;
+        let payload = payload_from_closeout(
+            self.bundle(),
+            physical_substrate_readiness.physical_substrate_snapshot(),
+        )?;
         PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(
             physical_substrate_readiness,
             payload,
@@ -26,7 +30,7 @@ impl BoundedMemoryCloseoutReport {
 
 fn payload_from_closeout(
     bundle: &BufferPoolCertificationBundle,
-    physical_substrate_readiness: PhysicalSubstrateReadiness,
+    snapshot: PhysicalSubstrateReadinessSnapshot,
 ) -> Result<PhysicalIntegrityReadinessPayload, PhysicalIntegrityReadinessDenial> {
     let suite = bundle.suite();
     let aggregate = aggregate_operation_counters(suite.reports());
@@ -36,7 +40,6 @@ fn payload_from_closeout(
         .envelope_for(BackgroundWorkClass::ScrubPlanning)
         .map(|evidence| evidence.counters().allocation_bytes_admitted())
         .unwrap_or(0);
-    let facts = physical_substrate_readiness.facts();
     Ok(
         PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
             protected_view_capability,
@@ -59,9 +62,9 @@ fn payload_from_closeout(
                 bundle.suite().denials(),
             ))?,
             PhysicalAuthorityRecap::from_physical_format_authority(
-                facts.physical_reference_count(),
-                facts.header_decode_witness_count(),
-                facts.payload_admission_witness_count(),
+                snapshot.physical_reference_count(),
+                snapshot.header_decode_witness_count(),
+                snapshot.payload_admission_witness_count(),
             )?,
             BufferPoolAuthorityRecap::physical_substrate_authority(
                 has_pinning_evidence(suite),
@@ -71,6 +74,14 @@ fn payload_from_closeout(
             )?,
         ),
     )
+}
+
+#[cfg(test)]
+pub(crate) fn model_payload_from_closeout(
+    closeout: BoundedMemoryCloseoutReport,
+    snapshot: PhysicalSubstrateReadinessSnapshot,
+) -> Result<PhysicalIntegrityReadinessPayload, PhysicalIntegrityReadinessDenial> {
+    payload_from_closeout(closeout.bundle(), snapshot)
 }
 
 fn protected_view_capability_from_closeout(

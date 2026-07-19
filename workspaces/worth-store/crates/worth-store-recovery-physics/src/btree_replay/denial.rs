@@ -1,11 +1,11 @@
 use worth_store_physical_format::{
-    PhysicalBootstrapCatalogDenial, PhysicalReference, PhysicalStoreRuntimeDenial,
+    InMemoryPhysicalFormatModelDenial, PhysicalBootstrapCatalogDenial, PhysicalReference,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BTreeReplaySourceDenial {
     BootstrapCatalog(PhysicalBootstrapCatalogDenial),
-    PhysicalOpen(Box<PhysicalStoreRuntimeDenial>),
+    PhysicalOpen(Box<InMemoryPhysicalFormatModelDenial>),
     RootManifestMissing,
     AmbiguousRootManifest {
         candidates: usize,
@@ -30,8 +30,8 @@ impl From<PhysicalBootstrapCatalogDenial> for BTreeReplaySourceDenial {
     }
 }
 
-impl From<PhysicalStoreRuntimeDenial> for BTreeReplaySourceDenial {
-    fn from(value: PhysicalStoreRuntimeDenial) -> Self {
+impl From<InMemoryPhysicalFormatModelDenial> for BTreeReplaySourceDenial {
+    fn from(value: InMemoryPhysicalFormatModelDenial) -> Self {
         Self::PhysicalOpen(Box::new(value))
     }
 }
