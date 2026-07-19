@@ -1,5 +1,0 @@
-error[E0599]: no method named `with_tenant_digest` found for struct `LiveQueryAdmissionArtifact` in the current scope
- --> tests/ui/subscription_tenant_digest_patch_forbidden.rs:6:29
-  |
-6 |     let _patched = artifact.with_tenant_digest("tenant-v2");
-  |                             ^^^^^^^^^^^^^^^^^^ method not found in `LiveQueryAdmissionArtifact`

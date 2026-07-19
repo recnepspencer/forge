@@ -1,5 +1,0 @@
-error[E0599]: no variant or associated item named `GenericFallback` found for enum `QuerySubscriptionFamily` in the current scope
- --> tests/ui/subscription_generic_kind_fallback_forbidden.rs:4:54
-  |
-4 |     let _generic_fallback = QuerySubscriptionFamily::GenericFallback;
-  |                                                      ^^^^^^^^^^^^^^^ variant or associated item not found in `QuerySubscriptionFamily`

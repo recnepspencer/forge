@@ -41,14 +41,14 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
     > {
         let operation = self.graph_read_operation(&measurement_allocation_operation());
         self.read(|query| {
-            query.local_collection(
+            query.local_collection_with_installed_operation(
+                operation,
                 MEASUREMENT_ROOT,
                 measurement_schema(),
                 |query| {
                     query
                         .project(identity_selector())
                         .project(measurement_selector())
-                        .domain_graph_operation(operation)
                 },
                 |shape| shape.field(identity_field()).field(measurement_field()),
             )
@@ -64,14 +64,14 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
     > {
         let operation = self.graph_read_operation(&measurement_allocation_operation());
         self.live("worth-ui.measurements", |query| {
-            query.local_collection(
+            query.local_collection_with_installed_operation(
+                operation,
                 MEASUREMENT_ROOT,
                 measurement_schema(),
                 |query| {
                     query
                         .project(identity_selector())
                         .project(measurement_selector())
-                        .domain_graph_operation(operation)
                 },
                 |shape| shape.field(identity_field()).field(measurement_field()),
             )

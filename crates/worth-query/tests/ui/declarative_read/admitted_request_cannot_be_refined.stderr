@@ -1,5 +1,0 @@
-error[E0599]: no method named `using` found for struct `WorthQueryReadRequest` in the current scope
- --> tests/ui/declarative_read/admitted_request_cannot_be_refined.rs:5:35
-  |
-5 |     let _second_context = request.using(current());
-  |                                   ^^^^^ method not found in `WorthQueryReadRequest`

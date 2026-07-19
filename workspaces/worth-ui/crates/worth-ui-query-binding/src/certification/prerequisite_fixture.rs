@@ -8,8 +8,8 @@ use worth_query::facade::certification::{
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::foundation::{
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectionFactFieldPath, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
-    WorthQueryPredicateOperand, WorthQuerySnapshotIdentity,
+    ProjectionFactFieldPath, QueryExternalIdentityToken, WorthQueryPredicateOperand,
+    WorthQuerySnapshotIdentity,
 };
 use worth_query::facade::read::{current, declare, project_facts};
 use worth_query::facade::runtime::{
@@ -37,12 +37,7 @@ pub fn worth_ui_query_snapshot_prerequisites(
     );
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
-        QueryExternalSchemaBasisToken::from_domain_parts(
-            schema_basis_parts
-                .into_iter()
-                .map(str::to_owned)
-                .collect::<Vec<_>>(),
-        ),
+        QuerySchemaView::new(schema_basis_parts.join(":"), [], []),
     )
     .expect("runtime current snapshot basis should resolve");
 

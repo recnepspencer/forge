@@ -1,5 +1,0 @@
-error[E0599]: no method named `extract` found for struct `worth_query::facade::foundation::MaterializedProjectionContract` in the current scope
- --> tests/ui/projection_consumption/boundaries/projection_consumption_contract_has_no_generic_extract.rs:5:22
-  |
-5 |     let _ = contract.extract();
-  |                      ^^^^^^^ method not found in `worth_query::facade::foundation::MaterializedProjectionContract`

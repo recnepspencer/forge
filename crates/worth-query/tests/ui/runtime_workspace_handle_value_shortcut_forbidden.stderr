@@ -1,5 +1,0 @@
-error[E0599]: no method named `value` found for struct `WorthQueryLiveView<T>` in the current scope
- --> tests/ui/runtime_workspace_handle_value_shortcut_forbidden.rs:4:20
-  |
-4 |     let _ = handle.value();
-  |                    ^^^^^ method not found in `WorthQueryLiveView<()>`

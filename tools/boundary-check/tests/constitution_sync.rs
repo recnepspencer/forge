@@ -41,6 +41,24 @@ fn naming_doc_and_config_agree_on_query_audience_framework_family() {
             .and_then(|value| value.as_str()),
         Some("worth-query")
     );
+    assert_eq!(
+        query_audience
+            .get("workspace")
+            .and_then(|value| value.as_str()),
+        Some("workspaces/worth-query")
+    );
+    assert_eq!(
+        query_audience
+            .get("engine_package")
+            .and_then(|value| value.as_str()),
+        Some("worth-query")
+    );
+    assert_eq!(
+        query_audience
+            .get("certification_package")
+            .and_then(|value| value.as_str()),
+        Some("worth-query-certification")
+    );
     let audiences = query_audience
         .get("audiences")
         .and_then(|value| value.as_array())
@@ -58,6 +76,7 @@ fn naming_doc_and_config_agree_on_query_audience_framework_family() {
 
     for package in [
         "worth-query",
+        "worth-query-certification",
         "worth-query-decl",
         "worth-query-host",
         "worth-query-replay",
@@ -69,19 +88,12 @@ fn naming_doc_and_config_agree_on_query_audience_framework_family() {
     }
 
     assert!(
-        naming.contains("Framework-family exception: Query audience facades")
-            || naming.contains("framework-family exception"),
-        "NAMING.md must declare the Query framework-family exception"
+        naming.contains("Framework-family exception: Query workspace"),
+        "NAMING.md must declare the Query workspace framework-family exception"
     );
     assert!(
         !config_text.contains("query_host_bands"),
         "retired query_host_bands must not remain in road1.toml"
-    );
-    assert!(
-        config_text
-            .replace("\r\n", "\n")
-            .contains("[rule_contracts.query_audience]\nengine_package = \"worth-query\""),
-        "the Query audience contract must name the canonical engine package"
     );
 }
 

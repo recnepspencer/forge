@@ -1,8 +1,0 @@
-error[E0599]: no function or associated item named `new` found for struct `IdentityEvolutionMetadata` in the current scope
- --> tests/ui/identity_evolution_metadata_public_constructor_forbidden.rs:4:75
-  |
-4 |     let _: fn() -> IdentityEvolutionMetadata = IdentityEvolutionMetadata::new;
-  |                                                                           ^^^ function or associated item not found in `IdentityEvolutionMetadata`
-  |
-help: there is a method `ne` with a similar name
- --> $RUST/core/src/cmp.rs

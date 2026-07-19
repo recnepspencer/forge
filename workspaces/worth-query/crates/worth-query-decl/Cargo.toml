@@ -1,0 +1,13 @@
+[package]
+name = "worth-query-decl"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Query declaration audience facade."
+publish = false
+
+[dependencies]
+worth-query-declaration = { path = "../worth-query-declaration" }
+
+[lints]
+workspace = true

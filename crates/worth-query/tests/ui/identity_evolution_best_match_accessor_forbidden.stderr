@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `best_match` found for struct `IdentityEvolutionResultBundle` in the current scope
- --> tests/ui/identity_evolution_best_match_accessor_forbidden.rs:4:88
-  |
-4 |     let _: fn(&IdentityEvolutionResultBundle) -> &str = IdentityEvolutionResultBundle::best_match;
-  |                                                                                        ^^^^^^^^^^ function or associated item not found in `IdentityEvolutionResultBundle`

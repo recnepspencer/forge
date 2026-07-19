@@ -50,6 +50,14 @@ Two standing reminders:
   tokens, file an ergonomic-parity bug against the entry facade** before
   writing the naive version anywhere.
 
+Query's reviewed framework exception follows its own one-way authority route:
+canonical intent and schema-visible validation live in
+`worth-query-declaration`; portable package admission and installed identity
+live in `worth-query-installation`. Ordinary crates never route directly to
+either package. Declaration consumers use `worth-query-decl`; operating
+consumers use `worth-query-host`; cert-only reconstruction uses
+`worth-query-replay`.
+
 ---
 
 ## Road 1 Public Routing Proof

@@ -245,6 +245,10 @@ fn use_tree_starts_with_worth_query(tree: &syn::UseTree) -> bool {
 fn is_query_framework_package(dependency: &str, contract: &QueryAudienceContract) -> bool {
     dependency == contract.engine_package
         || contract
+            .internal_packages
+            .iter()
+            .any(|package| package == dependency)
+        || contract
             .audiences
             .iter()
             .any(|audience| audience.package == dependency)

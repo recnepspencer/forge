@@ -14,7 +14,7 @@ dependencies = ["worth-schema-core"]
 
 [[packages]]
 package = "worth-query-decl"
-dependencies = ["worth-query"]
+dependencies = ["worth-query-declaration"]
 
 [[packages]]
 package = "worth-query-host"

@@ -1,8 +1,0 @@
-error[E0599]: no function or associated item named `new` found for struct `SavedPolicyNarrowingReuseDescriptor` in the current scope
- --> tests/ui/policy_saved_exact_reuse_cannot_skip_narrowing.rs:4:60
-  |
-4 |     let _descriptor = SavedPolicyNarrowingReuseDescriptor::new(
-  |                                                            ^^^ function or associated item not found in `SavedPolicyNarrowingReuseDescriptor`
-  |
-help: there is a method `ne` with a similar name, but with different arguments
- --> $RUST/core/src/cmp.rs

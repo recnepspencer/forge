@@ -1,6 +1,9 @@
 use super::governed_crate::{discover_born_crates, parse_governed_crate_identity, DiscoveredCrate};
 use super::model::CrateOrientation;
-use super::query_audience::{framework_audience_orientations, query_machine_fences_for_band};
+use super::query_audience::{
+    framework_audience_orientations, framework_certification_orientation,
+    query_machine_fences_for_band,
+};
 use super::source_surface::{collect_owned_modules, ensure_facade_only_public_surface};
 use crate::authority_inputs::{
     load_orientation_contract, CommittedFacadeSnapshot, OrientationContract,
@@ -24,6 +27,13 @@ pub(crate) fn load_orientations(
         &contract.machine_constitution,
         &facade_snapshot,
     )?);
+    if let Some(certification) = framework_certification_orientation(
+        root,
+        &contract.query_audience,
+        &contract.machine_constitution,
+    )? {
+        orientations.push(certification);
+    }
     orientations.sort_by(|left, right| left.crate_name.cmp(&right.crate_name));
     Ok(orientations)
 }
@@ -67,6 +77,7 @@ fn project_governed_orientation(
         deferred_routes: exemplar
             .map(|value| value.deferred_routes.clone())
             .unwrap_or_default(),
+        public_surface: "facade-only".to_owned(),
         allowed_target_bands: contract
             .band_rules
             .get(&identity.band)

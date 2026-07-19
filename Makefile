@@ -13,6 +13,7 @@
 
 UI_CRATES := worth-ui worth-ui-types worth-ui-theme worth-ui-components worth-ui-adapters worth-ui-state
 UI_TARGET  := $(CURDIR)/target-ui
+QUERY_MANIFEST := workspaces/worth-query/Cargo.toml
 
 WORTH_LOG        ?= compact
 WORTH_TRACE_DIR  ?=
@@ -56,11 +57,40 @@ kernel-test:
 .PHONY: worth-fast
 worth-fast: query-fast spatial-fast
 
+.PHONY: query-declaration-check
+query-declaration-check:
+	cargo check --manifest-path $(QUERY_MANIFEST) -p worth-query-declaration --message-format short
+
+.PHONY: query-declaration-test
+query-declaration-test:
+	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-declaration $(ARGS)
+
+.PHONY: query-installation-check
+query-installation-check:
+	cargo check --manifest-path $(QUERY_MANIFEST) -p worth-query-installation --message-format short
+
+.PHONY: query-installation-test
+query-installation-test:
+	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-installation $(ARGS)
+
+.PHONY: query-check
+query-check:
+	cargo check --manifest-path $(QUERY_MANIFEST) -p worth-query --tests --message-format short
+
+.PHONY: query-test
+query-test:
+	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query $(ARGS)
+
 .PHONY: query-fast
-query-fast:
-	cargo check -p worth-query --tests --message-format short
-	cargo test -p worth-query --tests --no-run --message-format short
-	cargo test -p worth-query --lib -- --format terse
+query-fast: query-test
+
+.PHONY: query-compiler-certification
+query-compiler-certification:
+	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-certification --test compile_certification $(ARGS)
+
+.PHONY: query-cold-certification
+query-cold-certification:
+	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-certification -p worth-query-replay $(ARGS)
 
 .PHONY: spatial-fast
 spatial-fast:
@@ -71,7 +101,8 @@ spatial-fast:
 
 .PHONY: query-closeout
 query-closeout:
-	cargo test -p worth-query --tests -- --format terse
+	cargo test --manifest-path $(QUERY_MANIFEST) --workspace --exclude worth-query-certification --exclude worth-query-replay -- --format terse
+	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-certification -p worth-query-replay -- --format terse
 
 .PHONY: spatial-public-api-closeout
 spatial-public-api-closeout:
@@ -88,7 +119,7 @@ kernel-check:
 # â”€â”€ Combined â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .PHONY: test
-test: kernel-test ui-test
+test: kernel-test ui-test query-closeout
 
 .PHONY: check
 check: kernel-check ui-check determinism-guards determinism-golden signal-runtime-guards line-caps boundary-check agent-context-check

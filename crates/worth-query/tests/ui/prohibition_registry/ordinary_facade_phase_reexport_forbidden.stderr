@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::read::plan_validated_bundle`
- --> tests/ui/prohibition_registry/ordinary_facade_phase_reexport_forbidden.rs:1:5
-  |
-1 | use worth_query::facade::read::plan_validated_bundle;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `plan_validated_bundle` in `facade::read`

@@ -22,7 +22,12 @@ pub(crate) fn validate_query_audience_rules(
         };
 
         for dependency in &package.dependencies {
-            if dependency == &contract.engine_package {
+            if dependency == &contract.engine_package
+                || contract
+                    .internal_packages
+                    .iter()
+                    .any(|name| name == dependency)
+            {
                 diagnostics.push(deny_direct_engine(package, &source_name.band, contract));
                 continue;
             }
@@ -89,6 +94,11 @@ fn deny_wrong_audience(
 }
 
 fn render_query_legal_home(source_band: &str, contract: &QueryAudienceContract) -> String {
+    let facade_root = if contract.workspace == "." {
+        "crates".to_owned()
+    } else {
+        format!("{}/crates", contract.workspace.trim_end_matches('/'))
+    };
     let facades = contract
         .audiences
         .iter()
@@ -98,7 +108,7 @@ fn render_query_legal_home(source_band: &str, contract: &QueryAudienceContract) 
                 .iter()
                 .any(|band| band == source_band)
         })
-        .map(|audience| format!("crates/{}/src/facade.rs", audience.package))
+        .map(|audience| format!("{facade_root}/{}/src/facade.rs", audience.package))
         .collect::<Vec<_>>();
     if facades.is_empty() {
         format!(
@@ -152,7 +162,13 @@ mod tests {
 
     fn contract() -> QueryAudienceContract {
         QueryAudienceContract {
+            workspace: "workspaces/worth-query".into(),
             engine_package: "worth-query".into(),
+            certification_package: Some("worth-query-certification".into()),
+            internal_packages: vec![
+                "worth-query-declaration".into(),
+                "worth-query-installation".into(),
+            ],
             audiences: [
                 ("worth-query-decl", &["entry", "cert"][..]),
                 ("worth-query-host", &["entry", "cert"][..]),
@@ -164,6 +180,7 @@ mod tests {
                 label: package.into(),
                 allowed_bands: bands.iter().map(|band| (*band).into()).collect(),
                 guidance: "configured guidance".into(),
+                authority_packages: vec!["worth-query".into()],
             })
             .collect(),
         }
@@ -177,12 +194,14 @@ mod tests {
             "tools/boundary-check/config/road1.toml [rule_contracts.query_audience]: no Query audience is legal for `schema`; remove the Query dependency"
         );
         let entry = render_query_legal_home("entry", &contract);
-        assert!(entry.contains("crates/worth-query-decl/src/facade.rs"));
-        assert!(entry.contains("crates/worth-query-host/src/facade.rs"));
+        assert!(entry.contains("workspaces/worth-query/crates/worth-query-decl/src/facade.rs"));
+        assert!(entry.contains("workspaces/worth-query/crates/worth-query-host/src/facade.rs"));
         assert!(!entry.contains("worth-query-replay"));
         let cert = render_query_legal_home("cert", &contract);
         for facade in ["decl", "host", "replay"] {
-            assert!(cert.contains(&format!("crates/worth-query-{facade}/src/facade.rs")));
+            assert!(cert.contains(&format!(
+                "workspaces/worth-query/crates/worth-query-{facade}/src/facade.rs"
+            )));
         }
     }
 }

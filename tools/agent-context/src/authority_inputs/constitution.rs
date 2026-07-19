@@ -24,11 +24,14 @@ pub(crate) struct QueryAudienceFacadeSpec {
     pub(crate) label: String,
     pub(crate) allowed_bands: Vec<String>,
     pub(crate) guidance: String,
+    pub(crate) authority_packages: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct QueryAudienceContractSpec {
+    pub(crate) workspace: String,
     pub(crate) engine_package: String,
+    pub(crate) certification_package: Option<String>,
     pub(crate) audiences: Vec<QueryAudienceFacadeSpec>,
 }
 
@@ -72,7 +75,9 @@ pub(crate) fn load_orientation_contract(path: &Path) -> Result<OrientationContra
         .collect::<Vec<_>>()
         .join("; ");
     let query_audience = QueryAudienceContractSpec {
+        workspace: config.rule_contracts.query_audience.workspace,
         engine_package: config.rule_contracts.query_audience.engine_package,
+        certification_package: config.rule_contracts.query_audience.certification_package,
         audiences: config
             .rule_contracts
             .query_audience
@@ -83,6 +88,7 @@ pub(crate) fn load_orientation_contract(path: &Path) -> Result<OrientationContra
                 label: audience.label,
                 allowed_bands: audience.allowed_bands,
                 guidance: audience.guidance,
+                authority_packages: audience.authority_packages,
             })
             .collect(),
     };
@@ -129,8 +135,16 @@ struct RuleContracts {
 
 #[derive(Deserialize)]
 struct QueryAudienceConfig {
+    #[serde(default = "default_query_workspace")]
+    workspace: String,
     engine_package: String,
+    #[serde(default)]
+    certification_package: Option<String>,
     audiences: Vec<QueryAudienceFacadeConfig>,
+}
+
+fn default_query_workspace() -> String {
+    ".".to_owned()
 }
 
 #[derive(Deserialize)]
@@ -139,6 +153,7 @@ struct QueryAudienceFacadeConfig {
     label: String,
     allowed_bands: Vec<String>,
     guidance: String,
+    authority_packages: Vec<String>,
 }
 
 #[derive(Deserialize)]

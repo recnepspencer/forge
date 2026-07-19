@@ -16,7 +16,11 @@ pub(crate) fn framework_audience_orientations(
         .audiences
         .iter()
         .map(|audience| {
-            let relative_path = format!("crates/{}", audience.package);
+            let relative_path = Path::new(&contract.workspace)
+                .join("crates")
+                .join(&audience.package)
+                .to_string_lossy()
+                .replace('\\', "/");
             let crate_root = root.join(&relative_path);
             if !crate_root.is_dir() {
                 return Err(format!(
@@ -31,8 +35,8 @@ pub(crate) fn framework_audience_orientations(
                     render_bands(&audience.allowed_bands)
                 ),
                 format!(
-                    "May depend only on engine package `{}`; must not depend on other audience facades.",
-                    contract.engine_package
+                    "May depend only on its configured authority packages: {}; must not depend on other audience facades.",
+                    render_packages(&audience.authority_packages)
                 ),
                 format!(
                     "Leaf re-export surface only; guidance: {}.",
@@ -46,10 +50,12 @@ pub(crate) fn framework_audience_orientations(
                 constitutional_class: "framework/query-audience".to_owned(),
                 domain: audience.label.clone(),
                 exemplar_role: format!(
-                    "Query {} audience facade over `{}`",
-                    audience.label, contract.engine_package
+                    "Query {} audience facade over {}",
+                    audience.label,
+                    render_packages(&audience.authority_packages)
                 ),
                 deferred_routes: Vec::new(),
+                public_surface: "facade-only".to_owned(),
                 allowed_target_bands: Vec::new(),
                 facade_exports,
                 owned_modules: Vec::new(),
@@ -59,6 +65,52 @@ pub(crate) fn framework_audience_orientations(
             })
         })
         .collect()
+}
+
+pub(crate) fn framework_certification_orientation(
+    root: &Path,
+    contract: &QueryAudienceContractSpec,
+    machine_constitution: &str,
+) -> Result<Option<CrateOrientation>, String> {
+    let Some(certification_package) = &contract.certification_package else {
+        return Ok(None);
+    };
+    let relative_path = Path::new(&contract.workspace)
+        .join("crates")
+        .join(certification_package)
+        .to_string_lossy()
+        .replace('\\', "/");
+    if !root.join(&relative_path).is_dir() {
+        return Err(format!(
+            "configured Query certification package missing at {relative_path}"
+        ));
+    }
+
+    Ok(Some(CrateOrientation {
+        crate_name: certification_package.clone(),
+        relative_path,
+        constitutional_class: "framework/query-certification".to_owned(),
+        domain: "certification".to_owned(),
+        exemplar_role: format!(
+            "Cold Query compiler and hostile certification over `{}`",
+            contract.engine_package
+        ),
+        deferred_routes: Vec::new(),
+        public_surface: "none; explicit certification test targets only".to_owned(),
+        allowed_target_bands: Vec::new(),
+        facade_exports: Vec::new(),
+        owned_modules: Vec::new(),
+        machine_fences: vec![
+            format!(
+                "Cold leaf over Query engine `{}`; ordinary Query packages must not depend on it.",
+                contract.engine_package
+            ),
+            "Selected explicitly for compiler, replay, or hostile certification; absent from the ordinary workspace default members.".to_owned(),
+            "Must not expose fixture registries, source scanners, pre-solved authority constructors, or runner protocols.".to_owned(),
+        ],
+        skeleton_fence: "Framework certification leaf: test and cert-only support ownership; no product authority.".to_owned(),
+        machine_constitution: machine_constitution.to_owned(),
+    }))
 }
 
 pub(crate) fn query_machine_fences_for_band(
@@ -110,4 +162,12 @@ fn render_bands(bands: &[String]) -> String {
         return "none".to_owned();
     }
     bands.join(", ")
+}
+
+fn render_packages(packages: &[String]) -> String {
+    packages
+        .iter()
+        .map(|package| format!("`{package}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }

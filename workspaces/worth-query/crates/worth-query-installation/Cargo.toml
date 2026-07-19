@@ -1,0 +1,12 @@
+[package]
+name = "worth-query-installation"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Portable domain package and installed identity authority for Worth Query."
+
+[dependencies]
+sha2 = "0.10"
+
+[lints]
+workspace = true
