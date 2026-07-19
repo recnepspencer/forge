@@ -13,12 +13,13 @@ pub(crate) fn parse_workspace_manifest(path: &Path) -> Result<WorkspaceManifest,
 }
 
 pub(crate) fn cargo_metadata(root: &Path, manifest_path: &Path) -> Result<CargoMetadata, String> {
+    let cargo_manifest_path = cargo_compatible_path(manifest_path);
     let output = Command::new("cargo")
         .arg("metadata")
         .arg("--format-version")
         .arg("1")
         .arg("--manifest-path")
-        .arg(manifest_path)
+        .arg(&cargo_manifest_path)
         .current_dir(root)
         .output()
         .map_err(|e| format!("spawn cargo metadata for {}: {e}", manifest_path.display()))?;
@@ -35,6 +36,22 @@ pub(crate) fn cargo_metadata(root: &Path, manifest_path: &Path) -> Result<CargoM
             manifest_path.display()
         )
     })
+}
+
+#[cfg(windows)]
+fn cargo_compatible_path(path: &Path) -> PathBuf {
+    let rendered = path.to_string_lossy();
+    if let Some(path) = rendered.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{path}"));
+    }
+    rendered
+        .strip_prefix(r"\\?\")
+        .map_or_else(|| path.to_path_buf(), PathBuf::from)
+}
+
+#[cfg(not(windows))]
+fn cargo_compatible_path(path: &Path) -> PathBuf {
+    path.to_path_buf()
 }
 
 pub(crate) fn package_name_from_manifest(path: &Path) -> Result<String, String> {
@@ -114,6 +131,7 @@ pub(crate) fn discover_query_audience_packages(
         .iter()
         .map(|audience| {
             let manifest_path = root
+                .join(&contract.workspace)
                 .join("crates")
                 .join(&audience.package)
                 .join("Cargo.toml");
@@ -121,7 +139,7 @@ pub(crate) fn discover_query_audience_packages(
             let package = metadata
                 .packages
                 .iter()
-                .find(|package| PathBuf::from(&package.manifest_path) == manifest_path)
+                .find(|package| package.name == audience.package)
                 .ok_or_else(|| {
                     format!(
                         "cargo metadata omitted configured audience {}",
@@ -143,7 +161,8 @@ pub(crate) fn discover_query_audience_packages(
 }
 
 fn is_workspace_package(workspace_root: &Path, package: &CargoMetadataPackage) -> bool {
-    PathBuf::from(&package.manifest_path).starts_with(workspace_root)
+    cargo_compatible_path(Path::new(&package.manifest_path))
+        .starts_with(cargo_compatible_path(workspace_root))
 }
 
 pub(crate) fn normalize_path(path: &Path) -> String {

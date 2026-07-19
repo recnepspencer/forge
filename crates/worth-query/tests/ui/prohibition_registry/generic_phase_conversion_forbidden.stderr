@@ -1,7 +1,0 @@
-error[E0277]: the trait bound `ExecutionPlanBundle: From<WorthQueryReadRequest>` is not satisfied
- --> tests/ui/prohibition_registry/generic_phase_conversion_forbidden.rs:5:13
-  |
-5 |     request.into()
-  |             ^^^^ the trait `From<WorthQueryReadRequest>` is not implemented for `ExecutionPlanBundle`
-  |
-  = note: required for `WorthQueryReadRequest` to implement `Into<ExecutionPlanBundle>`

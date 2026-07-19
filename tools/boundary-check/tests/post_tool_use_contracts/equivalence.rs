@@ -88,7 +88,7 @@ fn configured_hook_matches_hand_entrypoint_on_hostile_query_edit_within_budget()
     assert_eq!(query["legal_home"], "tools/boundary-check/config/road1.toml [rule_contracts.query_audience]: no Query audience is legal for `schema`; remove the Query dependency");
     assert!(diagnostics.iter().any(|item| {
         item["code"] == "BC3003_QUERY_AUDIENCE_FACADE_CONTRACT"
-            && item["legal_home"] == "tools/boundary-check/config/road1.toml [rule_contracts.query_audience]; restore the configured crates/worth-query-<audience> leaf facade"
+            && item["legal_home"] == "tools/boundary-check/config/road1.toml [rule_contracts.query_audience]; restore the configured workspaces/worth-query package or audience leaf"
     }));
     assert!(diagnostics.iter().any(|item| {
         item["code"] == "BC5002_SUBWORKSPACE_CONTRACT_VIOLATION"

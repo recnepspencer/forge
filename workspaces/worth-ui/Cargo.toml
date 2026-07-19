@@ -22,7 +22,7 @@ license = "UNLICENSED"
 [workspace.dependencies]
 worth-foundational = { path = "../../crates/worth-foundational" }
 worth-proof = { path = "../../crates/worth-proof" }
-worth-query = { path = "../../crates/worth-query" }
+worth-query = { path = "../worth-query/crates/worth-query" }
 worth-relational = { path = "../../crates/worth-relational" }
 worth-signal = { path = "../../crates/worth-signal" }
 

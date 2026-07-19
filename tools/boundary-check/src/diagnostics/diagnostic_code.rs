@@ -86,7 +86,7 @@ impl DiagnosticCode {
             Self::Bc1001IllegalCrateName | Self::Bc1002UnreservedDomain => "tools/boundary-check/config/road1.toml [naming] and cad/docs/worthy-foundations/NAMING.md",
             Self::Bc2001BandDependencyViolation | Self::Bc2002WorthToWorthyInversion => "tools/boundary-check/config/road1.toml [rule_contracts]",
             Self::Bc3001DirectQueryEngine | Self::Bc3002WrongQueryAudience | Self::Bc3101QuerySourcePath | Self::Bc3102QueryPublicSignature | Self::Bc3103QueryPublicReexport => "tools/boundary-check/config/road1.toml [rule_contracts.query_audience]; consume Query only through the audience facade configured for the crate band",
-            Self::Bc3003QueryAudienceFacadeContract => "tools/boundary-check/config/road1.toml [rule_contracts.query_audience]; restore the configured crates/worth-query-<audience> leaf facade",
+            Self::Bc3003QueryAudienceFacadeContract => "tools/boundary-check/config/road1.toml [rule_contracts.query_audience]; restore the configured workspaces/worth-query package or audience leaf",
             Self::Bc4001OrdinaryReplayImport => "tools/boundary-check/config/road1.toml [rule_contracts.reconstruction]; replay belongs in the cert band through worth-query-replay",
             Self::Bc5001RootOwnsRoad1Package => "tools/boundary-check/config/road1.toml [subworkspaces]",
             Self::Bc5002SubworkspaceContractViolation => "Cargo.toml [workspace] and tools/boundary-check/config/road1.toml [subworkspaces]; restore the declared workspace contract",

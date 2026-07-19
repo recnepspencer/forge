@@ -2,23 +2,22 @@
 
 ## Goal
 
-Replace the `worth-query` monolith with a small, one-way package graph whose
-physical boundaries match Query's declaration, installation, admission,
-execution, publication, and certification authorities. A developer changing
-one authority must be able to compile and run that authority's tests without
-building unrelated Query authorities.
+Complete the one-way Query authority graph established by Milestone 9.13.1:
+extract admission, execution, and publication; retarget cold certification to
+the finished graph; cut every consumer to an audience facade; and delete the
+remaining `worth-query` monolith.
 
 This milestone is a production decomposition, not a test-runner project. Cargo
 package selection is the iteration mechanism.
 
 ## Why This Milestone Exists
 
-Milestone 9.13.1 reduced warm compiler certification from roughly 399 seconds
-to roughly 4 seconds, but the ordinary 2,981-test library lane still takes
-roughly 118 seconds warm. That floor is expected: one package contains about
-half a million lines across declaration, runtime, publication, and historical
-certification responsibilities, so Cargo cannot select a smaller coherent
-unit.
+Milestone 9.13.1 removes the obvious target and reconstruction waste, isolates
+cold certification, dismantles the giant manually assembled library-test
+binary, and extracts declaration and installation as permanent production
+packages. Those cuts create a useful inner loop, but admission, execution, and
+publication still share the shrinking migration package and its consumers
+still have a compatibility path through `worth-query`.
 
 The existing module tree is not itself the desired package graph. In
 particular, `runtime`, `application`, `domain_capabilities`, `consumer_kit`,
@@ -41,15 +40,17 @@ splitting an existing folder.
 - Road 1 `NAMING.md` and `BOUNDARIES.md`: Query is a reviewed framework-family
   exception; ordinary entry and cert consumers reach it only through the
   audience facade legal for their band.
-- `WORTH_query_roadmap.md`: this split precedes 9.14 so installed operation and
-  downstream authority are born in the final package graph.
+- `WORTH_query_roadmap.md`: 9.13.1 establishes the iterable upstream package
+  foundation; this milestone completes and seals it before 9.14.
 
 ## Adversarial Constraint
 
-A change confined to one Query authority must compile and test through that
-authority package without building later authorities, while the complete graph
-must make all reverse knowledge, alternate authority roots, deep imports,
-facade behavior, shared-support buckets, and compatibility re-export cycles
+A change confined to admission, execution, or publication must compile and
+test through that authority package without building later or cold authorities.
+Each slice inventories only the mixed modules and consumers it is about to move
+and completes that authority cut before broad verification. The finished graph
+must make reverse knowledge, alternate authority roots, deep imports, facade
+behavior, shared-support buckets, and compatibility re-export cycles
 unrepresentable or mechanically rejected.
 
 The hostile false success to refuse is a set of crates underneath an aggregate
@@ -82,11 +83,22 @@ folders while preserving the monolithic build and authority surface.
   and tests that prove another test exists are deleted. A load-bearing rule is
   enforced through visibility, the type system, the package DAG, boundary-check,
   or a product-behavior test.
+- Declaration, installation, and certification are inherited from 9.13.1 as
+  permanent packages. This milestone may refine their contracts and test
+  ownership but may not recreate them, rename them, or move their meaning back
+  into the monolith.
+- Every phase is a complete slice: boundary-local inventory, authority move,
+  consumer cut, owner-local tests, and one elapsed observation. There is no
+  milestone-wide inventory phase and no requirement to classify untouched code
+  before moving an obvious authority boundary.
 
 ## Frozen Package And Dependency Graph
 
-The milestone adds these exact internal framework packages to the Query
-exception in `NAMING.md` and `tools/boundary-check/config/road1.toml`:
+The final graph contains these exact internal framework packages. Milestone
+9.13.1 has already added declaration, installation, and certification to the
+Query exception in `NAMING.md` and `tools/boundary-check/config/road1.toml`;
+this milestone adds admission, execution, and publication in their creation
+slices and verifies the complete graph:
 
 - `worth-query-declaration`
 - `worth-query-installation`
@@ -197,115 +209,25 @@ derived, app, and UI code cannot.
 
 ## Phase Plan
 
-### Phase 1: Delete Meta-Proof Machinery And Amend The Query Constitution
+### Phase 1: Extract Admission Authority
 
-Delete source-topology authorities before moving code. This includes the
-Milestone 9.6 embedded-source inventory and match table, source-scan closure
-fields, documentation-source agreement tests, production-owned test catalogs,
-and any remaining proof whose subject is another proof or file location.
-Preserve the underlying product invariant through types, visibility,
-boundary-check, or a behavior test where it is still load-bearing.
+Inventory only basis lifecycle, intent decision lattices,
+tenant/policy/relationship admission, graph access and obligation admission,
+support decisions, typed execution handoffs, and their direct consumers.
+Create `worth-query-admission`, amend the machine constitution for that edge,
+move its owned tests, and cut each discovered consumer before inspecting the
+next mixed module.
 
-Then amend `NAMING.md`, `road1.toml`, boundary-check, and agent-context with the
-six exact internal packages and the per-facade dependency sets above. Replace
-the current "every audience depends only on one engine" law; retaining it would
-force every audience to compile the aggregate and defeat this milestone.
+Admission consumes declaration and installation authority and produces the
+only type accepted by execution. Planning, providers, workspace mutation,
+publication, and replay remain outside. If a decision currently calls runtime
+code, repair the input contract instead of retaining a reverse edge.
 
-Record, but do not turn into tests, the current baseline:
-
-- 2,981 ordinary library tests, about 118 seconds warm
-- 230 selected compile-fail fixtures, about 4 seconds warm
-- 149 tracked Rust files above the cap and not on the workspace allowlist,
-  including 78 in `worth-query`
-
-**Adversarial evidence**
-
-- boundary-check rejects an ordinary entry, derived, app, or UI crate that
-  imports any internal Query authority package directly
-- boundary-check rejects a facade with behavior, an unlisted internal
-  dependency, a cross-facade dependency, or a re-export from the wrong
-  authority root
-- a one-time manual deletion review records that no production module embeds
-  Rust source merely to assert another source file contains or omits a token;
-  this review is not implemented as another source-scanning test
-
-**Exit condition**
-
-The machine constitution accepts the frozen DAG and rejects every bypass
-without requiring the final packages to contain migrated behavior yet. The three
-temporary 9.13.1 line-cap exceptions are deleted with their source-audit
-responsibility.
-
-### Phase 2: Extract Declaration Authority
-
-Create `worth-query-declaration` and move canonical intent, authoring,
-canonicalization, binding grammar, schema-visible validation, identity,
-result-shape, collection declaration, and view declaration meaning into it.
-Split existing mixed modules by responsibility instead of importing runtime
-types back into the declaration package.
-
-`worth-query-decl` becomes a narrow re-export facade over this package. Move
-declaration-local unit and integration tests with their production owner. AST
-libraries (`syn`, `quote`, `proc-macro2`) may not remain normal declaration
-dependencies unless a real declaration feature, rather than source auditing,
-requires them.
-
-**Adversarial tests**
-
-- the declaration package builds with relational, runtime bridge, signal,
-  workspace, live, and certification packages absent from its dependency graph
-- equivalent public construction paths still produce identical canonical
-  declarations, result shapes, native value identity, and exact counters
-- compile denial proves a declaration cannot mint installation, admitted,
-  executed, publication, or replay authority
-
-**Exit condition**
-
-`cargo test -p worth-query-declaration` proves declaration meaning without
-building later Query authorities, and declaration consumers compile through
-`worth-query-decl` only.
-
-### Phase 3: Extract Installation Authority
-
-Create `worth-query-installation` and move portable domain packages, installed
-domain identity, generation affinity, canonical operation and contribution
-definitions, conflict detection, and derived installation indexes into it.
-Separate portable definition from volatile runtime providers. Rebuildable
-indexes remain derived from installed artifacts and are not serialized as
-authority.
-
-Existing `domain_installation`, `domain_capabilities`, `application`, and
-`runtime` folders are split where necessary. This phase must not move their
-execution, projection, workflow, or certification portions into installation
-merely to avoid a dependency edge.
-
-**Adversarial tests**
-
-- equivalent packages converge across declaration order while one-field
-  semantic conflicts fail atomically with zero installed residue
-- foreign-runtime, stale-generation, copied semantic-key, and locally
-  reconstructed handles cannot resolve installed authority
-- destroying and rebuilding every installation index preserves exact lookup,
-  denial, identity, and counter outcomes
-
-**Exit condition**
-
-`cargo test -p worth-query-installation` runs without admission, execution,
-publication, or certification packages, and no portable definition contains a
-callback or provider object.
-
-### Phase 4: Extract Admission Authority
-
-Create `worth-query-admission` and move basis lifecycle, intent decision
-lattice, tenant/policy/relationship admission, graph access and obligation
-admission, support decisions, and typed execution handoffs into it. Admission
-consumes declaration and installation authority and produces the only type
-accepted by execution.
-
-Planning, provider calls, workspace mutation, publication, and replay remain
-outside this package. If admission currently calls runtime code to discover a
-decision, repair the contract so the required authoritative input is presented
-at admission rather than retaining a reverse edge.
+Before admitting the first public handoff, remove the 9.13.1 doc-hidden
+digest-to-canonical-identity and digest-to-schema-basis compatibility
+constructors. Planning and downstream phases must retain the exact authority
+minted by canonical/validated declaration artifacts; copied digests may report
+identity but may not reconstruct a carrier accepted by admission.
 
 **Adversarial tests**
 
@@ -314,138 +236,130 @@ at admission rather than retaining a reverse edge.
   increment
 - success, advisory, and violation traces retain exact typed context across
   facade and direct-authority paths
-- compile denial proves raw declarations and reporting digests cannot be passed
-  to execution as admitted handoffs
+- raw declarations, copied reporting digests, and local lookalike handoffs
+  cannot be passed to execution as admitted authority
 
 **Exit condition**
 
 `cargo test -p worth-query-admission` builds declaration and installation but
-not execution, publication, or certification, and every denial path performs
-zero later-phase work.
+not execution, publication, the migration monolith, or certification. The one
+elapsed observation is owner-local and measured after representative admission
+invalidation.
 
-### Phase 5: Extract Installed Execution Authority
+### Phase 2: Extract Installed Execution Authority
 
-Create `worth-query-execution` and move planning, lowering, the installed
-operating-world root, workspace/provider binding, lower-runtime routing,
-effect/workflow progression, recovery posture, execution receipts, and
-operational counters into it. The package consumes admitted handoffs; it does
-not re-decide declaration legality, installation compatibility, basis, policy,
-strategy, or artifact posture.
+Inventory only planning, lowering, the installed operating-world root,
+workspace/provider binding, lower-runtime routing, effect/workflow progression,
+recovery posture, execution receipts, counters, and their direct consumers.
+Create `worth-query-execution`, amend its machine edges, move its owned tests,
+and cut consumers within the same slice.
 
-Split the current 168k-line `runtime` tree by authority. Runtime observation
-and delivery behavior moves later with publication; test-only and cert-only
-behavior moves later with certification. `application` orchestration moves only
-when its named operation belongs to execution.
+Execution consumes admitted handoffs. It does not re-decide declaration
+legality, installation compatibility, basis, policy, strategy, or artifact
+posture. Mixed `runtime` and `application` files split at this boundary;
+observation, delivery, replay, and test-only behavior do not hitchhike.
 
 **Adversarial tests**
 
-- executors reject raw declarations, unadmitted plans, foreign providers,
-  alternate operating roots, and stale installation generations before
-  lower-runtime contact
-- serial/parallel, direct/facade, and rebuilt-index execution converge on
-  outcomes, receipts, warnings, result state, and exact counters
-- compile denials prove execution inputs are move-only and an executor cannot
-  construct publication, consumption, settlement, or replay authority
+- raw declarations, unadmitted plans, foreign providers, alternate operating
+  roots, and stale installations deny before lower-runtime contact
+- serial/parallel, direct/facade, and rebuilt-index paths converge on outcomes,
+  receipts, warnings, result state, and exact counters
+- execution inputs remain move-only and execution cannot construct
+  publication, consumption, settlement, or replay authority
 
 **Exit condition**
 
-`cargo test -p worth-query-execution` builds no publication or certification
-package. The host facade can execute the ordinary read and workflow transcripts
-using one installed root without deep imports.
+`cargo test -p worth-query-execution` builds its upstream authorities but not
+publication, the migration monolith, or certification. The host facade executes
+the ordinary read and workflow transcripts through one installed root.
 
-### Phase 6: Extract Publication And Consumption Authority
+### Phase 3: Extract Publication And Consumption Authority
 
-Create `worth-query-publication` and move derived publication, authorized
-projection, projection consumption, settlement, live/subscription maintenance,
-continuation, invalidation, collection delivery, and shared-consumer lifecycle
-into it. It consumes execution receipts and admitted publication semantics; it
-does not query source truth to reconstruct missing meaning.
+Inventory only derived publication, authorized projection, projection
+consumption, settlement, live/subscription maintenance, continuation,
+invalidation, collection delivery, shared-consumer lifecycle, and direct
+consumers. Create `worth-query-publication`, amend its machine edges, move its
+owned tests, and delete any miniature parallel consumer encountered in the
+slice.
 
-Move publication-owned portions out of `subscription`,
+Publication consumes execution authority and admitted publication semantics;
+it does not reopen source truth or certification. Mixed `subscription`,
 `projection_consumption`, `authorized_projection`, `view_shape_live`,
-`ordinary`, `runtime`, and `domain_capabilities`. Delete parallel miniature
-consumers and any compatibility tuple that can combine detached receipts,
-facts, bases, or lifecycle artifacts.
+`ordinary`, `runtime`, and `domain_capabilities` modules split only as reached
+by this owned boundary, not through an up-front tree inventory.
 
 **Adversarial tests**
 
 - cross-run, cross-basis, cross-installation, cross-operation, stale, disposed,
-  and digest-lookalike publications fail at the first boundary with zero
-  consumption or maintenance work
+  and digest-lookalike publications fail before consumption or maintenance
 - one-shot and live delivery converge with fresh execution for identity,
   ordering, result state, warnings, facts, patches, and exact counters
-- compile denials prove consumption cannot precede publication, settlement
-  cannot precede consumption, and move-only authority cannot be reused
+- consumption cannot precede publication, settlement cannot precede
+  consumption, and move-only authority cannot be reused or tuple-reassembled
 
 **Exit condition**
 
 `cargo test -p worth-query-publication` builds the ordinary upstream graph but
-not certification. A consumer reaches publication and settlement only through
-`worth-query-host`.
+not the migration monolith or certification. Consumers reach publication and
+settlement only through `worth-query-host`.
 
-### Phase 7: Extract Certification, Replay, And Owned Compiler Proof
+### Phase 4: Retarget Cold Certification To The Completed Graph
 
-Create `worth-query-certification` as the cold leaf. Move cert-only replay,
-reconstruction and hostile cross-authority behavior into it. A reusable
-consumer certification helper is permitted only when it executes a real
-public journey; it may not expose a registry, manifest, source scanner, or
-proof-bundle API. Delete milestone-shaped harness modules,
-fixture catalogs, source manifests, report digests that only certify test
-topology, and test setup that fabricates already-solved receipts.
+Inventory only the certification package's remaining dependency on the
+migration monolith and the cert-only modules still trapped there. Move genuine
+cross-authority replay/reconstruction and hostile behavior into the existing
+cold leaf, retarget it to the five production authorities, and move any
+ordinary behavioral test found during that cut back to its production owner.
 
-Move each ordinary behavioral test to its production authority. Retain at most
-one direct compile-fail target per authority package, and only where a
-compiler-visible public invariant cannot be proven behaviorally. Cross-package
-and replay-fence denials live in certification. Do not recreate 38 trybuild
-harnesses in six smaller crates.
+Do not reopen the full test corpus. The 9.13.1 compiler selection and test-
+ownership decisions stand. A reusable certification helper is permitted only
+when it executes a real public journey; it may not expose a registry, manifest,
+source scanner, proof bundle, or pre-solved authority constructor.
 
 **Adversarial tests**
 
-- removing the certification package from the graph leaves declaration,
-  installation, admission, execution, and publication builds unchanged
-- cert-only replay can reconstruct declared scenarios, while host, entry,
-  derived, app, and UI packages cannot name replay types or import the replay
-  facade
-- retained compile fixtures fail first at their named authority boundary;
-  orphan `.stderr`, generic privacy, historical tombstone, and proof-of-proof
-  fixtures remain absent
+- removing certification from the selected graph leaves all five ordinary
+  authority builds and outcomes unchanged
+- cert-only replay reconstructs declared scenarios while host, entry, derived,
+  app, and UI packages cannot name replay types or import replay authority
+- retained compile fixtures fail first at their named boundary and no orphan
+  diagnostic, tombstone, privacy mirror, or proof-of-proof fixture returns
 
 **Exit condition**
 
-Authority-local test commands no longer build `worth-query-certification`.
-The full cert command runs the union of owned behavioral, selected compiler,
-boundary, and replay proof without production fixture registries.
+Certification has no dependency on the migration monolith. Authority-local
+commands exclude it, while the explicit cold command composes real public
+authority journeys without product-owned test infrastructure.
 
-### Phase 8: Cut Facades And Consumers, Then Delete The Monolith
+### Phase 5: Cut Facades And Consumers, Then Delete The Monolith
 
-Expand the three audience facades only with explicit re-exports from their
-allowed internal packages. Cut root workspace consumers, `worth-server`, Worth
-UI's Query binding crate, Road 1 entry crates, and cert crates to the legal
-facade for their audience. No consumer receives a temporary direct internal
-dependency.
+Inventory consumers one audience at a time: declaration-only, ordinary host,
+then cert/replay. Expand the three audience facades only with explicit re-
+exports from their allowed packages, cut that audience completely, and run its
+owned tests before proceeding to the next. No consumer receives a temporary
+direct internal dependency.
 
-Once consumers are green, delete `crates/worth-query`, its compatibility
-re-exports, obsolete root workspace dependency, and any alias that preserves
-the old crate spelling. Update boundary-check snapshots and generated agent
-contexts in the same phase.
+After all audiences are cut, delete
+`workspaces/worth-query/crates/worth-query`, compatibility re-
+exports, obsolete workspace dependencies, and aliases preserving the old crate
+spelling. Update boundary-check and generated agent contexts in the same slice.
 
 **Adversarial tests**
 
-- repository dependency inspection reports zero packages depending on
-  `worth-query` or any internal authority package outside the exact facade and
-  internal DAG allowlists
-- declaration-only, ordinary host, and cert/replay consumer transcripts each
-  compile with exactly their intended package closure; app/UI and derived
-  replay imports fail mechanically
-- deleting the former monolith directory changes no canonical declaration,
-  installation, admission, execution, publication, settlement, replay, or
-  counter outcome
+- dependency inspection reports zero packages depending on `worth-query` or an
+  internal authority outside the exact facade and internal DAG allowlists
+- declaration-only, ordinary host, and cert/replay transcripts compile with
+  exactly their intended closures; app/UI and derived replay imports fail
+- deleting the monolith changes no canonical declaration, installation,
+  admission, execution, publication, settlement, replay, or counter outcome
 
 **Exit condition**
 
-The monolith and all compatibility paths are absent. Boundary-check and
-agent-context enforce the new graph, and every supported consumer journey uses
-one of the three audience facades.
+The monolith and every compatibility path are absent. Boundary-check and agent-
+context enforce the final graph, every consumer uses one audience facade, and
+owner-local commands remain within the iteration budgets established by
+9.13.1.
 
 ## Test Ownership Rules
 
@@ -558,11 +472,12 @@ closeout gate, not the inner development loop.
 
 ## Sequencing Notes
 
-This milestone follows 9.13.1 because the obvious compiler waste and consumer
-coupling must be removed before a multi-week package migration. It precedes
-9.14 because installed operation semantics, bound execution progression,
-publication, consumer support, sharing, and settlement must land directly in
-their permanent authority packages.
+This milestone follows 9.13.1 because obvious compiler, target, reconstruction,
+and consumer-coupling waste must be removed and declaration, installation, and
+cold certification must already provide useful package selection before the
+remaining multi-week migration. It precedes 9.14 because installed operation
+semantics, bound execution progression, publication, consumer support, sharing,
+and settlement must land directly in their permanent authority packages.
 
 Phases are ordered by the dependency DAG. Work inside a phase may be parallel,
 but a downstream package must not be created as a dumping ground before its

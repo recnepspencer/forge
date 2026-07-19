@@ -1,0 +1,14 @@
+[package]
+name = "worth-query-declaration"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Canonical Query declaration and schema-visible validation authority."
+publish = false
+
+[dependencies]
+sha2 = "0.10"
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+
+[lints]
+workspace = true

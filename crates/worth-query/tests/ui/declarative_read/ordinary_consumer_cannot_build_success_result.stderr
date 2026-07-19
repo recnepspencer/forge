@@ -1,9 +1,0 @@
-error[E0451]: fields `rows` and `receipt` of struct `worth_query::facade::read::WorthQueryReadResult` are private
- --> tests/ui/declarative_read/ordinary_consumer_cannot_build_success_result.rs:5:9
-  |
-4 |     WorthQueryReadResult {
-  |     -------------------- in this type
-5 |         rows: Vec::new(),
-  |         ^^^^ private field
-6 |         receipt,
-  |         ^^^^^^^ private field

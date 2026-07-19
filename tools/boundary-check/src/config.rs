@@ -82,8 +82,18 @@ pub(crate) struct WorthUiQueryEdgeContract {
 /// Machine-owned Query audience matrix: one engine package plus leaf facade rows.
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct QueryAudienceContract {
+    #[serde(default = "default_query_workspace")]
+    pub(crate) workspace: String,
     pub(crate) engine_package: String,
+    #[serde(default)]
+    pub(crate) certification_package: Option<String>,
+    #[serde(default)]
+    pub(crate) internal_packages: Vec<String>,
     pub(crate) audiences: Vec<QueryAudienceFacadeConfig>,
+}
+
+fn default_query_workspace() -> String {
+    ".".to_owned()
 }
 
 /// One audience facade row: package identity, legal bands, and repair guidance.
@@ -93,6 +103,8 @@ pub(crate) struct QueryAudienceFacadeConfig {
     pub(crate) label: String,
     pub(crate) allowed_bands: Vec<String>,
     pub(crate) guidance: String,
+    #[serde(default)]
+    pub(crate) authority_packages: Vec<String>,
 }
 
 #[derive(Deserialize)]

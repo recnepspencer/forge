@@ -155,13 +155,15 @@ fn run(
         &config.law_substrates,
     ));
     if let Some(contract) = &config.rule_contracts.worth_ui_query_edge {
-        diagnostics.extend(validate_worth_ui_query_edge(&root, contract).map_err(|error| {
-            vec![Diagnostic::new(
-                crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-                "worth-ui-query-edge",
-                error,
-            )]
-        })?);
+        diagnostics.extend(
+            validate_worth_ui_query_edge(&root, contract).map_err(|error| {
+                vec![Diagnostic::new(
+                    crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+                    "worth-ui-query-edge",
+                    error,
+                )]
+            })?,
+        );
     }
     diagnostics.extend(validate_query_audience_rules(
         &packages,

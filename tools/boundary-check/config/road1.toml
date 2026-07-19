@@ -200,25 +200,31 @@ allowed_production_consumers = ["worth-ui-query-binding"]
 guidance = "Worth UI production code consumes Query only through worth-ui-query-binding; certification is the explicit hostile-world exception. Remove the direct dependency and accept binding-owned authority/value artifacts."
 
 [rule_contracts.query_audience]
+workspace = "workspaces/worth-query"
 engine_package = "worth-query"
+certification_package = "worth-query-certification"
+internal_packages = ["worth-query-declaration", "worth-query-installation"]
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-decl"
 label = "declaration"
 allowed_bands = ["entry", "cert"]
 guidance = "declaration artifacts and handles"
+authority_packages = ["worth-query-declaration"]
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-host"
 label = "host"
 allowed_bands = ["entry", "cert"]
 guidance = "admission, lowering, and execution"
+authority_packages = ["worth-query"]
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-replay"
 label = "replay"
 allowed_bands = ["cert"]
 guidance = "cert-only reconstruction and replay"
+authority_packages = ["worth-query"]
 
 [[rule_contracts.replay_surfaces]]
 label = "certification replay"

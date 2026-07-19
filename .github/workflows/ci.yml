@@ -103,6 +103,12 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Run WORTH Query ordinary tests
+        run: cargo test --manifest-path workspaces/worth-query/Cargo.toml --workspace --exclude worth-query-certification --exclude worth-query-replay
+
+      - name: Run WORTH Query cold certification
+        run: cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-certification -p worth-query-replay
+
       - name: Upload worth-signal semantic snapshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -113,6 +119,9 @@ jobs:
 
       - name: Clippy (deny warnings)
         run: cargo clippy --workspace -- -D warnings
+
+      - name: Clippy WORTH Query workspace
+        run: cargo clippy --manifest-path workspaces/worth-query/Cargo.toml --workspace --all-targets -- -D warnings
 
       - name: Benchmarks compile
         run: cargo bench --workspace --no-run

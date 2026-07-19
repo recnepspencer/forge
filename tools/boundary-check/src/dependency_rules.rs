@@ -116,9 +116,8 @@ pub(crate) fn validate_worth_ui_query_edge(
     contract: &crate::config::WorthUiQueryEdgeContract,
 ) -> Result<Vec<Diagnostic>, String> {
     let crates_root = root.join(&contract.workspace).join("crates");
-    let entries = std::fs::read_dir(&crates_root).map_err(|error| {
-        format!("failed to read {}: {error}", crates_root.display())
-    })?;
+    let entries = std::fs::read_dir(&crates_root)
+        .map_err(|error| format!("failed to read {}: {error}", crates_root.display()))?;
     let mut diagnostics = Vec::new();
     for entry in entries {
         let entry = entry.map_err(|error| format!("failed to read crate entry: {error}"))?;
@@ -204,7 +203,8 @@ fn validate_crate_query_source_edge(
                     package,
                     format!(
                         "raw `worth_query` production source edge in `{}` is denied: {}",
-                        path.display(), contract.guidance
+                        path.display(),
+                        contract.guidance
                     ),
                 ));
             }
@@ -295,7 +295,8 @@ mod worth_ui_query_edge_tests {
     fn direct_runtime_dependency_reports_the_admitted_path() {
         let root = fixture_root("runtime-dependency");
         write_crate(&root, "worth-ui-runtime", true, "pub fn runtime() {}");
-        let diagnostics = validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
+        let diagnostics =
+            validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
         assert_eq!(diagnostics.len(), 1);
         assert!(diagnostics[0]
             .message()
@@ -312,7 +313,8 @@ mod worth_ui_query_edge_tests {
             false,
             "pub use worth_query::facade::read::*;",
         );
-        let diagnostics = validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
+        let diagnostics =
+            validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
         assert_eq!(diagnostics.len(), 1);
         assert!(diagnostics[0].message().contains("raw `worth_query`"));
         std::fs::remove_dir_all(root).expect("fixture cleanup");
@@ -321,6 +323,10 @@ mod worth_ui_query_edge_tests {
 
 fn is_query_framework_package(dependency: &str, contract: &QueryAudienceContract) -> bool {
     dependency == contract.engine_package
+        || contract
+            .internal_packages
+            .iter()
+            .any(|package| package == dependency)
         || contract
             .audiences
             .iter()

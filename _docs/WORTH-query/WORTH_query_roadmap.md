@@ -310,15 +310,18 @@ cross-feature proof gates before final certification:
   routing, lifecycle, receipt assembly, canonical domain identity, runtime
   installation, derived operation registries, and proof-bearing value DX
   without creating a second scalar or struct authority
-- `Milestone 9.13.1` must remove the obvious structural waste from Query test
-  execution: ordinary library tests perform no trybuild or Worth UI work, all
-  load-bearing compile-fail fixtures enter one bulk trybuild group, positive
-  journeys use ordinary Cargo tests, historical and meta-proof fixtures are
-  deleted, and no proof-management platform is introduced to certify the test
-  system itself
-- `Milestone 9.13.2` must split the Query monolith by semantic authority so
-  Cargo package boundaries, dependency direction, and naturally local tests
-  replace hand-maintained authority selection
+- `Milestone 9.13.1` must establish a livable Query iteration foundation in
+  independently executable slices: bulk the selected compiler denials, remove
+  Worth UI coupling, isolate cold certification, dismantle the manually
+  assembled library-test binary, repair repeated reconstruction hotspots, and
+  extract declaration and installation as permanent production authorities;
+  each slice inventories only the boundary it immediately changes and no proof-
+  management platform is introduced
+- `Milestone 9.13.2` must complete the Query monolith split by extracting
+  admission, execution, and publication, retargeting certification, cutting
+  audience facades, and deleting the monolith so Cargo package boundaries,
+  dependency direction, and naturally local tests replace hand-maintained
+  authority selection
 - `Milestone 9.14` must prove downstream projection authority is one
   non-detachable runtime-affine capability rooted in one installed operating-
   world entry root, explicit graph participation, and installed typed domain
@@ -4072,29 +4075,37 @@ the resulting value, predicate, row, and projection contracts unchanged.
   identity has one canonical basis, and consumer/facade/residue/sabotage proof
   reports zero competing value authorities
 
-## Milestone 9.13.1: Query Iteration Rescue
+## Milestone 9.13.1: Query Iteration Foundation
+
+Status: Phases 1-3 closed on 2026-07-18. Phases 4-8 are open.
 
 ### Goal
 
-Remove repeated compiler setup and consumer-workspace coupling so Query can be
-changed at an ordinary development pace before its package graph is redesigned.
+Restore livable Query iteration through direct structural cuts: remove repeated
+compiler setup and consumer coupling, dismantle the giant library-test binary,
+isolate cold certification, eliminate reconstructive test hotspots, and
+extract declaration and installation as the first permanent authority packages.
 
 ### Adversarial Constraint
 
-One compiler-certification invocation must retain every distinct compiler-
-enforced product denial while compiling shared dependencies once. Ordinary
-Query library tests perform neither trybuild work nor Worth UI source
-inspection. Positive journeys use ordinary integration tests or doctests. No
-test exists merely to preserve removed API archaeology, ordinary Rust privacy,
-or another test or test harness.
+Declaration and installation edits must compile and test without the remaining
+monolith, replay, or certification. Ordinary Query behavior must not share a
+manually assembled library-test binary with public journeys, exhaustive
+convergence matrices, or cert-only reconstruction. One compiler invocation
+retains selected compiler-owned denials. Every slice inventories only the cost
+boundary it immediately removes or extracts; a repository-wide inventory,
+proof platform, or timing framework cannot become a prerequisite for obvious
+work.
 
 ### Why This Milestone Exists
 
-Query constructs 38 trybuild harnesses over roughly 1,100 UI fixtures. The
-immediate cost is repeated Cargo/trybuild setup. A single mixed pass/fail
-harness is also wrong because it disables trybuild's bulk negative build.
-Separately, Query tests inspect Worth UI even though consumer adoption belongs
-to Worth UI. Both defects have direct fixes and require no new platform.
+The first cut reduced warm compiler certification from roughly 399 seconds to
+roughly 4 seconds, exposing the next structural floor: one approximately 2,981-
+test library binary still takes roughly 118 seconds warm and can take roughly a
+minute to rebuild after production edits. Manually injected integration suites,
+cold certification, repeated installed-package reconstruction, and multiple
+production authorities still share artifacts Cargo cannot select independently.
+These defects have direct target, logic, and package-boundary fixes.
 
 ### Specification
 
@@ -4111,6 +4122,17 @@ The governing milestone spec is
 - deletion of historical tombstones, generic certification-artifact privacy
   probes, orphan diagnostics, and production-owned fixture registries
 - no Query certification that reads Worth UI source
+- dedicated `workspaces/worth-query` ownership for the engine, audience
+  facades, and cold certification, with the repository root remaining an
+  orchestrator rather than the Query package owner
+- permanent cold `worth-query-certification` package with no ordinary reverse
+  dependency
+- deletion of the manual library-test integration aggregator and same-slice
+  classification of its directly injected suites
+- repair of observed reconstructive test hotspots without parallelism, fakes,
+  ignored tests, or timing infrastructure
+- permanent `worth-query-declaration` and `worth-query-installation` packages
+  with owner-local tests and machine-enforced dependency direction
 - direct documented Cargo commands with no custom runner, proof inventory,
   manifest language, cache system, receipts, shards, or timing framework
 
@@ -4122,6 +4144,10 @@ The governing milestone spec is
   lower-runtime ownership, and Store handoffs
 - the exact intended diagnostic boundary of each retained compiler fixture
 - Query and Worth UI ownership direction
+- canonical declaration and installed-package meaning, runtime affinity,
+  conflict atomicity, and rebuildable-index truth
+- the final authority DAG in which declaration precedes installation and no
+  ordinary package depends on certification
 
 ### Complexity / Proof Obligations
 
@@ -4129,18 +4155,28 @@ The governing milestone spec is
 - positive journeys compile and execute through ordinary Cargo test ownership
 - one before/after observation is enough to decide whether the cut worked;
   repeated performance sampling is forbidden here
+- owner-local declaration and installation commands omit later and cold Query
+  authorities and are observed after representative owner-local invalidation
+- ordinary remaining-monolith behavior omits compiler, replay, source-audit,
+  and consumer-workspace work
 
 ### Allowed Debt
 
-- production package decomposition remains for Milestone 9.13.2
+- admission, execution, publication, final consumer cutover, and monolith
+  deletion remain for Milestone 9.13.2
+- cold certification may temporarily depend on the shrinking monolith until
+  9.13.2 retargets it; no ordinary package may depend back on certification
 - repeated harness construction and Query-to-Worth-UI test coupling may not
   remain debt
+- the manual library-test aggregator, repeated reconstructive hotspot, and
+  failure to extract declaration or installation may not remain debt
 
 ### Sequencing Notes
 
-This follows 9.13 because its test cost is already blocking ordinary work. It
-precedes 9.13.2 so the authority split can iterate quickly, and 9.14 follows the
-split so new installed-operation semantics enter the intended package graph.
+This follows 9.13 because test and package breadth already block ordinary work.
+It establishes the upstream half of the authority graph so 9.13.2 can complete
+the split with useful inner loops. Milestone 9.14 follows the completed split so
+new installed-operation semantics enter the intended package graph.
 
 ### Store Dependency
 
@@ -4152,28 +4188,40 @@ replay, or Store-facing semantic contract.
 - one successful ordinary library run with no trybuild output
 - one successful direct compiler-certification run over the selected denials
 - one successful Worth UI Query-binding run owned by the Worth UI workspace
-- one before/after elapsed observation for each real command
+- one successful cold-certification run absent from ordinary package closures
+- the manual library-test aggregator is absent and every directly injected
+  suite has an explicit product, certification, or deletion disposition
+- repaired package-validation scenarios preserve exact convergence, conflict,
+  rebuild, and counter outcomes without repeated broad setup
+- declaration and installation owner commands omit later/cold authorities and
+  one same-machine observation per slice shows the loop is measured in tens of
+  seconds rather than minutes
+- one before/after elapsed observation for each real slice command
 - repository review confirms the deleted runner-platform components are absent
 
 ## Milestone 9.13.2: Query Authority Crate Decomposition
 
+Status: Open. Begins after Milestone 9.13.1 closes.
+
 ### Goal
 
-Split the current `worth-query` monolith into legal Road 1 crates whose package
-boundaries follow semantic authority, dependency direction, and independently
-iterable test surfaces.
+Complete the legal Road 1 Query authority graph established by 9.13.1: extract
+admission, execution, and publication; retarget cold certification; cut every
+consumer to an audience facade; and delete the remaining monolith.
 
 ### Adversarial Constraint
 
-A local change to one Query authority must compile and test without building
-unrelated Query authorities, while no facade, dependency edge, shared test
-support crate, or compatibility re-export may bypass the authority graph or
-create a second meaning source.
+A local change to one remaining Query authority must compile and test without
+building later or cold authorities. Every slice inventories and moves only its
+owned mixed modules and consumers. No facade, dependency edge, shared test
+support crate, compatibility re-export, or migration package may bypass the
+finished graph or create a second meaning source.
 
 ### Why This Milestone Exists
 
-Milestone 9.13.1 removes waste inside the monolith but cannot make Cargo avoid
-compiling a monolithic library. The production package graph is the honest long-
+Milestone 9.13.1 establishes cold certification and permanent declaration and
+installation packages, but admission, execution, and publication remain in a
+shrinking migration package. The completed production graph is the honest long-
 term selection mechanism: code and tests become local because authority and
 dependencies are physically local, not because a runner interprets manifests.
 
@@ -4185,14 +4233,14 @@ The governing milestone spec is
 ### Must Ship
 
 - a reviewed authority and dependency graph derived from production meaning
-- an exact reviewed Query-framework naming amendment for declaration,
-  installation, admission, execution, publication, and certification
-  authorities, plus one-way dependency edges
+- exact reviewed Query-framework naming amendments for admission, execution,
+  and publication completing the declaration, installation, and certification
+  amendments established by 9.13.1
 - narrow audience facades preserving the current ordinary public journey
 - authority-local unit, integration, and compiler tests living with their
   production owner
-- deletion of source-topology audits, proof-of-proof tests, and shared test
-  platform temptations before package extraction
+- same-slice deletion of any residual source-topology audit, proof-of-proof
+  test, or shared test-platform temptation encountered at an authority boundary
 - deletion of the monolithic compatibility surface after consumers cut over
 
 ### Must Preserve
@@ -4356,13 +4404,14 @@ The governing milestone spec is
 
 ### Sequencing Notes
 
-This follows 9.13.1 because it consumes the installed-domain and native-value
+This follows 9.13.2 because it consumes the installed-domain and native-value
 authority model established by 9.13 through the deterministic, authority-local
-proof topology established by 9.13.1. Graph participation and one-root
-authority close before operation binding; publication and the cert replay
-fence close before workflow consumers. It precedes Milestone 13 because the
-provider-independent oracle must certify the completed downstream capability,
-not ingredient surfaces that consumers can misassemble.
+package and proof topology established by 9.13.1 and completed by 9.13.2. Graph
+participation and one-root authority close before operation binding;
+publication and the cert replay fence close before workflow consumers. It
+precedes Milestone 13 because the provider-independent oracle must certify the
+completed downstream capability, not ingredient surfaces that consumers can
+misassemble.
 
 ### Store Dependency
 
@@ -4595,11 +4644,11 @@ roadmap. It does not make physical implementation part of local Query closure.
   predicate/schema admission, execution, materialization, projection
   consumption, typed refinement, receipt identity, and inspection without a
   competing Query-owned value algebra or semantic encoder
-- Query's proof portfolio is authority-owned and deterministically selectable:
-  local authority lanes and full certification derive from one disjoint
-  inventory, preserve compiler-owned denials, expose exact structural cost,
-  and contain no process-global environment race, orphan fixture, overlapping
-  manifest, or order-dependent compiler cache
+- Query's proof portfolio is authority-owned and naturally selectable through
+  Cargo packages and responsibility-named targets: local authority lanes omit
+  later and cold work, full certification composes real public journeys,
+  retained compiler denials stay selective, and no proof inventory, runner,
+  source audit, shared fixture platform, or test-of-test topology exists
 - downstream projection consumers resolve installed domain operations and
   receive one non-detachable runtime-affine capability with Query-owned
   consumer support, native access, dependency impact, equivalent-work sharing
@@ -4638,8 +4687,8 @@ answer is "store-gated" or "shared with another subsystem."
 | Declarative Query experience and phase-surface cutover | Milestone 9.13 | Capability declarations, admitted-query handles, managed live resources, typed outcomes and next-action stops, DX transcripts, contracted facade and residue artifacts | Ordinary consumers describe desired outcomes while Query exclusively owns canonicalization, binding, validation, admission, planning, lowering, execution routing, lifecycle, receipt assembly, and derived diagnostics | Milestone 9.13 ordinary/internal parity, compile-fail, facade-snapshot, prohibition, residue, lifecycle, bounded-work, and reference-consumer certification + Milestone 13 product-surface parity |
 | Runtime-installed domain capability authority | Milestone 9.13 add-on Phases 13-20 | Canonical domain packages, admitted package artifacts, runtime installation registry, runtime-affine installed handles, package-compiled operation/invariant/obligation indexes, installation and execution receipts | Equivalent packages install identically; conflicting packages fail atomically; only the installing runtime can mint usable handles; registered operations and contributions resolve without raw strings, manual registries, or semantic adapters | Milestone 9.13 package convergence, installation atomicity, runtime-affinity, derived-index rebuild, facade/residue/sabotage, bounded-lookup, and reference-consumer certification + Milestone 13 domain parity |
 | Foundational-native aspect value authority and consumer DX | Milestone 9.13 add-on Phases 21-30 | Portable non-authoritative patch/state candidates, Foundational contract readmission, native entity/relation transaction intents, authoritative patch planning and publication, durable readmission, exact scalar and struct values, contract-derived operator capabilities, proof-bearing mutation/result/consumption artifacts, native retained rows or honest internal markers, typed refinement denials, canonical value identity basis | Every native patch operation, scalar family, and representative struct round-trips through portable boundaries, Relational planning/merge/commit, checkpoint/replay, Query authoring, validation, execution, materialization, projection, refinement, receipts, and inspection; incompatible operators and weaker-proof promotion fail before work; no substrate owns a competing value, patch, state, or semantic encoder | Milestone 9.13 patch/state readmission, entity/relation transaction parity, restart/replay, native-family/struct matrix, canonical identity parity, facade/compile-fail/prohibition/residue/sabotage, bounded-work, and reference-consumer deletion certification + Milestone 13 schema, execution, projection, and domain parity |
-| Livable Query iteration | Milestone 9.13.1 | Ordinary library lane, selected bulk compile-fail group, ordinary positive journey tests, consumer-owned Worth UI adoption tests | Load-bearing compiler evidence is retained while historical tombstones, generic privacy probes, repeated Cargo/trybuild setup, and Query-to-Worth-UI test coupling are removed; no meta-certification platform is introduced | Milestone 9.13.1 ordinary library run, direct compiler-certification run, Worth UI binding run, and before/after elapsed observations |
-| Query authority crate decomposition | Milestone 9.13.2 | Production authority graph, legal Road 1 crates, narrow audience facades, authority-local tests, enforced dependency direction | Local authority work compiles and tests without unrelated Query authorities; no facade, shared support crate, or compatibility re-export reconstructs or bypasses authority | Milestone 9.13.2 boundary-check, consumer transcript, authority-local test, compiler-denial, and monolith-deletion certification |
+| Livable Query iteration foundation | Milestone 9.13.1 | Selected bulk compile-fail group, responsibility-named ordinary targets, cold certification leaf, permanent declaration and installation packages, consumer-owned Worth UI adoption tests | Load-bearing compiler evidence remains selective; the manual library-test aggregator, repeated reconstruction, historical/privacy/meta fixtures, and Query-to-Worth-UI coupling are removed; declaration and installation edits omit later and cold authorities; each slice inventories only the boundary it immediately changes | Milestone 9.13.1 direct compiler and cold-certification runs, target-ownership migration review, package convergence/rebuild proof, declaration/installation owner commands, Worth UI binding run, and one before/after observation per slice |
+| Query authority crate decomposition | Milestone 9.13.2 | Completed production authority graph, admission/execution/publication packages, retargeted certification, narrow audience facades, authority-local tests, enforced dependency direction | Remaining authority work compiles and tests without later or cold Query authorities; no monolith, facade, shared support crate, or compatibility re-export reconstructs or bypasses authority | Milestone 9.13.2 boundary-check, consumer transcript, authority-local test, compiler-denial, certification-retargeting, and monolith-deletion proof |
 | Installed operation semantics and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, one installed operating-world root, typed borrowed operation-family facades, sealed graph-participation adapters, atomic multi-domain and admitted multi-graph operation capabilities, installed workflow DAGs, Query-minted run/stage traces, ordinary re-execution and cert-only replay results, typed reversal/compensation posture, derived-publication receipts, trace-bound lineage and promotion evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, entry authority, graph participation, workflow progression, replay, reversal, publication, promotion, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; one logical graph is the default; separate graphs bind atomically only with shared commit authority and otherwise expose compensation; ordinary downstream work consumes typed publications while replay remains cert-only; native access remains Foundational-exact and bounded; Query alone binds operation authority, advances workflow, mints traces and publications, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition, single-root, graph-adapter, atomic/compensated multi-graph, workflow-graph convergence/conflict, stage-progression, publication-consumption, replay-fence/equivalence/divergence, reversal-posture, lineage/promotion/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |

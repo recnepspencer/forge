@@ -1,5 +1,0 @@
-error[E0599]: no variant or associated item named `from_bool` found for enum `ComparisonBasisFamily` in the current scope
- --> tests/ui/comparison_basis_family_bool_shortcut_forbidden.rs:4:36
-  |
-4 |     let _ = ComparisonBasisFamily::from_bool(true);
-  |                                    ^^^^^^^^^ variant or associated item not found in `ComparisonBasisFamily`

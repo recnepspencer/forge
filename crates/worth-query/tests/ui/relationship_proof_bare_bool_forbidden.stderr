@@ -1,5 +1,0 @@
-error[E0308]: mismatched types
- --> tests/ui/relationship_proof_bare_bool_forbidden.rs:5:14
-  |
-5 |         vec![true],
-  |              ^^^^ expected `RelationshipProofDescriptor`, found `bool`

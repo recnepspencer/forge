@@ -1,14 +1,21 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+static TEST_ROOT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 fn test_root() -> PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system time")
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("agent-context-test-{unique}"));
+    let sequence = TEST_ROOT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let root = std::env::temp_dir().join(format!(
+        "agent-context-test-{}-{unique}-{sequence}",
+        std::process::id()
+    ));
     copy_dir(
         &workspace_root().join("tools/boundary-check/config"),
         &root.join("tools/boundary-check/config"),
@@ -25,14 +32,18 @@ fn test_root() -> PathBuf {
         &workspace_root().join("cad/workspaces/worth-packs/crates/worth-pack-registry"),
         &root.join("cad/workspaces/worth-packs/crates/worth-pack-registry"),
     );
-    // Framework Query audience facades are configured in road1.toml and must exist
-    // at crates/<package> for orientation generation.
+    // Framework Query packages are configured in road1.toml and live in their
+    // dedicated workspace for orientation generation.
     for package in ["worth-query-decl", "worth-query-host", "worth-query-replay"] {
         copy_dir(
-            &workspace_root().join("crates").join(package),
-            &root.join("crates").join(package),
+            &workspace_root()
+                .join("workspaces/worth-query/crates")
+                .join(package),
+            &root.join("workspaces/worth-query/crates").join(package),
         );
     }
+    fs::create_dir_all(root.join("workspaces/worth-query/crates/worth-query-certification"))
+        .expect("create Query certification fixture root");
     root
 }
 
@@ -50,8 +61,10 @@ fn facade_exports_are_rendered_from_snapshot() {
         "{}",
         String::from_utf8_lossy(&generate.stderr)
     );
-    let context = fs::read_to_string(root.join("crates/worth-query-decl/AGENT_CONTEXT.md"))
-        .expect("read context");
+    let context = fs::read_to_string(
+        root.join("workspaces/worth-query/crates/worth-query-decl/AGENT_CONTEXT.md"),
+    )
+    .expect("read context");
     assert!(context.contains("SnapshotOwnedExport"));
     assert!(!context.contains("CanonicalQueryArtifact"));
 }
@@ -61,12 +74,13 @@ fn missing_facade_snapshot_row_fails_closed() {
     let root = test_root();
     let snapshot = root.join("tools/boundary-check/snapshots/facades.toml");
     let text = fs::read_to_string(&snapshot).expect("read facade snapshot");
-    let start = text
-        .find("[[facades]]\npackage = \"worth-query-decl\"")
-        .expect("decl row");
-    let end = text[start + 1..]
+    let package = text
+        .find("package = \"worth-query-decl\"")
+        .expect("decl package");
+    let start = text[..package].rfind("[[facades]]").expect("decl row");
+    let end = text[package..]
         .find("[[facades]]")
-        .map(|offset| start + 1 + offset)
+        .map(|offset| package + offset)
         .unwrap_or(text.len());
     fs::write(&snapshot, format!("{}{}", &text[..start], &text[end..])).expect("remove row");
     let output = run_tool(&root, "generate");
