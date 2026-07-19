@@ -6,19 +6,22 @@ use worth_store_contracts::PhysicalIntegrityReadinessPayload;
 pub struct IntegrityHandoffAdmission;
 
 impl IntegrityHandoffAdmission {
-    pub fn admit(
-        s3_payload: PhysicalIntegrityReadinessPayload,
+    /// Admits lower-level recovery algorithms from an explicit model payload.
+    /// This does not certify S.3 readiness or a joined physical recovery path.
+    pub fn admit_model_payload(
+        integrity_model_payload: PhysicalIntegrityReadinessPayload,
         payload: IntegrityHandoffPayload,
     ) -> Result<AdmittedRecoveryIntegrityInput, IntegrityHandoffDenial> {
-        let _integrity_entry_basis = IntegrityHandoffEntryAdmissionBasis::from_payload(s3_payload)?;
+        let _integrity_entry_basis =
+            IntegrityHandoffModelAdmissionBasis::from_payload(integrity_model_payload)?;
         Ok(AdmittedRecoveryIntegrityInput::from_admitted_integrity_handoff(payload))
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct IntegrityHandoffEntryAdmissionBasis;
+struct IntegrityHandoffModelAdmissionBasis;
 
-impl IntegrityHandoffEntryAdmissionBasis {
+impl IntegrityHandoffModelAdmissionBasis {
     fn from_payload(
         payload: PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, IntegrityHandoffDenial> {

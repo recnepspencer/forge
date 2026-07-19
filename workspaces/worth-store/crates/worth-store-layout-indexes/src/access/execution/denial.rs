@@ -7,7 +7,7 @@ pub enum PhysicalDegradedExecutionDenial {
         actual: worth_store_authority::StoreCurrentAuthorityIdentity,
     },
     Admission(worth_store_physical_format::PlatformPhysicalOperationAdmissionDenial),
-    Physical(Box<worth_store_physical_format::PhysicalStoreRuntimeDenial>),
+    Physical(Box<worth_store_physical_format::InMemoryPhysicalFormatModelDenial>),
     CounterDomainOverflow {
         observed_rows: u64,
     },

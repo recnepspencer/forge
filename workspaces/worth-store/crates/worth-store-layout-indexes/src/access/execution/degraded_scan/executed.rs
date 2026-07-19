@@ -71,7 +71,7 @@ impl DegradedScanExecution {
 
 pub(in crate::access::execution::degraded_scan) fn execute_ready(
     ready: super::DegradedScanReady,
-    physical: &mut worth_store_physical_format::PhysicalStoreRuntime,
+    physical: &mut worth_store_physical_format::InMemoryPhysicalFormatModel,
 ) -> Result<DegradedScanExecution, crate::PhysicalDegradedExecutionDenial> {
     let selected = ready.selected();
     let expected = selected.admitted_family().authority_identity();

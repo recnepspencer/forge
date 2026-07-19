@@ -1,0 +1,45 @@
+error[E0451]: field `declared_root` of struct `PhysicalRuntimeAdmission` is private
+ --> tests/physical_runtime_authority/internal_composition_construction_is_sealed.rs:7:9
+  |
+6 |     let _admission = PhysicalRuntimeAdmission {
+  |                      ------------------------ in this type
+7 |         declared_root: unavailable(),
+  |         ^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `runtime_identity`, `resource_lifecycle`, `diagnostics` and `shutdown` of struct `AdmittedPhysicalRuntime` are private
+  --> tests/physical_runtime_authority/internal_composition_construction_is_sealed.rs:13:9
+   |
+12 |     let _runtime = AdmittedPhysicalRuntime {
+   |                    ----------------------- in this type
+13 |         runtime_identity: unavailable(),
+   |         ^^^^^^^^^^^^^^^^ private field
+14 |         resource_lifecycle: unavailable(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+15 |         diagnostics: unavailable(),
+   |         ^^^^^^^^^^^ private field
+16 |         shutdown: unavailable(),
+   |         ^^^^^^^^ private field
+
+error[E0451]: field `_private` of struct `InstalledCapabilityStatus` is private
+  --> tests/physical_runtime_authority/internal_composition_construction_is_sealed.rs:21:47
+   |
+21 |     let _status = InstalledCapabilityStatus { _private: () };
+   |                                               ^^^^^^^^ private field
+
+error: type `physical_runtime::resource_lifecycle::ResourceLifecycle` is private
+  --> tests/physical_runtime_authority/internal_composition_construction_is_sealed.rs:14:29
+   |
+14 |         resource_lifecycle: unavailable(),
+   |                             ^^^^^^^^^^^^^ private type
+
+error: type `physical_runtime::diagnostics::RuntimeDiagnostics` is private
+  --> tests/physical_runtime_authority/internal_composition_construction_is_sealed.rs:15:22
+   |
+15 |         diagnostics: unavailable(),
+   |                      ^^^^^^^^^^^^^ private type
+
+error: type `physical_runtime::shutdown::ShutdownCoordinator` is private
+  --> tests/physical_runtime_authority/internal_composition_construction_is_sealed.rs:16:19
+   |
+16 |         shutdown: unavailable(),
+   |                   ^^^^^^^^^^^^^ private type

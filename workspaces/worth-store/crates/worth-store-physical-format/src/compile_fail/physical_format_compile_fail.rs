@@ -65,12 +65,12 @@
 //! Bootstrap-open witnesses cannot be admitted from raw persisted layout outside the owner lane:
 //! ```compile_fail
 //! use worth_store_physical_format::{
-//!     PersistedPhysicalLayout, PhysicalBootstrapCatalogOpenWitness, PlatformPhysicalOpenRequest,
+//!     PersistedPhysicalLayout, PhysicalBootstrapCatalogOpenWitness, InMemoryPhysicalFormatModelRequest,
 //! };
 //!
 //! let layout = PersistedPhysicalLayout::builder().build();
 //! let _forged = PhysicalBootstrapCatalogOpenWitness::admit_persisted_layout(
-//!     PlatformPhysicalOpenRequest::physical_format_canonical().headers(),
+//!     InMemoryPhysicalFormatModelRequest::physical_format_canonical().headers(),
 //!     &layout,
 //! );
 //! ```
@@ -80,11 +80,11 @@
 //!     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 //! };
 //! use worth_store_physical_format::{
-//!     PersistedPhysicalLayout, PhysicalStoreRuntime, PlatformPhysicalOpenRequest,
+//!     PersistedPhysicalLayout, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
 //! };
 //!
 //! let layout = PersistedPhysicalLayout::builder().build();
-//! let _reopened = PhysicalStoreRuntime::reopen(
+//! let _reopened = InMemoryPhysicalFormatModel::restore(
 //!     AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
 //!         ROADMAP_2_S1_SCOPE,
 //!         HandoffEvidenceDigestSet::new(
@@ -98,7 +98,7 @@
 //!         ),
 //!     )
 //!     .unwrap(),
-//!     PlatformPhysicalOpenRequest::physical_format_canonical(),
+//!     InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
 //!     layout,
 //! );
 //! ```

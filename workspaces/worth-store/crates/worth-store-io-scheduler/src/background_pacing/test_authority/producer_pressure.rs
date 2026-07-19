@@ -82,9 +82,8 @@ pub fn mismatched_background_pressure_denial_for_certification_test(
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
     let foreground_capacity =
         admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
-            crate::foreground_reservation::ForegroundReservationCapacityAuthority::store_owned(),
             lane,
-            crate::foreground_reservation::ForegroundReservationAdmissionBoundary::new(
+            crate::foreground_reservation::ForegroundReservationCapacityBasis::new(
                 &foreground_backend,
                 &readiness,
                 &security,

@@ -1,8 +1,9 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use worth_store_contracts::AcceptedHandoffReadiness;
 use worth_store_physical_format::{
-    PersistedPhysicalLayout, PhysicalReference, PhysicalStoreIdentity, PhysicalStoreRuntime,
-    PlatformPhysicalOpenRequest, PlatformPhysicalReplayArtifact,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    InMemoryPhysicalFormatReplayArtifact, PersistedPhysicalLayout, PhysicalReference,
+    PhysicalStoreIdentity,
 };
 
 use super::{BTreeReplayRootAgreement, BTreeReplaySourceDenial};
@@ -34,7 +35,7 @@ pub struct AdmittedBTreeReplayPhysicalSource {
     identity: BTreeReplayPhysicalSourceIdentity,
     readiness: AcceptedHandoffReadiness,
     root_reference: PhysicalReference,
-    replay_artifact: PlatformPhysicalReplayArtifact,
+    replay_artifact: InMemoryPhysicalFormatReplayArtifact,
     store_identity: PhysicalStoreIdentity,
     durable_source: AdmittedRecoverySource,
     root_agreement: BTreeReplayRootAgreement,
@@ -44,7 +45,7 @@ impl AdmittedBTreeReplayPhysicalSource {
     pub fn admit(
         readiness: AcceptedHandoffReadiness,
         root_reference: PhysicalReference,
-        replay_artifact: PlatformPhysicalReplayArtifact,
+        replay_artifact: InMemoryPhysicalFormatReplayArtifact,
         expected_store_identity: PhysicalStoreIdentity,
         durable_source: AdmittedRecoverySource,
     ) -> Result<Self, BTreeReplaySourceDenial> {
@@ -62,12 +63,12 @@ impl AdmittedBTreeReplayPhysicalSource {
                 });
             }
         }
-        let canonical = PlatformPhysicalOpenRequest::physical_format_canonical();
-        let request = PlatformPhysicalOpenRequest::for_store(
+        let canonical = InMemoryPhysicalFormatModelRequest::physical_format_canonical();
+        let request = InMemoryPhysicalFormatModelRequest::for_store(
             canonical.headers().clone(),
             expected_store_identity.clone(),
         );
-        let mut facade = replay_artifact.reopen_physical_format(readiness.clone(), request)?;
+        let mut facade = replay_artifact.restore_model(readiness.clone(), request)?;
         facade.page_access().locate_record(root_reference)?;
         Ok(Self {
             identity: BTreeReplayPhysicalSourceIdentity::issue(),
@@ -136,16 +137,16 @@ impl<I> AdmittedBTreeReplaySource<I> {
         &self.physical
     }
 
-    pub fn reopen(&self) -> Result<PhysicalStoreRuntime, BTreeReplaySourceDenial> {
-        let canonical = PlatformPhysicalOpenRequest::physical_format_canonical();
-        let request = PlatformPhysicalOpenRequest::for_store(
+    pub fn reopen(&self) -> Result<InMemoryPhysicalFormatModel, BTreeReplaySourceDenial> {
+        let canonical = InMemoryPhysicalFormatModelRequest::physical_format_canonical();
+        let request = InMemoryPhysicalFormatModelRequest::for_store(
             canonical.headers().clone(),
             self.physical.store_identity.clone(),
         );
         Ok(self
             .physical
             .replay_artifact
-            .reopen_physical_format(self.physical.readiness.clone(), request)?)
+            .restore_model(self.physical.readiness.clone(), request)?)
     }
 }
 

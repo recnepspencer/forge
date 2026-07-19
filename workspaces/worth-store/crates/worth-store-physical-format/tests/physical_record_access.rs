@@ -3,9 +3,9 @@ use worth_store_contracts::{
 };
 use worth_store_physical_format::{
     access::{extent::extent_access_counters, page::page_access_counters},
-    PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
-    PlatformPhysicalOpenRequest,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest, PhysicalExtentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
+    PhysicalSegmentId, PlatformPhysicalAppendRequest,
 };
 
 #[test]
@@ -53,9 +53,9 @@ fn extent_and_reopen_follow_public_physical_evidence() {
     assert_eq!(extent.record_view().payload().as_bytes(), b"extent-backed");
 
     let published = facade.publish_physical_root().expect("public root publish");
-    let mut reopened = PhysicalStoreRuntime::reopen(
+    let mut reopened = InMemoryPhysicalFormatModel::restore(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         published.replay_artifact(),
     )
     .expect("public replay reopen");
@@ -147,10 +147,10 @@ fn point_counters_do_not_scale_with_storage_cardinality() {
     assert_eq!(extent_counters.bytes_read(), 4_096);
 }
 
-fn open_facade() -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(
+fn open_facade() -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("open S.1 facade")
 }

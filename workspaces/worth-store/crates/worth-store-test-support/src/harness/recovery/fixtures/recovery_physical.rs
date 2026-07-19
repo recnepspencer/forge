@@ -2,6 +2,7 @@ use worth_store_buffer_pool::{
     BufferPoolBudget, DirtyPageBudget, PinnedPageBudget, ResidentFrameLoadRequest,
     ResidentFrameTable, ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
 };
+use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_physical_format::{
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalGenerationOwner, PhysicalHeaderAuthority,
@@ -10,8 +11,6 @@ use worth_store_physical_format::{
     PhysicalRootReference, PhysicalSegmentId, SlotGenerationCell,
 };
 use worth_store_physical_integrity::ProtectedPhysicalByteView;
-
-use super::s4_recovery_readiness_fixture::physical_substrate_readiness;
 
 pub(super) fn with_protected_payload_view(
     payload: &[u8],
@@ -116,7 +115,7 @@ pub(super) fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> 
 
 fn resident_frame_table() -> ResidentFrameTable {
     let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        physical_substrate_readiness().physical_substrate_snapshot(),
+        physical_substrate_model_snapshot(),
     )
     .unwrap()
     .with_budget(BufferPoolBudget::declare(
@@ -127,6 +126,10 @@ fn resident_frame_table() -> ResidentFrameTable {
     .admit()
     .unwrap();
     ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap())
+}
+
+fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn admit_payload_frame(

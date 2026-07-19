@@ -184,9 +184,8 @@ fn capacity_admission(
     available: ForegroundResourceBudget,
 ) -> super::ForegroundReservationCapacityAdmission {
     admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
-        super::ForegroundReservationCapacityAuthority::store_owned(),
         lane,
-        super::ForegroundReservationAdmissionBoundary::new(backend, readiness, security),
+        super::ForegroundReservationCapacityBasis::new(backend, readiness, security),
         arbitration,
         requested,
         available,

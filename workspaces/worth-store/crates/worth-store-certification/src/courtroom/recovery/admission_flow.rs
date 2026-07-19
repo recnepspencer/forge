@@ -1,7 +1,7 @@
 use super::support::{
-    admit_background, admit_entry, class_request, damaged_readiness, intact_readiness,
-    physical_authority, recovery_blocking_quarantine_binding, recovery_blocking_wal_damage_map,
-    recovery_memory_envelope,
+    admit_background, admit_entry, class_request, damaged_integrity_model_input,
+    intact_integrity_model_input, physical_authority, recovery_blocking_quarantine_binding,
+    recovery_blocking_wal_damage_map, recovery_memory_envelope,
 };
 use worth_store_buffer_pool::{BackgroundEnvelopeAdmission, BackgroundWorkClass};
 use worth_store_recovery_physics::{
@@ -9,9 +9,9 @@ use worth_store_recovery_physics::{
 };
 
 #[test]
-fn intact_physical_integrity_handoff_and_recovery_envelope_produce_stable_entry_identity() {
-    let first = admit_entry(intact_readiness("entry-stability"));
-    let second = admit_entry(intact_readiness("entry-stability"));
+fn intact_integrity_model_input_and_recovery_envelope_produce_stable_entry_identity() {
+    let first = admit_entry(intact_integrity_model_input("entry-stability"));
+    let second = admit_entry(intact_integrity_model_input("entry-stability"));
 
     assert_eq!(first.entry_identity(), second.entry_identity());
     assert_eq!(first.recovery_basis(), second.recovery_basis());
@@ -65,9 +65,12 @@ fn recovery_entry_rejects_wrong_or_unbounded_recovery_envelopes_before_admission
 
 #[test]
 fn recovery_blocking_damage_blocks_before_replay_or_source_precedence() {
-    let readiness = damaged_readiness();
-    let decision =
-        RecoveryEntryAdmission::admit(readiness, recovery_memory_envelope(), physical_authority());
+    let model_input = damaged_integrity_model_input();
+    let decision = RecoveryEntryAdmission::admit(
+        model_input,
+        recovery_memory_envelope(),
+        physical_authority(),
+    );
 
     let RecoveryEntryAdmissionDecision::Blocked(blocked) = decision else {
         panic!("recovery-blocking S.3 damage must block entry");
@@ -80,7 +83,7 @@ fn recovery_blocking_damage_blocks_before_replay_or_source_precedence() {
 
 #[test]
 fn quarantine_summary_preserves_its_damage_case_across_mixed_recovery_blockers() {
-    let intact = intact_readiness("damage-case-binding");
+    let intact = intact_integrity_model_input("damage-case-binding");
     let (quarantine_record, quarantine_receipt, quarantine_damage) =
         recovery_blocking_quarantine_binding();
     let damage_map = recovery_blocking_wal_damage_map()
@@ -108,11 +111,13 @@ fn quarantine_summary_preserves_its_damage_case_across_mixed_recovery_blockers()
         .inspection_envelope(intact.payload().inspection_envelope().clone())
         .seal()
         .unwrap();
-    let readiness = super::support::admit_recovery_handoff_payload(payload);
+    let model_input = super::support::admit_recovery_handoff_payload(payload);
 
-    let RecoveryEntryAdmissionDecision::Blocked(blocked) =
-        RecoveryEntryAdmission::admit(readiness, recovery_memory_envelope(), physical_authority())
-    else {
+    let RecoveryEntryAdmissionDecision::Blocked(blocked) = RecoveryEntryAdmission::admit(
+        model_input,
+        recovery_memory_envelope(),
+        physical_authority(),
+    ) else {
         panic!("mixed blockers should still block before replay planning");
     };
 

@@ -8,9 +8,9 @@ use worth_store_contracts::{
 use worth_store_layout_indexes::encode_baseline_btree_leaf_record;
 use worth_store_physical_backend::observe_physical_backup_artifact;
 use worth_store_physical_format::{
-    BackupBundleArtifactFormat, PageGenerationCell, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalReferenceAuthority, PhysicalStoreRuntime,
-    PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
+    BackupBundleArtifactFormat, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    PageGenerationCell, PhysicalGeneration, PhysicalGenerationAuthority,
+    PhysicalReferenceAuthority, PlatformPhysicalAppendRequest,
     PlatformPhysicalRootPublicationReport, RootPublicationCell,
 };
 #[cfg(test)]
@@ -74,7 +74,7 @@ pub(crate) fn canonical_backup_artifacts_across_one_root_publication(
 
 struct CanonicalBackupArtifactWorld {
     case: String,
-    runtime: PhysicalStoreRuntime,
+    runtime: InMemoryPhysicalFormatModel,
     generation: PhysicalGeneration,
     blob_count: u64,
 }
@@ -129,7 +129,7 @@ impl CanonicalBackupArtifactWorld {
 fn materialize_canonical_backup_artifacts(
     case: &str,
     source: &Path,
-    runtime: &PhysicalStoreRuntime,
+    runtime: &InMemoryPhysicalFormatModel,
     publication: PlatformPhysicalRootPublicationReport,
     generation: PhysicalGeneration,
     blob_count: u64,
@@ -264,10 +264,10 @@ fn materialize_canonical_backup_artifacts(
     }
 }
 
-pub(crate) fn open_physical_runtime() -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(
+pub(crate) fn open_physical_runtime() -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(
         physical_readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("physical runtime")
 }

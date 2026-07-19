@@ -21,7 +21,7 @@ use super::s4_recovery_physical_fixture::{
     frame_witness, page_cell, page_witness, root_with_slot, slot_cell, validation,
     with_protected_payload_view,
 };
-use super::s4_recovery_readiness_fixture::physical_integrity_readiness;
+use super::s4_recovery_readiness_fixture::physical_integrity_model_payload;
 
 pub(super) fn inspect_page_report(
     payload: &[u8],
@@ -204,8 +204,8 @@ fn checksum_admission(
 
 fn with_entry_seed(payload: &[u8], run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>)) {
     with_protected_payload_view(payload, |protected| {
-        let entry = IntegrityEntryAdmission::from_physical_integrity_payload(
-            physical_integrity_readiness().payload(),
+        let entry = IntegrityEntryAdmission::from_integrity_model_payload(
+            physical_integrity_model_payload(),
         )
         .unwrap();
         let lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();

@@ -1,6 +1,6 @@
 use crate::{
     courtroom::harness::test_support::integrity_handoff_test_support::{
-        forged_inspection_envelope_counter_denial_kind, intact_readiness,
+        forged_inspection_envelope_counter_denial_kind, intact_integrity_model_input,
         manifest_receipt_swap_denial_kind, CERTIFICATION_INSPECTION_BYTE_LIMIT,
     },
     courtroom::harness::test_support::pre_decode_physical_admission_test_support::checksum_scope,
@@ -13,8 +13,8 @@ use worth_store_recovery_physics::IntegrityHandoffDenialKind;
 
 #[test]
 fn intact_inputs_publish_stable_recovery_handoff_identity_across_independent_runs() {
-    let first = intact_readiness("stable-handoff");
-    let second = intact_readiness("stable-handoff");
+    let first = intact_integrity_model_input("stable-handoff");
+    let second = intact_integrity_model_input("stable-handoff");
 
     assert_eq!(first.payload().identity(), second.payload().identity());
     assert_eq!(first.counters(), second.counters());
@@ -54,8 +54,8 @@ fn damaged_inputs_publish_typed_recovery_blockers_instead_of_replay_inputs() {
 
 #[test]
 fn recovery_handoff_payload_exposes_required_integrity_surfaces_and_exact_counters() {
-    let readiness = intact_readiness("payload-proof");
-    let payload = readiness.payload();
+    let model_input = intact_integrity_model_input("payload-proof");
+    let payload = model_input.payload();
     let counters = payload.counters();
 
     assert_eq!(payload.root_manifest().counters().root_manifest_reads(), 1);

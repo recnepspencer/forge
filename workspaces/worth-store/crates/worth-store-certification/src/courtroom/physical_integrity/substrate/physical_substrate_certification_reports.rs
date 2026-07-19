@@ -1,34 +1,35 @@
 use crate::courtroom::physical_integrity::physical_substrate_certification_scan::PhysicalSubstrateCertificationScan;
 use crate::{
+    InMemoryPhysicalFormatModelEvidenceReport, InMemoryPhysicalFormatModelEvidenceRow,
     PhysicalExtentRecordFramingEvidenceReport, PhysicalExtentRecordFramingEvidenceRow,
     PhysicalIdentityEvidenceReport, PhysicalIdentityEvidenceRow,
     PhysicalOfflineVerifierEvidenceReport, PhysicalOfflineVerifierEvidenceRow,
     PhysicalPageRecordFramingEvidenceReport, PhysicalPageRecordFramingEvidenceRow,
-    PhysicalRuntimeVerifierComparison, PhysicalStoreRuntimeEvidenceReport,
-    PhysicalStoreRuntimeEvidenceRow, PhysicalSubstrateCertificationDenial,
+    PhysicalRuntimeVerifierComparison, PhysicalSubstrateCertificationDenial,
 };
 use worth_store_physical_format::{
-    ExtentRecordCounterSnapshot, OfflineVerifierLayoutObservation, PageRecordCounterSnapshot,
-    PhysicalReferenceValidationCounterSnapshot, PhysicalStoreRuntimeCounterSnapshot,
-    PlatformPhysicalScanReport, RuntimeLayoutObservation,
+    ExtentRecordCounterSnapshot, InMemoryModelLayoutObservation,
+    InMemoryPhysicalFormatModelCounterSnapshot, OfflineVerifierLayoutObservation,
+    PageRecordCounterSnapshot, PhysicalReferenceValidationCounterSnapshot,
+    PlatformPhysicalScanReport,
 };
 
 pub(crate) fn facade_reports(
     scan: &PlatformPhysicalScanReport,
-    counters: PhysicalStoreRuntimeCounterSnapshot,
-) -> Result<Vec<PhysicalStoreRuntimeEvidenceReport>, PhysicalSubstrateCertificationDenial> {
+    counters: InMemoryPhysicalFormatModelCounterSnapshot,
+) -> Result<Vec<InMemoryPhysicalFormatModelEvidenceReport>, PhysicalSubstrateCertificationDenial> {
     Ok(vec![
-        PhysicalStoreRuntimeEvidenceReport::from_facade_evidence(
-            PhysicalStoreRuntimeEvidenceRow::OperationSurface,
+        InMemoryPhysicalFormatModelEvidenceReport::from_facade_evidence(
+            InMemoryPhysicalFormatModelEvidenceRow::OperationSurface,
             &scan.platform_evidence(),
         )
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeEvidenceRejected)?,
-        PhysicalStoreRuntimeEvidenceReport::from_facade_evidence(
-            PhysicalStoreRuntimeEvidenceRow::RuntimeVerifierParity,
+        InMemoryPhysicalFormatModelEvidenceReport::from_facade_evidence(
+            InMemoryPhysicalFormatModelEvidenceRow::RuntimeVerifierParity,
             &scan.platform_evidence(),
         )
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeEvidenceRejected)?,
-        PhysicalStoreRuntimeEvidenceReport::from_shortcut_counters(counters)
+        InMemoryPhysicalFormatModelEvidenceReport::from_shortcut_counters(counters)
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeEvidenceRejected)?,
     ])
 }
@@ -36,12 +37,12 @@ pub(crate) fn facade_reports(
 pub(crate) fn offline_reports(
     scan: &PlatformPhysicalScanReport,
 ) -> Result<Vec<PhysicalOfflineVerifierEvidenceReport>, PhysicalSubstrateCertificationDenial> {
-    let runtime = RuntimeLayoutObservation::from_facade_scan(scan);
+    let runtime = InMemoryModelLayoutObservation::from_model_scan(scan);
     let offline = OfflineVerifierLayoutObservation::from_verifier_report(scan.verifier_report());
     let comparison = PhysicalRuntimeVerifierComparison::compare(&runtime, &offline)
         .map_err(|_| PhysicalSubstrateCertificationDenial::RuntimeVerifierComparisonDenied)?;
     let mismatch_scan = PhysicalSubstrateCertificationScan::with_page_only()?;
-    let mismatch_runtime = RuntimeLayoutObservation::from_facade_scan(&mismatch_scan);
+    let mismatch_runtime = InMemoryModelLayoutObservation::from_model_scan(&mismatch_scan);
     let mismatch = PhysicalRuntimeVerifierComparison::compare(&mismatch_runtime, &offline)
         .err()
         .ok_or(PhysicalSubstrateCertificationDenial::RuntimeVerifierMismatchNotDetected)?;

@@ -98,21 +98,10 @@ pub enum S2EntryBoundaryEvidenceDenial {
 
 #[cfg(test)]
 mod tests {
-    use crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::physical_substrate_readiness;
     use crate::{
         S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow, S2ForbiddenEntryAttempt,
     };
     use worth_store_buffer_pool::BufferPoolEntryDenialKind;
-
-    #[test]
-    fn physical_substrate_entry_boundary_reports_every_readiness_consumption_row() {
-        let readiness = physical_substrate_readiness();
-        for row in S2EntryBoundaryEvidenceRow::physical_substrate_readiness_rows() {
-            let report = S2EntryBoundaryEvidenceReport::from_readiness(*row, &readiness).unwrap();
-
-            assert_eq!(report.row(), *row);
-        }
-    }
 
     #[test]
     fn physical_substrate_entry_boundary_reports_every_forbidden_shortcut_with_buffer_pool_denial()
@@ -136,22 +125,5 @@ mod tests {
             );
             assert_eq!(attempt.buffer_pool_denial_kind(), denial);
         }
-    }
-
-    #[test]
-    fn forbidden_shortcut_row_cannot_be_reported_as_readiness_consumption() {
-        let readiness = physical_substrate_readiness();
-        let denial = S2EntryBoundaryEvidenceReport::from_readiness(
-            S2EntryBoundaryEvidenceRow::ForbiddenEntryAttemptRejected(
-                S2ForbiddenEntryAttempt::RawPageId,
-            ),
-            &readiness,
-        )
-        .unwrap_err();
-
-        assert_eq!(
-            denial,
-            crate::S2EntryBoundaryEvidenceDenial::WrongEvidenceRow
-        );
     }
 }

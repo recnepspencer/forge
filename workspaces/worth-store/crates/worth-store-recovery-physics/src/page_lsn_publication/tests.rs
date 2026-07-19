@@ -3,9 +3,7 @@ use worth_store_buffer_pool::{
     ResidentFrameAdmission, ResidentFrameLoadRequest, ResidentFrameTable,
     ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
 };
-use worth_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
-};
+use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_physical_backend::{
     PosixFileFsyncDirFsyncProfile, WalDurabilityBarrier, WalDurabilityBarrierSet,
 };
@@ -14,9 +12,6 @@ use worth_store_physical_format::{
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
     PhysicalPageId, PhysicalRecordSlot, PhysicalReferenceAuthority,
     PhysicalReferenceValidationWitness, PhysicalSegmentId, SlotGenerationCell,
-};
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 use crate::wal_durability::WalAppendByteObservation;
@@ -263,17 +258,13 @@ fn scheduled_dirty_publication(payload: &[u8]) -> DirtyPublicationReceipt {
 }
 
 fn resident_frame_table() -> ResidentFrameTable {
-    let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
-    )
-    .unwrap();
     let budget = BufferPoolBudget::declare(
         ResidentMemoryBudget::bytes(8192).unwrap(),
         PinnedPageBudget::pages(4).unwrap(),
         DirtyPageBudget::pages(2).unwrap(),
     );
     let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        readiness.physical_substrate_snapshot(),
+        physical_substrate_model_snapshot(),
     )
     .unwrap()
     .with_budget(budget)
@@ -358,24 +349,8 @@ fn page_generation(generation_value: u64, page_value: u64) -> PageGenerationCell
         .with_page_generation(generation(generation_value))
 }
 
-fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-        ROADMAP_2_S1_SCOPE,
-        HandoffEvidenceDigestSet::new(
-            digest("backend"),
-            digest("deferred"),
-            digest("harness"),
-            digest("terms"),
-            digest("audit"),
-            digest("complexity"),
-            digest("provenance"),
-        ),
-    )
-    .unwrap()
-}
-
-fn digest(name: &str) -> StableDigest {
-    StableDigest::new(format!("sha256:{name}")).unwrap()
+fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

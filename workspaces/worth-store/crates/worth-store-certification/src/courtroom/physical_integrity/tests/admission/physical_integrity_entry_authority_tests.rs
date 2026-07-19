@@ -1,7 +1,8 @@
 use crate::{
     courtroom::harness::test_support::bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
-        harness_evidence, physical_substrate_readiness, pressure_bundles, synthetic_rejections,
+        harness_evidence, physical_substrate_model_snapshot, pressure_bundles,
+        synthetic_rejections,
     },
     courtroom::harness::test_support::record_view_evidence_test_support::{
         admit_payload_frame, resident_frame_table,
@@ -16,17 +17,16 @@ use worth_store_physical_integrity::{
 };
 
 #[test]
-fn equivalent_physical_substrate_closeouts_lower_to_same_physical_integrity_entry_basis_and_scrub_limits(
-) {
-    let first = admit_entry_from_independent_closeout(b"phase1-first");
-    let second = admit_entry_from_independent_closeout(b"phase1-second");
+fn equivalent_integrity_model_payloads_admit_same_entry_basis_and_scrub_limits() {
+    let first = admit_entry_from_model_payload(b"phase1-first");
+    let second = admit_entry_from_model_payload(b"phase1-second");
 
-    assert_equivalent_entry_authority(first, second);
+    assert_equivalent_entry_model_observation(first, second);
 }
 
 #[test]
 fn physical_integrity_entry_admits_only_live_protected_physical_substrate_views() {
-    let admitted = admit_entry_from_independent_closeout(b"phase1-live-view");
+    let admitted = admit_entry_from_model_payload(b"phase1-live-view");
 
     assert_eq!(admitted.protected_bytes, b"phase1-live-view");
     assert!(admitted.basis.protected_view_count() > 0);
@@ -35,11 +35,8 @@ fn physical_integrity_entry_admits_only_live_protected_physical_substrate_views(
 #[test]
 fn physical_integrity_entry_denies_empty_live_protected_physical_substrate_view_before_witness_minting(
 ) {
-    let readiness = complete_closeout_report()
-        .publish_physical_integrity_readiness(physical_substrate_readiness())
-        .unwrap();
-    let admission =
-        IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
+    let payload = model_integrity_payload();
+    let admission = IntegrityEntryAdmission::from_integrity_model_payload(payload).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 31, 5, b"");
     let page = table.lease_page(frame.resident_frame_token()).unwrap();
@@ -65,12 +62,9 @@ struct EntryAdmissionObservation {
     protected_bytes: Vec<u8>,
 }
 
-fn admit_entry_from_independent_closeout(payload: &[u8]) -> EntryAdmissionObservation {
-    let readiness = complete_closeout_report()
-        .publish_physical_integrity_readiness(physical_substrate_readiness())
-        .unwrap();
-    let admission =
-        IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
+fn admit_entry_from_model_payload(payload: &[u8]) -> EntryAdmissionObservation {
+    let model_payload = model_integrity_payload();
+    let admission = IntegrityEntryAdmission::from_integrity_model_payload(model_payload).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 31, 5, payload);
     let page = table.lease_page(frame.resident_frame_token()).unwrap();
@@ -94,7 +88,15 @@ fn admit_entry_from_independent_closeout(payload: &[u8]) -> EntryAdmissionObserv
     }
 }
 
-fn assert_equivalent_entry_authority(
+fn model_integrity_payload() -> worth_store_contracts::PhysicalIntegrityReadinessPayload {
+    crate::courtroom::physical_integrity::readiness_handoff::model_payload_from_closeout(
+        complete_closeout_report(),
+        physical_substrate_model_snapshot(),
+    )
+    .unwrap()
+}
+
+fn assert_equivalent_entry_model_observation(
     first: EntryAdmissionObservation,
     second: EntryAdmissionObservation,
 ) {

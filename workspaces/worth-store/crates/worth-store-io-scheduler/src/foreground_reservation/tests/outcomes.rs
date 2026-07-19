@@ -41,52 +41,6 @@ fn certification_only_envelope_is_held_not_execution_ready() {
 }
 
 #[test]
-fn rebind_required_basis_is_stateful_denial_not_execution_ready() {
-    let readiness = io_qos_readiness_admission();
-    let security = io_qos_security_scope_admission();
-    let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
-    let lane = point_read_lane();
-    let arbitration = ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead);
-    let capacity = super::super::capacity_admission::rebind_required_capacity_admission_for_test(
-        capacity_admission(
-            lane,
-            &backend,
-            &readiness,
-            &security,
-            arbitration,
-            lane.requested_budget(),
-            full_capacity_budget(),
-        ),
-    );
-    let outcome = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
-        lane,
-        &backend,
-        &readiness,
-        &security,
-        arbitration,
-        &capacity,
-    ));
-
-    assert_eq!(
-        outcome.state(),
-        ForegroundReservationState::ReservationStaleRebindRequired
-    );
-    assert!(matches!(
-        outcome.into_result(),
-        Err(ForegroundReservationAdmissionDenial::ReservationBasisRebindRequired)
-    ));
-    if let ForegroundReservationAdmissionOutcome::StaleRebindRequired(stale) = outcome {
-        assert_eq!(stale.lane(), ForegroundIoLaneKind::PointRead);
-        assert_eq!(
-            stale.counters().denied_budget(),
-            point_read_lane().requested_budget()
-        );
-    } else {
-        panic!("rebind outcome must carry stale/rebind proof state");
-    }
-}
-
-#[test]
 fn envelope_violation_reports_typed_cause() {
     let receipt = admit_point_read_reservation();
     let violation = receipt

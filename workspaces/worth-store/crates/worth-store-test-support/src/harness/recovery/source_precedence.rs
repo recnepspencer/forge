@@ -81,8 +81,9 @@ pub fn wal_only_tail_denial_from_torn_frame(start: u64, end: u64) -> WalOnlyTail
     wal_only_tail_fixture::wal_only_tail_denial_from_torn_frame(wal_range(start, end))
 }
 
-pub fn physical_integrity_readiness() -> worth_store_readiness::PhysicalIntegrityReadiness {
-    wal_only_tail_fixture::physical_integrity_readiness()
+pub fn physical_integrity_model_payload() -> worth_store_contracts::PhysicalIntegrityReadinessPayload
+{
+    wal_only_tail_fixture::physical_integrity_model_payload()
 }
 
 pub fn intact_wal_integrity_evidence(

@@ -45,7 +45,7 @@ const PHYSICAL_FIXTURES: &[(&str, &[&str])] = &[
     ),
     (
         "platform_physical_runtime_receipt_cannot_be_minted.rs",
-        &["PlatformPhysicalRuntimeReceipt", "private fields"],
+        &["PlatformPhysicalModelReceipt", "private fields"],
     ),
 ];
 

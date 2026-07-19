@@ -45,6 +45,8 @@ worth-store-tiering.workspace = true
 worth-store-wal.workspace = true
 
 [dev-dependencies]
+stats_alloc = "0.1"
+trybuild = "1.0"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 

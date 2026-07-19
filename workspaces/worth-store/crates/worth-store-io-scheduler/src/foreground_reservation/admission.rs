@@ -1,13 +1,11 @@
 use crate::IoSchedulerBackendCapabilityRequirement;
 
-use super::proof::prove_foreground_reservation_progression;
 use super::resource_contract::{require_declared_resource_budget, require_lane_resource_contract};
 use super::{
     ForegroundLatencyEnvelopeKind, ForegroundReservationAdmissionDenial,
     ForegroundReservationAdmissionOutcome, ForegroundReservationAdmissionRequest,
     ForegroundReservationCounterSnapshot, ForegroundReservationDenied, ForegroundReservationHeld,
-    ForegroundReservationReceipt, ForegroundReservationStaleRebindRequired,
-    ForegroundResourceBudget,
+    ForegroundReservationReceipt, ForegroundResourceBudget,
 };
 
 pub fn admit_foreground_reservation(
@@ -59,17 +57,6 @@ pub fn admit_foreground_reservation(
     if let Err(denial) = require_capacity_admission_matches_request(&request) {
         return denied(&request, denial);
     }
-    match prove_foreground_reservation_progression(&request).into_raw() {
-        worth_proof::TransitionOutcome::Success(_) => {}
-        worth_proof::TransitionOutcome::Denied(denial) => return denied(&request, denial),
-        worth_proof::TransitionOutcome::Deferred(deferred) => match deferred {},
-        worth_proof::TransitionOutcome::Stale(_) => return stale_rebind_required(&request),
-        worth_proof::TransitionOutcome::RebindRequired(_) => {
-            return stale_rebind_required(&request)
-        }
-        worth_proof::TransitionOutcome::Failed(failed) => match failed {},
-    }
-
     let readiness_counters = request.stable_readiness().counters();
     let reservation_counters = ForegroundReservationCounterSnapshot::admitted(
         lane.requested_budget(),
@@ -218,22 +205,5 @@ fn denied_counters(
         request.lane().requested_budget(),
         request.capacity_admission().assumed_backend_limits(),
         denied_budget,
-    )
-}
-
-fn stale_rebind_required(
-    request: &ForegroundReservationAdmissionRequest<'_>,
-) -> ForegroundReservationAdmissionOutcome {
-    let counters = ForegroundReservationCounterSnapshot::denied_capacity(
-        request.lane().requested_budget(),
-        request.capacity_admission().assumed_backend_limits(),
-        request.capacity_admission().requested_budget(),
-    );
-    ForegroundReservationAdmissionOutcome::StaleRebindRequired(
-        ForegroundReservationStaleRebindRequired::new(
-            request.lane().lane(),
-            counters,
-            ForegroundReservationAdmissionDenial::ReservationBasisRebindRequired,
-        ),
     )
 }

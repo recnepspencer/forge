@@ -8,7 +8,6 @@ mod denial;
 mod envelope;
 mod fairness;
 mod lane;
-mod proof;
 mod receipt;
 mod request;
 mod resource_contract;
@@ -19,11 +18,10 @@ mod test_authority;
 mod violation;
 
 pub use admission::admit_foreground_reservation;
-pub(crate) use capacity_admission::ForegroundReservationAdmissionBoundary;
 pub use capacity_admission::{
     admit_foreground_reservation_capacity, ForegroundReservationCapacityAdmission,
     ForegroundReservationCapacityAdmissionDenial, ForegroundReservationCapacityAdmissionRequest,
-    ForegroundReservationCapacityAuthority,
+    ForegroundReservationCapacityBasis,
 };
 pub use counters::ForegroundReservationCounterSnapshot;
 pub use denial::{ForegroundReservationAdmissionDenial, ForegroundReservationResourceShortfall};
@@ -36,8 +34,7 @@ pub use lane::{ForegroundIoLaneKind, ForegroundLaneDeclaration};
 pub(crate) use receipt::ForegroundReservationBackendBasis;
 pub use receipt::{
     ForegroundReservationAdmissionOutcome, ForegroundReservationDenied, ForegroundReservationHeld,
-    ForegroundReservationReceipt, ForegroundReservationStaleRebindRequired,
-    ForegroundReservationState,
+    ForegroundReservationReceipt, ForegroundReservationState,
 };
 pub use request::{
     reject_copied_physical_isolation_counters_as_foreground_reservation,

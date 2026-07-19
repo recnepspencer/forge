@@ -60,12 +60,6 @@ impl BlobStreamingReadAdmission {
             ForegroundReservationAdmissionOutcome::Denied(denied) => {
                 Err(BlobStreamingReadDenial::ForegroundReservationAdmissionDenied(denied.denial()))
             }
-            ForegroundReservationAdmissionOutcome::StaleRebindRequired(stale) => {
-                Err(BlobStreamingReadDenial::ForegroundReservationNotAdmitted {
-                    lane: stale.lane(),
-                    state: stale.state(),
-                })
-            }
         }
     }
 
