@@ -1,7 +1,13 @@
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+
+use serde::{ser::SerializeSeq, Serialize, Serializer};
 use serde_json::json;
 use worth_server::{
     WorthServerProductResultArtifact, WorthServerProductResultArtifactErrorCode,
-    WorthServerProductResultContract,
+    WorthServerProductResultContract, WorthServerProductResultValue,
 };
 
 #[path = "support/product_result/schema_bound_json.rs"]
@@ -75,6 +81,30 @@ fn declared_inline_budget_rejects_oversized_result_bodies() {
 }
 
 #[test]
+fn inline_budget_stops_serialization_before_unbounded_materialization() {
+    let contract =
+        WorthServerProductResultContract::canonical_json("product.connection.result.v1", 1, 64)
+            .expect("result contract should validate");
+    let visited_items = Arc::new(AtomicUsize::new(0));
+    let result = CountingOversizedResult {
+        item_count: 1_000_000,
+        visited_items: visited_items.clone(),
+    };
+
+    let error = WorthServerProductResultArtifact::publish_json(&contract, &result)
+        .expect_err("bounded publication must stop the serializer at the inline limit");
+
+    assert_eq!(
+        error.code(),
+        WorthServerProductResultArtifactErrorCode::InlineBudgetExceeded
+    );
+    assert!(
+        visited_items.load(Ordering::Relaxed) < 100,
+        "the serializer must not walk the complete oversized value"
+    );
+}
+
+#[test]
 fn canonical_contract_digest_frames_delimiter_bearing_schema_identity() {
     let left = WorthServerProductResultContract::canonical_json("schema|version=2", 1, 1024)
         .expect("delimiter-bearing identity should remain representable");
@@ -95,4 +125,33 @@ fn publish(
         &SchemaBoundJsonResult::v1("product.connection.result.v1", body),
     )
     .expect("schema-bound result should publish")
+}
+
+struct CountingOversizedResult {
+    item_count: usize,
+    visited_items: Arc<AtomicUsize>,
+}
+
+impl Serialize for CountingOversizedResult {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut sequence = serializer.serialize_seq(Some(self.item_count))?;
+        for _ in 0..self.item_count {
+            self.visited_items.fetch_add(1, Ordering::Relaxed);
+            sequence.serialize_element("oversized-result-item")?;
+        }
+        sequence.end()
+    }
+}
+
+impl WorthServerProductResultValue for CountingOversizedResult {
+    fn result_schema_identity(&self) -> &str {
+        "product.connection.result.v1"
+    }
+
+    fn result_schema_version(&self) -> u32 {
+        1
+    }
 }

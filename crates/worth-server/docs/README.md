@@ -18,7 +18,7 @@ How to think about `worth-server`:
 
 - `WorthServer::worth_native()` is the direct Rust surface.
 - `WorthServer::compat_http()` is the compatibility boundary that normalizes
-  HTTP-shaped requests into canonical WORTH execution.
+  HTTP-shaped requests into canonical Worth execution.
 - The compatibility surface is strict on purpose. It denies dishonest cache,
   basis, validator, upload, and resume claims before they become authority.
 

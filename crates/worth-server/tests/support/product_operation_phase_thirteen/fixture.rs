@@ -13,11 +13,9 @@ use worth_server::{
     WorthServerProductSessionCreationRequest, WorthServerWorthNativeSession,
 };
 
-#[path = "../product_result/schema_bound_json.rs"]
-mod schema_bound_json;
-
 #[path = "../product_adapter_phase_nine/fixture.rs"]
 mod product_adapter_phase_nine_fixture;
+use product_adapter_phase_nine_fixture::schema_bound_json;
 
 #[derive(Clone, Debug)]
 pub struct StatefulEditorLikeBackend {

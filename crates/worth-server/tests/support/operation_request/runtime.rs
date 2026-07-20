@@ -116,7 +116,7 @@ pub(crate) fn worth_native_resolved_context_for_principal(
     match server.request_contexts().resolve(
         builder
             .build()
-            .expect("WORTH-native request context should validate"),
+            .expect("Worth-native request context should validate"),
     ) {
         TransitionReadiness::Ready(resolved) => resolved,
         other => panic!("expected resolved request context, got {other:?}"),
@@ -133,6 +133,6 @@ pub(crate) fn worth_native_admission(
         WorthServerPipelineIntent::query_mutation(operation_name),
     )) {
         TransitionOutcome::Success(admission) => admission,
-        other => panic!("expected admitted WORTH-native operation, got {other:?}"),
+        other => panic!("expected admitted Worth-native operation, got {other:?}"),
     }
 }

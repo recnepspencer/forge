@@ -5,26 +5,26 @@ use crate::{
 
 #[derive(Debug)]
 pub enum WorthServerResponseInput {
-    QueryHandoffSuccess(WorthServerQueryHandoff),
-    RequestContextDenied(WorthServerRequestContextDenial),
-    MiddlewareDenied(WorthServerDenial),
-    QueryHandoffDenied(WorthServerQueryHandoffDenial),
+    QueryHandoffSuccess(Box<WorthServerQueryHandoff>),
+    RequestContextDenied(Box<WorthServerRequestContextDenial>),
+    MiddlewareDenied(Box<WorthServerDenial>),
+    QueryHandoffDenied(Box<WorthServerQueryHandoffDenial>),
 }
 
 impl WorthServerResponseInput {
     pub fn query_handoff_success(handoff: WorthServerQueryHandoff) -> Self {
-        Self::QueryHandoffSuccess(handoff)
+        Self::QueryHandoffSuccess(Box::new(handoff))
     }
 
     pub fn request_context_denied(denial: WorthServerRequestContextDenial) -> Self {
-        Self::RequestContextDenied(denial)
+        Self::RequestContextDenied(Box::new(denial))
     }
 
     pub fn middleware_denied(denial: WorthServerDenial) -> Self {
-        Self::MiddlewareDenied(denial)
+        Self::MiddlewareDenied(Box::new(denial))
     }
 
     pub fn query_handoff_denied(denial: WorthServerQueryHandoffDenial) -> Self {
-        Self::QueryHandoffDenied(denial)
+        Self::QueryHandoffDenied(Box::new(denial))
     }
 }

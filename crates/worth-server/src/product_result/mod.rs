@@ -1,5 +1,6 @@
 mod artifact;
 mod body;
+mod bounded_serialization;
 mod canonicalization;
 mod contract;
 mod typed_value;

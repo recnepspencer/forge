@@ -110,18 +110,18 @@ impl WorthServerProductSessionRegistry {
             ));
         }
         let closed_at_epoch_millis = self.clock.current_time_millis();
-        let closed = WorthServerProductSession::new(
-            session.identity().clone(),
-            WorthServerProductSessionLifecycle::Closed,
-            WorthServerProductSessionExpiryPosture::Closed {
+        let closed = WorthServerProductSession::new(super::WorthServerProductSessionParts {
+            identity: session.identity().clone(),
+            lifecycle: WorthServerProductSessionLifecycle::Closed,
+            expiry_posture: WorthServerProductSessionExpiryPosture::Closed {
                 closed_at_epoch_millis,
             },
-            session.operation_name(),
-            session.tenant_id(),
-            session.workspace_id(),
-            session.branch_label(),
-            session.basis_digest().map(str::to_string),
-        );
+            operation_name: session.operation_name().to_string(),
+            tenant_id: session.tenant_id().to_string(),
+            workspace_id: session.workspace_id().to_string(),
+            branch_label: session.branch_label().to_string(),
+            basis_digest: session.basis_digest().map(str::to_string),
+        });
         self.records
             .lock()
             .expect("product session registry lock")
@@ -183,28 +183,31 @@ impl WorthServerProductSessionRegistry {
     ) -> WorthServerProductSession {
         let created_at_epoch_millis = self.clock.current_time_millis();
         let identity = self.mint_identity(resolved_request_context);
-        let session = WorthServerProductSession::new(
-            identity.clone(),
+        let session = WorthServerProductSession::new(super::WorthServerProductSessionParts {
+            identity: identity.clone(),
             lifecycle,
-            WorthServerProductSessionExpiryPosture::Active {
+            expiry_posture: WorthServerProductSessionExpiryPosture::Active {
                 expires_at_epoch_millis: created_at_epoch_millis
                     .saturating_add(request.expiry_seconds().saturating_mul(1000)),
             },
-            request.operation_name(),
-            resolved_request_context
+            operation_name: request.operation_name().to_string(),
+            tenant_id: resolved_request_context
                 .request_context()
                 .workspace_target()
-                .tenant_id(),
-            resolved_request_context
+                .tenant_id()
+                .to_string(),
+            workspace_id: resolved_request_context
                 .request_context()
                 .workspace_target()
-                .workspace_id(),
-            resolved_request_context
+                .workspace_id()
+                .to_string(),
+            branch_label: resolved_request_context
                 .request_context()
                 .branch_target()
-                .canonical_label(),
-            request.basis_digest().map(str::to_string),
-        );
+                .canonical_label()
+                .to_string(),
+            basis_digest: request.basis_digest().map(str::to_string),
+        });
         self.records
             .lock()
             .expect("product session registry lock")
@@ -250,18 +253,18 @@ impl WorthServerProductSessionRegistry {
         if observed_at_epoch_millis < *expires_at_epoch_millis {
             return session;
         }
-        WorthServerProductSession::new(
-            session.identity().clone(),
-            session.lifecycle(),
-            WorthServerProductSessionExpiryPosture::Expired {
+        WorthServerProductSession::new(super::WorthServerProductSessionParts {
+            identity: session.identity().clone(),
+            lifecycle: session.lifecycle(),
+            expiry_posture: WorthServerProductSessionExpiryPosture::Expired {
                 expires_at_epoch_millis: *expires_at_epoch_millis,
                 observed_at_epoch_millis,
             },
-            session.operation_name(),
-            session.tenant_id(),
-            session.workspace_id(),
-            session.branch_label(),
-            session.basis_digest().map(str::to_string),
-        )
+            operation_name: session.operation_name().to_string(),
+            tenant_id: session.tenant_id().to_string(),
+            workspace_id: session.workspace_id().to_string(),
+            branch_label: session.branch_label().to_string(),
+            basis_digest: session.basis_digest().map(str::to_string),
+        })
     }
 }

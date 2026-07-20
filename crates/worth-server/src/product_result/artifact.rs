@@ -23,11 +23,11 @@ impl WorthServerProductResultArtifactError {
         }
     }
 
-    fn inline_budget_exceeded(actual_bytes: usize, max_inline_bytes: usize) -> Self {
+    fn inline_budget_exceeded(max_inline_bytes: usize) -> Self {
         Self {
             code: WorthServerProductResultArtifactErrorCode::InlineBudgetExceeded,
             detail: format!(
-                "product result body used {actual_bytes} canonical bytes and exceeded the declared {max_inline_bytes}-byte inline budget"
+                "product result body exceeded the declared {max_inline_bytes}-byte inline budget"
             ),
         }
     }
@@ -83,7 +83,21 @@ impl WorthServerProductResultArtifact {
                 ),
             );
         }
-        let value = serde_json::to_value(value)
+        let serialized = match super::bounded_serialization::serialize_with_inline_budget(
+            value,
+            contract.max_inline_bytes(),
+        ) {
+            Ok(serialized) => serialized,
+            Err(super::bounded_serialization::WorthServerBoundedJsonSerializationError::Serialization(error)) => {
+                return Err(WorthServerProductResultArtifactError::serialization_failed(error));
+            }
+            Err(super::bounded_serialization::WorthServerBoundedJsonSerializationError::InlineBudgetExceeded) => {
+                return Err(WorthServerProductResultArtifactError::inline_budget_exceeded(
+                    contract.max_inline_bytes(),
+                ));
+            }
+        };
+        let value = serde_json::from_slice(&serialized)
             .map_err(WorthServerProductResultArtifactError::serialization_failed)?;
         Self::canonical_json(contract, value)
     }
@@ -97,7 +111,6 @@ impl WorthServerProductResultArtifact {
         if body.byte_len() > contract.max_inline_bytes() {
             return Err(
                 WorthServerProductResultArtifactError::inline_budget_exceeded(
-                    body.byte_len(),
                     contract.max_inline_bytes(),
                 ),
             );

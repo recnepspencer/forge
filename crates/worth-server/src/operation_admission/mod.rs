@@ -11,6 +11,8 @@ mod metadata;
 mod posture;
 mod scope;
 
+pub(crate) use admission_logic::authorize_operation;
+
 pub use authorization::WorthServerOperationAuthorizationProof;
 pub use concurrency::{
     WorthServerOperationConcurrencyClass, WorthServerOperationConcurrencyDenial,

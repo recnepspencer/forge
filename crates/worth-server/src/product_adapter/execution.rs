@@ -137,6 +137,11 @@ impl WorthServerProductOperationRuntime {
                 ),
             ));
         };
+        crate::durable_product_mutation::admit_durable_product_recovery(
+            &self.operation_registry,
+            admission,
+            declaration,
+        )?;
         let workspace_target = admission.request_context().workspace_target();
         if recovery.tenant_id() != workspace_target.tenant_id()
             || recovery.workspace_id() != workspace_target.workspace_id()

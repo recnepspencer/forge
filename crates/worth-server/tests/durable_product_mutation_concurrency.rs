@@ -57,16 +57,27 @@ fn disjoint_product_scopes_enter_transactions_concurrently() {
 #[test]
 fn same_scope_same_basis_chooses_one_winner() {
     let executor = TestDurableProductExecutor::default();
-    let server = build_server(&executor);
-    let session = session(&server, "tenant-a", "workspace-42");
+    let first_server = build_server(&executor);
+    let second_server = build_server(&executor);
+    let sessions = [
+        session(&first_server, "tenant-a", "workspace-42"),
+        session(&second_server, "tenant-a", "workspace-42"),
+    ];
     let outcomes = std::thread::scope(|scope| {
         [
-            (json!({ "connection_id": "host-7" }), "same-scope-a"),
-            (json!({ "connection_id": "host-8" }), "same-scope-b"),
+            (
+                sessions[0].clone(),
+                json!({ "connection_id": "host-7" }),
+                "same-scope-a",
+            ),
+            (
+                sessions[1].clone(),
+                json!({ "connection_id": "host-8" }),
+                "same-scope-b",
+            ),
         ]
         .into_iter()
-        .map(|(body, key)| {
-            let session = session.clone();
+        .map(|(session, body, key)| {
             scope.spawn(move || {
                 execute(
                     &session,

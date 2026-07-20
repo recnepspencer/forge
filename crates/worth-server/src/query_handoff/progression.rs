@@ -21,7 +21,7 @@ pub(crate) fn prepare_query_handoff(
     let admission = operation_admission.authorization_proof().admission();
     let diagnostics_profile = admission.request_context().diagnostics_profile();
 
-    if let Some(denial) = validate_prepared_intent(&admission, &operation) {
+    if let Some(denial) = validate_prepared_intent(admission, &operation) {
         return TransitionOutcome::Denied(denial);
     }
 
@@ -78,37 +78,39 @@ pub(crate) fn prepare_query_handoff(
         }
     };
 
-    let canonical_digest = canonical_digest(
-        admission
+    let canonical_digest = canonical_digest(QueryHandoffDigestParts {
+        tenant_id: admission
             .resolved_request_context()
             .request_context()
             .workspace_target()
             .tenant_id(),
-        admission
+        workspace_id: admission
             .resolved_request_context()
             .request_context()
             .workspace_target()
             .workspace_id(),
-        workspace.name(),
-        &operation,
-        operation_admission.canonical_digest(),
-        operation_support_posture.canonical_digest(),
-        precondition_posture.canonical_digest(),
-        concurrency_class_label(&concurrency_class),
-        downstream_delivery_contract.contract_for_reporting(),
-    );
+        workspace_name: workspace.name(),
+        operation: &operation,
+        operation_admission_digest: operation_admission.canonical_digest(),
+        support_digest: operation_support_posture.canonical_digest(),
+        precondition_digest: precondition_posture.canonical_digest(),
+        concurrency_label: concurrency_class_label(&concurrency_class),
+        contract_digest: downstream_delivery_contract.contract_for_reporting(),
+    });
 
     TransitionOutcome::Success(WorthServerQueryHandoff::new(
-        operation_admission,
-        operation,
-        workspace,
-        downstream_delivery_contract,
-        operation_support_posture.clone(),
-        operation_support_posture.composition_receipt().clone(),
-        precondition_posture,
-        concurrency_class,
-        support_posture,
-        canonical_digest,
+        super::WorthServerQueryHandoffParts {
+            operation_admission,
+            operation,
+            workspace,
+            downstream_delivery_contract,
+            operation_support_posture: operation_support_posture.clone(),
+            support_composition_receipt: operation_support_posture.composition_receipt().clone(),
+            precondition_posture,
+            concurrency_class,
+            support_posture,
+            canonical_digest,
+        },
     ))
 }
 
@@ -157,17 +159,30 @@ fn validate_prepared_intent(
     }
 }
 
-fn canonical_digest(
-    tenant_id: &str,
-    workspace_id: &str,
-    workspace_name: &str,
-    operation: &WorthServerQueryHandoffOperation,
-    operation_admission_digest: &str,
-    support_digest: &str,
-    precondition_digest: &str,
-    concurrency_label: &str,
-    contract_digest: &str,
-) -> String {
+struct QueryHandoffDigestParts<'a> {
+    tenant_id: &'a str,
+    workspace_id: &'a str,
+    workspace_name: &'a str,
+    operation: &'a WorthServerQueryHandoffOperation,
+    operation_admission_digest: &'a str,
+    support_digest: &'a str,
+    precondition_digest: &'a str,
+    concurrency_label: &'a str,
+    contract_digest: &'a str,
+}
+
+fn canonical_digest(parts: QueryHandoffDigestParts<'_>) -> String {
+    let QueryHandoffDigestParts {
+        tenant_id,
+        workspace_id,
+        workspace_name,
+        operation,
+        operation_admission_digest,
+        support_digest,
+        precondition_digest,
+        concurrency_label,
+        contract_digest,
+    } = parts;
     format!(
         "worth-server-query-handoff-v3|tenant:{tenant_id}|workspace:{workspace_id}|bound:{workspace_name}|operation:{}|operation_admission:{operation_admission_digest}|support:{support_digest}|precondition:{precondition_digest}|concurrency:{concurrency_label}|contract:{contract_digest}",
         operation.canonical_label(),

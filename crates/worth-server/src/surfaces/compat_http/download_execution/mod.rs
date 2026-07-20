@@ -17,6 +17,7 @@ pub use integrity::WorthServerBinaryIntegrityDigest;
 pub use performance::WorthServerBinaryEgressPerformanceReceipt;
 pub use range::WorthServerRangeRequest;
 pub use request::WorthServerBinaryDownloadRequest;
+pub(crate) use response::WorthServerBinaryEgressSessionParts;
 pub use response::{WorthServerBinaryDownload, WorthServerBinaryEgressSession};
 pub use resume::WorthServerBinaryResumeRequest;
 pub use retry_posture::WorthServerBinaryRetryPosture;

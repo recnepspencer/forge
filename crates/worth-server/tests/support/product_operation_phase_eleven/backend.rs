@@ -9,8 +9,7 @@ use worth_server::{
     WorthServerProductOperationSupportSnapshot,
 };
 
-#[path = "../product_result/schema_bound_json.rs"]
-mod schema_bound_json;
+use crate::fixture::schema_bound_json;
 
 #[derive(Clone, Debug)]
 pub struct StatefulProductEditorBackend {
@@ -147,6 +146,12 @@ fn declared(
     declaration: WorthServerProductOperationDeclaration,
 ) -> WorthServerProductOperationDeclaration {
     declaration.with_error_map(WorthServerProductOperationErrorMaps::passthrough())
+}
+
+impl Default for StatefulProductEditorBackend {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 fn result_contract(schema_identity: &str) -> worth_server::WorthServerProductResultContract {

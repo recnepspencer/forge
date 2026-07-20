@@ -38,23 +38,40 @@ pub struct WorthServerCompatibilityInspection {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerCompatibilityInspectionParts {
+    pub(crate) operation_name: String,
+    pub(crate) plan_proof: crate::WorthServerOperationPlanProof,
+    pub(crate) support_posture: WorthServerQuerySupportPosture,
+    pub(crate) workspace_name: String,
+    pub(crate) declaration_digest: String,
+    pub(crate) handoff_digest: String,
+    pub(crate) direct_context: WorthServerDirectContextArtifact,
+    pub(crate) basis_request: WorthServerExternalBasisRequest,
+    pub(crate) inspection_result: WorthQueryUnifiedInspectionResult,
+    pub(crate) response_envelope: WorthServerResponseEnvelope,
+    pub(crate) validator: WorthServerReadValidator,
+    pub(crate) cache_policy: WorthServerCompatibilityCachePolicy,
+    pub(crate) certification_bundle: WorthServerCompatibilityCertificationBundle,
+}
+
 impl WorthServerCompatibilityInspection {
-    pub(crate) fn new(
-        operation_name: impl Into<String>,
-        plan_proof: crate::WorthServerOperationPlanProof,
-        support_posture: WorthServerQuerySupportPosture,
-        workspace_name: String,
-        declaration_digest: String,
-        handoff_digest: String,
-        direct_context: WorthServerDirectContextArtifact,
-        basis_request: WorthServerExternalBasisRequest,
-        inspection_result: WorthQueryUnifiedInspectionResult,
-        response_envelope: WorthServerResponseEnvelope,
-        validator: WorthServerReadValidator,
-        cache_policy: WorthServerCompatibilityCachePolicy,
-        certification_bundle: WorthServerCompatibilityCertificationBundle,
-    ) -> Self {
-        let operation_name = operation_name.into().trim().to_string();
+    pub(crate) fn new(parts: WorthServerCompatibilityInspectionParts) -> Self {
+        let WorthServerCompatibilityInspectionParts {
+            operation_name,
+            plan_proof,
+            support_posture,
+            workspace_name,
+            declaration_digest,
+            handoff_digest,
+            direct_context,
+            basis_request,
+            inspection_result,
+            response_envelope,
+            validator,
+            cache_policy,
+            certification_bundle,
+        } = parts;
+        let operation_name = operation_name.trim().to_string();
         let file_envelope = project_metadata_inspection_envelope(
             &direct_context,
             &operation_name,
@@ -308,19 +325,21 @@ impl WorthServerCompatibilityFacade {
                 &response_envelope,
             );
         TransitionOutcome::Success(WorthServerCompatibilityInspection::new(
-            operation_name,
-            plan_proof,
-            support_posture,
-            workspace_name,
-            declaration.declaration_digest().to_string(),
-            handoff_digest,
-            direct_context,
-            basis_request,
-            inspection_result,
-            response_envelope,
-            validator,
-            cache_policy,
-            certification_bundle,
+            WorthServerCompatibilityInspectionParts {
+                operation_name,
+                plan_proof,
+                support_posture,
+                workspace_name,
+                declaration_digest: declaration.declaration_digest().to_string(),
+                handoff_digest,
+                direct_context,
+                basis_request,
+                inspection_result,
+                response_envelope,
+                validator,
+                cache_policy,
+                certification_bundle,
+            },
         ))
     }
 }

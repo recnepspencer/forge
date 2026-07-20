@@ -19,10 +19,6 @@ use worth_server::{
 
 #[path = "support/durable_product_mutation/mod.rs"]
 mod durable_support;
-#[path = "support/product_adapter_phase_nine/fixture.rs"]
-mod product_adapter_fixture;
-#[path = "support/product_result/schema_bound_json.rs"]
-mod schema_bound_json;
 
 #[test]
 fn adapter_cannot_return_a_result_under_an_undeclared_schema() {
@@ -46,8 +42,8 @@ fn adapter_cannot_return_a_result_under_an_undeclared_schema() {
         )
         .with_error_map(WorthServerProductOperationErrorMaps::passthrough()),
     );
-    let server = product_adapter_fixture::build_server(vec![registration]);
-    let denial = product_adapter_fixture::direct_session(&server)
+    let server = durable_support::build_server_with_registration(registration);
+    let denial = durable_support::direct_session(&server)
         .product_operations()
         .execute(
             WorthServerProductOperationInput::new(
@@ -122,7 +118,7 @@ impl WorthServerProductApplicationAdapter for WrongResultContractAdapter {
         &self,
         _operation: &WorthServerScheduledProductOperation,
     ) -> Result<WorthServerProductOperationSuccess, WorthServerProductAdapterExecutionError> {
-        schema_bound_json::publish_schema_bound_json(
+        durable_support::publish_schema_bound_json(
             "wrong-result",
             &self.returned_contract,
             self.returned_contract.schema().identity(),

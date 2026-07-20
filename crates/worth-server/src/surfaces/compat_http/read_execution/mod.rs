@@ -15,5 +15,6 @@ pub use execution::{
     WorthServerCompatibilityExecutionInput, WorthServerCompatibilityExecutionOutcome,
 };
 pub use inspection::WorthServerCompatibilityInspection;
+pub(crate) use read::WorthServerCompatibilityReadParts;
 pub use read::{WorthServerCompatibilityRead, WorthServerReadValidator};
 pub use state::WorthServerCompatibilityState;

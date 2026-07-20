@@ -8,6 +8,7 @@ pub use input::{
     WorthServerCompatibilityRequestInput, WorthServerCompatibilityRequestInputBuilder,
     WorthServerCompatibilityRequestInputError,
 };
+pub(crate) use request::WorthServerExternalRequestContractParts;
 pub use request::{
     WorthServerCanonicalHeaderSet, WorthServerCompatibilityVersion,
     WorthServerExternalRequestContract, WorthServerNegotiatedRepresentation,

@@ -239,7 +239,7 @@ pub(super) fn admit_metadata_for_family(
     }
 }
 
-pub(super) fn authorize_operation(
+pub(crate) fn authorize_operation(
     family: WorthServerOperationFamily,
     prepared_kind: WorthServerPreparedQueryHandoffKind,
     policy: Option<&WorthServerOperationAuthorizationPolicy>,

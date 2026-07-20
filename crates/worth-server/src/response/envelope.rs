@@ -6,8 +6,8 @@ use worth_foundational::facade::DiagnosticRichnessProfile;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum WorthServerResponseEnvelopeKind {
-    Success(WorthServerSuccessEnvelope),
-    Denial(WorthServerDenialEnvelope),
+    Success(Box<WorthServerSuccessEnvelope>),
+    Denial(Box<WorthServerDenialEnvelope>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -18,13 +18,13 @@ pub struct WorthServerResponseEnvelope {
 impl WorthServerResponseEnvelope {
     pub(crate) fn from_success(envelope: WorthServerSuccessEnvelope) -> Self {
         Self {
-            inner: WorthServerResponseEnvelopeKind::Success(envelope),
+            inner: WorthServerResponseEnvelopeKind::Success(Box::new(envelope)),
         }
     }
 
     pub(crate) fn from_denial(envelope: WorthServerDenialEnvelope) -> Self {
         Self {
-            inner: WorthServerResponseEnvelopeKind::Denial(envelope),
+            inner: WorthServerResponseEnvelopeKind::Denial(Box::new(envelope)),
         }
     }
 

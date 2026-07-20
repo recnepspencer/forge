@@ -1,14 +1,16 @@
 use serde_json::{json, Value};
 use worth_server::{
     WorthServerCompletedProductOperation, WorthServerDurableProductMutationConclusion,
-    WorthServerProductOperationOutcome, WorthServerProductOperationSurfaceDenialCode,
+    WorthServerOperationAuthorizationPolicy, WorthServerProductOperationOutcome,
+    WorthServerProductOperationSurfaceDenialCode,
 };
 
 #[path = "support/durable_product_mutation/mod.rs"]
 mod durable_support;
 
 use durable_support::{
-    build_server, execute, session, DurableMutationCrashPoint, TestDurableProductExecutor,
+    build_server, build_server_with_mutation_policy, execute, prepared_mutation_request, session,
+    session_with_principal, DurableMutationCrashPoint, TestDurableProductExecutor,
 };
 
 #[test]
@@ -86,6 +88,106 @@ fn crash_boundary_matrix_resolves_without_duplicate_product_effects() {
     .expect("post-commit retry should resolve the persisted completion");
     assert!(retried.retry_diagnostics().is_previously_committed());
     assert_eq!(executor.commit_count(), 1);
+}
+
+#[test]
+fn recovery_rechecks_current_operation_authorization() {
+    let executor = TestDurableProductExecutor::default();
+    let original_server = build_server(&executor);
+    let original_session = session(&original_server, "tenant-a", "workspace-42");
+    let denial = execute(
+        &original_session,
+        "product.deployment.transition",
+        "product.deployment.transition.v1",
+        crash_payload(DurableMutationCrashPoint::AfterCommitBeforeAcknowledgment),
+        "basis:0",
+        "policy-change-recovery-key",
+    )
+    .expect_err("post-commit acknowledgment loss should be indeterminate");
+    let recovery = denial
+        .facts()
+        .and_then(|facts| facts.recovery_handle())
+        .expect("indeterminate denial should carry recovery authority")
+        .clone();
+    drop(original_server);
+
+    let rebuilt_server = build_server_with_mutation_policy(
+        &executor,
+        WorthServerOperationAuthorizationPolicy::require_principal("recovery-operator"),
+    );
+    let no_longer_authorized =
+        session_with_principal(&rebuilt_server, "tenant-a", "workspace-42", "principal-7")
+            .product_operations()
+            .resolve_durable_mutation(&recovery)
+            .expect_err("recovery must not bypass the current operation policy");
+    assert_eq!(
+        no_longer_authorized.code(),
+        WorthServerProductOperationSurfaceDenialCode::AdmissionDenied
+    );
+    assert_eq!(
+        rebuilt_server.counters().durable_product_recovery_attempts,
+        0,
+        "authorization denial must occur before product persistence is consulted"
+    );
+
+    let authorized_operator = session_with_principal(
+        &rebuilt_server,
+        "tenant-a",
+        "workspace-42",
+        "recovery-operator",
+    );
+    assert!(matches!(
+        authorized_operator
+            .product_operations()
+            .resolve_durable_mutation(&recovery)
+            .expect("currently authorized recovery operator should resolve"),
+        WorthServerDurableProductMutationConclusion::PreviouslyCommitted(_)
+    ));
+}
+
+#[test]
+fn compatibility_recovery_cannot_use_another_operation_route() {
+    let executor = TestDurableProductExecutor::default();
+    let server = build_server(&executor);
+    let denial = execute(
+        &session(&server, "tenant-a", "workspace-42"),
+        "product.deployment.transition",
+        "product.deployment.transition.v1",
+        crash_payload(DurableMutationCrashPoint::AfterCommitBeforeAcknowledgment),
+        "basis:0",
+        "compat-recovery-route-key",
+    )
+    .expect_err("post-commit acknowledgment loss should be indeterminate");
+    let recovery = denial
+        .facts()
+        .and_then(|facts| facts.recovery_handle())
+        .expect("indeterminate denial should carry recovery authority");
+
+    let wrong_route = prepared_mutation_request(&server, "product.host_connection.upsert");
+    let denial = server
+        .compat_http()
+        .product_operations()
+        .resolve_durable_mutation(&wrong_route, recovery)
+        .expect_err("one compatibility route must not resolve another operation's handle");
+    assert_eq!(
+        denial.code(),
+        WorthServerProductOperationSurfaceDenialCode::AdmissionDenied
+    );
+    assert_eq!(
+        server.counters().durable_product_recovery_attempts,
+        0,
+        "route-binding denial must occur before product persistence is consulted"
+    );
+
+    let owning_route = prepared_mutation_request(&server, "product.deployment.transition");
+    assert!(matches!(
+        server
+            .compat_http()
+            .product_operations()
+            .resolve_durable_mutation(&owning_route, recovery)
+            .expect("the admitted owning route should resolve its recovery handle"),
+        WorthServerDurableProductMutationConclusion::PreviouslyCommitted(_)
+    ));
 }
 
 #[test]

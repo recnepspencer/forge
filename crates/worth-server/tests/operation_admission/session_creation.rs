@@ -9,7 +9,7 @@ fn session_creation_coordination_admits_without_preexisting_session_identity() {
         WorthServerPipelineIntent::worth_native_session("product_session.open_mutation"),
     )) {
         TransitionOutcome::Success(value) => value,
-        other => panic!("expected WORTH-native session admission, got {other:?}"),
+        other => panic!("expected Worth-native session admission, got {other:?}"),
     };
     let operation_request = server
         .operation_requests()

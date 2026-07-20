@@ -27,19 +27,33 @@ pub struct WorthServerBinaryEgressSession {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerBinaryEgressSessionParts {
+    pub(crate) operation_admission: WorthServerOperationAdmissionPosture,
+    pub(crate) read: WorthServerCompatibilityRead,
+    pub(crate) download_request: WorthServerBinaryDownloadRequest,
+    pub(crate) range_request: WorthServerRangeRequest,
+    pub(crate) conditional_range_request: WorthServerConditionalRangeRequest,
+    pub(crate) selected_start: usize,
+    pub(crate) selected_end_exclusive: usize,
+    pub(crate) range_honored: bool,
+    pub(crate) head_only: bool,
+    pub(crate) retry_posture: WorthServerBinaryRetryPosture,
+}
+
 impl WorthServerBinaryEgressSession {
-    pub(crate) fn new(
-        operation_admission: WorthServerOperationAdmissionPosture,
-        read: WorthServerCompatibilityRead,
-        download_request: WorthServerBinaryDownloadRequest,
-        range_request: WorthServerRangeRequest,
-        conditional_range_request: WorthServerConditionalRangeRequest,
-        selected_start: usize,
-        selected_end_exclusive: usize,
-        range_honored: bool,
-        head_only: bool,
-        retry_posture: WorthServerBinaryRetryPosture,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerBinaryEgressSessionParts) -> Self {
+        let WorthServerBinaryEgressSessionParts {
+            operation_admission,
+            read,
+            download_request,
+            range_request,
+            conditional_range_request,
+            selected_start,
+            selected_end_exclusive,
+            range_honored,
+            head_only,
+            retry_posture,
+        } = parts;
         let canonical_digest = format!(
             "compat-http-binary-egress-session-v2|authority={}|read={}|download={}|range={}|conditional={}|selected={}-{}|range_honored={}|head_only={}|retry={}",
             operation_admission.canonical_digest(),

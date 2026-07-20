@@ -18,7 +18,7 @@ use operation_scheduler_runtime::{
 use query_handoff_fixture::{admit_read_posture, resolve_request_context, test_server};
 
 #[test]
-fn concurrent_shared_read_scheduler_matches_serialized_replay() {
+fn concurrent_shared_read_scheduler_matches_serialized_control() {
     let server = test_server(SchedulerWorkspaceProvider, false);
 
     let concurrent = server
@@ -30,7 +30,7 @@ fn concurrent_shared_read_scheduler_matches_serialized_replay() {
         .operation_scheduler()
         .schedule_shared_read_batch(build_shared_read_plans(&server))
         .expect("shared-read plans should schedule")
-        .execute_serialized_replay();
+        .execute_serialized_control();
     let repeated = server
         .operation_scheduler()
         .schedule_shared_read_batch(build_shared_read_plans(&server))

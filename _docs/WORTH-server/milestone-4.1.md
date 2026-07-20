@@ -36,7 +36,7 @@ the product operation runtime.
 - `perf_laws.md` protects bounded work and scoped coordination. Canonicalization
   occurs once in `O(result bytes)`, idempotency lookup is indexed by declared
   identity, and scheduler locality may not become a global mutation lock.
-- `WORTH_server_roadmap.md` protects sequencing and the server's role as a
+- `Worth_server_roadmap.md` protects sequencing and the server's role as a
   network operation runtime rather than a second truth engine. This milestone
   extends the Milestone 4 product runtime before later lease and sync work.
 
@@ -190,6 +190,9 @@ publication artifact.
   cannot return a valid artifact under another declaration's contract.
 - `oversized_inline_result_is_rejected_without_success_publication` proves the
   declared byte budget is enforced before a success envelope exists.
+- `inline_budget_stops_serialization_before_unbounded_materialization` proves
+  the budget stops typed serialization itself rather than rejecting only after
+  an arbitrarily large JSON tree has already been allocated.
 
 **Engineering decisions**
 
@@ -212,7 +215,7 @@ authority, planning strategy, scope, and scheduler lane.
 - operation admission metadata, authority kind, scope, and footprint
 - operation planning strategy and receipt
 - product operation lowering and scheduler admission
-- compatibility and WORTH-native mutation commands
+- compatibility and Worth-native mutation commands
 
 **Relevant APIs**
 
@@ -295,6 +298,8 @@ conclusion the only durable mutation execution path.
 - Validate every committed completion against the admitted attempt before
   publishing it through the server.
 - Add recovery resolution through the same registered product executor.
+- Re-admit recovery against the current surface, operation-name allowlist, and
+  authorization policy before asking product persistence to resolve it.
 - Bypass the process-local product retry store for every durable declaration.
 
 **Warnings**
@@ -315,6 +320,8 @@ conclusion the only durable mutation execution path.
   payload, scope, tenant, operation version, and expected-basis changes.
 - `indeterminate_conclusion_requires_recovery_handle_resolution` proves the
   runtime does not hide uncertainty behind a generic failure or blind retry.
+- `recovery_rechecks_current_operation_authorization` proves a retained handle
+  does not preserve access after the current server policy removes it.
 
 **Engineering decisions**
 
@@ -333,7 +340,7 @@ success body and removes ordinary product replay vocabulary.
 
 **Relevant subsystems**
 
-- WORTH-native product facade
+- Worth-native product facade
 - compatibility HTTP product facade
 - operation-declared Axum response projection
 - product operation envelope and diagnostics
@@ -350,7 +357,7 @@ success body and removes ordinary product replay vocabulary.
 
 - Project schema identity, schema version, encoding, canonicalization version,
   body, body digest, artifact digest, and result key on successful HTTP routes.
-- Expose the same artifact object through WORTH-native completion.
+- Expose the same artifact object through Worth-native completion.
 - Replace product `ReplayReceipt`, `ReplayClass`, and replay diagnostics with
   retry terminology and executed/previously-committed distinctions.
 - Rename the process-local product operation store as a retry store and restrict
@@ -432,7 +439,8 @@ and deployment-shaped product mutations and closes every local substitute path.
 - `cross_tenant_and_cross_scope_retry_identity_never_leaks_completion` proves
   isolation at the idempotency and authority boundaries.
 - `same_basis_deployments_choose_one_winner_while_independent_targets_progress`
-  proves scoped conflict correctness without global serialization.
+  proves scoped conflict correctness across independent server runtime
+  instances, so one process-local scheduler lane cannot supply the proof.
 - `declared_retention_controls_retry_resolution_honestly` proves conclusions
   are not promised beyond the installed product retention policy.
 
@@ -458,7 +466,7 @@ and deployment-shaped product mutations and closes every local substitute path.
 - durable product mutation declaration, authority, scope, plan, and scheduler lane
 - product-owned atomic durable mutation executor and typed recovery contract
 - product retry terminology and durable bypass of the process-local retry store
-- WORTH-native and compatibility HTTP result-artifact parity
+- Worth-native and compatibility HTTP result-artifact parity
 - host-connection, manifest-admission, and deployment-shaped certification
 
 ## Must Preserve

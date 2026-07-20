@@ -19,7 +19,7 @@ use worth_server::{
 };
 
 #[path = "../product_result/schema_bound_json.rs"]
-mod schema_bound_json;
+pub(crate) mod schema_bound_json;
 
 mod manual_clock;
 
@@ -145,10 +145,10 @@ pub fn direct_session(
             .with_workspace_id(workspace_id)
             .with_branch_id(branch_id)
             .build()
-            .expect("WORTH-native session input should validate"),
+            .expect("Worth-native session input should validate"),
     ) {
         TransitionOutcome::Success(session) => session,
-        other => panic!("expected WORTH-native session, got {other:?}"),
+        other => panic!("expected Worth-native session, got {other:?}"),
     }
 }
 
@@ -183,7 +183,7 @@ pub fn prepared_product_mutation_request_with_basis_and_header(
         .with_branch_id(branch_id)
         .with_route_family(WorthServerCompatHttpRouteFamily::Mutation)
         .with_method("POST")
-        .with_path(&format!("/compat/mutations/{operation_name}"))
+        .with_path(format!("/compat/mutations/{operation_name}"))
         .with_query_pair("basis", basis_digest)
         .with_header("accept", "application/json")
         .with_header(header_name, header_value);

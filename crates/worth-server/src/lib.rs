@@ -272,7 +272,7 @@ pub use surfaces::{
     WorthServerExternalEvidenceRecord, WorthServerExternalRequestContract,
     WorthServerFileMetadataReceipt, WorthServerFileMetadataTruthKind,
     WorthServerFileTransferDisposition, WorthServerFileTransferProvenance,
-    WorthServerIdempotencyKey, WorthServerIdempotentReplayReceipt,
+    WorthServerIdempotencyKey, WorthServerIdempotentRetryReceipt,
     WorthServerIngressIntegrityDigest, WorthServerIngressPerformanceReceipt,
     WorthServerMetadataNormalizationReceipt, WorthServerMultipartUpload,
     WorthServerMutationPrecondition, WorthServerNegotiatedRepresentation,

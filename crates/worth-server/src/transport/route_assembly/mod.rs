@@ -18,6 +18,7 @@ pub use execution_bridge::{
     WorthServerRouteExecutionOutcome,
 };
 pub use facade::{WorthServerOperationRouter, WorthServerRouteAssembly};
+pub(crate) use inventory::WorthServerSemanticRouteInventoryRowParts;
 pub use inventory::{WorthServerRouteInventory, WorthServerRouteInventoryRow};
 pub use operational_route::{WorthServerOperationalRoute, WorthServerOperationalRouteKind};
 pub use projected_router::WorthServerProjectedRouter;

@@ -146,8 +146,8 @@ enum WorthServerRouteBridgeTarget {
 
 #[derive(Clone, Debug)]
 pub enum WorthServerRouteExecutionOutcome {
-    ProductOperation(WorthServerCompletedProductOperation),
-    ProductSession(WorthServerCompletedProductSessionCoordination),
+    ProductOperation(Box<WorthServerCompletedProductOperation>),
+    ProductSession(Box<WorthServerCompletedProductSessionCoordination>),
     Operational(WorthServerOperationalRouteOutcome),
 }
 
@@ -204,7 +204,7 @@ fn execute_semantic_route(
                     )
                 })?;
             Ok(WorthServerRouteExecutionOutcome::ProductOperation(
-                operation,
+                Box::new(operation),
             ))
         }
         crate::WorthServerOperationFamily::ProductApplicationMutation => {
@@ -248,7 +248,7 @@ fn execute_semantic_route(
                     )
                 })?;
             Ok(WorthServerRouteExecutionOutcome::ProductOperation(
-                operation,
+                Box::new(operation),
             ))
         }
         crate::WorthServerOperationFamily::ProductSessionCoordination => {
@@ -296,7 +296,9 @@ fn execute_semantic_route(
                     denial.detail().to_string(),
                 )
             })?;
-            Ok(WorthServerRouteExecutionOutcome::ProductSession(completed))
+            Ok(WorthServerRouteExecutionOutcome::ProductSession(Box::new(
+                completed,
+            )))
         }
         family => Err(WorthServerTransportDenial::new(
             WorthServerTransportDenialCode::UnknownRoute,

@@ -3,7 +3,7 @@
 ## What this feature is
 
 Use the compatibility mutation surface when you need an HTTP-shaped write
-request to become one canonical WORTH mutation.
+request to become one canonical Worth mutation.
 
 Stable entry points:
 
@@ -23,7 +23,7 @@ Use this when you want:
 
 - a strict external write boundary
 - precondition checks before any authoritative write executes
-- idempotency-key replay for identical writes
+- idempotency-key retry resolution for identical writes
 - clear denials for unsupported or forbidden mutation families
 
 ## Core mental model
@@ -37,7 +37,7 @@ That means the server checks:
 - basis and validator preconditions
 - mutation family legality
 - support posture for downstream query families the write depends on
-- idempotency-key scope and replay compatibility
+- idempotency-key scope and retry compatibility
 
 Only then does the authoritative write path run.
 
@@ -48,7 +48,7 @@ The flow is:
 1. Normalize the request with `prepare_request(...)`.
 2. Build `WorthServerCompatibilityMutationExecutionInput`.
 3. Call `mutate(...)`.
-4. Inspect the returned mutation envelope, replay receipt, result digest, and
+4. Inspect the returned mutation envelope, retry receipt, result digest, and
    inspection digest.
 
 Important behavior:
@@ -56,7 +56,7 @@ Important behavior:
 - forbidden families are denied at the external boundary
 - unsupported families are denied before execution
 - stale basis or validator claims are denied before execution
-- identical `idempotency-key` retries replay instead of writing twice
+- identical `idempotency-key` retries return the prior completion instead of writing twice
 - conflicting reuse of an `idempotency-key` is denied
 - idempotency scope is isolated by workspace target
 
@@ -118,7 +118,7 @@ If your caller may retry after timeouts or transport failures:
 
 - send an `idempotency-key`
 - keep the request body stable across retries
-- expect exact replay only for semantically identical requests
+- expect the prior completion only for semantically identical retries
 
 If the caller changes the body while reusing the same key, the server denies the
 request instead of guessing which write you meant.
@@ -133,7 +133,7 @@ That is what preserves money and truth at the same time:
 
 Look at:
 
-- `envelope().replay_receipt()`
+- `envelope().retry_receipt()`
 - `mutation_result().result_digest()`
 - `mutation_result().inspection_digest()`
 - `precondition()`
@@ -158,7 +158,7 @@ Important denial codes include:
 ## Current limits
 
 - The server is strict about mutation family admission.
-- Replay is for identical retries, not semantic reconciliation.
+- Retry resolution is for identical requests, not semantic reconciliation or replay.
 - The compatibility docs describe the stable boundary behavior, not every
   internal mutation implementation detail.
 

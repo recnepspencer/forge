@@ -105,6 +105,20 @@ impl WorthServerCompatibilityProductOperationFacade {
         crate::WorthServerDurableProductMutationConclusion,
         WorthServerProductOperationSurfaceDenial,
     > {
+        crate::operation_request::validate_compatibility_operation_binding(
+            prepared_request,
+            recovery.operation_name(),
+            prepared_request
+                .admission()
+                .request_context()
+                .diagnostics_profile(),
+        )
+        .map_err(|denial| {
+            WorthServerProductOperationSurfaceDenial::new(
+                crate::WorthServerProductOperationSurfaceDenialCode::AdmissionDenied,
+                denial.detail().to_string(),
+            )
+        })?;
         self.runtime
             .resolve_durable_mutation(prepared_request.admission(), recovery)
     }

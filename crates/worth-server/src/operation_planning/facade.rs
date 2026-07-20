@@ -113,24 +113,31 @@ impl WorthServerOperationPlanner {
         );
         let plan_identity = canonical_plan_identity(&query_handoff, strategy);
         let expected_scheduler_lane = scheduler_lane(query_handoff.operation_admission());
-        let receipt = WorthServerOperationPlanReceipt::new(
-            query_handoff
-                .support_composition_receipt()
-                .canonical_digest(),
-            query_handoff
-                .operation_admission()
-                .authority_footprint()
-                .canonical_digest(),
-            strategy,
-            query_handoff
-                .operation_admission()
-                .authorization_proof()
-                .canonical_digest(),
-            query_handoff.precondition_posture().canonical_digest(),
-            expected_scheduler_lane.clone(),
-            plan_identity,
-            evidence_policy.evidence_identity(),
-        );
+        let receipt =
+            WorthServerOperationPlanReceipt::new(super::WorthServerOperationPlanReceiptParts {
+                support_composition_digest: query_handoff
+                    .support_composition_receipt()
+                    .canonical_digest()
+                    .to_string(),
+                footprint_digest: query_handoff
+                    .operation_admission()
+                    .authority_footprint()
+                    .canonical_digest()
+                    .to_string(),
+                strategy,
+                authorization_proof_digest: query_handoff
+                    .operation_admission()
+                    .authorization_proof()
+                    .canonical_digest()
+                    .to_string(),
+                precondition_posture_digest: query_handoff
+                    .precondition_posture()
+                    .canonical_digest()
+                    .to_string(),
+                expected_scheduler_lane: expected_scheduler_lane.clone(),
+                plan_identity,
+                evidence_identity: evidence_policy.evidence_identity().to_string(),
+            });
         Ok(WorthServerLoweredOperationPlan::new(
             query_handoff,
             strategy,
@@ -179,21 +186,21 @@ fn build_query_handoff(
                 label: "not-required".to_string(),
             },
         );
-    WorthServerQueryHandoff::new(
+    WorthServerQueryHandoff::new(crate::query_handoff::WorthServerQueryHandoffParts {
         operation_admission,
         operation,
         workspace,
         downstream_delivery_contract,
-        readiness_closure.support_posture().clone(),
-        readiness_closure
+        operation_support_posture: readiness_closure.support_posture().clone(),
+        support_composition_receipt: readiness_closure
             .support_posture()
             .composition_receipt()
             .clone(),
-        readiness_closure.precondition_posture().clone(),
-        readiness_closure.concurrency_class(),
+        precondition_posture: readiness_closure.precondition_posture().clone(),
+        concurrency_class: readiness_closure.concurrency_class(),
         support_posture,
         canonical_digest,
-    )
+    })
 }
 
 fn validate_prepared_intent(

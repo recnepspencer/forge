@@ -25,7 +25,7 @@ pub(crate) fn derive_query_support_posture(
                 return Err(WorthServerOperationReadinessDenial::new(
                     WorthServerOperationReadinessDenialCode::UnsupportedQuerySupport,
                     format!(
-                        "WORTH-native session entry does not support `{}` query handoff posture under {:?} diagnostics",
+                        "Worth-native session entry does not support `{}` query handoff posture under {:?} diagnostics",
                         operation.canonical_label(),
                         diagnostics_profile,
                     ),
@@ -115,7 +115,7 @@ fn derive_delivery_support(
     ) {
         return Err(WorthServerOperationReadinessDenial::new(
             WorthServerOperationReadinessDenialCode::DownstreamDeliveryRequiresReadIntent,
-            "downstream delivery handoff requires a read-admitted middleware intent or a WORTH-native direct session",
+            "downstream delivery handoff requires a read-admitted middleware intent or a Worth-native direct session",
         ));
     }
     match requested_resume {

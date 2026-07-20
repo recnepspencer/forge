@@ -165,21 +165,23 @@ impl WorthServerCompatibilityFacade {
             &response_envelope,
         );
         TransitionOutcome::Success(WorthServerCompatibilityRead::new(
-            operation_request,
-            plan_proof,
-            operation_name,
-            support_posture,
-            workspace_name,
-            declaration.declaration_digest().to_string(),
-            handoff_digest,
-            direct_context,
-            basis_request,
-            conditional_read,
-            read_result,
-            response_envelope,
-            validator,
-            cache_policy,
-            certification_bundle,
+            super::WorthServerCompatibilityReadParts {
+                operation_request,
+                plan_proof,
+                operation_name,
+                support_posture,
+                workspace_name,
+                declaration_digest: declaration.declaration_digest().to_string(),
+                handoff_digest,
+                direct_context,
+                basis_request,
+                conditional_read,
+                read_result,
+                response_envelope,
+                validator,
+                cache_policy,
+                certification_bundle,
+            },
         ))
     }
 }

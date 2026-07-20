@@ -51,19 +51,33 @@ pub struct WorthServerExternalRequestContract {
     body_content_type: Option<String>,
 }
 
+pub(crate) struct WorthServerExternalRequestContractParts {
+    pub(crate) route_family: WorthServerCompatHttpRouteFamily,
+    pub(crate) method: String,
+    pub(crate) normalized_path: String,
+    pub(crate) normalized_query_pairs: Vec<(String, String)>,
+    pub(crate) canonical_headers: WorthServerCanonicalHeaderSet,
+    pub(crate) representation: WorthServerNegotiatedRepresentation,
+    pub(crate) version: WorthServerCompatibilityVersion,
+    pub(crate) diagnostics_profile: Option<DiagnosticRichnessProfile>,
+    pub(crate) body_present: bool,
+    pub(crate) body_content_type: Option<String>,
+}
+
 impl WorthServerExternalRequestContract {
-    pub(crate) fn new(
-        route_family: WorthServerCompatHttpRouteFamily,
-        method: String,
-        normalized_path: String,
-        normalized_query_pairs: Vec<(String, String)>,
-        canonical_headers: WorthServerCanonicalHeaderSet,
-        representation: WorthServerNegotiatedRepresentation,
-        version: WorthServerCompatibilityVersion,
-        diagnostics_profile: Option<DiagnosticRichnessProfile>,
-        body_present: bool,
-        body_content_type: Option<String>,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerExternalRequestContractParts) -> Self {
+        let WorthServerExternalRequestContractParts {
+            route_family,
+            method,
+            normalized_path,
+            normalized_query_pairs,
+            canonical_headers,
+            representation,
+            version,
+            diagnostics_profile,
+            body_present,
+            body_content_type,
+        } = parts;
         Self {
             route_family,
             method,

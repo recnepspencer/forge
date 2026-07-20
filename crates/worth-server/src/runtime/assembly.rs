@@ -41,7 +41,7 @@ pub(crate) struct WorthServerRuntimeAssembly {
     route_assembly: WorthServerRouteAssembly,
     counters: Arc<WorthServerCounters>,
     product_session_registry: WorthServerProductSessionRegistry,
-    compat_http_mutation_replay_store:
+    compat_http_mutation_retry_store:
         Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>>,
     product_operation_retry_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
     compat_http_binary_ingress_store: Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>>,
@@ -84,7 +84,7 @@ impl WorthServerRuntimeAssembly {
             route_assembly,
             counters,
             product_session_registry,
-            compat_http_mutation_replay_store: Arc::new(Mutex::new(HashMap::new())),
+            compat_http_mutation_retry_store: Arc::new(Mutex::new(HashMap::new())),
             product_operation_retry_store: Arc::new(Mutex::new(HashMap::new())),
             compat_http_binary_ingress_store: Arc::new(Mutex::new(HashMap::new())),
         }
@@ -142,10 +142,10 @@ impl WorthServerRuntimeAssembly {
         &self.product_session_registry
     }
 
-    pub(crate) fn compat_http_mutation_replay_store(
+    pub(crate) fn compat_http_mutation_retry_store(
         &self,
     ) -> &Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>> {
-        &self.compat_http_mutation_replay_store
+        &self.compat_http_mutation_retry_store
     }
 
     pub(crate) fn compat_http_binary_ingress_store(

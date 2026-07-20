@@ -6,6 +6,7 @@ mod execution;
 mod executor;
 mod receipt;
 mod recovery;
+mod recovery_admission;
 mod runtime;
 
 pub use attempt::WorthServerAdmittedDurableProductMutation;
@@ -22,4 +23,5 @@ pub use receipt::{
 };
 pub use recovery::WorthServerDurableProductMutationRecoveryHandle;
 
+pub(crate) use recovery_admission::admit_durable_product_recovery;
 pub(crate) use runtime::execute_durable_product_mutation;

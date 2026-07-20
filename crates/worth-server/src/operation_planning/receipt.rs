@@ -13,24 +13,29 @@ pub struct WorthServerOperationPlanReceipt {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerOperationPlanReceiptParts {
+    pub(crate) support_composition_digest: String,
+    pub(crate) footprint_digest: String,
+    pub(crate) strategy: WorthServerOperationExecutionStrategy,
+    pub(crate) authorization_proof_digest: String,
+    pub(crate) precondition_posture_digest: String,
+    pub(crate) expected_scheduler_lane: String,
+    pub(crate) plan_identity: String,
+    pub(crate) evidence_identity: String,
+}
+
 impl WorthServerOperationPlanReceipt {
-    pub(crate) fn new(
-        support_composition_digest: impl Into<String>,
-        footprint_digest: impl Into<String>,
-        strategy: WorthServerOperationExecutionStrategy,
-        authorization_proof_digest: impl Into<String>,
-        precondition_posture_digest: impl Into<String>,
-        expected_scheduler_lane: impl Into<String>,
-        plan_identity: impl Into<String>,
-        evidence_identity: impl Into<String>,
-    ) -> Self {
-        let support_composition_digest = support_composition_digest.into();
-        let footprint_digest = footprint_digest.into();
-        let authorization_proof_digest = authorization_proof_digest.into();
-        let precondition_posture_digest = precondition_posture_digest.into();
-        let expected_scheduler_lane = expected_scheduler_lane.into();
-        let plan_identity = plan_identity.into();
-        let evidence_identity = evidence_identity.into();
+    pub(crate) fn new(parts: WorthServerOperationPlanReceiptParts) -> Self {
+        let WorthServerOperationPlanReceiptParts {
+            support_composition_digest,
+            footprint_digest,
+            strategy,
+            authorization_proof_digest,
+            precondition_posture_digest,
+            expected_scheduler_lane,
+            plan_identity,
+            evidence_identity,
+        } = parts;
         let canonical_digest = format!(
             "worth-server-operation-plan-receipt-v1|support={support_composition_digest}|footprint={footprint_digest}|strategy={}|authorization={authorization_proof_digest}|precondition={precondition_posture_digest}|lane={expected_scheduler_lane}|plan={plan_identity}|evidence={evidence_identity}",
             strategy.as_str(),

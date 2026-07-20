@@ -2,8 +2,6 @@
 
 #[path = "phase_three_runtime/backend.rs"]
 mod phase_three_backend;
-#[path = "../query_handoff/runtime_aspect_contracts.rs"]
-mod runtime_aspect_contracts;
 
 use serde_json::{json, Value};
 use std::sync::{
@@ -40,7 +38,7 @@ use worth_server::{
     WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig,
 };
 
-use runtime_aspect_contracts::query_handoff_aspect_contracts;
+use crate::query_handoff_runtime::runtime_aspect_contracts::query_handoff_aspect_contracts;
 
 pub(crate) fn build_phase_three_server() -> WorthServer {
     build_phase_three_server_with_workspace_provider(

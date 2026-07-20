@@ -39,25 +39,43 @@ pub struct WorthServerCompatibilityFacade {
     pub(super) counters: Arc<crate::diagnostics::WorthServerCounters>,
 }
 
+pub(crate) struct WorthServerCompatibilityFacadeParts {
+    pub(crate) root: CompatHttpSurfaceRoot,
+    pub(crate) operation_registry: WorthServerOperationRegistry,
+    pub(crate) product_adapter_registry: WorthServerProductAdapterRegistry,
+    pub(crate) product_session_registry: WorthServerProductSessionRegistry,
+    pub(crate) request_contexts: WorthServerRequestContextFacade,
+    pub(crate) middleware: WorthServerMiddlewareFacade,
+    pub(crate) declaration_intake: WorthServerDirectDeclarationIntakeFacade,
+    pub(crate) query_handoff: WorthServerQueryHandoffFacade,
+    pub(crate) responses: WorthServerResponseFacade,
+    pub(crate) operator_evidence: WorthServerOperatorEvidenceFacade,
+    pub(crate) idempotency_store:
+        Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>>,
+    pub(crate) product_operation_retry_store:
+        Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    pub(crate) binary_ingress_store: Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>>,
+    pub(crate) counters: Arc<crate::diagnostics::WorthServerCounters>,
+}
+
 impl WorthServerCompatibilityFacade {
-    pub(crate) fn new(
-        root: CompatHttpSurfaceRoot,
-        operation_registry: WorthServerOperationRegistry,
-        product_adapter_registry: WorthServerProductAdapterRegistry,
-        product_session_registry: WorthServerProductSessionRegistry,
-        request_contexts: WorthServerRequestContextFacade,
-        middleware: WorthServerMiddlewareFacade,
-        declaration_intake: WorthServerDirectDeclarationIntakeFacade,
-        query_handoff: WorthServerQueryHandoffFacade,
-        responses: WorthServerResponseFacade,
-        operator_evidence: WorthServerOperatorEvidenceFacade,
-        idempotency_store: Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>>,
-        product_operation_retry_store: Arc<
-            Mutex<HashMap<String, WorthServerStoredProductOperation>>,
-        >,
-        binary_ingress_store: Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>>,
-        counters: Arc<crate::diagnostics::WorthServerCounters>,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerCompatibilityFacadeParts) -> Self {
+        let WorthServerCompatibilityFacadeParts {
+            root,
+            operation_registry,
+            product_adapter_registry,
+            product_session_registry,
+            request_contexts,
+            middleware,
+            declaration_intake,
+            query_handoff,
+            responses,
+            operator_evidence,
+            idempotency_store,
+            product_operation_retry_store,
+            binary_ingress_store,
+            counters,
+        } = parts;
         Self {
             root,
             operation_registry,

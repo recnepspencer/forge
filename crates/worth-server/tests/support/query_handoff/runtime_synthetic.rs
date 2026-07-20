@@ -293,7 +293,7 @@ impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
                 ),
                 (
                     field_path("profile.display_name"),
-                    AspectValue::String("Ada WORTH".into()),
+                    AspectValue::String("Ada Worth".into()),
                 ),
             ]),
         )]

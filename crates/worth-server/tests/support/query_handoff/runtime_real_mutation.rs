@@ -21,11 +21,12 @@ impl WorthServerQueryWorkspaceProvider for RealMutationWorkspaceProvider {
         request: &WorthServerQueryWorkspaceBindingRequest,
     ) -> Result<WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError> {
         match request.target() {
-            WorthServerQueryWorkspaceBindingTarget::QueryHandoff {
-                operation:
+            WorthServerQueryWorkspaceBindingTarget::QueryHandoff { operation }
+                if matches!(
+                    operation.as_ref(),
                     WorthServerQueryHandoffOperation::DirectMutation { .. }
-                    | WorthServerQueryHandoffOperation::QueryMutation { .. },
-            } => {}
+                        | WorthServerQueryHandoffOperation::QueryMutation { .. }
+                ) => {}
             target => {
                 return Err(WorthServerQueryWorkspaceBindingError::new(
                     "workspace_target",

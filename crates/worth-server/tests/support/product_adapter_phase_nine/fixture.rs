@@ -25,7 +25,7 @@ use worth_server::{
 };
 
 #[path = "../product_result/schema_bound_json.rs"]
-mod schema_bound_json;
+pub(crate) mod schema_bound_json;
 
 #[path = "../query_handoff/runtime.rs"]
 mod query_handoff_runtime;
@@ -61,10 +61,10 @@ pub fn direct_session(server: &WorthServer) -> WorthServerWorthNativeSession {
             .with_workspace_id("workspace-42")
             .with_branch_id("branch-9")
             .build()
-            .expect("WORTH-native session input should validate"),
+            .expect("Worth-native session input should validate"),
     ) {
         TransitionOutcome::Success(session) => session,
-        other => panic!("expected WORTH-native session, got {other:?}"),
+        other => panic!("expected Worth-native session, got {other:?}"),
     }
 }
 

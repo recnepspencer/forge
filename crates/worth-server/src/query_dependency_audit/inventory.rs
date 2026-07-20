@@ -94,7 +94,7 @@ fn downstream_delivery() -> WorthServerQueryHandoffOperation {
 pub(crate) fn covered_paths() -> Vec<WorthServerQueryDependencyCoveredPath> {
     vec![
         WorthServerQueryDependencyCoveredPath {
-            row_id: "WORTH-native.direct.read",
+            row_id: "Worth-native.direct.read",
             path_kind: WorthServerQueryDependencyAuditPathKind::WorthNativeDirectRead,
             runtime_readiness:
                 WorthServerQueryDependencyRuntimeReadiness::QueryNineSevenSharedReadClosureReady,
@@ -107,7 +107,7 @@ pub(crate) fn covered_paths() -> Vec<WorthServerQueryDependencyCoveredPath> {
             required_query_families: READ_FAMILIES,
         },
         WorthServerQueryDependencyCoveredPath {
-            row_id: "WORTH-native.direct.state",
+            row_id: "Worth-native.direct.state",
             path_kind: WorthServerQueryDependencyAuditPathKind::WorthNativeDirectState,
             runtime_readiness:
                 WorthServerQueryDependencyRuntimeReadiness::QueryNineSevenSharedReadClosureReady,
@@ -120,7 +120,7 @@ pub(crate) fn covered_paths() -> Vec<WorthServerQueryDependencyCoveredPath> {
             required_query_families: LIVE_FAMILIES,
         },
         WorthServerQueryDependencyCoveredPath {
-            row_id: "WORTH-native.direct.inspection",
+            row_id: "Worth-native.direct.inspection",
             path_kind: WorthServerQueryDependencyAuditPathKind::WorthNativeDirectInspection,
             runtime_readiness:
                 WorthServerQueryDependencyRuntimeReadiness::QueryNineSevenSharedReadClosureReady,
@@ -133,7 +133,7 @@ pub(crate) fn covered_paths() -> Vec<WorthServerQueryDependencyCoveredPath> {
             required_query_families: INSPECT_FAMILIES,
         },
         WorthServerQueryDependencyCoveredPath {
-            row_id: "WORTH-native.direct.projection",
+            row_id: "Worth-native.direct.projection",
             path_kind: WorthServerQueryDependencyAuditPathKind::WorthNativeDirectProjection,
             runtime_readiness:
                 WorthServerQueryDependencyRuntimeReadiness::QueryNineSevenSharedReadClosureReady,
@@ -146,7 +146,7 @@ pub(crate) fn covered_paths() -> Vec<WorthServerQueryDependencyCoveredPath> {
             required_query_families: READ_FAMILIES,
         },
         WorthServerQueryDependencyCoveredPath {
-            row_id: "WORTH-native.direct.mutation",
+            row_id: "Worth-native.direct.mutation",
             path_kind: WorthServerQueryDependencyAuditPathKind::WorthNativeDirectMutation,
             runtime_readiness: WorthServerQueryDependencyRuntimeReadiness::
                 QueryNineSevenDeterministicSubmissionClosureReady,

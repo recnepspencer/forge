@@ -16,6 +16,7 @@ pub use denial::{
 };
 pub use facade::WorthServerQueryHandoffFacade;
 pub use handoff::WorthServerQueryHandoff;
+pub(crate) use handoff::WorthServerQueryHandoffParts;
 pub use input::WorthServerQueryHandoffInput;
 pub use operation::{
     WorthServerQueryHandoffOperation, WorthServerQueryOperation, WorthServerQueryOperationKind,

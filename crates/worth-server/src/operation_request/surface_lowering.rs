@@ -101,7 +101,7 @@ fn lower_idempotency_key(
     Ok(Some(value.to_string()))
 }
 
-fn validate_compatibility_operation_binding(
+pub(crate) fn validate_compatibility_operation_binding(
     prepared_request: &WorthServerCompatibilityPreparedRequest,
     operation_name: &str,
     diagnostics_profile: DiagnosticRichnessProfile,

@@ -4,7 +4,7 @@ use worth_query::facade::runtime::WorthQueryWriteCommand;
 pub enum WorthServerQueryOperation {
     SingleMutation {
         operation_name: String,
-        command: WorthQueryWriteCommand,
+        command: Box<WorthQueryWriteCommand>,
     },
     BatchMutation {
         operation_name: String,
@@ -19,7 +19,7 @@ impl WorthServerQueryOperation {
     ) -> Self {
         Self::SingleMutation {
             operation_name: operation_name.into(),
-            command,
+            command: Box::new(command),
         }
     }
 
@@ -53,7 +53,7 @@ impl WorthServerQueryOperation {
 
     pub fn as_single_command(&self) -> Option<&WorthQueryWriteCommand> {
         match self {
-            Self::SingleMutation { command, .. } => Some(command),
+            Self::SingleMutation { command, .. } => Some(command.as_ref()),
             Self::BatchMutation { .. } => None,
         }
     }

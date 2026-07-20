@@ -13,7 +13,7 @@ use super::{
 pub(super) fn semantic_response(outcome: WorthServerRouteExecutionOutcome) -> Response {
     match outcome {
         WorthServerRouteExecutionOutcome::ProductOperation(operation) => {
-            product_operation_response(operation)
+            product_operation_response(*operation)
         }
         WorthServerRouteExecutionOutcome::ProductSession(coordination) => response_with_headers(
             Json(json!({
@@ -134,10 +134,10 @@ fn semantic_headers(
     scheduler_lane: Option<&str>,
 ) -> HeaderMap {
     let mut headers = base_headers(route_kind, true);
-    insert_optional_header(&mut headers, "x-WORTH-operation-name", operation_name);
-    insert_optional_header(&mut headers, "x-WORTH-plan-digest", plan_digest);
-    insert_optional_header(&mut headers, "x-WORTH-envelope-digest", envelope_digest);
-    insert_optional_header(&mut headers, "x-WORTH-scheduler-lane", scheduler_lane);
+    insert_optional_header(&mut headers, "x-Worth-operation-name", operation_name);
+    insert_optional_header(&mut headers, "x-Worth-plan-digest", plan_digest);
+    insert_optional_header(&mut headers, "x-Worth-envelope-digest", envelope_digest);
+    insert_optional_header(&mut headers, "x-Worth-scheduler-lane", scheduler_lane);
     headers
 }
 
@@ -149,7 +149,7 @@ fn transport_denial_headers(code: WorthServerTransportDenialCode) -> HeaderMap {
     let mut headers = base_headers("transport_denial", false);
     insert_header(
         &mut headers,
-        "x-WORTH-transport-denial-code",
+        "x-Worth-transport-denial-code",
         &format!("{code:?}"),
     );
     headers
@@ -157,10 +157,10 @@ fn transport_denial_headers(code: WorthServerTransportDenialCode) -> HeaderMap {
 
 fn base_headers(route_kind: &str, entered_semantic_runtime: bool) -> HeaderMap {
     let mut headers = HeaderMap::new();
-    insert_header(&mut headers, "x-WORTH-route-kind", route_kind);
+    insert_header(&mut headers, "x-Worth-route-kind", route_kind);
     insert_header(
         &mut headers,
-        "x-WORTH-semantic-runtime-entered",
+        "x-Worth-semantic-runtime-entered",
         if entered_semantic_runtime {
             "true"
         } else {

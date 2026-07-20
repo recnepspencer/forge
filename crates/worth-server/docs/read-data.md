@@ -36,7 +36,7 @@ It is:
 
 1. A normalized request contract.
 2. A route-family-specific admission step.
-3. A canonical WORTH query handoff.
+3. A canonical Worth query handoff.
 4. A read artifact with explicit basis, validator, provenance, and cache
    posture.
 
@@ -69,7 +69,7 @@ The server enforces these read rules:
 The default vary set is:
 
 ```text
-authorization, x-WORTH-branch, x-WORTH-diagnostics
+authorization, x-Worth-branch, x-Worth-diagnostics
 ```
 
 ## Small example

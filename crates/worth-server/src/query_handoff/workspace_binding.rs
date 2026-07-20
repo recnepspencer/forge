@@ -18,7 +18,9 @@ impl WorthServerQueryWorkspaceBindingRequest {
     ) -> Self {
         Self {
             resolved_request_context,
-            target: WorthServerQueryWorkspaceBindingTarget::QueryHandoff { operation },
+            target: WorthServerQueryWorkspaceBindingTarget::QueryHandoff {
+                operation: Box::new(operation),
+            },
         }
     }
 
@@ -48,7 +50,7 @@ impl WorthServerQueryWorkspaceBindingRequest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerQueryWorkspaceBindingTarget {
     QueryHandoff {
-        operation: WorthServerQueryHandoffOperation,
+        operation: Box<WorthServerQueryHandoffOperation>,
     },
     DirectDeclaration {
         source_kind: WorthServerDirectDeclarationSourceKind,
@@ -118,7 +120,7 @@ impl WorthServerQueryWorkspaceProvider for UnavailableWorkspaceProvider {
     ) -> Result<WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError> {
         Err(WorthServerQueryWorkspaceBindingError::new(
             "workspace_provider",
-            "no WORTH Query workspace provider has been configured",
+            "no Worth Query workspace provider has been configured",
         ))
     }
 }

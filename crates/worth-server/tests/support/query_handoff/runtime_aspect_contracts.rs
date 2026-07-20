@@ -3,7 +3,7 @@ use worth_foundational::facade::{
     AspectKey, FieldDeclaration, FieldKey, FieldRequirement, ScalarAspectType, StructAspectShape,
 };
 
-pub(super) fn query_handoff_aspect_contracts() -> Vec<AspectContract> {
+pub(crate) fn query_handoff_aspect_contracts() -> Vec<AspectContract> {
     vec![
         required_string_contract("identity", 0x5753_0001, "id"),
         required_string_contract("title", 0x5753_0002, "value"),

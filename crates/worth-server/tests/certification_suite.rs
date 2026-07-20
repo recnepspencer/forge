@@ -4,6 +4,8 @@ mod direct_context_runtime;
 mod query_handoff_fixture;
 #[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
+#[path = "support/response_fixture.rs"]
+mod response_fixture;
 #[path = "support/worth_native/assertions.rs"]
 mod worth_native_assertions;
 #[path = "support/worth_native/runtime.rs"]
