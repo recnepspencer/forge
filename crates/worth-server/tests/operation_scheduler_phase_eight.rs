@@ -1,17 +1,19 @@
-use worth_query::facade::runtime::{WorthQueryAspectMutationBuilder, WorthQueryWriteCommand};
 use worth_server::{
     WorthServer, WorthServerLoweredOperationPlan, WorthServerOperationFamily,
     WorthServerOperationPlannerInput, WorthServerOperationRequestInput, WorthServerQueryOperation,
-    WorthServerRequestContextInput, WorthServerSchedulerCancellationDirective,
-    WorthServerSchedulerCancellationPosture, WorthServerSchedulerConflictDenialCode,
-    WorthServerSchedulerFailurePosture, WorthServerSurfaceFamily, WorthServerTransportClass,
+    WorthServerSchedulerCancellationDirective, WorthServerSchedulerCancellationPosture,
+    WorthServerSchedulerConflictDenialCode, WorthServerSchedulerFailurePosture,
 };
+
+#[path = "support/operation_scheduler/phase_eight_helpers.rs"]
+mod phase_eight_helpers;
 
 #[path = "support/query_handoff/fixture.rs"]
 mod query_handoff_fixture;
 #[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 
+use phase_eight_helpers::{insert_task, worth_native_request_input};
 use query_handoff_fixture::resolve_request_context;
 use query_handoff_runtime::RealMutationWorkspaceProvider;
 use worth_proof::TransitionOutcome;
@@ -358,17 +360,6 @@ fn lower_mutation_plan(
         .expect("mutation plan should lower")
 }
 
-fn worth_native_request_input() -> WorthServerRequestContextInput {
-    WorthServerRequestContextInput::builder()
-        .with_surface_family(WorthServerSurfaceFamily::WorthNative)
-        .with_transport_class(WorthServerTransportClass::WorthNativeInProcess)
-        .with_authenticated_principal_id("principal-7")
-        .with_tenant_id("tenant-a")
-        .with_workspace_id("workspace-42")
-        .build()
-        .expect("request context input should validate")
-}
-
 fn admit_mutation(
     server: &WorthServer,
     resolved: worth_server::WorthServerResolvedRequestContext,
@@ -397,14 +388,6 @@ fn admit_worth_native_session(
             worth_server::WorthServerPipelineIntent::worth_native_session(operation_name),
         )) {
         TransitionOutcome::Success(admission) => admission,
-        other => panic!("expected admitted WORTH-native session pipeline result, got {other:?}"),
+        other => panic!("expected admitted Worth-native session pipeline result, got {other:?}"),
     }
-}
-
-fn insert_task(identity: &str) -> WorthQueryWriteCommand {
-    WorthQueryAspectMutationBuilder::new()
-        .aspect("identity.id", identity)
-        .aspect("title.value", format!("Title for {identity}"))
-        .build_insert("Task")
-        .expect("insert command should build")
 }

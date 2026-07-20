@@ -16,7 +16,7 @@ use query_handoff_runtime::TestWorkspaceProvider;
 
 #[test]
 fn prepare_lowers_equivalent_cross_surface_reads_to_the_same_canonical_handoff_artifact() {
-    let server = test_server(TestWorkspaceProvider::default(), false);
+    let server = test_server(TestWorkspaceProvider, false);
     let worth_native = success(
         server
             .query_handoff()
@@ -70,7 +70,7 @@ fn prepare_lowers_equivalent_cross_surface_reads_to_the_same_canonical_handoff_a
 #[test]
 fn prepare_lowers_equivalent_cross_surface_mutations_to_the_same_canonical_handoff_artifact() {
     let server = test_server_with_middleware(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         false,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
@@ -125,8 +125,8 @@ fn prepare_lowers_equivalent_cross_surface_mutations_to_the_same_canonical_hando
 
 #[test]
 fn prepare_keeps_future_surface_registration_out_of_query_handoff_truth() {
-    let plain_server = test_server(TestWorkspaceProvider::default(), false);
-    let widened_server = test_server(TestWorkspaceProvider::default(), true);
+    let plain_server = test_server(TestWorkspaceProvider, false);
+    let widened_server = test_server(TestWorkspaceProvider, true);
 
     let plain = success(
         plain_server

@@ -33,20 +33,35 @@ pub struct WorthServerCompatibilityState {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerCompatibilityStateParts {
+    pub(crate) plan_proof: crate::WorthServerOperationPlanProof,
+    pub(crate) support_posture: WorthServerQuerySupportPosture,
+    pub(crate) workspace_name: String,
+    pub(crate) declaration_digest: String,
+    pub(crate) handoff_digest: String,
+    pub(crate) direct_context: WorthServerDirectContextArtifact,
+    pub(crate) basis_request: WorthServerExternalBasisRequest,
+    pub(crate) runtime_state: WorthQueryRuntimeStateSnapshot,
+    pub(crate) response_envelope: WorthServerResponseEnvelope,
+    pub(crate) validator: WorthServerReadValidator,
+    pub(crate) cache_policy: WorthServerCompatibilityCachePolicy,
+}
+
 impl WorthServerCompatibilityState {
-    pub(crate) fn new(
-        plan_proof: crate::WorthServerOperationPlanProof,
-        support_posture: WorthServerQuerySupportPosture,
-        workspace_name: String,
-        declaration_digest: String,
-        handoff_digest: String,
-        direct_context: WorthServerDirectContextArtifact,
-        basis_request: WorthServerExternalBasisRequest,
-        runtime_state: WorthQueryRuntimeStateSnapshot,
-        response_envelope: WorthServerResponseEnvelope,
-        validator: WorthServerReadValidator,
-        cache_policy: WorthServerCompatibilityCachePolicy,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerCompatibilityStateParts) -> Self {
+        let WorthServerCompatibilityStateParts {
+            plan_proof,
+            support_posture,
+            workspace_name,
+            declaration_digest,
+            handoff_digest,
+            direct_context,
+            basis_request,
+            runtime_state,
+            response_envelope,
+            validator,
+            cache_policy,
+        } = parts;
         let canonical_digest = format!(
             "worth-server-compat-state-v1:{}:{}:{}:{}:{}",
             handoff_digest,
@@ -249,17 +264,19 @@ impl WorthServerCompatibilityFacade {
             direct_context.remask_posture(),
         );
         TransitionOutcome::Success(WorthServerCompatibilityState::new(
-            plan_proof,
-            support_posture,
-            workspace_name,
-            declaration.declaration_digest().to_string(),
-            handoff_digest,
-            direct_context,
-            basis_request,
-            runtime_state,
-            response_envelope,
-            validator,
-            cache_policy,
+            WorthServerCompatibilityStateParts {
+                plan_proof,
+                support_posture,
+                workspace_name,
+                declaration_digest: declaration.declaration_digest().to_string(),
+                handoff_digest,
+                direct_context,
+                basis_request,
+                runtime_state,
+                response_envelope,
+                validator,
+                cache_policy,
+            },
         ))
     }
 }

@@ -15,27 +15,41 @@ pub struct WorthServerBinaryPolicyDecision {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerBinaryPolicyDecisionParts {
+    pub(crate) metadata_identity: String,
+    pub(crate) tenant_id: String,
+    pub(crate) workspace_digest: String,
+    pub(crate) branch_digest: String,
+    pub(crate) operation_name: String,
+    pub(crate) diagnostics_profile: DiagnosticRichnessProfile,
+    pub(crate) policy_lane: String,
+    pub(crate) support_posture_digest: String,
+    pub(crate) response_envelope_digest: String,
+    pub(crate) transfer_authorization_digest: Option<String>,
+}
+
 impl WorthServerBinaryPolicyDecision {
-    pub(crate) fn new(
-        metadata_identity: impl Into<String>,
-        tenant_id: impl Into<String>,
-        workspace_digest: impl Into<String>,
-        branch_digest: impl Into<String>,
-        operation_name: impl Into<String>,
-        diagnostics_profile: DiagnosticRichnessProfile,
-        policy_lane: impl Into<String>,
-        support_posture_digest: impl Into<String>,
-        response_envelope_digest: impl Into<String>,
-        transfer_authorization_digest: Option<String>,
-    ) -> Self {
-        let metadata_identity = metadata_identity.into().trim().to_string();
-        let tenant_id = tenant_id.into().trim().to_string();
-        let workspace_digest = workspace_digest.into().trim().to_string();
-        let branch_digest = branch_digest.into().trim().to_string();
-        let operation_name = operation_name.into().trim().to_string();
-        let policy_lane = policy_lane.into().trim().to_string();
-        let support_posture_digest = support_posture_digest.into().trim().to_string();
-        let response_envelope_digest = response_envelope_digest.into().trim().to_string();
+    pub(crate) fn new(parts: WorthServerBinaryPolicyDecisionParts) -> Self {
+        let WorthServerBinaryPolicyDecisionParts {
+            metadata_identity,
+            tenant_id,
+            workspace_digest,
+            branch_digest,
+            operation_name,
+            diagnostics_profile,
+            policy_lane,
+            support_posture_digest,
+            response_envelope_digest,
+            transfer_authorization_digest,
+        } = parts;
+        let metadata_identity = metadata_identity.trim().to_string();
+        let tenant_id = tenant_id.trim().to_string();
+        let workspace_digest = workspace_digest.trim().to_string();
+        let branch_digest = branch_digest.trim().to_string();
+        let operation_name = operation_name.trim().to_string();
+        let policy_lane = policy_lane.trim().to_string();
+        let support_posture_digest = support_posture_digest.trim().to_string();
+        let response_envelope_digest = response_envelope_digest.trim().to_string();
         let canonical_digest = format!(
             "worth-server-file-policy-decision-v1|identity={metadata_identity}|tenant={tenant_id}|workspace={workspace_digest}|branch={branch_digest}|operation={operation_name}|lane={policy_lane}|support={support_posture_digest}|response={response_envelope_digest}|authorization={}|diagnostics={:?}",
             transfer_authorization_digest.as_deref().unwrap_or("none"),

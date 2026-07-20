@@ -74,7 +74,7 @@ pub(crate) fn ambiguous_metadata_upload() -> WorthServerMultipartUpload {
 pub(crate) fn non_ascii_metadata_upload() -> WorthServerMultipartUpload {
     let mut aspects = Map::new();
     aspects.insert(
-        "tÃ­tle.value".to_string(),
+        "t\u{00ed}tle.value".to_string(),
         Value::String("unsafe".to_string()),
     );
 

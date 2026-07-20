@@ -68,6 +68,15 @@ impl WorthServerProductOperationSupportSnapshot {
     pub(crate) fn posture(&self) -> WorthServerProductSupportPosture {
         self.posture.clone()
     }
+
+    fn canonical_label(&self) -> &'static str {
+        match self.posture {
+            WorthServerProductSupportPosture::ProductionAdmitted => "production-admitted",
+            WorthServerProductSupportPosture::Unsupported => "unsupported",
+            WorthServerProductSupportPosture::Unknown => "unknown",
+            WorthServerProductSupportPosture::IncompatibleBasis => "incompatible-basis",
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -75,6 +84,7 @@ pub struct WorthServerProductOperationDeclaration {
     operation_name: String,
     operation_family: WorthServerOperationFamily,
     payload_schema_identity: String,
+    result_contract: crate::WorthServerProductResultContract,
     basis_kind: WorthServerProductOperationBasisKind,
     support_snapshot: WorthServerProductOperationSupportSnapshot,
     authority_requirement: WorthServerProductOperationAuthorityRequirement,
@@ -88,6 +98,7 @@ impl std::fmt::Debug for WorthServerProductOperationDeclaration {
             .field("operation_name", &self.operation_name)
             .field("operation_family", &self.operation_family)
             .field("payload_schema_identity", &self.payload_schema_identity)
+            .field("result_contract", &self.result_contract)
             .field("basis_kind", &self.basis_kind)
             .field("support_snapshot", &self.support_snapshot)
             .field("authority_requirement", &self.authority_requirement)
@@ -99,6 +110,7 @@ impl WorthServerProductOperationDeclaration {
     pub fn product_read(
         operation_name: impl Into<String>,
         payload_schema_identity: impl Into<String>,
+        result_contract: crate::WorthServerProductResultContract,
         basis_kind: WorthServerProductOperationBasisKind,
         support_snapshot: WorthServerProductOperationSupportSnapshot,
     ) -> Self {
@@ -106,6 +118,7 @@ impl WorthServerProductOperationDeclaration {
             operation_name: operation_name.into(),
             operation_family: WorthServerOperationFamily::ProductApplicationRead,
             payload_schema_identity: payload_schema_identity.into(),
+            result_contract,
             basis_kind,
             support_snapshot,
             authority_requirement: WorthServerProductOperationAuthorityRequirement::SharedRead,
@@ -117,6 +130,7 @@ impl WorthServerProductOperationDeclaration {
     pub fn product_mutation(
         operation_name: impl Into<String>,
         payload_schema_identity: impl Into<String>,
+        result_contract: crate::WorthServerProductResultContract,
         basis_kind: WorthServerProductOperationBasisKind,
         support_snapshot: WorthServerProductOperationSupportSnapshot,
         draft_scope: impl Into<String>,
@@ -125,6 +139,7 @@ impl WorthServerProductOperationDeclaration {
             operation_name: operation_name.into(),
             operation_family: WorthServerOperationFamily::ProductApplicationMutation,
             payload_schema_identity: payload_schema_identity.into(),
+            result_contract,
             basis_kind,
             support_snapshot,
             authority_requirement: WorthServerProductOperationAuthorityRequirement::DraftMutation {
@@ -138,6 +153,7 @@ impl WorthServerProductOperationDeclaration {
     pub fn product_session_coordination(
         operation_name: impl Into<String>,
         payload_schema_identity: impl Into<String>,
+        result_contract: crate::WorthServerProductResultContract,
         basis_kind: WorthServerProductOperationBasisKind,
         support_snapshot: WorthServerProductOperationSupportSnapshot,
         coordination_lane: impl Into<String>,
@@ -146,6 +162,7 @@ impl WorthServerProductOperationDeclaration {
             operation_name: operation_name.into(),
             operation_family: WorthServerOperationFamily::ProductSessionCoordination,
             payload_schema_identity: payload_schema_identity.into(),
+            result_contract,
             basis_kind,
             support_snapshot,
             authority_requirement:
@@ -185,6 +202,33 @@ impl WorthServerProductOperationDeclaration {
         &self.payload_schema_identity
     }
 
+    pub fn durable_product_mutation(
+        operation_name: impl Into<String>,
+        payload_schema_identity: impl Into<String>,
+        result_contract: crate::WorthServerProductResultContract,
+        support_snapshot: WorthServerProductOperationSupportSnapshot,
+        durable_contract: crate::WorthServerDurableProductMutationContract,
+    ) -> Self {
+        Self {
+            operation_name: operation_name.into(),
+            operation_family: WorthServerOperationFamily::ProductApplicationMutation,
+            payload_schema_identity: payload_schema_identity.into(),
+            result_contract,
+            basis_kind: WorthServerProductOperationBasisKind::DurableProductDerived,
+            support_snapshot,
+            authority_requirement:
+                WorthServerProductOperationAuthorityRequirement::DurableMutation {
+                    contract: durable_contract,
+                },
+            payload_validator: None,
+            error_map: None,
+        }
+    }
+
+    pub fn result_contract(&self) -> &crate::WorthServerProductResultContract {
+        &self.result_contract
+    }
+
     pub fn basis_kind(&self) -> WorthServerProductOperationBasisKind {
         self.basis_kind
     }
@@ -195,6 +239,46 @@ impl WorthServerProductOperationDeclaration {
 
     pub fn authority_requirement(&self) -> &WorthServerProductOperationAuthorityRequirement {
         &self.authority_requirement
+    }
+
+    pub fn durable_mutation_contract(
+        &self,
+    ) -> Option<&crate::WorthServerDurableProductMutationContract> {
+        match &self.authority_requirement {
+            WorthServerProductOperationAuthorityRequirement::DurableMutation { contract } => {
+                Some(contract)
+            }
+            _ => None,
+        }
+    }
+
+    pub(crate) fn canonical_digest(&self) -> String {
+        let authority = match &self.authority_requirement {
+            WorthServerProductOperationAuthorityRequirement::SharedRead => {
+                "shared-read".to_string()
+            }
+            WorthServerProductOperationAuthorityRequirement::DraftMutation { draft_scope } => {
+                format!("draft:{draft_scope}")
+            }
+            WorthServerProductOperationAuthorityRequirement::DurableMutation { contract } => {
+                format!("durable:{}", contract.canonical_digest())
+            }
+            WorthServerProductOperationAuthorityRequirement::SessionCoordination {
+                coordination_lane,
+            } => format!("session-coordination:{coordination_lane}"),
+        };
+        crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+            "worth-server-product-operation-declaration-v3",
+        )
+        .field("operation", &self.operation_name)
+        .field("family", self.operation_family.as_str())
+        .field("payload", &self.payload_schema_identity)
+        .field("result", self.result_contract.canonical_digest())
+        .field("basis", self.basis_kind.as_shared_read_basis_kind())
+        .field("support_row", self.support_snapshot.support_row())
+        .field("support_posture", self.support_snapshot.canonical_label())
+        .field("authority", &authority)
+        .finish()
     }
 
     pub(crate) fn payload_validator(
@@ -244,6 +328,7 @@ impl WorthServerProductOperationDeclaration {
                     ));
                 }
             }
+            WorthServerProductOperationAuthorityRequirement::DurableMutation { .. } => {}
             WorthServerProductOperationAuthorityRequirement::SessionCoordination {
                 coordination_lane,
             } => {
@@ -262,6 +347,13 @@ impl WorthServerProductOperationDeclaration {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerProductOperationAuthorityRequirement {
     SharedRead,
-    DraftMutation { draft_scope: String },
-    SessionCoordination { coordination_lane: String },
+    DraftMutation {
+        draft_scope: String,
+    },
+    DurableMutation {
+        contract: crate::WorthServerDurableProductMutationContract,
+    },
+    SessionCoordination {
+        coordination_lane: String,
+    },
 }

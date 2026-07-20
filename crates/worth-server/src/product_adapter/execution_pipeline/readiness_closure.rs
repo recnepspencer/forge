@@ -1,0 +1,109 @@
+use crate::{
+    WorthServerOperationPreconditionPosture, WorthServerOperationQuerySupportContext,
+    WorthServerOperationReadinessFacade, WorthServerOperationRegistry,
+    WorthServerPreparedQueryHandoffKind, WorthServerProductBasisPrecondition,
+    WorthServerProductOperationBasisKind, WorthServerProductOperationDeclaration,
+    WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
+    WorthServerQueryHandoffConfig, WorthServerQueryHandoffOperation,
+    WorthServerQueryWorkspaceBindingRequest,
+};
+
+pub(in crate::product_adapter) fn close_product_operation_readiness(
+    operation_registry: &WorthServerOperationRegistry,
+    query_handoff_config: &WorthServerQueryHandoffConfig,
+    admission: &crate::WorthServerOperationAdmissionPosture,
+    declaration: &WorthServerProductOperationDeclaration,
+    resolved_request_context: &crate::WorthServerResolvedRequestContext,
+) -> Result<crate::WorthServerOperationReadinessClosure, WorthServerProductOperationSurfaceDenial> {
+    let readiness =
+        WorthServerOperationReadinessFacade::with_operation_registry(operation_registry.clone());
+    match declaration.basis_kind() {
+        WorthServerProductOperationBasisKind::QueryDerived => {
+            close_query_derived_product_readiness(
+                &readiness,
+                query_handoff_config,
+                admission,
+                declaration,
+                resolved_request_context,
+            )
+        }
+        _ => readiness
+            .close_readiness(admission, None, None)
+            .map_err(WorthServerProductOperationSurfaceDenial::from_readiness_denial),
+    }
+}
+
+fn close_query_derived_product_readiness(
+    readiness: &WorthServerOperationReadinessFacade,
+    query_handoff_config: &WorthServerQueryHandoffConfig,
+    admission: &crate::WorthServerOperationAdmissionPosture,
+    declaration: &WorthServerProductOperationDeclaration,
+    resolved_request_context: &crate::WorthServerResolvedRequestContext,
+) -> Result<crate::WorthServerOperationReadinessClosure, WorthServerProductOperationSurfaceDenial> {
+    let prepared_kind = admission
+        .authorization_proof()
+        .admission()
+        .query_handoff_intent()
+        .kind();
+    let operation = query_binding_operation(
+        prepared_kind,
+        declaration.operation_family(),
+        declaration.operation_name(),
+    );
+    let binding_request = WorthServerQueryWorkspaceBindingRequest::for_query_handoff(
+        resolved_request_context.clone(),
+        operation.clone(),
+    );
+    let workspace = query_handoff_config
+        .workspace_provider()
+        .bind_workspace(&binding_request)
+        .map_err(|error| {
+            WorthServerProductOperationSurfaceDenial::new(
+                WorthServerProductOperationSurfaceDenialCode::ReadinessDenied,
+                format!("{}: {}", error.stage(), error.message()),
+            )
+        })?;
+    let downstream_delivery_contract = workspace.public_downstream_delivery_contract();
+    let query_context = WorthServerOperationQuerySupportContext::new(
+        prepared_kind,
+        &operation,
+        &workspace,
+        &downstream_delivery_contract,
+    );
+    let precondition_posture = WorthServerProductBasisPrecondition::evaluate(
+        declaration.operation_name(),
+        admission.operation_request().identity().basis_digest(),
+        &workspace
+            .snapshot_identity()
+            .terminal_projection_for_reporting(),
+    )
+    .map(WorthServerOperationPreconditionPosture::ProductBasis)
+    .map_err(WorthServerProductOperationSurfaceDenial::from_readiness_denial)?;
+    readiness
+        .close_readiness(admission, Some(query_context), Some(precondition_posture))
+        .map_err(WorthServerProductOperationSurfaceDenial::from_readiness_denial)
+}
+
+fn query_binding_operation(
+    prepared_kind: WorthServerPreparedQueryHandoffKind,
+    operation_family: crate::WorthServerOperationFamily,
+    operation_name: &str,
+) -> WorthServerQueryHandoffOperation {
+    match prepared_kind {
+        WorthServerPreparedQueryHandoffKind::QueryRead => {
+            WorthServerQueryHandoffOperation::query_read(operation_name)
+        }
+        WorthServerPreparedQueryHandoffKind::QueryMutation => {
+            WorthServerQueryHandoffOperation::query_mutation(operation_name)
+        }
+        WorthServerPreparedQueryHandoffKind::WorthNativeSession
+            if operation_family
+                == crate::WorthServerOperationFamily::ProductApplicationMutation =>
+        {
+            WorthServerQueryHandoffOperation::direct_mutation(operation_name)
+        }
+        WorthServerPreparedQueryHandoffKind::WorthNativeSession => {
+            WorthServerQueryHandoffOperation::direct_read(operation_name)
+        }
+    }
+}

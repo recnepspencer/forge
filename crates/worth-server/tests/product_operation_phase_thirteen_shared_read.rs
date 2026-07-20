@@ -33,7 +33,7 @@ fn product_editor_like_render_select_and_actions_run_concurrently() {
             .with_basis_digest(&basis),
         ])
         .expect("shared-read batch should complete");
-    let serialized = vec![
+    let serialized = [
         direct_read(&session, "product_editor.render", render_payload(), &basis),
         direct_read(
             &session,

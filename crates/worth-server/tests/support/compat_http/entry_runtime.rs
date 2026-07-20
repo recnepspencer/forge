@@ -65,5 +65,5 @@ pub(crate) fn worth_native_request_context_input() -> WorthServerRequestContextI
         .with_workspace_id("workspace-42")
         .with_branch_id("branch-9")
         .build()
-        .expect("WORTH-native input should validate")
+        .expect("Worth-native input should validate")
 }

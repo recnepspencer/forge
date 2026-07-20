@@ -133,6 +133,6 @@ pub(crate) fn worth_native_branch_session(
             .expect("branch session input should validate"),
     ) {
         TransitionOutcome::Success(session) => session,
-        other => panic!("expected WORTH-native branch session, got {other:?}"),
+        other => panic!("expected Worth-native branch session, got {other:?}"),
     }
 }

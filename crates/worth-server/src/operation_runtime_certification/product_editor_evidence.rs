@@ -208,30 +208,32 @@ impl WorthServerProductStaleApplyDenialCertificationProof {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthServerProductIdempotentReplayCertificationProof {
+pub struct WorthServerProductIdempotentRetryCertificationProof {
     canonical_digest: String,
 }
 
-impl WorthServerProductIdempotentReplayCertificationProof {
+impl WorthServerProductIdempotentRetryCertificationProof {
     pub fn new(
-        authoritative: &WorthServerCompletedProductOperation,
-        replayed: &WorthServerCompletedProductOperation,
+        executed: &WorthServerCompletedProductOperation,
+        previously_committed: &WorthServerCompletedProductOperation,
     ) -> Result<Self, &'static str> {
-        if !authoritative.replay_diagnostics().is_authoritative()
-            || !replayed.replay_diagnostics().is_replayed()
+        if !executed.retry_diagnostics().is_executed()
+            || !previously_committed
+                .retry_diagnostics()
+                .is_previously_committed()
         {
             return Err(
-                "idempotent replay certification requires authoritative and replayed proofs",
+                "idempotent retry certification requires executed and previously committed proofs",
             );
         }
         Ok(Self {
             canonical_digest: format!(
-                "product-idempotent-replay-certification-v1|authoritative={}|replayed={}|linked={}",
-                authoritative.envelope().canonical_digest(),
-                replayed.envelope().canonical_digest(),
-                replayed
-                    .replay_receipt()
-                    .and_then(|receipt| receipt.authoritative_operation_digest())
+                "product-idempotent-retry-certification-v1|executed={}|previously_committed={}|linked={}",
+                executed.envelope().canonical_digest(),
+                previously_committed.envelope().canonical_digest(),
+                previously_committed
+                    .retry_receipt()
+                    .and_then(|receipt| receipt.original_operation_digest())
                     .unwrap_or("missing"),
             ),
         })

@@ -157,17 +157,17 @@ fn execute_slot_operation(
 
     match query_operation {
         WorthServerQueryOperation::SingleMutation { command, .. } => {
-            let (receipt, inspection) = submission_lane.submit_with_inspection(command)?;
+            let (receipt, inspection) = submission_lane.submit_with_inspection(*command)?;
             Ok(WorthServerScheduledMutationResult::Single {
-                receipt,
-                inspection,
+                receipt: Box::new(receipt),
+                inspection: Box::new(inspection),
             })
         }
         WorthServerQueryOperation::BatchMutation { commands, .. } => {
             let (receipt, inspection) = submission_lane.submit_batch_with_inspection(commands)?;
             Ok(WorthServerScheduledMutationResult::Batch {
-                receipt,
-                inspection,
+                receipt: Box::new(receipt),
+                inspection: Box::new(inspection),
             })
         }
     }
@@ -182,6 +182,7 @@ fn increment_admission_counter(
             counters.increment_admitted_submission_slot_count();
         }
         WorthServerSchedulerLane::ProductDraftMutation { .. }
+        | WorthServerSchedulerLane::DurableProductMutation { .. }
         | WorthServerSchedulerLane::ProductSessionCoordination { .. } => {
             counters.increment_admitted_mutation_slot_count();
         }
@@ -198,6 +199,7 @@ fn increment_completion_counter(
             counters.increment_completed_submission_slot_count();
         }
         WorthServerSchedulerLane::ProductDraftMutation { .. }
+        | WorthServerSchedulerLane::DurableProductMutation { .. }
         | WorthServerSchedulerLane::ProductSessionCoordination { .. } => {
             counters.increment_completed_mutation_slot_count();
         }

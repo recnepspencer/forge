@@ -6,6 +6,7 @@ use super::{WorthServerProductApplicationAdapter, WorthServerProductOperationDec
 pub struct WorthServerProductApplicationAdapterRegistration {
     adapter_label: String,
     adapter: Arc<dyn WorthServerProductApplicationAdapter>,
+    durable_mutation_executor: Option<Arc<dyn crate::WorthServerDurableProductMutationExecutor>>,
     declarations: Vec<WorthServerProductOperationDeclaration>,
 }
 
@@ -26,6 +27,7 @@ impl WorthServerProductApplicationAdapterRegistration {
         Self {
             adapter_label: adapter_label.into(),
             adapter,
+            durable_mutation_executor: None,
             declarations: Vec::new(),
         }
     }
@@ -43,12 +45,26 @@ impl WorthServerProductApplicationAdapterRegistration {
         self
     }
 
+    pub fn with_durable_mutation_executor(
+        mut self,
+        executor: Arc<dyn crate::WorthServerDurableProductMutationExecutor>,
+    ) -> Self {
+        self.durable_mutation_executor = Some(executor);
+        self
+    }
+
     pub(crate) fn adapter_label(&self) -> &str {
         &self.adapter_label
     }
 
     pub(crate) fn adapter(&self) -> &Arc<dyn WorthServerProductApplicationAdapter> {
         &self.adapter
+    }
+
+    pub(crate) fn durable_mutation_executor(
+        &self,
+    ) -> Option<&Arc<dyn crate::WorthServerDurableProductMutationExecutor>> {
+        self.durable_mutation_executor.as_ref()
     }
 
     pub(crate) fn declarations(&self) -> &[WorthServerProductOperationDeclaration] {
@@ -64,12 +80,25 @@ pub struct WorthServerProductAdapterRegistrationReceipt {
 }
 
 impl WorthServerProductAdapterRegistrationReceipt {
-    pub(crate) fn new(adapter_label: impl Into<String>, operation_names: Vec<String>) -> Self {
+    pub(crate) fn new(
+        adapter_label: impl Into<String>,
+        operation_rows: Vec<(String, String)>,
+    ) -> Self {
         let adapter_label = adapter_label.into();
-        let canonical_digest = format!(
-            "worth-server-product-adapter-registration-v1|adapter={adapter_label}|operations={}",
-            operation_names.join(",")
-        );
+        let operation_names = operation_rows
+            .iter()
+            .map(|(operation_name, _)| operation_name.clone())
+            .collect::<Vec<_>>();
+        let mut digest = crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+            "worth-server-product-adapter-registration-v3",
+        )
+        .field("adapter", &adapter_label);
+        for (operation_name, declaration_digest) in &operation_rows {
+            digest = digest
+                .field("operation", operation_name)
+                .field("declaration", declaration_digest);
+        }
+        let canonical_digest = digest.finish();
         Self {
             adapter_label,
             operation_names,

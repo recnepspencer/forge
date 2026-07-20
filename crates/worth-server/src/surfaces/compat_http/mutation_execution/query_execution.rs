@@ -17,13 +17,13 @@ use super::{
     execution::{
         WorthServerCompatibilityMutationExecutionInput, WorthServerCompatibilityMutationOutcome,
     },
-    idempotency::{WorthServerIdempotencyKey, WorthServerIdempotentReplayReceipt},
+    idempotency::{WorthServerIdempotencyKey, WorthServerIdempotentRetryReceipt},
     query_execution_support::{
         canonical_mutation_request_digest, map_operation_request_denial, map_readiness_denial,
     },
-    replay_cache::{record_replay, try_replay},
     request::WorthServerCompatibilityMutationRequest,
     response::{WorthServerCompatibilityMutation, WorthServerCompatibilityMutationResult},
+    retry_cache::{record_retry_completion, try_resolve_retry},
     schema::lower_query_operation,
 };
 impl WorthServerCompatibilityFacade {
@@ -209,13 +209,15 @@ pub(crate) fn execute_compatibility_mutation_request(
         &mutation_request,
         &precondition,
     );
-    match try_replay(
+    match try_resolve_retry(
         &facade.idempotency_store,
         &prepared_request,
         &idempotency_key,
         &request_digest,
     ) {
-        Ok(Some(replayed)) => return TransitionOutcome::Success(replayed),
+        Ok(Some(previously_completed)) => {
+            return TransitionOutcome::Success(previously_completed);
+        }
         Ok(None) => {}
         Err(denial) => return TransitionOutcome::Denied(denial),
     }
@@ -266,6 +268,16 @@ pub(crate) fn execute_compatibility_mutation_request(
                         .with_basis_mismatch(expected_basis_digest, observed_basis_digest),
                 ),
             ),
+            crate::WorthServerSchedulerFailurePosture::IsolatedRuntimeFailure {
+                runtime_failure:
+                    crate::WorthServerSchedulerRuntimeFailure::DirectMutationContractDenied {
+                        detail,
+                    },
+            } => TransitionOutcome::Denied(WorthServerQueryHandoffDenial::new(
+                WorthServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
+                diagnostics_profile,
+                detail,
+            )),
             crate::WorthServerSchedulerFailurePosture::IsolatedRuntimeFailure { .. }
             | crate::WorthServerSchedulerFailurePosture::DependentSharedBasisFailure { .. }
             | crate::WorthServerSchedulerFailurePosture::OrderedLaneClosed { .. } => {
@@ -292,14 +304,14 @@ pub(crate) fn execute_compatibility_mutation_request(
         Some(&observed_basis_digest),
         WorthServerDirectRemaskPosture::visible(),
     );
-    let replay_receipt = idempotency_key
+    let retry_receipt = idempotency_key
         .as_ref()
-        .map(|key| WorthServerIdempotentReplayReceipt::authoritative(key, &request_digest))
-        .unwrap_or_else(|| WorthServerIdempotentReplayReceipt::Authoritative {
+        .map(|key| WorthServerIdempotentRetryReceipt::authoritative(key, &request_digest))
+        .unwrap_or_else(|| WorthServerIdempotentRetryReceipt::Authoritative {
             idempotency_key: "none".to_string(),
             request_digest: request_digest.clone(),
             canonical_digest: format!(
-                "compat-http-idempotent-replay-v1|class=authoritative|key:none|request:{}",
+                "compat-http-idempotent-retry-v1|class=executed|key:none|request:{}",
                 request_digest
             ),
         });
@@ -309,7 +321,7 @@ pub(crate) fn execute_compatibility_mutation_request(
         handoff_digest,
         direct_context,
         response_envelope,
-        replay_receipt,
+        retry_receipt,
     );
     let mutation = WorthServerCompatibilityMutation::new(
         operation_request,
@@ -319,7 +331,7 @@ pub(crate) fn execute_compatibility_mutation_request(
         mutation_result,
         envelope,
     );
-    record_replay(
+    record_retry_completion(
         &facade.idempotency_store,
         &prepared_request,
         idempotency_key,

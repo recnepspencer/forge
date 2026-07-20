@@ -28,6 +28,8 @@ fn external_code_cannot_construct_or_reuse_sealed_phase_artifacts_directly() {
     tests.compile_fail("tests/ui/construction/private_scheduler_raw_input_access.rs");
     tests.compile_fail("tests/ui/construction/private_surface_registration_constructor.rs");
     tests.compile_fail("tests/ui/construction/private_server_constructor.rs");
+    tests.compile_fail("tests/ui/construction/product_operation_result_contract_required.rs");
+    tests.compile_fail("tests/ui/construction/product_result_requires_schema_bound_value.rs");
     tests.compile_fail("tests/ui/cross_family/compat_http_cannot_import_worth_native_internal.rs");
     tests.compile_fail("tests/ui/cross_family/worth_native_cannot_import_compat_http_internal.rs");
     tests.compile_fail("tests/ui/lifecycle/server_cannot_serve_twice.rs");

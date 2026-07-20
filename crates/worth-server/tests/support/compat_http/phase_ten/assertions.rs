@@ -34,8 +34,8 @@ pub(crate) fn assert_private_cacheability(
         policy.vary(),
         &[
             "authorization".to_string(),
-            "x-WORTH-branch".to_string(),
-            "x-WORTH-diagnostics".to_string(),
+            "x-Worth-branch".to_string(),
+            "x-Worth-diagnostics".to_string(),
         ]
     );
     assert!(!policy.publicly_reusable());

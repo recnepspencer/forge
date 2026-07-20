@@ -44,24 +44,38 @@ pub struct WorthServerFileTransferProvenance {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerFileTransferProvenanceParts {
+    pub(crate) metadata_identity: String,
+    pub(crate) tenant_id: String,
+    pub(crate) workspace_digest: String,
+    pub(crate) branch_digest: String,
+    pub(crate) operation_name: String,
+    pub(crate) diagnostics_profile: DiagnosticRichnessProfile,
+    pub(crate) disposition: WorthServerFileTransferDisposition,
+    pub(crate) content_type: Option<String>,
+    pub(crate) bytes_selected: u64,
+    pub(crate) range_honored: bool,
+}
+
 impl WorthServerFileTransferProvenance {
-    pub(crate) fn new(
-        metadata_identity: impl Into<String>,
-        tenant_id: impl Into<String>,
-        workspace_digest: impl Into<String>,
-        branch_digest: impl Into<String>,
-        operation_name: impl Into<String>,
-        diagnostics_profile: DiagnosticRichnessProfile,
-        disposition: WorthServerFileTransferDisposition,
-        content_type: Option<String>,
-        bytes_selected: u64,
-        range_honored: bool,
-    ) -> Self {
-        let metadata_identity = metadata_identity.into().trim().to_string();
-        let tenant_id = tenant_id.into().trim().to_string();
-        let workspace_digest = workspace_digest.into().trim().to_string();
-        let branch_digest = branch_digest.into().trim().to_string();
-        let operation_name = operation_name.into().trim().to_string();
+    pub(crate) fn new(parts: WorthServerFileTransferProvenanceParts) -> Self {
+        let WorthServerFileTransferProvenanceParts {
+            metadata_identity,
+            tenant_id,
+            workspace_digest,
+            branch_digest,
+            operation_name,
+            diagnostics_profile,
+            disposition,
+            content_type,
+            bytes_selected,
+            range_honored,
+        } = parts;
+        let metadata_identity = metadata_identity.trim().to_string();
+        let tenant_id = tenant_id.trim().to_string();
+        let workspace_digest = workspace_digest.trim().to_string();
+        let branch_digest = branch_digest.trim().to_string();
+        let operation_name = operation_name.trim().to_string();
         let provenance = build_provenance(
             disposition,
             &metadata_identity,

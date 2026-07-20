@@ -133,24 +133,24 @@ impl WorthServerRouteHttpTestResponse {
     }
 
     pub fn route_kind(&self) -> Option<&str> {
-        self.header("x-WORTH-route-kind")
+        self.header("x-Worth-route-kind")
     }
 
     pub fn semantic_runtime_entered(&self) -> Option<bool> {
-        self.header("x-WORTH-semantic-runtime-entered")
+        self.header("x-Worth-semantic-runtime-entered")
             .map(|value| value == "true")
     }
 
     pub fn operation_name(&self) -> Option<&str> {
-        self.header("x-WORTH-operation-name")
+        self.header("x-Worth-operation-name")
     }
 
     pub fn plan_digest(&self) -> Option<&str> {
-        self.header("x-WORTH-plan-digest")
+        self.header("x-Worth-plan-digest")
     }
 
     pub fn envelope_digest(&self) -> Option<&str> {
-        self.header("x-WORTH-envelope-digest").or_else(|| {
+        self.header("x-Worth-envelope-digest").or_else(|| {
             self.json_body()
                 .and_then(|body| body.get("canonical_digest"))
                 .and_then(|value| value.as_str())
@@ -158,11 +158,11 @@ impl WorthServerRouteHttpTestResponse {
     }
 
     pub fn scheduler_lane(&self) -> Option<&str> {
-        self.header("x-WORTH-scheduler-lane")
+        self.header("x-Worth-scheduler-lane")
     }
 
     pub fn transport_denial_code(&self) -> Option<&str> {
-        self.header("x-WORTH-transport-denial-code")
+        self.header("x-Worth-transport-denial-code")
     }
 
     pub fn json_body(&self) -> Option<&Value> {

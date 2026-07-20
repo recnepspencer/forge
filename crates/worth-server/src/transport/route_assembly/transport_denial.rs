@@ -6,6 +6,7 @@ pub enum WorthServerTransportDenialCode {
     UnsupportedContentType,
     OversizedBody,
     MalformedJson,
+    InvalidIdempotencyKey,
     MissingProductSessionIdentity,
     MissingBranchTarget,
     UnknownRoute,

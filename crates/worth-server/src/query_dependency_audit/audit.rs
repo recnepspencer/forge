@@ -60,17 +60,17 @@ fn classify_path(
 
     let (consumer_kit_posture, closure_posture, provenance, reason) =
         classify_query_bound_path(request_contexts, query_handoff_config, &path);
-    WorthServerQueryDependencyAuditRow::new(
-        WorthServerQueryDependencyAuditRowId::new(path.row_id),
-        path.path_kind,
-        path.runtime_readiness,
+    WorthServerQueryDependencyAuditRow::new(super::WorthServerQueryDependencyAuditRowParts {
+        row_id: WorthServerQueryDependencyAuditRowId::new(path.row_id),
+        path_kind: path.path_kind,
+        runtime_readiness: path.runtime_readiness,
         consumer_kit_posture,
-        scope_posture_for(path.path_kind),
+        scope_posture: scope_posture_for(path.path_kind),
         closure_posture,
-        path.ordinary_path,
+        ordinary_path: path.ordinary_path,
         provenance,
         reason,
-    )
+    })
 }
 
 fn classify_static_test_only_path(
@@ -131,17 +131,17 @@ fn classify_static_test_only_path(
         ),
     };
 
-    WorthServerQueryDependencyAuditRow::new(
-        WorthServerQueryDependencyAuditRowId::new(path.row_id),
-        path.path_kind,
-        WorthServerQueryDependencyRuntimeReadiness::StaticTestOnly,
+    WorthServerQueryDependencyAuditRow::new(super::WorthServerQueryDependencyAuditRowParts {
+        row_id: WorthServerQueryDependencyAuditRowId::new(path.row_id),
+        path_kind: path.path_kind,
+        runtime_readiness: WorthServerQueryDependencyRuntimeReadiness::StaticTestOnly,
         consumer_kit_posture,
-        WorthServerQueryDependencyScopePosture::StaticTestOnly,
-        WorthServerQueryDependencyClosurePosture::StaticTestOnly,
-        false,
+        scope_posture: WorthServerQueryDependencyScopePosture::StaticTestOnly,
+        closure_posture: WorthServerQueryDependencyClosurePosture::StaticTestOnly,
+        ordinary_path: false,
         provenance,
         reason,
-    )
+    })
 }
 
 fn classify_boundary_audit_path(
@@ -218,17 +218,17 @@ fn classify_boundary_audit_path(
             ),
         };
 
-    WorthServerQueryDependencyAuditRow::new(
-        WorthServerQueryDependencyAuditRowId::new(path.row_id),
-        path.path_kind,
-        path.runtime_readiness,
+    WorthServerQueryDependencyAuditRow::new(super::WorthServerQueryDependencyAuditRowParts {
+        row_id: WorthServerQueryDependencyAuditRowId::new(path.row_id),
+        path_kind: path.path_kind,
+        runtime_readiness: path.runtime_readiness,
         consumer_kit_posture,
-        scope_posture_for(path.path_kind),
+        scope_posture: scope_posture_for(path.path_kind),
         closure_posture,
-        path.ordinary_path,
+        ordinary_path: path.ordinary_path,
         provenance,
         reason,
-    )
+    })
 }
 
 fn classify_query_bound_path(
@@ -271,14 +271,16 @@ fn classify_query_bound_path(
             WorthServerQueryDependencyClosurePosture::Blocked,
             WorthServerQueryDependencyAuditProvenance::QuerySupportPin(
                 WorthServerQueryDependencySupportPinProvenance::new(
-                    "unbound-workspace".to_string(),
-                    path.required_query_families.to_vec(),
-                    reason.clone(),
-                    reason.clone(),
-                    reason.clone(),
-                    reason.clone(),
-                    usize::MAX,
-                    0,
+                    super::WorthServerQueryDependencySupportPinProvenanceParts {
+                        workspace_name: "unbound-workspace".to_string(),
+                        required_families: path.required_query_families.to_vec(),
+                        support_matrix_digest: reason.clone(),
+                        support_snapshot_digest: reason.clone(),
+                        contract_digest: reason.clone(),
+                        report_digest: reason.clone(),
+                        blocking_finding_count: usize::MAX,
+                        matched_required_count: 0,
+                    },
                 ),
             ),
             reason,
@@ -327,14 +329,16 @@ fn evaluate_query_bound_support(
         .map_err(|error| format!("support-pinning-evaluation-error: {error:?}"))?;
 
     Ok(WorthServerQueryDependencySupportPinProvenance::new(
-        workspace.name().to_string(),
-        path.required_query_families.to_vec(),
-        snapshot.source_matrix_digest().to_string(),
-        snapshot.snapshot_digest().to_string(),
-        report.contract_digest().to_string(),
-        report.report_digest().to_string(),
-        report.blocking_finding_count(),
-        report.matched_required_count(),
+        super::WorthServerQueryDependencySupportPinProvenanceParts {
+            workspace_name: workspace.name().to_string(),
+            required_families: path.required_query_families.to_vec(),
+            support_matrix_digest: snapshot.source_matrix_digest().to_string(),
+            support_snapshot_digest: snapshot.snapshot_digest().to_string(),
+            contract_digest: report.contract_digest().to_string(),
+            report_digest: report.report_digest().to_string(),
+            blocking_finding_count: report.blocking_finding_count(),
+            matched_required_count: report.matched_required_count(),
+        },
     ))
 }
 

@@ -7,14 +7,31 @@ use super::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthServerProductOperationSuccess {
     result_key: String,
-    result_digest: String,
+    result_artifact: crate::WorthServerProductResultArtifact,
 }
 
 impl WorthServerProductOperationSuccess {
-    pub fn new(result_key: impl Into<String>, result_digest: impl Into<String>) -> Self {
+    pub fn publish_json<T>(
+        result_key: impl Into<String>,
+        contract: &crate::WorthServerProductResultContract,
+        body: &T,
+    ) -> Result<Self, crate::WorthServerProductResultArtifactError>
+    where
+        T: crate::WorthServerProductResultValue,
+    {
+        Ok(Self::from_artifact(
+            result_key,
+            crate::WorthServerProductResultArtifact::publish_json(contract, body)?,
+        ))
+    }
+
+    pub(crate) fn from_artifact(
+        result_key: impl Into<String>,
+        result_artifact: crate::WorthServerProductResultArtifact,
+    ) -> Self {
         Self {
             result_key: result_key.into(),
-            result_digest: result_digest.into(),
+            result_artifact,
         }
     }
 
@@ -22,8 +39,8 @@ impl WorthServerProductOperationSuccess {
         &self.result_key
     }
 
-    pub fn result_digest(&self) -> &str {
-        &self.result_digest
+    pub fn result_artifact(&self) -> &crate::WorthServerProductResultArtifact {
+        &self.result_artifact
     }
 }
 
@@ -69,7 +86,9 @@ pub struct WorthServerCompletedProductOperation {
     envelope: WorthServerProductOperationEnvelope,
     proof: Option<WorthServerCompletedProductOperationProof>,
     adapter_execution_attempted: bool,
-    replay_receipt: Option<crate::WorthServerProductOperationReplayReceipt>,
+    durable_executor_attempted: bool,
+    durable_mutation_receipt: Option<crate::WorthServerDurableProductMutationReceipt>,
+    retry_receipt: Option<crate::WorthServerProductOperationRetryReceipt>,
 }
 
 impl WorthServerCompletedProductOperation {
@@ -82,7 +101,9 @@ impl WorthServerCompletedProductOperation {
             envelope,
             proof: None,
             adapter_execution_attempted: false,
-            replay_receipt: None,
+            durable_executor_attempted: false,
+            durable_mutation_receipt: None,
+            retry_receipt: None,
         }
     }
 
@@ -98,21 +119,43 @@ impl WorthServerCompletedProductOperation {
         self
     }
 
-    pub(crate) fn with_replay_receipt(
+    pub(crate) fn with_durable_executor_attempt(
         mut self,
-        replay_receipt: crate::WorthServerProductOperationReplayReceipt,
+        scheduled_operation: &WorthServerScheduledProductOperation,
     ) -> Self {
-        self.replay_receipt = Some(replay_receipt);
+        self.proof = Some(WorthServerCompletedProductOperationProof::new(
+            scheduled_operation.plan().clone(),
+            scheduled_operation.scheduler_admission().clone(),
+        ));
+        self.adapter_execution_attempted = false;
+        self.durable_executor_attempted = true;
         self
     }
 
-    pub(crate) fn to_replayed(
+    pub(crate) fn with_retry_receipt(
+        mut self,
+        retry_receipt: crate::WorthServerProductOperationRetryReceipt,
+    ) -> Self {
+        self.retry_receipt = Some(retry_receipt);
+        self
+    }
+
+    pub(crate) fn with_durable_mutation_receipt(
+        mut self,
+        durable_mutation_receipt: crate::WorthServerDurableProductMutationReceipt,
+    ) -> Self {
+        self.durable_mutation_receipt = Some(durable_mutation_receipt);
+        self
+    }
+
+    pub(crate) fn as_previously_committed(
         &self,
-        replay_receipt: crate::WorthServerProductOperationReplayReceipt,
+        retry_receipt: crate::WorthServerProductOperationRetryReceipt,
     ) -> Self {
         let mut cloned = self.clone();
         cloned.adapter_execution_attempted = false;
-        cloned.replay_receipt = Some(replay_receipt);
+        cloned.durable_executor_attempted = false;
+        cloned.retry_receipt = Some(retry_receipt);
         cloned
     }
 
@@ -122,6 +165,14 @@ impl WorthServerCompletedProductOperation {
 
     pub fn envelope(&self) -> &WorthServerProductOperationEnvelope {
         &self.envelope
+    }
+
+    pub fn result_artifact(&self) -> Option<&crate::WorthServerProductResultArtifact> {
+        match &self.outcome {
+            WorthServerProductOperationOutcome::Success(success) => Some(success.result_artifact()),
+            WorthServerProductOperationOutcome::Denied(_)
+            | WorthServerProductOperationOutcome::Failed(_) => None,
+        }
     }
 
     pub fn plan(&self) -> Option<&WorthServerLoweredProductOperationPlan> {
@@ -146,13 +197,19 @@ impl WorthServerCompletedProductOperation {
             .map(WorthServerLoweredProductOperationPlan::precondition_posture)
     }
 
-    pub fn replay_receipt(&self) -> Option<&crate::WorthServerProductOperationReplayReceipt> {
-        self.replay_receipt.as_ref()
+    pub fn retry_receipt(&self) -> Option<&crate::WorthServerProductOperationRetryReceipt> {
+        self.retry_receipt.as_ref()
     }
 
-    pub fn replay_diagnostics(&self) -> WorthServerProductOperationReplayDiagnostics {
-        WorthServerProductOperationReplayDiagnostics::new(
-            self.replay_receipt.clone(),
+    pub fn durable_mutation_receipt(
+        &self,
+    ) -> Option<&crate::WorthServerDurableProductMutationReceipt> {
+        self.durable_mutation_receipt.as_ref()
+    }
+
+    pub fn retry_diagnostics(&self) -> WorthServerProductOperationRetryDiagnostics {
+        WorthServerProductOperationRetryDiagnostics::new(
+            self.retry_receipt.clone(),
             self.adapter_execution_attempted(),
             self.envelope.canonical_digest().to_string(),
         )
@@ -161,66 +218,70 @@ impl WorthServerCompletedProductOperation {
     pub fn adapter_execution_attempted(&self) -> bool {
         self.adapter_execution_attempted
     }
+
+    pub fn durable_executor_attempted(&self) -> bool {
+        self.durable_executor_attempted
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthServerProductOperationReplayClass {
+pub enum WorthServerProductOperationRetryClass {
     BestEffort,
-    Authoritative,
-    Replayed,
+    Executed,
+    PreviouslyCommitted,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthServerProductOperationReplayDiagnostics {
-    class: WorthServerProductOperationReplayClass,
-    replay_receipt: Option<crate::WorthServerProductOperationReplayReceipt>,
+pub struct WorthServerProductOperationRetryDiagnostics {
+    class: WorthServerProductOperationRetryClass,
+    retry_receipt: Option<crate::WorthServerProductOperationRetryReceipt>,
     adapter_execution_attempted: bool,
     envelope_digest: String,
 }
 
-impl WorthServerProductOperationReplayDiagnostics {
+impl WorthServerProductOperationRetryDiagnostics {
     fn new(
-        replay_receipt: Option<crate::WorthServerProductOperationReplayReceipt>,
+        retry_receipt: Option<crate::WorthServerProductOperationRetryReceipt>,
         adapter_execution_attempted: bool,
         envelope_digest: String,
     ) -> Self {
-        let class = match replay_receipt.as_ref() {
-            None => WorthServerProductOperationReplayClass::BestEffort,
-            Some(receipt) if receipt.is_replayed() => {
-                WorthServerProductOperationReplayClass::Replayed
+        let class = match retry_receipt.as_ref() {
+            None => WorthServerProductOperationRetryClass::BestEffort,
+            Some(receipt) if receipt.is_previously_committed() => {
+                WorthServerProductOperationRetryClass::PreviouslyCommitted
             }
-            Some(_) => WorthServerProductOperationReplayClass::Authoritative,
+            Some(_) => WorthServerProductOperationRetryClass::Executed,
         };
         Self {
             class,
-            replay_receipt,
+            retry_receipt,
             adapter_execution_attempted,
             envelope_digest,
         }
     }
 
-    pub fn class(&self) -> &WorthServerProductOperationReplayClass {
+    pub fn class(&self) -> &WorthServerProductOperationRetryClass {
         &self.class
     }
 
-    pub fn replay_receipt(&self) -> Option<&crate::WorthServerProductOperationReplayReceipt> {
-        self.replay_receipt.as_ref()
+    pub fn retry_receipt(&self) -> Option<&crate::WorthServerProductOperationRetryReceipt> {
+        self.retry_receipt.as_ref()
     }
 
-    pub fn is_authoritative(&self) -> bool {
-        self.class == WorthServerProductOperationReplayClass::Authoritative
+    pub fn is_executed(&self) -> bool {
+        self.class == WorthServerProductOperationRetryClass::Executed
     }
 
-    pub fn is_replayed(&self) -> bool {
-        self.class == WorthServerProductOperationReplayClass::Replayed
+    pub fn is_previously_committed(&self) -> bool {
+        self.class == WorthServerProductOperationRetryClass::PreviouslyCommitted
     }
 
     pub fn adapter_execution_attempted(&self) -> bool {
         self.adapter_execution_attempted
     }
 
-    pub fn adapter_execution_skipped_by_replay(&self) -> bool {
-        self.is_replayed() && !self.adapter_execution_attempted
+    pub fn adapter_execution_skipped_by_retry(&self) -> bool {
+        self.is_previously_committed() && !self.adapter_execution_attempted
     }
 
     pub fn envelope_digest(&self) -> &str {

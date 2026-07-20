@@ -6,6 +6,8 @@ use worth_server::{
     WorthServerQueryWorkspaceProvider,
 };
 
+use super::runtime_aspect_contracts::query_handoff_aspect_contracts;
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RealMutationWorkspaceProvider;
 
@@ -19,11 +21,12 @@ impl WorthServerQueryWorkspaceProvider for RealMutationWorkspaceProvider {
         request: &WorthServerQueryWorkspaceBindingRequest,
     ) -> Result<WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError> {
         match request.target() {
-            WorthServerQueryWorkspaceBindingTarget::QueryHandoff {
-                operation:
+            WorthServerQueryWorkspaceBindingTarget::QueryHandoff { operation }
+                if matches!(
+                    operation.as_ref(),
                     WorthServerQueryHandoffOperation::DirectMutation { .. }
-                    | WorthServerQueryHandoffOperation::QueryMutation { .. },
-            } => {}
+                        | WorthServerQueryHandoffOperation::QueryMutation { .. }
+                ) => {}
             target => {
                 return Err(WorthServerQueryWorkspaceBindingError::new(
                     "workspace_target",
@@ -50,6 +53,8 @@ impl WorthServerQueryWorkspaceProvider for RealMutationWorkspaceProvider {
 
 fn task_schema() -> WorthQueryTestBackendSchema {
     WorthQueryTestBackendSchema::single_collection("Task")
+        .aspect_contracts(query_handoff_aspect_contracts())
+        .expect("task schema aspect contracts should install")
         .aspect("identity.id", "identity.id")
         .expect("task schema identity aspect should be valid")
         .aspect("title.value", "title.value")

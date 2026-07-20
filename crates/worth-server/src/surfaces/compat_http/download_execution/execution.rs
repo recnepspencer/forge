@@ -176,16 +176,18 @@ impl WorthServerCompatibilityFacade {
             Err(denial) => return TransitionOutcome::Denied(denial),
         };
         TransitionOutcome::Success(WorthServerBinaryEgressSession::new(
-            operation_admission,
-            read,
-            input.download,
-            range_request,
-            conditional_range_request,
-            selected_start,
-            selected_end_exclusive,
-            partial_requested,
-            head_only,
-            retry_posture,
+            super::WorthServerBinaryEgressSessionParts {
+                operation_admission,
+                read,
+                download_request: input.download,
+                range_request,
+                conditional_range_request,
+                selected_start,
+                selected_end_exclusive,
+                range_honored: partial_requested,
+                head_only,
+                retry_posture,
+            },
         ))
     }
 
@@ -338,16 +340,18 @@ fn metadata_read_prepared_request(
         .map(|(name, values)| (name.to_string(), values.to_vec()))
         .collect::<BTreeMap<_, _>>();
     let metadata_contract = WorthServerExternalRequestContract::new(
-        request_contract.route_family(),
-        request_contract.method().to_string(),
-        request_contract.normalized_path().to_string(),
-        request_contract.normalized_query_pairs().to_vec(),
-        WorthServerCanonicalHeaderSet::new(headers),
-        request_contract.representation(),
-        request_contract.version(),
-        request_contract.diagnostics_profile(),
-        request_contract.body_present(),
-        request_contract.body_content_type().map(str::to_string),
+        crate::surfaces::compat_http::WorthServerExternalRequestContractParts {
+            route_family: request_contract.route_family(),
+            method: request_contract.method().to_string(),
+            normalized_path: request_contract.normalized_path().to_string(),
+            normalized_query_pairs: request_contract.normalized_query_pairs().to_vec(),
+            canonical_headers: WorthServerCanonicalHeaderSet::new(headers),
+            representation: request_contract.representation(),
+            version: request_contract.version(),
+            diagnostics_profile: request_contract.diagnostics_profile(),
+            body_present: request_contract.body_present(),
+            body_content_type: request_contract.body_content_type().map(str::to_string),
+        },
     );
     WorthServerCompatibilityPreparedRequest::new(
         prepared_request.admission().clone(),

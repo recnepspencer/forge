@@ -66,7 +66,7 @@ fn compat_http_single_insert_matches_worth_native_mutation_on_shared_query_artif
         response_provenance_digest(compat.envelope().response_envelope()),
         response_provenance_digest(direct.response_envelope())
     );
-    assert!(!compat.envelope().replay_receipt().is_replayed());
+    assert!(!compat.envelope().retry_receipt().is_previously_completed());
 }
 
 #[test]
@@ -192,7 +192,7 @@ fn compat_http_mutation_preconditions_deny_before_any_write_attempt() {
 }
 
 #[test]
-fn compat_http_idempotency_replays_identical_requests_and_denies_conflicts() {
+fn compat_http_idempotency_resolves_identical_retries_and_denies_conflicts() {
     let attempted_writes = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let server = build_phase_three_server_with_workspace_provider(
         ProfiledCountingTestWorkspaceProvider::new(
@@ -215,7 +215,7 @@ fn compat_http_idempotency_replays_identical_requests_and_denies_conflicts() {
             ),
         ),
     );
-    let replay = compat_mutation_success(
+    let retry = compat_mutation_success(
         server.compat_http().mutate(
             worth_server::WorthServerCompatibilityMutationExecutionInput::new(
                 prepared_mutation_request(
@@ -223,7 +223,7 @@ fn compat_http_idempotency_replays_identical_requests_and_denies_conflicts() {
                     mutation_input("tasks.insert")
                         .with_header("idempotency-key", "idem-1")
                         .build()
-                        .expect("replayed idempotent mutation input should validate structurally"),
+                        .expect("retried idempotent mutation input should validate structurally"),
                 ),
                 "tasks.insert",
                 single_insert_body("task-1"),
@@ -248,11 +248,11 @@ fn compat_http_idempotency_replays_identical_requests_and_denies_conflicts() {
         ),
     );
 
-    assert!(!first.envelope().replay_receipt().is_replayed());
-    assert!(replay.envelope().replay_receipt().is_replayed());
+    assert!(!first.envelope().retry_receipt().is_previously_completed());
+    assert!(retry.envelope().retry_receipt().is_previously_completed());
     assert_eq!(
         first.mutation_result().result_digest(),
-        replay.mutation_result().result_digest()
+        retry.mutation_result().result_digest()
     );
     assert_eq!(
         attempted_writes.load(Ordering::Relaxed),
@@ -318,8 +318,8 @@ fn compat_http_idempotency_scope_isolated_by_workspace_target() {
         ),
     );
 
-    assert!(!first.envelope().replay_receipt().is_replayed());
-    assert!(!second.envelope().replay_receipt().is_replayed());
+    assert!(!first.envelope().retry_receipt().is_previously_completed());
+    assert!(!second.envelope().retry_receipt().is_previously_completed());
     assert_eq!(
         attempted_writes.load(Ordering::Relaxed),
         2,

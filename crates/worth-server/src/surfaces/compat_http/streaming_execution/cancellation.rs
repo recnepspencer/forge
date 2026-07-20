@@ -25,23 +25,33 @@ pub struct WorthServerStreamCancellationReceipt {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerStreamCancellationReceiptParts {
+    pub(crate) kind: WorthServerStreamCancellationKind,
+    pub(crate) chunks_emitted: usize,
+    pub(crate) bytes_emitted: usize,
+    pub(crate) canonical_result_completed: bool,
+    pub(crate) detail: String,
+    pub(crate) tenant_id: String,
+    pub(crate) workspace_digest: String,
+    pub(crate) branch_digest: String,
+    pub(crate) transfer_provenance: WorthServerFileTransferProvenance,
+    pub(crate) performance_receipt: WorthServerStreamingPerformanceReceipt,
+}
+
 impl WorthServerStreamCancellationReceipt {
-    pub(crate) fn new(
-        kind: WorthServerStreamCancellationKind,
-        chunks_emitted: usize,
-        bytes_emitted: usize,
-        canonical_result_completed: bool,
-        detail: impl Into<String>,
-        tenant_id: impl Into<String>,
-        workspace_digest: impl Into<String>,
-        branch_digest: impl Into<String>,
-        transfer_provenance: WorthServerFileTransferProvenance,
-        performance_receipt: WorthServerStreamingPerformanceReceipt,
-    ) -> Self {
-        let detail = detail.into();
-        let tenant_id = tenant_id.into();
-        let workspace_digest = workspace_digest.into();
-        let branch_digest = branch_digest.into();
+    pub(crate) fn new(parts: WorthServerStreamCancellationReceiptParts) -> Self {
+        let WorthServerStreamCancellationReceiptParts {
+            kind,
+            chunks_emitted,
+            bytes_emitted,
+            canonical_result_completed,
+            detail,
+            tenant_id,
+            workspace_digest,
+            branch_digest,
+            transfer_provenance,
+            performance_receipt,
+        } = parts;
         let canonical_digest = format!(
             "compat-http-stream-cancellation-v2|kind:{kind:?}|tenant:{tenant_id}|workspace:{workspace_digest}|branch:{branch_digest}|chunks:{chunks_emitted}|bytes:{bytes_emitted}|semantic_complete:{canonical_result_completed}|detail:{detail}"
         );

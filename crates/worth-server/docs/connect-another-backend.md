@@ -75,7 +75,7 @@ Backend A wants to create a task attachment.
 ## Real example
 
 If your backend needs to bridge from OpenAI tools, browser actions, or another
-app server into WORTH truth:
+app server into Worth truth:
 
 - map "fetch current state" to `/compat/reads/...`
 - map "perform authoritative change" to `/compat/mutations/...`

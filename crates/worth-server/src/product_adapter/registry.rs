@@ -10,6 +10,7 @@ use super::{
 struct RegisteredProductOperation {
     adapter_label: String,
     adapter: Arc<dyn WorthServerProductApplicationAdapter>,
+    durable_mutation_executor: Option<Arc<dyn crate::WorthServerDurableProductMutationExecutor>>,
     declaration: WorthServerProductOperationDeclaration,
 }
 
@@ -26,6 +27,7 @@ impl std::fmt::Debug for RegisteredProductOperation {
 pub struct WorthServerProductAdapterRegistry {
     receipts: Vec<WorthServerProductAdapterRegistrationReceipt>,
     operations_by_name: BTreeMap<String, RegisteredProductOperation>,
+    mutation_lane_coordinator: super::lane_coordination::WorthServerProductMutationLaneCoordinator,
 }
 
 impl WorthServerProductAdapterRegistry {
@@ -57,7 +59,7 @@ impl WorthServerProductAdapterRegistry {
                     },
                 );
             }
-            let mut operation_names = Vec::new();
+            let mut operation_rows = Vec::new();
             for declaration in registration.declarations() {
                 declaration.validate().map_err(|certification_error| {
                     WorthServerProductAdapterRegistryError::InvalidRegistration {
@@ -65,6 +67,14 @@ impl WorthServerProductAdapterRegistry {
                         certification_error,
                     }
                 })?;
+                validate_durable_executor(&registration, declaration).map_err(
+                    |certification_error| {
+                        WorthServerProductAdapterRegistryError::InvalidRegistration {
+                            adapter_label: registration.adapter_label().to_string(),
+                            certification_error,
+                        }
+                    },
+                )?;
                 let operation_name = declaration.operation_name().trim().to_ascii_lowercase();
                 if operations_by_name.contains_key(&operation_name) {
                     return Err(
@@ -73,24 +83,28 @@ impl WorthServerProductAdapterRegistry {
                         },
                     );
                 }
-                operation_names.push(operation_name.clone());
+                operation_rows.push((operation_name.clone(), declaration.canonical_digest()));
                 operations_by_name.insert(
                     operation_name,
                     RegisteredProductOperation {
                         adapter_label: registration.adapter_label().to_string(),
                         adapter: registration.adapter().clone(),
+                        durable_mutation_executor: registration
+                            .durable_mutation_executor()
+                            .cloned(),
                         declaration: declaration.clone(),
                     },
                 );
             }
             receipts.push(WorthServerProductAdapterRegistrationReceipt::new(
                 registration.adapter_label(),
-                operation_names,
+                operation_rows,
             ));
         }
         Ok(Self {
             receipts,
             operations_by_name,
+            mutation_lane_coordinator: Default::default(),
         })
     }
 
@@ -116,6 +130,56 @@ impl WorthServerProductAdapterRegistry {
             .get(&operation_name.trim().to_ascii_lowercase())
             .map(|registered| (&registered.adapter, &registered.declaration))
     }
+
+    pub(crate) fn resolve_durable_executor(
+        &self,
+        operation_name: &str,
+    ) -> Option<&Arc<dyn crate::WorthServerDurableProductMutationExecutor>> {
+        self.operations_by_name
+            .get(&operation_name.trim().to_ascii_lowercase())
+            .and_then(|registered| registered.durable_mutation_executor.as_ref())
+    }
+
+    pub(crate) fn coordinate_mutation_lane<T>(
+        &self,
+        lane_identity: &str,
+        operation: impl FnOnce() -> T,
+    ) -> T {
+        self.mutation_lane_coordinator
+            .coordinate(lane_identity, operation)
+    }
+}
+
+fn validate_durable_executor(
+    registration: &WorthServerProductApplicationAdapterRegistration,
+    declaration: &WorthServerProductOperationDeclaration,
+) -> Result<(), WorthServerProductAdapterCertificationError> {
+    let Some(contract) = declaration.durable_mutation_contract() else {
+        return Ok(());
+    };
+    let executor = registration.durable_mutation_executor().ok_or_else(|| {
+        WorthServerProductAdapterCertificationError::new(
+            WorthServerProductAdapterCertificationCode::MissingDurableMutationExecutor,
+            format!(
+                "durable product operation `{}` requires an atomic mutation executor",
+                declaration.operation_name()
+            ),
+        )
+    })?;
+    if !executor
+        .capability()
+        .satisfies(contract.required_capability())
+    {
+        return Err(WorthServerProductAdapterCertificationError::new(
+            WorthServerProductAdapterCertificationCode::IncompatibleDurableMutationCapability,
+            format!(
+                "durable product operation `{}` requires capability `{}`",
+                declaration.operation_name(),
+                contract.required_capability().as_str(),
+            ),
+        ));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

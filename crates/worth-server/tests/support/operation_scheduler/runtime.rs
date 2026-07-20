@@ -26,7 +26,7 @@ impl WorthServerQueryWorkspaceProvider for SchedulerWorkspaceProvider {
         WorthServerQueryWorkspaceBindingError,
     > {
         validate_scheduler_world(request)?;
-        query_handoff_runtime::TestWorkspaceProvider::default().bind_workspace(request)
+        query_handoff_runtime::TestWorkspaceProvider.bind_workspace(request)
     }
 }
 
@@ -58,7 +58,7 @@ impl WorthServerQueryWorkspaceProvider for SelectiveSharedReadWorkspaceProvider 
             )
             .bind_workspace(request);
         }
-        query_handoff_runtime::TestWorkspaceProvider::default().bind_workspace(request)
+        query_handoff_runtime::TestWorkspaceProvider.bind_workspace(request)
     }
 }
 
@@ -101,7 +101,7 @@ fn query_handoff_binding_label(target: &WorthServerQueryWorkspaceBindingTarget) 
     let WorthServerQueryWorkspaceBindingTarget::QueryHandoff { operation } = target else {
         return None;
     };
-    match operation {
+    match operation.as_ref() {
         WorthServerQueryHandoffOperation::QueryRead { operation_name }
         | WorthServerQueryHandoffOperation::DirectRead { operation_name } => Some(operation_name),
         WorthServerQueryHandoffOperation::DirectState { target_label }

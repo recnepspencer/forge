@@ -6,9 +6,9 @@ use worth_server::{
     WorthServerOperationConcurrencyClass, WorthServerOperationConcurrencyDenialCode,
     WorthServerOperationConcurrencyFacade, WorthServerOperationFamily,
     WorthServerOperationInputEnvelope, WorthServerOperationRegistration,
-    WorthServerOperationRequestInput, WorthServerPipelineInput, WorthServerPipelineIntent,
-    WorthServerProductSessionCoordinationTarget, WorthServerSharedReadBasisKind,
-    WorthServerSurfaceFamily,
+    WorthServerOperationRequestInput, WorthServerOperationScope, WorthServerPipelineInput,
+    WorthServerPipelineIntent, WorthServerProductSessionCoordinationTarget,
+    WorthServerSharedReadBasisKind, WorthServerSurfaceFamily,
 };
 
 #[path = "support/operation_request/runtime.rs"]
@@ -18,6 +18,9 @@ use operation_request_runtime::{
     operation_request_test_server, operation_request_test_server_with_operations,
     worth_native_resolved_context, worth_native_resolved_context_for_principal,
 };
+
+#[path = "operation_admission/session_creation.rs"]
+mod session_creation;
 
 #[test]
 fn declared_shared_read_footprints_admit_concurrent_planning() {
@@ -377,55 +380,4 @@ fn conflicting_product_draft_footprints_fail_before_execution() {
         WorthServerOperationConcurrencyDenialCode::ConflictingMutableAuthority
     );
     assert!(denial.detail().contains("product draft scope"));
-}
-
-#[test]
-fn session_creation_coordination_admits_without_preexisting_session_identity() {
-    let server = operation_request_test_server();
-    let resolved = worth_native_resolved_context(&server, None);
-    let admission = match server.middleware().admit(WorthServerPipelineInput::new(
-        resolved,
-        WorthServerPipelineIntent::worth_native_session("product_session.open_mutation"),
-    )) {
-        TransitionOutcome::Success(value) => value,
-        other => panic!("expected WORTH-native session admission, got {other:?}"),
-    };
-    let operation_request = server
-        .operation_requests()
-        .admit_from_worth_native_admission(
-            &admission,
-            WorthServerOperationRequestInput::builder()
-                .with_operation_family(WorthServerOperationFamily::ProductSessionCoordination)
-                .with_operation_name("product_session.open_mutation")
-                .with_basis_digest("basis-editor-1")
-                .build(),
-        )
-        .expect("session creation request should admit without a fabricated identity");
-
-    let posture = server
-        .operation_admissions()
-        .admit_declared(&admission, &operation_request)
-        .expect("session creation posture should admit");
-
-    assert_eq!(
-        posture.authority_footprint().authority_kind(),
-        WorthServerOperationAuthorityKind::ProductSessionCoordination
-    );
-    assert!(matches!(
-        posture
-            .authority_metadata()
-            .product_session_coordination_target(),
-        Some((
-            WorthServerProductSessionCoordinationTarget::SessionCreation,
-            "product-session"
-        ))
-    ));
-    assert!(posture
-        .authority_footprint()
-        .canonical_digest()
-        .contains("kind=workspace-branch"));
-    assert!(!posture
-        .authority_footprint()
-        .canonical_digest()
-        .contains("|session="));
 }

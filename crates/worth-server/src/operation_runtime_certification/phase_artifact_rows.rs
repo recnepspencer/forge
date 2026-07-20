@@ -115,13 +115,13 @@ pub(super) fn precondition_posture_requirement_row(
 ) -> WorthServerProductOperationRuntimeRequirementRow {
     let missing_labels = editor_readiness.missing_proof_labels();
     let ready = !missing_labels.iter().any(|label| {
-        label == "pressure-shape" || label == "stale-apply-denial" || label == "idempotent-replay"
+        label == "pressure-shape" || label == "stale-apply-denial" || label == "idempotent-retry"
     });
     requirement_row(
         "precondition-posture",
         ready,
         editor_readiness.canonical_digest(),
-        "fixture must prove basis-bound reads, stale denial, and idempotent replay through server-owned contracts",
+        "fixture must prove basis-bound reads, stale denial, and idempotent retry through server-owned contracts",
     )
 }
 

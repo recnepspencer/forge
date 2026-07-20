@@ -9,13 +9,8 @@ use worth_server::{
     WorthServerTransportClass,
 };
 
-#[path = "../query_handoff/runtime.rs"]
-mod query_handoff_runtime;
-#[path = "../response_fixture.rs"]
-mod response_fixture;
-
-use query_handoff_runtime::TestWorkspaceProvider;
-use response_fixture::{
+use crate::query_handoff_runtime::TestWorkspaceProvider;
+use crate::response_fixture::{
     operator_evidence_record, query_handoff_durable_denial, resolve_blank_principal_denial,
     resolve_preview_denial, test_server_with_request_context_and_operator_evidence_config,
 };
@@ -28,7 +23,7 @@ pub fn certification_server(
     operator_profile: DiagnosticRichnessProfile,
 ) -> WorthServer {
     test_server_with_request_context_and_operator_evidence_config(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()
@@ -148,7 +143,7 @@ pub fn durable_resume_denial_bundle(server: &WorthServer) -> WorthServerCertific
 
 pub fn middleware_preview_authorization_denial_bundle() -> WorthServerCertificationBundle {
     let server = test_server_with_request_context_and_operator_evidence_config(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_preview_branch_authorization_enabled(false)
             .with_query_mutation_enabled(true)

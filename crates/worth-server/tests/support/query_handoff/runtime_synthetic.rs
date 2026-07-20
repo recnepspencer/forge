@@ -24,6 +24,7 @@ use worth_server::{
     WorthServerQueryWorkspaceProvider,
 };
 
+use super::runtime_aspect_contracts::query_handoff_aspect_contracts;
 use super::runtime_mutation_support::{test_mutation_receipt, TestSubscriptionActivation};
 use super::runtime_named_read::install_requested_named_read;
 
@@ -136,6 +137,13 @@ fn bind_with_backend(
         .workspace_target()
         .workspace_id();
     let mut workspace = WorthQueryRuntime::builder()
+        .aspect_contracts(query_handoff_aspect_contracts())
+        .map_err(|error| {
+            WorthServerQueryWorkspaceBindingError::new(
+                "aspect_contracts",
+                format!("failed to install query handoff aspect contracts: {error}"),
+            )
+        })?
         .backend(backend)
         .build()
         .map_err(|error| {
@@ -285,7 +293,7 @@ impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
                 ),
                 (
                     field_path("profile.display_name"),
-                    AspectValue::String("Ada WORTH".into()),
+                    AspectValue::String("Ada Worth".into()),
                 ),
             ]),
         )]

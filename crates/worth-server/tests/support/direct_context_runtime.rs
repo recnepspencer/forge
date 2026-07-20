@@ -146,10 +146,11 @@ impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
         &self,
         target: &WorthQueryLiveArtifactTarget,
     ) -> Vec<WorthQueryEntity> {
-        self.declared_live_views
+        if self
+            .declared_live_views
             .contains(target.terminal_view_name_projection())
-            .then(|| {
-                vec![WorthQueryEntity::from_native_field_values(
+        {
+            vec![WorthQueryEntity::from_native_field_values(
                     worth_query::facade::foundation::WorthQueryEntityIdentity::admit_authored_entity_token(
                         worth_query::facade::foundation::QueryExternalIdentityToken::new(
                             std::sync::Arc::from("user-1"),
@@ -162,12 +163,13 @@ impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
                         ),
                         (
                             field_path("profile.display_name"),
-                            AspectValue::String("Ada WORTH".into()),
+                            AspectValue::String("Ada Worth".into()),
                         ),
                     ]),
                 )]
-            })
-            .unwrap_or_default()
+        } else {
+            Vec::new()
+        }
     }
 
     fn drain_live_patches_for_target(

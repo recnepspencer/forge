@@ -7,13 +7,8 @@ use worth_server::{
     WorthServerResponseInput, WorthServerResponseTransform,
 };
 
-#[path = "../support/query_handoff/runtime.rs"]
-mod query_handoff_runtime;
-#[path = "../support/response_fixture.rs"]
-mod response_fixture;
-
-use query_handoff_runtime::TestWorkspaceProvider;
-use response_fixture::{
+use crate::query_handoff_runtime::TestWorkspaceProvider;
+use crate::response_fixture::{
     middleware_mutation_denial, operator_evidence_record, query_handoff_durable_denial,
     resolve_blank_principal_denial, resolve_blank_workspace_denial, resolve_preview_denial,
     test_server, test_server_with_request_context_and_operator_evidence_config,
@@ -22,7 +17,7 @@ use response_fixture::{
 #[test]
 fn shape_keeps_request_context_middleware_and_query_handoff_denials_distinct() {
     let server = test_server(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .build()
             .expect("middleware config should validate"),
@@ -102,7 +97,7 @@ fn shape_keeps_request_context_middleware_and_query_handoff_denials_distinct() {
 #[test]
 fn shape_keeps_auth_workspace_and_branch_request_context_denials_distinct() {
     let server = test_server(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .build()
             .expect("middleware config should validate"),
@@ -159,7 +154,7 @@ fn shape_keeps_auth_workspace_and_branch_request_context_denials_distinct() {
 #[test]
 fn operator_evidence_reconstructs_denial_classification_without_logs() {
     let server = test_server(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .build()
             .expect("middleware config should validate"),
@@ -249,7 +244,7 @@ fn operator_evidence_reconstructs_denial_classification_without_logs() {
 #[test]
 fn operator_evidence_preserves_denial_support_truth_when_operational_minimal_elides_support() {
     let server = test_server_with_request_context_and_operator_evidence_config(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .build()
             .expect("middleware config should validate"),

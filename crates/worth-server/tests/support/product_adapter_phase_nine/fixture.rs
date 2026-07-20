@@ -5,7 +5,7 @@ use std::sync::{
     Arc,
 };
 
-use serde_json::Value;
+use serde_json::{json, Value};
 use worth_proof::TransitionOutcome;
 use worth_server::{
     request_context::DiagnosticRichnessProfile,
@@ -17,11 +17,15 @@ use worth_server::{
     WorthServerProductOperationDeclaration, WorthServerProductOperationDenial,
     WorthServerProductOperationErrorMaps, WorthServerProductOperationPayload,
     WorthServerProductOperationSuccess, WorthServerProductOperationSupportSnapshot,
-    WorthServerProductPayloadSchemaValidator, WorthServerProductSession,
-    WorthServerProductSessionCreationRequest, WorthServerQueryHandoffConfig,
-    WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig,
-    WorthServerWorthNativeSession, WorthServerWorthNativeSessionInput,
+    WorthServerProductPayloadSchemaValidator, WorthServerProductResultContract,
+    WorthServerProductSession, WorthServerProductSessionCreationRequest,
+    WorthServerQueryHandoffConfig, WorthServerQueryWorkspaceProvider,
+    WorthServerRequestContextConfig, WorthServerWorthNativeSession,
+    WorthServerWorthNativeSessionInput,
 };
+
+#[path = "../product_result/schema_bound_json.rs"]
+pub(crate) mod schema_bound_json;
 
 #[path = "../query_handoff/runtime.rs"]
 mod query_handoff_runtime;
@@ -57,10 +61,10 @@ pub fn direct_session(server: &WorthServer) -> WorthServerWorthNativeSession {
             .with_workspace_id("workspace-42")
             .with_branch_id("branch-9")
             .build()
-            .expect("WORTH-native session input should validate"),
+            .expect("Worth-native session input should validate"),
     ) {
         TransitionOutcome::Success(session) => session,
-        other => panic!("expected WORTH-native session, got {other:?}"),
+        other => panic!("expected Worth-native session, got {other:?}"),
     }
 }
 
@@ -154,12 +158,14 @@ pub fn editor_registration(
     let render = declared(WorthServerProductOperationDeclaration::product_read(
         "product_editor.render",
         "product-editor.render.v1",
+        result_contract("product-editor.render.result.v1"),
         WorthServerProductOperationBasisKind::DurableProductDerived,
         WorthServerProductOperationSupportSnapshot::production_admitted("render-supported"),
     ));
     let apply = declared(WorthServerProductOperationDeclaration::product_mutation(
         "product_editor.apply",
         "product-editor.apply.v1",
+        result_contract("product-editor.apply.result.v1"),
         WorthServerProductOperationBasisKind::DurableProductDerived,
         WorthServerProductOperationSupportSnapshot::production_admitted("apply-supported"),
         "draft",
@@ -174,6 +180,7 @@ pub fn editor_registration(
             WorthServerProductOperationDeclaration::product_read(
                 "product_editor.select",
                 "product-editor.select.v1",
+                result_contract("product-editor.select.result.v1"),
                 WorthServerProductOperationBasisKind::DurableProductDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("select-supported"),
             ),
@@ -182,6 +189,7 @@ pub fn editor_registration(
             WorthServerProductOperationDeclaration::product_read(
                 "product_editor.available_actions",
                 "product-editor.actions.v1",
+                result_contract("product-editor.actions.result.v1"),
                 WorthServerProductOperationBasisKind::DurableProductDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted(
                     "actions-supported",
@@ -193,6 +201,7 @@ pub fn editor_registration(
             WorthServerProductOperationDeclaration::product_mutation(
                 "product_editor.finalize",
                 "product-editor.finalize.v1",
+                result_contract("product-editor.finalize.result.v1"),
                 WorthServerProductOperationBasisKind::DurableProductDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted(
                     "finalize-supported",
@@ -213,6 +222,7 @@ pub fn query_derived_editor_registration(
             WorthServerProductOperationDeclaration::product_read(
                 "product_editor.render",
                 "product-editor.render.v1",
+                result_contract("product-editor.render.result.v1"),
                 WorthServerProductOperationBasisKind::QueryDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted(
                     "render-query-derived",
@@ -223,6 +233,7 @@ pub fn query_derived_editor_registration(
             WorthServerProductOperationDeclaration::product_mutation(
                 "product_editor.apply",
                 "product-editor.apply.v1",
+                result_contract("product-editor.apply.result.v1"),
                 WorthServerProductOperationBasisKind::QueryDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted(
                     "apply-query-derived",
@@ -269,6 +280,11 @@ fn declared(
     declaration.with_error_map(WorthServerProductOperationErrorMaps::passthrough())
 }
 
+pub fn result_contract(schema_identity: &str) -> WorthServerProductResultContract {
+    WorthServerProductResultContract::canonical_json(schema_identity, 1, 16 * 1024)
+        .expect("test product result contract should validate")
+}
+
 #[derive(Debug, Default)]
 pub struct EditorAdapter {
     calls: Arc<AtomicUsize>,
@@ -291,19 +307,20 @@ impl WorthServerProductApplicationAdapter for EditorAdapter {
                 WorthServerProductOperationDenial::new(reason_key, "product-owned refusal"),
             ));
         }
-        Ok(WorthServerProductOperationSuccess::new(
+        schema_bound_json::publish_schema_bound_json(
             plan.declaration().operation_name(),
-            format!(
-                "{}:{}:{}",
-                plan.declaration().operation_name(),
-                operation.scheduler_admission().canonical_digest(),
-                plan.operation_admission()
+            plan.declaration().result_contract(),
+            plan.declaration().result_contract().schema().identity(),
+            json!({
+                "operation": plan.declaration().operation_name(),
+                "scheduler_admission": operation.scheduler_admission().canonical_digest(),
+                "basis": plan.operation_admission()
                     .operation_request()
                     .identity()
                     .basis_digest()
-                    .unwrap_or("none")
-            ),
-        ))
+                    .unwrap_or("none"),
+            }),
+        )
     }
 }
 

@@ -291,7 +291,7 @@ impl WorthServerUploadCleanupReceipt {
             detail: self.canonical_digest().to_string(),
             attachment_bundle: attachment_bundle(
                 "upload-cleanup",
-                &provenance,
+                provenance,
                 self.canonical_digest(),
             ),
             external_counters: external_counter_set(

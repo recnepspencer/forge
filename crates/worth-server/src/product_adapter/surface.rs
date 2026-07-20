@@ -93,6 +93,7 @@ impl WorthServerProductOperationInput {
 pub enum WorthServerProductOperationExecutionBoundary {
     RejectedBeforeAdapterExecution,
     AdapterExecutionAttempted,
+    DurableExecutorAttempted,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -103,6 +104,7 @@ pub struct WorthServerProductOperationSurfaceDenialFacts {
     session_denial_code: Option<crate::WorthServerProductSessionDenialCode>,
     idempotency_conflict: Option<crate::WorthServerProductIdempotencyConflict>,
     execution_boundary: Option<WorthServerProductOperationExecutionBoundary>,
+    recovery_handle: Option<crate::WorthServerDurableProductMutationRecoveryHandle>,
 }
 
 impl WorthServerProductOperationSurfaceDenialFacts {
@@ -140,6 +142,12 @@ impl WorthServerProductOperationSurfaceDenialFacts {
 
     pub fn execution_boundary(&self) -> Option<&WorthServerProductOperationExecutionBoundary> {
         self.execution_boundary.as_ref()
+    }
+
+    pub fn recovery_handle(
+        &self,
+    ) -> Option<&crate::WorthServerDurableProductMutationRecoveryHandle> {
+        self.recovery_handle.as_ref()
     }
 
     pub(crate) fn with_readiness_code(
@@ -182,6 +190,14 @@ impl WorthServerProductOperationSurfaceDenialFacts {
         idempotency_conflict: crate::WorthServerProductIdempotencyConflict,
     ) -> Self {
         self.idempotency_conflict = Some(idempotency_conflict);
+        self
+    }
+
+    pub(crate) fn with_recovery_handle(
+        mut self,
+        recovery_handle: crate::WorthServerDurableProductMutationRecoveryHandle,
+    ) -> Self {
+        self.recovery_handle = Some(recovery_handle);
         self
     }
 }
@@ -286,4 +302,7 @@ pub enum WorthServerProductOperationSurfaceDenialCode {
     PreconditionDenied,
     IdempotencyConflict,
     InvalidDeclaration,
+    InvalidDurableCompletion,
+    InvalidResultArtifact,
+    Indeterminate,
 }

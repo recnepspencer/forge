@@ -317,7 +317,7 @@ pub(crate) fn query_handoff_success(
         | WorthServerQueryHandoffOperation::DirectInspection { .. }
         | WorthServerQueryHandoffOperation::DirectProjection { .. }
         | WorthServerQueryHandoffOperation::DirectMutation { .. } => {
-            panic!("response fixture does not construct direct WORTH-native query handoffs")
+            panic!("response fixture does not construct direct Worth-native query handoffs")
         }
     };
     match server

@@ -62,25 +62,44 @@ pub struct WorthServerCompatibilityRead {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerCompatibilityReadParts {
+    pub(crate) operation_request: crate::WorthServerOperationRequest,
+    pub(crate) plan_proof: crate::WorthServerOperationPlanProof,
+    pub(crate) operation_name: String,
+    pub(crate) support_posture: WorthServerQuerySupportPosture,
+    pub(crate) workspace_name: String,
+    pub(crate) declaration_digest: String,
+    pub(crate) handoff_digest: String,
+    pub(crate) direct_context: WorthServerDirectContextArtifact,
+    pub(crate) basis_request: WorthServerExternalBasisRequest,
+    pub(crate) conditional_read: WorthServerConditionalRead,
+    pub(crate) read_result: WorthQueryLiveReadResult,
+    pub(crate) response_envelope: WorthServerResponseEnvelope,
+    pub(crate) validator: WorthServerReadValidator,
+    pub(crate) cache_policy: WorthServerCompatibilityCachePolicy,
+    pub(crate) certification_bundle: WorthServerCompatibilityCertificationBundle,
+}
+
 impl WorthServerCompatibilityRead {
-    pub(crate) fn new(
-        operation_request: crate::WorthServerOperationRequest,
-        plan_proof: crate::WorthServerOperationPlanProof,
-        operation_name: impl Into<String>,
-        support_posture: WorthServerQuerySupportPosture,
-        workspace_name: String,
-        declaration_digest: String,
-        handoff_digest: String,
-        direct_context: WorthServerDirectContextArtifact,
-        basis_request: WorthServerExternalBasisRequest,
-        conditional_read: WorthServerConditionalRead,
-        read_result: WorthQueryLiveReadResult,
-        response_envelope: WorthServerResponseEnvelope,
-        validator: WorthServerReadValidator,
-        cache_policy: WorthServerCompatibilityCachePolicy,
-        certification_bundle: WorthServerCompatibilityCertificationBundle,
-    ) -> Self {
-        let operation_name = operation_name.into().trim().to_string();
+    pub(crate) fn new(parts: WorthServerCompatibilityReadParts) -> Self {
+        let WorthServerCompatibilityReadParts {
+            operation_request,
+            plan_proof,
+            operation_name,
+            support_posture,
+            workspace_name,
+            declaration_digest,
+            handoff_digest,
+            direct_context,
+            basis_request,
+            conditional_read,
+            read_result,
+            response_envelope,
+            validator,
+            cache_policy,
+            certification_bundle,
+        } = parts;
+        let operation_name = operation_name.trim().to_string();
         let file_envelope = project_metadata_read_envelope(
             &direct_context,
             &operation_name,

@@ -31,19 +31,31 @@ pub struct WorthServerQueryDependencyAuditRow {
     reason: String,
 }
 
+pub(crate) struct WorthServerQueryDependencyAuditRowParts {
+    pub(crate) row_id: WorthServerQueryDependencyAuditRowId,
+    pub(crate) path_kind: WorthServerQueryDependencyAuditPathKind,
+    pub(crate) runtime_readiness: WorthServerQueryDependencyRuntimeReadiness,
+    pub(crate) consumer_kit_posture: WorthServerQueryDependencyConsumerKitPosture,
+    pub(crate) scope_posture: WorthServerQueryDependencyScopePosture,
+    pub(crate) closure_posture: WorthServerQueryDependencyClosurePosture,
+    pub(crate) ordinary_path: bool,
+    pub(crate) provenance: WorthServerQueryDependencyAuditProvenance,
+    pub(crate) reason: String,
+}
+
 impl WorthServerQueryDependencyAuditRow {
-    pub(crate) fn new(
-        row_id: WorthServerQueryDependencyAuditRowId,
-        path_kind: WorthServerQueryDependencyAuditPathKind,
-        runtime_readiness: WorthServerQueryDependencyRuntimeReadiness,
-        consumer_kit_posture: WorthServerQueryDependencyConsumerKitPosture,
-        scope_posture: WorthServerQueryDependencyScopePosture,
-        closure_posture: WorthServerQueryDependencyClosurePosture,
-        ordinary_path: bool,
-        provenance: WorthServerQueryDependencyAuditProvenance,
-        reason: impl Into<String>,
-    ) -> Self {
-        let reason = reason.into();
+    pub(crate) fn new(parts: WorthServerQueryDependencyAuditRowParts) -> Self {
+        let WorthServerQueryDependencyAuditRowParts {
+            row_id,
+            path_kind,
+            runtime_readiness,
+            consumer_kit_posture,
+            scope_posture,
+            closure_posture,
+            ordinary_path,
+            provenance,
+            reason,
+        } = parts;
         let canonical_digest = format!(
             "{}|{}|{}|{}|{}|{}|{:?}|{}",
             row_id.as_str(),

@@ -30,12 +30,11 @@ pub(crate) fn assert_binary_counter(
 pub(crate) fn finish_stream(
     mut stream: WorthServerCompatibilityStream,
 ) -> WorthServerCompatibilityExport {
-    loop {
-        match stream.next_chunk().expect("stream chunk should serialize") {
-            Some(_) => continue,
-            None => break,
-        }
-    }
+    while stream
+        .next_chunk()
+        .expect("stream chunk should serialize")
+        .is_some()
+    {}
     stream
         .finish()
         .expect("stream should finish after full consumption")

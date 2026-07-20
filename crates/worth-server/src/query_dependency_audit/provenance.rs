@@ -64,16 +64,17 @@ impl WorthServerQueryDependencyAuditProvenance {
 }
 
 impl WorthServerQueryDependencySupportPinProvenance {
-    pub(crate) fn new(
-        workspace_name: String,
-        required_families: Vec<WorthQueryRuntimeFacadeFamily>,
-        support_matrix_digest: String,
-        support_snapshot_digest: String,
-        contract_digest: String,
-        report_digest: String,
-        blocking_finding_count: usize,
-        matched_required_count: usize,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerQueryDependencySupportPinProvenanceParts) -> Self {
+        let WorthServerQueryDependencySupportPinProvenanceParts {
+            workspace_name,
+            required_families,
+            support_matrix_digest,
+            support_snapshot_digest,
+            contract_digest,
+            report_digest,
+            blocking_finding_count,
+            matched_required_count,
+        } = parts;
         Self {
             workspace_name,
             required_families,
@@ -117,6 +118,17 @@ impl WorthServerQueryDependencySupportPinProvenance {
     pub fn matched_required_count(&self) -> usize {
         self.matched_required_count
     }
+}
+
+pub(crate) struct WorthServerQueryDependencySupportPinProvenanceParts {
+    pub(crate) workspace_name: String,
+    pub(crate) required_families: Vec<WorthQueryRuntimeFacadeFamily>,
+    pub(crate) support_matrix_digest: String,
+    pub(crate) support_snapshot_digest: String,
+    pub(crate) contract_digest: String,
+    pub(crate) report_digest: String,
+    pub(crate) blocking_finding_count: usize,
+    pub(crate) matched_required_count: usize,
 }
 
 impl WorthServerQueryDependencyBoundaryAuditProvenance {

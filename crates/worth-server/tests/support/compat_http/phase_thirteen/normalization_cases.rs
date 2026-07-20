@@ -23,7 +23,7 @@ fn compat_http_phase_thirteen_edge_normalization_matrix_preserves_one_request_an
             .with_method("GET")
             .with_path("/compat/reads/files.asset")
             .with_header("accept", "application/json")
-            .with_header("x-WORTH-api-version", " 1 ")
+            .with_header("x-Worth-api-version", " 1 ")
             .with_query_pair("mode", " table ")
             .build()
             .expect("trimmed request should validate"),
@@ -39,7 +39,7 @@ fn compat_http_phase_thirteen_edge_normalization_matrix_preserves_one_request_an
             .with_method("GET")
             .with_path("/compat/reads/files.asset")
             .with_header("accept", "application/json")
-            .with_header("x-WORTH-api-version", "1")
+            .with_header("x-Worth-api-version", "1")
             .with_query_pair("mode", "table")
             .build()
             .expect("canonical request should validate"),

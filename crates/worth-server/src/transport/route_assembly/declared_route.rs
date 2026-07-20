@@ -10,6 +10,8 @@ pub struct WorthServerDeclaredRoute {
     operation_family: WorthServerOperationFamily,
     operation_name: String,
     payload_schema_identity: String,
+    result_contract_digest: Option<String>,
+    durability_contract_digest: Option<String>,
     support_row: String,
     diagnostics_policy: String,
     evidence_policy: String,
@@ -33,11 +35,23 @@ impl WorthServerDeclaredRoute {
             operation_family,
             operation_name: operation_name.into(),
             payload_schema_identity: payload_schema_identity.into(),
+            result_contract_digest: None,
+            durability_contract_digest: None,
             support_row: support_row.into(),
             diagnostics_policy: "request-context-resolved".to_string(),
             evidence_policy: "runtime-derived".to_string(),
             response_transform: WorthServerResponseTransform::compat_http(),
         }
+    }
+
+    pub(crate) fn with_product_contracts(
+        mut self,
+        result_contract_digest: impl Into<String>,
+        durability_contract_digest: Option<&str>,
+    ) -> Self {
+        self.result_contract_digest = Some(result_contract_digest.into());
+        self.durability_contract_digest = durability_contract_digest.map(str::to_string);
+        self
     }
 
     pub fn method(&self) -> &str {
@@ -62,6 +76,14 @@ impl WorthServerDeclaredRoute {
 
     pub fn payload_schema_identity(&self) -> &str {
         &self.payload_schema_identity
+    }
+
+    pub fn result_contract_digest(&self) -> Option<&str> {
+        self.result_contract_digest.as_deref()
+    }
+
+    pub fn durability_contract_digest(&self) -> Option<&str> {
+        self.durability_contract_digest.as_deref()
     }
 
     pub fn support_row(&self) -> &str {

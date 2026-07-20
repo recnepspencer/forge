@@ -107,16 +107,18 @@ impl WorthServerCompatibilityFacade {
             lower_pipeline_intent(input.route_family()),
         ));
         let request_contract = WorthServerExternalRequestContract::new(
-            input.route_family(),
-            canonical_request.method().to_string(),
-            canonical_request.normalized_path().to_string(),
-            canonical_request.normalized_query_pairs().to_vec(),
-            canonical_request.canonical_headers().clone(),
-            negotiation.representation(),
-            negotiation.version(),
-            input.diagnostics_profile(),
-            input.body_present(),
-            canonical_body_content_type(input.body_content_type()),
+            super::WorthServerExternalRequestContractParts {
+                route_family: input.route_family(),
+                method: canonical_request.method().to_string(),
+                normalized_path: canonical_request.normalized_path().to_string(),
+                normalized_query_pairs: canonical_request.normalized_query_pairs().to_vec(),
+                canonical_headers: canonical_request.canonical_headers().clone(),
+                representation: negotiation.representation(),
+                version: negotiation.version(),
+                diagnostics_profile: input.diagnostics_profile(),
+                body_present: input.body_present(),
+                body_content_type: canonical_body_content_type(input.body_content_type()),
+            },
         );
         match admission {
             TransitionOutcome::Success(admission) => TransitionOutcome::success(

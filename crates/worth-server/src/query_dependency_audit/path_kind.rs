@@ -18,11 +18,11 @@ pub enum WorthServerQueryDependencyAuditPathKind {
 impl WorthServerQueryDependencyAuditPathKind {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::WorthNativeDirectRead => "WORTH-native-direct-read",
-            Self::WorthNativeDirectState => "WORTH-native-direct-state",
-            Self::WorthNativeDirectInspection => "WORTH-native-direct-inspection",
-            Self::WorthNativeDirectProjection => "WORTH-native-direct-projection",
-            Self::WorthNativeDirectMutation => "WORTH-native-direct-mutation",
+            Self::WorthNativeDirectRead => "Worth-native-direct-read",
+            Self::WorthNativeDirectState => "Worth-native-direct-state",
+            Self::WorthNativeDirectInspection => "Worth-native-direct-inspection",
+            Self::WorthNativeDirectProjection => "Worth-native-direct-projection",
+            Self::WorthNativeDirectMutation => "Worth-native-direct-mutation",
             Self::DirectDeclarationSupportPosture => "direct-declaration-support-posture",
             Self::CompatibilityHttpRead => "compat-http-read",
             Self::CompatibilityHttpMutation => "compat-http-mutation",

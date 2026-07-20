@@ -6,7 +6,7 @@ use std::{
 use crate::{
     WorthServerCompletedProductOperation, WorthServerProductIdempotencyConflict,
     WorthServerProductIdempotencyKey, WorthServerProductIdempotencyRecord,
-    WorthServerProductOperationReplayReceipt, WorthServerProductOperationSurfaceDenial,
+    WorthServerProductOperationRetryReceipt, WorthServerProductOperationSurfaceDenial,
     WorthServerProductOperationSurfaceDenialCode, WorthServerProductOperationSurfaceDenialFacts,
 };
 
@@ -31,16 +31,16 @@ pub(crate) fn build_storage_key(binding: &WorthServerProductIdempotencyBinding) 
     binding.storage_key().to_string()
 }
 
-pub(crate) fn admit_replay(
-    replay_store: &Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+pub(crate) fn admit_retry(
+    retry_store: &Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
     storage_key: &str,
     idempotency_key: &WorthServerProductIdempotencyKey,
     request_digest: &str,
 ) -> Result<Option<WorthServerCompletedProductOperation>, WorthServerProductOperationSurfaceDenial>
 {
-    let store = replay_store
+    let store = retry_store
         .lock()
-        .expect("product idempotency replay store mutex should not be poisoned");
+        .expect("product idempotency retry store mutex should not be poisoned");
     let Some(stored) = store.get(storage_key) else {
         return Ok(None);
     };
@@ -66,29 +66,32 @@ pub(crate) fn admit_replay(
         );
     }
     Ok(Some(
-        stored.record().completed_operation().to_replayed(
-            WorthServerProductOperationReplayReceipt::replayed(
-                idempotency_key.value(),
-                request_digest,
-                stored
-                    .record()
-                    .completed_operation()
-                    .envelope()
-                    .canonical_digest(),
+        stored
+            .record()
+            .completed_operation()
+            .as_previously_committed(
+                WorthServerProductOperationRetryReceipt::previously_committed(
+                    idempotency_key.value(),
+                    request_digest,
+                    stored
+                        .record()
+                        .completed_operation()
+                        .envelope()
+                        .canonical_digest(),
+                ),
             ),
-        ),
     ))
 }
 
-pub(crate) fn record_replay(
-    replay_store: &Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+pub(crate) fn record_retry(
+    retry_store: &Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
     storage_key: String,
     request_digest: String,
     completed_operation: WorthServerCompletedProductOperation,
 ) {
-    replay_store
+    retry_store
         .lock()
-        .expect("product idempotency replay store mutex should not be poisoned")
+        .expect("product idempotency retry store mutex should not be poisoned")
         .insert(
             storage_key,
             WorthServerStoredProductOperation::new(WorthServerProductIdempotencyRecord::new(

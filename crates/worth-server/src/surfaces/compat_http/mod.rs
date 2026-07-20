@@ -50,6 +50,7 @@ pub use external_evidence::{
 };
 pub(crate) use facade::map_operation_admission_denial;
 pub use facade::WorthServerCompatibilityFacade;
+pub(crate) use facade::WorthServerCompatibilityFacadeParts;
 pub(crate) use file_identity::{
     project_binary_egress_envelope, project_metadata_inspection_envelope,
     project_metadata_read_envelope, project_upload_envelope, validate_canonical_filename,
@@ -64,13 +65,17 @@ pub use file_linkage::{
     WorthServerFileMetadataReceipt, WorthServerFileMetadataTruthKind,
     WorthServerFileTransferDisposition, WorthServerFileTransferProvenance,
 };
+pub(crate) use file_linkage::{
+    WorthServerBinaryPolicyDecisionParts, WorthServerFileMetadataReceiptParts,
+    WorthServerFileTransferProvenanceParts,
+};
 pub(crate) use mutation_execution::WorthServerStoredCompatibilityMutation;
 pub use mutation_execution::{
     WorthServerCompatibilityMutation, WorthServerCompatibilityMutationCommand,
     WorthServerCompatibilityMutationEnvelope, WorthServerCompatibilityMutationExecutionInput,
     WorthServerCompatibilityMutationOutcome, WorthServerCompatibilityMutationRequest,
     WorthServerCompatibilityMutationResult, WorthServerIdempotencyKey,
-    WorthServerIdempotentReplayReceipt, WorthServerMutationPrecondition,
+    WorthServerIdempotentRetryReceipt, WorthServerMutationPrecondition,
 };
 pub use product_continuation::{
     WorthServerCompatibilityOpenedProductSession,
@@ -86,6 +91,7 @@ pub use read_execution::{
     WorthServerExternalBasisRequest, WorthServerReadValidator,
 };
 pub use registration::CompatHttpSurface;
+pub(crate) use request_contract::WorthServerExternalRequestContractParts;
 pub use request_contract::{
     WorthServerCanonicalHeaderSet, WorthServerCompatHttpRouteFamilies,
     WorthServerCompatHttpRouteFamily, WorthServerCompatibilityRequestInput,

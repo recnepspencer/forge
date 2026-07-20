@@ -6,12 +6,12 @@ use worth_query::facade::runtime::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerScheduledMutationResult {
     Single {
-        receipt: WorthQueryWriteReceipt,
-        inspection: WorthQueryWriteReceiptInspection,
+        receipt: Box<WorthQueryWriteReceipt>,
+        inspection: Box<WorthQueryWriteReceiptInspection>,
     },
     Batch {
-        receipt: WorthQueryBatchWriteReceipt,
-        inspection: WorthQueryBatchWriteReceiptInspection,
+        receipt: Box<WorthQueryBatchWriteReceipt>,
+        inspection: Box<WorthQueryBatchWriteReceiptInspection>,
     },
 }
 

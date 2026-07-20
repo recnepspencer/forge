@@ -22,14 +22,14 @@ enum PlannedResponse {
     Success {
         transform: WorthServerResponseTransform,
         diagnostics_profile: DiagnosticRichnessProfile,
-        payload: WorthServerSuccessPayload,
+        payload: Box<WorthServerSuccessPayload>,
         boundary_label: String,
         canonical_digest: String,
     },
     Denial {
         transform: WorthServerResponseTransform,
         diagnostics_profile: DiagnosticRichnessProfile,
-        cause: WorthServerDenialCause,
+        cause: Box<WorthServerDenialCause>,
         boundary_label: String,
         canonical_digest: String,
     },
@@ -68,7 +68,7 @@ impl WorthServerResponsePlan {
                 PlannedResponse::Success {
                     transform,
                     diagnostics_profile,
-                    payload,
+                    payload: Box::new(payload),
                     boundary_label,
                     canonical_digest,
                 }
@@ -76,17 +76,17 @@ impl WorthServerResponsePlan {
             WorthServerResponseInput::RequestContextDenied(denial) => planned_denial(
                 transform.unwrap_or(config.default_denial_transform()),
                 config.denial_minimum_diagnostics_profile(),
-                WorthServerDenialCause::from_request_context(denial),
+                WorthServerDenialCause::from_request_context(*denial),
             ),
             WorthServerResponseInput::MiddlewareDenied(denial) => planned_denial(
                 transform.unwrap_or(config.default_denial_transform()),
                 config.denial_minimum_diagnostics_profile(),
-                WorthServerDenialCause::from_middleware(denial),
+                WorthServerDenialCause::from_middleware(*denial),
             ),
             WorthServerResponseInput::QueryHandoffDenied(denial) => planned_denial(
                 transform.unwrap_or(config.default_denial_transform()),
                 config.denial_minimum_diagnostics_profile(),
-                WorthServerDenialCause::from_query_handoff(denial),
+                WorthServerDenialCause::from_query_handoff(*denial),
             ),
         };
         Self { planned }
@@ -107,7 +107,7 @@ impl WorthServerResponsePlan {
                 WorthServerResponseEnvelope::from_success(WorthServerSuccessEnvelope::new(
                     transform,
                     diagnostics_profile,
-                    payload,
+                    *payload,
                     provenance,
                     receipt,
                     canonical_digest,
@@ -126,7 +126,7 @@ impl WorthServerResponsePlan {
                 WorthServerResponseEnvelope::from_denial(WorthServerDenialEnvelope::new(
                     transform,
                     diagnostics_profile,
-                    cause,
+                    *cause,
                     provenance,
                     receipt,
                     canonical_digest,
@@ -162,7 +162,7 @@ fn planned_denial(
     PlannedResponse::Denial {
         transform,
         diagnostics_profile,
-        cause,
+        cause: Box::new(cause),
         boundary_label,
         canonical_digest,
     }

@@ -21,7 +21,7 @@ use query_handoff_runtime::{ProfiledTestWorkspaceProvider, TestWorkspaceProvider
 
 #[test]
 fn prepare_denies_durable_resume_but_admits_runtime_backed_resume() {
-    let server = test_server(TestWorkspaceProvider::default(), false);
+    let server = test_server(TestWorkspaceProvider, false);
     let admission = admit_read_posture(
         &server,
         resolve_request_context(
@@ -73,7 +73,7 @@ fn prepare_denies_durable_resume_but_admits_runtime_backed_resume() {
 
 #[test]
 fn prepare_denies_mismatched_read_intent_before_query_binding() {
-    let server = test_server(TestWorkspaceProvider::default(), false);
+    let server = test_server(TestWorkspaceProvider, false);
     let denial = denied(
         server
             .query_handoff()
@@ -188,7 +188,7 @@ fn prepare_denies_downstream_delivery_when_query_workspace_does_not_admit_live_f
 #[test]
 fn prepare_denies_downstream_delivery_when_middleware_only_admitted_mutation_intent() {
     let server = test_server_with_middleware(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         false,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)

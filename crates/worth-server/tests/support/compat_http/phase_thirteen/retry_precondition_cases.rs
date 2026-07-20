@@ -13,15 +13,15 @@ use crate::{
 fn compat_http_phase_thirteen_retry_and_precondition_matrix_keeps_authority_and_resume_honest() {
     let (server, attempted_writes) = phase_thirteen_counting_server();
     let first = idempotent_mutation(&server, "phase-thirteen-idem", "idem-phase-13");
-    let replay = idempotent_mutation(&server, "phase-thirteen-idem", "idem-phase-13");
+    let retry = idempotent_mutation(&server, "phase-thirteen-idem", "idem-phase-13");
     let conflict =
         idempotent_mutation_conflict(&server, "phase-thirteen-conflict", "idem-phase-13");
 
-    assert!(!first.envelope().replay_receipt().is_replayed());
-    assert!(replay.envelope().replay_receipt().is_replayed());
+    assert!(!first.envelope().retry_receipt().is_previously_completed());
+    assert!(retry.envelope().retry_receipt().is_previously_completed());
     assert_eq!(
         first.mutation_result().result_digest(),
-        replay.mutation_result().result_digest(),
+        retry.mutation_result().result_digest(),
     );
     assert_denial_contains(
         &conflict,
@@ -78,6 +78,6 @@ fn compat_http_phase_thirteen_retry_and_precondition_matrix_keeps_authority_and_
     assert_eq!(
         attempted_writes.load(Ordering::Relaxed),
         1,
-        "idempotent replay must not create duplicate authority effects",
+        "idempotent retry must not create duplicate authority effects",
     );
 }

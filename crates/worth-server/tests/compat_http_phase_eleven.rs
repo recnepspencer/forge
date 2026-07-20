@@ -4,7 +4,6 @@ mod compat_http_phase_eleven_assertions;
 mod compat_http_phase_eleven_counter_honesty_cases;
 #[path = "support/compat_http/phase_eleven/diagnostics_richness_cases.rs"]
 mod compat_http_phase_eleven_diagnostics_richness_cases;
-#[allow(dead_code)]
 #[path = "support/compat_http/phase_four_runtime.rs"]
 mod compat_http_phase_four_runtime;
 #[path = "support/compat_http/phase_ten/runtime.rs"]
