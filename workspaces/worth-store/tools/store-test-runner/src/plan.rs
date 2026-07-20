@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 use crate::catalog::TestCatalog;
 use crate::classification::CiTestLane;
 use crate::product::{smoke_cases, TestProduct};
+
+mod structural_product;
+
+use structural_product::structural;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TestPlan {
@@ -20,7 +24,7 @@ pub(crate) struct TestExecutionUnit {
     directory: PathBuf,
     program: String,
     arguments: Vec<String>,
-    filtered: bool,
+    expected_test_count: Option<usize>,
 }
 
 impl TestPlan {
@@ -32,7 +36,7 @@ impl TestPlan {
         let mut units = match product {
             TestProduct::Owner { package } => owner(package, catalog, workspace_root)?,
             TestProduct::Smoke => smoke(catalog, workspace_root)?,
-            TestProduct::Ui => integration_lane(CiTestLane::Ui, None, catalog, workspace_root),
+            TestProduct::Ui => integration_lane(CiTestLane::Ui, None, catalog, workspace_root)?,
             TestProduct::Ci {
                 lane: selected,
                 shard,
@@ -42,7 +46,7 @@ impl TestPlan {
                 CiTestLane::OwnerUnit | CiTestLane::Structural => {
                     return Err(format!("the {selected} partition is not shardable"))
                 }
-                selected_lane => integration_lane(*selected_lane, *shard, catalog, workspace_root),
+                selected_lane => integration_lane(*selected_lane, *shard, catalog, workspace_root)?,
             },
         };
         if matches!(product, TestProduct::Ci { .. }) {
@@ -111,7 +115,7 @@ impl TestExecutionUnit {
         origin: String,
         workspace_root: &Path,
         arguments: Vec<String>,
-        filtered: bool,
+        expected_test_count: Option<usize>,
     ) -> Self {
         Self {
             identity,
@@ -119,7 +123,7 @@ impl TestExecutionUnit {
             directory: workspace_root.to_path_buf(),
             program: "cargo".into(),
             arguments,
-            filtered,
+            expected_test_count,
         }
     }
 
@@ -135,7 +139,7 @@ impl TestExecutionUnit {
             directory: repository_root,
             program: program.into(),
             arguments: arguments.iter().map(|value| (*value).into()).collect(),
-            filtered: false,
+            expected_test_count: None,
         }
     }
 
@@ -155,8 +159,8 @@ impl TestExecutionUnit {
         &self.arguments
     }
 
-    pub(crate) fn is_filtered(&self) -> bool {
-        self.filtered
+    pub(crate) const fn expected_test_count(&self) -> Option<usize> {
+        self.expected_test_count
     }
 
     pub(crate) fn display_command(&self) -> String {
@@ -184,27 +188,75 @@ fn owner(
             "run".into(),
             "-p".into(),
             package.into(),
+            "--lib".into(),
+            "--bins".into(),
+            "--examples".into(),
+            "--benches".into(),
             "--no-fail-fast".into(),
         ],
-        false,
+        None,
     )])
 }
 
 fn smoke(catalog: &TestCatalog, workspace_root: &Path) -> Result<Vec<TestExecutionUnit>, String> {
-    smoke_cases()
-        .iter()
-        .map(|case| {
-            let target = catalog
-                .integration_target(case.package, case.target)
-                .ok_or_else(|| format!("missing smoke target {}::{}", case.package, case.target))?;
-            let mut arguments = cargo_test_target_arguments(target);
-            arguments.extend([case.filter.into(), "--".into(), "--exact".into()]);
+    let mut packages = BTreeMap::<&str, Vec<_>>::new();
+    for case in smoke_cases() {
+        packages.entry(case.package).or_default().push(case);
+    }
+    packages
+        .into_iter()
+        .map(|(package, cases)| {
+            let mut targets = Vec::new();
+            let mut selectors = Vec::new();
+            let mut features = BTreeSet::new();
+            let mut seen = BTreeSet::new();
+            for case in &cases {
+                let identity = (case.target, case.filter);
+                if !seen.insert(identity) {
+                    return Err(format!(
+                        "duplicate smoke case {package}::{}::{}",
+                        case.target, case.filter
+                    ));
+                }
+                let target = catalog
+                    .integration_target(case.package, case.target)
+                    .ok_or_else(|| {
+                        format!("missing smoke target {}::{}", case.package, case.target)
+                    })?;
+                if !targets.iter().any(|name| name == &target.name) {
+                    targets.push(target.name.clone());
+                }
+                features.extend(
+                    target
+                        .required_features
+                        .iter()
+                        .map(|feature| format!("{package}/{feature}")),
+                );
+                selectors.push(format!(
+                    "(binary_id(={}::{}) & test(={}))",
+                    case.package, case.target, case.filter
+                ));
+            }
+            let mut arguments = vec![
+                "nextest".into(),
+                "run".into(),
+                "-p".into(),
+                package.into(),
+                "--no-fail-fast".into(),
+            ];
+            for target in targets {
+                arguments.extend(["--test".into(), target]);
+            }
+            for feature in features {
+                arguments.extend(["--features".into(), feature]);
+            }
+            arguments.extend(["--filterset".into(), selectors.join(" + ")]);
             Ok(TestExecutionUnit::cargo(
-                format!("smoke::{}::{}::{}", case.package, case.target, case.filter),
+                format!("smoke::{package}"),
                 "smoke registration".into(),
                 workspace_root,
                 arguments,
-                true,
+                Some(cases.len()),
             ))
         })
         .collect()
@@ -215,14 +267,31 @@ fn integration_lane(
     shard: Option<(usize, usize)>,
     catalog: &TestCatalog,
     workspace_root: &Path,
-) -> Vec<TestExecutionUnit> {
+) -> Result<Vec<TestExecutionUnit>, String> {
     let targets = catalog
         .targets()
         .iter()
         .filter(|target| target.lane == selected)
         .collect::<Vec<_>>();
     if targets.is_empty() {
-        return Vec::new();
+        return Ok(Vec::new());
+    }
+
+    let target_names = targets
+        .iter()
+        .map(|target| target.name.as_str())
+        .collect::<BTreeSet<_>>();
+    for name in &target_names {
+        if let Some(conflict) = catalog
+            .targets()
+            .iter()
+            .find(|target| target.name == *name && target.lane != selected)
+        {
+            return Err(format!(
+                "Cargo target name `{name}` crosses the {selected} and {} lanes at {}::{}; exact workspace target selection would compile the wrong lane",
+                conflict.lane, conflict.package, conflict.name
+            ));
+        }
     }
 
     let filter = targets
@@ -250,6 +319,9 @@ fn integration_lane(
         "--filterset".into(),
         filter,
     ];
+    for target in target_names {
+        arguments.extend(["--test".into(), target.into()]);
+    }
     for feature in features {
         arguments.extend(["--features".into(), feature]);
     }
@@ -260,28 +332,13 @@ fn integration_lane(
         ]);
     }
 
-    vec![TestExecutionUnit::cargo(
+    Ok(vec![TestExecutionUnit::cargo(
         format!("{selected}::nextest"),
         format!("Cargo targets classified as {selected}"),
         workspace_root,
         arguments,
-        false,
-    )]
-}
-
-fn cargo_test_target_arguments(target: &crate::catalog::TestTarget) -> Vec<String> {
-    let mut arguments = vec![
-        "test".into(),
-        "-q".into(),
-        "-p".into(),
-        target.package.clone(),
-        "--test".into(),
-        target.name.clone(),
-    ];
-    if !target.required_features.is_empty() {
-        arguments.extend(["--features".into(), target.required_features.join(",")]);
-    }
-    arguments
+        None,
+    )])
 }
 
 fn owner_ci(workspace_root: &Path) -> Vec<TestExecutionUnit> {
@@ -303,7 +360,7 @@ fn owner_ci(workspace_root: &Path) -> Vec<TestExecutionUnit> {
             .into_iter()
             .map(str::to_owned)
             .collect(),
-            false,
+            None,
         ),
         TestExecutionUnit::cargo(
             "owner-unit::workspace-doctests".into(),
@@ -313,50 +370,9 @@ fn owner_ci(workspace_root: &Path) -> Vec<TestExecutionUnit> {
                 .into_iter()
                 .map(str::to_owned)
                 .collect(),
-            false,
+            None,
         ),
     ]
-}
-
-fn structural(workspace_root: &Path) -> Result<Vec<TestExecutionUnit>, String> {
-    let repository_root = workspace_root
-        .parent()
-        .and_then(Path::parent)
-        .ok_or_else(|| "Worth Store workspace is not nested under workspaces/".to_owned())?
-        .to_path_buf();
-    Ok(vec![
-        TestExecutionUnit::command(
-            "structural::boundary-check",
-            repository_root.clone(),
-            "cargo",
-            &[
-                "run",
-                "--manifest-path",
-                "tools/boundary-check/Cargo.toml",
-                "--",
-                "--root",
-                ".",
-            ],
-        ),
-        TestExecutionUnit::command(
-            "structural::agent-context",
-            repository_root.clone(),
-            "cargo",
-            &[
-                "run",
-                "--manifest-path",
-                "tools/agent-context/Cargo.toml",
-                "--",
-                "check",
-            ],
-        ),
-        TestExecutionUnit::command(
-            "structural::line-caps",
-            repository_root,
-            "bash",
-            &["scripts/ci/check_workspace_rust_line_caps.sh"],
-        ),
-    ])
 }
 
 #[cfg(test)]

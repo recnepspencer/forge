@@ -101,6 +101,10 @@ pub enum WorthQueryProjectionViolation {
     Consumption(DeniedProjectionConsumption),
     SourceMismatch(SourceMismatchedProjectionConsumption),
     Declaration(ProjectionConsumptionDeclarationError),
+    LiveInstallationMismatch {
+        expected: WorthQueryEvidenceIdentity,
+        actual: WorthQueryEvidenceIdentity,
+    },
 }
 
 #[derive(Debug)]
@@ -236,6 +240,40 @@ impl WorthQueryReadProjectionBinding {
         declaration: WorthQueryProjectionDeclaration,
     ) -> WorthQueryProjectionOutcome {
         self.consume_contract(result, declaration.contract)
+    }
+
+    pub(crate) fn consume_live(
+        &self,
+        result: &crate::runtime::WorthQueryLiveReadResult,
+        declaration: WorthQueryProjectionDeclaration,
+    ) -> WorthQueryProjectionOutcome {
+        let authorized = match &self.authorized_projection {
+            Ok(authorized) => authorized,
+            Err(error) => {
+                return WorthQueryProjectionOutcome::Unavailable(
+                    WorthQueryProjectionUnavailable::AuthorityBinding(error.clone()),
+                )
+            }
+        };
+        let binding = crate::projection_consumption::ProjectionConsumptionBindingContext::from_authorized_projection(
+            &self.result_shape,
+            authorized,
+        );
+        match result.consume_projection_authority_with_binding(binding, declaration.contract) {
+            Ok(outcome) => WorthQueryProjectionOutcome::from_foundation(outcome),
+            Err(
+                crate::projection_consumption::ProjectionFactConsumptionPathError::Declaration(
+                    error,
+                ),
+            ) => WorthQueryProjectionOutcome::Violation(
+                WorthQueryProjectionViolation::Declaration(error),
+            ),
+            Err(crate::projection_consumption::ProjectionFactConsumptionPathError::Extraction(
+                error,
+            )) => WorthQueryProjectionOutcome::Unavailable(
+                WorthQueryProjectionUnavailable::Extraction(error),
+            ),
+        }
     }
 
     pub(crate) fn consume_contract(

@@ -85,13 +85,13 @@ impl ObservationHandle {
                 runtime_identity: self.runtime_identity,
                 closed_generation: current.generation,
             },
-            ObservedLifecyclePhase::Admitted | ObservedLifecyclePhase::Aborted => {
-                ObservationError::Stale {
-                    runtime_identity: self.runtime_identity,
-                    observed_generation: self.observed_generation,
-                    current_generation: current.generation,
-                }
-            }
+            ObservedLifecyclePhase::Admitted
+            | ObservedLifecyclePhase::MediaOwned
+            | ObservedLifecyclePhase::Aborted => ObservationError::Stale {
+                runtime_identity: self.runtime_identity,
+                observed_generation: self.observed_generation,
+                current_generation: current.generation,
+            },
         }
     }
 }

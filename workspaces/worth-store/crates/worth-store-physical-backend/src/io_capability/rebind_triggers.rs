@@ -4,15 +4,10 @@ pub struct BackendRebindTriggers {
 }
 
 impl BackendRebindTriggers {
-    #[cfg(any(test, feature = "certification-test-authority"))]
     const KERNEL: u16 = 1 << 0;
-    #[cfg(any(test, feature = "certification-test-authority"))]
     const FILESYSTEM: u16 = 1 << 1;
-    #[cfg(any(test, feature = "certification-test-authority"))]
     const MOUNT: u16 = 1 << 2;
-    #[cfg(any(test, feature = "certification-test-authority"))]
     const FIRMWARE: u16 = 1 << 3;
-    #[cfg(any(test, feature = "certification-test-authority"))]
     const BACKEND: u16 = 1 << 4;
     #[cfg(any(test, feature = "certification-test-authority"))]
     const MEDIA: u16 = 1 << 5;
@@ -28,8 +23,16 @@ impl BackendRebindTriggers {
         Self { bits: 0 }
     }
 
+    pub(crate) const fn for_filesystem_qualification() -> Self {
+        Self::platform_and_backend()
+    }
+
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn kernel_filesystem_mount_firmware_and_backend() -> Self {
+        Self::platform_and_backend()
+    }
+
+    const fn platform_and_backend() -> Self {
         Self {
             bits: Self::KERNEL | Self::FILESYSTEM | Self::MOUNT | Self::FIRMWARE | Self::BACKEND,
         }

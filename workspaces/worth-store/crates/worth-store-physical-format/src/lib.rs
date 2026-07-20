@@ -27,6 +27,7 @@ mod payload;
 mod record_framing;
 mod reference;
 mod security_metadata;
+pub mod store_namespace;
 
 // Lifecycle-ordered public exports (≤12 groups).
 pub use access::counters::PhysicalLayoutAccessCounterSnapshot;

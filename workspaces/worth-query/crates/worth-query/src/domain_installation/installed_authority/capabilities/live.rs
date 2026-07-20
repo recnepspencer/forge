@@ -20,7 +20,7 @@ use super::super::{
 use super::{
     close_outcome, WorthQueryInstalledDomainLiveCheckpointOutcome,
     WorthQueryInstalledDomainLiveCheckpointStop, WorthQueryInstalledDomainLiveCloseOutcome,
-    WorthQueryInstalledDomainLiveContinuation,
+    WorthQueryInstalledDomainLiveContinuation, WorthQueryInstalledDomainProjectionOutcome,
 };
 
 pub struct WorthQueryInstalledDomainLiveDeclaration<D> {
@@ -143,6 +143,19 @@ impl<D: 'static> WorthQueryInstalledDomainLiveHandle<D> {
             ),
         );
         Ok(WorthQueryInstalledDomainLiveRead { result, receipt })
+    }
+
+    pub fn project(
+        &self,
+        read: &WorthQueryInstalledDomainLiveRead,
+        declaration: crate::ordinary::read::WorthQueryProjectionDeclaration,
+    ) -> WorthQueryInstalledDomainProjectionOutcome<D> {
+        let outcome = self.handle.project(read.result(), declaration);
+        let receipt = self.receipt.derive(
+            WorthQueryInstalledDomainCapabilityKind::Projection,
+            read.receipt().operational_identity().clone(),
+        );
+        WorthQueryInstalledDomainProjectionOutcome::from_outcome(outcome, receipt)
     }
 
     pub fn drain(

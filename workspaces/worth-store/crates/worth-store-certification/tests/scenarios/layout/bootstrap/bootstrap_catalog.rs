@@ -229,7 +229,8 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
     );
     assert_eq!(published_catalog, certification_catalog);
     assert_eq!(published_admission, certification_admission);
-    assert_eq!(reopened.counters().reopens(), 1);
+    assert_eq!(reopened.counters().opens(), 1);
+    assert_eq!(reopened.counters().restores(), 1);
 }
 
 fn published_layout() -> worth_store_physical_format::PlatformPhysicalRootPublicationReport {

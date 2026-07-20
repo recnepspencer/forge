@@ -4,15 +4,21 @@ name = "worth-store-physical-backend"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Roadmap 2 S.1 platform-grade physical backend facade."
+description = "Internal OS-backed filesystem effects and media qualification for Worth Store."
+publish = false
 
 [dependencies]
+cap-std = "4.0.2"
+cap-fs-ext = "4.0.2"
 fs4 = "0.8"
 file-id = "0.2"
 getrandom = "0.4"
+same-file = "1.0.6"
 sha2 = "0.10"
 tempfile = "3"
+sysinfo = { version = "0.38.4", default-features = false, features = ["disk"] }
 worth-proof = { path = "../../../../crates/worth-proof" }
+worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
 worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
 worth-store-authority.workspace = true
@@ -20,13 +26,20 @@ worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
 
 [dev-dependencies]
+stats_alloc = "0.1.10"
 worth-store-aspect-native.workspace = true
 worth-store-buffer-pool = { workspace = true, features = ["certification-test-authority"] }
 worth-store-readiness.workspace = true
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 
+[build-dependencies]
+sha2 = "0.10"
+
 [features]
-certification-test-authority = ["worth-store-buffer-pool/certification-test-authority"]
+certification-test-authority = [
+    "dep:worth-foundational",
+    "worth-store-buffer-pool/certification-test-authority",
+]
 
 [lints]
 workspace = true
