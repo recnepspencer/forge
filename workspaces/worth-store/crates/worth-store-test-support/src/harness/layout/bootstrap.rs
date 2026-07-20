@@ -5,9 +5,9 @@ use worth_store_layout_indexes::{
     bootstrap_catalog, BootstrapCatalogReadAdmission, BootstrapOnlyAccessPath,
 };
 use worth_store_physical_format::{
-    physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId, PhysicalStoreRuntime,
-    PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
+    physical_bootstrap_catalog, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
+    PhysicalRecordSlot, PhysicalSegmentId, PlatformPhysicalAppendRequest,
 };
 
 pub fn admitted_layout_bootstrap_catalog() -> BootstrapCatalogReadAdmission {
@@ -39,7 +39,7 @@ fn admitted_catalog_from_publication(
         .1
 }
 
-pub fn open_layout_physical_facade() -> PhysicalStoreRuntime {
+pub fn open_layout_physical_facade() -> InMemoryPhysicalFormatModel {
     open_layout_physical_facade_for_store(
         &worth_store_physical_format::PhysicalStoreIdentity::physical_format_default(),
     )
@@ -47,10 +47,10 @@ pub fn open_layout_physical_facade() -> PhysicalStoreRuntime {
 
 pub fn open_layout_physical_facade_for_store(
     store_identity: &worth_store_physical_format::PhysicalStoreIdentity,
-) -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(
+) -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_for_store(store_identity.clone()),
+        InMemoryPhysicalFormatModelRequest::physical_format_for_store(store_identity.clone()),
     )
     .expect("open layout physical fixture")
 }
@@ -69,9 +69,9 @@ pub fn foreign_layout_physical_store_identity() -> worth_store_physical_format::
 fn published_layout(
     advance_root: bool,
 ) -> worth_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PhysicalStoreRuntime::open_physical_format(
+    let mut facade = InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .unwrap();
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();

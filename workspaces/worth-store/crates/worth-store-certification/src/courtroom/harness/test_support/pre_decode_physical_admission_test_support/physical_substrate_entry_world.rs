@@ -1,7 +1,8 @@
 use super::super::{
     bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
-        harness_evidence, physical_substrate_readiness, pressure_bundles, synthetic_rejections,
+        harness_evidence, physical_substrate_model_snapshot, pressure_bundles,
+        synthetic_rejections,
     },
     record_view_evidence_test_support::{admit_payload_frame, resident_frame_table},
 };
@@ -48,11 +49,13 @@ pub(crate) fn with_entry_seed(
     payload: &[u8],
     run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>),
 ) {
-    let readiness = complete_closeout_report()
-        .publish_physical_integrity_readiness(physical_substrate_readiness())
+    let model_payload =
+        crate::courtroom::physical_integrity::readiness_handoff::model_payload_from_closeout(
+            complete_closeout_report(),
+            physical_substrate_model_snapshot(),
+        )
         .unwrap();
-    let entry =
-        IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
+    let entry = IntegrityEntryAdmission::from_integrity_model_payload(model_payload).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 7, 2, payload);
     let page = table.lease_page(frame.resident_frame_token()).unwrap();

@@ -17,6 +17,7 @@ pub enum BaselineLsmExecutionAdmissionDenial {
     PersistedMembershipAmbiguous,
     PersistedMembershipIncomplete,
     PersistedMembershipStale,
+    PersistedArtifactInvalid,
     PersistedIndexIo,
     PhysicalTargetEpochRequired,
     DurableRecordBindingMismatch,
@@ -44,6 +45,7 @@ pub enum BaselineLsmExecutionAdmissionDenialKind {
     PersistedMembershipAmbiguous,
     PersistedMembershipIncomplete,
     PersistedMembershipStale,
+    PersistedArtifactInvalid,
     PersistedIndexIo,
     PhysicalTargetEpochRequired,
     DurableRecordBindingMismatch,
@@ -72,6 +74,7 @@ impl BaselineLsmExecutionAdmissionDenialKind {
             Self::PersistedMembershipAmbiguous => "persisted_membership_ambiguous",
             Self::PersistedMembershipIncomplete => "persisted_membership_incomplete",
             Self::PersistedMembershipStale => "persisted_membership_stale",
+            Self::PersistedArtifactInvalid => "persisted_artifact_invalid",
             Self::PersistedIndexIo => "persisted_index_io",
             Self::PhysicalTargetEpochRequired => "physical_target_epoch_required",
             Self::DurableRecordBindingMismatch => "durable_record_binding_mismatch",
@@ -135,6 +138,9 @@ impl BaselineLsmExecutionAdmissionDenial {
             }
             Self::PersistedMembershipStale => {
                 BaselineLsmExecutionAdmissionDenialKind::PersistedMembershipStale
+            }
+            Self::PersistedArtifactInvalid => {
+                BaselineLsmExecutionAdmissionDenialKind::PersistedArtifactInvalid
             }
             Self::PersistedIndexIo => BaselineLsmExecutionAdmissionDenialKind::PersistedIndexIo,
             Self::PhysicalTargetEpochRequired => {

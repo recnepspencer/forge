@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-reclaim-policy"
 edition.workspace = true
 version.workspace = true
@@ -12,9 +13,7 @@ worth-store-physical-isolation.workspace = true
 worth-store-security.workspace = true
 
 [dev-dependencies]
-worth-store-aspect-native.workspace = true
 worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
-worth-store-readiness.workspace = true
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 
 [features]

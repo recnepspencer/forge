@@ -270,17 +270,13 @@ mod tests {
 
     #[test]
     fn missing_checked_operator_is_a_typed_closeout_failure() {
-        let root = std::env::temp_dir().join(format!(
-            "worth-store-missing-operator-{}",
-            std::process::id()
-        ));
-        std::fs::create_dir_all(&root).unwrap();
-        let model = root.join("missing.tla");
+        let root = tempfile::tempdir().unwrap();
+        let model = root.path().join("missing.tla");
         std::fs::write(&model, "---- MODULE Missing ----\nWalWrite == TRUE\n====\n").unwrap();
         let invocation = ProtocolCheckInvocation::for_controlled_defect(
             ProtocolFamily::DurabilityRecovery,
             &model,
-            root.join("missing.cfg"),
+            root.path().join("missing.cfg"),
             ProtocolCheckBounds::new(NonZeroU64::new(10).unwrap(), NonZeroU64::new(4).unwrap()),
         );
         let denial = require_checked_operator_bindings(

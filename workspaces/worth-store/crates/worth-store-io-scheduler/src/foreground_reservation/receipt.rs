@@ -15,7 +15,6 @@ pub enum ForegroundReservationState {
     ReservationAdmitted,
     ReservationHeld,
     ReservationAdmissionDenied,
-    ReservationStaleRebindRequired,
     ReservationViolatedWithCause,
 }
 
@@ -48,18 +47,10 @@ pub struct ForegroundReservationDenied {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ForegroundReservationStaleRebindRequired {
-    lane: ForegroundIoLaneKind,
-    counters: ForegroundReservationCounterSnapshot,
-    denial: ForegroundReservationAdmissionDenial,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForegroundReservationAdmissionOutcome {
     Admitted(ForegroundReservationReceipt),
     Held(ForegroundReservationHeld),
     Denied(ForegroundReservationDenied),
-    StaleRebindRequired(ForegroundReservationStaleRebindRequired),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -230,36 +221,6 @@ impl ForegroundReservationDenied {
     }
 }
 
-impl ForegroundReservationStaleRebindRequired {
-    pub(crate) const fn new(
-        lane: ForegroundIoLaneKind,
-        counters: ForegroundReservationCounterSnapshot,
-        denial: ForegroundReservationAdmissionDenial,
-    ) -> Self {
-        Self {
-            lane,
-            counters,
-            denial,
-        }
-    }
-
-    pub const fn state(self) -> ForegroundReservationState {
-        ForegroundReservationState::ReservationStaleRebindRequired
-    }
-
-    pub const fn lane(self) -> ForegroundIoLaneKind {
-        self.lane
-    }
-
-    pub const fn counters(self) -> ForegroundReservationCounterSnapshot {
-        self.counters
-    }
-
-    pub const fn denial(self) -> ForegroundReservationAdmissionDenial {
-        self.denial
-    }
-}
-
 impl ForegroundReservationAdmissionOutcome {
     pub fn into_result(
         self,
@@ -268,7 +229,6 @@ impl ForegroundReservationAdmissionOutcome {
             Self::Admitted(receipt) => Ok(receipt),
             Self::Held(held) => Err(held.reason()),
             Self::Denied(denied) => Err(denied.denial()),
-            Self::StaleRebindRequired(stale) => Err(stale.denial()),
         }
     }
 
@@ -277,9 +237,6 @@ impl ForegroundReservationAdmissionOutcome {
             Self::Admitted(_) => ForegroundReservationState::ReservationAdmitted,
             Self::Held(_) => ForegroundReservationState::ReservationHeld,
             Self::Denied(_) => ForegroundReservationState::ReservationAdmissionDenied,
-            Self::StaleRebindRequired(_) => {
-                ForegroundReservationState::ReservationStaleRebindRequired
-            }
         }
     }
 }

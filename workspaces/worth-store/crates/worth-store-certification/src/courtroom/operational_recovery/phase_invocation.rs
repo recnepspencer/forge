@@ -2,13 +2,35 @@ use sha2::{Digest, Sha256};
 use worth_store_offline_verifier::OperationalTruthReport;
 use worth_store_operations::{OperationalControlRecord, SelectedOperationalControlState};
 
-use super::{S10OperationalScenarioKind, S10Phase, S10StructuralPreflightEvidence};
+use super::{S10OperationalScenarioKind, S10Phase};
 
 mod record_artifacts;
 use record_artifacts::{
     authorization_identity, backup_bundle_identity, backup_cut_identity, publication_identity,
     repair_execution_identity, repair_plan_identity, replica_identity, staged_workflow_identity,
 };
+
+pub(super) fn require_runtime_phase_artifact(
+    kind: S10OperationalScenarioKind,
+    phase: u8,
+    records: &[OperationalControlRecord],
+) -> Result<(), S10PhaseInvocationDenial> {
+    match phase {
+        5 => backup_cut_identity(records).map(drop),
+        6 => backup_bundle_identity(records).map(drop),
+        7 => authorization_identity(records).map(drop),
+        8 => staged_workflow_identity(records, 1).map(drop),
+        9 => staged_workflow_identity(records, 2).map(drop),
+        10 => staged_workflow_identity(records, 3).map(drop),
+        11 => repair_plan_identity(records).map(drop),
+        12 => repair_execution_identity(records).map(drop),
+        13 => publication_identity(records).map(drop),
+        14 => replica_identity(kind, records).map(drop),
+        _ => Err(S10PhaseInvocationDenial::EmptyProductionArtifact(S10Phase(
+            phase,
+        ))),
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct S10ScenarioProductionEvidence<'a> {
@@ -57,7 +79,6 @@ impl S10PhaseInvocationEvidence {
 
 pub(super) fn derive_phase_invocations(
     kind: S10OperationalScenarioKind,
-    preflight: &S10StructuralPreflightEvidence,
     production: S10ScenarioProductionEvidence<'_>,
     later_phase_identities: [[u8; 32]; 5],
 ) -> Result<Vec<S10PhaseInvocationEvidence>, S10PhaseInvocationDenial> {
@@ -65,7 +86,6 @@ pub(super) fn derive_phase_invocations(
     let records = production.control_records();
     let truth = production.truth();
     let mut phases = vec![
-        invocation(1, preflight.evidence_identity(), Vec::new())?,
         invocation(
             2,
             selected_control_identity(production.control()),

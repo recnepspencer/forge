@@ -1,4 +1,4 @@
-use worth_store_physical_format::PhysicalStoreRuntime;
+use worth_store_physical_format::InMemoryPhysicalFormatModel;
 
 use super::{denial::DegradedExactScanExecutionDenied, request::DegradedExactScanExecutionRequest};
 
@@ -28,7 +28,7 @@ impl LayoutDegradedScanRuntime {
     pub fn execute_ready(
         self,
         ready: crate::DegradedScanReady,
-        physical: &mut PhysicalStoreRuntime,
+        physical: &mut InMemoryPhysicalFormatModel,
     ) -> Result<crate::DegradedScanExecution, DegradedExactScanExecutionDenied> {
         super::execution::execute_ready(ready, physical)
     }
@@ -36,7 +36,7 @@ impl LayoutDegradedScanRuntime {
     pub fn execute(
         self,
         request: DegradedExactScanExecutionRequest<'_>,
-        physical: &mut PhysicalStoreRuntime,
+        physical: &mut InMemoryPhysicalFormatModel,
     ) -> Result<crate::DegradedScanExecution, DegradedExactScanExecutionDenied> {
         super::execution::execute(request, physical)
     }

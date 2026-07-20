@@ -55,7 +55,9 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
 
 pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recovery_traces(
 ) -> Vec<Vec<DurabilityRecoveryAction>> {
-    let wal = map_executed_wal_durability(&execute_ordinary_wal(&std::env::temp_dir()));
+    let wal_directory = worth_store_test_support::TemporaryDirectory::create("protocol-wal")
+        .expect("protocol WAL directory");
+    let wal = map_executed_wal_durability(&execute_ordinary_wal(wal_directory.path()));
     let page = execute_page_flush();
     let checkpoint = execute_checkpoint();
     let directory_failure = execute_directory_sync_crash(61);
@@ -146,7 +148,9 @@ fn execute_page_flush() -> Vec<DurabilityRecoveryAction> {
 fn execute_checkpoint() -> Vec<DurabilityRecoveryAction> {
     let validation = checkpoint_durability::validate(checkpoint_basis::manifest(10, 20, 19));
     let backend = admitted_backend(HostDurabilityProfile::TARGET);
-    let root = unique_root(&std::env::temp_dir(), "checkpoint");
+    let directory = worth_store_test_support::TemporaryDirectory::create("protocol-checkpoint")
+        .expect("protocol checkpoint directory");
+    let root = unique_root(directory.path(), "checkpoint");
     let manifest = checkpoint_ack(
         &validation,
         CheckpointArtifactDurabilityCommitment::manifest(&validation),
@@ -259,12 +263,11 @@ fn execute_directory_sync_crash(seed: u64) -> Vec<DurabilityRecoveryAction> {
     let accepted = admission
         .submit_write(progress.durability_scope())
         .backend_accepted();
+    let directory = worth_store_test_support::TemporaryDirectory::create("protocol-sync-crash")
+        .expect("protocol sync crash directory");
     let failure = StoreDurabilityRuntime::new()
         .persist_and_execute_to_with_control(
-            &unique_root(
-                &std::env::temp_dir(),
-                &format!("directory-sync-crash-{seed}"),
-            ),
+            &unique_root(directory.path(), &format!("directory-sync-crash-{seed}")),
             payload,
             &accepted,
             StoreDurabilityExecutionBoundary::Complete,

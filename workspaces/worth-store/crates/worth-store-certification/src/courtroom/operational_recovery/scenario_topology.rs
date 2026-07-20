@@ -8,9 +8,10 @@ impl S10Phase {
         self.0
     }
 
-    pub const fn all() -> [Self; 19] {
+    /// Runtime scenario phases. Phase 1 is a repository structure gate and is
+    /// verified by CI; it is not runtime evidence.
+    pub const fn scenario_phases() -> [Self; 18] {
         [
-            Self(1),
             Self(2),
             Self(3),
             Self(4),

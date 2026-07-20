@@ -18,7 +18,7 @@ use worth_store_physical_isolation::{
     PhysicalIdentityReuse, PhysicalOrderingContract, PhysicalOrderingSite,
     PhysicalPublicationDenial, PhysicalPublicationIntent, PhysicalPublicationReadiness,
     PhysicalPublicationReleasePosture, PublicationCrashRecoveryOutcome, PublicationLatchReadiness,
-    PublicationRootCandidate, ReadCopyUpdateRootPublication, RootSwapOrderingContract,
+    PublicationRootCandidate, RootSwapOrderingContract,
 };
 use worth_store_recovery_physics::PublicationCrashStage;
 
@@ -211,7 +211,10 @@ fn publication_denies_stale_epochs_and_weak_root_swap_ordering() {
         PublicationLatchReadiness::declared_publish_latches_released_before_blocking_io(),
     );
     let publication =
-        ReadCopyUpdateRootPublication::publish(lowered.join_readiness(readiness).unwrap()).unwrap();
+        worth_store_test_support::harness::physical_isolation::publish_in_temporary_store(
+            lowered.join_readiness(readiness).unwrap(),
+        )
+        .unwrap();
     assert_eq!(
         publication.receipt().ordering().ordering().strength(),
         worth_store_physical_isolation::PhysicalOrderingStrength::SequentiallyConsistent

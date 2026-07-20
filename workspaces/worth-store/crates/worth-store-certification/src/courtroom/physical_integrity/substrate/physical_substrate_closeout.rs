@@ -3,13 +3,13 @@ use crate::scenario::physical_integrity::physical_substrate_closeout_story::{
 };
 use crate::PhysicalFoundationEvidenceBundle;
 use crate::{
+    InMemoryPhysicalFormatModelEvidenceReport, InMemoryPhysicalFormatModelEvidenceRow,
     PhysicalComplexityEvidenceReport, PhysicalExtentRecordFramingEvidenceReport,
     PhysicalExtentRecordFramingEvidenceRow, PhysicalIdentityEvidenceReport,
     PhysicalIdentityEvidenceRow, PhysicalManifestDiscoveryEvidenceReport,
     PhysicalManifestDiscoveryEvidenceRow, PhysicalOfflineVerifierEvidenceReport,
     PhysicalOfflineVerifierEvidenceRow, PhysicalPageRecordFramingEvidenceReport,
-    PhysicalPageRecordFramingEvidenceRow, PhysicalStoreRuntimeEvidenceReport,
-    PhysicalStoreRuntimeEvidenceRow,
+    PhysicalPageRecordFramingEvidenceRow,
 };
 use worth_store_claim_boundaries::PlatformGradeClaimWitness;
 use worth_store_contracts::{RoadmapScope, StableArtifactId};
@@ -42,7 +42,7 @@ impl PhysicalPageSegmentExtentSubstrateRun {
 #[derive(Debug)]
 pub struct PhysicalPageSegmentExtentSubstrateEvidence {
     story: Vec<PhysicalSubstrateCloseoutStoryReport>,
-    facade: Vec<PhysicalStoreRuntimeEvidenceReport>,
+    facade: Vec<InMemoryPhysicalFormatModelEvidenceReport>,
     manifest: Vec<PhysicalManifestDiscoveryEvidenceReport>,
     offline_verifier: Vec<PhysicalOfflineVerifierEvidenceReport>,
     page_records: Vec<PhysicalPageRecordFramingEvidenceReport>,
@@ -58,7 +58,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         story: Vec<PhysicalSubstrateCloseoutStoryReport>,
-        facade: Vec<PhysicalStoreRuntimeEvidenceReport>,
+        facade: Vec<InMemoryPhysicalFormatModelEvidenceReport>,
         manifest: Vec<PhysicalManifestDiscoveryEvidenceReport>,
         offline_verifier: Vec<PhysicalOfflineVerifierEvidenceReport>,
         page_records: Vec<PhysicalPageRecordFramingEvidenceReport>,
@@ -92,7 +92,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
         &self.story
     }
 
-    pub fn facade(&self) -> &[PhysicalStoreRuntimeEvidenceReport] {
+    pub fn facade(&self) -> &[InMemoryPhysicalFormatModelEvidenceReport] {
         &self.facade
     }
 
@@ -174,17 +174,12 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
     pub const fn evidence(&self) -> &PhysicalPageSegmentExtentSubstrateEvidence {
         self.run.evidence()
     }
-
-    #[cfg(test)]
-    pub(crate) fn into_physical_substrate_readiness(self) -> PhysicalSubstrateReadiness {
-        self.evidence().physical_substrate_readiness()
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalSubstrateCloseoutDenial {
     MissingStoryRow(PhysicalSubstrateCloseoutStoryRow),
-    MissingFacadeRow(PhysicalStoreRuntimeEvidenceRow),
+    MissingFacadeRow(InMemoryPhysicalFormatModelEvidenceRow),
     MissingManifestRow(PhysicalManifestDiscoveryEvidenceRow),
     MissingOfflineVerifierRow(PhysicalOfflineVerifierEvidenceRow),
     MissingPageRecordRow(PhysicalPageRecordFramingEvidenceRow),
@@ -212,9 +207,9 @@ fn require_story_rows(
 }
 
 fn require_facade_rows(
-    reports: &[PhysicalStoreRuntimeEvidenceReport],
+    reports: &[InMemoryPhysicalFormatModelEvidenceReport],
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {
-    for row in PhysicalStoreRuntimeEvidenceRow::physical_format_required() {
+    for row in InMemoryPhysicalFormatModelEvidenceRow::physical_format_required() {
         if !reports.iter().any(|report| report.row() == row) {
             return Err(PhysicalSubstrateCloseoutDenial::MissingFacadeRow(row));
         }

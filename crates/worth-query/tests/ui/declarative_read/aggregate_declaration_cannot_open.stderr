@@ -1,5 +1,0 @@
-error[E0599]: no method named `open` found for struct `WorthQueryCountRequest` in the current scope
- --> tests/ui/declarative_read/aggregate_declaration_cannot_open.rs:5:13
-  |
-5 |     request.open(workspace);
-  |             ^^^^ method not found in `WorthQueryCountRequest`

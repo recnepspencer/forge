@@ -18,15 +18,16 @@ mod extent_record;
 mod format_identity;
 mod generation;
 mod header;
+mod in_memory_physical_format_model;
 mod manifest;
 mod offline_verifier;
 mod offline_walk;
 mod page_record;
 mod payload;
-mod physical_store_runtime;
 mod record_framing;
 mod reference;
 mod security_metadata;
+pub mod store_namespace;
 
 // Lifecycle-ordered public exports (≤12 groups).
 pub use access::counters::PhysicalLayoutAccessCounterSnapshot;
@@ -108,6 +109,23 @@ pub use header::{
     PhysicalHeaderKind, PhysicalHeaderReservedField, PhysicalHeaderReservedFields,
     PhysicalPageHeader, PhysicalPageKind, PhysicalPublicationState, PHYSICAL_HEADER_LENGTH,
 };
+pub use in_memory_physical_format_model::{
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelCounterSnapshot,
+    InMemoryPhysicalFormatModelDenial, InMemoryPhysicalFormatModelDenialKind,
+    InMemoryPhysicalFormatModelEvidence, InMemoryPhysicalFormatModelOperation,
+    InMemoryPhysicalFormatModelRequest, InMemoryPhysicalFormatModelVocabulary,
+    InMemoryPhysicalFormatReplayArtifact, PhysicalStoreIdentity, PlatformPhysicalAppendReport,
+    PlatformPhysicalAppendRequest, PlatformPhysicalDegradedExactScanReady,
+    PlatformPhysicalDegradedExactScanReceipt, PlatformPhysicalDegradedExecutionObservation,
+    PlatformPhysicalFramedRecord, PlatformPhysicalHiddenScanDenialReceipt,
+    PlatformPhysicalLayoutAccessIntent, PlatformPhysicalLayoutAccessRequest,
+    PlatformPhysicalModelLayoutReport, PlatformPhysicalModelOperation,
+    PlatformPhysicalModelOutcome, PlatformPhysicalModelReceipt, PlatformPhysicalModelReceiptDenial,
+    PlatformPhysicalModelStrategy, PlatformPhysicalOperationAdmissionDenial,
+    PlatformPhysicalRecordTarget, PlatformPhysicalRootPublicationObservation,
+    PlatformPhysicalRootPublicationReady, PlatformPhysicalRootPublicationReport,
+    PlatformPhysicalScanReport,
+};
 pub use manifest::{
     AllocationClassManifestEntry, ExtentManifestEntry, ExtentManifestVocabulary,
     FreeSpaceManifestEntry, ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot,
@@ -120,12 +138,12 @@ pub use manifest::{
     SegmentPageManifestEntry,
 };
 pub use offline_verifier::{
-    ManifestTraversalReport, MinimalManifestVerifierReport, OfflineManifestCodec,
-    OfflinePhysicalVerifier, OfflineVerifierCounterSnapshot, OfflineVerifierDenial,
-    OfflineVerifierDenialKind, OfflineVerifierLayoutObservation, OfflineVerifierObservationSource,
-    PersistedExtentBytes, PersistedPageBytes, PersistedPhysicalLayout,
-    PersistedPhysicalLayoutBuilder, PhysicalLayoutReport, RuntimeLayoutObservation,
-    RuntimeLayoutObservationSource,
+    InMemoryModelLayoutObservation, InMemoryModelLayoutObservationSource, ManifestTraversalReport,
+    MinimalManifestVerifierReport, OfflineManifestCodec, OfflinePhysicalVerifier,
+    OfflineVerifierCounterSnapshot, OfflineVerifierDenial, OfflineVerifierDenialKind,
+    OfflineVerifierLayoutObservation, OfflineVerifierObservationSource, PersistedExtentBytes,
+    PersistedPageBytes, PersistedPhysicalLayout, PersistedPhysicalLayoutBuilder,
+    PhysicalLayoutReport,
 };
 pub use offline_walk::{
     classify_offline_artifact_family, observe_bounded_physical_bytes,
@@ -141,22 +159,6 @@ pub use page_record::{
     SlotDirectoryEntryState,
 };
 pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
-pub use physical_store_runtime::{
-    PhysicalStoreIdentity, PhysicalStoreRuntime, PhysicalStoreRuntimeCounterSnapshot,
-    PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind, PhysicalStoreRuntimeEvidence,
-    PhysicalStoreRuntimeOperation, PhysicalStoreRuntimeVocabulary, PlatformPhysicalAppendReport,
-    PlatformPhysicalAppendRequest, PlatformPhysicalDegradedExactScanReady,
-    PlatformPhysicalDegradedExactScanReceipt, PlatformPhysicalDegradedExecutionObservation,
-    PlatformPhysicalFramedRecord, PlatformPhysicalHiddenScanDenialReceipt,
-    PlatformPhysicalLayoutAccessIntent, PlatformPhysicalLayoutAccessRequest,
-    PlatformPhysicalOpenRequest, PlatformPhysicalOperationAdmissionDenial,
-    PlatformPhysicalRecordTarget, PlatformPhysicalReplayArtifact,
-    PlatformPhysicalRootPublicationObservation, PlatformPhysicalRootPublicationReady,
-    PlatformPhysicalRootPublicationReport, PlatformPhysicalRuntimeLayoutReport,
-    PlatformPhysicalRuntimeOperation, PlatformPhysicalRuntimeOutcome,
-    PlatformPhysicalRuntimeReceipt, PlatformPhysicalRuntimeReceiptDenial,
-    PlatformPhysicalRuntimeStrategy, PlatformPhysicalScanReport,
-};
 pub use record_framing::{
     FramedRecordPayload, FramedRecordView, RecordPagePayload, RecordPlacementClass,
     RecordPlacementWitness,

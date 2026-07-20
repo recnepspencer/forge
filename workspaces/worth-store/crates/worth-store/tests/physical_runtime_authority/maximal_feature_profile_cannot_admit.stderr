@@ -1,0 +1,19 @@
+error[E0308]: mismatched types
+ --> tests/physical_runtime_authority/maximal_feature_profile_cannot_admit.rs:7:41
+  |
+7 |     let _runtime = PhysicalStore::admit(certification);
+  |                    -------------------- ^^^^^^^^^^^^^ expected `PhysicalRuntimeAdmission`, found `StoreCertificationProgram`
+  |                    |
+  |                    arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> src/physical_runtime/admission.rs
+  |
+  |     pub fn admit(
+  |            ^^^^^
+
+error[E0599]: no function or associated item named `new_for_test` found for struct `AdmittedPhysicalRuntime` in the current scope
+  --> tests/physical_runtime_authority/maximal_feature_profile_cannot_admit.rs:11:45
+   |
+11 |     let _runtime = AdmittedPhysicalRuntime::new_for_test();
+   |                                             ^^^^^^^^^^^^ function or associated item not found in `AdmittedPhysicalRuntime`

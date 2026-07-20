@@ -3,9 +3,7 @@ use worth_store_buffer_pool::{
     DirtyPageBudget, PinnedPageBudget, ResidentFrameLoadRequest, ResidentFrameTable,
     ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
 };
-use worth_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
-};
+use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_physical_format::{
     FramedRecordView, PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
@@ -13,47 +11,28 @@ use worth_store_physical_format::{
     PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalSegmentId,
     SlotAppendRequest, SlotGenerationCell,
 };
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
-};
 
 pub(crate) fn record_view_table_without_conflicts() -> ResidentFrameTable {
     resident_frame_table()
 }
 
 pub(crate) fn resident_frame_table() -> ResidentFrameTable {
-    let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(
-            AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-                ROADMAP_2_S1_SCOPE,
-                HandoffEvidenceDigestSet::new(
-                    StableDigest::new("sha256:backend").unwrap(),
-                    StableDigest::new("sha256:deferred").unwrap(),
-                    StableDigest::new("sha256:harness").unwrap(),
-                    StableDigest::new("sha256:terms").unwrap(),
-                    StableDigest::new("sha256:audit").unwrap(),
-                    StableDigest::new("sha256:complexity").unwrap(),
-                    StableDigest::new("sha256:provenance").unwrap(),
-                ),
-            )
-            .unwrap(),
-        )
-        .unwrap(),
-    )
-    .unwrap();
     let budget = BufferPoolBudget::declare(
         ResidentMemoryBudget::bytes(8192).unwrap(),
         PinnedPageBudget::pages(4).unwrap(),
         DirtyPageBudget::pages(1).unwrap(),
     );
-    let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        readiness.physical_substrate_snapshot(),
-    )
-    .unwrap()
-    .with_budget(budget)
-    .admit()
-    .unwrap();
+    let admitted =
+        S2PhysicalResidencyEntry::from_physical_substrate_snapshot(algorithm_model_snapshot())
+            .unwrap()
+            .with_budget(budget)
+            .admit()
+            .unwrap();
     ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap())
+}
+
+fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 pub(crate) fn allocation_admission(bytes: u64) -> AllocationAdmission {

@@ -8,13 +8,16 @@ use super::scenario_identity::{
     phase_19_identity, S10ScenarioIdentityInputs,
 };
 use super::scenario_mutation_requirements::require_mutation_families;
+use super::scenario_owner_topology::require_scenario_owner_topology;
 use super::scenario_trace_binding::require_production_trace_binding;
+mod requirements;
 use super::{
-    S10OperationalQosEvidence, S10OperationalScenarioKind, S10OperationalScenarioProgram,
-    S10PhaseInvocationDenial, S10PhaseInvocationEvidence, S10ScenarioExecutionMatrix,
-    S10ScenarioProductionEvidence, S10StructuralPreflightEvidence, ScenarioScaleDenial,
+    S10HostileProgramEvidence, S10OperationalQosEvidence, S10OperationalScenarioKind,
+    S10OperationalScenarioProgram, S10PhaseInvocationDenial, S10PhaseInvocationEvidence,
+    S10ScenarioExecutionMatrix, S10ScenarioProductionEvidence, ScenarioScaleDenial,
     ScenarioScaleEvidence,
 };
+use requirements::{require_counter_kinds, required_model_transitions, required_yieldpoints};
 use worth_store_formal_models::{
     check_operational_recovery_mutation_sensitivity, OperationalRecoveryActionKind,
     OperationalRecoveryMutationSensitivitySuite, OperationalRecoveryRefinementReceipt,
@@ -33,6 +36,11 @@ pub enum S10ScenarioCertificationDenial {
     Scale(ScenarioScaleDenial),
     MissingYieldpoint(OperationalRecoveryYieldpoint),
     MissingDriverControlArtifact([u8; 32]),
+    MissingControlledProductionDefect,
+    ExecutionScenarioMismatch,
+    ScenarioOwnerTopologyMismatch { expected: u8, observed: u8 },
+    HostileProgramScenarioMismatch,
+    HostileProgramExecutionMismatch,
     DriverControlTransitionCountMismatch(OperationalRecoveryControlTransitionKind),
     DriverInspectionEvidenceMismatch,
     DriverTruthEvidenceMismatch,
@@ -53,6 +61,7 @@ pub enum S10ScenarioCertificationDenial {
 #[derive(Debug, Clone)]
 pub struct S10OperationalScenarioEvidence {
     program: S10OperationalScenarioProgram,
+    hostile_program: S10HostileProgramEvidence,
     scale: ScenarioScaleEvidence,
     execution: S10ScenarioExecutionMatrix,
     refinement: OperationalRecoveryRefinementReceipt,
@@ -67,8 +76,8 @@ pub struct S10OperationalScenarioEvidence {
 #[allow(clippy::too_many_arguments)]
 pub fn certify_s10_operational_scenario(
     program: S10OperationalScenarioProgram,
-    preflight: &S10StructuralPreflightEvidence,
     production: S10ScenarioProductionEvidence<'_>,
+    hostile_program: S10HostileProgramEvidence,
     execution: S10ScenarioExecutionMatrix,
     qos: S10OperationalQosEvidence,
     mut counters: Vec<OperationalCounterReceipt>,
@@ -76,10 +85,23 @@ pub fn certify_s10_operational_scenario(
 ) -> Result<S10OperationalScenarioEvidence, S10ScenarioCertificationDenial> {
     let scale = ScenarioScaleEvidence::from_execution(program.profile(), &execution)
         .map_err(S10ScenarioCertificationDenial::Scale)?;
+    if execution.scenario_kind() != Some(program.kind()) {
+        return Err(S10ScenarioCertificationDenial::ExecutionScenarioMismatch);
+    }
     let (refinement, mutation_sensitivity) =
         check_operational_recovery_mutation_sensitivity(production.control_records())
             .map_err(S10ScenarioCertificationDenial::MutationSensitivity)?;
     let driver_trace = execution.driver_trace();
+    require_scenario_owner_topology(program.kind(), production.control_records())?;
+    if hostile_program.kind() != program.kind() {
+        return Err(S10ScenarioCertificationDenial::HostileProgramScenarioMismatch);
+    }
+    if !hostile_program.matches_crash_coverage(execution.crash_reopen_coverage()) {
+        return Err(S10ScenarioCertificationDenial::HostileProgramExecutionMismatch);
+    }
+    if execution.controlled_defects().is_empty() {
+        return Err(S10ScenarioCertificationDenial::MissingControlledProductionDefect);
+    }
     require_production_trace_binding(production, driver_trace)?;
     require_audits_from_control_history(production, &audits)?;
     let reached = driver_trace
@@ -136,7 +158,6 @@ pub fn certify_s10_operational_scenario(
     );
     let phase_invocations = derive_phase_invocations(
         program.kind(),
-        preflight,
         production,
         [
             phase_15_identity,
@@ -149,6 +170,7 @@ pub fn certify_s10_operational_scenario(
     .map_err(S10ScenarioCertificationDenial::PhaseInvocation)?;
     let evidence_identity = evidence_identity(&S10ScenarioIdentityInputs {
         program,
+        hostile_program,
         scale,
         execution: &execution,
         refinement: &refinement,
@@ -160,6 +182,7 @@ pub fn certify_s10_operational_scenario(
     });
     Ok(S10OperationalScenarioEvidence {
         program,
+        hostile_program,
         scale,
         execution,
         refinement,
@@ -172,9 +195,18 @@ pub fn certify_s10_operational_scenario(
     })
 }
 
+pub fn required_s10_crash_reopen_yieldpoints(
+    kind: S10OperationalScenarioKind,
+) -> Vec<OperationalRecoveryYieldpoint> {
+    required_yieldpoints(kind)
+}
+
 impl S10OperationalScenarioEvidence {
     pub const fn program(&self) -> S10OperationalScenarioProgram {
         self.program
+    }
+    pub const fn hostile_program(&self) -> S10HostileProgramEvidence {
+        self.hostile_program
     }
     pub const fn scale(&self) -> ScenarioScaleEvidence {
         self.scale
@@ -190,6 +222,17 @@ impl S10OperationalScenarioEvidence {
     }
     pub const fn execution_matrix(&self) -> &S10ScenarioExecutionMatrix {
         &self.execution
+    }
+    pub fn missing_crash_reopen_yieldpoint(&self) -> Option<OperationalRecoveryYieldpoint> {
+        let covered = self
+            .execution
+            .crash_reopen_coverage()
+            .iter()
+            .map(|evidence| evidence.yieldpoint())
+            .collect::<BTreeSet<_>>();
+        required_yieldpoints(self.program.kind())
+            .into_iter()
+            .find(|point| !covered.contains(point))
     }
     pub const fn refinement(&self) -> &OperationalRecoveryRefinementReceipt {
         &self.refinement
@@ -209,175 +252,4 @@ impl S10OperationalScenarioEvidence {
     pub fn phase_invocations(&self) -> &[S10PhaseInvocationEvidence] {
         &self.phase_invocations
     }
-}
-
-fn required_yieldpoints(kind: S10OperationalScenarioKind) -> Vec<OperationalRecoveryYieldpoint> {
-    OperationalRecoveryYieldpoint::ALL
-        .into_iter()
-        .filter(|point| scenario_uses_yieldpoint(kind, *point))
-        .collect()
-}
-
-fn scenario_uses_yieldpoint(
-    scenario: S10OperationalScenarioKind,
-    point: OperationalRecoveryYieldpoint,
-) -> bool {
-    use OperationalRecoveryControlTransitionKind as Control;
-    use OperationalRecoveryYieldpoint as Point;
-    match point {
-        Point::BeforeDurableControlTransition(control)
-        | Point::AfterDurableControlTransition(control) => match control {
-            Control::RepairExecutionOpen
-            | Control::RepairOwnerEffect
-            | Control::RepairOwnerReceipt
-            | Control::RepairDisposition => scenario != S10OperationalScenarioKind::BurningPrimary,
-            Control::WorkflowAbandonment => scenario == S10OperationalScenarioKind::BurningPrimary,
-            Control::ReplicaBootstrapTransfer
-            | Control::ReplicaBootstrapCompletion
-            | Control::ReplicaPromotionFence
-            | Control::ReplicaPromotionRecord
-            | Control::ReplicaPromotionPublication
-            | Control::ReplicaPromotionReadmission => {
-                scenario != S10OperationalScenarioKind::AuthorityRepairRollback
-            }
-            Control::OldPrimaryRejoinPlan | Control::OldPrimaryRejoinCompletion => {
-                scenario == S10OperationalScenarioKind::SplitBrainPromotion
-            }
-            _ => true,
-        },
-        Point::BeforeOldPrimaryRejoinPlan
-        | Point::AfterOldPrimaryRejoinPlan
-        | Point::BeforeOldPrimaryRejoinExecution
-        | Point::AfterOldPrimaryRejoinExecution
-        | Point::BeforeOldPrimaryRejoinCompletion
-        | Point::AfterOldPrimaryRejoinCompletion => {
-            scenario == S10OperationalScenarioKind::SplitBrainPromotion
-        }
-        Point::BeforeBootstrapTransfer
-        | Point::AfterBootstrapTransfer
-        | Point::BeforeBootstrapControlRecord
-        | Point::AfterBootstrapControlRecord
-        | Point::BeforeBootstrapPostVerification
-        | Point::AfterBootstrapPostVerification
-        | Point::BeforeBootstrapCompletion
-        | Point::AfterBootstrapCompletion
-        | Point::BeforePromotionExternalFence
-        | Point::AfterPromotionExternalFence
-        | Point::BeforePromotionFenceRecord
-        | Point::AfterPromotionFenceRecord
-        | Point::BeforePromotionRecord
-        | Point::AfterPromotionRecord
-        | Point::BeforePromotionPostVerification
-        | Point::AfterPromotionPostVerification
-        | Point::BeforePromotionPublication
-        | Point::AfterPromotionPublication
-        | Point::BeforePromotionReadmission
-        | Point::AfterPromotionReadmission => {
-            scenario != S10OperationalScenarioKind::AuthorityRepairRollback
-        }
-        _ => true,
-    }
-}
-
-fn require_counter_kinds(
-    kind: S10OperationalScenarioKind,
-    counters: &[OperationalCounterReceipt],
-) -> Result<(), S10ScenarioCertificationDenial> {
-    let required = match kind {
-        S10OperationalScenarioKind::BurningPrimary => vec![
-            OperationalSessionKind::Backup,
-            OperationalSessionKind::Restore,
-            OperationalSessionKind::PointInTimeRecovery,
-            OperationalSessionKind::Rollback,
-            OperationalSessionKind::ReplicaBootstrap,
-            OperationalSessionKind::ReplicaPromotion,
-            OperationalSessionKind::OfflineVerification,
-            OperationalSessionKind::ForensicAcquisition,
-        ],
-        S10OperationalScenarioKind::SplitBrainPromotion => vec![
-            OperationalSessionKind::Backup,
-            OperationalSessionKind::Restore,
-            OperationalSessionKind::PointInTimeRecovery,
-            OperationalSessionKind::Repair,
-            OperationalSessionKind::ReplicaBootstrap,
-            OperationalSessionKind::ReplicaPromotion,
-            OperationalSessionKind::OfflineVerification,
-            OperationalSessionKind::ForensicAcquisition,
-        ],
-        S10OperationalScenarioKind::AuthorityRepairRollback => vec![
-            OperationalSessionKind::Backup,
-            OperationalSessionKind::Restore,
-            OperationalSessionKind::PointInTimeRecovery,
-            OperationalSessionKind::Rollback,
-            OperationalSessionKind::Repair,
-            OperationalSessionKind::OfflineVerification,
-            OperationalSessionKind::ForensicAcquisition,
-        ],
-    };
-    for required_kind in required {
-        if !counters
-            .iter()
-            .any(|receipt| receipt.kind() == required_kind)
-        {
-            return Err(S10ScenarioCertificationDenial::MissingOperationCounters);
-        }
-    }
-    Ok(())
-}
-
-fn required_model_transitions(
-    kind: S10OperationalScenarioKind,
-) -> Vec<OperationalRecoveryActionKind> {
-    use OperationalRecoveryActionKind as Action;
-    let mut required = vec![
-        Action::AuthorizationConsumed,
-        Action::StagingCompleted,
-        Action::PublicationPrepared,
-        Action::PublicationPending,
-        Action::PublicationDisposition,
-        Action::FenceReleased,
-    ];
-    match kind {
-        S10OperationalScenarioKind::BurningPrimary => required.extend([
-            Action::SourceLeasePersisted,
-            Action::MaterializationOpened,
-            Action::MaterializationRecorded,
-            Action::IndependentVerificationRecorded,
-            Action::Abandoned,
-            Action::WorkflowOwnerReceiptPersisted,
-            Action::ReplicaBootstrapTransferRecorded,
-            Action::ReplicaBootstrapCompleted,
-            Action::ReplicaPromotionFenceRecorded,
-            Action::ReplicaPromotionRecorded,
-            Action::ReplicaPromotionPublished,
-            Action::ReplicaPromotionReadmitted,
-        ]),
-        S10OperationalScenarioKind::SplitBrainPromotion => required.extend([
-            Action::SourceLeasePersisted,
-            Action::MaterializationOpened,
-            Action::MaterializationRecorded,
-            Action::IndependentVerificationRecorded,
-            Action::WorkflowOwnerReceiptPersisted,
-            Action::ReplicaBootstrapTransferRecorded,
-            Action::ReplicaBootstrapCompleted,
-            Action::ReplicaPromotionFenceRecorded,
-            Action::ReplicaPromotionRecorded,
-            Action::ReplicaPromotionPublished,
-            Action::ReplicaPromotionReadmitted,
-            Action::OldPrimaryRejoinPlanned,
-            Action::OldPrimaryRejoinCompleted,
-        ]),
-        S10OperationalScenarioKind::AuthorityRepairRollback => required.extend([
-            Action::SourceLeasePersisted,
-            Action::MaterializationOpened,
-            Action::MaterializationRecorded,
-            Action::IndependentVerificationRecorded,
-            Action::OwnerExecutionOpened,
-            Action::OwnerEffectStarted,
-            Action::OwnerReceiptPersisted,
-            Action::WorkflowOwnerReceiptPersisted,
-            Action::DispositionRecorded,
-        ]),
-    }
-    required
 }

@@ -1,15 +1,21 @@
 pub mod checkpoint_basis;
 pub mod checkpoint_durability;
+#[cfg(feature = "certification-world")]
 pub mod checkpoint_publication;
 pub mod closeout;
+#[cfg(feature = "certification-world")]
 pub mod compaction_mutation;
+#[cfg(feature = "certification-world")]
 pub mod compaction_observation;
+#[cfg(feature = "certification-world")]
 pub mod counter_evidence;
+#[cfg(feature = "certification-world")]
 pub mod coverage;
 pub mod dirty_publication;
 pub mod memory_budget;
 pub mod redo_replay;
 mod reopened_artifact;
+#[cfg(feature = "certification-world")]
 #[path = "drivers/crash_harness.rs"]
 mod s4_crash_harness;
 #[path = "drivers/fault_scheduler.rs"]
@@ -35,6 +41,7 @@ pub mod wal_durability;
 pub mod wal_tail;
 
 pub use reopened_artifact::reopened_recovery_artifact_fixture;
+#[cfg(feature = "certification-world")]
 pub use s4_crash_harness::{ExecutedS4CrashHarnessDenial, ExecutedS4CrashHarnessTranscript};
 pub use s4_fault_scheduler::{FaultSchedulerDriver, ScheduledFault};
 pub use s4_fresh_runtime::{

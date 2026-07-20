@@ -1,6 +1,6 @@
 use super::{
-    S10OperationalQosEvidence, S10OperationalScenarioProgram, S10PhaseInvocationEvidence,
-    S10ScenarioExecutionMatrix, ScenarioScaleEvidence,
+    S10HostileProgramEvidence, S10OperationalQosEvidence, S10OperationalScenarioProgram,
+    S10PhaseInvocationEvidence, S10ScenarioExecutionMatrix, ScenarioScaleEvidence,
 };
 use sha2::{Digest, Sha256};
 use worth_store_formal_models::{
@@ -12,6 +12,7 @@ use worth_store_operations::{
 
 pub(super) struct S10ScenarioIdentityInputs<'a> {
     pub(super) program: S10OperationalScenarioProgram,
+    pub(super) hostile_program: S10HostileProgramEvidence,
     pub(super) scale: ScenarioScaleEvidence,
     pub(super) execution: &'a S10ScenarioExecutionMatrix,
     pub(super) refinement: &'a OperationalRecoveryRefinementReceipt,
@@ -27,6 +28,7 @@ pub(super) fn evidence_identity(inputs: &S10ScenarioIdentityInputs<'_>) -> [u8; 
     digest.update(b"worth-store-s10-operational-scenario-v2");
     digest.update(inputs.program.kind().token().as_bytes());
     digest.update(inputs.program.profile().token().as_bytes());
+    digest.update(inputs.hostile_program.evidence_identity());
     let dimensions = inputs.scale.dimensions();
     digest.update(dimensions.store_bytes().to_be_bytes());
     digest.update(dimensions.blob_bytes().to_be_bytes());
@@ -44,6 +46,7 @@ pub(super) fn evidence_identity(inputs: &S10ScenarioIdentityInputs<'_>) -> [u8; 
     for counter in inputs.counters {
         digest.update(counter.session().fingerprint());
         digest.update([session_kind_tag(counter.kind())]);
+        digest.update([session_disposition_tag(counter.disposition())]);
         digest.update(counter.source_bytes_read().to_be_bytes());
         digest.update(counter.output_bytes_written().to_be_bytes());
         digest.update(counter.durable_protocol_transitions().to_be_bytes());
@@ -61,6 +64,15 @@ pub(super) fn evidence_identity(inputs: &S10ScenarioIdentityInputs<'_>) -> [u8; 
         digest.update(invocation.production_artifact_identity());
     }
     digest.finalize().into()
+}
+
+const fn session_disposition_tag(
+    disposition: worth_store_operations::OperationalSessionDisposition,
+) -> u8 {
+    match disposition {
+        worth_store_operations::OperationalSessionDisposition::Completed => 1,
+        worth_store_operations::OperationalSessionDisposition::Abandoned => 2,
+    }
 }
 
 pub(super) fn audit_set_identity(audits: &[AuditCompletenessReceipt]) -> [u8; 32] {

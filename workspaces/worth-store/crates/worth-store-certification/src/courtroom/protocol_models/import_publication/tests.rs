@@ -4,7 +4,6 @@ use worth_store_formal_models::{
 };
 use worth_store_operations::{admit_import_publication_readiness, complete_import_publication};
 use worth_store_physical_format::PhysicalStoreIdentity;
-use worth_store_physical_isolation::ReadCopyUpdateRootPublication;
 
 use super::scenario::execute_ordinary_import_publication;
 
@@ -45,7 +44,9 @@ fn real_import_owner_outcomes_map_to_pending_and_durable_actions() {
         Some(ImportPublicationAction::PublicationPending)
     );
 
-    let publication = ReadCopyUpdateRootPublication::publish(plan).unwrap();
+    let publication =
+        worth_store_test_support::harness::physical_isolation::publish_in_temporary_store(plan)
+            .unwrap();
     let published = complete_import_publication(readiness, publication)
         .into_result()
         .unwrap();

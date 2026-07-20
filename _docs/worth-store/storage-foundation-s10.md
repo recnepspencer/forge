@@ -1,5 +1,13 @@
 # Storage Foundation S.10 Engineering Spec: Operational Recovery Without Trusting The Live Store
 
+> **Status: paused and unclosed.** The
+> [Physical Foundation Reconstruction Roadmap](physical-foundation-reconstruction-roadmap.md)
+> reopens S.1 through S.9 and must close through C.13 before S.10 implementation
+> resumes. Existing S.10 code is unadmitted substrate until it binds to the
+> reconstructed sealed runtime, real media path, fresh-process recovery, and
+> independent physical evidence. Historical S.10 tests and phase progress do
+> not bypass that gate.
+
 ## Goal
 
 Make Worth Store operable under real production damage by turning backup,

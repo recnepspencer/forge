@@ -46,16 +46,12 @@ impl ReplicationAdmissionRuntime {
     }
 
     #[cfg(any(test, feature = "certification-test-authority"))]
-    pub fn bind(current_authority: &StoreCurrentAuthorityWitness) -> Self {
-        use std::sync::atomic::{AtomicU64, Ordering};
-        static NEXT_STORE: AtomicU64 = AtomicU64::new(1);
-        let id = NEXT_STORE.fetch_add(1, Ordering::Relaxed);
-        let directory = std::env::temp_dir().join(format!(
-            "worth-store-replication-test-{}-{id}",
-            std::process::id()
-        ));
+    pub fn bind(
+        progress_directory: &Path,
+        current_authority: &StoreCurrentAuthorityWitness,
+    ) -> Self {
         Self::open(
-            &directory,
+            progress_directory,
             current_authority,
             ReplicationPeerCapacity::new(1024).expect("nonzero test capacity"),
         )

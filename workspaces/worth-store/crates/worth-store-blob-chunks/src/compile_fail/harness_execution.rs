@@ -1,3 +1,5 @@
+//! store-proof-required-features: certification-test-authority
+//!
 //! ```compile_fail
 //! use worth_store_blob_chunks::{
 //!     BlobHarnessExecutedWitness,

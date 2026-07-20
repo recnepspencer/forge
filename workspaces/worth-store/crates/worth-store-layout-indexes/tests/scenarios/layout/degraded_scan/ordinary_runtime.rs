@@ -1,3 +1,7 @@
+use physical_fixture::{
+    admitted_catalog, advanced_catalog, foreign_store_identity, open_runtime,
+    open_runtime_for_store,
+};
 use worth_store_budgets::PreExecutionBudgetEnvelope;
 use worth_store_layout_indexes::{
     layout_degraded_scan_runtime, DegradedExactScanExecutionRequest, DegradedScanReadinessView,
@@ -5,17 +9,12 @@ use worth_store_layout_indexes::{
 };
 use worth_store_physical_format::{PhysicalPageId, PhysicalSegmentId};
 use worth_store_security::admitted_tenant_page_security_scope_for_layout_partition_test;
-use worth_store_test_support::{
-    admitted_layout_bootstrap_catalog, advanced_admitted_layout_bootstrap_catalog,
-    foreign_layout_physical_store_identity, open_layout_physical_facade,
-    open_layout_physical_facade_for_store,
-};
 
 #[test]
 fn ordinary_degraded_scan_facade_admits_selects_and_executes() {
-    let catalog = admitted_layout_bootstrap_catalog();
+    let catalog = admitted_catalog();
     let security = admitted_tenant_page_security_scope_for_layout_partition_test();
-    let mut physical = open_layout_physical_facade();
+    let mut physical = open_runtime();
     physical
         .publish_physical_root()
         .expect("degraded scan fixture requires a published physical root");
@@ -64,8 +63,8 @@ fn ordinary_degraded_scan_facade_admits_selects_and_executes() {
 
 #[test]
 fn ordinary_degraded_scan_rebinds_to_the_observed_catalog_frontier() {
-    let catalog = admitted_layout_bootstrap_catalog();
-    let advanced = advanced_admitted_layout_bootstrap_catalog();
+    let catalog = admitted_catalog();
+    let advanced = advanced_catalog();
     let security = admitted_tenant_page_security_scope_for_layout_partition_test();
     let runtime = layout_degraded_scan_runtime();
     let request = |catalog| {
@@ -95,7 +94,7 @@ fn ordinary_degraded_scan_rebinds_to_the_observed_catalog_frontier() {
     assert_eq!(trace.stale_plan(), &stale_plan);
     assert_ne!(trace.stale_plan(), trace.replacement_plan());
 
-    let mut physical = open_layout_physical_facade();
+    let mut physical = open_runtime();
     physical.publish_physical_root().unwrap();
     let execution = runtime
         .execute_ready(ready, &mut physical)
@@ -105,10 +104,10 @@ fn ordinary_degraded_scan_rebinds_to_the_observed_catalog_frontier() {
 
 #[test]
 fn equal_shaped_physical_scan_from_another_store_is_rejected() {
-    let catalog = admitted_layout_bootstrap_catalog();
+    let catalog = admitted_catalog();
     let security = admitted_tenant_page_security_scope_for_layout_partition_test();
-    let foreign_identity = foreign_layout_physical_store_identity();
-    let mut physical = open_layout_physical_facade_for_store(&foreign_identity);
+    let foreign_identity = foreign_store_identity();
+    let mut physical = open_runtime_for_store(&foreign_identity);
     physical.publish_physical_root().unwrap();
 
     let denial = layout_degraded_scan_runtime()
@@ -135,9 +134,9 @@ fn equal_shaped_physical_scan_from_another_store_is_rejected() {
 
 #[test]
 fn broad_scan_is_budget_denied_before_physical_execution() {
-    let catalog = admitted_layout_bootstrap_catalog();
+    let catalog = admitted_catalog();
     let security = admitted_tenant_page_security_scope_for_layout_partition_test();
-    let mut physical = open_layout_physical_facade();
+    let mut physical = open_runtime();
     physical.publish_physical_root().unwrap();
     let counters_before = physical.counters();
 
@@ -167,3 +166,5 @@ fn broad_scan_is_budget_denied_before_physical_execution() {
         "budget rejection must precede physical scan work"
     );
 }
+#[path = "physical_fixture.rs"]
+mod physical_fixture;

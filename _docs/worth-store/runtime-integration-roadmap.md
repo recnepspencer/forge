@@ -4,6 +4,12 @@
 
 This is Part II of the active Worth Store program. It begins after the
 [Worth Store Physical Database Roadmap](physical-database-roadmap.md) closes.
+That Part I closeout includes the mandatory
+[Physical Foundation Reconstruction Roadmap](physical-foundation-reconstruction-roadmap.md),
+which makes the physical runtime, media path, fresh-process recovery, and
+S.1-through-S.9 certification real before S.10 through S.12 finish. Part II
+does not compensate for an incomplete reconstruction with an integration-side
+backend or semantic persistence fallback.
 
 Part II builds one production runtime in which Worth Query remains the ordinary
 domain-facing language, Worth Relational remains MVCC and transaction authority,
@@ -82,6 +88,11 @@ or completion evidence for it.
   consumes its pages, WAL/checkpoint physics, stable physical reads, bounded
   memory, I/O pacing, integrity, backup, security, and certification evidence;
   it does not reproduce those mechanisms above the boundary.
+- `physical-foundation-reconstruction-roadmap.md` protects the executable
+  truth of that substrate. Part II consumes its sealed runtime and physical
+  handoffs; supplied replay layouts, heap-only stores, disconnected file
+  writers, or test-only physical mechanisms cannot satisfy an integration
+  milestone.
 - `worth-query/docs/AI_README.md` protects one canonical Query meaning across
   runtime-backed and later Store-backed operation. Part II must extend Query's
   admitted operating modes rather than create a Store-local query language,

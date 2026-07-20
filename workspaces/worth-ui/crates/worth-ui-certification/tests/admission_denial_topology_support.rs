@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
 use worth_query::facade::foundation::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    snapshot_resolution_report, QueryExternalIdentityToken, QuerySchemaView,
     WorthQuerySnapshotIdentity,
 };
 use worth_ui::facade::admission::UiAdmissionQueryBasis;
@@ -85,12 +85,7 @@ pub fn query_snapshot_world_profile() -> UiGraphWorldProfile {
     );
     let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
-        QueryExternalSchemaBasisToken::from_domain_parts(
-            ["worth-ui.phase6", "admission", "denials"]
-                .into_iter()
-                .map(str::to_owned)
-                .collect::<Vec<_>>(),
-        ),
+        QuerySchemaView::new("worth-ui.phase6:admission:denials", [], []),
     )
     .expect("runtime current snapshot basis should resolve");
 

@@ -1,5 +1,4 @@
-#[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
-mod support;
+use crate::physical_interleaving_support as support;
 
 use worth_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use worth_store_certification::{

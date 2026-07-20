@@ -16,11 +16,9 @@ pub(crate) mod integrity_readiness_test_support;
 #[cfg(test)]
 pub(crate) mod physical_container_integrity_test_support;
 #[cfg(test)]
-pub(crate) mod physical_integrity_closeout_harness_test_support;
 #[cfg(test)]
 pub(crate) mod physical_integrity_closeout_line_cap_test_support;
 #[cfg(test)]
-pub(crate) mod physical_integrity_closeout_test_support;
 #[cfg(test)]
 pub(crate) mod physical_scope_admission_test_support;
 #[cfg(test)]

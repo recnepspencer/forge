@@ -5,12 +5,12 @@ use crate::{
     PhysicalScalePropertyEvidence, PhysicalSubstrateLane,
 };
 use worth_store_physical_format::{
-    ManifestDiscoveryCounterSnapshot, OfflineVerifierCounterSnapshot, PageRecordCounterSnapshot,
-    PhysicalAlgorithmReviewEvidence, PhysicalComplexityStatus,
-    PhysicalForegroundBoundednessOutcome, PhysicalFreeSpaceSearchPolicy,
+    InMemoryPhysicalFormatModelCounterSnapshot, ManifestDiscoveryCounterSnapshot,
+    OfflineVerifierCounterSnapshot, PageRecordCounterSnapshot, PhysicalAlgorithmReviewEvidence,
+    PhysicalComplexityStatus, PhysicalForegroundBoundednessOutcome, PhysicalFreeSpaceSearchPolicy,
     PhysicalHeaderDecodeCounterSnapshot, PhysicalLocalityClass,
     PhysicalOperationComplexityContract, PhysicalOperationCounterSnapshot, PhysicalOperationKind,
-    PhysicalReferenceValidationCounterSnapshot, PhysicalStoreRuntimeCounterSnapshot,
+    PhysicalReferenceValidationCounterSnapshot,
 };
 
 #[test]
@@ -279,7 +279,7 @@ fn counters_for_operation(operation: PhysicalOperationKind) -> PhysicalOperation
         }
         PhysicalOperationKind::RootManifestOpen => {
             PhysicalOperationCounterSnapshot::from_root_open(
-                PhysicalStoreRuntimeCounterSnapshot::empty().with_open(),
+                InMemoryPhysicalFormatModelCounterSnapshot::empty().with_open(),
             )
         }
         PhysicalOperationKind::AppendRecordPlacement => {

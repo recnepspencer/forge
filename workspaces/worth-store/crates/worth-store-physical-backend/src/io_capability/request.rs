@@ -14,8 +14,40 @@ pub struct BackendCapabilityAdmissionRequest {
 }
 
 impl BackendCapabilityAdmissionRequest {
+    pub(crate) const fn for_filesystem_qualification(
+        profile: BackendTargetProfile,
+        evidence_basis: BackendCapabilityEvidenceBasis,
+        support: BackendCapabilitySupportSet,
+        media_assumptions: BackendMediaAssumptionSet,
+        rebind_triggers: BackendRebindTriggers,
+    ) -> Self {
+        Self::construct(
+            profile,
+            evidence_basis,
+            support,
+            media_assumptions,
+            rebind_triggers,
+        )
+    }
+
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn new(
+        profile: BackendTargetProfile,
+        evidence_basis: BackendCapabilityEvidenceBasis,
+        support: BackendCapabilitySupportSet,
+        media_assumptions: BackendMediaAssumptionSet,
+        rebind_triggers: BackendRebindTriggers,
+    ) -> Self {
+        Self::construct(
+            profile,
+            evidence_basis,
+            support,
+            media_assumptions,
+            rebind_triggers,
+        )
+    }
+
+    const fn construct(
         profile: BackendTargetProfile,
         evidence_basis: BackendCapabilityEvidenceBasis,
         support: BackendCapabilitySupportSet,

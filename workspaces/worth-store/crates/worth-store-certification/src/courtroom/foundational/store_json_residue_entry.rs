@@ -25,6 +25,7 @@ pub enum StoreJsonAuthorityRisk {
     LegacyDigestBasisResidue,
     HostileDenialOnly,
     CertificationScannerVocabulary,
+    CertificationToolProtocolOnly,
     DurableSerdeContractOnly,
     TerminalProjectionOnly,
     HostileReadmissionOnly,

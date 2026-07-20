@@ -6,9 +6,10 @@ use worth_store_physical_format::{
 use super::{
     authority::semantic_fixture_digest, FixtureAuthorityReceipt, FixtureCapabilityDeclaration,
     FixtureMutationBoundarySet, FixtureScaleDeclaration, LargeStoreFixtureProfile,
-    PersistedStoreFixtureManifest, PhysicalArtifactFixtureCatalog,
-    ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource,
-    ProductionBackedPhysicalFixture, ReopenedFixtureManifestParts, SyntheticFixtureAuthorityDenied,
+    MaterializedFixtureScaleEvidence, PersistedStoreFixtureManifest,
+    PhysicalArtifactFixtureCatalog, ProductionBackedFixtureMaterialization,
+    ProductionBackedFixtureSource, ProductionBackedPhysicalFixture, ReopenedFixtureManifestParts,
+    SyntheticFixtureAuthorityDenied,
 };
 
 pub struct PhysicalFixtureBuilder;
@@ -28,7 +29,8 @@ impl FixtureNeedsMaterialization {
         self,
         materialization: ProductionBackedFixtureMaterialization,
     ) -> FixtureNeedsBoundary {
-        let (profile, scale, source, layout, replay_artifact) = materialization.into_parts();
+        let (profile, scale, source, layout, replay_artifact, materialized_scale) =
+            materialization.into_parts();
         FixtureNeedsBoundary {
             name: self.name,
             profile,
@@ -36,6 +38,7 @@ impl FixtureNeedsMaterialization {
             source,
             layout,
             replay_artifact,
+            materialized_scale,
         }
     }
 }
@@ -46,7 +49,8 @@ pub struct FixtureNeedsBoundary {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
-    replay_artifact: Option<worth_store_physical_format::PlatformPhysicalReplayArtifact>,
+    replay_artifact: Option<worth_store_physical_format::InMemoryPhysicalFormatReplayArtifact>,
+    materialized_scale: Option<MaterializedFixtureScaleEvidence>,
 }
 
 impl FixtureNeedsBoundary {
@@ -58,6 +62,7 @@ impl FixtureNeedsBoundary {
             source: self.source,
             layout: self.layout,
             replay_artifact: self.replay_artifact,
+            materialized_scale: self.materialized_scale,
             capability_declarations: vec![declaration],
         }
     }
@@ -69,7 +74,8 @@ pub struct FixtureReadyBuilder {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
-    replay_artifact: Option<worth_store_physical_format::PlatformPhysicalReplayArtifact>,
+    replay_artifact: Option<worth_store_physical_format::InMemoryPhysicalFormatReplayArtifact>,
+    materialized_scale: Option<MaterializedFixtureScaleEvidence>,
     capability_declarations: Vec<FixtureCapabilityDeclaration>,
 }
 
@@ -106,6 +112,7 @@ impl FixtureReadyBuilder {
                 artifact_catalog: catalog,
                 capability_declarations: self.capability_declarations,
                 mutation_boundaries: boundaries,
+                materialized_scale: self.materialized_scale,
             });
         Ok(ProductionBackedPhysicalFixture::from_manifest_and_receipt(
             manifest,

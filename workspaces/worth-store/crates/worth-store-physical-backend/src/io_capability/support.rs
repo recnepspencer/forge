@@ -27,8 +27,31 @@ impl BackendCapabilitySupportSet {
         }
     }
 
+    pub(crate) const fn for_filesystem_observation(
+        buffered_file: BackendCapabilitySupportPosture,
+        fsync: BackendCapabilitySupportPosture,
+        directory_sync: BackendCapabilitySupportPosture,
+        durable_rename: BackendCapabilitySupportPosture,
+    ) -> Self {
+        Self {
+            buffered_file,
+            direct_io: BackendCapabilitySupportPosture::Unsupported,
+            mmap: BackendCapabilitySupportPosture::Unsupported,
+            async_io: BackendCapabilitySupportPosture::Unsupported,
+            fsync,
+            directory_sync,
+            durable_rename,
+            secure_frame_io: BackendCapabilitySupportPosture::Unsupported,
+        }
+    }
+
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn buffered_durable_only() -> Self {
+        Self::buffered_durable()
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    const fn buffered_durable() -> Self {
         Self {
             buffered_file: BackendCapabilitySupportPosture::Supported,
             direct_io: BackendCapabilitySupportPosture::Unsupported,

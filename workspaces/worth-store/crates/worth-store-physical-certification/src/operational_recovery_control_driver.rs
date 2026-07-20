@@ -9,8 +9,8 @@ use worth_store_physical_backend::{
 };
 
 use crate::{
-    DrivenOperationalTransition, OperationalRecoveryControlTransitionKind,
-    OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
+    OperationalRecoveryControlTransitionKind, OperationalRecoveryProductionDriver,
+    OperationalRecoveryYieldpoint,
 };
 
 /// A transparent production control-store decorator used by the S.4.5 driver.
@@ -26,6 +26,9 @@ impl<'store, 'driver> DrivenOperationalControlStore<'store, 'driver> {
         store: &'store OperationalControlStore,
         driver: &'driver OperationalRecoveryProductionDriver,
     ) -> Self {
+        if let Ok(observation) = store.session_observation() {
+            driver.observe_control_session(observation);
+        }
         Self { store, driver }
     }
 
@@ -36,23 +39,30 @@ impl<'store, 'driver> DrivenOperationalControlStore<'store, 'driver> {
         persist: impl FnOnce() -> Result<PhysicalControlAppendReceipt, OperationalControlAppendDenial>,
     ) -> Result<PhysicalControlAppendReceipt, OperationalControlAppendDenial> {
         self.driver.observe_operation(record.operation_id());
-        if self
-            .driver
-            .before(OperationalRecoveryYieldpoint::BeforeDurableControlTransition(kind))
-        {
+        let before_point = OperationalRecoveryYieldpoint::BeforeDurableControlTransition(kind);
+        let after_point = OperationalRecoveryYieldpoint::AfterDurableControlTransition(kind);
+        let before_observation = self
+            .store
+            .session_observation()
+            .map_err(OperationalControlAppendDenial::Media)?;
+        let interrupted_before = self.driver.record_control_yieldpoint(before_point);
+        self.driver
+            .crash_at_control_cut_if_scheduled(before_point, before_observation);
+        if interrupted_before {
             return Err(interrupted_append());
         }
         let receipt = persist()?;
         self.driver.observe_durable_control_transition(record);
-        match self.driver.after(
-            OperationalRecoveryYieldpoint::AfterDurableControlTransition(kind),
-            receipt,
-        ) {
-            DrivenOperationalTransition::Completed(receipt) => Ok(receipt),
-            DrivenOperationalTransition::InterruptedAfter(_) => Err(interrupted_append()),
-            DrivenOperationalTransition::InterruptedBefore => {
-                unreachable!("after-yieldpoints cannot produce a before interruption")
-            }
+        let interrupted_after = self.driver.record_control_yieldpoint(after_point);
+        self.driver
+            .crash_at_control_cut_if_scheduled(after_point, before_observation);
+        if let Ok(observation) = self.store.session_observation() {
+            self.driver.observe_control_session(observation);
+        }
+        if interrupted_after {
+            Err(interrupted_append())
+        } else {
+            Ok(receipt)
         }
     }
 }

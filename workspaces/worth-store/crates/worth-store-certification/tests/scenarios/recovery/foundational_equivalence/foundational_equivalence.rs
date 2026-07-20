@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/foundational_evidence_support/foundational_evidence_support.rs"]
-mod evidence_support;
+use crate::foundational_evidence_support as evidence_support;
 
 use worth_foundational::{
     FoundationalCertifiedDiagnosticSourceKind, FoundationalCertifiedPerformanceClass,

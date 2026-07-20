@@ -1,5 +1,0 @@
-error[E0308]: mismatched types
- --> tests/ui/policy_placeholder_masking_cannot_fabricate_denial.rs:5:44
-  |
-5 |         requested_placeholder_fields: vec!["compensation.salary_band".to_string()],
-  |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `AuthorizedProjectionFieldPath`, found `String`

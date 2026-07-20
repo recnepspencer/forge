@@ -1,0 +1,57 @@
+//! Public declaration-authority contract.
+
+pub mod authoring {
+    pub use crate::authoring::*;
+}
+
+#[doc(hidden)]
+pub mod foundation {
+    pub use crate::authoring::*;
+}
+
+pub mod binding {
+    pub use crate::binding::*;
+}
+
+pub mod canonicalization {
+    pub use crate::canonicalization::*;
+}
+
+pub mod collection {
+    pub use crate::collection::*;
+}
+
+pub mod diagnostics {
+    pub use crate::diagnostics::*;
+}
+
+pub mod identity {
+    pub use crate::identity::*;
+}
+
+pub mod identity_authority {
+    pub use crate::identity_authority::QueryCanonicalAuthority;
+}
+
+pub mod result_shape {
+    pub use crate::result_shape::*;
+}
+
+pub mod schema_view {
+    pub use crate::schema_basis_authority::QuerySchemaBasisAuthority;
+    pub use crate::schema_view::*;
+}
+
+pub mod typed {
+    pub use crate::schema_view::{QuerySchemaView, SchemaFieldView, SchemaRelationView};
+    pub use crate::typed::*;
+    pub use worth_foundational::facade::ScalarAspectType;
+}
+
+pub mod validation {
+    pub use crate::validation::*;
+}
+
+pub mod view_declaration {
+    pub use crate::view_declaration::*;
+}

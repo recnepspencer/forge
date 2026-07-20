@@ -1,5 +1,0 @@
-error[E0599]: no method named `run` found for struct `WorthQueryLiveRequest` in the current scope
- --> tests/ui/declarative_read/live_declaration_cannot_run.rs:5:13
-  |
-5 |     request.run(workspace);
-  |             ^^^ method not found in `WorthQueryLiveRequest`

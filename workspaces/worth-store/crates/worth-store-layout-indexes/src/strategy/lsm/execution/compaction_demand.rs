@@ -116,6 +116,13 @@ pub(crate) fn map_membership_denial(
         LsmMembershipDenial::DurableRecordBindingMismatch => {
             super::BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch
         }
-        _ => super::BaselineLsmExecutionAdmissionDenial::PersistedIndexIo,
+        LsmMembershipDenial::CanonicalKeyRequired => {
+            super::BaselineLsmExecutionAdmissionDenial::CanonicalKeyRequired
+        }
+        LsmMembershipDenial::PersistedMembershipArtifactInvalid
+        | LsmMembershipDenial::UnsupportedRecordKind => {
+            super::BaselineLsmExecutionAdmissionDenial::PersistedArtifactInvalid
+        }
+        LsmMembershipDenial::Io => super::BaselineLsmExecutionAdmissionDenial::PersistedIndexIo,
     }
 }

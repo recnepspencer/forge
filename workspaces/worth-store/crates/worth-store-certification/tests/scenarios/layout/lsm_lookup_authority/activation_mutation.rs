@@ -17,6 +17,7 @@ pub(crate) enum ActivationField {
     FrameDigest,
     ExpectedBytes,
     OutputPath,
+    OutputOffset,
     OutputBytes,
     CheckpointEpoch,
     CoverageStart,
@@ -24,7 +25,7 @@ pub(crate) enum ActivationField {
     ManifestDigest,
 }
 
-pub(crate) const ALL_ACTIVATION_FIELDS: [ActivationField; 20] = [
+pub(crate) const ALL_ACTIVATION_FIELDS: [ActivationField; 21] = [
     ActivationField::TenantScope,
     ActivationField::KeyScope,
     ActivationField::CanonicalKey,
@@ -40,6 +41,7 @@ pub(crate) const ALL_ACTIVATION_FIELDS: [ActivationField; 20] = [
     ActivationField::FrameDigest,
     ActivationField::ExpectedBytes,
     ActivationField::OutputPath,
+    ActivationField::OutputOffset,
     ActivationField::OutputBytes,
     ActivationField::CheckpointEpoch,
     ActivationField::CoverageStart,
@@ -71,6 +73,7 @@ pub(crate) fn mutate_activation_field(bytes: &[u8], field: ActivationField) -> V
     let frame_digest = cursor.blob();
     let expected_bytes = cursor.u64();
     let output_path = cursor.blob();
+    let output_offset = cursor.u64();
     let output_bytes = cursor.u64();
     let checkpoint_epoch = cursor.u64();
     let coverage_start = cursor.u64();
@@ -94,6 +97,7 @@ pub(crate) fn mutate_activation_field(bytes: &[u8], field: ActivationField) -> V
         ActivationField::FrameDigest => frame_digest,
         ActivationField::ExpectedBytes => expected_bytes,
         ActivationField::OutputPath => output_path,
+        ActivationField::OutputOffset => output_offset,
         ActivationField::OutputBytes => output_bytes,
         ActivationField::CheckpointEpoch => checkpoint_epoch,
         ActivationField::CoverageStart => coverage_start,
@@ -104,6 +108,22 @@ pub(crate) fn mutate_activation_field(bytes: &[u8], field: ActivationField) -> V
     mutate_value(&mut mutated[range], field);
     rewrite_payload_checksum(&mut mutated);
     mutated
+}
+
+pub(crate) fn corrupt_persisted_byte(path: &std::path::Path, offset: u64) {
+    use std::io::{Read, Seek, SeekFrom, Write};
+    let mut artifact = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .unwrap();
+    artifact.seek(SeekFrom::Start(offset)).unwrap();
+    let mut byte = [0];
+    artifact.read_exact(&mut byte).unwrap();
+    byte[0] ^= 0x01;
+    artifact.seek(SeekFrom::Start(offset)).unwrap();
+    artifact.write_all(&byte).unwrap();
+    artifact.sync_all().unwrap();
 }
 
 fn mutate_value(value: &mut [u8], field: ActivationField) {

@@ -1,0 +1,5 @@
+[alias]
+store-owner = "run -q -p store-test-runner -- owner"
+store-smoke = "run -q -p store-test-runner -- smoke"
+store-ui = "run -q -p store-test-runner -- ui"
+store-ci = "run -q -p store-test-runner -- ci"

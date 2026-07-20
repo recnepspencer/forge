@@ -62,6 +62,8 @@ pub use test_authority::{
     blob_ingest_throttled_background_capacity_for_certification_test,
     blob_ingest_wal_write_background_capacity_for_certification_test,
     checkpoint_flush_wal_background_capacity_for_certification_test,
+    execute_background_pressure_for_certification_test,
+    mismatched_background_pressure_denial_for_certification_test,
     verification_deferred_background_capacity_for_certification_test,
     verification_denied_background_capacity_for_certification_test,
     verification_rebind_background_capacity_for_certification_test,

@@ -4,18 +4,12 @@ use crate::{
     ResidentFrameShortcutAttempt, ResidentFrameSlot, ResidentFrameTable,
     ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
 };
-use worth_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
-};
+use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalSegmentId,
-    PHYSICAL_HEADER_LENGTH,
-};
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
+    PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalReferenceValidationWitness, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 
 #[test]
@@ -221,26 +215,25 @@ fn forbidden_residency_proofs_are_typed_denials_not_authority() {
 }
 
 fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameTable {
-    let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
-    )
-    .unwrap();
     let budget = BufferPoolBudget::declare(
         ResidentMemoryBudget::bytes(resident_bytes).unwrap(),
         PinnedPageBudget::pages(4).unwrap(),
         DirtyPageBudget::pages(2).unwrap(),
     );
-    let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        readiness.physical_substrate_snapshot(),
-    )
-    .unwrap()
-    .with_budget(budget)
-    .admit()
-    .unwrap();
+    let admitted =
+        S2PhysicalResidencyEntry::from_physical_substrate_snapshot(algorithm_model_snapshot())
+            .unwrap()
+            .with_budget(budget)
+            .admit()
+            .unwrap();
     ResidentFrameTable::open(
         admitted,
         ResidentFrameTableCapacity::frames(frame_count).unwrap(),
     )
+}
+
+fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn load_request(
@@ -332,26 +325,6 @@ fn page_bytes(generation_value: u64, page_value: u64, payload_len: usize) -> Vec
 
 fn payload_len_for_frame_size(frame_size: u64) -> usize {
     (frame_size - PHYSICAL_HEADER_LENGTH as u64) as usize
-}
-
-fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-        ROADMAP_2_S1_SCOPE,
-        HandoffEvidenceDigestSet::new(
-            digest("backend"),
-            digest("deferred"),
-            digest("harness"),
-            digest("terms"),
-            digest("audit"),
-            digest("complexity"),
-            digest("provenance"),
-        ),
-    )
-    .unwrap()
-}
-
-fn digest(name: &str) -> StableDigest {
-    StableDigest::new(format!("sha256:{name}")).unwrap()
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

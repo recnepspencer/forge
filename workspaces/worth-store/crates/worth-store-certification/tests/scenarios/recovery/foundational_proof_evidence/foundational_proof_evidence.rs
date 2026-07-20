@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/foundational_evidence_support/foundational_evidence_support.rs"]
-mod evidence_support;
+use crate::foundational_evidence_support as evidence_support;
 
 #[test]
 fn foundational_proof_evidence_split_suite_smoke() {

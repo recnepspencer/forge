@@ -25,7 +25,7 @@ worth-ui-test-support = { path = "../worth-ui-test-support" }
 [dev-dependencies]
 trybuild = { workspace = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
-worth-query = { path = "../../../../crates/worth-query" }
+worth-query = { path = "../../../worth-query/crates/worth-query" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 
 [[test]]

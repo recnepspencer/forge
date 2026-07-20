@@ -158,8 +158,22 @@ pub fn substituted_lsm_base_is_rejected_before_compaction(
     let selected = worth_store_lsm_authority::select_lsm_compaction_membership(&session, key)
         .into_result()
         .unwrap();
-    let mut substituted = std::fs::read(first.replacement_path()).unwrap();
-    substituted[0] ^= 0x01;
-    std::fs::write(first.replacement_path(), substituted).unwrap();
+    use std::io::{Read, Seek, SeekFrom, Write};
+    let mut artifact = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(first.replacement_path())
+        .unwrap();
+    artifact
+        .seek(SeekFrom::Start(first.replacement_offset()))
+        .unwrap();
+    let mut byte = [0];
+    artifact.read_exact(&mut byte).unwrap();
+    byte[0] ^= 0x01;
+    artifact
+        .seek(SeekFrom::Start(first.replacement_offset()))
+        .unwrap();
+    artifact.write_all(&byte).unwrap();
+    artifact.sync_all().unwrap();
     selected.revalidate_artifacts().unwrap_err()
 }

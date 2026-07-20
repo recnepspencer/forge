@@ -97,8 +97,10 @@ fn dependency_direction_points_from_certification_to_formal_models_to_owners() {
     let physical_certification =
         fs::read_to_string(crate_root.join("../worth-store-physical-certification/Cargo.toml"))
             .expect("physical certification manifest exists");
-    assert!(certification.contains("worth-store-formal-models.workspace = true"));
-    assert!(!physical_certification.contains("worth-store-formal-models"));
+    assert!(manifest_section(&certification, "[dependencies]")
+        .contains("worth-store-formal-models.workspace = true"));
+    assert!(!manifest_section(&physical_certification, "[dependencies]")
+        .contains("worth-store-formal-models"));
 
     for owner in [
         "worth-store-layout-indexes",
@@ -118,6 +120,13 @@ fn dependency_direction_points_from_certification_to_formal_models_to_owners() {
             "runtime owner {owner} points back into formal models"
         );
     }
+}
+
+fn manifest_section<'manifest>(manifest: &'manifest str, heading: &str) -> &'manifest str {
+    let section = manifest
+        .split_once(heading)
+        .map_or("", |(_, section)| section);
+    section.split("\n[").next().unwrap_or(section)
 }
 
 #[test]

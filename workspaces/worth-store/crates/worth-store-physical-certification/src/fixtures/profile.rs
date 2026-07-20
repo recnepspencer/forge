@@ -5,15 +5,17 @@ pub enum LargeStoreFixtureProfile {
     CompactionHeavy,
     ForegroundUnderBackgroundIo,
     BlobLargerThanMemoryReadiness,
+    OperationalRecoveryRelease,
 }
 
 impl LargeStoreFixtureProfile {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::StoreLargerThanMemory,
         Self::CheckpointHeavy,
         Self::CompactionHeavy,
         Self::ForegroundUnderBackgroundIo,
         Self::BlobLargerThanMemoryReadiness,
+        Self::OperationalRecoveryRelease,
     ];
 
     pub const fn scale_declaration(self) -> FixtureScaleDeclaration {
@@ -56,6 +58,17 @@ impl LargeStoreFixtureProfile {
                 FixtureActivityScale::new(2, 2, 32 * 1024 * 1024, 256 * 1024 * 1024),
                 FixtureRecoveryScale::new(32 * 1024 * 1024 * 1024, 256 * 1024 * 1024, 1024 * 1024),
                 Some(FixtureProfileNonClaim::BlobCorrectnessNotCertified),
+            ),
+            Self::OperationalRecoveryRelease => FixtureScaleDeclaration::new(
+                self,
+                FixtureStorageScale::new(64 * 1024 * 1024 * 1024, 512 * 1024 * 1024),
+                FixtureActivityScale::new(8, 8, 512 * 1024 * 1024, 4 * 1024 * 1024 * 1024),
+                FixtureRecoveryScale::new(
+                    32 * 1024 * 1024 * 1024,
+                    2 * 1024 * 1024 * 1024,
+                    256 * 1024 * 1024,
+                ),
+                None,
             ),
         }
     }

@@ -1,11 +1,10 @@
-#[path = "../../../scenarios/physical_isolation/read_during_checkpoint/read_during_checkpoint.rs"]
-mod checkpoint_read;
+use crate::checkpoint_read_fixture as checkpoint_read;
 
-use crate::plan_admission::{admit_plan, protected_set};
-use crate::publication_support::{publication_inputs_with_new_root_digest, publish_copy_on_write};
-use crate::reclaim_support::ReclaimFixture;
-use crate::source_precedence_fixture;
-use crate::support::{
+use super::plan_admission::{admit_plan, protected_set};
+use super::publication_support::{publication_inputs_with_new_root_digest, publish_copy_on_write};
+use super::reclaim_support::ReclaimFixture;
+use super::source_precedence_fixture;
+use super::support::{
     current_generation_page_reference, physical_authority_from_complete_closeout,
 };
 use worth_proof::TransitionOutcome;

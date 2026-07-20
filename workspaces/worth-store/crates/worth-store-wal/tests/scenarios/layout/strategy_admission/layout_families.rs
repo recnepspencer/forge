@@ -21,7 +21,8 @@ use worth_store_wal::{
 fn wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
     let append_scope = WalFrameDurablePublicationScope::new(2, 9, 40, 80, "sha256:wal-crash", 256)
         .expect("append scope");
-    let append_receipt = wal_receipt(append_scope.clone());
+    let append_directory = tempfile::tempdir().unwrap();
+    let append_receipt = wal_receipt(append_directory.path(), append_scope.clone());
     let append_receipt = admit_durable_append(&append_receipt).expect("append receipt admission");
     let append_report = append_receipt.report();
     assert_eq!(append_report.scope(), &append_scope);
@@ -126,6 +127,7 @@ fn replay_tail_rejects_non_replay_record_kinds() {
 }
 
 fn wal_receipt(
+    root: &std::path::Path,
     scope: WalFrameDurablePublicationScope,
 ) -> worth_store_physical_backend::StoreDurabilityOrderingBarrierDurable<
     WalFrameDurablePublicationScope,
@@ -135,9 +137,8 @@ fn wal_receipt(
     );
     let expected_bytes = usize::try_from(scope.expected_bytes()).unwrap();
     let payload = vec![0x5a; expected_bytes];
-    let root = wal_directory();
     let append = prepare_wal_frame_append(
-        &root,
+        root,
         scope.segment_id(),
         scope.generation(),
         scope.lsn_start(),
@@ -149,7 +150,7 @@ fn wal_receipt(
     let accepted = admitted(requirement).submit_write(scope).backend_accepted();
     let proof = StoreDurabilityRuntime::new()
         .persist_append_and_execute(
-            &root,
+            root,
             StoreDurabilityAppendInput::new(
                 append.relative_path(),
                 append.encoded_frame(),
@@ -164,16 +165,6 @@ fn wal_receipt(
         .unwrap()
         .ordering_barrier_durable()
         .unwrap()
-}
-
-fn wal_directory() -> std::path::PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!(
-        "worth-store-wal-layout-{}-{}",
-        std::process::id(),
-        NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed)
-    ))
 }
 
 fn checkpoint_receipt(
@@ -234,12 +225,9 @@ where
         accepted.requirement().requires_ordering_barrier(),
         ordering_barrier_completed
     );
+    let directory = tempfile::tempdir().unwrap();
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(
-            &std::env::temp_dir(),
-            b"wal-layout-durable-write",
-            &accepted,
-        )
+        .persist_and_execute(directory.path(), b"wal-layout-durable-write", &accepted)
         .unwrap();
     accepted.reach_durability_boundary(proof)
 }

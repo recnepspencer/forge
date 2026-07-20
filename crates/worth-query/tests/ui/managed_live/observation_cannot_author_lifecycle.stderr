@@ -1,5 +1,0 @@
-error[E0599]: no method named `advance_maintenance` found for mutable reference `&mut WorthQueryManagedLiveLifecycleObservation` in the current scope
- --> tests/ui/managed_live/observation_cannot_author_lifecycle.rs:4:17
-  |
-4 |     observation.advance_maintenance();
-  |                 ^^^^^^^^^^^^^^^^^^^ method not found in `&mut WorthQueryManagedLiveLifecycleObservation`

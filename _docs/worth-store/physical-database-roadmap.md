@@ -17,6 +17,13 @@ Part II begins only after this roadmap closes its physical foundation gate. The
 former semantic roadmap and its implementation order are not predecessors,
 compatibility requirements, or earned milestone credit for either roadmap.
 
+The mandatory
+[Physical Foundation Reconstruction Roadmap](physical-foundation-reconstruction-roadmap.md)
+now sits inside Part I after the current S.9 implementation state and before
+S.10 continues. It reopens S.1 through S.9 closure, repairs the proof loop,
+and joins the existing physical mechanisms into one real sealed database
+runtime. Historical green runs do not bypass that reconstruction gate.
+
 ## Roadmap Position
 
 The Worth Store critical path begins here:
@@ -25,6 +32,12 @@ The Worth Store critical path begins here:
 -> `S.2` -> `S.3` -> `S.4` -> `S.4.5` -> `S.5` -> `S.5.1`
 -> `S.6` -> `S.7` -> `S.7.1` -> `S.8` -> `S.9` -> `S.10`
 -> `S.11` -> `S.12` -> `Runtime And Query Integration Milestone 1`
+
+The active correction path expands the `S.9 -> S.10` edge as:
+
+`S.9 implementation state reopened`
+-> `Physical Foundation Reconstruction C.1 through C.13`
+-> `S.10 re-entry`
 
 The `S.*` numbers are storage-foundation sequence numbers, not ordinary feature
 milestones. They express dependency order for the physical database substrate.
@@ -1044,6 +1057,22 @@ placeholder model enum, catalog-only case, fictional replication state,
 operator-authorization claim, bound-exhausted run reported as proof, or model
 verdict used as production authority blocks closeout.
 
+## Mandatory Physical Foundation Reconstruction Gate
+
+Roadmap: [physical-foundation-reconstruction-roadmap.md](physical-foundation-reconstruction-roadmap.md)
+
+S.1 through S.9 are reopened until the reconstruction roadmap closes. The gate
+begins with test execution cleanup, then seals the sole physical runtime,
+establishes one production media boundary, makes pages and manifests real,
+joins the buffer pool and durability progression, proves fresh-process
+recovery and independent offline truth, binds isolation/layout/blob/model
+mechanisms to the production path, and recertifies the joined foundation.
+
+S.10 work already present may remain as unadmitted substrate, but S.10 cannot
+close or promote Part I readiness until it consumes the sealed reconstruction
+handoff. Query, Relational, Signal, and Runtime Bridge integration remains Part
+II and is explicitly outside this correction gate.
+
 ## S.10: Operational Safety, Backup, PITR, Disaster Recovery, And Forensics
 
 Engineering spec: [storage-foundation-s10.md](storage-foundation-s10.md)
@@ -1248,6 +1277,8 @@ Part II may begin only when:
 
 - the Aspect-Native Workspace Gate is closed, proving JSON is confined to
   terminal projection or hostile/readmission boundaries
+- the Physical Foundation Reconstruction Roadmap is closed and its sealed S.10
+  readiness handoff was consumed by the resumed S.10 implementation
 - `S.0` through `S.12`, including `S.4.5`, `S.5.1`, and `S.7.1`, are
   implemented or explicitly scoped with named, non-platform-grade debt
 - [test-requirements-2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/test-requirements-2.md)

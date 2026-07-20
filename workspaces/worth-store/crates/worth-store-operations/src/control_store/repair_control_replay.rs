@@ -285,6 +285,34 @@ mod tests {
     }
 
     #[test]
+    fn plan_node_and_owner_receipt_mutants_fail_closed_without_poisoning_retry() {
+        let operation = OperationalOperationId::new("repair-receipt-mutants").unwrap();
+        let mut journals = HashMap::new();
+        observe_open(
+            &mut journals,
+            &operation,
+            authority(),
+            [7; 32],
+            [1; 32],
+            1,
+            1,
+        )
+        .unwrap();
+        observe_start(&mut journals, &operation, [1; 32], [2; 32], 5).unwrap();
+        for (plan, node, owner) in [
+            ([9; 32], [2; 32], 5),
+            ([1; 32], [8; 32], 5),
+            ([1; 32], [2; 32], 6),
+        ] {
+            assert!(
+                observe_receipt(&mut journals, &operation, plan, node, [3; 32], owner,).is_err()
+            );
+        }
+        observe_receipt(&mut journals, &operation, [1; 32], [2; 32], [3; 32], 5)
+            .expect("mutant denials cannot rewrite the exact durable start binding");
+    }
+
+    #[test]
     fn terminal_disposition_must_match_the_mutation_topology() {
         let operation = OperationalOperationId::new("current-repair-abandon").unwrap();
         let mut current = HashMap::new();

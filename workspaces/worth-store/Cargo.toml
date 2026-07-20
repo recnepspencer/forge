@@ -41,6 +41,7 @@ members = [
     "crates/worth-store-test-support",
     "crates/worth-store-tiering",
     "crates/worth-store-wal",
+    "tools/store-test-runner",
 ]
 
 [workspace.package]
@@ -86,7 +87,7 @@ worth-store-schema-lineage = { path = "crates/worth-store-schema-lineage" }
 worth-store-security = { path = "crates/worth-store-security" }
 worth-store-snapshots = { path = "crates/worth-store-snapshots" }
 worth-store-subscription-support = { path = "crates/worth-store-subscription-support" }
-worth-store-test-support = { path = "crates/worth-store-test-support" }
+worth-store-test-support = { path = "crates/worth-store-test-support", default-features = false }
 worth-store-tiering = { path = "crates/worth-store-tiering" }
 worth-store-wal = { path = "crates/worth-store-wal" }
 
@@ -96,3 +97,21 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 result_large_err = "allow"
+
+[profile.dev]
+debug = "line-tables-only"
+incremental = true
+
+[profile.test]
+debug = "line-tables-only"
+incremental = true
+
+[profile.ci-test]
+inherits = "test"
+debug = "line-tables-only"
+incremental = false
+
+[profile.diagnostic-test]
+inherits = "test"
+debug = 2
+incremental = false

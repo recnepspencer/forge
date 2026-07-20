@@ -8,9 +8,9 @@ use worth_store_contracts::{
 use worth_store_layout_indexes::encode_baseline_btree_leaf_record;
 use worth_store_physical_backend::observe_physical_backup_artifact;
 use worth_store_physical_format::{
-    BackupBundleArtifactFormat, PageGenerationCell, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalReferenceAuthority, PhysicalStoreRuntime,
-    PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
+    BackupBundleArtifactFormat, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    PageGenerationCell, PhysicalGeneration, PhysicalGenerationAuthority,
+    PhysicalReferenceAuthority, PlatformPhysicalAppendRequest,
     PlatformPhysicalRootPublicationReport, RootPublicationCell,
 };
 #[cfg(test)]
@@ -41,8 +41,18 @@ pub(crate) fn canonical_backup_artifacts_at_root_generation(
     source: &Path,
     root_generation: u64,
 ) -> CanonicalBackupArtifacts {
+    canonical_backup_artifacts_with_blob_count(case, source, root_generation, 1)
+}
+
+pub(crate) fn canonical_backup_artifacts_with_blob_count(
+    case: &str,
+    source: &Path,
+    root_generation: u64,
+    blob_count: u64,
+) -> CanonicalBackupArtifacts {
     assert!(root_generation > 0, "fixture root generation is nonzero");
-    let mut world = CanonicalBackupArtifactWorld::new(case);
+    assert!(blob_count > 0, "fixture blob count is nonzero");
+    let mut world = CanonicalBackupArtifactWorld::new(case, blob_count);
     let mut artifacts = None;
     for _ in 0..root_generation {
         artifacts = Some(world.publish(source));
@@ -56,7 +66,7 @@ pub(crate) fn canonical_backup_artifacts_across_one_root_publication(
     older_source: &Path,
     newer_source: &Path,
 ) -> (CanonicalBackupArtifacts, CanonicalBackupArtifacts) {
-    let mut world = CanonicalBackupArtifactWorld::new(case);
+    let mut world = CanonicalBackupArtifactWorld::new(case, 1);
     let older = world.publish(older_source);
     let newer = world.publish(newer_source);
     (older, newer)
@@ -64,12 +74,13 @@ pub(crate) fn canonical_backup_artifacts_across_one_root_publication(
 
 struct CanonicalBackupArtifactWorld {
     case: String,
-    runtime: PhysicalStoreRuntime,
+    runtime: InMemoryPhysicalFormatModel,
     generation: PhysicalGeneration,
+    blob_count: u64,
 }
 
 impl CanonicalBackupArtifactWorld {
-    fn new(case: &str) -> Self {
+    fn new(case: &str, blob_count: u64) -> Self {
         let mut runtime = open_physical_runtime();
         let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
         let generation = PhysicalGeneration::from_raw(1).expect("generation");
@@ -95,6 +106,7 @@ impl CanonicalBackupArtifactWorld {
             case: case.to_owned(),
             runtime,
             generation,
+            blob_count,
         }
     }
 
@@ -109,6 +121,7 @@ impl CanonicalBackupArtifactWorld {
             &self.runtime,
             publication,
             self.generation,
+            self.blob_count,
         )
     }
 }
@@ -116,9 +129,10 @@ impl CanonicalBackupArtifactWorld {
 fn materialize_canonical_backup_artifacts(
     case: &str,
     source: &Path,
-    runtime: &PhysicalStoreRuntime,
+    runtime: &InMemoryPhysicalFormatModel,
     publication: PlatformPhysicalRootPublicationReport,
     generation: PhysicalGeneration,
+    blob_count: u64,
 ) -> CanonicalBackupArtifacts {
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let current = runtime
@@ -134,7 +148,7 @@ fn materialize_canonical_backup_artifacts(
         .expect("sharp checkpoint backup artifact");
     let checkpoint_identity = checkpoint.checkpoint_identity().to_owned();
 
-    let mut references = Vec::with_capacity(7);
+    let mut references = Vec::with_capacity(6 + blob_count as usize);
     references.push(observe_reference(
         source,
         "root.media",
@@ -221,25 +235,28 @@ fn materialize_canonical_backup_artifacts(
         current_slot_reference(segment(200), page(1), record_slot(6), generation),
     ));
 
-    let blob_payload = format!("{case}:blob-payload");
-    let blob = blob_backup_artifact_for_bytes(case, blob_payload.as_bytes());
-    let blob_identity = blob.chunk_identity().to_owned();
-    let mut blob_bytes = Vec::new();
-    blob.encode(&mut blob_bytes).expect("blob backup encoding");
-    references.push(observe_reference(
-        source,
-        "blob.media",
-        &blob_bytes,
-        BackupArtifactFamily::BlobChunk,
-        BackupBundleArtifactFormat::BlobChunkV1,
-        blob_identity,
-        BackupArtifactCoverage::physical_reachability(),
-        current_extent_reference(
-            generations
-                .extent_cell(segment(100), extent(7))
-                .with_extent_generation(generation),
-        ),
-    ));
+    for index in 0..blob_count {
+        let blob_case = format!("{case}:blob-{index:04}");
+        let blob_payload = format!("{blob_case}:payload");
+        let blob = blob_backup_artifact_for_bytes(&blob_case, blob_payload.as_bytes());
+        let blob_identity = blob.chunk_identity().to_owned();
+        let mut blob_bytes = Vec::new();
+        blob.encode(&mut blob_bytes).expect("blob backup encoding");
+        references.push(observe_reference(
+            source,
+            &format!("blob-{index:04}.media"),
+            &blob_bytes,
+            BackupArtifactFamily::BlobChunk,
+            BackupBundleArtifactFormat::BlobChunkV1,
+            blob_identity,
+            BackupArtifactCoverage::physical_reachability(),
+            current_extent_reference(
+                generations
+                    .extent_cell(segment(100), extent(7 + index))
+                    .with_extent_generation(generation),
+            ),
+        ));
+    }
 
     CanonicalBackupArtifacts {
         references,
@@ -247,10 +264,10 @@ fn materialize_canonical_backup_artifacts(
     }
 }
 
-pub(crate) fn open_physical_runtime() -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(
+pub(crate) fn open_physical_runtime() -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(
         physical_readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("physical runtime")
 }

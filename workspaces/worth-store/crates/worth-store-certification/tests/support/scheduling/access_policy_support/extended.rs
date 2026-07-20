@@ -1,4 +1,4 @@
-use crate::s6_access_policy_support::{
+use super::s6_access_policy_support::{
     base_request, page_cache_policy, pinned_lifecycle, test_reference, test_security_scope,
     ExpectedExecutionRequest,
 };

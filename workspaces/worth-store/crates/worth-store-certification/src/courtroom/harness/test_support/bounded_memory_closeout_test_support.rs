@@ -19,15 +19,9 @@ use worth_store_buffer_pool::{
     BackgroundWorkBudgetSnapshot, BackgroundWorkClass, BufferPoolExecutedEvidenceSource,
     FixedMetadataReservation, RecordViewMaterializationProfile,
 };
-use worth_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
-};
+use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use worth_store_physical_integrity::ScrubPlanningMemoryEnvelope;
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
-    PhysicalSubstrateReadiness,
-};
 use worth_store_recovery_physics::RecoveryMemoryEnvelope;
 
 pub(crate) fn background_bundle() -> BackgroundEnvelopeEvidenceBundle {
@@ -124,26 +118,8 @@ pub(crate) fn operation_reports(
     ]
 }
 
-pub(crate) fn physical_substrate_readiness() -> PhysicalSubstrateReadiness {
-    prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(
-            AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-                ROADMAP_2_S1_SCOPE,
-                HandoffEvidenceDigestSet::new(
-                    StableDigest::new("sha256:bounded-memory-backend").unwrap(),
-                    StableDigest::new("sha256:bounded-memory-deferred").unwrap(),
-                    StableDigest::new("sha256:bounded-memory-harness").unwrap(),
-                    StableDigest::new("sha256:bounded-memory-terms").unwrap(),
-                    StableDigest::new("sha256:bounded-memory-audit").unwrap(),
-                    StableDigest::new("sha256:bounded-memory-complexity").unwrap(),
-                    StableDigest::new("sha256:bounded-memory-provenance").unwrap(),
-                ),
-            )
-            .unwrap(),
-        )
-        .unwrap(),
-    )
-    .unwrap()
+pub(crate) fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn complete_interference_reports() -> [BackgroundMemoryInterferenceReport; 6] {

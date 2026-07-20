@@ -3,11 +3,25 @@ pub(crate) fn reject_inspection_interruption(
     cancellation: &crate::OfflineInspectionCancellation,
     started_at: std::time::Instant,
 ) -> Result<(), crate::OfflineInspectionDenial> {
+    reject_inspection_interruption_at(
+        budget,
+        cancellation,
+        started_at,
+        std::time::SystemTime::now(),
+    )
+}
+
+pub(crate) fn reject_inspection_interruption_at(
+    budget: crate::OfflineInspectionBudget,
+    cancellation: &crate::OfflineInspectionCancellation,
+    started_at: std::time::Instant,
+    now: std::time::SystemTime,
+) -> Result<(), crate::OfflineInspectionDenial> {
     if cancellation.is_cancelled() {
         return Err(crate::OfflineInspectionDenial::Cancelled);
     }
     if let Some(deadline) = budget.deadline() {
-        if std::time::SystemTime::now() >= deadline {
+        if now >= deadline {
             return Err(crate::OfflineInspectionDenial::AbsoluteDeadlineReached { deadline });
         }
     }

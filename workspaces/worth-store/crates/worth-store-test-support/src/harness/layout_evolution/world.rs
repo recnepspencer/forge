@@ -16,9 +16,7 @@ use worth_store_layout_indexes::{
     declarations::{layout_declarations, PhysicalArtifactFamilyDeclaration},
     AdmittedPhysicalArtifactFamily,
 };
-use worth_store_physical_isolation::{
-    CopyOnWritePublicationPlan, PhysicalRootPublicationRuntime, PublicationRootCandidate,
-};
+use worth_store_physical_isolation::{CopyOnWritePublicationPlan, PublicationRootCandidate};
 use worth_store_security::{
     admit_store_security_scope, StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
     StoreKeyVersionPosture, StoreSecurityScopeAdmissionExpectation,
@@ -247,8 +245,10 @@ pub(super) fn execute_migration_with_inputs(
         migration_plan(declaration, authority),
         publication::admitted_copy_on_write_plan(&inputs),
     );
-    let mut runtime =
-        PhysicalRootPublicationRuntime::from_current_root(request.publication_source_root());
+    let mut runtime = crate::harness::physical_isolation::PhysicalRootPublicationFixture::open(
+        request.publication_source_root(),
+    )
+    .unwrap();
     let receipt = layout_migration_execution(&mut runtime)
         .execute(request)
         .into_published()

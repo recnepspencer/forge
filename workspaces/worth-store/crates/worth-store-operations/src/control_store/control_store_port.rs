@@ -8,9 +8,11 @@ use worth_store_physical_backend::{
 };
 
 use super::operational_media_path::resolve_operational_media_path;
+use super::session_observation::{current_process_identity, next_control_session_identity};
 use super::{
     encode_control_record, ControlStoreTrustPosture, OperationalControlEncodingDenial,
     OperationalControlLocation, OperationalControlRecord, OperationalControlRecordKind,
+    OperationalControlSessionIdentity, OperationalControlSessionObservation,
     ProtectedOperationalMediaLocation, ProtectedOperationalMediaRole,
 };
 
@@ -78,6 +80,7 @@ pub trait OperationalControlStorePort {
 #[derive(Debug)]
 pub struct OperationalControlStore {
     physical: PhysicalOperationalControlStore,
+    session: OperationalControlSessionIdentity,
     media_surfaces: [PathBuf; 3],
     backup_target_roots: Vec<PathBuf>,
     protected_media_roots: Vec<PathBuf>,
@@ -173,8 +176,11 @@ impl OperationalControlStore {
                 .map_err(|_| OperationalControlStoreOpenDenial::AllocationFailed)?;
             protected_media_roots.push(protected_path);
         }
+        let physical = PhysicalOperationalControlStore::open(physical_location)?;
+        let media_identity = physical.identity().fingerprint();
         Ok(Self {
-            physical: PhysicalOperationalControlStore::open(physical_location)?,
+            physical,
+            session: next_control_session_identity(media_identity),
             media_surfaces: [control, recovery_objects, identity],
             backup_target_roots,
             protected_media_roots,
@@ -183,6 +189,17 @@ impl OperationalControlStore {
 
     pub const fn media_identity(&self) -> ControlMediaIdentity {
         self.physical.identity()
+    }
+
+    pub fn session_observation(
+        &self,
+    ) -> Result<OperationalControlSessionObservation, ControlMediaFault> {
+        Ok(OperationalControlSessionObservation::from_open_store(
+            current_process_identity(),
+            self.session,
+            self.media_identity().fingerprint(),
+            self.observe_selection_coordinates()?,
+        ))
     }
 
     pub fn observe_selection_coordinates(

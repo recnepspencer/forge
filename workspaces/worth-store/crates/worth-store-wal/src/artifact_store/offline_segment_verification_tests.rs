@@ -33,30 +33,27 @@ fn owner_decode_rejects_rehashed_payload_corruption() {
 }
 
 struct WalSegmentFixture {
-    directory: std::path::PathBuf,
+    _directory: tempfile::TempDir,
     path: std::path::PathBuf,
     bytes: Vec<u8>,
 }
 
 impl WalSegmentFixture {
     fn new() -> Self {
-        let directory = std::env::temp_dir().join(format!(
-            "worth-store-wal-owner-decode-{}-{:?}",
-            std::process::id(),
-            std::thread::current().id()
-        ));
-        let _ = std::fs::remove_dir_all(&directory);
-        std::fs::create_dir_all(&directory).expect("fixture directory");
-        let first = prepare_wal_frame_append(&directory, 7, 3, 10, 11, "frame-a", b"first")
+        let directory = tempfile::Builder::new()
+            .prefix("worth-store-wal-owner-decode-")
+            .tempdir()
+            .expect("fixture directory");
+        let first = prepare_wal_frame_append(directory.path(), 7, 3, 10, 11, "frame-a", b"first")
             .expect("first frame");
-        let second = prepare_wal_frame_append(&directory, 7, 3, 11, 12, "frame-b", b"second")
+        let second = prepare_wal_frame_append(directory.path(), 7, 3, 11, 12, "frame-b", b"second")
             .expect("second frame");
         let mut bytes = first.encoded_frame().to_vec();
         bytes.extend_from_slice(second.encoded_frame());
-        let path = directory.join("segment.wal");
+        let path = directory.path().join("segment.wal");
         std::fs::write(&path, &bytes).expect("WAL segment");
         Self {
-            directory,
+            _directory: directory,
             path,
             bytes,
         }
@@ -73,11 +70,5 @@ impl WalSegmentFixture {
             181,
         )
         .expect("bounded request")
-    }
-}
-
-impl Drop for WalSegmentFixture {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.directory);
     }
 }

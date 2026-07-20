@@ -1,17 +1,9 @@
 use crate::{
     courtroom::source_tree::{certification_source, store_crate_source},
-    IntegrityCloseoutModuleKind, IntegrityCompositionEvidence, IntegrityModuleCompositionEvidence,
+    IntegrityCloseoutModuleKind, IntegrityModuleCompositionEvidence,
     IntegrityOwnedCloseoutFileEvidence,
 };
 use std::{fs, path::PathBuf};
-
-pub(crate) fn line_cap_composition_evidence() -> IntegrityCompositionEvidence {
-    IntegrityCompositionEvidence::from_checked_modules_and_owned_files(
-        line_cap_module_evidence(),
-        physical_integrity_owned_closeout_file_evidence(),
-    )
-    .unwrap()
-}
 
 pub(crate) fn line_cap_module_evidence() -> Vec<IntegrityModuleCompositionEvidence> {
     let cap = 400;

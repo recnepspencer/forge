@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::ops::{Deref, DerefMut};
 
 use worth_store_formal_models::{
     map_replication_progress_outcome, map_replication_publication_outcome,
@@ -18,6 +19,9 @@ use worth_store_security::{
     StoreReadmittedSecurityScope,
 };
 use worth_store_wal::WalFrameDurablePublicationScope;
+
+mod publication_denials;
+use publication_denials::collect_publication_denials;
 
 pub(in crate::courtroom::protocol_models) fn ordinary_replication_admission_actions(
 ) -> BTreeSet<ReplicationAdmissionAction> {
@@ -237,75 +241,6 @@ fn collect_progress_actions(
     }
 }
 
-fn collect_publication_denials(actions: &mut BTreeSet<ReplicationAdmissionAction>) {
-    collect_current_authority_publication_denial(actions);
-    collect_stale_progress_publication_denial(actions);
-    collect_peer_capacity_publication_denial(actions);
-    collect_progress_store_publication_denial(actions);
-}
-
-fn collect_current_authority_publication_denial(
-    actions: &mut BTreeSet<ReplicationAdmissionAction>,
-) {
-    let source = admitted_source(SourceSpec::standard(30, 30, 40));
-    let mut runtime = current_runtime();
-    let progress = runtime
-        .observe_progress(source)
-        .into_observed_progress()
-        .unwrap();
-    let readiness = admit_replication_publication_readiness(progress);
-    let foreign = readmitted_foreign_wal_security_scope_for_test();
-    let denied = runtime.publish(readiness, foreign.current_authority());
-    actions.insert(map_replication_publication_outcome(&denied));
-}
-
-fn collect_stale_progress_publication_denial(actions: &mut BTreeSet<ReplicationAdmissionAction>) {
-    let mut runtime = current_runtime();
-    let first = publication_readiness(&runtime, admitted_source(SourceSpec::standard(31, 30, 40)));
-    let stale = publication_readiness(&runtime, admitted_source(SourceSpec::standard(32, 30, 50)));
-    let authority = first.source().security_scope().current_authority().clone();
-    runtime.publish(first, &authority).into_result().unwrap();
-    let denied = runtime.publish(stale, &authority);
-    actions.insert(map_replication_publication_outcome(&denied));
-}
-
-fn collect_peer_capacity_publication_denial(actions: &mut BTreeSet<ReplicationAdmissionAction>) {
-    let scope = readmitted_wal_security_scope_for_test();
-    let mut runtime = open_runtime(ReplicationPeerCapacity::new(1).unwrap());
-    let first = publication_readiness(&runtime, admitted_source(SourceSpec::standard(33, 30, 40)));
-    runtime
-        .publish(first, scope.current_authority())
-        .into_result()
-        .unwrap();
-    let second = publication_readiness(
-        &runtime,
-        admitted_source(SourceSpec {
-            peer: "peer-capacity-denied",
-            ..SourceSpec::standard(34, 30, 40)
-        }),
-    );
-    let denied = runtime.publish(second, scope.current_authority());
-    actions.insert(map_replication_publication_outcome(&denied));
-}
-
-fn collect_progress_store_publication_denial(actions: &mut BTreeSet<ReplicationAdmissionAction>) {
-    let scope = readmitted_wal_security_scope_for_test();
-    let directory = unique_progress_directory();
-    let mut runtime = ReplicationAdmissionRuntime::open(
-        &directory,
-        scope.current_authority(),
-        ReplicationPeerCapacity::new(1).unwrap(),
-    )
-    .unwrap();
-    let log = directory.join("replication-progress.lock");
-    std::fs::remove_file(&log).unwrap();
-    std::fs::create_dir(&log).unwrap();
-    let readiness =
-        publication_readiness(&runtime, admitted_source(SourceSpec::standard(35, 30, 40)));
-    let denied = runtime.publish(readiness, scope.current_authority());
-    actions.insert(map_replication_publication_outcome(&denied));
-}
-
 fn published_progress(
     runtime: &mut ReplicationAdmissionRuntime,
     source: AdmittedReplicationSource,
@@ -337,29 +272,40 @@ fn publication_readiness(
     admit_replication_publication_readiness(progress)
 }
 
-fn current_runtime() -> ReplicationAdmissionRuntime {
-    let scope = readmitted_wal_security_scope_for_test();
-    ReplicationAdmissionRuntime::bind(scope.current_authority())
+fn current_runtime() -> ReplicationRuntimeFixture {
+    open_runtime(ReplicationPeerCapacity::new(usize::MAX).unwrap())
 }
 
-fn open_runtime(capacity: ReplicationPeerCapacity) -> ReplicationAdmissionRuntime {
+fn open_runtime(capacity: ReplicationPeerCapacity) -> ReplicationRuntimeFixture {
     let scope = readmitted_wal_security_scope_for_test();
-    ReplicationAdmissionRuntime::open(
-        &unique_progress_directory(),
-        scope.current_authority(),
-        capacity,
-    )
-    .unwrap()
+    let directory = worth_store_test_support::TemporaryDirectory::create("replication-protocol")
+        .expect("replication progress directory");
+    let runtime =
+        ReplicationAdmissionRuntime::open(directory.path(), scope.current_authority(), capacity)
+            .expect("replication runtime");
+    ReplicationRuntimeFixture {
+        runtime,
+        _directory: directory,
+    }
 }
 
-fn unique_progress_directory() -> std::path::PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!(
-        "worth-store-replication-protocol-{}-{}",
-        std::process::id(),
-        NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed),
-    ))
+struct ReplicationRuntimeFixture {
+    runtime: ReplicationAdmissionRuntime,
+    _directory: worth_store_test_support::TemporaryDirectory,
+}
+
+impl Deref for ReplicationRuntimeFixture {
+    type Target = ReplicationAdmissionRuntime;
+
+    fn deref(&self) -> &Self::Target {
+        &self.runtime
+    }
+}
+
+impl DerefMut for ReplicationRuntimeFixture {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.runtime
+    }
 }
 
 fn admitted_source(spec: SourceSpec) -> AdmittedReplicationSource {

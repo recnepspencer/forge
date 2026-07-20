@@ -3,10 +3,10 @@ use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use worth_store_physical_format::{
-    physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
-    PhysicalStoreIdentity, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
-    PlatformPhysicalOpenRequest,
+    physical_bootstrap_catalog, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
+    PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId, PhysicalStoreIdentity,
+    PlatformPhysicalAppendRequest,
 };
 
 pub(crate) fn bootstrap_exact_materialization(
@@ -88,16 +88,16 @@ fn published_layout(
     }
 }
 
-pub(crate) fn open_physical_facade() -> PhysicalStoreRuntime {
+pub(crate) fn open_physical_facade() -> InMemoryPhysicalFormatModel {
     open_physical_facade_for_store(PhysicalStoreIdentity::physical_format_default())
 }
 
 pub(crate) fn open_physical_facade_for_store(
     store_identity: PhysicalStoreIdentity,
-) -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(
+) -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_for_store(store_identity),
+        InMemoryPhysicalFormatModelRequest::physical_format_for_store(store_identity),
     )
     .expect("open physical facade")
 }

@@ -12,6 +12,8 @@ pub enum SyntheticFixtureAuthorityDenied {
     PrivateStorageMutationCannotSatisfyAuthority,
     CopiedFixtureReceiptCannotSatisfyAuthority,
     UndeclaredMutationBoundary(FixtureMutationBoundary),
+    ScaleMediaUnavailable,
+    ScaleMediaMismatch,
 }
 
 impl From<OfflineVerifierDenial> for SyntheticFixtureAuthorityDenied {

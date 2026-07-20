@@ -1,8 +1,8 @@
 use worth_store_budgets::PreExecutionBudgetEnvelope;
 use worth_store_contracts::AcceptedHandoffReadiness;
 use worth_store_physical_format::{
-    PhysicalPageId, PhysicalReference, PhysicalSegmentId, PhysicalStoreIdentity,
-    PlatformPhysicalReplayArtifact,
+    InMemoryPhysicalFormatReplayArtifact, PhysicalPageId, PhysicalReference, PhysicalSegmentId,
+    PhysicalStoreIdentity,
 };
 use worth_store_recovery_physics::AdmittedRecoverySource;
 use worth_store_security::StoreCurrentSecurityScopeWitnessSet;
@@ -33,7 +33,7 @@ impl BTreeReplayLocation {
 pub struct BTreeReplayPhysicalSource {
     pub(super) readiness: AcceptedHandoffReadiness,
     pub(super) root_reference: PhysicalReference,
-    pub(super) replay_artifact: PlatformPhysicalReplayArtifact,
+    pub(super) replay_artifact: InMemoryPhysicalFormatReplayArtifact,
     pub(super) expected_store_identity: PhysicalStoreIdentity,
     pub(super) durable_source: AdmittedRecoverySource,
 }
@@ -42,7 +42,7 @@ impl BTreeReplayPhysicalSource {
     pub const fn new(
         readiness: AcceptedHandoffReadiness,
         root_reference: PhysicalReference,
-        replay_artifact: PlatformPhysicalReplayArtifact,
+        replay_artifact: InMemoryPhysicalFormatReplayArtifact,
         expected_store_identity: PhysicalStoreIdentity,
         durable_source: AdmittedRecoverySource,
     ) -> Self {

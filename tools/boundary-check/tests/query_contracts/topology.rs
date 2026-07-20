@@ -31,7 +31,9 @@ struct RuleContractsSlice {
 
 #[derive(Debug, Deserialize)]
 struct QueryAudienceSlice {
+    workspace: String,
     engine_package: String,
+    certification_package: String,
     audiences: Vec<AudienceSlice>,
 }
 
@@ -51,9 +53,10 @@ fn canonical_query_audience_matrix_is_exact() {
     let config: Road1ConfigSlice = toml::from_str(&text).expect("parse road1.toml");
     let matrix = config.rule_contracts.query_audience;
 
+    assert_eq!(matrix.workspace, "workspaces/worth-query");
     assert_eq!(matrix.engine_package, "worth-query");
+    assert_eq!(matrix.certification_package, "worth-query-certification");
     assert_eq!(matrix.audiences.len(), 3, "exactly three audience rows");
-
     assert!(
         !text.contains("query_host_bands"),
         "retired query_host_bands must be absent"
@@ -95,6 +98,7 @@ fn canonical_query_audience_matrix_is_exact() {
         "worth-query-decl",
         "worth-query-host",
         "worth-query-replay",
+        "worth-query-certification",
     ] {
         assert!(
             naming.contains(&format!("`{package}`")),
@@ -104,10 +108,17 @@ fn canonical_query_audience_matrix_is_exact() {
 }
 
 #[test]
-fn real_audience_facades_depend_only_on_engine_via_cargo_metadata() {
+fn real_audience_facades_depend_only_on_their_owned_authority() {
     let root = workspace_root();
-    for package in ["worth-query-decl", "worth-query-host", "worth-query-replay"] {
-        let manifest = root.join("crates").join(package).join("Cargo.toml");
+    for (package, expected_dependency) in [
+        ("worth-query-decl", "worth-query-declaration"),
+        ("worth-query-host", "worth-query"),
+        ("worth-query-replay", "worth-query"),
+    ] {
+        let manifest = root
+            .join("workspaces/worth-query/crates")
+            .join(package)
+            .join("Cargo.toml");
         let output = Command::new("cargo")
             .arg("metadata")
             .arg("--format-version")
@@ -143,8 +154,8 @@ fn real_audience_facades_depend_only_on_engine_via_cargo_metadata() {
             .collect();
         assert_eq!(
             normal_deps,
-            ["worth-query"],
-            "{package} must have only worth-query as a normal dependency, found {normal_deps:?}"
+            [expected_dependency],
+            "{package} must have only {expected_dependency} as a normal dependency, found {normal_deps:?}"
         );
     }
 }
@@ -302,9 +313,12 @@ pub use worth_query_host::facade::runtime;
 fn agent_context_names_audience_exports_for_real_facades() {
     let root = workspace_root();
     for package in ["worth-query-decl", "worth-query-host", "worth-query-replay"] {
-        let context =
-            fs::read_to_string(root.join("crates").join(package).join("AGENT_CONTEXT.md"))
-                .unwrap_or_else(|_| panic!("missing AGENT_CONTEXT for {package}"));
+        let context = fs::read_to_string(
+            root.join("workspaces/worth-query/crates")
+                .join(package)
+                .join("AGENT_CONTEXT.md"),
+        )
+        .unwrap_or_else(|_| panic!("missing AGENT_CONTEXT for {package}"));
         assert!(
             context.contains("framework/query-audience"),
             "{package} context must be framework audience"
@@ -318,12 +332,27 @@ fn agent_context_names_audience_exports_for_real_facades() {
             "{package} must fence engine-only dependency"
         );
     }
-    let decl = fs::read_to_string(root.join("crates/worth-query-decl/AGENT_CONTEXT.md")).unwrap();
+    let decl = fs::read_to_string(
+        root.join("workspaces/worth-query/crates/worth-query-decl/AGENT_CONTEXT.md"),
+    )
+    .unwrap();
     assert!(decl.contains("CanonicalQueryArtifact"));
-    let host = fs::read_to_string(root.join("crates/worth-query-host/AGENT_CONTEXT.md")).unwrap();
+    let host = fs::read_to_string(
+        root.join("workspaces/worth-query/crates/worth-query-host/AGENT_CONTEXT.md"),
+    )
+    .unwrap();
     assert!(host.contains("domain"));
     assert!(host.contains("runtime"));
-    let replay =
-        fs::read_to_string(root.join("crates/worth-query-replay/AGENT_CONTEXT.md")).unwrap();
+    let replay = fs::read_to_string(
+        root.join("workspaces/worth-query/crates/worth-query-replay/AGENT_CONTEXT.md"),
+    )
+    .unwrap();
     assert!(replay.contains("ScopedReplayBasis"));
+
+    let certification = fs::read_to_string(
+        root.join("workspaces/worth-query/crates/worth-query-certification/AGENT_CONTEXT.md"),
+    )
+    .unwrap();
+    assert!(certification.contains("framework/query-certification"));
+    assert!(certification.contains("Cold leaf"));
 }

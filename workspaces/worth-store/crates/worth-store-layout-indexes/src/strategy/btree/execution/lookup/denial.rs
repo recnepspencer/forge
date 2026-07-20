@@ -1,6 +1,6 @@
 use crate::planning::AccessPlanIdentity;
 use worth_store_physical_format::{
-    PhysicalRecordSlot, PhysicalReference, PhysicalStoreRuntimeDenial,
+    InMemoryPhysicalFormatModelDenial, PhysicalRecordSlot, PhysicalReference,
 };
 use worth_store_physical_isolation::{
     CompactionProtectedReferenceSet, PhysicalReadPlanAdmissionDenial, StablePhysicalReadReceipt,
@@ -56,7 +56,7 @@ impl BaselineBTreeExecutionDenialKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BaselineBTreeExecutionDenial {
-    Physical(Box<PhysicalStoreRuntimeDenial>),
+    Physical(Box<InMemoryPhysicalFormatModelDenial>),
     InvalidRootNode,
     InvalidLeafNode,
     InvalidPhysicalReferenceForBTree,
@@ -95,8 +95,8 @@ impl From<worth_store_recovery_physics::BTreeReplaySourceDenial> for BaselineBTr
     }
 }
 
-impl From<PhysicalStoreRuntimeDenial> for BaselineBTreeExecutionDenial {
-    fn from(value: PhysicalStoreRuntimeDenial) -> Self {
+impl From<InMemoryPhysicalFormatModelDenial> for BaselineBTreeExecutionDenial {
+    fn from(value: InMemoryPhysicalFormatModelDenial) -> Self {
         Self::Physical(Box::new(value))
     }
 }

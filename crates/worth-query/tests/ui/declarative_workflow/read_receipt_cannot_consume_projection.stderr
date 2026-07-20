@@ -1,5 +1,0 @@
-error[E0599]: no method named `consume_projection` found for reference `&WorthQueryReadReceipt` in the current scope
- --> tests/ui/declarative_workflow/read_receipt_cannot_consume_projection.rs:4:21
-  |
-4 |     let _ = receipt.consume_projection(project_facts().entity_identities());
-  |                     ^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryReadReceipt`

@@ -6,12 +6,25 @@ use crate::media_acquisition::{
     acquire_read_only_media, OfflineMediaAcquisitionDenial, UntrustedOfflineMediaSet,
 };
 
-#[derive(Debug)]
+pub trait OfflineInspectionClock: Send + Sync {
+    fn now(&self) -> std::time::SystemTime;
+}
+
+struct SystemInspectionClock;
+
+impl OfflineInspectionClock for SystemInspectionClock {
+    fn now(&self) -> std::time::SystemTime {
+        std::time::SystemTime::now()
+    }
+}
+
+#[derive(Clone)]
 pub struct OfflineStoreInspection {
     media: UntrustedOfflineMediaSet,
     scope: OfflineInspectionScope,
     budget: OfflineInspectionBudget,
     cancellation: OfflineInspectionCancellation,
+    clock: std::sync::Arc<dyn OfflineInspectionClock>,
 }
 
 impl OfflineStoreInspection {
@@ -22,6 +35,7 @@ impl OfflineStoreInspection {
             budget: OfflineInspectionBudget::bounded(64 * 1024, u64::MAX)
                 .expect("nonzero defaults"),
             cancellation: OfflineInspectionCancellation::new(),
+            clock: std::sync::Arc::new(SystemInspectionClock),
         }
     }
     pub const fn scope(mut self, scope: OfflineInspectionScope) -> Self {
@@ -34,6 +48,10 @@ impl OfflineStoreInspection {
     }
     pub fn cancellation(mut self, cancellation: OfflineInspectionCancellation) -> Self {
         self.cancellation = cancellation;
+        self
+    }
+    pub fn clock(mut self, clock: std::sync::Arc<dyn OfflineInspectionClock>) -> Self {
+        self.clock = clock;
         self
     }
     pub fn start(self) -> Result<OfflineInspectionSession, OfflineMediaAcquisitionDenial> {
@@ -69,12 +87,30 @@ impl OfflineStoreInspection {
 
     fn fresh_session(self) -> Result<OfflineInspectionSession, OfflineMediaAcquisitionDenial> {
         let started_at = std::time::Instant::now();
+        super::reject_inspection_interruption_at(
+            self.budget,
+            &self.cancellation,
+            started_at,
+            self.clock.now(),
+        )
+        .map_err(OfflineMediaAcquisitionDenial::Interrupted)?;
         OfflineInspectionSession::new(
-            acquire_read_only_media(self.media, self.budget, &self.cancellation, started_at)?,
+            acquire_read_only_media(
+                self.media,
+                self.budget,
+                &self.cancellation,
+                started_at,
+                self.clock.as_ref(),
+            )?,
             self.scope,
             self.budget,
             self.cancellation,
             started_at,
+            self.clock,
         )
+    }
+
+    pub(super) const fn inspection_budget(&self) -> OfflineInspectionBudget {
+        self.budget
     }
 }

@@ -149,9 +149,10 @@ pub(crate) fn migrated_binding(
 ) -> LayoutMigrationReceipt {
     let request = migration_execution_request(declaration, authority);
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             request.publication_source_root(),
-        );
+        )
+        .unwrap();
     layout_migration_execution(&mut publication)
         .execute(request)
         .into_published()
@@ -333,9 +334,10 @@ pub(crate) fn other_family_migrated_binding(
     let publication = publication_plan(authority, "layout-migration-publication", 1_901);
     let request = LayoutMigrationExecutionRequest::new(plan, publication);
     let mut runtime =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             request.publication_source_root(),
-        );
+        )
+        .unwrap();
     layout_migration_execution(&mut runtime)
         .execute(request)
         .into_published()

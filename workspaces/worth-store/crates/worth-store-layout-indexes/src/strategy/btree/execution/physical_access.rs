@@ -1,7 +1,7 @@
 use super::{decode_leaf_record, BaselineBTreeExecutionDenial, BaselineBTreeLeafRecord};
 use worth_store_physical_format::{
-    access::page::PageAccess, PhysicalLayoutAccessCounterSnapshot, PhysicalReferenceAuthority,
-    PhysicalStoreRuntime, SlotGenerationCell,
+    access::page::PageAccess, InMemoryPhysicalFormatModel, PhysicalLayoutAccessCounterSnapshot,
+    PhysicalReferenceAuthority, SlotGenerationCell,
 };
 
 pub(super) struct ObservedBTreeLeafRead {
@@ -10,7 +10,7 @@ pub(super) struct ObservedBTreeLeafRead {
 }
 
 pub(super) fn read_leaf(
-    facade: &mut PhysicalStoreRuntime,
+    facade: &mut InMemoryPhysicalFormatModel,
     cell: SlotGenerationCell,
 ) -> Result<ObservedBTreeLeafRead, BaselineBTreeExecutionDenial> {
     let reference = PhysicalReferenceAuthority::for_canonical_physical_format()

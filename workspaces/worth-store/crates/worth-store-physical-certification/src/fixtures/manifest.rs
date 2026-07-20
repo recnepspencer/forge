@@ -1,6 +1,7 @@
 use super::{
     FixtureCapabilityDeclaration, FixtureMutationBoundarySet, FixtureScaleDeclaration,
-    LargeStoreFixtureProfile, PhysicalArtifactFixtureCatalog, ProductionBackedFixtureSource,
+    LargeStoreFixtureProfile, MaterializedFixtureScaleEvidence, PhysicalArtifactFixtureCatalog,
+    ProductionBackedFixtureSource,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,6 +14,7 @@ pub struct PersistedStoreFixtureManifest {
     artifact_catalog: PhysicalArtifactFixtureCatalog,
     capability_declarations: Vec<FixtureCapabilityDeclaration>,
     mutation_boundaries: FixtureMutationBoundarySet,
+    materialized_scale: Option<MaterializedFixtureScaleEvidence>,
 }
 
 pub(crate) struct ReopenedFixtureManifestParts {
@@ -24,6 +26,7 @@ pub(crate) struct ReopenedFixtureManifestParts {
     pub(crate) artifact_catalog: PhysicalArtifactFixtureCatalog,
     pub(crate) capability_declarations: Vec<FixtureCapabilityDeclaration>,
     pub(crate) mutation_boundaries: FixtureMutationBoundarySet,
+    pub(crate) materialized_scale: Option<MaterializedFixtureScaleEvidence>,
 }
 
 impl PersistedStoreFixtureManifest {
@@ -37,6 +40,7 @@ impl PersistedStoreFixtureManifest {
             artifact_catalog: parts.artifact_catalog,
             capability_declarations: parts.capability_declarations,
             mutation_boundaries: parts.mutation_boundaries,
+            materialized_scale: parts.materialized_scale,
         }
     }
 
@@ -70,6 +74,10 @@ impl PersistedStoreFixtureManifest {
 
     pub const fn mutation_boundaries(&self) -> &FixtureMutationBoundarySet {
         &self.mutation_boundaries
+    }
+
+    pub const fn materialized_scale(&self) -> Option<MaterializedFixtureScaleEvidence> {
+        self.materialized_scale
     }
 
     pub fn evidence_identity(&self) -> [u8; 32] {
@@ -123,6 +131,13 @@ impl PersistedStoreFixtureManifest {
         for boundary in self.mutation_boundaries.iter() {
             digest.update([mutation_boundary_tag(boundary)]);
         }
+        match self.materialized_scale {
+            Some(evidence) => {
+                digest.update([1]);
+                digest.update(evidence.evidence_identity());
+            }
+            None => digest.update([0]),
+        }
         digest.finalize().into()
     }
 }
@@ -163,5 +178,6 @@ const fn profile_tag(profile: LargeStoreFixtureProfile) -> u8 {
         LargeStoreFixtureProfile::CompactionHeavy => 3,
         LargeStoreFixtureProfile::ForegroundUnderBackgroundIo => 4,
         LargeStoreFixtureProfile::BlobLargerThanMemoryReadiness => 5,
+        LargeStoreFixtureProfile::OperationalRecoveryRelease => 6,
     }
 }

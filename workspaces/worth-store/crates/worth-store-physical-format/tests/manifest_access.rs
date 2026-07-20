@@ -2,10 +2,10 @@ use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use worth_store_physical_format::{
-    AllocationClassKind, PhysicalExtentId, PhysicalFreeSpaceSearchPolicy, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId,
-    PhysicalStoreRuntime, PhysicalStoreRuntimeDenialKind, PlatformPhysicalAppendRequest,
-    PlatformPhysicalOpenRequest,
+    AllocationClassKind, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelDenialKind,
+    InMemoryPhysicalFormatModelRequest, PhysicalExtentId, PhysicalFreeSpaceSearchPolicy,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
+    PhysicalSegmentId, PlatformPhysicalAppendRequest,
 };
 
 #[test]
@@ -134,9 +134,9 @@ fn reopen_discovers_same_root_manifest_family_truth() {
         .root_manifest_access()
         .current_root_manifest()
         .expect("discover original root");
-    let mut reopened = PhysicalStoreRuntime::reopen(
+    let mut reopened = InMemoryPhysicalFormatModel::restore(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         published.replay_artifact(),
     )
     .expect("public replay reopen");
@@ -165,7 +165,7 @@ fn manifest_membership_rejects_unpublished_runtime_append() {
 
     assert_eq!(
         denial.kind(),
-        PhysicalStoreRuntimeDenialKind::MissingPhysicalRoot
+        InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRoot
     );
 }
 
@@ -189,22 +189,22 @@ fn allocation_free_space_and_fragmentation_require_published_root_truth() {
 
     assert_eq!(
         allocation_denial.kind(),
-        PhysicalStoreRuntimeDenialKind::MissingPhysicalRoot
+        InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRoot
     );
     assert_eq!(
         free_space_denial.kind(),
-        PhysicalStoreRuntimeDenialKind::MissingPhysicalRoot
+        InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRoot
     );
     assert_eq!(
         fragmentation_denial.kind(),
-        PhysicalStoreRuntimeDenialKind::MissingPhysicalRoot
+        InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRoot
     );
 }
 
-fn open_facade() -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(
+fn open_facade() -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("open S.1 facade")
 }

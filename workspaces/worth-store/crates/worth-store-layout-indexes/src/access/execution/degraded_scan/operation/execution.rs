@@ -1,13 +1,13 @@
 use crate::access::execution::DegradedScanReadinessView;
 use crate::planning::AccessPlanSelectionView;
 use worth_store_contracts::DurableArtifactFamilyId;
-use worth_store_physical_format::PhysicalStoreRuntime;
+use worth_store_physical_format::InMemoryPhysicalFormatModel;
 
 use super::{denial::DegradedExactScanExecutionDenied, request::DegradedExactScanExecutionRequest};
 
 pub(super) fn execute(
     request: DegradedExactScanExecutionRequest<'_>,
-    physical: &mut PhysicalStoreRuntime,
+    physical: &mut InMemoryPhysicalFormatModel,
 ) -> Result<crate::DegradedScanExecution, DegradedExactScanExecutionDenied> {
     let readiness = prepare(request)?;
     let ready = match readiness.view() {
@@ -46,7 +46,7 @@ pub(super) fn rebind(
 
 pub(super) fn execute_ready(
     ready: crate::DegradedScanReady,
-    physical: &mut PhysicalStoreRuntime,
+    physical: &mut InMemoryPhysicalFormatModel,
 ) -> Result<crate::DegradedScanExecution, DegradedExactScanExecutionDenied> {
     super::super::execute_ready(ready, physical).map_err(DegradedExactScanExecutionDenied::Physical)
 }

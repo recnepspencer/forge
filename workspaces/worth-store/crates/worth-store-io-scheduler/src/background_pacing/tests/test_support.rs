@@ -63,10 +63,8 @@ impl World {
         let arbitration = ForegroundArbitrationDeclaration::for_lane(lane_kind);
         let capacity = admit_foreground_reservation_capacity(
             ForegroundReservationCapacityAdmissionRequest::new(
-                crate::foreground_reservation::ForegroundReservationCapacityAuthority::store_owned(
-                ),
                 lane,
-                crate::foreground_reservation::ForegroundReservationAdmissionBoundary::new(
+                crate::foreground_reservation::ForegroundReservationCapacityBasis::new(
                     &backend, &readiness, &security,
                 ),
                 arbitration,

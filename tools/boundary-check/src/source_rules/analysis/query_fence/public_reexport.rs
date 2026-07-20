@@ -81,7 +81,7 @@ fn reexport_diagnostic(source: &str, spelling: String) -> Diagnostic {
         DiagnosticCode::Bc3103QueryPublicReexport,
         source,
         format!(
-            "public re-export of Query path `{spelling}` is denied; governed crates consume audience facades but do not re-export Query items; legal home: rule_contracts.query_audience and crates/worth-query-*/src/facade.rs"
+            "public re-export of Query path `{spelling}` is denied; governed crates consume audience facades but do not re-export Query items; legal home: rule_contracts.query_audience and workspaces/worth-query/crates/worth-query-*/src/facade.rs"
         ),
     )
 }

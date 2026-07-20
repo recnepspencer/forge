@@ -100,6 +100,10 @@ pub mod blob_export_bundle_compile_fail;
 #[path = "compile_fail/generation_registry.rs"]
 #[doc(hidden)]
 pub mod blob_generation_registry_compile_fail;
+#[cfg(feature = "certification-test-authority")]
+#[path = "compile_fail/harness_execution.rs"]
+#[doc(hidden)]
+pub mod blob_harness_execution_compile_fail;
 #[path = "compile_fail/import_readmission.rs"]
 #[doc(hidden)]
 pub mod blob_import_readmission_compile_fail;

@@ -1,9 +1,6 @@
 #[path = "receipt_assertions.rs"]
 mod receipt_assertions;
-#[path = "../../../support/security/security_scope_simulation_harness/replay.rs"]
-mod replay_support;
-#[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
-mod s5_interleaving_harness_support;
+use crate::replay_support;
 
 use replay_support::{physical_replay_for_scenario, replay_scenario};
 use worth_foundational::{

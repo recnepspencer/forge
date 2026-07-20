@@ -1,0 +1,47 @@
+//! Portable Query installation authority.
+//!
+//! This package owns callback-free domain package meaning, installation
+//! admission, generation affinity, conflict semantics, and disposable
+//! installed indexes. Execution providers and workspaces are downstream.
+
+#![forbid(unsafe_code)]
+
+mod admission;
+mod canonical_hash_encoding;
+mod generation;
+mod installed_index;
+mod installed_operation;
+mod package;
+mod package_requirements;
+
+#[cfg(test)]
+mod admission_profile_tests;
+#[cfg(test)]
+mod package_validation_tests;
+
+pub mod facade {
+    pub use crate::admission::{
+        WorthQueryAdmittedPortableDomainPackage, WorthQueryInstallationAdmissionDenial,
+        WorthQueryInstallationAdmissionDenialKind, WorthQueryInstallationAdmissionProfile,
+        WorthQueryInstallationSupportStatus,
+    };
+    pub use crate::generation::{
+        WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,
+    };
+    pub use crate::installed_index::{
+        WorthQueryInstalledPackageAuthority, WorthQueryInstalledPackageIndex,
+        WorthQueryInstalledPackageIndexCounters, WorthQueryInstalledPackageIndexDenial,
+        WorthQueryInstalledPackageIndexDenialKind, WorthQueryInstalledPackageIndexRebuildReport,
+    };
+    pub use crate::installed_operation::WorthQueryInstalledOperationAuthority;
+    pub use crate::package::{
+        WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind,
+        WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
+        WorthQueryPortableDomainPackageIdentity, WorthQueryPortablePackageValidationDenial,
+        WorthQueryPortablePackageValidationDenialKind, WorthQueryValidatedPortableDomainPackage,
+    };
+    pub use crate::package_requirements::{
+        WorthQueryInstallationCapabilityFamily, WorthQueryInstallationConfigSectionFamily,
+        WorthQueryInstallationContributionCategory, WorthQueryInstallationOperatingRequirement,
+    };
+}

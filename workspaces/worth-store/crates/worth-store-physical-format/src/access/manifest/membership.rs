@@ -2,9 +2,9 @@ use super::root_discovery::canonical_root_manifest;
 use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
 use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::{
-    ManifestDiscoveryAuthority, PhysicalReference, PhysicalReferenceAdmissionWitness,
-    PhysicalReferenceAuthority, PhysicalReferenceKind, PhysicalStoreRuntime,
-    PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelDenial,
+    InMemoryPhysicalFormatModelDenialKind, ManifestDiscoveryAuthority, PhysicalReference,
+    PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority, PhysicalReferenceKind,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,18 +15,18 @@ pub struct ManifestMembershipLayoutReport {
 
 #[derive(Debug)]
 pub struct ManifestAccess<'a> {
-    facade: &'a mut PhysicalStoreRuntime,
+    facade: &'a mut InMemoryPhysicalFormatModel,
 }
 
 impl<'a> ManifestAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
+    pub(crate) fn new(facade: &'a mut InMemoryPhysicalFormatModel) -> Self {
         Self { facade }
     }
 
     pub fn validate_membership(
         &mut self,
         reference: PhysicalReference,
-    ) -> Result<ManifestMembershipLayoutReport, PhysicalStoreRuntimeDenial> {
+    ) -> Result<ManifestMembershipLayoutReport, InMemoryPhysicalFormatModelDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let root = access.root();
         let references = PhysicalReferenceAuthority::for_canonical_physical_format();
@@ -42,8 +42,8 @@ impl<'a> ManifestAccess<'a> {
                 discovery
                     .locate_page_slot(discovery_report, admission)
                     .map_err(|denial| {
-                        PhysicalStoreRuntimeDenial::new(
-                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
+                        InMemoryPhysicalFormatModelDenial::new(
+                            InMemoryPhysicalFormatModelDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_manifest_denial(denial)
                     })?;
@@ -52,8 +52,8 @@ impl<'a> ManifestAccess<'a> {
                 discovery
                     .locate_extent(discovery_report, admission)
                     .map_err(|denial| {
-                        PhysicalStoreRuntimeDenial::new(
-                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
+                        InMemoryPhysicalFormatModelDenial::new(
+                            InMemoryPhysicalFormatModelDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_manifest_denial(denial)
                     })?;
@@ -62,8 +62,8 @@ impl<'a> ManifestAccess<'a> {
                 discovery
                     .validate_free_space_reuse(discovery_report, admission)
                     .map_err(|denial| {
-                        PhysicalStoreRuntimeDenial::new(
-                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
+                        InMemoryPhysicalFormatModelDenial::new(
+                            InMemoryPhysicalFormatModelDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_manifest_denial(denial)
                     })?;
@@ -72,8 +72,8 @@ impl<'a> ManifestAccess<'a> {
                 references
                     .validate_root_publication(admission, root.root_publication())
                     .map_err(|denial| {
-                        PhysicalStoreRuntimeDenial::new(
-                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
+                        InMemoryPhysicalFormatModelDenial::new(
+                            InMemoryPhysicalFormatModelDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_reference_denial(denial)
                     })?;

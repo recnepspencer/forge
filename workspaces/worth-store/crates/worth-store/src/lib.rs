@@ -1,5 +1,15 @@
 #![forbid(unsafe_code)]
 
+//! The ordinary facade exposes a sealed lifecycle-only physical runtime while
+//! the physical foundation is under reconstruction. It owns a declared root
+//! in-process, but it does not open media or expose physical operations.
+//!
+//! ```compile_fail
+//! use worth_store::physical_format::InMemoryPhysicalFormatModel;
+//! ```
+
+pub mod physical_runtime;
+
 pub mod aspect_native {
     pub use worth_store_aspect_native::{
         canonical_basis_source_owner_for_family, certify_canonical_basis_field_role,
@@ -27,6 +37,7 @@ pub mod aspect_native {
     };
 }
 
+#[cfg(feature = "certification-test-authority")]
 pub mod certification {
     pub use worth_store_certification::{
         certify_store_json_residue_inventory, StoreCertificationProgram, StoreJsonAuthorityRisk,

@@ -24,6 +24,7 @@ pub enum BackendTargetProfile {
 pub enum CapabilityEvidenceClass {
     DeclaredByConfig,
     ObservedByProbe,
+    EstablishedByFilesystemAdmission,
     ExternallyGuaranteed,
     UnverifiableAssumption,
     CertifiedBackendProfile,
@@ -37,6 +38,10 @@ impl CapabilityEvidenceClass {
                 | (Self::CertifiedBackendProfile, Self::ExternallyGuaranteed)
                 | (Self::ExternallyGuaranteed, Self::ExternallyGuaranteed)
                 | (Self::ObservedByProbe, Self::ObservedByProbe)
+                | (
+                    Self::EstablishedByFilesystemAdmission,
+                    Self::EstablishedByFilesystemAdmission
+                )
                 | (Self::DeclaredByConfig, Self::DeclaredByConfig)
                 | (Self::UnverifiableAssumption, Self::UnverifiableAssumption)
         )
