@@ -1,11 +1,11 @@
 use crate::{
-    PhysicalGenerationAuthority, PhysicalReference, PhysicalStoreRuntimeDenial,
-    PhysicalStoreRuntimeDenialKind,
+    InMemoryPhysicalFormatModelDenial, InMemoryPhysicalFormatModelDenialKind,
+    PhysicalGenerationAuthority, PhysicalReference,
 };
 
 pub(crate) fn slot_cell_from_reference(
     reference: PhysicalReference,
-) -> Result<crate::SlotGenerationCell, PhysicalStoreRuntimeDenial> {
+) -> Result<crate::SlotGenerationCell, InMemoryPhysicalFormatModelDenial> {
     let segment_id = reference.segment_id().ok_or_else(missing_record)?;
     let page_id = reference.page_id().ok_or_else(missing_record)?;
     let slot = reference.slot().ok_or_else(missing_record)?;
@@ -16,7 +16,7 @@ pub(crate) fn slot_cell_from_reference(
 
 pub(crate) fn extent_cell_from_reference(
     reference: PhysicalReference,
-) -> Result<crate::ExtentGenerationCell, PhysicalStoreRuntimeDenial> {
+) -> Result<crate::ExtentGenerationCell, InMemoryPhysicalFormatModelDenial> {
     let segment_id = reference.segment_id().ok_or_else(missing_record)?;
     let extent_id = reference.extent_id().ok_or_else(missing_record)?;
     Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
@@ -24,6 +24,8 @@ pub(crate) fn extent_cell_from_reference(
         .with_extent_generation(reference.generation()))
 }
 
-fn missing_record() -> PhysicalStoreRuntimeDenial {
-    PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord)
+fn missing_record() -> InMemoryPhysicalFormatModelDenial {
+    InMemoryPhysicalFormatModelDenial::new(
+        InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRecord,
+    )
 }

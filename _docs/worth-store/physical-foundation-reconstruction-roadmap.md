@@ -21,7 +21,7 @@ earns a physical claim.
 ```text
 Physical Database Roadmap S.9 implementation state reopened
   -> C.1 direct test execution and iteration cleanup
-  -> C.2 executable reality ledger and claim quarantine
+  -> C.2 manual physical reality audit and claim quarantine
   -> C.3 sealed physical runtime authority and lifecycle
   -> C.4 production media boundary and stable store namespace
   -> C.5 durable page, segment, extent, and manifest path
@@ -180,14 +180,21 @@ leaving ordinary iteration so expensive that broad verification is avoided.
 12. Query, Relational, Signal, and Runtime Bridge are consumers of the final
     platform through Part II. No cleanup milestone imports or partially
     integrates Query.
+13. A physical phase type and its operation methods land only in the same
+    change that installs the concrete production owner and its required real-
+    machine acceptance journey. No milestone predeclares operational shells
+    backed by flags, optional owners, mocks, memory implementations, or typed
+    `Unavailable` responses.
 
 ## Non-Fake Physical Acceptance Test Contract
 
-Every `C.2` through `C.13` engineering spec must contain a
+Every `C.3` through `C.13` engineering spec must contain a
 `Non-Fake Acceptance Setup` section. C.1 is the test-execution foundation and
-uses its own direct truth contract; making its reports certify themselves would
-be recursive. A physical test requirement is incomplete unless it fixes all of
-the following before implementation begins:
+uses its own direct truth contract; C.2 is the manual reality audit and uses its
+own two-direction trace, narrow-probe, and code-quarantine contract. Making
+either milestone's reports certify themselves would be recursive. A physical
+test requirement in C.3 through C.13 is incomplete unless it fixes all of the
+following before implementation begins:
 
 ### Production subject
 
@@ -380,141 +387,191 @@ Cargo test target has one CI lane, and no recursive test-authority path remains.
 Exact timing is observation, but unbounded or unexplained iteration cost blocks
 closure.
 
-## C.2: Executable Reality Ledger And Claim Quarantine
+## C.2: Manual Physical Reality Audit And Claim Quarantine
 
 ### Goal
 
-Replace milestone folklore with an executable map of which physical mechanisms
-exist, which production path invokes them, and which claims remain unearned.
+Replace milestone folklore with a manually resolved physical-reality audit of
+which mechanisms exist, which production path invokes them, and which claims
+remain unearned.
 
 ### Boundary
 
-This milestone does not implement persistence. It traces S.1 through S.9 code
-from public facade to physical effect, classifies disconnected mechanisms, and
-mechanically prevents unearned platform-grade promotion while reconstruction
-is underway.
+This milestone does not implement persistence and does not build a semantic
+code-mapping engine. Broad string and dependency searches discover candidates;
+human code tracing follows S.1 through S.9 claims from public facade to terminal
+effect and follows real writers back toward product composition. Narrow
+executable probes settle material ambiguity. Production code and boundary tests,
+not the audit document, prevent unearned platform-grade promotion while
+reconstruction is underway.
 
 ### Must Ship
 
-- an owner-by-owner executable topology for physical format, backend, buffer
-  pool, WAL, recovery, integrity, isolation, scheduler, layout/indexes, blobs,
-  formal models, operations, and certification
-- a call-path ledger distinguishing:
+- one checked-in CSV as the primary audit deliverable, with stable claim ids,
+  exact source locations, discovery searches, manually traced terminal effects,
+  reproduction commands where behavior is disputed, dispositions, and target
+  reconstruction milestones
+- an owner-by-owner manually traced topology for physical format, backend,
+  buffer pool, WAL, recovery, integrity, isolation, scheduler, layout/indexes,
+  blobs, formal models, operations, readiness, and certification
+- resolved claim classifications distinguishing:
   - production-reachable physical effect
   - production-reachable in-memory model
   - certification-only mechanism
   - isolated real mechanism not called by the canonical runtime
   - vocabulary or plan without execution
   - duplicate or conflicting authority
-- an artifact-family ledger naming source truth, physical representation,
-  writer, reader, durability boundary, reopen source, verifier, rebuild source,
-  and current claim tier
-- dependency and facade maps showing every existing candidate for the sole
-  physical composition root
+  - explicitly unavailable or quarantined behavior
+- explicit columns naming the claimed and actual terminal effects, artifact
+  family, physical writer, reader, durability boundary, reopen source,
+  independent verifier, final classification, and path kind, plus the search,
+  trace, probe, disposition, and target-milestone fields needed for manual
+  review
+- two-direction trace coverage: claimed public facades down to terminal effects,
+  and real file writers upward to their actual product or non-product callers
 - quarantine of platform-grade promotion and closeout receipts that can be
   satisfied by `PersistedPhysicalLayout`, `PlatformPhysicalReplayArtifact`, or
   other supplied representations rather than discovered bytes
-- a deletion/admission decision for every duplicate runtime, fake backend,
-  test-only oracle, and mechanism island
-- an ordered blocker graph consumed directly by C.3 through C.13 specs
+- a preserve, refactor, connect-later, quarantine, or delete decision for every
+  duplicate runtime, fake backend, test-only oracle, and mechanism island
+- a C.3 through C.13 blocker assignment in the same CSV so the audit does not
+  become a second planning authority
+- no generated semantic reachability map, source hash hierarchy, readiness
+  token, proof receipt, or program whose output substitutes for manual tracing
 
 ### Non-Fake Acceptance Setup
 
-- **Production subject:** every public physical Store facade and every method
-  that claims open, append, read, flush, checkpoint, recover, compact, verify,
-  or reopen.
+- **Production subject:** every public physical Store facade and every method or
+  promotion surface that claims open, append, read, flush, checkpoint, recover,
+  compact, verify, reopen, readiness, or platform-grade status.
 - **Initial world:** create a uniquely identified empty directory and invoke
   the current ordinary facade exactly as product code would. No test fixture
   may pre-supply pages, manifests, WAL frames, layouts, or replay state.
-- **Execution:** attempt one append, declared durability, process exit, and
-  fresh-process reopen using only the directory and production configuration.
-- **Independent observation:** an external artifact walker records actual files
-  and bytes. Cargo dependency metadata and callsite tracing record whether the
-  file-writing backend is reachable from the facade.
+- **Execution:** use repository-wide string and dependency searches to discover
+  candidates, manually trace both directions, then attempt one append, declared
+  durability, process exit, and fresh-process reopen using only the directory
+  and production configuration. Record exact reproduction commands in the
+  affected CSV rows.
+- **Independent observation:** a fresh observer uses ordinary OS filesystem APIs
+  to record actual paths, lengths, and bytes. Cargo metadata and callsite
+  searches provide candidates only; the reviewer records the manually verified
+  call chain and uncertainty instead of promoting search results into
+  reachability proof.
 - **Assertions:** every physical claim resolves to a concrete effect path or a
   typed `Unimplemented/Unavailable/Uncertified` classification. Missing files,
   supplied replay state, heap-only mutation, and certification-only calls are
   recorded as failures, not interpreted optimistically.
-- **Controlled defect:** add a promotion row for a heap-only append or make a
-  disconnected file writer appear in the capability report. The ledger and
-  promotion gate must reject the mismatch.
-- **Forbidden substitutes:** markdown inventories without generated source and
-  execution evidence, grep-only proof of reachability, and a test that writes
-  the expected files itself do not count.
+- **Controlled defects:** use the existing heap-backed
+  `PhysicalStoreRuntime` and the real writers in
+  `worth-store-physical-certification` as deliberately misleading review
+  seeds. Manual tracing must classify both honestly from opposite directions,
+  and the production promotion boundary must reject the heap-only claim
+  independently of the CSV.
+- **Forbidden substitutes:** grep-only proof of reachability, generated call
+  graphs treated as semantic truth, a purpose-built ledger authority, a test
+  that writes the expected files itself, or a CSV row without an inspected
+  source path do not count.
 
 ### Closeout Gate
 
-`C.2` closes only when every reopened S.1 through S.9 claim has an executable
-production path or an explicit unearned classification, and later specs can
-name the exact owner seam they must connect without guessing from vocabulary.
+`C.2` closes only when every reopened S.1 through S.9 claim has a manually
+verified production path or an explicit unearned classification, every real
+writer has been reverse-traced to its actual caller class, dishonest promotion
+is mechanically unavailable outside the audit, and later specs can name the
+exact owner seam they must connect without guessing from vocabulary.
 
 ## C.3: Sealed Physical Runtime Authority And Lifecycle
+
+Engineering spec:
+[physical-reconstruction-c3-sealed-runtime-lifecycle.md](physical-reconstruction-c3-sealed-runtime-lifecycle.md)
 
 ### Goal
 
 Establish one non-forgeable, non-duplicable physical runtime composition root
-whose subsystem handles express the authority and borrowing topology needed by
-the real database.
+whose phase types and observation handles express the authority currently
+installed, and whose consuming transition boundary is the only place later
+physical owners may enter.
 
 ### Boundary
 
 This milestone seals construction and lifecycle. It does not yet claim durable
-page publication. The runtime may temporarily return typed unavailable for
-operations whose real mechanism lands in later milestones, but it may not
-simulate completion in heap state.
+page publication. `AdmittedPhysicalRuntime` exposes no physical operation or
+mutation method. Absent owners are represented by absent methods/types and
+immutable capability status, never by heap-backed implementations returning
+`Unavailable`.
 
 ### Must Ship
 
-- one Store-owned open/admit path consuming a stable store root, nested runtime
-  configuration, backend capability admission, and concrete platform authority
+- one Store-owned `admit` path consuming a declared store root, nested C.3
+  runtime configuration, and concrete platform authority; C.4 owns real
+  backend-capability and namespace admission
 - a non-`Clone` composition authority with private construction and explicit
   close/abort/crashed lifecycle
 - independently borrowable or cloneable read-only handles only where cloning
   does not duplicate mutation, publication, recovery, or allocation authority
-- autonomous subsystem ownership for media, buffer residency, WAL/checkpoint,
-  physical visibility, integrity, scheduling, layout, blob, recovery, and
-  observation
+- exhaustive ownership of only the root-admission, lifecycle, observation,
+  managed-resource, capability-status, and diagnostic responsibilities that
+  C.3 actually installs
+- no media, page, record, WAL, checkpoint, buffer, recovery, integrity,
+  scheduling, layout, or blob owner field/view until its real physical
+  transition is implemented
+- no public mutation handle or generic physical subsystem access from the
+  admitted phase
+- later milestones must consume the admitted runtime into a distinct concrete
+  owner phase; no flag, optional field, trait object, feature, or runtime check
+  may unlock physical methods on `AdmittedPhysicalRuntime`
 - typestate or equivalent sealed transitions preventing open, recover,
   current-serving, maintenance, and closed states from being confused
-- exhaustive construction and lifecycle propagation so adding a subsystem
-  breaks every incomplete open, recover, fork, close, and inspection site
+- exhaustive construction and lifecycle propagation so adding an installed
+  owner breaks every incomplete admit, abort, close, and inspection site; later
+  open/recover transitions must consume this same exhaustive root
 - removal or quarantine of `PhysicalStoreRuntime` cloning, public replay-based
   reopen authority, and caller-provided persisted-layout construction
 - explicit phase-scoped observation handles that cannot mutate or publish
-- a narrow production facade that reveals expensive I/O, recovery, and
-  maintenance boundaries in its API shape
+- a narrow production facade that exposes no I/O, recovery, or maintenance
+  operation until the phase type carrying that real boundary exists
 
 ### Non-Fake Acceptance Setup
 
-- **Production subject:** the sole physical runtime facade and its construction,
-  handle, lifecycle, and unavailable-operation contracts.
-- **Initial world:** one empty store root and one existing-but-unopened store
-  root; no runtime, replay artifact, or persisted layout is preconstructed.
-- **Execution:** open the first root, obtain two observation handles and one
-  mutation handle, attempt invalid lifecycle transitions, close it, then open
-  the second root through the same sealed constructor.
-- **Independent observation:** compile-fail fixtures live outside the owner
-  crate and attempt to clone runtime authority, construct internal state,
-  mutate through observation, reopen from supplied layout, operate after close,
-  and construct with a missing subsystem.
-- **Assertions:** invalid authority and lifecycle states are uncallable; runtime
-  identity is unique; observation handles expose no mutation or proof-minting
-  surface; unavailable physical operations fail before heap mutation.
-- **Controlled defect:** reintroduce `Clone` on the composition authority or a
-  public constructor for recovered state. The UI suite must fail at the exact
-  forbidden capability and the topology gate must identify the widened facade.
+- **Production subject:** the sole physical runtime facade, exercised through
+  two production-facade lifecycle journeys and one consolidated external-
+  consumer compiler boundary.
+- **Initial world:** one absent root and one existing empty directory; no
+  runtime, replay artifact, persisted layout, page, WAL, or manifest is
+  preconstructed.
+- **Execution:** one ordinary journey performs admission, observation,
+  capability-absence inspection, close, and re-admission. One deterministic
+  hostile journey races admission and access while injecting panic, abort,
+  cancellation, unexpected drop, stale handles, and child-process death.
+- **Independent observation:** one lifecycle table predicts both journeys;
+  exact counters reconcile with their action traces; OS inspection proves zero
+  physical residue; the small cache-sharing UI suite proves only the authority
+  violations that cannot execute at runtime.
+- **Assertions:** one composition root exists per incarnation, invalid lifecycle
+  use is uncallable, observation cannot promote, physical methods do not exist
+  on the admitted phase, no physical owner is allocated, and termination
+  outcomes remain distinct.
+- **Controlled defects:** duplicate authority, heap-backed physical-owner
+  installation during admission, and false successful close must fail the
+  compiler boundary, ordinary journey, and hostile journey respectively.
 - **Forbidden substitutes:** a private field with a public cloning wrapper,
-  runtime assertions after illegal calls, generic marker authority, or
-  certification-only construction standing in for ordinary open cannot close
-  the milestone.
+  runtime assertions after illegal calls, generic marker authority, a generic
+  memory/backend parameter on the admitted phase, an `Unavailable` wrapper
+  containing a heap owner, physical-looking methods that only return
+  `Unavailable`, or certification-only construction standing in for ordinary
+  open cannot close the milestone.
 
 ### Closeout Gate
 
 `C.3` closes only when the compiler enforces one physical authority lifecycle,
-callers cannot supply recovered truth, and subsequent milestones have one
+callers cannot supply recovered truth or call physical work, no absent owner is
+represented by a heap substitute, and subsequent milestones have one
 unambiguous runtime into which real mechanisms must bind.
 
 ## C.4: Production Media Boundary And Stable Store Namespace
+
+Engineering spec:
+[physical-reconstruction-c4-production-media-boundary.md](physical-reconstruction-c4-production-media-boundary.md)
 
 ### Goal
 
@@ -526,10 +583,16 @@ capability truth.
 
 This milestone establishes media mechanics and namespace law. It does not yet
 assign page, WAL, checkpoint, index, or blob semantics to every file. Those
-artifact owners consume this boundary in later milestones.
+artifact owners consume this boundary in later milestones. `worth-proof`
+supplies checked capability and C.3-to-C.4 progression topology without owning
+the runtime or OS effects. `worth-foundational` supplies canonical namespace
+and portable evidence vocabulary only after stronger Store-owned facts exist.
 
 ### Must Ship
 
+- one consuming `AdmittedPhysicalRuntime -> MediaOwnedPhysicalRuntime`
+  transition whose output contains the concrete admitted filesystem owner;
+  memory/mock backends cannot construct this production phase
 - a sealed production media port covering open/create, positioned read/write,
   append, truncate, allocate, flush, file sync, directory sync, atomic rename,
   list, metadata, delete, and declared optional mmap/direct-I/O operations
@@ -547,6 +610,12 @@ artifact owners consume this boundary in later milestones.
   backend capability evidence
 - typed short-write, partial-read, ENOSPC, permission, stale-handle,
   unsupported-sync, and indeterminate-publication outcomes
+- proof-backed root/profile capability qualification and consuming runtime
+  admission that preserve denied, deferred, stale, rebind-required, and failed
+  postures without creating a second qualification authority lane
+- Store-owned stable identity plus an explicit Foundational canonical/boundary
+  lowering for independent comparison; digests and boundary artifacts cannot
+  open a root or promote a runtime
 - migration of existing file-writing primitives onto this boundary or an
   explicit deletion decision where they duplicate it
 
@@ -563,9 +632,13 @@ artifact owners consume this boundary in later milestones.
 - **Independent observation:** the fresh process uses OS file APIs and stable
   format declarations, not runtime caches or writer-returned byte buffers.
 - **Assertions:** exact path set, file lengths, offsets, bytes, sync sequence,
-  ownership denial, cleanup posture, and zero writes outside the admitted root
-  are checked. Short write, sync failure, and rename interruption localize to
-  typed media outcomes.
+  ownership denial, cleanup posture, zero writes outside the admitted root, and
+  absence of `MediaOwnedPhysicalRuntime` before successful real namespace
+  admission are checked. Short write, sync failure, and rename interruption
+  localize to typed media outcomes. Capability and runtime progression preserve
+  their exact proof-outcome categories, while runtime and independent-observer
+  namespace meaning compares through the declared canonical basis without
+  replacing direct OS observation.
 - **Controlled defect:** report sync completion without invoking the backend
   barrier, or allow path escape beyond the root. The durability-sequence or
   namespace-confinement predicate must fail.
@@ -577,7 +650,10 @@ artifact owners consume this boundary in later milestones.
 
 `C.4` closes only when the canonical runtime owns a real store namespace, all
 ordinary physical effects cross one fault-interposable production boundary,
-and backend capability claims are tied to observed media behavior.
+backend capability claims are tied to observed media behavior, and only that
+real admission can construct the media-owned runtime phase. A copied proof,
+stale basis, profile report, identity projection, digest, or Foundational
+artifact must open no capability or runtime door.
 
 ## C.5: Durable Page, Segment, Extent, And Manifest Path
 
@@ -595,6 +671,9 @@ production store, reopen input, or whole-store transport.
 
 ### Must Ship
 
+- one consuming `MediaOwnedPhysicalRuntime -> ServingPhysicalRuntime`
+  transition whose output owns the real page/segment/extent/manifest access
+  path; no heap layout or replay representation can construct it
 - file-backed page, segment, extent, root-manifest, segment-manifest,
   extent-manifest, and free-space structures
 - bounded bootstrap catalog sufficient to find current roots without loading
@@ -641,7 +720,8 @@ production store, reopen input, or whole-store transport.
 
 `C.5` closes only when physical records survive a real process boundary and
 fresh reopen discovers them from bounded on-disk roots without complete heap
-materialization or caller-supplied persisted state.
+materialization or caller-supplied persisted state, and only that path can
+construct the record/page-serving runtime phase.
 
 ## C.6: Buffer Pool And Bounded Physical Access Join
 
@@ -1166,7 +1246,7 @@ Each reconstruction milestone receives a separate engineering spec before
 implementation:
 
 - `physical-reconstruction-c1-test-execution-architecture.md`
-- `physical-reconstruction-c2-executable-reality-ledger.md`
+- `physical-reconstruction-c2-manual-reality-audit.md`
 - `physical-reconstruction-c3-sealed-runtime-lifecycle.md`
 - `physical-reconstruction-c4-production-media-boundary.md`
 - `physical-reconstruction-c5-durable-physical-record-path.md`
@@ -1179,12 +1259,14 @@ implementation:
 - `physical-reconstruction-c12-formal-owner-rebinding.md`
 - `physical-reconstruction-c13-recertification-and-s10-readiness.md`
 
-C.2 through C.13 specs inherit the Non-Fake Physical Acceptance Test Contract,
+C.3 through C.13 specs inherit the Non-Fake Physical Acceptance Test Contract,
 then make their setup more concrete. Repeating only “control, hostile, and
 reopen lane” is not sufficient; the spec must name executables, initial files,
 process deaths, forbidden inputs, independent observers, exact counters, and
 controlled defects. C.1 instead closes through direct Cargo/test execution and
-ordinary CI status as defined by its engineering spec.
+ordinary CI status. C.2 closes through manually resolved two-direction traces,
+reproducible narrow probes where needed, and code-level denial of false claims,
+as defined by its engineering spec.
 
 ## Must Preserve
 
@@ -1205,7 +1287,8 @@ ordinary CI status as defined by its engineering spec.
 The reconstruction program emits:
 
 - Cargo-derived test catalog and direct execution products
-- executable reality and artifact-family ledgers
+- manually resolved physical-reality audit CSV with artifact-family and blocker
+  classifications
 - runtime authority and lifecycle compile-time proof
 - media capability qualification evidence
 - real physical artifact manifests

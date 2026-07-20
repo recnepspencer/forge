@@ -86,33 +86,30 @@ const ingress = signals.router.browserHistory.push(href);
 const report = await routes.admitBrowserHistoryIngress(ingress, session.facts);
 story.record(report);`;
 
-export const DEMO_FIVE_CODE = `const signals = await createSignals(); // worker-first
-const po = signals.api({
-  baseUrl: "/api/procurement",
-  effects: signals.resource.effects.branchNative(),
-});
-
-const poLines = po.url("/orders/:orderId/lines")
-  .response(signals.resource.response.array({ itemId: (line) => line.id }))
-  .list({ load: ({ orderId }) => client.fetchLines(orderId) });
-
-const admission = await line.patch(resourcePatch.dependsOn(
-  poLines.patch.insert({ itemId, placement: "append", nextItem }),
-  parentEffectIds,
-));
-
-if (!("effectId" in admission)) throw new Error("effect not admitted");
-
-try {
-  const saved = await client.saveLine(nextItem);
-  await line.effects().confirm(admission.effectId, {
-    responseId: saved.requestId,
-    serverPatch: poLines.patch.insert({
-      itemId, placement: "append", nextItem: saved.line,
-    }),
+export const DEMO_FIVE_CODE = `export async function savePoLine(nextItem, parentEffectIds = []) {
+  const insert = poLines.patch.insert({
+    itemId: nextItem.id,
+    placement: "append",
+    nextItem,
   });
-} catch (failure) {
-  await line.effects().reject(admission.effectId, {
-    responseId: failure.responseId,
-  });
+  const admission = await line.patch(
+    resourcePatch.dependsOn(insert, parentEffectIds),
+  );
+  if (!("effectId" in admission)) return admission;
+
+  try {
+    const saved = await client.saveLine(nextItem);
+    return line.effects().confirm(admission.effectId, {
+      responseId: saved.requestId,
+      serverPatch: poLines.patch.insert({
+        itemId: saved.line.id,
+        placement: "append",
+        nextItem: saved.line,
+      }),
+    });
+  } catch (failure) {
+    return line.effects().reject(admission.effectId, {
+      responseId: failure.responseId,
+    });
+  }
 }`;

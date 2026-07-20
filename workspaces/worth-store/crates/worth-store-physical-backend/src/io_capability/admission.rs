@@ -9,6 +9,10 @@ pub struct PhysicalBackendCapabilityAdmissionAuthority {
 }
 
 impl PhysicalBackendCapabilityAdmissionAuthority {
+    pub(crate) const fn for_filesystem_qualification() -> Self {
+        Self { _sealed: () }
+    }
+
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn store_owned() -> Self {
         Self { _sealed: () }

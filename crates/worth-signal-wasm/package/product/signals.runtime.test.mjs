@@ -122,7 +122,7 @@ import "./signals_runtime/forms/resource_source/actions/form_resource_submit_exe
 import "./signals_runtime/forms/closeout/forms_closeout_matrix.test.mjs";
 import "./signals_runtime/forms/closeout/forms_feature_doc_coverage.test.mjs";
 import "./signals_runtime/forms/closeout/forms_feature_docs_happy_path.test.mjs";
-import "./signals_runtime/forms/closeout/forms_recipes_happy_path.test.mjs";
+import "./signals_runtime/forms/closeout/forms_canonical_guides_happy_path.test.mjs";
 import "./signals_runtime/forms/closeout/full_forms_hostile_convergence.test.mjs";
 import "./signals_runtime/lifecycle/graph_owned_lifecycle_boundary.test.mjs";
 import "./signals_runtime/lifecycle/forms_resources_dependency_readiness.test.mjs";

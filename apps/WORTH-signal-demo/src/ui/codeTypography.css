@@ -1,0 +1,25 @@
+:root {
+  --code-inline-size: 0.82rem;
+  --code-block-size: 0.84rem;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+code {
+  font-size: var(--code-inline-size);
+}
+
+pre {
+  font-size: var(--code-block-size);
+}
+
+pre code {
+  font-size: inherit;
+}
+
+pre.signals-code-block {
+  font-size: var(--code-block-size);
+}

@@ -1,0 +1,14 @@
+error[E0432]: unresolved import `worth_store_physical_backend::physical_runtime`
+ --> tests/physical_media_authority/maximal_features_cannot_mint_authority.rs:2:35
+  |
+2 | use worth_store_physical_backend::physical_runtime::PhysicalStore;
+  |                                   ^^^^^^^^^^^^^^^^ could not find `physical_runtime` in `worth_store_physical_backend`
+
+error[E0277]: the trait bound `MediaOwnedPhysicalRuntime: From<worth_proof::dx::checked_outcome::ProofOutcome<QualifiedFilesystemMedia, MediaQualificationDenial, MediaQualificationDeferred, MediaQualificationStale, MediaQualificationRebindRequired, MediaQualificationFailure>>` is not satisfied
+  --> tests/physical_media_authority/maximal_features_cannot_mint_authority.rs:13:19
+   |
+13 |     backend_value.into()
+   |                   ^^^^ unsatisfied trait bound
+   |
+   = help: the trait `From<worth_proof::dx::checked_outcome::ProofOutcome<QualifiedFilesystemMedia, MediaQualificationDenial, MediaQualificationDeferred, MediaQualificationStale, MediaQualificationRebindRequired, MediaQualificationFailure>>` is not implemented for `MediaOwnedPhysicalRuntime`
+   = note: required for `worth_proof::dx::checked_outcome::ProofOutcome<QualifiedFilesystemMedia, MediaQualificationDenial, MediaQualificationDeferred, MediaQualificationStale, MediaQualificationRebindRequired, MediaQualificationFailure>` to implement `Into<MediaOwnedPhysicalRuntime>`

@@ -6,9 +6,9 @@ use super::{
 };
 use worth_store_contracts::AcceptedHandoffReadiness;
 use worth_store_physical_format::{
-    PersistedPhysicalLayout, PhysicalGenerationAuthority, PhysicalRecordSlot, PhysicalReference,
-    PhysicalReferenceAuthority, PhysicalStoreRuntime, PlatformPhysicalOpenRequest,
-    PlatformPhysicalReplayArtifact, SlotGenerationCell,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    InMemoryPhysicalFormatReplayArtifact, PersistedPhysicalLayout, PhysicalGenerationAuthority,
+    PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, SlotGenerationCell,
 };
 use worth_store_physical_isolation::{
     CurrentGenerationPhysicalReference, GenerationCountedPhysicalReference,
@@ -18,14 +18,14 @@ use worth_store_physical_isolation::{
 pub struct BaselineBTreeExecutionWitness {
     readiness: AcceptedHandoffReadiness,
     root_reference: PhysicalReference,
-    replay_artifact: PlatformPhysicalReplayArtifact,
+    replay_artifact: InMemoryPhysicalFormatReplayArtifact,
 }
 
 impl BaselineBTreeExecutionWitness {
     pub fn admit_published_layout(
         readiness: AcceptedHandoffReadiness,
         root_reference: PhysicalReference,
-        replay_artifact: PlatformPhysicalReplayArtifact,
+        replay_artifact: InMemoryPhysicalFormatReplayArtifact,
     ) -> Result<Self, BaselineBTreeExecutionDenial> {
         let mut facade = reopen_facade(readiness.clone(), &replay_artifact)?;
         let mut page_access = facade.page_access();
@@ -163,10 +163,10 @@ fn lookup_counters(shape: BaselineBTreeReadShape) -> BaselineBTreeExactCounterWi
 
 fn reopen_facade(
     readiness: AcceptedHandoffReadiness,
-    replay_artifact: &PlatformPhysicalReplayArtifact,
-) -> Result<PhysicalStoreRuntime, BaselineBTreeExecutionDenial> {
-    let request = PlatformPhysicalOpenRequest::physical_format_for_store(
+    replay_artifact: &InMemoryPhysicalFormatReplayArtifact,
+) -> Result<InMemoryPhysicalFormatModel, BaselineBTreeExecutionDenial> {
+    let request = InMemoryPhysicalFormatModelRequest::physical_format_for_store(
         replay_artifact.store_identity().clone(),
     );
-    Ok(replay_artifact.reopen_physical_format(readiness, request)?)
+    Ok(replay_artifact.restore_model(readiness, request)?)
 }

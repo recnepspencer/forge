@@ -133,6 +133,10 @@
   color: #f5f7fb;
 }
 
+.xai-demo-count-compact {
+  display: none;
+}
+
 .xai-demo-route-body {
   display: grid;
   padding: 2rem;
@@ -152,23 +156,123 @@
   color: #f5f7fb;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .xai-demo-route-body,
   .xai-demo-route-shell {
     padding-left: 1.15rem;
     padding-right: 1.15rem;
   }
 
+  .xai-demo-route-hero {
+    padding-top: 1.5rem;
+  }
+
+  .xai-demo-route-shell {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+  }
+
+  .xai-demo-route-copy .xai-eyebrow {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    padding: 0.38rem 0.68rem;
+    line-height: 1;
+  }
+
   .xai-demo-route-copy h1 {
-    font-size: 2.65rem;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: clamp(2.2rem, 9vw, 3.25rem);
+    line-height: 1.02;
+  }
+
+  .xai-demo-route-copy > p {
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
 
   .xai-demo-route-nav-row {
-    justify-content: flex-end;
-    flex-wrap: wrap;
+    display: grid;
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
+    gap: 0.35rem;
+    width: min(100%, 25rem);
+  }
+
+  .xai-demo-pager-button {
+    justify-content: center;
+    width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0;
+    border-radius: 999px;
+  }
+
+  .xai-demo-pager-button > span:not([aria-hidden="true"]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .xai-demo-pager-button-next {
+    grid-column: 3;
   }
 
   .xai-demo-route-count {
-    justify-content: start;
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: space-between;
+    gap: 0.2rem;
+  }
+
+  .xai-demo-route-count button {
+    width: clamp(1.65rem, 4vw, 2.2rem);
+    height: 2.2rem;
+    padding: 0;
+  }
+
+  .xai-demo-eyebrow-index,
+  .xai-demo-count-wide {
+    display: none;
+  }
+
+  .xai-demo-count-compact {
+    display: inline;
+  }
+}
+
+@media (max-width: 440px) {
+  .xai-demo-route-body,
+  .xai-demo-route-shell {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .xai-demo-route-shell {
+    column-gap: 0.5rem;
+  }
+
+  .xai-demo-route-nav-row {
+    gap: 0.25rem;
+  }
+
+  .xai-demo-route-count {
+    gap: 0.1rem;
+  }
+
+  .xai-demo-route-count button {
+    width: clamp(1.15rem, 6vw, 1.5rem);
+    height: 2rem;
+    font-size: 0.65rem;
+  }
+
+  .xai-demo-route-copy h1 {
+    font-size: clamp(2.05rem, 10.5vw, 2.65rem);
   }
 }

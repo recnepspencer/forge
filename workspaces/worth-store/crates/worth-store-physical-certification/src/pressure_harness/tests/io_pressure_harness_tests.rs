@@ -93,6 +93,7 @@ fn weak_backend_evidence_class_cannot_qualify_real_backend_safety() {
     for backend_evidence_class in [
         CapabilityEvidenceClass::DeclaredByConfig,
         CapabilityEvidenceClass::ObservedByProbe,
+        CapabilityEvidenceClass::EstablishedByFilesystemAdmission,
         CapabilityEvidenceClass::ExternallyGuaranteed,
         CapabilityEvidenceClass::UnverifiableAssumption,
     ] {

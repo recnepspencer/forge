@@ -223,18 +223,6 @@ fn assert_denial(
     assert_eq!(denial.counters(), ScrubCounterSnapshot::empty());
 }
 
-pub(crate) fn resident_memory_over_budget_scrub_denial(
-) -> worth_store_physical_integrity::ScrubPlanDenial {
-    let mut denial = None;
-    with_scrub_budget(|budget| {
-        denial = Some(scrub_plan_denial(
-            budget.constrained_by_policy(8, 1, 8, 4, 8),
-            vec![(ordinal(0), b"offline-window")],
-        ));
-    });
-    denial.unwrap()
-}
-
 fn scrub_plan_denial(
     budget: ScrubPlanBudget,
     windows: Vec<(ScrubWindowOrdinal, &[u8])>,

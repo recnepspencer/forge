@@ -1,7 +1,7 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
 use super::grammar::PhysicalLayoutAccessFamily;
 use super::manifest::root_discovery::canonical_root_manifest;
-use crate::{AllocationClassKind, PhysicalStoreRuntime, PhysicalStoreRuntimeDenial};
+use crate::{AllocationClassKind, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AllocationLayoutReport {
@@ -11,17 +11,17 @@ pub struct AllocationLayoutReport {
 
 #[derive(Debug)]
 pub struct AllocationAccess<'a> {
-    facade: &'a mut PhysicalStoreRuntime,
+    facade: &'a mut InMemoryPhysicalFormatModel,
 }
 
 impl<'a> AllocationAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
+    pub(crate) fn new(facade: &'a mut InMemoryPhysicalFormatModel) -> Self {
         Self { facade }
     }
 
     pub fn allocation_classes(
         &mut self,
-    ) -> Result<AllocationLayoutReport, PhysicalStoreRuntimeDenial> {
+    ) -> Result<AllocationLayoutReport, InMemoryPhysicalFormatModelDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let classes: Vec<_> = access
             .root()

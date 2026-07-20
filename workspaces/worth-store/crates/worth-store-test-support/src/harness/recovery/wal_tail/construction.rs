@@ -3,11 +3,10 @@ use worth_store_buffer_pool::{
     ResidentFrameTable, ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
 };
 use worth_store_contracts::{
-    AcceptedHandoffReadiness, BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap,
-    DeniedBoundaryKind, HandoffEvidenceDigestSet, IntegrityInspectionLifetimeLaw,
-    NoMaterializationWitness, PhysicalAuthorityRecap, PhysicalIntegrityReadinessPayload,
-    ProtectedIntegrityViewCapability, ScrubPlanningAllocationEnvelope, StableDigest,
-    VerifierResidentEnvelope, ROADMAP_2_S1_SCOPE,
+    BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, DeniedBoundaryKind,
+    IntegrityInspectionLifetimeLaw, NoMaterializationWitness, PhysicalAuthorityRecap,
+    PhysicalIntegrityReadinessPayload, PhysicalSubstrateReadinessSnapshot,
+    ProtectedIntegrityViewCapability, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
 use worth_store_physical_format::{
     CheckpointAdjacencyPosture, ChecksumCoverageMap, ManifestMembershipProof,
@@ -23,10 +22,6 @@ use worth_store_physical_integrity::{
     PhysicalIntegrityAdmissionRequest, PhysicalScopeAdmission, PhysicalScopeAdmissionRequest,
     ProtectedPhysicalByteView, ScopedPhysicalValidatorInput, WalFrameDamageDenial,
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest, WalFrameIntegrityReport,
-};
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
-    PhysicalIntegrityReadiness,
 };
 use worth_store_recovery_physics::WalLsnRange;
 
@@ -47,10 +42,9 @@ pub(super) fn inspect_wal_payload_for_owner(
     let lease = table.lease_page(admission.resident_frame_token()).unwrap();
     let pinned = lease.pin().unwrap();
     let protected = ProtectedPhysicalByteView::from_pinned_frame(&pinned.view().unwrap());
-    let entry = IntegrityEntryAdmission::from_physical_integrity_payload(
-        physical_integrity_readiness().payload(),
-    )
-    .unwrap();
+    let entry =
+        IntegrityEntryAdmission::from_integrity_model_payload(physical_integrity_model_payload())
+            .unwrap();
     let inspection_lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
     let checksum_scope = checksum_scope();
     let integrity_admission = PhysicalIntegrityAdmission::from_entry(inspection_lease)
@@ -131,7 +125,7 @@ fn resident_frame_table() -> ResidentFrameTable {
         DirtyPageBudget::pages(1).unwrap(),
     );
     let entry = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        physical_substrate_readiness().physical_substrate_snapshot(),
+        physical_substrate_model_snapshot(),
     )
     .unwrap()
     .with_budget(budget)
@@ -140,10 +134,8 @@ fn resident_frame_table() -> ResidentFrameTable {
     ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap())
 }
 
-pub fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
-    let s2 = physical_substrate_readiness();
-    let facts = s2.facts();
-    let payload = PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
+pub fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPayload {
+    PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
         ProtectedIntegrityViewCapability::protected_views(1).unwrap(),
         VerifierResidentEnvelope::bounded(8192, 2).unwrap(),
         ScrubPlanningAllocationEnvelope::bounded(1024).unwrap(),
@@ -151,39 +143,13 @@ pub fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
         NoMaterializationWitness::observed_zero(0, 0).unwrap(),
         BoundedCounterRecap::exact(8192, 1, 0, 1024, 0, 0).unwrap(),
         DenialBehaviorRecap::from_named_boundaries(&DeniedBoundaryKind::ALL).unwrap(),
-        PhysicalAuthorityRecap::from_physical_format_authority(
-            facts.physical_reference_count(),
-            facts.header_decode_witness_count(),
-            facts.payload_admission_witness_count(),
-        )
-        .unwrap(),
+        PhysicalAuthorityRecap::from_physical_format_authority(4, 2, 2).unwrap(),
         BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
-    );
-    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload)
-        .unwrap()
+    )
 }
 
-fn physical_substrate_readiness() -> worth_store_readiness::PhysicalSubstrateReadiness {
-    prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
-    )
-    .unwrap()
-}
-
-fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-        ROADMAP_2_S1_SCOPE,
-        HandoffEvidenceDigestSet::new(
-            digest("backend"),
-            digest("deferred"),
-            digest("harness"),
-            digest("terms"),
-            digest("audit"),
-            digest("complexity"),
-            digest("provenance"),
-        ),
-    )
-    .unwrap()
+fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
+    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn manifest_membership_for_scope(
@@ -288,10 +254,6 @@ fn crc32c(bytes: &[u8]) -> u32 {
         }
     }
     !crc
-}
-
-fn digest(name: &str) -> StableDigest {
-    StableDigest::new(format!("sha256:{name}")).unwrap()
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

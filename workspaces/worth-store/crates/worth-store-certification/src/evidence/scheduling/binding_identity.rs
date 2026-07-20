@@ -31,6 +31,7 @@ pub(super) const fn evidence_class_tag(evidence_class: CapabilityEvidenceClass) 
         CapabilityEvidenceClass::ExternallyGuaranteed => 3,
         CapabilityEvidenceClass::UnverifiableAssumption => 4,
         CapabilityEvidenceClass::CertifiedBackendProfile => 5,
+        CapabilityEvidenceClass::EstablishedByFilesystemAdmission => 6,
     }
 }
 

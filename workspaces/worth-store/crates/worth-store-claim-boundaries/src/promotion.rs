@@ -1,6 +1,6 @@
 use crate::BackendFamily;
 use worth_store_contracts::RoadmapScope;
-use worth_store_physical_format::PhysicalStoreRuntimeEvidence;
+use worth_store_physical_format::InMemoryPhysicalFormatModelEvidence;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PlatformGradeClaimWitness {
@@ -10,15 +10,9 @@ pub struct PlatformGradeClaimWitness {
 
 impl PlatformGradeClaimWitness {
     pub fn from_facade_evidence(
-        evidence: &PhysicalStoreRuntimeEvidence,
+        _evidence: &InMemoryPhysicalFormatModelEvidence,
     ) -> Result<Self, crate::ClaimPromotionRejection> {
-        if !evidence.proves_platform_boundary() {
-            return Err(crate::ClaimPromotionRejection::MissingPlatformGradeEvidence);
-        }
-        Ok(Self {
-            backend_family: BackendFamily::PhysicalStoreRuntime,
-            scope: evidence.scope(),
-        })
+        Err(crate::ClaimPromotionRejection::PhysicalFoundationReconstructionOpen)
     }
 
     pub const fn backend_family(&self) -> BackendFamily {
@@ -37,16 +31,16 @@ mod tests {
         AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
     };
     use worth_store_physical_format::{
-        PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
-        PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
-        PlatformPhysicalOpenRequest,
+        InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest, PhysicalGeneration,
+        PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId,
+        PlatformPhysicalAppendRequest,
     };
 
     #[test]
-    fn platform_grade_witness_requires_real_facade_evidence() {
-        let mut facade = PhysicalStoreRuntime::open_physical_format(
+    fn heap_facade_evidence_cannot_promote_during_physical_reconstruction() {
+        let mut facade = InMemoryPhysicalFormatModel::start_empty_model(
             readiness(),
-            PlatformPhysicalOpenRequest::physical_format_canonical(),
+            InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         )
         .expect("facade opens from accepted readiness");
         let append = facade
@@ -62,21 +56,20 @@ mod tests {
         facade.publish_physical_root().expect("facade root publish");
         let scan = facade.scan_physical_layout().expect("facade verifier scan");
 
-        let witness = PlatformGradeClaimWitness::from_facade_evidence(&scan.platform_evidence())
-            .expect("platform facade evidence promotes");
+        let denial = PlatformGradeClaimWitness::from_facade_evidence(&scan.platform_evidence())
+            .expect_err("heap-only facade evidence cannot promote");
 
         assert_eq!(
-            witness.backend_family(),
-            BackendFamily::PhysicalStoreRuntime
+            denial,
+            crate::ClaimPromotionRejection::PhysicalFoundationReconstructionOpen
         );
-        assert_eq!(witness.scope(), ROADMAP_2_S1_SCOPE);
     }
 
     #[test]
     fn platform_grade_witness_rejects_incomplete_facade_evidence() {
-        let mut facade = PhysicalStoreRuntime::open_physical_format(
+        let mut facade = InMemoryPhysicalFormatModel::start_empty_model(
             readiness(),
-            PlatformPhysicalOpenRequest::physical_format_canonical(),
+            InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         )
         .expect("facade opens from accepted readiness");
         facade
@@ -93,7 +86,7 @@ mod tests {
 
         assert_eq!(
             rejection,
-            crate::ClaimPromotionRejection::MissingPlatformGradeEvidence
+            crate::ClaimPromotionRejection::PhysicalFoundationReconstructionOpen
         );
     }
 

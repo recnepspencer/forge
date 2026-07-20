@@ -49,7 +49,7 @@ pub struct FixtureNeedsBoundary {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
-    replay_artifact: Option<worth_store_physical_format::PlatformPhysicalReplayArtifact>,
+    replay_artifact: Option<worth_store_physical_format::InMemoryPhysicalFormatReplayArtifact>,
     materialized_scale: Option<MaterializedFixtureScaleEvidence>,
 }
 
@@ -74,7 +74,7 @@ pub struct FixtureReadyBuilder {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
-    replay_artifact: Option<worth_store_physical_format::PlatformPhysicalReplayArtifact>,
+    replay_artifact: Option<worth_store_physical_format::InMemoryPhysicalFormatReplayArtifact>,
     materialized_scale: Option<MaterializedFixtureScaleEvidence>,
     capability_declarations: Vec<FixtureCapabilityDeclaration>,
 }

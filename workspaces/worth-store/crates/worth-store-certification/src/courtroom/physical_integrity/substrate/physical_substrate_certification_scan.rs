@@ -4,10 +4,10 @@ use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use worth_store_physical_format::{
-    PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId, PhysicalStoreRuntime,
-    PhysicalStoreRuntimeCounterSnapshot, PlatformPhysicalAppendRequest,
-    PlatformPhysicalOpenRequest, PlatformPhysicalScanReport,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelCounterSnapshot,
+    InMemoryPhysicalFormatModelRequest, PhysicalExtentId, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalScanReport,
 };
 use worth_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
@@ -16,7 +16,7 @@ use worth_store_readiness::{
 
 pub(crate) struct PhysicalSubstrateCertificationScan {
     scan: PlatformPhysicalScanReport,
-    shortcut_counters: PhysicalStoreRuntimeCounterSnapshot,
+    shortcut_counters: InMemoryPhysicalFormatModelCounterSnapshot,
     platform_grade_witness: PlatformGradeClaimWitness,
     physical_substrate_readiness: PhysicalSubstrateReadiness,
 }
@@ -50,9 +50,9 @@ impl PhysicalSubstrateCertificationScan {
         let scan = facade
             .scan_physical_layout()
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
-        let mut reopened = PhysicalStoreRuntime::reopen(
+        let mut reopened = InMemoryPhysicalFormatModel::restore(
             readiness()?,
-            PlatformPhysicalOpenRequest::physical_format_canonical(),
+            InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
             published.replay_artifact(),
         )
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
@@ -67,7 +67,7 @@ impl PhysicalSubstrateCertificationScan {
         }
         let platform_grade_witness =
             PlatformGradeClaimWitness::from_facade_evidence(&scan.platform_evidence())
-                .map_err(|_| PhysicalSubstrateCertificationDenial::PlatformWitnessRejected)?;
+                .map_err(map_platform_promotion_denial)?;
         let s1_closeout = close_physical_substrate_readiness(readiness()?).map_err(|_| {
             PhysicalSubstrateCertificationDenial::PhysicalSubstrateHandoffEvidenceRejected
         })?;
@@ -112,7 +112,7 @@ impl PhysicalSubstrateCertificationScan {
         &self.scan
     }
 
-    pub(crate) const fn shortcut_counters(&self) -> PhysicalStoreRuntimeCounterSnapshot {
+    pub(crate) const fn shortcut_counters(&self) -> InMemoryPhysicalFormatModelCounterSnapshot {
         self.shortcut_counters
     }
 
@@ -125,10 +125,21 @@ impl PhysicalSubstrateCertificationScan {
     }
 }
 
-fn open_facade() -> Result<PhysicalStoreRuntime, PhysicalSubstrateCertificationDenial> {
-    PhysicalStoreRuntime::open_physical_format(
+fn map_platform_promotion_denial(
+    denial: worth_store_claim_boundaries::ClaimPromotionRejection,
+) -> PhysicalSubstrateCertificationDenial {
+    match denial {
+        worth_store_claim_boundaries::ClaimPromotionRejection::PhysicalFoundationReconstructionOpen => {
+            PhysicalSubstrateCertificationDenial::PhysicalFoundationReconstructionOpen
+        }
+        _ => PhysicalSubstrateCertificationDenial::PlatformWitnessRejected,
+    }
+}
+
+fn open_facade() -> Result<InMemoryPhysicalFormatModel, PhysicalSubstrateCertificationDenial> {
+    InMemoryPhysicalFormatModel::start_empty_model(
         readiness()?,
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)
 }

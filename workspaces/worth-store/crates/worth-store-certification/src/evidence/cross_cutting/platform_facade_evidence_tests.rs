@@ -1,14 +1,14 @@
 use crate::{
-    PhysicalStoreRuntimeEvidenceReport, PhysicalStoreRuntimeEvidenceRow,
+    InMemoryPhysicalFormatModelEvidenceReport, InMemoryPhysicalFormatModelEvidenceRow,
     RuntimeVerifierRelationship, ScenarioDenialBoundary,
 };
 use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use worth_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
-    PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
-    PlatformPhysicalOpenRequest,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId,
+    PlatformPhysicalAppendRequest,
 };
 
 #[test]
@@ -31,8 +31,8 @@ fn facade_scan_evidence_materializes_runtime_verifier_parity() {
         .scan_physical_layout()
         .expect("scan through verifier");
 
-    let report = PhysicalStoreRuntimeEvidenceReport::from_facade_evidence(
-        PhysicalStoreRuntimeEvidenceRow::RuntimeVerifierParity,
+    let report = InMemoryPhysicalFormatModelEvidenceReport::from_facade_evidence(
+        InMemoryPhysicalFormatModelEvidenceRow::RuntimeVerifierParity,
         &scan.platform_evidence(),
     )
     .expect("facade evidence row");
@@ -54,8 +54,9 @@ fn facade_shortcut_rejections_materialize_certification_trace() {
         .reject_backend_residue_guess()
         .expect_err("residue rejected");
 
-    let report = PhysicalStoreRuntimeEvidenceReport::from_shortcut_counters(facade.counters())
-        .expect("shortcut evidence row");
+    let report =
+        InMemoryPhysicalFormatModelEvidenceReport::from_shortcut_counters(facade.counters())
+            .expect("shortcut evidence row");
 
     assert!(report
         .shortcut_rejections()
@@ -65,10 +66,10 @@ fn facade_shortcut_rejections_materialize_certification_trace() {
         .contains(&ScenarioDenialBoundary::BackendResidueGuessing));
 }
 
-fn open_facade() -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(
+fn open_facade() -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("open S.1 facade")
 }

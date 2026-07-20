@@ -2,8 +2,9 @@ use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
 use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::access::manifest::root_discovery::canonical_root_manifest;
 use crate::{
-    FreeSpaceReuseCell, PhysicalForegroundBoundednessOutcome, PhysicalFreeSpaceSearchPolicy,
-    PhysicalStoreRuntime, PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind,
+    FreeSpaceReuseCell, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelDenial,
+    InMemoryPhysicalFormatModelDenialKind, PhysicalForegroundBoundednessOutcome,
+    PhysicalFreeSpaceSearchPolicy,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,18 +16,18 @@ pub struct FreeSpaceLayoutReport {
 
 #[derive(Debug)]
 pub struct FreeSpaceAccess<'a> {
-    facade: &'a mut PhysicalStoreRuntime,
+    facade: &'a mut InMemoryPhysicalFormatModel,
 }
 
 impl<'a> FreeSpaceAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
+    pub(crate) fn new(facade: &'a mut InMemoryPhysicalFormatModel) -> Self {
         Self { facade }
     }
 
     pub fn bounded_candidates(
         &mut self,
         policy: PhysicalFreeSpaceSearchPolicy,
-    ) -> Result<FreeSpaceLayoutReport, PhysicalStoreRuntimeDenial> {
+    ) -> Result<FreeSpaceLayoutReport, InMemoryPhysicalFormatModelDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let root = access.root();
         let pressure = policy.evaluate(
@@ -34,8 +35,8 @@ impl<'a> FreeSpaceAccess<'a> {
             root.free_space().len() as u32,
         );
         if !pressure.is_admitted() {
-            return Err(PhysicalStoreRuntimeDenial::new(
-                PhysicalStoreRuntimeDenialKind::FullStoreMaterializationRejected,
+            return Err(InMemoryPhysicalFormatModelDenial::new(
+                InMemoryPhysicalFormatModelDenialKind::FullStoreMaterializationRejected,
             ));
         }
         let limit = policy.foreground_candidate_bound() as usize;

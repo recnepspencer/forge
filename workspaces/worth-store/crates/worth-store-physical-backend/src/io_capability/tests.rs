@@ -39,6 +39,10 @@ fn every_evidence_class_preserves_strength_and_denies_stronger_claims() {
             CapabilityEvidenceClass::ObservedByProbe,
         ),
         (
+            BackendCapabilityEvidenceBasis::established_by_filesystem_admission(1),
+            CapabilityEvidenceClass::EstablishedByFilesystemAdmission,
+        ),
+        (
             BackendCapabilityEvidenceBasis::externally_guaranteed(1),
             CapabilityEvidenceClass::ExternallyGuaranteed,
         ),

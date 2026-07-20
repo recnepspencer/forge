@@ -4,11 +4,15 @@ name = "worth-store"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Thin public facade for the rebuilt Worth Store crate family."
+description = "Public Worth Store facade and owner of the physical runtime lifecycle."
 
 [features]
 default = []
-certification-test-authority = ["dep:worth-store-certification"]
+certification-test-authority = [
+    "dep:worth-store-certification",
+    "dep:worth-foundational",
+    "worth-store-physical-backend/certification-test-authority",
+]
 
 [dependencies]
 worth-store-analysis.workspace = true
@@ -43,15 +47,42 @@ worth-store-snapshots.workspace = true
 worth-store-subscription-support.workspace = true
 worth-store-tiering.workspace = true
 worth-store-wal.workspace = true
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
+sha2 = "0.10"
+getrandom = "0.4"
 
 [dev-dependencies]
+stats_alloc = "0.1"
+tempfile = "3"
+trybuild = "1.0"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
-worth-proof = { path = "../../../../crates/worth-proof" }
 
 [lints]
 workspace = true
 
+[[bin]]
+name = "physical_media_os_observer"
+path = "src/bin/physical_media_os_observer.rs"
+test = false
+doctest = false
+
 [[test]]
 name = "public_facade_downstream"
 path = "tests/public_facade_downstream.rs"
+required-features = ["certification-test-authority"]
+
+[[test]]
+name = "physical_media_journeys"
+path = "tests/physical_media_journeys.rs"
+required-features = ["certification-test-authority"]
+
+[[test]]
+name = "physical_media_authority_ui"
+path = "tests/physical_media_authority_ui.rs"
+required-features = ["certification-test-authority"]
+
+[[test]]
+name = "physical_runtime_authority_ui"
+path = "tests/physical_runtime_authority_ui.rs"
 required-features = ["certification-test-authority"]

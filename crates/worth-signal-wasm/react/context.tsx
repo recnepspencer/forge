@@ -1,4 +1,5 @@
-import React, { createContext, useContext } from "react";
+import { createContext, createElement, useContext } from "react";
+import type { JSX, ReactNode } from "react";
 
 import type { ReactSignalsStore } from "./model.js";
 
@@ -9,13 +10,13 @@ export function ReactSignalsStoreProvider({
   children,
 }: {
   store: ReactSignalsStore;
-  children?: React.ReactNode;
-}): React.JSX.Element {
-  return React.createElement(
+  children?: ReactNode;
+}): JSX.Element {
+  return createElement(
     ReactSignalsStoreContext.Provider,
     { value: store },
     children,
-  ) as React.JSX.Element;
+  ) as JSX.Element;
 }
 
 export function useReactSignalsStore(): ReactSignalsStore {

@@ -3,11 +3,12 @@ use crate::{
     PhysicalSubstrateCertificationDenial,
 };
 use worth_store_physical_format::{
-    ManifestDiscoveryCounterSnapshot, OfflineVerifierCounterSnapshot, PageRecordCounterSnapshot,
-    PhysicalAlgorithmReviewEvidence, PhysicalForegroundBoundednessReport,
-    PhysicalFreeSpaceSearchPolicy, PhysicalHeaderDecodeCounterSnapshot,
-    PhysicalOperationComplexityContract, PhysicalOperationCounterSnapshot, PhysicalOperationKind,
-    PhysicalReferenceValidationCounterSnapshot, PhysicalStoreRuntimeCounterSnapshot,
+    InMemoryPhysicalFormatModelCounterSnapshot, ManifestDiscoveryCounterSnapshot,
+    OfflineVerifierCounterSnapshot, PageRecordCounterSnapshot, PhysicalAlgorithmReviewEvidence,
+    PhysicalForegroundBoundednessReport, PhysicalFreeSpaceSearchPolicy,
+    PhysicalHeaderDecodeCounterSnapshot, PhysicalOperationComplexityContract,
+    PhysicalOperationCounterSnapshot, PhysicalOperationKind,
+    PhysicalReferenceValidationCounterSnapshot,
 };
 
 pub(crate) fn complexity_reports(
@@ -68,9 +69,9 @@ fn operation_counters(operation: PhysicalOperationKind) -> PhysicalOperationCoun
         }
         PhysicalOperationKind::RootManifestOpen => {
             PhysicalOperationCounterSnapshot::from_root_open(
-                PhysicalStoreRuntimeCounterSnapshot::empty()
+                InMemoryPhysicalFormatModelCounterSnapshot::empty()
                     .with_open()
-                    .with_reopen()
+                    .with_restore()
                     .with_root_publication(),
             )
         }

@@ -1,6 +1,6 @@
 pub(super) use crate::courtroom::harness::test_support::integrity_handoff_test_support::{
-    admit_recovery_handoff_payload, intact_readiness, recovery_blocking_quarantine_binding,
-    unresolved_authority_record,
+    admit_recovery_handoff_payload, intact_integrity_model_input,
+    recovery_blocking_quarantine_binding, unresolved_authority_record,
 };
 pub(super) use crate::courtroom::harness::test_support::recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map;
 use worth_foundational::{
@@ -32,17 +32,20 @@ use worth_store_security::{
     StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityScopeAdmissionRequest,
 };
 
-pub(super) fn admit_entry(readiness: AdmittedRecoveryIntegrityInput) -> RecoveryEntryAdmission {
-    let decision =
-        RecoveryEntryAdmission::admit(readiness, recovery_memory_envelope(), physical_authority());
+pub(super) fn admit_entry(model_input: AdmittedRecoveryIntegrityInput) -> RecoveryEntryAdmission {
+    let decision = RecoveryEntryAdmission::admit(
+        model_input,
+        recovery_memory_envelope(),
+        physical_authority(),
+    );
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
-        panic!("intact typed S.3/S.2/S.1 evidence admits recovery entry");
+        panic!("intact integrity model input admits the recovery algorithm entry");
     };
     *admission
 }
 
-pub(super) fn damaged_readiness() -> AdmittedRecoveryIntegrityInput {
-    let intact = intact_readiness("blocked-entry");
+pub(super) fn damaged_integrity_model_input() -> AdmittedRecoveryIntegrityInput {
+    let intact = intact_integrity_model_input("blocked-entry");
     let (quarantine_record, quarantine_receipt, quarantine_damage) =
         recovery_blocking_quarantine_binding();
     let damage_map = recovery_blocking_wal_damage_map()

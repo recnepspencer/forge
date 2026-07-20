@@ -2,7 +2,7 @@ use crate::{
     courtroom::harness::test_support::bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
         harness_evidence, harness_evidence_for_class, harness_evidence_without_acceptance_suite,
-        physical_substrate_readiness, pressure_bundles, synthetic_rejections,
+        physical_substrate_model_snapshot, pressure_bundles, synthetic_rejections,
     },
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
     BoundedMemoryResidencySuiteDenial, BoundedOperationEnvelopeCounters,
@@ -14,12 +14,13 @@ use crate::{
 use worth_store_contracts::DeniedBoundaryKind;
 
 #[test]
-fn bounded_memory_closeout_publishes_concrete_physical_integrity_readiness() {
-    let report = complete_closeout_report();
-    let readiness = report
-        .publish_physical_integrity_readiness(physical_substrate_readiness())
+fn bounded_memory_closeout_builds_the_integrity_algorithm_payload_without_claiming_readiness() {
+    let payload =
+        crate::courtroom::physical_integrity::readiness_handoff::model_payload_from_closeout(
+            complete_closeout_report(),
+            physical_substrate_model_snapshot(),
+        )
         .unwrap();
-    let payload = readiness.payload();
 
     assert!(payload.protected_view_capability().is_concrete());
     assert!(payload.verifier_resident_envelope().is_bounded());

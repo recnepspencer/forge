@@ -31,8 +31,7 @@ pub use policy::{
 };
 #[cfg(test)]
 pub(crate) use test_execution::execute_admitted_queue_plan;
-#[cfg(any(test, feature = "certification-test-authority"))]
-#[cfg_attr(feature = "certification-test-authority", allow(dead_code))]
+#[cfg(test)]
 pub(crate) mod test_support;
 #[cfg(test)]
 mod tests;

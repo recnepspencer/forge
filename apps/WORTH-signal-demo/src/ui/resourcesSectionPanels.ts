@@ -1,7 +1,5 @@
 import {
-  type Agreement,
   type PanelEvent,
-  type PanelVariant,
   type PoLine,
   type ScenarioPhase,
   type ServerTruth,
@@ -11,24 +9,16 @@ export interface PanelAdmissionOptions {
   readonly dependsOnLineId?: string;
 }
 
-export type AgreementEvidence = "live" | "refetchCompleted";
-
 export interface PanelController {
   addLine(line: PoLine, options?: PanelAdmissionOptions): void | Promise<void>;
-  settle(lineId: string, accepted: boolean): void;
+  settle(lineId: string, accepted: boolean): Promise<void>;
   reset(): void | Promise<void>;
 }
 
 export interface PanelProps {
-  baseMs: number | null;
   highlightId: string | null;
   phase: ScenarioPhase;
   serverTruth: ServerTruth;
-  onAgreement: (
-    variant: PanelVariant,
-    agreement: Agreement | null,
-    evidence: AgreementEvidence,
-  ) => void;
   onController: (controller: PanelController | null) => void;
 }
 

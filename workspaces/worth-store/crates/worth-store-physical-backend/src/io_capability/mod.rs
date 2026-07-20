@@ -28,6 +28,7 @@ pub use vocabulary::{
 };
 pub use witness::{
     AdmittedBackendCapabilityWitness, BackendCapabilityClaimOutcome, BackendCapabilityClaimWitness,
+    BackendCapabilityQualificationDeferred, BackendCapabilityQualificationFailure,
     BackendCapabilityRebindRequired, BackendCapabilityStale,
 };
 

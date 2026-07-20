@@ -11,9 +11,9 @@ use worth_store_physical_certification::{
     PhysicalFixtureBuilder, ProductionBackedFixtureMaterialization,
 };
 use worth_store_physical_format::{
-    physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
-    PhysicalStoreRuntime, PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
+    physical_bootstrap_catalog, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
+    PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
+    PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId, PlatformPhysicalAppendRequest,
 };
 
 // store-proof-identity[bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access]: worth-store-layout-indexes::layout/bootstrap::bootstrap_catalog::bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access
@@ -198,9 +198,9 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
         .replay_artifact()
         .expect("production-backed certification replay should preserve the native replay artifact")
         .clone();
-    let reopened = PhysicalStoreRuntime::reopen(
+    let reopened = InMemoryPhysicalFormatModel::restore(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
         certification_replay_artifact.clone(),
     )
     .expect("certification replay layout should reopen through physical authority");
@@ -229,13 +229,14 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
     );
     assert_eq!(published_catalog, certification_catalog);
     assert_eq!(published_admission, certification_admission);
-    assert_eq!(reopened.counters().reopens(), 1);
+    assert_eq!(reopened.counters().opens(), 1);
+    assert_eq!(reopened.counters().restores(), 1);
 }
 
 fn published_layout() -> worth_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PhysicalStoreRuntime::open_physical_format(
+    let mut facade = InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
@@ -261,9 +262,9 @@ fn published_layout() -> worth_store_physical_format::PlatformPhysicalRootPublic
 }
 
 fn republished_layout() -> worth_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PhysicalStoreRuntime::open_physical_format(
+    let mut facade = InMemoryPhysicalFormatModel::start_empty_model(
         readiness(),
-        PlatformPhysicalOpenRequest::physical_format_canonical(),
+        InMemoryPhysicalFormatModelRequest::physical_format_canonical(),
     )
     .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();

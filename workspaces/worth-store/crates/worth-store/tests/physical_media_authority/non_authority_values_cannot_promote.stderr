@@ -1,0 +1,171 @@
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:50:36
+   |
+50 |     require_current_store_identity(bytes);
+   |     ------------------------------ ^^^^^ expected `StoreNamespaceIdentityBoundary`, found `[u8; 16]`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:47:4
+   |
+47 | fn require_current_store_identity(_: StoreNamespaceIdentityBoundary) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:54:36
+   |
+54 |     require_current_store_identity(identity);
+   |     ------------------------------ ^^^^^^^^ expected `StoreNamespaceIdentityBoundary`, found `ProposedStoreIdentity`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:47:4
+   |
+47 | fn require_current_store_identity(_: StoreNamespaceIdentityBoundary) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:58:36
+   |
+58 |     require_current_store_identity(identity);
+   |     ------------------------------ ^^^^^^^^ expected `StoreNamespaceIdentityBoundary`, found `RuntimeIdentity`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:47:4
+   |
+47 | fn require_current_store_identity(_: StoreNamespaceIdentityBoundary) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:62:36
+   |
+62 |     require_current_store_identity(path);
+   |     ------------------------------ ^^^^ expected `StoreNamespaceIdentityBoundary`, found `PathBuf`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:47:4
+   |
+47 | fn require_current_store_identity(_: StoreNamespaceIdentityBoundary) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:66:36
+   |
+66 |     require_current_store_identity(digest);
+   |     ------------------------------ ^^^^^^ expected `StoreNamespaceIdentityBoundary`, found `CanonicalDigestId`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:47:4
+   |
+47 | fn require_current_store_identity(_: StoreNamespaceIdentityBoundary) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:70:36
+   |
+70 |     require_current_store_identity(identity);
+   |     ------------------------------ ^^^^^^^^ expected `StoreNamespaceIdentityBoundary`, found `BridgedStoreNamespaceIdentityBoundary`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:47:4
+   |
+47 | fn require_current_store_identity(_: StoreNamespaceIdentityBoundary) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:76:23
+   |
+76 |     require_direct_io(report);
+   |     ----------------- ^^^^^^ expected `QualifiedDirectIoCapability`, found `RootProfileQualificationReport`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:73:4
+   |
+73 | fn require_direct_io(_: QualifiedDirectIoCapability) {}
+   |    ^^^^^^^^^^^^^^^^^ ------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:80:23
+   |
+80 |     require_direct_io(claim);
+   |     ----------------- ^^^^^ expected `QualifiedDirectIoCapability`, found `BackendCapabilityClaimWitness`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:73:4
+   |
+73 | fn require_direct_io(_: QualifiedDirectIoCapability) {}
+   |    ^^^^^^^^^^^^^^^^^ ------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:84:23
+   |
+84 |     require_direct_io(stale);
+   |     ----------------- ^^^^^ expected `QualifiedDirectIoCapability`, found `BackendCapabilityStale`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:73:4
+   |
+73 | fn require_direct_io(_: QualifiedDirectIoCapability) {}
+   |    ^^^^^^^^^^^^^^^^^ ------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:88:23
+   |
+88 |     require_direct_io(report);
+   |     ----------------- ^^^^^^ expected `QualifiedDirectIoCapability`, found `FoundationalProfileDifferenceReport`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:73:4
+   |
+73 | fn require_direct_io(_: QualifiedDirectIoCapability) {}
+   |    ^^^^^^^^^^^^^^^^^ ------------------------------
+
+error[E0308]: mismatched types
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:96:23
+   |
+96 |     require_direct_io(witness);
+   |     ----------------- ^^^^^^^ expected `QualifiedDirectIoCapability`, found `AuthorityWitness<UnrelatedAuthority>`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `QualifiedDirectIoCapability`
+              found struct `worth_proof::AuthorityWitness<UnrelatedAuthority>`
+note: function defined here
+  --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:73:4
+   |
+73 | fn require_direct_io(_: QualifiedDirectIoCapability) {}
+   |    ^^^^^^^^^^^^^^^^^ ------------------------------
+
+error[E0308]: mismatched types
+   --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:100:23
+    |
+100 |     require_direct_io(outcome);
+    |     ----------------- ^^^^^^^ expected `QualifiedDirectIoCapability`, found `TransitionOutcome<(), ()>`
+    |     |
+    |     arguments to this function are incorrect
+    |
+    = note: expected struct `QualifiedDirectIoCapability`
+                 found enum `worth_proof::TransitionOutcome<(), ()>`
+note: function defined here
+   --> tests/physical_media_authority/non_authority_values_cannot_promote.rs:73:4
+    |
+ 73 | fn require_direct_io(_: QualifiedDirectIoCapability) {}
+    |    ^^^^^^^^^^^^^^^^^ ------------------------------
