@@ -303,7 +303,7 @@ fn query_binding(
 ) -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::from_projection_metadata(
         receipt.view_shape_digest(),
-        receipt.query_digest(),
+        receipt.canonical_query_digest(),
         receipt.view_shape_digest(),
         request.authorized_projection_identity(),
         request.narrowed_result_shape_digest(),

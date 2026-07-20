@@ -6,6 +6,8 @@ use worth_server::{
     WorthServerQueryWorkspaceProvider,
 };
 
+use super::runtime_aspect_contracts::query_handoff_aspect_contracts;
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RealMutationWorkspaceProvider;
 
@@ -50,6 +52,8 @@ impl WorthServerQueryWorkspaceProvider for RealMutationWorkspaceProvider {
 
 fn task_schema() -> WorthQueryTestBackendSchema {
     WorthQueryTestBackendSchema::single_collection("Task")
+        .aspect_contracts(query_handoff_aspect_contracts())
+        .expect("task schema aspect contracts should install")
         .aspect("identity.id", "identity.id")
         .expect("task schema identity aspect should be valid")
         .aspect("title.value", "title.value")

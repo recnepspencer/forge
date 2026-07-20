@@ -46,7 +46,7 @@ impl WorthServerWorthNativeDirectFacade {
                 let projection_attempt = match declaration.consume_named_live_projection(request) {
                     Ok(projection_attempt) => projection_attempt,
                     Err(WorthServerNamedLiveProjectionExecutionError::Runtime(error)) => {
-                        return self.runtime_error_outcome(error);
+                        return self.runtime_error_outcome(*error);
                     }
                     Err(WorthServerNamedLiveProjectionExecutionError::Consumption(path_error)) => {
                         return self.projection_error_outcome(path_error);

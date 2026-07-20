@@ -266,6 +266,16 @@ pub(crate) fn execute_compatibility_mutation_request(
                         .with_basis_mismatch(expected_basis_digest, observed_basis_digest),
                 ),
             ),
+            crate::WorthServerSchedulerFailurePosture::IsolatedRuntimeFailure {
+                runtime_failure:
+                    crate::WorthServerSchedulerRuntimeFailure::DirectMutationContractDenied {
+                        detail,
+                    },
+            } => TransitionOutcome::Denied(WorthServerQueryHandoffDenial::new(
+                WorthServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
+                diagnostics_profile,
+                detail,
+            )),
             crate::WorthServerSchedulerFailurePosture::IsolatedRuntimeFailure { .. }
             | crate::WorthServerSchedulerFailurePosture::DependentSharedBasisFailure { .. }
             | crate::WorthServerSchedulerFailurePosture::OrderedLaneClosed { .. } => {

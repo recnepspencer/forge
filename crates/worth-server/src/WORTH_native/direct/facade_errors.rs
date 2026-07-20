@@ -44,6 +44,13 @@ impl WorthServerWorthNativeDirectFacade {
                     error.to_string(),
                 ))
             }
+            WorthQueryRuntimeError::MutationContractDenied(_) => {
+                TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
+                    crate::WorthServerQueryHandoffDenialCode::DirectMutationContractDenied,
+                    self.admission.request_context().diagnostics_profile(),
+                    error.to_string(),
+                ))
+            }
             WorthQueryRuntimeError::ExistingTruthAssertionDenied(_) => {
                 TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
                     crate::WorthServerQueryHandoffDenialCode::DirectMutationAssertionDenied,
@@ -167,6 +174,13 @@ impl WorthServerWorthNativeDirectFacade {
                     crate::WorthServerQueryHandoffDenialCode::DirectMutationBindingDenied,
                     self.admission.request_context().diagnostics_profile(),
                     detail.clone(),
+                ))
+            }
+            crate::WorthServerSchedulerRuntimeFailure::DirectMutationContractDenied { detail } => {
+                TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
+                    crate::WorthServerQueryHandoffDenialCode::DirectMutationContractDenied,
+                    self.admission.request_context().diagnostics_profile(),
+                    detail,
                 ))
             }
             crate::WorthServerSchedulerRuntimeFailure::DirectMutationContinuityDenied {

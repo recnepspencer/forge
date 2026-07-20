@@ -89,6 +89,7 @@ impl WorthServerQueryHandoffDenial {
             | WorthServerQueryHandoffDenialCode::DirectDeclarationSourceNotAdmitted
             | WorthServerQueryHandoffDenialCode::DirectProjectionBindingInvalid
             | WorthServerQueryHandoffDenialCode::DirectMutationBindingDenied
+            | WorthServerQueryHandoffDenialCode::DirectMutationContractDenied
             | WorthServerQueryHandoffDenialCode::DirectMutationAssertionDenied
             | WorthServerQueryHandoffDenialCode::DirectMutationContinuityDenied
             | WorthServerQueryHandoffDenialCode::DirectMutationNamingDenied
@@ -243,6 +244,7 @@ pub enum WorthServerQueryHandoffDenialCode {
     RetainedQueryArtifactUnavailable,
     DirectProjectionBindingInvalid,
     DirectMutationBindingDenied,
+    DirectMutationContractDenied,
     DirectMutationAssertionDenied,
     DirectMutationContinuityDenied,
     DirectMutationNamingDenied,

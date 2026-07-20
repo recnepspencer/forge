@@ -20,6 +20,9 @@ use crate::worth_native_assertions::{
 };
 use crate::worth_native_runtime::{build_server, build_server_with_profiled_counting_workspace};
 
+#[path = "direct_mutation_denials.rs"]
+mod direct_mutation_denials;
+
 #[test]
 fn direct_single_mutation_returns_provenance_bearing_result_boundary() {
     let server = crate::worth_native_runtime::build_server_with_workspace_provider(
@@ -98,23 +101,6 @@ fn direct_batch_mutation_preserves_batch_receipt_and_inspection_digests() {
             .expect("batch receipt should preserve execution provenance")
             .execution_provenance_chain_digest()
     );
-}
-
-#[test]
-fn direct_mutation_denies_backend_verified_assertions_at_the_server_boundary() {
-    let server = build_server(true);
-    let denial = direct_mutation_denied(worth_native_session(&server).direct().mutate(
-        &WorthServerQueryOperation::single_mutation(
-            "tasks.verify-existing",
-            verify_existing_task("authority:task-1", "task-1"),
-        ),
-    ));
-
-    assert_eq!(
-        denial.code(),
-        WorthServerQueryHandoffDenialCode::DirectMutationAssertionDenied
-    );
-    assert!(denial.detail().contains("does not admit backend-verified"));
 }
 
 #[test]
@@ -263,22 +249,6 @@ fn direct_mutation_preserves_mutation_lane_support_and_operator_classification()
             .expect("read success counter")
             .exact_value(),
         0
-    );
-}
-
-#[test]
-fn direct_mutation_canonicalizes_operation_name_before_handoff() {
-    let server = crate::worth_native_runtime::build_server_with_workspace_provider(
-        RealMutationWorkspaceProvider,
-        true,
-    );
-    let mutation = direct_mutation_success(worth_native_session(&server).direct().mutate(
-        &WorthServerQueryOperation::single_mutation("Tasks.Insert", insert_task("task-1")),
-    ));
-
-    assert_eq!(
-        mutation.operation_request().identity().operation_name(),
-        "tasks.insert"
     );
 }
 
