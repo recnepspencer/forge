@@ -139,7 +139,10 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
       </section>
 
       <div className="signals-docs-row">
-        <button onClick={() => onNavigate("#/docs/resources/effects/README")} type="button">
+        <button
+          onClick={() => onNavigate("#/docs/resources/effects/concurrency-and-dependencies")}
+          type="button"
+        >
           Learn optimistic effects <span aria-hidden="true">-&gt;</span>
         </button>
       </div>

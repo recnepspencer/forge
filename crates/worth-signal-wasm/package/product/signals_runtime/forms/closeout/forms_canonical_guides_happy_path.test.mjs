@@ -7,17 +7,27 @@ import { withSignals } from "../action_execution_test_helpers.mjs";
 import { createDetailPatchLineFixture } from "../resource_source/fixtures/resource_line_fixture.mjs";
 import { formsDocsRoot } from "./forms_docs_root.mjs";
 
-const docPath = path.join(formsDocsRoot, "learn/recipes.md");
+const guidePaths = Object.freeze({
+  local: "forms/getting-started/your-first-form.md",
+  submit: "forms/actions/README.md",
+  resource: "forms/resource-backed/README.md",
+  asyncValidation: "forms/validation/README.md",
+  layout: "forms/layout/layout-measurement.md",
+  collaboration: "forms/collaboration/collaboration-overview.md",
+});
 
-test("forms recipes doc covers copyable local resource async host collaboration and submit entrypoints", async () => {
-  const doc = fs.readFileSync(docPath, "utf8");
+test("canonical forms guides cover local, resource, async, host, collaboration, and submit entrypoints", async () => {
+  const guides = Object.fromEntries(Object.entries(guidePaths).map(([name, docPath]) => [
+    name,
+    fs.readFileSync(path.join(formsDocsRoot, docPath), "utf8"),
+  ]));
 
-  assert.match(doc, /Recipe: Ordinary Local Form/);
-  assert.match(doc, /Recipe: Submit Lifecycle With Canonical Fulfillment/);
-  assert.match(doc, /Recipe: Resource-Backed Form/);
-  assert.match(doc, /Recipe: Async Validation/);
-  assert.match(doc, /Recipe: Host Facts And Generated Layout/);
-  assert.match(doc, /Recipe: Collaboration Posture/);
+  assert.match(guides.local, /signals\.form\(/);
+  assert.match(guides.submit, /executeAction\("submit"\)/);
+  assert.match(guides.resource, /signals\.form\.source\.resourceLine/);
+  assert.match(guides.asyncValidation, /startAsyncValidation/);
+  assert.match(guides.layout, /recordLayoutMeasurement/);
+  assert.match(guides.collaboration, /reportCollaboration/);
 
   await withSignals((signals) => {
     const source = signals.input({ title: "Ship docs", done: false });

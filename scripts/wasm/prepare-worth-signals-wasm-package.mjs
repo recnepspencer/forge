@@ -315,8 +315,7 @@ packageJson.exports = {
   },
 };
 packageJson.peerDependencies = {
-  react: ">=18.0.0",
-  "@types/react": ">=18.0.0",
+  react: "^18.0.0 || ^19.0.0",
 };
 packageJson.peerDependenciesMeta = {
   react: {
