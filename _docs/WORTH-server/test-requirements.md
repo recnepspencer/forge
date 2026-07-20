@@ -259,7 +259,8 @@ scope-appropriate canonical bundle rather than free-form debug text.
 ## Section Index
 
 - [Milestones 1-3: Facade, Direct Consumption, And Compatibility Surface](#milestones-1-3-facade-direct-consumption-and-compatibility-surface)
-- [Milestone 4: Binary And Asset Boundary](#milestone-4-binary-and-asset-boundary)
+- [Milestone 3: Binary And Asset Boundary](#milestone-3-binary-and-asset-boundary)
+- [Milestones 4-4.1: Product Operation Results And Durable Mutation](#milestones-4-41-product-operation-results-and-durable-mutation)
 - [Milestones 5-6: Leases, Sync, Resume, And Delivery Classes](#milestones-5-6-leases-sync-resume-and-delivery-classes)
 - [Milestones 7-8: Policy, Remask, Regulated Evidence, And Recovery Honesty](#milestones-7-8-policy-remask-regulated-evidence-and-recovery-honesty)
 - [Milestones 9-10: Shared Bases, View Patches, And Mutation Closure](#milestones-9-10-shared-bases-view-patches-and-mutation-closure)
@@ -420,7 +421,7 @@ Pass condition
 
 Compatibility HTTP remains an interop surface, not a second server brain.
 
-## Milestone 4: Binary And Asset Boundary
+## Milestone 3: Binary And Asset Boundary
 
 ### 4. Blob/Truth Separation Hostility Test
 
@@ -455,6 +456,126 @@ Required verification output
 Pass condition
 
 Blob transport and truth sync remain distinct under hostile transfer behavior.
+
+## Milestones 4-4.1: Product Operation Results And Durable Mutation
+
+### 4A. Canonical Product Result Artifact Test
+
+Purpose
+
+Prove that every successful product operation publishes one bounded,
+schema-versioned result artifact and that direct, compatibility HTTP, retry, and
+diagnostic surfaces consume that artifact without side-channel result storage.
+
+Scenario
+
+- execute equivalent product reads and mutations through WORTH-native and HTTP
+- vary JSON object ordering, diagnostics richness, and request timing
+- return wrong-schema and oversized result bodies from hostile adapters
+- retry completed operations after rebuilding the server runtime
+
+Must verify
+
+- equivalent bodies canonicalize once to identical body and artifact digests
+- output schema identity and version are mandatory registration truth
+- wrong-schema and oversized bodies cannot publish a success envelope
+- direct and HTTP surfaces expose exact schema, body, and digest parity
+- retries return the original artifact without result-key lookup middleware
+
+Required verification output
+
+- `declaration_digest`
+- `result_schema_digest`
+- `result_body_digest`
+- `result_artifact_digest`
+- `response_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+No successful product operation requires producer-local storage to interpret or
+retrieve its ordinary structured result.
+
+### 4B. Durable Product Mutation Crash Boundary Test
+
+Purpose
+
+Prove that product-owned durable mutation joins basis comparison, idempotency,
+state change, next basis, result artifact, and completion into one recoverable
+conclusion.
+
+Scenario
+
+- exercise host-connection, manifest-admission, and deployment-shaped mutations
+- kill or fault the executor before intent, after intent, after mutation, after
+  commit, and before server acknowledgment
+- retry with identical and conflicting idempotency bindings after fresh runtime
+  construction
+- return an indeterminate conclusion and resolve it through the typed handle
+
+Must verify
+
+- acknowledged work survives once and identical retries return its completion
+- unacknowledged work resolves to committed, not committed, rejected, or typed
+  indeterminate without blind re-execution
+- stale basis and conflicting key bindings perform exactly zero mutation
+- product mutation and completion never use the process-local retry map
+- ordinary retry evidence does not import or claim cert replay authority
+
+Required verification output
+
+- `durable_attempt_digest`
+- `basis_digest`
+- `idempotency_binding_digest`
+- `mutation_result_digest`
+- `result_artifact_digest`
+- `recovery_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Every crash edge resolves to one permitted durable product conclusion with no
+duplicate product effect.
+
+### 4C. Durable Product Scope And Isolation Test
+
+Purpose
+
+Prove that durable mutation locality scales by tenant, workspace, and declared
+product authority scope rather than a session key or global lock.
+
+Scenario
+
+- submit same-scope and disjoint-scope durable mutations concurrently
+- reuse identical key text across tenants and workspaces
+- vary operation version, expected basis, and product authority scope
+- pressure local scheduling and product transaction conflict independently
+
+Must verify
+
+- same-scope work shares a deterministic lane while disjoint scopes remain
+  independently admissible
+- cross-tenant and cross-workspace keys never disclose another completion
+- scheduler ordering is not accepted as proof of current durable basis
+- exact counters explain attempts, basis comparisons, commits, previous
+  completions, conflicts, stale bases, indeterminate outcomes, and result bytes
+
+Required verification output
+
+- `authority_digest`
+- `plan_digest`
+- `scheduler_digest`
+- `idempotency_binding_digest`
+- `result_artifact_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Durable product mutation remains tenant-isolated, scope-local, and transaction-
+correct without server-wide serialization.
 
 ## Milestones 5-6: Leases, Sync, Resume, And Delivery Classes
 

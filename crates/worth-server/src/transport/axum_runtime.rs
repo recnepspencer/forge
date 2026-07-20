@@ -31,11 +31,12 @@ pub(crate) async fn serve_runtime(runtime: WorthServerRuntime) -> io::Result<()>
             .assembly()
             .compat_http_mutation_replay_store()
             .clone(),
-        runtime.assembly().product_operation_replay_store().clone(),
+        runtime.assembly().product_operation_retry_store().clone(),
         runtime
             .assembly()
             .compat_http_binary_ingress_store()
             .clone(),
+        runtime.assembly().counters().clone(),
     );
     let router = project_axum_router(
         runtime.assembly().route_assembly(),

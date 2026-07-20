@@ -15,7 +15,7 @@ error[E0624]: associated function `new` is private
   | |     ) -> Self {
   | |_____________- private associated function defined here
 
-error[E0061]: this function takes 9 arguments but 1 argument was supplied
+error[E0061]: this function takes 10 arguments but 1 argument was supplied
  --> tests/ui/construction/worth_native/private_session_constructor.rs:4:20
   |
 4 |     let _session = WorthServerWorthNativeSession::new(fake_admission());
@@ -28,5 +28,5 @@ note: associated function defined here
   |                   ^^^
 help: provide the arguments
   |
-4 |     let _session = WorthServerWorthNativeSession::new(fake_admission(), /* WorthServerOperationRegistry */, /* WorthServerProductAdapterRegistry */, /* WorthServerProductSessionRegistry */, /* Arc<std::sync::Mutex<HashMap<String, worth_server::product_operation_contract::store::WorthServerStoredProductOperation>>> */, /* WorthServerQueryHandoffConfig */, /* worth_server::declaration_intake::facade::WorthServerDirectDeclarationIntakeFacade */, /* WorthServerQueryHandoffFacade */, /* WorthServerResponseFacade */);
-  |                                                                       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+4 |     let _session = WorthServerWorthNativeSession::new(fake_admission(), /* WorthServerOperationRegistry */, /* WorthServerProductAdapterRegistry */, /* WorthServerProductSessionRegistry */, /* Arc<std::sync::Mutex<HashMap<String, worth_server::product_operation_contract::store::WorthServerStoredProductOperation>>> */, /* Arc<worth_server::diagnostics::counters::WorthServerCounters> */, /* WorthServerQueryHandoffConfig */, /* worth_server::declaration_intake::facade::WorthServerDirectDeclarationIntakeFacade */, /* WorthServerQueryHandoffFacade */, /* WorthServerResponseFacade */);
+  |                                                                       ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

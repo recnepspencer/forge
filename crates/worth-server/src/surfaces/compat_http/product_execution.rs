@@ -63,7 +63,8 @@ impl WorthServerCompatibilityProductOperationFacade {
         product_adapter_registry: WorthServerProductAdapterRegistry,
         query_handoff_config: WorthServerQueryHandoffConfig,
         product_session_registry: WorthServerProductSessionRegistry,
-        replay_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+        retry_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+        counters: Arc<crate::diagnostics::WorthServerCounters>,
     ) -> Self {
         Self {
             runtime: WorthServerProductOperationRuntime::new(
@@ -71,7 +72,8 @@ impl WorthServerCompatibilityProductOperationFacade {
                 product_adapter_registry,
                 query_handoff_config,
                 product_session_registry,
-                replay_store,
+                retry_store,
+                counters,
             ),
         }
     }
@@ -93,5 +95,17 @@ impl WorthServerCompatibilityProductOperationFacade {
     ) -> Result<WorthServerCompletedProductOperation, WorthServerProductOperationSurfaceDenial>
     {
         self.execute(prepared_request, command.into_input())
+    }
+
+    pub fn resolve_durable_mutation(
+        &self,
+        prepared_request: &WorthServerCompatibilityPreparedRequest,
+        recovery: &crate::WorthServerDurableProductMutationRecoveryHandle,
+    ) -> Result<
+        crate::WorthServerDurableProductMutationConclusion,
+        WorthServerProductOperationSurfaceDenial,
+    > {
+        self.runtime
+            .resolve_durable_mutation(prepared_request.admission(), recovery)
     }
 }

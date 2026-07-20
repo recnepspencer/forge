@@ -182,6 +182,7 @@ fn increment_admission_counter(
             counters.increment_admitted_submission_slot_count();
         }
         WorthServerSchedulerLane::ProductDraftMutation { .. }
+        | WorthServerSchedulerLane::DurableProductMutation { .. }
         | WorthServerSchedulerLane::ProductSessionCoordination { .. } => {
             counters.increment_admitted_mutation_slot_count();
         }
@@ -198,6 +199,7 @@ fn increment_completion_counter(
             counters.increment_completed_submission_slot_count();
         }
         WorthServerSchedulerLane::ProductDraftMutation { .. }
+        | WorthServerSchedulerLane::DurableProductMutation { .. }
         | WorthServerSchedulerLane::ProductSessionCoordination { .. } => {
             counters.increment_completed_mutation_slot_count();
         }

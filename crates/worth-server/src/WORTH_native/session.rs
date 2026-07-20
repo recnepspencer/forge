@@ -23,7 +23,8 @@ pub struct WorthServerWorthNativePreparedSession {
     operation_registry: WorthServerOperationRegistry,
     product_adapter_registry: WorthServerProductAdapterRegistry,
     product_session_registry: WorthServerProductSessionRegistry,
-    product_operation_replay_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    product_operation_retry_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    counters: Arc<crate::diagnostics::WorthServerCounters>,
     query_handoff_config: WorthServerQueryHandoffConfig,
     declaration_intake: WorthServerDirectDeclarationIntakeFacade,
     query_handoff: WorthServerQueryHandoffFacade,
@@ -36,9 +37,10 @@ impl WorthServerWorthNativePreparedSession {
         operation_registry: WorthServerOperationRegistry,
         product_adapter_registry: WorthServerProductAdapterRegistry,
         product_session_registry: WorthServerProductSessionRegistry,
-        product_operation_replay_store: Arc<
+        product_operation_retry_store: Arc<
             Mutex<HashMap<String, WorthServerStoredProductOperation>>,
         >,
+        counters: Arc<crate::diagnostics::WorthServerCounters>,
         query_handoff_config: WorthServerQueryHandoffConfig,
         declaration_intake: WorthServerDirectDeclarationIntakeFacade,
         query_handoff: WorthServerQueryHandoffFacade,
@@ -49,7 +51,8 @@ impl WorthServerWorthNativePreparedSession {
             operation_registry,
             product_adapter_registry,
             product_session_registry,
-            product_operation_replay_store,
+            product_operation_retry_store,
+            counters,
             query_handoff_config,
             declaration_intake,
             query_handoff,
@@ -89,7 +92,8 @@ impl WorthServerWorthNativePreparedSession {
             self.product_adapter_registry.clone(),
             self.query_handoff_config.clone(),
             self.product_session_registry.clone(),
-            self.product_operation_replay_store.clone(),
+            self.product_operation_retry_store.clone(),
+            self.counters.clone(),
         )
     }
 
@@ -107,7 +111,8 @@ impl WorthServerWorthNativePreparedSession {
             self.operation_registry,
             self.product_adapter_registry,
             self.product_session_registry,
-            self.product_operation_replay_store,
+            self.product_operation_retry_store,
+            self.counters,
             self.query_handoff_config,
             self.declaration_intake,
             self.query_handoff,
@@ -122,7 +127,8 @@ pub struct WorthServerWorthNativeSession {
     operation_registry: WorthServerOperationRegistry,
     product_adapter_registry: WorthServerProductAdapterRegistry,
     product_session_registry: WorthServerProductSessionRegistry,
-    product_operation_replay_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    product_operation_retry_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    counters: Arc<crate::diagnostics::WorthServerCounters>,
     query_handoff_config: WorthServerQueryHandoffConfig,
     declaration_intake: WorthServerDirectDeclarationIntakeFacade,
     query_handoff: WorthServerQueryHandoffFacade,
@@ -135,9 +141,10 @@ impl WorthServerWorthNativeSession {
         operation_registry: WorthServerOperationRegistry,
         product_adapter_registry: WorthServerProductAdapterRegistry,
         product_session_registry: WorthServerProductSessionRegistry,
-        product_operation_replay_store: Arc<
+        product_operation_retry_store: Arc<
             Mutex<HashMap<String, WorthServerStoredProductOperation>>,
         >,
+        counters: Arc<crate::diagnostics::WorthServerCounters>,
         query_handoff_config: WorthServerQueryHandoffConfig,
         declaration_intake: WorthServerDirectDeclarationIntakeFacade,
         query_handoff: WorthServerQueryHandoffFacade,
@@ -148,7 +155,8 @@ impl WorthServerWorthNativeSession {
             operation_registry,
             product_adapter_registry,
             product_session_registry,
-            product_operation_replay_store,
+            product_operation_retry_store,
+            counters,
             query_handoff_config,
             declaration_intake,
             query_handoff,
@@ -188,7 +196,8 @@ impl WorthServerWorthNativeSession {
             self.product_adapter_registry.clone(),
             self.query_handoff_config.clone(),
             self.product_session_registry.clone(),
-            self.product_operation_replay_store.clone(),
+            self.product_operation_retry_store.clone(),
+            self.counters.clone(),
         )
     }
 

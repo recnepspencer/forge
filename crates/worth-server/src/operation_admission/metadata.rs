@@ -44,6 +44,12 @@ pub enum WorthServerOperationAuthorityMetadata {
         base_digest_posture: String,
         idempotency_posture: String,
     },
+    DurableProductMutation {
+        authority_scope: String,
+        expected_basis_digest: String,
+        idempotency_key: String,
+        durability_contract_digest: String,
+    },
     ProductSessionCoordination {
         target: WorthServerProductSessionCoordinationTarget,
         coordination_lane: String,
@@ -137,6 +143,20 @@ impl WorthServerOperationAuthorityMetadata {
         }
     }
 
+    pub fn durable_product_mutation(
+        authority_scope: impl Into<String>,
+        expected_basis_digest: impl Into<String>,
+        idempotency_key: impl Into<String>,
+        durability_contract_digest: impl Into<String>,
+    ) -> Self {
+        Self::DurableProductMutation {
+            authority_scope: authority_scope.into(),
+            expected_basis_digest: expected_basis_digest.into(),
+            idempotency_key: idempotency_key.into(),
+            durability_contract_digest: durability_contract_digest.into(),
+        }
+    }
+
     pub fn product_session_coordination(
         target: WorthServerProductSessionCoordinationTarget,
         coordination_lane: impl Into<String>,
@@ -185,6 +205,14 @@ impl WorthServerOperationAuthorityMetadata {
             } => format!(
                 "worth-server-operation-authority-metadata-v1|kind=product-draft-mutation|session={product_session_identity}|draft={draft_scope}|base={base_digest_posture}|idempotency={idempotency_posture}"
             ),
+            Self::DurableProductMutation {
+                authority_scope,
+                expected_basis_digest,
+                idempotency_key,
+                durability_contract_digest,
+            } => format!(
+                "worth-server-operation-authority-metadata-v1|kind=durable-product-mutation|scope={authority_scope}|basis={expected_basis_digest}|idempotency={idempotency_key}|contract={durability_contract_digest}"
+            ),
             Self::ProductSessionCoordination {
                 target,
                 coordination_lane,
@@ -231,6 +259,18 @@ impl WorthServerOperationAuthorityMetadata {
                 draft_scope,
                 ..
             } => Some((product_session_identity, draft_scope)),
+            _ => None,
+        }
+    }
+
+    pub fn durable_product_mutation_scope(&self) -> Option<(&str, &str, &str)> {
+        match self {
+            Self::DurableProductMutation {
+                authority_scope,
+                expected_basis_digest,
+                idempotency_key,
+                ..
+            } => Some((authority_scope, expected_basis_digest, idempotency_key)),
             _ => None,
         }
     }

@@ -1,8 +1,8 @@
 use crate::{
-    WorthServerCompatibilityAdmittedProductMutationCommand, WorthServerCompatibilityFacade,
-    WorthServerCompatibilityPreparedRequest, WorthServerCompatibilityRequestInput,
-    WorthServerCompletedProductOperation, WorthServerCompletedProductSessionCoordination,
-    WorthServerProductOperationInput, WorthServerProductSessionCreationRequest,
+    WorthServerCompatibilityFacade, WorthServerCompatibilityPreparedRequest,
+    WorthServerCompatibilityRequestInput, WorthServerCompletedProductOperation,
+    WorthServerCompletedProductSessionCoordination, WorthServerProductOperationInput,
+    WorthServerProductSessionCreationRequest,
 };
 use worth_proof::TransitionOutcome;
 
@@ -208,31 +208,39 @@ fn execute_semantic_route(
             ))
         }
         crate::WorthServerOperationFamily::ProductApplicationMutation => {
-            let product_session_identity =
-                header_value(request, "x-product-session-id")
-                    .or_else(|| query_value(request, "product_session"))
-                    .ok_or_else(|| {
-                        WorthServerTransportDenial::new(
-                            WorthServerTransportDenialCode::MissingProductSessionIdentity,
-                            "product mutation routes require a product session identity in `x-product-session-id` header or `product_session` query parameter",
-                        )
-                    })?;
             let body = payload_json
                 .clone()
                 .unwrap_or_else(|| serde_json::json!({}));
+            let mut input = WorthServerProductOperationInput::new(
+                route.operation_name(),
+                crate::WorthServerProductOperationPayload::json(
+                    route.payload_schema_identity(),
+                    body,
+                ),
+            );
+            if let Some(product_session_identity) = header_value(request, "x-product-session-id")
+                .or_else(|| query_value(request, "product_session"))
+            {
+                input = input.with_product_session_identity(product_session_identity);
+            }
+            if let Some(basis_digest) = query_value(request, "basis") {
+                input = input.with_basis_digest(basis_digest);
+            }
+            if let Some(idempotency_key) = header_value(request, "idempotency-key") {
+                input = input.with_idempotency_key(
+                    crate::WorthServerProductIdempotencyKey::new(idempotency_key).map_err(
+                        |detail| {
+                            WorthServerTransportDenial::new(
+                                WorthServerTransportDenialCode::InvalidIdempotencyKey,
+                                detail,
+                            )
+                        },
+                    )?,
+                );
+            }
             let operation = compat_http
                 .product_operations()
-                .execute_admitted_mutation(
-                    prepared_request,
-                    WorthServerCompatibilityAdmittedProductMutationCommand::new(
-                        route.operation_name(),
-                        crate::WorthServerProductOperationPayload::json(
-                            route.payload_schema_identity(),
-                            body,
-                        ),
-                    )
-                    .with_product_session_identity(product_session_identity),
-                )
+                .execute(prepared_request, input)
                 .map_err(|denial| {
                     WorthServerTransportDenial::new(
                         WorthServerTransportDenialCode::UnknownRoute,

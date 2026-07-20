@@ -5,6 +5,7 @@ pub enum WorthServerOperationExecutionStrategy {
     SharedReadExecution,
     DeterministicSubmission,
     ProductAdapterExecution,
+    DurableProductMutationExecution,
     SessionCoordination,
     BinaryTransfer,
     LeaseCoordination,
@@ -20,6 +21,9 @@ impl WorthServerOperationExecutionStrategy {
             WorthServerOperationAuthorityKind::ProductDraftMutation => {
                 Self::ProductAdapterExecution
             }
+            WorthServerOperationAuthorityKind::DurableProductMutation => {
+                Self::DurableProductMutationExecution
+            }
             WorthServerOperationAuthorityKind::ProductSessionCoordination => {
                 Self::SessionCoordination
             }
@@ -34,6 +38,7 @@ impl WorthServerOperationExecutionStrategy {
             Self::SharedReadExecution => "shared-read-execution",
             Self::DeterministicSubmission => "deterministic-submission",
             Self::ProductAdapterExecution => "product-adapter-execution",
+            Self::DurableProductMutationExecution => "durable-product-mutation-execution",
             Self::SessionCoordination => "session-coordination",
             Self::BinaryTransfer => "binary-transfer",
             Self::LeaseCoordination => "lease-coordination",

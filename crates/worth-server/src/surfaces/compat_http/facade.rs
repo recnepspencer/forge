@@ -33,9 +33,10 @@ pub struct WorthServerCompatibilityFacade {
     pub(super) operator_evidence: WorthServerOperatorEvidenceFacade,
     pub(super) idempotency_store:
         Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>>,
-    pub(super) product_operation_replay_store:
+    pub(super) product_operation_retry_store:
         Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
     pub(super) binary_ingress_store: Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>>,
+    pub(super) counters: Arc<crate::diagnostics::WorthServerCounters>,
 }
 
 impl WorthServerCompatibilityFacade {
@@ -51,10 +52,11 @@ impl WorthServerCompatibilityFacade {
         responses: WorthServerResponseFacade,
         operator_evidence: WorthServerOperatorEvidenceFacade,
         idempotency_store: Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>>,
-        product_operation_replay_store: Arc<
+        product_operation_retry_store: Arc<
             Mutex<HashMap<String, WorthServerStoredProductOperation>>,
         >,
         binary_ingress_store: Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>>,
+        counters: Arc<crate::diagnostics::WorthServerCounters>,
     ) -> Self {
         Self {
             root,
@@ -68,8 +70,9 @@ impl WorthServerCompatibilityFacade {
             responses,
             operator_evidence,
             idempotency_store,
-            product_operation_replay_store,
+            product_operation_retry_store,
             binary_ingress_store,
+            counters,
         }
     }
 
@@ -87,7 +90,8 @@ impl WorthServerCompatibilityFacade {
             self.product_adapter_registry.clone(),
             self.query_handoff.config().clone(),
             self.product_session_registry.clone(),
-            self.product_operation_replay_store.clone(),
+            self.product_operation_retry_store.clone(),
+            self.counters.clone(),
         )
     }
 

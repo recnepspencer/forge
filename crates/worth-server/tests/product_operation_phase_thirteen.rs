@@ -63,25 +63,33 @@ fn product_editor_fixture_has_real_pressure_shape() {
         &backend.basis_digest(),
     );
 
-    let render_digest = match render.outcome() {
-        WorthServerProductOperationOutcome::Success(success) => success.result_digest(),
+    let render_body = match render.outcome() {
+        WorthServerProductOperationOutcome::Success(success) => {
+            success.result_artifact().body().value()
+        }
         other => panic!("expected render success, got {other:?}"),
     };
-    let select_digest = match selected.outcome() {
-        WorthServerProductOperationOutcome::Success(success) => success.result_digest(),
+    let select_body = match selected.outcome() {
+        WorthServerProductOperationOutcome::Success(success) => {
+            success.result_artifact().body().value()
+        }
         other => panic!("expected select success, got {other:?}"),
     };
     let actions_before_digest = match actions_before.outcome() {
-        WorthServerProductOperationOutcome::Success(success) => success.result_digest(),
+        WorthServerProductOperationOutcome::Success(success) => {
+            success.result_artifact().artifact_digest()
+        }
         other => panic!("expected actions success, got {other:?}"),
     };
     let actions_after_digest = match actions_after.outcome() {
-        WorthServerProductOperationOutcome::Success(success) => success.result_digest(),
+        WorthServerProductOperationOutcome::Success(success) => {
+            success.result_artifact().artifact_digest()
+        }
         other => panic!("expected actions success, got {other:?}"),
     };
 
-    assert!(render_digest.contains(&initial_basis));
-    assert!(select_digest.contains("node-7"));
+    assert_eq!(render_body["request_basis"], initial_basis);
+    assert_eq!(select_body["node"], "node-7");
     assert_ne!(actions_before_digest, actions_after_digest);
     assert_ne!(backend.basis_digest(), initial_basis);
     match denied_finalize.outcome() {
@@ -122,15 +130,15 @@ fn product_editor_fixture_has_real_pressure_shape() {
         )
         .expect("identical mutation should replay");
 
-    assert!(first_replay.replay_diagnostics().is_authoritative());
-    assert!(replayed.replay_diagnostics().is_replayed());
+    assert!(first_replay.retry_diagnostics().is_executed());
+    assert!(replayed.retry_diagnostics().is_previously_committed());
     assert!(replayed
-        .replay_diagnostics()
-        .adapter_execution_skipped_by_replay());
+        .retry_diagnostics()
+        .adapter_execution_skipped_by_retry());
     assert_eq!(
         replayed
-            .replay_receipt()
-            .and_then(|receipt| receipt.authoritative_operation_digest()),
+            .retry_receipt()
+            .and_then(|receipt| receipt.original_operation_digest()),
         Some(first_replay.envelope().canonical_digest())
     );
 }

@@ -23,6 +23,8 @@ pub struct WorthServerRouteInventoryRow {
     operation_family: Option<WorthServerOperationFamily>,
     operation_name: Option<String>,
     payload_schema_identity: Option<String>,
+    result_contract_digest: Option<String>,
+    durability_contract_digest: Option<String>,
     support_row: Option<String>,
     diagnostics_policy: String,
     evidence_policy: String,
@@ -37,6 +39,8 @@ impl WorthServerRouteInventoryRow {
         operation_family: WorthServerOperationFamily,
         operation_name: impl Into<String>,
         payload_schema_identity: impl Into<String>,
+        result_contract_digest: Option<&str>,
+        durability_contract_digest: Option<&str>,
         support_row: impl Into<String>,
         diagnostics_policy: impl Into<String>,
         response_transform: WorthServerResponseTransform,
@@ -49,6 +53,8 @@ impl WorthServerRouteInventoryRow {
             operation_family: Some(operation_family),
             operation_name: Some(operation_name.into()),
             payload_schema_identity: Some(payload_schema_identity.into()),
+            result_contract_digest: result_contract_digest.map(str::to_string),
+            durability_contract_digest: durability_contract_digest.map(str::to_string),
             support_row: Some(support_row.into()),
             diagnostics_policy: diagnostics_policy.into(),
             evidence_policy: evidence_policy.into(),
@@ -69,6 +75,8 @@ impl WorthServerRouteInventoryRow {
             operation_family: None,
             operation_name: None,
             payload_schema_identity: None,
+            result_contract_digest: None,
+            durability_contract_digest: None,
             support_row: None,
             diagnostics_policy: "operational-static".to_string(),
             evidence_policy: "operational".to_string(),
@@ -99,6 +107,14 @@ impl WorthServerRouteInventoryRow {
 
     pub fn payload_schema_identity(&self) -> Option<&str> {
         self.payload_schema_identity.as_deref()
+    }
+
+    pub fn result_contract_digest(&self) -> Option<&str> {
+        self.result_contract_digest.as_deref()
+    }
+
+    pub fn durability_contract_digest(&self) -> Option<&str> {
+        self.durability_contract_digest.as_deref()
     }
 
     pub fn support_row(&self) -> Option<&str> {

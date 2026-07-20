@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use worth_server::{
-    WorthServerEditorLikeOperationFixture, WorthServerProductIdempotentReplayCertificationProof,
+    WorthServerEditorLikeOperationFixture, WorthServerProductIdempotentRetryCertificationProof,
     WorthServerProductMutationCertificationProof,
     WorthServerProductPressureShapeCertificationProof,
     WorthServerProductSharedReadCertificationProof,
@@ -154,7 +154,7 @@ pub async fn complete_editor_like_fixture() -> WorthServerEditorLikeOperationFix
     let stale = WorthServerProductStaleApplyDenialCertificationProof::from_denial(&stale)
         .expect("stale denial proof");
     let replay =
-        WorthServerProductIdempotentReplayCertificationProof::new(&authoritative, &replayed)
+        WorthServerProductIdempotentRetryCertificationProof::new(&authoritative, &replayed)
             .expect("replay proof");
     let route_parity =
         observed_route_parity(&server, &session, &initial_basis, &after_apply_basis).await;
@@ -165,7 +165,7 @@ pub async fn complete_editor_like_fixture() -> WorthServerEditorLikeOperationFix
         .with_route_parity(route_parity)
         .with_pressure_shape(pressure)
         .with_stale_apply_denial(stale)
-        .with_idempotent_replay(replay)
+        .with_idempotent_retry(replay)
 }
 
 pub async fn blocked_editor_like_fixture() -> WorthServerEditorLikeOperationFixture {

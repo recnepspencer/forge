@@ -9,9 +9,11 @@
 
 #![forbid(unsafe_code)]
 
+mod canonical_digest;
 mod config;
 mod declaration_intake;
 mod diagnostics;
+mod durable_product_mutation;
 pub mod facade;
 pub mod middleware;
 mod operation_admission;
@@ -24,6 +26,7 @@ mod operation_scheduler;
 pub mod operator_evidence;
 mod product_adapter;
 mod product_operation_contract;
+mod product_result;
 mod product_session;
 mod product_session_coordination;
 pub mod query_dependency_audit;
@@ -55,6 +58,14 @@ pub use declaration_intake::{
     WorthServerDirectViewShape, WorthServerPreparedDirectDeclaration,
 };
 pub use diagnostics::WorthServerCounterSnapshot;
+pub use durable_product_mutation::{
+    WorthServerAdmittedDurableProductMutation, WorthServerDurableProductMutationCompletion,
+    WorthServerDurableProductMutationConclusion, WorthServerDurableProductMutationContract,
+    WorthServerDurableProductMutationDisposition, WorthServerDurableProductMutationExecution,
+    WorthServerDurableProductMutationExecutor, WorthServerDurableProductMutationReceipt,
+    WorthServerDurableProductMutationRecoveryHandle, WorthServerProductAuthorityScope,
+    WorthServerProductDurabilityCapability, WorthServerProductIdempotencyRetention,
+};
 pub use facade::{WorthServer, WorthServerBuildError, WorthServerBuilder};
 pub use middleware::{
     WorthServerAdmission, WorthServerAdmissionOutcome, WorthServerDenial, WorthServerDenialCode,
@@ -105,7 +116,7 @@ pub use operation_request::{
 pub use operation_runtime_certification::{
     WorthServerEditorLikeOperationFixture, WorthServerNoProductSemanticsCertification,
     WorthServerOperationRuntimeCloseoutDigest, WorthServerProductEditorReadinessCertification,
-    WorthServerProductIdempotentReplayCertificationProof,
+    WorthServerProductIdempotentRetryCertificationProof,
     WorthServerProductMutationCertificationProof,
     WorthServerProductOperationRuntimeArtifactRequirements,
     WorthServerProductOperationRuntimeCertification,
@@ -148,8 +159,8 @@ pub use product_adapter::{
     WorthServerProductOperationErrorMap, WorthServerProductOperationErrorMaps,
     WorthServerProductOperationExecutionBoundary, WorthServerProductOperationFailure,
     WorthServerProductOperationInput, WorthServerProductOperationOutcome,
-    WorthServerProductOperationPayload, WorthServerProductOperationReplayClass,
-    WorthServerProductOperationReplayDiagnostics, WorthServerProductOperationRuntime,
+    WorthServerProductOperationPayload, WorthServerProductOperationRetryClass,
+    WorthServerProductOperationRetryDiagnostics, WorthServerProductOperationRuntime,
     WorthServerProductOperationSuccess, WorthServerProductOperationSupportSnapshot,
     WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
     WorthServerProductOperationSurfaceDenialFacts, WorthServerProductPayloadSchemaValidator,
@@ -158,8 +169,16 @@ pub use product_adapter::{
 pub use product_operation_contract::{
     WorthServerProductIdempotencyConflict, WorthServerProductIdempotencyKey,
     WorthServerProductIdempotencyRecord, WorthServerProductOperationBaseDigest,
-    WorthServerProductOperationReplayReceipt, WorthServerProductRebaseRequired,
+    WorthServerProductOperationRetryReceipt, WorthServerProductRebaseRequired,
     WorthServerProductSnapshotPrecondition, WorthServerProductStaleBasisDenial,
+};
+pub use product_result::{
+    WorthServerProductResultArtifact, WorthServerProductResultArtifactError,
+    WorthServerProductResultArtifactErrorCode, WorthServerProductResultBody,
+    WorthServerProductResultCanonicalization, WorthServerProductResultContract,
+    WorthServerProductResultContractError, WorthServerProductResultContractErrorCode,
+    WorthServerProductResultEncoding, WorthServerProductResultSchema,
+    WorthServerProductResultValue,
 };
 pub use product_session::{
     WorthServerProductSession, WorthServerProductSessionClock,

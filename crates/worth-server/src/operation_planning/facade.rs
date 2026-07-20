@@ -288,6 +288,19 @@ fn scheduler_lane(operation_admission: &crate::WorthServerOperationAdmissionPost
                 .expect("product draft mutation authority must carry session and draft scope");
             format!("product-draft:{product_session_identity}:{draft_scope}")
         }
+        crate::WorthServerOperationAuthorityKind::DurableProductMutation => {
+            operation_admission
+                .authority_metadata()
+                .durable_product_mutation_scope()
+                .expect("durable product mutation authority must carry scope and preconditions");
+            format!(
+                "durable-product:{}",
+                operation_admission
+                    .authority_footprint()
+                    .scope()
+                    .canonical_digest()
+            )
+        }
         crate::WorthServerOperationAuthorityKind::ProductSessionCoordination => {
             let (target, coordination_lane) = operation_admission
                 .authority_metadata()

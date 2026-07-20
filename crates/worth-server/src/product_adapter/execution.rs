@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     product_operation_contract::{
-        admit_replay, build_storage_key, record_replay, WorthServerProductIdempotencyBinding,
+        admit_retry, build_storage_key, record_retry, WorthServerProductIdempotencyBinding,
         WorthServerStoredProductOperation,
     },
     WorthServerAdmission, WorthServerCompatibilityPreparedRequest,
@@ -14,10 +14,10 @@ use crate::{
     WorthServerQueryHandoffConfig,
 };
 
-use super::read_batch_execution::execute_shared_read_batch_from_worth_native;
-use super::runtime_support::{
+use super::execution_pipeline::{
     build_early_envelope, build_envelope, build_request_input, close_product_operation_readiness,
-    declaration_metadata, stale_basis_denial, validate_payload_schema,
+    declaration_metadata, execute_shared_read_batch_from_worth_native, validate_payload_schema,
+    validate_product_mutation_preconditions, validate_success_result,
 };
 use super::{
     WorthServerCompletedProductOperation, WorthServerExecutedProductReadBatch,
@@ -34,7 +34,8 @@ pub struct WorthServerProductOperationRuntime {
     adapter_registry: WorthServerProductAdapterRegistry,
     query_handoff_config: WorthServerQueryHandoffConfig,
     product_session_registry: WorthServerProductSessionRegistry,
-    replay_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    retry_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    counters: Arc<crate::diagnostics::WorthServerCounters>,
 }
 
 impl WorthServerProductOperationRuntime {
@@ -43,14 +44,16 @@ impl WorthServerProductOperationRuntime {
         adapter_registry: WorthServerProductAdapterRegistry,
         query_handoff_config: WorthServerQueryHandoffConfig,
         product_session_registry: WorthServerProductSessionRegistry,
-        replay_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+        retry_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+        counters: Arc<crate::diagnostics::WorthServerCounters>,
     ) -> Self {
         Self {
             operation_registry,
             adapter_registry,
             query_handoff_config,
             product_session_registry,
-            replay_store,
+            retry_store,
+            counters,
         }
     }
 
@@ -100,13 +103,87 @@ impl WorthServerProductOperationRuntime {
         admission: &WorthServerAdmission,
         inputs: Vec<WorthServerProductOperationInput>,
     ) -> Result<WorthServerExecutedProductReadBatch, WorthServerProductOperationSurfaceDenial> {
-        execute_shared_read_batch_from_worth_native(
+        let executed = execute_shared_read_batch_from_worth_native(
             &self.operation_registry,
             &self.adapter_registry,
             &self.query_handoff_config,
             admission,
             inputs,
-        )
+        )?;
+        for operation in executed.operations() {
+            if let Some(artifact) = operation.result_artifact() {
+                self.counters
+                    .record_product_result_artifact(artifact.body().byte_len());
+            }
+        }
+        Ok(executed)
+    }
+
+    pub fn resolve_durable_mutation(
+        &self,
+        admission: &WorthServerAdmission,
+        recovery: &crate::WorthServerDurableProductMutationRecoveryHandle,
+    ) -> Result<
+        crate::WorthServerDurableProductMutationConclusion,
+        WorthServerProductOperationSurfaceDenial,
+    > {
+        let (_, declaration) = self.resolve_declaration(recovery.operation_name())?;
+        let Some(contract) = declaration.durable_mutation_contract() else {
+            return Err(WorthServerProductOperationSurfaceDenial::new(
+                WorthServerProductOperationSurfaceDenialCode::InvalidDeclaration,
+                format!(
+                    "product operation `{}` does not declare durable recovery",
+                    recovery.operation_name()
+                ),
+            ));
+        };
+        let workspace_target = admission.request_context().workspace_target();
+        if recovery.tenant_id() != workspace_target.tenant_id()
+            || recovery.workspace_id() != workspace_target.workspace_id()
+            || recovery.authority_scope() != contract.authority_scope()
+        {
+            return Err(WorthServerProductOperationSurfaceDenial::new(
+                WorthServerProductOperationSurfaceDenialCode::RequestDenied,
+                "durable product recovery handle is outside the admitted product scope".to_string(),
+            ));
+        }
+        let executor = self
+            .adapter_registry
+            .resolve_durable_executor(recovery.operation_name())
+            .ok_or_else(|| {
+                WorthServerProductOperationSurfaceDenial::new(
+                    WorthServerProductOperationSurfaceDenialCode::InvalidDeclaration,
+                    "validated durable product declaration lost its installed executor".to_string(),
+                )
+            })?;
+        self.counters.increment_durable_product_recovery_attempts();
+        let conclusion = executor.resolve(recovery);
+        match &conclusion {
+            crate::WorthServerDurableProductMutationConclusion::Committed(completion)
+            | crate::WorthServerDurableProductMutationConclusion::PreviouslyCommitted(completion) =>
+            {
+                if !completion.matches_recovery(recovery, declaration.result_contract()) {
+                    self.counters.increment_durable_product_recovery_failed();
+                    return Err(WorthServerProductOperationSurfaceDenial::new(
+                        WorthServerProductOperationSurfaceDenialCode::InvalidDurableCompletion,
+                        "durable product recovery returned a completion outside the admitted recovery authority"
+                            .to_string(),
+                    )
+                    .with_facts(
+                        WorthServerProductOperationSurfaceDenialFacts::default()
+                            .with_execution_boundary(
+                                WorthServerProductOperationExecutionBoundary::DurableExecutorAttempted,
+                            ),
+                    ));
+                }
+                self.counters.increment_durable_product_recovery_resolved();
+                self.counters.record_product_result_artifact(
+                    completion.success().result_artifact().body().byte_len(),
+                );
+            }
+            _ => self.counters.increment_durable_product_recovery_failed(),
+        }
+        Ok(conclusion)
     }
 
     fn resolve_declaration(
@@ -154,6 +231,10 @@ impl WorthServerProductOperationRuntime {
             admitted_session.as_ref(),
             &request,
             declaration.basis_kind(),
+            matches!(
+                declaration.authority_requirement(),
+                super::WorthServerProductOperationAuthorityRequirement::DraftMutation { .. }
+            ),
         )
         .map_err(|denial| {
             self.product_session_registry.record_denial(denial.code());
@@ -169,57 +250,33 @@ impl WorthServerProductOperationRuntime {
                 ),
             )
         })?;
-        if request.identity().operation_family()
-            == crate::WorthServerOperationFamily::ProductApplicationMutation
-            && request.identity().basis_digest().is_none()
+        let durable_contract = declaration.durable_mutation_contract();
+        validate_product_mutation_preconditions(
+            &request,
+            admitted_session.as_ref(),
+            durable_contract.is_some(),
+        )?;
+        let retry_binding = if durable_contract.is_none() {
+            request
+                .identity()
+                .idempotency_key()
+                .map(|_| WorthServerProductIdempotencyBinding::derive(&request, &payload))
+        } else {
+            None
+        };
+        if let (Some(idempotency_key), Some(binding)) =
+            (request.identity().idempotency_key(), retry_binding.as_ref())
         {
-            return Err(
-                WorthServerProductOperationSurfaceDenial::new(
-                    WorthServerProductOperationSurfaceDenialCode::PreconditionDenied,
-                    "product mutation operations require an explicit snapshot precondition basis digest".to_string(),
-                )
-                .with_facts(
-                    WorthServerProductOperationSurfaceDenialFacts::default()
-                        .with_execution_boundary(
-                            WorthServerProductOperationExecutionBoundary::RejectedBeforeAdapterExecution,
-                        ),
-                ),
-            );
-        }
-        if let Some(expected_basis_digest) = request.identity().basis_digest() {
-            if let Some(observed_basis_digest) = admitted_session
-                .as_ref()
-                .and_then(|session| session.basis_digest())
-            {
-                if expected_basis_digest != observed_basis_digest {
-                    return Err(stale_basis_denial(
-                        format!(
-                            "product snapshot precondition `{expected_basis_digest}` did not match the admitted session basis `{observed_basis_digest}`"
-                        ),
-                        expected_basis_digest,
-                        observed_basis_digest,
-                    ));
-                }
-            }
-        }
-        let replay_binding = request
-            .identity()
-            .idempotency_key()
-            .map(|_| WorthServerProductIdempotencyBinding::derive(&request, &payload));
-        if let (Some(idempotency_key), Some(binding)) = (
-            request.identity().idempotency_key(),
-            replay_binding.as_ref(),
-        ) {
             let admitted_idempotency_key =
                 crate::WorthServerProductIdempotencyKey::new(idempotency_key)
                     .expect("admitted operation request should preserve idempotency key validity");
-            if let Some(replayed) = admit_replay(
-                &self.replay_store,
+            if let Some(previously_committed) = admit_retry(
+                &self.retry_store,
                 &build_storage_key(binding),
                 &admitted_idempotency_key,
                 binding.request_digest(),
             )? {
-                return Ok(replayed);
+                return Ok(previously_committed);
             }
         }
         let admission = WorthServerOperationAdmissionFacade::with_operation_registry(
@@ -247,25 +304,69 @@ impl WorthServerProductOperationRuntime {
             readiness.concurrency_class(),
         );
         let scheduled = WorthServerScheduledProductOperation::admit(plan)?;
+        if let Some(durable_contract) = durable_contract {
+            let executor = self
+                .adapter_registry
+                .resolve_durable_executor(declaration.operation_name())
+                .ok_or_else(|| {
+                    WorthServerProductOperationSurfaceDenial::new(
+                        WorthServerProductOperationSurfaceDenialCode::InvalidDeclaration,
+                        "validated durable product declaration lost its installed executor"
+                            .to_string(),
+                    )
+                })?;
+            return self.adapter_registry.coordinate_mutation_lane(
+                scheduled.scheduler_admission().scheduler_lane(),
+                || {
+                    crate::durable_product_mutation::execute_durable_product_mutation(
+                        executor.as_ref(),
+                        &scheduled,
+                        durable_contract,
+                        &self.counters,
+                    )
+                },
+            );
+        }
         let outcome = match adapter.execute(&scheduled) {
-            Ok(success) => WorthServerProductOperationOutcome::Success(success),
+            Ok(success) => {
+                validate_success_result(declaration, &success)?;
+                self.counters
+                    .record_product_result_artifact(success.result_artifact().body().byte_len());
+                WorthServerProductOperationOutcome::Success(success)
+            }
+            Err(super::WorthServerProductAdapterExecutionError::InvalidResultArtifact(error)) => {
+                if error.code()
+                    == crate::WorthServerProductResultArtifactErrorCode::InlineBudgetExceeded
+                {
+                    self.counters.increment_product_result_oversized_denials();
+                }
+                return Err(WorthServerProductOperationSurfaceDenial::new(
+                    WorthServerProductOperationSurfaceDenialCode::InvalidResultArtifact,
+                    error.detail().to_string(),
+                )
+                .with_facts(
+                    WorthServerProductOperationSurfaceDenialFacts::default()
+                        .with_execution_boundary(
+                            WorthServerProductOperationExecutionBoundary::AdapterExecutionAttempted,
+                        ),
+                ));
+            }
             Err(error) => declaration.error_map().map_error(error),
         };
         let envelope = build_envelope(&scheduled, &outcome);
         let mut completed = WorthServerCompletedProductOperation::new(outcome, envelope)
             .with_scheduled_operation(&scheduled);
-        if let (Some(idempotency_key), Some(binding)) = (
-            request.identity().idempotency_key(),
-            replay_binding.as_ref(),
-        ) {
-            completed = completed.with_replay_receipt(
-                crate::WorthServerProductOperationReplayReceipt::authoritative(
+        if let (Some(idempotency_key), Some(binding)) =
+            (request.identity().idempotency_key(), retry_binding.as_ref())
+        {
+            completed = completed.with_retry_receipt(
+                crate::WorthServerProductOperationRetryReceipt::executed(
                     idempotency_key,
                     binding.request_digest(),
                 ),
             );
-            record_replay(
-                &self.replay_store,
+            record_retry(
+                &self.retry_store,
                 build_storage_key(binding),
                 binding.request_digest().to_string(),
                 completed.clone(),

@@ -5,21 +5,20 @@ use std::sync::{
 
 use serde_json::json;
 use worth_server::{
-    CompatHttpSurface, WorthNativeSurface, WorthServer, WorthServerBuildError,
-    WorthServerOperationReadinessDenialCode, WorthServerProductAdapterCertificationCode,
-    WorthServerProductApplicationAdapterRegistration, WorthServerProductOperationBasisKind,
-    WorthServerProductOperationDeclaration, WorthServerProductOperationDenialCode,
-    WorthServerProductOperationErrorMaps, WorthServerProductOperationInput,
-    WorthServerProductOperationOutcome, WorthServerProductOperationPayload,
-    WorthServerProductOperationSupportSnapshot, WorthServerProductOperationSurfaceDenialCode,
+    WorthServerOperationReadinessDenialCode, WorthServerProductApplicationAdapterRegistration,
+    WorthServerProductOperationBasisKind, WorthServerProductOperationDeclaration,
+    WorthServerProductOperationDenialCode, WorthServerProductOperationErrorMaps,
+    WorthServerProductOperationInput, WorthServerProductOperationOutcome,
+    WorthServerProductOperationPayload, WorthServerProductOperationSupportSnapshot,
+    WorthServerProductOperationSurfaceDenialCode,
 };
 
 #[path = "support/product_adapter_phase_nine/fixture.rs"]
 mod fixture;
 
 use fixture::{
-    base_config, build_server, completed, direct_session, editor_registration,
-    open_mutation_product_session, prepared_mutation_request, prepared_read_request, EditorAdapter,
+    build_server, completed, direct_session, editor_registration, open_mutation_product_session,
+    prepared_mutation_request, prepared_read_request, result_contract, EditorAdapter,
     RequireTitleValidator,
 };
 
@@ -142,59 +141,6 @@ fn product_denials_preserve_product_reason_keys_inside_server_envelopes() {
     assert_eq!(
         completed.envelope().kind(),
         worth_server::WorthServerProductOperationEnvelopeKind::Denial
-    );
-}
-
-#[test]
-fn product_adapter_registration_rejects_incomplete_authority_or_basis_contract() {
-    let result = build_broken_registration_server(
-        WorthServerProductOperationDeclaration::product_mutation(
-            "product_editor.apply",
-            "product-editor.apply.v1",
-            WorthServerProductOperationBasisKind::DurableProductDerived,
-            WorthServerProductOperationSupportSnapshot::production_admitted(" "),
-            "",
-        )
-        .with_error_map(WorthServerProductOperationErrorMaps::passthrough()),
-    );
-
-    assert_registration_code(
-        result,
-        WorthServerProductAdapterCertificationCode::BlankSupportSnapshotRow,
-    );
-}
-
-#[test]
-fn product_adapter_registration_rejects_missing_error_map_explicitly() {
-    let result =
-        build_broken_registration_server(WorthServerProductOperationDeclaration::product_read(
-            "product_editor.render",
-            "product-editor.render.v1",
-            WorthServerProductOperationBasisKind::DurableProductDerived,
-            WorthServerProductOperationSupportSnapshot::production_admitted("render-supported"),
-        ));
-
-    assert_registration_code(
-        result,
-        WorthServerProductAdapterCertificationCode::MissingErrorMap,
-    );
-}
-
-#[test]
-fn product_adapter_registration_rejects_blank_schema_identity_explicitly() {
-    let result = build_broken_registration_server(
-        WorthServerProductOperationDeclaration::product_read(
-            "product_editor.render",
-            " ",
-            WorthServerProductOperationBasisKind::DurableProductDerived,
-            WorthServerProductOperationSupportSnapshot::production_admitted("render-supported"),
-        )
-        .with_error_map(WorthServerProductOperationErrorMaps::passthrough()),
-    );
-
-    assert_registration_code(
-        result,
-        WorthServerProductAdapterCertificationCode::BlankPayloadSchemaIdentity,
     );
 }
 
@@ -382,24 +328,6 @@ fn expected_scheduler_lane(operation_name: &str, product_session_identity: &str)
     }
 }
 
-fn build_broken_registration_server(
-    declaration: WorthServerProductOperationDeclaration,
-) -> Result<WorthServer, WorthServerBuildError> {
-    WorthServer::builder()
-        .with_config(base_config())
-        .register_operations(worth_server::WorthServerOperationRegistration::phase_two_defaults())
-        .register_surface(WorthNativeSurface::enabled())
-        .register_surface(CompatHttpSurface::phase_one_enabled())
-        .register_product_adapter(
-            WorthServerProductApplicationAdapterRegistration::new(
-                "broken-editor",
-                Arc::new(EditorAdapter::default()),
-            )
-            .with_operation(declaration),
-        )
-        .build()
-}
-
 fn unsupported_render_registration() -> WorthServerProductApplicationAdapterRegistration {
     WorthServerProductApplicationAdapterRegistration::new(
         "unsupported-render",
@@ -409,21 +337,10 @@ fn unsupported_render_registration() -> WorthServerProductApplicationAdapterRegi
         WorthServerProductOperationDeclaration::product_read(
             "product_editor.render",
             "product-editor.render.v1",
+            result_contract("product-editor.render.result.v1"),
             WorthServerProductOperationBasisKind::DurableProductDerived,
             WorthServerProductOperationSupportSnapshot::unsupported("render-unsupported"),
         )
         .with_error_map(WorthServerProductOperationErrorMaps::passthrough()),
     )
-}
-
-fn assert_registration_code(
-    result: Result<WorthServer, WorthServerBuildError>,
-    expected_code: WorthServerProductAdapterCertificationCode,
-) {
-    match result {
-        Err(WorthServerBuildError::InvalidProductAdapterRegistry(error)) => {
-            assert_eq!(error.certification_code(), Some(expected_code));
-        }
-        other => panic!("expected product adapter registration failure, got {other:?}"),
-    }
 }

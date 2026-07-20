@@ -136,6 +136,7 @@ fn validate_plan_for_scheduler(
         WorthServerSchedulerLane::SharedRead => validate_shared_read_plan(plan),
         WorthServerSchedulerLane::DeterministicSubmission { .. }
         | WorthServerSchedulerLane::ProductDraftMutation { .. }
+        | WorthServerSchedulerLane::DurableProductMutation { .. }
         | WorthServerSchedulerLane::ProductSessionCoordination { .. } => {
             validate_ordered_plan(plan, scheduler_lane)
         }
@@ -216,6 +217,18 @@ fn validate_ordered_plan(
                 ..
             },
             WorthServerSchedulerLane::ProductDraftMutation { .. },
+        ) => Ok(()),
+        (
+            WorthServerOperationExecutionStrategy::DurableProductMutationExecution,
+            WorthServerQueryHandoffOperation::DirectMutation {
+                scheduled_operation: Some(_),
+                ..
+            }
+            | WorthServerQueryHandoffOperation::QueryMutation {
+                scheduled_operation: Some(_),
+                ..
+            },
+            WorthServerSchedulerLane::DurableProductMutation { .. },
         ) => Ok(()),
         (
             WorthServerOperationExecutionStrategy::SessionCoordination,

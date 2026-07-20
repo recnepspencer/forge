@@ -57,6 +57,8 @@ impl WorthServerRouteAssembly {
                         route.operation_family(),
                         route.operation_name(),
                         route.payload_schema_identity(),
+                        route.result_contract_digest(),
+                        route.durability_contract_digest(),
                         route.support_row(),
                         route.diagnostics_policy(),
                         route.response_transform(),
@@ -160,6 +162,12 @@ fn append_declared_product_routes(
                     declaration.payload_schema_identity(),
                     declaration.support_snapshot().support_row(),
                 )
+                .with_product_contracts(
+                    declaration.result_contract().canonical_digest(),
+                    declaration
+                        .durable_mutation_contract()
+                        .map(crate::WorthServerDurableProductMutationContract::canonical_digest),
+                )
             }
             WorthServerOperationFamily::ProductApplicationMutation => {
                 require_route_family(
@@ -175,6 +183,12 @@ fn append_declared_product_routes(
                     declaration.operation_name(),
                     declaration.payload_schema_identity(),
                     declaration.support_snapshot().support_row(),
+                )
+                .with_product_contracts(
+                    declaration.result_contract().canonical_digest(),
+                    declaration
+                        .durable_mutation_contract()
+                        .map(crate::WorthServerDurableProductMutationContract::canonical_digest),
                 )
             }
             WorthServerOperationFamily::ProductSessionCoordination => continue,

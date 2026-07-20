@@ -3,6 +3,7 @@ mod authorization;
 mod concurrency;
 mod declaration;
 mod denial;
+mod durable_product_mutation_admission;
 mod facade;
 mod footprint;
 mod footprint_receipt;

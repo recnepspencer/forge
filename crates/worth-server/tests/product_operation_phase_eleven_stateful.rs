@@ -140,15 +140,15 @@ fn failed_product_operation_is_recorded_for_replay_after_scheduler_admission() {
         replayed.outcome(),
         WorthServerProductOperationOutcome::Failed(_)
     ));
-    assert!(first.replay_diagnostics().is_authoritative());
-    assert!(replayed.replay_diagnostics().is_replayed());
+    assert!(first.retry_diagnostics().is_executed());
+    assert!(replayed.retry_diagnostics().is_previously_committed());
     assert!(replayed
-        .replay_diagnostics()
-        .adapter_execution_skipped_by_replay());
+        .retry_diagnostics()
+        .adapter_execution_skipped_by_retry());
     assert_eq!(
         replayed
-            .replay_receipt()
-            .and_then(|receipt| receipt.authoritative_operation_digest()),
+            .retry_receipt()
+            .and_then(|receipt| receipt.original_operation_digest()),
         Some(first.envelope().canonical_digest())
     );
     assert_eq!(backend.revision(), 0);

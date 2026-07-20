@@ -12,24 +12,9 @@ use super::{
 
 pub(super) fn semantic_response(outcome: WorthServerRouteExecutionOutcome) -> Response {
     match outcome {
-        WorthServerRouteExecutionOutcome::ProductOperation(operation) => response_with_headers(
-            Json(json!({
-                "route_kind": "product_operation",
-                "operation_name": operation.envelope().operation_name(),
-                "envelope_kind": format!("{:?}", operation.envelope().kind()),
-                "canonical_digest": operation.envelope().canonical_digest(),
-                "plan_digest": operation.plan().map(|plan| plan.canonical_digest()),
-            })),
-            semantic_headers(
-                "product_operation",
-                Some(operation.envelope().operation_name()),
-                operation.plan().map(|plan| plan.canonical_digest()),
-                Some(operation.envelope().canonical_digest()),
-                operation
-                    .scheduler_admission()
-                    .map(|admission| admission.scheduler_lane()),
-            ),
-        ),
+        WorthServerRouteExecutionOutcome::ProductOperation(operation) => {
+            product_operation_response(operation)
+        }
         WorthServerRouteExecutionOutcome::ProductSession(coordination) => response_with_headers(
             Json(json!({
                 "route_kind": "product_session",
@@ -49,6 +34,55 @@ pub(super) fn semantic_response(outcome: WorthServerRouteExecutionOutcome) -> Re
             operational_headers("operational"),
         ),
     }
+}
+
+fn product_operation_response(operation: crate::WorthServerCompletedProductOperation) -> Response {
+    let result = match operation.outcome() {
+        crate::WorthServerProductOperationOutcome::Success(success) => {
+            let artifact = success.result_artifact();
+            Some(json!({
+                "result_key": success.result_key(),
+                "schema_identity": artifact.contract().schema().identity(),
+                "schema_version": artifact.contract().schema().version(),
+                "encoding": artifact.contract().encoding().as_str(),
+                "canonicalization": artifact.contract().canonicalization().as_str(),
+                "body": artifact.body().value(),
+                "body_digest": artifact.body_digest(),
+                "artifact_digest": artifact.artifact_digest(),
+            }))
+        }
+        crate::WorthServerProductOperationOutcome::Denied(_)
+        | crate::WorthServerProductOperationOutcome::Failed(_) => None,
+    };
+    let durable_completion = operation.durable_mutation_receipt().map(|receipt| {
+        json!({
+            "disposition": receipt.disposition().as_str(),
+            "request_digest": receipt.request_digest(),
+            "completion_digest": receipt.completion_digest(),
+            "next_basis": receipt.next_basis().value(),
+            "product_commit_digest": receipt.product_commit_digest(),
+        })
+    });
+    response_with_headers(
+        Json(json!({
+            "route_kind": "product_operation",
+            "operation_name": operation.envelope().operation_name(),
+            "envelope_kind": format!("{:?}", operation.envelope().kind()),
+            "canonical_digest": operation.envelope().canonical_digest(),
+            "plan_digest": operation.plan().map(|plan| plan.canonical_digest()),
+            "result": result,
+            "durable_completion": durable_completion,
+        })),
+        semantic_headers(
+            "product_operation",
+            Some(operation.envelope().operation_name()),
+            operation.plan().map(|plan| plan.canonical_digest()),
+            Some(operation.envelope().canonical_digest()),
+            operation
+                .scheduler_admission()
+                .map(|admission| admission.scheduler_lane()),
+        ),
+    )
 }
 
 pub(super) fn operational_response(

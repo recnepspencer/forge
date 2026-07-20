@@ -1,24 +1,23 @@
 use std::sync::Arc;
 
 use crate::{
-    WorthServerAdmission, WorthServerOperationAdmissionFacade, WorthServerOperationFamily,
-    WorthServerOperationRegistry, WorthServerOperationRequestFacade,
-    WorthServerOperationSchedulerCounters, WorthServerProductOperationSurfaceDenial,
+    WorthServerAdmission, WorthServerCompletedProductOperation,
+    WorthServerExecutedProductReadBatch, WorthServerLoweredProductOperationPlan,
+    WorthServerOperationAdmissionFacade, WorthServerOperationFamily, WorthServerOperationRegistry,
+    WorthServerOperationRequestFacade, WorthServerOperationSchedulerCounters,
+    WorthServerProductAdapterRegistry, WorthServerProductApplicationAdapter,
+    WorthServerProductOperationDeclaration, WorthServerProductOperationInput,
+    WorthServerProductOperationOutcome, WorthServerProductOperationSurfaceDenial,
     WorthServerProductOperationSurfaceDenialCode, WorthServerQueryHandoffConfig,
+    WorthServerScheduledProductOperation,
 };
 
 use super::{
-    runtime_support::{
-        build_envelope, build_request_input, close_product_operation_readiness,
-        declaration_metadata, validate_payload_schema,
-    },
-    WorthServerCompletedProductOperation, WorthServerExecutedProductReadBatch,
-    WorthServerLoweredProductOperationPlan, WorthServerProductAdapterRegistry,
-    WorthServerProductApplicationAdapter, WorthServerProductOperationInput,
-    WorthServerProductOperationOutcome, WorthServerScheduledProductOperation,
+    build_envelope, build_request_input, close_product_operation_readiness, declaration_metadata,
+    validate_payload_schema, validate_success_result,
 };
 
-pub(super) fn execute_shared_read_batch_from_worth_native(
+pub(in crate::product_adapter) fn execute_shared_read_batch_from_worth_native(
     operation_registry: &WorthServerOperationRegistry,
     adapter_registry: &WorthServerProductAdapterRegistry,
     query_handoff_config: &WorthServerQueryHandoffConfig,
@@ -48,8 +47,8 @@ pub(super) fn execute_shared_read_batch_from_worth_native(
             .collect::<Vec<_>>()
             .into_iter()
             .map(|handle| handle.join().expect("shared read slot thread should join"))
-            .collect::<Vec<_>>()
-    });
+            .collect::<Result<Vec<_>, _>>()
+    })?;
     counters.increment_completed_read_slot_count_by(operations.len());
     Ok(WorthServerExecutedProductReadBatch::new(
         operations, counters,
@@ -58,7 +57,7 @@ pub(super) fn execute_shared_read_batch_from_worth_native(
 
 struct WorthServerPreparedProductReadSlot {
     adapter: Arc<dyn WorthServerProductApplicationAdapter>,
-    declaration: super::WorthServerProductOperationDeclaration,
+    declaration: WorthServerProductOperationDeclaration,
     scheduled: WorthServerScheduledProductOperation,
 }
 
@@ -139,12 +138,15 @@ fn prepare_shared_read_slot(
 
 fn execute_shared_read_slot(
     slot: WorthServerPreparedProductReadSlot,
-) -> WorthServerCompletedProductOperation {
+) -> Result<WorthServerCompletedProductOperation, WorthServerProductOperationSurfaceDenial> {
     let outcome = match slot.adapter.execute(&slot.scheduled) {
-        Ok(success) => WorthServerProductOperationOutcome::Success(success),
+        Ok(success) => {
+            validate_success_result(&slot.declaration, &success)?;
+            WorthServerProductOperationOutcome::Success(success)
+        }
         Err(error) => slot.declaration.error_map().map_error(error),
     };
     let envelope = build_envelope(&slot.scheduled, &outcome);
-    WorthServerCompletedProductOperation::new(outcome, envelope)
-        .with_scheduled_operation(&slot.scheduled)
+    Ok(WorthServerCompletedProductOperation::new(outcome, envelope)
+        .with_scheduled_operation(&slot.scheduled))
 }

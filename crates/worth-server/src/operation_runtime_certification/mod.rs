@@ -17,7 +17,7 @@ pub use closeout_digest::WorthServerOperationRuntimeCloseoutDigest;
 pub use facade::WorthServerProductOperationRuntimeCertificationFacade;
 pub use no_product_semantics::WorthServerNoProductSemanticsCertification;
 pub use product_editor_evidence::{
-    WorthServerProductIdempotentReplayCertificationProof,
+    WorthServerProductIdempotentRetryCertificationProof,
     WorthServerProductMutationCertificationProof,
     WorthServerProductPressureShapeCertificationProof,
     WorthServerProductRouteParityCertificationProof, WorthServerProductRouteParityEntry,

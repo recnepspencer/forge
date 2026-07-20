@@ -30,6 +30,7 @@ pub trait WorthServerProductOperationErrorMap: Send + Sync + 'static {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerProductAdapterExecutionError {
     Denied(WorthServerProductOperationDenial),
+    InvalidResultArtifact(crate::WorthServerProductResultArtifactError),
     Failed { reason_key: String, detail: String },
 }
 
@@ -43,6 +44,10 @@ impl WorthServerProductAdapterExecutionError {
             reason_key: reason_key.into(),
             detail: detail.into(),
         }
+    }
+
+    pub fn invalid_result_artifact(error: crate::WorthServerProductResultArtifactError) -> Self {
+        Self::InvalidResultArtifact(error)
     }
 }
 
@@ -58,6 +63,12 @@ impl WorthServerProductOperationErrorMap for WorthServerDefaultProductOperationE
             WorthServerProductAdapterExecutionError::Denied(denial) => {
                 WorthServerProductOperationOutcome::Denied(
                     denial.with_code(WorthServerProductOperationDenialCode::ProductSemantic),
+                )
+            }
+            WorthServerProductAdapterExecutionError::InvalidResultArtifact(error) => {
+                WorthServerProductOperationOutcome::failed(
+                    "invalid_result_artifact",
+                    error.detail(),
                 )
             }
             WorthServerProductAdapterExecutionError::Failed { reason_key, detail } => {

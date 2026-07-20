@@ -13,6 +13,9 @@ use worth_server::{
     WorthServerProductSessionCreationRequest, WorthServerWorthNativeSession,
 };
 
+#[path = "../product_result/schema_bound_json.rs"]
+mod schema_bound_json;
+
 #[path = "../product_adapter_phase_nine/fixture.rs"]
 mod product_adapter_phase_nine_fixture;
 
@@ -45,6 +48,9 @@ impl StatefulEditorLikeBackend {
             WorthServerProductOperationDeclaration::product_read(
                 "product_editor.render",
                 "product-editor.render.v1",
+                product_adapter_phase_nine_fixture::result_contract(
+                    "product-editor.render.result.v1",
+                ),
                 worth_server::WorthServerProductOperationBasisKind::DurableProductDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("render-ready"),
             ),
@@ -53,6 +59,9 @@ impl StatefulEditorLikeBackend {
             WorthServerProductOperationDeclaration::product_read(
                 "product_editor.select",
                 "product-editor.select.v1",
+                product_adapter_phase_nine_fixture::result_contract(
+                    "product-editor.select.result.v1",
+                ),
                 worth_server::WorthServerProductOperationBasisKind::DurableProductDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("select-ready"),
             ),
@@ -61,6 +70,9 @@ impl StatefulEditorLikeBackend {
             WorthServerProductOperationDeclaration::product_read(
                 "product_editor.available_actions",
                 "product-editor.actions.v1",
+                product_adapter_phase_nine_fixture::result_contract(
+                    "product-editor.actions.result.v1",
+                ),
                 worth_server::WorthServerProductOperationBasisKind::DurableProductDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("actions-ready"),
             ),
@@ -69,6 +81,9 @@ impl StatefulEditorLikeBackend {
             WorthServerProductOperationDeclaration::product_mutation(
                 "product_editor.apply",
                 "product-editor.apply.v1",
+                product_adapter_phase_nine_fixture::result_contract(
+                    "product-editor.apply.result.v1",
+                ),
                 worth_server::WorthServerProductOperationBasisKind::ProductSessionDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("apply-ready"),
                 "draft",
@@ -78,6 +93,9 @@ impl StatefulEditorLikeBackend {
             WorthServerProductOperationDeclaration::product_mutation(
                 "product_editor.finalize",
                 "product-editor.finalize.v1",
+                product_adapter_phase_nine_fixture::result_contract(
+                    "product-editor.finalize.result.v1",
+                ),
                 worth_server::WorthServerProductOperationBasisKind::ProductSessionDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("finalize-ready"),
                 "draft",
@@ -101,20 +119,26 @@ impl WorthServerProductApplicationAdapter for StatefulEditorLikeBackend {
             .basis_digest()
             .unwrap_or("none");
         match plan.declaration().operation_name() {
-            "product_editor.render" => Ok(WorthServerProductOperationSuccess::new(
+            "product_editor.render" => product_success(
+                plan,
                 "product_editor.render",
-                format!(
-                    "render:{request_basis}:{}:{}",
-                    state.basis_digest(),
-                    state.title
-                ),
-            )),
+                json!({
+                    "request_basis": request_basis,
+                    "observed_basis": state.basis_digest(),
+                    "title": state.title,
+                }),
+            ),
             "product_editor.select" => {
                 let node = body.get("node").and_then(Value::as_str).unwrap_or("none");
-                Ok(WorthServerProductOperationSuccess::new(
+                product_success(
+                    plan,
                     "product_editor.select",
-                    format!("select:{node}:{}:{}", state.title, state.basis_digest()),
-                ))
+                    json!({
+                        "node": node,
+                        "title": state.title,
+                        "basis": state.basis_digest(),
+                    }),
+                )
             }
             "product_editor.available_actions" => {
                 let actions = if state.title == "Untitled" {
@@ -122,10 +146,14 @@ impl WorthServerProductApplicationAdapter for StatefulEditorLikeBackend {
                 } else {
                     "apply,finalize"
                 };
-                Ok(WorthServerProductOperationSuccess::new(
+                product_success(
+                    plan,
                     "product_editor.available_actions",
-                    format!("actions:{actions}:{}", state.basis_digest()),
-                ))
+                    json!({
+                        "actions": actions.split(',').collect::<Vec<_>>(),
+                        "basis": state.basis_digest(),
+                    }),
+                )
             }
             "product_editor.apply" => {
                 let title = body
@@ -134,10 +162,11 @@ impl WorthServerProductApplicationAdapter for StatefulEditorLikeBackend {
                     .unwrap_or("Untitled");
                 state.title = title.to_string();
                 state.revision += 1;
-                Ok(WorthServerProductOperationSuccess::new(
+                product_success(
+                    plan,
                     "product_editor.apply",
-                    state.basis_digest(),
-                ))
+                    json!({ "basis": state.basis_digest(), "title": state.title }),
+                )
             }
             "product_editor.finalize" => {
                 if body.get("confirm").and_then(Value::as_bool) != Some(true) {
@@ -149,10 +178,11 @@ impl WorthServerProductApplicationAdapter for StatefulEditorLikeBackend {
                     ));
                 }
                 state.revision += 1;
-                Ok(WorthServerProductOperationSuccess::new(
+                product_success(
+                    plan,
                     "product_editor.finalize",
-                    format!("finalized:{}", state.basis_digest()),
-                ))
+                    json!({ "status": "finalized", "basis": state.basis_digest() }),
+                )
             }
             operation_name => Err(WorthServerProductAdapterExecutionError::failed(
                 "unsupported_operation",
@@ -285,4 +315,17 @@ fn declared(
     declaration: WorthServerProductOperationDeclaration,
 ) -> WorthServerProductOperationDeclaration {
     declaration.with_error_map(WorthServerProductOperationErrorMaps::passthrough())
+}
+
+fn product_success(
+    plan: &worth_server::WorthServerLoweredProductOperationPlan,
+    result_key: &str,
+    body: Value,
+) -> Result<WorthServerProductOperationSuccess, WorthServerProductAdapterExecutionError> {
+    schema_bound_json::publish_schema_bound_json(
+        result_key,
+        plan.declaration().result_contract(),
+        plan.declaration().result_contract().schema().identity(),
+        body,
+    )
 }

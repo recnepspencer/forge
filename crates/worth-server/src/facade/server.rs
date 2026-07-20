@@ -109,8 +109,9 @@ impl WorthServer {
             self.runtime.assembly().product_session_registry().clone(),
             self.runtime
                 .assembly()
-                .product_operation_replay_store()
+                .product_operation_retry_store()
                 .clone(),
+            self.runtime.assembly().counters().clone(),
         )
     }
 
@@ -168,8 +169,9 @@ impl WorthServer {
             self.runtime.assembly().product_session_registry().clone(),
             self.runtime
                 .assembly()
-                .product_operation_replay_store()
+                .product_operation_retry_store()
                 .clone(),
+            self.runtime.assembly().counters().clone(),
             self.request_contexts(),
             self.middleware(),
             WorthServerDirectDeclarationIntakeFacade::new(
@@ -200,12 +202,13 @@ impl WorthServer {
                 .clone(),
             self.runtime
                 .assembly()
-                .product_operation_replay_store()
+                .product_operation_retry_store()
                 .clone(),
             self.runtime
                 .assembly()
                 .compat_http_binary_ingress_store()
                 .clone(),
+            self.runtime.assembly().counters().clone(),
         )
     }
 

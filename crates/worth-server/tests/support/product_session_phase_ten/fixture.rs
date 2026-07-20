@@ -18,6 +18,9 @@ use worth_server::{
     WorthServerWorthNativeSession, WorthServerWorthNativeSessionInput,
 };
 
+#[path = "../product_result/schema_bound_json.rs"]
+mod schema_bound_json;
+
 mod manual_clock;
 
 pub use manual_clock::ManualProductSessionClock;
@@ -205,6 +208,7 @@ pub fn session_backed_editor_registration(
         WorthServerProductOperationDeclaration::product_read(
             "product_editor.render_preview",
             "product-editor.render-preview.v1",
+            result_contract("product-editor.render-preview.result.v1"),
             WorthServerProductOperationBasisKind::ProductSessionDerived,
             WorthServerProductOperationSupportSnapshot::production_admitted("preview-session"),
         ),
@@ -213,6 +217,7 @@ pub fn session_backed_editor_registration(
         WorthServerProductOperationDeclaration::product_mutation(
             "product_editor.apply",
             "product-editor.apply.v1",
+            result_contract("product-editor.apply.result.v1"),
             WorthServerProductOperationBasisKind::ProductSessionDerived,
             WorthServerProductOperationSupportSnapshot::production_admitted("apply-session"),
             "draft",
@@ -264,19 +269,30 @@ impl WorthServerProductApplicationAdapter for SessionBackedEditorAdapter {
         worth_server::WorthServerProductAdapterExecutionError,
     > {
         self.calls.fetch_add(1, Ordering::Relaxed);
-        Ok(WorthServerProductOperationSuccess::new(
+        schema_bound_json::publish_schema_bound_json(
             operation.plan().declaration().operation_name(),
-            format!(
-                "{}:{}",
-                operation.plan().declaration().operation_name(),
-                operation
+            operation.plan().declaration().result_contract(),
+            operation
+                .plan()
+                .declaration()
+                .result_contract()
+                .schema()
+                .identity(),
+            json!({
+                "operation": operation.plan().declaration().operation_name(),
+                "product_session": operation
                     .plan()
                     .operation_admission()
                     .operation_request()
                     .identity()
                     .product_session_identity()
-                    .unwrap_or("none")
-            ),
-        ))
+                    .unwrap_or("none"),
+            }),
+        )
     }
+}
+
+fn result_contract(schema_identity: &str) -> worth_server::WorthServerProductResultContract {
+    worth_server::WorthServerProductResultContract::canonical_json(schema_identity, 1, 16 * 1024)
+        .expect("session-backed result contract should validate")
 }
