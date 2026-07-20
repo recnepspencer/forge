@@ -7,6 +7,7 @@
     "refresh:signal": "powershell -NoProfile -Command \"Set-Location ../../packages/worth-signal; npm run build:wasm\"",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "tsc -b && vite build --base=/worth-signals-demo/",
     "test:demo-docs": "node --test tests/demo_documentation_contract.test.mjs",
     "test:landing": "node --experimental-strip-types --test tests/landing_mobile_carousel.test.mjs",
     "test:demo5": "node --test tests/demo_five_concurrency.test.mjs",
