@@ -3,6 +3,10 @@
 The React adapter subscribes components to Worth Signals state. It does not
 copy that state into a second React-owned store.
 
+The published adapter supports React 18 and React 19. React and its type
+package remain application-owned dependencies; installing Worth Signals alone
+does not choose either version for the application.
+
 ## Stable Entry Points
 
 - `createReactSignalsStore(signals)`

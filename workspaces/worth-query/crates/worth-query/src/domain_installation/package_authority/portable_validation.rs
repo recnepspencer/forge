@@ -13,7 +13,7 @@ use crate::application::{
 use super::{
     WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
     WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
 };
 
 pub(super) struct WorthQueryPortablePackageDeclaration<'a, D> {
@@ -25,6 +25,7 @@ pub(super) struct WorthQueryPortablePackageDeclaration<'a, D> {
     pub(super) graph_obligations: &'a [WorthQueryDomainGraphObligationDefinition],
     pub(super) graph_read_operations: &'a [WorthQueryDomainGraphReadOperationDefinition],
     pub(super) declaration_families: &'a [WorthQueryDomainDeclarationFamilyDefinition],
+    pub(super) domain_operations: &'a [WorthQueryDomainOperationDefinitionRecord],
     pub(super) contribution_policy: &'a [WorthQueryDeclarationEntryContributionCategoryFamily],
 }
 
@@ -71,6 +72,9 @@ where
             definition.slot_key(),
             definition.canonical_part(),
         ));
+    }
+    for operation in package.domain_operations {
+        portable = portable.domain_operation(operation.definition().clone());
     }
     for category in package.contribution_policy {
         portable = portable.permits_contribution(category.as_str());

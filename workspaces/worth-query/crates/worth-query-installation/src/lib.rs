@@ -8,7 +8,10 @@
 
 mod admission;
 mod canonical_hash_encoding;
+mod domain_operation;
 mod generation;
+mod installed_domain_operation;
+mod installed_graph_participation;
 mod installed_index;
 mod installed_operation;
 mod package;
@@ -25,9 +28,16 @@ pub mod facade {
         WorthQueryInstallationAdmissionDenialKind, WorthQueryInstallationAdmissionProfile,
         WorthQueryInstallationSupportStatus,
     };
+    pub use crate::domain_operation::*;
     pub use crate::generation::{
         WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,
     };
+    pub use crate::installed_domain_operation::{
+        WorthQueryConditionalDependencyLookupDenial,
+        WorthQueryInstalledConditionalDependencyAuthority,
+        WorthQueryInstalledDomainOperationAuthority,
+    };
+    pub use crate::installed_graph_participation::WorthQueryInstalledGraphParticipationAuthority;
     pub use crate::installed_index::{
         WorthQueryInstalledPackageAuthority, WorthQueryInstalledPackageIndex,
         WorthQueryInstalledPackageIndexCounters, WorthQueryInstalledPackageIndexDenial,

@@ -9,8 +9,8 @@ use crate::transactions::data::{
     AspectDeltaRecordClass, CommitConflict, ConflictClass,
 };
 use worth_foundational::facade::{
-    AspectFieldLocator, AspectKey, AspectValueLocator, ContractValidatedAspectValue,
-    FieldLevelAspectPatch,
+    AspectBinding, AspectContract, AspectFieldLocator, AspectKey, AspectValueLocator,
+    ContractValidatedAspectValue, FieldLevelAspectPatch,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,6 +28,7 @@ pub(crate) struct CanonicalRecordAspectDelta {
 pub(crate) struct EvaluatedAspectBinding {
     pub(crate) aspect_key: AspectKey,
     pub(crate) contract: worth_foundational::AspectContract,
+    pub(crate) binding: AspectBinding,
     pub(crate) changed: bool,
     pub(crate) aspect_shape: worth_foundational::AspectShape,
     pub(crate) evidence: CanonicalAspectDeltaEvidence,
@@ -58,6 +59,10 @@ pub(crate) enum CanonicalAspectDeltaEvidence {
         locator: AspectValueLocator,
         transition: LifecycleTransitionClass,
     },
+    Structural {
+        locator: AspectValueLocator,
+        change: RecordStructuralChange,
+    },
     AuthoritativePatch {
         locator: AspectValueLocator,
         operation: AuthoritativePatchDeltaOperation,
@@ -67,7 +72,7 @@ pub(crate) enum CanonicalAspectDeltaEvidence {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum AuthoritativePatchDeltaOperation {
     WholeAspectSet { value: ContractValidatedAspectValue },
-    WholeAspectClear { aspect_key: AspectKey },
+    WholeAspectClear { contract: AspectContract },
     FieldLevelPatch { patch: FieldLevelAspectPatch },
 }
 

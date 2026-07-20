@@ -16,8 +16,10 @@ use crate::snapshot::TruthSnapshotIdentity;
 mod canonical;
 mod construction;
 mod core;
+mod semantic;
 mod target;
 
 pub use canonical::*;
 pub use core::*;
+pub use semantic::*;
 pub use target::*;

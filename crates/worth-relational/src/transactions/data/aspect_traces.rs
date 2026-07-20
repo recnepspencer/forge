@@ -59,6 +59,9 @@ pub enum AspectTraceEvidence {
     Lifecycle {
         transition: AspectLifecycleTransitionClass,
     },
+    Structural {
+        change: RecordStructuralChange,
+    },
     AuthoritativePatch {
         #[serde(with = "crate::aspect_wire::serde_canonical_aspect_value_locator")]
         locator: AspectValueLocator,

@@ -1,11 +1,9 @@
 {
   "schemaVersion": 2,
   "entrypoints": [
-    { "id": "forms_home", "doc": "forms/README.md", "visibility": "public" },
     { "id": "forms_overview", "doc": "forms/index.md", "visibility": "public" },
     { "id": "forms_glossary", "doc": "forms/glossary.md", "visibility": "supporting" },
-    { "id": "forms_recipes", "doc": "forms/recipes.md", "visibility": "supporting" },
-    { "id": "forms_milestone_crosswalk", "doc": "forms/milestone-crosswalk.md", "visibility": "engineering" }
+    { "id": "forms_recipes", "doc": "forms/recipes.md", "visibility": "supporting" }
   ],
   "features": [
     {

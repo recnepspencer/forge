@@ -65,6 +65,37 @@ source lineage, facts, receipt, and requirements together as one product.
 Extraction and authority binding happen inside Query. No consumer-visible
 canonicalization, planning, extraction, or success-envelope step exists.
 
+### Installed operation progression
+
+A publishing installed operation uses the same production projection machinery
+inside a stricter move-only progression:
+
+```rust
+let consumer = bound.consumer_projection_contract()?;
+let settled = bound
+    .execute(input, &mut workspace)
+    .unwrap()
+    .publish()
+    .unwrap()
+    .consume(consumer, read::project_facts().entity_identities())
+    .unwrap()
+    .settle()
+    .unwrap();
+```
+
+The compact chain shows the successful route. Production callers should match
+the typed `TransitionOutcome` at each phase.
+
+The consumer contract is minted from the exact bound operation before `bound`
+moves into execution. It retains operation support and runtime affinity.
+`publish` validates execution material against the installed canonical query,
+result shape, snapshot, basis, runtime, and generation. `consume` returns a
+progression wrapper around `WorthQueryConsumedProjectionAuthority`; it does not
+implement a second extraction path.
+
+Do not combine a consumer contract from one bind with a publication from an
+equivalent-looking bind. The capability identity is part of admission.
+
 ## Small Example
 
 ```rust
@@ -160,6 +191,7 @@ and counters. These accessors explain an authority; they cannot recreate one.
 
 ## Related Docs
 
+- [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
 - [Declarative Query Experience](declarative-query-experience.md)
 - [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)
 - [Consumer Kit](../foundations/consumer-kit.md)

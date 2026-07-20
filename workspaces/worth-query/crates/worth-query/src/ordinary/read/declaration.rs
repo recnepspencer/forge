@@ -56,6 +56,13 @@ impl WorthQueryReadDeclaration {
         self.intent
     }
 
+    pub(crate) fn clone_for_installed_execution(&self) -> Self {
+        Self {
+            identity: self.identity.clone(),
+            intent: self.intent.clone(),
+        }
+    }
+
     /// Split one declaration into the two single-use observations required by
     /// Query-owned comparison execution.
     ///

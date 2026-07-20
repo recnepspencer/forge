@@ -217,6 +217,7 @@ mod tests {
                 structural_change: RecordStructuralChange::Created,
                 authoritative_patch:
                     crate::publication::patch::data::PublishedAuthoritativePatch::empty(),
+                semantic_changes: Vec::new(),
                 contains_opaque_aspect: true,
                 detail: PatchDetail::DenseBitset(Vec::new()),
             },
@@ -225,6 +226,7 @@ mod tests {
                 structural_change: RecordStructuralChange::Updated,
                 authoritative_patch:
                     crate::publication::patch::data::PublishedAuthoritativePatch::empty(),
+                semantic_changes: Vec::new(),
                 contains_opaque_aspect: false,
                 detail: PatchDetail::DenseBitset(Vec::new()),
             },

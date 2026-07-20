@@ -18,6 +18,9 @@ use super::{
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::program::WorthQueryDerivedView;
 use crate::session_label::WorthQuerySessionLabel;
+
+mod conditional_execution;
+
 pub struct WorthQueryWorkspace {
     pub(super) name: String,
     pub(super) runtime: WorthQueryRuntime,
@@ -45,6 +48,10 @@ impl WorthQueryWorkspace {
 
     pub fn snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
         self.runtime.current_snapshot_identity()
+    }
+
+    pub(crate) fn runtime_authority_identity(&self) -> super::WorthQueryRuntimeAuthorityIdentity {
+        self.runtime.authority_identity
     }
 
     pub(crate) fn capture_branch_comparison_basis(

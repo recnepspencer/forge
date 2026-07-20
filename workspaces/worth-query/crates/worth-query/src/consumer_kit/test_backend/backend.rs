@@ -31,9 +31,16 @@ pub(super) struct WorthQueryInMemoryTestBackend {
 
 impl WorthQueryInMemoryTestBackend {
     pub(super) fn new(workspace: WorthQueryMemoryWorkspace) -> Self {
+        Self::with_support_profile(workspace, in_memory_test_backend_support_profile())
+    }
+
+    pub(super) fn with_support_profile(
+        workspace: WorthQueryMemoryWorkspace,
+        support_profile: WorthQueryRuntimeSupportProfile,
+    ) -> Self {
         Self {
             workspace,
-            support_profile: in_memory_test_backend_support_profile(),
+            support_profile,
             live_views: BTreeMap::new(),
         }
     }

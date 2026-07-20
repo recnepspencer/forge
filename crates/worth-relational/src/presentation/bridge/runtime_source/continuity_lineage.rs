@@ -30,7 +30,7 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
                 })?
                 .to_string(),
         );
-        let record = request
+        let record_identity = request
             .prior_slice()
             .relational_record_identity_parts()
             .ok_or_else(|| {
@@ -38,15 +38,19 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
                     BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
                     "relational bridge continuity requires typed record identity parts",
                 )
-            })
-            .and_then(|parts| {
-                record_ref_from_identity_parts(parts).map_err(|error| {
-                    BridgeLineageSourceError::new(
-                        BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                        error.to_string(),
-                    )
-                })
             })?;
+        if !self.admits_relational_partition(record_identity.partition_id()) {
+            return Err(BridgeLineageSourceError::new(
+                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                "relational bridge lineage request is outside the source partition authority",
+            ));
+        }
+        let record = record_ref_from_identity_parts(record_identity).map_err(|error| {
+            BridgeLineageSourceError::new(
+                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                error.to_string(),
+            )
+        })?;
         let RecordRef::Entity(entity_id) = record else {
             return Err(BridgeLineageSourceError::new(
                 BridgeLineageSourceErrorKind::UnsupportedContinuityClass,
@@ -97,6 +101,7 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
             .lineage_access()
             .visible_entity_ids_for_lineages_at_version(&resolution.resolved, snapshot_version_id)
             .into_iter()
+            .filter(|entity_id| self.admits_relational_partition(entity_id.partition_id.as_u32()))
             .map(|entity_id| {
                 BridgeHistoricalResolvedRecordIdentity::from_relational_record(record_ref_identity(
                     &RecordRef::Entity(entity_id),

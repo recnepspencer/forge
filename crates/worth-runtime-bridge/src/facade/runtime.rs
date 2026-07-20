@@ -21,6 +21,8 @@ pub struct RuntimeBridge {
     pub(crate) diagnostics: BridgeDiagnosticsFacade,
     pub(crate) diagnostic_sink: Arc<dyn DiagnosticSink>,
     pub(crate) committed_patch_source: Arc<dyn CommittedPatchSource>,
+    pub(crate) authoritative_source_profile:
+        Option<crate::input::envelope::BridgeAuthoritativeSourceProfile>,
     pub(crate) snapshot_read_source: Arc<dyn SnapshotReadSource>,
     pub(crate) snapshot_reader_pool: Option<Arc<dyn SnapshotReaderPool>>,
     pub(crate) signal_sink: Arc<dyn InvalidationSink>,
@@ -35,6 +37,10 @@ pub struct RuntimeBridge {
     pub(crate) aspect_registry: FrozenAspectMappingRegistry,
     pub(crate) subscription_family_registry: FrozenSubscriptionFamilyRegistry,
     pub(crate) signal_runtime_key: u64,
+    pub(crate) signal_aspect_lowering_owner: worth_signal::facade::SignalAspectLoweringOwner,
+    pub(crate) correspondence_allocations:
+        crate::correspondence::SharedCorrespondenceAllocationRegistry,
+    pub(crate) query_dependency_registry: crate::correspondence::AdmittedQueryDependencyRegistry,
 }
 
 impl std::fmt::Debug for RuntimeBridge {
@@ -75,5 +81,17 @@ impl std::fmt::Debug for RuntimeBridge {
                 &self.subscription_family_registry.registrations().len(),
             )
             .finish()
+    }
+}
+
+impl RuntimeBridge {
+    pub fn bind_signal_graph<'runtime, 'graph>(
+        &'runtime self,
+        graph: &'graph mut worth_signal::facade::SignalGraph,
+    ) -> Result<
+        crate::correspondence::BridgeSignalGraphBinding<'runtime, 'graph>,
+        crate::correspondence::BridgeCorrespondenceRebindRequired,
+    > {
+        crate::correspondence::BridgeSignalGraphBinding::admit(self, graph)
     }
 }

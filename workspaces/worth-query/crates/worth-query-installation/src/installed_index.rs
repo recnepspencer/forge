@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use sha2::{Digest, Sha256};
-
 mod authority;
+mod authority_validation;
 mod denial;
+mod index_identity;
 mod rebuild_report;
 
 pub use authority::WorthQueryInstalledPackageAuthority;
@@ -16,13 +16,13 @@ pub use rebuild_report::{
 };
 
 use crate::admission::WorthQueryAdmittedPortableDomainPackage;
-use crate::canonical_hash_encoding::hash_text_field;
+use crate::domain_operation::WorthQueryValidatedDomainOperation;
 use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
+use crate::installed_domain_operation::WorthQueryInstalledDomainOperationAuthority;
 use crate::installed_operation::WorthQueryInstalledOperationAuthority;
-use crate::package::{
-    WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind,
-    WorthQueryPortableDomainPackageIdentity,
-};
+use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
+
+use index_identity::{authority_nonce, index_identity};
 
 #[derive(Debug)]
 struct WorthQueryInstalledPackageRecord {
@@ -37,6 +37,7 @@ pub struct WorthQueryInstalledPackageIndex {
     packages: BTreeMap<String, WorthQueryInstalledPackageRecord>,
     definitions:
         BTreeMap<(WorthQueryPortableDefinitionKind, String, String), WorthQueryPortableDefinition>,
+    domain_operations: BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
     identity: String,
     counters: WorthQueryInstalledPackageIndexCounters,
     indexed_operation_lookups: AtomicUsize,
@@ -50,14 +51,19 @@ impl WorthQueryInstalledPackageIndex {
     ) -> Result<Self, WorthQueryInstalledPackageIndexDenial> {
         let mut records = BTreeMap::<String, WorthQueryInstalledPackageRecord>::new();
         let mut definitions = BTreeMap::new();
+        let mut domain_operations = BTreeMap::new();
         let mut counters = WorthQueryInstalledPackageIndexCounters::default();
 
         for package in packages {
             let owner = package.package().domain_identity().owner().to_string();
             counters.package_rows_examined += 1;
             if let Some(existing) = records.get(&owner) {
-                if existing.package.package().identity() == package.package().identity() {
-                    if existing.package.admission_identity() == package.admission_identity() {
+                if existing
+                    .package
+                    .package()
+                    .has_same_authoritative_meaning(package.package())
+                {
+                    if existing.package.has_same_admission_authority(&package) {
                         counters.equivalent_packages_converged += 1;
                         continue;
                     }
@@ -75,6 +81,13 @@ impl WorthQueryInstalledPackageIndex {
             for definition in package.package().definitions() {
                 counters.definition_rows_examined += 1;
                 admit_definition(&mut definitions, &owner, definition)?;
+            }
+            for operation in package.package().validated_domain_operations() {
+                counters.domain_operation_rows_examined += 1;
+                domain_operations.insert(
+                    (owner.clone(), operation.definition().identity().slot()),
+                    operation.clone(),
+                );
             }
 
             let authority_nonce = authority_nonce(
@@ -94,12 +107,20 @@ impl WorthQueryInstalledPackageIndex {
 
         counters.installed_package_count = records.len();
         counters.installed_definition_count = definitions.len();
-        let identity = index_identity(&runtime, generation, &records, &definitions);
+        counters.installed_domain_operation_count = domain_operations.len();
+        let identity = index_identity(
+            &runtime,
+            generation,
+            &records,
+            &definitions,
+            &domain_operations,
+        );
         Ok(Self {
             runtime,
             generation,
             packages: records,
             definitions,
+            domain_operations,
             identity,
             counters,
             indexed_operation_lookups: AtomicUsize::new(0),
@@ -116,6 +137,10 @@ impl WorthQueryInstalledPackageIndex {
 
     pub fn installed_definition_count(&self) -> usize {
         self.definitions.len()
+    }
+
+    pub fn installed_domain_operation_count(&self) -> usize {
+        self.domain_operations.len()
     }
 
     pub fn indexed_operation_lookups(&self) -> usize {
@@ -181,70 +206,39 @@ impl WorthQueryInstalledPackageIndex {
         })
     }
 
-    pub fn validate(
+    pub fn domain_operation(
         &self,
-        authority: &WorthQueryInstalledPackageAuthority,
-    ) -> Result<(), WorthQueryInstalledPackageIndexDenial> {
-        if authority.runtime_ordinal != self.runtime.ordinal() {
-            return Err(WorthQueryInstalledPackageIndexDenial::new(
-                WorthQueryInstalledPackageIndexDenialKind::ForeignRuntime,
-                &authority.owner,
-            ));
-        }
-        if authority.generation != self.generation {
-            return Err(WorthQueryInstalledPackageIndexDenial::new(
-                WorthQueryInstalledPackageIndexDenialKind::StaleGeneration,
-                &authority.owner,
-            ));
-        }
-        let record = self.packages.get(&authority.owner).ok_or_else(|| {
+        owner: &str,
+        operation_slot: &str,
+    ) -> Result<WorthQueryInstalledDomainOperationAuthority, WorthQueryInstalledPackageIndexDenial>
+    {
+        let record = self.packages.get(owner).ok_or_else(|| {
             WorthQueryInstalledPackageIndexDenial::new(
                 WorthQueryInstalledPackageIndexDenialKind::DomainNotInstalled,
-                &authority.owner,
+                owner,
             )
         })?;
-        if record.package.package().identity() != &authority.package_identity {
-            return Err(WorthQueryInstalledPackageIndexDenial::new(
-                WorthQueryInstalledPackageIndexDenialKind::PackageIdentityChanged,
-                &authority.owner,
-            ));
-        }
-        if record.package.admission_identity() != authority.admission_identity {
-            return Err(WorthQueryInstalledPackageIndexDenial::new(
-                WorthQueryInstalledPackageIndexDenialKind::AdmissionIdentityChanged,
-                &authority.owner,
-            ));
-        }
-        if record.authority_nonce != authority.authority_nonce {
-            return Err(WorthQueryInstalledPackageIndexDenial::new(
-                WorthQueryInstalledPackageIndexDenialKind::AuthorityMismatch,
-                &authority.owner,
-            ));
-        }
-        Ok(())
-    }
-
-    pub fn validate_operation(
-        &self,
-        authority: &WorthQueryInstalledOperationAuthority,
-    ) -> Result<(), WorthQueryInstalledPackageIndexDenial> {
-        let package = WorthQueryInstalledPackageAuthority {
-            runtime_ordinal: authority.runtime_ordinal,
-            generation: authority.generation,
-            owner: authority.owner.clone(),
-            package_identity: authority.package_identity.clone(),
-            admission_identity: authority.admission_identity.clone(),
-            authority_nonce: authority.package_authority_nonce,
-        };
-        self.validate(&package)?;
-        let current = self.operation(&authority.owner, &authority.operation_slot)?;
-        if current.operation_semantics != authority.operation_semantics {
-            return Err(WorthQueryInstalledPackageIndexDenial::new(
-                WorthQueryInstalledPackageIndexDenialKind::OperationSemanticsChanged,
-                &authority.operation_slot,
-            ));
-        }
-        Ok(())
+        self.indexed_operation_lookups
+            .fetch_add(1, Ordering::Relaxed);
+        let validated = self
+            .domain_operations
+            .get(&(owner.to_string(), operation_slot.to_string()))
+            .cloned()
+            .ok_or_else(|| {
+                WorthQueryInstalledPackageIndexDenial::new(
+                    WorthQueryInstalledPackageIndexDenialKind::OperationNotInstalled,
+                    operation_slot,
+                )
+            })?;
+        Ok(WorthQueryInstalledDomainOperationAuthority {
+            runtime_ordinal: self.runtime.ordinal(),
+            generation: self.generation,
+            owner: owner.to_string(),
+            package_identity: record.package.package().identity().clone(),
+            admission_identity: record.package.admission_identity().to_string(),
+            package_authority_nonce: record.authority_nonce,
+            validated,
+        })
     }
 
     pub fn rebuild(&self) -> Self {
@@ -290,54 +284,6 @@ fn admit_definition(
     }
     definitions.insert(key, definition.clone());
     Ok(())
-}
-
-fn authority_nonce(
-    runtime: &WorthQueryInstallationRuntimeIdentity,
-    generation: WorthQueryInstallationGeneration,
-    package: &WorthQueryPortableDomainPackageIdentity,
-    admission_identity: &str,
-) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(runtime.ordinal().to_le_bytes());
-    hasher.update(generation.ordinal().to_le_bytes());
-    hasher.update(package.as_str().as_bytes());
-    hasher.update(admission_identity.as_bytes());
-    hasher.finalize().into()
-}
-
-fn index_identity(
-    runtime: &WorthQueryInstallationRuntimeIdentity,
-    generation: WorthQueryInstallationGeneration,
-    records: &BTreeMap<String, WorthQueryInstalledPackageRecord>,
-    definitions: &BTreeMap<
-        (WorthQueryPortableDefinitionKind, String, String),
-        WorthQueryPortableDefinition,
-    >,
-) -> String {
-    let mut hasher = Sha256::new();
-    hash_text_field(&mut hasher, "runtime", &runtime.ordinal().to_string());
-    hash_text_field(&mut hasher, "generation", &generation.ordinal().to_string());
-    for (owner, record) in records {
-        hash_text_field(&mut hasher, "package-owner", owner);
-        hash_text_field(
-            &mut hasher,
-            "package-identity",
-            record.package.package().identity().as_str(),
-        );
-        hash_text_field(
-            &mut hasher,
-            "admission-identity",
-            record.package.admission_identity(),
-        );
-    }
-    for ((kind, owner, slot), definition) in definitions {
-        hash_text_field(&mut hasher, "definition-kind", kind.as_str());
-        hash_text_field(&mut hasher, "definition-owner", owner);
-        hash_text_field(&mut hasher, "definition-slot", slot);
-        hash_text_field(&mut hasher, "definition-semantics", definition.semantics());
-    }
-    format!("{:x}", hasher.finalize())
 }
 
 #[cfg(test)]

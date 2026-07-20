@@ -62,8 +62,9 @@ Tests: `lower_runtime_routing/certification/tests.rs`, UI `tests/ui/lower_runtim
 ## Good to Know
 
 - `certify_lower_runtime_routing` and acceptance suite are certification artifacts—apps use receipts and support matrix, not closeout manifests, in production paths.
-- Compile-fail boundary digests in certification enforce **non-bypass** from domain code.
-- UI golden transcripts stabilize inspection DX for agents.
+- Focused boundary tests enforce **non-bypass** from domain code, while
+  ordinary integration tests exercise the receipt path. Add a compiler fixture
+  only when compiler rejection itself is the public guarantee.
 
 ## Anti-Patterns
 
@@ -87,4 +88,5 @@ From `worth_query_lower_runtime_support_matrix()` (see `lower_runtime_routing/su
 - [Declaration bridge continuation routing](declaration-bridge-continuation-routing.md)
 - [Support matrix and admission](../foundations/support-matrix-and-admission.md)
 - [Contribution composed orchestration](contribution-composed-orchestration.md)
+- [Conditional Installed Operations](conditional-installed-operations.md)
 - [Public doc coverage](public-doc-coverage.md)

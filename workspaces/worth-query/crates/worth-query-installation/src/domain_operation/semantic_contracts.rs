@@ -1,0 +1,364 @@
+use worth_foundational::facade::{
+    AspectContractRevision, AspectIdentity, AspectKey, AspectMask, ProjectionMask,
+};
+use worth_query_declaration::facade::canonicalization::CanonicalQueryBundle;
+
+use super::WorthQueryOperationWorkflowContract;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryDomainOperationSemanticClosure {
+    pub parameters: WorthQueryOperationParameterContract,
+    pub native_projection: WorthQueryOperationNativeProjectionContract,
+    pub canonical_query: CanonicalQueryBundle,
+    pub collection: WorthQueryOperationCollectionContract,
+    pub required_capabilities: Vec<WorthQueryOperationCapabilityRequirement>,
+    pub required_domains: Vec<WorthQueryOperationRequiredDomainRole>,
+    pub workflow: WorthQueryOperationWorkflowContract,
+    pub conditional_nodes: Vec<super::WorthQueryPortableConditionalNodeDeclaration>,
+    pub graph_reads: WorthQueryOperationGraphReadContract,
+    pub touches: WorthQueryOperationTouchContract,
+    pub effects: WorthQueryOperationEffectContract,
+    pub invariants: WorthQueryOperationInvariantContract,
+    pub replay: WorthQueryOperationReplayContract,
+    pub reversal: WorthQueryOperationReversalContract,
+    pub lineage: WorthQueryOperationLineageContract,
+    pub promotion: WorthQueryOperationPromotionContract,
+    pub publication: WorthQueryOperationPublicationContract,
+    pub projection_consumption: WorthQueryOperationProjectionConsumptionContract,
+    pub terminal: WorthQueryOperationTerminalContract,
+    pub cost: WorthQueryOperationCostContract,
+    pub support: WorthQueryOperationSupportRequirements,
+    pub lowering: WorthQueryOperationLoweringContract,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum WorthQueryOperationCapabilityRequirement {
+    QueryRead,
+    QueryComposition,
+    QueryContext,
+    IdentityEvolution,
+    LiveQuery,
+    PreviewSession,
+    WorkflowOrchestration,
+    HistoricalEvaluation,
+    DurableArtifacts,
+}
+
+impl WorthQueryOperationCapabilityRequirement {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::QueryRead => "query_read",
+            Self::QueryComposition => "query_composition",
+            Self::QueryContext => "query_context",
+            Self::IdentityEvolution => "identity_evolution",
+            Self::LiveQuery => "live_query",
+            Self::PreviewSession => "preview_session",
+            Self::WorkflowOrchestration => "workflow_orchestration",
+            Self::HistoricalEvaluation => "historical_evaluation",
+            Self::DurableArtifacts => "durable_artifacts",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct WorthQueryOperationRequiredDomainRole(String);
+
+impl WorthQueryOperationRequiredDomainRole {
+    pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err("empty-required-domain-role");
+        }
+        Ok(Self(value))
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationParameterContract {
+    NotRequired,
+    Declared {
+        fields: Vec<WorthQueryOperationParameterField>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct WorthQueryOperationParameterField {
+    pub name: String,
+    pub value_family: WorthQueryOperationValueFamily,
+    pub required: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum WorthQueryOperationValueFamily {
+    Bool,
+    I64,
+    U64,
+    Text,
+    EntityIdentity,
+    NativeAspect {
+        key: AspectKey,
+        identity: AspectIdentity,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationNativeProjectionContract {
+    pub aspect_key: AspectKey,
+    pub aspect_identity: AspectIdentity,
+    pub contract_revision: AspectContractRevision,
+    pub mask: AspectMask<ProjectionMask>,
+}
+
+impl WorthQueryOperationNativeProjectionContract {
+    pub(crate) fn canonical_key(&self) -> String {
+        let mask = if self.mask.is_whole_aspect() {
+            "whole".to_string()
+        } else {
+            self.mask
+                .paths()
+                .iter()
+                .map(|path| {
+                    path.fields()
+                        .iter()
+                        .map(|field| field.as_str())
+                        .collect::<Vec<_>>()
+                        .join(".")
+                })
+                .collect::<Vec<_>>()
+                .join("|")
+        };
+        format!(
+            "{}|{}|{}|{}",
+            self.aspect_key.as_str(),
+            self.aspect_identity.0,
+            self.contract_revision.0,
+            mask
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationCollectionContract {
+    NotCollection,
+    Collection {
+        row_identity_field: String,
+        ordering_fields: Vec<String>,
+        continuation: WorthQueryOperationContinuationPosture,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationContinuationPosture {
+    NotRequired,
+    SnapshotCursor,
+    LiveCursor,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationGraphReadContract {
+    NotRequired,
+    Declared {
+        roles: Vec<WorthQueryOperationGraphReadRole>,
+    },
+}
+
+impl WorthQueryOperationGraphReadContract {
+    pub fn roles(&self) -> &[WorthQueryOperationGraphReadRole] {
+        match self {
+            Self::NotRequired => &[],
+            Self::Declared { roles } => roles,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationGraphReadRole {
+    pub role: String,
+    pub participation: WorthQueryOperationGraphParticipation,
+    pub access: WorthQueryOperationGraphAccess,
+    pub semantic_reads: Vec<WorthQueryOperationNativeProjectionContract>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum WorthQueryOperationGraphParticipation {
+    PrimaryLogicalGraph,
+    SeparateAuthority { role: String },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum WorthQueryOperationGraphAccess {
+    Observe,
+    Project,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationTouchContract {
+    NotRequired,
+    Declared {
+        graph_roles: Vec<String>,
+        scopes: Vec<String>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationEffectContract {
+    NotRequired,
+    Declared {
+        effect_families: Vec<WorthQueryOperationEffectFamily>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum WorthQueryOperationEffectFamily {
+    Mutation,
+    Merge,
+    Writeback,
+}
+
+impl WorthQueryOperationEffectFamily {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Mutation => "mutation",
+            Self::Merge => "merge",
+            Self::Writeback => "writeback",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationInvariantContract {
+    NotRequired,
+    Declared { invariant_slots: Vec<String> },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationReplayContract {
+    NotSupported,
+    ReExecutable,
+    CertReplayable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationReversalContract {
+    Irreversible,
+    ProvisionalDiscard,
+    ExactInverse { lowering_family: String },
+    Compensation { operation: String },
+    RebuildRequired { recovery_family: String },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationLineageContract {
+    NotRequired,
+    Preserve,
+    Evolve,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationPromotionContract {
+    NotRequired,
+    OnDurableReference,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationPublicationContract {
+    NotRequired,
+    DerivedProjection {
+        projection_role: WorthQueryOperationProjectionRole,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct WorthQueryOperationProjectionRole(String);
+
+impl WorthQueryOperationProjectionRole {
+    pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err("empty-operation-projection-role");
+        }
+        Ok(Self(value))
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationProjectionConsumptionContract {
+    NotRequired,
+    QueryReadAuthority,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationTerminalContract {
+    pub result_states: Vec<WorthQueryOperationResultState>,
+    pub failure_classes: Vec<WorthQueryOperationFailureClass>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum WorthQueryOperationResultState {
+    Ready,
+    Advisory,
+    Pending,
+    Partial,
+    Violation,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum WorthQueryOperationFailureClass {
+    InvalidInput,
+    Unsupported,
+    Conflict,
+    Dependency,
+    Indeterminate,
+    Domain(String),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationCostContract {
+    pub lookup: WorthQueryOperationCostClass,
+    pub execution: WorthQueryOperationCostClass,
+    pub result_width: WorthQueryOperationCostClass,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationCostClass {
+    Constant,
+    DeclaredWidth,
+    GraphBreadth,
+    ExternalBoundary,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationSupportRequirements {
+    pub live: WorthQuerySupportRequirement,
+    pub continuation: WorthQuerySupportRequirement,
+    pub async_result_state: WorthQuerySupportRequirement,
+    pub recovery: WorthQuerySupportRequirement,
+    pub inspection: WorthQuerySupportRequirement,
+    pub projection_consumption: WorthQuerySupportRequirement,
+    pub dependency_impact: WorthQuerySupportRequirement,
+    pub sharing: WorthQuerySupportRequirement,
+    pub invalidation: WorthQuerySupportRequirement,
+    pub collection_delivery: WorthQuerySupportRequirement,
+    pub conditional_evaluation: WorthQuerySupportRequirement,
+    pub conditional_comparator: WorthQuerySupportRequirement,
+    pub conditional_trigger: WorthQuerySupportRequirement,
+    pub conditional_temporal_or_on_demand: WorthQuerySupportRequirement,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQuerySupportRequirement {
+    NotRequired,
+    Required,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationLoweringContract {
+    pub family: String,
+    pub deterministic: bool,
+}

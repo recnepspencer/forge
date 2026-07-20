@@ -4,7 +4,9 @@ mod derived;
 mod evidence;
 mod material;
 
-pub(crate) use material::{append_struct_value_material, append_value_material};
+pub(crate) use material::{
+    append_struct_value_material, append_value_material, basis_sequence_material,
+};
 
 pub use admission::{
     admit_canonical_bundle_digest_derivation, admit_canonical_export_digest_derivation,

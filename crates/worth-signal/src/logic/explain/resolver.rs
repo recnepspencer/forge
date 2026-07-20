@@ -226,17 +226,17 @@ fn explain_with_policy_resolver_mode(
                     });
                 }
             }
-            VersionComparatorPolicy::OutputIdentity | VersionComparatorPolicy::Custom { .. } => {
-                upstream.push(UpstreamCause::Changed {
-                    source: dependency.source(),
-                    aspect: dependency.aspect(),
-                    subscription: subscription.clone(),
-                    cached_version,
-                    current_version,
-                    comparator: policy.clone(),
-                    reason: reason_for_policy(&policy, explicit_comparator),
-                })
-            }
+            VersionComparatorPolicy::OutputIdentity
+            | VersionComparatorPolicy::Custom { .. }
+            | VersionComparatorPolicy::Installed { .. } => upstream.push(UpstreamCause::Changed {
+                source: dependency.source(),
+                aspect: dependency.aspect(),
+                subscription: subscription.clone(),
+                cached_version,
+                current_version,
+                comparator: policy.clone(),
+                reason: reason_for_policy(&policy, explicit_comparator),
+            }),
         }
     }
 

@@ -13,6 +13,7 @@ use super::{InstalledGraphReadOperation, WorthQueryGraphReadOperationKey};
 pub(super) fn execution_index_identity(
     packages: &[String],
     operations: &BTreeMap<WorthQueryGraphReadOperationKey, InstalledGraphReadOperation>,
+    domain_operations: &[String],
     families: &BTreeMap<InstalledDeclarationFamilySlot, String>,
     policies: &BTreeMap<InstalledDomainOwner, Vec<String>>,
     invariants: &BTreeMap<InstalledInvariantSlot, String>,
@@ -25,6 +26,10 @@ pub(super) fn execution_index_identity(
             operations
                 .values()
                 .map(|operation| operation.registration.digest_part()),
+        )
+        .field_value_sequence(
+            WorthQueryEvidenceTag::new("domain_operation"),
+            domain_operations,
         )
         .field_value_sequence(
             WorthQueryEvidenceTag::new("family"),

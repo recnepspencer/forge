@@ -4,6 +4,7 @@ pub enum WorthQueryPortableDefinitionKind {
     GraphObligation,
     GraphReadOperation,
     DeclarationFamily,
+    DomainOperation,
 }
 
 impl WorthQueryPortableDefinitionKind {
@@ -13,6 +14,7 @@ impl WorthQueryPortableDefinitionKind {
             Self::GraphObligation => "graph-obligation",
             Self::GraphReadOperation => "graph-read-operation",
             Self::DeclarationFamily => "declaration-family",
+            Self::DomainOperation => "domain-operation",
         }
     }
 }

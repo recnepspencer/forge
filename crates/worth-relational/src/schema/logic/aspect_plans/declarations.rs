@@ -258,6 +258,25 @@ fn validate_declared_aspect(
                 ));
             }
         }
+        AspectBinding::StructuralRegion
+        | AspectBinding::StructuralPartition
+        | AspectBinding::StructuralFacet => {
+            if !matches!(
+                aspect.contract.shape(),
+                AspectShape::Scalar(ScalarAspectType::String)
+            ) {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "structural bindings require scalar string foundational contracts",
+                ));
+            }
+        }
+        _ => {
+            return Err(SchemaRegistryError::invalid_aspect_declaration(
+                kind_id,
+                "unsupported authoritative aspect binding",
+            ));
+        }
     }
     Ok(())
 }

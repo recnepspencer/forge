@@ -37,6 +37,7 @@ control.
 
 Main domains:
 
+- semantic aspect correspondence and conditional lowering
 - runtime policy and diagnostics tiers
 - truth-view declarations and materialization
 - bulk planning and delivery
@@ -47,6 +48,7 @@ Main domains:
 Primary guides:
 
 - [`API_OVERVIEW.md`](./API_OVERVIEW.md)
+- [`SEMANTIC_CORRESPONDENCE_AND_CONDITIONAL_EXECUTION.md`](./SEMANTIC_CORRESPONDENCE_AND_CONDITIONAL_EXECUTION.md)
 - [`ROUTING_AND_EVALUATION.md`](./ROUTING_AND_EVALUATION.md)
 - [`BRANCHING_AND_SPECULATION.md`](./BRANCHING_AND_SPECULATION.md)
 - [`WRITEBACK_AND_PROMOTION.md`](./WRITEBACK_AND_PROMOTION.md)

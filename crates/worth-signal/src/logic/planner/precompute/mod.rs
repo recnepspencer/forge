@@ -433,6 +433,9 @@ fn prepare_condition_outcome_if_blocked(
                 )
             }
         }
+        EvaluationCondition::Installed(_) => Err(SignalError::invalid_input(
+            "installed conditions require the owner-bound conditional execution entry point",
+        )),
     }
 }
 

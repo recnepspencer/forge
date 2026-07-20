@@ -286,4 +286,5 @@ Query surfaces attach to them.
 - [Grouped Authoring](./grouped-authoring.md)
 - [Recovery Boundary](./recovery-boundary.md)
 - [Recovery Overview](./recovery/README.md)
+- [Runtime-Installed Domains And Operations](./runtime-installed-domains.md)
 - [Public Doc Coverage](./public-doc-coverage.md)

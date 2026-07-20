@@ -1,54 +1,85 @@
 use crate::history::data::{BranchId, CommitId};
-use crate::logic::runtime::RelationalReplayRecord;
-use crate::publication::bundle::PublicationBundle;
 use crate::publication::patch::data::{
-    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+    PublishedAspectChangePrecision, PublishedAuthoritativePatchEnvelope,
+    PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
+#[cfg(test)]
 use crate::replay::data::CanonicalCommitEnvelope;
-use worth_foundational::facade::{AspectKey, AspectLocator, LocatorAuthority};
+use worth_foundational::facade::{AspectLocator, LocatorAuthority};
+use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::{
-    BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
-    BridgeCommittedPatchTarget, TruthBranchIdentity, TruthCommitIdentity, TruthDeltaSurfaceKind,
+    BridgeAspectChangeWideningCause, BridgeCommittedPatchEnvelope,
+    BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, BridgeCommittedPatchTarget,
+    BridgeCommittedRecordChange, BridgeCommittedRecordChangeKind, BridgeProducerMetadata,
+    BridgeRouteError, BridgeSemanticAspectChange, TruthBranchIdentity, TruthCommitIdentity,
     TruthPatchIdentity, TruthSnapshotIdentity,
 };
 
-use super::identities::{
-    bridge_snapshot_identity_for_commit, bridge_snapshot_identity_for_handle, record_ref_identity,
-};
+#[cfg(test)]
+use super::identities::bridge_snapshot_identity_for_commit;
+use super::identities::record_ref_identity;
+use super::patch_semantic_validation::validate_authoritative_patch_semantics;
 
-pub fn publication_patch_to_bridge_envelope(
+#[cfg(test)]
+pub(crate) fn publication_patch_to_bridge_envelope(
     commit_id: CommitId,
     branch_id: &BranchId,
     snapshot_identity: TruthSnapshotIdentity,
     patch: &PublishedAuthoritativePatchEnvelope,
-) -> BridgeCommittedPatchEnvelope {
-    let envelope_identity = BridgeCommittedPatchEnvelopeIdentity::new(
+) -> TransitionOutcome<BridgeCommittedPatchEnvelope, BridgeRouteError> {
+    publication_patch_to_bridge_envelope_with_widening(
+        commit_id,
+        branch_id,
+        snapshot_identity,
+        patch,
+        None,
+        BridgeProducerMetadata::bridge_harness_fixture(),
+        patch.authoritative_record_patches.len() as u64,
+        0,
+    )
+}
+
+pub(super) fn publication_patch_to_bridge_envelope_with_widening(
+    commit_id: CommitId,
+    branch_id: &BranchId,
+    snapshot_identity: TruthSnapshotIdentity,
+    patch: &PublishedAuthoritativePatchEnvelope,
+    admitted_widening: Option<BridgeAspectChangeWideningCause>,
+    producer_metadata: BridgeProducerMetadata,
+    source_record_patches_examined: u64,
+    source_record_patches_filtered_out: u64,
+) -> TransitionOutcome<BridgeCommittedPatchEnvelope, BridgeRouteError> {
+    let identity = BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+        producer_metadata,
         TruthCommitIdentity::from_relational_commit_id(commit_id.0),
         TruthPatchIdentity::from_relational_patch_position(patch.position.0),
         snapshot_identity,
         TruthBranchIdentity::from_relational_branch_id(branch_id.0.clone()),
     );
-    BridgeCommittedPatchEnvelope::new(
-        envelope_identity,
-        bridge_patch_items(&patch.canonicalized().authoritative_record_patches),
-    )
-    .expect("relational publication must export native bridge committed patch targets")
+    let canonical = patch.canonicalized();
+    let mut counters = match validate_authoritative_patch_semantics(&canonical, admitted_widening) {
+        Ok(counters) => counters,
+        Err(denial) => return TransitionOutcome::Denied(denial),
+    };
+    counters.source_record_patches_examined = source_record_patches_examined;
+    counters.source_record_patches_filtered_out = source_record_patches_filtered_out;
+    let items = bridge_patch_items(&canonical.authoritative_record_patches, admitted_widening);
+    let record_changes = bridge_record_changes(&canonical.authoritative_record_patches);
+    match BridgeCommittedPatchEnvelope::new_with_authoritative_lowering(
+        identity,
+        items,
+        record_changes,
+        counters,
+    ) {
+        Ok(envelope) => TransitionOutcome::Success(envelope),
+        Err(denial) => TransitionOutcome::Denied(denial),
+    }
 }
 
-pub fn publication_bundle_to_bridge_envelope(
-    bundle: &PublicationBundle<RelationalReplayRecord>,
-) -> BridgeCommittedPatchEnvelope {
-    publication_patch_to_bridge_envelope(
-        bundle.commit.commit_id,
-        &bundle.commit.branch_id,
-        bridge_snapshot_identity_for_handle(&bundle.snapshot),
-        &bundle.patch,
-    )
-}
-
-pub fn commit_envelope_to_bridge_envelope(
+#[cfg(test)]
+pub(crate) fn commit_envelope_to_bridge_envelope(
     envelope: &CanonicalCommitEnvelope,
-) -> BridgeCommittedPatchEnvelope {
+) -> TransitionOutcome<BridgeCommittedPatchEnvelope, BridgeRouteError> {
     publication_patch_to_bridge_envelope(
         envelope.commit.commit_id,
         &envelope.commit.branch_id,
@@ -58,73 +89,92 @@ pub fn commit_envelope_to_bridge_envelope(
 }
 
 fn bridge_patch_items(
-    authoritative_record_patches: &[PublishedAuthoritativeRecordPatch],
+    records: &[PublishedAuthoritativeRecordPatch],
+    admitted_widening: Option<BridgeAspectChangeWideningCause>,
 ) -> Vec<BridgeCommittedPatchItem> {
-    let mut items = Vec::new();
-    for record in authoritative_record_patches {
-        let record_identity = record_ref_identity(&record.target);
-        let changed_aspects = record.authoritative_changed_aspects();
-        if changed_aspects.is_empty() {
-            items.push(BridgeCommittedPatchItem::with_relational_record_target(
-                record_identity,
-                BridgeCommittedPatchTarget::entity_facet(authoritative_aspect_locator(
-                    lifecycle_aspect_key(),
-                )),
-            ));
-            continue;
-        }
-
-        for aspect in changed_aspects.iter() {
-            items.push(BridgeCommittedPatchItem::with_relational_record_target(
-                record_identity,
-                bridge_whole_aspect_target(
-                    authoritative_aspect_locator(aspect.clone()),
-                    structural_change_surface_kind(record),
-                ),
-            ));
-        }
-    }
-    items
+    records
+        .iter()
+        .flat_map(|record| {
+            let record_identity = record_ref_identity(&record.target);
+            record.semantic_changes.iter().map(move |change| {
+                let locator = AspectLocator::new(
+                    LocatorAuthority::Authoritative,
+                    change.aspect_key().clone(),
+                );
+                let target = match change.field_path() {
+                    Some(path) => BridgeCommittedPatchTarget::entity_field_path(locator, path.clone()),
+                    None if matches!(
+                        change.kind(),
+                        worth_foundational::facade::AuthoritativeAspectChangeKind::RelationSourceEndpoint
+                            | worth_foundational::facade::AuthoritativeAspectChangeKind::RelationTargetEndpoint
+                    ) => BridgeCommittedPatchTarget::entity_relation_endpoint(locator),
+                    None => match change.binding() {
+                        worth_foundational::facade::AspectBinding::StructuralRegion => {
+                            BridgeCommittedPatchTarget::entity_region(locator)
+                        }
+                        worth_foundational::facade::AspectBinding::StructuralPartition => {
+                            BridgeCommittedPatchTarget::entity_partition(locator)
+                        }
+                        worth_foundational::facade::AspectBinding::StructuralFacet => {
+                            BridgeCommittedPatchTarget::entity_facet(locator)
+                        }
+                        worth_foundational::facade::AspectBinding::LifecycleTransition => {
+                            BridgeCommittedPatchTarget::lifecycle_transition(locator)
+                        }
+                        _ => BridgeCommittedPatchTarget::authoritative_aspect(locator),
+                    },
+                };
+                let semantic = match (change.precision(), change.kind(), admitted_widening) {
+                    (
+                        PublishedAspectChangePrecision::Exact,
+                        worth_foundational::facade::AuthoritativeAspectChangeKind::Opaque,
+                        Some(cause),
+                    ) => BridgeSemanticAspectChange::from_declared_authoritative_widening(
+                        change.aspect_key().clone(),
+                        change.aspect_identity(),
+                        change.contract_revision(),
+                        change.binding().clone(),
+                        change.kind(),
+                        change.field_path().cloned(),
+                        cause,
+                    ),
+                    _ => BridgeSemanticAspectChange::from_authoritative_publication(
+                        change.aspect_key().clone(),
+                        change.aspect_identity(),
+                        change.contract_revision(),
+                        change.binding().clone(),
+                        change.kind(),
+                        change.field_path().cloned(),
+                    ),
+                };
+                BridgeCommittedPatchItem::with_relational_semantic_change(
+                    record_identity,
+                    target,
+                    semantic,
+                )
+            })
+        })
+        .collect()
 }
 
-fn authoritative_aspect_locator(aspect_key: AspectKey) -> AspectLocator {
-    AspectLocator::new(LocatorAuthority::Authoritative, aspect_key)
-}
-
-fn bridge_whole_aspect_target(
-    aspect_locator: AspectLocator,
-    surface_kind: TruthDeltaSurfaceKind,
-) -> BridgeCommittedPatchTarget {
-    match surface_kind {
-        TruthDeltaSurfaceKind::EntityRelationEndpoint => {
-            BridgeCommittedPatchTarget::entity_relation_endpoint(aspect_locator)
-        }
-        TruthDeltaSurfaceKind::EntityRegion => {
-            BridgeCommittedPatchTarget::entity_region(aspect_locator)
-        }
-        TruthDeltaSurfaceKind::EntityPartition => {
-            BridgeCommittedPatchTarget::entity_partition(aspect_locator)
-        }
-        TruthDeltaSurfaceKind::EntityFacet => {
-            BridgeCommittedPatchTarget::entity_facet(aspect_locator)
-        }
-        TruthDeltaSurfaceKind::EntityField => {
-            panic!("relational structural publication cannot emit field targets")
-        }
-    }
-}
-
-fn lifecycle_aspect_key() -> AspectKey {
-    AspectKey::new("lifecycle").expect("lifecycle is a valid bridge aspect key")
-}
-
-fn structural_change_surface_kind(
-    record: &PublishedAuthoritativeRecordPatch,
-) -> TruthDeltaSurfaceKind {
-    match record.structural_change {
-        RecordStructuralChange::Created
-        | RecordStructuralChange::Updated
-        | RecordStructuralChange::Deleted => TruthDeltaSurfaceKind::EntityRegion,
-        RecordStructuralChange::RetainedForAudit => TruthDeltaSurfaceKind::EntityFacet,
-    }
+fn bridge_record_changes(
+    records: &[PublishedAuthoritativeRecordPatch],
+) -> Vec<BridgeCommittedRecordChange> {
+    records
+        .iter()
+        .map(|record| {
+            let kind = match record.structural_change {
+                RecordStructuralChange::Created => BridgeCommittedRecordChangeKind::Created,
+                RecordStructuralChange::Updated => BridgeCommittedRecordChangeKind::Updated,
+                RecordStructuralChange::Deleted => BridgeCommittedRecordChangeKind::Deleted,
+                RecordStructuralChange::RetainedForAudit => {
+                    BridgeCommittedRecordChangeKind::RetainedForAudit
+                }
+            };
+            BridgeCommittedRecordChange::from_relational_publication(
+                record_ref_identity(&record.target),
+                kind,
+            )
+        })
+        .collect()
 }

@@ -8,6 +8,12 @@ use worth_runtime_bridge::facade::{
     TruthSnapshotIdentity,
 };
 
+pub(crate) fn relational_bridge_adapter_identity(runtime_instance_id: u64) -> std::sync::Arc<str> {
+    std::sync::Arc::from(format!(
+        "worth-relational-bridge-adapter-v1|runtime={runtime_instance_id}"
+    ))
+}
+
 pub fn bridge_snapshot_identity_for_handle(handle: &SnapshotHandle) -> TruthSnapshotIdentity {
     bridge_snapshot_identity_for_binding(handle.snapshot_id, handle.version_id)
 }

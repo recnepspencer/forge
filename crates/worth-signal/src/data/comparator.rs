@@ -18,6 +18,42 @@ pub enum VersionComparatorPolicy {
     OutputIdentity,
     /// Delegate comparison to embedding runtime callback by stable key.
     Custom { key: String },
+    /// Runtime-affine comparator installed by an admitted graph-lowering owner.
+    Installed {
+        identity: InstalledSignalComparatorIdentity,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct InstalledSignalComparatorIdentity {
+    graph_instance_id: u64,
+    node: NodeId,
+    role: InstalledSignalComparatorRole,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub(crate) enum InstalledSignalComparatorRole {
+    DependencyVersion,
+    OutputEquivalence,
+    ArtifactReuse,
+}
+
+impl InstalledSignalComparatorIdentity {
+    pub(crate) const fn new(
+        graph_instance_id: u64,
+        node: NodeId,
+        role: InstalledSignalComparatorRole,
+    ) -> Self {
+        Self {
+            graph_instance_id,
+            node,
+            role,
+        }
+    }
+
+    pub const fn graph_instance_id(self) -> u64 {
+        self.graph_instance_id
+    }
 }
 
 impl VersionComparatorPolicy {
@@ -34,6 +70,9 @@ impl VersionComparatorPolicy {
             Self::Tolerance { epsilon } => current.abs_diff(cached) > *epsilon,
             Self::OutputIdentity => current != cached,
             Self::Custom { key } => resolver.resolve(key, aspect, cached, current)?,
+            Self::Installed { identity } => {
+                resolver.resolve_installed(*identity, aspect, cached, current)?
+            }
         })
     }
 }
@@ -48,6 +87,19 @@ pub trait VersionComparatorResolver {
         cached: u64,
         current: u64,
     ) -> Result<bool, SignalError>;
+
+    fn resolve_installed(
+        &mut self,
+        identity: InstalledSignalComparatorIdentity,
+        aspect: Aspect,
+        _cached: u64,
+        _current: u64,
+    ) -> Result<bool, SignalError> {
+        Err(SignalError::invalid_input(format!(
+            "installed comparator for graph {} requires its admitted runtime resolver for aspect {aspect:?}",
+            identity.graph_instance_id()
+        )))
+    }
 }
 
 impl<T: VersionComparatorResolver + ?Sized> VersionComparatorResolver for &mut T {
@@ -59,6 +111,16 @@ impl<T: VersionComparatorResolver + ?Sized> VersionComparatorResolver for &mut T
         current: u64,
     ) -> Result<bool, SignalError> {
         (**self).resolve(key, aspect, cached, current)
+    }
+
+    fn resolve_installed(
+        &mut self,
+        identity: InstalledSignalComparatorIdentity,
+        aspect: Aspect,
+        cached: u64,
+        current: u64,
+    ) -> Result<bool, SignalError> {
+        (**self).resolve_installed(identity, aspect, cached, current)
     }
 }
 

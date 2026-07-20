@@ -44,10 +44,10 @@ The support matrix answers those questions row by row.
 For mutation-specific preferred-versus-lower-level posture, pair it with
 `workspace.public_mutation_surface_report()`.
 
-When downstream closeout ledgers need to distinguish Query-owned support gaps
-from local architecture residue, derive those rows from the live support
-matrix, admission boundary, and consumer-residue reports. Do not maintain a
-parallel hand-edited debt manifest for Query posture.
+When downstream consumers need to distinguish Query-owned support gaps from
+local architecture residue, derive that evidence from the live support matrix,
+admission boundary, and consumer-residue reports. Do not maintain a parallel
+hand-edited support manifest.
 
 Each row tells you:
 
@@ -106,6 +106,32 @@ Good to know:
    a family that may be support-gated, deferred, or unsupported
 4. admitted families return a sealed family contract
 5. deferred or unsupported families deny typed and early
+
+## Installed Operation Consumer Support
+
+Runtime-installed operations carry a narrower support contract bound to one
+operation and runtime generation. After binding, call:
+
+```rust
+let consumer = bound.consumer_projection_contract()?;
+```
+
+The contract derives requirements from the installed operation and evaluates
+them against the Query-owned runtime support profile. It covers basis, live,
+continuation, async/result state, recovery, inspection, projection consumption,
+dependency impact, sharing, invalidation, collection delivery, and conditional
+evaluation/comparator/trigger posture.
+
+Use `WorthQuerySupportRequirement::NotRequired` when the operation does not
+need a dimension. Provider presence and downstream defaults cannot promote a
+dimension to supported.
+
+`WorthQueryConsumerBoundary` carries downstream presentation and allocation
+requirements beside the Query contract. It cannot mutate Query requirements.
+
+Compatibility admission returns a pair-bound witness or a
+dimension-specific typed denial. A support report or matching digest is useful
+for inspection but cannot authorize projection consumption.
 
 ## Consumer Snapshots And Pins
 
@@ -455,6 +481,8 @@ For deeper checks:
 
 ## Related Docs
 
+- [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
+- [Conditional Installed Operations](../domain-capabilities/conditional-installed-operations.md)
 - [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
 - [Graph Obligation Consumer Kit](../authoring/graph-obligation-consumer-kit.md)
 - [Workspace Overview](workspace-overview.md)

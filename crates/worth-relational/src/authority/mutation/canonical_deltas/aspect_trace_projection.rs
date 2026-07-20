@@ -33,13 +33,16 @@ impl EvaluatedAspectBinding {
             aspect_key: self.aspect_key.clone(),
             changed: self.changed,
             aspect_shape: self.aspect_shape.clone(),
-            evidence: self.evidence.trace_evidence(),
+            evidence: self.evidence.trace_evidence(&self.binding),
         }
     }
 }
 
 impl CanonicalAspectDeltaEvidence {
-    fn trace_evidence(&self) -> AspectTraceEvidence {
+    fn trace_evidence(
+        &self,
+        binding: &worth_foundational::facade::AspectBinding,
+    ) -> AspectTraceEvidence {
         match self {
             Self::ScalarAspectValueTransition {
                 old_present,
@@ -72,10 +75,11 @@ impl CanonicalAspectDeltaEvidence {
             Self::Lifecycle { transition, .. } => AspectTraceEvidence::Lifecycle {
                 transition: transition.trace_transition(),
             },
+            Self::Structural { change, .. } => AspectTraceEvidence::Structural { change: *change },
             Self::AuthoritativePatch { locator, operation } => {
                 AspectTraceEvidence::AuthoritativePatch {
                     locator: locator.clone(),
-                    patch: published_patch_from_authoritative_delta_operation(operation),
+                    patch: published_patch_from_authoritative_delta_operation(operation, binding),
                 }
             }
         }

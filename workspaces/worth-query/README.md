@@ -3,6 +3,13 @@
 This workspace owns the Query engine, its audience facades, and its explicit
 cold certification package.
 
+For architecture and usage, start with:
+
+- [`docs/AI_README.md`](./crates/worth-query/docs/AI_README.md) for the authority
+  map and current public conventions
+- [Runtime-Installed Domains And Operations](./crates/worth-query/docs/domain-capabilities/runtime-installed-domains.md)
+- [Conditional Installed Operations](./crates/worth-query/docs/domain-capabilities/conditional-installed-operations.md)
+
 Use the smallest package that owns the change. Declaration work does not build
 installation, the remaining engine, replay, or certification:
 

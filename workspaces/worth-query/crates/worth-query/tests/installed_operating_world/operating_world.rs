@@ -1,0 +1,364 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use worth_query::facade::{domain, foundation};
+
+use super::installed_operation_fixture::{
+    configured_runtime_for_package, federated_package, federated_touch_package,
+    graph_projection_material, required_domain_runtime, workspace, FederatedRead, GeometryDomain,
+    ReadFamily, ReadVertex,
+};
+
+#[derive(Clone, Copy, Debug)]
+struct RemoteA;
+#[derive(Clone, Copy, Debug)]
+struct RemoteB;
+#[derive(Clone, Copy, Debug)]
+struct RemoteALookalike;
+#[derive(Clone, Copy, Debug)]
+struct SharedCommit;
+#[derive(Clone, Copy, Debug)]
+struct OtherCommit;
+
+struct Provider(Arc<AtomicUsize>);
+
+impl<G> domain::WorthQueryGraphParticipationProvider<G> for Provider {
+    fn observe(
+        &self,
+        call: &domain::WorthQueryGraphProviderCall,
+    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
+    {
+        Ok(call.completed(self.receipt_label()))
+    }
+    fn project(
+        &self,
+        call: &domain::WorthQueryGraphProviderCall,
+    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
+    {
+        self.0.fetch_add(1, Ordering::Relaxed);
+        Ok(call.projected(
+            "provider-projection",
+            graph_projection_material("operating-world-graph-projection"),
+        ))
+    }
+    fn touch_effect(
+        &self,
+        call: &domain::WorthQueryGraphProviderCall,
+    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
+    {
+        Ok(call.completed(self.receipt_label()))
+    }
+}
+
+impl<C> domain::WorthQueryGraphCommitProvider<C> for Provider {
+    fn admit_commit(
+        &self,
+        call: &domain::WorthQueryGraphCommitCall,
+    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
+    {
+        if call.graph_roles() != ["remote-a", "remote-b"] {
+            return Err(domain::WorthQueryGraphProviderFailure::new(
+                "commit provider did not receive the complete atomic graph group",
+            ));
+        }
+        Ok(call.completed(self.receipt_label()))
+    }
+}
+
+#[test]
+fn required_domain_is_resolved_and_retained_by_the_bound_capability() {
+    let workspace = required_domain_runtime(true)
+        .workspace("operating-world-required-domain")
+        .unwrap();
+    let rebuild = workspace.verify_domain_execution_index_rebuild();
+    assert!(rebuild.is_equivalent());
+    assert_eq!(rebuild.operation_required_domain_count(), 1);
+    let installed_domain = workspace.domain(GeometryDomain).unwrap();
+    let bound = workspace
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&installed_domain, ReadVertex)
+        .unwrap();
+
+    assert_eq!(
+        bound.required_domain_roles().collect::<Vec<_>>(),
+        ["auxiliary"]
+    );
+}
+
+#[test]
+fn missing_required_domain_denies_before_graph_or_execution_work() {
+    let workspace = required_domain_runtime(false)
+        .workspace("operating-world-missing-required-domain")
+        .unwrap();
+    let installed_domain = workspace.domain(GeometryDomain).unwrap();
+    let denial = match workspace
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&installed_domain, ReadVertex)
+    {
+        Ok(_) => panic!("missing exact domain authority must deny binding"),
+        Err(denial) => denial,
+    };
+
+    assert_eq!(
+        denial.kind(),
+        domain::WorthQueryOperationBindingDenialKind::RequiredDomainNotInstalled
+    );
+    assert_eq!(denial.counters().required_domain_lookups, 1);
+    assert_eq!(denial.counters().graph_provider_contacts, 0);
+    assert_eq!(denial.counters().planning_steps, 0);
+}
+
+impl Provider {
+    fn receipt_label(&self) -> &'static str {
+        self.0.fetch_add(1, Ordering::Relaxed);
+        "provider"
+    }
+}
+
+#[test]
+fn one_root_mints_equivalent_non_detachable_bound_authority() {
+    let workspace = workspace("operating-world", false).unwrap();
+    let domain = workspace.domain(GeometryDomain).unwrap();
+    let basis = observation_basis();
+    let first = workspace
+        .operating_world(basis.clone())
+        .family(ReadFamily)
+        .bind(&domain, ReadVertex)
+        .unwrap();
+    let second = workspace
+        .operating_world(basis)
+        .family(ReadFamily)
+        .bind(&domain, ReadVertex)
+        .unwrap();
+    assert_eq!(first.binding_identity(), second.binding_identity());
+    assert_eq!(
+        first.commit_posture(),
+        domain::WorthQueryBoundCommitPosture::ReadOnly
+    );
+    assert_eq!(first.graph_roles().count(), 0);
+}
+
+#[test]
+fn foreign_domain_denies_before_graph_binding_or_provider_contact() {
+    let owner = workspace("operating-world-owner", false).unwrap();
+    let foreign = workspace("operating-world-foreign", false).unwrap();
+    let foreign_domain = foreign.domain(GeometryDomain).unwrap();
+    let denial = match owner
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&foreign_domain, ReadVertex)
+    {
+        Ok(_) => panic!("foreign domain authority must not bind"),
+        Err(denial) => denial,
+    };
+    assert_eq!(
+        denial.kind(),
+        domain::WorthQueryOperationBindingDenialKind::DomainAuthority
+    );
+    assert_eq!(denial.counters().graph_binding_lookups, 0);
+    assert_eq!(denial.counters().graph_provider_contacts, 0);
+    assert_eq!(denial.counters().planning_steps, 0);
+}
+
+#[test]
+fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
+    let contacts = Arc::new(AtomicUsize::new(0));
+    let mut workspace =
+        configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
+            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+            .atomic_graph_participation_provider(
+                RemoteA,
+                Provider(Arc::clone(&contacts)),
+                SharedCommit,
+            )
+            .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+            .atomic_graph_participation_provider(
+                RemoteB,
+                Provider(Arc::clone(&contacts)),
+                SharedCommit,
+            )
+            .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
+            .workspace("operating-world-shared-commit")
+            .unwrap();
+    let domain = workspace.domain(GeometryDomain).unwrap();
+    assert_eq!(
+        workspace
+            .verify_domain_execution_index_rebuild()
+            .operation_graph_participation_count(),
+        2
+    );
+    let bound = workspace
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&domain, FederatedRead)
+        .unwrap();
+    assert_eq!(
+        bound.commit_posture(),
+        domain::WorthQueryBoundCommitPosture::ReadOnly
+    );
+    assert_eq!(
+        bound.graph_roles().collect::<Vec<_>>(),
+        ["remote-a", "remote-b"]
+    );
+    assert_eq!(contacts.load(Ordering::Relaxed), 0);
+    let executed = bound.execute((), &mut workspace).unwrap();
+    assert_eq!(executed.graph_receipts().len(), 2);
+    assert_eq!(
+        executed
+            .graph_receipts()
+            .iter()
+            .find(|receipt| receipt.role() == "remote-a")
+            .is_some_and(|receipt| receipt.has_projection_material()),
+        true
+    );
+    assert_eq!(
+        executed.warnings(),
+        [domain::WorthQueryOperationExecutionWarning::Advisory(
+            "remote-a-projected-rows=1".into()
+        )]
+    );
+    assert_eq!(executed.counters().graph_provider_contacts, 2);
+    assert_eq!(contacts.load(Ordering::Relaxed), 2);
+}
+
+#[test]
+fn independent_equal_role_providers_deny_before_provider_contact() {
+    let contacts = Arc::new(AtomicUsize::new(0));
+    let workspace =
+        configured_runtime_for_package(federated_touch_package::<RemoteA, RemoteB>(false, true))
+            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+            .atomic_graph_participation_provider(
+                RemoteA,
+                Provider(Arc::clone(&contacts)),
+                SharedCommit,
+            )
+            .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+            .atomic_graph_participation_provider(
+                RemoteB,
+                Provider(Arc::clone(&contacts)),
+                OtherCommit,
+            )
+            .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
+            .graph_commit_provider(OtherCommit, Provider(Arc::clone(&contacts)))
+            .workspace("operating-world-split-commit")
+            .unwrap();
+    let installed_domain = workspace.domain(GeometryDomain).unwrap();
+    let denial = match workspace
+        .operating_world(mutation_basis())
+        .family(ReadFamily)
+        .bind(&installed_domain, FederatedRead)
+    {
+        Ok(_) => panic!("independent commit owners must not mint atomic authority"),
+        Err(denial) => denial,
+    };
+    assert_eq!(
+        denial.kind(),
+        domain::WorthQueryOperationBindingDenialKind::CompensationUndeclared
+    );
+    assert_eq!(denial.counters().graph_provider_contacts, 0);
+    assert_eq!(denial.counters().planning_steps, 0);
+    assert_eq!(contacts.load(Ordering::Relaxed), 0);
+}
+
+#[test]
+fn separately_committed_graphs_bind_only_with_declared_compensation() {
+    let contacts = Arc::new(AtomicUsize::new(0));
+    let workspace =
+        configured_runtime_for_package(federated_touch_package::<RemoteA, RemoteB>(true, true))
+            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+            .atomic_graph_participation_provider(
+                RemoteA,
+                Provider(Arc::clone(&contacts)),
+                SharedCommit,
+            )
+            .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+            .atomic_graph_participation_provider(
+                RemoteB,
+                Provider(Arc::clone(&contacts)),
+                OtherCommit,
+            )
+            .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
+            .graph_commit_provider(OtherCommit, Provider(Arc::clone(&contacts)))
+            .workspace("operating-world-compensated-commit")
+            .unwrap();
+    let installed_domain = workspace.domain(GeometryDomain).unwrap();
+    let bound = workspace
+        .operating_world(mutation_basis())
+        .family(ReadFamily)
+        .bind(&installed_domain, FederatedRead)
+        .unwrap();
+    assert_eq!(
+        bound.commit_posture(),
+        domain::WorthQueryBoundCommitPosture::Compensated
+    );
+    assert_eq!(contacts.load(Ordering::Relaxed), 0);
+}
+
+#[test]
+fn same_role_lookalike_cannot_replace_the_exact_attached_graph_marker() {
+    let contacts = Arc::new(AtomicUsize::new(0));
+    let result = configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
+        .graph_participation(atomic_definition::<RemoteALookalike>("remote-a"))
+        .atomic_graph_participation_provider(
+            RemoteALookalike,
+            Provider(Arc::clone(&contacts)),
+            SharedCommit,
+        )
+        .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+        .atomic_graph_participation_provider(RemoteB, Provider(Arc::clone(&contacts)), SharedCommit)
+        .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
+        .workspace("operating-world-graph-lookalike")
+        .unwrap();
+    let installed_domain = result.domain(GeometryDomain).unwrap();
+    let denial = match result
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&installed_domain, FederatedRead)
+    {
+        Ok(_) => panic!("a same-role graph lookalike must not satisfy an exact attachment"),
+        Err(denial) => denial,
+    };
+    assert_eq!(
+        denial.kind(),
+        domain::WorthQueryOperationBindingDenialKind::GraphParticipationNotInstalled
+    );
+    assert_eq!(contacts.load(Ordering::Relaxed), 0);
+}
+
+fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
+    foundation::basis_lifecycle()
+        .current_head()
+        .for_observation()
+        .unwrap()
+        .admit()
+        .unwrap()
+        .capability()
+        .clone()
+}
+
+fn mutation_basis(
+) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
+    foundation::basis_lifecycle()
+        .current_head()
+        .for_mutation_preparation()
+        .unwrap()
+        .admit()
+        .unwrap()
+}
+
+fn atomic_definition<G>(role: &str) -> domain::WorthQueryGraphParticipationDefinition<G> {
+    domain::WorthQueryGraphParticipationDefinition::new(
+        role,
+        domain::WorthQueryGraphParticipationContract {
+            observation: domain::WorthQueryGraphObservationPosture::Snapshot,
+            projection: domain::WorthQueryGraphProjectionPosture::NativeProjection,
+            mutation: domain::WorthQueryGraphMutationPosture::TouchAndEffect,
+            identity: domain::WorthQueryGraphIdentityPosture::Opaque,
+            locality: domain::WorthQueryGraphLocalityPosture::ExternalBoundary,
+            budget: domain::WorthQueryGraphBudgetPosture::ExternalBoundary,
+            commit: domain::WorthQueryGraphCommitPosture::AtomicAuthorityRequired,
+            failure: domain::WorthQueryGraphFailureTopology::BoundaryFailure,
+        },
+    )
+}

@@ -36,14 +36,28 @@ pub(crate) fn validate_registration_values(
 
         match registration.widening_policy() {
             SliceWideningPolicy::Disallow => {}
-            SliceWideningPolicy::RegisteredEntityCoarseWidening => {
+            SliceWideningPolicy::RegisteredEntityCoarseWidening
+            | SliceWideningPolicy::RegisteredSurfaceCoarseWidening => {
                 if *registration.subscription_slice_kind()
                     != crate::mapping::SubscriptionSliceKind::RegisteredCoarseWidening
                 {
                     return Err(BridgeBuildError::new(
                         BridgeBuildErrorKind::InvalidFineGrainedWideningPolicy,
                         format!(
-                            "Aspect registration `{}` uses entity coarse widening without targeting the registered coarse widening slice kind.",
+                            "Aspect registration `{}` uses coarse widening without targeting the registered coarse widening slice kind.",
+                            registration.registration_id().as_str()
+                        ),
+                    ));
+                }
+            }
+            SliceWideningPolicy::RegisteredAspectCoarseWidening => {
+                if *registration.subscription_slice_kind()
+                    != crate::mapping::SubscriptionSliceKind::SignalAspect
+                {
+                    return Err(BridgeBuildError::new(
+                        BridgeBuildErrorKind::InvalidFineGrainedWideningPolicy,
+                        format!(
+                            "Aspect registration `{}` uses aspect widening without targeting the signal aspect slice kind.",
                             registration.registration_id().as_str()
                         ),
                     ));

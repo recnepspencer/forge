@@ -1,9 +1,12 @@
-use worth_foundational::facade::{AspectKey, AspectLocator, FieldKey, LocatorAuthority};
+use worth_foundational::facade::{
+    AspectBinding, AspectContractRevision, AspectIdentity, AspectKey, AspectLocator,
+    AuthoritativeAspectChangeKind, CanonicalFieldPath, FieldKey, LocatorAuthority,
+};
 
 use crate::error::BridgeRouteErrorKind;
 use crate::input::envelope::{
     BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, BridgeCommittedPatchTarget,
-    BridgeProducerAuthorityKind, BridgeProducerMetadata,
+    BridgeProducerAuthorityKind, BridgeProducerMetadata, BridgeSemanticAspectChange,
 };
 use crate::truth_identity_fixtures::{truth_branch, truth_commit, truth_patch, truth_snapshot};
 
@@ -38,6 +41,44 @@ fn construction_sorts_and_deduplicates_patch_items() {
     assert_eq!(
         envelope.patch_body().canonical_items()[1].target_canonical_basis(),
         expected_field_target_basis(&name_field),
+    );
+}
+
+#[test]
+fn semantic_metadata_cannot_disagree_with_native_target_shape() {
+    let key = AspectKey::new("profile").unwrap();
+    let target_path = CanonicalFieldPath::single(FieldKey::new("name".to_string()).unwrap());
+    let semantic_path = CanonicalFieldPath::single(FieldKey::new("status".to_string()).unwrap());
+    let error = construct_committed_patch_envelope(
+        BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+            BridgeProducerMetadata::bridge_harness_fixture(),
+            truth_commit(9),
+            truth_patch(9),
+            truth_snapshot(9, 1),
+            truth_branch("branch"),
+        ),
+        vec![BridgeCommittedPatchItem::with_relational_semantic_change(
+            crate::relational_identity::RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+            BridgeCommittedPatchTarget::entity_field_path(
+                AspectLocator::new(LocatorAuthority::Authoritative, key.clone()),
+                target_path,
+            ),
+            BridgeSemanticAspectChange::from_authoritative_publication(
+                key,
+                AspectIdentity(1),
+                AspectContractRevision(1),
+                AspectBinding::EntityField {
+                    field: FieldKey::new("profile".to_string()).unwrap(),
+                },
+                AuthoritativeAspectChangeKind::FieldSet,
+                Some(semantic_path),
+            ),
+        )],
+    )
+    .expect_err("semantic field path cannot override native target shape");
+    assert_eq!(
+        error.kind(),
+        BridgeRouteErrorKind::InvalidAuthoritativePatchSemantics
     );
 }
 

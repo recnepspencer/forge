@@ -11,6 +11,8 @@ pub struct PublishedAuthoritativeRecordPatch {
     pub target: RecordRef,
     pub structural_change: RecordStructuralChange,
     pub authoritative_patch: PublishedAuthoritativePatch,
+    #[serde(default)]
+    pub semantic_changes: Vec<super::PublishedAuthoritativeAspectChange>,
     pub contains_opaque_aspect: bool,
     pub detail: PatchDetail,
 }
@@ -29,6 +31,12 @@ impl PublishedAuthoritativeRecordPatch {
             target: self.target.clone(),
             structural_change: self.structural_change,
             authoritative_patch: self.authoritative_patch.canonicalized(),
+            semantic_changes: {
+                let mut changes = self.semantic_changes.clone();
+                changes.sort_by_key(super::PublishedAuthoritativeAspectChange::canonical_key);
+                changes.dedup();
+                changes
+            },
             contains_opaque_aspect: self.contains_opaque_aspect,
             detail: self.detail.canonicalized(),
         }

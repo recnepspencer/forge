@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use crate::data::aspect::SignalAspectLoweringOwner;
 use crate::data::bitset::DenseBitset;
 use crate::data::core_profile::StableHashValue;
 use crate::data::dependency::{
@@ -409,17 +410,43 @@ impl Clone for ReconstructionCounters {
 ///
 /// An arena of `NodeEntry` values with graph-owned dependency, subscriber,
 /// and snapshot storage.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SignalGraph {
+    #[serde(skip, default = "next_signal_graph_instance_id")]
+    pub(in crate::data::graph) instance_id: u64,
     pub(in crate::data::graph) arena: NodeArena,
     pub(in crate::data::graph) topology: EdgeTopology,
     pub(in crate::data::graph) traversal: TraversalResources,
     pub(in crate::data::graph) observation: RuntimeObservation,
     #[serde(skip, default)]
     pub(in crate::data::graph) schema_registry: SignalSchemaRegistry,
+    #[serde(skip, default)]
+    pub(crate) aspect_lowering_owner: Option<SignalAspectLoweringOwner>,
+    #[serde(skip, default)]
+    pub(crate) conditional_dependency_versions: BTreeMap<NodeId, Vec<u64>>,
 }
 
 const NODE_ARENA_RESERVE_CHUNK: usize = 1024;
+static NEXT_SIGNAL_GRAPH_INSTANCE_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_signal_graph_instance_id() -> u64 {
+    NEXT_SIGNAL_GRAPH_INSTANCE_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+impl Clone for SignalGraph {
+    fn clone(&self) -> Self {
+        Self {
+            instance_id: next_signal_graph_instance_id(),
+            arena: self.arena.clone(),
+            topology: self.topology.clone(),
+            traversal: self.traversal.clone(),
+            observation: self.observation.clone(),
+            schema_registry: self.schema_registry.clone(),
+            aspect_lowering_owner: None,
+            conditional_dependency_versions: self.conditional_dependency_versions.clone(),
+        }
+    }
+}
 
 impl Default for SignalGraph {
     fn default() -> Self {
@@ -433,6 +460,7 @@ impl SignalGraph {
 
     pub fn new() -> Self {
         Self {
+            instance_id: next_signal_graph_instance_id(),
             arena: NodeArena {
                 nodes: Vec::new(),
                 hot: Vec::new(),
@@ -447,7 +475,13 @@ impl SignalGraph {
             traversal: TraversalResources::default(),
             observation: RuntimeObservation::default(),
             schema_registry: SignalSchemaRegistry::default(),
+            aspect_lowering_owner: None,
+            conditional_dependency_versions: BTreeMap::new(),
         }
+    }
+
+    pub(crate) const fn runtime_instance_id(&self) -> u64 {
+        self.instance_id
     }
 
     pub fn with_gc_threshold(gc_threshold: u32) -> Self {
@@ -530,6 +564,7 @@ impl SignalGraph {
             free_slots.mark(*index as usize);
         }
         Self {
+            instance_id: next_signal_graph_instance_id(),
             arena: NodeArena {
                 nodes: authority
                     .arena
@@ -605,6 +640,8 @@ impl SignalGraph {
                 diagnostics: authority.diagnostics.clone(),
             },
             schema_registry: SignalSchemaRegistry::default(),
+            aspect_lowering_owner: None,
+            conditional_dependency_versions: BTreeMap::new(),
         }
     }
 
@@ -1067,6 +1104,9 @@ impl SignalGraph {
     }
 
     pub(crate) fn rollback_created_nodes(&mut self, created_nodes: &[NodeId]) {
+        for node in created_nodes {
+            self.conditional_dependency_versions.remove(node);
+        }
         let mut indices = created_nodes
             .iter()
             .map(|node| node.index() as usize)

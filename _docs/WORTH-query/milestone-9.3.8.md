@@ -4868,8 +4868,10 @@ lower-authority truths, not a second authority owner.
   collaborative and merge-aware scenarios
 - local Query substrate docs that this phase must extend honestly:
   - `crates/worth-query/docs/domain-capabilities/recovery-boundary.md`
-  - `crates/worth-query/docs/domain-capabilities/platform-entry-closeout.md`
-  - `crates/worth-query/docs/domain-capabilities/public-doc-coverage.md`
+  - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/runtime-installed-domains.md`
+  - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/conditional-installed-operations.md`
+  - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/platform-entry-closeout.md`
+  - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/public-doc-coverage.md`
   - `crates/worth-query/docs/domain-capabilities/orchestration-inventory.md`
   - `crates/worth-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
   - `crates/worth-query/docs/foundations/branches-and-previews.md`

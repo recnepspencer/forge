@@ -10,7 +10,8 @@ use crate::evidence_identity::{
 use super::{
     WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
     WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainPackageIdentity,
+    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
+    WorthQueryDomainOperationGraphParticipationRecord, WorthQueryDomainPackageIdentity,
     WorthQueryValidatedDomainPackage,
 };
 
@@ -78,6 +79,11 @@ pub(crate) struct WorthQueryAdmittedDomainPackage<D: WorthQueryDomainEntryMarker
     pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
+    pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
+    pub(crate) operation_graph_participations:
+        Vec<WorthQueryDomainOperationGraphParticipationRecord>,
+    pub(crate) operation_required_domains:
+        Vec<super::WorthQueryDomainOperationRequiredDomainRecord>,
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
@@ -130,6 +136,9 @@ pub(crate) fn admit_domain_package<D: WorthQueryDomainEntryMarker>(
         graph_obligations: package.graph_obligations,
         graph_read_operations: package.graph_read_operations,
         declaration_families: package.declaration_families,
+        domain_operations: package.domain_operations,
+        operation_graph_participations: package.operation_graph_participations,
+        operation_required_domains: package.operation_required_domains,
         contribution_policy: package.contribution_policy,
     })
 }

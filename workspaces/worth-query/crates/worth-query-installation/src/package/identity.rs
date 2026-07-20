@@ -70,6 +70,18 @@ pub(super) fn canonical_identity(
         hash_text_field(&mut hasher, "definition-slot", definition.slot());
         hash_text_field(&mut hasher, "definition-semantics", definition.semantics());
     }
+    for operation in &package.domain_operations {
+        hash_text_field(
+            &mut hasher,
+            "domain-operation-slot",
+            &operation.identity().slot(),
+        );
+        hash_text_field(
+            &mut hasher,
+            "domain-operation-identity",
+            operation.canonical_identity(),
+        );
+    }
     for contribution in &package.contributions {
         hash_text_field(&mut hasher, "contribution", contribution.as_str());
     }

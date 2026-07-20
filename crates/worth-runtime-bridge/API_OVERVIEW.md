@@ -73,12 +73,19 @@ story of the crate.
 
 The main advanced domains are:
 
+- semantic aspect correspondence and conditional lowering
 - policy and runtime posture
 - truth-view materialization and source contracts
 - bulk routing and planning
 - stream delivery, replay, and resume
 - structural comparison and merge-aware flows
 - explicit writeback authority integration
+
+For Query-installed conditional operations, start with
+[`SEMANTIC_CORRESPONDENCE_AND_CONDITIONAL_EXECUTION.md`](./SEMANTIC_CORRESPONDENCE_AND_CONDITIONAL_EXECUTION.md).
+The key public types are `BridgeInstalledSemanticCorrespondence`,
+`BridgeInstalledConditionalLowering`, `BridgeOwnedSignalRuntime`, and
+`BridgeConditionalDecisionEvidence`.
 
 ## Replay And Certification
 

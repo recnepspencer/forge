@@ -44,6 +44,7 @@ impl WorthQueryReadRequest {
                 context_receipt,
                 journey_counters.record_lower_runtime_execution_completed(),
                 projection_binding,
+                workspace.runtime_authority_identity(),
             )),
             Err(error) => WorthQueryReadOutcome::Stopped(WorthQueryReadStop::runtime(
                 error,

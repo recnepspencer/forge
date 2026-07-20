@@ -28,7 +28,8 @@ Contributions declare posture (admission, support, workflow, continuity, afterma
 
 - [Contribution composed orchestration](../contribution-composed-orchestration.md) — multi-lane materialization and orchestration inventory neighbors
 - [Grouped contributions](../grouped-contributions.md) — neighborhood-scoped contribution shapes
-- [Public doc coverage](../public-doc-coverage.md) — which orchestration rows require docs
+- [Domain capabilities](../README.md) — the current public domain surface map
+- [Public doc coverage](../public-doc-coverage.md) — documentation and executable-evidence synchronization
 
 ## Quick Rules
 

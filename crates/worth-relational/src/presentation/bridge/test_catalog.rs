@@ -47,14 +47,26 @@ impl PublicationBridgeCatalog {
         branch_id: &BranchId,
         snapshot_identity: TruthSnapshotIdentity,
         patch: &PublishedAuthoritativePatchEnvelope,
-    ) {
-        let envelope =
-            publication_patch_to_bridge_envelope(commit_id, branch_id, snapshot_identity, patch);
+    ) -> Result<(), RelationalBridgeSourceError> {
+        let envelope = match publication_patch_to_bridge_envelope(
+            commit_id,
+            branch_id,
+            snapshot_identity,
+            patch,
+        ) {
+            worth_proof::TransitionOutcome::Success(envelope) => envelope,
+            worth_proof::TransitionOutcome::Denied(denial) => {
+                return Err(RelationalBridgeSourceError::new(format!(
+                    "publication patch could not be admitted by Bridge: {denial}"
+                )));
+            }
+        };
         self.state
             .write()
             .expect("publication bridge catalog lock poisoned")
             .committed_patches
             .insert(envelope.commit_identity().clone(), envelope);
+        Ok(())
     }
 
     pub fn register_snapshot(&self, snapshot: PublicationBridgeSnapshot) {

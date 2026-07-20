@@ -305,6 +305,23 @@ impl WorthQueryReadProjectionBinding {
             ),
         }
     }
+
+    pub(crate) fn validates_installed_publication(
+        &self,
+        canonical: &crate::canonicalization::CanonicalQueryBundle,
+    ) -> bool {
+        if self.result_shape.digest() != canonical.result_shape().digest() {
+            return false;
+        }
+        match &self.authorized_projection {
+            Ok(authorized) => {
+                authorized.query_digest() == canonical.query().digest().as_str()
+                    && authorized.result_shape_digest()
+                        == canonical.result_shape().digest().as_str()
+            }
+            Err(_) => false,
+        }
+    }
 }
 
 fn unrestricted_projection(

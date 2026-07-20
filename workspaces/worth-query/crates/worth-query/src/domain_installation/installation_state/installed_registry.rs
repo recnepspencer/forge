@@ -31,11 +31,13 @@ impl WorthQueryDomainInstallationRegistry {
     pub(crate) fn from_artifacts(
         artifacts: Vec<WorthQueryInstalledDomainArtifact>,
         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+        installation_runtime: worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity,
     ) -> Self {
         let generation = WorthQueryDomainInstallationGeneration::initial();
         Self::from_artifacts_at_generation(
             artifacts,
             runtime_authority,
+            installation_runtime,
             generation,
             WorthQueryDomainInstallationGenerationLease::new(generation),
         )
@@ -44,12 +46,13 @@ impl WorthQueryDomainInstallationRegistry {
     fn from_artifacts_at_generation(
         artifacts: Vec<WorthQueryInstalledDomainArtifact>,
         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+        installation_runtime: worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity,
         generation: WorthQueryDomainInstallationGeneration,
         generation_lease: WorthQueryDomainInstallationGenerationLease,
     ) -> Self {
         let portable_index =
             worth_query_installation::facade::WorthQueryInstalledPackageIndex::build(
-                worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity::fresh(),
+                installation_runtime,
                 worth_query_installation::facade::WorthQueryInstallationGeneration::from_ordinal(
                     generation.ordinal(),
                 ),
@@ -176,6 +179,16 @@ impl WorthQueryDomainInstallationRegistry {
         &self.execution_index
     }
 
+    pub(crate) fn authority_by_marker(
+        &self,
+        marker: TypeId,
+    ) -> Option<Arc<WorthQueryInstalledDomainAuthority>> {
+        self.by_marker_type
+            .get(&marker)
+            .and_then(|index| self.records.get(*index))
+            .map(|record| Arc::clone(&record.authority))
+    }
+
     pub(crate) fn rebuild_execution_index_report(
         &self,
     ) -> WorthQueryDomainExecutionIndexRebuildReport {
@@ -199,11 +212,7 @@ impl WorthQueryDomainInstallationRegistry {
         WorthQueryDomainExecutionIndexRebuildReport::new(
             self.execution_index.identity().as_str().to_string(),
             rebuilt.identity().as_str().to_string(),
-            shape.invariant_count,
-            shape.graph_obligation_count,
-            shape.operation_count,
-            shape.declaration_family_count,
-            shape.contribution_policy_count,
+            shape,
         )
     }
 
@@ -238,15 +247,7 @@ impl WorthQueryDomainInstallationRegistry {
         let shape = rebuilt.shape();
         self.execution_index = rebuilt;
 
-        WorthQueryDomainExecutionIndexRebuildReport::new(
-            retired_identity,
-            rebuilt_identity,
-            shape.invariant_count,
-            shape.graph_obligation_count,
-            shape.operation_count,
-            shape.declaration_family_count,
-            shape.contribution_policy_count,
-        )
+        WorthQueryDomainExecutionIndexRebuildReport::new(retired_identity, rebuilt_identity, shape)
     }
 
     #[cfg(test)]
@@ -262,6 +263,7 @@ impl WorthQueryDomainInstallationRegistry {
         *self = Self::from_artifacts_at_generation(
             artifacts,
             self.runtime_authority,
+            worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity::fresh(),
             generation,
             generation_lease,
         );

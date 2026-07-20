@@ -129,6 +129,9 @@ not the default architecture.
 
 ## React
 
+The adapter supports React 18 and React 19. Your application owns the React
+runtime and its type package; Worth does not install a second version.
+
 ```tsx
 import {
   createReactSignalsStore,

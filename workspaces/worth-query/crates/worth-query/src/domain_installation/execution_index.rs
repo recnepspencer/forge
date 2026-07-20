@@ -3,118 +3,63 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::application::WorthQueryDeclarationEntryContributionCategoryFamily;
 use crate::authoring::{
     WorthQueryGraphReadDomainOperationDeclaration, WorthQueryGraphReadOperationKey,
 };
-use crate::evidence_identity::{
-    worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
-    WorthQueryEvidenceTag,
-};
+use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::runtime::{
     WorthQueryGraphReadOperationLookup, WorthQueryGraphReadOperationRegistration,
     WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
 };
 use worth_query_installation::facade::{
-    WorthQueryInstalledOperationAuthority, WorthQueryInstalledPackageIndex,
+    WorthQueryInstalledDomainOperationAuthority, WorthQueryInstalledOperationAuthority,
+    WorthQueryInstalledPackageIndex,
 };
 
 use super::installation_state::WorthQueryInstalledDomainArtifact;
 
+mod domain_operations;
+mod graph_participations;
 mod identity;
+mod identity_inputs;
+mod operation_descriptors;
+mod required_domains;
 mod semantic_keys;
+mod semantics;
+mod shape;
 
-use identity::execution_index_identity;
-use semantic_keys::{
-    InstalledDeclarationFamilyKey, InstalledDeclarationFamilySlot, InstalledDomainOwner,
-    InstalledInvariantSlot,
+use domain_operations::{
+    domain_operation_identity_parts, domain_operation_index, InstalledDomainOperation,
 };
-
-#[derive(Debug, Eq, PartialEq)]
-pub(crate) struct WorthQueryInstalledDomainSemantics {
-    declaration_families: BTreeMap<InstalledDeclarationFamilyKey, u32>,
-    contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
-    identity: WorthQueryEvidenceIdentity,
-}
-
-impl WorthQueryInstalledDomainSemantics {
-    fn from_artifact(artifact: &WorthQueryInstalledDomainArtifact) -> Self {
-        let declaration_families = artifact
-            .declaration_families
-            .iter()
-            .map(|family| {
-                (
-                    InstalledDeclarationFamilyKey::new(family.family_key()),
-                    family.version(),
-                )
-            })
-            .collect::<BTreeMap<_, _>>();
-        let contribution_policy = artifact.contribution_policy.clone();
-        let identity =
-            worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecutionIndex)
-                .field_evidence_identity(
-                    WorthQueryEvidenceTag::new("package"),
-                    artifact.package_identity.evidence_identity(),
-                )
-                .field_value_sequence(
-                    WorthQueryEvidenceTag::new("declaration_family"),
-                    declaration_families
-                        .iter()
-                        .map(|(family, version)| format!("{}:{version}", family.as_str())),
-                )
-                .field_value_sequence(
-                    WorthQueryEvidenceTag::new("contribution_policy"),
-                    contribution_policy.iter().map(|category| category.as_str()),
-                )
-                .seal();
-        Self {
-            declaration_families,
-            contribution_policy,
-            identity,
-        }
-    }
-
-    pub(crate) fn declaration_family_version(&self, family_key: &str) -> Option<u32> {
-        self.declaration_families.get(family_key).copied()
-    }
-
-    pub(crate) fn contribution_policy(
-        &self,
-    ) -> &[WorthQueryDeclarationEntryContributionCategoryFamily] {
-        &self.contribution_policy
-    }
-
-    pub(crate) fn permits_contribution(
-        &self,
-        category: WorthQueryDeclarationEntryContributionCategoryFamily,
-    ) -> bool {
-        self.contribution_policy.contains(&category)
-    }
-
-    pub(crate) fn identity(&self) -> &WorthQueryEvidenceIdentity {
-        &self.identity
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(crate) struct WorthQueryInstalledDomainExecutionIndexShape {
-    pub(crate) invariant_count: usize,
-    pub(crate) graph_obligation_count: usize,
-    pub(crate) operation_count: usize,
-    pub(crate) declaration_family_count: usize,
-    pub(crate) contribution_policy_count: usize,
-}
+use graph_participations::operation_graph_participation_index;
+pub(crate) use graph_participations::WorthQueryInstalledOperationGraphBinding;
+use identity::execution_index_identity;
+use identity_inputs::{graph_obligation_identity_parts, package_provenance_identity_parts};
+pub(crate) use operation_descriptors::{
+    WorthQueryDomainOperationExecutionDescriptor, WorthQueryWorkflowExecutionDescriptor,
+};
+use required_domains::operation_required_domain_index;
+pub(crate) use required_domains::WorthQueryInstalledOperationRequiredDomain;
+use semantic_keys::{InstalledDeclarationFamilySlot, InstalledDomainOwner, InstalledInvariantSlot};
+pub(crate) use semantics::WorthQueryInstalledDomainSemantics;
+pub(crate) use shape::WorthQueryInstalledDomainExecutionIndexShape;
+use shape::{execution_index_shape, WorthQueryExecutionIndexShapeInputs};
 
 pub(crate) struct WorthQueryInstalledDomainExecutionIndex {
     runtime_authority: crate::runtime::WorthQueryRuntimeAuthorityIdentity,
     graph_read_operations: BTreeMap<WorthQueryGraphReadOperationKey, InstalledGraphReadOperation>,
+    domain_operations: HashMap<(TypeId, TypeId, TypeId), InstalledDomainOperation>,
+    operation_graph_participations:
+        HashMap<(TypeId, TypeId, TypeId), Vec<WorthQueryInstalledOperationGraphBinding>>,
+    operation_required_domains:
+        HashMap<(TypeId, TypeId, TypeId), Vec<WorthQueryInstalledOperationRequiredDomain>>,
     semantics_by_marker: HashMap<TypeId, Arc<WorthQueryInstalledDomainSemantics>>,
     identity: WorthQueryEvidenceIdentity,
     shape: WorthQueryInstalledDomainExecutionIndexShape,
     indexed_operation_lookups: AtomicUsize,
 }
 
-struct InstalledGraphReadOperation {
+pub(super) struct InstalledGraphReadOperation {
     registration: WorthQueryGraphReadOperationRegistration,
     _installation_authority: WorthQueryInstalledOperationAuthority,
 }
@@ -126,6 +71,10 @@ impl WorthQueryInstalledDomainExecutionIndex {
         portable_index: &WorthQueryInstalledPackageIndex,
     ) -> Self {
         let graph_read_operations = graph_read_operation_index(artifacts, portable_index);
+        let domain_operations = domain_operation_index(artifacts, portable_index);
+        let operation_graph_participations = operation_graph_participation_index(artifacts);
+        let operation_required_domains = operation_required_domain_index(artifacts);
+        let domain_operation_identity_parts = domain_operation_identity_parts(&domain_operations);
         let semantics_by_marker = installed_domain_semantics_index(artifacts);
         let declaration_families = declaration_family_index(artifacts);
         let contribution_policies = contribution_policy_index(artifacts);
@@ -135,21 +84,28 @@ impl WorthQueryInstalledDomainExecutionIndex {
         let identity = execution_index_identity(
             &package_provenance,
             &graph_read_operations,
+            &domain_operation_identity_parts,
             &declaration_families,
             &contribution_policies,
             &invariant_slots,
             &graph_obligation_digests,
         );
-        let shape = execution_index_shape(
-            &graph_read_operations,
-            &declaration_families,
-            &contribution_policies,
-            &invariant_slots,
-            &graph_obligation_digests,
-        );
+        let shape = execution_index_shape(WorthQueryExecutionIndexShapeInputs {
+            graph_read_operations: &graph_read_operations,
+            domain_operations: &domain_operations,
+            operation_graph_participations: &operation_graph_participations,
+            operation_required_domains: &operation_required_domains,
+            declaration_families: &declaration_families,
+            contribution_policies: &contribution_policies,
+            invariant_slots: &invariant_slots,
+            graph_obligation_identity_parts: &graph_obligation_digests,
+        });
         Self {
             runtime_authority,
             graph_read_operations,
+            domain_operations,
+            operation_graph_participations,
+            operation_required_domains,
             semantics_by_marker,
             identity,
             shape,
@@ -174,6 +130,63 @@ impl WorthQueryInstalledDomainExecutionIndex {
 
     pub(crate) fn indexed_operation_lookups(&self) -> usize {
         self.indexed_operation_lookups.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn domain_operation_authority(
+        &self,
+        domain_marker: TypeId,
+        operation_marker: TypeId,
+        family_marker: TypeId,
+    ) -> Option<(
+        Arc<WorthQueryInstalledDomainOperationAuthority>,
+        Option<Arc<crate::domain_installation::WorthQueryInstalledWorkflowGraph>>,
+    )> {
+        self.indexed_operation_lookups
+            .fetch_add(1, Ordering::Relaxed);
+        self.domain_operations
+            .get(&(domain_marker, operation_marker, family_marker))
+            .map(|operation| {
+                (
+                    Arc::clone(&operation.authority),
+                    operation.workflow_graph.as_ref().map(Arc::clone),
+                )
+            })
+    }
+
+    pub(crate) fn domain_operation_graph_bindings(
+        &self,
+        domain_marker: TypeId,
+        operation_marker: TypeId,
+        family_marker: TypeId,
+    ) -> &[WorthQueryInstalledOperationGraphBinding] {
+        self.operation_graph_participations
+            .get(&(domain_marker, operation_marker, family_marker))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub(crate) fn domain_operation_execution_descriptors(
+        &self,
+    ) -> Vec<WorthQueryDomainOperationExecutionDescriptor> {
+        operation_descriptors::operation_execution_descriptors(&self.domain_operations)
+    }
+
+    pub(crate) fn domain_operation_required_domains(
+        &self,
+        domain_marker: TypeId,
+        operation_marker: TypeId,
+        family_marker: TypeId,
+    ) -> &[WorthQueryInstalledOperationRequiredDomain] {
+        self.operation_required_domains
+            .get(&(domain_marker, operation_marker, family_marker))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub(crate) fn workflow_operation_execution_descriptors(
+        &self,
+    ) -> Vec<WorthQueryWorkflowExecutionDescriptor> {
+        operation_descriptors::workflow_execution_descriptors(&self.domain_operations)
     }
 }
 
@@ -276,55 +289,6 @@ fn invariant_slot_index(
             })
         })
         .collect()
-}
-
-fn graph_obligation_identity_parts(artifacts: &[WorthQueryInstalledDomainArtifact]) -> Vec<String> {
-    let mut identity_parts = artifacts
-        .iter()
-        .flat_map(|artifact| {
-            artifact
-                .graph_obligation_definitions
-                .iter()
-                .map(|obligation| {
-                    format!("{}:{}", artifact.domain_owner, obligation.canonical_part())
-                })
-        })
-        .collect::<Vec<_>>();
-    identity_parts.sort();
-    identity_parts
-}
-
-fn package_provenance_identity_parts(
-    artifacts: &[WorthQueryInstalledDomainArtifact],
-) -> Vec<String> {
-    let mut identity_parts = artifacts
-        .iter()
-        .map(|artifact| {
-            artifact
-                .substrate_provenance
-                .identity()
-                .as_str()
-                .to_string()
-        })
-        .collect::<Vec<_>>();
-    identity_parts.sort();
-    identity_parts
-}
-
-fn execution_index_shape(
-    graph_read_operations: &BTreeMap<WorthQueryGraphReadOperationKey, InstalledGraphReadOperation>,
-    declaration_families: &BTreeMap<InstalledDeclarationFamilySlot, String>,
-    contribution_policies: &BTreeMap<InstalledDomainOwner, Vec<String>>,
-    invariant_slots: &BTreeMap<InstalledInvariantSlot, String>,
-    graph_obligation_identity_parts: &[String],
-) -> WorthQueryInstalledDomainExecutionIndexShape {
-    WorthQueryInstalledDomainExecutionIndexShape {
-        invariant_count: invariant_slots.len(),
-        graph_obligation_count: graph_obligation_identity_parts.len(),
-        operation_count: graph_read_operations.len(),
-        declaration_family_count: declaration_families.len(),
-        contribution_policy_count: contribution_policies.values().map(Vec::len).sum(),
-    }
 }
 
 impl WorthQueryGraphReadOperationLookup for WorthQueryInstalledDomainExecutionIndex {

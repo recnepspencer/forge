@@ -84,6 +84,28 @@ impl<S, D, De, St, R, F> TransitionOutcome<S, D, De, St, R, F> {
             Self::Failed(value) => TransitionOutcome::Failed(value),
         }
     }
+
+    pub fn unwrap(self) -> S
+    where
+        D: std::fmt::Debug,
+        De: std::fmt::Debug,
+        St: std::fmt::Debug,
+        R: std::fmt::Debug,
+        F: std::fmt::Debug,
+    {
+        match self {
+            Self::Success(value) => value,
+            Self::Denied(value) => panic!("called TransitionOutcome::unwrap on Denied({value:?})"),
+            Self::Deferred(value) => {
+                panic!("called TransitionOutcome::unwrap on Deferred({value:?})")
+            }
+            Self::Stale(value) => panic!("called TransitionOutcome::unwrap on Stale({value:?})"),
+            Self::RebindRequired(value) => {
+                panic!("called TransitionOutcome::unwrap on RebindRequired({value:?})")
+            }
+            Self::Failed(value) => panic!("called TransitionOutcome::unwrap on Failed({value:?})"),
+        }
+    }
 }
 
 impl<S, D> TransitionOutcome<S, D> {

@@ -9,6 +9,7 @@ pub enum WorthQueryPortablePackageValidationDenialKind {
     DuplicateContributionCategory,
     DuplicateDefinition,
     ConflictingDefinition,
+    InvalidDomainOperation,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -81,6 +82,14 @@ impl WorthQueryPortablePackageValidationDenial {
             WorthQueryPortablePackageValidationDenialKind::ConflictingDefinition,
             Some(kind),
             slot,
+        )
+    }
+
+    pub(super) fn invalid_domain_operation(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::InvalidDomainOperation,
+            Some(WorthQueryPortableDefinitionKind::DomainOperation),
+            subject,
         )
     }
 

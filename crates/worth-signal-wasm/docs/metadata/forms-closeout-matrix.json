@@ -163,12 +163,10 @@
         "package/forms-phase-ten-types-smoke.ts"
       ],
       "docs": [
-        "docs/forms/README.md",
         "docs/forms/index.md",
         "docs/api-reference/forms.md",
         "docs/api-reference/form-export-catalog.md",
-        "docs/forms/recipes.md",
-        "docs/forms/milestone-crosswalk.md"
+        "docs/forms/recipes.md"
       ],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs"

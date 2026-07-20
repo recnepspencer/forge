@@ -22,6 +22,7 @@
 //!     truth_source: TruthSource,
 //!     branch_heads: BranchHeads,
 //!     compute_sink: ComputeSink,
+//!     commit_identity: TruthCommitIdentity,
 //! ) -> Result<(), Box<dyn std::error::Error>>
 //! where
 //!     TruthSource: worth_runtime_bridge::facade::RelationalBridgeSource + Clone + 'static,
@@ -33,7 +34,7 @@
 //!         .with_truth_branch_head_source(branch_heads)
 //!         .with_compute_sink(compute_sink)
 //!         .register_mapping(BridgeMappingRegistration::new(
-//!             BridgeMappingId::admit_bridge_owned("pricing:steel"),
+//!             BridgeMappingId::from_stable_name("pricing:steel"),
 //!             TruthPatchScope::for_entity_field(
 //!                 MappingSelector::exact("component:steel"),
 //!                 AspectKey::new("cost").expect("valid aspect key"),
@@ -43,12 +44,12 @@
 //!                 AspectKey::new("cost").expect("valid aspect key"),
 //!                 ScalarAspectType::String,
 //!             ),
-//!             SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
+//!             SignalInvalidationScope::from_stable_name("price:bicycle"),
 //!             CoarseRoutingMode::Direct,
 //!         ))
 //!         .build()?;
 //!
-//!     let route = bridge.route(crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"))?;
+//!     let route = bridge.route(commit_identity)?;
 //!     let evaluation = bridge.evaluate_current(route.target())?;
 //!     let diagnostics = bridge.diagnostics().explain_last();
 //!

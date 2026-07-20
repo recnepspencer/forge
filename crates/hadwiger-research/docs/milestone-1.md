@@ -551,10 +551,12 @@ Docs:
 - `crates/worth-query/docs/AI_README.md`
 - `crates/worth-query/docs/foundations/support-matrix-and-admission.md`
 - `crates/worth-query/docs/domain-capabilities/orchestration-inventory.md`
-- `crates/worth-query/docs/domain-capabilities/public-doc-coverage.md`
-- `crates/worth-query/docs/domain-capabilities/platform-entry-closeout.md`
-- `crates/worth-query/docs/domain-capabilities/certification/certification-surface-and-closeout-bundle.md`
-- `crates/worth-query/docs/domain-capabilities/certification/goldens-boundaries-and-hostile-certification.md`
+- `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/runtime-installed-domains.md`
+- `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/conditional-installed-operations.md`
+- `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/public-doc-coverage.md`
+- `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/platform-entry-closeout.md`
+- `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/certification/certification-surface-and-closeout-bundle.md`
+- `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/certification/goldens-boundaries-and-hostile-certification.md`
 - `crates/worth-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
 - `crates/worth-query/docs/domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md`
 - `crates/worth-query/docs/domain-capabilities/recovery/README.md`

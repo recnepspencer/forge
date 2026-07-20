@@ -7,6 +7,7 @@ mod public_bridge_reader_lane;
 mod registry;
 mod report;
 mod shared_read_pinning;
+mod support_matrix;
 #[cfg(test)]
 mod tests;
 
@@ -40,7 +41,7 @@ pub use public_bridge_reader_lane::{
 };
 pub use registry::{
     WorthQueryCapabilityDescriptor, WorthQueryCapabilityFamily, WorthQueryCapabilityRegistry,
-    WorthQueryCapabilityStatus, WorthQueryCapabilitySupportStatus, WorthQuerySupportMatrix,
+    WorthQueryCapabilityStatus, WorthQueryCapabilitySupportStatus,
 };
 pub use report::{
     WorthQueryIdentityEvolutionSupportProfile, WorthQueryQueryCompositionSupportProfile,
@@ -60,3 +61,4 @@ pub(crate) use shared_read_pinning::{
 pub use shared_read_pinning::{
     WorthQuerySharedReadPinningBoundaryClosure, WorthQuerySharedReadPinningBoundaryPosture,
 };
+pub use support_matrix::WorthQuerySupportMatrix;

@@ -1,8 +1,18 @@
 use super::{
     WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
     WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainPackage, WorthQueryDomainPackageIdentity,
+    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
+    WorthQueryDomainOperationGraphParticipationRecord,
+    WorthQueryDomainOperationRequiredDomainRecord, WorthQueryDomainPackage,
+    WorthQueryDomainPackageIdentity,
 };
+
+mod operation_graph_participation;
+mod operation_required_domain;
+mod portable_denial_mapping;
+use operation_graph_participation::validate_operation_graph_participations;
+use operation_required_domain::validate_operation_required_domains;
+use portable_denial_mapping::map_portable_validation_denial;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryDomainPackageValidationDenialKind {
@@ -20,6 +30,14 @@ pub enum WorthQueryDomainPackageValidationDenialKind {
     EmptyGraphReadRelationSet,
     InvalidInvariantPredicate,
     InvalidPortablePackage,
+    InvalidDomainOperation,
+    MissingDomainOperationCapability,
+    MissingDomainOperationInvariant,
+    DuplicateDomainOperation,
+    ConflictingDomainOperation,
+    ConflictingDomainOperationMarker,
+    InvalidDomainOperationGraphParticipation,
+    InvalidDomainOperationRequiredDomain,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,6 +90,10 @@ pub(crate) struct WorthQueryValidatedDomainPackage<D: WorthQueryDomainEntryMarke
     pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
+    pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
+    pub(crate) operation_graph_participations:
+        Vec<WorthQueryDomainOperationGraphParticipationRecord>,
+    pub(crate) operation_required_domains: Vec<WorthQueryDomainOperationRequiredDomainRecord>,
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
     pub(crate) portable_package:
         worth_query_installation::facade::WorthQueryValidatedPortableDomainPackage,
@@ -138,10 +160,21 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
     let mut graph_obligations = package.graph_obligations;
     let mut graph_read_operations = package.graph_read_operations;
     let mut declaration_families = package.declaration_families;
+    let mut domain_operations = package.domain_operations;
+    let operation_graph_participations = package.operation_graph_participations;
+    let operation_required_domains = package.operation_required_domains;
     let mut contribution_policy = package.contribution_policy;
 
     validate_invariant_predicates(&invariant_definitions)?;
     validate_operation_relations(&graph_read_operations)?;
+    validate_domain_operation_markers(&domain_operations)?;
+    validate_operation_graph_participations(&domain_operations, &operation_graph_participations)?;
+    validate_operation_required_domains(&domain_operations, &operation_required_domains)?;
+    validate_domain_operation_dependencies(
+        &domain_operations,
+        &required_capabilities,
+        &invariant_definitions,
+    )?;
 
     let portable_package = super::portable_validation::validate_portable_package(
         super::portable_validation::WorthQueryPortablePackageDeclaration {
@@ -153,6 +186,7 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
             graph_obligations: &graph_obligations,
             graph_read_operations: &graph_read_operations,
             declaration_families: &declaration_families,
+            domain_operations: &domain_operations,
             contribution_policy: &contribution_policy,
         },
     )
@@ -162,6 +196,11 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
     graph_obligations.sort_by_key(WorthQueryDomainGraphObligationDefinition::canonical_part);
     graph_read_operations.sort_by_key(WorthQueryDomainGraphReadOperationDefinition::canonical_part);
     declaration_families.sort_by_key(WorthQueryDomainDeclarationFamilyDefinition::canonical_part);
+    domain_operations.sort_by(|left, right| {
+        left.definition()
+            .identity()
+            .cmp(right.definition().identity())
+    });
     contribution_policy.sort_by_key(|category| category.as_str());
     let package_identity = WorthQueryDomainPackageIdentity::new(
         crate::evidence_identity::worth_query_evidence_identity(
@@ -184,6 +223,9 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
         graph_obligations,
         graph_read_operations,
         declaration_families,
+        domain_operations,
+        operation_graph_participations,
+        operation_required_domains,
         contribution_policy,
         portable_package,
     })
@@ -233,43 +275,81 @@ fn validate_operation_relations(
     Ok(())
 }
 
-fn map_portable_validation_denial(
-    denial: worth_query_installation::facade::WorthQueryPortablePackageValidationDenial,
-) -> WorthQueryDomainPackageValidationDenial {
-    use worth_query_installation::facade::{
-        WorthQueryPortableDefinitionKind as DefinitionKind,
-        WorthQueryPortablePackageValidationDenialKind as DenialKind,
-    };
+fn validate_domain_operation_markers(
+    definitions: &[WorthQueryDomainOperationDefinitionRecord],
+) -> Result<(), WorthQueryDomainPackageValidationDenial> {
+    for (index, definition) in definitions.iter().enumerate() {
+        if definitions[..index].iter().any(|prior| {
+            prior.operation_marker() == definition.operation_marker()
+                && prior.family_marker() == definition.family_marker()
+                && prior.definition().identity() != definition.definition().identity()
+        }) {
+            return Err(WorthQueryDomainPackageValidationDenial::new(
+                WorthQueryDomainPackageValidationDenialKind::ConflictingDomainOperationMarker,
+                definition.definition().identity().slot(),
+            ));
+        }
+    }
+    Ok(())
+}
 
-    let kind = match (denial.kind(), denial.definition_kind()) {
-        (DenialKind::DuplicateContributionCategory, _) => {
-            WorthQueryDomainPackageValidationDenialKind::DuplicateContributionCategory
+fn validate_domain_operation_dependencies(
+    operations: &[WorthQueryDomainOperationDefinitionRecord],
+    package_capabilities: &[WorthQueryCapabilityFamily],
+    invariants: &[WorthQueryDomainInvariantDefinition],
+) -> Result<(), WorthQueryDomainPackageValidationDenial> {
+    for operation in operations {
+        let definition = operation.definition();
+        let direct_missing = definition
+            .semantics()
+            .required_capabilities
+            .iter()
+            .find(|required| {
+                !package_capabilities
+                    .iter()
+                    .any(|installed| installed.satisfies_operation_requirement(**required))
+            });
+        let workflow_missing = match &definition.semantics().workflow {
+            worth_query_installation::facade::WorthQueryOperationWorkflowContract::Declared(
+                workflow,
+            ) => workflow
+                .stages()
+                .iter()
+                .flat_map(|stage| stage.required_capabilities())
+                .find(|required| {
+                    !package_capabilities
+                        .iter()
+                        .any(|installed| installed.satisfies_operation_requirement(**required))
+                }),
+            worth_query_installation::facade::WorthQueryOperationWorkflowContract::NotRequired => {
+                None
+            }
+        };
+        if let Some(missing) = direct_missing.or(workflow_missing) {
+            return Err(WorthQueryDomainPackageValidationDenial::new(
+                WorthQueryDomainPackageValidationDenialKind::MissingDomainOperationCapability,
+                format!(
+                    "{} requires `{}`",
+                    definition.identity().slot(),
+                    missing.as_str()
+                ),
+            ));
         }
-        (DenialKind::DuplicateDefinition, Some(DefinitionKind::Invariant)) => {
-            WorthQueryDomainPackageValidationDenialKind::DuplicateInvariant
+        if let worth_query_installation::facade::WorthQueryOperationInvariantContract::Declared {
+            invariant_slots,
+        } = &definition.semantics().invariants
+        {
+            if let Some(missing) = invariant_slots.iter().find(|required| {
+                !invariants
+                    .iter()
+                    .any(|item| item.slot_key() == required.as_str())
+            }) {
+                return Err(WorthQueryDomainPackageValidationDenial::new(
+                    WorthQueryDomainPackageValidationDenialKind::MissingDomainOperationInvariant,
+                    format!("{} requires `{missing}`", definition.identity().slot()),
+                ));
+            }
         }
-        (DenialKind::ConflictingDefinition, Some(DefinitionKind::Invariant)) => {
-            WorthQueryDomainPackageValidationDenialKind::ConflictingInvariant
-        }
-        (DenialKind::DuplicateDefinition, Some(DefinitionKind::GraphObligation)) => {
-            WorthQueryDomainPackageValidationDenialKind::DuplicateGraphObligation
-        }
-        (DenialKind::ConflictingDefinition, Some(DefinitionKind::GraphObligation)) => {
-            WorthQueryDomainPackageValidationDenialKind::ConflictingGraphObligation
-        }
-        (DenialKind::DuplicateDefinition, Some(DefinitionKind::GraphReadOperation)) => {
-            WorthQueryDomainPackageValidationDenialKind::DuplicateGraphReadOperation
-        }
-        (DenialKind::ConflictingDefinition, Some(DefinitionKind::GraphReadOperation)) => {
-            WorthQueryDomainPackageValidationDenialKind::ConflictingGraphReadOperation
-        }
-        (DenialKind::DuplicateDefinition, Some(DefinitionKind::DeclarationFamily)) => {
-            WorthQueryDomainPackageValidationDenialKind::DuplicateDeclarationFamily
-        }
-        (DenialKind::ConflictingDefinition, Some(DefinitionKind::DeclarationFamily)) => {
-            WorthQueryDomainPackageValidationDenialKind::ConflictingDeclarationFamily
-        }
-        _ => WorthQueryDomainPackageValidationDenialKind::InvalidPortablePackage,
-    };
-    WorthQueryDomainPackageValidationDenial::new(kind, denial.slot())
+    }
+    Ok(())
 }

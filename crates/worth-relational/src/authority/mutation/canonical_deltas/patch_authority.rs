@@ -26,10 +26,11 @@ pub(super) fn evaluate_authoritative_patch_delta(
             .map(|binding| binding.aspect_key.clone()),
     );
     let contains_opaque_aspect = evaluated_bindings.iter().any(|binding| {
-        matches!(
-            binding.aspect_shape,
-            worth_foundational::AspectShape::Opaque(_)
-        )
+        binding.changed
+            && matches!(
+                binding.aspect_shape,
+                worth_foundational::AspectShape::Opaque(_)
+            )
     });
 
     CanonicalRecordAspectDelta {
@@ -56,6 +57,7 @@ fn authoritative_patch_evaluated_bindings(
             evaluated.push(EvaluatedAspectBinding {
                 aspect_key: binding.aspect_key().clone(),
                 contract: binding.contract.clone(),
+                binding: binding.target.clone(),
                 changed: true,
                 aspect_shape: binding.aspect_shape(),
                 evidence,
@@ -70,10 +72,33 @@ pub(super) fn authoritative_patch_binding_evidence(
     structural_change: RecordStructuralChange,
     patch: &worth_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> Option<CanonicalAspectDeltaEvidence> {
-    whole_aspect_set_evidence(binding, patch)
-        .or_else(|| whole_aspect_clear_evidence(binding, patch))
-        .or_else(|| field_level_patch_evidence(binding, patch))
-        .or_else(|| lifecycle_structural_evidence(binding, structural_change))
+    match &binding.target {
+        AspectBinding::StructuralRegion
+        | AspectBinding::StructuralPartition
+        | AspectBinding::StructuralFacet => structural_evidence(binding, structural_change),
+        AspectBinding::LifecycleTransition => {
+            lifecycle_structural_evidence(binding, structural_change)
+        }
+        _ => whole_aspect_set_evidence(binding, patch)
+            .or_else(|| whole_aspect_clear_evidence(binding, patch))
+            .or_else(|| field_level_patch_evidence(binding, patch)),
+    }
+}
+
+fn structural_evidence(
+    binding: &crate::schema::data::LoweredAspectContractBinding,
+    structural_change: RecordStructuralChange,
+) -> Option<CanonicalAspectDeltaEvidence> {
+    matches!(
+        &binding.target,
+        AspectBinding::StructuralRegion
+            | AspectBinding::StructuralPartition
+            | AspectBinding::StructuralFacet
+    )
+    .then(|| CanonicalAspectDeltaEvidence::Structural {
+        locator: authoritative_value_locator(binding),
+        change: structural_change,
+    })
 }
 
 fn lifecycle_structural_evidence(
@@ -83,15 +108,13 @@ fn lifecycle_structural_evidence(
     if !matches!(&binding.target, AspectBinding::LifecycleTransition) {
         return None;
     }
-    match structural_change {
-        RecordStructuralChange::Created | RecordStructuralChange::Deleted => {
-            Some(CanonicalAspectDeltaEvidence::Lifecycle {
-                locator: authoritative_value_locator(binding),
-                transition: lifecycle_transition(structural_change),
-            })
+    let transition = lifecycle_transition(structural_change);
+    (transition != super::data::LifecycleTransitionClass::NoTransition).then(|| {
+        CanonicalAspectDeltaEvidence::Lifecycle {
+            locator: authoritative_value_locator(binding),
+            transition,
         }
-        RecordStructuralChange::Updated | RecordStructuralChange::RetainedForAudit => None,
-    }
+    })
 }
 
 fn whole_aspect_set_evidence(
@@ -119,7 +142,7 @@ fn whole_aspect_clear_evidence(
         .then(|| CanonicalAspectDeltaEvidence::AuthoritativePatch {
             locator: authoritative_value_locator(binding),
             operation: AuthoritativePatchDeltaOperation::WholeAspectClear {
-                aspect_key: binding.contract.key().clone(),
+                contract: binding.contract.clone(),
             },
         })
 }

@@ -1,7 +1,9 @@
 use super::{
     WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
     WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainPackageValidationDenial,
+    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinition,
+    WorthQueryDomainOperationDefinitionRecord, WorthQueryDomainOperationGraphParticipationRecord,
+    WorthQueryDomainOperationRequiredDomainRecord, WorthQueryDomainPackageValidationDenial,
     WorthQueryValidatedDomainPackage,
 };
 use crate::application::{
@@ -20,6 +22,10 @@ pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
+    pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
+    pub(crate) operation_graph_participations:
+        Vec<WorthQueryDomainOperationGraphParticipationRecord>,
+    pub(crate) operation_required_domains: Vec<WorthQueryDomainOperationRequiredDomainRecord>,
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
@@ -35,6 +41,9 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
             graph_obligations: Vec::new(),
             graph_read_operations: Vec::new(),
             declaration_families: Vec::new(),
+            domain_operations: Vec::new(),
+            operation_graph_participations: Vec::new(),
+            operation_required_domains: Vec::new(),
             contribution_policy: Vec::new(),
         }
     }
@@ -113,6 +122,44 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
                 .extend_from_slice(definition.operating_requirements());
             self.declaration_families.push(definition);
         }
+        self
+    }
+
+    #[must_use]
+    pub fn operation<O, F>(
+        mut self,
+        definition: WorthQueryDomainOperationDefinition<D, O, F>,
+    ) -> Self
+    where
+        O: 'static,
+        F: 'static,
+    {
+        self.domain_operations
+            .push(WorthQueryDomainOperationDefinitionRecord::from_typed(
+                definition,
+            ));
+        self
+    }
+
+    #[must_use]
+    pub fn operation_graph_participation<O: 'static, F: 'static, G: 'static>(
+        mut self,
+        role: impl Into<String>,
+    ) -> Self {
+        self.operation_graph_participations.push(
+            WorthQueryDomainOperationGraphParticipationRecord::typed::<O, F, G>(role),
+        );
+        self
+    }
+
+    #[must_use]
+    pub fn operation_required_domain<O: 'static, F: 'static, R: 'static>(
+        mut self,
+        role: impl Into<String>,
+    ) -> Self {
+        self.operation_required_domains.push(
+            WorthQueryDomainOperationRequiredDomainRecord::typed::<O, F, R>(role),
+        );
         self
     }
 

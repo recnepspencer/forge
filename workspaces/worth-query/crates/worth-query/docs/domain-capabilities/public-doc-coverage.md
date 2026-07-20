@@ -2,9 +2,9 @@
 
 ## What This Feature Is
 
-Documentation certification binds the installed-domain public surface to its
-compile-checked examples, compile-fail boundaries, hostile tests, and product
-guides.
+Documentation certification keeps the installed-domain public surface,
+representative executable examples, focused authority boundaries, hostile
+tests, and product guides pointed at the same current API.
 
 ## Why You Use It
 
@@ -15,8 +15,6 @@ guides.
 ## Stable Entry Points
 
 - `worth_query_domain_capability_certification_surface()`
-- `worth_query_domain_capability_golden_transcripts()`
-- `worth_query_domain_capability_compile_fail_boundaries()`
 - `certify_milestone_nine_thirteen_installed_domain(...)`
 - `certify_milestone_nine_thirteen_native_values(...)`
 
@@ -29,10 +27,10 @@ still agree with compiled code.
 
 ## How It Executes
 
-1. compile current installed-domain golden examples
-2. compile-fail attempts to forge, construct, or cross authority boundaries
+1. compile representative installed-domain public examples
+2. compile-fail only the authority violations whose guarantee is type-level
 3. run hostile runtime and consumer-residue checks
-4. audit product docs for removed public types and value carriers
+4. review product docs against current public types and value carriers
 5. seal the resulting evidence rows into certification bundles
 
 ## Small Example
@@ -70,7 +68,8 @@ runtime authority.
 ## Anti-Patterns
 
 - treating file existence or link resolution as semantic documentation proof
-- adding a public example without a compile-checked or hostile counterpart
+- creating a doc-specific test when an existing public integration journey is
+  already the stronger evidence
 - documenting an internal transition helper as an ordinary consumer entry
 
 ## Current Limits

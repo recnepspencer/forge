@@ -90,16 +90,22 @@ impl AspectKeySelector {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TruthPatchTargetSelector {
     Any,
+    AuthoritativeAspect,
     EntityField(CanonicalFieldPath),
     EntityRelationEndpoint,
     EntityRegion,
     EntityPartition,
     EntityFacet,
+    LifecycleTransition,
 }
 
 impl TruthPatchTargetSelector {
     pub fn any() -> Self {
         Self::Any
+    }
+
+    pub fn authoritative_aspect() -> Self {
+        Self::AuthoritativeAspect
     }
 
     pub fn entity_field(field_key: FieldKey) -> Self {
@@ -126,12 +132,19 @@ impl TruthPatchTargetSelector {
         Self::EntityFacet
     }
 
+    pub fn lifecycle_transition() -> Self {
+        Self::LifecycleTransition
+    }
+
     pub(crate) fn matches<T>(&self, target: &T) -> bool
     where
         T: TruthPatchTargetView,
     {
         match self {
             Self::Any => true,
+            Self::AuthoritativeAspect => {
+                target.truth_surface_kind() == TruthDeltaSurfaceKind::AuthoritativeAspect
+            }
             Self::EntityField(expected_path) => {
                 target.truth_surface_kind() == TruthDeltaSurfaceKind::EntityField
                     && target.truth_field_path() == Some(expected_path)
@@ -146,17 +159,22 @@ impl TruthPatchTargetSelector {
                 target.truth_surface_kind() == TruthDeltaSurfaceKind::EntityPartition
             }
             Self::EntityFacet => target.truth_surface_kind() == TruthDeltaSurfaceKind::EntityFacet,
+            Self::LifecycleTransition => {
+                target.truth_surface_kind() == TruthDeltaSurfaceKind::LifecycleTransition
+            }
         }
     }
 
     pub(crate) fn overlaps(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Any, _) | (_, Self::Any) => true,
+            (Self::AuthoritativeAspect, Self::AuthoritativeAspect) => true,
             (Self::EntityField(left), Self::EntityField(right)) => left == right,
             (Self::EntityRelationEndpoint, Self::EntityRelationEndpoint)
             | (Self::EntityRegion, Self::EntityRegion)
             | (Self::EntityPartition, Self::EntityPartition)
             | (Self::EntityFacet, Self::EntityFacet) => true,
+            (Self::LifecycleTransition, Self::LifecycleTransition) => true,
             _ => false,
         }
     }
@@ -168,6 +186,7 @@ impl TruthPatchTargetSelector {
     pub(crate) fn canonical_basis(&self) -> Arc<str> {
         match self {
             Self::Any => Arc::from("target-selector|kind=any"),
+            Self::AuthoritativeAspect => Arc::from("target-selector|kind=authoritative-aspect"),
             Self::EntityField(path) => Arc::from(format!(
                 "target-selector|kind=entity-field|field-path={}",
                 path.fields()
@@ -182,6 +201,7 @@ impl TruthPatchTargetSelector {
             Self::EntityRegion => Arc::from("target-selector|kind=entity-region"),
             Self::EntityPartition => Arc::from("target-selector|kind=entity-partition"),
             Self::EntityFacet => Arc::from("target-selector|kind=entity-facet"),
+            Self::LifecycleTransition => Arc::from("target-selector|kind=lifecycle-transition"),
         }
     }
 }

@@ -5,7 +5,6 @@ use worth_runtime_bridge::facade::{
 
 use super::RuntimeBridgeRelationalSource;
 use crate::capabilities::CommitEnvelopeSource;
-use crate::presentation::bridge::patch_envelopes::commit_envelope_to_bridge_envelope;
 
 impl TruthBranchHeadSource for RuntimeBridgeRelationalSource {
     fn load_branch_head_patch(
@@ -37,6 +36,27 @@ impl TruthBranchHeadSource for RuntimeBridgeRelationalSource {
             ))
         })?;
 
-        Ok(commit_envelope_to_bridge_envelope(envelope))
+        match self.publish_commit(envelope.commit.commit_id) {
+            worth_proof::TransitionOutcome::Success(publication) => {
+                Ok(publication.into_bridge_envelope())
+            }
+            worth_proof::TransitionOutcome::Denied(denial) => {
+                Err(RelationalBridgeSourceError::new(format!(
+                    "relational branch-head patch could not be admitted by Bridge: {denial}"
+                )))
+            }
+            worth_proof::TransitionOutcome::Deferred(_) => Err(RelationalBridgeSourceError::new(
+                "relational branch-head publication deferred",
+            )),
+            worth_proof::TransitionOutcome::Stale(_) => Err(RelationalBridgeSourceError::new(
+                "relational branch-head authority is stale",
+            )),
+            worth_proof::TransitionOutcome::RebindRequired(_) => Err(
+                RelationalBridgeSourceError::new("relational branch-head requires graph rebind"),
+            ),
+            worth_proof::TransitionOutcome::Failed(_) => Err(RelationalBridgeSourceError::new(
+                "relational branch-head lowering failed",
+            )),
+        }
     }
 }

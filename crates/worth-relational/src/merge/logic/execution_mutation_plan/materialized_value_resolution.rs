@@ -79,6 +79,13 @@ pub(super) fn resolved_entity_field_patch_value(
                 detail: "relation-scoped aspect binding is not executable for entity reconcile",
             },
         ),
+        _ => Err(
+            MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
+                record: plan.target_record.clone(),
+                aspect_key: aspect_key.clone(),
+                detail: "unsupported authoritative aspect binding for entity reconcile",
+            },
+        ),
     }
 }
 

@@ -47,6 +47,32 @@ impl WorthQueryCapabilityFamily {
             Self::DurableArtifacts => WorthQueryConfigSectionFamily::Store,
         }
     }
+
+    pub(crate) fn satisfies_operation_requirement(
+        self,
+        requirement: worth_query_installation::facade::WorthQueryOperationCapabilityRequirement,
+    ) -> bool {
+        use worth_query_installation::facade::WorthQueryOperationCapabilityRequirement as Requirement;
+
+        matches!(
+            (self, requirement),
+            (Self::QueryRead, Requirement::QueryRead)
+                | (Self::QueryComposition, Requirement::QueryComposition)
+                | (Self::QueryContext, Requirement::QueryContext)
+                | (Self::IdentityEvolution, Requirement::IdentityEvolution)
+                | (Self::LiveQuery, Requirement::LiveQuery)
+                | (Self::PreviewSession, Requirement::PreviewSession)
+                | (
+                    Self::WorkflowOrchestration,
+                    Requirement::WorkflowOrchestration
+                )
+                | (
+                    Self::HistoricalEvaluation,
+                    Requirement::HistoricalEvaluation
+                )
+                | (Self::DurableArtifacts, Requirement::DurableArtifacts)
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -287,88 +313,6 @@ impl WorthQueryCapabilityRegistry {
 
     pub fn registry_digest(&self) -> &str {
         &self.registry_digest
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQuerySupportMatrix {
-    registry: WorthQueryCapabilityRegistry,
-    support_matrix_digest: String,
-}
-
-impl WorthQuerySupportMatrix {
-    pub(crate) fn new(registry: WorthQueryCapabilityRegistry) -> Self {
-        let admitted = registry
-            .descriptors()
-            .iter()
-            .filter(|descriptor| descriptor.status() == WorthQueryCapabilityStatus::Admitted)
-            .count();
-        let deferred = registry
-            .descriptors()
-            .iter()
-            .filter(|descriptor| descriptor.status() == WorthQueryCapabilityStatus::DeferredDebt)
-            .count();
-        let unsupported = registry
-            .descriptors()
-            .iter()
-            .filter(|descriptor| descriptor.status() == WorthQueryCapabilityStatus::Unsupported)
-            .count();
-        let support_matrix_digest =
-            worth_query_evidence_identity(WorthQueryEvidenceScope::ApplicationSupportReport)
-                .field_shape(WorthQueryEvidenceTag::new("role"), "support-matrix")
-                .field_value(
-                    WorthQueryEvidenceTag::new("registry"),
-                    registry.registry_digest(),
-                )
-                .field_usize(WorthQueryEvidenceTag::new("admitted"), admitted)
-                .field_usize(WorthQueryEvidenceTag::new("deferred"), deferred)
-                .field_usize(WorthQueryEvidenceTag::new("unsupported"), unsupported)
-                .seal()
-                .as_str()
-                .to_string();
-        Self {
-            registry,
-            support_matrix_digest,
-        }
-    }
-
-    pub fn descriptor(
-        &self,
-        family: WorthQueryCapabilityFamily,
-    ) -> Option<&WorthQueryCapabilityDescriptor> {
-        self.registry.descriptor(family)
-    }
-
-    pub fn capability_registry(&self) -> &WorthQueryCapabilityRegistry {
-        &self.registry
-    }
-
-    pub fn support_matrix_digest(&self) -> &str {
-        &self.support_matrix_digest
-    }
-
-    pub fn admitted_capability_count(&self) -> usize {
-        self.registry
-            .descriptors()
-            .iter()
-            .filter(|descriptor| descriptor.status() == WorthQueryCapabilityStatus::Admitted)
-            .count()
-    }
-
-    pub fn deferred_capability_count(&self) -> usize {
-        self.registry
-            .descriptors()
-            .iter()
-            .filter(|descriptor| descriptor.status() == WorthQueryCapabilityStatus::DeferredDebt)
-            .count()
-    }
-
-    pub fn unsupported_capability_count(&self) -> usize {
-        self.registry
-            .descriptors()
-            .iter()
-            .filter(|descriptor| descriptor.status() == WorthQueryCapabilityStatus::Unsupported)
-            .count()
     }
 }
 
