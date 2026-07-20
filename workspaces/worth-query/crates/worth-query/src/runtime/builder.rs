@@ -7,8 +7,16 @@ use worth_relational::facade::runtime::{
     CustomInvariantRegistration, InvariantCatalog, RelationalRuntimeBuilder,
 };
 
+mod conditional_execution;
+mod construction;
+mod consumer_support;
+mod domain_operation_executors;
 mod domain_packages;
+mod graph_participation;
+mod lowering;
 mod queued_graph_obligation_registrations;
+mod workflow_parallel_admission;
+mod workflow_stage_executors;
 use queued_graph_obligation_registrations::{
     graph_obligation_registration_error, QueuedGraphObligationRegistrations,
 };
@@ -60,8 +68,22 @@ pub struct WorthQueryRuntimeBuilder {
     graph_obligation_registration_catalog:
         Option<Result<WorthQueryGraphObligationRegistrationCatalog, WorthQueryRuntimeError>>,
     pending_domain_installations: crate::domain_installation::WorthQueryPendingDomainInstallations,
+    pending_graph_participations: crate::domain_installation::WorthQueryPendingGraphParticipations,
+    pending_domain_operation_executors:
+        crate::domain_installation::WorthQueryPendingDomainOperationExecutors,
+    pending_workflow_stage_executors:
+        crate::domain_installation::WorthQueryPendingWorkflowStageExecutors,
+    pending_workflow_parallel_admission_providers:
+        crate::domain_installation::WorthQueryPendingWorkflowParallelAdmissionProviders,
+    consumer_support_postures:
+        [Option<crate::domain_installation::WorthQueryConsumerSupportPosture>;
+            crate::domain_installation::WorthQueryConsumerSupportDimension::COUNT],
     native_aspect_contracts:
         crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry,
+    conditional_runtime_bridge: Option<worth_runtime_bridge::facade::RuntimeBridge>,
+    conditional_signal_graph: Option<worth_signal::facade::SignalGraph>,
+    pending_conditional_installations:
+        Vec<Box<dyn crate::domain_installation::PendingConditionalInstallation>>,
 }
 
 impl WorthQueryRuntimeBuilder {
@@ -139,6 +161,7 @@ impl WorthQueryRuntimeBuilder {
     }
 
     pub fn runtime_bridge(mut self, bridge: RuntimeBridge) -> Self {
+        self.conditional_runtime_bridge = Some(bridge.clone());
         self.backend_parts = self.backend_parts.runtime_bridge(bridge);
         self
     }
@@ -286,130 +309,5 @@ impl WorthQueryRuntimeBuilder {
         self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
         self.queued_graph_obligation_registrations = QueuedGraphObligationRegistrations::default();
         self
-    }
-
-    pub fn build(mut self) -> Result<WorthQueryRuntime, WorthQueryRuntimeError> {
-        self.queue_installed_domain_substrates();
-        if self.backend.is_some() && !self.backend_parts.is_empty() {
-            return Err(WorthQueryRuntimeError::InvariantRegistration {
-                stage: "runtime_backend_authority_selection",
-                message: "explicit runtime backends cannot be combined with backend parts such as runtime_bridge(...), schema_adapter(...), or write_authority(...); choose one backend authority path".to_string(),
-            });
-        }
-        if self.backend.is_some() && !self.queued_invariant_registrations.is_empty() {
-            return Err(WorthQueryRuntimeError::InvariantRegistration {
-                stage: "runtime_backend_selection",
-                message: "queued Query-owned invariant registrations cannot be applied after selecting an explicit runtime backend; lower them through WorthQueryRuntimeBuilder before backend(...) or relational_runtime(...)".to_string(),
-            });
-        }
-        self.assemble_graph_obligation_registration_catalog()?;
-        let backend = self
-            .backend
-            .ok_or(WorthQueryRuntimeError::MissingBackend)??;
-        let graph_obligation_registration_catalog = match self.graph_obligation_registration_catalog
-        {
-            Some(result) => result?,
-            None => WorthQueryGraphObligationRegistrationCatalog::empty(),
-        };
-        let graph_obligation_index =
-            WorthQueryGraphObligationIndex::from_catalog(&graph_obligation_registration_catalog);
-        let authority_identity = super::WorthQueryRuntimeAuthorityIdentity::mint();
-        let domain_installation_registry =
-            crate::domain_installation::WorthQueryDomainInstallationRegistry::from_artifacts(
-                self.pending_domain_installations.into_artifacts(),
-                authority_identity,
-            );
-        let native_aspect_contracts = self.native_aspect_contracts;
-        Ok(WorthQueryRuntime {
-            backend,
-            evidence_authority: WorthQueryRuntimeEvidenceAuthority::new(),
-            authority_identity,
-            domain_installation_registry,
-            native_aspect_contracts,
-            preview_session_labels: BTreeSet::new(),
-            branch_session_labels: BTreeSet::new(),
-            active_subscriptions: ActiveSubscriptionRuntime::new(),
-            live_subscriptions: BTreeMap::new(),
-            materialized_read_views: BTreeMap::new(),
-            live_subscription_index: Vec::new(),
-            installed_programs: BTreeMap::new(),
-            run_traces: BTreeMap::new(),
-            derived_views: BTreeMap::new(),
-            shared_read_pins: super::shared_read_pins::WorthQuerySharedReadPinRegistry::default(),
-            published_artifacts:
-                super::published_artifacts::WorthQueryPublishedArtifactRegistry::default(),
-            journal_replay: super::journal_replay::WorthQueryJournalReplayRegistry::default(),
-            derived_dependency_index: WorthQueryComputedDependencyIndex::default(),
-            effects: BTreeMap::new(),
-            effect_index: WorthQueryEffectIndex::default(),
-            graph_obligation_registration_catalog,
-            graph_obligation_index,
-            managed_live_resource_capability: WorthQueryManagedLiveWorkspaceCapability::shared(),
-            next_run_id: 0,
-        })
-    }
-
-    #[cfg(test)]
-    fn queue_relational_schema_contract_obligations(&mut self, catalog: &InvariantCatalog) {
-        match registrations_from_relational_invariant_catalog(catalog) {
-            Ok(registrations) => {
-                self.queued_graph_obligation_registrations
-                    .extend(registrations);
-            }
-            Err(error) => {
-                self.graph_obligation_registration_catalog =
-                    Some(Err(graph_obligation_registration_error(
-                        "relational_schema_contract_obligation_lowering",
-                        error,
-                    )));
-            }
-        }
-    }
-
-    fn assemble_graph_obligation_registration_catalog(
-        &mut self,
-    ) -> Result<(), WorthQueryRuntimeError> {
-        if self.graph_obligation_registration_catalog.is_some() {
-            return Ok(());
-        }
-        let queued = std::mem::take(&mut self.queued_graph_obligation_registrations);
-        let catalog = WorthQueryGraphObligationRegistrationCatalog::from_registrations(
-            queued.into_explicit_registrations(),
-        )
-        .map_err(|error| {
-            graph_obligation_registration_error(
-                "graph_obligation_registration_catalog_assembly",
-                error,
-            )
-        })?;
-        self.graph_obligation_registration_catalog = Some(Ok(catalog));
-        Ok(())
-    }
-
-    fn lower_queued_invariant_registrations_into_backend_parts(
-        &mut self,
-    ) -> Result<(), WorthQueryRuntimeError> {
-        if self.queued_invariant_registrations.is_empty() {
-            return Ok(());
-        }
-        if self.backend_parts.has_relational_runtime() {
-            return Err(WorthQueryRuntimeError::InvariantRegistration {
-                stage: "relational_runtime_authority_selection",
-                message: "queued Query-owned invariant registrations conflict with an explicitly supplied relational runtime; choose one authority path".to_string(),
-            });
-        }
-        let queued = std::mem::take(&mut self.queued_invariant_registrations);
-        self.backend_parts = std::mem::take(&mut self.backend_parts)
-            .relational_runtime(queued.lower_into_relational_runtime());
-        Ok(())
-    }
-
-    fn lower_bridge_backed_backend_from_parts(
-        &mut self,
-    ) -> Result<Box<dyn WorthQueryRuntimeBackend>, WorthQueryRuntimeError> {
-        let bootstrap = std::mem::take(&mut self.backend_parts).lower_bridge_backed_bootstrap()?;
-        Ok(Box::new(
-            WorthQueryBridgeBackedRuntimeBackend::from_validated_bootstrap(bootstrap),
-        ))
     }
 }

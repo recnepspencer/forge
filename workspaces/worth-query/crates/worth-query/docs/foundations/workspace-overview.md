@@ -53,9 +53,11 @@ Stable runtime-backed entry points:
 - `workspace.public_mutation_surface_report()`
 - `workspace.admit_public_api_family(...)`
 - `workspace.downstream_delivery(...)`
+- `workspace.domain(DomainMarker)`
+- `workspace.operating_world(admitted_basis)`
+- `.family(FamilyMarker).bind(&installed_domain, OperationMarker)`
 
-Alternate names may still exist as adapters, but the public support and
-mutation-surface contracts define the surviving runtime story.
+The public support and mutation-surface contracts define the runtime story.
 
 Good to know:
 
@@ -93,6 +95,8 @@ Think of it this way:
 - authoritative truth lives below the workspace
 - the workspace declares durable runtime surfaces over that truth
 - handles returned by the workspace are retained runtime objects, not raw data
+- installed domain handles and operation-family views borrow one runtime; the
+  operating world is the only authority-bearing installed-operation root
 - `read`, `observe`, `materialize`, `state`, and `inspect` let you ask
   different questions about those retained surfaces
 - `observe` can now surface time-only live delivery directly, so a freshness
@@ -438,6 +442,8 @@ exposing it in another runtime.
 
 ## Related Docs
 
+- [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
+- [Conditional Installed Operations](../domain-capabilities/conditional-installed-operations.md)
 - [Live Views](../runtime-surfaces/live-views.md)
 - [Computed](../runtime-surfaces/computed.md)
 - [Effects](../execution/effects.md)

@@ -68,7 +68,8 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
         .collect::<Vec<_>>();
 
     let runtime = Arc::new(runtime);
-    let source = RuntimeBridgeRelationalSource::new(Arc::clone(&runtime));
+    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::clone(&runtime), "model")
+        .expect("test graph role");
     let latest_commit_identity = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(latest_bundle.commit.commit_id.0),
     );

@@ -881,6 +881,18 @@ pub struct WorthQueryRuntime {
     evidence_authority: WorthQueryRuntimeEvidenceAuthority,
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
     domain_installation_registry: crate::domain_installation::WorthQueryDomainInstallationRegistry,
+    domain_operation_executor_registry:
+        crate::domain_installation::WorthQueryDomainOperationExecutorRegistry,
+    workflow_stage_executor_registry:
+        crate::domain_installation::WorthQueryWorkflowStageExecutorRegistry,
+    workflow_parallel_admission_provider_registry:
+        crate::domain_installation::WorthQueryWorkflowParallelAdmissionProviderRegistry,
+    graph_participation_registry:
+        crate::domain_installation::WorthQueryInstalledGraphParticipationRegistry,
+    conditional_signal_runtime: Option<worth_runtime_bridge::facade::BridgeOwnedSignalRuntime>,
+    conditional_execution_registry:
+        crate::domain_installation::WorthQueryConditionalExecutionRegistry,
+    consumer_support_profile: crate::domain_installation::WorthQueryConsumerSupportProfile,
     native_aspect_contracts: native_aspect_contracts::WorthQueryNativeAspectContractRegistry,
     preview_session_labels: BTreeSet<WorthQuerySessionLabel>,
     branch_session_labels: BTreeSet<WorthQuerySessionLabel>,

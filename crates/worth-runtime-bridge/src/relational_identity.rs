@@ -268,6 +268,20 @@ impl BridgeCommittedPatchItem {
             record_identity.bridge_entity_identity(),
             record_identity,
             target,
+            None,
+        )
+    }
+
+    pub fn with_relational_semantic_change(
+        record_identity: RelationalBridgeRecordIdentityParts,
+        target: BridgeCommittedPatchTarget,
+        semantic_change: crate::input::envelope::BridgeSemanticAspectChange,
+    ) -> Self {
+        Self::from_relational_record_parts(
+            record_identity.bridge_entity_identity(),
+            record_identity,
+            target,
+            Some(semantic_change),
         )
     }
 }

@@ -122,11 +122,13 @@ impl FrozenSubscriptionFamilyRegistry {
             for slice_kind in registration.supported_slice_kinds() {
                 basis.push_str("|slice-kind=");
                 basis.push_str(match slice_kind {
+                    SubscriptionSliceKind::SignalAspect => "signal_aspect",
                     SubscriptionSliceKind::SignalField => "signal_field",
                     SubscriptionSliceKind::SignalLens => "signal_lens",
                     SubscriptionSliceKind::SignalRegion => "signal_region",
                     SubscriptionSliceKind::SignalPartition => "signal_partition",
                     SubscriptionSliceKind::SignalFacet => "signal_facet",
+                    SubscriptionSliceKind::SignalLifecycle => "signal_lifecycle",
                     SubscriptionSliceKind::RegisteredCoarseWidening => "registered_coarse_widening",
                 });
             }

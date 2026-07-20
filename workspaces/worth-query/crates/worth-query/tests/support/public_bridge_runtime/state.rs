@@ -70,4 +70,5 @@ pub(super) struct PublicBridgeRuntimeState {
     pub(super) next_entity_identity: usize,
     pub(super) next_commit_identity: usize,
     pub(super) next_snapshot_token: usize,
+    pub(super) current_snapshot_parts: Option<(u64, u64)>,
 }

@@ -37,5 +37,9 @@ path = "tests/runtime_public_journeys.rs"
 name = "graph_obligation_journeys"
 path = "tests/graph_obligation_journeys.rs"
 
+[[test]]
+name = "installed_operating_world"
+path = "tests/installed_operating_world.rs"
+
 [lints]
 workspace = true

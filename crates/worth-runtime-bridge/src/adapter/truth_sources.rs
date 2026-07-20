@@ -2,6 +2,12 @@ use super::*;
 use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
 
 pub trait CommittedPatchSource: Send + Sync + 'static {
+    fn authoritative_source_profile(
+        &self,
+    ) -> Option<crate::input::envelope::BridgeAuthoritativeSourceProfile> {
+        None
+    }
+
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,

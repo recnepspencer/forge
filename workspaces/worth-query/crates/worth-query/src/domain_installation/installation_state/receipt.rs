@@ -1,6 +1,7 @@
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 
 use super::{WorthQueryDomainInstallationGeneration, WorthQueryDomainPackageIdentity};
+use crate::domain_installation::execution_index::WorthQueryInstalledDomainExecutionIndexShape;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryDomainInstalledDefinitionCounts {
@@ -11,11 +12,12 @@ pub struct WorthQueryDomainInstalledDefinitionCounts {
     graph_obligations: usize,
     graph_read_operations: usize,
     declaration_families: usize,
+    domain_operations: usize,
     contribution_categories: usize,
 }
 
 impl WorthQueryDomainInstalledDefinitionCounts {
-    pub(crate) const fn new(values: [usize; 8]) -> Self {
+    pub(crate) const fn new(values: [usize; 9]) -> Self {
         Self {
             required_capabilities: values[0],
             required_configuration_sections: values[1],
@@ -24,7 +26,8 @@ impl WorthQueryDomainInstalledDefinitionCounts {
             graph_obligations: values[4],
             graph_read_operations: values[5],
             declaration_families: values[6],
-            contribution_categories: values[7],
+            domain_operations: values[7],
+            contribution_categories: values[8],
         }
     }
 
@@ -49,6 +52,9 @@ impl WorthQueryDomainInstalledDefinitionCounts {
     pub const fn declaration_families(self) -> usize {
         self.declaration_families
     }
+    pub const fn domain_operations(self) -> usize {
+        self.domain_operations
+    }
     pub const fn contribution_categories(self) -> usize {
         self.contribution_categories
     }
@@ -62,6 +68,7 @@ pub struct WorthQueryDomainInstallationConstructionCounters {
     graph_obligation_index_entries: usize,
     graph_read_operation_index_entries: usize,
     declaration_family_index_entries: usize,
+    domain_operation_index_entries: usize,
     contribution_policy_index_entries: usize,
     derived_index_builds: usize,
 }
@@ -103,6 +110,7 @@ impl WorthQueryDomainInstallationConstructionCounters {
         graph_obligation_count: usize,
         graph_read_operation_count: usize,
         declaration_family_count: usize,
+        domain_operation_count: usize,
         contribution_policy_count: usize,
     ) -> Self {
         Self {
@@ -112,6 +120,7 @@ impl WorthQueryDomainInstallationConstructionCounters {
             graph_obligation_index_entries: graph_obligation_count,
             graph_read_operation_index_entries: graph_read_operation_count,
             declaration_family_index_entries: declaration_family_count,
+            domain_operation_index_entries: domain_operation_count,
             contribution_policy_index_entries: contribution_policy_count,
             derived_index_builds: 1,
         }
@@ -134,6 +143,9 @@ impl WorthQueryDomainInstallationConstructionCounters {
     }
     pub const fn declaration_family_index_entries(self) -> usize {
         self.declaration_family_index_entries
+    }
+    pub const fn domain_operation_index_entries(self) -> usize {
+        self.domain_operation_index_entries
     }
     pub const fn contribution_policy_index_entries(self) -> usize {
         self.contribution_policy_index_entries
@@ -211,6 +223,9 @@ pub struct WorthQueryDomainExecutionIndexRebuildReport {
     invariant_count: usize,
     graph_obligation_count: usize,
     operation_count: usize,
+    domain_operation_count: usize,
+    operation_graph_participation_count: usize,
+    operation_required_domain_count: usize,
     declaration_family_count: usize,
     contribution_policy_count: usize,
     equivalent: bool,
@@ -220,21 +235,20 @@ impl WorthQueryDomainExecutionIndexRebuildReport {
     pub(crate) fn new(
         active_identity: String,
         rebuilt_identity: String,
-        invariant_count: usize,
-        graph_obligation_count: usize,
-        operation_count: usize,
-        declaration_family_count: usize,
-        contribution_policy_count: usize,
+        shape: WorthQueryInstalledDomainExecutionIndexShape,
     ) -> Self {
         let equivalent = active_identity == rebuilt_identity;
         Self {
             active_identity,
             rebuilt_identity,
-            invariant_count,
-            graph_obligation_count,
-            operation_count,
-            declaration_family_count,
-            contribution_policy_count,
+            invariant_count: shape.invariant_count,
+            graph_obligation_count: shape.graph_obligation_count,
+            operation_count: shape.operation_count,
+            domain_operation_count: shape.domain_operation_count,
+            operation_graph_participation_count: shape.operation_graph_participation_count,
+            operation_required_domain_count: shape.operation_required_domain_count,
+            declaration_family_count: shape.declaration_family_count,
+            contribution_policy_count: shape.contribution_policy_count,
             equivalent,
         }
     }
@@ -253,6 +267,15 @@ impl WorthQueryDomainExecutionIndexRebuildReport {
     }
     pub const fn operation_count(&self) -> usize {
         self.operation_count
+    }
+    pub const fn domain_operation_count(&self) -> usize {
+        self.domain_operation_count
+    }
+    pub const fn operation_graph_participation_count(&self) -> usize {
+        self.operation_graph_participation_count
+    }
+    pub const fn operation_required_domain_count(&self) -> usize {
+        self.operation_required_domain_count
     }
     pub const fn declaration_family_count(&self) -> usize {
         self.declaration_family_count

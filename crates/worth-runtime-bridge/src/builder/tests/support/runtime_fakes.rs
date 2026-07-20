@@ -20,6 +20,18 @@ use worth_foundational::facade::AspectKey;
 pub(in crate::builder::tests) struct TestSource;
 
 impl CommittedPatchSource for TestSource {
+    fn authoritative_source_profile(
+        &self,
+    ) -> Option<crate::input::envelope::BridgeAuthoritativeSourceProfile> {
+        Some(
+            crate::input::envelope::BridgeAuthoritativeSourceProfile::new(
+                99,
+                "relational-adapter:99",
+            )
+            .expect("valid test source profile"),
+        )
+    }
+
     fn load_committed_patch(
         &self,
         _request: crate::adapter::RelationalCommittedPatchRequest,

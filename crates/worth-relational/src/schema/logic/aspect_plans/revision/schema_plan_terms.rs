@@ -103,6 +103,7 @@ pub(super) fn mix_aspect_binding_terms(
         AspectBinding::RelationSourceEndpoint => revision.mix_text("source_endpoint"),
         AspectBinding::RelationTargetEndpoint => revision.mix_text("target_endpoint"),
         AspectBinding::LifecycleTransition => revision.mix_text("lifecycle"),
+        _ => revision.mix_text(&aspect.binding.canonical_name()),
     }
 }
 

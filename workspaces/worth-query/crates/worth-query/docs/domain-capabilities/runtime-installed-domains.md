@@ -1,92 +1,114 @@
-# Runtime-Installed Domains
+# Runtime-Installed Domains And Operations
 
 ## What This Feature Is
 
-Runtime-installed domains let a domain crate declare its Query capabilities
-once, install that declaration into a concrete runtime, and use a handle that
-can only operate with that runtime. Use this when your domain owns typed
-operations, invariants, declaration families, or contribution vocabulary that
-must participate in Query execution and diagnostics.
+Runtime-installed domains let a domain declare stable Query operations once
+and bind them to one concrete runtime. Use this when operation identity,
+parameters, reads, graph participation, workflow, publication, support, or cost
+must mean the same thing for every caller.
 
-The public surface is `worth_query::facade::domain`. Domain code supplies typed
-meaning. Query validates it, assigns canonical identity, compiles it into
-runtime indexes, and retains the authority evidence needed by later work.
+The public surface is `worth_query::facade::domain`. Domain packages contain
+portable meaning. Runtime construction supplies volatile providers. A
+workspace then exposes one operating-world root that mints runtime-affine bound
+operations.
 
 ## Why You Use It
 
-- Install domain operations and invariants before runtime work begins.
-- Prevent a handle, declaration, or contribution from crossing runtime or
-  installation generations accidentally.
-- Give a domain crate ergonomic extension methods without moving identity,
-  admission, execution, or receipt authority out of Query.
-- Inspect one linked chain from package installation through execution and
-  projection or diagnostic output.
+- Give domain operations one canonical definition and conflict boundary.
+- Keep provider callbacks and runtime-local resources out of portable packages.
+- Reject foreign runtimes, stale generations, and marker lookalikes before
+  graph or executor work.
+- Carry basis, graph, provider, support, result-state, receipt, and counter
+  evidence through one move-only journey.
+- Publish and consume Query facts without reconstructing authority from rows or
+  digests.
 
 ## Stable Entry Points
 
 - `domain::WorthQueryDomainPackage::declare(...)`
+- `domain::WorthQueryDomainOperationDefinition::new(...)`
+- `domain::WorthQueryDomainOperationSemanticClosure`
+- `domain::WorthQueryExecutableDomainOperation`
+- `domain::WorthQueryDomainOperationExecutor`
+- `runtime::WorthQueryRuntime::builder()`
 - `runtime::WorthQueryRuntimeBuilder::domain_package(...)`
+- `runtime::WorthQueryRuntimeBuilder::domain_operation_executor(...)`
 - `runtime::WorthQueryWorkspace::domain(...)`
-- `domain::WorthQueryInstalledDomainHandle`
-- `domain::WorthQueryDomainOperatingContextIdentityDeclaration`
-- `WorthQueryInstalledDomainHandle::{read, mutation, contributions_in, declarations_in}`
-- `WorthQueryWorkspace::domain_installation_receipt(...)`
+- `runtime::WorthQueryWorkspace::operating_world(...)`
+- `domain::WorthQueryOperationFamilyView::bind(...)`
+- `domain::WorthQueryBoundDomainOperation`
 
-The handle also exposes installed live, workflow, inspection, rebind, and
-operation-resolution capabilities. Reach those through the handle rather than
-assembling their internal transition artifacts.
+Conditional nodes, graph providers, and workflows extend this same setup and
+binding path. They are not separate runtime roots.
 
 ## Core Mental Model
 
-A domain package is setup data, not executable authority. It contains typed
-domain identity plus declarations such as required capabilities, configuration,
-operating posture, invariants, graph obligations, graph-read operations,
-declaration families, and permitted contribution categories.
+There are four distinct things:
 
-Installing the package into a runtime creates the authority that later work
-needs. The returned handle proves three things together:
+1. A package declares portable domain meaning.
+2. Runtime construction registers exact volatile mechanics.
+3. An installed domain handle proves one package is present in one runtime
+   generation.
+4. An operating world combines that runtime with one admitted basis and mints
+   a bound operation.
+
+The portable operation definition is authoritative for semantics. It includes
+the canonical query and result shape, graph-read contract, workflow and
+conditional declarations, publication posture, terminal states, failure
+classes, support requirements, cost contract, and lowering identity.
+
+The executor is authoritative only for volatile lowering mechanics. It must
+report the same lowering family, determinism, read declaration, and cost shape
+as the installed definition. Runtime construction rejects disagreement.
+
+The installed execution index is derived. Query can rebuild it from installed
+artifacts with identical identities, lookups, denials, and counters.
+
+## How It Executes
+
+```text
+declare portable package and operation meaning
+  -> register exact volatile providers
+  -> build and publish one runtime
+  -> obtain the installed domain handle
+  -> create one operating world from an admitted basis
+  -> borrow an operation-family view and bind
+  -> execute directly or advance the installed workflow
+  -> publish, consume, and settle when publication is declared
+```
+
+Package and runtime construction perform structural admission once. Binding
+performs current runtime, generation, basis, graph, required-domain, support,
+and provider admission before execution can contact lower runtimes.
+
+## Installed Domain Handles And Operating Contexts
+
+A package is semantic setup data, not executable authority. Installation is
+atomic: Query validates and lowers every declared family before publishing the
+runtime. A failure cannot leave a partial operation, invariant, graph
+obligation, contribution, or declaration-family registry behind.
+
+The installed handle proves three facts together:
 
 1. which domain package authorized the work;
 2. which runtime installed it;
 3. which installation generation is current.
 
-Runtime indexes are derived from the installed package. They make operation
-lookup and invariant dispatch efficient, but they are not a second source of
-domain authority. Query can rebuild them from installed artifacts.
+The handle also remains the entry for installed declarations, contributions,
+live work, inspection, rebind, and operation resolution. Those surfaces consume
+the retained handle authority; they are not parallel setup roots.
 
-An operating context describes the stable semantic fields of one domain world,
-such as a tenant and an assumption regime. Domain code supplies those fields
-through `WorthQueryDomainOperatingContextIdentityDeclaration`. Query orders and
-seals them. The domain does not create an identity digest.
+An operating context names stable semantic fields of one domain world, such as
+tenant, unit regime, tolerance policy, or modeling assumptions. Domain code
+supplies those fields through
+`WorthQueryDomainOperatingContextIdentityDeclaration`; Query canonicalizes and
+seals them. Field order is not identity, and domain code never authors the
+identity digest.
 
-## How It Executes
-
-The lifecycle is:
-
-```text
-declare package
-  -> validate structure
-  -> admit against Query support
-  -> install atomically into one runtime
-  -> obtain a runtime-affine handle
-  -> declare a read, workflow, contribution, or domain declaration
-  -> execute or inspect through the owning workspace
-```
-
-Package installation compiles all declared semantic families before the
-runtime is published. If any family conflicts or cannot lower, installation
-fails without leaving partial operation, invariant, obligation, contribution,
-or declaration-family state.
-
-Execution still performs its own basis, policy, tenant, target, and
-lower-runtime checks. Installation proves domain authority; it does not grant
-blanket permission for every later operation.
-
-## Small Example
+A domain crate can add native vocabulary with an extension trait over the
+generic installed handle:
 
 ```rust
-use worth_query::facade::{domain, runtime};
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CatalogDomain;
 
@@ -105,36 +127,6 @@ impl domain::WorthQueryDomainEntryMarker for CatalogDomain {
         &[domain::WorthQueryCapabilityFamily::QueryRead]
     }
 }
-
-fn catalog_package() -> domain::WorthQueryDomainPackage<CatalogDomain> {
-    domain::WorthQueryDomainPackage::declare(
-        CatalogDomain,
-        domain::WorthQueryDomainIdentityDeclaration::new(
-            domain::WorthQueryDomainIdentityNamespace::new("WORTH.catalog").unwrap(),
-            domain::WorthQueryDomainIdentityName::new("products").unwrap(),
-            domain::WorthQueryDomainSemanticVersion::new(1, 0),
-        ),
-    )
-    .requires_capability(domain::WorthQueryCapabilityFamily::QueryRead)
-    .requires_configuration(domain::WorthQueryConfigSectionFamily::Query)
-}
-
-let builder = runtime::WorthQueryRuntimeBuilder::new()
-    .domain_package(catalog_package())?;
-# Ok::<_, domain::WorthQueryDomainPackageInstallationError>(builder)
-```
-
-This is the smallest honest setup example. It declares semantic input and asks
-the runtime builder to install it. Query returns the installed authority and
-its receipt.
-
-## Real Example
-
-A domain crate normally adds native vocabulary with an extension trait over the
-generic installed handle:
-
-```rust
-use worth_query::facade::{domain, runtime};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CatalogContext {
@@ -165,100 +157,315 @@ impl domain::WorthQueryDomainOperatingContext<CatalogDomain> for CatalogContext 
         .expect("static context field names are valid")
     }
 }
-
-trait CatalogQueryExt {
-    fn catalog_context(
-        &self,
-        workspace: &runtime::WorthQueryWorkspace,
-        context: CatalogContext,
-    ) -> Result<
-        domain::WorthQueryInstalledDomainDeclarationContext<CatalogDomain, CatalogContext>,
-        domain::WorthQueryInstalledDomainDeclarationContextDenial,
-    >;
-}
-
-impl CatalogQueryExt for domain::WorthQueryInstalledDomainHandle<CatalogDomain> {
-    fn catalog_context(
-        &self,
-        workspace: &runtime::WorthQueryWorkspace,
-        context: CatalogContext,
-    ) -> Result<
-        domain::WorthQueryInstalledDomainDeclarationContext<CatalogDomain, CatalogContext>,
-        domain::WorthQueryInstalledDomainDeclarationContextDenial,
-    > {
-        self.declarations_in(workspace, context)
-    }
-}
-
-let handle = workspace.domain(CatalogDomain)?;
-let catalog = handle.catalog_context(
-    &workspace,
-    CatalogContext {
-        tenant: "north-america",
-        pricing_regime: "retail-v2",
-    },
-)?;
 ```
 
-`CatalogQueryExt` improves domain ergonomics without becoming a parallel
-authority. The extension delegates to the installed handle, so the resulting
-context retains the same package, runtime, generation, and world witnesses as
-the generic call.
+An ergonomic extension should delegate to `declarations_in(...)`,
+`contributions_in(...)`, or the operating-world binding surface. It must not
+construct a declaration context, copy a generation, or recreate package
+identity locally. The result therefore retains the same package, runtime,
+generation, and world witnesses as the generic call.
 
-The Hadwiger reference consumer follows this pattern for registered reads,
-workflow mutations, installed invariants, contributions, projection facts, and
-inspection.
+## Small Example
+
+Use marker types to make domain, operation, and family identity compiler
+visible:
+
+```rust
+use worth_query::facade::{domain, read};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct GeometryDomain;
+
+#[derive(Clone, Copy, Debug)]
+struct ReadVertex;
+
+#[derive(Clone, Copy, Debug)]
+struct ReadFamily;
+
+impl domain::WorthQueryExecutableDomainOperation<GeometryDomain, ReadFamily>
+    for ReadVertex
+{
+    type Input = ReadVertexInput;
+    type Output = read::WorthQueryReadCompletion;
+    type Publication = domain::WorthQueryPublishingOperation;
+    type Execution = domain::WorthQueryDirectOperation;
+}
+```
+
+The associated types close important paths:
+
+- `WorthQueryPublishingOperation` permits the typed publication phase.
+- `WorthQueryTerminalOperation` ends after execution.
+- `WorthQueryDirectOperation` uses one operation executor.
+- `WorthQueryWorkflowOperation` enters the installed workflow progression.
+
+Do not use a semantic key string as a substitute for a marker type. Both are
+useful, but they protect different boundaries.
+
+## Declare Portable Meaning
+
+Build one `WorthQueryDomainOperationSemanticClosure` and install it in the
+domain package:
+
+```rust
+let operation = domain::WorthQueryDomainOperationDefinition::<
+    GeometryDomain,
+    ReadVertex,
+    ReadFamily,
+>::new(
+    domain::WorthQueryDomainOperationIdentity::new("read-vertex", 1),
+    semantics,
+);
+
+let package = domain::WorthQueryDomainPackage::declare(
+    GeometryDomain,
+    domain_identity,
+)
+.operation(operation);
+```
+
+Every semantic field must state its posture. Use the typed `NotRequired`
+variant when a capability is absent. Empty provider registries, callbacks,
+display names, and support defaults do not define operation meaning.
+
+The semantic closure participates in canonical package identity. Declaration
+order is canonicalized. A duplicate marker tuple with one-field semantic drift
+fails package installation atomically.
+
+## Register Volatile Mechanics
+
+Register the executor separately during runtime construction:
+
+```rust
+let builder = runtime::WorthQueryRuntime::builder()
+    .domain_package(package)?
+    .domain_operation_executor(
+        GeometryDomain,
+        ReadVertex,
+        ReadFamily,
+        ReadVertexExecutor,
+    );
+```
+
+An executor implements:
+
+```rust
+impl domain::WorthQueryDomainOperationExecutor<
+    GeometryDomain,
+    ReadVertex,
+    ReadFamily,
+> for ReadVertexExecutor {
+    const LOWERING_FAMILY: &'static str = "read-vertex-v1";
+    const DETERMINISTIC: bool = true;
+    const EXECUTION_COST: domain::WorthQueryOperationCostClass =
+        domain::WorthQueryOperationCostClass::DeclaredWidth;
+    const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
+        domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn installed_read_declaration(
+        &self,
+    ) -> Option<&read::WorthQueryReadDeclaration> {
+        Some(installed_read_declaration())
+    }
+
+    fn execute(
+        &self,
+        input: ReadVertexInput,
+        context: &domain::WorthQueryOperationExecutionContext<'_>,
+        workspace: &mut domain::WorthQueryOperationWorkspace<'_>,
+    ) -> Result<
+        domain::WorthQueryOperationExecutionMaterial<read::WorthQueryReadCompletion>,
+        domain::WorthQueryOperationExecutorFailure,
+    > {
+        let completion = context.execute_installed_read(workspace)?;
+        Ok(domain::WorthQueryOperationExecutionMaterial::new(
+            completion,
+            input.result_state,
+        ))
+    }
+}
+```
+
+The context is the executor’s only door to installed reads and bound graph
+projections. The executor returns output material. Query mints the execution
+identity, receipt, warnings, counters, publication, and phase proof.
+
+## Real Example
+
+Obtain the installed domain and bind through one operating world:
+
+```rust
+use worth_query::facade::{domain, read};
+
+let installed_domain = workspace.domain(GeometryDomain)?;
+let bound = workspace
+    .operating_world(observation_basis)
+    .family(ReadFamily)
+    .bind(&installed_domain, ReadVertex)?;
+
+let consumer = bound.consumer_projection_contract()?;
+
+let executed = bound.execute(input, &mut workspace).unwrap();
+
+let settled = executed
+    .publish()
+    .unwrap()
+    .consume(consumer, read::project_facts().entity_identities())
+    .unwrap()
+    .settle()
+    .unwrap();
+```
+
+This order matters. `execute` consumes the bound operation. Mint the consumer
+contract first when the operation will publish.
+
+The chain unwraps only to keep the successful progression readable. Match the
+typed `TransitionOutcome` at every boundary in production code.
+
+The final settlement retains the exact execution and publication receipts,
+result state, warnings, counters, and consumption authority from the same
+chain.
+
+## Non-Publishing Operations
+
+A non-publishing operation declares:
+
+```rust
+type Publication = domain::WorthQueryTerminalOperation;
+```
+
+Its execution result exposes terminal output and inspection, but it has no
+`publish` method. This is a type-level distinction, not a runtime flag.
+
+Use terminal operations for computations whose result is consumed directly by
+the caller and is not a Query projection publication.
+
+## Graph Participation
+
+An operation declares graph reads and touches by role. The package binds a
+role to an exact graph marker. Runtime construction registers the matching
+definition and provider.
+
+The binding phase verifies:
+
+- exact graph marker and role
+- graph contract compatibility
+- required domain installation
+- basis lane and basis family
+- mutation and effect authority
+- one atomic commit owner or declared compensation for multi-graph work
+- complete conditional lowering set
+
+Provider calls occur only after binding succeeds. Equal role strings do not
+make different graph markers interchangeable.
+
+One logical graph remains the default. Add another graph participant only for
+a real independent authority or provider boundary.
+
+## Consumer Support
+
+`bound.consumer_projection_contract()` derives Query requirements from the
+installed operation and the runtime support profile. It does not infer support
+from available callbacks.
+
+The contract covers basis, live work, continuation, async/result state,
+recovery, inspection, projection consumption, dependency impact, sharing,
+invalidation, collection delivery, and conditional capabilities.
+
+Downstream presentation and allocation requirements use
+`WorthQueryConsumerBoundary`. They remain beside the Query contract and cannot
+weaken or rewrite it.
+
+Compatibility returns a pair-bound witness or a typed denial identifying the
+failed dimension. Reports and digests are useful for explanation, but they
+cannot authorize consumption.
+
+## Workflows
+
+Workflow operations declare a canonical DAG through
+`WorthQueryPortableWorkflowDefinition`. Runtime construction registers the
+exact stage executor and any parallel-admission provider.
+
+Query owns:
+
+- workflow run identity
+- legal predecessor and frontier progression
+- stage execution snapshots and receipts
+- conditional stage decisions
+- warnings, result state, and exact counters
+- terminal trace and publication
+
+Application code advances the returned `WorthQueryWorkflowRun`. It does not
+keep a second stage ledger.
 
 ## How It Relates To Other Features
 
-- Use ordinary `facade::read`, `facade::workflow`, and `facade::inspection`
-  directly when no domain package contributes semantic vocabulary.
-- Use installed contributions when domain meaning must attach to a declaration,
-  admitted plan, or lower-runtime boundary. Obtain the contribution surface
-  with `handle.contributions_in(&workspace)`.
-- Use an installed declaration context when a domain declaration family needs
-  a typed operating world. The context identity remains Query-sealed.
-- Physical storage, source, signal, and transport adapters remain runtime
-  boundaries. They do not belong in the domain package.
+- [Conditional Installed Operations](./conditional-installed-operations.md)
+  adds portable eligibility, trigger, comparison, and incremental evaluation
+  to the same operation definition and binding path.
+- [Projection Consumption](../capabilities/projection-consumption.md) owns the
+  production fact extraction delegated to by the installed progression.
+- [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
+  explains the semantic truth read by graph and conditional contracts.
+- Ordinary `facade::read` declarations remain appropriate for
+  application-local reads that do not need installed operation identity.
 
 ## Inspection And Debugging
 
-`workspace.domain_installation_receipt(marker)` reports the installed package
-identity, definition counts, derived-index counts, warnings, and construction
-counters. Use it to confirm that package lowering happened once.
+Useful surfaces include:
 
-Operational receipts retain installed authority. A read, workflow,
-contribution, projection, live continuation, or inspection result can therefore
-be linked back to the package and runtime that authorized it.
+- `workspace.domain_installation_receipt(marker)`
+- `workspace.verify_domain_execution_index_rebuild()`
+- `bound.binding_identity()`
+- `bound.commit_posture()`
+- `bound.graph_roles()`
+- `executed.receipt()`
+- `executed.graph_receipts()`
+- `executed.conditional_provenance()`
+- `executed.counters()`
+- `settled.publication_receipt()`
+- `settled.result_state()`
+- `settled.warnings()`
 
-Foreign-runtime and stale-generation failures return typed denials or rebind
-actions before planning or execution. Rebind asks the target runtime to admit
-the domain again; it does not copy a generation or digest into a new handle.
+Use typed denial kinds and counters first. Messages explain a denial but are
+not stable admission keys.
+
+`workspace.domain_installation_receipt(marker)` reports installed package
+identity, definition and derived-index counts, warnings, and construction
+counters. Operational receipts retain their installation authority, so a
+read, workflow, contribution, projection, live continuation, or inspection can
+be traced to the package and runtime that authorized it. Rebind asks the target
+runtime to admit the domain again; it never copies a generation or digest into
+a new handle.
 
 ## Anti-Patterns
 
-- Creating domain identity from a raw string at execution time.
-- Asking domain code to author a digest for its operating context.
-- Calling Query transition materializers from a consumer crate.
-- Treating an installation receipt, package digest, or diagnostic artifact as
-  executable authority.
-- Reconstructing a handle after runtime replacement instead of using rebind.
+- Calling an executor directly.
+- Rebuilding a canonical read inside each domain extension method.
+- Putting callbacks or Signal slot numbers into a portable operation package.
+- Treating an installation receipt or digest as executable authority.
+- Constructing a family facade or graph-provider bag outside the operating
+  world.
+- Combining an execution from one bind with a consumer contract from another.
+- Flattening `TransitionOutcome` into a local success/error flag.
+- Contacting providers to discover whether an operation was declared.
 
 ## Current Limits
 
-- Domain packages are installed before runtime publication. Dynamic
-  installation requires a separate quiescence and invalidation contract.
-- Installed-domain durability and cross-process reload require a support
-  profile that admits durable runtime state.
-- Semantic package equivalence does not make handles interchangeable across
-  runtimes.
-- Rich diagnostics are optional projections; they do not change operational
-  results or authorize future work.
+- Runtime installation occurs before runtime publication.
+- Handles and bound operations are not portable across runtimes or installation
+  generations, even when packages are semantically equivalent.
+- Ordinary replay, reversal, lineage, sharing/leases, compiled dependency
+  impact, invalidation deltas, collection windows, and patch delivery require
+  their dedicated later authorities. Definition posture does not implement
+  them by itself.
+- Rich reports remain derived projections and never become admission authority.
 
 ## Related Docs
 
-- [Declarative Query Experience](../capabilities/declarative-query-experience.md)
-- [Consumer Kit](../foundations/consumer-kit.md)
-- [Inspection](../capabilities/inspection.md)
-- [Basis Capability Lifecycle](../capabilities/basis-capability-lifecycle.md)
-- [Domain Capability Index](./README.md)
+- [Conditional Installed Operations](./conditional-installed-operations.md)
+- [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
+- [Projection Consumption](../capabilities/projection-consumption.md)
+- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+- [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)
+- [Domain Capabilities](./README.md)

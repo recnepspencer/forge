@@ -5,6 +5,7 @@ mod stable_fixture_hash;
 mod token_writer;
 mod value;
 
+pub(crate) use sequence::basis_sequence_material;
 pub(crate) use value::{append_struct_value_material, append_value_material};
 
 pub(super) use domain_tokens::domain_material_token;

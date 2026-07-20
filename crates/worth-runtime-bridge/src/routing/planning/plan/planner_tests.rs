@@ -100,10 +100,12 @@ fn assert_native_target_carrier(
             assert!(!target.mutation_mask().is_whole_aspect());
             assert!(!target.projection_mask().is_whole_aspect());
         }
-        TruthDeltaSurfaceKind::EntityRelationEndpoint
+        TruthDeltaSurfaceKind::AuthoritativeAspect
+        | TruthDeltaSurfaceKind::EntityRelationEndpoint
         | TruthDeltaSurfaceKind::EntityRegion
         | TruthDeltaSurfaceKind::EntityPartition
-        | TruthDeltaSurfaceKind::EntityFacet => {
+        | TruthDeltaSurfaceKind::EntityFacet
+        | TruthDeltaSurfaceKind::LifecycleTransition => {
             assert_eq!(target.field_locator(), None);
             assert!(target.mutation_mask().is_whole_aspect());
             assert!(target.projection_mask().is_whole_aspect());

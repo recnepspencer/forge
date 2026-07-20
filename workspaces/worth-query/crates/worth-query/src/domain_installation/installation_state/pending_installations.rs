@@ -79,12 +79,12 @@ impl WorthQueryPendingDomainInstallations {
         }
     }
 
-    pub(crate) fn install<D: 'static>(
+    pub(crate) fn install<D>(
         &mut self,
         package: WorthQueryAdmittedDomainPackage<D>,
     ) -> Result<(), WorthQueryDomainInstallationDenial>
     where
-        D: WorthQueryDomainEntryMarker,
+        D: WorthQueryDomainEntryMarker + 'static,
     {
         let candidate = classify_pending_package(&package);
         self.reject_identity_conflicts(

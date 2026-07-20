@@ -16,7 +16,6 @@ agreement into one machine-checkable result.
 ## Stable Entry Points
 
 - `certify_milestone_nine_thirteen_installed_domain(...)`
-- `worth_query_milestone_nine_thirteen_installed_domain_evidence_rows()`
 - `WorthQueryMilestoneNineThirteenInstalledDomainCertificationBundle`
 
 ## Core Mental Model
@@ -38,8 +37,8 @@ still starts with `WorthQueryDomainPackage::declare`, installs through
 ## Small Example
 
 ```rust
-let rows = worth_query_milestone_nine_thirteen_installed_domain_evidence_rows();
-assert!(!rows.is_empty());
+let bundle = certify_milestone_nine_thirteen_installed_domain(repository_root)?;
+assert!(!bundle.certification_digest().is_empty());
 ```
 
 ## Real Example

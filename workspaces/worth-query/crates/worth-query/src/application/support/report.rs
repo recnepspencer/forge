@@ -1,7 +1,7 @@
 use super::registry::{
     WorthQueryCapabilityFamily, WorthQueryCapabilityRegistry, WorthQueryCapabilityStatus,
-    WorthQuerySupportMatrix,
 };
+use super::WorthQuerySupportMatrix;
 use crate::application::config::{
     ConfigurationAdmissionError, ValidatedWorthQueryConfig, WorthQueryConfig,
     WorthQueryConfigSectionFamily, WorthQueryConfigSectionResolution, WorthQuerySubsystemOwner,

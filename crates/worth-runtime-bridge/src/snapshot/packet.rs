@@ -309,11 +309,13 @@ pub(crate) fn canonical_subscription_slice_kind_label(
     slice_kind: &SubscriptionSliceKind,
 ) -> &'static str {
     match slice_kind {
+        SubscriptionSliceKind::SignalAspect => "signal-aspect",
         SubscriptionSliceKind::SignalField => "signal-field",
         SubscriptionSliceKind::SignalLens => "signal-lens",
         SubscriptionSliceKind::SignalRegion => "signal-region",
         SubscriptionSliceKind::SignalPartition => "signal-partition",
         SubscriptionSliceKind::SignalFacet => "signal-facet",
+        SubscriptionSliceKind::SignalLifecycle => "signal-lifecycle",
         SubscriptionSliceKind::RegisteredCoarseWidening => "registered-coarse-widening",
     }
 }

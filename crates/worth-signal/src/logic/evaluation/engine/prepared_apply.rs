@@ -1,7 +1,6 @@
 use crate::data::aspect::Aspect;
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::comparator::VersionComparatorPolicy;
-#[cfg(test)]
 use crate::data::dependency::DependencyEdge;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::error::SignalError;
@@ -19,7 +18,6 @@ use crate::logic::evaluation::EffectDependencyInputs;
 use crate::logic::evaluation::{
     DeferralReason, PreparedApplyResult, PreviousArtifactWarmSnapshot, SuppressionReason,
 };
-#[cfg(test)]
 use crate::logic::prepared::PreparedDependencyCapture;
 use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome};
 
@@ -140,7 +138,6 @@ where
     })
 }
 
-#[cfg(test)]
 pub(crate) fn apply_prepared_evaluation_with_policy(
     graph: &mut SignalGraph,
     node: NodeId,
@@ -945,7 +942,6 @@ mod tests {
     }
 }
 
-#[cfg(test)]
 fn apply_prepared_dependencies(
     graph: &mut SignalGraph,
     node: NodeId,
@@ -956,7 +952,6 @@ fn apply_prepared_dependencies(
     Ok(report.added + report.removed)
 }
 
-#[cfg(test)]
 fn build_prepared_dependency_edges(
     graph: &mut SignalGraph,
     capture: &PreparedDependencyCapture,

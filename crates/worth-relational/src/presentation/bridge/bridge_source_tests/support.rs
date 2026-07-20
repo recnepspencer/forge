@@ -112,6 +112,9 @@ fn target_selector_for_patch_item(
     patch_item: &BridgeCommittedPatchItem,
 ) -> TruthPatchTargetSelector {
     match patch_item.surface_kind() {
+        TruthDeltaSurfaceKind::AuthoritativeAspect => {
+            TruthPatchTargetSelector::authoritative_aspect()
+        }
         TruthDeltaSurfaceKind::EntityField => patch_item
             .field_locator()
             .map(|locator| {
@@ -124,6 +127,9 @@ fn target_selector_for_patch_item(
         TruthDeltaSurfaceKind::EntityRegion => TruthPatchTargetSelector::region(),
         TruthDeltaSurfaceKind::EntityPartition => TruthPatchTargetSelector::partition(),
         TruthDeltaSurfaceKind::EntityFacet => TruthPatchTargetSelector::facet(),
+        TruthDeltaSurfaceKind::LifecycleTransition => {
+            TruthPatchTargetSelector::lifecycle_transition()
+        }
     }
 }
 
@@ -131,11 +137,13 @@ fn subscription_slice_kind_for_patch_item(
     patch_item: &BridgeCommittedPatchItem,
 ) -> SubscriptionSliceKind {
     match patch_item.surface_kind() {
+        TruthDeltaSurfaceKind::AuthoritativeAspect => SubscriptionSliceKind::SignalAspect,
         TruthDeltaSurfaceKind::EntityField => SubscriptionSliceKind::SignalField,
         TruthDeltaSurfaceKind::EntityRelationEndpoint => SubscriptionSliceKind::SignalLens,
         TruthDeltaSurfaceKind::EntityRegion => SubscriptionSliceKind::SignalRegion,
         TruthDeltaSurfaceKind::EntityPartition => SubscriptionSliceKind::SignalPartition,
         TruthDeltaSurfaceKind::EntityFacet => SubscriptionSliceKind::SignalFacet,
+        TruthDeltaSurfaceKind::LifecycleTransition => SubscriptionSliceKind::SignalLifecycle,
     }
 }
 

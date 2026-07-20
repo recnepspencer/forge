@@ -175,10 +175,12 @@ fn validate_aspect_selector(
 fn validate_target_selector(selector: &TruthPatchTargetSelector) -> Result<(), BridgeBuildError> {
     match selector {
         TruthPatchTargetSelector::Any
+        | TruthPatchTargetSelector::AuthoritativeAspect
         | TruthPatchTargetSelector::EntityRelationEndpoint
         | TruthPatchTargetSelector::EntityRegion
         | TruthPatchTargetSelector::EntityPartition
-        | TruthPatchTargetSelector::EntityFacet => Ok(()),
+        | TruthPatchTargetSelector::EntityFacet
+        | TruthPatchTargetSelector::LifecycleTransition => Ok(()),
         TruthPatchTargetSelector::EntityField(path) => {
             if path.fields().is_empty() {
                 return Err(BridgeBuildError::new(

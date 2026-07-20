@@ -62,6 +62,7 @@ impl EquivalenceContract {
             VersionComparatorPolicy::Tolerance { .. } => ComparatorBasis::Tolerance,
             VersionComparatorPolicy::OutputIdentity => ComparatorBasis::OutputIdentity,
             VersionComparatorPolicy::Custom { .. } => ComparatorBasis::Custom,
+            VersionComparatorPolicy::Installed { .. } => ComparatorBasis::Custom,
         };
         let suppression_basis = match comparator {
             VersionComparatorPolicy::OutputIdentity => {

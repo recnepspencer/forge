@@ -32,12 +32,13 @@ pub(crate) enum TestDiffPreparationFault {
 }
 
 #[cfg(test)]
-static TEST_DIFF_PREPARATION_FAULT: std::sync::atomic::AtomicU8 =
-    std::sync::atomic::AtomicU8::new(0);
+std::thread_local! {
+    static TEST_DIFF_PREPARATION_FAULT: std::cell::Cell<u8> = const { std::cell::Cell::new(0) };
+}
 
 #[cfg(test)]
 pub(crate) fn current_test_diff_preparation_fault() -> Option<TestDiffPreparationFault> {
-    match TEST_DIFF_PREPARATION_FAULT.load(std::sync::atomic::Ordering::SeqCst) {
+    match TEST_DIFF_PREPARATION_FAULT.with(std::cell::Cell::get) {
         1 => Some(TestDiffPreparationFault::FragmentCanonicalizationFailure),
         2 => Some(TestDiffPreparationFault::PacketOverlapDetected),
         _ => None,
@@ -49,31 +50,26 @@ pub(crate) fn with_test_diff_preparation_fault<T>(
     fault: TestDiffPreparationFault,
     run: impl FnOnce() -> T,
 ) -> T {
-    struct ResetGuard<'a> {
-        fault: &'a std::sync::atomic::AtomicU8,
-        _lock: std::sync::MutexGuard<'a, ()>,
+    struct ResetGuard {
+        previous: u8,
     }
 
-    impl Drop for ResetGuard<'_> {
+    impl Drop for ResetGuard {
         fn drop(&mut self) {
-            self.fault.store(0, std::sync::atomic::Ordering::SeqCst);
+            TEST_DIFF_PREPARATION_FAULT.with(|fault| fault.set(self.previous));
         }
     }
 
-    let guard = crate::testing::fault_injection_lock()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let _reset = ResetGuard {
-        fault: &TEST_DIFF_PREPARATION_FAULT,
-        _lock: guard,
+    let next = match fault {
+        TestDiffPreparationFault::FragmentCanonicalizationFailure => 1,
+        TestDiffPreparationFault::PacketOverlapDetected => 2,
     };
-    TEST_DIFF_PREPARATION_FAULT.store(
-        match fault {
-            TestDiffPreparationFault::FragmentCanonicalizationFailure => 1,
-            TestDiffPreparationFault::PacketOverlapDetected => 2,
-        },
-        std::sync::atomic::Ordering::SeqCst,
-    );
+    let previous = TEST_DIFF_PREPARATION_FAULT.with(|active| {
+        let previous = active.get();
+        active.set(next);
+        previous
+    });
+    let _reset = ResetGuard { previous };
     run()
 }
 

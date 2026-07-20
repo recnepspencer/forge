@@ -26,6 +26,8 @@ The public contract is:
 - declare retained runtime surfaces through the workspace
 - mutate authoritative truth through the workspace mutation surfaces
 - use graph composition when the authoring problem is graph-shaped
+- install domain operations when operation, workflow, graph, support, or
+  conditional meaning must be stable across every caller
 - use existing-truth surfaces when the target is already authoritative
 - use preview and branch sessions for isolated work
 - use inspection and projection consumption for explanations and typed facts
@@ -36,11 +38,16 @@ For inspect-only public proof and diagnostics lanes, consume the canonical
 Query-owned facade artifact and inspect its getters. Do not rebuild the same
 meaning from support wrappers, raw rows, or crate-local explainer helpers.
 
-If a runtime hands off closeout or parity artifacts between families, that
-handoff should already carry the route identity, family identity, witness
-identity, residue posture, and Query posture that later consumers need. Do not
- reopen those facts from support snapshots, route packets, or family-local
- rediscovery helpers.
+Installed operation handoffs carry their exact domain, operation, family,
+runtime generation, basis, graph authority, provider, support, receipt, and
+counter evidence. Do not reopen those facts from support snapshots, diagnostic
+digests, route packets, or family-local discovery helpers.
+
+Certification or closeout handoffs between capability families follow the same
+rule. They carry route identity, family identity, witness identity, residue
+posture, and Query posture forward as one retained artifact. A later consumer
+must not rediscover those facts from support snapshots, route packets, or
+family-local helper reports.
 
 Identity and denial contracts on the ordinary path are also explicit:
 
@@ -66,6 +73,34 @@ Identity and denial contracts on the ordinary path are also explicit:
 - `workspace.downstream_delivery(...)`
 - `workspace.materialize_result(...)`
 - `workspace.inspections()?.inspect(...)`
+
+### Runtime-installed domain operations
+
+- `runtime::WorthQueryRuntime::builder().domain_package(...)`
+- `runtime::WorthQueryRuntimeBuilder::domain_operation_executor(...)`
+- `workspace.domain(DomainMarker)`
+- `workspace.operating_world(admitted_basis)`
+- `.family(FamilyMarker).bind(&installed_domain, OperationMarker)`
+- `bound.consumer_projection_contract()`
+- `bound.execute(input, &mut workspace)`
+- `executed.publish()?.consume(contract, request)?.settle()`
+
+Use this path when a domain owns stable operation semantics rather than one
+application-local declaration. Portable definitions contain the canonical
+query, result shape, parameters, graph reads, workflow, conditional nodes,
+publication, support, terminal states, failure classes, and cost. Runtime
+construction registers exact executors and graph or conditional providers
+separately.
+
+The operating-world root is the only authority-bearing entry for installed
+operations. Family views borrow it; they do not create another runtime or
+graph. Phase values are move-only and cannot be assembled from receipts.
+
+For conditional operations, author semantic truth dependencies through
+Foundational aspect contracts and Relational bindings. Runtime Bridge installs
+their correspondence into the actual Signal graph, and Signal owns the
+eligibility and semantic-change decision. A downstream domain must not expose
+raw Signal nodes, aspects, masks, or bridge requests as Query authoring.
 
 ### Downstream delivery contract
 
@@ -199,6 +234,13 @@ Downstream runtimes should not recreate:
   obtain them from Query boundary receipts and use
   `WorthQueryLowerRuntimeBoundaryEnvelopeSource` when a flow accepts any real
   boundary source
+- an operation registry beside the installed domain package
+- an operation-family runtime root beside `workspace.operating_world(...)`
+- a workflow stage ledger beside the Query-minted workflow run
+- a consumer support mirror beside the bound consumer projection contract
+- conditional eligibility, threshold, trigger, or meaningful-change decisions
+  beside Signal
+- a mapping from semantic aspects to numeric Signal slots beside Runtime Bridge
 
 ## Consumer Proof
 
@@ -325,15 +367,17 @@ If you are onboarding a downstream runtime to Query, read in this order:
 
 1. [Workspace Overview](workspace-overview.md)
 2. [Support Matrix And Admission](support-matrix-and-admission.md)
-3. [Branches and Previews](branches-and-previews.md)
-4. [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
-5. [Writes and Intent Boundaries](../execution/writes-and-intents.md)
-6. [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
-7. [Existing Truth](../capabilities/existing-truth.md)
-8. [Reads, Observation, and Materialization](../runtime-surfaces/reads-observe-materialize.md)
-9. [Inspection](../capabilities/inspection.md)
-10. [Projection Consumption](../capabilities/projection-consumption.md)
-11. [Historical Basis, Diff, And Comparison Queries](../capabilities/historical-diff-and-basis.md)
+3. [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
+4. [Conditional Installed Operations](../domain-capabilities/conditional-installed-operations.md)
+5. [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
+6. [Branches and Previews](branches-and-previews.md)
+7. [Writes and Intent Boundaries](../execution/writes-and-intents.md)
+8. [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
+9. [Existing Truth](../capabilities/existing-truth.md)
+10. [Reads, Observation, and Materialization](../runtime-surfaces/reads-observe-materialize.md)
+11. [Inspection](../capabilities/inspection.md)
+12. [Projection Consumption](../capabilities/projection-consumption.md)
+13. [Historical Basis, Diff, And Comparison Queries](../capabilities/historical-diff-and-basis.md)
 
 ## Anti-Patterns
 
@@ -347,11 +391,13 @@ If you are onboarding a downstream runtime to Query, read in this order:
 
 ## Related Docs
 
+- [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
+- [Conditional Installed Operations](../domain-capabilities/conditional-installed-operations.md)
+- [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
 - [Workspace Overview](workspace-overview.md)
 - [Support Matrix And Admission](support-matrix-and-admission.md)
 - [Writes and Intent Boundaries](../execution/writes-and-intents.md)
 - [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
 - [Existing Truth](../capabilities/existing-truth.md)
-- [Workspace Overview](workspace-overview.md)
 - [Inspection](../capabilities/inspection.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)

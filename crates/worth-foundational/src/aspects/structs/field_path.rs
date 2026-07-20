@@ -1,6 +1,7 @@
 use super::FieldKey;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalFieldPath(Vec<FieldKey>);
 
 impl CanonicalFieldPath {

@@ -252,6 +252,9 @@ where
             EvaluationCondition::Custom(_) => Ok(Some(
                 AsyncNodeConditionBlockClass::CustomConditionResolverRequired,
             )),
+            EvaluationCondition::Installed(_) => Ok(Some(
+                AsyncNodeConditionBlockClass::CustomConditionResolverRequired,
+            )),
         }
     }
 

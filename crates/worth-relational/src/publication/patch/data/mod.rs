@@ -7,6 +7,7 @@ mod patch_ordering;
 mod patch_position;
 mod published_authoritative_patch;
 mod record_structural_change;
+mod semantic_change;
 
 pub use authoritative_patch_envelope::{
     PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
@@ -20,6 +21,7 @@ pub use published_authoritative_patch::{
     PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
 };
 pub use record_structural_change::RecordStructuralChange;
+pub use semantic_change::{PublishedAspectChangePrecision, PublishedAuthoritativeAspectChange};
 
 pub(crate) use aspect_key_ordering::ordered_aspect_keys;
 pub(crate) use published_authoritative_patch::{

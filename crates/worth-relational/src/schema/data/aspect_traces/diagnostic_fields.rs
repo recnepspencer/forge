@@ -131,6 +131,10 @@ fn aspect_binding_value(binding: &AspectBinding) -> RelationalDiagnosticValue {
             "binding_target",
             RelationalDiagnosticValue::string("lifecycle_transition"),
         )]),
+        _ => RelationalDiagnosticValue::object([(
+            "binding_target",
+            RelationalDiagnosticValue::string(binding.canonical_name()),
+        )]),
     }
 }
 
@@ -161,6 +165,10 @@ fn aspect_binding_target_value(target: &AspectBinding) -> RelationalDiagnosticVa
         AspectBinding::LifecycleTransition => RelationalDiagnosticValue::object([(
             "target_kind",
             RelationalDiagnosticValue::string("lifecycle_transition"),
+        )]),
+        _ => RelationalDiagnosticValue::object([(
+            "target_kind",
+            RelationalDiagnosticValue::string(target.canonical_name()),
         )]),
     }
 }

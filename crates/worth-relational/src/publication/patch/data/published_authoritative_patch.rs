@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
+use worth_foundational::facade::{
+    AspectBinding, AspectContractRevision, AspectIdentity, AspectKey, AspectValue, FieldKey,
+    StructAspectValue,
+};
 
 use super::ordered_aspect_keys;
 
@@ -48,6 +51,7 @@ impl PublishedAuthoritativePatch {
                 PublishedAuthoritativePatchOperation::WholeAspectSet {
                     aspect_key: operation_aspect_key,
                     value: PublishedAuthoritativePatchValue::Scalar(value),
+                    ..
                 } if operation_aspect_key == aspect_key => Some(value),
                 _ => None,
             })
@@ -60,6 +64,7 @@ impl PublishedAuthoritativePatch {
                 PublishedAuthoritativePatchOperation::WholeAspectSet {
                     aspect_key: operation_aspect_key,
                     value: PublishedAuthoritativePatchValue::Struct(value),
+                    ..
                 } if operation_aspect_key == aspect_key => Some(value),
                 _ => None,
             })
@@ -105,6 +110,7 @@ impl PublishedAuthoritativePatch {
                 operation,
                 PublishedAuthoritativePatchOperation::WholeAspectClear {
                     aspect_key: operation_aspect_key,
+                    ..
                 } if operation_aspect_key == aspect_key
             )
         })
@@ -115,13 +121,22 @@ impl PublishedAuthoritativePatch {
 pub(crate) enum PublishedAuthoritativePatchOperation {
     WholeAspectSet {
         aspect_key: AspectKey,
+        aspect_identity: AspectIdentity,
+        contract_revision: AspectContractRevision,
+        binding: AspectBinding,
         value: PublishedAuthoritativePatchValue,
     },
     WholeAspectClear {
         aspect_key: AspectKey,
+        aspect_identity: AspectIdentity,
+        contract_revision: AspectContractRevision,
+        binding: AspectBinding,
     },
     FieldLevelPatch {
         aspect_key: AspectKey,
+        aspect_identity: AspectIdentity,
+        contract_revision: AspectContractRevision,
+        binding: AspectBinding,
         field_sets: Vec<PublishedAuthoritativeFieldSet>,
         field_clears: Vec<FieldKey>,
     },
@@ -131,7 +146,7 @@ impl PublishedAuthoritativePatchOperation {
     pub fn aspect_key(&self) -> &AspectKey {
         match self {
             Self::WholeAspectSet { aspect_key, .. }
-            | Self::WholeAspectClear { aspect_key }
+            | Self::WholeAspectClear { aspect_key, .. }
             | Self::FieldLevelPatch { aspect_key, .. } => aspect_key,
         }
     }
@@ -177,6 +192,11 @@ mod tests {
         let patch = PublishedAuthoritativePatch::new(vec![
             PublishedAuthoritativePatchOperation::FieldLevelPatch {
                 aspect_key: aspect_key.clone(),
+                aspect_identity: AspectIdentity(1),
+                contract_revision: AspectContractRevision(1),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("counter").unwrap(),
+                },
                 field_sets: vec![PublishedAuthoritativeFieldSet {
                     field,
                     value: AspectValue::Int64(99),
@@ -198,16 +218,31 @@ mod tests {
         let patch = PublishedAuthoritativePatch::new(vec![
             PublishedAuthoritativePatchOperation::WholeAspectSet {
                 aspect_key: scalar_key.clone(),
+                aspect_identity: AspectIdentity(1),
+                contract_revision: AspectContractRevision(1),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("counter").unwrap(),
+                },
                 value: PublishedAuthoritativePatchValue::Scalar(AspectValue::Int64(7)),
             },
             PublishedAuthoritativePatchOperation::WholeAspectSet {
                 aspect_key: struct_key.clone(),
+                aspect_identity: AspectIdentity(2),
+                contract_revision: AspectContractRevision(1),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("profile").unwrap(),
+                },
                 value: PublishedAuthoritativePatchValue::Struct(
                     StructAspectValue::new(Vec::<(FieldKey, AspectValue)>::new()).unwrap(),
                 ),
             },
             PublishedAuthoritativePatchOperation::WholeAspectClear {
                 aspect_key: clear_key.clone(),
+                aspect_identity: AspectIdentity(3),
+                contract_revision: AspectContractRevision(1),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("retired").unwrap(),
+                },
             },
         ]);
 
@@ -230,6 +265,11 @@ mod tests {
         let patch = PublishedAuthoritativePatch::new(vec![
             PublishedAuthoritativePatchOperation::FieldLevelPatch {
                 aspect_key: aspect_key.clone(),
+                aspect_identity: AspectIdentity(1),
+                contract_revision: AspectContractRevision(1),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("summary").unwrap(),
+                },
                 field_sets: vec![PublishedAuthoritativeFieldSet {
                     field: title.clone(),
                     value: AspectValue::String("draft".into()),
@@ -238,6 +278,11 @@ mod tests {
             },
             PublishedAuthoritativePatchOperation::FieldLevelPatch {
                 aspect_key: sibling_key,
+                aspect_identity: AspectIdentity(2),
+                contract_revision: AspectContractRevision(1),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("other").unwrap(),
+                },
                 field_sets: vec![PublishedAuthoritativeFieldSet {
                     field: FieldKey::new("ignored").unwrap(),
                     value: AspectValue::String("ignored".into()),
@@ -246,6 +291,11 @@ mod tests {
             },
             PublishedAuthoritativePatchOperation::FieldLevelPatch {
                 aspect_key: aspect_key.clone(),
+                aspect_identity: AspectIdentity(1),
+                contract_revision: AspectContractRevision(1),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("summary").unwrap(),
+                },
                 field_sets: vec![PublishedAuthoritativeFieldSet {
                     field: status.clone(),
                     value: AspectValue::String("ready".into()),

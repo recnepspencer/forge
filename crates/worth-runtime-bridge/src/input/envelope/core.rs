@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BridgeProducerAuthorityKind {
-    RelationalPublication,
+    RegisteredAuthoritativeSource,
     BridgeHarnessFixture,
     Unknown,
 }
@@ -12,7 +12,7 @@ pub enum BridgeProducerAuthorityKind {
 impl BridgeProducerAuthorityKind {
     pub fn canonical_label(self) -> &'static str {
         match self {
-            Self::RelationalPublication => "relational-publication",
+            Self::RegisteredAuthoritativeSource => "registered-authoritative-source",
             Self::BridgeHarnessFixture => "bridge-harness-fixture",
             Self::Unknown => "unknown",
         }
@@ -24,13 +24,17 @@ pub struct BridgeProducerMetadata {
     authority_kind: BridgeProducerAuthorityKind,
     export_schema_version: Arc<str>,
     producer_semantics_version: Option<Arc<str>>,
+    authoritative_source: Option<BridgeAuthoritativeSourceProvenance>,
     writeback_feedback_context: Option<crate::writeback::BridgeWritebackFeedbackContext>,
 }
 
 impl BridgeProducerMetadata {
-    pub fn relational_publication() -> Self {
+    /// Describes an envelope returned by the runtime's registered authoritative
+    /// source. This is deliberately not a Relational proof: the stronger
+    /// owner-specific publication artifact remains in `worth-relational`.
+    pub fn registered_authoritative_source() -> Self {
         Self::new(
-            BridgeProducerAuthorityKind::RelationalPublication,
+            BridgeProducerAuthorityKind::RegisteredAuthoritativeSource,
             BRIDGE_PRODUCER_EXPORT_SCHEMA_V1,
         )
     }
@@ -50,6 +54,7 @@ impl BridgeProducerMetadata {
             authority_kind,
             export_schema_version: export_schema_version.into(),
             producer_semantics_version: None,
+            authoritative_source: None,
             writeback_feedback_context: None,
         }
     }
@@ -60,6 +65,18 @@ impl BridgeProducerMetadata {
     ) -> Self {
         self.producer_semantics_version = Some(producer_semantics_version.into());
         self
+    }
+
+    pub fn with_authoritative_source(
+        mut self,
+        source: BridgeAuthoritativeSourceProvenance,
+    ) -> Self {
+        self.authoritative_source = Some(source);
+        self
+    }
+
+    pub fn authoritative_source(&self) -> Option<&BridgeAuthoritativeSourceProvenance> {
+        self.authoritative_source.as_ref()
     }
 
     pub fn with_writeback_feedback_context(
@@ -101,6 +118,129 @@ impl BridgeProducerMetadata {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeAuthoritativeSourceProfile {
+    runtime_instance_id: u64,
+    adapter_identity: Arc<str>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BridgeAuthoritativeSourceProfileError {
+    MissingRuntimeAuthority,
+    InvalidAdapterIdentity,
+}
+
+impl BridgeAuthoritativeSourceProfile {
+    pub fn new(
+        runtime_instance_id: u64,
+        adapter_identity: impl Into<Arc<str>>,
+    ) -> Result<Self, BridgeAuthoritativeSourceProfileError> {
+        if runtime_instance_id == 0 {
+            return Err(BridgeAuthoritativeSourceProfileError::MissingRuntimeAuthority);
+        }
+        let adapter_identity = adapter_identity.into();
+        if adapter_identity.trim().is_empty()
+            || adapter_identity.trim() != adapter_identity.as_ref()
+        {
+            return Err(BridgeAuthoritativeSourceProfileError::InvalidAdapterIdentity);
+        }
+        Ok(Self {
+            runtime_instance_id,
+            adapter_identity,
+        })
+    }
+
+    pub const fn runtime_instance_id(&self) -> u64 {
+        self.runtime_instance_id
+    }
+
+    pub fn adapter_identity(&self) -> &str {
+        &self.adapter_identity
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeAuthoritativeSourceProvenance {
+    runtime_instance_id: u64,
+    graph_role: Arc<str>,
+    adapter_identity: Arc<str>,
+    source_basis: Arc<str>,
+    partition_role: Option<worth_foundational::facade::TruthPartitionRole>,
+}
+
+impl BridgeAuthoritativeSourceProvenance {
+    pub fn from_owner_publication(
+        runtime_instance_id: u64,
+        graph_role: impl Into<Arc<str>>,
+        adapter_identity: impl Into<Arc<str>>,
+        source_basis: impl Into<Arc<str>>,
+    ) -> Self {
+        Self {
+            runtime_instance_id,
+            graph_role: graph_role.into(),
+            adapter_identity: adapter_identity.into(),
+            source_basis: source_basis.into(),
+            partition_role: None,
+        }
+    }
+
+    pub fn from_owner_partition_publication(
+        runtime_instance_id: u64,
+        graph_role: impl Into<Arc<str>>,
+        adapter_identity: impl Into<Arc<str>>,
+        source_basis: impl Into<Arc<str>>,
+        partition_role: worth_foundational::facade::TruthPartitionRole,
+    ) -> Self {
+        Self {
+            runtime_instance_id,
+            graph_role: graph_role.into(),
+            adapter_identity: adapter_identity.into(),
+            source_basis: source_basis.into(),
+            partition_role: Some(partition_role),
+        }
+    }
+
+    pub const fn runtime_instance_id(&self) -> u64 {
+        self.runtime_instance_id
+    }
+
+    pub fn graph_role(&self) -> &str {
+        &self.graph_role
+    }
+
+    pub fn adapter_identity(&self) -> &str {
+        &self.adapter_identity
+    }
+
+    pub fn source_basis(&self) -> &str {
+        &self.source_basis
+    }
+
+    pub fn partition_role(&self) -> Option<&worth_foundational::facade::TruthPartitionRole> {
+        self.partition_role.as_ref()
+    }
+
+    pub fn matches_profile(&self, profile: &BridgeAuthoritativeSourceProfile) -> bool {
+        self.runtime_instance_id == profile.runtime_instance_id
+            && self.adapter_identity == profile.adapter_identity
+    }
+
+    pub(crate) fn canonical_basis(&self) -> String {
+        [
+            self.runtime_instance_id.to_string(),
+            self.graph_role.to_string(),
+            self.adapter_identity.to_string(),
+            self.source_basis.to_string(),
+            self.partition_role
+                .as_ref()
+                .map_or_else(|| "none".to_string(), |role| role.as_str().to_string()),
+        ]
+        .into_iter()
+        .map(|field| format!("{}:{field}", field.len()))
+        .collect()
+    }
+}
+
 impl CheapClone for BridgeProducerMetadata {}
 
 pub type TruthCommitIdentity = BridgeIdentity<TruthCommitTag>;
@@ -125,7 +265,7 @@ impl BridgeCommittedPatchEnvelopeIdentity {
         branch_identity: TruthBranchIdentity,
     ) -> Self {
         Self::new_with_metadata(
-            BridgeProducerMetadata::relational_publication(),
+            BridgeProducerMetadata::bridge_harness_fixture(),
             commit_identity,
             patch_identity,
             snapshot_identity,

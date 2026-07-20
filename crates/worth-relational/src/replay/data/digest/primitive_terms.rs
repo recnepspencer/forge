@@ -230,20 +230,43 @@ impl ReplayDigestBuilder {
         operation: &PublishedAuthoritativePatchOperation,
     ) -> Self {
         match operation {
-            PublishedAuthoritativePatchOperation::WholeAspectSet { aspect_key, value } => self
+            PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key,
+                aspect_identity,
+                contract_revision,
+                binding,
+                value,
+            } => self
                 .tag(1)
                 .aspect_key(aspect_key)
+                .u64(aspect_identity.0)
+                .u64(contract_revision.0)
+                .string(&binding.canonical_name())
                 .published_patch_value(value),
-            PublishedAuthoritativePatchOperation::WholeAspectClear { aspect_key } => {
-                self.tag(2).aspect_key(aspect_key)
-            }
+            PublishedAuthoritativePatchOperation::WholeAspectClear {
+                aspect_key,
+                aspect_identity,
+                contract_revision,
+                binding,
+            } => self
+                .tag(2)
+                .aspect_key(aspect_key)
+                .u64(aspect_identity.0)
+                .u64(contract_revision.0)
+                .string(&binding.canonical_name()),
             PublishedAuthoritativePatchOperation::FieldLevelPatch {
                 aspect_key,
+                aspect_identity,
+                contract_revision,
+                binding,
                 field_sets,
                 field_clears,
             } => self
                 .tag(3)
                 .aspect_key(aspect_key)
+                .u64(aspect_identity.0)
+                .u64(contract_revision.0)
+                .string(&binding.canonical_name())
                 .field_sets(field_sets)
                 .field_clears(field_clears),
         }

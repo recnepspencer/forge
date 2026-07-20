@@ -36,3 +36,15 @@ Use aspects when you want the runtime to know what kind of change happened.
 
 Use changed regions or partition-aware subscriptions when part of a result can
 change without forcing all downstream work to act like the whole thing changed.
+
+## Runtime-Local Identity
+
+Signal `Aspect` values are local slots within one installed graph and node.
+They do not replace portable Foundational aspect contracts or Relational aspect
+bindings.
+
+When Query hosts conditional operations, Runtime Bridge installs the exact
+correspondence from semantic dependencies to these local slots. Domain packages
+never author or persist Signal aspect numbers.
+
+See [Conditions And Comparators](../reference/conditions-and-comparators.md).

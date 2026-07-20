@@ -60,6 +60,7 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
         [PublishedAuthoritativePatchOperation::WholeAspectSet {
             aspect_key,
             value: PublishedAuthoritativePatchValue::Scalar(value),
+            ..
         }] if aspect_key == &AspectKey::new("name").unwrap()
             && value == &AspectValue::String("after".into())
     ));

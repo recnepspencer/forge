@@ -175,6 +175,13 @@ fn aspect_trace_evidence_value(evidence: &AspectTraceEvidence) -> RelationalDiag
             ),
             ("transition", lifecycle_transition_value(*transition)),
         ]),
+        AspectTraceEvidence::Structural { change } => RelationalDiagnosticValue::object([
+            (
+                "evidence_kind",
+                RelationalDiagnosticValue::string("structural"),
+            ),
+            ("change", structural_change_value(*change)),
+        ]),
         AspectTraceEvidence::AuthoritativePatch { locator, patch } => {
             authoritative_patch_evidence_value(locator, patch)
         }

@@ -2,11 +2,10 @@
 
 ## What This Feature Is
 
-This doc explains the three proof surfaces that keep the domain-capability seam
+This doc explains the evidence surfaces that keep the domain-capability seam
 honest:
 
-- compile-checked golden transcripts
-- compile-fail boundary suites
+- ordinary compile-checked examples and focused compile-time boundaries
 - hostile executable certification tests
 
 ## Why You Use It
@@ -18,12 +17,6 @@ honest:
 
 ## Stable Entry Points
 
-Golden and boundary manifests:
-
-- `worth_query_domain_capability_golden_transcripts()`
-- `worth_query_domain_capability_compile_fail_boundaries()`
-- `worth_query_domain_capability_compile_fail_boundary_digest()`
-
 Executable closeout:
 
 - `certify_domain_capabilities()`
@@ -33,25 +26,30 @@ Executable closeout:
 
 ## Core Mental Model
 
-Goldens prove the public path compiles the way the docs teach it.
+Ordinary examples prove the public path compiles the way the docs teach it.
 
 Compile-fail boundaries prove illegal progression, illegal degradation, or
-illegal construction does not compile.
+illegal construction does not compile. Use them selectively for properties
+that truly require compiler evidence; do not mirror every runtime assertion in
+a trybuild fixture.
 
 Hostile certification proves the public, checked, proof, and raw lanes converge
 or stay distinct in the ways the spec requires.
 
 ## How It Executes
 
-1. goldens compile the intended ordinary examples
-2. compile-fail tests reject illegal usage
+1. focused public examples compile the intended ordinary journeys
+2. selective compile-fail tests reject authority violations that cannot be
+   proved honestly at runtime
 3. hostile tests compare equivalent and intentionally different surfaces
-4. the certification bundle digests those live proof surfaces
+4. certification reports summarize runtime evidence without trying to certify
+   the test harness itself
 
 ## Small Example
 
 ```rust
-let digest = worth_query_domain_capability_compile_fail_boundary_digest();
+let bundle = certify_domain_capabilities();
+assert!(!bundle.outputs().is_empty());
 ```
 
 ## Real Example
@@ -59,8 +57,9 @@ let digest = worth_query_domain_capability_compile_fail_boundary_digest();
 When you add a new domain-capability feature, the honest path is:
 
 1. add or update the feature doc
-2. add or update a golden transcript
-3. add or update DX compile-fail boundaries
+2. add or update the smallest compiling public example that exercises it
+3. add a compile-fail boundary only when type-system rejection is the product
+   guarantee
 4. extend hostile certification if the feature changes canonicalization,
    support posture, or lane behavior
 
@@ -72,20 +71,22 @@ When you add a new domain-capability feature, the honest path is:
   binds installed-domain and native-aspect docs to compiled evidence
 - [Installed Domain Closeout Evidence](../platform-entry-closeout.md) composes
   package, execution, boundary, consumer, and documentation proof
-- every category doc in this tree should have a matching golden or boundary
-  story through these surfaces
+- category docs should point to the strongest existing executable evidence;
+  they do not each require a dedicated golden or boundary test
 
 ## Inspection And Debugging
 
-- if the docs teach a path that no longer compiles, the golden should fail
+- if the docs teach a path that no longer compiles, the owning public example
+  should fail
 - if a forbidden shortcut becomes legal, the compile-fail boundary should fail
 - if two lanes drift semantically, hostile certification should fail
 
 ## Anti-Patterns
 
-- adding public examples without a golden
+- multiplying compile fixtures when an ordinary integration test proves the
+  same behavior faster and more clearly
 - relying on runtime denials when the boundary should be compile-fail
-- treating certification as a one-time exercise instead of a living guardrail
+- writing tests whose only purpose is to prove that another test ran
 
 ## Current Limits
 

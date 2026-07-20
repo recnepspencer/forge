@@ -17,6 +17,7 @@ pub(crate) struct RuntimePublicationSnapshotReader {
     runtime: Arc<RelationalRuntime>,
     snapshot_identity: TruthSnapshotIdentity,
     version_id: VersionId,
+    partition: Option<crate::identity::data::PartitionId>,
 }
 
 impl RuntimePublicationSnapshotReader {
@@ -29,6 +30,21 @@ impl RuntimePublicationSnapshotReader {
             runtime,
             snapshot_identity,
             version_id,
+            partition: None,
+        }
+    }
+
+    pub(crate) fn for_partition(
+        runtime: Arc<RelationalRuntime>,
+        snapshot_identity: TruthSnapshotIdentity,
+        version_id: VersionId,
+        partition: crate::identity::data::PartitionId,
+    ) -> Self {
+        Self {
+            runtime,
+            snapshot_identity,
+            version_id,
+            partition: Some(partition),
         }
     }
 }
@@ -45,17 +61,21 @@ impl TruthSnapshotReader for RuntimePublicationSnapshotReader {
         let read_truth = self.runtime.read_truth();
         let mut records = Vec::with_capacity(request.reads().len());
         for read in request.reads() {
-            let record_ref = read
-                .relational_record_identity_parts()
-                .ok_or_else(|| {
-                    BridgeSnapshotReadError::new(
-                        "relational bridge snapshot reader requires typed record identity parts",
-                    )
-                })
-                .and_then(|parts| {
-                    record_ref_from_identity_parts(parts)
-                        .map_err(|error| BridgeSnapshotReadError::new(error.to_string()))
-                })?;
+            let identity_parts = read.relational_record_identity_parts().ok_or_else(|| {
+                BridgeSnapshotReadError::new(
+                    "relational bridge snapshot reader requires typed record identity parts",
+                )
+            })?;
+            if self
+                .partition
+                .is_some_and(|partition| partition.as_u32() != identity_parts.partition_id())
+            {
+                return Err(BridgeSnapshotReadError::new(
+                    "relational bridge snapshot read is outside the source partition authority",
+                ));
+            }
+            let record_ref = record_ref_from_identity_parts(identity_parts)
+                .map_err(|error| BridgeSnapshotReadError::new(error.to_string()))?;
             let aspect_value = match record_ref {
                 crate::transactions::data::RecordRef::Entity(entity_id) => {
                     let record_label = format!(

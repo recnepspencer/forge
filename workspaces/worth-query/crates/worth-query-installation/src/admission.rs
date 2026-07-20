@@ -1,9 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use sha2::{Digest, Sha256};
+use worth_proof::{
+    Admitted, AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness,
+    CurrentValidity, FreshnessScopedBasis, Recipe, Unresolved,
+};
 
-use crate::canonical_hash_encoding::hash_text_field;
 use crate::package::WorthQueryValidatedPortableDomainPackage;
+
+mod identity;
+
+use identity::{admission_identity, admission_meaning, WorthQueryInstallationAdmissionMeaning};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstallationSupportStatus {
@@ -13,7 +19,7 @@ pub enum WorthQueryInstallationSupportStatus {
 }
 
 impl WorthQueryInstallationSupportStatus {
-    fn canonical_part(self) -> &'static str {
+    pub(super) fn canonical_part(self) -> &'static str {
         match self {
             Self::Admitted => "admitted",
             Self::Deferred => "deferred",
@@ -22,7 +28,7 @@ impl WorthQueryInstallationSupportStatus {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryInstallationAdmissionProfile {
     support_identity: String,
     configuration_identity: String,
@@ -177,28 +183,85 @@ impl WorthQueryInstallationAdmissionProfile {
         }
 
         let admission_identity = admission_identity(&package, self);
+        let admission_meaning = admission_meaning(&package, self);
+        let basis = WorthQueryInstallationAdmissionBasis {
+            package_identity: package.identity().as_str().to_string(),
+            support_identity: self.support_identity.clone(),
+            configuration_identity: self.configuration_identity.clone(),
+            admission_identity: admission_identity.clone(),
+        };
+        let resolved = Recipe::<Unresolved, _>::new(package).resolve_with_authority(
+            basis,
+            AuthorityWitness::from_authority_marker(InstallationProfileResolutionAuthority {
+                _private: (),
+            }),
+        );
+        let lowered = resolved.lower_with_capability(CapabilityWitness::from_capability_marker(
+            InstallationSupportMatchedCapability { _private: () },
+        ));
+        let recipe = lowered.admit_with_authority(AuthorityWitness::from_authority_marker(
+            InstallationAdmissionAuthority { _private: () },
+        ));
         Ok(WorthQueryAdmittedPortableDomainPackage {
-            package,
+            recipe,
             admission_identity,
+            admission_meaning,
         })
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct WorthQueryAdmittedPortableDomainPackage {
-    package: WorthQueryValidatedPortableDomainPackage,
+    recipe: AdmittedPortablePackageRecipe,
     admission_identity: String,
+    admission_meaning: WorthQueryInstallationAdmissionMeaning,
 }
 
 impl WorthQueryAdmittedPortableDomainPackage {
     pub fn package(&self) -> &WorthQueryValidatedPortableDomainPackage {
-        &self.package
+        self.recipe.payload()
     }
 
     pub fn admission_identity(&self) -> &str {
         &self.admission_identity
     }
+
+    pub(crate) fn has_same_admission_authority(&self, other: &Self) -> bool {
+        self.admission_meaning == other.admission_meaning
+    }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct WorthQueryInstallationAdmissionBasis {
+    package_identity: String,
+    support_identity: String,
+    configuration_identity: String,
+    admission_identity: String,
+}
+
+struct InstallationProfileResolutionAuthority {
+    _private: (),
+}
+impl AuthorityMarker for InstallationProfileResolutionAuthority {}
+
+struct InstallationSupportMatchedCapability {
+    _private: (),
+}
+impl CapabilityMarker for InstallationSupportMatchedCapability {}
+
+struct InstallationAdmissionAuthority {
+    _private: (),
+}
+impl AuthorityMarker for InstallationAdmissionAuthority {}
+
+type AdmittedPortablePackageRecipe = Recipe<
+    Admitted,
+    WorthQueryValidatedPortableDomainPackage,
+    FreshnessScopedBasis<
+        CurrentValidity,
+        worth_proof::AssumptionBasis<WorthQueryInstallationAdmissionBasis>,
+    >,
+>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstallationAdmissionDenialKind {
@@ -241,61 +304,4 @@ impl WorthQueryInstallationAdmissionDenial {
     pub fn subject(&self) -> &str {
         &self.subject
     }
-}
-
-fn admission_identity(
-    package: &WorthQueryValidatedPortableDomainPackage,
-    profile: &WorthQueryInstallationAdmissionProfile,
-) -> String {
-    let mut hasher = Sha256::new();
-    hash_text_field(&mut hasher, "package", package.identity().as_str());
-    hash_text_field(&mut hasher, "support", &profile.support_identity);
-    hash_text_field(
-        &mut hasher,
-        "configuration-profile",
-        &profile.configuration_identity,
-    );
-    for family in package.capabilities() {
-        let status = profile
-            .capability_statuses
-            .get(family.as_str())
-            .expect("admitted package capability has a retained profile row");
-        hash_profile_row(
-            &mut hasher,
-            "capability",
-            family.as_str(),
-            status.canonical_part(),
-        );
-    }
-    for section in package.configuration() {
-        let enabled = profile
-            .configuration_statuses
-            .get(section.as_str())
-            .expect("admitted package configuration has a retained profile row");
-        hash_profile_row(
-            &mut hasher,
-            "configuration",
-            section.as_str(),
-            if *enabled { "enabled" } else { "disabled" },
-        );
-    }
-    for requirement in package.operating_requirements() {
-        let status = profile
-            .operating_statuses
-            .get(requirement.as_str())
-            .expect("admitted operating requirement has a retained profile row");
-        hash_profile_row(
-            &mut hasher,
-            "operating",
-            requirement.as_str(),
-            status.canonical_part(),
-        );
-    }
-    format!("{:x}", hasher.finalize())
-}
-
-fn hash_profile_row(hasher: &mut Sha256, dimension: &str, subject: &str, status: &str) {
-    hash_text_field(hasher, "profile-dimension", dimension);
-    hash_text_field(hasher, "profile-subject", subject);
-    hash_text_field(hasher, "profile-status", status);
 }

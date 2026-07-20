@@ -1,11 +1,18 @@
 use std::sync::Arc;
 
 use crate::facade::identity::PartitionId;
-use crate::facade::transactions::{MutationIntent, TransactionOptions, WorkerIntentBatch};
-use crate::tests::support::{create_entity_outcome, field_key, single_string_aspect_field_patch};
+use crate::facade::transactions::{
+    CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
+};
+use crate::tests::support::{
+    aspect_key, create_entity_outcome, field_key, single_string_aspect_field_patch,
+};
+use worth_foundational::ScalarAspectType;
+use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::{
-    BridgeRouteRequest, CommittedPatchSource, RelationalCommittedPatchRequest,
-    RuntimeBridgeBuilder, SnapshotReadSource, TruthCommitIdentity,
+    BridgeRouteRequest, CommittedPatchSource, RelationalBridgeRecordIdentityParts,
+    RelationalCommittedPatchRequest, RuntimeBridgeBuilder, SnapshotReadContract,
+    SnapshotReadPacket, SnapshotReadRequest, SnapshotReadSource, TruthCommitIdentity,
 };
 
 use super::super::{bridge_snapshot_identity_for_commit, RuntimeBridgeRelationalSource};
@@ -31,7 +38,8 @@ fn runtime_bridge_relational_source_exposes_latest_publication_bundle_authoritat
             TruthCommitIdentity::from_relational_commit_id(bundle.commit.commit_id.0),
         );
 
-    let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
+    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
+        .expect("test graph role");
     let envelope = source
         .load_committed_patch(expected_commit_identity)
         .expect("runtime bridge committed patch");
@@ -49,6 +57,142 @@ fn runtime_bridge_relational_source_exposes_latest_publication_bundle_authoritat
 }
 
 #[test]
+fn relational_source_graph_role_is_explicit_and_validated() {
+    let runtime = Arc::new(runtime_with_test_schema());
+    assert!(matches!(
+        RuntimeBridgeRelationalSource::for_graph_role(runtime, " model "),
+        Err(super::super::RelationalBridgeSourceConfigurationError::InvalidGraphRole)
+    ));
+}
+
+#[test]
+fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenance() {
+    let mut runtime = runtime_with_test_schema();
+    let entity = |partition_id, key: &str| {
+        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id,
+            kind_id: crate::facade::identity::KindId(1),
+            client_key: crate::facade::symbols::ClientKey::raw(key),
+            fields: single_string_aspect_field_patch(
+                crate::tests::support::aspect_key("name"),
+                field_key("name"),
+                key,
+            ),
+        }))
+    };
+    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    transaction.push_batch(
+        WorkerIntentBatch::new("partition-publication")
+            .push(entity(PartitionId::main(), "main"))
+            .push(entity(PartitionId::new(7), "secondary")),
+    );
+    let committed = transaction.commit().unwrap();
+    let secondary = committed
+        .changed_records
+        .iter()
+        .find_map(|record| match record {
+            crate::facade::transactions::RecordRef::Entity(entity)
+                if entity.partition_id == PartitionId::new(7) =>
+            {
+                Some(*entity)
+            }
+            _ => None,
+        })
+        .unwrap();
+    let truth_partition =
+        worth_foundational::facade::TruthPartitionRole::new("model-main").unwrap();
+    let source = RuntimeBridgeRelationalSource::for_graph_partition(
+        Arc::new(runtime),
+        "model",
+        PartitionId::main(),
+        truth_partition.clone(),
+    )
+    .unwrap();
+    let envelope = source
+        .load_committed_patch(RelationalCommittedPatchRequest::new(
+            TruthCommitIdentity::from_relational_commit_id(committed.commit.commit_id.0),
+        ))
+        .unwrap();
+
+    let provenance = envelope.producer_metadata().authoritative_source().unwrap();
+    assert_eq!(provenance.partition_role(), Some(&truth_partition));
+    let counters = envelope.patch_summary().authoritative_lowering();
+    assert_eq!(counters.source_record_patches_examined, 2);
+    assert_eq!(counters.source_record_patches_filtered_out, 1);
+    assert_eq!(counters.record_patches_inspected, 1);
+    assert!(envelope.patch_body().canonical_items().iter().all(|item| {
+        item.relational_record_identity_parts()
+            .is_some_and(|record| record.partition_id() == 0)
+    }));
+
+    let reader = source.open_snapshot(envelope.snapshot_identity()).unwrap();
+    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_relational_record(
+        RelationalBridgeRecordIdentityParts::entity(
+            secondary.partition_id.0,
+            secondary.local_slot.0,
+            secondary.generation.0,
+        ),
+        SnapshotReadContract::scalar(aspect_key("name"), ScalarAspectType::String),
+    )]);
+    assert!(reader.read_packet(&packet).is_err());
+}
+
+#[test]
+fn live_runtime_mints_publication_provenance_and_rejects_foreign_widening_authority() {
+    let mut owner = runtime_with_test_schema();
+    create_entity_outcome(&mut owner, "owner");
+    let commit = owner
+        .publication()
+        .latest_bundle()
+        .unwrap()
+        .commit
+        .commit_id;
+    let foreign = runtime_with_test_schema();
+    let foreign_admission = foreign
+        .admit_opaque_aspect_bridge_widening("model")
+        .unwrap();
+
+    assert!(matches!(
+        owner.publish_commit_for_bridge_with_widening(commit, "model", &foreign_admission,),
+        TransitionOutcome::Stale(super::super::RelationalBridgePublicationStale::RuntimeAuthority)
+    ));
+
+    let admission = owner.admit_opaque_aspect_bridge_widening("model").unwrap();
+    assert!(matches!(
+        owner.publish_commit_for_bridge_with_widening(commit, "analysis", &admission),
+        TransitionOutcome::RebindRequired(
+            super::super::RelationalBridgePublicationRebindRequired::GraphRole
+        )
+    ));
+    let TransitionOutcome::Success(publication) =
+        owner.publish_commit_for_bridge_with_widening(commit, "model", &admission)
+    else {
+        panic!("owner-minted publication authority should publish its exact commit");
+    };
+    assert_eq!(publication.commit_id(), commit);
+    assert_eq!(publication.graph_role(), "model");
+    assert!(publication.runtime_instance_id() > 0);
+    assert!(publication
+        .adapter_identity()
+        .contains(&format!("runtime={}", publication.runtime_instance_id())));
+    assert!(publication
+        .source_basis()
+        .contains(&format!("commit={}", commit.0)));
+    let source = publication
+        .bridge_envelope()
+        .producer_metadata()
+        .authoritative_source()
+        .expect("owner publication carries its source authority into the Bridge envelope");
+    assert_eq!(
+        source.runtime_instance_id(),
+        publication.runtime_instance_id()
+    );
+    assert_eq!(source.graph_role(), publication.graph_role());
+    assert_eq!(source.adapter_identity(), publication.adapter_identity());
+    assert_eq!(source.source_basis(), publication.source_basis());
+}
+
+#[test]
 fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical_snapshot_authority(
 ) {
     let mut runtime = runtime_with_test_schema();
@@ -63,7 +207,8 @@ fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical
     let expected_snapshot_identity =
         bridge_snapshot_identity_for_commit(bundle.commit.commit_id, bundle.commit.version_id);
 
-    let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
+    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
+        .expect("test graph role");
     let envelope = source
         .load_committed_patch(RelationalCommittedPatchRequest::new(
             commit_identity.clone(),
@@ -138,7 +283,8 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
     );
     txn.commit().expect("second commit should publish");
 
-    let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
+    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
+        .expect("test graph role");
     let historical_commit_identity = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(historical_commit_id.0),
     );

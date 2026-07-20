@@ -196,9 +196,7 @@ mod tests {
 
         let error = validate_route_request(
             envelope,
-            &FrozenMappingRegistry {
-                registrations: Vec::new(),
-            },
+            &FrozenMappingRegistry::default(),
             &FrozenAspectMappingRegistry::default(),
         )
         .expect_err("missing route registration must preserve patch target context");

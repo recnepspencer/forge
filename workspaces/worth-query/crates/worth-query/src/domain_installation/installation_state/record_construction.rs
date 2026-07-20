@@ -95,6 +95,7 @@ fn installation_receipt(
             artifact.graph_obligation_definitions.len(),
             artifact.graph_read_operations.len(),
             artifact.declaration_families.len(),
+            artifact.domain_operations.len(),
             artifact.contribution_policy.len(),
         ),
         installed_definition_counts(artifact),
@@ -112,6 +113,7 @@ fn installed_definition_counts(
         artifact.graph_obligation_definitions.len(),
         artifact.graph_read_operations.len(),
         artifact.declaration_families.len(),
+        artifact.domain_operations.len(),
         artifact.contribution_policy.len(),
     ])
 }
@@ -135,21 +137,23 @@ fn installed_authority(
         .validate(&portable_authority)
         .expect("newly minted portable package authority must validate");
     Arc::new(WorthQueryInstalledDomainAuthority::new(
-        runtime_authority,
-        generation,
-        generation_lease.clone(),
-        artifact.marker_type,
-        artifact.marker_domain_key,
-        artifact.marker_display_name,
-        artifact.domain_owner.clone(),
-        artifact.package_identity.clone(),
-        installation_identity,
-        artifact.support_snapshot.clone(),
-        artifact.required_capabilities.clone(),
-        artifact.required_configuration.clone(),
-        artifact.operating_requirements.clone(),
-        semantics,
-        portable_authority,
+        super::super::WorthQueryInstalledDomainAuthorityInputs {
+            runtime_authority,
+            generation,
+            generation_lease: generation_lease.clone(),
+            marker_type: artifact.marker_type,
+            domain_key: artifact.marker_domain_key,
+            display_name: artifact.marker_display_name,
+            domain_owner: artifact.domain_owner.clone(),
+            package_identity: artifact.package_identity.clone(),
+            installation_identity,
+            support_snapshot: artifact.support_snapshot.clone(),
+            required_capabilities: artifact.required_capabilities.clone(),
+            required_configuration: artifact.required_configuration.clone(),
+            operating_requirements: artifact.operating_requirements.clone(),
+            semantics,
+            portable_authority,
+        },
     ))
 }
 

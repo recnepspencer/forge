@@ -9,8 +9,8 @@ pub(crate) mod widening;
 
 pub(crate) use aspects::FrozenAspectMappingRegistry;
 pub use aspects::{
-    BridgeAspectRegistration, BridgeAspectRegistrationId, SliceWideningPolicy,
-    TruthDeltaSurfaceKind,
+    BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeAuthoritativeSourcePrecisionPolicy,
+    SliceWideningPolicy, TruthDeltaSurfaceKind,
 };
 pub(crate) use freezing::{FrozenBridgeMappingRegistration, FrozenMappingRegistry};
 pub(crate) use lookup::BridgeMappingLookup;

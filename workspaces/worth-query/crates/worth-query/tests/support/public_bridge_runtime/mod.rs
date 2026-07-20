@@ -15,7 +15,7 @@ use std::rc::Rc;
 use worth_foundational::facade::AspectValue;
 use worth_query::facade::runtime::{
     WorthQueryAspectTouch, WorthQueryExistingTruthTargetBinding, WorthQueryRuntime,
-    WorthQueryRuntimeSupportProfile,
+    WorthQueryRuntimeBuilder, WorthQueryRuntimeSupportProfile,
 };
 
 use self::adapters::{

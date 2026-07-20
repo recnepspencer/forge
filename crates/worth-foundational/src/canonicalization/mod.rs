@@ -117,6 +117,10 @@ pub use value_lowering::{
     CanonicalAspectValueIdentityBasis,
 };
 
+pub fn canonical_basis_sequence_material(sequence: &CanonicalBasisSequence) -> String {
+    digest_slots::basis_sequence_material(sequence)
+}
+
 use crate::facade::ResponsibilityArea;
 
 pub fn responsibility() -> ResponsibilityArea {

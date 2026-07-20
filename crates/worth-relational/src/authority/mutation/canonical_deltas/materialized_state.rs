@@ -1,4 +1,5 @@
 use crate::identity::data::EntityId;
+use crate::publication::patch::data::RecordStructuralChange;
 use crate::schema::data::{AspectBinding, LoweredAspectContractBinding};
 use worth_foundational::facade::AspectKey;
 use worth_foundational::facade::{
@@ -18,6 +19,7 @@ pub(super) enum MaterializedAspectState {
     StructValue(Option<StructAspectValue>),
     EndpointIdentity(Option<EntityId>),
     LifecycleTransition(LifecycleTransitionClass),
+    StructuralChange(RecordStructuralChange),
 }
 
 pub(super) fn evaluate_authoritative_binding_delta(
@@ -69,6 +71,15 @@ fn materialize_binding_state(
         }
         AspectBinding::LifecycleTransition => Ok(MaterializedAspectState::LifecycleTransition(
             lifecycle_transition(context.structural_change()),
+        )),
+        AspectBinding::StructuralRegion
+        | AspectBinding::StructuralPartition
+        | AspectBinding::StructuralFacet => Ok(MaterializedAspectState::StructuralChange(
+            context.structural_change(),
+        )),
+        _ => Err(invalid_binding_context(
+            binding.aspect_key(),
+            "unsupported authoritative aspect binding",
         )),
     }
 }
@@ -274,6 +285,13 @@ fn binding_evidence_from_states(
                 transition,
             },
             transition != LifecycleTransitionClass::NoTransition,
+        )),
+        (
+            MaterializedAspectState::StructuralChange(change),
+            MaterializedAspectState::StructuralChange(_),
+        ) => Ok((
+            CanonicalAspectDeltaEvidence::Structural { locator, change },
+            true,
         )),
         (old_state, new_state) => Err(CanonicalDeltaError::InvalidLoweredBindingForRecordClass {
             aspect_key: aspect_key.clone(),

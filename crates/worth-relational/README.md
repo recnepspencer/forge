@@ -4,7 +4,7 @@
 
 It is for systems that need state to be authoritative, transactional,
 inspectable, replayable, and durable instead of just "some mutable data
-structure plus vibes.
+structure plus vibes."
 
 It is meant for more than CRUD apps. The target is stuff like chip simulators,
 geometry kernels, planning systems, and other runtimes where history,
@@ -72,4 +72,34 @@ let _inspection = runtime.inspect_what_happened();
 If you find yourself reaching into crate internals instead of
 [`facade`](./src/facade.rs), you are probably leaving the intended public
 surface.
+
+## Aspect-Precise Publication
+
+Committed patches are interpreted against the installed schema before they
+cross a runtime boundary. The publication facade exposes
+`PublishedAuthoritativeAspectChange`, which retains:
+
+- aspect key, opaque identity, and contract revision
+- the exact entity, relation, endpoint, structural, or lifecycle binding
+- whole-aspect, field, endpoint, structural, lifecycle, or opaque change kind
+- an optional canonical field path
+- `Exact` or explicitly declared widening precision
+
+This is the authoritative change meaning consumed by Runtime Bridge. Relational
+does not allocate Signal aspects, and downstream callers must not reinterpret
+raw patch fields into their own change taxonomy.
+
+For Query-installed conditional operations, the flow is:
+
+```text
+Relational commit
+  -> aspect-precise authoritative publication
+  -> Runtime Bridge installed correspondence
+  -> Signal invalidation and decision
+  -> Query consequence
+```
+
+Use `worth_relational::facade::publication` and
+`worth_relational::facade::schema`. Equal labels or diagnostic digests do not
+replace the typed aspect identity and binding.
 

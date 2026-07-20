@@ -288,7 +288,12 @@ impl PublicSnapshotIdentityAdapter {
 impl WorthQueryRuntimeSnapshotIdentityAdapter for PublicSnapshotIdentityAdapter {
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
         let state = self.state.borrow();
-        public_snapshot_identity(state.next_snapshot_token as u64)
+        match state.current_snapshot_parts {
+            Some((snapshot, version)) => WorthQuerySnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(snapshot, version),
+            ),
+            None => public_snapshot_identity(state.next_snapshot_token as u64),
+        }
     }
 }
 

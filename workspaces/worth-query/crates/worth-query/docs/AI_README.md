@@ -1,16 +1,22 @@
 # Worth Query Orientation For AI Agents
 
-This document is the orientation map for AI agents building real applications
-and downstream runtimes on top of `worth-query`.
+This document is the broad orientation corpus for AI agents building real
+applications, domain integrations, and downstream runtimes on top of
+`worth-query`. It is intentionally comprehensive. An agent should be able to
+read it once and know which capabilities exist, who owns their authority, how
+the major journeys compose, and where the exact API and examples live.
 
-It is not an API reference. Its job is to answer three questions:
+It answers four questions throughout the Query surface:
 
 1. What category of thing am I touching?
 2. What does that category actually do?
-3. Which docs should I read next for the real API details?
+3. Which authority owns its meaning and lifecycle?
+4. Which docs contain the exact signatures, examples, and limits?
 
-If you need exact signatures, types, or examples, use the linked docs. This
-file is the mental model and navigation layer.
+This file does not replace rustdoc or the linked feature guides. It preserves
+the whole-system mental model that lets an AI use those references correctly.
+Do not shorten it into a table of contents: breadth here is deliberate because
+unseen capabilities are easily reimplemented as competing local systems.
 
 ## Runtime Stack
 
@@ -27,7 +33,7 @@ That layering matters. Query is not a thin read helper over lower runtime
 systems. It is the ordinary domain-facing runtime layer. It owns the public
 runtime facade, domain entry, declaration pipelines, support posture, binding,
 orchestration, recovery, inspection, and the public domain capability
-contribution seam.
+contribution and installed-operation seams.
 
 `worth-runtime-bridge` owns the causal protocol layer that wires authoritative
 truth to derived computation without collapsing either runtime into the other:
@@ -93,14 +99,17 @@ check whether the category you need already exists below.
 
 ## How To Use This File
 
-Read this file in two passes.
+Read this file as a corpus, then use it in two passes while working.
 
 First, find the category that matches the problem you are solving. Each section
 explains what that category is for, when to reach for it, and what mistake to
 avoid.
 
-Second, jump to the linked docs at the end of that category. Those docs are the
-source of truth for the exact surfaces and examples.
+Second, jump to the linked docs at the end of that category. Those docs carry
+the detailed surface, examples, execution model, debugging guidance, and
+current limits. Keep the surrounding categories in mind: Query features share
+basis, support, authority, outcome, and lower-runtime boundaries even when
+their public namespaces differ.
 
 If you have no idea where to start, read these first:
 
@@ -165,6 +174,22 @@ Visibility and support are separate. A public type can describe vocabulary for
 a deferred neighbor without making that neighbor an admitted runtime lane.
 Check the support matrix for the active profile.
 
+Use audience facades and capability namespaces explicitly:
+
+```rust
+use worth_query::facade::{domain, foundation, read, runtime};
+```
+
+An entry-band host can use the narrower host audience:
+
+```rust
+use worth_query_host::facade::{domain, runtime};
+```
+
+Pure schema and meaning crates remain Query-agnostic. They expose portable
+meaning that an entry-band crate installs through `worth-query-decl` or
+`worth-query-host`; they do not import Query to acquire runtime authority.
+
 Reach for this category when the task sounds like ordinary runtime-backed
 product behavior: declaring retained surfaces, reading them, mutating truth,
 opening preview or branch sessions, inspecting retained handles, or deciding
@@ -208,6 +233,11 @@ Read next:
 
 Shared read authority, mutation intake, derived publication, and replay are
 separate named runtime lanes.
+
+This section describes Query's general shared-read and replay capabilities. It
+does not grant replay or reconstruction methods to the installed-operation
+phase chain described later; those phase types expose only the authorities
+explicitly implemented for that progression.
 
 The important rule is that shared reads are real runtime-owned read authority,
 not copied snapshot convenience. A shared read context is basis-bound, sealed,
@@ -393,6 +423,36 @@ Read next:
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Hard Prohibitions](./foundations/hard-prohibitions.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+
+## Certification Surfaces
+
+`facade::certification` is the explicit non-ordinary audience for inspecting
+machine-checkable Query evidence. It includes the domain-capability inventory,
+representative and slope reports, installed-domain closeout bundles, native
+value closeout, and capability-specific certification families. These values
+describe and summarize public lanes; they do not become runtime authority and
+do not belong in product execution.
+
+Use `worth_query_domain_capability_certification_surface()` and
+`worth_query_domain_capability_public_surface_inventory()` to inspect the
+declared domain-capability surface. Use `certify_domain_capabilities()` for the
+corresponding executable evidence bundle. Installed-domain and native-value
+closeout use their dedicated certification functions and returned bundles.
+
+Keep the evidence strategy proportional. Ordinary integration tests should
+prove ordinary journeys. Use compile-fail fixtures selectively when the actual
+product guarantee is compiler rejection, such as private construction or
+move-only phase ordering. Use hostile runtime tests for stale, foreign,
+cross-runtime, cross-basis, semantic-drift, and exact-counter behavior. Do not
+write a second layer of tests merely to prove that these tests or manifests
+exist.
+
+Read next:
+
+- [Certification Surface And Closeout Bundle](./domain-capabilities/certification/certification-surface-and-closeout-bundle.md)
+- [Goldens, Boundaries, And Hostile Certification](./domain-capabilities/certification/goldens-boundaries-and-hostile-certification.md)
+- [Installed Domain Closeout Evidence](./domain-capabilities/platform-entry-closeout.md)
+- [Domain Capability Documentation Certification](./domain-capabilities/public-doc-coverage.md)
 
 ## Graph Touch Obligation Authority
 
@@ -606,6 +666,31 @@ proof-bearing consumed facts when another subsystem needs the result. Native
 refinement is exact and borrowed; it does not parse strings, widen numbers, or
 reconstruct structs.
 
+The word "aspect" names related but distinct identities across the stack:
+
+- Foundational `AspectContract` and `AspectBinding` describe stable semantic
+  meaning, including the exact binding and projection mask a consumer needs.
+- Relational authoritative-change kinds describe how committed truth changed:
+  field, endpoint, identity, structure, or another admitted semantic change.
+- Runtime Bridge correspondence proves how an authoritative semantic change
+  maps to one executable Signal target, including whether the mapping is exact
+  or deliberately widened.
+- A Signal aspect is a runtime-local slot on an installed Signal node. It owns
+  invalidation and version state for computation; it is not a portable domain
+  identity.
+- Query retains the semantic dependency, installed correspondence authority,
+  and returned conditional provenance without exposing raw Bridge or Signal
+  ingredients as caller authority.
+
+These layers must be connected explicitly. Never persist a numeric Signal
+aspect as domain meaning, infer semantic identity from a stable-name mapping or
+equal slot number, or treat a Relational change label as sufficient proof of a
+Signal dependency. Field-level or endpoint-level change may widen to a whole
+aspect only when the installed correspondence admits and reports that
+widening. This matters for geometry kernels: position, topology, tolerance,
+constraint, and derived-measure dependencies need semantic precision even when
+their executable invalidation slots are runtime-local.
+
 Reach for this category when the real question is about dependency, production,
 writes, triggers, or ownership. If the task depends on understanding what a
 surface semantically reads or produces, or whether a result is authoritative,
@@ -617,6 +702,7 @@ debug labels. In Query, both are part of the runtime contract.
 Read next:
 
 - [Aspects And Authority Lanes](./modeling/aspects-and-authority-lanes.md)
+- [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
 - [Native Aspect Values](./capabilities/native-aspect-values.md)
 - [Computed](./runtime-surfaces/computed.md)
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
@@ -831,39 +917,233 @@ Read next:
 
 ## Runtime-Installed Domains
 
-Runtime-installed domains are Query's pre-runtime capability seam. A domain
+Runtime-installed domains are Query's runtime-construction and operating seam. A domain
 crate declares one typed package, the runtime builder installs it atomically,
 and `WorthQueryWorkspace::domain(...)` returns a handle tied to that runtime
-and installation generation.
+and exact installation generation. Runtime-installed operations extend that
+same authority into typed execution, publication, consumption, settlement,
+workflow progression, graph participation, and conditional evaluation.
 
 The authority split is deliberate:
 
 - domain code owns typed semantic declarations and ergonomic extension traits;
-- Query validates the package, seals identities, builds runtime indexes, and
-  retains installation and execution authority;
-- consumers execute through the installed handle and its typed declaration
-  contexts.
+- portable packages own callback-free operation meaning;
+- the runtime builder joins those definitions to exact volatile providers;
+- Query validates the package, seals identities, builds rebuildable indexes,
+  and retains installation, binding, execution, and progression authority;
+- Runtime Bridge owns admitted correspondence between semantic truth and
+  executable Signal targets;
+- Relational owns authoritative change and publication semantics;
+- Signal owns dependency evaluation and conditional decision mechanics;
+- consumers execute only through the installed handle and Query-minted phase
+  values.
 
 Operating contexts follow the same rule. The domain supplies named semantic
 fields through `WorthQueryDomainOperatingContextIdentityDeclaration`; Query
 canonicalizes and seals them. Field order is not identity, and caller-authored
 digests are not part of the public contract.
 
+### Portable operation meaning
+
+`WorthQueryDomainOperationDefinition<D, O, F>` binds a domain marker,
+operation marker, and family marker to one portable semantic closure. The
+closure can declare:
+
+- parameters and native projection;
+- canonical query and result shape;
+- collection and continuation posture;
+- required capabilities and installed domains;
+- workflow stages and legal stage relationships;
+- portable conditional nodes;
+- graph reads, graph participation, touches, effects, and invariants;
+- publication and projection-consumption meaning;
+- terminal result states and failure classes;
+- cost and support requirements;
+- lowering identity and determinism posture.
+
+Every dimension is explicit. Use typed `NotRequired` when a capability is
+absent. Do not imply absence or support with an empty label, a missing hook, or
+a provider default. Portable definitions remain callback-free and participate
+in canonical package identity, conflict detection, installation artifacts, and
+index reconstruction. Equivalent declaration order converges; one-field
+semantic drift is a conflict even when two providers could produce similar
+output.
+
+### Runtime construction
+
+Runtime construction joins portable definitions to exact volatile mechanics:
+
+```rust
+let builder = runtime::WorthQueryRuntime::builder()
+    .domain_package(package)?
+    .domain_operation_executor(
+        GeometryDomain,
+        ReadVertex,
+        ReadFamily,
+        ReadVertexExecutor,
+    );
+```
+
+Depending on declared meaning, construction may also require graph
+participation providers, one Runtime Bridge, one Signal graph bound through
+that bridge, conditional correspondences and provider sets, workflow-stage
+executors, parallel-admission providers, and explicit consumer-support
+posture. Runtime construction rejects missing, extra, duplicate, foreign, or
+same-label/different-marker registrations. Marker types and retained provider
+identities are authority inputs; matching strings are not substitutes.
+
+### One operating world
+
+`WorthQueryWorkspace::operating_world(admitted_basis)` is the authority-bearing
+entry for installed operations. Its family view borrows that root and can only
+bind operations installed in the same runtime generation, basis, domain,
+family, provider set, and graph world. A family view cannot mint a runtime,
+basis, graph, or installation authority.
+
+The ordinary operation grammar is:
+
+```rust
+let installed_domain = workspace.domain(GeometryDomain)?;
+let bound = workspace
+    .operating_world(observation_basis)
+    .family(ReadFamily)
+    .bind(&installed_domain, ReadVertex)?;
+
+let consumer = bound.consumer_projection_contract()?;
+let executed = bound.execute(input, &mut workspace)?;
+let published = executed.publish()?;
+let consumed = published.consume(
+    consumer,
+    read::project_facts().entity_identities(),
+)?;
+let settled = consumed.settle()?;
+```
+
+Every value is minted by the preceding phase. The phase types are move-only,
+runtime-affine, and tied to the exact domain, operation, family, installation
+generation, basis, graph authorities, providers, receipts, result posture,
+warnings, and counters. Obtain the consumer contract before moving `bound`
+into `execute`. Do not cache phase ingredients for later recombination, invoke
+an executor directly, or reconstruct publication or consumption authority from
+receipts and identities.
+
+The compact example shows the success shape. Progression APIs can return
+`worth_proof::TransitionOutcome`; production code must preserve `Success`,
+`Denied`, `Deferred`, `Stale`, `RebindRequired`, and `Failed` rather than
+flattening them into a local status.
+
+An operation whose installed publication contract is `NotRequired` finishes
+at its executed terminal value. Its operation marker uses the terminal
+operation type, so publication is unavailable in the type-level journey rather
+than rejected after detached assembly.
+
+### Query-owned consumer support
+
+The bound operation mints one consumer projection contract from installed
+operation meaning and Query-owned runtime support truth. The contract retains
+the exact installation generation, operation identity, basis and access
+context, projection mask, publication and consumption meaning, and typed
+support dimensions for live continuation, async and result state, recovery,
+inspection, dependency impact, sharing, invalidation, and collection delivery.
+
+Compatibility admission returns either an exact pair-bound witness or a typed
+dimension-specific denial. Reports, summaries, labels, and digests are
+observational; none can satisfy admission. Presentation and allocation needs
+belong in the separate `WorthQueryConsumerBoundary` and cannot rewrite Query's
+requirements.
+
+### Derived indexes and exact counters
+
+Installed-operation, support, conditional, correspondence, and allocation
+indexes accelerate authority that remains elsewhere. Destroying and rebuilding
+an index from installed packages, runtime support posture, and exact runtime
+registrations must preserve admission, identity, denial, lifecycle result, and
+counter outcomes. Never make a derived index the only place where semantic
+meaning or provider authority lives.
+
+Exact counters are part of progression evidence. A denial at an earlier
+boundary must report zero contact with later providers, graph work, executor
+work, publication, or consumption. Matching output with dishonest work counts
+is not convergence.
+
 Use this category when a domain needs registered reads, invariants, graph
-obligations, declaration families, contributions, or domain-native workflow
-vocabulary to begin inside Query.
+obligations, declaration families, contributions, domain-native workflows,
+conditional computations, or an operation that must remain in one authority
+chain from binding through settlement.
 
 Read next:
 
 - [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
+- [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
+- [Aspects And Authority Lanes](./modeling/aspects-and-authority-lanes.md)
+- [Projection Consumption](./capabilities/projection-consumption.md)
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Consumer Kit](./foundations/consumer-kit.md)
+
+## Conditional Installed Operations
+
+Conditional nodes are portable Query declarations inside an installed
+operation or workflow stage. They let a domain author describe when derived
+work is eligible without authoring Signal-local slots or running a parallel
+condition engine.
+
+A conditional declaration can carry:
+
+- semantic truth dependencies and graph-read roles;
+- aspect-filtered eligibility;
+- typed delta thresholds and units;
+- temporal wake conditions;
+- typed on-demand trigger families;
+- typed domain-specific condition families and parameters;
+- dependency and output comparison requirements;
+- maintenance, artifact reuse, and output relationship.
+
+Use `WorthQueryPortableConditionalNodeDeclaration::declare(...)`. Every
+semantic dimension is required by the builder; it does not invent an
+executable default such as `Always`.
+
+Query dependencies name Foundational and Relational meaning, not Signal slot
+numbers:
+
+```rust
+let dependency = domain::WorthQuerySemanticTruthDependency::new(
+    domain::WorthQueryConditionalGraphReadRole::new("model")?,
+    aspect_contract,
+    projection_mask,
+    aspect_binding,
+    domain::WorthQuerySemanticLocality::SourceRecord,
+    [relational_change_kind],
+)?;
+```
+
+At runtime construction, Runtime Bridge admits that exact dependency against
+authoritative publication semantics and the actual Signal target allocation.
+Signal owns the resulting condition decision and computation-cleanliness
+result. Query carries the evidence back as
+`WorthQueryConditionalProvenance`; it does not recalculate eligibility from
+labels, counters, or output comparison.
+
+Conditional outcomes preserve work honestly. Ineligible, suppressed, or
+deferred work performs no computation. Reverted-clean work retains the cost of
+computation while recording that no new semantic output was produced. Changed
+eligible work advances only through its installed consequences.
+
+Read next:
+
+- [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
+- [Aspects And Authority Lanes](./modeling/aspects-and-authority-lanes.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 
 ## Domain Capability Contributions
 
 This is the public domain capability contribution seam. It exists so downstream
 domains can contribute typed semantic posture while Query remains the owner of
 canonical runtime artifacts.
+
+Contribution is not an alternative operation root. Executable domain work that
+belongs to an installed package uses the portable operation definition,
+runtime provider registration, and operating-world binding described above.
+Use contributions for contribution-shaped posture, not to bypass that chain.
 
 That ownership split is the whole point. Domains contribute meaning and
 evidence. Query materializes canonical artifacts. This prevents downstream
@@ -1131,11 +1411,27 @@ bridge, relational runtime, and signal runtime retain their lower truth,
 mutation, merge, and scheduling authority. `WorthQuerySessionLabel` names a
 runtime session; it is not a substitute for retained preview or merge authority.
 
+Runtime-installed workflows are typed DAGs inside the operation definition.
+Query owns run identity, legal stage progression, stage receipts, conditional
+provenance, warnings, result state, exact counters, and the terminal workflow
+trace. Start the workflow and advance the returned run; do not keep an
+application stage ledger or reconstruct progression from stage names.
+Parallel frontiers use the installed parallel-admission provider. Effectful
+stages still require the appropriate mutation-preparation basis and installed
+graph and effect authorities.
+
+Conditional workflow stages use the same authored semantic dependencies and
+installed correspondence as direct operations. Ineligible, suppressed, and
+deferred outcomes do not contact the stage executor. Reverted-clean execution
+keeps its work cost but does not claim a changed semantic output.
+
 Read next:
 
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Branches And Previews](./foundations/branches-and-previews.md)
 - [Subscription Selection And Diagnostics](./capabilities/subscription-selection-and-diagnostics.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
+- [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
 
 ## Relational Truth And Invariants Through Query
 
@@ -1148,6 +1444,22 @@ registration, capability gaps, and invariant denials so that domains can use
 lower truth semantics through a real public lane. The ownership split is that
 Relational remains the authority, but Query owns the ordinary public access and
 orchestration shape.
+
+For conditional and derived work, Relational aspects and Signal aspects are
+not interchangeable. Relational publishes authoritative semantic change;
+Signal tracks executable invalidation and computation state. Runtime Bridge
+installs the correspondence between them, including exact projection and any
+admitted widening. Query authors the Foundational semantic dependency and
+retains the admitted correspondence as opaque Query authority. This produces
+one graph-shaped path from authored meaning to committed change to conditional
+decision rather than a Relational graph and a second application-owned Signal
+graph that merely happen to share names.
+
+`worth-proof` is used where a transition or participation claim must be
+unforgeable and move with the phase that earned it. `worth-foundational` owns
+the portable aspect contracts and bindings. Neither crate replaces
+Relational's authoritative publication or Signal's execution decision; they
+let Query carry those meanings without reducing them to strings and digests.
 
 Use this category when the feature needs invariants, relational truth, joins,
 capability-gap posture, or lower truth reasoning that should be visible in the
@@ -1162,6 +1474,7 @@ Read next:
 
 - [Declaration Relational Truth Routing](./domain-capabilities/declaration-relational-truth-routing.md)
 - [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
+- [Aspects And Authority Lanes](./modeling/aspects-and-authority-lanes.md)
 - [Capability Gaps And Invariant Denials](./domain-capabilities/invariants/capability-gaps-and-invariant-denials.md)
 
 ## Read Composition And Graph Authoring
@@ -1186,6 +1499,21 @@ Query-owned graph/index view and consume that view. Do not start with recursive
 tree walks, per-call registry scans, or surface-local lookup helpers and treat a
 later index as a mere performance cleanup. In Query, the graph/index is part of
 the proof boundary, not just an optimization.
+
+Installed execution follows the same one-graph rule. One logical graph is the
+default across Query graph participation, Runtime Bridge correspondence, and
+Signal execution. Declare separate graph participation only when another graph
+has genuinely independent authority, lifecycle, and provider ownership. A
+multi-graph mutation binds only when the complete graph set has one atomic
+commit authority or the operation declares the required compensation posture.
+
+One Runtime Bridge binds one Signal graph ownership domain, and one Signal
+graph accepts one aspect-lowering owner. Clones of the same Bridge may share
+that owner; independent Bridge runtimes may not maintain mutually invisible
+allocations over the same graph. Query exposes Query-owned correspondence and
+provenance, not raw Bridge witnesses, Signal nodes, aspect slots, or candidate
+construction. This prevents an application adapter from quietly becoming a
+second graph authority.
 
 The legality rules themselves are domain invariants, not consumer validation
 code. If your domain has structural authoring constraints — which owner kinds
@@ -1223,6 +1551,7 @@ Read next:
 - [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Query Expressions And Result Shapes](./authoring/query-expressions-and-result-shapes.md)
 - [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
+- [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
 
 ## Structural Correspondence And Historical Materialization
 
@@ -1282,6 +1611,21 @@ Projection consumption carries materialized Query facts without reopening
 source authority. On `WorthQueryReadCompletion`, declare the facts with
 `read::project_facts()` and call `consume_projection(...)`.
 
+Runtime-installed operations use the same production consumption machinery
+through a stricter bound progression. Before execution moves the bound
+capability, call `bound.consumer_projection_contract()`. After Query-minted
+publication, pass that exact contract to `published.consume(...)`; the result
+wraps the ordinary `WorthQueryConsumedProjectionAuthority` and can settle only
+by consuming the progression value. It is not a second consumer system.
+
+The contract is minted from the bound operation and Query-owned support truth.
+It preserves exact installation generation, operation and family markers,
+basis and access context, projection mask, publication and consumption
+meaning, plus every typed support dimension. A separate consumer-boundary
+value can carry presentation and allocation requirements, but cannot mutate
+Query requirements. Admission requires the pair-bound compatibility witness;
+matching summaries or digests are never authority.
+
 Query returns `WorthQueryProjectionOutcome`. Completed and advisory outcomes
 carry one sealed authority that retains basis, source lineage, facts, receipt,
 and requirements. Call `into_admitted()` to move it into the downstream owner.
@@ -1298,6 +1642,7 @@ Read next:
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Projection Consumption Vs Inspection](./domain-capabilities/choosing/projection-consumption-vs-inspection.md)
 - [Policy, Tenant, And Relationship-Proof Narrowing](./foundations/policy-tenant-and-relationship-proof-narrowing.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 
 ## Consumer Extensions
 
@@ -1387,8 +1732,10 @@ Need the shortest path between close surfaces:
 
 Need platform entry or operating world:
 
-- use the ordinary capability namespace plus a Query-owned workspace and
-  explicit context
+- for installed domain operations, resolve the installed domain and enter
+  through `workspace.operating_world(basis).family(family).bind(...)`
+- for other capability families, use the owning ordinary namespace plus a
+  Query-owned workspace and explicit context
 
 Need typed query read meaning:
 
@@ -1402,8 +1749,11 @@ Need policy, tenant, or proof-gated access:
 
 Need domain work/request:
 
-- implement a typed `facade::domain` contribution and let Query own admission,
-  execution, receipt, and outcome shaping
+- declare a portable installed operation and register its exact volatile
+  providers when the request is executable domain work
+- use a typed `facade::domain` contribution only when the request contributes
+  posture to another Query-owned artifact
+- in both cases, let Query own admission, identity, receipts, and outcomes
 
 Need identity/deduplication:
 
@@ -1451,8 +1801,11 @@ Need submission order or replay:
 
 Need signal/reactive behavior:
 
-- use `facade::live`; hold the managed handle and let Query own maintenance and
-  close
+- use `facade::live` for a long-lived managed query surface
+- use an installed conditional node for operation- or workflow-scoped
+  eligibility, triggers, and recomputation
+- in both cases, let Query and Runtime Bridge carry semantic meaning to Signal;
+  do not author Signal slots as domain identity
 
 Need async/resource-backed declaration meaning or retained async runtime state:
 
@@ -1466,8 +1819,10 @@ Need effects or staged delivery:
 
 Need graph mutation/writeback/bridge routing:
 
-- use `facade::mutation` or `facade::workflow` with explicit authority; do not
-  choose or invoke a lower backend in consumer code
+- use the installed operation's declared graph participation when the work
+  belongs to a domain package
+- otherwise use `facade::mutation` or `facade::workflow` with explicit
+  authority; do not choose or invoke a lower backend in consumer code
 
 Need intent admission or mutation evidence:
 
@@ -1530,13 +1885,43 @@ Need public DX:
 - expose a domain facade that forwards to Query instead of teaching raw lower
   runtime plumbing
 
+## Current Installed-Operation Boundary
+
+The installed-operation surface currently includes portable operation
+semantics, graph participation, one operating-world root, bound execution,
+publication and consumption, installed workflow DAGs, portable conditional
+nodes, aspect-precise authoritative change publication, installed semantic
+correspondence, Signal-owned decisions, and Query-owned provenance on re-entry.
+
+Vocabulary for replay, reversal, lineage, sharing and leases,
+dependency-impact compilation, capability-bound invalidation, collection
+windows, or query-shaped patch delivery can record a typed required or absent
+posture in an operation definition. That vocabulary does not grant the later
+runtime authority. Do not manufacture those journeys from current receipts,
+phase values, reports, or lower-runtime APIs before their dedicated public
+authorities exist.
+
+This boundary is specific to installed-operation phase values. Query's general
+history, replay, live, subscription, and other capability families remain as
+described in their owning sections and support rows; they are not methods that
+can be inferred onto the installed progression.
+
 ## Current Authority Roots
 
 - Domain setup starts with `WorthQueryDomainPackage::declare`, installs through
-  `WorthQueryRuntimeBuilder::domain_package`, and executes from
-  `WorthQueryWorkspace::domain`.
+  `WorthQueryRuntimeBuilder::domain_package`, resolves from
+  `WorthQueryWorkspace::domain`, and binds through
+  `WorthQueryWorkspace::operating_world(...).family(...).bind(...)`.
+- Portable operation meaning lives in
+  `WorthQueryDomainOperationDefinition`; volatile execution, graph,
+  conditional, and workflow mechanics are registered separately and retained
+  by the runtime.
 - Native aspect meaning comes from `worth_foundational::facade::{AspectValue,
-  StructAspectValue}` and is admitted by Query against the active contract.
+  StructAspectValue}` together with Foundational aspect contracts and bindings,
+  and is admitted by Query against the active contract.
+- Relational authoritative changes reach Signal execution only through an
+  installed Runtime Bridge correspondence; Query exposes the semantic
+  dependency and opaque Query-owned provenance rather than raw graph pieces.
 - Ordinary product work starts in the owning capability namespace and retains
   its typed declaration, outcome, stop, receipt, or managed handle.
 - Downstream facts cross through `consume_projection(...)` and
@@ -1566,6 +1951,20 @@ Before building on a Query category, answer these:
 10. If another runtime depends on Query facts, am I transferring one
     `WorthQueryConsumedProjectionAuthority` rather than pairing basis, receipt,
     source, fact, label, or digest projections locally?
+11. If this is an installed operation, did I enter through one operating world
+    and preserve the move-only `bound -> executed -> published -> consumed ->
+    settled` authority chain?
+12. If the operation is conditional, did Query author semantic dependencies,
+    Runtime Bridge admit the exact correspondence, and Signal produce the
+    decision, or did I accidentally build another condition engine?
+13. If an aspect crosses runtimes, am I distinguishing Foundational semantic
+    meaning, Relational authoritative change, Bridge correspondence, and the
+    runtime-local Signal slot?
+14. Is there one logical graph and one aspect-lowering owner, or did a facade,
+    adapter, provider registry, or host helper quietly become a second graph?
+15. Am I relying on an authoritative installed package or retained provider,
+    or on a rebuildable index, report, digest, or matching semantic key?
+16. Does an early denial prove zero later-phase work through exact counters?
 
 If you cannot answer those, read the owning docs before writing code.
 

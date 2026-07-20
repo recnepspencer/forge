@@ -15,8 +15,7 @@ package, execution, boundary, consumer, and documentation evidence. See
 
 - you want one place to inspect the public domain-capability lanes
 - you need the certification bundle outputs for closeout or tooling
-- you want to verify that the docs, goldens, and compile-fail boundaries still
-  match the live code
+- you want to compare the declared public lanes with executable evidence
 
 ## Stable Entry Points
 
@@ -59,14 +58,14 @@ let rows = surface.category_count();
 let bundle = certify_domain_capabilities();
 
 let public_boundary = bundle.output_digest("public_boundary_digest");
-let compile_fail_boundary = bundle.output_digest("compile_fail_boundary_digest");
 let support_digest = bundle.output_digest("support_artifact_digest");
 let slope_digest = bundle.output_digest("contribution_materialization_slope_digest");
 ```
 
-For geometry-kernel-grade use, this is where you confirm that public lane
-teaching, compile-fail coverage, and representative artifact evidence have not
-drifted apart.
+For geometry-kernel-grade use, this is where you inspect whether public lane
+teaching and representative runtime evidence have drifted apart. Compiler
+boundaries and runtime tests remain direct evidence; the bundle does not prove
+those tests.
 
 ## How It Relates To Other Features
 
@@ -89,7 +88,7 @@ drifted apart.
 ## Anti-Patterns
 
 - treating the certification surface as executable proof by itself
-- assuming a green manifest means the ordinary lane examples are still honest
+- assuming a green inventory means the ordinary lane examples are still honest
 - reading width and slope outputs as benchmarking data instead of closeout
   evidence
 

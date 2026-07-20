@@ -11,6 +11,7 @@ Your app owns the real state.
 - rollback
 - diagnostics
 - replay and history
+- installed condition decisions and semantic-change classification
 
 This crate is not just trying to rerun less work.
 It is trying to keep updates, transactional truth, explanation, and history in
@@ -63,6 +64,32 @@ You are not signing up for a toy path you need to throw away later.
 - finance and risk pipelines
 - ML feature and scoring flows
 - geometry or compiler-style partial recompute
+
+## Installed Conditional Nodes
+
+Signal also provides the execution authority used by Query-installed
+conditional operations. In that path:
+
+- Query authors portable semantic dependencies, condition families, triggers,
+  comparison posture, and output relationships
+- Runtime Bridge installs those declarations into the actual Signal graph,
+  node, partition, and aspect slots
+- Signal owns dependency versions, eligibility, suppression, compute, artifact
+  reuse, and the decision about whether output changed meaningfully
+- Query carries Signal-minted decision evidence into operation or workflow
+  progression without restamping it
+
+The core types are `InstalledSignalConditionalContract`,
+`InstalledSignalConditionDecision`, `SignalConditionalDecisionEvidence`, and
+`SignalConditionalExecutionRequest`.
+
+Signal aspects are runtime-local slots. They are not Foundational semantic
+aspect identities and must not be persisted or authored in portable Query
+packages.
+
+When Signal is hosted by Query, use the one graph owned through
+`worth-runtime-bridge::BridgeOwnedSignalRuntime`. Do not create a second graph
+for the same installed operations.
 
 ## One Continuous Story
 
@@ -161,3 +188,8 @@ If you are just getting started, stay in:
 - `runtime.diagnostics()`
 
 Or start in `easy` and move out only when you need more room.
+
+For Query-installed operations, start instead at the
+[`Conditional Installed Operations`](../../workspaces/worth-query/crates/worth-query/docs/domain-capabilities/conditional-installed-operations.md)
+guide. The `easy` facade is for standalone Signal applications, not a shortcut
+around Query installation.

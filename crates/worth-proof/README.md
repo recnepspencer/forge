@@ -454,6 +454,22 @@ In short:
 - `worth-proof` says what is legal and what has been proven
 - `worth-foundational` says how to describe and package that at boundaries
 
+## Owner-Specific Runtime Types
+
+Runtime crates use Proof progression beneath stronger private-minted types.
+For example, Query’s bound, executed, published, consumed, and settled
+operation phases retain Proof phase and basis law, but ordinary callers use the
+Query facade rather than constructing a generic `Artifact` or `Recipe`.
+
+The same rule applies to Relational authoritative publication, Runtime Bridge
+installed correspondence, and Signal conditional decisions. A generic Proof
+carrier cannot replace an owner-specific authority, and a caller-selected
+`AuthorityMarker` cannot open a governed runtime door.
+
+Use raw Proof APIs when you are designing a genuinely reusable progression.
+Use the owner crate’s facade when the progression controls that runtime’s
+operation, truth, correspondence, or evaluation authority.
+
 ## Small Examples
 
 ### Minimal Recipe

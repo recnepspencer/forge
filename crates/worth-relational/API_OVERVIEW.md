@@ -49,6 +49,17 @@ The product center is:
 - `runtime.inspect_what_happened()`
 - `runtime.publication()`
 
+### Publish semantic aspect changes
+
+Use `facade::publication` when another runtime needs the authoritative meaning
+of a committed change. `PublishedAuthoritativeAspectChange` retains aspect
+identity and revision, Relational binding, change kind, optional field path,
+and exact or declared-widening precision.
+
+Runtime Bridge consumes this publication for Query-installed semantic
+correspondence. Downstream callers should not derive their own aspect-change
+taxonomy from raw patch fields.
+
 ### Past truth
 
 - `runtime.history()`

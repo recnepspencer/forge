@@ -39,6 +39,11 @@ artifact, orchestration, grouping, and recovery model.
 
 - if you are building domain workflows with Query:
   [Domain Capabilities](./domain-capabilities/README.md)
+- if you are installing typed operations and executing them through one bound
+  authority chain:
+  [Runtime-Installed Domains And Operations](./domain-capabilities/runtime-installed-domains.md)
+- if you are authoring conditional or triggered operation nodes:
+  [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
 - if you need the shortest chooser path inside domain work:
   [Choosing The Right Surface](./domain-capabilities/choosing/README.md)
 - if you want task-first guides for common multi-surface Query jobs:
@@ -114,7 +119,8 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Domain capabilities
 
-- [Runtime-installed domains](./domain-capabilities/runtime-installed-domains.md)
+- [Runtime-installed domains and operations](./domain-capabilities/runtime-installed-domains.md)
+- [Conditional installed operations](./domain-capabilities/conditional-installed-operations.md)
 - [Lower-runtime capability routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Contributions hub](./domain-capabilities/contributions/README.md)
 - Choosers: [live vs subscription](./domain-capabilities/choosing/live-view-vs-subscription.md), [inspection vs cross-runtime explanation](./domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md), [projection vs inspection](./domain-capabilities/choosing/projection-consumption-vs-inspection.md)

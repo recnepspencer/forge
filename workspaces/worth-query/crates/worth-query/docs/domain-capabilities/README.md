@@ -5,14 +5,20 @@ runtime returns an installed handle, and that handle is the root for domain
 reads, workflows, declarations, contributions, live work, recovery, and
 inspection.
 
-Start with [Runtime-Installed Domains](./runtime-installed-domains.md). It
-defines the setup grammar, runtime affinity, operating-context identity,
-extension pattern, diagnostics, and current limits.
+Start with
+[Runtime-Installed Domains And Operations](./runtime-installed-domains.md).
+It defines portable operation meaning, volatile provider registration, the
+single operating-world root, bound execution, publication, consumption,
+diagnostics, and current limits.
 
 ## Choose The Next Guide
 
-- [Runtime-Installed Domains](./runtime-installed-domains.md) for package
-  declaration, installation, handle lookup, contexts, and extension traits.
+- [Runtime-Installed Domains And Operations](./runtime-installed-domains.md)
+  for package declaration, operation semantics, provider installation,
+  binding, execution, publication, and settlement.
+- [Conditional Installed Operations](./conditional-installed-operations.md)
+  for semantic truth dependencies, conditions, triggers, thresholds,
+  correspondence, Signal decisions, and Query re-entry.
 - [Typed Binding Pipeline](./typed-binding-pipeline.md) when an installed
   declaration context must select the next proof-bearing input.
 - [Ordinary Outcomes](./ordinary-outcomes.md) for the common completed/stopped
@@ -54,14 +60,15 @@ Family helpers and grouped authoring follow the same rule:
 These surfaces consume installed authority or artifacts derived from it. They
 are not alternative setup roots.
 
-## Certification
+## Certification And Closeout
 
 - [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
 - [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)
-- [Public Doc Coverage](./public-doc-coverage.md)
+- [Installed Domain Closeout Evidence](./platform-entry-closeout.md)
+- [Domain Capability Documentation Certification](./public-doc-coverage.md)
 
-Certification exposes evidence and sabotage coverage. It does not mint domain
-handles or promote diagnostics into operational authority.
+These are certification-audience evidence and maintenance guidance. They are
+not ordinary setup, execution, or authority-minting APIs.
 
 ## Related Docs
 

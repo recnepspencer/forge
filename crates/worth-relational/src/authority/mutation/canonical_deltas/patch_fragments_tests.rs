@@ -1,5 +1,6 @@
 use worth_foundational::facade::{
-    AspectValue as FoundationalAspectValue, InternedString as FoundationalInternedString,
+    AspectBinding, AspectValue as FoundationalAspectValue, FieldKey,
+    InternedString as FoundationalInternedString,
 };
 use worth_foundational::{aspects, AspectContractRevision, AspectIdentity, ScalarAspectType};
 
@@ -38,11 +39,20 @@ fn scalar_changed_binding_materializes_foundational_whole_aspect_set() {
         [PublishedAuthoritativePatchOperation::WholeAspectSet {
             aspect_key,
             value: PublishedAuthoritativePatchValue::Scalar(value),
+            ..
         }] if aspect_key == &name_key
             && value == &FoundationalAspectValue::String(
                 FoundationalInternedString::from("alice")
             )
     ));
+    let semantic = &published_record.semantic_changes[0];
+    assert_eq!(
+        semantic.kind(),
+        worth_foundational::facade::AuthoritativeAspectChangeKind::WholeAspectSet
+    );
+    assert_eq!(semantic.aspect_identity(), AspectIdentity(9));
+    assert_eq!(semantic.contract_revision(), AspectContractRevision(1));
+    assert_eq!(semantic.field_path(), None);
 }
 
 fn scalar_delta(aspect_key: AspectKey, value: &str) -> CanonicalRecordAspectDelta {
@@ -63,6 +73,9 @@ fn scalar_delta(aspect_key: AspectKey, value: &str) -> CanonicalRecordAspectDelt
                     .identified_by(AspectIdentity(9))
                     .at_revision(AspectContractRevision(1))
                     .scalar(ScalarAspectType::String),
+                binding: AspectBinding::EntityField {
+                    field: FieldKey::new("name".to_string()).unwrap(),
+                },
                 changed: true,
                 aspect_shape: worth_foundational::AspectShape::Scalar(ScalarAspectType::String),
                 evidence: CanonicalAspectDeltaEvidence::ScalarAspectValueTransition {
@@ -85,6 +98,7 @@ fn scalar_delta(aspect_key: AspectKey, value: &str) -> CanonicalRecordAspectDelt
                     .identified_by(AspectIdentity(10))
                     .at_revision(AspectContractRevision(1))
                     .reference_entity(),
+                binding: AspectBinding::RelationTargetEndpoint,
                 changed: false,
                 aspect_shape: worth_foundational::AspectShape::Reference(
                     worth_foundational::ReferenceAspectType::Entity,
@@ -103,6 +117,7 @@ fn scalar_delta(aspect_key: AspectKey, value: &str) -> CanonicalRecordAspectDelt
                     .identified_by(AspectIdentity(11))
                     .at_revision(AspectContractRevision(1))
                     .scalar(ScalarAspectType::String),
+                binding: AspectBinding::LifecycleTransition,
                 changed: false,
                 aspect_shape: worth_foundational::AspectShape::Scalar(ScalarAspectType::String),
                 evidence: CanonicalAspectDeltaEvidence::Lifecycle {
