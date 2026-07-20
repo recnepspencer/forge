@@ -1,4 +1,7 @@
-use worth_ui::facade::{CapabilitySnapshot, WorthUiApp};
+use worth_ui::facade::{
+    app::WorthUiApp,
+    diagnostics::CapabilitySnapshot,
+};
 
 fn main() {
     let _ = WorthUiApp {

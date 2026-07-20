@@ -1,7 +1,11 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind,
-    MosaicHitTestPosture, MosaicRegionKindDescriptor, MosaicRegionPersistence, MosaicRegionRole,
-    MosaicScrollOwnership, MosaicSizingBehavior, SurfacePlacementClass, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture,
+        MosaicRegionKindDescriptor, MosaicRegionPersistence, MosaicRegionRole,
+        MosaicScrollOwnership, MosaicSizingBehavior, SurfacePlacementClass,
+    },
 };
 
 #[path = "mosaic_region_registry/mosaic_region_registry_assertions.rs"]

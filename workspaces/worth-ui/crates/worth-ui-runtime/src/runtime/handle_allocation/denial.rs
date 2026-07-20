@@ -13,6 +13,7 @@ pub enum WorthUiRuntimeHandleAllocationDenialReason {
     StalePlanInputReceipt,
     UnsupportedHandleFamily,
     MissingQueryBindingEvidence,
+    PlanIndexCapacityExhausted,
 }
 
 impl WorthUiRuntimeHandleAllocationDenial {

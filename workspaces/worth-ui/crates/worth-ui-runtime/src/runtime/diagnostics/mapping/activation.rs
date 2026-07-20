@@ -153,10 +153,9 @@ fn activation_staging_reason_digest(
     reason: crate::runtime::WorthUiActivationStagingDenialReason,
 ) -> u64 {
     match reason {
+        crate::runtime::WorthUiActivationStagingDenialReason::CandidateApplicationAuthorityMismatch => 9,
         crate::runtime::WorthUiActivationStagingDenialReason::MissingDurableStateReconciliation => 1,
         crate::runtime::WorthUiActivationStagingDenialReason::MissingQueryLiveRebindPlan => 2,
-        crate::runtime::WorthUiActivationStagingDenialReason::MissingExecutionPlanLoweringInput => 3,
-        crate::runtime::WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch => 4,
         crate::runtime::WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch => 5,
         crate::runtime::WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch => 6,
         crate::runtime::WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged => 7,
@@ -178,6 +177,7 @@ fn activation_gate_reason_digest(reason: crate::runtime::WorthUiActivationGateDe
         crate::runtime::WorthUiActivationGateDenialReason::MissingLaneParityReport => 10,
         crate::runtime::WorthUiActivationGateDenialReason::LaneParityDoesNotCertifyActivation => 11,
         crate::runtime::WorthUiActivationGateDenialReason::LaneParityDigestMismatch => 12,
+        crate::runtime::WorthUiActivationGateDenialReason::ForeignFrameBoundarySession => 13,
     }
 }
 

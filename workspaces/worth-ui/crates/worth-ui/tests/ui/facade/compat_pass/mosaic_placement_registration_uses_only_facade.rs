@@ -1,9 +1,6 @@
 use worth_ui::facade::{
-    MosaicPlacementAction, MosaicPlacementConflictBehavior, MosaicPlacementPersistence,
-    MosaicPlacementEligibility, MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId,
-    MosaicPlacementReloadReconciliation, MosaicPlacementSource, MosaicPlacementSupport,
-    MosaicPlacementTarget, MosaicRegionRole, MosaicStableIdentityBehavior, SurfacePlacementClass,
-    WorthUi,
+    app::WorthUi,
+    registry::{MosaicPlacementAction, MosaicPlacementConflictBehavior, MosaicPlacementPersistence, MosaicPlacementEligibility, MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId, MosaicPlacementReloadReconciliation, MosaicPlacementSource, MosaicPlacementSupport, MosaicPlacementTarget, MosaicRegionRole, MosaicStableIdentityBehavior, SurfacePlacementClass},
 };
 
 fn main() {

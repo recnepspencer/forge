@@ -8,6 +8,7 @@ pub struct WorthUiLaneInspection {
 }
 
 impl WorthUiLaneInspection {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn new(
         lane: WorthUiPlanExecutionLane,
         plan_indexes: Vec<u32>,

@@ -1,5 +1,6 @@
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::foundation::basis_lifecycle;
+use worth_query::facade::read::WorthQueryProjectionOutcome;
 use worth_query::facade::{domain, runtime};
 use worth_relational::facade::runtime::InvariantCatalog;
 
@@ -141,7 +142,7 @@ fn worth_ui_installed_live_handle_owns_activation_and_disposal() {
         .domain(WorthUiDomainEntry)
         .expect("Worth UI domain should be installed");
     let live = match handle
-        .live_measurements()
+        .live_measurements("worth-ui.measurements")
         .expect("Worth UI installed live declaration should admit")
         .using(domain::current())
         .open(&mut workspace)
@@ -152,6 +153,23 @@ fn worth_ui_installed_live_handle_owns_activation_and_disposal() {
             panic!("Worth UI installed live open stopped: {:?}", stop.stop())
         }
     };
+
+    let read = match live.read(&mut workspace) {
+        Ok(read) => read,
+        Err(_) => panic!("Worth UI installed live read should succeed"),
+    };
+    let projection = live.project(&read, domain::project_facts().entity_identities());
+    assert!(matches!(
+        projection.outcome(),
+        WorthQueryProjectionOutcome::Completed(_)
+    ));
+    assert_eq!(
+        projection
+            .receipt()
+            .installed_authority()
+            .package_identity(),
+        handle.package_identity()
+    );
 
     let observation = match live.observe(&mut workspace) {
         Ok(observation) => observation,

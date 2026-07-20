@@ -21,6 +21,7 @@ pub struct WorthUiSteadyFrameCounterBoundary;
 
 #[derive(Clone, Debug)]
 pub struct WorthUiSteadyFrameCounterReceiptBuilder {
+    generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
     active_plan_digest: u64,
     diagnostic_policy: WorthUiSteadyFrameDiagnosticPolicy,
     capture_richness: WorthUiCounterCaptureRichness,
@@ -31,15 +32,25 @@ pub struct WorthUiSteadyFrameCounterReceiptBuilder {
 }
 
 impl WorthUiSteadyFrameCounterBoundary {
+    pub fn for_active_generation(
+        generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
+    ) -> WorthUiSteadyFrameCounterReceiptBuilder {
+        WorthUiSteadyFrameCounterReceiptBuilder::new(generation)
+    }
+
+    #[cfg(test)]
     pub fn for_active_plan(active_plan_digest: u64) -> WorthUiSteadyFrameCounterReceiptBuilder {
-        WorthUiSteadyFrameCounterReceiptBuilder::new(active_plan_digest)
+        WorthUiSteadyFrameCounterReceiptBuilder::new(
+            worth_ui_host_contract::WorthUiHostOutputGeneration::new(0, 0, active_plan_digest, 0),
+        )
     }
 }
 
 impl WorthUiSteadyFrameCounterReceiptBuilder {
-    pub(crate) fn new(active_plan_digest: u64) -> Self {
+    pub(crate) fn new(generation: worth_ui_host_contract::WorthUiHostOutputGeneration) -> Self {
         Self {
-            active_plan_digest,
+            active_plan_digest: generation.active_plan_digest(),
+            generation,
             diagnostic_policy: WorthUiSteadyFrameDiagnosticPolicy::Minimal,
             capture_richness: WorthUiCounterCaptureRichness::Standard,
             counters: WorthUiSteadyFrameCounters::default(),
@@ -180,6 +191,18 @@ impl WorthUiSteadyFrameCounterReceiptBuilder {
         self
     }
 
+    #[cfg(test)]
+    pub(crate) fn replace_last_work_scope_for_test(
+        mut self,
+        work_scope: crate::runtime::WorthUiFrameWorkScope,
+    ) -> Self {
+        self.lane_receipts
+            .last_mut()
+            .expect("test must record a real lane receipt before replacing its scope")
+            .replace_work_scope_for_test(work_scope);
+        self
+    }
+
     pub fn seal(mut self) -> Result<WorthUiFrameExecutionReceipt, WorthUiSteadyFrameCounterDenial> {
         if let Some(reason) = self.construction_denial {
             return Err(WorthUiSteadyFrameCounterDenial::new(reason));
@@ -195,7 +218,10 @@ impl WorthUiSteadyFrameCounterReceiptBuilder {
                 WorthUiSteadyFrameCounterDenialReason::DuplicateLaneFrameReceipt,
             ));
         }
-        if self.has_forbidden_frame_path_work() {
+        for receipt in &self.lane_receipts {
+            counter_schema::validate_packet_schema(receipt.packet())?;
+        }
+        if self.has_forbidden_frame_path_work() || self.has_forbidden_lane_packet_work() {
             return Err(WorthUiSteadyFrameCounterDenial::new(
                 WorthUiSteadyFrameCounterDenialReason::ForbiddenFramePathWork,
             ));
@@ -208,9 +234,10 @@ impl WorthUiSteadyFrameCounterReceiptBuilder {
         let aggregate_packet = self.aggregate_packet()?;
         counter_schema::validate_packet_schema(&aggregate_packet)?;
         for receipt in &self.lane_receipts {
-            counter_schema::validate_packet_schema(receipt.packet())?;
+            self.validate_lane_packet_matches_counters(receipt)?;
         }
         Ok(WorthUiFrameExecutionReceipt::new(
+            self.generation,
             self.active_plan_digest,
             self.diagnostic_policy,
             self.counters,
@@ -277,6 +304,61 @@ impl WorthUiSteadyFrameCounterReceiptBuilder {
                 .realtime_overlay()
                 .ordinary_layout_pass_count()
                 > 0
+    }
+
+    fn has_forbidden_lane_packet_work(&self) -> bool {
+        self.lane_receipts.iter().any(|receipt| {
+            receipt.packet().counters().iter().any(|counter| {
+                matches!(
+                    counter.name(),
+                    counter_schema::ORDINARY_ARTIFACT_TREE_SCAN_COUNT
+                        | counter_schema::ORDINARY_FULL_PLAN_SCAN_COUNT
+                        | counter_schema::VIRTUALIZED_FULL_COLLECTION_SCAN_COUNT
+                        | counter_schema::CANVAS_DOMAIN_GEOMETRY_TRUTH_READS
+                        | counter_schema::CANVAS_RENDERER_INTERNAL_READS
+                        | counter_schema::REALTIME_ORDINARY_LAYOUT_PASSES
+                        | counter_schema::ORDINARY_SOURCE_PARSE_COUNT
+                        | counter_schema::ORDINARY_REGISTRY_LOOKUP_COUNT
+                        | counter_schema::REALTIME_SOURCE_PARSE_COUNT
+                        | counter_schema::REALTIME_REGISTRY_LOOKUP_COUNT
+                ) && counter.value() > 0
+            })
+        })
+    }
+
+    fn validate_lane_packet_matches_counters(
+        &self,
+        receipt: &WorthUiLaneFrameReceipt,
+    ) -> Result<(), WorthUiSteadyFrameCounterDenial> {
+        let (expected_family, mut expected_rows) = match receipt.kind() {
+            crate::runtime::WorthUiLaneFrameReceiptKind::Ordinary => (
+                WorthUiRuntimeCounterFamily::OrdinaryLaneExecution,
+                lane_rows::ordinary_rows(self.counters.ordinary()),
+            ),
+            crate::runtime::WorthUiLaneFrameReceiptKind::VirtualizedData => (
+                WorthUiRuntimeCounterFamily::VirtualizedDataExecution,
+                lane_rows::virtualized_rows(self.counters.virtualized_data()),
+            ),
+            crate::runtime::WorthUiLaneFrameReceiptKind::CanvasSpatial => (
+                WorthUiRuntimeCounterFamily::CanvasSpatialExecution,
+                lane_rows::canvas_rows(self.counters.canvas_spatial()),
+            ),
+            crate::runtime::WorthUiLaneFrameReceiptKind::RealtimeOverlay => (
+                WorthUiRuntimeCounterFamily::RealtimeOverlayExecution,
+                lane_rows::realtime_rows(self.counters.realtime_overlay()),
+            ),
+        };
+        expected_rows.sort();
+        let packet = receipt.packet();
+        if packet.family() != expected_family
+            || packet.active_plan_digest() != self.active_plan_digest
+            || packet.counters() != expected_rows.as_slice()
+        {
+            return Err(WorthUiSteadyFrameCounterDenial::new(
+                WorthUiSteadyFrameCounterDenialReason::LaneFrameReceiptMismatch,
+            ));
+        }
+        Ok(())
     }
 
     fn has_forbidden_diagnostic_materialization(&self) -> bool {

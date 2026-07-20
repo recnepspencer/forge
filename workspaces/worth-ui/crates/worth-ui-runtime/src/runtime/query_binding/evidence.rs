@@ -84,6 +84,14 @@ impl WorthUiQueryBindingEvidenceIndex {
     pub(crate) fn binding_ids(&self) -> BTreeSet<String> {
         self.bindings.keys().cloned().collect()
     }
+
+    pub(crate) fn entries(
+        &self,
+    ) -> impl Iterator<Item = (&WorthUiQueryBindingIdentity, &WorthUiQueryBindingPosture)> {
+        self.bindings
+            .values()
+            .map(|evidence| (evidence.identity(), evidence.posture()))
+    }
 }
 
 fn record_query_support_receipt(

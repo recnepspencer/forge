@@ -1,16 +1,184 @@
-error[E0616]: field `commands` of struct `CapabilitySnapshotIndex` is private
- --> tests/ui/facade/snapshot/snapshot_internal_indexes_not_publicly_mutable.rs:7:11
-  |
-7 |     index.commands = index.commands;
-  |           ^^^^^^^^ private field
+error[E0432]: unresolved import `worth_ui::facade::entry::WorthUi`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/topology/facade_reexports/facade_reexport_does_not_expose_internal_topology.rs
+ help: consider importing one of these structs instead
+
+error[E0432]: unresolved imports `worth_ui::facade::CommandRegistry`, `worth_ui::facade::ComponentRegistry`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade_visibility/topology/facade_does_not_reexport_registry_types.rs
+
+error[E0603]: module `entry` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/topology/facade_reexports/facade_reexport_does_not_expose_internal_topology.rs
+ note: the module `entry` is defined here
+
+error[E0277]: the trait bound `FakeCapabilityId: Sealed` is not satisfied
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/support/construction/external_support_id_impl_is_forbidden.rs
+ help: the trait `worth_ui_runtime::capability::support::capability_support_id::sealed::Sealed` is not implemented for `FakeCapabilityId`
+ help: the following other types implement trait `worth_ui_runtime::capability::support::capability_support_id::sealed::Sealed`:
+  CommandId
+  CommandProjectionId
+  ComponentId
+  IconId
+  MosaicPlacementPolicyId
+  MosaicRegionKindId
+  MosaicSizingContractId
+  MosaicStateSlotId
+and $N others
+ note: required by a bound in `CapabilitySupportId`
+ note: `CapabilitySupportId` is a "sealed trait", because to implement it you also need to implement `worth_ui_runtime::capability::support::capability_support_id::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+ help: the following types implement the trait:
+  worth_ui::facade::registry::CommandId
+  worth_ui::facade::registry::ComponentId
+  worth_ui::facade::registry::SurfaceId
+  worth_ui::facade::registry::MosaicRegionKindId
+  worth_ui::facade::registry::MosaicPlacementPolicyId
+  worth_ui::facade::registry::MosaicSizingContractId
+  worth_ui::facade::registry::MosaicStateSlotId
+  worth_ui::facade::registry::ViewBindingId
+and $N others
 
 error[E0616]: field `commands` of struct `CapabilitySnapshotIndex` is private
- --> tests/ui/facade/snapshot/snapshot_internal_indexes_not_publicly_mutable.rs:7:28
-  |
-7 |     index.commands = index.commands;
-  |                            ^^^^^^^^ private field
-  |
-help: a method `commands` also exists, call it with parentheses
-  |
-7 |     index.commands = index.commands();
-  |                                    ++
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/snapshot/snapshot_internal_indexes_not_publicly_mutable.rs
+
+error[E0616]: field `commands` of struct `CapabilitySnapshotIndex` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/snapshot/snapshot_internal_indexes_not_publicly_mutable.rs
+ help: a method `commands` also exists, call it with parentheses
+
+error[E0599]: no method named `with_label` found for struct `CommandProjectionDescriptor` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/command_projection/construction/projection_command_meaning_methods_are_not_available.rs
+
+error: cannot construct `WorthUiBuilder` with struct literal syntax due to private fields
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_builder_construction_fails.rs
+ note: private fields that were not provided
+ help: you might have meant to use the `new` associated function
+
+error[E0560]: struct `WorthUiApp` has no field named `capability_snapshot`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_app_construction_fails.rs
+ note: all struct fields are already assigned
+
+error[E0616]: field `total_width` of struct `RegisteredCapabilitySet` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/lifecycle/snapshot_authority/registered_set/registered_capability_set_not_publicly_mutable.rs
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/identity/family_interchange/same_text_different_id_families_are_not_interchangeable.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/identity/family_interchange/same_text_different_id_families_are_not_interchangeable.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/identity/construction/raw_text_cannot_replace_validated_id.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/support/construction/classified_posture_cannot_replace_admitted_witness.rs
+ note: expected struct `AdmittedCapability<CommandId>`
+   found struct `CapabilitySupportPosture<CommandId>`
+ note: function defined here
+
+error[E0277]: the trait bound `&str: CapabilitySupportId` is not satisfied
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/support/construction/raw_text_cannot_define_support_posture.rs
+ help: the following other types implement trait `CapabilitySupportId`:
+  CommandId
+  CommandProjectionId
+  ComponentId
+  IconId
+  MosaicPlacementPolicyId
+  MosaicRegionKindId
+  MosaicSizingContractId
+  MosaicStateSlotId
+and $N others
+ note: required by a bound in `CapabilitySupportPosture::<T>::admitted`
+
+error[E0277]: the trait bound `&str: CapabilitySupportId` is not satisfied
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/support/construction/raw_text_cannot_define_support_posture.rs
+ help: the following other types implement trait `CapabilitySupportId`:
+  CommandId
+  CommandProjectionId
+  ComponentId
+  IconId
+  MosaicPlacementPolicyId
+  MosaicRegionKindId
+  MosaicSizingContractId
+  MosaicStateSlotId
+and $N others
+ note: required by a bound in `CapabilitySupportPosture`
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/diagnostics/construction/raw_strings_cannot_replace_diagnostic_codes.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/command/construction/command_readiness_cannot_be_flattened_to_bool.rs
+ note: method defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/icon/construction/raw_asset_path_cannot_replace_icon_dependency.rs
+ note: method defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/mosaic_sizing/construction/raw_number_cannot_replace_named_mosaic_sizing_measurement.rs
+ note: method defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/mosaic_state/construction/raw_text_cannot_replace_mosaic_state_owner_scope_id.rs
+ note: associated function defined here
+
+error[E0599]: no method named `with_ambient_host_check` found for struct `NativeCapabilityDescriptor` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/native_capability/construction/ambient_host_check_cannot_replace_native_capability_posture.rs
+ help: there is a method `with_ambient_host_check_for_diagnostics` with a similar name
+
+error[E0599]: no function or associated item named `current_host` found for struct `AmbientHostCheck` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/native_capability/construction/ambient_host_check_cannot_replace_native_capability_posture.rs
+ note: if you're trying to build a new `AmbientHostCheck`, consider using `AmbientHostCheck::current_host_for_diagnostics` which returns `AmbientHostCheck`
+
+error[E0599]: no function or associated item named `global_mutation_hook` found for struct `PluginContributionFamily` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/plugin_slot/construction/plugin_global_mutation_hook_is_diagnostic_only.rs
+ note: if you're trying to build a new `PluginContributionFamily` consider using one of the following associated functions:
+PluginContributionFamily::command
+PluginContributionFamily::component
+PluginContributionFamily::surface
+PluginContributionFamily::setting
+and $N others
+
+error[E0599]: no method named `with_global_mutation_hook` found for struct `PluginSlotDescriptor` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/plugin_slot/construction/plugin_global_mutation_hook_is_diagnostic_only.rs
+ help: there is a method `with_global_mutation_hook_for_diagnostics` with a similar name
+
+error[E0599]: no function or associated item named `opaque_callback` found for struct `PluginSlotGlobalMutationHook` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/plugin_slot/construction/plugin_global_mutation_hook_is_diagnostic_only.rs
+ note: if you're trying to build a new `PluginSlotGlobalMutationHook`, consider using `PluginSlotGlobalMutationHook::opaque_callback_for_diagnostics` which returns `PluginSlotGlobalMutationHook`
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/runtime_outcome_projection/construction/local_status_enum_cannot_replace_runtime_outcome_reference.rs
+ note: associated function defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/settings/construction/raw_map_cannot_replace_setting_descriptor.rs
+ note: expected struct `SettingDescriptor`
+   found struct `HashMap<String, String>`
+ note: method defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/task_presentation/construction/task_runtime_handle_cannot_replace_task_presentation_descriptor.rs
+ note: method defined here
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/theme_token/construction/raw_color_cannot_replace_theme_token_dependency.rs
+ note: method defined here
+
+error[E0277]: the trait bound `WorthUiQueryViewRegistration: From<WorthUiQueryViewDefinition>` is not satisfied
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/query_registration_requires_installed_view.rs
+ help: the following other types implement trait `From<T>`
+ note: required for `WorthUiQueryViewDefinition` to implement `Into<WorthUiQueryViewRegistration>`
+ note: required by a bound in `WorthUiBuilder::register_query_view`
+
+error[E0599]: no method named `register_view_binding` found for struct `WorthUiBuilder` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/direct_view_binding_registration_is_not_public.rs
+ help: there is a method `register_setting` with a similar name
+
+error[E0624]: associated function `from_definition` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/detached_view_binding_descriptor_constructor_is_not_public.rs
+
+error[E0382]: use of moved value: `builder`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/lifecycle/freeze/register_after_snapshot_freeze_fails.rs
+ note: `WorthUiBuilder::freeze` takes ownership of the receiver `self`, which moves `builder`

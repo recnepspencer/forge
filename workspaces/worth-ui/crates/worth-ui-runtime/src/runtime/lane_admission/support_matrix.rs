@@ -1,13 +1,33 @@
 use std::collections::BTreeMap;
 
 use crate::runtime::{WorthUiExecutionLane, WorthUiExecutionLaneDescriptor, WorthUiLaneSupportRow};
+use worth_ui_host_contract::WorthUiHostKind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiExecutionLaneSupport {
     rows: BTreeMap<WorthUiExecutionLane, WorthUiLaneSupportRow>,
+    prepared_host_kind: Option<WorthUiHostKind>,
 }
 
 impl WorthUiExecutionLaneSupport {
+    pub(crate) fn for_prepared_application(
+        host_kind: WorthUiHostKind,
+        query_installed: bool,
+    ) -> Self {
+        let mut support = Self::platform_default();
+        support.prepared_host_kind = Some(host_kind);
+        if !query_installed {
+            support.rows.insert(
+                WorthUiExecutionLane::QueryBound,
+                WorthUiLaneSupportRow::unsupported(WorthUiExecutionLaneDescriptor::for_lane(
+                    WorthUiExecutionLane::QueryBound,
+                    true,
+                )),
+            );
+        }
+        support
+    }
+
     pub fn platform_default() -> Self {
         Self::from_supported_lanes([
             WorthUiExecutionLane::OrdinaryWidgetShell,
@@ -19,7 +39,6 @@ impl WorthUiExecutionLaneSupport {
             WorthUiExecutionLane::StyleToken,
             WorthUiExecutionLane::DiagnosticsProjection,
             WorthUiExecutionLane::LaneBoundary,
-            WorthUiExecutionLane::EguiBoundary,
             WorthUiExecutionLane::RenderResource,
             WorthUiExecutionLane::SpecialCaseExtension,
         ])
@@ -36,7 +55,10 @@ impl WorthUiExecutionLaneSupport {
                 (lane, WorthUiLaneSupportRow::supported(descriptor))
             })
             .collect();
-        Self { rows }
+        Self {
+            rows,
+            prepared_host_kind: None,
+        }
     }
 
     #[cfg(test)]
@@ -58,5 +80,9 @@ impl WorthUiExecutionLaneSupport {
 
     pub fn rows(&self) -> impl Iterator<Item = &WorthUiLaneSupportRow> {
         self.rows.values()
+    }
+
+    pub fn prepared_host_kind(&self) -> Option<WorthUiHostKind> {
+        self.prepared_host_kind
     }
 }

@@ -157,12 +157,26 @@ impl WorthUiRuntime {
 
     pub(super) fn admit_and_submit_query_projection(
         &mut self,
-        outcome: worth_ui_query_binding::WorthUiQueryProjectionOutcome,
+        outcome: worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
     > {
         let settlement = self.query_binding.admit(outcome)?;
+        Ok(self
+            .query_projection_submission()
+            .submit_query_projection_settlement(settlement))
+    }
+
+    pub(super) fn admit_and_submit_live_query_projection(
+        &mut self,
+        resource: worth_ui_query_binding::WorthUiQueryLiveResource,
+        outcome: worth_ui_query_binding::WorthUiQueryLiveProjectionOutcome,
+    ) -> Result<
+        UiAllocationFrameGatewayOutcome,
+        worth_ui_query_binding::WorthUiQueryLiveAdmissionStop,
+    > {
+        let settlement = self.query_binding.admit_live(resource, outcome)?;
         Ok(self
             .query_projection_submission()
             .submit_query_projection_settlement(settlement))

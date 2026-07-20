@@ -1,7 +1,7 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis,
-    admitted_measurement_basis_with_font_seed, allocation_planning, planning_graph_authority,
+    admitted_measurement_basis, admitted_measurement_basis_with_font_seed, allocation_planning,
+    independent_allocation_planning, planning_graph_authority,
 };
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::identity_match_graph_test_support::{
@@ -17,16 +17,37 @@ use crate::runtime::{
 };
 
 #[test]
-fn equivalent_plan_inputs_allocate_equivalent_runtime_handles() {
+fn equivalent_plan_inputs_preserve_layout_without_sharing_session_authority() {
     let left = runtime_handle_allocation();
     let right = runtime_handle_allocation();
 
     assert_eq!(left.basis(), right.basis());
-    assert_eq!(left.receipt(), right.receipt());
+    assert_eq!(
+        left.receipt().basis_digest(),
+        right.receipt().basis_digest()
+    );
+    assert_ne!(
+        left.receipt().arena_identity(),
+        right.receipt().arena_identity()
+    );
     assert_eq!(left.family_widths(), right.family_widths());
     assert_eq!(left.counters(), right.counters());
-    assert_eq!(left.runtime_handles(), right.runtime_handles());
-    assert_eq!(left.view_binding_handles(), right.view_binding_handles());
+    assert_eq!(
+        left.runtime_handles()
+            .iter()
+            .map(|handle| (handle.family(), handle.plan_index()))
+            .collect::<Vec<_>>(),
+        right
+            .runtime_handles()
+            .iter()
+            .map(|handle| (handle.family(), handle.plan_index()))
+            .collect::<Vec<_>>()
+    );
+    assert_ne!(left.runtime_handles(), right.runtime_handles());
+    assert_ne!(
+        left.view_binding_handles().collect::<Vec<_>>(),
+        right.view_binding_handles().collect::<Vec<_>>()
+    );
 }
 
 #[test]
@@ -48,6 +69,9 @@ fn handle_allocation_performs_no_source_parse_or_registry_lookup() {
 #[test]
 fn query_view_binding_handle_preserves_query_owned_evidence_boundary() {
     let inputs = activation_staging_inputs();
+    let plan_input = inputs
+        .runtime
+        .prepare_reconstructive_plan_input_for_test(&inputs.admitted, &[]);
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("handle-allocation.query-view-binding");
     let (snapshot, selected) =
@@ -57,27 +81,27 @@ fn query_view_binding_handle_preserves_query_owned_evidence_boundary() {
             .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
             .expect("query handle planning admits through graph authority"),
     );
-    let query_input_count = planning
+    let query_input_count = plan_input
         .node_inputs()
-        .expect("admitted planning exposes node inputs")
         .iter()
         .filter(|input| {
             input.query_binding_identity().is_some() && input.query_binding_posture().is_some()
         })
         .count();
 
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("handles allocate");
 
-    assert_eq!(query_input_count, allocation.view_binding_handles().len());
+    assert_eq!(query_input_count, allocation.view_binding_handles().count());
     assert_eq!(
         allocation.family_widths().view_binding_handle_count(),
-        allocation.view_binding_handles().len()
+        allocation.view_binding_handles().count()
     );
     assert_eq!(
         allocation.counters().view_binding_handle_count(),
-        allocation.view_binding_handles().len()
+        allocation.view_binding_handles().count()
     );
 }
 
@@ -91,18 +115,15 @@ fn handle_allocation_reports_cardinality_and_collision_denials() {
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
         .prepare_execution_plan_input_with_component_hooks_for_test(
-            pending,
+            &pending,
             &[duplicate_hook.clone(), duplicate_hook],
         )
         .expect("plan input prepares with duplicated hook claims");
-    let planning = allocation_planning(
-        &runtime,
-        &plan_input,
-        "handle-allocation.duplicate.component",
-    );
+    let planning = independent_allocation_planning("handle-allocation.duplicate.component");
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
 
     let denial = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect_err("duplicate component handle claim denies");
 
     assert_eq!(
@@ -126,14 +147,15 @@ fn handle_allocation_rejects_non_component_plan_local_claim_collisions() {
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
         .prepare_execution_plan_input_with_component_hooks_for_test(
-            pending,
+            &pending,
             &[duplicate_hook.clone(), duplicate_hook],
         )
         .expect("plan input prepares with duplicated token claims");
-    let planning = allocation_planning(&runtime, &plan_input, "handle-allocation.duplicate.token");
+    let planning = allocation_planning(&runtime, &pending, "handle-allocation.duplicate.token");
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
 
     let denial = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect_err("duplicate token handle claim denies");
 
     assert_eq!(
@@ -150,27 +172,53 @@ fn same_lowered_topology_cannot_bypass_unsupported_partial_reuse() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
-        .prepare_execution_plan_input(pending)
+        .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
-    let neighborhood = admitted_allocation_neighborhood("handle-allocation.plan-drift");
-    let first_planning = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input.clone(),
-        &admitted_measurement_basis_with_font_seed("handle-allocation.plan-drift", 100),
-        &neighborhood,
+    let (snapshot, selected) =
+        planning_graph_authority("handle-allocation.plan-drift", "operator:stack");
+    let first_planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(
+                &pending,
+                &snapshot,
+                admitted_measurement_basis_with_font_seed("handle-allocation.plan-drift", 100),
+                &selected,
+            )
+            .expect("first measurement basis admits through candidate projection authority"),
     );
-    let second_planning = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input,
-        &admitted_measurement_basis_with_font_seed("handle-allocation.plan-drift", 240),
-        &neighborhood,
+    let second_planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(
+                &pending,
+                &snapshot,
+                admitted_measurement_basis_with_font_seed("handle-allocation.plan-drift", 240),
+                &selected,
+            )
+            .expect("changed measurement basis admits through candidate projection authority"),
     );
 
-    assert_eq!(first_planning.node_inputs(), second_planning.node_inputs());
+    assert_eq!(
+        first_planning
+            .planning()
+            .projection()
+            .map(|projection| projection.evidence_digest()),
+        second_planning
+            .planning()
+            .projection()
+            .map(|projection| projection.evidence_digest())
+    );
 
     let first_receipt = runtime
         .commit_allocation_candidate_for_test(first_planning)
         .expect("first planning meaning commits");
+    let first_facts = runtime.execution_plan_lowering_facts_below_authority_for_test(
+        first_receipt
+            .lowering_input()
+            .expect("first committed receipt remains fresh"),
+        plan_input,
+    );
     runtime
-        .allocate_runtime_handles(&first_receipt)
+        .allocate_runtime_handles(&first_facts)
         .expect("first handles allocate");
     let denial = runtime
         .commit_allocation_candidate_for_test(second_planning)
@@ -194,11 +242,12 @@ fn handle_reuse_after_lane_change_requires_new_plan_receipt() {
         second.counters().state_slot_handle_count(),
         second.family_widths().state_slot_handle_count()
     );
-    assert!(second.family_widths().state_slot_handle_count() > 0);
+    assert_eq!(second.family_widths().state_slot_handle_count(), 0);
 }
 
 fn runtime_handle_allocation() -> crate::runtime::WorthUiRuntimeHandleAllocation {
     let inputs = activation_staging_inputs();
+    let plan_input = inputs.reconstructive_plan_input(&[]);
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("handle-allocation.runtime");
     let (snapshot, selected) =
@@ -208,8 +257,9 @@ fn runtime_handle_allocation() -> crate::runtime::WorthUiRuntimeHandleAllocation
             .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
             .expect("runtime handle planning admits through graph authority"),
     );
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
     runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("handles allocate")
 }
 
@@ -245,12 +295,6 @@ fn runtime_handle_allocation_for_lane_change() -> crate::runtime::WorthUiRuntime
     let query_rebind_plan = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)
         .expect("query rebind planning succeeds");
-    let pending_execution_plan_lowering_input = runtime
-        .prepare_pending_execution_plan_lowering_input(
-            &node_plan,
-            &reconciliation_plan,
-            &query_rebind_plan,
-        );
     let pending = runtime
         .stage_replacement_activation(
             admitted,
@@ -260,7 +304,6 @@ fn runtime_handle_allocation_for_lane_change() -> crate::runtime::WorthUiRuntime
             crate::runtime::WorthUiActivationStagingPlans::new(
                 Some(&reconciliation_plan),
                 Some(&query_rebind_plan),
-                Some(&pending_execution_plan_lowering_input),
             ),
         )
         .expect("lane-change activation staging succeeds");
@@ -272,8 +315,47 @@ fn runtime_handle_allocation_for_lane_change() -> crate::runtime::WorthUiRuntime
             .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
             .expect("lane-change handle planning admits through graph authority"),
     );
+    let plan_input = runtime
+        .prepare_execution_plan_input(&pending)
+        .expect("lane-change plan input prepares after planning");
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
 
     runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("lane-change handles allocate")
+}
+
+#[test]
+fn compact_handle_capacity_denies_before_index_or_generation_wraparound() {
+    use crate::runtime::handle_allocation::WorthUiHandleCapacity;
+    use crate::runtime::WorthUiHandleCapacityExhaustion;
+
+    assert_eq!(
+        WorthUiHandleCapacity::plan_index(u32::MAX as usize),
+        Ok(u32::MAX)
+    );
+    if usize::BITS > u32::BITS {
+        assert_eq!(
+            WorthUiHandleCapacity::plan_index(u32::MAX as usize + 1),
+            Err(WorthUiHandleCapacityExhaustion::PlanIndex)
+        );
+    }
+    assert_eq!(
+        WorthUiHandleCapacity::stable_slot(u64::from(u32::MAX) + 1),
+        Err(WorthUiHandleCapacityExhaustion::StableSlot)
+    );
+    assert_eq!(
+        WorthUiHandleCapacity::next_slot_generation(u64::MAX),
+        Err(WorthUiHandleCapacityExhaustion::SlotGeneration)
+    );
+    assert_eq!(
+        WorthUiHandleCapacity::child_range(u32::MAX as usize),
+        Ok(u32::MAX)
+    );
+    if usize::BITS > u32::BITS {
+        assert_eq!(
+            WorthUiHandleCapacity::child_range((u32::MAX as usize) + 1),
+            Err(WorthUiHandleCapacityExhaustion::ChildRange)
+        );
+    }
 }

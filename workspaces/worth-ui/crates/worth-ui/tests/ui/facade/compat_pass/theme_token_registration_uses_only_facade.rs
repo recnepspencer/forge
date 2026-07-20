@@ -1,6 +1,6 @@
 use worth_ui::facade::{
-    ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
-    ThemeTokenSource, ThemeTokenValue, WorthUi,
+    app::WorthUi,
+    registry::{ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue},
 };
 
 fn main() {

@@ -1,3 +1,4 @@
+mod basis_digest;
 mod families;
 mod outcome;
 mod plan;

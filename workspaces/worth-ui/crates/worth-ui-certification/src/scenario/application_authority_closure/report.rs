@@ -7,6 +7,12 @@ pub struct ApplicationAuthorityClosureReport {
     host_session_preserved: bool,
     planning_policy_family_count: u8,
     planning_classification_count: u8,
+    foreign_graph_denied: bool,
+}
+
+pub(super) struct ApplicationPlanningObservation {
+    policy_family_count: u8,
+    classification_count: u8,
 }
 
 impl ApplicationAuthorityClosureReport {
@@ -16,8 +22,8 @@ impl ApplicationAuthorityClosureReport {
         graph_node_count: usize,
         query_binding_count: usize,
         host_session_preserved: bool,
-        planning_policy_family_count: u8,
-        planning_classification_count: u8,
+        planning: ApplicationPlanningObservation,
+        foreign_graph_denied: bool,
     ) -> Self {
         Self {
             generation_changed_once,
@@ -25,8 +31,9 @@ impl ApplicationAuthorityClosureReport {
             graph_node_count,
             query_binding_count,
             host_session_preserved,
-            planning_policy_family_count,
-            planning_classification_count,
+            planning_policy_family_count: planning.policy_family_count,
+            planning_classification_count: planning.classification_count,
+            foreign_graph_denied,
         }
     }
 
@@ -56,5 +63,18 @@ impl ApplicationAuthorityClosureReport {
 
     pub fn planning_classification_count(&self) -> u8 {
         self.planning_classification_count
+    }
+
+    pub fn foreign_graph_denied(&self) -> bool {
+        self.foreign_graph_denied
+    }
+}
+
+impl ApplicationPlanningObservation {
+    pub(super) fn new(policy_family_count: u8, classification_count: u8) -> Self {
+        Self {
+            policy_family_count,
+            classification_count,
+        }
     }
 }

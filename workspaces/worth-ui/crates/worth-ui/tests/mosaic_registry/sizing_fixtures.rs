@@ -1,4 +1,4 @@
-use worth_ui::facade::{
+use worth_ui::facade::registry::{
     MeasurementConstraint, MeasurementValue, MosaicMeasurementAuthority, MosaicOverflowBehavior,
     MosaicParentGrowthBehavior, MosaicResizePermission, MosaicSizingContractDescriptor,
     MosaicSizingContractId, MosaicSizingKind, MosaicSizingPersistence, MosaicViewportConstraint,

@@ -2,7 +2,7 @@ use worth_ui::facade::diagnostics::CapabilitySnapshot;
 use worth_ui::facade::source::WorthUiArtifactInputBodyAtom;
 use worth_ui::facade::source::{
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiSourceProvider, WorthUiSourceWatcher, WorthUiWatchedCandidateSubmission,
+    WorthUiSourceEventIngress, WorthUiSourceProvider, WorthUiWatchedCandidateSubmission,
     WorthUiWatcherEvent,
 };
 
@@ -14,16 +14,14 @@ pub(super) fn file_submission(
     snapshot: &CapabilitySnapshot,
 ) -> WorthUiWatchedCandidateSubmission {
     lower(
-        WorthUiSourceProvider::in_memory(provider_id).with_file(
-            "app/main.wui",
-            format!("component {component} {{ region {REGION} {{ sizing {SIZING}; }} }}"),
-        ),
+        WorthUiSourceProvider::in_memory(provider_id)
+            .with_file("app/main.wui", file_source(component)),
         provider_id,
         snapshot,
     )
 }
 
-pub(super) fn rust_submission(
+pub(crate) fn rust_submission(
     component: &str,
     provider_id: &str,
     snapshot: &CapabilitySnapshot,
@@ -49,6 +47,10 @@ pub(super) fn rust_submission(
     )
 }
 
+pub(crate) fn file_source(component: &str) -> String {
+    format!("component {component} {{ region {REGION} {{ sizing {SIZING}; }} }}")
+}
+
 pub(super) fn current_file(snapshot: &CapabilitySnapshot) -> WorthUiWatchedCandidateSubmission {
     file_submission(CURRENT_COMPONENT, "authority-file", snapshot)
 }
@@ -66,7 +68,7 @@ fn lower(
     provider_id: &str,
     snapshot: &CapabilitySnapshot,
 ) -> WorthUiWatchedCandidateSubmission {
-    let mut ingress = WorthUiSourceWatcher::new(provider).start();
+    let mut ingress = WorthUiSourceEventIngress::new(provider).start();
     ingress
         .ingest([WorthUiWatcherEvent::provider_revision(provider_id)])
         .expect("scenario watcher input should debounce")

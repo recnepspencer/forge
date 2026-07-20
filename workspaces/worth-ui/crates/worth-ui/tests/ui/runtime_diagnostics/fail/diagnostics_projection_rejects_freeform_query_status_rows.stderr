@@ -1,5 +1,11 @@
-error[E0599]: no function or associated item named `from_freeform_rows` found for struct `WorthUiQueryStatusSurface` in the current scope
- --> tests/ui/runtime_diagnostics/fail/diagnostics_projection_rejects_freeform_query_status_rows.rs:4:47
-  |
-4 |     let _surface = WorthUiQueryStatusSurface::from_freeform_rows(["loading"]);
-  |                                               ^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiQueryStatusSurface`
+error[E0432]: unresolved import `worth_ui::facade::WorthUiQueryStatusSurface`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/diagnostics_projection_rejects_freeform_query_status_rows.rs
+ help: consider importing this struct instead
+
+error[E0432]: unresolved import `worth_ui::facade::WorthUiDiagnosticProjectionHook`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/projection_hook_cannot_mint_runtime_truth.rs
+ help: consider importing this struct instead
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/raw_strings_cannot_replace_diagnostic_codes.rs
+ note: function defined here

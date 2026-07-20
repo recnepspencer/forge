@@ -38,10 +38,11 @@ fn plan_inspection_reason_digest(
     reason: crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason,
 ) -> u64 {
     match reason {
-        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::PlanInputReceiptMismatch => 1,
-        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::PlanInputNodeCountMismatch => 2,
-        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::PlanNodeFamilyMismatch => 3,
-        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::RuntimeHandlePlanIndexMismatch => 4,
+        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::ForeignLoweringAuthority => 1,
+        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::PlanInputReceiptMismatch => 2,
+        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::PlanInputNodeCountMismatch => 3,
+        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::PlanNodeFamilyMismatch => 4,
+        crate::runtime::plan_inspection::WorthUiPlanInspectionDenialReason::RuntimeHandlePlanIndexMismatch => 5,
     }
 }
 

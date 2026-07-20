@@ -39,9 +39,9 @@ fn main() {
     let point = WorthUiSpatialViewportPoint::viewport(144, 96);
     let _ = point.x();
     let _ = WorthUiCanvasSpatialLane::Draw.canonical_tag();
-    let _ = WorthUiCanvasSpatialPlanDenialReason::MissingCanvasSpatialHook;
+    let _ = WorthUiCanvasSpatialPlanDenialReason::NoCanvasSpatialRows;
     let _ = WorthUiCanvasSpatialPlanDenialReason::HandleAllocationPlanMismatch;
-    let _ = WorthUiCanvasSpatialFrameDenialReason::DomainGeometryTruthRead;
+    let _ = WorthUiCanvasSpatialFrameDenialReason::TargetFamilyMismatch;
     let _ = WorthUiCanvasViewportPlanDenialReason::ZeroZoomFactor;
     accepts_canvas_spatial_types(
         None,

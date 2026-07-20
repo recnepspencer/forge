@@ -5,7 +5,7 @@ use crate::capability::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass, ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
-    ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
+    ThemeTokenSource, ThemeTokenValue, WorthUiQueryViewRegistration,
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider};
@@ -18,10 +18,17 @@ pub(super) fn storm_app() -> WorthUiApp {
 }
 
 pub(super) fn rich_storm_app() -> WorthUiApp {
+    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
+        "reload-storm-query-app",
+    );
     WorthUi::app()
         .register_component(component("workspace.component.dashboard"))
         .register_surface(surface("workspace.surface.main"))
-        .register_view_binding(query_binding("workspace.view_binding.selection"))
+        .register_query_view(query_binding(
+            &installed,
+            "workspace.view_binding.selection",
+        ))
+        .expect("installed selection view registers")
         .register_theme_token(theme_token("theme.text.primary", "#101820"))
         .register_theme_token(theme_token("theme.text.secondary", "#C7492A"))
         .freeze()
@@ -64,7 +71,7 @@ pub(super) fn runtime_with_rich_artifact(
 }
 
 pub(super) fn file_token_provider(token_id: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::filesystem_root(r"C:\workspace").with_file(
+    WorthUiSourceProvider::in_memory("reload-storm-file-token").with_file(
         "app/main.wui",
         format!(r#"token {token_id} = "{token_id}";"#),
     )
@@ -78,7 +85,7 @@ pub(super) fn rust_token_provider(_app: &WorthUiApp, token_id: &str) -> WorthUiS
 }
 
 pub(super) fn rich_file_provider(token_id: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::filesystem_root(r"C:\workspace").with_file(
+    WorthUiSourceProvider::in_memory("reload-storm-invalid-file").with_file(
         "app/main.wui",
         format!(
             r#"
@@ -103,7 +110,7 @@ pub(super) fn rich_rust_provider(_app: &WorthUiApp, token_id: &str) -> WorthUiSo
 }
 
 pub(super) fn invalid_file_provider(label: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::filesystem_root(r"C:\workspace").with_file("app/main.wui", label)
+    WorthUiSourceProvider::in_memory("reload-storm-labeled-file").with_file("app/main.wui", label)
 }
 
 fn component(id: &str) -> ComponentDescriptor {
@@ -134,12 +141,13 @@ fn theme_token(id: &str, color: &str) -> ThemeTokenDescriptor {
     )
 }
 
-fn query_binding(id: &str) -> ViewBindingDescriptor {
-    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(id)
-        .expect("query definition should admit");
-    ViewBindingDescriptor::from_definition(
-        ViewBindingId::new(id).expect("valid view binding id"),
-        ViewBindingFamily::collection(),
-        definition,
+fn query_binding(
+    installed: &worth_ui_query_binding::WorthUiInstalledQueryDomain,
+    id: &str,
+) -> WorthUiQueryViewRegistration {
+    WorthUiQueryViewRegistration::new(
+        installed
+            .measurement_view(id)
+            .expect("installed Query view admits"),
     )
 }

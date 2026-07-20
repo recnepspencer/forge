@@ -270,10 +270,10 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
         .activate_admitted_allocation_catalog_with_boundary_source(
             pending,
             admitted,
-            |runtime, _, candidate_plan, planning| {
+            |runtime, _, candidate_plan, lowering_facts| {
                 candidate_inspection = Some(
                     runtime
-                        .inspect_execution_plan(candidate_plan, planning)
+                        .inspect_execution_plan(candidate_plan, lowering_facts)
                         .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("plan inspection"))?,
                 );
                 Ok((boundary, None))
@@ -292,10 +292,16 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
 
     assert_eq!(
         denial.reason(),
-        WorthUiDiagnosticsProjectionDenialReason::PlanInspectionDigestMismatch
+        WorthUiDiagnosticsProjectionDenialReason::PlanInspectionAuthorityMismatch
     );
-    assert_ne!(
+    assert_eq!(
         candidate_inspection.plan_digest().raw(),
         report.active_plan_digest()
     );
+    assert_eq!(
+        candidate_inspection.handle_arena_identity(),
+        runtime.active_handle_arena_identity()
+    );
+    assert!(!runtime
+        .active_plan_shares_lowering_identity_with(candidate_inspection.lowering_identity()));
 }

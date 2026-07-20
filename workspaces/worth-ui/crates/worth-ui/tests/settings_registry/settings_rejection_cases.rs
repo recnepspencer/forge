@@ -1,7 +1,12 @@
 use worth_ui::facade::{
-    ArbitraryKeyValueSettingBag, CapabilityDiagnosticCode, SettingDefaultPosture,
-    SettingDefaultValue, SettingDescriptor, SettingEditorHint, SettingMigrationPosture,
-    SettingOwnershipMetadata, SettingScope, SettingValidationPosture, SettingValueSchema, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint,
+        SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
+        SettingValueSchema,
+    },
+    support::ArbitraryKeyValueSettingBag,
 };
 
 use super::settings_assertions::{assert_diagnostic_codes, assert_registered_setting_ids};

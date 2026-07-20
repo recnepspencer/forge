@@ -1,7 +1,11 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CommandDescriptor, ComponentAccessibilitySupport,
-    ComponentChildPolicy, ComponentDescriptor, ComponentExecutionLane, ComponentFocusSupport,
-    ComponentPropSchema, ComponentStateOwnership, ThemeTokenId, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        CommandDescriptor, ComponentAccessibilitySupport, ComponentChildPolicy,
+        ComponentDescriptor, ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema,
+        ComponentStateOwnership, ThemeTokenId,
+    },
 };
 
 #[path = "component_registry/component_registry_assertions.rs"]
@@ -143,6 +147,40 @@ fn component_with_illegal_child_policy_rejected() {
     assert_diagnostic_codes(
         report.registration_diagnostics(),
         &[CapabilityDiagnosticCode::IllegalComponentChildPolicy],
+    );
+}
+
+#[test]
+fn canvas_lane_without_canvas_contract_is_rejected_at_capability_freeze() {
+    let report = WorthUi::app()
+        .register_component(
+            component_descriptor("workspace.component.canvas")
+                .with_execution_lane(ComponentExecutionLane::CanvasSpatial),
+        )
+        .freeze_with_registration_report();
+
+    assert!(report.has_errors());
+    assert!(report.accepted_snapshot().components().is_empty());
+    assert_diagnostic_codes(
+        report.registration_diagnostics(),
+        &[CapabilityDiagnosticCode::MissingComponentCanvasSpatialContract],
+    );
+}
+
+#[test]
+fn realtime_lane_without_frame_policy_is_rejected_at_capability_freeze() {
+    let report = WorthUi::app()
+        .register_component(
+            component_descriptor("workspace.component.hud")
+                .with_execution_lane(ComponentExecutionLane::RealtimeOverlay),
+        )
+        .freeze_with_registration_report();
+
+    assert!(report.has_errors());
+    assert!(report.accepted_snapshot().components().is_empty());
+    assert_diagnostic_codes(
+        report.registration_diagnostics(),
+        &[CapabilityDiagnosticCode::MissingComponentRealtimeOverlayContract],
     );
 }
 

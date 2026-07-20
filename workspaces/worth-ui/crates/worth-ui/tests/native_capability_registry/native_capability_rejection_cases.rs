@@ -1,6 +1,11 @@
 use worth_ui::facade::{
-    AmbientHostCheck, CapabilityDiagnosticCode, NativeCapabilityDescriptor, NativeCapabilityFamily,
-    NativePlatformPosture, NativeShellAuthorityClaim, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        NativeCapabilityDescriptor, NativeCapabilityFamily, NativePlatformPosture,
+        NativeShellAuthorityClaim,
+    },
+    support::AmbientHostCheck,
 };
 
 use super::native_capability_assertions::{

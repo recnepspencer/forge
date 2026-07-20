@@ -38,7 +38,7 @@ fn main() {
     .expect("policy compiles");
     let _ = policy.frame_budget_millis();
     let _ = WorthUiRealtimeOverlayLane::HudOverlay.canonical_tag();
-    let _ = WorthUiHudPlanDenialReason::MissingRealtimeOverlayHook;
+    let _ = WorthUiHudPlanDenialReason::HostSupportMissing;
     let _ = WorthUiRealtimeFrameDenialReason::OrdinaryWidgetFallback;
     let _ = WorthUiHighFrequencyFramePolicyDenialReason::ZeroFrameBudgetMillis;
     accepts_realtime_types(

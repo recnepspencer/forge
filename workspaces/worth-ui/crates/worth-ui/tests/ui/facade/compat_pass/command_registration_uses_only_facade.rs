@@ -1,5 +1,6 @@
 use worth_ui::facade::{
-    CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding, WorthUi,
+    app::WorthUi,
+    registry::{CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding},
 };
 
 fn main() {

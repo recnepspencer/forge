@@ -22,6 +22,7 @@ pub struct WorthUiArtifactToPlanProvenance {
 }
 
 impl WorthUiArtifactToPlanProvenance {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn new(
         plan_index: u32,
         identity_basis: String,

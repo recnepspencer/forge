@@ -23,10 +23,13 @@ worth-ui-runtime = { path = "../worth-ui-runtime" }
 worth-ui-test-support = { path = "../worth-ui-test-support" }
 
 [dev-dependencies]
-trybuild = { workspace = true }
+allocation-counter = "0.8.1"
+atomicwrites = "0.4.4"
+egui = { workspace = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-query = { path = "../../../../crates/worth-query" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
+worth-ui-host-egui = { path = "../worth-ui-host-egui" }
 
 [[test]]
 name = "application_contracts"
@@ -55,7 +58,3 @@ path = "tests/suites/obligation_contracts.rs"
 [[test]]
 name = "topology_contracts"
 path = "tests/suites/topology_contracts.rs"
-
-[[test]]
-name = "compile_contracts"
-path = "tests/suites/compile_contracts.rs"

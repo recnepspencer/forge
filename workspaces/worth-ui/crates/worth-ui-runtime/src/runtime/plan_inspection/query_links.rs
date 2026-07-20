@@ -11,6 +11,7 @@ pub struct WorthUiQueryInspectionLinks {
 }
 
 impl WorthUiQueryInspectionLinks {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn from_query_posture(
         binding_identity: WorthUiQueryBindingIdentity,
         posture: WorthUiQueryBindingPosture,

@@ -15,7 +15,8 @@ use crate::source::{
 pub struct WorthUiReplacementImpactClassifier;
 
 impl WorthUiReplacementImpactClassifier {
-    pub fn classify(
+    pub(crate) fn classify(
+        active_artifact: &crate::source::WorthUiArtifact,
         comparison: &WorthUiRuntimeArtifactComparison,
         admitted: &WorthUiAdmittedReplacementCandidate,
     ) -> Result<WorthUiReplacementImpactClassification, WorthUiReplacementImpactDenial> {
@@ -40,7 +41,8 @@ impl WorthUiReplacementImpactClassifier {
         }
 
         counters.record_dependency_metadata_read();
-        let impact = classify_meaningful_difference(comparison, admitted, &mut counters)?;
+        let impact =
+            classify_meaningful_difference(active_artifact, comparison, admitted, &mut counters)?;
         let command_impact = command_impact_for(&impact, comparison);
         let token_theme_impact = token_theme_impact_for(&impact, comparison);
 
@@ -66,6 +68,7 @@ fn reject_changed_admission_receipts(
 }
 
 fn classify_meaningful_difference(
+    active_artifact: &crate::source::WorthUiArtifact,
     comparison: &WorthUiRuntimeArtifactComparison,
     admitted: &WorthUiAdmittedReplacementCandidate,
     counters: &mut WorthUiReplacementImpactCounters,
@@ -91,12 +94,26 @@ fn classify_meaningful_difference(
         ),
         WorthUiArtifactDifference::NodeKind { .. } => {
             Ok(WorthUiReplacementImpact::StructuralReplacement(
-                structural_scope_from_candidate(admitted, counters),
+                structural_scope_from_artifacts(active_artifact, admitted, counters),
+            ))
+        }
+        WorthUiArtifactDifference::ModuleNodeCount { .. }
+            if super::is_query_binding_topology_only_difference(
+                active_artifact,
+                admitted.artifact_bundle().artifact(),
+            ) =>
+        {
+            Ok(WorthUiReplacementImpact::StructuralReplacement(
+                structural_scope_from_artifacts(active_artifact, admitted, counters),
+            ))
+        }
+        WorthUiArtifactDifference::ModuleNodeCount { .. } => {
+            Ok(WorthUiReplacementImpact::StructuralReplacement(
+                structural_scope_from_artifacts(active_artifact, admitted, counters),
             ))
         }
         WorthUiArtifactDifference::ModuleCount { .. }
-        | WorthUiArtifactDifference::ModuleOrder { .. }
-        | WorthUiArtifactDifference::ModuleNodeCount { .. } => {
+        | WorthUiArtifactDifference::ModuleOrder { .. } => {
             deny_broad_replacement_without_receipts(admitted, counters)
         }
     }
@@ -225,13 +242,27 @@ fn local_scope_from_candidate(
     )
 }
 
-fn structural_scope_from_candidate(
+fn structural_scope_from_artifacts(
+    active_artifact: &crate::source::WorthUiArtifact,
     admitted: &WorthUiAdmittedReplacementCandidate,
     counters: &mut WorthUiReplacementImpactCounters,
 ) -> WorthUiReplacementScope {
     let metadata = admitted.artifact_bundle().dependency_metadata();
     let graph = metadata.invalidation_basis().dependency_graph();
-    let impacted_handles = graph.subtree_digests().keys().cloned().collect::<Vec<_>>();
+    let active_by_identity = active_artifact
+        .identity_handles()
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let impacted_handles = admitted
+        .artifact_bundle()
+        .artifact()
+        .identity_handles()
+        .filter(|(identity, candidate_handle)| {
+            active_by_identity
+                .get(identity)
+                .is_none_or(|active_handle| active_handle.kind() != candidate_handle.kind())
+        })
+        .map(|(_, candidate_handle)| candidate_handle.clone())
+        .collect::<Vec<_>>();
     counters.record_impact_metadata_lookups(1);
     WorthUiReplacementScope::structural(impacted_handles, graph.subtree_digests().len(), 1)
 }

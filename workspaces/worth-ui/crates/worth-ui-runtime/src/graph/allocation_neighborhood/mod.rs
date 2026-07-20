@@ -7,10 +7,16 @@
 //! 4. `projection` exposes thin evidence-carrier routing into handoff
 
 // --- handoff (graph snapshot → neighborhood authority) ---
+#[path = "replan_selection/transaction/active_replan_index.rs"]
+mod active_replan_index;
 #[path = "admission/admitted_constraint_basis.rs"]
 mod admitted_constraint_basis;
 #[path = "admission/catalog_basis.rs"]
 mod catalog_basis;
+#[path = "admission/catalog_delta.rs"]
+mod catalog_delta;
+#[path = "replan_selection/transaction/graph_neighborhood_footprint.rs"]
+mod graph_neighborhood_footprint;
 #[path = "admission/handoff.rs"]
 mod handoff;
 #[path = "membership/membership.rs"]
@@ -93,14 +99,18 @@ pub(crate) use activation_lifecycle::UiGraphNeighborhoodActivationTransition;
 pub use catalog_basis::{
     UiAdmittedAllocationCatalogBasisSet, UiAllocationCatalogBasisAdmissionDenial,
 };
+pub use catalog_delta::{
+    UiAdmittedAllocationCatalogDelta, UiAllocationCatalogDeltaAdmissionDenial,
+};
 pub use denial::UiAllocationNeighborhoodDenial;
 #[cfg(test)]
 pub(crate) use equivalence::equivalent_identity;
+pub(crate) use graph_neighborhood_footprint::UiGraphNeighborhoodFootprint;
 pub use replan_authority::UiAdmittedAllocationInvalidationTargetSet;
 pub(crate) use replan_authority::{
     UiAdmittedAllocationInvalidationTarget, UiAdmittedAllocationPlanReference,
-    UiGraphNeighborhoodFootprint, UiGraphReplanAdmission, UiGraphReplanAuthority,
-    UiGraphReplanTargetDisposition, UiReplanGenerationKey,
+    UiGraphReplanAdmission, UiGraphReplanAuthority, UiGraphReplanTargetDisposition,
+    UiReplanGenerationKey,
 };
 pub(crate) use replan_selection::select_replan_neighborhoods;
 pub use replan_selection::{

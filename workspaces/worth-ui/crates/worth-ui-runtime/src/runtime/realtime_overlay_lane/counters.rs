@@ -1,14 +1,11 @@
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthUiRealtimeLaneCounters {
     hud_plan_row_count: usize,
-    skipped_nonrealtime_plan_row_count: usize,
     overlay_hook_count: usize,
     renderer_surface_admission_count: usize,
     frame_synchronized_pass_count: usize,
     renderer_surface_handoff_count: usize,
-    command_identity_preservation_count: usize,
-    accessibility_posture_count: usize,
-    diagnostics_posture_count: usize,
+    targeted_overlay_row_count: usize,
     ordinary_layout_pass_count: usize,
     source_parse_count: usize,
     registry_lookup_count: usize,
@@ -19,20 +16,10 @@ pub struct WorthUiRealtimeLaneCounters {
 }
 
 impl WorthUiRealtimeLaneCounters {
-    pub(crate) fn record_hud_plan_row(&mut self) {
-        self.hud_plan_row_count += 1;
-    }
-
-    pub(crate) fn record_skipped_nonrealtime_plan_row(&mut self) {
-        self.skipped_nonrealtime_plan_row_count += 1;
-    }
-
-    pub(crate) fn record_overlay_hook(&mut self) {
-        self.overlay_hook_count += 1;
-    }
-
-    pub(crate) fn record_renderer_surface_admission(&mut self) {
-        self.renderer_surface_admission_count += 1;
+    pub(crate) fn record_plan_rows(&mut self, count: usize) {
+        self.hud_plan_row_count += count;
+        self.overlay_hook_count += count;
+        self.renderer_surface_admission_count += count;
     }
 
     pub(crate) fn record_frame_synchronized_pass(&mut self) {
@@ -43,16 +30,8 @@ impl WorthUiRealtimeLaneCounters {
         self.renderer_surface_handoff_count += 1;
     }
 
-    pub(crate) fn record_command_identity_preservation(&mut self, count: usize) {
-        self.command_identity_preservation_count += count;
-    }
-
-    pub(crate) fn record_accessibility_posture(&mut self, count: usize) {
-        self.accessibility_posture_count += count;
-    }
-
-    pub(crate) fn record_diagnostics_posture(&mut self, count: usize) {
-        self.diagnostics_posture_count += count;
+    pub(crate) fn record_targeted_overlay_rows(&mut self, count: u16) {
+        self.targeted_overlay_row_count += usize::from(count);
     }
 
     #[cfg(test)]
@@ -77,23 +56,8 @@ impl WorthUiRealtimeLaneCounters {
         self.denial_count += 1;
     }
 
-    pub(crate) fn merge_plan_counters(&mut self, plan_counters: Self) {
-        self.hud_plan_row_count = plan_counters.hud_plan_row_count;
-        self.skipped_nonrealtime_plan_row_count = plan_counters.skipped_nonrealtime_plan_row_count;
-        self.overlay_hook_count = plan_counters.overlay_hook_count;
-        self.renderer_surface_admission_count = plan_counters.renderer_surface_admission_count;
-        self.command_identity_preservation_count =
-            plan_counters.command_identity_preservation_count;
-        self.accessibility_posture_count = plan_counters.accessibility_posture_count;
-        self.diagnostics_posture_count = plan_counters.diagnostics_posture_count;
-    }
-
     pub fn hud_plan_row_count(self) -> usize {
         self.hud_plan_row_count
-    }
-
-    pub fn skipped_nonrealtime_plan_row_count(self) -> usize {
-        self.skipped_nonrealtime_plan_row_count
     }
 
     pub fn overlay_hook_count(self) -> usize {
@@ -112,16 +76,8 @@ impl WorthUiRealtimeLaneCounters {
         self.renderer_surface_handoff_count
     }
 
-    pub fn command_identity_preservation_count(self) -> usize {
-        self.command_identity_preservation_count
-    }
-
-    pub fn accessibility_posture_count(self) -> usize {
-        self.accessibility_posture_count
-    }
-
-    pub fn diagnostics_posture_count(self) -> usize {
-        self.diagnostics_posture_count
+    pub fn targeted_overlay_row_count(self) -> usize {
+        self.targeted_overlay_row_count
     }
 
     pub fn ordinary_layout_pass_count(self) -> usize {

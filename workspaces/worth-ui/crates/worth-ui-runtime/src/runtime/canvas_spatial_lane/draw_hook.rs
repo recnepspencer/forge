@@ -1,24 +1,34 @@
-use crate::runtime::WorthUiExtensionHookAdmission;
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct WorthUiCanvasDrawHook {
-    hook_id: String,
-    preserved_support_digest: u64,
+    host_session_identity: u64,
+    host_observation_generation: u64,
+    plan_digest: u64,
 }
 
 impl WorthUiCanvasDrawHook {
-    pub(crate) fn from_admission(admission: &WorthUiExtensionHookAdmission) -> Self {
+    pub(crate) fn from_host_binding(
+        binding: crate::facade::WorthUiHostPlanBinding,
+        plan_digest: u64,
+    ) -> Self {
         Self {
-            hook_id: admission.hook().hook_id().to_string(),
-            preserved_support_digest: admission.preserved_lane_support().support_contract_digest(),
+            host_session_identity: binding.session_identity().as_u64(),
+            host_observation_generation: binding.observation_generation().as_u64(),
+            plan_digest,
         }
     }
-
     pub fn hook_id(&self) -> &str {
-        &self.hook_id
+        "canvas-spatial-draw"
     }
-
-    pub fn preserved_support_digest(&self) -> u64 {
-        self.preserved_support_digest
+    pub fn host_session_identity(self) -> u64 {
+        self.host_session_identity
+    }
+    pub fn host_observation_generation(self) -> u64 {
+        self.host_observation_generation
+    }
+    pub fn plan_digest(self) -> u64 {
+        self.plan_digest
+    }
+    pub fn preserved_support_digest(self) -> u64 {
+        self.plan_digest
     }
 }

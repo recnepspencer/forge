@@ -1,8 +1,9 @@
+use crate::runtime::handle_allocation::resolve_handle_row;
 use crate::runtime::realtime_overlay_lane::frame_target::WorthUiRealtimeFrameTargetKind;
 use crate::runtime::{
-    WorthUiHandlePlanGeneration, WorthUiHudPlan, WorthUiRealtimeFrameDenial,
-    WorthUiRealtimeFrameDenialReason, WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameTarget,
-    WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane,
+    WorthUiHandleResolutionOutcome, WorthUiHudPlan, WorthUiPlanNodeInputFamily,
+    WorthUiRealtimeFrameDenial, WorthUiRealtimeFrameDenialReason, WorthUiRealtimeFrameReceipt,
+    WorthUiRealtimeFrameTarget, WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane,
 };
 
 pub(crate) struct WorthUiRealtimeFrameExecutor;
@@ -12,46 +13,15 @@ impl WorthUiRealtimeFrameExecutor {
         plan: &WorthUiHudPlan,
         target: WorthUiRealtimeFrameTarget,
     ) -> Result<WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameDenial> {
-        let mut counters = WorthUiRealtimeLaneCounters::default();
-        counters.merge_plan_counters(plan.counters());
-
+        let counters = WorthUiRealtimeLaneCounters::default();
         match target.kind() {
             WorthUiRealtimeFrameTargetKind::RendererSurface(handle) => execute_renderer_surface(
                 plan,
                 target,
                 handle.plan_index(),
-                handle.plan_generation(),
+                handle.locator(),
                 counters,
             ),
-            #[cfg(test)]
-            WorthUiRealtimeFrameTargetKind::OrdinaryWidgetFallback(handle) => {
-                counters.record_denial();
-                Err(WorthUiRealtimeFrameDenial::new(
-                    WorthUiRealtimeFrameDenialReason::OrdinaryWidgetFallback,
-                    Some(handle.plan_index()),
-                    counters,
-                ))
-            }
-            #[cfg(test)]
-            WorthUiRealtimeFrameTargetKind::HiddenOrdinaryLayoutPass(handle) => {
-                counters.record_ordinary_layout_pass();
-                counters.record_certification_failure();
-                Err(WorthUiRealtimeFrameDenial::new(
-                    WorthUiRealtimeFrameDenialReason::HiddenOrdinaryLayoutPass,
-                    Some(handle.plan_index()),
-                    counters,
-                ))
-            }
-            #[cfg(test)]
-            WorthUiRealtimeFrameTargetKind::ForbiddenWorkSuppression(handle) => {
-                counters.record_forbidden_work();
-                counters.record_certification_failure();
-                Err(WorthUiRealtimeFrameDenial::new(
-                    WorthUiRealtimeFrameDenialReason::ForbiddenWorkCounterSuppression,
-                    Some(handle.plan_index()),
-                    counters,
-                ))
-            }
         }
     }
 }
@@ -60,41 +30,68 @@ fn execute_renderer_surface(
     plan: &WorthUiHudPlan,
     target: WorthUiRealtimeFrameTarget,
     plan_index: u32,
-    plan_generation: WorthUiHandlePlanGeneration,
+    target_locator: crate::runtime::WorthUiRuntimeHandleLocator,
     mut counters: WorthUiRealtimeLaneCounters,
 ) -> Result<WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameDenial> {
-    let Some(row) = plan.row_for_plan_index(plan_index) else {
-        counters.record_denial();
-        return Err(WorthUiRealtimeFrameDenial::new(
-            WorthUiRealtimeFrameDenialReason::TargetNotInHudPlan,
-            Some(plan_index),
-            counters,
-        ));
-    };
-
-    if row.runtime_handle().plan_generation() != plan_generation {
-        counters.record_certification_failure();
-        return Err(WorthUiRealtimeFrameDenial::new(
-            WorthUiRealtimeFrameDenialReason::TargetGenerationMismatch,
-            Some(plan_index),
-            counters,
-        ));
-    }
+    let (row, resolution_evidence) = resolve_handle_row(
+        plan.handle_receipt().arena_identity(),
+        WorthUiPlanNodeInputFamily::RealtimeOverlay,
+        target_locator,
+        |index| plan.row_for_plan_index(index),
+        |row| row.runtime_handle(),
+    )
+    .map_err(|evidence| {
+        let reason = realtime_resolution_denial(evidence.outcome());
+        if reason == WorthUiRealtimeFrameDenialReason::TargetNotInHudPlan {
+            counters.record_denial();
+        } else {
+            counters.record_certification_failure();
+        }
+        WorthUiRealtimeFrameDenial::new(reason, Some(plan_index), counters)
+            .with_resolution_evidence(evidence)
+    })?;
 
     counters.record_frame_synchronized_pass();
     counters.record_renderer_surface_handoff();
+    let surface = row.renderer_surface_admission();
+    counters.record_targeted_overlay_rows(surface.overlay_row_limit());
     Ok(WorthUiRealtimeFrameReceipt::new(
         super::WorthUiRealtimeFrameReceiptInput {
             target,
             lane: WorthUiRealtimeOverlayLane::HudOverlay,
-            renderer_surface_admission: row.renderer_surface_admission(),
-            touched_plan_indexes: vec![row.plan_index()],
-            touched_runtime_handles: vec![row.runtime_handle()],
-            command_plan_indexes: plan.command_plan_indexes().to_vec(),
-            accessibility_plan_indexes: plan.accessibility_plan_indexes().to_vec(),
-            diagnostics_plan_indexes: plan.diagnostics_plan_indexes().to_vec(),
+            renderer_surface_admission: surface,
+            touched_plan_index: row.plan_index(),
+            touched_runtime_handle: row.runtime_handle(),
+            touched_overlay_row_count: surface.overlay_row_limit(),
             counters,
-            certification: plan.certification(),
+            certification: plan.certification(row),
+            resolution_evidence,
+            work_scope: crate::runtime::WorthUiFrameWorkScope::new(
+                u64::from(surface.overlay_row_limit()),
+                counters.targeted_overlay_row_count() as u64,
+            ),
         },
     ))
+}
+
+fn realtime_resolution_denial(
+    outcome: WorthUiHandleResolutionOutcome,
+) -> WorthUiRealtimeFrameDenialReason {
+    match outcome {
+        WorthUiHandleResolutionOutcome::TargetMissing => {
+            WorthUiRealtimeFrameDenialReason::TargetNotInHudPlan
+        }
+        WorthUiHandleResolutionOutcome::ForeignSessionArena => {
+            WorthUiRealtimeFrameDenialReason::TargetArenaMismatch
+        }
+        WorthUiHandleResolutionOutcome::StaleSlotGeneration => {
+            WorthUiRealtimeFrameDenialReason::TargetSlotGenerationMismatch
+        }
+        WorthUiHandleResolutionOutcome::WrongFamily => {
+            WorthUiRealtimeFrameDenialReason::TargetFamilyMismatch
+        }
+        WorthUiHandleResolutionOutcome::Resolved => {
+            unreachable!("resolved handle evidence is not a denial")
+        }
+    }
 }

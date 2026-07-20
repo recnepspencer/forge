@@ -1,6 +1,5 @@
 use crate::capability::{
-    CommandDescriptor, CommandId, ComponentId, SurfaceId, ViewBindingDescriptor, ViewBindingFamily,
-    ViewBindingId,
+    CommandDescriptor, CommandId, ComponentId, SurfaceId, WorthUiQueryViewRegistration,
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::replacement_impact_test_support::impact_test_app;
@@ -17,15 +16,24 @@ use crate::source::{
 };
 
 pub(super) fn query_bound_app() -> WorthUiApp {
-    WorthUi::app()
-        .register_view_binding(query_bound_view_binding("workspace.view_binding.selection"))
-        .register_view_binding(query_bound_view_binding("workspace.view_binding.detail"))
+    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
+        "dependency-impact-query-app",
+    );
+    let builder = WorthUi::app()
+        .register_query_view(query_view(&installed, "workspace.view_binding.selection"))
+        .expect("installed selection view registers");
+    builder
+        .register_query_view(query_view(&installed, "workspace.view_binding.detail"))
+        .expect("installed detail view registers")
         .freeze()
         .expect("application preparation should succeed")
 }
 
 pub(super) fn query_bound_surface_app() -> WorthUiApp {
     let base = impact_test_app();
+    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
+        "dependency-impact-surface-query-app",
+    );
     WorthUi::app()
         .register_command(CommandDescriptor::new(
             command_id("workspace.command.save"),
@@ -47,7 +55,8 @@ pub(super) fn query_bound_surface_app() -> WorthUiApp {
             &base,
             "workspace.surface.command_open",
         ))
-        .register_view_binding(query_bound_view_binding("workspace.view_binding.selection"))
+        .register_query_view(query_view(&installed, "workspace.view_binding.selection"))
+        .expect("installed selection view registers")
         .freeze()
         .expect("application preparation should succeed")
 }
@@ -130,13 +139,14 @@ pub(super) fn candidate_with_forged_query_support_hook_count(
         .expect("hostile candidate admits through forged query support receipt")
 }
 
-fn query_bound_view_binding(id: &str) -> ViewBindingDescriptor {
-    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(id)
-        .expect("query definition should admit");
-    ViewBindingDescriptor::from_definition(
-        ViewBindingId::new(id).expect("valid view binding id"),
-        ViewBindingFamily::collection(),
-        definition,
+fn query_view(
+    installed: &worth_ui_query_binding::WorthUiInstalledQueryDomain,
+    id: &str,
+) -> WorthUiQueryViewRegistration {
+    WorthUiQueryViewRegistration::new(
+        installed
+            .measurement_view(id)
+            .expect("installed Query view admits"),
     )
 }
 

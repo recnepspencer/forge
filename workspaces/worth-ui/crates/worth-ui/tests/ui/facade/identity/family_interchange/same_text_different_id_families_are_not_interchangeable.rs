@@ -1,4 +1,6 @@
-use worth_ui::facade::{CommandId, ComponentId};
+use worth_ui::facade::{
+    registry::{CommandId, ComponentId},
+};
 
 fn main() {
     let command_id = CommandId::new("app.shared.save").expect("valid command id");

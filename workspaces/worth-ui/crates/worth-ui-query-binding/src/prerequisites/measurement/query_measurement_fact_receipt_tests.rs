@@ -131,6 +131,44 @@ fn foreign_installed_authority_cannot_activate_registered_view() {
 }
 
 #[test]
+fn execution_evidence_rejects_an_equal_definition_from_a_foreign_installation() {
+    let mut left_workspace = measurement_workspace("left-reference", 240.0);
+    let left_view = left_workspace
+        .worth_ui()
+        .expect("left domain")
+        .measurement_view("inspector.measurements")
+        .expect("left view");
+    let left_plan = WorthUiQueryBindingPlan::default()
+        .register_view(left_view.clone())
+        .expect("left plan");
+    let mut left_binding = left_plan.activate();
+    left_binding
+        .admit(project_view(&mut left_workspace, &left_view))
+        .expect("left settlement");
+
+    let foreign_workspace = measurement_workspace("foreign-reference", 240.0);
+    let foreign_view = foreign_workspace
+        .worth_ui()
+        .expect("foreign domain")
+        .measurement_view("inspector.measurements")
+        .expect("foreign view");
+    let foreign_plan = WorthUiQueryBindingPlan::default()
+        .register_view(foreign_view)
+        .expect("foreign plan");
+    let foreign_reference = foreign_plan
+        .resolve_definition(
+            left_view.definition().identity(),
+            left_view.definition().shape(),
+        )
+        .expect("equal foreign definition resolves inside its own plan");
+
+    assert_eq!(
+        left_binding.execution_evidence_for(&foreign_reference),
+        Err(crate::WorthUiQueryViewExecutionEvidenceDenial::ForeignInstalledReference)
+    );
+}
+
+#[test]
 fn repeated_installed_settlements_reuse_source_identity_but_advance_order() {
     let mut workspace = measurement_workspace("repeated", 240.0);
     let installed = workspace
@@ -169,8 +207,12 @@ fn equivalent_projection_keys_do_not_collapse_distinct_authority_allocations() {
     let view = installed
         .measurement_view("inspector.measurements")
         .expect("measurement view should admit");
-    let (_, first_outcome, _) = project_view(&mut workspace, &view).into_parts();
-    let (_, second_outcome, _) = project_view(&mut workspace, &view).into_parts();
+    let (_, first_outcome, _) = project_view(&mut workspace, &view)
+        .into_transfer()
+        .into_parts();
+    let (_, second_outcome, _) = project_view(&mut workspace, &view)
+        .into_transfer()
+        .into_parts();
     let (first, _) = super::WorthUiQueryAuthorityHandle::from_outcome(first_outcome)
         .expect("first projection authority should admit");
     let (second, _) = super::WorthUiQueryAuthorityHandle::from_outcome(second_outcome)

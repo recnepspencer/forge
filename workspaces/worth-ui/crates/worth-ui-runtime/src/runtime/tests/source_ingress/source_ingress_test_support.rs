@@ -12,7 +12,7 @@ pub(crate) fn file_import_provider() -> WorthUiSourceProvider {
 }
 
 pub(crate) fn file_import_provider_for(target_module_path: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::filesystem_root(r"C:\workspace")
+    WorthUiSourceProvider::in_memory("source-ingress-file-authored")
         .with_file("app/main.wui", format!(r#"import "{target_module_path}";"#))
         .with_file(target_module_path, "")
 }

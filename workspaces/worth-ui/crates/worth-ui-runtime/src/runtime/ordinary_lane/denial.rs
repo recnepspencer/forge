@@ -1,23 +1,20 @@
-use crate::runtime::WorthUiOrdinaryLaneCounters;
+use crate::runtime::{WorthUiHandleResolutionEvidence, WorthUiOrdinaryLaneCounters};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiOrdinaryLanePlanDenialReason {
     LaneAdmissionMissingOrdinarySupport,
     LaneAdmissionMissingCommandSurfaceSupport,
     LaneAdmissionMissingStyleTokenSupport,
-    LaneAdmissionMissingEguiBoundarySupport,
     NoOrdinaryRows,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiOrdinaryLaneFrameDenialReason {
+    ActivePlanNotOrdinaryExecutable,
     TargetNotInOrdinaryPlan,
-    TargetGenerationMismatch,
-    NonOrdinaryLaneClaim,
-    FramePathSourceParse,
-    FramePathRegistryLookup,
-    FramePathArtifactScan,
-    FullPlanScanCertificationFailure,
+    TargetArenaMismatch,
+    TargetSlotGenerationMismatch,
+    TargetFamilyMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,6 +28,7 @@ pub struct WorthUiOrdinaryLaneFrameDenial {
     reason: WorthUiOrdinaryLaneFrameDenialReason,
     plan_index: Option<u32>,
     counters: Box<WorthUiOrdinaryLaneCounters>,
+    resolution_evidence: Option<WorthUiHandleResolutionEvidence>,
 }
 
 impl WorthUiOrdinaryLanePlanDenial {
@@ -63,6 +61,7 @@ impl WorthUiOrdinaryLaneFrameDenial {
             reason,
             plan_index,
             counters: Box::new(counters),
+            resolution_evidence: None,
         }
     }
 
@@ -76,5 +75,17 @@ impl WorthUiOrdinaryLaneFrameDenial {
 
     pub fn counters(&self) -> WorthUiOrdinaryLaneCounters {
         *self.counters
+    }
+
+    pub(crate) fn with_resolution_evidence(
+        mut self,
+        evidence: WorthUiHandleResolutionEvidence,
+    ) -> Self {
+        self.resolution_evidence = Some(evidence);
+        self
+    }
+
+    pub fn resolution_evidence(&self) -> Option<WorthUiHandleResolutionEvidence> {
+        self.resolution_evidence
     }
 }

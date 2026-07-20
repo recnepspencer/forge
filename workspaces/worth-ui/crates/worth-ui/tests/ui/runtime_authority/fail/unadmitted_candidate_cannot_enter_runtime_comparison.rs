@@ -1,4 +1,7 @@
-use worth_ui::facade::{WorthUiReplacementCandidate, WorthUiRuntime};
+use worth_ui::facade::{
+    WorthUiReplacementCandidate,
+    runtime::WorthUiRuntime,
+};
 
 fn main() {
     let host = runtime_host();

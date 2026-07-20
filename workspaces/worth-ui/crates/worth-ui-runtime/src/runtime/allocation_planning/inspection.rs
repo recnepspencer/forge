@@ -8,7 +8,6 @@ use crate::evidence::{
 };
 use crate::runtime::{
     WorthUiAllocationPlanning, WorthUiAllocationPlanningCounters, WorthUiAllocationPlanningDenial,
-    WorthUiPlanLoweringDenial,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,12 +126,6 @@ impl WorthUiAllocationPlanningInspection {
         self.denial
             .as_ref()
             .and_then(WorthUiAllocationPlanningDenial::constraint_set_denial)
-    }
-
-    pub fn plan_lowering_denial(&self) -> Option<&WorthUiPlanLoweringDenial> {
-        self.denial
-            .as_ref()
-            .and_then(WorthUiAllocationPlanningDenial::plan_lowering_denial)
     }
 
     pub fn counters(&self) -> WorthUiAllocationPlanningCounters {

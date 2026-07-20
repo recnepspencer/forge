@@ -44,11 +44,12 @@ impl WorthUiExecutionLaneDescriptor {
     }
 }
 
-fn lane_for_node_input(node_input: &WorthUiPlanNodeInput) -> WorthUiExecutionLane {
-    match node_input.family() {
+pub(crate) fn lane_for_family(family: WorthUiPlanNodeInputFamily) -> WorthUiExecutionLane {
+    match family {
         WorthUiPlanNodeInputFamily::ComponentInvocation
         | WorthUiPlanNodeInputFamily::LayoutRegion
-        | WorthUiPlanNodeInputFamily::ChildRange => WorthUiExecutionLane::OrdinaryWidgetShell,
+        | WorthUiPlanNodeInputFamily::ChildRange
+        | WorthUiPlanNodeInputFamily::StateSlot => WorthUiExecutionLane::OrdinaryWidgetShell,
         WorthUiPlanNodeInputFamily::QueryViewBinding => WorthUiExecutionLane::QueryBound,
         WorthUiPlanNodeInputFamily::Command => WorthUiExecutionLane::CommandSurface,
         WorthUiPlanNodeInputFamily::TokenStyle => WorthUiExecutionLane::StyleToken,
@@ -56,9 +57,14 @@ fn lane_for_node_input(node_input: &WorthUiPlanNodeInput) -> WorthUiExecutionLan
             WorthUiExecutionLane::DiagnosticsProjection
         }
         WorthUiPlanNodeInputFamily::LanePartitionRef => WorthUiExecutionLane::LaneBoundary,
-        WorthUiPlanNodeInputFamily::EguiBoundaryRef => WorthUiExecutionLane::EguiBoundary,
+        WorthUiPlanNodeInputFamily::CanvasSpatial => WorthUiExecutionLane::CanvasSpatial,
+        WorthUiPlanNodeInputFamily::RealtimeOverlay => WorthUiExecutionLane::RealtimeOverlayHud,
         WorthUiPlanNodeInputFamily::RenderResourceRef => WorthUiExecutionLane::RenderResource,
     }
+}
+
+fn lane_for_node_input(node_input: &WorthUiPlanNodeInput) -> WorthUiExecutionLane {
+    lane_for_family(node_input.family())
 }
 
 fn lane_cost_and_failure(
@@ -89,7 +95,6 @@ fn lane_cost_and_failure(
         ),
         WorthUiExecutionLane::DiagnosticsProjection
         | WorthUiExecutionLane::LaneBoundary
-        | WorthUiExecutionLane::EguiBoundary
         | WorthUiExecutionLane::RenderResource
         | WorthUiExecutionLane::SpecialCaseExtension => (
             WorthUiLaneCostRegime::BoundaryOnly,

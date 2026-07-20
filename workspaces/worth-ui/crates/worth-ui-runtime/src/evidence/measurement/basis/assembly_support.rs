@@ -2,7 +2,7 @@ use crate::declaration::{UiDeclaredMeasurementBasisSource, UiDeclaredMeasurement
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
-use super::assembly::HostResultSlots;
+use super::HostResultSlots;
 use super::{denial::UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence,
@@ -232,22 +232,5 @@ pub(super) fn push_child_intrinsic_lineage(
             evidence.identity_digest(),
             result.evidence_generation().as_u64(),
         ));
-    }
-}
-
-impl<'a> HostResultSlots<'a> {
-    pub(super) fn relevant_results(self) -> [Option<&'a UiMeasurementResult>; 6] {
-        [
-            self.text_intrinsic_size,
-            self.font_metrics,
-            self.native_control_intrinsic_size,
-            self.viewport_extent,
-            self.portal_anchor_rect,
-            self.scroll_container_viewport,
-        ]
-    }
-
-    pub(super) fn has_intrinsic_results(self) -> bool {
-        self.text_intrinsic_size.is_some() || self.native_control_intrinsic_size.is_some()
     }
 }

@@ -90,6 +90,13 @@ impl WorthUiSteadyFrameCounters {
         self.realtime_overlay.allocation_count() as u64
     }
 
+    /// General-purpose allocations declared by active-plan executors only.
+    /// Host-adapter translation and renderer/native mechanics are outside this
+    /// counter boundary and require their own independent observation.
+    pub fn executor_allocation_count(&self) -> u64 {
+        self.total_allocation_count()
+    }
+
     pub fn total_diagnostic_materialization_count(&self) -> u64 {
         self.realtime_overlay.diagnostic_materialization_count() as u64
     }

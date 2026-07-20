@@ -22,8 +22,6 @@ pub enum UiAllocationPlanningCostClass {
 pub enum UiAllocationPlanningDeniedBroadeningReason {
     MeasurementBasisDenied,
     ConstraintSetDenied,
-    LoweringAdmissionMismatch,
-    PlanLoweringDenied,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -157,12 +155,6 @@ fn denied_broadening_reason_for(
         }
         WorthUiAllocationPlanningDenialReason::ConstraintSetDenied => {
             UiAllocationPlanningDeniedBroadeningReason::ConstraintSetDenied
-        }
-        WorthUiAllocationPlanningDenialReason::LoweringAdmissionMismatch => {
-            UiAllocationPlanningDeniedBroadeningReason::LoweringAdmissionMismatch
-        }
-        WorthUiAllocationPlanningDenialReason::PlanLoweringDenied => {
-            UiAllocationPlanningDeniedBroadeningReason::PlanLoweringDenied
         }
     }
 }

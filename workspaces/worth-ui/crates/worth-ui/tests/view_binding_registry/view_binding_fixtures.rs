@@ -1,5 +1,7 @@
 use worth_ui::facade::query_binding::{WorthUiInstalledQueryDomain, WorthUiQueryViewRegistration};
-use worth_ui::facade::{QueryDenialPresentation, ViewBindingId, VisibleStateBindingDeclaration};
+use worth_ui::facade::registry::{
+    QueryDenialPresentation, ViewBindingId, VisibleStateBindingDeclaration,
+};
 
 pub(crate) fn table_view_binding(id: &str) -> WorthUiQueryViewRegistration {
     let installed = test_installed_domain(id);
@@ -36,10 +38,10 @@ fn complete_view_binding(
     id: &str,
     live: bool,
 ) -> WorthUiQueryViewRegistration {
-    let view = if live {
-        installed.live_measurement_view(id)
+    let view: worth_ui::facade::query_binding::WorthUiInstalledQueryView = if live {
+        installed.live_measurement_view(id).map(Into::into)
     } else {
-        installed.measurement_view(id)
+        installed.measurement_view(id).map(Into::into)
     }
     .expect("installed measurement view should admit");
     WorthUiQueryViewRegistration::new(view)

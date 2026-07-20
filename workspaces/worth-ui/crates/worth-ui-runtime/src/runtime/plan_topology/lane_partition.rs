@@ -6,8 +6,9 @@ pub enum WorthUiPlanExecutionLane {
     Style,
     Diagnostics,
     LaneBoundary,
-    EguiBoundary,
     RenderResource,
+    CanvasSpatial,
+    RealtimeOverlay,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -1,5 +1,6 @@
 use worth_ui::facade::{
-    CommandDescriptor, CommandId, IconDescriptor, IconFamily, IconId, IconSourceDescriptor, WorthUi,
+    app::WorthUi,
+    registry::{CommandDescriptor, CommandId, IconDescriptor, IconFamily, IconId, IconSourceDescriptor},
 };
 
 fn main() {

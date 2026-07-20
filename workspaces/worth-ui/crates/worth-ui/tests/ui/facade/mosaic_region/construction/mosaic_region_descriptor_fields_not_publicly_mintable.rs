@@ -1,7 +1,5 @@
 use worth_ui::facade::{
-    MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture,
-    MosaicRegionKindDescriptor, MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole,
-    MosaicScrollOwnership, MosaicSizingBehavior, SurfacePlacementClass,
+    registry::{MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicRegionKindDescriptor, MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole, MosaicScrollOwnership, MosaicSizingBehavior, SurfacePlacementClass},
 };
 
 fn main() {

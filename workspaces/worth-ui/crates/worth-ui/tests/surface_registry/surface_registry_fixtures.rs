@@ -1,4 +1,4 @@
-use worth_ui::facade::{
+use worth_ui::facade::registry::{
     CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind,
     SurfacePlacementClass, SurfaceStateClass, ViewBindingId,

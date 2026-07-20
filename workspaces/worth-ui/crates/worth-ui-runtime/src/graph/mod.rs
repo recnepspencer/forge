@@ -49,9 +49,10 @@ pub(crate) use allocation_neighborhood::UiGraphNeighborhoodActivationTransition;
 pub(crate) use allocation_neighborhood::UiGraphReplanConsequences;
 pub(crate) use allocation_neighborhood::UiGraphReplanTransactionBasis;
 pub use allocation_neighborhood::{
-    UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationInvalidationTargetSet,
-    UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet,
-    UiAllocationCatalogBasisAdmissionDenial, UiAllocationNeighborhoodDenial,
+    UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationCatalogDelta,
+    UiAdmittedAllocationInvalidationTargetSet, UiAdmittedReplanNeighborhood,
+    UiAdmittedReplanNeighborhoodSet, UiAllocationCatalogBasisAdmissionDenial,
+    UiAllocationCatalogDeltaAdmissionDenial, UiAllocationNeighborhoodDenial,
     UiReplanLocalityDenial, UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters,
     UiReplanOverlapDisposition, UiReplanRootPosture, UiReplanWidenReason,
 };

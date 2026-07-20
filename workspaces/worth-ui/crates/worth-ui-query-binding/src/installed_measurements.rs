@@ -17,6 +17,7 @@ pub trait WorthUiQueryExt {
 
     fn live_measurements(
         &self,
+        resource_name: impl Into<String>,
     ) -> Result<
         domain::WorthQueryInstalledDomainLiveDeclaration<WorthUiDomainEntry>,
         Box<worth_query::facade::live::WorthQueryLiveDeclarationStop>,
@@ -58,12 +59,13 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
 
     fn live_measurements(
         &self,
+        resource_name: impl Into<String>,
     ) -> Result<
         domain::WorthQueryInstalledDomainLiveDeclaration<WorthUiDomainEntry>,
         Box<worth_query::facade::live::WorthQueryLiveDeclarationStop>,
     > {
         let operation = self.graph_read_operation(&measurement_allocation_operation());
-        self.live("worth-ui.measurements", |query| {
+        self.live(resource_name, |query| {
             query.local_collection(
                 MEASUREMENT_ROOT,
                 measurement_schema(),

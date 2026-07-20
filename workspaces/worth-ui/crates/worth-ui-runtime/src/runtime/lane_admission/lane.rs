@@ -9,7 +9,6 @@ pub enum WorthUiExecutionLane {
     StyleToken,
     DiagnosticsProjection,
     LaneBoundary,
-    EguiBoundary,
     RenderResource,
     SpecialCaseExtension,
 }
@@ -46,7 +45,6 @@ impl WorthUiExecutionLane {
             Self::StyleToken => 7,
             Self::DiagnosticsProjection => 8,
             Self::LaneBoundary => 9,
-            Self::EguiBoundary => 10,
             Self::RenderResource => 11,
             Self::SpecialCaseExtension => 12,
         }

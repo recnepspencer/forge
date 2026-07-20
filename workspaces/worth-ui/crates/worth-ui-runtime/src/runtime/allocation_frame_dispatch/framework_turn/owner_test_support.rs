@@ -83,7 +83,7 @@ impl crate::runtime::WorthUiRuntime {
 
     pub(crate) fn admit_query_projection_for_test(
         &mut self,
-        outcome: worth_ui_query_binding::WorthUiQueryProjectionOutcome,
+        outcome: worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome,
     ) -> Result<
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,

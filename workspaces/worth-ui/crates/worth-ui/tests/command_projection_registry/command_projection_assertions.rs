@@ -1,5 +1,6 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, FrozenCommandProjectionCapabilities,
+    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
+    registry::FrozenCommandProjectionCapabilities,
 };
 
 pub(crate) fn assert_registered_command_projection_ids(

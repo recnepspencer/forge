@@ -1,15 +1,15 @@
-error[E0624]: method `prepare_execution_plan_input` is private
+error[E0599]: no method named `prepare_execution_plan_input` found for struct `worth_ui_runtime::runtime::launch::runtime_instance::WorthUiRuntimeFrameworkLoop` in the current scope
  --> tests/ui/runtime_authority/fail/raw_source_cannot_enter_plan_lowering.rs:4:18
   |
-4 |       let _ = host.prepare_execution_plan_input("component Button {}");
-  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+4 |     let _ = host.prepare_execution_plan_input("component Button {}");
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
- ::: $WORKSPACE/crates/worth-ui-runtime/src/runtime/launch/planning_transition.rs
+help: there is a method `compare_execution_plans` with a similar name, but with different arguments
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/host_observation/plan_inspection.rs
   |
-  | /     pub(crate) fn prepare_execution_plan_input<P>(
+  | /     pub fn compare_execution_plans(
   | |         &self,
-  | |         pending_activation: P,
-  | |     ) -> Result<crate::runtime::WorthUiExecutionPlanInput, WorthUiPlanLoweringDenial>
-  | |     where
-  | |         P: Borrow<WorthUiPendingActivation>,
-  | |____________________________________________- private method defined here
+  | |         previous: &WorthUiExecutionPlan,
+  | |         next: &WorthUiExecutionPlan,
+  | |     ) -> WorthUiExecutionPlanEquivalence {
+  | |________________________________________^

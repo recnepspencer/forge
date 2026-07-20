@@ -1,32 +1,30 @@
 use crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor;
+use crate::runtime::planning::WorthUiExecutionPlanLoweringFacts;
 use crate::runtime::{
-    WorthUiAllocationPlanning, WorthUiArtifactToPlanProvenance, WorthUiExecutionPlan,
-    WorthUiExecutionPlanInspection, WorthUiLaneInspection, WorthUiPlanInspectionCounters,
-    WorthUiPlanInspectionDenial, WorthUiPlanInspectionDenialReason, WorthUiPlanNode,
-    WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiPlanNodeInspection,
-    WorthUiPlanProvenanceSource, WorthUiQueryInspectionLinks, WorthUiRuntimeHandleAllocationBasis,
+    WorthUiArtifactToPlanProvenance, WorthUiExecutionPlan, WorthUiExecutionPlanInspection,
+    WorthUiLaneInspection, WorthUiPlanInspectionCounters, WorthUiPlanInspectionDenial,
+    WorthUiPlanInspectionDenialReason, WorthUiPlanNode, WorthUiPlanNodeInput,
+    WorthUiPlanNodeInputFamily, WorthUiPlanNodeInspection, WorthUiPlanProvenanceSource,
+    WorthUiQueryInspectionLinks, WorthUiRuntimeHandleAllocationBasis,
 };
+use std::collections::BTreeMap;
 
 pub(crate) struct WorthUiExecutionPlanInspector;
 
 impl WorthUiExecutionPlanInspector {
     pub(crate) fn inspect(
         plan: &WorthUiExecutionPlan,
-        allocation_planning: &WorthUiAllocationPlanning,
+        authority: &WorthUiExecutionPlanLoweringFacts,
     ) -> Result<WorthUiExecutionPlanInspection, WorthUiPlanInspectionDenial> {
-        let lowering_basis = allocation_planning
-            .lowering_basis()
-            .expect("admitted allocation planning must expose lowered basis");
-        let node_inputs = allocation_planning
-            .node_inputs()
-            .expect("admitted allocation planning must expose lowered node inputs");
+        let lowering_basis = authority.plan_input().basis();
         let mut counters = WorthUiPlanInspectionCounters::default();
         counters.record_inspection();
-        validate_plan_input_alignment(plan, allocation_planning, counters)?;
+        validate_plan_input_alignment(plan, authority, counters)?;
+        let rows = reconstructive_rows(plan, authority);
 
-        let mut provenance = Vec::with_capacity(node_inputs.len());
-        let mut nodes = Vec::with_capacity(plan.topology().traversal_order().len());
-        for (node, node_input) in plan.topology().traversal_order().iter().zip(node_inputs) {
+        let mut provenance = Vec::with_capacity(rows.len());
+        let mut nodes = Vec::with_capacity(rows.len());
+        for (node, node_input, _) in &rows {
             let node_provenance = provenance_for_node(node, node_input, &mut counters);
             counters.record_provenance_link();
             counters.record_node_inspection();
@@ -37,7 +35,6 @@ impl WorthUiExecutionPlanInspector {
                     family: node.family(),
                     child_range: node.child_range(),
                     region_structure: node.region_structure(),
-                    egui_boundary: node.egui_boundary().cloned(),
                     render_resource_ref: node.render_resource_ref(),
                     provenance: node_provenance.clone(),
                 },
@@ -45,50 +42,57 @@ impl WorthUiExecutionPlanInspector {
             provenance.push(node_provenance);
         }
 
-        let lanes = plan
-            .lane_partitions()
-            .iter()
-            .map(|lane| {
-                counters.record_lane_inspection();
-                WorthUiLaneInspection::new(
-                    lane.lane(),
-                    lane.plan_indexes().to_vec(),
-                    lane.node_count(),
-                )
-            })
-            .collect();
+        let lanes = reconstructive_lanes(plan, &rows, &mut counters);
         counters.record_plan_digest();
-        let active_artifact_digest = lowering_basis.active_artifact_digest();
+        let active_artifact_digest = lowering_basis
+            .prior_artifact_digest()
+            .unwrap_or_else(|| lowering_basis.candidate_artifact_digest());
         let handle_basis_digest = plan.handle_receipt().basis_digest();
         let plan_digest = WorthUiExecutionPlanDigestor::digest(plan).0;
 
         Ok(WorthUiExecutionPlanInspection::new(
-            active_artifact_digest,
-            handle_basis_digest,
-            plan_digest,
-            nodes,
-            lanes,
-            provenance,
-            counters,
+            super::WorthUiExecutionPlanInspectionInput {
+                active_artifact_digest,
+                handle_basis_digest,
+                handle_arena_identity: plan.handle_receipt().arena_identity(),
+                lowering_identity: authority.identity().clone(),
+                plan_digest,
+                nodes,
+                lanes,
+                provenance,
+                counters,
+            },
         ))
     }
 }
 
 fn validate_plan_input_alignment(
     plan: &WorthUiExecutionPlan,
-    allocation_planning: &WorthUiAllocationPlanning,
+    authority: &WorthUiExecutionPlanLoweringFacts,
     counters: WorthUiPlanInspectionCounters,
 ) -> Result<(), WorthUiPlanInspectionDenial> {
-    let node_inputs = allocation_planning
-        .node_inputs()
-        .expect("admitted allocation planning must expose lowered node inputs");
-    let allocation_basis =
-        WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning);
+    if !plan.shares_lowering_authority_with(authority) {
+        return Err(denial(
+            WorthUiPlanInspectionDenialReason::ForeignLoweringAuthority,
+            counters,
+        ));
+    }
+    let node_inputs = authority.node_inputs();
+    let allocation_basis = WorthUiRuntimeHandleAllocationBasis::from_lowering_authority(authority);
     if !plan.handle_receipt().certifies_basis(&allocation_basis) {
         return Err(denial(
             WorthUiPlanInspectionDenialReason::PlanInputReceiptMismatch,
             counters,
         ));
+    }
+    if !plan.has_reconstructive_flat_projection() {
+        if plan.region_count() != authority.plan_input().basis().candidate_node_input_count() {
+            return Err(denial(
+                WorthUiPlanInspectionDenialReason::PlanInputNodeCountMismatch,
+                counters,
+            ));
+        }
+        return Ok(());
     }
     if plan.topology().traversal_order().len() != node_inputs.len() {
         return Err(denial(
@@ -123,6 +127,68 @@ fn validate_plan_input_alignment(
         }
     }
     Ok(())
+}
+
+type ReconstructiveInspectionRow = (
+    WorthUiPlanNode,
+    WorthUiPlanNodeInput,
+    Option<crate::runtime::WorthUiPlanExecutionLane>,
+);
+
+fn reconstructive_rows(
+    plan: &WorthUiExecutionPlan,
+    authority: &WorthUiExecutionPlanLoweringFacts,
+) -> Vec<ReconstructiveInspectionRow> {
+    if plan.has_reconstructive_flat_projection() {
+        return plan
+            .topology()
+            .traversal_order()
+            .iter()
+            .cloned()
+            .zip(authority.node_inputs().iter().cloned())
+            .map(|(node, input)| (node, input, None))
+            .collect();
+    }
+    plan.reconstructive_inspection_rows()
+        .into_iter()
+        .map(|(node, input, lane)| (node, input, Some(lane)))
+        .collect()
+}
+
+fn reconstructive_lanes(
+    plan: &WorthUiExecutionPlan,
+    rows: &[ReconstructiveInspectionRow],
+    counters: &mut WorthUiPlanInspectionCounters,
+) -> Vec<WorthUiLaneInspection> {
+    if plan.has_reconstructive_flat_projection() {
+        return plan
+            .lane_partitions()
+            .iter()
+            .map(|lane| {
+                counters.record_lane_inspection();
+                WorthUiLaneInspection::new(
+                    lane.lane(),
+                    lane.plan_indexes().to_vec(),
+                    lane.node_count(),
+                )
+            })
+            .collect();
+    }
+    let mut by_lane = BTreeMap::new();
+    for (node, _, lane) in rows {
+        by_lane
+            .entry(lane.expect("regional inspection rows carry their lane"))
+            .or_insert_with(Vec::new)
+            .push(node.runtime_handle().plan_index());
+    }
+    by_lane
+        .into_iter()
+        .map(|(lane, plan_indexes)| {
+            counters.record_lane_inspection();
+            let node_count = plan_indexes.len();
+            WorthUiLaneInspection::new(lane, plan_indexes, node_count)
+        })
+        .collect()
 }
 
 fn provenance_for_node(
@@ -191,8 +257,7 @@ fn provenance_source_for_family(family: WorthUiPlanNodeInputFamily) -> WorthUiPl
             WorthUiPlanProvenanceSource::ComponentLoweringHook
         }
         WorthUiPlanNodeInputFamily::LanePartitionRef => WorthUiPlanProvenanceSource::LaneBoundary,
-        WorthUiPlanNodeInputFamily::DiagnosticsRef
-        | WorthUiPlanNodeInputFamily::EguiBoundaryRef => WorthUiPlanProvenanceSource::Diagnostics,
+        WorthUiPlanNodeInputFamily::DiagnosticsRef => WorthUiPlanProvenanceSource::Diagnostics,
         WorthUiPlanNodeInputFamily::RenderResourceRef => {
             WorthUiPlanProvenanceSource::RenderResource
         }

@@ -7,6 +7,7 @@ mod certification_scenario;
 mod certification_tests;
 mod denial;
 mod evidence_index;
+mod host_result_slots;
 #[cfg(test)]
 mod hostile_tests;
 mod identity;
@@ -28,6 +29,7 @@ pub use certification_scenario::{
     UiMeasurementBasisCertificationScenario, UiMeasurementBasisCertificationScenarioError,
 };
 pub use denial::{UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
+use host_result_slots::HostResultSlots;
 use identity::UiMeasurementBasisIdentityInput;
 pub(crate) use query_allocation_mapping::{
     UiQueryAllocationPurpose, UiQueryAllocationTargetMapping,

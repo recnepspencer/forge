@@ -133,7 +133,7 @@ impl WorthUiRuntime {
     ) -> Result<WorthUiWatchedCandidateSubmission, Box<WorthUiReloadStormCandidateLoweringFailure>>
     {
         let provider = step.provider().clone();
-        let mut session = self.source_ingress(provider).start();
+        let mut session = self.source_event_ingress(provider).start();
         let batch = match session.ingest(step.events()) {
             Ok(batch) => batch,
             Err(ingress_denial) => {

@@ -180,18 +180,14 @@ fn diagnostic_richness_tiers_gate_report_materialization() {
 #[test]
 fn diagnostics_never_depend_on_error_message_substrings() {
     let inputs = activation_staging_inputs();
+    let plan_input = inputs.reconstructive_plan_input(&[]);
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
-    let planning = allocation_planning(&runtime, &plan_input, "runtime-diagnostics.lane-admission");
+    let planning = allocation_planning(&runtime, &pending, "runtime-diagnostics.lane-admission");
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
     let support_without_query =
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
-        .admit_execution_lanes(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &support_without_query,
-        )
+        .admit_execution_lanes(&facts, &support_without_query)
         .expect_err("unsupported Query lane denies");
 
     let report = runtime

@@ -7,7 +7,6 @@ use super::lifecycle_state::WorthUiRuntimeFrameEpoch;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiLastValidRuntimeState {
     artifact: WorthUiActiveArtifact,
-    plan: WorthUiActiveExecutionPlan,
     receipt: WorthUiLastValidPreservationReceipt,
 }
 
@@ -38,13 +37,9 @@ impl WorthUiLastValidRuntimeState {
             active.generation_identity().clone(),
             active.frame_epoch(),
             &artifact,
-            plan,
+            &plan,
         );
-        Self {
-            artifact,
-            plan,
-            receipt,
-        }
+        Self { artifact, receipt }
     }
 
     pub(crate) fn observation(&self) -> WorthUiLastValidObservation {
@@ -62,7 +57,7 @@ impl WorthUiLastValidPreservationReceipt {
         generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
         recorded_frame_epoch: WorthUiRuntimeFrameEpoch,
         artifact: &WorthUiActiveArtifact,
-        plan: WorthUiActiveExecutionPlan,
+        plan: &WorthUiActiveExecutionPlan,
     ) -> Self {
         Self {
             generation_identity,

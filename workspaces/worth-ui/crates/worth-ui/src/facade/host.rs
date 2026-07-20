@@ -1,9 +1,14 @@
 pub use worth_ui_runtime::facade::host_observation::{
     UiAdmittedHostMeasurement, UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
     UiHostMeasurementNeed, UiHostMeasurementNormalizationContext, UiMeasurementEvidenceFamily,
-    UiMeasurementRequestIdentity, UiViewportExtentRequest, WorthUiHeadlessHost, WorthUiHostAdapter,
+    UiMeasurementRequestIdentity, UiViewportExtentRequest, WorthUiCanvasSpatialHostOutput,
+    WorthUiCanvasSpatialHostOutputTarget, WorthUiHeadlessHost, WorthUiHostAdapter,
     WorthUiHostCapability, WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiOperationalHostAdapter,
+    WorthUiHostContract, WorthUiHostOutputDisposition, WorthUiHostOutputEnvelope,
+    WorthUiHostOutputGeneration, WorthUiHostOutputGenerationDenial,
+    WorthUiHostOutputGenerationDenialReason, WorthUiHostOutputLane, WorthUiHostOutputPayload,
+    WorthUiHostOutputReceiptReference, WorthUiOperationalHostAdapter, WorthUiOrdinaryHostOutput,
+    WorthUiOrdinaryHostOutputTarget, WorthUiRealtimeHostOutput, WorthUiVirtualizedDataHostOutput,
 };
 pub use worth_ui_runtime::facade::{
     WorthUiHostMeasurementCapability, WorthUiHostMeasurementSessionInput,

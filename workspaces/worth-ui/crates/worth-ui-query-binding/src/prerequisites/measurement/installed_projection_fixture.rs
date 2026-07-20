@@ -12,7 +12,7 @@ pub(super) fn installed_measurement_projection(
     extent: f32,
 ) -> (
     crate::WorthUiRuntimeQueryBinding,
-    crate::WorthUiQueryProjectionOutcome,
+    crate::WorthUiQuerySnapshotProjectionOutcome,
 ) {
     let mut workspace = measurement_workspace(name, extent);
     let installed = workspace
@@ -31,8 +31,8 @@ pub(super) fn installed_measurement_projection(
 
 pub(super) fn project_view(
     workspace: &mut runtime::WorthQueryWorkspace,
-    view: &crate::WorthUiInstalledQueryView,
-) -> crate::WorthUiQueryProjectionOutcome {
+    view: &crate::WorthUiInstalledSnapshotQueryView,
+) -> crate::WorthUiQuerySnapshotProjectionOutcome {
     let completion = view
         .read()
         .expect("installed read should declare")
@@ -103,7 +103,7 @@ pub(super) fn projection_with_extra_aspect(
     value: Option<runtime::WorthQueryAuthoredAspectValue>,
 ) -> (
     crate::WorthUiRuntimeQueryBinding,
-    crate::WorthUiQueryProjectionOutcome,
+    crate::WorthUiQuerySnapshotProjectionOutcome,
 ) {
     let mut contracts = crate::worth_ui_native_aspect_contracts().to_vec();
     contracts.push(extra_contract);

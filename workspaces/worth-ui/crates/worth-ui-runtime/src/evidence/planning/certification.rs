@@ -176,11 +176,11 @@ fn certification_report(
         cost_class_matches: first_cost.cost_class() == second_cost.cost_class(),
         handoff_identity_matches: first.is_admitted() == second.is_admitted()
             && first
-                .lowering_basis()
-                .map(|basis| basis.active_artifact_digest())
+                .projection()
+                .map(|projection| projection.evidence_digest())
                 == second
-                    .lowering_basis()
-                    .map(|basis| basis.active_artifact_digest()),
+                    .projection()
+                    .map(|projection| projection.evidence_digest()),
         inspection_receipts_match: first_receipt == second_receipt,
         denied_broadening_matches: first_cost.denied_broadening_reason()
             == second_cost.denied_broadening_reason(),

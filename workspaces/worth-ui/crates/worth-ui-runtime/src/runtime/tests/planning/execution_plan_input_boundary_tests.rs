@@ -24,7 +24,7 @@ fn same_staged_artifact_produces_same_plan_input() {
 }
 
 #[test]
-fn plan_input_reports_zero_source_parse_and_registry_lookup() {
+fn unchanged_replacement_plan_input_materializes_no_candidate_wide_rows() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
@@ -32,83 +32,43 @@ fn plan_input_reports_zero_source_parse_and_registry_lookup() {
         .expect("plan input prepares");
     let counters = plan_input.counters();
 
-    assert!(counters.staged_node_input_count() > 0);
-    assert!(counters.query_binding_input_count() > 0);
+    assert!(plan_input.node_inputs().is_empty());
+    assert_eq!(counters.staged_node_input_count(), 0);
+    assert_eq!(counters.query_binding_input_count(), 0);
+    assert!(plan_input.basis().candidate_node_input_count() > 0);
+    assert!(plan_input.basis().query_binding_input_count() > 0);
     assert!(counters.reconciliation_receipt_input_count() > 0);
     assert_eq!(counters.source_parse_count(), 0);
     assert_eq!(counters.registry_string_lookup_count(), 0);
 }
 
 #[test]
-fn plan_input_preserves_query_owned_binding_handles() {
+fn preserved_query_binding_is_carried_by_successor_cardinality_not_a_delta_row() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
         .prepare_execution_plan_input(pending)
         .expect("plan input prepares");
 
-    let query_identity = plan_input
+    assert_eq!(plan_input.basis().query_binding_input_count(), 1);
+    assert!(plan_input
         .node_inputs()
         .iter()
-        .find_map(|input| input.query_binding_identity())
-        .expect("query binding identity carried into plan input");
-
-    assert_eq!(
-        query_identity.view_binding_id(),
-        "workspace.view_binding.selection"
-    );
-    assert_eq!(
-        query_identity.query_view_identity().as_str(),
-        "workspace.view_binding.selection"
-    );
-    assert_eq!(
-        query_identity.result_shape(),
-        worth_ui_query_binding::WorthUiQueryViewShape::Collection
-    );
+        .all(|input| input.query_binding_identity().is_none()));
+    assert_eq!(plan_input.counters().query_binding_input_count(), 0);
 }
 
 #[test]
-fn plan_input_preserves_query_owned_projection_and_recovery_posture() {
+fn preserved_query_posture_does_not_force_candidate_wide_relowering() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
         .prepare_execution_plan_input(pending)
         .expect("plan input prepares");
 
-    let query_inputs = plan_input
-        .node_inputs()
-        .iter()
-        .filter(|input| input.query_binding_identity().is_some())
-        .collect::<Vec<_>>();
-
-    assert_eq!(
-        query_inputs.len(),
-        plan_input.basis().staged_query_rebind_entry_count()
-    );
-    assert!(query_inputs
-        .iter()
-        .all(|input| input.query_binding_posture().is_some()));
-    assert!(query_inputs.iter().all(|input| input
-        .query_binding_posture()
-        .is_some_and(|posture| posture.has_projection_consumption())));
-    assert!(query_inputs.iter().all(|input| input
-        .query_binding_posture()
-        .is_some_and(|posture| posture.has_async_result_state())));
-    assert!(query_inputs.iter().all(|input| input
-        .query_binding_posture()
-        .is_some_and(|posture| posture.has_recovery())));
-    assert!(query_inputs.iter().all(|input| {
-        let Some(identity) = input.query_binding_identity() else {
-            return false;
-        };
-        let Some(posture) = input.query_binding_posture() else {
-            return false;
-        };
-        input.query_preservation_receipt().is_some_and(|receipt| {
-            receipt.binding_identity() == identity.canonical_identity()
-                && receipt.posture_identity() == posture.canonical_identity()
-        })
-    }));
+    assert_eq!(plan_input.basis().query_binding_input_count(), 1);
+    assert!(plan_input.node_inputs().is_empty());
+    assert_eq!(plan_input.counters().query_binding_input_count(), 0);
 }
 
 #[test]

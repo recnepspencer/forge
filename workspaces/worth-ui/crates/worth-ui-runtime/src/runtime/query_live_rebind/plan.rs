@@ -16,6 +16,9 @@ pub struct WorthUiQueryLiveRebindPlan {
     active_artifact_digest: u64,
     candidate_artifact_digest: u64,
     entries: Vec<WorthUiQueryLiveRebindEntry>,
+    changed_entries: Vec<WorthUiQueryLiveRebindEntry>,
+    live_candidate_binding_count: usize,
+    basis_digest: u64,
     counters: WorthUiQueryLiveRebindCounters,
 }
 
@@ -76,10 +79,26 @@ impl WorthUiQueryLiveRebindPlan {
         for entry in &entries {
             counters.record_entry(entry.outcome());
         }
+        let changed_entries = entries
+            .iter()
+            .filter(|entry| !matches!(entry.outcome(), WorthUiQueryLiveRebindOutcome::Preserve(_)))
+            .cloned()
+            .collect();
+        let live_candidate_binding_count =
+            counters.preserved_binding_count() + counters.rebound_binding_count();
+        let basis_digest = super::basis_digest::query_rebind_basis_digest(
+            active_artifact_digest,
+            candidate_artifact_digest,
+            &entries,
+            counters,
+        );
         Self {
             active_artifact_digest,
             candidate_artifact_digest,
             entries,
+            changed_entries,
+            live_candidate_binding_count,
+            basis_digest,
             counters,
         }
     }
@@ -94,6 +113,18 @@ impl WorthUiQueryLiveRebindPlan {
 
     pub fn entries(&self) -> &[WorthUiQueryLiveRebindEntry] {
         &self.entries
+    }
+
+    pub(crate) fn changed_entries(&self) -> &[WorthUiQueryLiveRebindEntry] {
+        &self.changed_entries
+    }
+
+    pub(crate) fn live_candidate_binding_count(&self) -> usize {
+        self.live_candidate_binding_count
+    }
+
+    pub(crate) fn basis_digest(&self) -> u64 {
+        self.basis_digest
     }
 
     pub fn counters(&self) -> WorthUiQueryLiveRebindCounters {

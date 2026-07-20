@@ -2,6 +2,7 @@
 pub struct WorthUiLaneAdmissionCounters {
     admission_count: usize,
     plan_node_count: usize,
+    plan_node_visit_count: usize,
     distinct_lane_count: usize,
     support_row_lookup_count: usize,
     query_support_link_count: usize,
@@ -26,6 +27,11 @@ impl WorthUiLaneAdmissionCounters {
 
     pub(crate) fn record_plan_node(&mut self) {
         self.plan_node_count += 1;
+        self.plan_node_visit_count += 1;
+    }
+
+    pub(crate) fn record_plan_nodes(&mut self, count: usize) {
+        self.plan_node_count += count;
     }
 
     pub(crate) fn record_distinct_lanes(&mut self, count: usize) {
@@ -66,6 +72,10 @@ impl WorthUiLaneAdmissionCounters {
 
     pub fn plan_node_count(self) -> usize {
         self.plan_node_count
+    }
+
+    pub fn plan_node_visit_count(self) -> usize {
+        self.plan_node_visit_count
     }
 
     pub fn distinct_lane_count(self) -> usize {

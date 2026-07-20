@@ -1,7 +1,9 @@
 use worth_ui::facade::{
-    CapabilitySnapshot, CommandId, ComponentId, IconId, MosaicPlacementPolicyId,
-    MosaicRegionKindId, MosaicSizingContractId, MosaicStateSlotId, PluginSlotId,
-    SnapshotLookupReport, SurfaceId, ThemeTokenId,
+    diagnostics::{CapabilitySnapshot, SnapshotLookupReport},
+    registry::{
+        CommandId, ComponentId, IconId, MosaicPlacementPolicyId, MosaicRegionKindId,
+        MosaicSizingContractId, MosaicStateSlotId, PluginSlotId, SurfaceId, ThemeTokenId,
+    },
 };
 
 pub(crate) fn assert_minimal_app_snapshot_names_registered_capabilities(

@@ -1,8 +1,5 @@
 use worth_ui::facade::{
-    CommandId, CommandProjectionId, ComponentId, IconId, MosaicPlacementPolicyId,
-    MosaicRegionKindId, MosaicSizingContractId, MosaicStateSlotId, NativeCapabilityId,
-    PluginSlotId, RuntimeOutcomeProjectionId, SettingId, SurfaceId, TaskPresentationId,
-    ThemeTokenId, ViewBindingId,
+    registry::{CommandId, CommandProjectionId, ComponentId, IconId, MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId, MosaicStateSlotId, NativeCapabilityId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId, SurfaceId, TaskPresentationId, ThemeTokenId, ViewBindingId},
 };
 
 fn main() {

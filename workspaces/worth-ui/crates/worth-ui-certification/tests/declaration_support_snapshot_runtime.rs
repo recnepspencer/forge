@@ -4,9 +4,12 @@ use worth_ui::facade::declaration::{
     UiDeclarationSupportRowSchemaKind, UiDeclarationUnsupportedPosture,
 };
 use worth_ui::facade::{
-    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery, UiInspectionScope,
-    UiInspectionSupportPosture, UiInspectionSupportReason, UiInspectionSupportStatus,
-    UiInspectionSupportWorld, UiInspectionTarget, WorthUiHostCapability,
+    host::WorthUiHostCapability,
+    inspection::{
+        UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
+        UiInspectionScope, UiInspectionSupportPosture, UiInspectionSupportReason,
+        UiInspectionSupportStatus, UiInspectionSupportWorld, UiInspectionTarget,
+    },
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,

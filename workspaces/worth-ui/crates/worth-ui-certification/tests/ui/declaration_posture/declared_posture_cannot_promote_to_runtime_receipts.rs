@@ -1,7 +1,7 @@
 use worth_ui::facade::declaration::{
     UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture,
 };
-use worth_ui::facade::{
+use worth_ui_runtime::facade::{
     WorthUiQuerySupportReceipt, WorthUiRuntimeHandleAllocationReceipt,
 };
 

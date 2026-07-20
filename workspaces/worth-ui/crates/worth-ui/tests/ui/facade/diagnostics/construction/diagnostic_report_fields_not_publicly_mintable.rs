@@ -1,4 +1,6 @@
-use worth_ui::facade::{CapabilityRegistrationReport, CapabilitySnapshot};
+use worth_ui::facade::{
+    diagnostics::{CapabilityRegistrationReport, CapabilitySnapshot},
+};
 
 fn main() {
     let _report = CapabilityRegistrationReport {

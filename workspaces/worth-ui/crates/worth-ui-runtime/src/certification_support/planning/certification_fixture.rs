@@ -225,11 +225,6 @@ fn stage_pending_activation(
     let query_rebind = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)
         .expect("suite query rebind succeeds");
-    let pending_input = runtime.prepare_pending_execution_plan_lowering_input(
-        &node_plan,
-        &reconciliation,
-        &query_rebind,
-    );
     runtime
         .stage_replacement_activation(
             admitted,
@@ -239,7 +234,6 @@ fn stage_pending_activation(
             crate::runtime::WorthUiActivationStagingPlans {
                 reconciliation_plan: Some(&reconciliation),
                 query_rebind_plan: Some(&query_rebind),
-                pending_execution_plan_lowering_input: Some(&pending_input),
             },
         )
         .expect("suite activation staging succeeds")

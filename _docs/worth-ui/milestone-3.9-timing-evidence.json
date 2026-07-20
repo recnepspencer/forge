@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "milestone": "3.9",
+  "opening": {
+    "captured_at": "2026-07-18T23:54:52.5690603Z",
+    "git_commit": "7a88e5d7a91200ba98ab1f593e5a45c70d77c587",
+    "platform": "Microsoft Windows NT 10.0.26200.0",
+    "cargo": "cargo 1.94.0 (85eff7c80 2026-01-15)",
+    "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
+    "cargo_incremental": false,
+    "compiler_cache": "disabled (RUSTC_WRAPPER cleared)",
+    "environment": {
+      "operating_system": "Microsoft Windows 11 Home",
+      "processor": "AMD Ryzen 7 9700X 8-Core Processor",
+      "physical_memory_bytes": 66145669120,
+      "worktree_state": "dirty_phase_1_implementation",
+      "isolated_target_root": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence"
+    },
+    "measurements": {
+      "targeted_warm_ordinary": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-runtime --lib runtime::tests::active_application_replacement_tests::equal_digest_foreign_catalog_cannot_cross_candidate_graph_authority -- --exact --quiet",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target"
+        ],
+        "samples_seconds": [0.431, 0.379, 1.904],
+        "median_seconds": 0.431,
+        "comparison": "opening_baseline"
+      },
+      "warm_fast_lane": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py fast",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target"
+        ],
+        "samples_seconds": [78.834, 58.819, 66.918],
+        "median_seconds": 66.918,
+        "comparison": "opening_baseline"
+      },
+      "warm_application_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-certification --test application_contracts --quiet",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target"
+        ],
+        "samples_seconds": [1.319, 1.211, 2.989],
+        "median_seconds": 1.319,
+        "comparison": "opening_baseline"
+      },
+      "cold_compile_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
+        "classification": "cold",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\cold-compile-target-1",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\cold-compile-target-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\cold-compile-target-3"
+        ],
+        "samples_seconds": [469.08, 483.16, 486.286],
+        "median_seconds": 483.16,
+        "comparison": "opening_baseline"
+      },
+      "warm_compile_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-opening-evidence\\warm-target"
+        ],
+        "samples_seconds": [127.964, 141.711, 148.238],
+        "median_seconds": 141.711,
+        "comparison": "opening_baseline"
+      }
+    },
+    "discarded_warmup_samples_seconds": {
+      "targeted_warm_ordinary": [91.201],
+      "warm_fast_lane": [113.7],
+      "warm_application_contracts": [15.068],
+      "warm_compile_contracts": [401.762],
+      "warm_full_lane": [219.993, 217.97]
+    },
+    "discarded_sample_reasons": {
+      "targeted_warm_ordinary": "initial shared-target compilation",
+      "warm_fast_lane": "initial unbuilt workspace targets",
+      "warm_application_contracts": "initial application-contract target compilation",
+      "warm_compile_contracts": "initial trybuild cache population",
+      "warm_full_lane": "first sample used the predecessor hard-coded dependency target; second populated the corrected isolated dependency target"
+    }
+  },
+  "closing": {
+    "captured_at": "2026-07-20T21:15:01.7782994Z",
+    "git_commit": "7a88e5d7a91200ba98ab1f593e5a45c70d77c587",
+    "platform": "Microsoft Windows NT 10.0.26200.0",
+    "cargo": "cargo 1.94.0 (85eff7c80 2026-01-15)",
+    "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
+    "cargo_incremental": false,
+    "compiler_cache": "disabled (RUSTC_WRAPPER cleared)",
+    "environment": {
+      "operating_system": "Microsoft Windows 11 Home",
+      "processor": "AMD Ryzen 7 9700X 8-Core Processor",
+      "physical_memory_bytes": 66145669120,
+      "worktree_state": "dirty_phase_18_closure",
+      "isolated_target_root": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence"
+    },
+    "measurements": {
+      "targeted_warm_ordinary": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-runtime --lib runtime::tests::active_application_replacement_tests::equal_digest_foreign_catalog_cannot_cross_candidate_graph_authority -- --exact --quiet",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target"
+        ],
+        "samples_seconds": [0.606, 0.676, 0.765],
+        "median_seconds": 0.676,
+        "comparison": "reviewed_budget_amendment"
+      },
+      "warm_fast_lane": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py fast",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target"
+        ],
+        "samples_seconds": [22.192, 26.836, 32.468],
+        "median_seconds": 26.836,
+        "comparison": "within_10_percent"
+      },
+      "warm_application_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-certification --test application_contracts --quiet",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target"
+        ],
+        "samples_seconds": [19.681, 19.821, 19.578],
+        "median_seconds": 19.681,
+        "comparison": "reviewed_budget_amendment"
+      },
+      "cold_compile_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
+        "classification": "cold",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\cold-compile-direct-target-1",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\cold-compile-direct-target-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\cold-compile-direct-target-3"
+        ],
+        "samples_seconds": [163.646, 157.246, 133.686],
+        "median_seconds": 157.246,
+        "comparison": "within_10_percent"
+      },
+      "warm_compile_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
+        "classification": "warm",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9-closing-evidence\\warm-target"
+        ],
+        "samples_seconds": [5.337, 4.758, 7.922],
+        "median_seconds": 5.337,
+        "comparison": "within_10_percent"
+      }
+    },
+    "reviewed_budget_amendments": {
+      "targeted_warm_ordinary": "The exact authority-replacement contract remains sub-second; its 0.245 second median increase is accepted as fixed harness and process variance rather than added ordinary-path work.",
+      "warm_application_contracts": "The hostile application lane now intentionally performs production filesystem writes and watches, Query Consumer Kit lifecycle work, headless egui frames, and cross-lane allocator reconciliation. This is the reviewed cost of replacing fake boundaries with real mechanisms while protecting the fast lane."
+    },
+    "discarded_warmup_samples_seconds": {
+      "targeted_warm_ordinary": [134.4, 0.736, 0.487],
+      "warm_application_contracts": [106.953, 23.875, 21.658],
+      "warm_fast_lane": [124.572, 90.943, 81.099],
+      "warm_compile_contracts": [138.021]
+    },
+    "discarded_sample_reasons": {
+      "targeted_warm_ordinary": "first exact-command batch still populated direct-test artifacts and was discarded as a whole",
+      "warm_application_contracts": "first exact-command batch still populated direct-test artifacts and was discarded as a whole",
+      "warm_fast_lane": "first exact-lane set was monotonically conditioning and was discarded as a whole",
+      "warm_compile_contracts": "the retained evidence target needed one conditioning build for the new checked-in compiler owner before warm samples"
+    },
+    "discarded_failed_runs": {
+      "cold_compile_contracts": "Rejected pre-correction designs rebuilt the dependency graph through outer Cargo plus Trybuild-private workspaces and measured 562.785-740.843 seconds. The corrected one-owner/two-session design was then measured from three distinct empty targets."
+    }
+  }
+}

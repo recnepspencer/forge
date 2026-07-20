@@ -112,13 +112,28 @@ impl<'a> WorthUiDiagnosticsProjectionRequest<'a> {
         let Some(inspection) = self.plan_inspection else {
             return Ok(());
         };
-        if inspection.plan_digest().raw() == report.active_plan_digest() {
-            return Ok(());
+        if inspection.plan_digest().raw() != report.active_plan_digest() {
+            return Err(self.denial(
+                WorthUiDiagnosticsProjectionDenialReason::PlanInspectionDigestMismatch,
+                Some(inspection.plan_digest().raw()),
+            ));
         }
-        Err(self.denial(
-            WorthUiDiagnosticsProjectionDenialReason::PlanInspectionDigestMismatch,
-            Some(inspection.plan_digest().raw()),
-        ))
+        if inspection.handle_arena_identity() != self.runtime.active_handle_arena_identity() {
+            return Err(self.denial(
+                WorthUiDiagnosticsProjectionDenialReason::PlanInspectionAuthorityMismatch,
+                Some(inspection.plan_digest().raw()),
+            ));
+        }
+        if !self
+            .runtime
+            .active_plan_shares_lowering_identity_with(inspection.lowering_identity())
+        {
+            return Err(self.denial(
+                WorthUiDiagnosticsProjectionDenialReason::PlanInspectionAuthorityMismatch,
+                Some(inspection.plan_digest().raw()),
+            ));
+        }
+        Ok(())
     }
 
     fn admit_presentation_hooks(&mut self) -> Result<(), WorthUiDiagnosticsProjectionDenial> {

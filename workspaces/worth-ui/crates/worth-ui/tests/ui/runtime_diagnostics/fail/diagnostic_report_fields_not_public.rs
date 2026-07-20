@@ -1,4 +1,4 @@
-use worth_ui::facade::WorthUiRuntimeDiagnosticReport;
+use worth_ui::facade::diagnostics::WorthUiRuntimeDiagnosticReport;
 
 fn main() {
     let _ = WorthUiRuntimeDiagnosticReport {

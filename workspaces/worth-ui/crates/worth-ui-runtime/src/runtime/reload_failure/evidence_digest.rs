@@ -203,10 +203,11 @@ fn node_transition_digest(transition: WorthUiNodeLifecycleTransition) -> u64 {
 
 fn activation_staging_reason_digest(reason: WorthUiActivationStagingDenialReason) -> u64 {
     match reason {
+        WorthUiActivationStagingDenialReason::CandidateApplicationAuthorityMismatch => {
+            0xF2_00_00_09
+        }
         WorthUiActivationStagingDenialReason::MissingDurableStateReconciliation => 0xF2_00_00_01,
         WorthUiActivationStagingDenialReason::MissingQueryLiveRebindPlan => 0xF2_00_00_02,
-        WorthUiActivationStagingDenialReason::MissingExecutionPlanLoweringInput => 0xF2_00_00_03,
-        WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch => 0xF2_00_00_04,
         WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch => 0xF2_00_00_05,
         WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch => 0xF2_00_00_06,
         WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged => 0xF2_00_00_07,

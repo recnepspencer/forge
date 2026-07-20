@@ -125,6 +125,21 @@ impl UiMeasurementBasisGeneration {
 }
 
 impl UiMeasurementBasis {
+    pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
+        self.declaration_identity == other.declaration_identity
+            && self.graph_node_identity == other.graph_node_identity
+            && self.world_profile == other.world_profile
+            && self.declared_measurement_policy == other.declared_measurement_policy
+            && self.basis_posture == other.basis_posture
+            && self.neighborhood_class_hint == other.neighborhood_class_hint
+            && self.evidence_inputs.len() == other.evidence_inputs.len()
+            && self
+                .evidence_inputs
+                .iter()
+                .zip(other.evidence_inputs.iter())
+                .all(|(left, right)| left.operationally_matches(right))
+    }
+
     pub fn identity_digest(&self) -> u64 {
         self.identity_digest
     }

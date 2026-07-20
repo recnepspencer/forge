@@ -7,8 +7,8 @@ error[E0432]: unresolved imports `worth_ui::WorthUiApp`, `worth_ui::WorthUiAppBu
   |                no `WorthUiApp` in the root
   |
   = help: consider importing one of these structs instead:
-          worth_ui::facade::WorthUiApp
+          worth_ui::facade::app::WorthUiApp
           worth_ui_runtime::facade::WorthUiApp
   = help: consider importing one of these type aliases instead:
-          worth_ui::facade::WorthUiAppBuilder
+          worth_ui::facade::app::WorthUiAppBuilder
           worth_ui_runtime::facade::WorthUiAppBuilder

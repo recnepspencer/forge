@@ -1,10 +1,14 @@
 use worth_ui::facade::{
-    WorthUiDiagnosticMaterialization, WorthUiDiagnosticProjectionHook,
-    WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticRichnessTier, WorthUiDiagnosticSource,
-    WorthUiDiagnosticSupportReport, WorthUiPlanDiagnostic, WorthUiReloadDiagnostic,
-    WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters,
-    WorthUiRuntimeDiagnosticFamily, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
-    WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics, WorthUiSupportReportPolicy,
+    WorthUiDiagnosticMaterialization,
+    WorthUiDiagnosticProjectionHook,
+    WorthUiDiagnosticRichnessPolicy,
+    WorthUiDiagnosticRichnessTier,
+    WorthUiDiagnosticSource,
+    WorthUiDiagnosticSupportReport,
+    WorthUiPlanDiagnostic,
+    WorthUiReloadDiagnostic,
+    WorthUiSupportReportPolicy,
+    runtime::{WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport, WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics},
 };
 
 fn main() {

@@ -4,8 +4,11 @@ use crate::runtime::{WorthUiPlanLoweringCounters, WorthUiRuntimeFrameEpoch};
 pub enum WorthUiPlanLoweringDenialReason {
     MissingActivationReadiness,
     StalePendingActivation,
-    ExecutionPlanLoweringInputMismatch,
     UnregisteredPlanNodeFamily,
+    MissingStateSuccession,
+    InvalidStateSuccession,
+    MissingSpatialContract,
+    MissingRealtimeContract,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -16,6 +19,25 @@ pub struct WorthUiPlanLoweringDenial {
     active_frame_epoch: WorthUiRuntimeFrameEpoch,
     reason: WorthUiPlanLoweringDenialReason,
     counters: WorthUiPlanLoweringCounters,
+}
+
+impl WorthUiPlanLoweringDenialReason {
+    pub(super) fn from_ordinary_lowering(denial: super::WorthUiOrdinaryLoweringDenial) -> Self {
+        match denial {
+            super::WorthUiOrdinaryLoweringDenial::MissingStateSuccession => {
+                Self::MissingStateSuccession
+            }
+            super::WorthUiOrdinaryLoweringDenial::InvalidStateSuccession => {
+                Self::InvalidStateSuccession
+            }
+            super::WorthUiOrdinaryLoweringDenial::MissingSpatialContract => {
+                Self::MissingSpatialContract
+            }
+            super::WorthUiOrdinaryLoweringDenial::MissingRealtimeContract => {
+                Self::MissingRealtimeContract
+            }
+        }
+    }
 }
 
 impl WorthUiPlanLoweringDenial {

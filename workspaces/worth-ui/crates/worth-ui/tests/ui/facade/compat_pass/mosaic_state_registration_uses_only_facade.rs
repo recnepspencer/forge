@@ -1,7 +1,6 @@
 use worth_ui::facade::{
-    MosaicRegionKindId, MosaicStateOwnerIdentity, MosaicStatePersistencePolicy,
-    MosaicStateReplacementRule, MosaicStateSlotDescriptor, MosaicStateSlotId,
-    MosaicStateSlotKind, MosaicStateTruthPosture, WorthUi,
+    app::WorthUi,
+    registry::{MosaicRegionKindId, MosaicStateOwnerIdentity, MosaicStatePersistencePolicy, MosaicStateReplacementRule, MosaicStateSlotDescriptor, MosaicStateSlotId, MosaicStateSlotKind, MosaicStateTruthPosture},
 };
 
 fn main() {

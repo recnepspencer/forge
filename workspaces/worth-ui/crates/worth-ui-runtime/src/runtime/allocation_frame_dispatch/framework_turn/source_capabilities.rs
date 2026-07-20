@@ -140,22 +140,12 @@ impl WorthUiHostMeasurementTurnSource<'_> {
         capability: &crate::facade::WorthUiHostMeasurementCapability,
         input: crate::facade::WorthUiHostMeasurementSessionInput,
     ) -> Result<UiAllocationFrameGatewayOutcome, crate::host::UiHostMeasurementEvidenceDenial> {
-        let active_identity = self
-            .runtime
-            .host_session_identity
-            .ok_or(crate::host::UiHostMeasurementEvidenceDenial::MissingOperationalHostSession)?;
-        if active_identity != capability.session_identity() {
-            return Err(crate::host::UiHostMeasurementEvidenceDenial::ForeignHostSession);
-        }
-        let active_generation = self
-            .runtime
-            .host_observation_generation
-            .ok_or(crate::host::UiHostMeasurementEvidenceDenial::MissingOperationalHostSession)?;
-        if active_generation != capability.observation_generation() {
-            return Err(
-                crate::host::UiHostMeasurementEvidenceDenial::StaleHostObservationGeneration,
-            );
-        }
+        admit_host_capability(
+            self.runtime.host_session_identity,
+            self.runtime.host_observation_generation,
+            capability.session_identity(),
+            capability.observation_generation(),
+        )?;
         self.runtime.collect_and_submit_host_measurement(
             capability.adapter(),
             input.bind_report(capability.capability_report()),
@@ -173,15 +163,46 @@ impl WorthUiHostMeasurementTurnSource<'_> {
     }
 }
 
+fn admit_host_capability(
+    active_identity: Option<crate::facade::WorthUiHostSessionIdentity>,
+    active_generation: Option<worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration>,
+    observed_identity: crate::facade::WorthUiHostSessionIdentity,
+    observed_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+) -> Result<(), crate::host::UiHostMeasurementEvidenceDenial> {
+    let active_identity = active_identity
+        .ok_or(crate::host::UiHostMeasurementEvidenceDenial::MissingOperationalHostSession)?;
+    if active_identity != observed_identity {
+        return Err(crate::host::UiHostMeasurementEvidenceDenial::ForeignHostSession);
+    }
+    let active_generation = active_generation
+        .ok_or(crate::host::UiHostMeasurementEvidenceDenial::MissingOperationalHostSession)?;
+    if active_generation != observed_generation {
+        return Err(crate::host::UiHostMeasurementEvidenceDenial::StaleHostObservationGeneration);
+    }
+    Ok(())
+}
+
 impl WorthUiQueryProjectionTurnSource<'_> {
     pub fn admit_and_submit(
         &mut self,
-        outcome: worth_ui_query_binding::WorthUiQueryProjectionOutcome,
+        outcome: worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
     > {
         self.runtime.admit_and_submit_query_projection(outcome)
+    }
+
+    pub fn admit_live_and_submit(
+        &mut self,
+        resource: worth_ui_query_binding::WorthUiQueryLiveResource,
+        outcome: worth_ui_query_binding::WorthUiQueryLiveProjectionOutcome,
+    ) -> Result<
+        UiAllocationFrameGatewayOutcome,
+        worth_ui_query_binding::WorthUiQueryLiveAdmissionStop,
+    > {
+        self.runtime
+            .admit_and_submit_live_query_projection(resource, outcome)
     }
 }
 
@@ -219,5 +240,31 @@ impl WorthUiDurableResizeTurnSource<'_> {
         crate::runtime::WorthUiDurableResizeSourceAdmissionDenial,
     > {
         self.runtime.admit_and_submit_durable_resize(input)
+    }
+}
+
+#[cfg(test)]
+mod host_capability_admission_tests {
+    use super::admit_host_capability;
+    use worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration;
+
+    #[test]
+    fn stale_observation_generation_denies_below_source_ingress() {
+        let session = crate::runtime::tests::active_application_session_test_support::source_backed_component_session();
+        let capability = session.host_measurement_capability();
+        let current = WorthUiHostCapabilityObservationGeneration::new(
+            capability.observation_generation().as_u64() + 1,
+        );
+        let denial = admit_host_capability(
+            Some(capability.session_identity()),
+            Some(current),
+            capability.session_identity(),
+            capability.observation_generation(),
+        )
+        .expect_err("stale host evidence must stop before source ingress");
+        assert_eq!(
+            denial,
+            crate::host::UiHostMeasurementEvidenceDenial::StaleHostObservationGeneration
+        );
     }
 }

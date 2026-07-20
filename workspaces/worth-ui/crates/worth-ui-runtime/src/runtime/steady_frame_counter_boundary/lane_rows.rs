@@ -63,8 +63,16 @@ pub(crate) fn virtualized_rows(
             counters.visible_column_touch_count(),
         ),
         count(
-            counter_schema::VIRTUALIZED_QUERY_PATCH_ROWS,
-            counters.query_patch_row_count(),
+            counter_schema::VIRTUALIZED_VISIBLE_CELLS_TOUCHED,
+            counters.visible_cell_touch_count(),
+        ),
+        count(
+            counter_schema::VIRTUALIZED_DIRECT_ROW_LOOKUPS,
+            counters.direct_row_lookup_count(),
+        ),
+        count(
+            counter_schema::VIRTUALIZED_EVIDENCE_REFERENCE_LOOKUPS,
+            counters.evidence_reference_lookup_count(),
         ),
         count(
             counter_schema::VIRTUALIZED_FULL_COLLECTION_SCAN_COUNT,
@@ -73,6 +81,14 @@ pub(crate) fn virtualized_rows(
         count(
             counter_schema::VIRTUALIZED_OFFSET_PAGINATION_SUBSTITUTE_COUNT,
             counters.offset_pagination_substitute_count(),
+        ),
+        count(
+            counter_schema::VIRTUALIZED_QUERY_COLLECTION_EXECUTION_COUNT,
+            counters.query_collection_execution_count(),
+        ),
+        count(
+            counter_schema::VIRTUALIZED_DIAGNOSTIC_MATERIALIZATION_COUNT,
+            counters.diagnostic_materialization_count(),
         ),
     ]
 }
@@ -127,6 +143,10 @@ pub(crate) fn realtime_rows(counters: WorthUiRealtimeLaneCounters) -> Vec<WorthU
         count(
             counter_schema::REALTIME_RENDERER_SURFACE_HANDOFFS,
             counters.renderer_surface_handoff_count(),
+        ),
+        count(
+            counter_schema::REALTIME_TARGETED_OVERLAY_ROWS,
+            counters.targeted_overlay_row_count(),
         ),
         count(
             counter_schema::REALTIME_ORDINARY_LAYOUT_PASSES,
@@ -190,7 +210,7 @@ pub(crate) fn aggregate_rows(counters: WorthUiSteadyFrameCounters) -> Vec<WorthU
             counters.total_glyph_upload_count(),
         ),
         count_u64(
-            counter_schema::STEADY_ALLOCATIONS,
+            counter_schema::STEADY_EXECUTOR_ALLOCATIONS,
             counters.total_allocation_count(),
         ),
         count_u64(

@@ -13,13 +13,6 @@ pub struct WorthUiRuntimeHandleAllocation {
     family_widths: WorthUiRuntimeHandleFamilyWidths,
     counters: WorthUiRuntimeHandleAllocationCounters,
     runtime_handles: Vec<WorthUiRuntimeHandle>,
-    component_handles: Vec<WorthUiComponentHandle>,
-    command_handles: Vec<WorthUiCommandHandle>,
-    token_handles: Vec<WorthUiTokenHandle>,
-    child_range_handles: Vec<WorthUiChildRangeHandle>,
-    view_binding_handles: Vec<WorthUiViewBindingHandle>,
-    lane_handles: Vec<WorthUiLaneHandle>,
-    state_slot_handles: Vec<WorthUiStateSlotHandle>,
 }
 
 pub(crate) struct WorthUiRuntimeHandleAllocationInput {
@@ -28,13 +21,6 @@ pub(crate) struct WorthUiRuntimeHandleAllocationInput {
     pub family_widths: WorthUiRuntimeHandleFamilyWidths,
     pub counters: WorthUiRuntimeHandleAllocationCounters,
     pub runtime_handles: Vec<WorthUiRuntimeHandle>,
-    pub component_handles: Vec<WorthUiComponentHandle>,
-    pub command_handles: Vec<WorthUiCommandHandle>,
-    pub token_handles: Vec<WorthUiTokenHandle>,
-    pub child_range_handles: Vec<WorthUiChildRangeHandle>,
-    pub view_binding_handles: Vec<WorthUiViewBindingHandle>,
-    pub lane_handles: Vec<WorthUiLaneHandle>,
-    pub state_slot_handles: Vec<WorthUiStateSlotHandle>,
 }
 
 impl WorthUiRuntimeHandleAllocation {
@@ -45,13 +31,6 @@ impl WorthUiRuntimeHandleAllocation {
             family_widths,
             counters,
             runtime_handles,
-            component_handles,
-            command_handles,
-            token_handles,
-            child_range_handles,
-            view_binding_handles,
-            lane_handles,
-            state_slot_handles,
         } = input;
         Self {
             basis,
@@ -59,13 +38,6 @@ impl WorthUiRuntimeHandleAllocation {
             family_widths,
             counters,
             runtime_handles,
-            component_handles,
-            command_handles,
-            token_handles,
-            child_range_handles,
-            view_binding_handles,
-            lane_handles,
-            state_slot_handles,
         }
     }
 
@@ -89,31 +61,64 @@ impl WorthUiRuntimeHandleAllocation {
         &self.runtime_handles
     }
 
-    pub fn component_handles(&self) -> &[WorthUiComponentHandle] {
-        &self.component_handles
+    pub fn component_handles(&self) -> impl Iterator<Item = WorthUiComponentHandle> + '_ {
+        self.project_family(
+            crate::runtime::WorthUiPlanNodeInputFamily::ComponentInvocation,
+            WorthUiComponentHandle::from_runtime_handle,
+        )
     }
 
-    pub fn command_handles(&self) -> &[WorthUiCommandHandle] {
-        &self.command_handles
+    pub fn command_handles(&self) -> impl Iterator<Item = WorthUiCommandHandle> + '_ {
+        self.project_family(
+            crate::runtime::WorthUiPlanNodeInputFamily::Command,
+            WorthUiCommandHandle::from_runtime_handle,
+        )
     }
 
-    pub fn token_handles(&self) -> &[WorthUiTokenHandle] {
-        &self.token_handles
+    pub fn token_handles(&self) -> impl Iterator<Item = WorthUiTokenHandle> + '_ {
+        self.project_family(
+            crate::runtime::WorthUiPlanNodeInputFamily::TokenStyle,
+            WorthUiTokenHandle::from_runtime_handle,
+        )
     }
 
-    pub fn child_range_handles(&self) -> &[WorthUiChildRangeHandle] {
-        &self.child_range_handles
+    pub fn child_range_handles(&self) -> impl Iterator<Item = WorthUiChildRangeHandle> + '_ {
+        self.project_family(
+            crate::runtime::WorthUiPlanNodeInputFamily::ChildRange,
+            WorthUiChildRangeHandle::from_runtime_handle,
+        )
     }
 
-    pub fn view_binding_handles(&self) -> &[WorthUiViewBindingHandle] {
-        &self.view_binding_handles
+    pub fn view_binding_handles(&self) -> impl Iterator<Item = WorthUiViewBindingHandle> + '_ {
+        self.project_family(
+            crate::runtime::WorthUiPlanNodeInputFamily::QueryViewBinding,
+            WorthUiViewBindingHandle::from_runtime_handle,
+        )
     }
 
-    pub fn lane_handles(&self) -> &[WorthUiLaneHandle] {
-        &self.lane_handles
+    pub fn lane_handles(&self) -> impl Iterator<Item = WorthUiLaneHandle> + '_ {
+        self.project_family(
+            crate::runtime::WorthUiPlanNodeInputFamily::LanePartitionRef,
+            WorthUiLaneHandle::from_runtime_handle,
+        )
     }
 
-    pub fn state_slot_handles(&self) -> &[WorthUiStateSlotHandle] {
-        &self.state_slot_handles
+    pub fn state_slot_handles(&self) -> impl Iterator<Item = WorthUiStateSlotHandle> + '_ {
+        self.project_family(
+            crate::runtime::WorthUiPlanNodeInputFamily::StateSlot,
+            WorthUiStateSlotHandle::from_runtime_handle,
+        )
+    }
+
+    fn project_family<'a, T: 'a>(
+        &'a self,
+        family: crate::runtime::WorthUiPlanNodeInputFamily,
+        project: fn(WorthUiRuntimeHandle) -> T,
+    ) -> impl Iterator<Item = T> + 'a {
+        self.runtime_handles
+            .iter()
+            .copied()
+            .filter(move |handle| handle.family() == family)
+            .map(project)
     }
 }

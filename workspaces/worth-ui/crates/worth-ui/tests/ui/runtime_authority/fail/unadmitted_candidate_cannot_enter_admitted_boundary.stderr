@@ -1,13 +1,12 @@
-error[E0308]: mismatched types
- --> tests/ui/runtime_authority/fail/unadmitted_candidate_cannot_enter_admitted_boundary.rs:8:33
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiAdmittedReplacementCandidate`, `worth_ui::facade::WorthUiReplacementCandidate`
+ --> tests/ui/runtime_authority/fail/unadmitted_candidate_cannot_enter_admitted_boundary.rs:1:24
   |
-8 |     requires_admitted_candidate(raw_candidate);
-  |     --------------------------- ^^^^^^^^^^^^^ expected `WorthUiAdmittedReplacementCandidate`, found `WorthUiReplacementCandidate`
-  |     |
-  |     arguments to this function are incorrect
+1 | use worth_ui::facade::{WorthUiAdmittedReplacementCandidate, WorthUiReplacementCandidate};
+  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiReplacementCandidate` in `facade`
+  |                        |
+  |                        no `WorthUiAdmittedReplacementCandidate` in `facade`
   |
-note: function defined here
- --> tests/ui/runtime_authority/fail/unadmitted_candidate_cannot_enter_admitted_boundary.rs:3:4
-  |
-3 | fn requires_admitted_candidate(_candidate: WorthUiAdmittedReplacementCandidate) {}
-  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ -----------------------------------------------
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiAdmittedReplacementCandidate
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiReplacementCandidate

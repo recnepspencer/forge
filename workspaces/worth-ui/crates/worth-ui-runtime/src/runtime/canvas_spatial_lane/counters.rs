@@ -21,14 +21,9 @@ pub struct WorthUiCanvasSpatialCounters {
 }
 
 impl WorthUiCanvasSpatialCounters {
-    pub(crate) fn record_canvas_plan_row(&mut self) {
-        self.canvas_plan_row_count += 1;
+    pub(crate) fn record_canvas_plan_rows(&mut self, count: usize) {
+        self.canvas_plan_row_count += count;
     }
-
-    pub(crate) fn record_skipped_noncanvas_plan_row(&mut self) {
-        self.skipped_noncanvas_plan_row_count += 1;
-    }
-
     pub(crate) fn record_admitted_hook_family(&mut self) {
         self.draw_hook_count += 1;
         self.hit_test_hook_count += 1;
@@ -54,14 +49,6 @@ impl WorthUiCanvasSpatialCounters {
     pub(crate) fn record_tool_state_attachment(&mut self) {
         self.tool_state_attachment_count += 1;
         self.selection_identity_preservation_count += 1;
-    }
-
-    pub(crate) fn record_command_identity_preservation(&mut self, count: usize) {
-        self.command_identity_preservation_count += count;
-    }
-
-    pub(crate) fn record_diagnostics_posture(&mut self, count: usize) {
-        self.diagnostics_posture_count += count;
     }
 
     pub(crate) fn record_renderer_reference(&mut self, count: usize) {

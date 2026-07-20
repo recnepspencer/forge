@@ -10,9 +10,9 @@ use worth_ui_runtime::facade::evidence::{
     certify_measurement_basis_determinism_for_scenarios, UiMeasurementBasisCertificationScenario,
 };
 
-pub(super) fn admit_candidate_catalog(
+pub fn admit_candidate_catalog(
     prepared: &mut WorthUiPreparedApplicationReplacement,
-) -> worth_ui::facade::graph::UiAdmittedAllocationCatalogBasisSet {
+) -> worth_ui::facade::graph::UiAdmittedAllocationCatalogDelta {
     let candidates = prepared
         .candidate_graph()
         .node_identities()
@@ -128,6 +128,6 @@ pub(super) fn admit_candidate_catalog(
         .collect();
 
     prepared
-        .admit_candidate_allocation_catalog(entries)
-        .expect("candidate graph should admit complete allocation coverage")
+        .admit_candidate_allocation_catalog_delta(entries, vec![])
+        .expect("candidate graph should admit changed allocation coverage")
 }

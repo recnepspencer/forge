@@ -1,4 +1,7 @@
-use worth_ui::facade::{AdmittedCapability, CapabilitySupportPosture, CommandId};
+use worth_ui::facade::{
+    registry::CommandId,
+    support::{AdmittedCapability, CapabilitySupportPosture},
+};
 
 fn requires_admitted(_capability: AdmittedCapability<CommandId>) {}
 

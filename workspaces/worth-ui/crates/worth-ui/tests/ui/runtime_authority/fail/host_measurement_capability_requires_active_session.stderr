@@ -1,11 +1,2 @@
 error[E0451]: fields `session_identity`, `capability_report` and `adapter` of struct `WorthUiHostMeasurementCapability` are private
-  --> tests/ui/runtime_authority/fail/host_measurement_capability_requires_active_session.rs:13:9
-   |
-12 |     WorthUiHostMeasurementCapability {
-   |     -------------------------------- in this type
-13 |         session_identity,
-   |         ^^^^^^^^^^^^^^^^ private field
-14 |         capability_report,
-   |         ^^^^^^^^^^^^^^^^^ private field
-15 |         adapter,
-   |         ^^^^^^^ private field
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/host_measurement_capability_requires_active_session.rs

@@ -1,6 +1,6 @@
 use worth_ui::facade::{
-    ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
-    ComponentStateOwnership, WorthUi,
+    app::WorthUi,
+    registry::{ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentStateOwnership},
 };
 
 fn main() {

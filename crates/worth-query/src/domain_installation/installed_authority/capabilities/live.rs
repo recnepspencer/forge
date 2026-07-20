@@ -20,7 +20,7 @@ use super::super::{
 use super::{
     close_outcome, WorthQueryInstalledDomainLiveCheckpointOutcome,
     WorthQueryInstalledDomainLiveCheckpointStop, WorthQueryInstalledDomainLiveCloseOutcome,
-    WorthQueryInstalledDomainLiveContinuation,
+    WorthQueryInstalledDomainLiveContinuation, WorthQueryInstalledDomainProjectionOutcome,
 };
 
 pub struct WorthQueryInstalledDomainLiveDeclaration<D> {
@@ -73,19 +73,22 @@ impl<D: 'static> WorthQueryInstalledDomainLiveRequest<D> {
         let basis_identity = workspace.snapshot_identity().evidence_identity();
         Ok(match self.request.open(workspace) {
             WorthQueryLiveOpenOutcome::Opened(completion) => {
-                let receipt = WorthQueryInstalledDomainExecutionReceipt::new(
+                let context_receipt_digest = completion.context_receipt().digest().to_string();
+                let handle = completion.into_handle();
+                let receipt = WorthQueryInstalledDomainExecutionReceipt::new_managed_live(
                     self.witness,
                     WorthQueryInstalledDomainCapabilityKind::LiveOpen,
                     declaration_identity,
                     basis_identity,
                     WorthQueryInstalledDomainExecutionReceipt::label_identity(
                         "live-context-admission",
-                        completion.context_receipt().digest(),
+                        &context_receipt_digest,
                     ),
+                    handle.resource_identity().clone(),
                 );
                 WorthQueryInstalledDomainLiveOpenOutcome::Opened(
                     WorthQueryInstalledDomainLiveHandle {
-                        handle: completion.into_handle(),
+                        handle,
                         receipt,
                         marker: PhantomData,
                     },
@@ -143,6 +146,19 @@ impl<D: 'static> WorthQueryInstalledDomainLiveHandle<D> {
             ),
         );
         Ok(WorthQueryInstalledDomainLiveRead { result, receipt })
+    }
+
+    pub fn project(
+        &self,
+        read: &WorthQueryInstalledDomainLiveRead,
+        declaration: crate::ordinary::read::WorthQueryProjectionDeclaration,
+    ) -> WorthQueryInstalledDomainProjectionOutcome<D> {
+        let outcome = self.handle.project(read.result(), declaration);
+        let receipt = self.receipt.derive(
+            WorthQueryInstalledDomainCapabilityKind::Projection,
+            read.receipt().operational_identity().clone(),
+        );
+        WorthQueryInstalledDomainProjectionOutcome::from_outcome(outcome, receipt)
     }
 
     pub fn drain(

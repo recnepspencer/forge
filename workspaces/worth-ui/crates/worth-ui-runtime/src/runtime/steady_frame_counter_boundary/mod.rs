@@ -8,6 +8,7 @@ mod lane_frame_receipt;
 mod lane_rows;
 mod report_planning;
 mod steady_counters;
+mod work_scope;
 
 pub use boundary::{WorthUiSteadyFrameCounterBoundary, WorthUiSteadyFrameCounterReceiptBuilder};
 pub use denial::{WorthUiSteadyFrameCounterDenial, WorthUiSteadyFrameCounterDenialReason};
@@ -24,3 +25,4 @@ pub use report_planning::{
     WorthUiSteadyFrameReportPlanner,
 };
 pub use steady_counters::WorthUiSteadyFrameCounters;
+pub use work_scope::WorthUiFrameWorkScope;

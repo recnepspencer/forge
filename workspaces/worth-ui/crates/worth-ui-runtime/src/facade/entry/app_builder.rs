@@ -161,7 +161,7 @@ impl WorthUiBuilder {
         self
     }
 
-    #[cfg(any(test, feature = "certification-support"))]
+    #[cfg(test)]
     pub(crate) fn register_view_binding(
         mut self,
         descriptor: crate::facade::registry::ViewBindingDescriptor,

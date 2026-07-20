@@ -301,21 +301,3 @@ crates/worth-query/src/runtime/tests/mutation/graph_composition_edge_split.rs
 # Owner: worth-query aspect-native live builder field-key migration.
 # Removal trigger: split naming mutation scenarios by rename, conflict, batch, and preview family.
 crates/worth-query/src/runtime/tests/mutation/naming.rs
-
-# Owner: Worth UI structural cleanup after milestone 3.8 phases 12-18.
-# Removal trigger: split each file by its named audit, authority, or scenario family before touching it.
-workspaces/worth-ui/crates/worth-ui-certification/src/topology/dependency_audit.rs
-workspaces/worth-ui/crates/worth-ui-certification/src/topology/graph_mutation_boundary_audit.rs
-workspaces/worth-ui/crates/worth-ui-certification/src/topology/graph_residue_audit.rs
-workspaces/worth-ui/crates/worth-ui-certification/src/topology/milestone_37_structural_inventory_audit.rs
-workspaces/worth-ui/crates/worth-ui-certification/tests/graph_instantiation_runtime.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/admission/boundary/measurement_entry_boundary.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/declaration/tests.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/evidence/measurement/basis/assembly.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/graph/admission/graph_instantiation_plan.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/graph/allocation_neighborhood/constraint_authority/derivation/constraint_equal_share_distribution.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/graph/allocation_neighborhood/replan_selection/transaction/replan_authority.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/stream_policy/composition/pair_policy.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/tests/activation/production_catalog_activation_test_support.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/tests/source_ingress/source_backed_package_boundary_tests.rs
-workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/tests/source_ingress/source_ingress_boundary_tests.rs

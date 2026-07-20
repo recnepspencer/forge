@@ -1,4 +1,7 @@
-use crate::runtime::{WorthUiCommandHandle, WorthUiComponentHandle, WorthUiTokenHandle};
+use crate::runtime::{
+    WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle, WorthUiStateSlotHandle,
+    WorthUiTokenHandle,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiOrdinaryFrameTarget {
@@ -9,22 +12,10 @@ pub struct WorthUiOrdinaryFrameTarget {
 pub(crate) enum WorthUiOrdinaryFrameTargetKind {
     RootShell,
     Component(WorthUiComponentHandle),
+    ChildRange(WorthUiChildRangeHandle),
     Command(WorthUiCommandHandle),
     TokenSupport(WorthUiTokenHandle),
-    #[cfg(test)]
-    VirtualizedData(u32),
-    #[cfg(test)]
-    CanvasSpatial(u32),
-    #[cfg(test)]
-    RealtimeOverlay(u32),
-    #[cfg(test)]
-    ParseSourceForTest,
-    #[cfg(test)]
-    RegistryLookupForTest,
-    #[cfg(test)]
-    ArtifactScanForTest,
-    #[cfg(test)]
-    FullPlanScanForTest,
+    StateSlot(WorthUiStateSlotHandle),
 }
 
 impl WorthUiOrdinaryFrameTarget {
@@ -46,9 +37,21 @@ impl WorthUiOrdinaryFrameTarget {
         }
     }
 
+    pub fn child_range(handle: WorthUiChildRangeHandle) -> Self {
+        Self {
+            kind: WorthUiOrdinaryFrameTargetKind::ChildRange(handle),
+        }
+    }
+
     pub fn token_support(handle: WorthUiTokenHandle) -> Self {
         Self {
             kind: WorthUiOrdinaryFrameTargetKind::TokenSupport(handle),
+        }
+    }
+
+    pub fn state_slot(handle: WorthUiStateSlotHandle) -> Self {
+        Self {
+            kind: WorthUiOrdinaryFrameTargetKind::StateSlot(handle),
         }
     }
 
@@ -56,56 +59,32 @@ impl WorthUiOrdinaryFrameTarget {
         self.kind
     }
 
+    pub(crate) fn host_output_target(
+        self,
+    ) -> worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget {
+        match self.kind {
+            WorthUiOrdinaryFrameTargetKind::RootShell => {
+                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::RootShell
+            }
+            WorthUiOrdinaryFrameTargetKind::Component(_) => {
+                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::Component
+            }
+            WorthUiOrdinaryFrameTargetKind::ChildRange(_) => {
+                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::ChildRange
+            }
+            WorthUiOrdinaryFrameTargetKind::Command(_) => {
+                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::Command
+            }
+            WorthUiOrdinaryFrameTargetKind::TokenSupport(_) => {
+                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::TokenSupport
+            }
+            WorthUiOrdinaryFrameTargetKind::StateSlot(_) => {
+                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::StateSlot
+            }
+        }
+    }
+
     pub const fn is_command(self) -> bool {
         matches!(self.kind, WorthUiOrdinaryFrameTargetKind::Command(_))
-    }
-
-    #[cfg(test)]
-    pub(crate) fn virtualized_data_for_test(plan_index: u32) -> Self {
-        Self {
-            kind: WorthUiOrdinaryFrameTargetKind::VirtualizedData(plan_index),
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn canvas_spatial_for_test(plan_index: u32) -> Self {
-        Self {
-            kind: WorthUiOrdinaryFrameTargetKind::CanvasSpatial(plan_index),
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn realtime_overlay_for_test(plan_index: u32) -> Self {
-        Self {
-            kind: WorthUiOrdinaryFrameTargetKind::RealtimeOverlay(plan_index),
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn parse_source_for_test() -> Self {
-        Self {
-            kind: WorthUiOrdinaryFrameTargetKind::ParseSourceForTest,
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn registry_lookup_for_test() -> Self {
-        Self {
-            kind: WorthUiOrdinaryFrameTargetKind::RegistryLookupForTest,
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn artifact_scan_for_test() -> Self {
-        Self {
-            kind: WorthUiOrdinaryFrameTargetKind::ArtifactScanForTest,
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn full_plan_scan_for_test() -> Self {
-        Self {
-            kind: WorthUiOrdinaryFrameTargetKind::FullPlanScanForTest,
-        }
     }
 }

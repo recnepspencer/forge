@@ -1,5 +1,6 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{admitted_planning_admission, allocation_planning};
+use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputPreparer;
 use crate::runtime::{
     UiAllocationCandidate, WorthUiChildRangeHandle, WorthUiExecutionPlanInput,
     WorthUiPlanNodeInputFamily, WorthUiRuntimeHandleAllocation,
@@ -12,10 +13,37 @@ pub(super) fn topology_fixture() -> (
     WorthUiRuntimeHandleAllocation,
 ) {
     let inputs = activation_staging_inputs();
+    topology_fixture_from_activation(inputs)
+}
+
+pub(super) fn topology_fixture_with_app(
+    app: crate::facade::WorthUiApp,
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiExecutionPlanInput,
+    UiAllocationCandidate,
+    WorthUiRuntimeHandleAllocation,
+) {
+    topology_fixture_from_activation(
+        super::activation_staging_test_support::activation_staging_inputs_for(app),
+    )
+}
+
+fn topology_fixture_from_activation(
+    inputs: super::activation_staging_test_support::ActivationStagingInputs,
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiExecutionPlanInput,
+    UiAllocationCandidate,
+    WorthUiRuntimeHandleAllocation,
+) {
+    let plan_input = WorthUiExecutionPlanInputPreparer::prepare_launch(
+        inputs.admitted.artifact_bundle().artifact(),
+        inputs.admitted.artifact_bundle().artifact_digest(),
+        inputs.runtime.frame_epoch(),
+        inputs.app.prepared_authority().query_binding_plan(),
+    );
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
     let (measurement_basis, snapshot, selected) =
         admitted_planning_admission("plan-topology.fixture", "operator:stack");
     let planning = runtime.plan_allocation(
@@ -23,71 +51,55 @@ pub(super) fn topology_fixture() -> (
             .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
             .expect("topology fixture planning admits through graph authority"),
     );
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input.clone());
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("handles allocate");
     (runtime, plan_input, planning, allocation)
 }
 
-pub(super) fn topology_planning(
-    plan_input: &WorthUiExecutionPlanInput,
-    label: &str,
-) -> UiAllocationCandidate {
-    let (runtime, _, _, _) = topology_fixture();
-    allocation_planning(&runtime, plan_input, label)
+pub(super) fn topology_planning(label: &str) -> UiAllocationCandidate {
+    let (runtime, pending) = activation_staging_inputs().into_runtime_and_pending();
+    allocation_planning(&runtime, &pending, label)
 }
 
-pub(super) fn allocate_handles(planning: &UiAllocationCandidate) -> WorthUiRuntimeHandleAllocation {
+pub(super) fn allocate_handles(
+    planning: &UiAllocationCandidate,
+    plan_input: &WorthUiExecutionPlanInput,
+) -> WorthUiRuntimeHandleAllocation {
     let runtime = fresh_runtime();
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(planning, plan_input.clone());
     runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(planning))
+        .allocate_runtime_handles(&facts)
         .expect("handles allocate")
 }
 
 pub(super) fn assemble(
     planning: &UiAllocationCandidate,
+    plan_input: &WorthUiExecutionPlanInput,
     allocation: &WorthUiRuntimeHandleAllocation,
 ) -> crate::runtime::WorthUiExecutionPlan {
     let runtime = fresh_runtime();
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(planning, plan_input.clone());
     runtime
-        .assemble_execution_plan_topology(
-            &runtime.detached_allocation_lowering_input_for_test(planning),
-            allocation,
-        )
+        .assemble_execution_plan_topology(&facts, allocation)
         .expect("topology assembles")
 }
 
 pub(super) fn assemble_err(
     planning: &UiAllocationCandidate,
+    plan_input: &WorthUiExecutionPlanInput,
     allocation: &WorthUiRuntimeHandleAllocation,
 ) -> crate::runtime::WorthUiPlanTopologyDenial {
     let runtime = fresh_runtime();
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(planning, plan_input.clone());
     runtime
-        .assemble_execution_plan_topology(
-            &runtime.detached_allocation_lowering_input_for_test(planning),
-            allocation,
-        )
+        .assemble_execution_plan_topology(&facts, allocation)
         .expect_err("topology assembly denies")
-}
-
-pub(super) fn plan_input_without_first_egui_boundary(
-    plan_input: WorthUiExecutionPlanInput,
-) -> WorthUiExecutionPlanInput {
-    replace_first_matching_input(
-        plan_input,
-        |input| {
-            matches!(
-                input.family(),
-                WorthUiPlanNodeInputFamily::ComponentInvocation
-                    | WorthUiPlanNodeInputFamily::LayoutRegion
-                    | WorthUiPlanNodeInputFamily::QueryViewBinding
-                    | WorthUiPlanNodeInputFamily::TokenStyle
-                    | WorthUiPlanNodeInputFamily::DiagnosticsRef
-                    | WorthUiPlanNodeInputFamily::EguiBoundaryRef
-            )
-        },
-        |input| input.without_egui_boundary_for_test(),
-    )
 }
 
 pub(super) fn plan_input_without_first_region_structure(
@@ -111,22 +123,36 @@ pub(super) fn allocation_with_runtime_handles(
     allocation: &WorthUiRuntimeHandleAllocation,
     runtime_handles: Vec<crate::runtime::WorthUiRuntimeHandle>,
 ) -> WorthUiRuntimeHandleAllocation {
-    rebuilt_allocation(
-        allocation,
-        runtime_handles,
-        allocation.child_range_handles().to_vec(),
-    )
+    rebuilt_allocation(allocation, runtime_handles)
 }
 
 pub(super) fn allocation_with_child_ranges(
     allocation: &WorthUiRuntimeHandleAllocation,
     child_range_handles: Vec<WorthUiChildRangeHandle>,
 ) -> WorthUiRuntimeHandleAllocation {
-    rebuilt_allocation(
-        allocation,
-        allocation.runtime_handles().to_vec(),
-        child_range_handles,
-    )
+    let mut replacements = child_range_handles.into_iter();
+    let mut runtime_handles = Vec::new();
+    for handle in allocation.runtime_handles().iter().copied() {
+        if handle.family() != WorthUiPlanNodeInputFamily::ChildRange {
+            runtime_handles.push(handle);
+        } else if let Some(replacement) = replacements.next() {
+            runtime_handles.push(crate::runtime::WorthUiRuntimeHandle::new(
+                WorthUiPlanNodeInputFamily::ChildRange,
+                replacement.plan_index(),
+                replacement.slot_generation(),
+                replacement.arena_identity(),
+            ));
+        }
+    }
+    runtime_handles.extend(replacements.map(|replacement| {
+        crate::runtime::WorthUiRuntimeHandle::new(
+            WorthUiPlanNodeInputFamily::ChildRange,
+            replacement.plan_index(),
+            replacement.slot_generation(),
+            replacement.arena_identity(),
+        )
+    }));
+    rebuilt_allocation(allocation, runtime_handles)
 }
 
 fn fresh_runtime() -> crate::runtime::WorthUiRuntimeFrameworkLoop {
@@ -155,7 +181,6 @@ fn replace_first_matching_input(
 fn rebuilt_allocation(
     allocation: &WorthUiRuntimeHandleAllocation,
     runtime_handles: Vec<crate::runtime::WorthUiRuntimeHandle>,
-    child_range_handles: Vec<WorthUiChildRangeHandle>,
 ) -> WorthUiRuntimeHandleAllocation {
     WorthUiRuntimeHandleAllocation::new(
         crate::runtime::execution::handle_allocation::WorthUiRuntimeHandleAllocationInput {
@@ -164,13 +189,6 @@ fn rebuilt_allocation(
             family_widths: allocation.family_widths(),
             counters: allocation.counters(),
             runtime_handles,
-            component_handles: allocation.component_handles().to_vec(),
-            command_handles: allocation.command_handles().to_vec(),
-            token_handles: allocation.token_handles().to_vec(),
-            child_range_handles,
-            view_binding_handles: allocation.view_binding_handles().to_vec(),
-            lane_handles: allocation.lane_handles().to_vec(),
-            state_slot_handles: allocation.state_slot_handles().to_vec(),
         },
     )
 }

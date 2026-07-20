@@ -3,8 +3,13 @@
 
 #[path = "../allocation_planning/mod.rs"]
 pub mod allocation_planning;
+mod allocation_replan_denial;
 #[path = "../execution_plan_input/mod.rs"]
 pub mod execution_plan_input;
+#[path = "../execution_plan_lowering_authority.rs"]
+mod execution_plan_lowering_authority;
+#[path = "../execution_plan_lowering_identity.rs"]
+mod execution_plan_lowering_identity;
 #[path = "../plan_equivalence/mod.rs"]
 pub mod plan_equivalence;
 #[path = "../plan_inspection/mod.rs"]
@@ -26,11 +31,17 @@ impl UiAllocationCandidateMintAuthority {
     }
 }
 
+#[cfg(test)]
+pub(crate) use execution_plan_lowering_authority::test_support::facts_below_authority;
+pub(crate) use execution_plan_lowering_authority::{
+    WorthUiExecutionPlanLoweringAuthority, WorthUiExecutionPlanLoweringAuthorityDenial,
+    WorthUiExecutionPlanLoweringFacts,
+};
+pub(crate) use execution_plan_lowering_identity::WorthUiExecutionPlanLoweringIdentity;
 pub(crate) use input_handoff::construct_verified_planning_input_handoff;
 
+pub(crate) use allocation_replan_denial::WorthUiAllocationReplanDenial;
 pub(crate) use measurement_basis::collect_planning_measurement_basis;
-#[cfg(test)]
-pub(crate) use plan_allocation::candidate_from_test_planning;
 pub(crate) use plan_allocation::plan_allocation_for_pending_activation;
 pub(crate) use plan_allocation::replan_selected_candidates_with_portal;
 pub(crate) use plan_allocation::replan_selected_candidates_with_resize;

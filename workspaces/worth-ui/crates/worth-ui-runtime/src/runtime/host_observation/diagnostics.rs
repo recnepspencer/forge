@@ -6,6 +6,7 @@ use crate::runtime::diagnostics::mapping::lane::diagnostic_for_lane_admission;
 use crate::runtime::diagnostics::mapping::plan::{
     diagnostic_for_plan_inspection, diagnostic_for_plan_lowering,
 };
+use crate::runtime::diagnostics::mapping::projection::diagnostic_for_projection_hook;
 use crate::runtime::diagnostics::mapping::query::{
     diagnostic_for_query_live_rebind, diagnostic_for_query_recovery,
 };
@@ -19,14 +20,12 @@ use crate::runtime::diagnostics::mapping::swap::diagnostic_for_committed_allocat
 use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
     WorthUiActivationGateDenial, WorthUiActivationStagingDenial, WorthUiCandidateAdmissionDenial,
-    WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticSource,
-    WorthUiDurableStateReconciliationDenial, WorthUiIdentityMatchDenial,
-    WorthUiLaneAdmissionDenial, WorthUiPlanInspectionDenial, WorthUiPlanLoweringDenial,
-    WorthUiQueryBindingDriftDenial, WorthUiQueryLiveRebindPlanDenial, WorthUiReloadFailure,
-    WorthUiReplacementCandidateDenial, WorthUiReplacementImpactDenial,
-    WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
-    WorthUiRuntimeDiagnosticFamily, WorthUiRuntimeDiagnosticReport,
-    WorthUiRuntimeImpactNarrowingDenial,
+    WorthUiDiagnosticRichnessPolicy, WorthUiDurableStateReconciliationDenial,
+    WorthUiIdentityMatchDenial, WorthUiLaneAdmissionDenial, WorthUiPlanInspectionDenial,
+    WorthUiPlanLoweringDenial, WorthUiQueryBindingDriftDenial, WorthUiQueryLiveRebindPlanDenial,
+    WorthUiReloadFailure, WorthUiReplacementCandidateDenial, WorthUiReplacementImpactDenial,
+    WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeDiagnostic,
+    WorthUiRuntimeDiagnosticReport, WorthUiRuntimeImpactNarrowingDenial,
 };
 
 pub struct WorthUiRuntimeDiagnostics<'a> {
@@ -162,14 +161,7 @@ impl<'a> WorthUiRuntimeDiagnostics<'a> {
         self,
         hook: &crate::runtime::WorthUiDiagnosticProjectionHook,
     ) -> WorthUiRuntimeDiagnosticRequest<'a> {
-        self.request(vec![WorthUiRuntimeDiagnostic::new(
-            WorthUiRuntimeDiagnosticFamily::DiagnosticsProjection,
-            WorthUiRuntimeDiagnosticCode::DiagnosticsProjectionAdmitted,
-            WorthUiDiagnosticSource::ProjectionHook {
-                hook_digest: hook.projection_digest(),
-            },
-            Some(hook.projection_digest()),
-        )])
+        self.request(vec![diagnostic_for_projection_hook(hook)])
     }
 
     fn request(self, rows: Vec<WorthUiRuntimeDiagnostic>) -> WorthUiRuntimeDiagnosticRequest<'a> {

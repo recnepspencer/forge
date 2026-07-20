@@ -1,8 +1,11 @@
-use super::allocation_planning_test_support::allocation_planning;
+use super::allocation_planning_test_support::{
+    allocation_planning, independent_allocation_planning,
+};
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime,
 };
+use crate::runtime::ordinary_lane::WorthUiOrdinaryLanePlanBuilder;
 use crate::runtime::{
     WorthUiComponentLoweringHook, WorthUiExecutionLane, WorthUiExecutionLaneSupport,
     WorthUiExecutionPlan, WorthUiExecutionPlanInput, WorthUiLaneAdmission, WorthUiOrdinaryLanePlan,
@@ -16,7 +19,18 @@ pub(super) fn ordinary_lane_fixture() -> (
     WorthUiOrdinaryLanePlan,
     WorthUiRuntimeHandleAllocation,
 ) {
-    let context = ordinary_execution_context();
+    let context = ordinary_execution_context(0);
+    (context.runtime, context.ordinary_plan, context.allocation)
+}
+
+pub(super) fn ordinary_lane_fixture_with_unrelated_diagnostics(
+    diagnostic_count: usize,
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiOrdinaryLanePlan,
+    WorthUiRuntimeHandleAllocation,
+) {
+    let context = ordinary_execution_context(diagnostic_count);
     (context.runtime, context.ordinary_plan, context.allocation)
 }
 
@@ -24,26 +38,22 @@ pub(super) fn ordinary_lane_denial_for_missing_family(
     removed_family: WorthUiPlanNodeInputFamily,
     removed_lane: WorthUiExecutionLane,
 ) -> WorthUiOrdinaryLanePlanDenial {
-    let context = ordinary_execution_context();
-    let admission_context = ordinary_execution_context();
+    let context = ordinary_execution_context(0);
+    let admission_context = ordinary_execution_context(0);
     let narrower_plan_input =
         plan_input_without_family(&admission_context.plan_input, removed_family);
     let receipt_runtime = fresh_ordinary_runtime();
-    let narrower_planning = allocation_planning(
-        &receipt_runtime,
-        &narrower_plan_input,
-        "ordinary-lane.missing-family",
-    );
+    let narrower_planning = independent_allocation_planning("ordinary-lane.missing-family");
+    let narrower_facts = receipt_runtime
+        .detached_execution_plan_lowering_facts_for_test(&narrower_planning, narrower_plan_input);
     let narrower_admission = receipt_runtime
         .admit_execution_lanes(
-            &receipt_runtime.detached_allocation_lowering_input_for_test(&narrower_planning),
+            &narrower_facts,
             &WorthUiExecutionLaneSupport::without_lane_for_test(removed_lane),
         )
         .expect("narrower input can be admitted without removed lane");
 
-    context
-        .runtime
-        .prepare_ordinary_lane_plan(&context.execution_plan, &narrower_admission)
+    WorthUiOrdinaryLanePlanBuilder::build(&context.execution_plan, &narrower_admission)
         .expect_err("ordinary plan refuses unrelated narrower admission")
 }
 
@@ -60,7 +70,7 @@ struct OrdinaryExecutionContext {
     ordinary_plan: WorthUiOrdinaryLanePlan,
 }
 
-fn ordinary_execution_context() -> OrdinaryExecutionContext {
+fn ordinary_execution_context(unrelated_diagnostic_count: usize) -> OrdinaryExecutionContext {
     let app = impact_test_app();
     let active = ordinary_source_artifact(&app);
     let candidate = ordinary_source_artifact(&app);
@@ -93,12 +103,8 @@ fn ordinary_execution_context() -> OrdinaryExecutionContext {
     let query_rebind_plan = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)
         .expect("query rebind planning succeeds");
-    let pending_execution_plan_lowering_input = runtime
-        .prepare_pending_execution_plan_lowering_input(
-            &node_plan,
-            &reconciliation_plan,
-            &query_rebind_plan,
-        );
+    let hooks = ordinary_component_hooks(unrelated_diagnostic_count);
+    let plan_input = runtime.prepare_reconstructive_plan_input_for_test(&admitted, &hooks);
     let pending = runtime
         .stage_replacement_activation(
             admitted,
@@ -108,32 +114,20 @@ fn ordinary_execution_context() -> OrdinaryExecutionContext {
             crate::runtime::WorthUiActivationStagingPlans::new(
                 Some(&reconciliation_plan),
                 Some(&query_rebind_plan),
-                Some(&pending_execution_plan_lowering_input),
             ),
         )
         .expect("activation staging succeeds");
-    let plan_input = runtime
-        .prepare_execution_plan_input_with_component_hooks_for_test(
-            pending,
-            &ordinary_component_hooks(),
-        )
-        .expect("execution plan input prepares");
+    let planning = allocation_planning(&runtime, &pending, "ordinary-lane.fixture");
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input.clone());
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(
-            &allocation_planning(&runtime, &plan_input, "ordinary-lane.fixture"),
-        ))
+        .allocate_runtime_handles(&facts)
         .expect("handle allocation succeeds");
-    let planning = allocation_planning(&runtime, &plan_input, "ordinary-lane.fixture");
-    let lane_admission = ordinary_lane_admission(&runtime, &planning);
+    let lane_admission = ordinary_lane_admission(&runtime, &facts);
     let execution_plan = runtime
-        .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &allocation,
-            &lane_admission,
-        )
+        .assemble_execution_plan_topology_with_lane_admission(&facts, &allocation, &lane_admission)
         .expect("execution plan topology assembles");
-    let ordinary_plan = runtime
-        .prepare_ordinary_lane_plan(&execution_plan, &lane_admission)
+    let ordinary_plan = WorthUiOrdinaryLanePlanBuilder::build(&execution_plan, &lane_admission)
         .expect("ordinary lane plan prepares");
 
     assert!(ordinary_plan.counters().ordinary_plan_row_count() > 0);
@@ -164,29 +158,28 @@ fn ordinary_source_module() -> WorthUiRustAuthoredArtifactInputModule {
         .with_token("theme.text.primary", "#101820")
 }
 
-fn ordinary_component_hooks() -> [WorthUiComponentLoweringHook; 2] {
-    [
+fn ordinary_component_hooks(
+    unrelated_diagnostic_count: usize,
+) -> Vec<WorthUiComponentLoweringHook> {
+    let mut hooks = vec![WorthUiComponentLoweringHook::registered(
+        "ordinary.fixture.diagnostics_skip",
+        WorthUiPlanNodeInputFamily::DiagnosticsRef,
+    )];
+    hooks.extend((0..unrelated_diagnostic_count).map(|index| {
         WorthUiComponentLoweringHook::registered(
-            "ordinary.fixture.command_surface",
-            WorthUiPlanNodeInputFamily::Command,
-        ),
-        WorthUiComponentLoweringHook::registered(
-            "ordinary.fixture.diagnostics_skip",
+            format!("ordinary.fixture.unrelated_diagnostic.{index}"),
             WorthUiPlanNodeInputFamily::DiagnosticsRef,
-        ),
-    ]
+        )
+    }));
+    hooks
 }
 
 fn ordinary_lane_admission(
     runtime: &WorthUiRuntime,
-    planning: &crate::runtime::UiAllocationCandidate,
+    facts: &crate::runtime::planning::WorthUiExecutionPlanLoweringFacts,
 ) -> WorthUiLaneAdmission {
-    let lowering_input = runtime.detached_allocation_lowering_input_for_test(planning);
     runtime
-        .admit_execution_lanes(
-            &lowering_input,
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+        .admit_execution_lanes(facts, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds")
 }
 

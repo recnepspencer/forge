@@ -1,8 +1,9 @@
-use crate::runtime::{UiCommittedAllocation, WorthUiAllocationPlanning, WorthUiRuntimeFrameEpoch};
+use crate::runtime::planning::WorthUiExecutionPlanLoweringFacts;
+use crate::runtime::WorthUiRuntimeFrameEpoch;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiRuntimeHandleAllocationBasis {
-    active_artifact_digest: u64,
+    prior_artifact_digest: Option<u64>,
     candidate_artifact_digest: u64,
     frame_epoch: WorthUiRuntimeFrameEpoch,
     plan_node_input_count: usize,
@@ -11,29 +12,13 @@ pub struct WorthUiRuntimeHandleAllocationBasis {
 }
 
 impl WorthUiRuntimeHandleAllocationBasis {
-    pub(crate) fn from_allocation_planning(
-        allocation_planning: &WorthUiAllocationPlanning,
-    ) -> Self {
-        let lowering_basis = allocation_planning
-            .lowering_basis()
-            .expect("allocation planning basis requires lowered input");
-        let node_inputs = allocation_planning
-            .node_inputs()
-            .expect("allocation planning basis requires lowered input");
+    pub(crate) fn from_lowering_authority(authority: &WorthUiExecutionPlanLoweringFacts) -> Self {
+        let lowering_basis = authority.plan_input().basis();
+        let node_inputs = authority.node_inputs();
         Self::from_lowered_parts(
             lowering_basis,
             node_inputs,
-            allocation_planning.planning_identity_digest(),
-        )
-    }
-
-    pub(crate) fn from_committed_allocation(allocation: &UiCommittedAllocation) -> Self {
-        let lowering_basis = allocation.lowering_basis();
-        let node_inputs = allocation.node_inputs();
-        Self::from_lowered_parts(
-            lowering_basis,
-            node_inputs,
-            allocation.allocation_identity_digest(),
+            authority.allocation_identity_digest(),
         )
     }
 
@@ -43,18 +28,20 @@ impl WorthUiRuntimeHandleAllocationBasis {
         allocation_planning_identity_digest: u64,
     ) -> Self {
         Self {
-            active_artifact_digest: lowering_basis.active_artifact_digest(),
+            prior_artifact_digest: lowering_basis.prior_artifact_digest(),
             candidate_artifact_digest: lowering_basis.candidate_artifact_digest(),
             frame_epoch: lowering_basis.frame_epoch(),
             plan_node_input_count: node_inputs.len(),
-            query_binding_input_count: lowering_basis.staged_query_rebind_entry_count(),
+            query_binding_input_count: lowering_basis.query_binding_input_count(),
             allocation_planning_identity_digest,
         }
     }
 
     pub(crate) fn digest(&self) -> u64 {
         0x8a11_d1e5_0000_000f
-            ^ self.active_artifact_digest.rotate_left(7)
+            ^ self
+                .prior_artifact_digest
+                .map_or(0x1a11_0000_0000_0000, |digest| digest.rotate_left(7))
             ^ self.candidate_artifact_digest.rotate_left(19)
             ^ (self.frame_epoch.as_u64()).rotate_left(31)
             ^ (self.plan_node_input_count as u64).rotate_left(43)
@@ -62,8 +49,8 @@ impl WorthUiRuntimeHandleAllocationBasis {
             ^ self.allocation_planning_identity_digest.rotate_left(3)
     }
 
-    pub fn active_artifact_digest(&self) -> u64 {
-        self.active_artifact_digest
+    pub fn prior_artifact_digest(&self) -> Option<u64> {
+        self.prior_artifact_digest
     }
 
     pub fn candidate_artifact_digest(&self) -> u64 {

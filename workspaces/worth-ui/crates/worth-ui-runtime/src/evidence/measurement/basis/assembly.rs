@@ -4,14 +4,14 @@ use super::assembly_support::{
     push_child_intrinsic_lineage, push_host_lineage, query_receipt_compatibility,
 };
 use super::{
-    denial::UiMeasurementBasisDenial, UiMeasurementBasisPosture, UiMeasurementEvidenceSlot,
+    denial::UiMeasurementBasisDenial, HostResultSlots, UiMeasurementBasisPosture,
+    UiMeasurementEvidenceSlot,
 };
 use crate::declaration::UiDeclaredMeasurementBasisRequirementSet;
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence, UiMeasurementDependencyLineage,
     UiMeasurementDependencyLineageEntry, UiMeasurementDependencyLineageKind,
-    UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiMeasurementResult,
-    UiProjectionFactReceipt,
+    UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiProjectionFactReceipt,
 };
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
@@ -26,15 +26,6 @@ pub(super) struct SelectedEvidence<'a> {
     conflicting_slot: Option<UiMeasurementEvidenceSlot>,
 }
 
-#[derive(Clone, Copy, Default)]
-pub(super) struct HostResultSlots<'a> {
-    pub text_intrinsic_size: Option<&'a UiMeasurementResult>,
-    pub font_metrics: Option<&'a UiMeasurementResult>,
-    pub native_control_intrinsic_size: Option<&'a UiMeasurementResult>,
-    pub viewport_extent: Option<&'a UiMeasurementResult>,
-    pub portal_anchor_rect: Option<&'a UiMeasurementResult>,
-    pub scroll_container_viewport: Option<&'a UiMeasurementResult>,
-}
 impl<'a> SelectedEvidence<'a> {
     pub(super) fn from_inputs(
         requirements: &UiDeclaredMeasurementBasisRequirementSet,

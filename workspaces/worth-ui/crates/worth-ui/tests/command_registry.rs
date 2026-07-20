@@ -1,6 +1,10 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CommandCategory, CommandDescriptor, CommandId, CommandProjectionId,
-    CommandReadinessBinding, CommandReadinessStatus, CommandRuntimeIntentBinding, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        CommandCategory, CommandDescriptor, CommandId, CommandProjectionId,
+        CommandReadinessBinding, CommandReadinessStatus, CommandRuntimeIntentBinding,
+    },
 };
 
 #[test]
@@ -198,7 +202,7 @@ fn command_descriptor(id: &str, label: &str) -> CommandDescriptor {
 }
 
 fn assert_diagnostic_codes(
-    diagnostics: &[worth_ui::facade::CapabilityRegistrationDiagnostic],
+    diagnostics: &[worth_ui::facade::diagnostics::CapabilityRegistrationDiagnostic],
     expected_codes: &[CapabilityDiagnosticCode],
 ) {
     let actual_codes = diagnostics
@@ -209,7 +213,7 @@ fn assert_diagnostic_codes(
 }
 
 fn assert_diagnostic_codes_and_identities(
-    diagnostics: &[worth_ui::facade::CapabilityRegistrationDiagnostic],
+    diagnostics: &[worth_ui::facade::diagnostics::CapabilityRegistrationDiagnostic],
     expected_codes_and_identities: &[(CapabilityDiagnosticCode, &str)],
 ) {
     let actual_codes_and_identities = diagnostics
@@ -227,7 +231,7 @@ fn assert_diagnostic_codes_and_identities(
 }
 
 fn assert_registered_command_ids(
-    commands: &worth_ui::facade::FrozenCommandCapabilities,
+    commands: &worth_ui::facade::registry::FrozenCommandCapabilities,
     expected_command_ids: &[&str],
 ) {
     let actual_command_ids = commands

@@ -57,6 +57,10 @@ impl WorthUiLaneAdmission {
     pub(crate) fn includes_lane(&self, lane: WorthUiExecutionLane) -> bool {
         self.posture_for(lane).is_some()
     }
+
+    pub(crate) fn executable_contract_matches(&self, other: &Self) -> bool {
+        self.rows == other.rows && self.query_support_links == other.query_support_links
+    }
 }
 
 fn digest_rows(rows: &[WorthUiLaneSupportRow]) -> u64 {

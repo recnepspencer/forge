@@ -30,6 +30,20 @@ pub struct WorthUiReloadLoweringCounterReceipt {
     packets: Vec<WorthUiMeasurementCounterPacket>,
     carried_query_contract_identities: Vec<u64>,
     query_support_rediscovery_count: u32,
+    context: Option<WorthUiReloadCostContext>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthUiReloadCostContext {
+    active_generation:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    candidate_generation:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    active_artifact_digest: u64,
+    candidate_artifact_digest: u64,
+    active_plan_digest: u64,
+    candidate_plan_digest: u64,
+    affected_scope_count: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -46,6 +60,7 @@ pub struct WorthUiReloadLoweringCounterReceiptBuilder {
     carried_query_contract_identities: Vec<u64>,
     query_support_rediscovery_count: u32,
     construction_denial: Option<WorthUiReloadCounterBoundaryDenialReason>,
+    context: Option<WorthUiReloadCostContext>,
 }
 
 impl WorthUiReloadLoweringCounterReceiptBuilder {
@@ -58,11 +73,17 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             carried_query_contract_identities: Vec::new(),
             query_support_rediscovery_count: 0,
             construction_denial: None,
+            context: None,
         }
     }
 
     pub fn with_capture_richness(mut self, richness: WorthUiCounterCaptureRichness) -> Self {
         self.capture_richness = richness;
+        self
+    }
+
+    pub(crate) fn with_cost_context(mut self, context: WorthUiReloadCostContext) -> Self {
+        self.context = Some(context);
         self
     }
 
@@ -210,6 +231,7 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             packets: self.packets,
             carried_query_contract_identities: self.carried_query_contract_identities,
             query_support_rediscovery_count: self.query_support_rediscovery_count,
+            context: self.context,
         })
     }
 
@@ -273,12 +295,68 @@ impl WorthUiReloadLoweringCounterReceipt {
         self.query_support_rediscovery_count
     }
 
+    pub fn context(&self) -> Option<&WorthUiReloadCostContext> {
+        self.context.as_ref()
+    }
+
     pub fn certify(
         self,
     ) -> Result<WorthUiCertifiedReloadLoweringCounterReceipt, WorthUiReloadCounterBoundaryDenial>
     {
         counter_schema::validate_receipt_packet_schema(&self.packets)?;
         Ok(WorthUiCertifiedReloadLoweringCounterReceipt { receipt: self })
+    }
+}
+
+impl WorthUiReloadCostContext {
+    pub(crate) fn new(
+        active_generation: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+        candidate_generation: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+        active_artifact_digest: u64,
+        candidate_artifact_digest: u64,
+        active_plan_digest: u64,
+        candidate_plan_digest: u64,
+        affected_scope_count: usize,
+    ) -> Self {
+        Self {
+            active_generation,
+            candidate_generation,
+            active_artifact_digest,
+            candidate_artifact_digest,
+            active_plan_digest,
+            candidate_plan_digest,
+            affected_scope_count,
+        }
+    }
+
+    pub fn active_generation(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        &self.active_generation
+    }
+
+    pub fn candidate_generation(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        &self.candidate_generation
+    }
+
+    pub fn active_artifact_digest(&self) -> u64 {
+        self.active_artifact_digest
+    }
+    pub fn candidate_artifact_digest(&self) -> u64 {
+        self.candidate_artifact_digest
+    }
+    pub fn active_plan_digest(&self) -> u64 {
+        self.active_plan_digest
+    }
+    pub fn candidate_plan_digest(&self) -> u64 {
+        self.candidate_plan_digest
+    }
+    pub fn affected_scope_count(&self) -> usize {
+        self.affected_scope_count
     }
 }
 

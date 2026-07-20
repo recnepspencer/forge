@@ -10,6 +10,7 @@ pub enum WorthUiDiagnosticsProjectionDenialReason {
     MissingRuntimeDiagnosticReport,
     RuntimeReportDigestMismatch,
     PlanInspectionDigestMismatch,
+    PlanInspectionAuthorityMismatch,
     FreeformQueryStatusRow,
     HookAttemptedIdentityRewrite,
 }

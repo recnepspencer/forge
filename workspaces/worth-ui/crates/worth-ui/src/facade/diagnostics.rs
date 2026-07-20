@@ -6,3 +6,8 @@ pub use worth_ui_runtime::facade::registry::{
     SnapshotMetrics, SnapshotReferenceValidationReport, SnapshotReferenceViolation,
     SnapshotReferenceViolationKind,
 };
+pub use worth_ui_runtime::facade::runtime_handoff::{
+    WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters,
+    WorthUiRuntimeDiagnosticFamily, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
+    WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics,
+};

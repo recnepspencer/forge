@@ -23,6 +23,7 @@ pub struct WorthUiIdentityMatchNode {
     handle: WorthUiArtifactHandle,
     identity_basis: String,
     authored_provenance_digest: u64,
+    semantic_meaning: crate::source::WorthUiArtifactNode,
     stable_identity: bool,
     durable_state_eligible: bool,
     resize_contract_id: Option<MosaicSizingContractId>,
@@ -35,6 +36,7 @@ pub(crate) struct WorthUiIdentityMatchNodeInput {
     pub handle: WorthUiArtifactHandle,
     pub identity_basis: String,
     pub authored_provenance_digest: u64,
+    pub semantic_meaning: crate::source::WorthUiArtifactNode,
     pub stable_identity: bool,
     pub durable_state_eligible: bool,
     pub resize_contract_id: Option<MosaicSizingContractId>,
@@ -49,6 +51,7 @@ impl WorthUiIdentityMatchNode {
             handle,
             identity_basis,
             authored_provenance_digest,
+            semantic_meaning,
             stable_identity,
             durable_state_eligible,
             resize_contract_id,
@@ -62,6 +65,7 @@ impl WorthUiIdentityMatchNode {
             handle,
             identity_basis,
             authored_provenance_digest,
+            semantic_meaning,
             stable_identity,
             durable_state_eligible,
             resize_contract_id,
@@ -84,6 +88,11 @@ impl WorthUiIdentityMatchNode {
 
     pub fn authored_provenance_digest(&self) -> u64 {
         self.authored_provenance_digest
+    }
+
+    pub(crate) fn has_same_semantic_meaning(&self, other: &Self) -> bool {
+        self.semantic_meaning
+            .has_same_semantic_meaning_ignoring_location(&other.semantic_meaning)
     }
 
     pub fn stable_identity(&self) -> bool {

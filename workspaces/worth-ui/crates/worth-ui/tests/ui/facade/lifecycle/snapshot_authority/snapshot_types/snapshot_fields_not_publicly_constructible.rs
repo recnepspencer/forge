@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    CapabilitySnapshot, CapabilitySnapshotDigest, RegisteredCapabilitySet, SnapshotMetrics,
+    diagnostics::{CapabilitySnapshot, CapabilitySnapshotDigest, RegisteredCapabilitySet, SnapshotMetrics},
 };
 
 fn main() {

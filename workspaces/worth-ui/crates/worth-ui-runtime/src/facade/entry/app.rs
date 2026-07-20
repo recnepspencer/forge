@@ -206,14 +206,14 @@ impl WorthUiApp {
     ) -> Result<crate::facade::entry::WorthUiActiveApplicationSession, WorthUiRuntimeLaunchDenial>
     {
         let admission = self.prepared.admit_launch(diagnostic_policy)?;
-        let (runtime, host_session_plan) = WorthUiRuntime::launch_prepared(
+        let (runtime, host_session) = WorthUiRuntime::launch_prepared(
             admission,
             Rc::clone(&self.retained_allocation_planning_evidence),
         )?;
         Ok(crate::facade::entry::WorthUiActiveApplicationSession::new(
             self,
             runtime,
-            host_session_plan,
+            host_session,
         ))
     }
 
@@ -224,13 +224,30 @@ impl WorthUiApp {
         &self,
         launch: WorthUiRuntimeLaunch,
     ) -> Result<WorthUiRuntime, WorthUiRuntimeLaunchDenial> {
-        WorthUiRuntime::launch(
+        let artifact_digest = launch.candidate_artifact_digest.unwrap_or_else(|| {
+            crate::source::WorthUiArtifactDigestor::digest(
+                launch.artifact.as_ref(),
+                crate::source::WorthUiArtifactEquivalenceBasis::semantic(),
+            )
+        });
+        let lowering_authority = self
+            .prepared
+            .lowering_authority()
+            .synthetic_launch_for_certification(Rc::clone(&launch.artifact), artifact_digest);
+        let initial_allocation_commit = self.prepared.initial_allocation_commit(artifact_digest)?;
+        let host_session =
+            crate::facade::WorthUiHostSessionAuthority::activate(self.prepared.host_session_plan())
+                .map_err(|_| WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted)?;
+        let runtime = WorthUiRuntime::launch(
             launch,
-            self.prepared.generation_identity().clone(),
+            lowering_authority,
+            initial_allocation_commit,
             self.prepared.capabilities().digest(),
             Rc::clone(&self.retained_allocation_planning_evidence),
             self.prepared.query_binding_plan().activate(),
-        )
+            host_session.plan_binding(),
+        )?;
+        Ok(runtime)
     }
 
     pub(crate) fn retained_obligation_registry(&self) -> &WorthUiRetainedObligationRegistry {

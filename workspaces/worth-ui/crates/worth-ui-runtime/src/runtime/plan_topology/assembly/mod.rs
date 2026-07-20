@@ -1,72 +1,156 @@
 use std::collections::BTreeMap;
 
 use crate::runtime::{
-    WorthUiEguiPlanBoundary, WorthUiExecutionPlan, WorthUiPlanChildRange, WorthUiPlanExecutionLane,
-    WorthUiPlanLanePartition, WorthUiPlanLookupIndex, WorthUiPlanNode, WorthUiPlanNodeFamily,
-    WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiPlanRegionStructure,
+    WorthUiExecutionPlan, WorthUiPlanChildRange, WorthUiPlanExecutionLane,
+    WorthUiPlanLanePartition, WorthUiPlanLookupIndex, WorthUiPlanNodeInput,
+    WorthUiPlanNodeInputFamily, WorthUiPlanRegionIdentity, WorthUiPlanRegionStructure,
     WorthUiPlanTopology, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
-    WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef, WorthUiRuntimeHandle,
-    WorthUiRuntimeHandleAllocation,
+    WorthUiPlanTopologyDenialReason, WorthUiRuntimeHandle, WorthUiRuntimeHandleAllocation,
 };
 
 use super::validation::denial;
 
+mod regional_successor;
+pub(crate) use regional_successor::construct_regional_successor_plan;
+
 pub(crate) fn construct_execution_plan(
+    authority: &crate::runtime::planning::WorthUiExecutionPlanLoweringFacts,
     node_inputs: &[WorthUiPlanNodeInput],
     handle_allocation: &WorthUiRuntimeHandleAllocation,
+    lane_admission_counters: crate::runtime::WorthUiLaneAdmissionCounters,
+    region_successor: Option<super::WorthUiPlanRegionSuccessor>,
     mut counters: WorthUiPlanTopologyCounters,
 ) -> Result<WorthUiExecutionPlan, WorthUiPlanTopologyDenial> {
+    let region_successor = match region_successor {
+        Some(successor) => successor,
+        None => super::WorthUiPlanRegionStore::try_launch(node_inputs.iter().cloned())
+            .map_err(|store_denial| denial(topology_reason(store_denial), counters))?,
+    };
     let mut lookup_index = WorthUiPlanLookupIndex::new();
     let mut child_ranges = Vec::new();
     let mut nodes = Vec::with_capacity(node_inputs.len());
     let mut lanes = BTreeMap::<WorthUiPlanExecutionLane, Vec<u32>>::new();
 
-    for (position, node_input) in node_inputs.iter().enumerate() {
+    for node_input in node_inputs {
         counters.record_plan_node_input();
-        let runtime_handle = handle_allocation.runtime_handles()[position];
-        let plan_index = runtime_handle.plan_index();
-        let family = node_input.family();
-        let region_structure = region_structure_for_node(node_input, counters)?;
+        let identity = WorthUiPlanRegionIdentity::from_exact_basis(node_input.identity_basis());
+        let region_handle = region_successor
+            .store()
+            .handle_for(&identity)
+            .ok_or_else(|| {
+                denial(
+                    WorthUiPlanTopologyDenialReason::RegionalSuccessorMismatch,
+                    counters,
+                )
+            })?;
+        let plan_index = u32::try_from(region_handle.stable_slot()).map_err(|_| {
+            denial(
+                WorthUiPlanTopologyDenialReason::RuntimeHandleOutOfBounds,
+                counters,
+            )
+        })?;
+        let executable = region_successor
+            .store()
+            .executable_for(&identity)
+            .ok_or_else(|| {
+                denial(
+                    WorthUiPlanTopologyDenialReason::RegionalSuccessorMismatch,
+                    counters,
+                )
+            })?;
+        let family = executable.family();
+        let runtime_handle = WorthUiRuntimeHandle::new(
+            family,
+            plan_index,
+            crate::runtime::WorthUiHandleSlotGeneration::new(region_handle.slot_generation()),
+            handle_allocation.receipt().arena_identity(),
+        );
+        let region_structure = region_structure_for_node(executable, counters)?;
         let child_range = child_range_for_node(region_structure, plan_index, counters)?;
         if let Some(range) = child_range {
             child_ranges.push(range);
             counters.record_child_range();
         }
-        let egui_boundary = egui_boundary_for_node(node_input, plan_index, counters)?;
-        if egui_boundary.is_some() {
-            counters.record_egui_boundary();
-        }
-        let render_resource_ref = render_resource_for_node(family, runtime_handle);
-        if render_resource_ref.is_some() {
+        if executable.has_render_resource() {
             counters.record_render_resource_ref();
         }
         if lookup_index.record(family, plan_index) {
             counters.record_lookup_entry();
         }
-        lanes
-            .entry(lane_for_family(family))
-            .or_default()
-            .push(plan_index);
+        lanes.entry(executable.lane()).or_default().push(plan_index);
         counters.record_topology_node();
-        nodes.push(WorthUiPlanNode::new(
-            runtime_handle,
-            WorthUiPlanNodeFamily::from_input_family(family),
-            child_range,
-            region_structure,
-            egui_boundary,
-            render_resource_ref,
-        ));
+        nodes.push(executable.materialize_node(runtime_handle, child_range));
     }
 
     let lane_partitions = lane_partitions_from(lanes, &mut counters)?;
     let topology = WorthUiPlanTopology::new(nodes, child_ranges);
-    Ok(WorthUiExecutionPlan::new(
-        handle_allocation.receipt(),
-        topology,
-        lane_partitions,
-        lookup_index,
+    let region_storage_counters = region_successor.counters();
+    let construction_counters = super::WorthUiPlanConstructionCounters::new(
+        authority.plan_input().counters(),
+        handle_allocation.counters(),
+        lane_admission_counters,
         counters,
+        region_storage_counters,
+    );
+    let regional_evidence =
+        super::WorthUiPlanRegionalEvidence::from_lowering(authority, &region_successor);
+    let region_store = region_successor.into_store();
+    Ok(WorthUiExecutionPlan::new(
+        authority,
+        super::WorthUiExecutionPlanConstruction {
+            handle_receipt: handle_allocation.receipt(),
+            topology,
+            lane_partitions,
+            lookup_index,
+            region_store,
+            construction_counters,
+            regional_evidence,
+            counters,
+        },
     ))
+}
+
+fn topology_reason(
+    denial: super::region::WorthUiPlanRegionStoreDenial,
+) -> WorthUiPlanTopologyDenialReason {
+    match denial {
+        super::region::WorthUiPlanRegionStoreDenial::HandleCapacity(exhaustion) => {
+            WorthUiPlanTopologyDenialReason::HandleCapacityExhausted(exhaustion)
+        }
+        super::region::WorthUiPlanRegionStoreDenial::MissingLinkedRegion => {
+            WorthUiPlanTopologyDenialReason::MissingChildOrLaneLink
+        }
+        super::region::WorthUiPlanRegionStoreDenial::DuplicateRegionIdentity => {
+            WorthUiPlanTopologyDenialReason::DuplicateRegionIdentity
+        }
+        super::region::WorthUiPlanRegionStoreDenial::OrdinaryMeaningFamilyMismatch => {
+            WorthUiPlanTopologyDenialReason::OrdinaryMeaningFamilyMismatch
+        }
+        super::region::WorthUiPlanRegionStoreDenial::SpatialMeaningFamilyMismatch => {
+            WorthUiPlanTopologyDenialReason::SpatialMeaningFamilyMismatch
+        }
+        super::region::WorthUiPlanRegionStoreDenial::RealtimeMeaningFamilyMismatch => {
+            WorthUiPlanTopologyDenialReason::RealtimeMeaningFamilyMismatch
+        }
+        super::region::WorthUiPlanRegionStoreDenial::QueryBindingFactsMismatch => {
+            WorthUiPlanTopologyDenialReason::QueryBindingFactsMismatch
+        }
+        super::region::WorthUiPlanRegionStoreDenial::DuplicateChildTarget => {
+            WorthUiPlanTopologyDenialReason::DuplicateChildTarget
+        }
+        super::region::WorthUiPlanRegionStoreDenial::OverlappingChildTarget => {
+            WorthUiPlanTopologyDenialReason::OverlappingChildTarget
+        }
+        super::region::WorthUiPlanRegionStoreDenial::CyclicRegionDependency => {
+            WorthUiPlanTopologyDenialReason::CyclicRegionDependency
+        }
+        super::region::WorthUiPlanRegionStoreDenial::OwnerManifestMismatch => {
+            WorthUiPlanTopologyDenialReason::OwnerManifestMismatch
+        }
+        super::region::WorthUiPlanRegionStoreDenial::IncompleteSuccessor => {
+            WorthUiPlanTopologyDenialReason::IncompleteRegionalSuccessor
+        }
+    }
 }
 
 fn child_range_for_node(
@@ -88,47 +172,17 @@ fn child_range_for_node(
 }
 
 fn region_structure_for_node(
-    node_input: &WorthUiPlanNodeInput,
+    executable: &super::WorthUiPlanRegionExecutable,
     counters: WorthUiPlanTopologyCounters,
 ) -> Result<Option<WorthUiPlanRegionStructure>, WorthUiPlanTopologyDenial> {
-    let region_structure =
-        WorthUiPlanRegionStructure::from_topology_input(node_input.topology_input());
-    if family_requires_region_structure(node_input.family()) && region_structure.is_none() {
+    let region_structure = executable.region_structure();
+    if family_requires_region_structure(executable) && region_structure.is_none() {
         return Err(denial(
             WorthUiPlanTopologyDenialReason::MissingRegionStructure,
             counters,
         ));
     }
     Ok(region_structure)
-}
-
-fn egui_boundary_for_node(
-    node_input: &WorthUiPlanNodeInput,
-    plan_index: u32,
-    counters: WorthUiPlanTopologyCounters,
-) -> Result<Option<WorthUiEguiPlanBoundary>, WorthUiPlanTopologyDenial> {
-    if family_requires_egui(node_input.family()) && node_input.egui_boundary_input().is_none() {
-        return Err(denial(
-            WorthUiPlanTopologyDenialReason::MissingEguiBoundaryDeclaration,
-            counters,
-        ));
-    }
-    Ok(node_input
-        .egui_boundary_input()
-        .map(|input| WorthUiEguiPlanBoundary::new(input, plan_index)))
-}
-
-fn render_resource_for_node(
-    family: WorthUiPlanNodeInputFamily,
-    runtime_handle: WorthUiRuntimeHandle,
-) -> Option<WorthUiRenderResourceRef> {
-    match family {
-        WorthUiPlanNodeInputFamily::RenderResourceRef => Some(WorthUiRenderResourceRef::new(
-            runtime_handle.plan_index(),
-            runtime_handle.plan_generation(),
-        )),
-        _ => None,
-    }
 }
 
 fn lane_partitions_from(
@@ -149,40 +203,12 @@ fn lane_partitions_from(
     Ok(partitions)
 }
 
-fn lane_for_family(family: WorthUiPlanNodeInputFamily) -> WorthUiPlanExecutionLane {
-    match family {
-        WorthUiPlanNodeInputFamily::ComponentInvocation
-        | WorthUiPlanNodeInputFamily::LayoutRegion
-        | WorthUiPlanNodeInputFamily::ChildRange => WorthUiPlanExecutionLane::UiStructure,
-        WorthUiPlanNodeInputFamily::QueryViewBinding => WorthUiPlanExecutionLane::QueryView,
-        WorthUiPlanNodeInputFamily::Command => WorthUiPlanExecutionLane::Command,
-        WorthUiPlanNodeInputFamily::TokenStyle => WorthUiPlanExecutionLane::Style,
-        WorthUiPlanNodeInputFamily::Accessibility | WorthUiPlanNodeInputFamily::DiagnosticsRef => {
-            WorthUiPlanExecutionLane::Diagnostics
-        }
-        WorthUiPlanNodeInputFamily::LanePartitionRef => WorthUiPlanExecutionLane::LaneBoundary,
-        WorthUiPlanNodeInputFamily::EguiBoundaryRef => WorthUiPlanExecutionLane::EguiBoundary,
-        WorthUiPlanNodeInputFamily::RenderResourceRef => WorthUiPlanExecutionLane::RenderResource,
-    }
-}
-
-fn family_requires_egui(family: WorthUiPlanNodeInputFamily) -> bool {
-    matches!(
-        family,
-        WorthUiPlanNodeInputFamily::ComponentInvocation
-            | WorthUiPlanNodeInputFamily::LayoutRegion
-            | WorthUiPlanNodeInputFamily::QueryViewBinding
-            | WorthUiPlanNodeInputFamily::TokenStyle
-            | WorthUiPlanNodeInputFamily::DiagnosticsRef
-            | WorthUiPlanNodeInputFamily::EguiBoundaryRef
-    )
-}
-
-fn family_requires_region_structure(family: WorthUiPlanNodeInputFamily) -> bool {
-    matches!(
-        family,
-        WorthUiPlanNodeInputFamily::ComponentInvocation
-            | WorthUiPlanNodeInputFamily::LayoutRegion
-            | WorthUiPlanNodeInputFamily::QueryViewBinding
-    )
+fn family_requires_region_structure(executable: &super::WorthUiPlanRegionExecutable) -> bool {
+    executable.family() == WorthUiPlanNodeInputFamily::QueryViewBinding
+        || (executable.is_root_shell()
+            && matches!(
+                executable.family(),
+                WorthUiPlanNodeInputFamily::ComponentInvocation
+                    | WorthUiPlanNodeInputFamily::LayoutRegion
+            ))
 }

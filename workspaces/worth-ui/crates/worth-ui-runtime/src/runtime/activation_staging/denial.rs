@@ -2,10 +2,9 @@ use crate::runtime::{WorthUiActivationStagingCounters, WorthUiRuntimeFrameEpoch}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiActivationStagingDenialReason {
+    CandidateApplicationAuthorityMismatch,
     MissingDurableStateReconciliation,
     MissingQueryLiveRebindPlan,
-    MissingExecutionPlanLoweringInput,
-    ExecutionPlanLoweringInputMismatch,
     ActiveArtifactDigestMismatch,
     CandidateArtifactDigestMismatch,
     AdmittedQuerySupportContractChanged,

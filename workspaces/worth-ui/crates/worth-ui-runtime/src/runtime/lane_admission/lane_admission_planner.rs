@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
+use crate::runtime::planning::WorthUiExecutionPlanLoweringFacts;
 use crate::runtime::{
-    UiCommittedAllocation, WorthUiExecutionLane, WorthUiExecutionLaneDescriptor,
-    WorthUiExecutionLaneSupport, WorthUiLaneAdmission, WorthUiLaneAdmissionCounters,
-    WorthUiLaneAdmissionDenial, WorthUiLaneAdmissionDenialReason, WorthUiLaneSupportDiagnostic,
-    WorthUiLaneSupportStatus, WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocationBasis,
+    WorthUiExecutionLane, WorthUiExecutionLaneDescriptor, WorthUiExecutionLaneSupport,
+    WorthUiLaneAdmission, WorthUiLaneAdmissionCounters, WorthUiLaneAdmissionDenial,
+    WorthUiLaneAdmissionDenialReason, WorthUiLaneSupportDiagnostic, WorthUiLaneSupportStatus,
+    WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocationBasis,
 };
 
 pub(crate) struct WorthUiLaneAdmissionPlanner;
@@ -16,13 +17,48 @@ struct WorthUiPlanLaneAdmissionEvidence {
 }
 
 impl WorthUiLaneAdmissionPlanner {
+    pub(crate) fn admit_regional_successor(
+        authority: &WorthUiExecutionPlanLoweringFacts,
+        support: &WorthUiExecutionLaneSupport,
+        store: &crate::runtime::plan_topology::WorthUiPlanRegionStore,
+    ) -> Result<WorthUiLaneAdmission, WorthUiLaneAdmissionDenial> {
+        let mut counters = WorthUiLaneAdmissionCounters::default();
+        counters.record_admission();
+        counters.record_plan_nodes(store.region_count());
+        let mut lane_evidence = WorthUiPlanLaneAdmissionEvidence {
+            descriptors: BTreeMap::new(),
+            query_support_links: Vec::new(),
+            missing_query_owned_support_link: false,
+        };
+        for family in regional_families() {
+            if store.family_count(family) == 0 {
+                continue;
+            }
+            let lane = super::lane_for_family(family);
+            lane_evidence.descriptors.entry(lane).or_insert_with(|| {
+                WorthUiExecutionLaneDescriptor::for_lane(
+                    lane,
+                    family == crate::runtime::WorthUiPlanNodeInputFamily::QueryViewBinding,
+                )
+            });
+        }
+        counters.record_distinct_lanes(lane_evidence.descriptors.len());
+        verify_supported_plan_lanes(&lane_evidence, support, &mut counters)?;
+        Ok(WorthUiLaneAdmission::new(
+            support.rows().cloned().collect(),
+            Vec::new(),
+            WorthUiRuntimeHandleAllocationBasis::from_lowering_authority(authority).digest(),
+            counters,
+        ))
+    }
+
     pub(crate) fn admit(
-        committed_allocation: &UiCommittedAllocation,
+        authority: &WorthUiExecutionPlanLoweringFacts,
         support: &WorthUiExecutionLaneSupport,
     ) -> Result<WorthUiLaneAdmission, WorthUiLaneAdmissionDenial> {
         let mut counters = WorthUiLaneAdmissionCounters::default();
         counters.record_admission();
-        let node_inputs = committed_allocation.node_inputs();
+        let node_inputs = authority.node_inputs();
 
         let lane_evidence = collect_plan_lane_admission_evidence(node_inputs, &mut counters);
         counters.record_distinct_lanes(lane_evidence.descriptors.len());
@@ -33,11 +69,29 @@ impl WorthUiLaneAdmissionPlanner {
         Ok(WorthUiLaneAdmission::new(
             support.rows().cloned().collect(),
             lane_evidence.query_support_links,
-            WorthUiRuntimeHandleAllocationBasis::from_committed_allocation(committed_allocation)
-                .digest(),
+            WorthUiRuntimeHandleAllocationBasis::from_lowering_authority(authority).digest(),
             counters,
         ))
     }
+}
+
+fn regional_families() -> [crate::runtime::WorthUiPlanNodeInputFamily; 13] {
+    use crate::runtime::WorthUiPlanNodeInputFamily as Family;
+    [
+        Family::ComponentInvocation,
+        Family::LayoutRegion,
+        Family::Command,
+        Family::TokenStyle,
+        Family::ChildRange,
+        Family::StateSlot,
+        Family::QueryViewBinding,
+        Family::Accessibility,
+        Family::DiagnosticsRef,
+        Family::LanePartitionRef,
+        Family::RenderResourceRef,
+        Family::CanvasSpatial,
+        Family::RealtimeOverlay,
+    ]
 }
 
 fn collect_plan_lane_admission_evidence(

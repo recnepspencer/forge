@@ -5,13 +5,11 @@ pub struct WorthUiPlanTopologyCounters {
     child_range_count: usize,
     lane_partition_count: usize,
     lookup_entry_count: usize,
-    egui_boundary_count: usize,
     render_resource_ref_count: usize,
     topology_validation_count: usize,
     artifact_tree_scan_count: usize,
     registry_string_lookup_count: usize,
     broad_registry_scan_count: usize,
-    ambient_egui_access_count: usize,
     denial_count: usize,
 }
 
@@ -34,10 +32,6 @@ impl WorthUiPlanTopologyCounters {
 
     pub(crate) fn record_lookup_entry(&mut self) {
         self.lookup_entry_count += 1;
-    }
-
-    pub(crate) fn record_egui_boundary(&mut self) {
-        self.egui_boundary_count += 1;
     }
 
     pub(crate) fn record_render_resource_ref(&mut self) {
@@ -72,10 +66,6 @@ impl WorthUiPlanTopologyCounters {
         self.lookup_entry_count
     }
 
-    pub fn egui_boundary_count(self) -> usize {
-        self.egui_boundary_count
-    }
-
     pub fn render_resource_ref_count(self) -> usize {
         self.render_resource_ref_count
     }
@@ -94,10 +84,6 @@ impl WorthUiPlanTopologyCounters {
 
     pub fn broad_registry_scan_count(self) -> usize {
         self.broad_registry_scan_count
-    }
-
-    pub fn ambient_egui_access_count(self) -> usize {
-        self.ambient_egui_access_count
     }
 
     pub fn denial_count(self) -> usize {

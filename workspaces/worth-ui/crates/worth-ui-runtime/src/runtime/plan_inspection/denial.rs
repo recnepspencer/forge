@@ -2,6 +2,7 @@ use crate::runtime::WorthUiPlanInspectionCounters;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiPlanInspectionDenialReason {
+    ForeignLoweringAuthority,
     PlanInputReceiptMismatch,
     PlanInputNodeCountMismatch,
     PlanNodeFamilyMismatch,
@@ -15,6 +16,7 @@ pub struct WorthUiPlanInspectionDenial {
 }
 
 impl WorthUiPlanInspectionDenial {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn new(
         reason: WorthUiPlanInspectionDenialReason,
         mut counters: WorthUiPlanInspectionCounters,

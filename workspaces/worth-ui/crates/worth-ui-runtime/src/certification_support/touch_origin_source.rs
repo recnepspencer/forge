@@ -24,7 +24,7 @@ pub enum WorthUiTouchOriginFixtureVariant {
 pub(super) fn touch_runtime_app() -> WorthUiApp {
     let support_app = touch_runtime_support_app();
     let submission = launch_runtime(&support_app, empty_runtime_artifact(&support_app))
-        .source_ingress(touch_runtime_graph_source_provider())
+        .source_event_ingress(touch_runtime_graph_source_provider())
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(
             touch_runtime_graph_provider_revision(),

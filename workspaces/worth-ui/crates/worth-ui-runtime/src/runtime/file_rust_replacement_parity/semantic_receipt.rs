@@ -16,7 +16,7 @@ pub struct WorthUiFileRustReplacementSemanticReceipt {
     rust_lane_support_digest: u64,
     file_lane_parity_reference_digest: Option<u64>,
     rust_lane_parity_reference_digest: Option<u64>,
-    swap_receipts_match: bool,
+    activation_envelopes_match: bool,
 }
 
 impl WorthUiFileRustReplacementSemanticReceipt {
@@ -41,7 +41,7 @@ impl WorthUiFileRustReplacementSemanticReceipt {
             rust_lane_support_digest: rust.lane_support_digest(),
             file_lane_parity_reference_digest: file_swap.lane_parity_semantic_reference_digest(),
             rust_lane_parity_reference_digest: rust_swap.lane_parity_semantic_reference_digest(),
-            swap_receipts_match: file_swap == rust_swap,
+            activation_envelopes_match: activation_envelopes_match(file_swap, rust_swap),
         }
     }
 
@@ -56,7 +56,7 @@ impl WorthUiFileRustReplacementSemanticReceipt {
     }
 
     pub(crate) fn activation_receipts_match(self) -> bool {
-        self.swap_receipts_match
+        self.activation_envelopes_match
             && self.file_reconciliation_basis_digest == self.rust_reconciliation_basis_digest
             && self.file_query_rebind_basis_digest == self.rust_query_rebind_basis_digest
     }
@@ -97,4 +97,23 @@ impl WorthUiFileRustReplacementSemanticReceipt {
     pub fn rust_query_rebind_basis_digest(self) -> u64 {
         self.rust_query_rebind_basis_digest
     }
+}
+
+fn activation_envelopes_match(
+    file: &crate::runtime::WorthUiPlanSwapReceipt,
+    rust: &crate::runtime::WorthUiPlanSwapReceipt,
+) -> bool {
+    file.committed_row_count() == rust.committed_row_count()
+        && file.previous_active_artifact_digest() == rust.previous_active_artifact_digest()
+        && file.previous_active_plan_digest() == rust.previous_active_plan_digest()
+        && file.previous_active_snapshot_digest() == rust.previous_active_snapshot_digest()
+        && file.next_active_artifact_digest() == rust.next_active_artifact_digest()
+        && file.next_active_plan_digest() == rust.next_active_plan_digest()
+        && file.next_active_snapshot_digest() == rust.next_active_snapshot_digest()
+        && file.activation_gate_receipt() == rust.activation_gate_receipt()
+        && file.prior_valid_plan() == rust.prior_valid_plan()
+        && file.counters() == rust.counters()
+        && file.scroll_catalog_evidence() == rust.scroll_catalog_evidence()
+        && file.committed_allocation().counters() == rust.committed_allocation().counters()
+        && file.committed_allocation().evidence() == rust.committed_allocation().evidence()
 }

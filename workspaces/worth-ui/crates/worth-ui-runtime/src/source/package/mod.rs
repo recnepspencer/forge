@@ -1,3 +1,4 @@
+mod worth_ui_source_import_path_scanner;
 mod worth_ui_source_package;
 mod worth_ui_source_package_digest;
 mod worth_ui_source_package_loader;

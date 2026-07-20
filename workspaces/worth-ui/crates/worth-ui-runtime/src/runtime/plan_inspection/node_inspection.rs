@@ -1,7 +1,7 @@
 use crate::runtime::{
-    WorthUiArtifactToPlanProvenance, WorthUiEguiPlanBoundary, WorthUiPlanChildRange,
-    WorthUiPlanNodeFamily, WorthUiPlanRegionStructure, WorthUiQueryInspectionLinks,
-    WorthUiRenderResourceRef, WorthUiRuntimeHandle,
+    WorthUiArtifactToPlanProvenance, WorthUiPlanChildRange, WorthUiPlanNodeFamily,
+    WorthUiPlanRegionStructure, WorthUiQueryInspectionLinks, WorthUiRenderResourceRef,
+    WorthUiRuntimeHandle,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,23 +11,23 @@ pub struct WorthUiPlanNodeInspection {
     family: WorthUiPlanNodeFamily,
     child_range: Option<WorthUiPlanChildRange>,
     region_structure: Option<WorthUiPlanRegionStructure>,
-    egui_boundary: Option<WorthUiEguiPlanBoundary>,
     render_resource_ref: Option<WorthUiRenderResourceRef>,
     provenance: WorthUiArtifactToPlanProvenance,
 }
 
+#[cfg(any(test, feature = "certification-support"))]
 pub(crate) struct WorthUiPlanNodeInspectionInput {
     pub plan_index: u32,
     pub runtime_handle: WorthUiRuntimeHandle,
     pub family: WorthUiPlanNodeFamily,
     pub child_range: Option<WorthUiPlanChildRange>,
     pub region_structure: Option<WorthUiPlanRegionStructure>,
-    pub egui_boundary: Option<WorthUiEguiPlanBoundary>,
     pub render_resource_ref: Option<WorthUiRenderResourceRef>,
     pub provenance: WorthUiArtifactToPlanProvenance,
 }
 
 impl WorthUiPlanNodeInspection {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn new(input: WorthUiPlanNodeInspectionInput) -> Self {
         let WorthUiPlanNodeInspectionInput {
             plan_index,
@@ -35,7 +35,6 @@ impl WorthUiPlanNodeInspection {
             family,
             child_range,
             region_structure,
-            egui_boundary,
             render_resource_ref,
             provenance,
         } = input;
@@ -45,7 +44,6 @@ impl WorthUiPlanNodeInspection {
             family,
             child_range,
             region_structure,
-            egui_boundary,
             render_resource_ref,
             provenance,
         }
@@ -69,10 +67,6 @@ impl WorthUiPlanNodeInspection {
 
     pub fn region_structure(&self) -> Option<WorthUiPlanRegionStructure> {
         self.region_structure
-    }
-
-    pub fn egui_boundary(&self) -> Option<&WorthUiEguiPlanBoundary> {
-        self.egui_boundary.as_ref()
     }
 
     pub fn render_resource_ref(&self) -> Option<WorthUiRenderResourceRef> {

@@ -4,8 +4,15 @@ mod activation;
 pub(crate) use activation::committed_allocation_attempt::{
     UiCommittedAllocationActivationAttempt, UiCommittedAllocationActivationIdentity,
 };
+pub(crate) use activation::UiAllocationCatalogDeltaActivationInput;
+pub(crate) use activation::WorthUiPreparedApplicationPublication;
+pub(crate) use activation::WorthUiQueryAwarePlanOutcome;
 mod active;
+mod allocation_catalog_successor;
 mod allocation_frame_dispatch;
+pub use allocation_catalog_successor::{
+    UiAllocationCatalogDeltaClosureDenial, UiAllocationCatalogSuccessorReceipt,
+};
 mod allocation_receipt;
 #[path = "compat_modules.rs"]
 mod compat_modules;
@@ -21,6 +28,7 @@ mod launch;
 #[cfg(any(test, feature = "certification-support"))]
 pub(crate) use launch::WorthUiActivationStagingPlans;
 mod measurement;
+pub(crate) mod persistent_index;
 mod planning;
 mod portal_anchored_allocation;
 pub mod replacement;
@@ -33,6 +41,7 @@ pub use drag_resize::*;
 pub use scroll_owned_allocation::*;
 
 pub(crate) use allocation_receipt::project_allocation_preview;
+pub(crate) use allocation_receipt::UiCommittedAllocationCatalogActivationRow;
 pub(crate) use allocation_receipt::UiCommittedScrollActivationSource;
 pub use compat_modules::*;
 pub use exports::*;

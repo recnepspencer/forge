@@ -1,4 +1,4 @@
-use worth_ui::facade::WorthUi;
+use worth_ui::facade::app::WorthUi;
 
 use super::icon_assertions::{assert_dependency_diagnostics, assert_registered_icon_ids};
 use super::icon_fixtures::{

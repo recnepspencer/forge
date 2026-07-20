@@ -2,7 +2,7 @@ use worth_ui::facade::declaration::{
     UiDeclarationGraphHandoff, UiDeclarationSupportRow, UiDeclarationSupportRowSchemaKind,
     UiDeclarationSupportSnapshot, UiDeclaredPostureApplicability, UiDeclaredPostureContract,
 };
-use worth_ui::facade::{WorthUiQuerySupportReceipt, WorthUiRuntimeHandleAllocationReceipt};
+use worth_ui_runtime::facade::{WorthUiQuerySupportReceipt, WorthUiRuntimeHandleAllocationReceipt};
 
 fn main() {
     let _row = UiDeclarationSupportRow::without_admitted_fact(

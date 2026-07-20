@@ -1,15 +1,13 @@
-error[E0308]: mismatched types
- --> tests/ui/runtime_steady_frame_counter_boundary/fail/raw_steady_frame_receipt_cannot_lower_to_foundational.rs:6:74
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiFrameExecutionReceipt`, `worth_ui::facade::WorthUiSteadyFrameFoundationalBridge`
+ --> tests/ui/runtime_steady_frame_counter_boundary/fail/raw_steady_frame_receipt_cannot_lower_to_foundational.rs:2:5
   |
-6 |     let _ = WorthUiSteadyFrameFoundationalBridge::lower_counter_receipts(receipt);
-  |             ------------------------------------------------------------ ^^^^^^^ expected `&WorthUiCertifiedFrameExecutionReceipt`, found `&WorthUiFrameExecutionReceipt`
-  |             |
-  |             arguments to this function are incorrect
+2 |     WorthUiFrameExecutionReceipt, WorthUiSteadyFrameFoundationalBridge,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiSteadyFrameFoundationalBridge` in `facade`
+  |     |
+  |     no `WorthUiFrameExecutionReceipt` in `facade`
   |
-  = note: expected reference `&WorthUiCertifiedFrameExecutionReceipt`
-             found reference `&WorthUiFrameExecutionReceipt`
-note: associated function defined here
- --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/../steady_frame_counter_boundary/foundational_bridge.rs
-  |
-  |     pub fn lower_counter_receipts(
-  |            ^^^^^^^^^^^^^^^^^^^^^^
+  = help: consider importing one of these structs instead:
+          worth_ui::facade::runtime::WorthUiFrameExecutionReceipt
+          worth_ui_runtime::facade::WorthUiFrameExecutionReceipt
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiSteadyFrameFoundationalBridge

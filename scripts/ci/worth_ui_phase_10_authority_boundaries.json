@@ -8,7 +8,7 @@
       "pattern": "UiCommittedAllocationActivationAttempt::new",
       "legacy": false,
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/receipt_ledger.rs": 2
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/activation_catalog_commit.rs": 2
       }
     },
     {
@@ -67,7 +67,7 @@
       "legacy": false,
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/catalog_transition.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog_transition.rs": 1
       }
     },
     {
@@ -101,7 +101,7 @@
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/receipt_ledger.rs": 3,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/activation_catalog_commit.rs": 3,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/planning_transition.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/mod.rs": 1
@@ -118,8 +118,8 @@
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/identity.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/active_set.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/active_set.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/mod.rs": 1
       }
     },
@@ -128,9 +128,9 @@
       "pattern": "committed_invalidation_context",
       "legacy": false,
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_catalog_binding.rs": 4,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_catalog_binding.rs": 4,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/identity.rs": 3,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/active_set.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/active_set.rs": 1
       }
     },
     {
@@ -138,7 +138,7 @@
       "pattern": "UiScrollCatalogIdentity::new",
       "legacy": false,
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_binding_index.rs": 2
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 2
       }
     },
     {
@@ -149,9 +149,9 @@
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/preflight.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/receipt.rs": 5,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/exports.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/catalog_transition.rs": 3,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog_transition.rs": 3,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/mod.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_catalog_evidence.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_catalog_evidence.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/tests/activation/production_catalog_activation_test_support.rs": 1
       }
     },
@@ -163,10 +163,10 @@
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/identity.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/preflight.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_state.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/ledger_state.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/mod.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/receipt_ledger.rs": 3,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/receipt_ledger_entry.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/activation_catalog_commit.rs": 3,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/receipt_ledger_entry.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/transaction.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2
@@ -178,9 +178,9 @@
       "legacy": false,
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/active_set.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/catalog_transition.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/active_set.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog_transition.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/mod.rs": 1
       }
     },
@@ -195,8 +195,9 @@
       "pattern": "target_set_for_neighborhood",
       "legacy": false,
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/graph/allocation_neighborhood/replan_authority.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_binding_index.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/graph/allocation_neighborhood/replan_selection/transaction/replan_authority.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/portal_authority/portal_binding_index.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 1
       }
     },
     {
@@ -210,7 +211,7 @@
       "pattern": "UiAdmittedPortalPlanningAuthority::seal",
       "legacy": false,
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority_context.rs": 1
       }
     },
     {
@@ -218,7 +219,7 @@
       "pattern": "\\.committed_portal_source\\(",
       "legacy": false,
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_catalog_binding.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_catalog_binding.rs": 1
       }
     },
     {
@@ -227,7 +228,7 @@
       "legacy": false,
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_catalog_binding.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_catalog_binding.rs": 1
       }
     },
     {
@@ -241,7 +242,7 @@
       "pattern": "UiCommittedAllocationGeometryEvidence::from_candidate",
       "legacy": false,
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_receipt.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_receipt.rs": 1
       }
     },
     {

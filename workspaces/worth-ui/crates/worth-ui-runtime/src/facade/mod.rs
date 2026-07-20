@@ -36,14 +36,19 @@ pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 pub use crate::runtime::exports::*;
 pub use entry::{
     CapabilityRegistrationBuilder, WorthUi, WorthUiActiveApplicationSession,
-    WorthUiActiveApplicationSessionIdentity, WorthUiActiveFrameworkTurnCompletion,
-    WorthUiActiveInspectionReceipt, WorthUiApp, WorthUiAppBuilder, WorthUiApplicationCutoverDenial,
-    WorthUiApplicationCutoverReceipt, WorthUiApplicationReplacementLoweringDenial,
-    WorthUiApplicationReplacementNoOp, WorthUiApplicationReplacementPreparation,
+    WorthUiActiveApplicationSessionIdentity, WorthUiActiveCanvasSpatialFrameCompletion,
+    WorthUiActiveFrameworkTurnCompletion, WorthUiActiveFrameworkTurnExecution,
+    WorthUiActiveInspectionReceipt, WorthUiActiveOrdinaryFrameCompletion,
+    WorthUiActiveRealtimeFrameCompletion, WorthUiActiveVirtualizedDataFrameCompletion, WorthUiApp,
+    WorthUiAppBuilder, WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
+    WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
     WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
-    WorthUiBuilder, WorthUiCandidateInspectionReceipt, WorthUiLoweredApplicationReplacement,
-    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
+    WorthUiApplicationSemanticNoOpReceipt, WorthUiBuilder, WorthUiCandidateInspectionReceipt,
+    WorthUiLoweredApplicationReplacement, WorthUiPendingApplicationCutover,
+    WorthUiPreparedApplicationReplacement, WorthUiReplacementCandidateSummary,
+    WorthUiReplacementPlannedCostEnvelope,
 };
+pub(crate) use host_session_authority::WorthUiHostPlanBinding;
 pub(crate) use host_session_authority::WorthUiHostSessionAuthority;
 pub use host_session_authority::{
     WorthUiHostMeasurementCapability, WorthUiHostMeasurementSessionInput,

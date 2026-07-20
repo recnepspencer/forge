@@ -9,6 +9,9 @@ pub struct WorthUiSteadyFrameCounterDenial {
 pub enum WorthUiSteadyFrameCounterDenialReason {
     EmptySteadyFrameReceipt,
     DuplicateLaneFrameReceipt,
+    LaneFrameReceiptMismatch,
+    ForeignGeneration,
+    ExecutedBreadthExceedsRequest,
     ForbiddenFramePathWork,
     DiagnosticMaterializationOnMinimalPolicy,
     MissingRequiredCounterRow,

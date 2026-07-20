@@ -43,6 +43,10 @@ impl WorthUiRuntimeFrameEpoch {
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthUiPendingActivation {
     frame_epoch: WorthUiRuntimeFrameEpoch,
+    candidate_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    allocation_planning_projection:
+        crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection,
     staged_replacement: crate::runtime::WorthUiStagedReplacement,
     readiness: crate::runtime::WorthUiActivationReadiness,
     staging_report: crate::runtime::WorthUiActivationStagingReport,
@@ -51,12 +55,21 @@ pub struct WorthUiPendingActivation {
 impl WorthUiPendingActivation {
     pub(crate) fn new(
         frame_epoch: WorthUiRuntimeFrameEpoch,
+        candidate_application_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
         staged_replacement: crate::runtime::WorthUiStagedReplacement,
         readiness: crate::runtime::WorthUiActivationReadiness,
         staging_report: crate::runtime::WorthUiActivationStagingReport,
     ) -> Self {
+        let allocation_planning_projection =
+            crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection::seal(
+                frame_epoch,
+                staged_replacement.candidate_artifact_digest(),
+                candidate_application_authority.graph_authority_identity(),
+            );
         Self {
             frame_epoch,
+            candidate_application_authority,
+            allocation_planning_projection,
             staged_replacement,
             readiness,
             staging_report,
@@ -77,6 +90,19 @@ impl WorthUiPendingActivation {
 
     pub fn staging_report(&self) -> &crate::runtime::WorthUiActivationStagingReport {
         &self.staging_report
+    }
+
+    pub(crate) fn allocation_planning_projection(
+        &self,
+    ) -> &crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection {
+        &self.allocation_planning_projection
+    }
+
+    pub(crate) fn candidate_application_authority(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority
+    {
+        &self.candidate_application_authority
     }
 }
 

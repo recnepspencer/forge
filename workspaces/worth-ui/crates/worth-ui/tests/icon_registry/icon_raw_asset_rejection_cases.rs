@@ -1,4 +1,8 @@
-use worth_ui::facade::{CapabilityDiagnosticCode, IconDescriptor, RawIconAssetReference, WorthUi};
+use worth_ui::facade::{
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{IconDescriptor, RawIconAssetReference},
+};
 
 use super::icon_assertions::assert_diagnostic_codes;
 use super::icon_fixtures::icon_id;

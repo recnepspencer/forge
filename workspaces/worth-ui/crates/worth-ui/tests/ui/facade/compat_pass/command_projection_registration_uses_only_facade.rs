@@ -1,6 +1,6 @@
 use worth_ui::facade::{
-    CommandCategory, CommandDescriptor, CommandId, CommandProjectionCommandReference,
-    CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface, WorthUi,
+    app::WorthUi,
+    registry::{CommandCategory, CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface},
 };
 
 fn main() {

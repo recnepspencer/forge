@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import re
 import sys
@@ -11,7 +10,13 @@ from pathlib import Path
 from typing import Any
 
 from worth_ui_ci_contract import ci_contract_violations
+from worth_ui_compile_contract_topology import compile_reconciliation_violations
+from worth_ui_real_boundary_proof_ledger import real_boundary_ledger_violations
+from worth_ui_query_lifetime_matrix import query_lifetime_matrix_violations
 from worth_ui_test_proof_ledger import ledger_violations
+from worth_ui_test_source_topology import source_violations
+from worth_ui_test_seam_inventory import test_seam_inventory_violations
+from worth_ui_timing_evidence import timing_evidence_violations
 from worth_ui_test_topology_config import (
     Violation,
     load_json,
@@ -108,76 +113,6 @@ def lane_violations(
     return violations
 
 
-def rust_test_sources(root: Path, config: dict[str, Any]) -> list[Path]:
-    sources: list[Path] = []
-    for package_config in config["packages"].values():
-        manifest = root / required_string(package_config, "manifest")
-        tests = manifest.parent / "tests"
-        if tests.is_dir():
-            sources.extend(
-                source
-                for source in tests.rglob("*.rs")
-                if not is_embedded_topology_fixture(tests, source)
-            )
-    return sorted(set(sources))
-
-
-def is_embedded_topology_fixture(tests: Path, source: Path) -> bool:
-    parts = source.relative_to(tests).parts
-    return len(parts) > 2 and parts[0] == "fixtures" and parts[1].startswith("topology_")
-
-
-def source_violations(root: Path, config: dict[str, Any]) -> list[Violation]:
-    violations: list[Violation] = []
-    allowed_sessions = {
-        normalized(Path(path)) for path in config.get("allowed_trybuild_sessions", [])
-    }
-    actual_sessions: set[str] = set()
-    constructor_count = 0
-    nested_cargo_patterns = (
-        re.compile(r'Command::new\(\s*"cargo"\s*\)'),
-        re.compile(r"Command::new\(\s*cargo_binary\(\)\s*\)"),
-        re.compile(r"\.arg\(\s*\"--manifest-path\"\s*\)"),
-    )
-    for source in rust_test_sources(root, config):
-        text = source.read_text(encoding="utf-8")
-        relative = normalized(source.relative_to(root))
-        source_constructor_count = text.count("trybuild::TestCases::new")
-        constructor_count += source_constructor_count
-        if source_constructor_count:
-            actual_sessions.add(relative)
-        if source_constructor_count > 1:
-            violations.append(
-                Violation(
-                    "trybuild-session",
-                    f"{relative}: {source_constructor_count} TestCases sessions share one binary",
-                )
-            )
-        if "RUSTFLAGS" in text:
-            violations.append(
-                Violation("warning-fingerprint", f"{relative}: runtime RUSTFLAGS mutation is forbidden")
-            )
-        if any(pattern.search(text) for pattern in nested_cargo_patterns):
-            violations.append(
-                Violation("nested-cargo", f"{relative}: Cargo subprocess inside an ordinary test")
-            )
-    unexpected = actual_sessions - allowed_sessions
-    missing = allowed_sessions - actual_sessions
-    for path in sorted(unexpected):
-        violations.append(Violation("trybuild-session", f"unexpected session owner: {path}"))
-    for path in sorted(missing):
-        violations.append(Violation("trybuild-session", f"configured session owner missing: {path}"))
-    maximum_sessions = required_int(config, "max_trybuild_sessions")
-    if constructor_count > maximum_sessions:
-        violations.append(
-            Violation(
-                "trybuild-session-budget",
-                f"{constructor_count} TestCases sessions exceeds {maximum_sessions}",
-            )
-        )
-    return violations
-
-
 def source_inventory_violations(root: Path, config: dict[str, Any]) -> list[Violation]:
     owner = root / required_string(config, "workspace_source_inventory_owner")
     suite = root / required_string(config, "workspace_source_inventory_suite")
@@ -232,87 +167,6 @@ def required_source_violations(root: Path, config: dict[str, Any]) -> list[Viola
     return violations
 
 
-def compile_reconciliation_violations(
-    root: Path, config: dict[str, Any]
-) -> list[Violation]:
-    inventory_path = root / required_string(config, "worth_ui_compile_inventory")
-    execution_path = root / required_string(config, "worth_ui_compile_execution")
-    violations: list[Violation] = []
-    inventory = read_compile_rows(inventory_path)
-    execution = read_compile_rows(execution_path)
-    expected_inventory = required_int(config, "worth_ui_compile_inventory_count")
-    expected_execution = required_int(config, "worth_ui_compile_execution_count")
-    if len(inventory) != expected_inventory:
-        violations.append(
-            Violation(
-                "compile-reconciliation",
-                f"inventory has {len(inventory)} rows; expected {expected_inventory}",
-            )
-        )
-    if len(execution) != expected_execution:
-        violations.append(
-            Violation(
-                "compile-reconciliation",
-                f"execution has {len(execution)} rows; expected {expected_execution}",
-            )
-        )
-
-    inventory_by_path = {row["path"]: row for row in inventory}
-    execution_by_path = {row["path"]: row for row in execution}
-    if len(inventory_by_path) != len(inventory):
-        violations.append(Violation("compile-reconciliation", "inventory paths are not unique"))
-    if len(execution_by_path) != len(execution):
-        violations.append(Violation("compile-reconciliation", "execution paths are not unique"))
-
-    for path, row in execution_by_path.items():
-        if inventory_by_path.get(path) != row:
-            violations.append(
-                Violation("compile-reconciliation", f"executed row is absent or changed: {path}")
-            )
-        fixture = inventory_path.parent.parent.parent / path
-        if not fixture.is_file():
-            violations.append(Violation("compile-reconciliation", f"missing fixture: {path}"))
-        if row["kind"] == "fail" and not fixture.with_suffix(".stderr").is_file():
-            violations.append(
-                Violation("compile-reconciliation", f"missing compiler diagnostic: {path}")
-            )
-
-    replacement_patterns = [
-        re.compile(pattern) for pattern in config["compile_structural_replacement_patterns"]
-    ]
-    removed = [row for row in inventory if row["path"] not in execution_by_path]
-    for row in removed:
-        if row["kind"] == "fail" and not any(
-            pattern.search(row["path"]) for pattern in replacement_patterns
-        ):
-            violations.append(
-                Violation(
-                    "compile-reconciliation",
-                    f"non-redundant compiler denial was removed: {row['path']}",
-                )
-            )
-
-    inventory_owners = {row["legacy_harness"] for row in inventory}
-    execution_owners = {row["legacy_harness"] for row in execution}
-    for owner in sorted(inventory_owners - execution_owners):
-        violations.append(
-            Violation("compile-reconciliation", f"legacy proof family has no representative: {owner}")
-        )
-    return violations
-
-
-def read_compile_rows(path: Path) -> list[dict[str, str]]:
-    with path.open(encoding="utf-8", newline="") as source:
-        rows = list(csv.DictReader(source))
-    required = {"kind", "path", "legacy_harness"}
-    if rows and not required.issubset(rows[0]):
-        raise ValueError(f"compile reconciliation columns are invalid: {path}")
-    for row in rows:
-        if row["kind"] not in {"pass", "fail"}:
-            raise ValueError(f"compile reconciliation kind is invalid: {row}")
-    return rows
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Check Worth UI test execution topology")
     parser.add_argument("--root", type=Path, default=Path.cwd())
@@ -339,6 +193,10 @@ def main() -> int:
         violations.extend(ci_contract_violations(root, config))
         violations.extend(compile_reconciliation_violations(root, config))
         violations.extend(ledger_violations(root, config))
+        violations.extend(real_boundary_ledger_violations(root, config))
+        violations.extend(query_lifetime_matrix_violations(root, config))
+        violations.extend(test_seam_inventory_violations(root, config))
+        violations.extend(timing_evidence_violations(root, config))
         lane_runner = root / required_string(config, "lane_runner")
         if not lane_runner.is_file():
             violations.append(Violation("lane-runner", f"missing {normalized(lane_runner.relative_to(root))}"))

@@ -1,3 +1,7 @@
+use crate::ordinary::read::{
+    WorthQueryProjectionDeclaration, WorthQueryProjectionOutcome, WorthQueryProjectionViolation,
+    WorthQueryReadProjectionBinding,
+};
 use crate::runtime::{
     WorthQueryLiveReadResult, WorthQueryLiveView, WorthQueryManagedLiveWorkspaceCapability,
     WorthQueryRuntimeError, WorthQueryUnrefinedLiveShape, WorthQueryWorkspace,
@@ -11,6 +15,7 @@ use super::WorthQueryManagedLiveDelivery;
 pub struct WorthQueryManagedLiveHandle {
     view: Option<WorthQueryLiveView<WorthQueryUnrefinedLiveShape>>,
     workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
+    projection_binding: Option<WorthQueryReadProjectionBinding>,
 }
 
 impl WorthQueryManagedLiveHandle {
@@ -18,11 +23,38 @@ impl WorthQueryManagedLiveHandle {
         self.view().name()
     }
 
+    pub(crate) fn resource_identity(&self) -> &crate::WorthQueryEvidenceIdentity {
+        self.view()
+            .subscription_installation()
+            .installation_identity()
+    }
+
     pub fn read(
         &self,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
         workspace.read_managed_live_view(self.view(), &self.workspace_capability)
+    }
+
+    pub fn project(
+        &self,
+        read: &WorthQueryLiveReadResult,
+        declaration: WorthQueryProjectionDeclaration,
+    ) -> WorthQueryProjectionOutcome {
+        let expected = self
+            .view()
+            .subscription_installation()
+            .installation_identity();
+        let actual = read.receipt().installation_identity();
+        if actual != expected {
+            return WorthQueryProjectionOutcome::Violation(
+                WorthQueryProjectionViolation::LiveInstallationMismatch {
+                    expected: expected.clone(),
+                    actual: actual.clone(),
+                },
+            );
+        }
+        self.projection_binding().consume_live(read, declaration)
     }
 
     pub fn drain(
@@ -47,10 +79,12 @@ impl WorthQueryManagedLiveHandle {
     pub(crate) fn new(
         view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
+        projection_binding: WorthQueryReadProjectionBinding,
     ) -> Self {
         Self {
             view: Some(view),
             workspace_capability,
+            projection_binding: Some(projection_binding),
         }
     }
 
@@ -59,12 +93,27 @@ impl WorthQueryManagedLiveHandle {
     ) -> (
         WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         Arc<WorthQueryManagedLiveWorkspaceCapability>,
+        WorthQueryReadProjectionBinding,
     ) {
         let view = self
             .view
             .take()
             .expect("transferred managed live handle must retain its resource view");
-        (view, Arc::clone(&self.workspace_capability))
+        let projection_binding = self
+            .projection_binding
+            .take()
+            .expect("transferred managed live handle must retain its projection binding");
+        (
+            view,
+            Arc::clone(&self.workspace_capability),
+            projection_binding,
+        )
+    }
+
+    fn projection_binding(&self) -> &WorthQueryReadProjectionBinding {
+        self.projection_binding
+            .as_ref()
+            .expect("active managed live handle must retain its projection binding")
     }
 
     pub(crate) fn disarm(&mut self) {

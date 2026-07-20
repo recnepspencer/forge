@@ -1,5 +1,6 @@
 pub use crate::graph::{
     project_aspect_evidence_ref, project_aspect_evidence_refs, UiAdmittedAllocationCatalogBasisSet,
+    UiAdmittedAllocationCatalogDelta, UiAllocationCatalogDeltaAdmissionDenial,
     UiAllocationNeighborhoodDenial, UiAspectEvidenceLane, UiAspectEvidenceRefProjection,
     UiAspectEvidenceSubjectKind, UiGraphAspectConsumer, UiGraphAspectConsumerKind,
     UiGraphAspectPublisher, UiGraphAspectPublisherKind, UiGraphAttachmentPosture, UiGraphAuthority,

@@ -41,4 +41,11 @@ impl WorthUiOperationalHostAdapter for AuthorityClosureHost {
             WorthUiHostCapability::ViewportObservation,
         ])
     }
+
+    fn consume_output(
+        &self,
+        _output: &worth_ui_host_contract::WorthUiHostOutputEnvelope,
+    ) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
+        worth_ui_host_contract::WorthUiHostOutputDisposition::Consumed
+    }
 }

@@ -9,6 +9,7 @@ pub struct WorthUiActiveRuntimeObservation {
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     artifact_digest: u64,
     active_plan_digest: u64,
+    cross_lane_bundle: super::WorthUiCrossLaneBundleReceipt,
     snapshot_digest: u64,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
@@ -16,23 +17,17 @@ pub struct WorthUiActiveRuntimeObservation {
 }
 
 impl WorthUiActiveRuntimeObservation {
-    pub(crate) fn new(
-        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
-        artifact_digest: u64,
-        active_plan_digest: u64,
-        snapshot_digest: u64,
-        lifecycle: WorthUiRuntimeLifecycle,
-        status: WorthUiRuntimeActivationStatus,
-        frame_epoch: WorthUiRuntimeFrameEpoch,
-    ) -> Self {
+    pub(crate) fn from_active_state(state: &super::WorthUiActiveRuntimeState) -> Self {
+        let active_plan = state.active_plan_ref();
         Self {
-            generation_identity,
-            artifact_digest,
-            active_plan_digest,
-            snapshot_digest,
-            lifecycle,
-            status,
-            frame_epoch,
+            generation_identity: state.generation_identity().clone(),
+            artifact_digest: state.active_artifact().digest().raw(),
+            active_plan_digest: active_plan.digest().as_u64(),
+            cross_lane_bundle: active_plan.cross_lane_receipt(),
+            snapshot_digest: state.snapshot_digest().as_u64(),
+            lifecycle: state.lifecycle(),
+            status: state.status(),
+            frame_epoch: state.frame_epoch(),
         }
     }
 
@@ -49,6 +44,10 @@ impl WorthUiActiveRuntimeObservation {
 
     pub fn active_plan_digest(&self) -> u64 {
         self.active_plan_digest
+    }
+
+    pub fn cross_lane_bundle(&self) -> super::WorthUiCrossLaneBundleReceipt {
+        self.cross_lane_bundle
     }
 
     pub fn snapshot_digest(&self) -> u64 {

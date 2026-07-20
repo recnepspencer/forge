@@ -6,61 +6,58 @@ use crate::runtime::{
 pub struct WorthUiRendererSurfaceAdmission {
     handle: WorthUiRendererSurfaceHandle,
     runtime_handle: WorthUiRuntimeHandle,
-    policy_digest: u64,
-    support_digest: u64,
-    command_identity_count: usize,
-    accessibility_posture_count: usize,
-    diagnostics_posture_count: usize,
+    policy: WorthUiHighFrequencyFramePolicy,
+    overlay_row_limit: u16,
+    declared_frame_cost_millis: u16,
+    host_session_identity: u64,
+    host_observation_generation: u64,
+    plan_basis_digest: u64,
 }
 
 impl WorthUiRendererSurfaceAdmission {
     pub(crate) fn new(
         runtime_handle: WorthUiRuntimeHandle,
-        policy: WorthUiHighFrequencyFramePolicy,
-        support_digest: u64,
-        command_identity_count: usize,
-        accessibility_posture_count: usize,
-        diagnostics_posture_count: usize,
+        contract: crate::capability::ComponentRealtimeOverlayContract,
+        host_binding: crate::facade::WorthUiHostPlanBinding,
+        plan_basis_digest: u64,
     ) -> Self {
         Self {
-            handle: WorthUiRendererSurfaceHandle::new(
-                runtime_handle.plan_index(),
-                runtime_handle.plan_generation(),
-            ),
+            handle: WorthUiRendererSurfaceHandle::new(runtime_handle.locator()),
             runtime_handle,
-            policy_digest: policy.canonical_digest(),
-            support_digest,
-            command_identity_count,
-            accessibility_posture_count,
-            diagnostics_posture_count,
+            policy: WorthUiHighFrequencyFramePolicy::from_contract(contract),
+            overlay_row_limit: contract.overlay_row_limit(),
+            declared_frame_cost_millis: contract.declared_frame_cost_millis(),
+            host_session_identity: host_binding.session_identity().as_u64(),
+            host_observation_generation: host_binding.observation_generation().as_u64(),
+            plan_basis_digest,
         }
     }
 
     pub fn handle(self) -> WorthUiRendererSurfaceHandle {
         self.handle
     }
-
     pub fn runtime_handle(self) -> WorthUiRuntimeHandle {
         self.runtime_handle
     }
-
+    pub fn policy(self) -> WorthUiHighFrequencyFramePolicy {
+        self.policy
+    }
     pub fn policy_digest(self) -> u64 {
-        self.policy_digest
+        self.policy.canonical_digest()
     }
-
-    pub fn support_digest(self) -> u64 {
-        self.support_digest
+    pub fn overlay_row_limit(self) -> u16 {
+        self.overlay_row_limit
     }
-
-    pub fn command_identity_count(self) -> usize {
-        self.command_identity_count
+    pub fn declared_frame_cost_millis(self) -> u16 {
+        self.declared_frame_cost_millis
     }
-
-    pub fn accessibility_posture_count(self) -> usize {
-        self.accessibility_posture_count
+    pub fn host_session_identity(self) -> u64 {
+        self.host_session_identity
     }
-
-    pub fn diagnostics_posture_count(self) -> usize {
-        self.diagnostics_posture_count
+    pub fn host_observation_generation(self) -> u64 {
+        self.host_observation_generation
+    }
+    pub fn plan_basis_digest(self) -> u64 {
+        self.plan_basis_digest
     }
 }

@@ -1,4 +1,4 @@
-use worth_ui::facade::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic};
+use worth_ui::facade::diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic};
 
 pub(crate) fn assert_diagnostic_codes(
     diagnostics: &[CapabilityRegistrationDiagnostic],

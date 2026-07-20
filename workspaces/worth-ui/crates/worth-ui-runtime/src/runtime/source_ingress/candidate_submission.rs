@@ -3,7 +3,7 @@ use crate::runtime::candidate::{
     file_authored_replacement_candidate, rust_authored_replacement_candidate,
 };
 use crate::runtime::source_ingress::counters::WorthUiSourceIngressCounters;
-use crate::runtime::source_ingress::debounce::WorthUiDebouncedWatcherBatch;
+use crate::runtime::source_ingress::debounce::WorthUiSettledSourceSnapshot;
 use crate::runtime::source_ingress::denial::{
     WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
 };
@@ -39,7 +39,7 @@ pub enum WorthUiWatchedCandidateSubmissionDenial {
     Candidate(WorthUiReplacementCandidateDenial),
 }
 
-impl WorthUiDebouncedWatcherBatch {
+impl WorthUiSettledSourceSnapshot {
     pub fn lower_to_candidate_submission(
         self,
         snapshot: &CapabilitySnapshot,

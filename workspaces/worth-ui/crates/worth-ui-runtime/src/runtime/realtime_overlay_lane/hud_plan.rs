@@ -1,21 +1,16 @@
 use crate::runtime::{
-    WorthUiHighFrequencyFramePolicy, WorthUiHudNode, WorthUiRealtimeCertification,
-    WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayHook, WorthUiRendererSurfaceAdmission,
+    WorthUiHudNode, WorthUiRealtimeCertification, WorthUiRealtimeLaneCounters,
     WorthUiRuntimeHandleAllocationReceipt,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthUiHudPlan {
     handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
     support_digest: u64,
     hud_plan_digest: u64,
-    frame_policy: WorthUiHighFrequencyFramePolicy,
-    rows: Vec<WorthUiHudNode>,
-    renderer_surface_admissions: Vec<WorthUiRendererSurfaceAdmission>,
-    command_plan_indexes: Vec<u32>,
-    accessibility_plan_indexes: Vec<u32>,
-    diagnostics_plan_indexes: Vec<u32>,
-    overlay_hooks: Vec<WorthUiRealtimeOverlayHook>,
+    host_binding: crate::facade::WorthUiHostPlanBinding,
+    region_store: crate::runtime::plan_topology::WorthUiPlanRegionStore,
+    realtime_slots: crate::runtime::plan_topology::WorthUiPlanRegionSlotSetView<1>,
     counters: WorthUiRealtimeLaneCounters,
 }
 
@@ -23,103 +18,85 @@ pub(crate) struct WorthUiHudPlanInput {
     pub handle_receipt: WorthUiRuntimeHandleAllocationReceipt,
     pub support_digest: u64,
     pub hud_plan_digest: u64,
-    pub frame_policy: WorthUiHighFrequencyFramePolicy,
-    pub rows: Vec<WorthUiHudNode>,
-    pub renderer_surface_admissions: Vec<WorthUiRendererSurfaceAdmission>,
-    pub command_plan_indexes: Vec<u32>,
-    pub accessibility_plan_indexes: Vec<u32>,
-    pub diagnostics_plan_indexes: Vec<u32>,
-    pub overlay_hooks: Vec<WorthUiRealtimeOverlayHook>,
+    pub host_binding: crate::facade::WorthUiHostPlanBinding,
+    pub region_store: crate::runtime::plan_topology::WorthUiPlanRegionStore,
+    pub realtime_slots: crate::runtime::plan_topology::WorthUiPlanRegionSlotSetView<1>,
     pub counters: WorthUiRealtimeLaneCounters,
 }
 
+impl PartialEq for WorthUiHudPlan {
+    fn eq(&self, other: &Self) -> bool {
+        self.handle_receipt == other.handle_receipt
+            && self.support_digest == other.support_digest
+            && self.hud_plan_digest == other.hud_plan_digest
+            && self.host_binding == other.host_binding
+            && self.realtime_slots == other.realtime_slots
+    }
+}
+
+impl Eq for WorthUiHudPlan {}
+
 impl WorthUiHudPlan {
     pub(crate) fn new(input: WorthUiHudPlanInput) -> Self {
-        let WorthUiHudPlanInput {
-            handle_receipt,
-            support_digest,
-            hud_plan_digest,
-            frame_policy,
-            rows,
-            renderer_surface_admissions,
-            command_plan_indexes,
-            accessibility_plan_indexes,
-            diagnostics_plan_indexes,
-            overlay_hooks,
-            counters,
-        } = input;
         Self {
-            handle_receipt,
-            support_digest,
-            hud_plan_digest,
-            frame_policy,
-            rows,
-            renderer_surface_admissions,
-            command_plan_indexes,
-            accessibility_plan_indexes,
-            diagnostics_plan_indexes,
-            overlay_hooks,
-            counters,
+            handle_receipt: input.handle_receipt,
+            support_digest: input.support_digest,
+            hud_plan_digest: input.hud_plan_digest,
+            host_binding: input.host_binding,
+            region_store: input.region_store,
+            realtime_slots: input.realtime_slots,
+            counters: input.counters,
         }
     }
 
     pub fn handle_receipt(&self) -> WorthUiRuntimeHandleAllocationReceipt {
         self.handle_receipt
     }
-
     pub fn support_digest(&self) -> u64 {
         self.support_digest
     }
-
     pub fn hud_plan_digest(&self) -> u64 {
         self.hud_plan_digest
     }
-
-    pub fn frame_policy(&self) -> WorthUiHighFrequencyFramePolicy {
-        self.frame_policy
+    pub fn row_count(&self) -> usize {
+        self.realtime_slots.len()
     }
-
-    pub fn rows(&self) -> &[WorthUiHudNode] {
-        &self.rows
-    }
-
-    pub fn renderer_surfaces(&self) -> &[WorthUiRendererSurfaceAdmission] {
-        &self.renderer_surface_admissions
-    }
-
-    pub fn command_plan_indexes(&self) -> &[u32] {
-        &self.command_plan_indexes
-    }
-
-    pub fn accessibility_plan_indexes(&self) -> &[u32] {
-        &self.accessibility_plan_indexes
-    }
-
-    pub fn diagnostics_plan_indexes(&self) -> &[u32] {
-        &self.diagnostics_plan_indexes
-    }
-
-    pub fn overlay_hooks(&self) -> &[WorthUiRealtimeOverlayHook] {
-        &self.overlay_hooks
-    }
-
     pub fn counters(&self) -> WorthUiRealtimeLaneCounters {
         self.counters
     }
 
-    pub(crate) fn row_for_plan_index(&self, plan_index: u32) -> Option<&WorthUiHudNode> {
-        self.rows
-            .binary_search_by_key(&plan_index, WorthUiHudNode::plan_index)
-            .ok()
-            .map(|index| &self.rows[index])
+    pub(crate) fn first_row(&self) -> Option<WorthUiHudNode> {
+        self.realtime_slots
+            .first()
+            .and_then(|slot| u32::try_from(slot).ok())
+            .and_then(|index| self.row_for_plan_index(index))
     }
 
-    pub(crate) fn certification(&self) -> WorthUiRealtimeCertification {
+    pub(crate) fn row_for_plan_index(&self, plan_index: u32) -> Option<WorthUiHudNode> {
+        let slot = u64::from(plan_index);
+        if !self.realtime_slots.contains(slot) {
+            return None;
+        }
+        let executable = self.region_store.executable_for_stable_slot(slot)?;
+        let meaning = executable.realtime_meaning_reference()?;
+        let handle = self
+            .region_store
+            .runtime_handle_for_stable_slot(slot, self.handle_receipt.arena_identity())?;
+        Some(WorthUiHudNode::new(
+            handle,
+            meaning.contract(),
+            self.host_binding,
+            self.handle_receipt.basis_digest(),
+        ))
+    }
+
+    pub(crate) fn certification(&self, row: WorthUiHudNode) -> WorthUiRealtimeCertification {
         WorthUiRealtimeCertification::new(
             self.hud_plan_digest,
             self.support_digest,
-            self.frame_policy.canonical_digest(),
+            row.renderer_surface_admission().policy_digest(),
             self.handle_receipt,
+            self.host_binding,
         )
     }
 }

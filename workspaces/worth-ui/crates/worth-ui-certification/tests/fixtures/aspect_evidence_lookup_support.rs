@@ -155,7 +155,7 @@ pub struct AspectNeighborhoodFacts {
 
 pub fn aspect_neighborhood_facts_from_receipt(
     aspect_name: &str,
-    receipt: &worth_ui::facade::UiInspectionReceipt,
+    receipt: &worth_ui::facade::inspection::UiInspectionReceipt,
     all_graph_node_digests: &[u64],
     all_mounted_receipt_digests: &[u64],
 ) -> AspectNeighborhoodFacts {

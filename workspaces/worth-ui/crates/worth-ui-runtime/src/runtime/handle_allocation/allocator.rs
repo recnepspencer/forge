@@ -1,41 +1,49 @@
 use super::claim_validation::reject_invalid_specialized_handle_claims;
+use super::{WorthUiHandleArenaIdentity, WorthUiHandleSlotGeneration};
+use crate::runtime::planning::WorthUiExecutionPlanLoweringFacts;
 use crate::runtime::{
-    UiAllocationReceipt, WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle,
-    WorthUiHandlePlanGeneration, WorthUiLaneHandle, WorthUiPlanNodeInput,
-    WorthUiPlanNodeInputFamily, WorthUiRuntimeHandle, WorthUiRuntimeHandleAllocation,
-    WorthUiRuntimeHandleAllocationBasis, WorthUiRuntimeHandleAllocationCounters,
-    WorthUiRuntimeHandleAllocationDenial, WorthUiRuntimeHandleAllocationDenialReason,
-    WorthUiRuntimeHandleAllocationReceipt, WorthUiRuntimeHandleFamilyWidths,
-    WorthUiStateSlotHandle, WorthUiTokenHandle, WorthUiViewBindingHandle,
+    WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiRuntimeHandle,
+    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationBasis,
+    WorthUiRuntimeHandleAllocationCounters, WorthUiRuntimeHandleAllocationDenial,
+    WorthUiRuntimeHandleAllocationDenialReason, WorthUiRuntimeHandleAllocationReceipt,
+    WorthUiRuntimeHandleFamilyWidths,
 };
 
 pub(crate) struct WorthUiRuntimeHandleAllocator;
 
 struct HandleAllocationAccumulator {
-    plan_generation: WorthUiHandlePlanGeneration,
+    arena_identity: WorthUiHandleArenaIdentity,
+    slot_generation: WorthUiHandleSlotGeneration,
     counters: WorthUiRuntimeHandleAllocationCounters,
     family_widths: WorthUiRuntimeHandleFamilyWidths,
     runtime_handles: Vec<WorthUiRuntimeHandle>,
-    component_handles: Vec<WorthUiComponentHandle>,
-    command_handles: Vec<WorthUiCommandHandle>,
-    token_handles: Vec<WorthUiTokenHandle>,
-    child_range_handles: Vec<WorthUiChildRangeHandle>,
-    view_binding_handles: Vec<WorthUiViewBindingHandle>,
-    lane_handles: Vec<WorthUiLaneHandle>,
-    state_slot_handles: Vec<WorthUiStateSlotHandle>,
 }
 
 impl WorthUiRuntimeHandleAllocator {
+    pub(crate) fn authorize_regional_successor(
+        authority: &WorthUiExecutionPlanLoweringFacts,
+        arena_identity: WorthUiHandleArenaIdentity,
+    ) -> WorthUiRuntimeHandleAllocation {
+        let basis = WorthUiRuntimeHandleAllocationBasis::from_lowering_authority(authority);
+        let receipt = WorthUiRuntimeHandleAllocationReceipt::from_basis(&basis, arena_identity);
+        WorthUiRuntimeHandleAllocation::new(super::WorthUiRuntimeHandleAllocationInput {
+            basis,
+            receipt,
+            family_widths: Default::default(),
+            counters: Default::default(),
+            runtime_handles: Vec::new(),
+        })
+    }
+
     pub(crate) fn allocate(
-        allocation_receipt: &UiAllocationReceipt,
+        authority: &WorthUiExecutionPlanLoweringFacts,
+        arena_identity: WorthUiHandleArenaIdentity,
     ) -> Result<WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationDenial> {
-        let committed_allocation = allocation_receipt.committed_allocation();
-        let node_inputs = committed_allocation.node_inputs();
-        let basis =
-            WorthUiRuntimeHandleAllocationBasis::from_committed_allocation(committed_allocation);
-        let receipt = WorthUiRuntimeHandleAllocationReceipt::from_basis(&basis);
+        let node_inputs = authority.node_inputs();
+        let basis = WorthUiRuntimeHandleAllocationBasis::from_lowering_authority(authority);
+        let receipt = WorthUiRuntimeHandleAllocationReceipt::from_basis(&basis, arena_identity);
         let counters = reject_invalid_specialized_handle_claims(node_inputs)?;
-        let mut allocation = HandleAllocationAccumulator::new(receipt.plan_generation(), counters);
+        let mut allocation = HandleAllocationAccumulator::new(arena_identity, counters);
 
         for (plan_index, node_input) in node_inputs.iter().enumerate() {
             allocation.record_plan_node_input(plan_index, node_input)?;
@@ -48,13 +56,6 @@ impl WorthUiRuntimeHandleAllocator {
                 family_widths: allocation.family_widths,
                 counters: allocation.counters,
                 runtime_handles: allocation.runtime_handles,
-                component_handles: allocation.component_handles,
-                command_handles: allocation.command_handles,
-                token_handles: allocation.token_handles,
-                child_range_handles: allocation.child_range_handles,
-                view_binding_handles: allocation.view_binding_handles,
-                lane_handles: allocation.lane_handles,
-                state_slot_handles: allocation.state_slot_handles,
             },
         ))
     }
@@ -62,21 +63,15 @@ impl WorthUiRuntimeHandleAllocator {
 
 impl HandleAllocationAccumulator {
     fn new(
-        plan_generation: WorthUiHandlePlanGeneration,
+        arena_identity: WorthUiHandleArenaIdentity,
         counters: WorthUiRuntimeHandleAllocationCounters,
     ) -> Self {
         Self {
-            plan_generation,
+            arena_identity,
+            slot_generation: WorthUiHandleSlotGeneration::new(0),
             counters,
             family_widths: WorthUiRuntimeHandleFamilyWidths::default(),
             runtime_handles: Vec::new(),
-            component_handles: Vec::new(),
-            command_handles: Vec::new(),
-            token_handles: Vec::new(),
-            child_range_handles: Vec::new(),
-            view_binding_handles: Vec::new(),
-            lane_handles: Vec::new(),
-            state_slot_handles: Vec::new(),
         }
     }
 
@@ -88,7 +83,7 @@ impl HandleAllocationAccumulator {
         let plan_index = compact_plan_index(plan_index, self.counters)?;
         self.counters.record_plan_node_input();
         self.record_runtime_handle(plan_index, node_input.family());
-        self.record_typed_handle(plan_index, node_input);
+        self.record_family_width(node_input);
         Ok(())
     }
 
@@ -96,92 +91,46 @@ impl HandleAllocationAccumulator {
         self.runtime_handles.push(WorthUiRuntimeHandle::new(
             family,
             plan_index,
-            self.plan_generation,
+            self.slot_generation,
+            self.arena_identity,
         ));
         self.family_widths.record_runtime_handle();
     }
 
-    fn record_typed_handle(&mut self, plan_index: u32, node_input: &WorthUiPlanNodeInput) {
+    fn record_family_width(&mut self, node_input: &WorthUiPlanNodeInput) {
         match node_input.family() {
             WorthUiPlanNodeInputFamily::ComponentInvocation => {
-                self.record_component_handle(plan_index)
+                self.family_widths.record_component_handle();
+                self.counters.record_component_handle();
             }
-            WorthUiPlanNodeInputFamily::Command => self.record_command_handle(plan_index),
-            WorthUiPlanNodeInputFamily::TokenStyle => self.record_token_handle(plan_index),
-            WorthUiPlanNodeInputFamily::ChildRange => self.record_child_range_handle(plan_index),
+            WorthUiPlanNodeInputFamily::Command => {
+                self.family_widths.record_command_handle();
+                self.counters.record_command_handle();
+            }
+            WorthUiPlanNodeInputFamily::TokenStyle => {
+                self.family_widths.record_token_handle();
+                self.counters.record_token_handle();
+            }
+            WorthUiPlanNodeInputFamily::ChildRange => {
+                self.family_widths.record_child_range_handle();
+                self.counters.record_child_range_handle();
+            }
             WorthUiPlanNodeInputFamily::QueryViewBinding => {
-                self.record_view_binding_handle(plan_index, node_input)
-            }
-            WorthUiPlanNodeInputFamily::LanePartitionRef => self.record_lane_handle(plan_index),
-            _ => {
-                if node_input.transition().is_some() {
-                    self.record_state_slot_handle(plan_index);
+                if node_input.query_binding_identity().is_some() {
+                    self.family_widths.record_view_binding_handle();
+                    self.counters.record_view_binding_handle();
                 }
             }
+            WorthUiPlanNodeInputFamily::LanePartitionRef => {
+                self.family_widths.record_lane_handle();
+                self.counters.record_lane_handle();
+            }
+            WorthUiPlanNodeInputFamily::StateSlot => {
+                self.family_widths.record_state_slot_handle();
+                self.counters.record_state_slot_handle();
+            }
+            _ => {}
         }
-    }
-
-    fn record_component_handle(&mut self, plan_index: u32) {
-        self.component_handles.push(WorthUiComponentHandle::new(
-            plan_index,
-            self.plan_generation,
-        ));
-        self.family_widths.record_component_handle();
-        self.counters.record_component_handle();
-    }
-
-    fn record_command_handle(&mut self, plan_index: u32) {
-        self.command_handles
-            .push(WorthUiCommandHandle::new(plan_index, self.plan_generation));
-        self.family_widths.record_command_handle();
-        self.counters.record_command_handle();
-    }
-
-    fn record_token_handle(&mut self, plan_index: u32) {
-        self.token_handles
-            .push(WorthUiTokenHandle::new(plan_index, self.plan_generation));
-        self.family_widths.record_token_handle();
-        self.counters.record_token_handle();
-    }
-
-    fn record_child_range_handle(&mut self, plan_index: u32) {
-        self.child_range_handles.push(WorthUiChildRangeHandle::new(
-            plan_index,
-            self.plan_generation,
-        ));
-        self.family_widths.record_child_range_handle();
-        self.counters.record_child_range_handle();
-    }
-
-    fn record_view_binding_handle(&mut self, plan_index: u32, node_input: &WorthUiPlanNodeInput) {
-        if node_input.query_binding_identity().is_none() {
-            return;
-        }
-        debug_assert!(node_input.query_binding_posture().is_some());
-
-        self.view_binding_handles
-            .push(WorthUiViewBindingHandle::new(
-                plan_index,
-                self.plan_generation,
-            ));
-        self.family_widths.record_view_binding_handle();
-        self.counters.record_view_binding_handle();
-    }
-
-    fn record_lane_handle(&mut self, plan_index: u32) {
-        self.lane_handles
-            .push(WorthUiLaneHandle::new(plan_index, self.plan_generation));
-        self.family_widths.record_lane_handle();
-        self.counters.record_lane_handle();
-    }
-
-    fn record_state_slot_handle(&mut self, plan_index: u32) {
-        self.state_slot_handles.push(WorthUiStateSlotHandle::new(
-            plan_index,
-            self.plan_generation,
-        ));
-        self.family_widths.record_state_slot_handle();
-        self.counters.record_state_slot_handle();
     }
 }
 
@@ -189,9 +138,9 @@ fn compact_plan_index(
     plan_index: usize,
     counters: WorthUiRuntimeHandleAllocationCounters,
 ) -> Result<u32, WorthUiRuntimeHandleAllocationDenial> {
-    u32::try_from(plan_index).map_err(|_| {
+    super::WorthUiHandleCapacity::plan_index(plan_index).map_err(|_| {
         denial(
-            WorthUiRuntimeHandleAllocationDenialReason::UnsupportedHandleFamily,
+            WorthUiRuntimeHandleAllocationDenialReason::PlanIndexCapacityExhausted,
             counters,
         )
     })

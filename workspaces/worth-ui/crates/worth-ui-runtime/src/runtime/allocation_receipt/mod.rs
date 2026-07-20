@@ -88,6 +88,7 @@ pub use commit_outcome::UiAllocationReceiptCommitOutcome;
 pub(crate) use committed_allocation::UiCommittedAllocation;
 pub(crate) use committed_catalog_binding::UiCommittedAllocationCatalogActivation;
 pub use committed_catalog_binding::UiCommittedAllocationCatalogActivationDenial;
+pub(crate) use committed_catalog_binding::UiCommittedAllocationCatalogActivationRow;
 pub(crate) use committed_catalog_binding::UiCommittedAllocationCatalogBindings;
 pub(crate) use committed_catalog_binding::UiCommittedPortalActivationSource;
 pub(crate) use committed_catalog_binding::UiCommittedScrollActivationSource;
@@ -149,3 +150,5 @@ pub(crate) use receipt_ledger::UiAllocationReceiptLedger;
 pub(in crate::runtime) use receipt_ledger_entry::UiPreparedAllocationCatalogLedgerCommit;
 #[path = "ledger_lifecycle/activation_catalog_commit.rs"]
 mod activation_catalog_commit;
+#[path = "ledger_lifecycle/removal_catalog_commit.rs"]
+mod removal_catalog_commit;

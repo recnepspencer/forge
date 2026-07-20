@@ -1,15 +1,29 @@
-error[E0308]: mismatched types
-  --> tests/ui/runtime_measurement/fail/uncertified_counter_packet_cannot_lower_to_foundational.rs:16:70
-   |
-16 |     let _ = WorthUiFoundationalCounterBridge::lower_certified_packet(&packet);
-   |             -------------------------------------------------------- ^^^^^^^ expected `&WorthUiCertifiedMeasurementPacket`, found `&WorthUiMeasurementCounterPacket`
-   |             |
-   |             arguments to this function are incorrect
-   |
-   = note: expected reference `&WorthUiCertifiedMeasurementPacket`
-              found reference `&WorthUiMeasurementCounterPacket`
-note: associated function defined here
-  --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/measurement/foundational_bridge.rs
-   |
-   |     pub fn lower_certified_packet(
-   |            ^^^^^^^^^^^^^^^^^^^^^^
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiFoundationalCounterBridge`, `worth_ui::facade::WorthUiFrameCostCounter`, `worth_ui::facade::WorthUiMeasurementBoundary`, `worth_ui::facade::WorthUiRuntimeCounterFamily`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_measurement/fail/uncertified_counter_packet_cannot_lower_to_foundational.rs
+ help: consider importing this struct instead:
+worth_ui_runtime::facade::WorthUiFoundationalCounterBridge
+ help: consider importing this struct instead:
+worth_ui_runtime::facade::WorthUiFrameCostCounter
+ help: consider importing this enum instead:
+worth_ui_runtime::facade::WorthUiMeasurementBoundary
+ help: consider importing this enum instead:
+worth_ui_runtime::facade::WorthUiRuntimeCounterFamily
+
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiCandidateAdmissionCounters`, `worth_ui::facade::WorthUiReloadCounterBoundary`, `worth_ui::facade::WorthUiReloadCounterStopStage`, `worth_ui::facade::WorthUiReloadLoweringFoundationalBridge`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_reload_counter_boundary/fail/raw_reload_counter_receipt_cannot_lower_to_foundational.rs
+ help: consider importing this struct instead:
+worth_ui_runtime::facade::WorthUiCandidateAdmissionCounters
+ help: consider importing this struct instead:
+worth_ui_runtime::facade::WorthUiReloadCounterBoundary
+ help: consider importing this enum instead:
+worth_ui_runtime::facade::WorthUiReloadCounterStopStage
+ help: consider importing this struct instead:
+worth_ui_runtime::facade::WorthUiReloadLoweringFoundationalBridge
+
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiFrameExecutionReceipt`, `worth_ui::facade::WorthUiSteadyFrameFoundationalBridge`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_steady_frame_counter_boundary/fail/raw_steady_frame_receipt_cannot_lower_to_foundational.rs
+ help: consider importing one of these structs instead:
+worth_ui::facade::runtime::WorthUiFrameExecutionReceipt
+worth_ui_runtime::facade::WorthUiFrameExecutionReceipt
+ help: consider importing this struct instead:
+worth_ui_runtime::facade::WorthUiSteadyFrameFoundationalBridge

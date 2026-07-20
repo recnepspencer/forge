@@ -1,13 +1,17 @@
-error[E0451]: fields `stopped_at`, `packets`, `carried_query_contract_identities` and `query_support_rediscovery_count` of struct `WorthUiReloadLoweringCounterReceipt` are private
-  --> tests/ui/runtime_reload_counter_boundary/fail/reload_counter_receipt_fields_not_public.rs:8:9
-   |
- 7 |     let _receipt = WorthUiReloadLoweringCounterReceipt {
-   |                    ----------------------------------- in this type
- 8 |         stopped_at: WorthUiReloadCounterStopStage::CandidateAdmission,
-   |         ^^^^^^^^^^ private field
- 9 |         packets: Vec::<WorthUiMeasurementCounterPacket>::new(),
-   |         ^^^^^^^ private field
-10 |         carried_query_contract_identities: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         query_support_rediscovery_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiReloadCounterStopStage`, `worth_ui::facade::WorthUiReloadLoweringCounterReceipt`, `worth_ui::facade::WorthUiMeasurementCounterPacket`
+ --> tests/ui/runtime_reload_counter_boundary/fail/reload_counter_receipt_fields_not_public.rs:2:5
+  |
+2 |     WorthUiReloadCounterStopStage, WorthUiReloadLoweringCounterReceipt,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiReloadLoweringCounterReceipt` in `facade`
+  |     |
+  |     no `WorthUiReloadCounterStopStage` in `facade`
+3 |     WorthUiMeasurementCounterPacket,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiMeasurementCounterPacket` in `facade`
+  |
+  = help: consider importing this enum instead:
+          worth_ui_runtime::facade::WorthUiReloadCounterStopStage
+  = help: consider importing one of these structs instead:
+          worth_ui::facade::app::WorthUiReloadLoweringCounterReceipt
+          worth_ui_runtime::facade::WorthUiReloadLoweringCounterReceipt
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiMeasurementCounterPacket

@@ -1,3 +1,4 @@
+mod basis_digest;
 mod decision;
 mod denial;
 mod entry;

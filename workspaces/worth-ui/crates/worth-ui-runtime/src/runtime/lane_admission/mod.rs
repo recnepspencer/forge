@@ -14,6 +14,7 @@ mod support_matrix;
 pub use admission::WorthUiLaneAdmission;
 pub use counters::WorthUiLaneAdmissionCounters;
 pub use denial::{WorthUiLaneAdmissionDenial, WorthUiLaneAdmissionDenialReason};
+pub(crate) use descriptor::lane_for_family;
 pub use descriptor::WorthUiExecutionLaneDescriptor;
 pub use hook::{WorthUiLaneAdapterHook, WorthUiLaneAdapterHookKind};
 pub(crate) use hook_admission::WorthUiExtensionHookAdmissionPlanner;

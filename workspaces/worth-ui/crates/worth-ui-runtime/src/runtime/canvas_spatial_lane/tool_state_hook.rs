@@ -1,32 +1,34 @@
-use crate::runtime::WorthUiExtensionHookAdmission;
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct WorthUiSpatialToolStateHook {
-    hook_id: String,
-    selection_identity_digest: u64,
+    host_session_identity: u64,
+    host_observation_generation: u64,
+    plan_digest: u64,
 }
 
 impl WorthUiSpatialToolStateHook {
-    pub(crate) fn from_admission(admission: &WorthUiExtensionHookAdmission) -> Self {
+    pub(crate) fn from_host_binding(
+        binding: crate::facade::WorthUiHostPlanBinding,
+        plan_digest: u64,
+    ) -> Self {
         Self {
-            hook_id: admission.hook().hook_id().to_string(),
-            selection_identity_digest: fold(0xcbf29ce484222325, admission.hook().hook_id()),
+            host_session_identity: binding.session_identity().as_u64(),
+            host_observation_generation: binding.observation_generation().as_u64(),
+            plan_digest,
         }
     }
-
     pub fn hook_id(&self) -> &str {
-        &self.hook_id
+        "canvas-spatial-tool-state"
     }
-
-    pub fn selection_identity_digest(&self) -> u64 {
-        self.selection_identity_digest
+    pub fn host_session_identity(self) -> u64 {
+        self.host_session_identity
     }
-}
-
-fn fold(mut digest: u64, text: &str) -> u64 {
-    for byte in text.as_bytes() {
-        digest ^= u64::from(*byte);
-        digest = digest.wrapping_mul(0x100000001b3);
+    pub fn host_observation_generation(self) -> u64 {
+        self.host_observation_generation
     }
-    digest
+    pub fn plan_digest(self) -> u64 {
+        self.plan_digest
+    }
+    pub fn selection_identity_digest(self) -> u64 {
+        self.plan_digest
+    }
 }

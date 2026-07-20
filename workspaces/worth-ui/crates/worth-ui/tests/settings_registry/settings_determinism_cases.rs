@@ -1,7 +1,10 @@
 use worth_ui::facade::{
-    SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint,
-    SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
-    SettingValueSchema, WorthUi,
+    app::WorthUi,
+    registry::{
+        SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint,
+        SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
+        SettingValueSchema,
+    },
 };
 
 use super::settings_assertions::assert_registered_setting_ids;

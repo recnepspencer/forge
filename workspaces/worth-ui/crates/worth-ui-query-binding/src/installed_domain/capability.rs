@@ -57,7 +57,7 @@ impl WorthUiInstalledQueryDomain {
     }
 
     pub fn shares_authority_with(&self, other: &Self) -> bool {
-        self.handle.authority_witness() == other.handle.authority_witness()
+        std::ptr::eq(self.handle.authority(), other.handle.authority())
     }
 
     pub(crate) fn handle(&self) -> &WorthQueryInstalledDomainHandle<WorthUiDomainEntry> {

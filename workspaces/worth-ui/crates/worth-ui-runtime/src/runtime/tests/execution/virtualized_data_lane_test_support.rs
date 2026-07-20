@@ -1,14 +1,19 @@
 use super::activation_staging_test_support::activation_staging_inputs;
-use super::allocation_planning_test_support::allocation_planning;
+use super::allocation_planning_test_support::{
+    allocation_planning, independent_allocation_planning,
+};
+use crate::facade::WorthUi;
+use crate::runtime::tests::source_ingress_boundary_test_support::lower_file_submission;
 use crate::runtime::{
     WorthUiExecutionLane, WorthUiExecutionLaneSupport, WorthUiExecutionPlan,
     WorthUiExecutionPlanInput, WorthUiLaneAdmission, WorthUiPlanNodeInputFamily,
-    WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocation, WorthUiVirtualizedDataPlan,
-    WorthUiVirtualizedDataPlanDenial,
+    WorthUiSourceProvider, WorthUiVirtualizedDataFrameDenial, WorthUiVirtualizedDataFrameReceipt,
+    WorthUiVirtualizedDataFrameTarget, WorthUiVirtualizedDataPlanDenial,
+    WorthUiVirtualizedPlanSummary, WorthUiVirtualizedPlanSummaryRequest, WorthUiWatcherEvent,
 };
 
 pub(super) fn virtualized_data_fixture() -> VirtualizedDataFixture {
-    virtualized_data_context().into_fixture()
+    VirtualizedDataFixture::new("virtualized-data.active")
 }
 
 pub(super) fn virtualized_data_denial_for_missing_support(
@@ -18,27 +23,23 @@ pub(super) fn virtualized_data_denial_for_missing_support(
     let admission = if removed_lane == WorthUiExecutionLane::QueryBound {
         admission_without_query_bound(&context)
     } else {
-        let planning = allocation_planning(
-            &context.runtime,
-            &context.plan_input,
-            "virtualized-data.missing-support",
-        );
-        let lowering_input = context
+        let planning = independent_allocation_planning("virtualized-data.missing-support");
+        let facts = context
             .runtime
-            .detached_allocation_lowering_input_for_test(&planning);
+            .detached_execution_plan_lowering_facts_for_test(&planning, context.plan_input.clone());
         context
             .runtime
             .admit_execution_lanes(
-                &lowering_input,
+                &facts,
                 &WorthUiExecutionLaneSupport::without_lane_for_test(removed_lane),
             )
             .expect("narrower lane admission succeeds")
     };
-
-    context
-        .runtime
-        .prepare_virtualized_data_plan(&context.execution_plan, &admission)
-        .expect_err("virtualized data plan rejects missing support")
+    crate::runtime::virtualized_data_lane::WorthUiVirtualizedDataPlanBuilder::build(
+        &context.execution_plan,
+        &admission,
+    )
+    .expect_err("virtualized data plan rejects missing support")
 }
 
 pub(super) fn virtualized_data_denial_for_stale_lane_admission() -> WorthUiVirtualizedDataPlanDenial
@@ -46,88 +47,112 @@ pub(super) fn virtualized_data_denial_for_stale_lane_admission() -> WorthUiVirtu
     let context = virtualized_data_context();
     let drifted_plan_input = plan_input_with_duplicate_query_input(&context.plan_input);
     let receipt_runtime = fresh_runtime();
-    let drifted_planning = allocation_planning(
-        &receipt_runtime,
-        &drifted_plan_input,
-        "virtualized-data.stale-admission",
-    );
+    let drifted_planning = independent_allocation_planning("virtualized-data.stale-admission");
+    let drifted_facts = receipt_runtime
+        .detached_execution_plan_lowering_facts_for_test(&drifted_planning, drifted_plan_input);
     let stale_admission = receipt_runtime
         .admit_execution_lanes(
-            &receipt_runtime.detached_allocation_lowering_input_for_test(&drifted_planning),
+            &drifted_facts,
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission still has data and Query support");
-
-    context
-        .runtime
-        .prepare_virtualized_data_plan(&context.execution_plan, &stale_admission)
-        .expect_err("virtualized data plan rejects stale lane admission")
+    crate::runtime::virtualized_data_lane::WorthUiVirtualizedDataPlanBuilder::build(
+        &context.execution_plan,
+        &stale_admission,
+    )
+    .expect_err("virtualized data plan rejects stale lane admission")
 }
 
 pub(super) struct VirtualizedDataFixture {
-    pub(super) runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
-    pub(super) data_plan: WorthUiVirtualizedDataPlan,
-    pub(super) allocation: WorthUiRuntimeHandleAllocation,
-    pub(super) query_links: Vec<WorthUiQueryLaneSupportLinks>,
+    pub(super) session: crate::facade::WorthUiActiveApplicationSession,
+}
+
+impl VirtualizedDataFixture {
+    fn new(label: &str) -> Self {
+        let mut query =
+            worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture::new(label);
+        let snapshot = WorthUi::app()
+            .register_query_view(query.installed_view())
+            .expect("installed view registers")
+            .freeze()
+            .expect("query snapshot prepares");
+        let submission = lower_file_submission(
+            WorthUiSourceProvider::in_memory(label)
+                .with_file("app/main.wui", "binding inspector.measurements {}"),
+            [WorthUiWatcherEvent::provider_revision(label)],
+            snapshot.capabilities(),
+        );
+        let mut session = WorthUi::app()
+            .register_query_view(query.installed_view())
+            .expect("installed view registers for active app")
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("query source app prepares")
+            .launch()
+            .expect("query source app launches");
+        let outcome = query.project();
+        let mut admission = None;
+        let completion = session.execute_framework_turn(|turn| {
+            turn.query_projection(|source| {
+                admission = Some(source.admit_and_submit(outcome));
+            });
+        });
+        drop(completion.into_completion());
+        admission
+            .expect("projection source executes")
+            .expect("projection admits through exact installed binding");
+        Self { session }
+    }
+
+    pub(super) fn summary(&self) -> WorthUiVirtualizedPlanSummary {
+        self.session
+            .inspect_virtualized_plan(WorthUiVirtualizedPlanSummaryRequest::first_view())
+            .expect("active virtualized summary resolves")
+    }
+
+    pub(super) fn execute(
+        &mut self,
+        target: WorthUiVirtualizedDataFrameTarget,
+    ) -> Result<WorthUiVirtualizedDataFrameReceipt, WorthUiVirtualizedDataFrameDenial> {
+        let completion = self.session.execute_framework_turn(|_| {});
+        let execution = match completion.into_execution() {
+            Ok(execution) => execution,
+            Err(_) => panic!("no-ingress framework turn yields execution"),
+        };
+        execution
+            .execute_virtualized_data_frame(target)
+            .map(|completion| completion.receipt().clone())
+    }
 }
 
 struct VirtualizedDataContext {
     runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     plan_input: WorthUiExecutionPlanInput,
-    allocation: WorthUiRuntimeHandleAllocation,
     execution_plan: WorthUiExecutionPlan,
-    lane_admission: WorthUiLaneAdmission,
-    data_plan: WorthUiVirtualizedDataPlan,
-}
-
-impl VirtualizedDataContext {
-    fn into_fixture(self) -> VirtualizedDataFixture {
-        VirtualizedDataFixture {
-            runtime: self.runtime,
-            data_plan: self.data_plan,
-            allocation: self.allocation,
-            query_links: self.lane_admission.query_support_links().to_vec(),
-        }
-    }
 }
 
 fn virtualized_data_context() -> VirtualizedDataContext {
     let inputs = activation_staging_inputs();
+    let plan_input = inputs
+        .runtime
+        .prepare_reconstructive_plan_input_for_test(&inputs.admitted, &[]);
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("execution plan input prepares");
-    let planning = allocation_planning(&runtime, &plan_input, "virtualized-data.fixture");
+    let planning = allocation_planning(&runtime, &pending, "virtualized-data.fixture");
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input.clone());
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("handle allocation succeeds");
     let lane_admission = runtime
-        .admit_execution_lanes(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+        .admit_execution_lanes(&facts, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds");
     let execution_plan = runtime
-        .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &allocation,
-            &lane_admission,
-        )
+        .assemble_execution_plan_topology_with_lane_admission(&facts, &allocation, &lane_admission)
         .expect("execution plan topology assembles");
-    let data_plan = runtime
-        .prepare_virtualized_data_plan(&execution_plan, &lane_admission)
-        .expect("virtualized data plan prepares");
-
-    assert!(data_plan.counters().data_plan_row_count() > 0);
-    assert!(!lane_admission.query_support_links().is_empty());
-
     VirtualizedDataContext {
         runtime,
         plan_input,
-        allocation,
         execution_plan,
-        lane_admission,
-        data_plan,
     }
 }
 
@@ -137,15 +162,12 @@ fn admission_without_query_bound(context: &VirtualizedDataContext) -> WorthUiLan
         WorthUiPlanNodeInputFamily::QueryViewBinding,
     );
     let receipt_runtime = fresh_runtime();
-    let planning = allocation_planning(
-        &receipt_runtime,
-        &no_query_plan_input,
-        "virtualized-data.without-query-bound",
-    );
-    let lowering_input = receipt_runtime.detached_allocation_lowering_input_for_test(&planning);
+    let planning = independent_allocation_planning("virtualized-data.without-query-bound");
+    let facts = receipt_runtime
+        .detached_execution_plan_lowering_facts_for_test(&planning, no_query_plan_input);
     receipt_runtime
         .admit_execution_lanes(
-            &lowering_input,
+            &facts,
             &WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound),
         )
         .expect("query-free input can be admitted without QueryBound support")
@@ -159,16 +181,15 @@ fn plan_input_without_family(
     plan_input: &WorthUiExecutionPlanInput,
     family: WorthUiPlanNodeInputFamily,
 ) -> WorthUiExecutionPlanInput {
-    let node_inputs = plan_input
-        .node_inputs()
-        .iter()
-        .filter(|node_input| node_input.family() != family)
-        .cloned()
-        .collect::<Vec<_>>();
     WorthUiExecutionPlanInput::new(
         plan_input.basis().clone(),
         plan_input.context().clone(),
-        node_inputs,
+        plan_input
+            .node_inputs()
+            .iter()
+            .filter(|node_input| node_input.family() != family)
+            .cloned()
+            .collect(),
         plan_input.counters(),
     )
 }
@@ -176,14 +197,14 @@ fn plan_input_without_family(
 fn plan_input_with_duplicate_query_input(
     plan_input: &WorthUiExecutionPlanInput,
 ) -> WorthUiExecutionPlanInput {
-    let duplicated_query_input = plan_input
+    let duplicated = plan_input
         .node_inputs()
         .iter()
         .find(|node_input| node_input.family() == WorthUiPlanNodeInputFamily::QueryViewBinding)
-        .expect("fixture has a Query input to duplicate")
+        .expect("fixture has a Query input")
         .clone();
     let mut node_inputs = plan_input.node_inputs().to_vec();
-    node_inputs.push(duplicated_query_input);
+    node_inputs.push(duplicated);
     WorthUiExecutionPlanInput::new(
         plan_input.basis().clone(),
         plan_input.context().clone(),

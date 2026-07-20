@@ -1,7 +1,6 @@
-//! Launch lane: seal artifacts, derive plans, and build the owning runtime loop.
+//! Launch lane: commit initial allocation, lower a canonical plan, and build the owning runtime loop.
 
 mod build_active_state;
-mod derive_plan;
 mod launch_request;
 mod launch_transition;
 mod lifecycle_state;

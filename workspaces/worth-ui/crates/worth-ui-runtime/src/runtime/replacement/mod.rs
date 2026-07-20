@@ -25,6 +25,7 @@ pub mod state_inventory;
 
 pub mod node_classification;
 mod orchestrator;
+mod platform_state_inventory;
 mod transitions;
 
 pub use node_classification::{

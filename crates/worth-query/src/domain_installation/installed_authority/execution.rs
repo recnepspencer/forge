@@ -90,6 +90,7 @@ pub struct WorthQueryInstalledDomainExecutionReceipt {
     declaration_identity: WorthQueryEvidenceIdentity,
     basis_identity: WorthQueryEvidenceIdentity,
     operational_identity: WorthQueryEvidenceIdentity,
+    managed_live_resource_identity: Option<WorthQueryEvidenceIdentity>,
     receipt_identity: WorthQueryEvidenceIdentity,
 }
 
@@ -100,6 +101,42 @@ impl WorthQueryInstalledDomainExecutionReceipt {
         declaration_identity: WorthQueryEvidenceIdentity,
         basis_identity: WorthQueryEvidenceIdentity,
         operational_identity: WorthQueryEvidenceIdentity,
+    ) -> Self {
+        Self::new_with_managed_live_resource(
+            installed_authority,
+            capability,
+            declaration_identity,
+            basis_identity,
+            operational_identity,
+            None,
+        )
+    }
+
+    pub(crate) fn new_managed_live(
+        installed_authority: WorthQueryInstalledDomainAuthorityWitness,
+        capability: WorthQueryInstalledDomainCapabilityKind,
+        declaration_identity: WorthQueryEvidenceIdentity,
+        basis_identity: WorthQueryEvidenceIdentity,
+        operational_identity: WorthQueryEvidenceIdentity,
+        managed_live_resource_identity: WorthQueryEvidenceIdentity,
+    ) -> Self {
+        Self::new_with_managed_live_resource(
+            installed_authority,
+            capability,
+            declaration_identity,
+            basis_identity,
+            operational_identity,
+            Some(managed_live_resource_identity),
+        )
+    }
+
+    fn new_with_managed_live_resource(
+        installed_authority: WorthQueryInstalledDomainAuthorityWitness,
+        capability: WorthQueryInstalledDomainCapabilityKind,
+        declaration_identity: WorthQueryEvidenceIdentity,
+        basis_identity: WorthQueryEvidenceIdentity,
+        operational_identity: WorthQueryEvidenceIdentity,
+        managed_live_resource_identity: Option<WorthQueryEvidenceIdentity>,
     ) -> Self {
         let receipt_identity =
             worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecution)
@@ -120,6 +157,10 @@ impl WorthQueryInstalledDomainExecutionReceipt {
                     WorthQueryEvidenceTag::new("operational"),
                     &operational_identity,
                 )
+                .optional_evidence_identity(
+                    WorthQueryEvidenceTag::new("managed_live_resource"),
+                    managed_live_resource_identity.as_ref(),
+                )
                 .seal();
         Self {
             installed_authority,
@@ -127,6 +168,7 @@ impl WorthQueryInstalledDomainExecutionReceipt {
             declaration_identity,
             basis_identity,
             operational_identity,
+            managed_live_resource_identity,
             receipt_identity,
         }
     }
@@ -143,12 +185,13 @@ impl WorthQueryInstalledDomainExecutionReceipt {
         capability: WorthQueryInstalledDomainCapabilityKind,
         operational_identity: WorthQueryEvidenceIdentity,
     ) -> Self {
-        Self::new(
+        Self::new_with_managed_live_resource(
             self.installed_authority.clone(),
             capability,
             self.declaration_identity.clone(),
             self.basis_identity.clone(),
             operational_identity,
+            self.managed_live_resource_identity.clone(),
         )
     }
 
@@ -170,6 +213,19 @@ impl WorthQueryInstalledDomainExecutionReceipt {
 
     pub fn operational_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.operational_identity
+    }
+
+    /// Compare opaque Query-owned managed-resource provenance without exposing
+    /// an identity token that a downstream consumer could mistake for
+    /// authority. Non-live receipts never match.
+    pub fn shares_managed_live_resource_with(&self, other: &Self) -> bool {
+        matches!(
+            (
+                self.managed_live_resource_identity.as_ref(),
+                other.managed_live_resource_identity.as_ref(),
+            ),
+            (Some(left), Some(right)) if left == right
+        )
     }
 
     pub fn receipt_identity(&self) -> &WorthQueryEvidenceIdentity {

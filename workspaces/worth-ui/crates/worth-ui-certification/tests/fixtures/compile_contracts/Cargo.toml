@@ -1,0 +1,109 @@
+[package]
+name = "worth-ui-compile-contract-fixture"
+edition = "2021"
+version = "0.0.0"
+publish = false
+autobins = false
+
+[workspace]
+
+[dependencies]
+worth-foundational = { path = "../../../../../../../crates/worth-foundational" }
+worth-ui = { path = "../../../../worth-ui" }
+worth-ui-dsl = { path = "../../../../worth-ui-dsl" }
+worth-ui-host-contract = { path = "../../../../worth-ui-host-contract" }
+worth-ui-inspection = { path = "../../../../worth-ui-inspection" }
+worth-ui-query-binding = { path = "../../../../worth-ui-query-binding", features = ["certification-construction"] }
+worth-ui-runtime = { path = "../../../../worth-ui-runtime" }
+
+[[bin]]
+name = "product-runtime-authority"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/prepared_application_authority_has_no_canonical_extraction.rs"
+
+[[bin]]
+name = "product-host-measurement-authority"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/host_measurement_capability_requires_active_session.rs"
+
+[[bin]]
+name = "product-source-ingress"
+path = "../../../../worth-ui/tests/ui/runtime_source_ingress/fail/candidate_submission_has_no_candidate_extraction.rs"
+
+[[bin]]
+name = "product-facade-snapshot"
+path = "../../../../worth-ui/tests/ui/facade/snapshot/snapshot_internal_indexes_not_publicly_mutable.rs"
+
+[[bin]]
+name = "product-entry-construction"
+path = "../../../../worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_entry_construction_fails.rs"
+
+[[bin]]
+name = "product-runtime-diagnostics"
+path = "../../../../worth-ui/tests/ui/runtime_diagnostics/fail/diagnostics_projection_rejects_freeform_query_status_rows.rs"
+
+[[bin]]
+name = "product-runtime-measurement"
+path = "../../../../worth-ui/tests/ui/runtime_measurement/fail/uncertified_counter_packet_cannot_lower_to_foundational.rs"
+
+[[bin]]
+name = "certification-admission"
+path = "../../ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs"
+
+[[bin]]
+name = "certification-evidence-construction"
+path = "../../ui/evidence_construction/external_callers_cannot_import_evidence_slice_helper.rs"
+
+[[bin]]
+name = "certification-graph-authority"
+path = "../../ui/graph_authority/external_callers_cannot_forge_graph_identity_or_snapshot.rs"
+
+[[bin]]
+name = "certification-measurement-authority"
+path = "../../ui/measurement_authority/external_callers_cannot_mint_measurement_result_via_from_host_observation.rs"
+
+[[bin]]
+name = "host-capability-grant-private"
+path = "../../../../worth-ui-host-contract/tests/ui/capability_grant_private.rs"
+
+[[bin]]
+name = "host-observation-private"
+path = "../../../../worth-ui-host-contract/tests/ui/host_observation_private.rs"
+
+[[bin]]
+name = "host-request-constructor-private"
+path = "../../../../worth-ui-host-contract/tests/ui/request_constructor_private.rs"
+
+[[bin]]
+name = "product-empty-app-named-surface"
+path = "../../../../worth-ui/tests/ui/facade/named_surface_pass/empty_app_uses_named_app_surface.rs"
+
+[[bin]]
+name = "product-inspection-named-surface"
+path = "../../../../worth-ui/tests/ui/facade/named_surface_pass/inspection_query_uses_named_inspection_surface.rs"
+
+[[bin]]
+name = "product-facade-ergonomic"
+path = "../../../../worth-ui/tests/ui/facade_visibility/pass/facade_only_app_remains_ergonomic.rs"
+
+[[bin]]
+name = "product-runtime-facade-types"
+path = "../../../../worth-ui/tests/ui/runtime_authority/pass/runtime_facade_types.rs"
+
+[[bin]]
+name = "product-identity-state-query-certification"
+path = "../../../../worth-ui/tests/ui/runtime_identity_state_query_certification/pass/identity_state_query_certification_facade_types.rs"
+
+[[bin]]
+name = "product-lane-frame-cost-certification"
+path = "../../../../worth-ui/tests/ui/runtime_lane_frame_cost_certification/pass/lane_frame_cost_certification_facade_types.rs"
+
+[[bin]]
+name = "product-installed-view-registration"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs"
+
+[[bin]]
+name = "certification-second-host-adapter"
+path = "../../ui/host/second_adapter_implements_contract.rs"
+
+[[bin]]
+name = "certification-shared-inspection-contract"
+path = "../../ui/inspection/ai_and_human_callers_share_inspection_contract.rs"

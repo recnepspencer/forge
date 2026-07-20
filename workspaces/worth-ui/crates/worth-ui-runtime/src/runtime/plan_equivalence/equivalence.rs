@@ -1,13 +1,13 @@
 use crate::runtime::{
-    WorthUiExecutionPlanDigest, WorthUiExecutionPlanEquivalenceCounters,
-    WorthUiPlanReuseClassification,
+    WorthUiExecutablePlanDecisionKind, WorthUiExecutionPlanDigest,
+    WorthUiExecutionPlanEquivalenceCounters,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiExecutionPlanEquivalence {
     previous_digest: WorthUiExecutionPlanDigest,
     next_digest: WorthUiExecutionPlanDigest,
-    reuse_classification: WorthUiPlanReuseClassification,
+    decision_kind: WorthUiExecutablePlanDecisionKind,
     counters: WorthUiExecutionPlanEquivalenceCounters,
 }
 
@@ -15,13 +15,13 @@ impl WorthUiExecutionPlanEquivalence {
     pub(crate) fn new(
         previous_digest: WorthUiExecutionPlanDigest,
         next_digest: WorthUiExecutionPlanDigest,
-        reuse_classification: WorthUiPlanReuseClassification,
+        decision_kind: WorthUiExecutablePlanDecisionKind,
         counters: WorthUiExecutionPlanEquivalenceCounters,
     ) -> Self {
         Self {
             previous_digest,
             next_digest,
-            reuse_classification,
+            decision_kind,
             counters,
         }
     }
@@ -34,12 +34,8 @@ impl WorthUiExecutionPlanEquivalence {
         self.next_digest
     }
 
-    pub fn reuse_classification(self) -> WorthUiPlanReuseClassification {
-        self.reuse_classification
-    }
-
-    pub fn is_reusable(self) -> bool {
-        self.reuse_classification == WorthUiPlanReuseClassification::Reusable
+    pub fn decision_kind(self) -> WorthUiExecutablePlanDecisionKind {
+        self.decision_kind
     }
 
     pub fn counters(self) -> WorthUiExecutionPlanEquivalenceCounters {

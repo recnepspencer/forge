@@ -15,7 +15,7 @@ pub use crate::graph::{
 };
 
 // --- launch ---
-pub use super::active::WorthUiActiveRuntimeObservation;
+pub use super::active::{WorthUiActiveRuntimeObservation, WorthUiCrossLaneBundleReceipt};
 pub use super::allocation_frame_dispatch::{
     UiAdmittedAllocationStreamIngress, UiAllocationFrameDispatchDenial,
     UiAllocationFrameDispatcherCounters, UiAllocationFrameDuplicateWitness,
@@ -54,7 +54,6 @@ pub use super::allocation_frame_dispatch::{
     UiAllocationFrameSourceLane, UiAllocationFrameSourceLeaseIdentity,
     UiAllocationFrameSubmissionDenial,
 };
-pub(crate) use super::allocation_receipt::UiCommittedAllocation;
 pub use super::allocation_receipt::{
     admit_host_paint, UiAllocationAnchorPosture, UiAllocationAuthorityCounter,
     UiAllocationAuthorityCounterExhaustion, UiAllocationAxis, UiAllocationAxisAlignedBounds,
@@ -95,18 +94,20 @@ pub(crate) use super::planning::allocation_planning::WorthUiRetainedAllocationPl
 pub use super::planning::allocation_planning::{
     WorthUiAllocationPlanning, WorthUiAllocationPlanningBasis, WorthUiAllocationPlanningCounters,
     WorthUiAllocationPlanningDenial, WorthUiAllocationPlanningDenialReason,
-    WorthUiAllocationPlanningInspection, WorthUiAllocationPlanningLoweringMismatch,
+    WorthUiAllocationPlanningInspection,
 };
 pub use super::planning::execution_plan_input::{
-    WorthUiComponentLoweringHook, WorthUiComponentLoweringHookFamily, WorthUiEguiBoundaryInput,
-    WorthUiExecutionPlanInput, WorthUiPlanLoweringBasis, WorthUiPlanLoweringContext,
-    WorthUiPlanLoweringCounters, WorthUiPlanLoweringDenial, WorthUiPlanLoweringDenialReason,
-    WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiPlanNodeTopologyInput,
+    WorthUiComponentLoweringHook, WorthUiComponentLoweringHookFamily, WorthUiExecutionPlanInput,
+    WorthUiPlanLoweringBasis, WorthUiPlanLoweringContext, WorthUiPlanLoweringCounters,
+    WorthUiPlanLoweringDenial, WorthUiPlanLoweringDenialReason, WorthUiPlanNodeInput,
+    WorthUiPlanNodeInputFamily, WorthUiPlanNodeTopologyInput,
 };
 pub use super::planning::plan_equivalence::{
-    WorthUiExecutionPlanDigest, WorthUiExecutionPlanEquivalence,
-    WorthUiExecutionPlanEquivalenceBasis, WorthUiExecutionPlanEquivalenceCounters,
-    WorthUiPlanReuseClassification,
+    WorthUiExecutablePlanDecision, WorthUiExecutablePlanDecisionKind,
+    WorthUiExecutablePlanEquivalenceDenial, WorthUiExecutionPlanDigest,
+    WorthUiExecutionPlanEquivalence, WorthUiExecutionPlanEquivalenceBasis,
+    WorthUiExecutionPlanEquivalenceCounters, WorthUiPlanEquivalenceEvidenceReference,
+    WorthUiPlanEquivalenceSummary,
 };
 pub use super::planning::plan_inspection::{
     WorthUiArtifactToPlanProvenance, WorthUiExecutionPlanInspection, WorthUiLaneInspection,
@@ -114,11 +115,13 @@ pub use super::planning::plan_inspection::{
     WorthUiPlanNodeInspection, WorthUiPlanProvenanceSource, WorthUiQueryInspectionLinks,
 };
 pub use super::planning::plan_topology::{
-    WorthUiEguiBoundaryContact, WorthUiEguiPlanBoundary, WorthUiExecutionPlan,
-    WorthUiPlanChildRange, WorthUiPlanExecutionLane, WorthUiPlanLanePartition,
-    WorthUiPlanLookupIndex, WorthUiPlanNode, WorthUiPlanNodeFamily, WorthUiPlanRegionStructure,
-    WorthUiPlanTopology, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
-    WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
+    WorthUiExecutionPlan, WorthUiPlanChildRange, WorthUiPlanConstructionCounters,
+    WorthUiPlanExecutionLane, WorthUiPlanLanePartition, WorthUiPlanLookupIndex, WorthUiPlanNode,
+    WorthUiPlanNodeFamily, WorthUiPlanRegionHandle, WorthUiPlanRegionIdentity,
+    WorthUiPlanRegionStorageCounters, WorthUiPlanRegionStructure, WorthUiPlanRegionTransition,
+    WorthUiPlanRegionTransitionEvidence, WorthUiPlanRegionalEvidence, WorthUiPlanTopology,
+    WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial, WorthUiPlanTopologyDenialReason,
+    WorthUiRenderResourceRef,
 };
 pub use super::planning::WorthUiPlanningLaneInput;
 pub use super::portal_anchored_allocation::UiPortalActivationBindingDenial;
@@ -153,8 +156,7 @@ pub use super::viewport_resize::{
 // --- activation ---
 pub use super::activation::activation_staging::{
     WorthUiActivationReadiness, WorthUiActivationStagingCounters, WorthUiActivationStagingDenial,
-    WorthUiActivationStagingDenialReason, WorthUiActivationStagingReport,
-    WorthUiPendingExecutionPlanLoweringInput, WorthUiStagedReplacement,
+    WorthUiActivationStagingDenialReason, WorthUiActivationStagingReport, WorthUiStagedReplacement,
 };
 pub use super::activation::frame_activation_gate::{
     WorthUiActivationGateCounters, WorthUiActivationGateDenial, WorthUiActivationGateDenialReason,
@@ -166,29 +168,37 @@ pub use super::activation::{
     UiCommittedAllocationActivationDenialReason, UiCommittedAllocationActivationInspection,
     UiCommittedAllocationActivationInspectionDenialKind,
     UiCommittedAllocationActivationInspectionOutcome, WorthUiAllocationCatalogActivationDenial,
-    WorthUiAllocationCatalogPreparationStage,
+    WorthUiAllocationCatalogPreparationStage, WorthUiNoOpProvenancePosture,
+    WorthUiNoOpQueryPosture, WorthUiSemanticNoOpReceipt, WorthUiSemanticNoOpWork,
 };
 pub use super::activation::{WorthUiPlanSwapReceipt, WorthUiPriorValidPlanObservation};
+pub use super::allocation_catalog_successor::{
+    UiAllocationCatalogDeltaCounters, UiAllocationCatalogRowDisposition,
+    UiAllocationCatalogRowTransition, UiAllocationCatalogSuccessorReceipt,
+};
 
 // --- execution ---
 pub use super::execution::canvas_spatial_lane::{
-    WorthUiCanvasDrawHook, WorthUiCanvasOverlayPlan, WorthUiCanvasSpatialCertification,
-    WorthUiCanvasSpatialCounters, WorthUiCanvasSpatialFrameDenial,
-    WorthUiCanvasSpatialFrameDenialReason, WorthUiCanvasSpatialFrameReceipt,
-    WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane, WorthUiCanvasSpatialNode,
-    WorthUiCanvasSpatialPlan, WorthUiCanvasSpatialPlanDenial, WorthUiCanvasSpatialPlanDenialReason,
+    WorthUiCanvasDrawHook, WorthUiCanvasOverlayPlan, WorthUiCanvasRenderResourceRef,
+    WorthUiCanvasSpatialCertification, WorthUiCanvasSpatialCounters,
+    WorthUiCanvasSpatialFrameDenial, WorthUiCanvasSpatialFrameDenialReason,
+    WorthUiCanvasSpatialFrameReceipt, WorthUiCanvasSpatialFrameTarget,
+    WorthUiCanvasSpatialInspectionDenial, WorthUiCanvasSpatialLane, WorthUiCanvasSpatialNode,
+    WorthUiCanvasSpatialPlan, WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasSpatialPlanDenial,
+    WorthUiCanvasSpatialPlanDenialReason, WorthUiCanvasSpatialTargetSummary,
     WorthUiCanvasViewportPlan, WorthUiCanvasViewportPlanDenial,
     WorthUiCanvasViewportPlanDenialReason, WorthUiSpatialHitTestHook, WorthUiSpatialHitTestPlan,
-    WorthUiSpatialToolStateHook, WorthUiSpatialViewportPoint,
+    WorthUiSpatialIndexStrategy, WorthUiSpatialToolStateHook, WorthUiSpatialViewportPoint,
 };
 pub use super::execution::handle_allocation::{
     WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle,
-    WorthUiHandlePlanGeneration, WorthUiLaneHandle, WorthUiRuntimeHandle,
-    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationBasis,
+    WorthUiHandleArenaIdentity, WorthUiHandleCapacityExhaustion, WorthUiHandleResolutionEvidence,
+    WorthUiHandleResolutionOutcome, WorthUiHandleSlotGeneration, WorthUiLaneHandle,
+    WorthUiRuntimeHandle, WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationBasis,
     WorthUiRuntimeHandleAllocationCounters, WorthUiRuntimeHandleAllocationDenial,
     WorthUiRuntimeHandleAllocationDenialReason, WorthUiRuntimeHandleAllocationReceipt,
-    WorthUiRuntimeHandleFamilyWidths, WorthUiStateSlotHandle, WorthUiTokenHandle,
-    WorthUiViewBindingHandle,
+    WorthUiRuntimeHandleFamilyWidths, WorthUiRuntimeHandleLocator, WorthUiStateSlotHandle,
+    WorthUiTokenHandle, WorthUiViewBindingHandle,
 };
 pub use super::execution::lane_admission::{
     WorthUiExecutionLane, WorthUiExecutionLaneDescriptor, WorthUiExecutionLaneSupport,
@@ -218,26 +228,31 @@ pub use super::execution::ordinary_lane::{
     WorthUiOrdinaryLaneCounters, WorthUiOrdinaryLaneFrameDenial,
     WorthUiOrdinaryLaneFrameDenialReason, WorthUiOrdinaryLaneFrameReceipt, WorthUiOrdinaryLaneNode,
     WorthUiOrdinaryLanePlan, WorthUiOrdinaryLanePlanDenial, WorthUiOrdinaryLanePlanDenialReason,
+    WorthUiOrdinaryLaneTouchReceipt, WorthUiOrdinaryPlanAvailability, WorthUiOrdinaryPlanSummary,
+    WorthUiOrdinaryPlanSummaryDenial, WorthUiOrdinaryPlanSummaryRequest,
+    WorthUiOrdinarySummaryTarget, WorthUiOrdinaryTouchBreadth,
 };
 pub use super::execution::realtime_overlay_lane::{
     WorthUiHighFrequencyFramePolicy, WorthUiHighFrequencyFramePolicyDenial,
     WorthUiHighFrequencyFramePolicyDenialReason, WorthUiHudNode, WorthUiHudPlan,
     WorthUiHudPlanDenial, WorthUiHudPlanDenialReason, WorthUiRealtimeCertification,
     WorthUiRealtimeFrameDenial, WorthUiRealtimeFrameDenialReason, WorthUiRealtimeFramePriority,
-    WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameTarget, WorthUiRealtimeLaneCounters,
-    WorthUiRealtimeOverlayHook, WorthUiRealtimeOverlayLane, WorthUiRendererSurfaceAdmission,
+    WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameTarget, WorthUiRealtimeInspectionDenial,
+    WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayHook, WorthUiRealtimeOverlayLane,
+    WorthUiRealtimePlanAvailability, WorthUiRealtimeTargetSummary, WorthUiRendererSurfaceAdmission,
     WorthUiRendererSurfaceHandle,
 };
+pub(crate) use super::execution::reload_counter_boundary::WorthUiReloadCostSeed;
 pub use super::execution::reload_counter_boundary::{
-    WorthUiCertifiedReloadLoweringCounterReceipt, WorthUiReloadCounterBoundary,
-    WorthUiReloadCounterBoundaryDenial, WorthUiReloadCounterBoundaryDenialReason,
-    WorthUiReloadCounterStopStage, WorthUiReloadLoweringCounterReceipt,
-    WorthUiReloadLoweringCounterReceiptBuilder, WorthUiReloadLoweringFoundationalBridge,
-    WorthUiReloadLoweringFoundationalEvidence,
+    WorthUiCertifiedReloadLoweringCounterReceipt, WorthUiReloadCostContext,
+    WorthUiReloadCounterBoundary, WorthUiReloadCounterBoundaryDenial,
+    WorthUiReloadCounterBoundaryDenialReason, WorthUiReloadCounterStopStage,
+    WorthUiReloadLoweringCounterReceipt, WorthUiReloadLoweringCounterReceiptBuilder,
+    WorthUiReloadLoweringFoundationalBridge, WorthUiReloadLoweringFoundationalEvidence,
 };
 pub use super::execution::steady_frame_counter_boundary::{
     WorthUiCertifiedFrameExecutionReceipt, WorthUiFrameExecutionReceipt,
-    WorthUiFrameReportMaterializationBoundary, WorthUiLaneFrameReceipt,
+    WorthUiFrameReportMaterializationBoundary, WorthUiFrameWorkScope, WorthUiLaneFrameReceipt,
     WorthUiLaneFrameReceiptKind, WorthUiRenderCostReceipt, WorthUiSteadyFrameCounterBoundary,
     WorthUiSteadyFrameCounterDenial, WorthUiSteadyFrameCounterDenialReason,
     WorthUiSteadyFrameCounterReceiptBuilder, WorthUiSteadyFrameCounters,
@@ -246,11 +261,13 @@ pub use super::execution::steady_frame_counter_boundary::{
     WorthUiSteadyFrameReportPlanner,
 };
 pub use super::execution::virtualized_data_lane::{
-    WorthUiQueryPatchPosture, WorthUiVirtualizedDataCertification, WorthUiVirtualizedDataCounters,
+    WorthUiVirtualizedDataCertification, WorthUiVirtualizedDataCounters,
     WorthUiVirtualizedDataFrameDenial, WorthUiVirtualizedDataFrameDenialReason,
     WorthUiVirtualizedDataFrameReceipt, WorthUiVirtualizedDataFrameTarget,
     WorthUiVirtualizedDataLane, WorthUiVirtualizedDataNode, WorthUiVirtualizedDataPlan,
-    WorthUiVirtualizedDataPlanDenial, WorthUiVirtualizedDataPlanDenialReason, WorthUiVisibleRange,
+    WorthUiVirtualizedDataPlanDenial, WorthUiVirtualizedDataPlanDenialReason,
+    WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummary,
+    WorthUiVirtualizedPlanSummaryDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
     WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
 pub use super::execution::WorthUiExecutionLaneInput;
@@ -304,11 +321,15 @@ pub use super::host_observation::{
 // --- source ingress ---
 pub use super::source_ingress::{
     WorthUiCandidateComposition, WorthUiCandidateCompositionBasis, WorthUiCandidateOrderingReceipt,
-    WorthUiDebouncedWatcherBatch, WorthUiReloadDebounce, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiSourceIngressCounters,
-    WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason, WorthUiSourceIngressHook,
-    WorthUiSourceIngressSession, WorthUiSourcePackageRevision, WorthUiSourceProvider,
-    WorthUiSourceProviderKind, WorthUiSourceWatcher, WorthUiWatchedCandidateSubmission,
+    WorthUiFilesystemSourceAcquisitionDenial, WorthUiFilesystemSourceProvider,
+    WorthUiFilesystemSourceWatcher, WorthUiFilesystemWatcherBackend,
+    WorthUiFilesystemWatcherDenial, WorthUiFilesystemWatcherReadiness,
+    WorthUiFilesystemWatcherShutdownReceipt, WorthUiReloadDebounce,
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+    WorthUiSettledSourceSnapshot, WorthUiSourceEventIngress, WorthUiSourceEventIngressSession,
+    WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
+    WorthUiSourceIngressHook, WorthUiSourcePackageRevision, WorthUiSourceProvider,
+    WorthUiSourceProviderKind, WorthUiWatchedCandidateSubmission,
     WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
 };
 pub(crate) use super::source_ingress::{

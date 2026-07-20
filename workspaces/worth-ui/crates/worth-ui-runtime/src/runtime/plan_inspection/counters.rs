@@ -18,34 +18,42 @@ pub struct WorthUiPlanInspectionCounters {
 }
 
 impl WorthUiPlanInspectionCounters {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_inspection(&mut self) {
         self.inspection_count += 1;
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_plan_digest(&mut self) {
         self.plan_digest_count += 1;
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_node_inspection(&mut self) {
         self.node_inspection_count += 1;
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_lane_inspection(&mut self) {
         self.lane_inspection_count += 1;
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_provenance_link(&mut self) {
         self.provenance_link_count += 1;
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_query_link_preservation(&mut self) {
         self.query_link_preservation_count += 1;
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_projection_consumption_link(&mut self) {
         self.projection_consumption_link_count += 1;
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn record_denial(&mut self) {
         self.denial_count += 1;
     }

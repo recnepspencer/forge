@@ -93,8 +93,7 @@ fn expected_provenance_source_for_family(
             WorthUiPlanProvenanceSource::ComponentLoweringHook
         }
         WorthUiPlanNodeInputFamily::LanePartitionRef => WorthUiPlanProvenanceSource::LaneBoundary,
-        WorthUiPlanNodeInputFamily::DiagnosticsRef
-        | WorthUiPlanNodeInputFamily::EguiBoundaryRef => WorthUiPlanProvenanceSource::Diagnostics,
+        WorthUiPlanNodeInputFamily::DiagnosticsRef => WorthUiPlanProvenanceSource::Diagnostics,
         WorthUiPlanNodeInputFamily::RenderResourceRef => {
             WorthUiPlanProvenanceSource::RenderResource
         }

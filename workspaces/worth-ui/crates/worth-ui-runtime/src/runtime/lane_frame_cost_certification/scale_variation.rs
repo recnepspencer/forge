@@ -131,7 +131,7 @@ fn data_width(receipt: &WorthUiFrameExecutionReceipt) -> (usize, usize) {
 fn realtime_width(receipt: &WorthUiFrameExecutionReceipt) -> (usize, usize) {
     let counters = receipt.counters().realtime_overlay();
     (
-        counters.hud_plan_row_count(),
+        counters.targeted_overlay_row_count(),
         counters.renderer_surface_handoff_count(),
     )
 }

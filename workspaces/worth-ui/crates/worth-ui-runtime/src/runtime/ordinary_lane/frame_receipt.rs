@@ -1,31 +1,37 @@
 use crate::runtime::{
-    WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneCertification, WorthUiOrdinaryLaneCounters,
-    WorthUiRuntimeHandle,
+    WorthUiFrameWorkScope, WorthUiHandleResolutionEvidence, WorthUiOrdinaryFrameTarget,
+    WorthUiOrdinaryLaneCertification, WorthUiOrdinaryLaneCounters, WorthUiOrdinaryLaneTouchReceipt,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiOrdinaryLaneFrameReceipt {
     target: WorthUiOrdinaryFrameTarget,
-    touched_plan_indexes: Vec<u32>,
-    touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
+    touch: WorthUiOrdinaryLaneTouchReceipt,
     counters: WorthUiOrdinaryLaneCounters,
     certification: WorthUiOrdinaryLaneCertification,
+    resolution_evidence: Option<WorthUiHandleResolutionEvidence>,
+    work_scope: WorthUiFrameWorkScope,
 }
 
 impl WorthUiOrdinaryLaneFrameReceipt {
     pub(crate) fn new(
         target: WorthUiOrdinaryFrameTarget,
-        touched_plan_indexes: Vec<u32>,
-        touched_runtime_handles: Vec<WorthUiRuntimeHandle>,
+        touch: WorthUiOrdinaryLaneTouchReceipt,
         counters: WorthUiOrdinaryLaneCounters,
         certification: WorthUiOrdinaryLaneCertification,
+        requested_breadth: usize,
     ) -> Self {
+        let executed_breadth = touch.row_count();
         Self {
             target,
-            touched_plan_indexes,
-            touched_runtime_handles,
+            touch,
             counters,
             certification,
+            resolution_evidence: None,
+            work_scope: WorthUiFrameWorkScope::new(
+                requested_breadth as u64,
+                executed_breadth as u64,
+            ),
         }
     }
 
@@ -33,12 +39,8 @@ impl WorthUiOrdinaryLaneFrameReceipt {
         self.target
     }
 
-    pub fn touched_plan_indexes(&self) -> &[u32] {
-        &self.touched_plan_indexes
-    }
-
-    pub fn touched_runtime_handles(&self) -> &[WorthUiRuntimeHandle] {
-        &self.touched_runtime_handles
+    pub fn touch(&self) -> &WorthUiOrdinaryLaneTouchReceipt {
+        &self.touch
     }
 
     pub fn counters(&self) -> WorthUiOrdinaryLaneCounters {
@@ -47,5 +49,21 @@ impl WorthUiOrdinaryLaneFrameReceipt {
 
     pub fn certification(&self) -> WorthUiOrdinaryLaneCertification {
         self.certification
+    }
+
+    pub(crate) fn with_resolution_evidence(
+        mut self,
+        evidence: WorthUiHandleResolutionEvidence,
+    ) -> Self {
+        self.resolution_evidence = Some(evidence);
+        self
+    }
+
+    pub fn resolution_evidence(&self) -> Option<WorthUiHandleResolutionEvidence> {
+        self.resolution_evidence
+    }
+
+    pub fn work_scope(&self) -> WorthUiFrameWorkScope {
+        self.work_scope
     }
 }

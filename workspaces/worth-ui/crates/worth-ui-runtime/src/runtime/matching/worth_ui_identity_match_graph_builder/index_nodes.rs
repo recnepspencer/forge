@@ -29,6 +29,7 @@ pub(super) fn index_artifact_nodes(
                 WorthUiIdentityMatchNodeSide::Candidate => counters.record_candidate_node_indexed(),
             }
             let identity_seed = node_identity_seed(node);
+            let identity_basis = canonical_match_identity_basis(node, identity_seed);
             counters.record_stable_seed_lookup();
             if !identity_seed.is_stable() {
                 continue;
@@ -38,8 +39,9 @@ pub(super) fn index_artifact_nodes(
                 WorthUiIdentityMatchNode::new(super::super::WorthUiIdentityMatchNodeInput {
                     side,
                     handle: node.handle().clone(),
-                    identity_basis: identity_seed.basis().to_owned(),
+                    identity_basis: identity_basis.to_owned(),
                     authored_provenance_digest: node.authored_provenance_digest(),
+                    semantic_meaning: node.clone(),
                     stable_identity: identity_seed.is_stable(),
                     durable_state_eligible: durable_state_is_eligible(
                         node_durable_state_eligibility(node),
@@ -51,8 +53,8 @@ pub(super) fn index_artifact_nodes(
             insert_indexed_identity_node(
                 &mut index,
                 side,
-                identity_seed.basis(),
-                identity_seed.basis().to_owned(),
+                identity_basis,
+                identity_basis.to_owned(),
                 IndexedIdentityNode {
                     node: match_node.clone(),
                 },
@@ -61,6 +63,20 @@ pub(super) fn index_artifact_nodes(
         }
     }
     Ok(index)
+}
+
+fn canonical_match_identity_basis<'node>(
+    node: &'node WorthUiArtifactNode,
+    seed: &'node WorthUiArtifactIdentitySeed,
+) -> &'node str {
+    match node {
+        WorthUiArtifactNode::Binding(binding) => binding
+            .view_binding_reference()
+            .view_binding()
+            .id()
+            .as_str(),
+        _ => seed.basis(),
+    }
 }
 
 fn reject_position_only_repeated_template_identity(

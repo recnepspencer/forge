@@ -10,7 +10,6 @@ pub use comparison::{
     WorthUiQueryBindingComparisonDenial, WorthUiQueryBindingComparisonEntry,
     WorthUiQueryBindingComparisonOutcome,
 };
-#[cfg(test)]
 pub(crate) use evidence::WorthUiQueryBindingEvidenceIndex;
 pub use identity::WorthUiQueryBindingIdentity;
 pub(crate) use planner::WorthUiQueryBindingComparisonPlanner;

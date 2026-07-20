@@ -1,4 +1,4 @@
-use worth_ui::facade::WorthUiRuntimeDiagnosticCode;
+use worth_ui::facade::diagnostics::WorthUiRuntimeDiagnosticCode;
 
 fn takes_code(_: WorthUiRuntimeDiagnosticCode) {}
 

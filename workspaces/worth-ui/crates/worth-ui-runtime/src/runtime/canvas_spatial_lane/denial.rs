@@ -1,23 +1,20 @@
-use crate::runtime::WorthUiCanvasSpatialCounters;
+use crate::runtime::{WorthUiCanvasSpatialCounters, WorthUiHandleResolutionEvidence};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiCanvasSpatialPlanDenialReason {
     LaneAdmissionMissingCanvasSpatialSupport,
     LaneAdmissionPlanMismatch,
     HandleAllocationPlanMismatch,
-    MissingCanvasSpatialHook,
-    UnsupportedCanvasSpatialHook,
     NoCanvasSpatialRows,
+    HostSupportMissing,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiCanvasSpatialFrameDenialReason {
     TargetNotInCanvasSpatialPlan,
-    TargetGenerationMismatch,
-    DomainGeometryTruthOwnership,
-    RendererInternalOwnership,
-    DomainGeometryTruthRead,
-    NonCanvasSpatialClaim,
+    TargetArenaMismatch,
+    TargetSlotGenerationMismatch,
+    TargetFamilyMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,6 +28,7 @@ pub struct WorthUiCanvasSpatialFrameDenial {
     reason: WorthUiCanvasSpatialFrameDenialReason,
     plan_index: Option<u32>,
     counters: Box<WorthUiCanvasSpatialCounters>,
+    resolution_evidence: Option<WorthUiHandleResolutionEvidence>,
 }
 
 impl WorthUiCanvasSpatialPlanDenial {
@@ -63,6 +61,7 @@ impl WorthUiCanvasSpatialFrameDenial {
             reason,
             plan_index,
             counters: Box::new(counters),
+            resolution_evidence: None,
         }
     }
 
@@ -76,5 +75,17 @@ impl WorthUiCanvasSpatialFrameDenial {
 
     pub fn counters(&self) -> WorthUiCanvasSpatialCounters {
         *self.counters
+    }
+
+    pub(crate) fn with_resolution_evidence(
+        mut self,
+        evidence: WorthUiHandleResolutionEvidence,
+    ) -> Self {
+        self.resolution_evidence = Some(evidence);
+        self
+    }
+
+    pub fn resolution_evidence(&self) -> Option<WorthUiHandleResolutionEvidence> {
+        self.resolution_evidence
     }
 }

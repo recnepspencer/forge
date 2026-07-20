@@ -1,8 +1,7 @@
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiDurableStateReconciliationPlan,
-    WorthUiNodeReplacementPlan, WorthUiPendingExecutionPlanLoweringInput,
-    WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification, WorthUiRuntimeFrameEpoch,
-    WorthUiRuntimeImpactNarrowing,
+    WorthUiNodeReplacementPlan, WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification,
+    WorthUiRuntimeFrameEpoch, WorthUiRuntimeImpactNarrowing,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -16,7 +15,6 @@ pub struct WorthUiStagedReplacement {
     node_plan: WorthUiNodeReplacementPlan,
     reconciliation_plan: WorthUiDurableStateReconciliationPlan,
     query_rebind_plan: WorthUiQueryLiveRebindPlan,
-    pending_execution_plan_lowering_input: WorthUiPendingExecutionPlanLoweringInput,
 }
 
 pub(crate) struct WorthUiStagedReplacementInput {
@@ -29,7 +27,6 @@ pub(crate) struct WorthUiStagedReplacementInput {
     pub node_plan: WorthUiNodeReplacementPlan,
     pub reconciliation_plan: WorthUiDurableStateReconciliationPlan,
     pub query_rebind_plan: WorthUiQueryLiveRebindPlan,
-    pub pending_execution_plan_lowering_input: WorthUiPendingExecutionPlanLoweringInput,
 }
 
 impl WorthUiStagedReplacement {
@@ -44,7 +41,6 @@ impl WorthUiStagedReplacement {
             node_plan,
             reconciliation_plan,
             query_rebind_plan,
-            pending_execution_plan_lowering_input,
         } = input;
         Self {
             frame_epoch,
@@ -56,7 +52,6 @@ impl WorthUiStagedReplacement {
             node_plan,
             reconciliation_plan,
             query_rebind_plan,
-            pending_execution_plan_lowering_input,
         }
     }
 
@@ -94,11 +89,5 @@ impl WorthUiStagedReplacement {
 
     pub fn query_rebind_plan(&self) -> &WorthUiQueryLiveRebindPlan {
         &self.query_rebind_plan
-    }
-
-    pub fn pending_execution_plan_lowering_input(
-        &self,
-    ) -> &WorthUiPendingExecutionPlanLoweringInput {
-        &self.pending_execution_plan_lowering_input
     }
 }

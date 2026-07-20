@@ -49,7 +49,6 @@ impl WorthUiLaneSupportRow {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn unsupported(descriptor: WorthUiExecutionLaneDescriptor) -> Self {
         let support_contract_digest = support_digest_for_descriptor(&descriptor);
         Self {

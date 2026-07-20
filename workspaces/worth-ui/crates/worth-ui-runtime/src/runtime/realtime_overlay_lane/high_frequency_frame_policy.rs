@@ -7,6 +7,7 @@ pub enum WorthUiRealtimeFramePriority {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiHighFrequencyFramePolicyDenialReason {
     ZeroFrameBudgetMillis,
+    FrameBudgetOverflow,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -22,9 +23,14 @@ pub struct WorthUiHighFrequencyFramePolicy {
 
 impl WorthUiHighFrequencyFramePolicy {
     pub fn frame_budgeted(
-        frame_budget_millis: u16,
+        frame_budget_millis: u32,
         priority: WorthUiRealtimeFramePriority,
     ) -> Result<Self, WorthUiHighFrequencyFramePolicyDenial> {
+        let frame_budget_millis = u16::try_from(frame_budget_millis).map_err(|_| {
+            WorthUiHighFrequencyFramePolicyDenial {
+                reason: WorthUiHighFrequencyFramePolicyDenialReason::FrameBudgetOverflow,
+            }
+        })?;
         if frame_budget_millis == 0 {
             return Err(WorthUiHighFrequencyFramePolicyDenial {
                 reason: WorthUiHighFrequencyFramePolicyDenialReason::ZeroFrameBudgetMillis,
@@ -36,10 +42,25 @@ impl WorthUiHighFrequencyFramePolicy {
         })
     }
 
+    pub(crate) fn from_contract(
+        contract: crate::capability::ComponentRealtimeOverlayContract,
+    ) -> Self {
+        Self {
+            frame_budget_millis: contract.frame_budget_millis(),
+            priority: match contract.priority() {
+                crate::capability::ComponentRealtimeOverlayPriority::HudOverlay => {
+                    WorthUiRealtimeFramePriority::HudOverlay
+                }
+                crate::capability::ComponentRealtimeOverlayPriority::CriticalOverlay => {
+                    WorthUiRealtimeFramePriority::CriticalOverlay
+                }
+            },
+        }
+    }
+
     pub fn frame_budget_millis(self) -> u16 {
         self.frame_budget_millis
     }
-
     pub fn priority(self) -> WorthUiRealtimeFramePriority {
         self.priority
     }
@@ -67,7 +88,6 @@ impl WorthUiRealtimeFramePriority {
     }
 }
 
-fn fold(mut digest: u64, value: u64) -> u64 {
-    digest ^= value;
-    digest.wrapping_mul(0x100000001b3)
+fn fold(digest: u64, value: u64) -> u64 {
+    (digest ^ value).wrapping_mul(0x100000001b3)
 }

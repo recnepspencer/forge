@@ -1,5 +1,4 @@
 use crate::graph::UiGraphNodeIdentity;
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 /// The currently admitted allocation context. This retains the proof-bearing
@@ -7,23 +6,37 @@ use std::rc::Rc;
 /// second dependency index from their contents.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct UiAllocationInvalidationAuthority {
-    pub(super) active_contexts: Vec<UiCommittedAllocationInvalidationContext>,
-    pub(super) query_contexts:
-        BTreeMap<worth_ui_query_binding::WorthUiQueryAuthorityIndexKey, Box<[usize]>>,
-    pub(super) host_targets_by_witness: BTreeMap<
+    pub(in crate::runtime) catalog: super::UiActiveAllocationCatalog,
+    #[cfg(test)]
+    pub(super) fixture_contexts: crate::runtime::persistent_index::UiPersistentOrdMap<
+        crate::evidence::UiAllocationNeighborhoodScope,
+        UiCommittedAllocationInvalidationContext,
+    >,
+    pub(super) query_contexts: crate::runtime::persistent_index::UiPersistentOrdMap<
+        worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+        Box<[crate::evidence::UiAllocationNeighborhoodScope]>,
+    >,
+    pub(super) host_targets_by_witness: crate::runtime::persistent_index::UiPersistentOrdMap<
         crate::evidence::UiHostMeasurementAuthorityWitness,
         UiHostInvalidationTargetMapping,
     >,
+    pub(super) host_scopes_by_witness: crate::runtime::persistent_index::UiPersistentOrdMap<
+        crate::evidence::UiHostMeasurementAuthorityWitness,
+        Box<[crate::evidence::UiAllocationNeighborhoodScope]>,
+    >,
     pub(super) scroll_bindings: super::UiScrollInvalidationBindingIndex,
     pub(super) portal_bindings: super::UiPortalInvalidationBindingIndex,
-    pub(super) host_witnesses_by_request: BTreeMap<
+    pub(super) host_witnesses_by_request: crate::runtime::persistent_index::UiPersistentOrdMap<
         (
             worth_ui_host_contract::UiMeasurementRequestIdentity,
             crate::evidence::UiMeasurementEvidenceCategory,
         ),
         Box<[crate::evidence::UiHostMeasurementAuthorityWitness]>,
     >,
-    pub(super) durable_contexts: BTreeMap<u64, Box<[usize]>>,
+    pub(super) durable_contexts: crate::runtime::persistent_index::UiPersistentOrdMap<
+        u64,
+        Box<[crate::evidence::UiAllocationNeighborhoodScope]>,
+    >,
     pub(super) graph_replan: crate::graph::UiGraphReplanAuthority,
 }
 
@@ -172,12 +185,14 @@ impl UiAllocationInvalidationAuthority {
         catalog: &super::UiAllocationActivationCatalog,
         activation: crate::runtime::allocation_receipt::UiCommittedAllocationCatalogActivation,
         activation_identity: crate::runtime::UiCommittedAllocationActivationIdentity,
+        affected_predecessor_scopes: Option<Box<[crate::evidence::UiAllocationNeighborhoodScope]>>,
     ) -> super::UiAllocationNeighborhoodCatalogTransition {
         super::UiAllocationNeighborhoodCatalogTransition::seal(
             &self.graph_replan,
             catalog,
             activation,
             activation_identity,
+            affected_predecessor_scopes,
         )
     }
 
@@ -195,7 +210,7 @@ impl UiAllocationInvalidationAuthority {
         &self,
         witness: crate::evidence::UiHostMeasurementAuthorityWitness,
     ) -> Result<UiHostInvalidationAuthorityLookup<'_>, UiInvalidationAuthorityLookupDenial> {
-        if self.active_contexts.is_empty() {
+        if !self.has_invalidation_contexts() {
             return Ok(UiHostInvalidationAuthorityLookup {
                 target: None,
                 probes: 0,
@@ -229,7 +244,7 @@ impl UiAllocationInvalidationAuthority {
         &self,
         authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     ) -> Result<UiInvalidationAuthorityLookup, UiInvalidationAuthorityLookupDenial> {
-        if self.active_contexts.is_empty() {
+        if !self.has_invalidation_contexts() {
             return Ok(UiInvalidationAuthorityLookup {
                 target: None,
                 probes: 0,
@@ -245,8 +260,10 @@ impl UiAllocationInvalidationAuthority {
             });
         };
         let mut probes = 1u16;
-        for ordinal in ordinals {
-            let context = &self.active_contexts[*ordinal];
+        for scope in ordinals {
+            let Some(context) = self.context_for_scope(scope) else {
+                continue;
+            };
             probes = probes
                 .checked_add(1)
                 .ok_or(UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted)?;
@@ -275,7 +292,7 @@ impl UiAllocationInvalidationAuthority {
         &self,
         input_identity_digest: u64,
     ) -> Result<UiInvalidationAuthorityLookup, UiInvalidationAuthorityLookupDenial> {
-        if self.active_contexts.is_empty() {
+        if !self.has_invalidation_contexts() {
             return Ok(UiInvalidationAuthorityLookup {
                 target: None,
                 probes: 0,
@@ -288,8 +305,10 @@ impl UiAllocationInvalidationAuthority {
             });
         };
         let mut probes = 1u16;
-        for ordinal in ordinals {
-            let context = &self.active_contexts[*ordinal];
+        for scope in ordinals {
+            let Some(context) = self.context_for_scope(scope) else {
+                continue;
+            };
             probes = probes
                 .checked_add(1)
                 .ok_or(UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted)?;
@@ -334,17 +353,5 @@ impl UiHostInvalidationTargetMapping {
         Some(Self {
             target: graph.target_set_for_nodes(&nodes)?,
         })
-    }
-}
-
-impl UiAllocationInvalidationAuthority {
-    pub(crate) fn certifies_selection(
-        &self,
-        selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
-    ) -> bool {
-        selection
-            .ordered_neighborhoods()
-            .iter()
-            .all(|selected| self.graph_replan.certifies(&selected.generation_key()))
     }
 }

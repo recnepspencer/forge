@@ -21,16 +21,8 @@ pub(super) fn digest_plan_family(
     family: WorthUiPlanNodeInputFamily,
 ) -> u64 {
     let mut digest = WorthUiLaneParityHashFold::new(0xa64d_781d_e156_9a2b);
-    let nodes = plan
-        .topology()
-        .traversal_order()
-        .iter()
-        .filter(|node| node.family().input_family() == family);
-    for node in nodes {
-        digest.fold(0x10);
-        digest.fold(u64::from(node.runtime_handle().plan_index()));
-        digest.fold(node.runtime_handle().plan_generation().as_u64());
-    }
+    digest.fold(plan.regional_family_count(family) as u64);
+    digest.fold(plan.regional_family_semantic_digest(family));
     digest.finish()
 }
 

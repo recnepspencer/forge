@@ -31,6 +31,28 @@ impl WorthUiPlanNodeTopologyInput {
         Self::default()
     }
 
+    #[cfg(test)]
+    pub(crate) fn declared_for_test() -> Self {
+        Self {
+            structure_declared: true,
+            root_region_count: 1,
+            region_count: 1,
+            mount_count: 1,
+            max_region_depth: 1,
+        }
+    }
+
+    pub(crate) fn from_artifact_node(node: &WorthUiArtifactNode) -> Self {
+        match node {
+            WorthUiArtifactNode::Component(component) => {
+                Self::from_structure(component.structure())
+            }
+            WorthUiArtifactNode::Surface(surface) => Self::from_structure(surface.structure()),
+            WorthUiArtifactNode::Binding(binding) => Self::from_structure(binding.structure()),
+            WorthUiArtifactNode::Import(_) | WorthUiArtifactNode::Token(_) => Self::empty(),
+        }
+    }
+
     pub(crate) fn has_region_structure(self) -> bool {
         self.structure_declared
     }

@@ -12,6 +12,8 @@ use super::preservation::WorthUiLastValidRuntimeState;
 /// production clock for allocation-source collection and frame close/pump.
 #[derive(Debug)]
 pub struct WorthUiRuntimeFrameworkLoop {
+    pub(crate) active_application_lowering_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
     pub(crate) active: WorthUiActiveRuntimeState,
     pub(crate) last_valid: WorthUiLastValidRuntimeState,
     pub(crate) retained_allocation_planning_evidence:
@@ -29,6 +31,7 @@ pub struct WorthUiRuntimeFrameworkLoop {
     pub(crate) host_session_identity: Option<crate::facade::WorthUiHostSessionIdentity>,
     pub(crate) host_observation_generation:
         Option<worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration>,
+    pub(crate) host_plan_binding: crate::facade::WorthUiHostPlanBinding,
     pub(crate) durable_resize_source:
         crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
     pub(crate) scroll_offset_projection:

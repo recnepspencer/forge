@@ -8,8 +8,6 @@ pub enum WorthUiLaneAdapterHookKind {
     DurableStateFamilyAdmission,
     ComponentLowering,
     LaneAdapterMechanics,
-    CanvasSpatialDrawAndHitTest,
-    RealtimeOverlayMechanics,
     DiagnosticsProjection,
     CounterFamilies,
     ReportMaterialization,
@@ -74,22 +72,6 @@ impl WorthUiLaneAdapterHook {
             hook_id,
             lane,
             WorthUiLaneAdapterHookKind::LaneAdapterMechanics,
-        )
-    }
-
-    pub fn canvas_spatial_draw_and_hit_test(hook_id: impl Into<String>) -> Self {
-        Self::supported(
-            hook_id,
-            WorthUiExecutionLane::CanvasSpatial,
-            WorthUiLaneAdapterHookKind::CanvasSpatialDrawAndHitTest,
-        )
-    }
-
-    pub fn realtime_overlay_mechanics(hook_id: impl Into<String>) -> Self {
-        Self::supported(
-            hook_id,
-            WorthUiExecutionLane::RealtimeOverlayHud,
-            WorthUiLaneAdapterHookKind::RealtimeOverlayMechanics,
         )
     }
 

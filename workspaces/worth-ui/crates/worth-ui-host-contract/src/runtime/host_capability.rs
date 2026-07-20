@@ -12,6 +12,14 @@ pub enum WorthUiHostCapability {
     PortalAnchorObservation,
     ScrollContainerObservation,
     VisualCapture,
+    CanvasSpatialDraw,
+    CanvasSpatialHitTest,
+    CanvasSpatialOverlay,
+    CanvasSpatialToolState,
+    CanvasSpatialRenderResource,
+    RealtimeOverlayDraw,
+    RealtimeOverlaySurface,
+    RealtimeOverlayHook,
 }
 
 impl WorthUiHostCapability {
@@ -29,6 +37,14 @@ impl WorthUiHostCapability {
             Self::PortalAnchorObservation => "portal-anchor-observation",
             Self::ScrollContainerObservation => "scroll-container-observation",
             Self::VisualCapture => "visual-capture",
+            Self::CanvasSpatialDraw => "canvas-spatial-draw",
+            Self::CanvasSpatialHitTest => "canvas-spatial-hit-test",
+            Self::CanvasSpatialOverlay => "canvas-spatial-overlay",
+            Self::CanvasSpatialToolState => "canvas-spatial-tool-state",
+            Self::CanvasSpatialRenderResource => "canvas-spatial-render-resource",
+            Self::RealtimeOverlayDraw => "realtime-overlay-draw",
+            Self::RealtimeOverlaySurface => "realtime-overlay-surface",
+            Self::RealtimeOverlayHook => "realtime-overlay-hook",
         }
     }
 }

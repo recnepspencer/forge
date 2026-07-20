@@ -8,7 +8,9 @@ use crate::domain_installation::{
     WorthQueryInstalledDomainLiveCloseOutcome, WorthQueryInstalledDomainLiveOpenOutcome,
     WorthQueryInstalledDomainLiveResumeOutcome,
 };
-use crate::ordinary::read::current;
+use crate::ordinary::read::{
+    current, project_facts, WorthQueryProjectionOutcome, WorthQueryProjectionViolation,
+};
 
 #[test]
 fn installed_live_checkpoint_resume_and_close_preserve_the_package_witness() {
@@ -23,6 +25,7 @@ fn installed_live_checkpoint_resume_and_close_preserve_the_package_witness() {
             .witness_identity(),
         &expected
     );
+    assert_live_projection(&live, &mut workspace, &expected);
     let continuation = match live.checkpoint(&mut workspace) {
         WorthQueryInstalledDomainLiveCheckpointOutcome::Checkpointed(continuation) => continuation,
         _ => panic!("installed live checkpoint must succeed"),
@@ -45,7 +48,9 @@ fn installed_live_checkpoint_resume_and_close_preserve_the_package_witness() {
             .witness_identity(),
         &expected
     );
-    let closed = match resumed.into_handle().close(&mut workspace) {
+    let resumed = resumed.into_handle();
+    assert_live_projection(&resumed, &mut workspace, &expected);
+    let closed = match resumed.close(&mut workspace) {
         WorthQueryInstalledDomainLiveCloseOutcome::Closed(receipt) => receipt,
         _ => panic!("installed live close must succeed"),
     };
@@ -56,6 +61,49 @@ fn installed_live_checkpoint_resume_and_close_preserve_the_package_witness() {
             .witness_identity(),
         &expected
     );
+}
+
+#[test]
+fn installed_live_projection_rejects_an_equivalent_foreign_installation() {
+    let owner = installed_runtime();
+    let owner_handle = owner.domain(InstalledDomain).unwrap();
+    let owner_witness = owner_handle.authority_witness().witness_identity().clone();
+    let mut owner_workspace = owner.workspace("installed-live-projection-owner").unwrap();
+    let owner_live = open_live(&owner_handle, &mut owner_workspace, "installed.owner");
+
+    let foreign = installed_runtime();
+    let foreign_handle = foreign.domain(InstalledDomain).unwrap();
+    let mut foreign_workspace = foreign
+        .workspace("installed-live-projection-foreign")
+        .unwrap();
+    let foreign_live = open_live(&foreign_handle, &mut foreign_workspace, "installed.foreign");
+    let foreign_read = match foreign_live.read(&mut foreign_workspace) {
+        Ok(read) => read,
+        Err(_) => panic!("foreign live read must succeed in its owning workspace"),
+    };
+
+    let projection = owner_live.project(&foreign_read, project_facts().entity_identities());
+    assert!(matches!(
+        projection.outcome(),
+        WorthQueryProjectionOutcome::Violation(
+            WorthQueryProjectionViolation::LiveInstallationMismatch { .. }
+        )
+    ));
+    assert_eq!(
+        projection
+            .receipt()
+            .installed_authority()
+            .witness_identity(),
+        &owner_witness
+    );
+    assert!(matches!(
+        owner_live.close(&mut owner_workspace),
+        WorthQueryInstalledDomainLiveCloseOutcome::Closed(_)
+    ));
+    assert!(matches!(
+        foreign_live.close(&mut foreign_workspace),
+        WorthQueryInstalledDomainLiveCloseOutcome::Closed(_)
+    ));
 }
 
 #[test]
@@ -132,6 +180,33 @@ fn open_live(
             panic!("installed live open stopped: {:?}", stop.stop().source())
         }
     }
+}
+
+fn assert_live_projection(
+    live: &crate::domain_installation::WorthQueryInstalledDomainLiveHandle<InstalledDomain>,
+    workspace: &mut crate::runtime::WorthQueryWorkspace,
+    expected_witness: &crate::WorthQueryEvidenceIdentity,
+) {
+    let read = match live.read(workspace) {
+        Ok(read) => read,
+        Err(_) => panic!("installed live read must succeed"),
+    };
+    let projection = live.project(&read, project_facts().entity_identities());
+    assert!(
+        matches!(
+            projection.outcome(),
+            WorthQueryProjectionOutcome::Completed(_)
+        ),
+        "live projection outcome: {:#?}",
+        projection.outcome()
+    );
+    assert_eq!(
+        projection
+            .receipt()
+            .installed_authority()
+            .witness_identity(),
+        expected_witness
+    );
 }
 
 fn assert_drift(

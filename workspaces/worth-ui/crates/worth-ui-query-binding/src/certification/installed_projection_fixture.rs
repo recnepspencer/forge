@@ -7,8 +7,8 @@ use worth_query::facade::runtime::{
 
 use crate::{
     worth_ui_domain_package, worth_ui_native_aspect_contracts, WorthUiInstalledQueryDomain,
-    WorthUiInstalledQueryView, WorthUiQueryBindingPlan, WorthUiQueryProjectionOutcome,
-    WorthUiQueryWorkspaceExt,
+    WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView, WorthUiQueryBindingPlan,
+    WorthUiQuerySnapshotProjectionOutcome, WorthUiQueryWorkspaceExt,
 };
 
 pub fn worth_ui_installed_test_domain(label: &str) -> WorthUiInstalledQueryDomain {
@@ -32,7 +32,7 @@ pub fn worth_ui_installed_test_domain(label: &str) -> WorthUiInstalledQueryDomai
 /// Query execution into Worth UI binding artifacts.
 pub struct WorthUiInstalledQueryTestFixture {
     workspace: WorthQueryWorkspace,
-    view: WorthUiInstalledQueryView,
+    view: WorthUiInstalledSnapshotQueryView,
 }
 
 impl WorthUiInstalledQueryTestFixture {
@@ -85,10 +85,10 @@ impl WorthUiInstalledQueryTestFixture {
     /// The fixture retains its workspace so later projections carry the same
     /// installed Query authority as the registered view.
     pub fn installed_view(&self) -> WorthUiInstalledQueryView {
-        self.view.clone()
+        self.view.clone().into()
     }
 
-    pub fn project(&mut self) -> WorthUiQueryProjectionOutcome {
+    pub fn project(&mut self) -> WorthUiQuerySnapshotProjectionOutcome {
         let completion = self
             .view
             .read()

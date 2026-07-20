@@ -1,18 +1,18 @@
+use crate::runtime::planning::WorthUiExecutionPlanLoweringFacts;
 use crate::runtime::{
-    UiCommittedAllocation, WorthUiExecutionLaneDescriptor, WorthUiLaneAdmission,
-    WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiPlanTopologyCounters,
-    WorthUiPlanTopologyDenial, WorthUiPlanTopologyDenialReason, WorthUiRuntimeHandleAllocation,
+    WorthUiExecutionLaneDescriptor, WorthUiLaneAdmission, WorthUiPlanNodeInput,
+    WorthUiPlanNodeInputFamily, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
+    WorthUiPlanTopologyDenialReason, WorthUiRuntimeHandleAllocation,
     WorthUiRuntimeHandleAllocationBasis,
 };
 
 pub(crate) fn verify_handle_allocation_receipt(
-    committed_allocation: &UiCommittedAllocation,
+    authority: &WorthUiExecutionPlanLoweringFacts,
     handle_allocation: &WorthUiRuntimeHandleAllocation,
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<(), WorthUiPlanTopologyDenial> {
     counters.record_validation();
-    let basis =
-        WorthUiRuntimeHandleAllocationBasis::from_committed_allocation(committed_allocation);
+    let basis = WorthUiRuntimeHandleAllocationBasis::from_lowering_authority(authority);
     if handle_allocation.receipt().certifies_basis(&basis) {
         Ok(())
     } else {
@@ -66,7 +66,8 @@ pub(crate) fn verify_runtime_handles(
             *counters,
         ));
     }
-    let generation = handle_allocation.receipt().plan_generation();
+    let arena_identity = handle_allocation.receipt().arena_identity();
+    let initial_slot_generation = crate::runtime::WorthUiHandleSlotGeneration::new(0);
     for (position, (node_input, runtime_handle)) in node_inputs
         .iter()
         .zip(handle_allocation.runtime_handles())
@@ -79,7 +80,8 @@ pub(crate) fn verify_runtime_handles(
             )
         })?;
         if runtime_handle.plan_index() != plan_index
-            || runtime_handle.plan_generation() != generation
+            || runtime_handle.slot_generation() != initial_slot_generation
+            || runtime_handle.arena_identity() != arena_identity
         {
             return Err(denial(
                 WorthUiPlanTopologyDenialReason::RuntimeHandleOutOfBounds,
@@ -102,10 +104,11 @@ pub(crate) fn verify_child_range_handles(
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<(), WorthUiPlanTopologyDenial> {
     counters.record_validation();
-    let generation = handle_allocation.receipt().plan_generation();
+    let arena_identity = handle_allocation.receipt().arena_identity();
+    let initial_slot_generation = crate::runtime::WorthUiHandleSlotGeneration::new(0);
     let expected_child_range_plan_indexes =
         expected_child_range_plan_indexes(node_inputs, counters)?;
-    if expected_child_range_plan_indexes.len() != handle_allocation.child_range_handles().len() {
+    if expected_child_range_plan_indexes.len() != handle_allocation.child_range_handles().count() {
         return Err(denial(
             WorthUiPlanTopologyDenialReason::MissingChildOrLaneLink,
             *counters,
@@ -123,7 +126,8 @@ pub(crate) fn verify_child_range_handles(
             ));
         };
         if handle.plan_index() != *expected_plan_index
-            || handle.plan_generation() != generation
+            || handle.slot_generation() != initial_slot_generation
+            || handle.arena_identity() != arena_identity
             || node_input.family() != WorthUiPlanNodeInputFamily::ChildRange
         {
             return Err(denial(

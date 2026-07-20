@@ -1,6 +1,5 @@
-use crate::runtime::{
-    WorthUiAllocationPlanningBasis, WorthUiPlanLoweringBasis, WorthUiPlanNodeInput,
-};
+use crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection;
+use crate::runtime::WorthUiAllocationPlanningBasis;
 
 /// Lowered allocation payload owned by a committed receipt.
 ///
@@ -9,8 +8,7 @@ use crate::runtime::{
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiCommittedAllocation {
     basis: WorthUiAllocationPlanningBasis,
-    lowering_basis: WorthUiPlanLoweringBasis,
-    node_inputs: Box<[WorthUiPlanNodeInput]>,
+    planning_projection: WorthUiAllocationPlanningProjection,
     allocation_identity_digest: u64,
     resize_basis: Option<crate::runtime::UiResizeAllocationPlanningBasis>,
 }
@@ -18,30 +16,18 @@ pub(crate) struct UiCommittedAllocation {
 impl UiCommittedAllocation {
     pub(super) fn from_candidate(candidate: &super::UiAllocationCandidate) -> Self {
         let planning = candidate.planning();
-        let lowering_basis = planning
-            .lowering_basis()
+        let planning_projection = planning
+            .projection()
             .expect("only admitted planning can become committed allocation")
             .clone();
-        let node_inputs = planning
-            .node_inputs()
-            .expect("only admitted planning can become committed allocation")
-            .to_vec()
-            .into_boxed_slice();
         Self {
             basis: planning.basis().clone(),
-            lowering_basis,
-            node_inputs,
+            planning_projection,
             allocation_identity_digest: candidate.planning_identity_digest(),
             resize_basis: candidate.resize_basis().cloned(),
         }
     }
 
-    pub(crate) fn lowering_basis(&self) -> &WorthUiPlanLoweringBasis {
-        &self.lowering_basis
-    }
-    pub(crate) fn node_inputs(&self) -> &[WorthUiPlanNodeInput] {
-        &self.node_inputs
-    }
     pub(crate) fn allocation_identity_digest(&self) -> u64 {
         self.allocation_identity_digest
     }

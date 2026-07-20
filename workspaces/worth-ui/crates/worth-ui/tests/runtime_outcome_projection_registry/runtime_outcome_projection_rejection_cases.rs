@@ -1,6 +1,10 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, RuntimeOutcomeDenialPosture, RuntimeOutcomeFamily,
-    RuntimeOutcomeProjectionDescriptor, RuntimeOutcomeRecoveryPosture, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        RuntimeOutcomeDenialPosture, RuntimeOutcomeFamily, RuntimeOutcomeProjectionDescriptor,
+        RuntimeOutcomeRecoveryPosture,
+    },
 };
 
 use super::runtime_outcome_projection_assertions::{
@@ -170,7 +174,7 @@ fn mismatched_ui_outcome_source_cannot_be_projected_as_failed() {
             RuntimeOutcomeProjectionDescriptor::new(
                 projection_id("workspace.outcome.unsupported_as_failed"),
                 RuntimeOutcomeFamily::failed(),
-                worth_ui::facade::RuntimeOutcomeSourceReference::new(
+                worth_ui::facade::registry::RuntimeOutcomeSourceReference::new(
                     RuntimeOutcomeFamily::recoverable(),
                 ),
             )

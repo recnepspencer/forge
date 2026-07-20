@@ -1,8 +1,6 @@
 use worth_ui::facade::{
-    MeasurementConstraint, MeasurementValue, MosaicMeasurementAuthority, MosaicOverflowBehavior,
-    MosaicParentGrowthBehavior, MosaicResizePermission, MosaicSizingContractDescriptor,
-    MosaicSizingContractId, MosaicSizingKind, MosaicSizingPersistence, MosaicViewportConstraint,
-    NamedMeasurementDefinition, NamedMeasurementToken, WorthUi,
+    app::WorthUi,
+    registry::{MeasurementConstraint, MeasurementValue, MosaicMeasurementAuthority, MosaicOverflowBehavior, MosaicParentGrowthBehavior, MosaicResizePermission, MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind, MosaicSizingPersistence, MosaicViewportConstraint, NamedMeasurementDefinition, NamedMeasurementToken},
 };
 
 fn main() {

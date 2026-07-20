@@ -24,8 +24,15 @@ pub enum WorthUiLaneFrameReceiptKind {
 pub struct WorthUiLaneFrameReceipt {
     kind: WorthUiLaneFrameReceiptKind,
     packet: WorthUiMeasurementCounterPacket,
-    touched_plan_indexes: Vec<u32>,
+    touches: WorthUiLaneFrameTouches,
     certification_evidence_digest: Option<u64>,
+    work_scope: crate::runtime::WorthUiFrameWorkScope,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum WorthUiLaneFrameTouches {
+    Ordinary(crate::runtime::WorthUiOrdinaryLaneTouchReceipt),
+    Indexed(Vec<u32>),
 }
 
 impl WorthUiLaneFrameReceipt {
@@ -41,8 +48,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::Ordinary,
             packet,
-            touched_plan_indexes: receipt.touched_plan_indexes().to_vec(),
+            touches: WorthUiLaneFrameTouches::Ordinary(receipt.touch().clone()),
             certification_evidence_digest: Some(ordinary_certification_digest(&receipt)),
+            work_scope: receipt.work_scope(),
         })
     }
 
@@ -58,8 +66,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::VirtualizedData,
             packet,
-            touched_plan_indexes: receipt.touched_plan_indexes().to_vec(),
+            touches: WorthUiLaneFrameTouches::Indexed(vec![receipt.touched_plan_index()]),
             certification_evidence_digest: Some(virtualized_data_certification_digest(&receipt)),
+            work_scope: receipt.work_scope(),
         })
     }
 
@@ -75,8 +84,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::CanvasSpatial,
             packet,
-            touched_plan_indexes: receipt.touched_plan_indexes().to_vec(),
+            touches: WorthUiLaneFrameTouches::Indexed(receipt.touched_plan_indexes().to_vec()),
             certification_evidence_digest: Some(canvas_spatial_certification_digest(&receipt)),
+            work_scope: receipt.work_scope(),
         })
     }
 
@@ -92,8 +102,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::RealtimeOverlay,
             packet,
-            touched_plan_indexes: receipt.touched_plan_indexes().to_vec(),
+            touches: WorthUiLaneFrameTouches::Indexed(receipt.touched_plan_indexes().to_vec()),
             certification_evidence_digest: Some(realtime_certification_digest(&receipt)),
+            work_scope: receipt.work_scope(),
         })
     }
 
@@ -110,8 +121,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::Ordinary,
             packet,
-            touched_plan_indexes: Vec::new(),
+            touches: WorthUiLaneFrameTouches::Indexed(Vec::new()),
             certification_evidence_digest: None,
+            work_scope: crate::runtime::WorthUiFrameWorkScope::new(0, 0),
         })
     }
 
@@ -128,8 +140,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::RealtimeOverlay,
             packet,
-            touched_plan_indexes: Vec::new(),
+            touches: WorthUiLaneFrameTouches::Indexed(Vec::new()),
             certification_evidence_digest: None,
+            work_scope: crate::runtime::WorthUiFrameWorkScope::new(0, 0),
         })
     }
 
@@ -146,8 +159,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::VirtualizedData,
             packet,
-            touched_plan_indexes: Vec::new(),
+            touches: WorthUiLaneFrameTouches::Indexed(Vec::new()),
             certification_evidence_digest: None,
+            work_scope: crate::runtime::WorthUiFrameWorkScope::new(0, 0),
         })
     }
 
@@ -164,8 +178,9 @@ impl WorthUiLaneFrameReceipt {
         Ok(Self {
             kind: WorthUiLaneFrameReceiptKind::CanvasSpatial,
             packet,
-            touched_plan_indexes: Vec::new(),
+            touches: WorthUiLaneFrameTouches::Indexed(Vec::new()),
             certification_evidence_digest: None,
+            work_scope: crate::runtime::WorthUiFrameWorkScope::new(0, 0),
         })
     }
 
@@ -177,8 +192,9 @@ impl WorthUiLaneFrameReceipt {
         Self {
             kind,
             packet,
-            touched_plan_indexes: Vec::new(),
+            touches: WorthUiLaneFrameTouches::Indexed(Vec::new()),
             certification_evidence_digest: None,
+            work_scope: crate::runtime::WorthUiFrameWorkScope::new(0, 0),
         }
     }
 
@@ -190,12 +206,38 @@ impl WorthUiLaneFrameReceipt {
         &self.packet
     }
 
-    pub fn touched_plan_indexes(&self) -> &[u32] {
-        &self.touched_plan_indexes
+    pub fn touched_plan_index_count(&self) -> usize {
+        match &self.touches {
+            WorthUiLaneFrameTouches::Ordinary(touch) => touch.row_count(),
+            WorthUiLaneFrameTouches::Indexed(indexes) => indexes.len(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_work_scope_for_test(
+        &mut self,
+        work_scope: crate::runtime::WorthUiFrameWorkScope,
+    ) {
+        self.work_scope = work_scope;
+    }
+
+    /// Reports whether this compact receipt explicitly names `plan_index`.
+    ///
+    /// Ordinary subtree descendants are covered by the receipt's breadth,
+    /// row count, and digest without materializing their indexes per frame.
+    pub fn names_plan_index(&self, plan_index: u32) -> bool {
+        match &self.touches {
+            WorthUiLaneFrameTouches::Ordinary(touch) => touch.names_plan_index(plan_index),
+            WorthUiLaneFrameTouches::Indexed(indexes) => indexes.contains(&plan_index),
+        }
     }
 
     pub fn certification_evidence_digest(&self) -> Option<u64> {
         self.certification_evidence_digest
+    }
+
+    pub fn work_scope(&self) -> crate::runtime::WorthUiFrameWorkScope {
+        self.work_scope
     }
 }
 
@@ -215,7 +257,7 @@ fn ordinary_certification_digest(receipt: &WorthUiOrdinaryLaneFrameReceipt) -> u
 fn virtualized_data_certification_digest(receipt: &WorthUiVirtualizedDataFrameReceipt) -> u64 {
     let certification = receipt.certification();
     fold_u64(
-        receipt.query_patch_posture().canonical_digest(),
+        receipt.evidence().evidence_identity_digest(),
         certification.data_plan_digest()
             ^ certification.support_digest().rotate_left(13)
             ^ certification

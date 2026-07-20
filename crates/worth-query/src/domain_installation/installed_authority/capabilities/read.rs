@@ -183,6 +183,17 @@ pub struct WorthQueryInstalledDomainProjectionOutcome<D> {
 }
 
 impl<D> WorthQueryInstalledDomainProjectionOutcome<D> {
+    pub(super) fn from_outcome(
+        outcome: WorthQueryProjectionOutcome,
+        receipt: WorthQueryInstalledDomainExecutionReceipt,
+    ) -> Self {
+        Self {
+            outcome,
+            receipt,
+            marker: PhantomData,
+        }
+    }
+
     pub fn outcome(&self) -> &WorthQueryProjectionOutcome {
         &self.outcome
     }

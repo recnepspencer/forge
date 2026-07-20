@@ -1,7 +1,7 @@
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthUiAllocationPlanningCounters {
     planning_attempt_count: usize,
-    lowering_read_count: usize,
+    candidate_projection_read_count: usize,
     measurement_basis_read_count: usize,
     denial_count: usize,
 }
@@ -11,8 +11,8 @@ impl WorthUiAllocationPlanningCounters {
         self.planning_attempt_count += 1;
     }
 
-    pub(crate) fn record_lowering_read(&mut self) {
-        self.lowering_read_count += 1;
+    pub(crate) fn record_candidate_projection_read(&mut self) {
+        self.candidate_projection_read_count += 1;
     }
 
     pub(crate) fn record_measurement_basis_read(&mut self) {
@@ -27,8 +27,8 @@ impl WorthUiAllocationPlanningCounters {
         self.planning_attempt_count
     }
 
-    pub fn lowering_read_count(self) -> usize {
-        self.lowering_read_count
+    pub fn candidate_projection_read_count(self) -> usize {
+        self.candidate_projection_read_count
     }
 
     pub fn measurement_basis_read_count(self) -> usize {

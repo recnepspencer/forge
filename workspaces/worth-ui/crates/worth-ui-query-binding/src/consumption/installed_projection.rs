@@ -5,15 +5,15 @@ use worth_query::facade::read::WorthQueryProjectionOutcome;
 
 use crate::{WorthUiDomainEntry, WorthUiQueryViewDefinition};
 
-/// Installed-domain projection transfer envelope. The ordinary projection and
-/// the installed execution receipt cannot be separated by Worth UI callers.
-pub struct WorthUiQueryProjectionOutcome {
+/// Shared installed-domain transfer held behind lifecycle-specific public
+/// projection envelopes.
+pub(crate) struct WorthUiInstalledProjectionTransfer {
     definition: WorthUiQueryViewDefinition,
     outcome: WorthQueryProjectionOutcome,
     installed_execution: WorthQueryInstalledDomainExecutionReceipt,
 }
 
-impl WorthUiQueryProjectionOutcome {
+impl WorthUiInstalledProjectionTransfer {
     pub(crate) fn from_installed(
         definition: WorthUiQueryViewDefinition,
         installed: WorthQueryInstalledDomainProjectionOutcome<WorthUiDomainEntry>,

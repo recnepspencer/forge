@@ -28,6 +28,7 @@ pub(crate) struct UiPreflightedCommittedAllocationTransaction {
     next_active: crate::runtime::active::WorthUiActiveRuntimeState,
     ledger_transition: crate::runtime::allocation_receipt::UiAllocationCatalogLedgerTransition,
     committed_allocation: crate::runtime::UiCommittedAllocationReplan,
+    structural_reuse: crate::runtime::WorthUiPlanRegionalEvidence,
 }
 
 pub(crate) struct UiCommitTruthResources<'runtime> {
@@ -43,9 +44,10 @@ pub(crate) struct UiCommitTruthResources<'runtime> {
 pub(super) fn preflight_committed_allocation(
     active: &crate::runtime::active::WorthUiActiveRuntimeState,
     ready: super::UiCommittedAllocationValidation,
-    candidate_plan: crate::runtime::WorthUiExecutionPlan,
+    candidate_bundle: crate::runtime::active::WorthUiSealedExecutionPlanBundle,
     boundary: crate::runtime::WorthUiFrameBoundary,
     runtime_frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch,
+    runtime_host_session: crate::facade::WorthUiHostSessionIdentity,
 ) -> Result<UiPreflightedCommittedAllocationTransaction, UiCommittedAllocationPreflightDenial> {
     let mut counters = ready.activation_counters();
     let attempt_identity_digest = ready.attempt_identity().structural_digest();
@@ -57,6 +59,7 @@ pub(super) fn preflight_committed_allocation(
         &ready,
         boundary,
         runtime_frame_epoch,
+        runtime_host_session,
     )
     .map_err(
         |denial| UiCommittedAllocationPreflightDenial::ActivationGate {
@@ -72,10 +75,12 @@ pub(super) fn preflight_committed_allocation(
                 exhaustion,
             },
         )?;
-    let candidate_plan_digest =
-        crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::digest(&candidate_plan).0;
+    let structural_reuse = candidate_bundle
+        .execution_plan()
+        .regional_evidence()
+        .clone();
     let payload =
-        PreparedActiveSuccessor::prepare(ready, candidate_plan_digest, active.snapshot_digest())
+        PreparedActiveSuccessor::prepare(ready, candidate_bundle, active.snapshot_digest())
             .map_err(
                 |_| UiCommittedAllocationPreflightDenial::CandidatePlanDigestMismatch {
                     counters: Box::new(counters),
@@ -107,10 +112,15 @@ pub(super) fn preflight_committed_allocation(
         next_active,
         ledger_transition,
         committed_allocation: committed,
+        structural_reuse,
     })
 }
 
 impl UiPreflightedCommittedAllocationTransaction {
+    pub(crate) fn activation_counters(&self) -> super::UiCommittedAllocationActivationCounters {
+        self.counters
+    }
+
     pub(crate) fn acquire_truth_resources<'runtime>(
         self,
         ledger: &'runtime crate::runtime::allocation_receipt::UiAllocationReceiptLedger,
@@ -149,6 +159,7 @@ impl UiPreflightedCommittedAllocationTransaction {
             counters: self.counters,
             scroll_catalog_evidence,
             committed_allocation: self.committed_allocation,
+            structural_reuse: self.structural_reuse,
         };
         UiCommittedAllocationSuccessors::new(
             receipt_draft,

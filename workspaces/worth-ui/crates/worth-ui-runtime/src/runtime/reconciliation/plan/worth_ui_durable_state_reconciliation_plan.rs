@@ -12,6 +12,7 @@ pub struct WorthUiDurableStateReconciliationPlan {
     durable_resize_dispositions: Vec<WorthUiDurableResizeInputDisposition>,
     admitted_durable_resize_inputs: Vec<WorthUiAdmittedDurableResizeInput>,
     authority_generation: u64,
+    basis_digest: u64,
     counters: WorthUiDurableStateReconciliationCounters,
 }
 
@@ -74,6 +75,12 @@ impl WorthUiDurableStateReconciliationPlan {
                 WorthUiAdmittedDurableResizeInput::from_reconciliation(input, authority_generation)
             })
             .collect();
+        let basis_digest =
+            crate::runtime::reconciliation::basis_digest::reconciliation_basis_digest(
+                active_artifact_digest,
+                candidate_artifact_digest,
+                &receipts,
+            );
         Self {
             active_artifact_digest,
             candidate_artifact_digest,
@@ -81,6 +88,7 @@ impl WorthUiDurableStateReconciliationPlan {
             durable_resize_dispositions,
             admitted_durable_resize_inputs,
             authority_generation,
+            basis_digest,
             counters,
         }
     }
@@ -98,6 +106,10 @@ impl WorthUiDurableStateReconciliationPlan {
 
     pub fn receipts(&self) -> &[WorthUiDurableStateReconciliationReceipt] {
         &self.receipts
+    }
+
+    pub(crate) fn basis_digest(&self) -> u64 {
+        self.basis_digest
     }
 
     pub fn durable_resize_inputs(&self) -> &[WorthUiAdmittedDurableResizeInput] {

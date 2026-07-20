@@ -1,7 +1,3 @@
-use crate::runtime::frame_activation_gate::query_blockers::denied_query_rebind_count;
-use crate::runtime::frame_activation_gate::query_rebind_basis::query_rebind_basis_digest;
-use crate::runtime::frame_activation_gate::reconciliation_basis::reconciliation_basis_digest;
-use crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor;
 use crate::runtime::{
     WorthUiActivationGateCounters, WorthUiActivationGateDenial, WorthUiActivationGateDenialReason,
     WorthUiExecutionPlan, WorthUiExecutionPlanDigest, WorthUiExecutionPlanInput,
@@ -25,7 +21,7 @@ pub(super) fn validate_activation_inputs(
     plan_input: &WorthUiExecutionPlanInput,
     handle_allocation: &WorthUiRuntimeHandleAllocation,
     allocation_catalog: &crate::runtime::invalidation_narrowing::UiAllocationActivationCatalog,
-    candidate_plan: &WorthUiExecutionPlan,
+    candidate_bundle: &crate::runtime::active::WorthUiSealedExecutionPlanBundle,
     lane_parity_report: Option<&WorthUiLaneParityReport>,
 ) -> Result<UiActivationInputValidationFacts, WorthUiActivationGateDenial> {
     let mut counters = WorthUiActivationGateCounters::default();
@@ -37,19 +33,27 @@ pub(super) fn validate_activation_inputs(
         allocation_catalog,
         &mut counters,
     )?;
-    reject_execution_plan_receipt_mismatch(handle_allocation, candidate_plan, &mut counters)?;
+    reject_execution_plan_receipt_mismatch(
+        handle_allocation,
+        candidate_bundle.execution_plan(),
+        &mut counters,
+    )?;
     let query_rebind_denied_count = reject_query_blockers(pending, &mut counters)?;
-    let lane_parity_semantic_reference_digest =
-        lane_parity_digest(pending, candidate_plan, lane_parity_report, &mut counters)?;
+    let lane_parity_semantic_reference_digest = lane_parity_digest(
+        pending,
+        candidate_bundle.digest(),
+        lane_parity_report,
+        &mut counters,
+    )?;
     let staged = pending.staged_replacement();
     let node_plan_counters = staged.node_plan().counters();
     Ok(UiActivationInputValidationFacts {
-        candidate_execution_plan_digest: WorthUiExecutionPlanDigestor::digest(candidate_plan).0,
+        candidate_execution_plan_digest: candidate_bundle.digest(),
         handle_allocation_basis_digest: handle_allocation.receipt().basis_digest(),
         node_classification_count: staged.node_plan().classifications().len(),
         lane_changed_node_count: node_plan_counters.lane_changed_node_count(),
-        reconciliation_basis_digest: reconciliation_basis_digest(staged.reconciliation_plan()),
-        query_rebind_basis_digest: query_rebind_basis_digest(staged.query_rebind_plan()),
+        reconciliation_basis_digest: staged.reconciliation_plan().basis_digest(),
+        query_rebind_basis_digest: staged.query_rebind_plan().basis_digest(),
         query_rebind_denied_count,
         lane_parity_semantic_reference_digest,
         counters,
@@ -80,13 +84,16 @@ fn reject_plan_input_mismatch(
     let staged = pending.staged_replacement();
     counters.record_digest_check();
     let basis = plan_input.basis();
-    let matches_basis = basis.active_artifact_digest() == staged.active_artifact_digest()
+    let structural_node_count = staged.node_plan().candidate_structural_node_count();
+    let query_binding_input_count = staged.query_rebind_plan().live_candidate_binding_count();
+    let component_hook_input_count = plan_input.counters().component_hook_input_count();
+    let matches_basis = basis.prior_artifact_digest() == Some(staged.active_artifact_digest())
         && basis.candidate_artifact_digest() == staged.candidate_artifact_digest()
         && basis.frame_epoch() == pending.frame_epoch()
-        && basis.staged_node_classification_count() == staged.node_plan().classifications().len()
-        && basis.staged_reconciliation_receipt_count()
-            == staged.reconciliation_plan().receipts().len()
-        && basis.staged_query_rebind_entry_count() == staged.query_rebind_plan().entries().len();
+        && basis.candidate_node_input_count()
+            == structural_node_count + query_binding_input_count + component_hook_input_count
+        && basis.reconciliation_receipt_count() == staged.reconciliation_plan().receipts().len()
+        && basis.query_binding_input_count() == query_binding_input_count;
     if matches_basis {
         Ok(())
     } else {
@@ -134,7 +141,10 @@ fn reject_execution_plan_receipt_mismatch(
         Ok(())
     } else {
         Err(WorthUiActivationGateDenial::new(
-            handle_allocation.basis().active_artifact_digest(),
+            handle_allocation
+                .basis()
+                .prior_artifact_digest()
+                .unwrap_or_default(),
             handle_allocation.basis().candidate_artifact_digest(),
             handle_allocation.basis().frame_epoch(),
             handle_allocation.basis().frame_epoch(),
@@ -149,8 +159,8 @@ fn reject_query_blockers(
     counters: &mut WorthUiActivationGateCounters,
 ) -> Result<usize, WorthUiActivationGateDenial> {
     let plan = pending.staged_replacement().query_rebind_plan();
-    counters.record_query_rebind_entry_checks(plan.entries().len());
-    let denied_count = denied_query_rebind_count(plan);
+    let denied_count = plan.counters().denied_binding_count();
+    counters.record_query_rebind_entry_checks(0);
     if denied_count == 0 {
         Ok(denied_count)
     } else {
@@ -164,7 +174,7 @@ fn reject_query_blockers(
 
 fn lane_parity_digest(
     pending: &WorthUiPendingActivation,
-    candidate_plan: &WorthUiExecutionPlan,
+    candidate_plan_digest: WorthUiExecutionPlanDigest,
     report: Option<&WorthUiLaneParityReport>,
     counters: &mut WorthUiActivationGateCounters,
 ) -> Result<Option<u64>, WorthUiActivationGateDenial> {
@@ -193,11 +203,10 @@ fn lane_parity_digest(
         ));
     }
     let certification = report.certification();
-    let candidate_digest = WorthUiExecutionPlanDigestor::digest(candidate_plan).0.raw();
     let staged = pending.staged_replacement();
     let matches_report = certification.active_artifact_digest() == staged.active_artifact_digest()
         && certification.candidate_artifact_digest() == staged.candidate_artifact_digest()
-        && certification.candidate_plan_digest() == candidate_digest;
+        && certification.candidate_plan_digest() == candidate_plan_digest.raw();
     if matches_report {
         Ok(Some(certification.semantic_reference_digest()))
     } else {
@@ -230,7 +239,7 @@ fn denial_from_basis(
     counters: WorthUiActivationGateCounters,
 ) -> WorthUiActivationGateDenial {
     WorthUiActivationGateDenial::new(
-        basis.active_artifact_digest(),
+        basis.prior_artifact_digest().unwrap_or_default(),
         basis.candidate_artifact_digest(),
         basis.frame_epoch(),
         basis.frame_epoch(),

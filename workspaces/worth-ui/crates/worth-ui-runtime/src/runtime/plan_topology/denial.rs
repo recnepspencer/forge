@@ -15,9 +15,20 @@ pub enum WorthUiPlanTopologyDenialReason {
     RuntimeHandleFamilyMismatch,
     OrphanedChildRangeHandle,
     MissingChildOrLaneLink,
+    DuplicateRegionIdentity,
+    OrdinaryMeaningFamilyMismatch,
+    SpatialMeaningFamilyMismatch,
+    RealtimeMeaningFamilyMismatch,
+    QueryBindingFactsMismatch,
+    DuplicateChildTarget,
+    OverlappingChildTarget,
+    CyclicRegionDependency,
+    OwnerManifestMismatch,
+    IncompleteRegionalSuccessor,
     LaneAdmissionMismatch,
-    MissingEguiBoundaryDeclaration,
     MissingRegionStructure,
+    RegionalSuccessorMismatch,
+    HandleCapacityExhausted(crate::runtime::WorthUiHandleCapacityExhaustion),
 }
 
 impl WorthUiPlanTopologyDenial {

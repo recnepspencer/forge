@@ -23,6 +23,23 @@ pub enum MeasurementEvidenceInput {
 }
 
 impl MeasurementEvidenceInput {
+    pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::QueryProjectionFact(left), Self::QueryProjectionFact(right)) => left == right,
+            (Self::HostMeasurementResult(left), Self::HostMeasurementResult(right)) => {
+                left.operationally_matches(right)
+            }
+            (Self::HostCapabilityReport(left), Self::HostCapabilityReport(right)) => {
+                left.profile_identity_digest() == right.profile_identity_digest()
+            }
+            (Self::ChildIntrinsicMeasurement(left), Self::ChildIntrinsicMeasurement(right)) => {
+                left.operationally_matches(right)
+            }
+            (Self::SiblingResizeSupport(left), Self::SiblingResizeSupport(right)) => left == right,
+            _ => false,
+        }
+    }
+
     pub fn query_projection_fact(receipt: &UiProjectionFactReceipt) -> Self {
         Self::QueryProjectionFact(receipt.clone())
     }

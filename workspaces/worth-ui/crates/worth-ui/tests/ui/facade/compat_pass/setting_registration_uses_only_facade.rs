@@ -1,7 +1,6 @@
 use worth_ui::facade::{
-    SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint, SettingId,
-    SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
-    SettingValueSchema, WorthUi,
+    app::WorthUi,
+    registry::{SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint, SettingId, SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture, SettingValueSchema},
 };
 
 fn main() {

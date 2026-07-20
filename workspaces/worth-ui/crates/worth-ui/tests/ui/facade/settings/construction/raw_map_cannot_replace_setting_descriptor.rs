@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use worth_ui::facade::WorthUi;
+use worth_ui::facade::app::WorthUi;
 
 fn main() {
     let raw_settings = HashMap::<String, String>::from([(

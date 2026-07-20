@@ -28,6 +28,37 @@ pub enum UiAllocationReplanTransactionDenial {
 }
 
 impl UiAllocationReplanTransaction {
+    pub(crate) fn for_catalog_removal_activation(
+        removed: UiAllocationNeighborhoodIdentity,
+        runtime_generation: u64,
+        transaction_generation: u64,
+        frame_epoch: crate::runtime::UiAllocationFrameEpoch,
+    ) -> Self {
+        Self {
+            frame_ingress_keys: Box::new([]),
+            stream_families: vec![
+                crate::runtime::UiAllocationStreamFamily::HostMeasurementReplacement,
+            ]
+            .into_boxed_slice(),
+            invalidation_families: vec![
+                crate::runtime::UiAllocationInvalidationFamily::HostMeasurementResultReplacement,
+            ]
+            .into_boxed_slice(),
+            ingress_policy_verdicts: Box::new([]),
+            primary_neighborhood: removed.clone(),
+            ordered_neighborhoods: vec![removed].into_boxed_slice(),
+            widen_reasons: vec![None].into_boxed_slice(),
+            expected_generations: Box::new([]),
+            frame_epoch,
+            policy: crate::runtime::stream_policy::replacement_activation_policy(1),
+            overlap_disposition: crate::graph::UiReplanOverlapDisposition::Singleton,
+            root_posture: crate::graph::UiReplanRootPosture::NotRoot,
+            transaction_generation,
+            runtime_generation,
+            consequences: Default::default(),
+        }
+    }
+
     pub(crate) fn for_replacement_activation(
         candidates: &[super::UiAllocationCandidate],
         runtime_generation: u64,

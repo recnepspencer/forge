@@ -1,5 +1,6 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, FrozenMosaicStateCapabilities,
+    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
+    registry::FrozenMosaicStateCapabilities,
 };
 
 pub(crate) fn assert_diagnostic_codes(

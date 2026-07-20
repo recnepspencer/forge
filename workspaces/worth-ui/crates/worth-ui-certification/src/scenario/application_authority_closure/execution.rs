@@ -1,6 +1,6 @@
 use worth_ui::facade::app::{
-    WorthUiApplicationReplacementPreparation, WorthUiApplicationReplacementPreparationDenial,
-    WorthUiHostMeasurementSessionInput, WorthUiPreparedApplicationGenerationIdentity,
+    WorthUiApplicationReplacementPreparationDenial, WorthUiHostMeasurementSessionInput,
+    WorthUiPreparedApplicationGenerationIdentity,
 };
 use worth_ui::facade::host::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
@@ -21,8 +21,9 @@ use super::application_definition::{
 };
 use super::authored_composition::{candidate_file, current_file, current_rust};
 use super::candidate_catalog::admit_candidate_catalog;
+use super::foreign_graph_authority::equal_visible_graph_evidence_cannot_cross_candidate_authority;
 use super::operational_host::AuthorityClosureHost;
-use super::report::ApplicationAuthorityClosureReport;
+use super::report::{ApplicationAuthorityClosureReport, ApplicationPlanningObservation};
 
 pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureReport {
     let mut file_query = WorthUiInstalledQueryTestFixture::new("authority-closure-file");
@@ -65,13 +66,17 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
     let initial_generation = session.generation_identity().clone();
     assert_generation_boundaries(&mut session);
 
-    let no_op = session
+    let equivalent = session
         .prepare_replacement(current_file(session.capabilities()))
         .expect("equivalent replacement should prepare");
-    let WorthUiApplicationReplacementPreparation::NoOp(no_op) = no_op else {
-        panic!("equivalent replacement must return typed no-op");
-    };
-    assert_eq!(no_op.active_generation(), &initial_generation);
+    let equivalent = session
+        .lower_prepared_replacement(*equivalent)
+        .expect("equivalent replacement must not stop at digest comparison");
+    let equivalent = session
+        .stage_prepared_replacement(equivalent)
+        .expect("equivalent replacement must reach staged candidate authority");
+    drop(equivalent);
+    assert_eq!(session.generation_identity(), &initial_generation);
     let drifted_snapshot = application_builder_with_capability_drift(&file_query)
         .freeze()
         .expect("drifted capability snapshot should prepare");
@@ -80,13 +85,14 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
         panic!("snapshot-drifted replacement must deny at active preparation");
     };
     assert_eq!(session.generation_identity(), &initial_generation);
+    let foreign_graph_denied =
+        equal_visible_graph_evidence_cannot_cross_candidate_authority(&mut session);
+    assert!(foreign_graph_denied);
 
     let prepared = session
         .prepare_replacement(candidate_file(session.capabilities()))
         .expect("structural replacement should prepare");
-    let WorthUiApplicationReplacementPreparation::Prepared(mut prepared) = prepared else {
-        panic!("structural replacement must produce prepared authority");
-    };
+    let mut prepared = prepared;
     let candidate_inspection = prepared.inspect_candidate(UiInspectionQuery::new(
         UiInspectionTarget::product_root(),
         UiInspectionScope::graph(),
@@ -117,8 +123,25 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
     let cutover = session
         .activate_prepared_replacement(pending, catalog, boundary, None)
         .expect("candidate-owned catalog should cut over atomically");
+    let cutover = cutover
+        .into_activation()
+        .expect("changed candidate publishes a successor");
     assert_eq!(cutover.prior_generation(), &initial_generation);
     assert_eq!(cutover.active_generation(), session.generation_identity());
+    assert!(cutover.publication().generation_is_coherent());
+    assert!(cutover.publication().host_is_coherent());
+    assert_eq!(
+        cutover.publication().application_generation(),
+        session.generation_identity()
+    );
+    assert_eq!(
+        cutover.publication().runtime().active_plan_digest(),
+        cutover.plan_swap().next_active_plan_digest()
+    );
+    assert!(matches!(
+        cutover.publication().scheduler(),
+        worth_ui::facade::runtime::UiAllocationFrameDispatcherState::Open(_)
+    ));
     assert_ne!(session.generation_identity(), &initial_generation);
     assert_eq!(session.host_session_identity(), host_session);
 
@@ -219,8 +242,11 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
         graph.node_count(),
         session.capabilities().view_bindings().len(),
         session.host_session_identity() == host_session,
-        counters.policy_family_count(),
-        counters.policy_classification_count(),
+        ApplicationPlanningObservation::new(
+            counters.policy_family_count(),
+            counters.policy_classification_count(),
+        ),
+        foreign_graph_denied,
     )
 }
 

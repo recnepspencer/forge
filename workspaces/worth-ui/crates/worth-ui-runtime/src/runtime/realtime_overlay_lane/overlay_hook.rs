@@ -1,42 +1,35 @@
-use crate::runtime::{WorthUiExtensionHookAdmission, WorthUiLaneAdapterHookKind};
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiRealtimeOverlayHook {
-    hook_id: String,
-    support_digest: u64,
+    host_session_identity: u64,
+    host_observation_generation: u64,
+    plan_basis_digest: u64,
+    owner_plan_index: u32,
 }
 
 impl WorthUiRealtimeOverlayHook {
-    pub(crate) fn from_admission(admission: &WorthUiExtensionHookAdmission) -> Self {
-        debug_assert_eq!(
-            admission.hook().kind(),
-            WorthUiLaneAdapterHookKind::RealtimeOverlayMechanics
-        );
+    pub(crate) fn from_host_binding(
+        binding: crate::facade::WorthUiHostPlanBinding,
+        plan_basis_digest: u64,
+        owner_plan_index: u32,
+    ) -> Self {
         Self {
-            hook_id: admission.hook().hook_id().to_owned(),
-            support_digest: admission.preserved_lane_support().support_contract_digest(),
+            host_session_identity: binding.session_identity().as_u64(),
+            host_observation_generation: binding.observation_generation().as_u64(),
+            plan_basis_digest,
+            owner_plan_index,
         }
     }
 
-    pub fn hook_id(&self) -> &str {
-        &self.hook_id
+    pub fn host_session_identity(self) -> u64 {
+        self.host_session_identity
     }
-
-    pub fn support_digest(&self) -> u64 {
-        self.support_digest
+    pub fn host_observation_generation(self) -> u64 {
+        self.host_observation_generation
     }
-
-    pub(crate) fn canonical_digest(&self) -> u64 {
-        self.hook_id
-            .as_bytes()
-            .iter()
-            .fold(self.support_digest, |digest, byte| {
-                fold(digest, u64::from(*byte))
-            })
+    pub fn plan_basis_digest(self) -> u64 {
+        self.plan_basis_digest
     }
-}
-
-fn fold(mut digest: u64, value: u64) -> u64 {
-    digest ^= value;
-    digest.wrapping_mul(0x100000001b3)
+    pub fn owner_plan_index(self) -> u32 {
+        self.owner_plan_index
+    }
 }

@@ -80,6 +80,10 @@ impl WorthUiCandidateArtifactBundle {
         Rc::clone(&self.artifact)
     }
 
+    pub(crate) fn shares_artifact_authority_with(&self, artifact: &Rc<WorthUiArtifact>) -> bool {
+        Rc::ptr_eq(&self.artifact, artifact)
+    }
+
     pub(crate) fn artifact_digest(&self) -> WorthUiArtifactDigest {
         self.artifact_digest
     }

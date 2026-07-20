@@ -8,8 +8,6 @@ pub(crate) struct WorthUiActivationStagingPlans<'a> {
     pub(crate) reconciliation_plan:
         Option<&'a crate::runtime::WorthUiDurableStateReconciliationPlan>,
     pub(crate) query_rebind_plan: Option<&'a crate::runtime::WorthUiQueryLiveRebindPlan>,
-    pub(crate) pending_execution_plan_lowering_input:
-        Option<&'a crate::runtime::WorthUiPendingExecutionPlanLoweringInput>,
 }
 
 impl<'a> WorthUiActivationStagingPlans<'a> {
@@ -17,14 +15,10 @@ impl<'a> WorthUiActivationStagingPlans<'a> {
     pub(crate) fn new(
         reconciliation_plan: Option<&'a crate::runtime::WorthUiDurableStateReconciliationPlan>,
         query_rebind_plan: Option<&'a crate::runtime::WorthUiQueryLiveRebindPlan>,
-        pending_execution_plan_lowering_input: Option<
-            &'a crate::runtime::WorthUiPendingExecutionPlanLoweringInput,
-        >,
     ) -> Self {
         Self {
             reconciliation_plan,
             query_rebind_plan,
-            pending_execution_plan_lowering_input,
         }
     }
 }
@@ -34,7 +28,8 @@ impl WorthUiRuntime {
         &self,
         lowering: WorthUiReplacementLoweringReady,
     ) -> Result<WorthUiPendingActivation, WorthUiActivationStagingDenial> {
-        self.stage_replacement_activation(
+        self.stage_replacement_activation_with_authority(
+            lowering.candidate_application_authority,
             lowering.admitted,
             &lowering.impact,
             &lowering.narrowing,
@@ -42,15 +37,35 @@ impl WorthUiRuntime {
             WorthUiActivationStagingPlans {
                 reconciliation_plan: Some(&lowering.reconciliation_plan),
                 query_rebind_plan: Some(&lowering.query_rebind_plan),
-                pending_execution_plan_lowering_input: Some(
-                    &lowering.pending_execution_plan_lowering_input,
-                ),
             },
         )
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn stage_replacement_activation(
         &self,
+        admitted: crate::runtime::WorthUiAdmittedReplacementCandidate,
+        impact: &crate::runtime::WorthUiReplacementImpactClassification,
+        narrowing: &crate::runtime::WorthUiRuntimeImpactNarrowing,
+        node_plan: &crate::runtime::WorthUiNodeReplacementPlan,
+        plans: WorthUiActivationStagingPlans<'_>,
+    ) -> Result<WorthUiPendingActivation, WorthUiActivationStagingDenial> {
+        let candidate_application_authority = self
+            .active_application_lowering_authority
+            .synthetic_successor_for_certification(&admitted);
+        self.stage_replacement_activation_with_authority(
+            candidate_application_authority,
+            admitted,
+            impact,
+            narrowing,
+            node_plan,
+            plans,
+        )
+    }
+
+    fn stage_replacement_activation_with_authority(
+        &self,
+        candidate_application_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
         admitted: crate::runtime::WorthUiAdmittedReplacementCandidate,
         impact: &crate::runtime::WorthUiReplacementImpactClassification,
         narrowing: &crate::runtime::WorthUiRuntimeImpactNarrowing,
@@ -60,11 +75,11 @@ impl WorthUiRuntime {
         let WorthUiActivationStagingPlans {
             reconciliation_plan,
             query_rebind_plan,
-            pending_execution_plan_lowering_input,
         } = plans;
         let active_before = self.inspect_active();
         let active_after = self.inspect_active();
         WorthUiActivationStager::stage(WorthUiActivationStagingInput {
+            candidate_application_authority,
             active_before,
             active_after,
             admitted,
@@ -73,7 +88,6 @@ impl WorthUiRuntime {
             node_plan,
             reconciliation_plan,
             query_rebind_plan,
-            pending_execution_plan_lowering_input,
         })
     }
 }

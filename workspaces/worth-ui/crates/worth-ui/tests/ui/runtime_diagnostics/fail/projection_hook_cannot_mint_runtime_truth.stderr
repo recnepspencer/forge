@@ -1,5 +1,10 @@
-error[E0599]: no method named `active_artifact_digest` found for struct `WorthUiDiagnosticProjectionHook` in the current scope
- --> tests/ui/runtime_diagnostics/fail/projection_hook_cannot_mint_runtime_truth.rs:5:18
+error[E0432]: unresolved import `worth_ui::facade::WorthUiDiagnosticProjectionHook`
+ --> tests/ui/runtime_diagnostics/fail/projection_hook_cannot_mint_runtime_truth.rs:1:5
   |
-5 |     let _ = hook.active_artifact_digest();
-  |                  ^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthUiDiagnosticProjectionHook`
+1 | use worth_ui::facade::WorthUiDiagnosticProjectionHook;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiDiagnosticProjectionHook` in `facade`
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_ui_runtime::facade::WorthUiDiagnosticProjectionHook;
+  |             ++++++++

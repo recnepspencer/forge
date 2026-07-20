@@ -1,19 +1,20 @@
-use crate::runtime::{WorthUiHandlePlanGeneration, WorthUiRuntimeHandleAllocationBasis};
+use super::WorthUiHandleArenaIdentity;
+use crate::runtime::WorthUiRuntimeHandleAllocationBasis;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiRuntimeHandleAllocationReceipt {
     basis_digest: u64,
-    plan_generation: WorthUiHandlePlanGeneration,
+    arena_identity: WorthUiHandleArenaIdentity,
 }
 
 impl WorthUiRuntimeHandleAllocationReceipt {
-    pub(crate) fn from_basis(basis: &WorthUiRuntimeHandleAllocationBasis) -> Self {
-        let basis_digest = basis.digest();
+    pub(crate) fn from_basis(
+        basis: &WorthUiRuntimeHandleAllocationBasis,
+        arena_identity: WorthUiHandleArenaIdentity,
+    ) -> Self {
         Self {
-            basis_digest,
-            plan_generation: WorthUiHandlePlanGeneration::new(
-                basis_digest.rotate_left(17) ^ 0x51a7_e10c_a110_cafe,
-            ),
+            basis_digest: basis.digest(),
+            arena_identity,
         }
     }
 
@@ -25,7 +26,7 @@ impl WorthUiRuntimeHandleAllocationReceipt {
         self.basis_digest
     }
 
-    pub fn plan_generation(self) -> WorthUiHandlePlanGeneration {
-        self.plan_generation
+    pub fn arena_identity(self) -> WorthUiHandleArenaIdentity {
+        self.arena_identity
     }
 }

@@ -3,6 +3,7 @@ use crate::runtime::{WorthUiActivationGateCounters, WorthUiRuntimeFrameEpoch};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiActivationGateDenialReason {
     UnsafeFrameBoundary,
+    ForeignFrameBoundarySession,
     BoundaryFrameEpochMismatch,
     StaleFrameEpoch,
     FutureFrameEpochMismatch,

@@ -3,9 +3,8 @@ use crate::evidence::{
 };
 use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
-    UiAllocationCandidate, WorthUiAllocationPlanning, WorthUiExecutionPlan,
-    WorthUiExecutionPlanDigest, WorthUiExecutionPlanEquivalence, WorthUiExecutionPlanInspection,
-    WorthUiPlanInspectionDenial, WorthUiRuntimeInspectionAiHarness,
+    UiAllocationCandidate, WorthUiExecutionPlan, WorthUiExecutionPlanDigest,
+    WorthUiExecutionPlanEquivalence, WorthUiRuntimeInspectionAiHarness,
 };
 use worth_ui_inspection::{UiEvidenceRichness, UiInspectionQuery};
 
@@ -27,15 +26,16 @@ impl WorthUiRuntime {
         crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::compare(previous, next)
     }
 
-    pub fn inspect_execution_plan(
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn inspect_execution_plan(
         &self,
         plan: &WorthUiExecutionPlan,
-        allocation_planning: &WorthUiAllocationPlanning,
-    ) -> Result<WorthUiExecutionPlanInspection, WorthUiPlanInspectionDenial> {
-        crate::runtime::plan_inspection::WorthUiExecutionPlanInspector::inspect(
-            plan,
-            allocation_planning,
-        )
+        authority: &crate::runtime::planning::WorthUiExecutionPlanLoweringFacts,
+    ) -> Result<
+        crate::runtime::WorthUiExecutionPlanInspection,
+        crate::runtime::WorthUiPlanInspectionDenial,
+    > {
+        crate::runtime::plan_inspection::WorthUiExecutionPlanInspector::inspect(plan, authority)
     }
 
     pub fn inspect_allocation_planning(

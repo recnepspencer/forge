@@ -1,20 +1,7 @@
 use crate::runtime::{
-    WorthUiEguiBoundaryInput, WorthUiHandlePlanGeneration, WorthUiPlanNodeInputFamily,
-    WorthUiPlanNodeTopologyInput, WorthUiRuntimeHandle,
+    WorthUiPlanNodeInputFamily, WorthUiPlanNodeTopologyInput, WorthUiRuntimeHandle,
+    WorthUiRuntimeHandleLocator,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum WorthUiEguiBoundaryContact {
-    Context,
-    Ui,
-    Response,
-    Id,
-    Input,
-    LayoutAllocation,
-    PaintSubmission,
-    MemoryStateBridge,
-    FrameTiming,
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct WorthUiPlanNodeFamily {
@@ -28,17 +15,9 @@ pub struct WorthUiPlanChildRange {
     len: u32,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthUiEguiPlanBoundary {
-    input: WorthUiEguiBoundaryInput,
-    owner_plan_index: u32,
-    contacts: &'static [WorthUiEguiBoundaryContact],
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiRenderResourceRef {
-    owner_plan_index: u32,
-    plan_generation: WorthUiHandlePlanGeneration,
+    locator: WorthUiRuntimeHandleLocator,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -56,7 +35,6 @@ pub struct WorthUiPlanNode {
     family: WorthUiPlanNodeFamily,
     child_range: Option<WorthUiPlanChildRange>,
     region_structure: Option<WorthUiPlanRegionStructure>,
-    egui_boundary: Option<WorthUiEguiPlanBoundary>,
     render_resource_ref: Option<WorthUiRenderResourceRef>,
 }
 
@@ -79,6 +57,14 @@ impl WorthUiPlanChildRange {
         }
     }
 
+    pub(crate) fn from_compact_row(owner_plan_index: u32, len: u32) -> Self {
+        Self {
+            owner_plan_index,
+            start: 0,
+            len,
+        }
+    }
+
     pub fn owner_plan_index(self) -> u32 {
         self.owner_plan_index
     }
@@ -96,42 +82,17 @@ impl WorthUiPlanChildRange {
     }
 }
 
-impl WorthUiEguiPlanBoundary {
-    pub(crate) fn new(input: WorthUiEguiBoundaryInput, owner_plan_index: u32) -> Self {
-        Self {
-            input,
-            owner_plan_index,
-            contacts: contacts_for_input(input),
-        }
-    }
-
-    pub fn input(&self) -> WorthUiEguiBoundaryInput {
-        self.input
-    }
-
-    pub fn owner_plan_index(&self) -> u32 {
-        self.owner_plan_index
-    }
-
-    pub fn contacts(&self) -> &[WorthUiEguiBoundaryContact] {
-        self.contacts
-    }
-}
-
 impl WorthUiRenderResourceRef {
-    pub(crate) fn new(owner_plan_index: u32, plan_generation: WorthUiHandlePlanGeneration) -> Self {
-        Self {
-            owner_plan_index,
-            plan_generation,
-        }
+    pub(crate) fn new(locator: WorthUiRuntimeHandleLocator) -> Self {
+        Self { locator }
     }
 
     pub fn owner_plan_index(self) -> u32 {
-        self.owner_plan_index
+        self.locator.plan_index()
     }
 
-    pub fn plan_generation(self) -> WorthUiHandlePlanGeneration {
-        self.plan_generation
+    pub fn locator(self) -> WorthUiRuntimeHandleLocator {
+        self.locator
     }
 }
 
@@ -176,7 +137,6 @@ impl WorthUiPlanNode {
         family: WorthUiPlanNodeFamily,
         child_range: Option<WorthUiPlanChildRange>,
         region_structure: Option<WorthUiPlanRegionStructure>,
-        egui_boundary: Option<WorthUiEguiPlanBoundary>,
         render_resource_ref: Option<WorthUiRenderResourceRef>,
     ) -> Self {
         Self {
@@ -184,7 +144,6 @@ impl WorthUiPlanNode {
             family,
             child_range,
             region_structure,
-            egui_boundary,
             render_resource_ref,
         }
     }
@@ -205,47 +164,7 @@ impl WorthUiPlanNode {
         self.region_structure
     }
 
-    pub fn egui_boundary(&self) -> Option<&WorthUiEguiPlanBoundary> {
-        self.egui_boundary.as_ref()
-    }
-
     pub fn render_resource_ref(&self) -> Option<WorthUiRenderResourceRef> {
         self.render_resource_ref
-    }
-}
-
-fn contacts_for_input(input: WorthUiEguiBoundaryInput) -> &'static [WorthUiEguiBoundaryContact] {
-    match input {
-        WorthUiEguiBoundaryInput::Component => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Ui,
-            WorthUiEguiBoundaryContact::Response,
-            WorthUiEguiBoundaryContact::Id,
-            WorthUiEguiBoundaryContact::Input,
-            WorthUiEguiBoundaryContact::FrameTiming,
-        ],
-        WorthUiEguiBoundaryInput::Surface => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Ui,
-            WorthUiEguiBoundaryContact::LayoutAllocation,
-            WorthUiEguiBoundaryContact::PaintSubmission,
-            WorthUiEguiBoundaryContact::MemoryStateBridge,
-            WorthUiEguiBoundaryContact::FrameTiming,
-        ],
-        WorthUiEguiBoundaryInput::QueryBinding => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Response,
-            WorthUiEguiBoundaryContact::Input,
-            WorthUiEguiBoundaryContact::MemoryStateBridge,
-        ],
-        WorthUiEguiBoundaryInput::Token => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::PaintSubmission,
-        ],
-        WorthUiEguiBoundaryInput::Diagnostics => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Ui,
-            WorthUiEguiBoundaryContact::FrameTiming,
-        ],
     }
 }

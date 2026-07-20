@@ -210,11 +210,6 @@ pub(crate) fn splitter_pending_activation_with_provenance(
     let query_rebind = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowed, &admitted)
         .expect("query rebind plan succeeds");
-    let lowering_input = runtime.prepare_pending_execution_plan_lowering_input(
-        &node_plan,
-        &reconciliation,
-        &query_rebind,
-    );
     let pending = runtime
         .stage_replacement_activation(
             admitted,
@@ -224,7 +219,6 @@ pub(crate) fn splitter_pending_activation_with_provenance(
             crate::runtime::WorthUiActivationStagingPlans::new(
                 Some(&reconciliation),
                 Some(&query_rebind),
-                Some(&lowering_input),
             ),
         )
         .expect("pending activation stages");

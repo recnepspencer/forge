@@ -1,23 +1,22 @@
-use crate::runtime::WorthUiRealtimeLaneCounters;
+use crate::runtime::{WorthUiHandleResolutionEvidence, WorthUiRealtimeLaneCounters};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiHudPlanDenialReason {
     LaneAdmissionMissingRealtimeSupport,
-    LaneAdmissionMissingRenderResourceSupport,
-    LaneAdmissionPlanMismatch,
-    HandleAllocationPlanMismatch,
-    MissingRealtimeOverlayHook,
-    UnsupportedRealtimeOverlayHook,
     NoHudRows,
+    HostSupportMissing,
+    FrameBudgetExhausted {
+        budget_millis: u16,
+        declared_cost_millis: u16,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiRealtimeFrameDenialReason {
     TargetNotInHudPlan,
-    TargetGenerationMismatch,
-    OrdinaryWidgetFallback,
-    HiddenOrdinaryLayoutPass,
-    ForbiddenWorkCounterSuppression,
+    TargetArenaMismatch,
+    TargetSlotGenerationMismatch,
+    TargetFamilyMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,6 +30,7 @@ pub struct WorthUiRealtimeFrameDenial {
     reason: WorthUiRealtimeFrameDenialReason,
     plan_index: Option<u32>,
     counters: Box<WorthUiRealtimeLaneCounters>,
+    resolution_evidence: Option<WorthUiHandleResolutionEvidence>,
 }
 
 impl WorthUiHudPlanDenial {
@@ -63,6 +63,7 @@ impl WorthUiRealtimeFrameDenial {
             reason,
             plan_index,
             counters: Box::new(counters),
+            resolution_evidence: None,
         }
     }
 
@@ -76,5 +77,17 @@ impl WorthUiRealtimeFrameDenial {
 
     pub fn counters(&self) -> WorthUiRealtimeLaneCounters {
         *self.counters
+    }
+
+    pub(crate) fn with_resolution_evidence(
+        mut self,
+        evidence: WorthUiHandleResolutionEvidence,
+    ) -> Self {
+        self.resolution_evidence = Some(evidence);
+        self
+    }
+
+    pub fn resolution_evidence(&self) -> Option<WorthUiHandleResolutionEvidence> {
+        self.resolution_evidence
     }
 }

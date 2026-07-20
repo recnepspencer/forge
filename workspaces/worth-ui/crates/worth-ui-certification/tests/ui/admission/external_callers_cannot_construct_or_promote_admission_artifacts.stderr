@@ -1,107 +1,177 @@
-error[E0624]: associated function `new` is private
- --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:7:32
-  |
-7 |     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
-  |                                ^^^ private associated function
-  |
- ::: $WORKSPACE/crates/worth-ui-runtime/src/admission/support/ui_support_snapshot.rs
-  |
-  |     pub(crate) fn new(target: UiAdmissionTarget, posture: UiSupportPosture) -> Self {
-  |     ------------------------------------------------------------------------------- private associated function defined here
+error[E0432]: unresolved imports `worth_ui_runtime::facade::UiAspectContract`, `worth_ui_runtime::facade::UiDeclarationArtifact`, `worth_ui_runtime::facade::UiDeclarationGraphHandoff`, `worth_ui_runtime::facade::UiDeclaredPostureContract`
+ --> tests/ui/declaration_boundary/runtime_facade_root_does_not_export_declaration_surface.rs
+ help: consider importing one of these structs instead:
+worth_ui::facade::declaration::UiAspectContract
+worth_ui_runtime::facade::declaration::UiAspectContract
+ help: consider importing one of these structs instead:
+worth_ui::facade::declaration::UiDeclarationArtifact
+worth_ui_runtime::facade::declaration::UiDeclarationArtifact
+ help: consider importing one of these structs instead:
+worth_ui::facade::declaration::UiDeclarationGraphHandoff
+worth_ui_runtime::facade::declaration::UiDeclarationGraphHandoff
+ help: consider importing one of these structs instead:
+worth_ui::facade::declaration::UiDeclaredPostureContract
+worth_ui_runtime::facade::declaration::UiDeclaredPostureContract
 
-warning: unreachable expression
- --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:7:45
-  |
-7 |     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
-  |                                    -------  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
-  |                                    |
-  |                                    any code following this expression is unreachable
-  |
-  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+error[E0432]: unresolved imports `worth_ui::facade::declaration::UiControlDeclarationFamily`, `worth_ui::facade::declaration::UiDiagnosticSurfaceDeclarationFamily`, `worth_ui::facade::declaration::UiIntentDeclarationFamily`, `worth_ui::facade::declaration::UiLocalCompositionDeclarationFamily`, `worth_ui::facade::declaration::UiMosaicDeclarationFamily`, `worth_ui::facade::declaration::UiPageDeclarationFamily`, `worth_ui::facade::declaration::UiPageSetDeclarationFamily`, `worth_ui::facade::declaration::UiQueryBindingDeclarationFamily`, `worth_ui::facade::declaration::UiRegionDeclarationFamily`
+ --> tests/ui/declaration_family/external_callers_cannot_construct_family_wrappers.rs
+ help: a similar name exists in the module
+ help: a similar name exists in the module
+ help: a similar name exists in the module
+ help: a similar name exists in the module
+ help: a similar name exists in the module
+ help: a similar name exists in the module
+
+error[E0432]: unresolved import `worth_ui::facade::declaration::UiStructuralDeclarationPayload`
+ --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs
 
 error[E0533]: expected value, found struct variant `UiSupportPosture::Supported`
- --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:7:45
-  |
-7 |     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
-  |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a value
-  |
-help: you might have meant to create a new value of the struct
-  |
-7 -     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
-7 +     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported { family: /* value */, world: /* value */ };
-  |
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs
+ help: you might have meant to create a new value of the struct
 
 error[E0624]: associated function `new` is private
- --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:9:34
-  |
-9 |     let _ = UiAdmissionDecision::new(support_snapshot.clone(), todo!());
-  |                                  ^^^ private associated function
-  |
- ::: $WORKSPACE/crates/worth-ui-runtime/src/admission/report/ui_admission_decision.rs
-  |
-  |     pub(crate) fn new(support_snapshot: UiSupportSnapshot, outcome: UiAdmissionOutcome) -> Self {
-  |     ------------------------------------------------------------------------------------------- private associated function defined here
-
-warning: unreachable call
- --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:9:13
-  |
-9 |     let _ = UiAdmissionDecision::new(support_snapshot.clone(), todo!());
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call          ------- any code following this expression is unreachable
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs
 
 error[E0624]: associated function `from_decision` is private
-  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:32
-   |
-10 |       let _ = UiAdmissionReport::from_decision(todo!());
-   |                                  ^^^^^^^^^^^^^ private associated function
-   |
-  ::: $WORKSPACE/crates/worth-ui-runtime/src/admission/report/ui_admission_report.rs
-   |
-   | /     pub(crate) fn from_decision(
-   | |         decision: UiAdmissionDecision,
-   | |         authority_generation: UiEvidenceAuthorityGeneration,
-   | |     ) -> Self {
-   | |_____________- private associated function defined here
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs
 
 error[E0061]: this function takes 2 arguments but 1 argument was supplied
-  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:13
-   |
-10 |     let _ = UiAdmissionReport::from_decision(todo!());
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------- argument #2 of type `UiEvidenceAuthorityGeneration` is missing
-   |
-note: associated function defined here
-  --> $WORKSPACE/crates/worth-ui-runtime/src/admission/report/ui_admission_report.rs
-   |
-   |     pub(crate) fn from_decision(
-   |                   ^^^^^^^^^^^^^
-help: provide the argument
-   |
-10 |     let _ = UiAdmissionReport::from_decision(todo!(), /* UiEvidenceAuthorityGeneration */);
-   |                                                     +++++++++++++++++++++++++++++++++++++
-
-warning: unreachable call
-  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:13
-   |
-10 |     let _ = UiAdmissionReport::from_decision(todo!());
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ------- any code following this expression is unreachable
-   |             |
-   |             unreachable call
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs
+ note: associated function defined here
+ help: provide the argument
 
 error[E0599]: no function or associated item named `declaration` found for struct `UiAdmissionTarget` in the current scope
-  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:11:32
-   |
-11 |     let _ = UiAdmissionTarget::declaration(todo!(), UiAdmissionWorld::authoritative());
-   |                                ^^^^^^^^^^^ function or associated item not found in `UiAdmissionTarget`
-   |
-note: if you're trying to build a new `UiAdmissionTarget`, consider using `UiAdmissionTarget::graph_node` which returns `UiAdmissionTarget`
-  --> $WORKSPACE/crates/worth-ui-runtime/src/admission/boundary/ui_admission_target.rs
-   |
-   |     pub fn graph_node(graph_node_identity: UiGraphNodeIdentity, world: UiAdmissionWorld) -> Self {
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs
+ note: if you're trying to build a new `UiAdmissionTarget`, consider using `UiAdmissionTarget::graph_node` which returns `UiAdmissionTarget`
 
-warning: unreachable expression
-  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:11:53
-   |
-11 |     let _ = UiAdmissionTarget::declaration(todo!(), UiAdmissionWorld::authoritative());
-   |                                            -------  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
-   |                                            |
-   |                                            any code following this expression is unreachable
+error[E0624]: associated function `admit` is private
+ --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
+
+error[E0624]: associated function `admit` is private
+ --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
+
+error[E0624]: associated function `admit` is private
+ --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
+
+error[E0624]: associated function `admit` is private
+ --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration/external_callers_cannot_mint_declaration_artifact.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration/external_callers_cannot_mint_declaration_artifact.rs
+
+error[E0061]: this function takes 1 argument but 3 arguments were supplied
+ --> tests/ui/declaration/external_callers_cannot_mint_declaration_artifact.rs
+ note: associated function defined here
+ help: remove the extra arguments
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration/external_callers_cannot_mint_declaration_identity.rs
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration/external_callers_cannot_construct_semantic_artifact.rs
+
+error[E0061]: this function takes 1 argument but 13 arguments were supplied
+ --> tests/ui/declaration/external_callers_cannot_construct_semantic_artifact.rs
+ note: associated function defined here
+ help: remove the extra arguments
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration/external_callers_cannot_mint_dsl_lowering_receipt.rs
+
+error[E0061]: this function takes 4 arguments but 3 arguments were supplied
+ --> tests/ui/declaration/external_callers_cannot_mint_dsl_lowering_receipt.rs
+ note: associated function defined here
+ help: provide the argument
+
+error[E0599]: no method named `with_admitted_semantic_artifact` found for struct `WorthUiDslPackage` in the current scope
+ --> tests/ui/declaration/external_callers_cannot_seed_dsl_package_with_semantic_artifact.rs
+ help: there is a method `admit_semantic_artifact` with a similar name
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_posture/declared_posture_cannot_promote_to_runtime_receipts.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_posture/declared_posture_cannot_promote_to_runtime_receipts.rs
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
+
+error[E0061]: this function takes 5 arguments but 3 arguments were supplied
+ --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
+ note: associated function defined here
+ help: provide the arguments
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
+ note: function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
+ note: function defined here
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs
+
+error[E0061]: this function takes 1 argument but 6 arguments were supplied
+ --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs
+ note: associated function defined here
+ help: remove the extra arguments
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs
+
+error[E0061]: this function takes 5 arguments but 3 arguments were supplied
+ --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs
+ note: associated function defined here
+ help: provide the arguments
+
+error[E0624]: associated function `without_admitted_fact` is private
+ --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
+
+error[E0308]: mismatched types
+ --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs

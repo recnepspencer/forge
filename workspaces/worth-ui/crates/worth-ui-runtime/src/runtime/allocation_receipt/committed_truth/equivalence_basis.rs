@@ -68,6 +68,30 @@ pub enum UiAllocationConstraintPayloadShape {
 }
 
 impl UiAllocationConstraintPayloadShape {
+    fn operationally_matches(self, other: Self) -> bool {
+        match (self, other) {
+            (
+                Self::ViewportInput {
+                    solve_order: left_order,
+                    posture: left_posture,
+                    planning_time_only: left_planning_time_only,
+                    ..
+                },
+                Self::ViewportInput {
+                    solve_order: right_order,
+                    posture: right_posture,
+                    planning_time_only: right_planning_time_only,
+                    ..
+                },
+            ) => {
+                left_order == right_order
+                    && left_posture == right_posture
+                    && left_planning_time_only == right_planning_time_only
+            }
+            _ => self == other,
+        }
+    }
+
     fn from_payload(payload: UiConstraintPropagationEdgePayload) -> Self {
         match payload {
             UiConstraintPropagationEdgePayload::ParentAvailableSpace(value) => {
@@ -185,6 +209,14 @@ pub struct UiAllocationConstraintPropagationShape {
 }
 
 impl UiAllocationConstraintPropagationShape {
+    fn operationally_matches(&self, other: &Self) -> bool {
+        self.family == other.family
+            && self.source_member_identity_digest == other.source_member_identity_digest
+            && self.target_member_identity_digest == other.target_member_identity_digest
+            && self.cycle_participation_posture == other.cycle_participation_posture
+            && self.payload.operationally_matches(other.payload)
+    }
+
     fn from_edge(edge: &crate::evidence::UiConstraintPropagationEdge) -> Self {
         Self {
             family: edge.family(),
@@ -221,6 +253,16 @@ pub struct UiAllocationReceiptConstraintShape {
 }
 
 impl UiAllocationReceiptConstraintShape {
+    fn operationally_matches(&self, other: &Self) -> bool {
+        self.summary == other.summary
+            && self.propagation_edges.len() == other.propagation_edges.len()
+            && self
+                .propagation_edges
+                .iter()
+                .zip(other.propagation_edges.iter())
+                .all(|(left, right)| left.operationally_matches(right))
+    }
+
     fn from_constraint_set(set: &crate::evidence::UiAllocationConstraintSet) -> Self {
         let mut propagation_edges = set
             .propagation_edges()
@@ -275,6 +317,17 @@ pub struct UiAllocationReceiptEquivalenceBasis {
 }
 
 impl UiAllocationReceiptEquivalenceBasis {
+    pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
+        self.coordinate_ownership == other.coordinate_ownership
+            && match (&self.constraint_shape, &other.constraint_shape) {
+                (Some(left), Some(right)) => left.operationally_matches(right),
+                (None, None) => true,
+                _ => false,
+            }
+            && self.resize_basis == other.resize_basis
+            && self.portal_basis_identity_digest == other.portal_basis_identity_digest
+    }
+
     pub(crate) fn identity_digest(&self) -> u64 {
         self.coordinate_ownership.identity_digest()
             ^ self

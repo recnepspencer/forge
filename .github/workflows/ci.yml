@@ -343,6 +343,9 @@ jobs:
       - name: WORTH UI Windows all-target compile check
         run: python scripts/ci/run_worth_ui_test_lane.py platform-check
 
+      - name: WORTH UI Windows real filesystem contracts
+        run: python scripts/ci/run_worth_ui_test_lane.py filesystem-contract
+
       - name: Upload WORTH UI Windows evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -6,6 +6,7 @@ use crate::subscription::SubscriptionActivationInput;
 
 pub(super) struct LoweredRuntimeLiveSubscriptionRequest {
     pub(super) query_identity: crate::WorthQueryEvidenceIdentity,
+    pub(super) canonical_query_digest: crate::identity::CanonicalQueryDigest,
     pub(super) live_view_identity: crate::WorthQueryEvidenceIdentity,
     pub(super) canonical_result_shape_digest: crate::identity::CanonicalResultShapeDigest,
     pub(super) subscription_family: crate::subscription::QuerySubscriptionFamily,
@@ -113,6 +114,7 @@ fn lower_runtime_live_subscription_session(
                 .plan_digest()
                 .evidence_identity(),
         ),
+        canonical_query_digest: session.canonical().query().digest().clone(),
         live_view_identity: live_subscription_source_identity(
             "live_view",
             &live_subscription_view_shape_source_identity(view_family),

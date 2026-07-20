@@ -11,7 +11,6 @@ fn main() {
         family: uninhabited(),
         child_range: None,
         region_structure: None,
-        egui_boundary: None,
         render_resource_ref: None,
         provenance: uninhabited(),
     };

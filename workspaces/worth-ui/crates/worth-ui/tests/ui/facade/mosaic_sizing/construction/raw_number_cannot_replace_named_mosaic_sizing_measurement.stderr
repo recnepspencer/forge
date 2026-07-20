@@ -11,3 +11,17 @@ note: method defined here
    |
    |     pub fn with_named_measurement(mut self, measurement: NamedMeasurementDefinition) -> Self {
    |            ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+ --> tests/ui/facade/mosaic_sizing/construction/../../mosaic_state/construction/raw_text_cannot_replace_mosaic_state_owner_scope_id.rs
+  |
+  |     let _ = MosaicStateOwnerIdentity::runtime_scope("workspace.focus");
+  |             --------------------------------------- ^^^^^^^^^^^^^^^^^ expected `MosaicStateOwnerScopeId`, found `&str`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/mosaic_state/descriptor/state_identity/mosaic_state_owner_identity.rs
+  |
+  |     pub fn runtime_scope(scope: MosaicStateOwnerScopeId) -> Self {
+  |            ^^^^^^^^^^^^^

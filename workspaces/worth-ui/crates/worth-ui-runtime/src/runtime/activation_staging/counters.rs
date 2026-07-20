@@ -4,7 +4,6 @@ pub struct WorthUiActivationStagingCounters {
     digest_comparison_count: usize,
     staged_reconciliation_receipt_count: usize,
     staged_query_binding_count: usize,
-    staged_plan_lowering_input_count: usize,
     rejected_missing_input_count: usize,
     rejected_mismatched_input_count: usize,
     receipt_verification_count: usize,
@@ -26,10 +25,6 @@ impl WorthUiActivationStagingCounters {
 
     pub(crate) fn record_staged_query_bindings(&mut self, count: usize) {
         self.staged_query_binding_count += count;
-    }
-
-    pub(crate) fn record_staged_plan_lowering_input(&mut self) {
-        self.staged_plan_lowering_input_count += 1;
     }
 
     pub(crate) fn record_rejected_missing_input(&mut self) {
@@ -62,10 +57,6 @@ impl WorthUiActivationStagingCounters {
 
     pub fn staged_query_binding_count(&self) -> usize {
         self.staged_query_binding_count
-    }
-
-    pub fn staged_plan_lowering_input_count(&self) -> usize {
-        self.staged_plan_lowering_input_count
     }
 
     pub fn rejected_missing_input_count(&self) -> usize {

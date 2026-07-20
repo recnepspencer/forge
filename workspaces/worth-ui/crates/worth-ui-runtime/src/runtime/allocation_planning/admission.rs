@@ -1,14 +1,12 @@
 use crate::evidence::UiMeasurementBasis;
-use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputWitness;
-use crate::runtime::{
-    WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringBasis,
-};
+use crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection;
+use crate::runtime::WorthUiPendingActivation;
 
 #[derive(Clone, Debug)]
 pub(crate) struct WorthUiAllocationPlanningAdmission {
     constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
     portal_allocation_input: Option<crate::runtime::UiPortalAllocationPlanningBasis>,
-    expected_lowered_witness: WorthUiExecutionPlanInputWitness,
+    projection: WorthUiAllocationPlanningProjection,
 }
 
 impl WorthUiAllocationPlanningAdmission {
@@ -23,23 +21,19 @@ impl WorthUiAllocationPlanningAdmission {
         Self {
             constraint_basis,
             portal_allocation_input: None,
-            expected_lowered_witness: WorthUiExecutionPlanInputWitness::from_pending_activation(
-                pending_activation,
-            ),
+            projection: pending_activation.allocation_planning_projection().clone(),
         }
     }
 
-    pub(crate) fn from_execution_plan_input(
-        lowered_input: &WorthUiExecutionPlanInput,
+    pub(crate) fn from_projection(
+        projection: WorthUiAllocationPlanningProjection,
         constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
         portal_allocation_input: Option<crate::runtime::UiPortalAllocationPlanningBasis>,
     ) -> Self {
         Self {
             constraint_basis,
             portal_allocation_input,
-            expected_lowered_witness: WorthUiExecutionPlanInputWitness::from_execution_plan_input(
-                lowered_input,
-            ),
+            projection,
         }
     }
 
@@ -53,16 +47,7 @@ impl WorthUiAllocationPlanningAdmission {
         self.portal_allocation_input.as_ref()
     }
 
-    pub(crate) fn lowered_input_matches(&self, lowered_input: &WorthUiExecutionPlanInput) -> bool {
-        self.expected_lowered_witness
-            .matches_execution_plan_input(lowered_input)
-    }
-
-    pub(crate) fn expected_lowering_basis(&self) -> &WorthUiPlanLoweringBasis {
-        self.expected_lowered_witness.basis()
-    }
-
-    pub(crate) fn expected_lowered_witness_digest(&self) -> u64 {
-        self.expected_lowered_witness.digest()
+    pub(crate) fn into_projection(self) -> WorthUiAllocationPlanningProjection {
+        self.projection
     }
 }

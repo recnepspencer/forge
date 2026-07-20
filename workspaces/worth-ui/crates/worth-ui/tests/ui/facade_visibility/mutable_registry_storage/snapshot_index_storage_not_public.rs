@@ -1,4 +1,4 @@
-use worth_ui::facade::WorthUi;
+use worth_ui::facade::app::WorthUi;
 
 fn main() {
     let app = WorthUi::app().freeze().expect("application preparation should succeed");

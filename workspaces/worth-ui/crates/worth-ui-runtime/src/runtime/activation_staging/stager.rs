@@ -3,14 +3,16 @@ use crate::runtime::{
     WorthUiActivationStagingDenialReason, WorthUiActivationStagingReport,
     WorthUiActiveRuntimeObservation, WorthUiAdmittedReplacementCandidate,
     WorthUiCandidateAdmissionDenial, WorthUiDurableStateReconciliationPlan,
-    WorthUiNodeReplacementPlan, WorthUiPendingActivation, WorthUiPendingExecutionPlanLoweringInput,
-    WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification, WorthUiRuntimeFrameEpoch,
+    WorthUiNodeReplacementPlan, WorthUiPendingActivation, WorthUiQueryLiveRebindPlan,
+    WorthUiReplacementImpactClassification, WorthUiRuntimeFrameEpoch,
     WorthUiRuntimeImpactNarrowing, WorthUiStagedReplacement,
 };
 
 use super::WorthUiStagedReplacementInput;
 
 pub(crate) struct WorthUiActivationStagingInput<'a> {
+    pub candidate_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
     pub active_before: WorthUiActiveRuntimeObservation,
     pub active_after: WorthUiActiveRuntimeObservation,
     pub admitted: WorthUiAdmittedReplacementCandidate,
@@ -19,14 +21,6 @@ pub(crate) struct WorthUiActivationStagingInput<'a> {
     pub node_plan: &'a WorthUiNodeReplacementPlan,
     pub reconciliation_plan: Option<&'a WorthUiDurableStateReconciliationPlan>,
     pub query_rebind_plan: Option<&'a WorthUiQueryLiveRebindPlan>,
-    pub pending_execution_plan_lowering_input: Option<&'a WorthUiPendingExecutionPlanLoweringInput>,
-}
-
-struct WorthUiStagedPlanCardinality<'a> {
-    node_plan: &'a WorthUiNodeReplacementPlan,
-    reconciliation_plan: &'a WorthUiDurableStateReconciliationPlan,
-    query_rebind_plan: &'a WorthUiQueryLiveRebindPlan,
-    pending_input: &'a WorthUiPendingExecutionPlanLoweringInput,
 }
 
 pub(crate) struct WorthUiActivationStager;
@@ -36,6 +30,7 @@ impl WorthUiActivationStager {
         input: WorthUiActivationStagingInput<'_>,
     ) -> Result<WorthUiPendingActivation, WorthUiActivationStagingDenial> {
         let WorthUiActivationStagingInput {
+            candidate_application_authority,
             active_before,
             active_after,
             admitted,
@@ -44,12 +39,20 @@ impl WorthUiActivationStager {
             node_plan,
             reconciliation_plan,
             query_rebind_plan,
-            pending_execution_plan_lowering_input,
         } = input;
         let active_artifact_digest = active_before.artifact_digest();
         let candidate_artifact_digest = admitted.artifact_bundle().artifact_digest().raw();
         let frame_epoch = active_before.frame_epoch();
         let mut counters = WorthUiActivationStagingCounters::default();
+
+        reject_foreign_candidate_application_authority(
+            &candidate_application_authority,
+            &admitted,
+            active_artifact_digest,
+            candidate_artifact_digest,
+            frame_epoch,
+            counters,
+        )?;
 
         reject_active_mutation(
             active_before,
@@ -118,37 +121,8 @@ impl WorthUiActivationStager {
             frame_epoch,
             &mut counters,
         )?;
-        let pending_execution_plan_lowering_input = require_pending_execution_plan_lowering_input(
-            active_artifact_digest,
-            candidate_artifact_digest,
-            frame_epoch,
-            pending_execution_plan_lowering_input,
-            &mut counters,
-        )?;
-        verify_required_digest_pair(
-            active_artifact_digest,
-            candidate_artifact_digest,
-            pending_execution_plan_lowering_input.active_artifact_digest(),
-            pending_execution_plan_lowering_input.candidate_artifact_digest(),
-            frame_epoch,
-            &mut counters,
-        )?;
-        reject_mismatched_plan_lowering_input(
-            active_artifact_digest,
-            candidate_artifact_digest,
-            frame_epoch,
-            WorthUiStagedPlanCardinality {
-                node_plan,
-                reconciliation_plan,
-                query_rebind_plan,
-                pending_input: pending_execution_plan_lowering_input,
-            },
-            &mut counters,
-        )?;
-
         counters.record_staged_reconciliation_receipts(reconciliation_plan.receipts().len());
         counters.record_staged_query_bindings(query_rebind_plan.entries().len());
-        counters.record_staged_plan_lowering_input();
         let readiness = WorthUiActivationReadiness::ready_for_execution_plan_input();
         let report = WorthUiActivationStagingReport::new(
             active_artifact_digest,
@@ -166,15 +140,35 @@ impl WorthUiActivationStager {
             node_plan: node_plan.clone(),
             reconciliation_plan: reconciliation_plan.clone(),
             query_rebind_plan: query_rebind_plan.clone(),
-            pending_execution_plan_lowering_input: pending_execution_plan_lowering_input.clone(),
         });
         Ok(WorthUiPendingActivation::new(
             frame_epoch,
+            candidate_application_authority,
             staged_replacement,
             readiness,
             report,
         ))
     }
+}
+
+fn reject_foreign_candidate_application_authority(
+    authority: &crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    admitted: &WorthUiAdmittedReplacementCandidate,
+    active_artifact_digest: u64,
+    candidate_artifact_digest: u64,
+    frame_epoch: WorthUiRuntimeFrameEpoch,
+    counters: WorthUiActivationStagingCounters,
+) -> Result<(), WorthUiActivationStagingDenial> {
+    if authority.admits_candidate(admitted) {
+        return Ok(());
+    }
+    Err(WorthUiActivationStagingDenial::new(
+        active_artifact_digest,
+        candidate_artifact_digest,
+        frame_epoch,
+        WorthUiActivationStagingDenialReason::CandidateApplicationAuthorityMismatch,
+        counters,
+    ))
 }
 
 fn reject_active_mutation(
@@ -270,28 +264,6 @@ fn require_query_rebind_plan<'a>(
     }
 }
 
-fn require_pending_execution_plan_lowering_input<'a>(
-    active_artifact_digest: u64,
-    candidate_artifact_digest: u64,
-    frame_epoch: WorthUiRuntimeFrameEpoch,
-    pending_input: Option<&'a WorthUiPendingExecutionPlanLoweringInput>,
-    counters: &mut WorthUiActivationStagingCounters,
-) -> Result<&'a WorthUiPendingExecutionPlanLoweringInput, WorthUiActivationStagingDenial> {
-    match pending_input {
-        Some(input) => Ok(input),
-        None => {
-            counters.record_rejected_missing_input();
-            Err(WorthUiActivationStagingDenial::new(
-                active_artifact_digest,
-                candidate_artifact_digest,
-                frame_epoch,
-                WorthUiActivationStagingDenialReason::MissingExecutionPlanLoweringInput,
-                *counters,
-            ))
-        }
-    }
-}
-
 fn verify_required_digest_pair(
     expected_active_digest: u64,
     expected_candidate_digest: u64,
@@ -324,35 +296,4 @@ fn verify_required_digest_pair(
     }
     counters.record_verified_input();
     Ok(())
-}
-
-fn reject_mismatched_plan_lowering_input(
-    active_artifact_digest: u64,
-    candidate_artifact_digest: u64,
-    frame_epoch: WorthUiRuntimeFrameEpoch,
-    plans: WorthUiStagedPlanCardinality<'_>,
-    counters: &mut WorthUiActivationStagingCounters,
-) -> Result<(), WorthUiActivationStagingDenial> {
-    let WorthUiStagedPlanCardinality {
-        node_plan,
-        reconciliation_plan,
-        query_rebind_plan,
-        pending_input,
-    } = plans;
-    let matches_staged_cardinality = pending_input.node_classification_count()
-        == node_plan.classifications().len()
-        && pending_input.reconciliation_receipt_count() == reconciliation_plan.receipts().len()
-        && pending_input.query_rebind_entry_count() == query_rebind_plan.entries().len();
-    if matches_staged_cardinality {
-        Ok(())
-    } else {
-        counters.record_rejected_mismatched_input();
-        Err(WorthUiActivationStagingDenial::new(
-            active_artifact_digest,
-            candidate_artifact_digest,
-            frame_epoch,
-            WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch,
-            *counters,
-        ))
-    }
 }
