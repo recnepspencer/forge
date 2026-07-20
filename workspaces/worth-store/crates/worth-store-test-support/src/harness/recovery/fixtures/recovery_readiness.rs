@@ -4,22 +4,15 @@ use worth_store_buffer_pool::{
     BackgroundWorkBudgetSnapshot, FixedMetadataReservation,
 };
 use worth_store_contracts::{
-    AcceptedHandoffReadiness, BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap,
-    DeniedBoundaryKind, HandoffEvidenceDigestSet, IntegrityInspectionLifetimeLaw,
-    NoMaterializationWitness, PhysicalAuthorityRecap, PhysicalIntegrityReadinessPayload,
-    ProtectedIntegrityViewCapability, ScrubPlanningAllocationEnvelope, StableDigest,
-    VerifierResidentEnvelope, ROADMAP_2_S1_SCOPE,
-};
-use worth_store_readiness::{
-    close_physical_substrate_readiness, prove_physical_substrate_readiness,
-    PhysicalIntegrityReadiness, PhysicalSubstrateReadiness,
+    BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, DeniedBoundaryKind,
+    IntegrityInspectionLifetimeLaw, NoMaterializationWitness, PhysicalAuthorityRecap,
+    PhysicalIntegrityReadinessPayload, ProtectedIntegrityViewCapability,
+    ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
 use worth_store_recovery_physics::RecoveryMemoryEnvelope;
 
-pub(super) fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
-    let s2 = physical_substrate_readiness();
-    let facts = s2.facts();
-    let payload = PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
+pub(super) fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPayload {
+    PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
         ProtectedIntegrityViewCapability::protected_views(1).unwrap(),
         VerifierResidentEnvelope::bounded(128, 1).unwrap(),
         ScrubPlanningAllocationEnvelope::bounded(64).unwrap(),
@@ -27,38 +20,9 @@ pub(super) fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
         NoMaterializationWitness::observed_zero(0, 0).unwrap(),
         BoundedCounterRecap::exact(128, 1, 0, 64, 0, 0).unwrap(),
         DenialBehaviorRecap::from_named_boundaries(&DeniedBoundaryKind::ALL).unwrap(),
-        PhysicalAuthorityRecap::from_physical_format_authority(
-            facts.physical_reference_count(),
-            facts.header_decode_witness_count(),
-            facts.payload_admission_witness_count(),
-        )
-        .unwrap(),
+        PhysicalAuthorityRecap::from_physical_format_authority(4, 2, 2).unwrap(),
         BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
-    );
-    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload)
-        .unwrap()
-}
-
-pub(super) fn physical_substrate_readiness() -> PhysicalSubstrateReadiness {
-    prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(
-            AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
-                ROADMAP_2_S1_SCOPE,
-                HandoffEvidenceDigestSet::new(
-                    digest("sha256:s7-replay-backend"),
-                    digest("sha256:s7-replay-deferred"),
-                    digest("sha256:s7-replay-harness"),
-                    digest("sha256:s7-replay-terms"),
-                    digest("sha256:s7-replay-audit"),
-                    digest("sha256:s7-replay-complexity"),
-                    digest("sha256:s7-replay-provenance"),
-                ),
-            )
-            .unwrap(),
-        )
-        .unwrap(),
     )
-    .unwrap()
 }
 
 pub(super) fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
@@ -103,8 +67,4 @@ fn allocation_admission() -> AllocationAdmission {
 
 fn bytes(bytes: u64) -> AllocationByteBudget {
     AllocationByteBudget::bytes(bytes).unwrap()
-}
-
-fn digest(value: &str) -> StableDigest {
-    StableDigest::new(value).unwrap()
 }

@@ -4,19 +4,22 @@ import { RouterSectionCodeSample } from "./RouterSectionCodeSample";
 import { useRouterSectionState, type AccessLogEntry, type ReplayRow } from "./routerSectionHooks";
 import { REPLAY_PERSONAS, roleLabels, type PlantRole } from "./routerSectionSupport";
 import "./routerSection.css";
+import "./routerSectionMobile.css";
 
 interface RouterSectionProps {
   onNavigate: (path: string) => void;
 }
 
-const ROUTER_DX_SAMPLE = `export function StepLink({ batchId, stepId }: StepLinkProps) {
-  const ref = routes.stepExecute.to({ params: { batchId, stepId } });
-
-  return (
-    <a href={ref.href} onClick={(event) => go(event, ref)}>
-      Execute step {stepId}
-    </a>
+const ROUTER_DX_SAMPLE = `export async function enterStep({ batchId, stepId }: StepTarget) {
+  const target = routes.stepExecute.to({ params: { batchId, stepId } });
+  const ingress = signals.router.browserHistory.push(target.href);
+  const report = await routes.admitBrowserHistoryIngress(
+    ingress,
+    session.facts,
   );
+
+  story.record(report);
+  return report.outcome();
 }`;
 
 function OutcomeChip({ label, tone }: { label: string; tone: string }) {
@@ -230,29 +233,29 @@ export function RouterSection({ onNavigate }: RouterSectionProps) {
 
           <DxCorner
             code={ROUTER_DX_SAMPLE}
-            filename="step-link.tsx"
+            filename="enter-step.ts"
             receipts={[
               {
-                claim: "Guards return decisions, not booleans.",
-                api: "forbidden({ reason, detail }) · allow({ reason })",
-              },
-              {
-                claim: "Admission reads live facts — role, training, effective revision.",
+                claim: "The application submits intent. The route owns the policy.",
                 api: "admitBrowserHistoryIngress(ingress, session.facts)",
               },
               {
-                claim: "Typed refs; the route warms its own data.",
-                api: 'routes.stepExecute.to({ params }) · prefetch: "intent"',
+                claim: "A denial carries a reason and detail, not a mystery false.",
+                api: "report.outcome().artifact()",
+              },
+              {
+                claim: "The decision you render is the evidence you retain.",
+                api: "story.record(report)",
               },
             ]}
-            subtitle="Part 11-grade access control sounds like an MES project. Here it is a route declaration — and the audit trail is a by-product, not a pipeline."
+            subtitle="No permission logic leaks into the click path. Submit the navigation intent with live facts; Worth returns an admitted route or an inspectable denial, and the same report becomes the audit record."
           />
         </>
       ) : null}
 
       <div className="signals-docs-row">
-        <button onClick={() => onNavigate("#/docs/router/index")} type="button">
-          Explore routing in the documentation <span aria-hidden="true">→</span>
+        <button onClick={() => onNavigate("#/docs/router/admission/admit")} type="button">
+          Read route admission <span aria-hidden="true">→</span>
         </button>
       </div>
     </div>

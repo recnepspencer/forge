@@ -40,3 +40,7 @@ export {
   planCreateSignalsDeployment,
 } from "./product/entrypoint/construction/entrypoint_construction.js";
 export { resourceEffects } from "./product/resource/facade.js";
+export {
+  declareLocalTruthSchema,
+  localTruthSchema,
+} from "./product/local_truth/facade.js";

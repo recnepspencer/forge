@@ -3,6 +3,9 @@ use super::domain_tokens::domain_material_token;
 use super::token_writer::{append_token, append_u32};
 use super::value::append_value_material;
 use crate::canonicalization::{CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus};
+use crate::canonicalization::{
+    CanonicalBasisSequence, CanonicalizationCost, CanonicalizationRuleVersion,
+};
 
 pub(super) fn append_bundle_material(material: &mut String, bundle: &CanonicalDigestBasisBundle) {
     append_token(material, "bundle-version", bundle.version().as_str());
@@ -15,29 +18,53 @@ pub(super) fn append_sequence_material(
     material: &mut String,
     sequence: &CanonicalDigestBasisSequence,
 ) {
-    append_token(material, "sequence-version", sequence.version().as_str());
-    append_token(
+    append_sequence_parts(
         material,
-        "sequence-domain",
-        domain_material_token(sequence.domain()),
+        sequence.version(),
+        sequence.domain(),
+        sequence.cost(),
+        sequence.entries(),
     );
-    append_u32(material, "cost.entry-count", sequence.cost().entry_count());
+}
+
+pub(crate) fn basis_sequence_material(sequence: &CanonicalBasisSequence) -> String {
+    let mut material = String::new();
+    append_sequence_parts(
+        &mut material,
+        sequence.version(),
+        sequence.domain(),
+        sequence.cost(),
+        sequence.entries(),
+    );
+    material
+}
+
+fn append_sequence_parts(
+    material: &mut String,
+    version: &CanonicalizationRuleVersion,
+    domain: crate::canonicalization::CanonicalBasisDomain,
+    cost: CanonicalizationCost,
+    entries: &[CanonicalBasisEntry],
+) {
+    append_token(material, "sequence-version", version.as_str());
+    append_token(material, "sequence-domain", domain_material_token(domain));
+    append_u32(material, "cost.entry-count", cost.entry_count());
     append_u32(
         material,
         "cost.ordering-comparisons",
-        sequence.cost().ordering_comparisons(),
+        cost.ordering_comparisons(),
     );
     append_u32(
         material,
         "cost.nested-sequence-count",
-        sequence.cost().nested_sequence_count(),
+        cost.nested_sequence_count(),
     );
     append_u32(
         material,
         "cost.compatibility-lowering-count",
-        sequence.cost().compatibility_lowering_count(),
+        cost.compatibility_lowering_count(),
     );
-    for entry in sequence.entries() {
+    for entry in entries {
         append_entry_material(material, entry);
     }
 }

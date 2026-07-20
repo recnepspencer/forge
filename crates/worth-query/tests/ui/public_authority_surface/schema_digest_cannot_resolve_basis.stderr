@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::foundation::resolve_runtime_current_snapshot_basis`
- --> tests/ui/public_authority_surface/schema_digest_cannot_resolve_basis.rs:1:39
-  |
-1 | use worth_query::facade::foundation::{resolve_runtime_current_snapshot_basis, SchemaBasisDigest};
-  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `resolve_runtime_current_snapshot_basis` in `facade::foundation`

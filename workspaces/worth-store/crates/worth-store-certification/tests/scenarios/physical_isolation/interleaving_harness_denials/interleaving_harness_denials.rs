@@ -1,5 +1,4 @@
-#[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
-mod s5_interleaving_harness_support;
+use crate::physical_interleaving_support as s5_interleaving_harness_support;
 
 use s5_interleaving_harness_support::{
     compaction_interlock_observation, compaction_mutations, complete_context,

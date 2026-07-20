@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::WorthQueryBridgeWritebackEffectIntent`
- --> tests/ui/aspect_native_query/bridge_writeback_effect_intent_not_public.rs:1:5
-  |
-1 | use worth_query::facade::WorthQueryBridgeWritebackEffectIntent;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryBridgeWritebackEffectIntent` in `facade`

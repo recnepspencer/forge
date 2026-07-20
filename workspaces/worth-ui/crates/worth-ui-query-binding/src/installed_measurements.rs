@@ -17,7 +17,6 @@ pub trait WorthUiQueryExt {
 
     fn live_measurements(
         &self,
-        resource_name: impl Into<String>,
     ) -> Result<
         domain::WorthQueryInstalledDomainLiveDeclaration<WorthUiDomainEntry>,
         Box<worth_query::facade::live::WorthQueryLiveDeclarationStop>,
@@ -42,14 +41,14 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
     > {
         let operation = self.graph_read_operation(&measurement_allocation_operation());
         self.read(|query| {
-            query.local_collection(
+            query.local_collection_with_installed_operation(
+                operation,
                 MEASUREMENT_ROOT,
                 measurement_schema(),
                 |query| {
                     query
                         .project(identity_selector())
                         .project(measurement_selector())
-                        .domain_graph_operation(operation)
                 },
                 |shape| shape.field(identity_field()).field(measurement_field()),
             )
@@ -59,21 +58,20 @@ impl WorthUiQueryExt for domain::WorthQueryInstalledDomainHandle<WorthUiDomainEn
 
     fn live_measurements(
         &self,
-        resource_name: impl Into<String>,
     ) -> Result<
         domain::WorthQueryInstalledDomainLiveDeclaration<WorthUiDomainEntry>,
         Box<worth_query::facade::live::WorthQueryLiveDeclarationStop>,
     > {
         let operation = self.graph_read_operation(&measurement_allocation_operation());
-        self.live(resource_name, |query| {
-            query.local_collection(
+        self.live("worth-ui.measurements", |query| {
+            query.local_collection_with_installed_operation(
+                operation,
                 MEASUREMENT_ROOT,
                 measurement_schema(),
                 |query| {
                     query
                         .project(identity_selector())
                         .project(measurement_selector())
-                        .domain_graph_operation(operation)
                 },
                 |shape| shape.field(identity_field()).field(measurement_field()),
             )

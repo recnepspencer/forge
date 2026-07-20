@@ -1,7 +1,0 @@
-error[E0560]: struct `SubscriptionActivationInput` has no field named `activation_digest`
- --> tests/ui/subscription_activation_input_constructor_private.rs:5:9
-  |
-5 |         activation_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^^^ `SubscriptionActivationInput` does not have this field
-  |
-  = note: all struct fields are already assigned

@@ -1,123 +1,152 @@
 # Your First Resource
 
-## What This Feature Is
+Use a resource when a value comes from an external system and your application
+needs more than the resolved JSON. A resource line keeps the request identity,
+visible value, loading state, freshness, and debugging evidence together.
 
-This is the normal first resource: one route-first family, one line, one
-summary read.
+This tutorial builds one detail resource backed by `fetch`. It is the normal
+path, not a toy API you will have to discard later.
 
-## Why You Use It
-
-- start on the common path
-- keep request shape, canonical identity, and line behavior together
-- get to `line.summary()` and `line.value()` without learning the whole resource
-  system first
-
-## Stable Entry Points
-
-- `signals.api(...)`
-- `api.url(...)`
-- `.detail(...)`
-- `family.line(...)`
-- `line.summary()`
-- `line.value()`
-
-## Core Mental Model
-
-The route declaration creates a family.
-Calling `family.line(...)` creates one live line from that family.
-
-For ordinary app work, you usually do not need the raw
-`signals.resource.detail(...)` lane first.
-
-## How It Executes
-
-1. declare shared defaults with `signals.api(...)`
-2. declare one route with `api.url(...)`
-3. finish it with `.detail(...)`
-4. materialize a line with `family.line(...)`
-5. read `line.summary()` or `line.value()`
-
-## Small Example
+## 1. Create The Runtime And API
 
 ```ts
-const userDetail = signals.api({
-  baseUrl: "/api",
-}).url("/users/:userId").detail({
-  load: ({ userId }) => ({ id: userId, name: `User ${userId}` }),
-});
+import { createSignals } from "worth-signals-wasm";
 
-const line = userDetail.line({ userId: "u1" });
-
-console.log(line.summary());
-console.log(line.value());
+const signals = await createSignals();
+const api = signals.api({ baseUrl: "/api" });
 ```
 
-## Real Example
+`createSignals()` uses the worker-first deployment by default. `signals.api(...)`
+declares defaults shared by a group of routes; it does not create a network
+client or issue a request.
+
+## 2. Declare One Detail Family
 
 ```ts
-const workspaceApi = signals.api({
-  baseUrl: "/api",
-  auth: resourceAuth.workspace(),
-}).scope({
-  requestContext: ({ workspaceId }) =>
-    resourceRequestContext({
-      headers: { "x-workspace-id": workspaceId },
-      correlationId: `workspace:${workspaceId}`,
-    }),
-});
+interface Project {
+  id: string;
+  name: string;
+  revision: number;
+}
 
-const productDetail = workspaceApi
-  .url("/workspaces/:workspaceId/products/:productId")
-  .detail({
-    load: ({ productId }, request) => ({
-      id: productId,
-      authKind: request.auth.kind,
-    }),
-  });
+const projectDetail = api.url("/projects/:projectId").detail<Project>({
+  async load({ projectId }, request) {
+    if (!request.target.url) throw new Error("project URL was not admitted");
 
-const line = productDetail.line({
-  workspaceId: "demo",
-  productId: "p1",
+    const response = await fetch(request.target.url);
+    if (!response.ok) {
+      throw new Error(`project ${projectId} failed: ${response.status}`);
+    }
+    return response.json() as Promise<Project>;
+  },
 });
 ```
 
-## How It Relates To Other Features
+The route owns how `projectId` becomes request identity. The `detail` finalizer
+says each parameter set represents one logical record. Your `load` function
+owns the I/O and returns the observed server value.
 
-- If you are unsure which family shape to use next, go to
-  [Choose A Resource Shape](./choose-a-resource-shape.md).
-- If the main question is fetching behavior, continue into
-  [Fetching Data](../fetching/README.md).
-- If the main question is writes, continue into
-  [Updating Data](../updating/README.md).
+The second `load` argument is the admitted request descriptor. Prefer its URL,
+method, auth posture, and request context over rebuilding those decisions inside
+the loader.
 
-## Inspection And Debugging
+## 3. Materialize A Line
 
-Start with:
+```ts
+const project = projectDetail.line({ projectId: "project-42" });
+```
 
-- `line.summary()`
-- `line.request()`
-- `line.status()`
-- `line.freshness()`
+Calling `line(...)` starts materialization. Calling it again with canonically
+equivalent params reuses the same logical resource member rather than creating a
+second cache entry.
 
-That gives you the admitted request, the current value state, and whether the
-line is fresh or stale.
+For an asynchronous first load, the line can be pending with `null` visible
+value. Read the lifecycle explicitly:
 
-## Anti-Patterns
+```ts
+const status = project.status();
 
-- starting with the raw `signals.resource.*(...)` lane when the route-first
-  lane already fits
-- hiding auth, headers, or request body logic deep inside `load(...)`
-- treating `line.value()` as the only useful read and skipping
-  `line.summary()`
+if (status.kind === "pending") {
+  renderProjectSkeleton();
+}
+```
 
-## Current Limits
+## 4. Wait When Your Task Requires Settled Truth
 
-- this page stays on the route-first lane
-- uploads, downloads, mutation-response reconciliation, and advanced patching
-  live in later sections
+```ts
+const settlement = await project.awaitSettlement({ timeoutMs: 5_000 });
 
-## Related Docs
+if (
+  settlement.resultKind === "fulfilled" ||
+  settlement.resultKind === "partial"
+) {
+  const value = project.value();
+  if (value) console.log(value);
+} else {
+  console.error(project.summary());
+}
+```
 
-- [Choose A Resource Shape](./choose-a-resource-shape.md)
-- [Fetch A Single Record](../fetching/fetch-a-single-record.md)
-- [Older Flat Resource Overview](../overview.md)
+Use `awaitSettlement()` in loaders, tests, or workflows that cannot proceed
+without a result. The public line type remains nullable, so check the value even
+after settlement when `null` is not valid for your domain. In a UI, subscribe
+to `project.signal()` and render pending, fulfilled, rejected, and timed-out
+state instead of blocking the screen.
+
+## 5. Inspect Before You Guess
+
+```ts
+const summary = project.summary();
+
+console.log(summary.current.status.kind);
+console.log(summary.current.freshness.kind);
+console.log(project.request().target.url);
+console.log(project.diagnosticsSummary().latest);
+```
+
+`summary()` is the best first debugging read. It groups current lifecycle,
+request, processing, transfer, diagnostic, and history-availability truth. It is
+not a second cache and it does not copy the complete retained history.
+
+## Refresh, Revalidate, Or Invalidate
+
+```ts
+project.invalidate(); // keep the visible value, mark it stale
+project.refresh();    // start a new load
+project.revalidate(); // apply the family's revalidation posture
+```
+
+These operations act on the same line identity. Do not replace the family with
+a new instance to force a request; that throws away the identity and evidence
+you wanted the resource runtime to preserve.
+
+## Choose The Right Shape
+
+- Use `.detail(...)` for one logical record.
+- Use `.list(...)` when the value contains identifiable items.
+- Use `.paged(...)` when later pages accumulate and the family can declare how.
+
+Collections need stable item identity. Paged resources need stable item
+identity plus an accumulation rule. If the server returns an array but the
+application treats it as one indivisible document, a detail family can still be
+the honest shape.
+
+## Common Mistakes
+
+- Do not call `fetch` outside the family and copy its result into a separate
+  component cache.
+- Do not create canonical keys from labels, formatted dates, or other unstable
+  display values.
+- Do not hide auth, headers, or retry policy inside `load(...)` when they belong
+  in the API or family declaration.
+- Do not assume `value()` is populated before initial settlement.
+- Do not use the raw `signals.resource.*(...)` lane until you need manual
+  identity or compatibility-oriented authoring.
+
+## Where To Go Next
+
+- [Reading And Caching](../caching/README.md)
+- [Writing And Server Reconciliation](../updating/README.md)
+- [Collections And Partial Updates](../partial-updates/README.md)
+- [Resource Family Reference](../../api-reference/resource-family-authoring.md)
+- [Resource Line Reference](../../api-reference/resource-line.md)

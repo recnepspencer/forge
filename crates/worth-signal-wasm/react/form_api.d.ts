@@ -1,13 +1,18 @@
 import type {
   FormControllerReactLike,
   FormFieldHandleReactLike,
+  FormInteractionFieldReactLike,
+  FormVisibleMessageReactLike,
   ReactSignalsStore,
   RuntimeFormController,
   RuntimeFormDeclaration,
   SignalsFormBinding,
   SignalsWithFormLike,
 } from "./model.js";
-import type { FormFieldDeclaration } from "../package/types/forms/core.js";
+import type {
+  FormFieldDeclaration,
+  FormFieldWritePosture,
+} from "../package/types/forms/core.js";
 
 export declare function useFormField<
   TValue = unknown,
@@ -26,9 +31,9 @@ export declare function useFormField<
   value: TValue;
   dirty: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["dirty"]>;
   diagnostics: ReturnType<FormFieldHandleReactLike<TValue, TRaw>["diagnostics"]>;
-  messages: readonly unknown[];
-  interaction: unknown | null;
-  writePosture: unknown;
+  messages: readonly FormVisibleMessageReactLike[];
+  interaction: FormInteractionFieldReactLike | null;
+  writePosture: FormFieldWritePosture;
   textInput(): {
     readonly name: string;
     readonly value: TValue;

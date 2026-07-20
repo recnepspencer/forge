@@ -16,7 +16,20 @@ exports = [
 
 [[facades]]
 package = "worth-query-decl"
-exports = ["CanonicalQueryArtifact"]
+exports = [
+    "CanonicalQueryArtifact",
+    "authoring",
+    "binding",
+    "canonicalization",
+    "collection",
+    "diagnostics",
+    "identity",
+    "identity_authority",
+    "schema_view",
+    "typed",
+    "validation",
+    "view_declaration",
+]
 
 [[facades]]
 package = "worth-query-host"

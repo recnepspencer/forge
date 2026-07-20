@@ -1,5 +1,3 @@
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
@@ -75,7 +73,7 @@ where
     } else {
         StoreDurabilityExecutionBoundary::FileSynchronized
     };
-    let directory = IsolatedDurabilityDirectory::create();
+    let directory = tempfile::tempdir().expect("isolated durability directory");
     let proof = StoreDurabilityRuntime::new()
         .persist_and_execute_to(
             directory.path(),
@@ -85,37 +83,4 @@ where
         )
         .unwrap();
     accepted.reach_durability_boundary(proof)
-}
-
-static NEXT_DURABILITY_DIRECTORY: AtomicU64 = AtomicU64::new(1);
-
-struct IsolatedDurabilityDirectory {
-    path: PathBuf,
-}
-
-impl IsolatedDurabilityDirectory {
-    fn create() -> Self {
-        loop {
-            let ordinal = NEXT_DURABILITY_DIRECTORY.fetch_add(1, Ordering::Relaxed);
-            let path = std::env::temp_dir().join(format!(
-                "worth-store-recovery-durability-{}-{ordinal}",
-                std::process::id()
-            ));
-            match std::fs::create_dir(&path) {
-                Ok(()) => return Self { path },
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => panic!("isolated durability directory should be creatable: {error}"),
-            }
-        }
-    }
-
-    fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-impl Drop for IsolatedDurabilityDirectory {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.path);
-    }
 }

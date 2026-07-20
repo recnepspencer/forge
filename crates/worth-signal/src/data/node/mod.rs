@@ -12,7 +12,8 @@ pub use crate::data::performance::{
 pub use crate::data::reuse::NodeReuseContract;
 pub use checkpoint_image::CheckpointNodeImage;
 pub(crate) use checkpoint_image::CheckpointNodeImageParts;
-pub use condition::{EvaluationCondition, NodeEvaluationConfig};
+pub(crate) use condition::InstalledSignalConditionRole;
+pub use condition::{EvaluationCondition, InstalledSignalConditionIdentity, NodeEvaluationConfig};
 pub use contract::{
     ContextRequirement, NodeAuthorityContract, NodeContract, NodeExecutionContract,
     NodeProjectionContract, NodeSemanticContract,

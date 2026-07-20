@@ -14,7 +14,13 @@
 //! - `facade::specialist` and `facade::adapters` contain deeper specialist control
 
 pub mod core {
-    pub use crate::data::aspect::{Aspect, AspectMask, AspectVersion, MAX_ASPECTS};
+    pub use crate::data::aspect::{
+        apply_installed_aspect_changes, Aspect, AspectMask, AspectVersion,
+        InstalledSignalAspectCapability, InstalledSignalAspectLoweringAuthority,
+        InstalledSignalAspectSetCapability, InstalledSignalGraphCapability,
+        InstalledSignalNodeCapability, SignalAspectCapabilityDenial, SignalAspectLoweringOwner,
+        SignalAspectLoweringOwnershipDenial, MAX_ASPECTS,
+    };
     pub use crate::data::async_node::{
         async_node_compile_time_boundary_proof, async_node_milestone_d_certification_run,
         async_node_milestone_d_performance_closeout, async_node_milestone_d_scenario_matrix,
@@ -49,6 +55,21 @@ pub mod core {
         REQUIRED_ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLAIMS,
         REQUIRED_ASYNC_NODE_MILESTONE_D_SCENARIOS,
     };
+    pub use crate::data::comparator::{
+        ComparatorPolicyResolver, InstalledSignalComparatorIdentity, VersionComparatorPolicy,
+        VersionComparatorResolver,
+    };
+    pub use crate::data::conditional_execution::{
+        resolve_signal_delta_threshold, InstalledSignalConditionDecision,
+        InstalledSignalConditionResolver, InstalledSignalConditionalContract,
+        SignalConditionalArtifactReuse, SignalConditionalArtifactReusePolicy,
+        SignalConditionalCondition, SignalConditionalContractDefinition,
+        SignalConditionalContractDenial, SignalConditionalDecisionClass,
+        SignalConditionalDecisionCounters, SignalConditionalDecisionEvidence,
+        SignalConditionalExecutionFailure, SignalConditionalExecutionRequest,
+        SignalConditionalVersionComparator, SignalDeltaThresholdContract, SignalThresholdBoundary,
+        SignalThresholdComparisonDomain, SignalThresholdValueFamily,
+    };
     pub use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
     pub use crate::data::dependency::DependencyEdge;
     pub use crate::data::error::SignalError;
@@ -63,7 +84,7 @@ pub mod core {
         HostComputedFailure, HostComputedFailureClass, HostComputedOutcomeClass,
         HostComputedPreparedResponse, PreparedHostComputedEvaluation, StagedHostComputedArtifact,
     };
-    pub use crate::data::node::{EvaluationCondition, NodeState};
+    pub use crate::data::node::{EvaluationCondition, InstalledSignalConditionIdentity, NodeState};
     pub use crate::data::output::{
         CanonicalChangedRegions, ChangedRegion, NodeEvaluationResult, OutputChange, OutputIdentity,
         PartitionMatchMode, PartitionSubscription, PartitionToken,
@@ -198,6 +219,7 @@ pub mod core {
         TemporalWakeRetirementBatch, TemporalWakeReuse, ThrottleCondition, ValidatedClockAdvance,
     };
     pub use crate::data::trace::TraceSummary;
+    pub use crate::logic::evaluation::ConditionEvaluationContext;
     pub use crate::logic::invalidation::mark_dirty_batch;
 
     pub fn mark_dirty(
@@ -707,24 +729,38 @@ pub use self::adapters::*;
 pub use self::core::*;
 #[cfg(not(test))]
 pub use self::core::{
-    mark_changed, mark_changed_with_regions, mark_dirty, mark_dirty_with_regions,
-    AdmittedHostComputedReadSet, AfterCondition, Aspect, AspectMask, AspectVersion,
-    AtOrAfterCondition, CanonicalChangedRegions, ChangedRegion, ClockAdvanceOrdinal,
-    ClockAdvanceRequest, ClockAuthority, ClockCheckpointId, ClockDomain, ClockTick,
-    CommittedHostComputedArtifact, DebounceCondition, DeferredTemporalEligibility,
+    apply_installed_aspect_changes, mark_changed, mark_changed_with_regions, mark_dirty,
+    mark_dirty_with_regions, resolve_signal_delta_threshold, AdmittedHostComputedReadSet,
+    AfterCondition, Aspect, AspectMask, AspectVersion, AtOrAfterCondition, CanonicalChangedRegions,
+    ChangedRegion, ClockAdvanceOrdinal, ClockAdvanceRequest, ClockAuthority, ClockCheckpointId,
+    ClockDomain, ClockTick, CommittedHostComputedArtifact, ComparatorPolicyResolver,
+    ConditionEvaluationContext, DebounceCondition, DeferredTemporalEligibility,
     DeniedHostComputedEvaluation, DeniedHostComputedReadSet, DependencyEdge, EvaluationCondition,
     HostComputedApiFamily, HostComputedDenialClass, HostComputedDependencyPatch,
     HostComputedDescriptor, HostComputedDescriptorId, HostComputedDiagnosticsSummary,
     HostComputedEvaluationOutcome, HostComputedEvaluationRequest, HostComputedEvaluationResponse,
     HostComputedEvaluator, HostComputedFailure, HostComputedFailureClass, HostComputedOutcomeClass,
-    HostComputedPreparedResponse, IntervalAnchor, IntervalCondition, IntervalPeriod,
+    HostComputedPreparedResponse, InstalledSignalAspectCapability,
+    InstalledSignalAspectLoweringAuthority, InstalledSignalAspectSetCapability,
+    InstalledSignalComparatorIdentity, InstalledSignalConditionDecision,
+    InstalledSignalConditionIdentity, InstalledSignalConditionResolver,
+    InstalledSignalConditionalContract, InstalledSignalGraphCapability,
+    InstalledSignalNodeCapability, IntervalAnchor, IntervalCondition, IntervalPeriod,
     LoweredTemporalEligibility, MissedTickPolicy, NodeBuilder, NodeEvaluationResult, NodeId,
     NodeState, OutputChange, OutputIdentity, PartitionMatchMode, PartitionSubscription,
     PartitionToken, PreparedHostComputedEvaluation, ReadyTemporalEligibility, RuntimeClockBasis,
-    SignalError, SignalGraph, StagedHostComputedArtifact, StaleAfterCondition,
-    TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
-    TemporalExecutionSummary, TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary,
-    TemporalWakeOwner, TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance,
+    SignalAspectLoweringOwner, SignalAspectLoweringOwnershipDenial, SignalConditionalArtifactReuse,
+    SignalConditionalArtifactReusePolicy, SignalConditionalCondition,
+    SignalConditionalContractDefinition, SignalConditionalContractDenial,
+    SignalConditionalDecisionClass, SignalConditionalDecisionCounters,
+    SignalConditionalDecisionEvidence, SignalConditionalExecutionFailure,
+    SignalConditionalExecutionRequest, SignalConditionalVersionComparator,
+    SignalDeltaThresholdContract, SignalError, SignalGraph, SignalThresholdBoundary,
+    SignalThresholdComparisonDomain, SignalThresholdValueFamily, StagedHostComputedArtifact,
+    StaleAfterCondition, TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration,
+    TemporalEligibilityAuthority, TemporalExecutionSummary, TemporalReadyPromotionSummary,
+    TemporalWakeAdmissionSummary, TemporalWakeOwner, TemporalWakeRetirementBatch,
+    ThrottleCondition, ValidatedClockAdvance, VersionComparatorPolicy, VersionComparatorResolver,
     CORE_STORAGE_PROFILE_ID, MAX_ASPECTS,
 };
 #[cfg(test)]

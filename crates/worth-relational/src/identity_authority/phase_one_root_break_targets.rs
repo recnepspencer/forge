@@ -31,16 +31,8 @@ const RELATIONAL_SOURCE_TRUTH_IDENTITY_PHASE_ONE_ROOT_BREAK_TARGETS:
         "mint bridge snapshot identity from relational source-truth authority only",
     ),
     RelationalSourceTruthIdentityPhaseOneRootBreakTarget::new(
-        "presentation::bridge::commit_envelope_to_bridge_envelope",
-        "export commit envelopes with authority-category evidence, not display text",
-    ),
-    RelationalSourceTruthIdentityPhaseOneRootBreakTarget::new(
-        "presentation::bridge::publication_bundle_to_bridge_envelope",
-        "export publication bundles with authority-category evidence, not display text",
-    ),
-    RelationalSourceTruthIdentityPhaseOneRootBreakTarget::new(
-        "presentation::bridge::publication_patch_to_bridge_envelope",
-        "export publication patches with authority-category evidence, not display text",
+        "logic::runtime::RelationalRuntime::publish_commit_for_bridge",
+        "admit Bridge publication only from a commit owned by the live Relational runtime",
     ),
     RelationalSourceTruthIdentityPhaseOneRootBreakTarget::new(
         "presentation::bridge::RuntimeBridgeRelationalSource",

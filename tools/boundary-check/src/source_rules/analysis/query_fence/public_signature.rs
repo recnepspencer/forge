@@ -97,7 +97,7 @@ fn push_diagnostics(
             DiagnosticCode::Bc3102QueryPublicSignature,
             format!("{source}::{name}"),
             format!(
-                "Query type `{spelling}` is denied on a governed public signature; entry crates may consume Query audience types but may not publish them; legal home: rule_contracts.query_audience and crates/worth-query-*/src/facade.rs"
+                "Query type `{spelling}` is denied on a governed public signature; entry crates may consume Query audience types but may not publish them; legal home: rule_contracts.query_audience and workspaces/worth-query/crates/worth-query-*/src/facade.rs"
             ),
         ));
     }

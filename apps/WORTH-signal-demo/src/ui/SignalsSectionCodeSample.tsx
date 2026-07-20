@@ -1,18 +1,7 @@
 import React from "react";
+import { DEMO_ONE_CODE } from "../state/demoCodeSamples";
 
-export const SIGNALS_CODE_SAMPLE = `const signals = await createSignals();
-
-const amount = signals.input(8_000);
-const fee = signals.computed(() => amount() * 0.004);
-const reviewLane = signals.computed(() =>
-  amount() >= 10_000 ? "Manual review" : "Automatic"
-);
-
-// land the change as one unit
-signals.transaction((tx) => tx.set(amount, 12_000));
-
-// ask the runtime what actually happened
-signals.diagnostics().why(reviewLane.id);`;
+export const SIGNALS_CODE_SAMPLE = DEMO_ONE_CODE;
 
 const KEYWORDS = new Set(["await", "const", "from", "import", "new", "return"]);
 

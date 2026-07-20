@@ -7,9 +7,6 @@ use worth_store_physical_backend::{
     ProductionStorageBoundarySeam, ScriptedStorageBoundaryControl, StorageBoundaryFault,
 };
 use worth_store_physical_format::PhysicalStoreIdentity;
-use worth_store_physical_isolation::{
-    PhysicalRootPublicationRuntime, ReadCopyUpdateRootPublication,
-};
 
 pub(in crate::courtroom::protocol_models) fn execute_ordinary_import_publication(
 ) -> Vec<ImportPublicationAction> {
@@ -60,7 +57,7 @@ fn execute_crash_and_denial(generation: u64) -> [Vec<ImportPublicationAction>; 2
         ProductionStorageBoundarySeam::RootPublicationBeforeObserve,
         StorageBoundaryFault::AbortBeforeDurabilityBarrier,
     );
-    let mut runtime = PhysicalRootPublicationRuntime::open_for_testing(inputs.old_root).unwrap();
+    let mut runtime = worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(inputs.old_root).unwrap();
     let attempt = runtime.attempt_with_boundary_control(plan, &control);
     let crash = prefix
         .iter()
@@ -73,7 +70,7 @@ fn execute_crash_and_denial(generation: u64) -> [Vec<ImportPublicationAction>; 2
         "protocol-import-substituted-root",
         generation.saturating_add(1),
     );
-    let substituted_publication = ReadCopyUpdateRootPublication::publish(
+    let substituted_publication = worth_store_test_support::harness::physical_isolation::publish_in_temporary_store(
         worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&substituted),
     )
     .unwrap();
@@ -108,7 +105,9 @@ fn execute_durable_publication() -> Vec<ImportPublicationAction> {
         admit_import_publication_readiness(preparation.into_materialization(), &plan, &authority)
             .into_result()
             .unwrap();
-    let publication = ReadCopyUpdateRootPublication::publish(plan).unwrap();
+    let publication =
+        worth_store_test_support::harness::physical_isolation::publish_in_temporary_store(plan)
+            .unwrap();
     let published = complete_import_publication(readiness, publication)
         .into_result()
         .unwrap();

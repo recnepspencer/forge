@@ -28,9 +28,10 @@ fn certification_materializes_checkpoint_durability_without_minting_authority() 
             .unwrap(),
         )
         .backend_accepted();
+    let directory = tempfile::tempdir().unwrap();
     let proof = StoreDurabilityRuntime::new()
         .persist_and_execute(
-            &std::env::temp_dir(),
+            directory.path(),
             b"checkpoint-certification-write",
             &accepted,
         )
@@ -78,12 +79,9 @@ fn certification_materializes_manifest_durability_evidence() {
             .unwrap(),
         )
         .backend_accepted();
+    let directory = tempfile::tempdir().unwrap();
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(
-            &std::env::temp_dir(),
-            b"manifest-certification-write",
-            &accepted,
-        )
+        .persist_and_execute(directory.path(), b"manifest-certification-write", &accepted)
         .unwrap();
     let receipt = accepted
         .reach_durability_boundary(proof)

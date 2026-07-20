@@ -16,6 +16,7 @@ use crate::{
 };
 
 #[test]
+#[ignore = "release-scale blob qualification"]
 fn heavy_replay_bundle_carries_evidence_oracles() {
     let replay =
         synthetic_blob_harness_replay_bundle_for_test_support(heavy_multi_gb_scenario_seed());

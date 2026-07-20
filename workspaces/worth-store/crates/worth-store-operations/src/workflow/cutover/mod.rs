@@ -3,6 +3,7 @@ mod operation_cutover;
 mod post_verification;
 mod protocol;
 mod publication_disposition;
+mod publication_terminal;
 mod readmitted_source_lease;
 mod recovered_publication;
 mod recovered_publication_disposition;
@@ -41,6 +42,7 @@ pub use post_verification::{
     ResolvedPointInTimeRecoveryCutoverCandidate, ResolvedRollbackCutoverCandidate,
 };
 pub use protocol::RecoveryCutoverExecutionDenial;
+pub use readmitted_source_lease::CompletedRetainedAuthorityRollback;
 pub(crate) use recovered_publication::recover_pending;
 pub use recovered_publication::{
     RecoveredAuthorityAffectingRepairPendingReadmission,

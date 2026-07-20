@@ -1,5 +1,3 @@
-/// <reference path="./react-shim.d.ts" />
-
 import type { JSX, ReactNode } from "react";
 
 import type {

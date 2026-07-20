@@ -95,7 +95,7 @@ test("phase-4 browser-history ingress fails closed for no-match compatibility tr
   const compatibilitySignals = await createSignals({ deployment: "mainThreadCompatibility" });
   const workerRouter = createRouterNamespace();
   const routes = compatibilitySignals.router.define({
-    home: compatibilitysignals.router.route("/"),
+    home: compatibilitySignals.router.route("/"),
   });
   const unmatchedIngress = compatibilitySignals.router.browserHistory.pop("/missing");
   const workerIngress = workerRouter.browserHistory.push("/search?q=Worth");
@@ -222,13 +222,13 @@ test("phase-4 browser-history story unifies ingress and writeback into one back 
   const { createSignals, cleanup } = await loadSignalsModule({ rawSurface: "real" });
   const compatibilitySignals = await createSignals({ deployment: "mainThreadCompatibility" });
   const routes = compatibilitySignals.router.define({
-    home: compatibilitysignals.router.route("/"),
+    home: compatibilitySignals.router.route("/"),
     search: compatibilitySignals.router.route("/search", {
       search: {
         q: compatibilitySignals.router.search.required.string(),
       },
     }),
-    settings: compatibilitysignals.router.route("/settings"),
+    settings: compatibilitySignals.router.route("/settings"),
   });
   const story = compatibilitySignals.router.browserHistory.story();
 

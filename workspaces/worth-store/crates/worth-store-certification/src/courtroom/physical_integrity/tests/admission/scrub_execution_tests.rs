@@ -223,18 +223,6 @@ fn assert_denial(
     assert_eq!(denial.counters(), ScrubCounterSnapshot::empty());
 }
 
-pub(crate) fn resident_memory_over_budget_scrub_denial(
-) -> worth_store_physical_integrity::ScrubPlanDenial {
-    let mut denial = None;
-    with_scrub_budget(|budget| {
-        denial = Some(scrub_plan_denial(
-            budget.constrained_by_policy(8, 1, 8, 4, 8),
-            vec![(ordinal(0), b"offline-window")],
-        ));
-    });
-    denial.unwrap()
-}
-
 fn scrub_plan_denial(
     budget: ScrubPlanBudget,
     windows: Vec<(ScrubWindowOrdinal, &[u8])>,
@@ -302,13 +290,9 @@ fn ordinal(value: u64) -> ScrubWindowOrdinal {
 }
 
 fn persisted_scrub_fixture_windows(payload: &[u8]) -> Vec<Vec<u8>> {
-    let path = std::env::temp_dir().join(format!(
-        "worth-store-new-phase11-scrub-{}-{}.bin",
-        std::process::id(),
-        payload.len()
-    ));
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("scrub-fixture.bin");
     std::fs::write(&path, payload).unwrap();
     let read_back = std::fs::read(&path).unwrap();
-    std::fs::remove_file(&path).unwrap();
     vec![read_back]
 }

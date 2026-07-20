@@ -22,7 +22,6 @@ pub(crate) struct QueueExecutionObservation {
 }
 
 #[cfg(test)]
-#[allow(dead_code)]
 impl QueueExecutionObservation {
     pub(crate) const fn empty() -> Self {
         Self {
@@ -43,39 +42,11 @@ impl QueueExecutionObservation {
         }
     }
 
-    pub(crate) const fn with_queue_depth_sample(mut self, queue_depth_sample: u32) -> Self {
-        self.queue_depth_sample = queue_depth_sample;
-        self
-    }
-
-    pub(crate) const fn with_read_ahead_units(mut self, read_ahead_units: u64) -> Self {
-        self.read_ahead_units = read_ahead_units;
-        self
-    }
-
-    pub(crate) const fn with_read_ahead_scope(
-        mut self,
-        read_ahead_scope: BackendQueueSpeculativeScope,
-    ) -> Self {
-        self.read_ahead_scope = Some(read_ahead_scope);
-        self
-    }
-
     pub(crate) const fn with_attempted_durability_class(
         mut self,
         durability_class: QueueDurabilityClass,
     ) -> Self {
         self.attempted_durability_class = Some(durability_class);
-        self
-    }
-
-    pub(crate) const fn with_backpressure(mut self, cause: QueueBackpressureCause) -> Self {
-        self.backpressure_cause = Some(cause);
-        self
-    }
-
-    pub(crate) const fn with_foreground_wait_events(mut self, foreground_wait_events: u64) -> Self {
-        self.foreground_wait_events = foreground_wait_events;
         self
     }
 }

@@ -34,7 +34,15 @@ prefetched route work.
 
 ```ts
 const prefetched = routes.project("/users/user-1")?.prefetch("hover");
-const transition = await routes.transition(home, prefetched);
+
+if (prefetched) {
+  try {
+    const transition = await routes.transition(home, prefetched);
+    console.log(transition.diagnostics().requestedSource);
+  } finally {
+    prefetched.free();
+  }
+}
 ```
 
 ## Real Example
@@ -43,9 +51,13 @@ const transition = await routes.transition(home, prefetched);
 const warmup = routes.warmup("/users/user-1", "hover");
 
 if (warmup) {
-  const transition = await routes.transition(home, warmup);
-  console.log(transition.diagnostics().requestedSource);
-  console.log(transition.diagnostics().visibleChangeSource);
+  try {
+    const transition = await routes.transition(home, warmup);
+    console.log(transition.diagnostics().requestedSource);
+    console.log(transition.diagnostics().visibleChangeSource);
+  } finally {
+    warmup.free();
+  }
 }
 ```
 
@@ -65,6 +77,7 @@ if (warmup) {
 - rebuilding prefetch transitions from raw hrefs when you already have the
   prefetched artifact
 - assuming prefetch admission always means immediate visible switch
+- retaining prefetch artifacts after their preview lifetime ends
 
 ## Current Limits
 

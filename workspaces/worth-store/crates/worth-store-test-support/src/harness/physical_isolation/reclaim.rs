@@ -1,11 +1,11 @@
 use worth_store_physical_isolation::{
-    admit_seed_stable_read_plan, CompactProtectedReferenceSet, ExecutedReachabilityEvidence,
-    BackupReachabilityLeaseIndexSnapshot, HazardLeaseKind, HazardLeaseTable,
-    HazardLeaseTableCapacity, PhysicalReadPlanReleaseSemantics,
-    PhysicalReadReachabilityBarrier, PostProtectionPhysicalReadObservation,
-    ProtectedPhysicalReferenceSet, ProtectedReferenceLease, PublishedReaderHazard,
-    ReadPlanAdmissionScratchArena, ReclaimCandidateSet, ReclaimDenial, ReclaimEligibilityProof,
-    ReleasedOldReachability, TraversalAdmissionGuard, UnprotectedReadIntent,
+    admit_seed_stable_read_plan, BackupReachabilityLeaseIndexSnapshot,
+    CompactProtectedReferenceSet, ExecutedReachabilityEvidence, HazardLeaseKind, HazardLeaseTable,
+    HazardLeaseTableCapacity, PhysicalReadPlanReleaseSemantics, PhysicalReadReachabilityBarrier,
+    PostProtectionPhysicalReadObservation, ProtectedPhysicalReferenceSet, ProtectedReferenceLease,
+    PublishedReaderHazard, ReadPlanAdmissionScratchArena, ReclaimCandidateSet, ReclaimDenial,
+    ReclaimEligibilityProof, ReleasedOldReachability, TraversalAdmissionGuard,
+    UnprotectedReadIntent,
 };
 
 use super::epoch_scope::{
@@ -152,13 +152,12 @@ pub fn assert_reclaim_eligible_from_live_table(
     table: &HazardLeaseTable,
     expected_live_entries: u64,
 ) {
-    let proof =
-        ReclaimEligibilityProof::admit(
-            world.executed_reachability(),
-            table.live_index_snapshot(),
-            BackupReachabilityLeaseIndexSnapshot::empty(),
-        )
-            .unwrap();
+    let proof = ReclaimEligibilityProof::admit(
+        world.executed_reachability(),
+        table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
+    )
+    .unwrap();
 
     assert!(proof.decision().is_eligible());
     assert_eq!(
@@ -176,13 +175,12 @@ pub fn assert_reclaim_blocked_by_live_hazard(
     table: &HazardLeaseTable,
     expected_live_entries: u64,
 ) {
-    let proof =
-        ReclaimEligibilityProof::admit(
-            world.executed_reachability(),
-            table.live_index_snapshot(),
-            BackupReachabilityLeaseIndexSnapshot::empty(),
-        )
-            .unwrap();
+    let proof = ReclaimEligibilityProof::admit(
+        world.executed_reachability(),
+        table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
+    )
+    .unwrap();
 
     assert!(matches!(
         proof.try_reclaim(),

@@ -23,7 +23,8 @@ pub use staging_authorization_continuation::{
 
 pub(crate) use authorization_consumption::ConsumedOperationalPlan;
 pub(crate) use authorization_consumption::{
-    consume_authorization, record_recovery_staging_completion, recover_authorization_consumption,
+    consume_authorization_through, record_recovery_staging_completion,
+    recover_authorization_consumption,
 };
 pub(crate) use lowered_plan_binding::{
     authorize_lowered_plan, AuthorizedOperationalPlan, LoweredOperationalPlan,

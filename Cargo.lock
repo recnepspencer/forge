@@ -2131,33 +2131,31 @@ dependencies = [
  "serde_json",
  "sha2",
  "syn 2.0.116",
- "trybuild",
  "worth-foundational",
  "worth-proof",
+ "worth-query-declaration",
+ "worth-query-installation",
  "worth-relational",
  "worth-runtime-bridge",
  "worth-signal",
 ]
 
 [[package]]
-name = "worth-query-decl"
+name = "worth-query-declaration"
 version = "0.1.0"
 dependencies = [
- "worth-query",
+ "sha2",
+ "worth-foundational",
 ]
 
 [[package]]
-name = "worth-query-host"
+name = "worth-query-installation"
 version = "0.1.0"
 dependencies = [
- "worth-query",
-]
-
-[[package]]
-name = "worth-query-replay"
-version = "0.1.0"
-dependencies = [
- "worth-query",
+ "sha2",
+ "worth-foundational",
+ "worth-proof",
+ "worth-query-declaration",
 ]
 
 [[package]]
@@ -2187,6 +2185,8 @@ dependencies = [
  "worth-foundational",
  "worth-harness",
  "worth-proof",
+ "worth-query-declaration",
+ "worth-query-installation",
  "worth-signal",
 ]
 
@@ -2230,7 +2230,7 @@ dependencies = [
 
 [[package]]
 name = "worth-signal-wasm"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "base64",
  "console_error_panic_hook",

@@ -7,7 +7,8 @@ use worth_foundational::facade::{
 use worth_proof::TransitionOutcome;
 
 use crate::publication::patch::data::{
-    PatchDetail, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+    PatchDetail, PublishedAuthoritativeAspectChange, PublishedAuthoritativePatch,
+    PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
 use crate::transactions::data::RecordRef;
 
@@ -17,6 +18,7 @@ use super::data::{
     EvaluatedAspectBinding, LifecycleTransitionClass,
 };
 use super::published_patch_projection::published_patch_from_foundational_patch;
+use super::semantic_change_projection::semantic_changes;
 use crate::transactions::data::{AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,6 +26,8 @@ pub(crate) struct FoundationalPatchFragment {
     pub(crate) target: RecordRef,
     pub(crate) structural_change: RecordStructuralChange,
     pub(crate) patch: AuthoritativeRecordAspectPatch,
+    pub(crate) published_patch: PublishedAuthoritativePatch,
+    pub(crate) semantic_changes: Vec<PublishedAuthoritativeAspectChange>,
     pub(crate) contains_opaque_aspect: bool,
     pub(crate) detail: PatchDetail,
 }
@@ -36,6 +40,7 @@ impl CanonicalRecordAspectDelta {
         let target = self.target.clone();
         let structural_change = self.structural_change;
         let contains_opaque_aspect = self.contains_opaque_aspect;
+        let semantic_changes = semantic_changes(&self);
         let mut sets = Vec::new();
         let mut clears = Vec::new();
 
@@ -59,10 +64,13 @@ impl CanonicalRecordAspectDelta {
             }
         };
 
+        let published_patch = published_patch_for_delta(&self, &patch)?;
         Ok(FoundationalPatchFragment {
             target,
             structural_change,
             patch,
+            published_patch,
+            semantic_changes,
             contains_opaque_aspect,
             detail,
         })
@@ -132,11 +140,32 @@ impl FoundationalPatchFragment {
         PublishedAuthoritativeRecordPatch {
             target: self.target.clone(),
             structural_change: self.structural_change,
-            authoritative_patch: published_patch_from_foundational_patch(&self.patch),
+            authoritative_patch: self.published_patch.clone(),
+            semantic_changes: self.semantic_changes.clone(),
             contains_opaque_aspect: self.contains_opaque_aspect,
             detail: self.detail.clone(),
         }
     }
+}
+
+pub(crate) fn published_patch_for_delta(
+    delta: &CanonicalRecordAspectDelta,
+    patch: &AuthoritativeRecordAspectPatch,
+) -> Result<PublishedAuthoritativePatch, CanonicalDeltaError> {
+    published_patch_from_foundational_patch(patch, |aspect_key| {
+        delta
+            .evaluated_bindings
+            .iter()
+            .find(|binding| binding.changed && &binding.aspect_key == aspect_key)
+            .map(|binding| binding.binding.clone())
+    })
+    .map_err(
+        |aspect_key| CanonicalDeltaError::InvalidLoweredBindingForRecordClass {
+            aspect_key,
+            detail: "authoritative patch operation has no exact evaluated aspect binding"
+                .to_string(),
+        },
+    )
 }
 
 fn accumulate_patch_action(
@@ -195,6 +224,12 @@ fn accumulate_patch_action(
         CanonicalAspectDeltaEvidence::Lifecycle { transition, .. } => {
             let value = FoundationalAspectValue::String(FoundationalInternedString::from(
                 lifecycle_label(*transition),
+            ));
+            sets.push(validate_patch_value(target, binding, value)?);
+        }
+        CanonicalAspectDeltaEvidence::Structural { change, .. } => {
+            let value = FoundationalAspectValue::String(FoundationalInternedString::from(
+                structural_change_label(*change),
             ));
             sets.push(validate_patch_value(target, binding, value)?);
         }
@@ -259,5 +294,14 @@ fn lifecycle_label(transition: LifecycleTransitionClass) -> &'static str {
         LifecycleTransitionClass::Create => "create",
         LifecycleTransitionClass::Delete => "delete",
         LifecycleTransitionClass::RetainForAudit => "retain_for_audit",
+    }
+}
+
+fn structural_change_label(change: RecordStructuralChange) -> &'static str {
+    match change {
+        RecordStructuralChange::Created => "create",
+        RecordStructuralChange::Updated => "update",
+        RecordStructuralChange::Deleted => "delete",
+        RecordStructuralChange::RetainedForAudit => "retain_for_audit",
     }
 }

@@ -30,9 +30,10 @@ fn rollback_replay_classifies_each_execution_boundary() {
     );
 
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             source.publication_source_root(),
-        );
+        )
+        .unwrap();
     let published_state = layout_rollback_execution(&mut publication)
         .execute(source)
         .into_published()
@@ -54,9 +55,10 @@ fn rollback_replay_rejects_a_different_physical_execution() {
         2_311,
     );
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             first.publication_source_root(),
-        );
+        )
+        .unwrap();
     let state = layout_rollback_execution(&mut publication)
         .execute(first)
         .into_published()
@@ -92,9 +94,10 @@ fn rollback_interruption_owner_declares_exactly_ordinary_cases() {
         2_321,
     );
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             request.publication_source_root(),
-        );
+        )
+        .unwrap();
     let target_state = layout_rollback_execution(&mut publication)
         .execute(request)
         .into_published()

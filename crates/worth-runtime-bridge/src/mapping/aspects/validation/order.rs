@@ -29,5 +29,9 @@ pub(crate) fn canonical_aspect_registration_order(
                 .cmp(right.subscription_slice_kind())
         })
         .then_with(|| left.widening_policy().cmp(&right.widening_policy()))
+        .then_with(|| {
+            left.source_precision_policy()
+                .cmp(&right.source_precision_policy())
+        })
         .then_with(|| left.registration_id().cmp(right.registration_id()))
 }

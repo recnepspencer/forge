@@ -1,4 +1,4 @@
-use crate::courtroom::harness::test_support::integrity_handoff_test_support::intact_readiness;
+use crate::courtroom::harness::test_support::integrity_handoff_test_support::intact_integrity_model_input;
 use worth_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
 };
@@ -211,7 +211,7 @@ fn checkpoint_record(
 
 fn admit_entry(identity: &str) -> RecoveryEntryAdmission {
     let decision = RecoveryEntryAdmission::admit(
-        intact_readiness(identity),
+        intact_integrity_model_input(identity),
         recovery_memory_envelope(),
         physical_authority(),
     );

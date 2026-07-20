@@ -172,7 +172,7 @@ fn cut_identity_binds_the_exact_physical_lease_owners() {
     let page = &changed[page_index];
     let changed_owner = reclaim_reference(BackupArtifactFamily::Page, 99);
     let changed_path = scenario.source.join("changed-owner.page");
-    super::backup_artifact_fixture::copy_page_to_owner(
+    crate::certification_scenario::backup_artifacts::copy_page_to_owner(
         page.source_path(),
         &changed_path,
         changed_owner,

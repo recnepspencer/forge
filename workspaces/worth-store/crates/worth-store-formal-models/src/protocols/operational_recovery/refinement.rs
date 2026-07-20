@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use worth_store_operations::OperationalControlRecord;
 
@@ -13,6 +13,7 @@ pub struct OperationalRecoveryRefinementReceipt {
     concrete_transition_count: u64,
     reached_model_transitions: BTreeSet<OperationalRecoveryActionKind>,
     operation_identities: BTreeSet<String>,
+    operation_scopes: BTreeSet<([u8; 32], String)>,
     refinement_identity: [u8; 32],
 }
 
@@ -26,6 +27,9 @@ impl OperationalRecoveryRefinementReceipt {
     pub fn operation_identities(&self) -> &BTreeSet<String> {
         &self.operation_identities
     }
+    pub fn operation_scopes(&self) -> &BTreeSet<([u8; 32], String)> {
+        &self.operation_scopes
+    }
     pub const fn refinement_identity(&self) -> [u8; 32] {
         self.refinement_identity
     }
@@ -35,21 +39,36 @@ pub fn check_operational_recovery_refinement(
     records: &[OperationalControlRecord],
     controlled_defect: Option<OperationalRecoveryControlledDefect>,
 ) -> Result<OperationalRecoveryRefinementReceipt, OperationalRecoveryCounterexample> {
-    let mut model = OperationalRecoveryModel::default();
+    let mut models = BTreeMap::new();
+    let mut reached_model_transitions = BTreeSet::new();
     let mut operation_identities = BTreeSet::new();
+    let mut operation_scopes = BTreeSet::new();
     let mut digest = sha2::Sha256::new();
     use sha2::Digest;
     digest.update(b"worth-store-operational-recovery-refinement-v1");
     for record in records {
         let action = map_operational_control_record(record);
         operation_identities.insert(action.operation_identity().to_owned());
+        operation_scopes.insert((
+            action.authority_identity(),
+            action.operation_identity().to_owned(),
+        ));
         digest.update(action.evidence_identity());
+        let scope = (
+            action.authority_identity(),
+            action.operation_identity().to_owned(),
+        );
+        let model = models
+            .entry(scope)
+            .or_insert_with(OperationalRecoveryModel::default);
         model.apply(&action, controlled_defect)?;
+        reached_model_transitions.extend(model.reached_transitions().iter().copied());
     }
     Ok(OperationalRecoveryRefinementReceipt {
         concrete_transition_count: records.len() as u64,
-        reached_model_transitions: model.reached_transitions().clone(),
+        reached_model_transitions,
         operation_identities,
+        operation_scopes,
         refinement_identity: digest.finalize().into(),
     })
 }

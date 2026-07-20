@@ -15,9 +15,10 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  SIGNAL_SNAPSHOT_DIR: ${{ runner.temp }}/signal-semantic-snapshots
-  SIGNAL_DETERMINISM_DIR: ${{ runner.temp }}/signal-determinism-cert
-  SIGNAL_PERF_REPORT_PATH: ${{ runner.temp }}/signal-parallel-perf-report.json
+
+concurrency:
+  group: worth-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
@@ -31,6 +32,21 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Worth Signals documentation dependencies
+        working-directory: crates/worth-signal-wasm
+        run: npm ci
+
+      - name: Worth Signals public documentation gate
+        working-directory: crates/worth-signal-wasm
+        run: |
+          npm run test:documentation
+          npm run typecheck:package-surface
 
       - name: Cache cargo registry & build
         uses: actions/cache@v4
@@ -102,21 +118,30 @@ jobs:
         run: bash scripts/ci/check_signal_resource_bounds.sh
 
       - name: worth-signal semantic snapshot diff lane
-        run: bash scripts/ci/check_signal_semantic_snapshots.sh "${SIGNAL_SNAPSHOT_DIR}"
+        run: bash scripts/ci/check_signal_semantic_snapshots.sh "${RUNNER_TEMP}/signal-semantic-snapshots"
 
       - name: Run tests
         run: cargo test --workspace
+
+      - name: Run WORTH Query ordinary tests
+        run: cargo test --manifest-path workspaces/worth-query/Cargo.toml --workspace --exclude worth-query-certification --exclude worth-query-replay
+
+      - name: Run WORTH Query cold certification
+        run: cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-certification -p worth-query-replay
 
       - name: Upload worth-signal semantic snapshots
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: worth-signal-semantic-snapshots
-          path: ${{ env.SIGNAL_SNAPSHOT_DIR }}
+          path: ${{ runner.temp }}/signal-semantic-snapshots
           if-no-files-found: ignore
 
       - name: Clippy (deny warnings)
         run: cargo clippy --workspace -- -D warnings
+
+      - name: Clippy WORTH Query workspace
+        run: cargo clippy --manifest-path workspaces/worth-query/Cargo.toml --workspace --all-targets -- -D warnings
 
       - name: Benchmarks compile
         run: cargo bench --workspace --no-run
@@ -147,65 +172,98 @@ jobs:
       - name: Run miri on worth-math
         run: cargo +nightly miri test -p worth-math
 
-  worth-store-production:
-    name: WORTH Store Production (${{ matrix.os }})
+  worth-store-quality:
+    name: WORTH Store quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: workspaces/worth-store
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: workspaces/worth-store -> target
+          shared-key: worth-store-quality
+          cache-on-failure: true
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Lint every Store target
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  worth-store-tests:
+    name: WORTH Store tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-
+        include:
+          - { os: ubuntu-latest, formal: true }
+          - { os: windows-latest, formal: false }
+    defaults:
+      run:
+        working-directory: workspaces/worth-store
+    env:
+      CARGO_INCREMENTAL: 0
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
         with:
-          components: clippy
-
-      - name: Cache WORTH Store build
-        uses: actions/cache@v4
+          tool: cargo-nextest@0.9.140
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            workspaces/worth-store/target
-          key: ${{ runner.os }}-worth-store-${{ hashFiles('workspaces/worth-store/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-worth-store-
-
-      - name: Test WORTH Store workspace
-        run: cargo test --manifest-path workspaces/worth-store/Cargo.toml --workspace --all-features
-
-      - name: Run WORTH Store Phase 6 release-scale backup lane
-        if: runner.os == 'Linux' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-        run: >-
-          cargo test --manifest-path workspaces/worth-store/Cargo.toml
-          -p worth-store-operations --lib
-          phase_1_6_tests::release_scale_backup::two_gib_owner_bundle_stays_bounded_through_materialization_and_independent_verification
-          -- --ignored --exact --nocapture --test-threads=1
-
-      - name: Clippy WORTH Store workspace
-        run: cargo clippy --manifest-path workspaces/worth-store/Cargo.toml --workspace --all-targets --all-features -- -D warnings
-
-      - name: Install pinned TLC runtime
-        if: runner.os == 'Linux'
+          workspaces: workspaces/worth-store -> target
+          shared-key: worth-store-tests
+          cache-on-failure: true
+      - name: Install TLC runtime
+        if: matrix.formal
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+      - name: Unit and doctests
+        run: cargo store-ci --partition owner-unit
+      - name: Integration scenarios
+        run: cargo store-ci --partition scenario
+      - name: Compiler boundaries
+        run: cargo store-ci --partition ui
+      - name: Formal models
+        if: matrix.formal
+        run: cargo store-ci --partition formal
 
-      - name: Verify production protocol models and controlled mutants
-        if: runner.os == 'Linux'
-        run: bash scripts/ci/verify_worth_store_formal_toolchain.sh
-
-      - name: Verify Road 1 boundary contract
-        if: runner.os == 'Linux'
-        run: cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .
-
-      - name: Verify generated agent context
-        if: runner.os == 'Linux'
-        run: cargo run --manifest-path tools/agent-context/Cargo.toml -- check
+  worth-store-release-scale:
+    name: WORTH Store release-scale backup
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: workspaces/worth-store -> target
+          shared-key: worth-store-release-scale
+      - name: Two GiB bounded backup proof
+        working-directory: workspaces/worth-store
+        shell: bash
+        run: |
+          cargo test -p worth-store-operations --lib phase_1_6_tests::release_scale_backup::two_gib_owner_bundle_stays_bounded_through_materialization_and_independent_verification -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-physical-certification --lib harness::blob::tests::replay_bundle_is_stable_and_carries_exact_blob_counter_evidence -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-physical-certification --lib harness::blob::heavy_qualification_tests::heavy_replay_bundle_carries_evidence_oracles -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-physical-certification --lib harness::blob::tests::real_multi_gb_temp_file_fixture_emits_heavy_topology_evidence -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-certification --lib courtroom::blobs::closeout::tests::blob_closeout_binds_executed_harness_evidence -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::a_scenario_cannot_be_relabelled_as_another_owner_topology -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::a_small_real_repair_receipt_cannot_claim_the_hundreds_region_program -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::ci_and_release_profiles_preserve_the_scenario_topology -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::ci_and_release_suites_join_all_three_scenarios -- --ignored --exact --nocapture --test-threads=1
+          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::reached_yieldpoint_labels_cannot_close_s10_without_fresh_process_crash_evidence -- --ignored --exact --nocapture --test-threads=1
 
   worth_ui_quality:
     name: WORTH UI Quality and Topology
@@ -416,10 +474,12 @@ jobs:
             ${{ runner.os }}-signal-perf-
 
       - name: Run worth-signal performance lane
+        env:
+          SIGNAL_PERF_REPORT_PATH: ${{ runner.temp }}/signal-parallel-perf-report.json
         run: bash scripts/ci/run_signal_perf_lane.sh
 
       - name: Run worth-signal determinism certification lane
-        run: bash scripts/ci/check_signal_parallel_determinism_cert.sh 4 "${SIGNAL_DETERMINISM_DIR}"
+        run: bash scripts/ci/check_signal_parallel_determinism_cert.sh 4 "${RUNNER_TEMP}/signal-determinism-cert"
 
       - name: Run worth-signal adversarial determinism lane
         run: |
@@ -431,12 +491,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: worth-signal-parallel-perf-report
-          path: ${{ env.SIGNAL_PERF_REPORT_PATH }}
+          path: ${{ runner.temp }}/signal-parallel-perf-report.json
           if-no-files-found: error
 
       - name: Upload worth-signal determinism certification artifacts
         uses: actions/upload-artifact@v4
         with:
           name: worth-signal-determinism-cert
-          path: ${{ env.SIGNAL_DETERMINISM_DIR }}
+          path: ${{ runner.temp }}/signal-determinism-cert
           if-no-files-found: error

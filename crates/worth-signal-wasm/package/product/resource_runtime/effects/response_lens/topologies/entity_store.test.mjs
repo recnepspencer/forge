@@ -199,7 +199,9 @@ test("entity-store broad replacements preserve normalized topology proof", async
 
 function replaceEntityWithoutReadingSiblings(entities, itemId, nextItem) {
   const nextEntities = Object.create(Object.getPrototypeOf(entities));
-  Object.defineProperties(nextEntities, Object.getOwnPropertyDescriptors(entities));
+  const siblingDescriptors = Object.getOwnPropertyDescriptors(entities);
+  delete siblingDescriptors[itemId];
+  Object.defineProperties(nextEntities, siblingDescriptors);
   Object.defineProperty(nextEntities, itemId, {
     value: nextItem,
     enumerable: true,

@@ -26,7 +26,8 @@ fn ordinary_owner_execution_covers_every_durability_recovery_action() {
 
 #[test]
 fn real_wal_execution_maps_to_legal_acknowledgment() {
-    let outcome = execute_ordinary_wal(&std::env::temp_dir());
+    let directory = tempfile::tempdir().unwrap();
+    let outcome = execute_ordinary_wal(directory.path());
     let actions = map_executed_wal_durability(&outcome);
     let mut frontier = DurabilityRecoveryFrontier::initial();
     for action in actions.iter().copied() {
@@ -60,9 +61,10 @@ fn file_sync_crash_seam_cannot_mint_directory_barrier() {
     .record_written_bytes(4)
     .durability_scope();
     let accepted = admission.submit_write(scope).backend_accepted();
+    let directory = tempfile::tempdir().unwrap();
     let proof = StoreDurabilityRuntime::new()
         .persist_and_execute_to(
-            &std::env::temp_dir(),
+            directory.path(),
             b"seam",
             &accepted,
             StoreDurabilityExecutionBoundary::FileSynchronized,

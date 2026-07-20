@@ -22,6 +22,8 @@ pub enum BridgeBuildErrorKind {
     SourceCapabilityMismatch,
     BuilderConfigurationConflict,
     InvalidFineGrainedWideningPolicy,
+    AmbiguousQueryDependencyRegistration,
+    MixedSemanticCorrespondenceSignalGraphs,
 }
 
 pub type BridgeBuildError = BridgeTypedError<BridgeBuildErrorKind>;
@@ -37,6 +39,8 @@ pub enum BridgeRouteErrorKind {
     UnsupportedTruthDeltaSurface,
     UnsupportedSubscriptionSlice,
     InconsistentNormalizedSurfaceDigest,
+    InvalidAuthoritativePatchSemantics,
+    UnsupportedAuthoritativePatchPrecision,
     SliceReadPacketConstructionFailure,
     InvalidLoweringContract,
 }

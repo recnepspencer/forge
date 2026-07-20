@@ -35,16 +35,15 @@ fn lsm_counter_observations_are_read_only_and_owner_issued() {
 #[test]
 fn degraded_counter_observation_comes_from_the_physical_owner_receipt() {
     let execution = source("src/access/execution/degraded_scan/executed.rs");
-    let physical =
-        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-            "../worth-store-physical-format/src/physical_store_runtime/observation/receipt.rs",
-        ))
-        .unwrap();
+    let physical = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+        "../worth-store-physical-format/src/in_memory_physical_format_model/observation/receipt.rs",
+    ))
+    .unwrap();
 
     assert!(execution.contains("PlatformPhysicalDegradedExecutionObservation"));
     assert!(execution.contains("self.physical.scan().observed_rows()"));
-    assert!(physical.contains("pub(in crate::physical_store_runtime) const fn new("));
-    assert!(physical.contains("counters: PhysicalStoreRuntimeCounterSnapshot"));
+    assert!(physical.contains("pub(in crate::in_memory_physical_format_model) const fn new("));
+    assert!(physical.contains("counters: InMemoryPhysicalFormatModelCounterSnapshot"));
 }
 
 #[test]

@@ -367,6 +367,9 @@ fn preview_condition_action(
                 })
             }
         }
+        EvaluationCondition::Installed(_) => Err(SignalError::invalid_input(
+            "installed conditional authority must execute through the owner-bound runtime path",
+        )),
     }
 }
 

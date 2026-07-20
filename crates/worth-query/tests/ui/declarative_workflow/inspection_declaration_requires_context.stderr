@@ -1,5 +1,0 @@
-error[E0599]: no method named `run` found for struct `WorthQueryInspectionDeclaration` in the current scope
- --> tests/ui/declarative_workflow/inspection_declaration_requires_context.rs:7:32
-  |
-7 |     let _outcome = declaration.run(workspace);
-  |                                ^^^ method not found in `WorthQueryInspectionDeclaration`

@@ -4,7 +4,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn bridge_feedback_patc
 ) -> crate::facade::BridgeCommittedPatchEnvelope {
     crate::facade::BridgeCommittedPatchEnvelope::new(
         crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
-            crate::facade::BridgeProducerMetadata::relational_publication()
+            crate::facade::BridgeProducerMetadata::bridge_harness_fixture()
                 .with_writeback_feedback_context(feedback_context.clone()),
             envelope_identity.commit_identity().clone(),
             envelope_identity.patch_identity().clone(),

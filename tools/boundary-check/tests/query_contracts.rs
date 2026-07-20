@@ -5,8 +5,6 @@ mod query_source_fixture;
 
 #[path = "query_contracts/audience.rs"]
 mod audience;
-#[path = "query_contracts/entry_equivalence.rs"]
-mod entry_equivalence;
 #[path = "query_contracts/macro_equivalence.rs"]
 mod macro_equivalence;
 #[path = "query_contracts/public_reexport.rs"]

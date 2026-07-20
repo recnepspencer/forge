@@ -40,8 +40,10 @@ actions: ({ submit }) => ({
 ## Real Example
 
 ```ts
-const first = form.executeAction("submit");
-const second = form.executeAction("submit");
+const [first, second] = await Promise.all([
+  form.executeAction("submit"),
+  form.executeAction("submit"),
+]);
 
 console.log(first.resultKind);
 console.log(second.resultKind);
@@ -65,6 +67,8 @@ console.log(form.actionExecutionHistory());
 
 - relying on UI debounce alone for repeated-submit safety
 - assuming repeated attempts are always harmless no-ops
+- treating controller idempotency posture as a substitute for a server-side
+  idempotency contract
 
 ## Current Limits
 

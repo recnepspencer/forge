@@ -80,20 +80,15 @@ test("documentation claims match the packaged concurrent effect surface", async 
 });
 
 test("concurrency docs are linked and available to the in-app docs browser", async () => {
-  const entryPoints = [
-    path.join(docsDir, "learn", "feature-index.md"),
-    path.join(docsDir, "resources", "overview.md"),
-    path.join(docsDir, "resources", "effects", "README.md"),
-  ];
-  for (const entryPoint of entryPoints) {
-    assert.match(
-      await readFile(entryPoint, "utf8"),
-      /concurrency-and-dependencies\.md/,
-      `${entryPoint} must link the concurrency guide`,
-    );
-  }
+  const resourcesIndex = path.join(docsDir, "resources", "index.md");
+  const effectsIndex = path.join(docsDir, "resources", "effects", "README.md");
+  const resourcesText = await readFile(resourcesIndex, "utf8");
+  const effectsText = await readFile(effectsIndex, "utf8");
 
-  for (const docPath of [canonicalDoc, ...entryPoints]) {
+  assert.match(resourcesText, /effects\/README\.md/);
+  assert.match(effectsText, /concurrency-and-dependencies\.md/);
+
+  for (const docPath of [canonicalDoc, resourcesIndex, effectsIndex]) {
     await assertLocalMarkdownLinksResolve(docPath);
   }
 

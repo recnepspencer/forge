@@ -249,6 +249,15 @@ fn published_restore_reopens_after_crash_then_readmits_and_certifies_the_drill()
                 ))
             }
         }
+
+        fn compare_exchange_authorization_consumption(
+            &self,
+            expected: Option<worth_store_authority::ControlStoreGeneration>,
+            record: &crate::OperationalControlRecord,
+        ) -> Result<PhysicalControlAppendReceipt, crate::OperationalControlAppendDenial> {
+            self.durable
+                .compare_exchange_authorization_consumption(expected, record)
+        }
     }
 }
 

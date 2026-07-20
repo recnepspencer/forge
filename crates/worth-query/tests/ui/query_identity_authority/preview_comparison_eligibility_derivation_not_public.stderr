@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::derive_preview_comparison_eligibility`
- --> tests/ui/preview_comparison_eligibility_derivation_not_public.rs:2:5
-  |
-2 |     derive_preview_comparison_eligibility, PreviewComparisonEligibilityArtifact,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `derive_preview_comparison_eligibility` in `facade`

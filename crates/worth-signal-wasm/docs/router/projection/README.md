@@ -1,22 +1,18 @@
-# Router Projection
+# Route Declaration And Matching
 
-Projection turns route authority into a matched route/layout/outlet candidate
-without yet deciding whether that candidate is admitted.
+Declare route grammar once, resolve it with `signals.router.define(...)`, and
+use the returned references everywhere else. A **projection** is the structural
+answer to “what matches this URL?” It includes layouts, outlets, controllers,
+graphs, resources, and breadcrumbs, but it is not an access decision.
 
-Docs in this section:
+Read in this order:
 
-- [Route Schema Authoring](./route_schema_authoring.md)
-- [Projected Candidates](./projected_candidates.md)
-- [Layout Placement](./layout_placement.md)
-- [Outlet Contracts](./outlet_contracts.md)
-- [Route Capabilities](./route_capabilities.md)
-- [Projection Verification](./projection_verification.md)
+1. [Route Schema Authoring](./route_schema_authoring.md)
+2. [Projected Candidates](./projected_candidates.md)
+3. [Layout Placement](./layout_placement.md)
+4. [Outlet Contracts](./outlet_contracts.md)
+5. [Route Capabilities](./route_capabilities.md)
+6. [Projection Verification](./projection_verification.md)
 
-Suggested order:
-
-1. route schema authoring
-2. projected candidates
-3. layout placement
-4. outlet contracts
-5. route capabilities
-6. projection verification
+The small route tree scales into the full system by adding declarations. You
+do not replace it with a “serious” router when the app grows.

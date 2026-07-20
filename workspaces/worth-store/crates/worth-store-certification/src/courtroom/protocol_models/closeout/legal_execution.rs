@@ -22,7 +22,7 @@ pub struct CheckedProtocolExecution {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CheckedProtocolExecutionBasis {
-    Runner(ExecutedProtocolCheck),
+    Runner(Box<ExecutedProtocolCheck>),
     #[cfg(test)]
     Structural(ProtocolCheckInvocation),
 }
@@ -87,7 +87,7 @@ fn checked_execution(
     let statistics = require_checked_statistics(protocol, check.verdict())?;
     Ok(CheckedProtocolExecution {
         statistics,
-        basis: CheckedProtocolExecutionBasis::Runner(check),
+        basis: CheckedProtocolExecutionBasis::Runner(Box::new(check)),
         backend_assumptions,
     })
 }

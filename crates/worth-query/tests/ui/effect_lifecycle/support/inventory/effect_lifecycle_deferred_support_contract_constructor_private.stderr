@@ -1,7 +1,0 @@
-error[E0560]: struct `EffectDeferredSupportContract` has no field named `contract_digest`
- --> tests/ui/effect_lifecycle/support/inventory/effect_lifecycle_deferred_support_contract_constructor_private.rs:8:9
-  |
-8 |         contract_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^ `EffectDeferredSupportContract` does not have this field
-  |
-  = note: all struct fields are already assigned

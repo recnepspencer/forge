@@ -1,7 +1,0 @@
-error[E0451]: field `entries` of struct `WorthQueryGraphCompositionResolutionMap` is private
- --> tests/ui/runtime_graph_composition_resolution_map_constructor_private.rs:5:9
-  |
-4 |     let _ = WorthQueryGraphCompositionResolutionMap {
-  |             --------------------------------------- in this type
-5 |         entries: Vec::new(),
-  |         ^^^^^^^ private field

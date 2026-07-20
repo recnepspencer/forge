@@ -1,5 +1,0 @@
-error[E0599]: no method named `execution_plan` found for struct `WorthQueryReadDeclaration` in the current scope
- --> tests/ui/declarative_read/declaration_has_no_execution_plan.rs:4:29
-  |
-4 |     let _plan = declaration.execution_plan();
-  |                             ^^^^^^^^^^^^^^ method not found in `WorthQueryReadDeclaration`

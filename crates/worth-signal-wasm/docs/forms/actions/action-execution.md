@@ -35,18 +35,20 @@ action is allowed. Then it records what happened when the action actually ran.
 ## Small Example
 
 ```ts
-const pending = form.executeAction("submit");
-console.log(pending.resultKind);
+const execution = await form.executeAction("submit");
+console.log(execution.resultKind);
 ```
 
 ## Real Example
 
 ```ts
-const pending = form.executeAction("submit");
+const execution = await form.executeAction("submit");
 
-form.rejectAction(pending.operationId, {
-  reason: "server rejected the request",
-});
+if (execution.resultKind === "pending") {
+  form.rejectAction(execution.operationId, {
+    reason: "server rejected the request",
+  });
+}
 
 console.log(form.actionExecutionHistory().at(-1)?.resultKind);
 ```
@@ -61,13 +63,15 @@ console.log(form.actionExecutionHistory().at(-1)?.resultKind);
 
 - `actionExecutionHistory()` shows the lifecycle history
 - `actionHistory()` shows the higher-level attempt history beside it
-- `pending.resultKind`, `reason`, and `serverMessages` explain one execution
+- `resultKind`, `reason`, and `serverMessages` explain one execution
 
 ## Anti-Patterns
 
 - modeling async action state with a single boolean
 - losing rejected or cancelled execution history immediately after the UI
   updates
+- reading `operationId` before awaiting `executeAction(...)` and narrowing the
+  result to `pending`
 
 ## Current Limits
 

@@ -20,8 +20,8 @@ use worth_store_physical_isolation::{
     LatchAcquisitionStep, NewRootPublicationProof, OldReachabilityPreservation,
     PhysicalIsolationEntryRequest, PhysicalLatchKey, PhysicalOrderingContract,
     PhysicalPublicationIntent, PhysicalPublicationReadiness, PhysicalReadStabilityAuthority,
-    PublicationLatchReadiness, PublicationRootCandidate, ReadCopyUpdateRootPublication,
-    RootSwapOrderingContract, StablePhysicalReadExecution,
+    PublicationLatchReadiness, PublicationRootCandidate, RootSwapOrderingContract,
+    StablePhysicalReadExecution,
 };
 use worth_store_recovery_physics::CompactionCutoverRecoveryPosture;
 
@@ -311,10 +311,12 @@ fn publish_copy_on_write(
         NewRootPublicationProof::from_root_validation(new_validation),
         PublicationLatchReadiness::declared_publish_latches_released_before_blocking_io(),
     );
-    ReadCopyUpdateRootPublication::publish(lowered.join_readiness(readiness).unwrap())
-        .unwrap()
-        .receipt()
-        .clone()
+    crate::harness::physical_isolation::publish_in_temporary_store(
+        lowered.join_readiness(readiness).unwrap(),
+    )
+    .unwrap()
+    .receipt()
+    .clone()
 }
 
 fn stable_source_evidence(

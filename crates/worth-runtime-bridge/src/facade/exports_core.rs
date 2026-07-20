@@ -8,6 +8,16 @@ pub use crate::adapter::{
     TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
 };
 pub use crate::builder::RuntimeBridgeBuilder;
+pub use crate::conditional_execution::{
+    BridgeConditionalComparatorProvider, BridgeConditionalComputeProvider,
+    BridgeConditionalConditionProvider, BridgeConditionalDecisionEvidence, BridgeConditionalDenial,
+    BridgeConditionalDenialKind, BridgeConditionalExecutionRequest,
+    BridgeConditionalInstallationRequest, BridgeConditionalProviderSet,
+    BridgeConditionalResolverContext, BridgeConditionalSemanticObservation,
+    BridgeConditionalTriggerProvider, BridgeConditionalWakeProvider,
+    BridgeInstalledConditionalLowering, BridgeInstalledConditionalLoweringCounters,
+    BridgeInstalledConditionalLoweringIdentity, BridgeOwnedSignalRuntime,
+};
 pub use crate::continuity::{
     BridgeContinuityArtifact, BridgeContinuityAuthorityBasis, BridgeContinuityAuthorityKind,
     BridgeContinuityClass, BridgeContinuityCounters, BridgeContinuityDigestBasisKind,
@@ -16,6 +26,16 @@ pub use crate::continuity::{
     BridgeHistoricalLineagePacketEntry, BridgePlannedContinuityRequest,
     BridgePlannedContinuityRequestSet, BridgeUnsupportedContinuityClass, PriorSubscriptionSlice,
     ResolvedLineageContinuity, ResolvedLineageContinuitySet,
+};
+pub use crate::correspondence::{
+    BridgeCorrespondenceAdmissionFailure, BridgeCorrespondenceBasis, BridgeCorrespondenceDeferred,
+    BridgeCorrespondenceDeliveryDenial, BridgeCorrespondenceDenial, BridgeCorrespondenceDenialKind,
+    BridgeCorrespondencePrecision, BridgeCorrespondenceRebindRequired,
+    BridgeCorrespondenceRebuildReport, BridgeCorrespondenceStale,
+    BridgeInstalledSemanticCorrespondence, BridgeSemanticCorrespondenceRegistration,
+    BridgeSemanticDependencyCandidate, BridgeSemanticLocality, BridgeSignalAspectTargetDeclaration,
+    BridgeSignalGraphBinding, CorrespondenceAdmissionCounters, CorrespondenceAdmissionOutcome,
+    CorrespondenceDeliveryCounters, CorrespondenceDeliveryOutcome,
 };
 pub use crate::delivery::{
     BridgeDeliveryReceipt, BridgePreparedDeliveryRequest, BridgeSignalEvaluationRequest,
@@ -82,16 +102,21 @@ pub use crate::error::{
 };
 pub use crate::identity::{bridge_identity_reporting_label, BridgeIdentityEvidence};
 pub use crate::input::envelope::{
+    BridgeAspectChangePrecision, BridgeAspectChangeWideningCause,
+    BridgeAuthoritativePatchLoweringCounters, BridgeAuthoritativeSourceProfile,
+    BridgeAuthoritativeSourceProfileError, BridgeAuthoritativeSourceProvenance,
     BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchEnvelope,
     BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, BridgeCommittedPatchSummary,
-    BridgeCommittedPatchTarget, BridgeProducerAuthorityKind, BridgeProducerMetadata,
+    BridgeCommittedPatchTarget, BridgeCommittedRecordChange, BridgeCommittedRecordChangeKind,
+    BridgeProducerAuthorityKind, BridgeProducerMetadata, BridgeSemanticAspectChange,
     TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, BRIDGE_PRODUCER_EXPORT_SCHEMA_V1,
 };
 pub use crate::mapping::{
-    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
-    BridgeMappingRegistration, BridgeMappingWideningClass, CoarseRoutingMode, MappingSelector,
-    SignalInvalidationScope, SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
-    TruthPatchScope, TruthPatchTargetSelector,
+    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId,
+    BridgeAuthoritativeSourcePrecisionPolicy, BridgeMappingId, BridgeMappingRegistration,
+    BridgeMappingWideningClass, CoarseRoutingMode, MappingSelector, SignalInvalidationScope,
+    SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
+    TruthPatchTargetSelector,
 };
 pub use crate::merge::{
     AdmittedMergeHistoryContract, AdmittedMergeRegistry,

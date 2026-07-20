@@ -49,6 +49,7 @@ fn patch_record(
         target: RecordRef::Entity(EntityId::new(PartitionId(0), raw_entity_id, 0)),
         structural_change,
         authoritative_patch: crate::publication::patch::data::PublishedAuthoritativePatch::empty(),
+        semantic_changes: Vec::new(),
         contains_opaque_aspect: false,
         detail: PatchDetail::DenseBitset(vec![raw_entity_id, structural_change_label.len() as u64]),
     }

@@ -1,0 +1,144 @@
+use crate::application::{
+    WorthQueryApplicationFacade, WorthQueryDeclarationEntryContributionCategoryFamily,
+    WorthQueryDomainEntryMarker, WorthQueryDomainEntrySupportSnapshot,
+};
+use crate::evidence_identity::{
+    worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
+    WorthQueryEvidenceTag,
+};
+
+use super::{
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
+    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
+    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
+    WorthQueryDomainOperationGraphParticipationRecord, WorthQueryDomainPackageIdentity,
+    WorthQueryValidatedDomainPackage,
+};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryDomainPackageAdmissionDenialKind {
+    InvalidSupportProfileIdentity,
+    InvalidConfigurationProfileIdentity,
+    ConflictingProfileRow,
+    UnsupportedCapability,
+    DeferredCapability,
+    DisabledConfiguration,
+    DeferredOperatingRequirement,
+    UnsupportedOperatingRequirement,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryDomainPackageAdmissionDenial {
+    kind: WorthQueryDomainPackageAdmissionDenialKind,
+    subject: String,
+}
+
+impl WorthQueryDomainPackageAdmissionDenial {
+    pub(crate) fn new(
+        kind: WorthQueryDomainPackageAdmissionDenialKind,
+        subject: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind,
+            subject: subject.into(),
+        }
+    }
+
+    pub fn kind(&self) -> WorthQueryDomainPackageAdmissionDenialKind {
+        self.kind
+    }
+
+    pub fn subject(&self) -> &str {
+        &self.subject
+    }
+}
+
+impl std::fmt::Display for WorthQueryDomainPackageAdmissionDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{:?}: {}", self.kind, self.subject)
+    }
+}
+
+impl std::error::Error for WorthQueryDomainPackageAdmissionDenial {}
+use crate::application::{
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainOperatingRequirement,
+};
+
+pub(crate) struct WorthQueryAdmittedDomainPackage<D: WorthQueryDomainEntryMarker> {
+    pub(crate) marker: D,
+    pub(crate) identity: WorthQueryDomainIdentityDeclaration<D>,
+    pub(crate) package_identity: WorthQueryDomainPackageIdentity,
+    pub(crate) admission_identity: WorthQueryEvidenceIdentity,
+    pub(crate) portable_package:
+        worth_query_installation::facade::WorthQueryAdmittedPortableDomainPackage,
+    pub(crate) support_snapshot: WorthQueryDomainEntrySupportSnapshot,
+    pub(crate) required_capabilities: Vec<WorthQueryCapabilityFamily>,
+    pub(crate) required_configuration: Vec<WorthQueryConfigSectionFamily>,
+    pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
+    pub(crate) invariant_definitions: Vec<WorthQueryDomainInvariantDefinition>,
+    pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
+    pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
+    pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
+    pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
+    pub(crate) operation_graph_participations:
+        Vec<WorthQueryDomainOperationGraphParticipationRecord>,
+    pub(crate) operation_required_domains:
+        Vec<super::WorthQueryDomainOperationRequiredDomainRecord>,
+    pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
+}
+
+pub(crate) fn admit_domain_package<D: WorthQueryDomainEntryMarker>(
+    package: WorthQueryValidatedDomainPackage<D>,
+) -> Result<WorthQueryAdmittedDomainPackage<D>, WorthQueryDomainPackageAdmissionDenial> {
+    let facade = WorthQueryApplicationFacade::runtime_backed_default();
+    let support_matrix = facade.support_matrix();
+    let support_snapshot =
+        WorthQueryDomainEntrySupportSnapshot::from_support_report(facade.support_report());
+    let portable_package = super::admission_profile::admit_portable_package(
+        package.portable_package,
+        &package.required_capabilities,
+        &package.required_configuration,
+        &package.operating_requirements,
+        &facade,
+    )?;
+
+    let admission_identity =
+        worth_query_evidence_identity(WorthQueryEvidenceScope::DomainPackageAdmission)
+            .field_evidence_identity(
+                WorthQueryEvidenceTag::new("package"),
+                package.package_identity.evidence_identity(),
+            )
+            .field_value(
+                WorthQueryEvidenceTag::new("support"),
+                support_matrix.support_matrix_digest(),
+            )
+            .field_value(
+                WorthQueryEvidenceTag::new("configuration"),
+                facade.validated_config().validated_digest(),
+            )
+            .field_value(
+                WorthQueryEvidenceTag::new("portable_admission"),
+                portable_package.admission_identity(),
+            )
+            .seal();
+
+    Ok(WorthQueryAdmittedDomainPackage {
+        marker: package.marker,
+        identity: package.identity,
+        package_identity: package.package_identity,
+        admission_identity,
+        portable_package,
+        support_snapshot,
+        required_capabilities: package.required_capabilities,
+        required_configuration: package.required_configuration,
+        operating_requirements: package.operating_requirements,
+        invariant_definitions: package.invariant_definitions,
+        graph_obligations: package.graph_obligations,
+        graph_read_operations: package.graph_read_operations,
+        declaration_families: package.declaration_families,
+        domain_operations: package.domain_operations,
+        operation_graph_participations: package.operation_graph_participations,
+        operation_required_domains: package.operation_required_domains,
+        contribution_policy: package.contribution_policy,
+    })
+}

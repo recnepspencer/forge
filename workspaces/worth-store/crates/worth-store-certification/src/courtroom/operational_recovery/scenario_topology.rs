@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use super::ScenarioScaleProfile;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -10,9 +8,10 @@ impl S10Phase {
         self.0
     }
 
-    pub const fn all() -> [Self; 19] {
+    /// Runtime scenario phases. Phase 1 is a repository structure gate and is
+    /// verified by CI; it is not runtime evidence.
+    pub const fn scenario_phases() -> [Self; 18] {
         [
-            Self(1),
             Self(2),
             Self(3),
             Self(4),
@@ -60,19 +59,14 @@ impl S10OperationalScenarioProgram {
     pub const fn profile(self) -> ScenarioScaleProfile {
         self.profile
     }
+}
 
-    pub fn covered_phases(self) -> BTreeSet<S10Phase> {
-        S10Phase::all()
-            .into_iter()
-            .filter(|phase| self.covers(*phase))
-            .collect()
-    }
-
-    pub(super) const fn covers(self, phase: S10Phase) -> bool {
-        match self.kind {
-            S10OperationalScenarioKind::BurningPrimary => !matches!(phase.0, 11 | 12),
-            S10OperationalScenarioKind::SplitBrainPromotion => phase.0 != 10,
-            S10OperationalScenarioKind::AuthorityRepairRollback => phase.0 != 14,
+impl S10OperationalScenarioKind {
+    pub const fn token(self) -> &'static str {
+        match self {
+            Self::BurningPrimary => "burning-primary",
+            Self::SplitBrainPromotion => "split-brain-promotion",
+            Self::AuthorityRepairRollback => "authority-repair-rollback",
         }
     }
 }

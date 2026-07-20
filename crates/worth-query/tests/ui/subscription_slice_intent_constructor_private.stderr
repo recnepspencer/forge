@@ -1,7 +1,0 @@
-error[E0560]: struct `QuerySubscriptionSliceIntent` has no field named `digest`
- --> tests/ui/subscription_slice_intent_constructor_private.rs:6:9
-  |
-6 |         digest: String::new(),
-  |         ^^^^^^ `QuerySubscriptionSliceIntent` does not have this field
-  |
-  = note: all struct fields are already assigned

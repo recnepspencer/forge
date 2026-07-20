@@ -95,9 +95,10 @@ pub(super) fn executed_btree_mutation(
         .into_copy_on_write()
         .expect("ordinary B-tree mutation should retain copy-on-write authority");
     let mut runtime =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             inputs.old_root,
-        );
+        )
+        .unwrap();
     copy_on_write_layout_mutation_execution()
         .execute(&mut runtime, plan)
         .into_published()

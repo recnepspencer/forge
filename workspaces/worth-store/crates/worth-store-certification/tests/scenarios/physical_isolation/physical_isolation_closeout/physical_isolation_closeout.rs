@@ -1,7 +1,6 @@
 #[path = "../../../support/physical_isolation/executed_closeout_fixture/executed_closeout_fixture.rs"]
 mod executed_closeout_fixture;
-#[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
-mod harness_support;
+use crate::physical_interleaving_support as harness_support;
 use worth_store_test_support::harness::physical_isolation::epoch_scope as support;
 use worth_store_test_support::harness::physical_isolation::publication as publication_support;
 use worth_store_test_support::harness::physical_isolation::read_plan as plan_admission;

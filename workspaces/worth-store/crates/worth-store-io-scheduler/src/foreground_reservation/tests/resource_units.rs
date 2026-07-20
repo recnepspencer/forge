@@ -29,9 +29,8 @@ fn every_required_resource_unit_denies_when_capacity_is_insufficient() {
 
         let denial = admit_foreground_reservation_capacity(
             ForegroundReservationCapacityAdmissionRequest::new(
-                ForegroundReservationCapacityAuthority::store_owned(),
                 lane,
-                ForegroundReservationAdmissionBoundary::new(&backend, &readiness, &security),
+                ForegroundReservationCapacityBasis::new(&backend, &readiness, &security),
                 arbitration,
                 requested,
                 available,

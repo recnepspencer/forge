@@ -28,7 +28,8 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
 
     replace_entity_after_snapshot(&mut runtime, &created);
 
-    let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
+    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
+        .expect("test graph role");
     let reader = source
         .open_snapshot(&active_snapshot_identity)
         .expect("active snapshot should remain bridge-readable after later commit id collision");

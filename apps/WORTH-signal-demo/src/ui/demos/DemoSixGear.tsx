@@ -1,13 +1,20 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-import type { GearParams } from "./demoSixTypes";
-
-interface DemoSixGearProps {
-  params: GearParams;
+export interface GearRenderParams {
+  innerRadius: number;
+  outerRadius: number;
+  thickness: number;
+  teeth: number;
+  material?: "steel" | "titanium" | "ceramic";
+  rotation?: number;
 }
 
-function createGearShape(params: GearParams): THREE.Shape {
+interface DemoSixGearProps {
+  params: GearRenderParams;
+}
+
+function createGearShape(params: GearRenderParams): THREE.Shape {
   const shape = new THREE.Shape();
   const points = params.teeth * 2;
   for (let index = 0; index <= points; index += 1) {
@@ -32,6 +39,7 @@ export function DemoSixGear({ params }: DemoSixGearProps) {
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     mesh: THREE.Mesh;
+    material: THREE.MeshStandardMaterial;
     frame: number;
   } | null>(null);
 
@@ -70,8 +78,8 @@ export function DemoSixGear({ params }: DemoSixGearProps) {
 
     function resize() {
       const width = container.clientWidth;
-      const height = Math.max(300, Math.round(width * 0.72));
-      renderer.setSize(width, height, false);
+      const height = Math.max(300, container.clientHeight);
+      renderer.setSize(width, height);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     }
@@ -85,7 +93,14 @@ export function DemoSixGear({ params }: DemoSixGearProps) {
 
     resize();
     window.addEventListener("resize", resize);
-    sceneRef.current = { renderer, scene, camera, mesh, frame: window.requestAnimationFrame(animate) };
+    sceneRef.current = {
+      renderer,
+      scene,
+      camera,
+      mesh,
+      material,
+      frame: window.requestAnimationFrame(animate),
+    };
     return () => {
       const current = sceneRef.current;
       if (current) window.cancelAnimationFrame(current.frame);
@@ -114,5 +129,22 @@ export function DemoSixGear({ params }: DemoSixGearProps) {
     oldGeometry.dispose();
   }, [params]);
 
+  useEffect(() => {
+    const current = sceneRef.current;
+    if (!current) return;
+    current.material.color.set(materialColor(params.material));
+    if (typeof params.rotation === "number") {
+      current.mesh.rotation.z = THREE.MathUtils.degToRad(params.rotation);
+    }
+  }, [params.material, params.rotation]);
+
   return <div className="demo-six-gear-stage" ref={hostRef} />;
+}
+
+function materialColor(material: DemoSixGearProps["params"]["material"]) {
+  return ({
+    steel: "#f1c76f",
+    titanium: "#7dd3fc",
+    ceramic: "#f0abfc",
+  } as const)[material ?? "steel"];
 }

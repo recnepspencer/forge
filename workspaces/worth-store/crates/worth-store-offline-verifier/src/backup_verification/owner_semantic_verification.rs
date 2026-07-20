@@ -145,9 +145,18 @@ pub(super) fn verify_owner_semantics(
         };
         counters = attempted;
         let path = root.join(row.output_name());
-        let mut reader = media
-            .reader(&path)
-            .map_err(OwnerSemanticVerificationDenial::Media)?;
+        let mut reader = match media.reader(&path) {
+            Ok(reader) => reader,
+            Err(worth_store_physical_backend::OfflineMediaReadDenial::InvalidFileIndex)
+                if !path.exists() =>
+            {
+                // Structural comparison already recorded the absent component.
+                // Continue owner decoding for the remaining immutable closure
+                // so one omission cannot conceal independent corruption.
+                continue;
+            }
+            Err(denial) => return Err(OwnerSemanticVerificationDenial::Media(denial)),
+        };
         let actual_bytes = reader.length();
         let verification = verify_owner_artifact(
             &mut reader,

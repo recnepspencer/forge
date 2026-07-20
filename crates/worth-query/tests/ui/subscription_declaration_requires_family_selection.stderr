@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::declare_query_subscription`
- --> tests/ui/subscription_declaration_requires_family_selection.rs:1:36
-  |
-1 | use worth_query::facade::runtime::{declare_query_subscription, LiveQueryAdmissionArtifact, QuerySubscriptionSliceBudget};
-  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `declare_query_subscription` in `facade::runtime`

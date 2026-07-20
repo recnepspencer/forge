@@ -9,16 +9,16 @@ use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use worth_store_physical_format::{
+    InMemoryModelLayoutObservation, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelDenial,
+    InMemoryPhysicalFormatModelDenialKind, InMemoryPhysicalFormatModelRequest,
     OfflinePhysicalVerifier, OfflineVerifierLayoutObservation, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId,
-    PhysicalShortcutBoundary, PhysicalStoreRuntime, PhysicalStoreRuntimeDenial,
-    PhysicalStoreRuntimeDenialKind, PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
-    RuntimeLayoutObservation,
+    PhysicalShortcutBoundary, PlatformPhysicalAppendRequest,
 };
 
 #[test]
 fn runtime_and_offline_verifier_reports_compare_through_structured_parity() {
-    let open_request = PlatformPhysicalOpenRequest::physical_format_canonical();
+    let open_request = InMemoryPhysicalFormatModelRequest::physical_format_canonical();
     let mut facade = open_facade(open_request.clone());
     append_slot(&mut facade, 1);
     let published = facade.publish_physical_root().expect("publish root");
@@ -28,7 +28,7 @@ fn runtime_and_offline_verifier_reports_compare_through_structured_parity() {
             .verify(published.persisted_layout())
             .expect("offline verifier");
 
-    let runtime = RuntimeLayoutObservation::from_facade_scan(&runtime_scan);
+    let runtime = InMemoryModelLayoutObservation::from_model_scan(&runtime_scan);
     let offline = OfflineVerifierLayoutObservation::from_verifier_report(&offline_report);
     let comparison = PhysicalRuntimeVerifierComparison::compare(&runtime, &offline)
         .expect("runtime and verifier agree");
@@ -95,7 +95,7 @@ fn controlled_runtime_verifier_mismatch_gets_typed_support_report() {
 
 #[test]
 fn shortcut_lanes_are_rejected_at_named_boundaries() {
-    let mut facade = open_facade(PlatformPhysicalOpenRequest::physical_format_canonical());
+    let mut facade = open_facade(InMemoryPhysicalFormatModelRequest::physical_format_canonical());
     let live_cache = facade
         .reject_live_runtime_cache_shortcut()
         .expect_err("live runtime cache shortcut denied");
@@ -116,15 +116,15 @@ fn shortcut_lanes_are_rejected_at_named_boundaries() {
 
     assert_eq!(
         live_cache.kind(),
-        PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected
+        InMemoryPhysicalFormatModelDenialKind::ShortcutBoundaryRejected
     );
     assert_eq!(
         backend_map.kind(),
-        PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected
+        InMemoryPhysicalFormatModelDenialKind::ShortcutBoundaryRejected
     );
     assert_eq!(
         raw_dump.kind(),
-        PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected
+        InMemoryPhysicalFormatModelDenialKind::ShortcutBoundaryRejected
     );
     assert_eq!(
         support.forbidden_shortcuts(),
@@ -146,8 +146,9 @@ fn shortcut_lanes_are_rejected_at_named_boundaries() {
 
 #[test]
 fn shortcut_support_and_diagnostics_require_facade_shortcut_boundary() {
-    let missing_record =
-        PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord);
+    let missing_record = InMemoryPhysicalFormatModelDenial::new(
+        InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRecord,
+    );
 
     let support_denial = RuntimeVerifierSupportReport::from_shortcut_facade_denial(&missing_record)
         .expect_err("non-shortcut facade denial rejected for shortcut support");
@@ -158,27 +159,27 @@ fn shortcut_support_and_diagnostics_require_facade_shortcut_boundary() {
     assert_eq!(
         support_denial,
         RuntimeVerifierSupportDenial::UnexpectedFacadeDenial(
-            PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord
+            InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRecord
         )
     );
     assert_eq!(
         diagnostic_denial,
         RuntimeVerifierDiagnosticDenial::UnexpectedFacadeDenial(
-            PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord
+            InMemoryPhysicalFormatModelDenialKind::MissingPhysicalRecord
         )
     );
 }
 
-fn observed_runtime_layout_with_slot(slot_number: u16) -> RuntimeLayoutObservation {
-    let mut facade = open_facade(PlatformPhysicalOpenRequest::physical_format_canonical());
+fn observed_runtime_layout_with_slot(slot_number: u16) -> InMemoryModelLayoutObservation {
+    let mut facade = open_facade(InMemoryPhysicalFormatModelRequest::physical_format_canonical());
     append_slot(&mut facade, slot_number);
     facade.publish_physical_root().expect("publish root");
     let scan = facade.scan_physical_layout().expect("runtime scan");
-    RuntimeLayoutObservation::from_facade_scan(&scan)
+    InMemoryModelLayoutObservation::from_model_scan(&scan)
 }
 
 fn observed_offline_layout_with_slot(slot_number: u16) -> OfflineVerifierLayoutObservation {
-    let open_request = PlatformPhysicalOpenRequest::physical_format_canonical();
+    let open_request = InMemoryPhysicalFormatModelRequest::physical_format_canonical();
     let mut facade = open_facade(open_request.clone());
     append_slot(&mut facade, slot_number);
     let published = facade.publish_physical_root().expect("publish root");
@@ -189,7 +190,7 @@ fn observed_offline_layout_with_slot(slot_number: u16) -> OfflineVerifierLayoutO
     OfflineVerifierLayoutObservation::from_verifier_report(&report)
 }
 
-fn append_slot(facade: &mut PhysicalStoreRuntime, slot_number: u16) {
+fn append_slot(facade: &mut InMemoryPhysicalFormatModel, slot_number: u16) {
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             slot_cell(slot_number),
@@ -198,8 +199,9 @@ fn append_slot(facade: &mut PhysicalStoreRuntime, slot_number: u16) {
         .expect("append through facade");
 }
 
-fn open_facade(open_request: PlatformPhysicalOpenRequest) -> PhysicalStoreRuntime {
-    PhysicalStoreRuntime::open_physical_format(readiness(), open_request).expect("open S.1 facade")
+fn open_facade(open_request: InMemoryPhysicalFormatModelRequest) -> InMemoryPhysicalFormatModel {
+    InMemoryPhysicalFormatModel::start_empty_model(readiness(), open_request)
+        .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

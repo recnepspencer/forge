@@ -8,9 +8,10 @@ use worth_store_recovery_physics::{
 };
 
 use crate::authorization::{
-    consume_authorization, record_recovery_staging_completion, recover_authorization_consumption,
-    StagingAuthorizationContinuation,
+    consume_authorization_through, record_recovery_staging_completion,
+    recover_authorization_consumption, StagingAuthorizationContinuation,
 };
+use crate::workflow::persist_recovery_owner_receipts;
 use crate::{
     AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt,
     AuthorizationRevocationObservation, OperationalControlStore, OperationalTransitionId,
@@ -25,7 +26,6 @@ pub enum BackupRestoreReadinessDenial {
     Authorization(AuthorizationConsumptionDenial),
 }
 
-#[derive(Debug)]
 pub struct ExecutionReadyBackupRestore<'a> {
     operation_id: crate::OperationalOperationId,
     authorization: AuthorizationConsumptionReceipt,
@@ -35,7 +35,17 @@ pub struct ExecutionReadyBackupRestore<'a> {
     recovery: worth_store_recovery_physics::BackupRestoreReplayPlan,
     owner_verification: worth_store_offline_verifier::StagedRecoveryOwnerVerificationSet,
     _target_admission: crate::control_store::NonCurrentRecoveryTargetAdmission,
-    control: &'a OperationalControlStore,
+    control: &'a dyn crate::OperationalControlStorePort,
+}
+
+impl std::fmt::Debug for ExecutionReadyBackupRestore<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ExecutionReadyBackupRestore")
+            .field("operation_id", &self.operation_id)
+            .field("staging_authority", &self.staging_authority)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug)]
@@ -108,6 +118,45 @@ impl AuthorizedBackupRestorePlan {
         observed_at: u64,
         revocation: AuthorizationRevocationObservation,
     ) -> Result<ExecutionReadyBackupRestore<'a>, BackupRestoreReadinessDenial> {
+        self.ready_through(
+            control,
+            control,
+            transition_id,
+            current_authority,
+            observed_at,
+            revocation,
+        )
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn ready_with_certification_control_store<'a>(
+        self,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
+        transition_id: OperationalTransitionId,
+        current_authority: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyBackupRestore<'a>, BackupRestoreReadinessDenial> {
+        self.ready_through(
+            control,
+            append,
+            transition_id,
+            current_authority,
+            observed_at,
+            revocation,
+        )
+    }
+
+    fn ready_through<'a>(
+        self,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
+        transition_id: OperationalTransitionId,
+        current_authority: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyBackupRestore<'a>, BackupRestoreReadinessDenial> {
         if self.authorization.binding().authority_identity()
             != current_authority.authority_identity()
         {
@@ -124,8 +173,9 @@ impl AuthorizedBackupRestorePlan {
         let operation_id = self.operation_id;
         let staging_authority = self.authorization.binding().authority_identity();
         let security_scope = self.authorization.binding().security_scope();
-        let consumed = consume_authorization(
+        let consumed = consume_authorization_through(
             control,
+            append,
             operation_id.clone(),
             transition_id,
             self.authorization,
@@ -143,7 +193,7 @@ impl AuthorizedBackupRestorePlan {
             recovery: self.recovery,
             owner_verification: self.owner_verification,
             _target_admission: target_admission,
-            control,
+            control: append,
         })
     }
 }
@@ -194,6 +244,17 @@ impl LoweredBackupRestorePlan {
     }
 }
 
+#[cfg(feature = "certification-test-authority")]
+impl<'a> ExecutionReadyBackupRestore<'a> {
+    pub fn with_certification_control_store(
+        mut self,
+        control: &'a dyn crate::OperationalControlStorePort,
+    ) -> Self {
+        self.control = control;
+        self
+    }
+}
+
 impl ExecutionReadyBackupRestore<'_> {
     pub fn execute<Ports>(
         self,
@@ -229,6 +290,18 @@ impl ExecutionReadyBackupRestore<'_> {
                 return Err(BackupRestoreExecutionDenial::Recovery(denial))
             }
         };
+        persist_recovery_owner_receipts(
+            self.control,
+            staging_authority,
+            &self.operation_id,
+            self.authorization,
+            crate::OperationalWorkflowKind::Restore,
+            &backend,
+            crate::workflow::recovery_owner_receipt::restored_frontier_owner_receipt_identity(
+                recovered_frontier,
+            ),
+        )
+        .map_err(BackupRestoreExecutionDenial::Control)?;
         record_recovery_staging_completion(
             self.control,
             staging_authority,

@@ -1,5 +1,0 @@
-error[E0616]: field `identity_consumption` of struct `ViewShapeDescriptor` is private
- --> tests/ui/identity_aware_inspector_post_admission_mutation_forbidden.rs:5:16
-  |
-5 |     descriptor.identity_consumption =
-  |                ^^^^^^^^^^^^^^^^^^^^ private field

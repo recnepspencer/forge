@@ -1,5 +1,0 @@
-error[E0451]: field `rows` of struct `WorthQueryDomainCapabilityCertifiedSurfaceInventory` is private
- --> tests/ui/domain_capabilities/certification/domain_capability_certification_inventory_constructor_private.rs:4:67
-  |
-4 |     let _ = WorthQueryDomainCapabilityCertifiedSurfaceInventory { rows: &[] };
-  |                                                                   ^^^^ private field

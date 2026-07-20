@@ -5,7 +5,8 @@ use worth_store_physical_backend::{
 };
 
 use crate::{
-    DrivenOperationalTransition, OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
+    DrivenOperationalTransition, OperationalRecoveryControlCutRequest,
+    OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
 };
 
 #[test]
@@ -38,7 +39,7 @@ fn interrupted_after_forensic_record_reopens_real_production_state() {
     .plan(&media())
     .unwrap();
     let mut session = ForensicAcquisitionSession::open(plan.clone(), media()).unwrap();
-    let mut driver = OperationalRecoveryProductionDriver::pause_once_at(
+    let driver = OperationalRecoveryProductionDriver::pause_once_at(
         OperationalRecoveryYieldpoint::AfterForensicSourceRecord,
     );
 
@@ -70,4 +71,101 @@ fn existing_harness_contract_registry_binds_s10_yieldpoints() {
             point.token()
         );
     }
+}
+
+#[test]
+fn external_process_death_and_independent_reopen_mint_a_real_control_cut() {
+    use std::process::Command;
+
+    use worth_store_operations::certification_scenario::{
+        reopen_owner_backed_control_store_at, OwnerBackedBackupScenario,
+    };
+
+    use crate::{
+        admit_current_process_probe, write_reopen_observation_from_environment,
+        DrivenOperationalControlStore, OperationalRecoveryControlTransitionKind as Control,
+        OperationalRecoveryFreshProcessRunner, OperationalRecoveryProcessCrashConfig, ProcessRole,
+        PROCESS_CRASH_ROLE_ENV,
+    };
+
+    const ROOT_ENV: &str = "WORTH_STORE_S10_PROCESS_CRASH_MEDIA_ROOT";
+    const CASE: &str = "s10-real-process-crash-cut";
+    if let Some(root) = std::env::var_os(ROOT_ENV).map(std::path::PathBuf::from) {
+        if std::env::var(PROCESS_CRASH_ROLE_ENV).ok().as_deref() == Some("reopen") {
+            let admission = admit_current_process_probe(ProcessRole::RecoveredRuntime).unwrap();
+            let control = reopen_owner_backed_control_store_at(&root);
+            assert!(write_reopen_observation_from_environment(&admission, &control).unwrap());
+            return;
+        }
+        let config = OperationalRecoveryProcessCrashConfig::from_environment()
+            .unwrap()
+            .expect("cut child configuration");
+        let scenario = OwnerBackedBackupScenario::materialize_at(CASE, 1, &root);
+        let control = scenario.control_store();
+        let driver = OperationalRecoveryProductionDriver::crash_once_at(config);
+        let driven = DrivenOperationalControlStore::new(&control, &driver);
+        let _ = scenario.execute(CASE, &driven);
+        panic!("the cut child must die at its configured durable yieldpoint");
+    }
+
+    let uninterrupted = OwnerBackedBackupScenario::materialize(CASE);
+    let control = uninterrupted.control_store();
+    let driver = OperationalRecoveryProductionDriver::uninterrupted();
+    let driven = DrivenOperationalControlStore::new(&control, &driver);
+    let _ = uninterrupted.execute(CASE, &driven);
+    let trace = driver.trace();
+
+    let directory = tempfile::tempdir().unwrap();
+    let media_root = directory.path().join("media");
+    let evidence_root = directory.path().join("evidence");
+    let executable = std::env::current_exe().unwrap();
+    let exact = "operational_recovery_driver_tests::external_process_death_and_independent_reopen_mint_a_real_control_cut";
+    let mut cut = Command::new(&executable);
+    cut.arg("--exact")
+        .arg(exact)
+        .arg("--nocapture")
+        .env(ROOT_ENV, &media_root);
+    let mut reopen = Command::new(&executable);
+    reopen
+        .arg("--exact")
+        .arg(exact)
+        .arg("--nocapture")
+        .env(ROOT_ENV, &media_root);
+    let point =
+        OperationalRecoveryYieldpoint::AfterDurableControlTransition(Control::BackupSourceLease);
+    let evidence = OperationalRecoveryFreshProcessRunner::new(evidence_root)
+        .certify_control_cut_with_process_evidence(OperationalRecoveryControlCutRequest::new(
+            &media_root,
+            CASE,
+            &mut cut,
+            &mut reopen,
+            &[ROOT_ENV],
+            point,
+            &trace,
+        ))
+        .unwrap();
+
+    assert_eq!(evidence.crash_cut().yieldpoint(), point);
+    assert!(!evidence.crash_cut().operation_identities().is_empty());
+    assert_ne!(evidence.crash_cut().evidence_identity(), [0; 32]);
+    assert_ne!(
+        evidence.cut_process().process.process_id,
+        evidence.reopen_process().process.process_id
+    );
+    assert_ne!(
+        evidence.cut_process().process.runtime_identity,
+        evidence.reopen_process().process.runtime_identity
+    );
+    assert_eq!(
+        evidence.cut_process().process.executable_identity,
+        evidence.reopen_process().process.executable_identity
+    );
+    assert!(matches!(
+        evidence.cut_process().termination,
+        crate::ProcessTermination::ParentKill { .. }
+    ));
+    assert!(matches!(
+        evidence.reopen_process().termination,
+        crate::ProcessTermination::GracefulExit { code: Some(0) }
+    ));
 }

@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::foundation::WorthQueryApplicationFacade`
- --> tests/ui/installed_domain/boundaries/application_facade_executable_authority_is_not_public.rs:1:5
-  |
-1 | use worth_query::facade::foundation::WorthQueryApplicationFacade;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryApplicationFacade` in `facade::foundation`

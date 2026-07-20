@@ -184,9 +184,8 @@ fn capacity_admission(
     available: ForegroundResourceBudget,
 ) -> super::ForegroundReservationCapacityAdmission {
     admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
-        super::ForegroundReservationCapacityAuthority::store_owned(),
         lane,
-        super::ForegroundReservationAdmissionBoundary::new(backend, readiness, security),
+        super::ForegroundReservationCapacityBasis::new(backend, readiness, security),
         arbitration,
         requested,
         available,
@@ -308,6 +307,9 @@ fn backend_evidence_basis(
         }
         worth_store_physical_backend::CapabilityEvidenceClass::ObservedByProbe => {
             BackendCapabilityEvidenceBasis::observed_by_probe(1)
+        }
+        worth_store_physical_backend::CapabilityEvidenceClass::EstablishedByFilesystemAdmission => {
+            BackendCapabilityEvidenceBasis::established_filesystem_admission_for_certification(1)
         }
         worth_store_physical_backend::CapabilityEvidenceClass::UnverifiableAssumption => {
             BackendCapabilityEvidenceBasis::unverifiable_assumption()

@@ -1,5 +1,0 @@
-error[E0599]: no method named `run_with_plan` found for struct `WorthQueryReadRequest` in the current scope
- --> tests/ui/declarative_read/admitted_request_cannot_accept_partial_plan.rs:5:13
-  |
-5 |     request.run_with_plan("consumer-seeded-plan");
-  |             ^^^^^^^^^^^^^ method not found in `WorthQueryReadRequest`

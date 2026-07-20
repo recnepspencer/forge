@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::foundation::execute_lowered_effect_plan`
- --> tests/ui/effect_lifecycle/execution/effect_lifecycle_execution_rejects_admitted_effect.rs:1:39
-  |
-1 | use worth_query::facade::foundation::{execute_lowered_effect_plan, AdmittedEffectIntent, EffectExecutionAuthority};
-  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `execute_lowered_effect_plan` in `facade::foundation`

@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-operations"
 edition.workspace = true
 version.workspace = true
@@ -8,6 +9,7 @@ description = "Roadmap 2 S.10 operational safety, backup, PITR, repair, and fore
 [features]
 default = []
 certification-test-authority = [
+    "worth-store-blob-chunks/certification-test-authority",
     "worth-store-security/certification-test-authority",
 ]
 
@@ -40,7 +42,7 @@ worth-store-blob-chunks = { workspace = true, features = ["certification-test-au
 worth-store-readiness.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
-worth-store-test-support.workspace = true
+worth-store-test-support = { workspace = true, default-features = false, features = ["layout-fixtures"] }
 
 [lints]
 workspace = true

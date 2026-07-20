@@ -106,7 +106,7 @@ fn digest_string(kind: &str, basis: &str) -> Arc<str> {
     format!("{kind}:sha256:{digest:x}").into()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FrozenMappingRegistry {
     pub(crate) registrations: Vec<FrozenBridgeMappingRegistration>,
 }
@@ -126,12 +126,11 @@ impl FrozenMappingRegistry {
         validate_registration_values(&registrations)?;
         validate_registration_set(&registrations)?;
 
-        Ok(Self {
-            registrations: registrations
-                .into_iter()
-                .map(FrozenBridgeMappingRegistration::new)
-                .collect(),
-        })
+        let registrations = registrations
+            .into_iter()
+            .map(FrozenBridgeMappingRegistration::new)
+            .collect::<Vec<_>>();
+        Ok(Self { registrations })
     }
 
     pub(crate) fn registrations(&self) -> &[FrozenBridgeMappingRegistration] {

@@ -94,6 +94,7 @@ fn mismatched_live_definition_is_denied_before_projection_admission() {
         .activate();
     let first_resource = open_resource(&first, &mut workspace);
     let first_projection = project_resource(&first_resource, &mut workspace);
+    assert_closed(first_resource, &mut workspace);
     let second_resource = open_resource(&second, &mut workspace);
 
     let stop = binding
@@ -105,7 +106,6 @@ fn mismatched_live_definition_is_denied_before_projection_admission() {
         WorthUiQueryLiveAdmissionDenial::ViewDefinitionMismatch
     );
     assert_closed(stop.into_resource(), &mut workspace);
-    assert_closed(first_resource, &mut workspace);
 }
 
 #[test]

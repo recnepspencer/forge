@@ -1,0 +1,70 @@
+import type {
+  LocalTruthBranchReceipt,
+  LocalTruthCommitOutcome,
+  LocalTruthCheckpoint,
+  LocalTruthHistorySegment,
+  LocalTruthHistoricalSnapshot,
+  LocalTruthInspection,
+  LocalTruthMutationRequest,
+  LocalTruthOptions,
+  LocalTruthOutcome,
+  LocalTruthSignalProjectionReceipt,
+} from "./core.js";
+import type {
+  CommittedLocalTruthMerge,
+  LocalTruthConflictAlternative,
+  LocalTruthMergePreviewOutcome,
+  LocalTruthMergeRequest,
+  LocalTruthResolutionBranchReceipt,
+  LocalTruthResolutionSubmission,
+} from "./merge.js";
+import type {
+  DeclaredLocalTruthSchema,
+  LocalTruthSchemaDeclaration,
+} from "./schema.js";
+
+export interface LocalTruthAuthority<T extends object> {
+  readonly kind: "typescriptInMemoryLocalTruth";
+  readonly schema: DeclaredLocalTruthSchema<T>;
+  ready?(): Promise<unknown>;
+  inspect(): Promise<LocalTruthInspection<T>>;
+  branch(branchId?: string): Promise<LocalTruthOutcome<LocalTruthBranchReceipt>>;
+  commit(request: LocalTruthMutationRequest): Promise<LocalTruthOutcome<LocalTruthCommitOutcome>>;
+  forkBranch(request: {
+    readonly parentBranchId: string;
+    readonly expectedParentBasis: LocalTruthBranchReceipt["basis"];
+    readonly name: string;
+  }): Promise<LocalTruthOutcome<LocalTruthBranchReceipt>>;
+  previewMerge(request: LocalTruthMergeRequest): Promise<LocalTruthMergePreviewOutcome>;
+  createResolutionBranch(request: {
+    readonly reviewId: string;
+    readonly conflictId: string;
+    readonly name?: string;
+  }): Promise<LocalTruthOutcome<LocalTruthResolutionBranchReceipt>>;
+  resolutionAlternative(request: {
+    readonly reviewId: string;
+    readonly conflictId: string;
+    readonly resolutionBranchId: string;
+  }): Promise<LocalTruthOutcome<LocalTruthConflictAlternative>>;
+  resolveMerge(request: LocalTruthResolutionSubmission): Promise<LocalTruthOutcome<CommittedLocalTruthMerge>>;
+  derivation(branchId?: string): Promise<LocalTruthSignalProjectionReceipt>;
+  destroyDerivation(branchId: string): Promise<LocalTruthSignalProjectionReceipt>;
+  rebuildDerivation(branchId: string): Promise<LocalTruthSignalProjectionReceipt | LocalTruthOutcome<never>>;
+  checkpoint(branchId: string): Promise<LocalTruthOutcome<LocalTruthCheckpoint<T>>>;
+  history(branchId: string): Promise<LocalTruthOutcome<LocalTruthHistorySegment<T>>>;
+  historicalSnapshot(request: {
+    readonly branchId: string;
+    readonly commitId: string;
+  }): Promise<LocalTruthOutcome<LocalTruthHistoricalSnapshot<T>>>;
+  terminate(): Promise<void>;
+}
+
+export interface LocalTruthFactory {
+  <T extends object>(options: LocalTruthOptions<T>): LocalTruthAuthority<T>;
+}
+
+export function declareLocalTruthSchema<T extends object>(
+  declaration: LocalTruthSchemaDeclaration<T>,
+): DeclaredLocalTruthSchema<T>;
+
+export { declareLocalTruthSchema as localTruthSchema };

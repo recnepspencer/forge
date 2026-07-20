@@ -31,14 +31,40 @@ impl RepairExecutionBoundary {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RepairExecutionInterrupted {
     boundary: RepairExecutionBoundary,
+    cause: RepairExecutionInterruptionCause,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RepairExecutionInterruptionCause {
+    ProcessLoss,
+    SchedulerDenied,
+    BackendIndeterminate,
 }
 
 impl RepairExecutionInterrupted {
     pub const fn at(boundary: RepairExecutionBoundary) -> Self {
-        Self { boundary }
+        Self {
+            boundary,
+            cause: RepairExecutionInterruptionCause::ProcessLoss,
+        }
+    }
+    pub const fn scheduler_denied(boundary: RepairExecutionBoundary) -> Self {
+        Self {
+            boundary,
+            cause: RepairExecutionInterruptionCause::SchedulerDenied,
+        }
+    }
+    pub const fn backend_indeterminate(boundary: RepairExecutionBoundary) -> Self {
+        Self {
+            boundary,
+            cause: RepairExecutionInterruptionCause::BackendIndeterminate,
+        }
     }
     pub const fn boundary(self) -> RepairExecutionBoundary {
         self.boundary
+    }
+    pub const fn cause(self) -> RepairExecutionInterruptionCause {
+        self.cause
     }
 }
 

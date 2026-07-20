@@ -1,38 +1,10 @@
 import React from "react";
+import { DEMO_FIVE_CODE } from "../state/demoCodeSamples";
 
 import { tokenizeCodeLine } from "./SignalsSectionCodeSample";
 import "./signalsSection.css";
 
-export const RESOURCES_CODE_SAMPLE = `const signals = await createSignals(); // worker-first
-const po = signals.api({
-  baseUrl: "/api/procurement",
-  effects: signals.resource.effects.branchNative(),
-});
-
-const poLines = po.url("/orders/:orderId/lines")
-  .response(signals.resource.response.array({ itemId: (line) => line.id }))
-  .list({ load: ({ orderId }) => client.fetchLines(orderId) });
-
-const admission = await line.patch(resourcePatch.dependsOn(
-  poLines.patch.insert({ itemId, placement: "append", nextItem }),
-  parentEffectIds,
-));
-
-if (!("effectId" in admission)) throw new Error("effect not admitted");
-
-try {
-  const saved = await client.saveLine(nextItem);
-  await line.effects().confirm(admission.effectId, {
-    responseId: saved.requestId,
-    serverPatch: poLines.patch.insert({
-      itemId, placement: "append", nextItem: saved.line,
-    }),
-  });
-} catch (failure) {
-  await line.effects().reject(admission.effectId, {
-    responseId: failure.responseId,
-  });
-}`;
+export const RESOURCES_CODE_SAMPLE = DEMO_FIVE_CODE;
 
 interface ResourcesCodeSampleProps {
   liveLine: string | null;

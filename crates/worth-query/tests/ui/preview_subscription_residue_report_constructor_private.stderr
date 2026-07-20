@@ -1,7 +1,0 @@
-error[E0560]: struct `PreviewSubscriptionResidueReport` has no field named `report_digest`
-  --> tests/ui/preview_subscription_residue_report_constructor_private.rs:12:9
-   |
-12 |         report_digest: "residue".to_string(),
-   |         ^^^^^^^^^^^^^ `PreviewSubscriptionResidueReport` does not have this field
-   |
-   = note: all struct fields are already assigned

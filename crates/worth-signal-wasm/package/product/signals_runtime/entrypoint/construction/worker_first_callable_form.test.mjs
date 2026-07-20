@@ -89,7 +89,7 @@ test("default worker-first root exposes form factories over active imported-grap
     const workerImportedGraph = workerSignals.importGraph(definition, snapshot);
     await workerImportedGraph.ready();
 
-    const workerForm = workerSignals.form({
+    const workerDeclaration = workerSignals.form.define({
       source: workerSignals.form.source.signal(workerImportedGraph.input("document"), {
         id: "worker-form-source",
       }),
@@ -98,7 +98,7 @@ test("default worker-first root exposes form factories over active imported-grap
         status: field("status"),
       }),
     });
-    const compatibilityForm = compatibilityImportedSignals.form({
+    const compatibilityDeclaration = compatibilityImportedSignals.form.define({
       source: compatibilityImportedSignals.form.source.signal(
         compatibilityImportedGraph.input("document"),
         { id: "worker-form-source" },
@@ -108,7 +108,11 @@ test("default worker-first root exposes form factories over active imported-grap
         status: field("status"),
       }),
     });
+    const workerForm = workerSignals.form(workerDeclaration);
+    const compatibilityForm = compatibilityImportedSignals.form(compatibilityDeclaration);
 
+    assert.equal(Object.isFrozen(workerDeclaration), true);
+    assert.equal(Object.isFrozen(compatibilityDeclaration), true);
     assert.equal(workerForm.sourceAuthority().kind, "signal");
     assert.equal(workerForm.sourceAuthority().sourceId, "worker-form-source");
     assert.deepEqual(workerForm.source(), compatibilityForm.source());

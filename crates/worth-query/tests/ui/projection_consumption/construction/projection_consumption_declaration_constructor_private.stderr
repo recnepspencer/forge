@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::foundation::ProjectionConsumptionDeclaration`
- --> tests/ui/projection_consumption/construction/projection_consumption_declaration_constructor_private.rs:1:102
-  |
-1 | ...Context, ProjectionConsumptionDeclaration, ProjectionConsumptionSource};
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |             |
-  |             no `ProjectionConsumptionDeclaration` in `facade::foundation`
-  |             help: a similar name exists in the module: `ProjectionConsumptionDenialReason`

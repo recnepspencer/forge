@@ -5,8 +5,8 @@ use super::{
 };
 use worth_store_contracts::AcceptedHandoffReadiness;
 use worth_store_physical_format::{
-    access::page::PageAccess, PhysicalReference, PhysicalStoreIdentity,
-    PlatformPhysicalReplayArtifact,
+    access::page::PageAccess, InMemoryPhysicalFormatReplayArtifact, PhysicalReference,
+    PhysicalStoreIdentity,
 };
 use worth_store_recovery_physics::{
     AdmittedBTreeReplayPhysicalSource, AdmittedBTreeReplaySource, AdmittedRecoverySource,
@@ -40,7 +40,7 @@ impl BTreeReplayRuntime {
         self,
         readiness: AcceptedHandoffReadiness,
         root_reference: PhysicalReference,
-        replay_artifact: PlatformPhysicalReplayArtifact,
+        replay_artifact: InMemoryPhysicalFormatReplayArtifact,
         expected_store_identity: PhysicalStoreIdentity,
         durable_source: AdmittedRecoverySource,
     ) -> Result<AdmittedBTreeReplayPhysicalSource, BaselineBTreeExecutionDenial> {

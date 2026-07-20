@@ -1,24 +1,18 @@
-# Router History
+# Browser History
 
-These docs cover explicit browser-history boundaries, retained route-history
-truth, and the explanation surfaces built on top of them.
+The browser owns loads, pops, and the physical history stack. Worth turns those
+events into typed ingress reports and retains a router-side story of admitted
+route truth. The story is inspectable and subscribable; it is not a replacement
+for the browser host.
 
-Docs in this section:
+Start with [Browser History Story](./browser_history_story.md), then read:
 
 - [Browser History Ingress](./browser_history_ingress.md)
 - [Browser History Writeback](./browser_history_writeback.md)
-- [Browser History Story](./browser_history_story.md)
 - [Route History Entries](./route_history_entries.md)
 - [Back Provenance](./back_provenance.md)
 - [History Inspection](./history_inspection.md)
 - [Navigation Auditability](./navigation_auditability.md)
 
-Suggested order:
-
-1. browser-history ingress
-2. browser-history writeback
-3. browser-history story
-4. route-history entries
-5. back provenance
-6. history inspection
-7. navigation auditability
+Record every admitted boundary report in one story. Do not maintain a second
+array of “visited routes” in application state.

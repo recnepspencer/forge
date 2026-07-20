@@ -9,7 +9,7 @@ pub const MAX_ASPECTS: usize = crate::data::core_profile::MAX_ASPECTS;
 ///
 /// `worth-signal` does not assign semantic meaning to aspect slots. Embedding
 /// runtimes define what each slot represents.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Aspect(u8);
 
 impl Aspect {

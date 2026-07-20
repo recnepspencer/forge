@@ -21,9 +21,9 @@ any screen where responses can arrive in a different order from requests.
 
 ## Stable Entry Points
 
-- `await createSignals()` Ã¢â‚¬â€ worker-first by default
+- `await createSignals()` — worker-first by default
 - `signals.resource.effects.branchNative()`
-- `line.patch(patch)` Ã¢â‚¬â€ returns the admitted `effectId` in branch-native mode
+- `line.patch(patch)` — returns the admitted `effectId` in branch-native mode
 - `resourcePatch.dependsOn(patch, effectIds)`
 - `line.effects().get(effectId)`
 - `line.effects().open()`
@@ -228,4 +228,4 @@ automatically settled dependents when applicable.
 - [Effects And Recovery](./README.md)
 - [Branch-Native Effects](./branch-native-effects.md)
 - [Rollback And Recovery](./rollback-and-recovery.md)
-- [History And Restore](../../resource-contracts/history-and-restore.md)
+- [History And Restore](../debugging/restore-replay-and-recover.md)

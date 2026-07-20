@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::policy::lower_policy_aware_current_plan`
- --> tests/ui/policy_current_plan_requires_narrowed_artifact.rs:2:35
-  |
-2 | use worth_query::facade::policy::{lower_policy_aware_current_plan, PolicyAwareCurrentPlan};
-  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |                                   |
-  |                                   no `lower_policy_aware_current_plan` in `facade::policy`
-  |                                   help: a similar name exists in the module: `lower_policy_aware_branch_plan`

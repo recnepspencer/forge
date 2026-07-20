@@ -5,6 +5,7 @@ pub mod bitset;
 pub mod checkpoint;
 pub mod checkpoint_policy;
 pub mod comparator;
+pub mod conditional_execution;
 pub mod core_profile;
 pub mod dependency;
 pub mod dirty_set;

@@ -1,6 +1,6 @@
 use worth_store_operations::{
     CompletedOldPrimaryRejoin, CurrentReplicaPromotion, GovernedOldPrimaryRejoinPlan,
-    OperationalControlStore, OperationalTransitionId, ReplicaPromotionFinalizationDenial,
+    OperationalControlStorePort, OperationalTransitionId, ReplicaPromotionFinalizationDenial,
     ResolvedOldPrimaryRejoin,
 };
 use worth_store_replication::{
@@ -15,9 +15,9 @@ use crate::{
 impl OperationalRecoveryProductionDriver {
     #[allow(clippy::too_many_arguments)]
     pub fn plan_old_primary_rejoin(
-        &mut self,
+        &self,
         current: &CurrentReplicaPromotion,
-        control: &OperationalControlStore,
+        control: &dyn OperationalControlStorePort,
         transition: OperationalTransitionId,
         old_primary: ReplicationPeerId,
         divergence: DivergentReplicaHistoryReport,
@@ -30,7 +30,7 @@ impl OperationalRecoveryProductionDriver {
         if self.before(OperationalRecoveryYieldpoint::BeforeOldPrimaryRejoinPlan) {
             return Ok(DrivenOperationalTransition::InterruptedBefore);
         }
-        let plan = current.plan_old_primary_rejoin(
+        let plan = current.plan_old_primary_rejoin_with_certification_control_store(
             control,
             transition,
             old_primary,
@@ -45,7 +45,7 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn execute_old_primary_rejoin(
-        &mut self,
+        &self,
         plan: GovernedOldPrimaryRejoinPlan,
         port: &mut impl OldPrimaryRejoinExecutionPort,
     ) -> Result<
@@ -63,9 +63,9 @@ impl OperationalRecoveryProductionDriver {
     }
 
     pub fn complete_old_primary_rejoin(
-        &mut self,
+        &self,
         resolved: ResolvedOldPrimaryRejoin,
-        control: &OperationalControlStore,
+        control: &dyn OperationalControlStorePort,
         transition: OperationalTransitionId,
     ) -> Result<
         DrivenOperationalTransition<CompletedOldPrimaryRejoin>,
@@ -74,7 +74,7 @@ impl OperationalRecoveryProductionDriver {
         if self.before(OperationalRecoveryYieldpoint::BeforeOldPrimaryRejoinCompletion) {
             return Ok(DrivenOperationalTransition::InterruptedBefore);
         }
-        let completed = resolved.complete(control, transition)?;
+        let completed = resolved.complete_with_certification_control_store(control, transition)?;
         Ok(self.after(
             OperationalRecoveryYieldpoint::AfterOldPrimaryRejoinCompletion,
             completed,

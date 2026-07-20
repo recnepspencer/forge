@@ -13,6 +13,10 @@ pub struct BridgeCommittedPatchTarget {
 }
 
 impl BridgeCommittedPatchTarget {
+    pub fn authoritative_aspect(aspect_locator: AspectLocator) -> Self {
+        Self::whole_aspect_target(aspect_locator, TruthDeltaSurfaceKind::AuthoritativeAspect)
+    }
+
     pub fn entity_field_path(
         aspect_locator: AspectLocator,
         field_path: CanonicalFieldPath,
@@ -50,6 +54,10 @@ impl BridgeCommittedPatchTarget {
         Self::whole_aspect_target(aspect_locator, TruthDeltaSurfaceKind::EntityFacet)
     }
 
+    pub fn lifecycle_transition(aspect_locator: AspectLocator) -> Self {
+        Self::whole_aspect_target(aspect_locator, TruthDeltaSurfaceKind::LifecycleTransition)
+    }
+
     fn whole_aspect_target(
         aspect_locator: AspectLocator,
         surface_kind: TruthDeltaSurfaceKind,
@@ -77,6 +85,9 @@ impl BridgeCommittedPatchTarget {
             (Some(field_locator), TruthDeltaSurfaceKind::EntityField) => {
                 Self::entity_field(field_locator)
             }
+            (None, TruthDeltaSurfaceKind::AuthoritativeAspect) => {
+                Self::authoritative_aspect(aspect_locator)
+            }
             (None, TruthDeltaSurfaceKind::EntityRelationEndpoint) => {
                 Self::entity_relation_endpoint(aspect_locator)
             }
@@ -85,6 +96,9 @@ impl BridgeCommittedPatchTarget {
                 Self::entity_partition(aspect_locator)
             }
             (None, TruthDeltaSurfaceKind::EntityFacet) => Self::entity_facet(aspect_locator),
+            (None, TruthDeltaSurfaceKind::LifecycleTransition) => {
+                Self::lifecycle_transition(aspect_locator)
+            }
             (Some(_), _) => {
                 panic!("non-field committed patch targets cannot carry a field locator")
             }
@@ -139,11 +153,13 @@ pub(crate) fn committed_patch_surface_kind_label(
     surface_kind: TruthDeltaSurfaceKind,
 ) -> &'static str {
     match surface_kind {
+        TruthDeltaSurfaceKind::AuthoritativeAspect => "authoritative-aspect",
         TruthDeltaSurfaceKind::EntityField => "entity-field",
         TruthDeltaSurfaceKind::EntityRelationEndpoint => "entity-relation-endpoint",
         TruthDeltaSurfaceKind::EntityRegion => "entity-region",
         TruthDeltaSurfaceKind::EntityPartition => "entity-partition",
         TruthDeltaSurfaceKind::EntityFacet => "entity-facet",
+        TruthDeltaSurfaceKind::LifecycleTransition => "lifecycle-transition",
     }
 }
 

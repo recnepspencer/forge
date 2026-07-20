@@ -13,6 +13,15 @@ pub(super) fn page_write_budget() -> ForegroundResourceBudget {
         .with_worker_permits(WorkerPermit::new(1).unwrap())
 }
 
+pub(super) fn point_read_budget() -> ForegroundResourceBudget {
+    ForegroundResourceBudget::new()
+        .with_queue_slots(QueueSlot::new(1).unwrap())
+        .with_bandwidth(BandwidthToken::bytes(4096).unwrap())
+        .with_read_ahead(crate::ReadAheadWindow::pages(1).unwrap())
+        .with_worker_permits(WorkerPermit::new(1).unwrap())
+        .with_cache_residency(CacheResidencyHint::frames(1).unwrap())
+}
+
 pub(super) fn wal_write_budget() -> ForegroundResourceBudget {
     ForegroundResourceBudget::new()
         .with_queue_slots(QueueSlot::new(1).unwrap())

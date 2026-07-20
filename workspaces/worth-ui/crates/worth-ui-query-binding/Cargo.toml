@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 worth-foundational = { path = "../../../../crates/worth-foundational" }
-worth-query = { path = "../../../../crates/worth-query" }
+worth-query = { path = "../../../worth-query/crates/worth-query" }
 
 [dev-dependencies]
 worth-relational.workspace = true

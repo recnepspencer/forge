@@ -210,38 +210,10 @@ async function initializeWasm(input) {
 }
 
 async function instantiateDefaultWasm(importObject) {
-  if (!isDedicatedWorkerScope()) {
-    try {
-      const wasmModule = await import("./worth_signal_wasm_bg.wasm");
-      const wasm = normalizeWasmModule(wasmModule);
-      if (wasm !== null) {
-        return wasm;
-      }
-    } catch {
-    }
-  }
   return (await instantiateWasm(
     new URL("./worth_signal_wasm_bg.wasm", import.meta.url),
     importObject,
   )).exports;
-}
-
-function isDedicatedWorkerScope() {
-  return typeof WorkerGlobalScope === "function" && globalThis instanceof WorkerGlobalScope;
-}
-
-function normalizeWasmModule(wasmModule) {
-  if (hasWasmExports(wasmModule)) {
-    return wasmModule;
-  }
-  if (hasWasmExports(wasmModule?.default)) {
-    return wasmModule.default;
-  }
-  return null;
-}
-
-function hasWasmExports(candidate) {
-  return Boolean(candidate?.__wbindgen_start && candidate?.__wbindgen_externrefs);
 }
 
 async function instantiateWasm(source, importObject) {
@@ -254,10 +226,20 @@ async function instantiateWasm(source, importObject) {
   if (source instanceof Response) {
     return instantiateResponse(source, importObject);
   }
+  if (source instanceof URL && source.protocol === "file:") {
+    return instantiateFileUrl(source, importObject);
+  }
   if (source instanceof URL || typeof source === "string" || source instanceof Request) {
     return instantiateResponse(fetch(source), importObject);
   }
   const result = await WebAssembly.instantiate(source, importObject);
+  return result instanceof WebAssembly.Instance ? result : result.instance;
+}
+
+async function instantiateFileUrl(url, importObject) {
+  const nodeFsPromises = "node:fs/promises";
+  const { readFile } = await import(/* @vite-ignore */ nodeFsPromises);
+  const result = await WebAssembly.instantiate(await readFile(url), importObject);
   return result instanceof WebAssembly.Instance ? result : result.instance;
 }
 
@@ -333,7 +315,7 @@ packageJson.exports = {
   },
 };
 packageJson.peerDependencies = {
-  react: ">=18.0.0",
+  react: "^18.0.0 || ^19.0.0",
 };
 packageJson.peerDependenciesMeta = {
   react: {

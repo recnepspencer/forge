@@ -1,0 +1,114 @@
+.xai-carousel-pagination {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .xai-carousel-title h1 {
+    max-width: 15ch;
+    font-size: 3.2rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .xai-carousel-home { align-items: start; }
+  .xai-carousel-shell { padding: 2rem 1.15rem; }
+  .xai-carousel-title h1 { font-size: 2.45rem; }
+
+  .xai-carousel-stage {
+    width: calc(100% + 2.3rem);
+    margin-inline: -1.15rem;
+    padding: 1.5rem 0 3.75rem;
+    overflow: hidden;
+    isolation: isolate;
+    touch-action: pan-y;
+  }
+
+  .xai-card-glow {
+    width: 18rem;
+    height: 22rem;
+    opacity: 0.95;
+    filter: blur(62px);
+  }
+
+  .xai-card-glow-left { left: -9rem; top: 4rem; }
+  .xai-card-glow-right { right: -9rem; top: 4rem; }
+
+  .xai-capability-carousel {
+    width: calc(100% - 5rem);
+    min-height: 30rem;
+  }
+
+  .xai-carousel-window {
+    min-height: 30rem;
+    perspective: 1050px;
+    perspective-origin: center 44%;
+  }
+
+  .xai-carousel-slide {
+    min-height: 29rem;
+    gap: 0.9rem;
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .xai-slide-artifact { min-height: 11rem; padding: 0.8rem; }
+  .xai-slide-copy { gap: 0.48rem; }
+  .xai-slide-copy h2 { font-size: 1.55rem; }
+
+  .xai-slide-copy p {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .xai-carousel-arrow {
+    top: auto;
+    bottom: 0.25rem;
+    width: 2.65rem;
+    height: 2.65rem;
+    transform: none;
+  }
+
+  .xai-carousel-arrow-left { left: calc(50% - 7rem); }
+  .xai-carousel-arrow-right { right: calc(50% - 7rem); }
+  .xai-carousel-arrow:hover { transform: scale(1.04); }
+
+  .xai-carousel-actions .xai-button,
+  .xai-slide-actions .xai-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .xai-carousel-pagination {
+    position: absolute;
+    bottom: 1.3rem;
+    left: 50%;
+    z-index: 9;
+    display: flex;
+    gap: 0.55rem;
+    transform: translateX(-50%);
+  }
+
+  .xai-carousel-pagination button {
+    width: 0.5rem;
+    height: 0.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.24);
+    cursor: pointer;
+    transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .xai-carousel-pagination button[aria-current="true"] {
+    background: var(--section-accent);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--section-accent) 70%, transparent);
+    transform: scale(1.25);
+  }
+}
+
+@media (max-width: 420px) {
+  .xai-capability-carousel { width: calc(100% - 4.5rem); }
+  .xai-carousel-slide { min-height: 28rem; }
+  .xai-slide-artifact { min-height: 10.25rem; }
+  .xai-slide-copy h2 { font-size: 1.42rem; }
+}

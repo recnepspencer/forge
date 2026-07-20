@@ -1,4 +1,5 @@
 [package]
+workspace = "../.."
 name = "worth-store-io-scheduler"
 edition.workspace = true
 version.workspace = true
@@ -24,13 +25,8 @@ worth-store-security.workspace = true
 worth-store-wal.workspace = true
 
 [dev-dependencies]
-worth-store-blob-chunks.workspace = true
-worth-store-offline-verifier.workspace = true
-worth-store-operations.workspace = true
 worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
-worth-store-physical-integrity.workspace = true
 worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
-worth-store-readiness.workspace = true
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 
 [lints]

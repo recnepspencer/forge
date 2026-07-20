@@ -1,6 +1,6 @@
 use crate::{RuntimeVerifierParityTrace, RuntimeVerifierRelationship};
 use worth_store_physical_format::{
-    OfflineVerifierLayoutObservation, PhysicalReference, RuntimeLayoutObservation,
+    InMemoryModelLayoutObservation, OfflineVerifierLayoutObservation, PhysicalReference,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -120,7 +120,7 @@ pub struct PhysicalRuntimeVerifierComparison;
 
 impl PhysicalRuntimeVerifierComparison {
     pub fn compare(
-        runtime: &RuntimeLayoutObservation,
+        runtime: &InMemoryModelLayoutObservation,
         offline: &OfflineVerifierLayoutObservation,
     ) -> Result<RuntimeVerifierComparisonReport, RuntimeVerifierComparisonDenial> {
         let runtime_count = runtime.discovered_references().len() as u32;
@@ -164,7 +164,7 @@ impl PhysicalRuntimeVerifierComparison {
 
     fn denial(
         classification: RuntimeVerifierComparisonClassification,
-        runtime: &RuntimeLayoutObservation,
+        runtime: &InMemoryModelLayoutObservation,
         offline: &OfflineVerifierLayoutObservation,
         runtime_count: u32,
         offline_count: u32,

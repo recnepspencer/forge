@@ -24,10 +24,11 @@ pub(super) fn assemble_delta(
             .map(|binding| binding.aspect_key.clone()),
     );
     let contains_opaque_aspect = evaluated_bindings.iter().any(|binding| {
-        matches!(
-            binding.aspect_shape,
-            worth_foundational::AspectShape::Opaque(_)
-        )
+        binding.changed
+            && matches!(
+                binding.aspect_shape,
+                worth_foundational::AspectShape::Opaque(_)
+            )
     });
     CanonicalRecordAspectDelta {
         target,
@@ -50,6 +51,7 @@ pub(super) fn evaluate_bindings(
         evaluated.push(EvaluatedAspectBinding {
             aspect_key: binding.aspect_key().clone(),
             contract: binding.contract.clone(),
+            binding: binding.target.clone(),
             changed,
             aspect_shape: binding.aspect_shape(),
             evidence,

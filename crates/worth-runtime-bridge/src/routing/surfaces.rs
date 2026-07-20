@@ -197,11 +197,13 @@ pub(crate) fn canonical_truth_surface_kind_label(
     surface_kind: TruthDeltaSurfaceKind,
 ) -> &'static str {
     match surface_kind {
+        TruthDeltaSurfaceKind::AuthoritativeAspect => "authoritative-aspect",
         TruthDeltaSurfaceKind::EntityField => "entity-field",
         TruthDeltaSurfaceKind::EntityRelationEndpoint => "entity-relation-endpoint",
         TruthDeltaSurfaceKind::EntityRegion => "entity-region",
         TruthDeltaSurfaceKind::EntityPartition => "entity-partition",
         TruthDeltaSurfaceKind::EntityFacet => "entity-facet",
+        TruthDeltaSurfaceKind::LifecycleTransition => "lifecycle-transition",
     }
 }
 

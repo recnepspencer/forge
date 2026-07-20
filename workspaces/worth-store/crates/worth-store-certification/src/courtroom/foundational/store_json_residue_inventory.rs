@@ -135,6 +135,32 @@ fn classify_store_json_residue_occurrence(
             "allowed only to lower terminal JSON into validated native Store aspect material",
         );
     }
+    if is_test_support_tool_protocol_home(occurrence.path()) {
+        return checked(
+            occurrence,
+            StoreJsonResidueZone::DedicatedWorkspaceCertificationEnforcement,
+            "worth-store certification tool protocols",
+            StoreJsonAuthorityRisk::CertificationToolProtocolOnly,
+            "allowed only for Cargo diagnostic and structural-preflight tool transport; it cannot satisfy Store authority",
+        );
+    }
+    if is_process_probe_binary_contract_home(occurrence.path()) {
+        if !matches!(
+            occurrence.token(),
+            StoreJsonResidueTokenKind::Serialize
+                | StoreJsonResidueTokenKind::Deserialize
+                | StoreJsonResidueTokenKind::DeserializeOwned
+        ) {
+            return Err(StoreJsonResidueDenial::ForbiddenDedicatedWorkspaceProduction(occurrence));
+        }
+        return checked(
+            occurrence,
+            StoreJsonResidueZone::DedicatedWorkspaceDurableSerdeContract,
+            "worth-store process-probe binary wire contract",
+            StoreJsonAuthorityRisk::DurableSerdeContractOnly,
+            "allowed only for the bounded binary process-probe codec; JSON and generic authority derivation remain forbidden",
+        );
+    }
     if is_exact_durable_serde_contract_home(occurrence.path()) {
         if !matches!(
             occurrence.token(),
@@ -163,6 +189,12 @@ fn classify_store_json_residue_occurrence(
         return Err(StoreJsonResidueDenial::ForbiddenDedicatedWorkspaceProduction(occurrence));
     }
     Err(StoreJsonResidueDenial::MissingClassification(occurrence))
+}
+
+fn is_process_probe_binary_contract_home(path: &str) -> bool {
+    path.starts_with(
+        "workspaces/worth-store/crates/worth-store-physical-certification/src/process_probe/",
+    )
 }
 
 fn is_exact_terminal_projection_json_home(path: &str) -> bool {
@@ -206,6 +238,14 @@ fn is_exact_public_facade_json_enforcement_home(path: &str) -> bool {
         path,
         "workspaces/worth-store/crates/worth-store-certification/src/courtroom/cross_cutting/public_facade_dependency_tests.rs"
     )
+}
+
+fn is_test_support_tool_protocol_home(path: &str) -> bool {
+    path == "workspaces/worth-store/crates/worth-store-test-support/Cargo.toml"
+        || path.starts_with(
+            "workspaces/worth-store/crates/worth-store-test-support/src/compiler_boundary/",
+        )
+        || path.starts_with("workspaces/worth-store/tools/store-test-runner/")
 }
 
 fn is_exact_compile_fail_json_denial_home(path: &str) -> bool {

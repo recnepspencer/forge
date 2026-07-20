@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `best_match` found for struct `CorrespondenceOutcome` in the current scope
- --> tests/ui/naked_best_match_accessor_forbidden.rs:4:72
-  |
-4 |     let _: fn(&CorrespondenceOutcome) -> &str = CorrespondenceOutcome::best_match;
-  |                                                                        ^^^^^^^^^^ function or associated item not found in `CorrespondenceOutcome`

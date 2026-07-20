@@ -1,21 +1,13 @@
-use serde::{Deserialize, Serialize};
 use worth_foundational::facade::AspectKey;
-use worth_foundational::{AspectContract, FieldKey};
+use worth_foundational::AspectContract;
+
+pub use worth_foundational::facade::AspectBinding;
+pub use worth_foundational::facade::AuthoritativeAspectChangeKind as RelationalAspectChangeKind;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclaredAspectContractBinding {
     pub binding: AspectBinding,
     pub contract: AspectContract,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum AspectBinding {
-    EntityField { field: FieldKey },
-    RelationField { field: FieldKey },
-    RelationSourceEndpoint,
-    RelationTargetEndpoint,
-    LifecycleTransition,
 }
 
 impl DeclaredAspectContractBinding {

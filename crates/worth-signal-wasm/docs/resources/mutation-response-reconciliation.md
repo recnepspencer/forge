@@ -462,7 +462,7 @@ not a runtime fallback.
 
 ## Closeout Matrix
 
-Use [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
+Use [Mutation Response Closeout Matrix](./responses/README.md)
 when you need the support categories stated literally instead of inferred from
 the prose below.
 
@@ -512,6 +512,6 @@ Deferred product ergonomics:
 - [Fetch And Write Resources](./fetch-and-write.md)
 - [Collections And Delivery](./collections-and-delivery.md)
 - [Line Inspection](./line-inspection.md)
-- [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
-- [History And Restore](../resource-contracts/history-and-restore.md)
-- [Response Topology Proof](../resource-contracts/response-topology-proof.md)
+- [Mutation Response Closeout Matrix](./responses/README.md)
+- [History And Restore](./debugging/restore-replay-and-recover.md)
+- [Response Topology Proof](./verification/response-topology-proof.md)

@@ -183,14 +183,17 @@ impl RuntimeBridge {
         mapping_registry: FrozenMappingRegistry,
         aspect_registry: FrozenAspectMappingRegistry,
         subscription_family_registry: FrozenSubscriptionFamilyRegistry,
+        query_dependency_registry: crate::correspondence::AdmittedQueryDependencyRegistry,
     ) -> Self {
         let diagnostics = BridgeDiagnosticsFacade::new(policy);
         let diagnostic_sink = diagnostic_sink.unwrap_or_else(|| Arc::new(diagnostics.clone()));
+        let authoritative_source_profile = committed_patch_source.authoritative_source_profile();
         Self {
             diagnostic_sink,
             diagnostics,
             policy,
             committed_patch_source,
+            authoritative_source_profile,
             snapshot_read_source,
             snapshot_reader_pool,
             signal_sink,
@@ -206,6 +209,9 @@ impl RuntimeBridge {
             subscription_family_registry,
             signal_runtime_key: NEXT_SIGNAL_RUNTIME_KEY
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            signal_aspect_lowering_owner: worth_signal::facade::SignalAspectLoweringOwner::fresh(),
+            correspondence_allocations: Default::default(),
+            query_dependency_registry,
         }
     }
 }

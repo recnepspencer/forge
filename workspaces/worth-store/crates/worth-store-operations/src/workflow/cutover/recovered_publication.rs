@@ -197,6 +197,25 @@ macro_rules! recovered_operation {
                 current: &StoreCurrentAuthorityWitness,
                 fence_port: &impl RecoveryWriteFencePort,
             ) -> Result<$outcome, RecoveryCutoverExecutionDenial> {
+                self.attempt_readmission_through(control, transition, current, fence_port)
+            }
+            #[cfg(feature = "certification-test-authority")]
+            pub fn attempt_readmission_with_certification_control_store(
+                self,
+                control: &dyn crate::OperationalControlStorePort,
+                transition: OperationalTransitionId,
+                current: &StoreCurrentAuthorityWitness,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<$outcome, RecoveryCutoverExecutionDenial> {
+                self.attempt_readmission_through(control, transition, current, fence_port)
+            }
+            fn attempt_readmission_through(
+                self,
+                control: &dyn crate::OperationalControlStorePort,
+                transition: OperationalTransitionId,
+                current: &StoreCurrentAuthorityWitness,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<$outcome, RecoveryCutoverExecutionDenial> {
                 Ok(match super::recovered_publication_disposition::attempt_recovered_readmission(
                     self.0, control, transition, current, fence_port,
                 )? {
@@ -213,7 +232,26 @@ macro_rules! recovered_operation {
                 current: &StoreCurrentAuthorityWitness,
                 fence_port: &impl RecoveryWriteFencePort,
             ) -> Result<$readmitted, RecoveryCutoverExecutionDenial> {
-                match self.attempt_readmission(control, transition, current, fence_port)? {
+                self.readmit_through(control, transition, current, fence_port)
+            }
+            #[cfg(feature = "certification-test-authority")]
+            pub fn readmit_with_certification_control_store(
+                self,
+                control: &dyn crate::OperationalControlStorePort,
+                transition: OperationalTransitionId,
+                current: &StoreCurrentAuthorityWitness,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<$readmitted, RecoveryCutoverExecutionDenial> {
+                self.readmit_through(control, transition, current, fence_port)
+            }
+            fn readmit_through(
+                self,
+                control: &dyn crate::OperationalControlStorePort,
+                transition: OperationalTransitionId,
+                current: &StoreCurrentAuthorityWitness,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<$readmitted, RecoveryCutoverExecutionDenial> {
+                match self.attempt_readmission_through(control, transition, current, fence_port)? {
                     $outcome::Readmitted(value) => Ok(value),
                     $outcome::RejectedByAuthority(value) =>
                         Err(RecoveryCutoverExecutionDenial::Readmission(value.0.denial)),
@@ -226,6 +264,25 @@ macro_rules! recovered_operation {
                 transition: OperationalTransitionId,
                 fence_port: &impl RecoveryWriteFencePort,
             ) -> Result<super::operation_cutover::$abandoned, RecoveryCutoverExecutionDenial> {
+                self.abandon_through(reason_identity, control, transition, fence_port)
+            }
+            #[cfg(feature = "certification-test-authority")]
+            pub fn abandon_with_certification_control_store(
+                self,
+                reason_identity: [u8; 32],
+                control: &dyn crate::OperationalControlStorePort,
+                transition: OperationalTransitionId,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<super::operation_cutover::$abandoned, RecoveryCutoverExecutionDenial> {
+                self.abandon_through(reason_identity, control, transition, fence_port)
+            }
+            fn abandon_through(
+                self,
+                reason_identity: [u8; 32],
+                control: &dyn crate::OperationalControlStorePort,
+                transition: OperationalTransitionId,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<super::operation_cutover::$abandoned, RecoveryCutoverExecutionDenial> {
                 super::recovered_publication_disposition::abandon_recovered(
                     self.0, reason_identity, control, transition, fence_port,
                 ).map(super::operation_cutover::$abandoned)
@@ -234,6 +291,35 @@ macro_rules! recovered_operation {
                 self,
                 retention_plan_identity: [u8; 32],
                 control: &OperationalControlStore,
+                transition: OperationalTransitionId,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<super::operation_cutover::$retained, RecoveryCutoverExecutionDenial> {
+                self.retain_for_forensics_through(
+                    retention_plan_identity,
+                    control,
+                    transition,
+                    fence_port,
+                )
+            }
+            #[cfg(feature = "certification-test-authority")]
+            pub fn retain_for_forensics_with_certification_control_store(
+                self,
+                retention_plan_identity: [u8; 32],
+                control: &dyn crate::OperationalControlStorePort,
+                transition: OperationalTransitionId,
+                fence_port: &impl RecoveryWriteFencePort,
+            ) -> Result<super::operation_cutover::$retained, RecoveryCutoverExecutionDenial> {
+                self.retain_for_forensics_through(
+                    retention_plan_identity,
+                    control,
+                    transition,
+                    fence_port,
+                )
+            }
+            fn retain_for_forensics_through(
+                self,
+                retention_plan_identity: [u8; 32],
+                control: &dyn crate::OperationalControlStorePort,
                 transition: OperationalTransitionId,
                 fence_port: &impl RecoveryWriteFencePort,
             ) -> Result<super::operation_cutover::$retained, RecoveryCutoverExecutionDenial> {

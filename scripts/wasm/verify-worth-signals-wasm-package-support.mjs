@@ -41,7 +41,13 @@ export async function installSmokeDependencies(tempDir, tarballPath) {
   await runNpm(["init", "-y"], { cwd: tempDir });
   await runNpm(["pkg", "set", "type=module"], { cwd: tempDir });
   await runNpm(
-    ["install", path.basename(localTarballPath), "react", "typescript"],
+    [
+      "install",
+      path.basename(localTarballPath),
+      "react@18.3.1",
+      "@types/react@18.3.31",
+      "typescript",
+    ],
     { cwd: tempDir },
   );
 }

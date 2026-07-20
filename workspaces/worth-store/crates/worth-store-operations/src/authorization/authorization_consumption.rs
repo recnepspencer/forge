@@ -2,9 +2,9 @@ use worth_store_authority::ControlStoreGeneration;
 use worth_store_physical_backend::ControlMediaFault;
 
 use crate::control_store::{
-    decode_control_record, encode_control_record, OperationalControlAppendDenial,
-    OperationalControlRecord, OperationalControlRecordKind, OperationalControlStore,
-    OperationalOperationId, OperationalTransitionId, PersistedControlRecordDecodeDenial,
+    decode_control_record, OperationalControlAppendDenial, OperationalControlRecord,
+    OperationalControlRecordKind, OperationalControlStore, OperationalOperationId,
+    OperationalTransitionId, PersistedControlRecordDecodeDenial,
 };
 use crate::OperationalControlStorePort;
 
@@ -73,8 +73,10 @@ impl<K> ConsumedOperationalPlan<K> {
     }
 }
 
-pub(crate) fn consume_authorization<K>(
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn consume_authorization_through<K>(
     control: &OperationalControlStore,
+    append: &dyn OperationalControlStorePort,
     operation_id: OperationalOperationId,
     transition_id: OperationalTransitionId,
     authorized: AuthorizedOperationalPlan<K>,
@@ -101,17 +103,7 @@ pub(crate) fn consume_authorization<K>(
             authorized.expires_at(),
             authorized.replay_policy() == AuthorizationReplayPolicy::ReplaySameOperationIdentity,
         );
-        let payload = encode_control_record(&record).map_err(|denial| {
-            AuthorizationConsumptionDenial::Control(OperationalControlAppendDenial::Encoding(
-                denial,
-            ))
-        })?;
-        let transition_identity = authorization_claim_identity(authorized.authorization_identity());
-        match control.physical().compare_exchange_append(
-            expected_generation,
-            &transition_identity,
-            &payload,
-        ) {
+        match append.compare_exchange_authorization_consumption(expected_generation, &record) {
             Ok(receipt) => {
                 let expires_at = authorized.expires_at();
                 if receipt.idempotent_replay()
@@ -132,27 +124,23 @@ pub(crate) fn consume_authorization<K>(
                     },
                 });
             }
-            Err(ControlMediaFault::GenerationMismatch { .. }) => continue,
-            Err(ControlMediaFault::DuplicateTransitionConflict) => {
+            Err(OperationalControlAppendDenial::Media(ControlMediaFault::GenerationMismatch {
+                ..
+            })) => continue,
+            Err(OperationalControlAppendDenial::Media(
+                ControlMediaFault::DuplicateTransitionConflict,
+            )) => {
                 let existing = find_consumption(control, authorized.authorization_identity())?
                     .ok_or(AuthorizationConsumptionDenial::InvalidControlState)?;
                 return classify_existing(existing, operation_id, authorized);
             }
-            Err(fault) => return Err(AuthorizationConsumptionDenial::DamagedControlState(fault)),
+            Err(OperationalControlAppendDenial::Media(fault)) => {
+                return Err(AuthorizationConsumptionDenial::DamagedControlState(fault))
+            }
+            Err(denial) => return Err(AuthorizationConsumptionDenial::Control(denial)),
         }
     }
     Err(AuthorizationConsumptionDenial::ConcurrentProgressDidNotConverge)
-}
-
-fn authorization_claim_identity(identity: [u8; 32]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut value = String::with_capacity("authorization-claim:".len() + 64);
-    value.push_str("authorization-claim:");
-    for byte in identity {
-        value.push(HEX[(byte >> 4) as usize] as char);
-        value.push(HEX[(byte & 0x0f) as usize] as char);
-    }
-    value
 }
 
 fn validate_consumption_time<K>(
@@ -327,7 +315,7 @@ pub(crate) fn recover_authorization_consumption(
 }
 
 pub(crate) fn record_recovery_staging_completion(
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
     operation_id: OperationalOperationId,
     authorization: AuthorizationConsumptionReceipt,

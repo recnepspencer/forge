@@ -7,6 +7,15 @@ use super::{
 pub type BackendCapabilityClaimOutcome = worth_proof::prelude::ProofOutcome<
     BackendCapabilityClaimWitness,
     BackendCapabilityAdmissionDenial,
+    BackendCapabilityQualificationDeferred,
+    BackendCapabilityStale,
+    BackendCapabilityRebindRequired,
+    BackendCapabilityQualificationFailure,
+>;
+
+type ImmediateBackendCapabilityClaimOutcome = worth_proof::prelude::ProofOutcome<
+    BackendCapabilityClaimWitness,
+    BackendCapabilityAdmissionDenial,
     core::convert::Infallible,
     BackendCapabilityStale,
     BackendCapabilityRebindRequired,
@@ -70,7 +79,10 @@ impl AdmittedBackendCapabilityWitness {
         kind: BackendCapabilityKind,
         required_evidence: CapabilityEvidenceClass,
     ) -> Result<BackendCapabilityClaimWitness, BackendCapabilityAdmissionDenial> {
-        match self.require_checked(kind, required_evidence).into_raw() {
+        match self
+            .require_immediate_checked(kind, required_evidence)
+            .into_raw()
+        {
             worth_proof::TransitionOutcome::Success(claim) => Ok(claim),
             worth_proof::TransitionOutcome::Denied(denial) => Err(denial),
             worth_proof::TransitionOutcome::Stale(stale) => {
@@ -95,6 +107,32 @@ impl AdmittedBackendCapabilityWitness {
         kind: BackendCapabilityKind,
         required_evidence: CapabilityEvidenceClass,
     ) -> BackendCapabilityClaimOutcome {
+        match self
+            .require_immediate_checked(kind, required_evidence)
+            .into_raw()
+        {
+            worth_proof::TransitionOutcome::Success(claim) => {
+                worth_proof::TransitionOutcome::success(claim).into()
+            }
+            worth_proof::TransitionOutcome::Denied(denial) => {
+                worth_proof::TransitionOutcome::denied(denial).into()
+            }
+            worth_proof::TransitionOutcome::Stale(stale) => {
+                worth_proof::TransitionOutcome::stale(stale).into()
+            }
+            worth_proof::TransitionOutcome::RebindRequired(rebind) => {
+                worth_proof::TransitionOutcome::rebind_required(rebind).into()
+            }
+            worth_proof::TransitionOutcome::Deferred(impossible) => match impossible {},
+            worth_proof::TransitionOutcome::Failed(impossible) => match impossible {},
+        }
+    }
+
+    fn require_immediate_checked(
+        &self,
+        kind: BackendCapabilityKind,
+        required_evidence: CapabilityEvidenceClass,
+    ) -> ImmediateBackendCapabilityClaimOutcome {
         if !self.evidence_class.satisfies(required_evidence) {
             return worth_proof::TransitionOutcome::denied(
                 BackendCapabilityAdmissionDenial::EvidenceClassTooWeak {
@@ -161,6 +199,22 @@ impl AdmittedBackendCapabilityWitness {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BackendCapabilityQualificationDeferred {
+    kind: BackendCapabilityKind,
+}
+
+impl BackendCapabilityQualificationDeferred {
+    pub const fn kind(self) -> BackendCapabilityKind {
+        self.kind
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn for_test(kind: BackendCapabilityKind) -> Self {
+        Self { kind }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackendCapabilityStale {
     kind: BackendCapabilityKind,
 }
@@ -168,6 +222,11 @@ pub struct BackendCapabilityStale {
 impl BackendCapabilityStale {
     pub const fn kind(self) -> BackendCapabilityKind {
         self.kind
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn for_test(kind: BackendCapabilityKind) -> Self {
+        Self { kind }
     }
 }
 
@@ -184,6 +243,30 @@ impl BackendCapabilityRebindRequired {
 
     pub const fn triggers(self) -> BackendRebindTriggers {
         self.triggers
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn for_test(
+        kind: BackendCapabilityKind,
+        triggers: BackendRebindTriggers,
+    ) -> Self {
+        Self { kind, triggers }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BackendCapabilityQualificationFailure {
+    kind: BackendCapabilityKind,
+}
+
+impl BackendCapabilityQualificationFailure {
+    pub const fn kind(self) -> BackendCapabilityKind {
+        self.kind
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn for_test(kind: BackendCapabilityKind) -> Self {
+        Self { kind }
     }
 }
 

@@ -1,7 +1,0 @@
-error[E0451]: fields `kind` and `descriptor_digest` of struct `WorthQueryGraphObligationOperatingWorldDescriptor` are private
- --> tests/ui/graph_obligation/index/operating_world_descriptor_constructor_private.rs:5:11
-  |
-4 |     let _worthd = WorthQueryGraphObligationOperatingWorldDescriptor {
-  |                   ------------------------------------------------- in this type
-5 |         ..WorthQueryGraphObligationOperatingWorldDescriptor::preview()
-  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ fields `kind` and `descriptor_digest` are private

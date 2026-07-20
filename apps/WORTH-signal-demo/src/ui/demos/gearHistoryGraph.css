@@ -1,0 +1,155 @@
+.gear-history {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.gear-history-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gear-history-heading > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.gear-history-heading span {
+  color: #d8b96f;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gear-history-heading h3,
+.gear-history-heading p {
+  margin: 0;
+}
+
+.gear-history-heading h3 {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.gear-history-heading p {
+  max-width: 520px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.gear-history-track {
+  overflow-x: auto;
+  scrollbar-color: rgba(216, 185, 111, 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+.gear-history-graph {
+  display: block;
+  width: 100%;
+  height: auto;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(241, 199, 111, 0.07), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent);
+}
+
+.gear-history-lane,
+.gear-history-edge {
+  fill: none;
+  stroke-width: 2;
+}
+
+.gear-history-lane.main,
+.gear-history-edge.main { stroke: rgba(241, 199, 111, 0.35); }
+.gear-history-lane.design,
+.gear-history-edge.design { stroke: rgba(125, 211, 252, 0.42); }
+
+.gear-history-lane-label {
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-anchor: start;
+}
+
+.gear-history-lane-label.main { fill: #d8b96f; }
+.gear-history-lane-label.design { fill: #7dd3fc; }
+
+.gear-history-time-label {
+  fill: rgba(223, 228, 236, 0.42);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-anchor: end;
+}
+
+.gear-history-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.gear-history-node-halo {
+  fill: #07090d;
+  stroke-width: 2;
+  transition: fill 150ms ease, stroke-width 150ms ease;
+}
+
+.gear-history-node.main .gear-history-node-halo { stroke: #d8b96f; }
+.gear-history-node.design .gear-history-node-halo { stroke: #7dd3fc; }
+.gear-history-node-core { fill: #fff; }
+
+.gear-history-node:hover .gear-history-node-halo,
+.gear-history-node:focus .gear-history-node-halo,
+.gear-history-node.selected .gear-history-node-halo {
+  fill: rgba(241, 199, 111, 0.2);
+  stroke-width: 4;
+}
+
+.gear-history-node.design:hover .gear-history-node-halo,
+.gear-history-node.design:focus .gear-history-node-halo,
+.gear-history-node.design.selected .gear-history-node-halo {
+  fill: rgba(125, 211, 252, 0.18);
+}
+
+.gear-history-node-title {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 760;
+  text-anchor: middle;
+}
+
+.gear-history-node-detail {
+  fill: rgba(223, 228, 236, 0.55);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 8px;
+  text-anchor: middle;
+}
+
+.gear-history-head-label rect {
+  fill: rgba(255, 255, 255, 0.055);
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+.gear-history-head-label text {
+  fill: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+
+@media (max-width: 700px) {
+  .gear-history-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gear-history-heading p { text-align: left; }
+}

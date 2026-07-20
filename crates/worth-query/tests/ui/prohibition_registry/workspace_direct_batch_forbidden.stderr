@@ -1,5 +1,0 @@
-error[E0599]: no method named `batch` found for struct `WorthQueryWorkspace` in the current scope
- --> tests/ui/prohibition_registry/workspace_direct_batch_forbidden.rs:4:23
-  |
-4 |     let _ = workspace.batch(|batch: WorthQueryMutationBatchBuilder| batch);
-  |                       ^^^^^ method not found in `WorthQueryWorkspace`

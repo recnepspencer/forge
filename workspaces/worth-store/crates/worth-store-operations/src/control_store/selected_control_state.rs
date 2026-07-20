@@ -100,6 +100,7 @@ fn decode_selected_state(
     budget: OperationalControlReplayBudget,
 ) -> ControlStoreTrustPosture {
     let mut replay = Some(SelectedControlReplay::new(budget));
+    let mut durable_records = Vec::new();
     let mut denial = None;
     let mut record_index = 0u64;
     let visit = selected_store.physical().visit_records(|raw| {
@@ -128,6 +129,13 @@ fn decode_selected_state(
                     ));
                     return;
                 };
+                if durable_records.try_reserve(1).is_err() {
+                    denial = Some(ControlStoreTrustPosture::Unavailable(
+                        ControlStoreAvailabilityDenial::Media(ControlMediaFault::AllocationFailed),
+                    ));
+                    return;
+                }
+                durable_records.push(record.clone());
                 if let Err(error) = current.observe(record_index, record) {
                     denial = Some(map_replay_denial(error));
                     return;
@@ -209,6 +217,7 @@ fn decode_selected_state(
         selected,
         summary.identity(),
         history_summary,
+        durable_records,
         replayed,
     ))
 }

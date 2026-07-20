@@ -50,9 +50,7 @@ impl WorthUiInstalledQueryDomain {
             }
             WorthUiQueryViewLifecycle::Live => {
                 self.handle()
-                    .live_measurements(super::installed_live_view::query_live_resource_name(
-                        self, &identity,
-                    ))
+                    .live_measurements()
                     .map_err(|_| WorthUiQueryViewDeclarationDenial::QueryDeclarationUnavailable)?;
             }
         }

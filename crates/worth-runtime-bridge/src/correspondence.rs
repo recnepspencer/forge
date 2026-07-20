@@ -1,0 +1,45 @@
+pub(crate) mod admission;
+mod admission_outcome;
+mod batch_admission;
+mod delivery;
+mod delivery_outcome;
+mod delivery_preflight;
+mod installed_witness;
+mod mapping_admission;
+mod query_dependency_registry;
+mod rebuild_report;
+mod registration;
+mod resolution;
+mod semantic_delivery_match;
+mod semantic_dependency_candidate;
+mod signal_admission;
+mod signal_graph_binding;
+mod signal_target_declaration;
+mod slot_allocation;
+mod target_allocation;
+mod target_mapping;
+
+pub(crate) use batch_admission::{isolate_allocation_state, prepare_correspondence_batch};
+pub(crate) use query_dependency_registry::AdmittedQueryDependencyRegistry;
+pub(crate) use slot_allocation::SharedCorrespondenceAllocationRegistry;
+
+pub use admission::CorrespondenceAdmissionOutcome;
+pub use admission_outcome::{
+    BridgeCorrespondenceAdmissionFailure, BridgeCorrespondenceDeferred, BridgeCorrespondenceDenial,
+    BridgeCorrespondenceDenialKind, BridgeCorrespondenceRebindRequired, BridgeCorrespondenceStale,
+    CorrespondenceAdmissionCounters,
+};
+pub use delivery::CorrespondenceDeliveryOutcome;
+pub use delivery_outcome::{BridgeCorrespondenceDeliveryDenial, CorrespondenceDeliveryCounters};
+pub use installed_witness::{
+    BridgeCorrespondenceBasis, BridgeCorrespondencePrecision, BridgeInstalledSemanticCorrespondence,
+};
+pub(crate) use installed_witness::{InstalledCorrespondenceTarget, ProvenCorrespondenceTargets};
+pub use rebuild_report::BridgeCorrespondenceRebuildReport;
+pub use registration::BridgeSemanticCorrespondenceRegistration;
+pub use semantic_dependency_candidate::{
+    BridgeSemanticDependencyCandidate, BridgeSemanticLocality,
+};
+pub use signal_graph_binding::BridgeSignalGraphBinding;
+pub use signal_target_declaration::BridgeSignalAspectTargetDeclaration;
+pub(crate) use signal_target_declaration::BridgeSignalSlotRequest;

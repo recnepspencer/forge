@@ -21,6 +21,8 @@ fn every_governed_root_routes_and_adjacent_paths_skip() {
     let workspace = hostile_workspace();
     for path in [
         "cad/workspaces/example/src/lib.rs",
+        "workspaces/worth-query/crates/worth-query/src/lib.rs",
+        "workspaces/worth-query/crates/worth-query-certification/Cargo.toml",
         "tools/new-constitutional-tool/src/lib.rs",
         "crates/worth-proof/src/lib.rs",
         ".claude/settings.json",
@@ -37,8 +39,7 @@ fn every_governed_root_routes_and_adjacent_paths_skip() {
     }
     for path in [
         "cad/docs/road.md",
-        "crates/worth-query/src/lib.rs",
-        "crates/worth-query/Cargo.toml",
+        "workspaces/worth-ui/crates/worth-ui/src/lib.rs",
         "examples/unrelated/Cargo.toml",
         "tooling/readme.md",
         "README.md",

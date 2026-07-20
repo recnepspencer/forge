@@ -27,7 +27,7 @@ allocation-counter = "0.8.1"
 atomicwrites = "0.4.4"
 egui = { workspace = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
-worth-query = { path = "../../../../crates/worth-query" }
+worth-query = { path = "../../../worth-query/crates/worth-query" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-host-egui = { path = "../worth-ui-host-egui" }
 

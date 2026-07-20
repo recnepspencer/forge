@@ -191,6 +191,7 @@ fn shortcut_lanes_are_typed_denials() {
 }
 
 #[test]
+#[ignore = "release-scale blob qualification"]
 fn replay_bundle_is_stable_and_carries_exact_blob_counter_evidence() {
     let seed = BlobHarnessScenarioSeed::builder()
         .profile(BlobHarnessProfile::ci_memory_envelope_exceeding())
@@ -351,6 +352,7 @@ fn hostile_lanes_are_typed_denials() {
 }
 
 #[test]
+#[ignore = "release-scale blob qualification"]
 fn real_multi_gb_temp_file_fixture_emits_heavy_topology_evidence() {
     let witness = execute_blob_harness_real_multi_gb_temp_file_fixture();
     let evidence = witness

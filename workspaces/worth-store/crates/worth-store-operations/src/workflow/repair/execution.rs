@@ -7,7 +7,7 @@ use worth_store_physical_integrity::{
     IntegrityOperationalRepairOwner, IntegrityRepairClassificationReceipt,
 };
 
-use crate::authorization::{consume_authorization, recover_authorization_consumption};
+use crate::authorization::{consume_authorization_through, recover_authorization_consumption};
 use crate::{
     AuthorizationConsumptionDenial, AuthorizationConsumptionReceipt,
     AuthorizationRevocationObservation, IndeterminateRepairRecoveryHandle, OperationalControlStore,
@@ -97,12 +97,32 @@ impl AuthorizedRepairPlan {
         observed_at: u64,
         revocation: AuthorizationRevocationObservation,
     ) -> Result<ExecutionReadyRepair<'a>, RepairReadinessDenial> {
+        self.ready_through(
+            control,
+            control,
+            authorization_transition,
+            current,
+            observed_at,
+            revocation,
+        )
+    }
+
+    pub(super) fn ready_through<'a>(
+        self,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
+        authorization_transition: OperationalTransitionId,
+        current: &StoreCurrentAuthorityWitness,
+        observed_at: u64,
+        revocation: AuthorizationRevocationObservation,
+    ) -> Result<ExecutionReadyRepair<'a>, RepairReadinessDenial> {
         if self.authorization.binding().authority_identity() != current.authority_identity() {
             return Err(RepairReadinessDenial::StaleAuthority);
         }
         let operation_id = self.operation_id;
-        let consumed = consume_authorization(
+        let consumed = consume_authorization_through(
             control,
+            append,
             operation_id.clone(),
             authorization_transition,
             self.authorization,
@@ -113,8 +133,9 @@ impl AuthorizedRepairPlan {
         .map_err(RepairReadinessDenial::Authorization)?;
         let plan_fingerprint = consumed.authorized().binding().fingerprint();
         let owner_nodes = self.layout.len() as u64 + 1;
-        let journal = RepairExecutionJournal::open(
+        let journal = RepairExecutionJournal::open_through(
             control,
+            append,
             current.authority_identity(),
             operation_id,
             consumed.receipt().authorization_identity(),
@@ -139,6 +160,16 @@ impl LoweredRepairOwnerPlanDag {
         self,
         handle: &IndeterminateRepairRecoveryHandle,
         control: &'a OperationalControlStore,
+        current: &StoreCurrentAuthorityWitness,
+    ) -> Result<ExecutionReadyRepair<'a>, RepairReadinessDenial> {
+        self.recover_ready_through(handle, control, control, current)
+    }
+
+    pub(super) fn recover_ready_through<'a>(
+        self,
+        handle: &IndeterminateRepairRecoveryHandle,
+        control: &'a OperationalControlStore,
+        append: &'a dyn crate::OperationalControlStorePort,
         current: &StoreCurrentAuthorityWitness,
     ) -> Result<ExecutionReadyRepair<'a>, RepairReadinessDenial> {
         let binding = self.authorization.binding();
@@ -174,9 +205,13 @@ impl LoweredRepairOwnerPlanDag {
             handle.plan_fingerprint(),
         )
         .map_err(RepairReadinessDenial::Authorization)?;
-        let journal =
-            RepairExecutionJournal::recover(control, current.authority_identity(), handle)
-                .map_err(RepairReadinessDenial::Journal)?;
+        let journal = RepairExecutionJournal::recover_through(
+            control,
+            append,
+            current.authority_identity(),
+            handle,
+        )
+        .map_err(RepairReadinessDenial::Journal)?;
         Ok(ExecutionReadyRepair {
             authority_identity: current.authority_identity(),
             authorization,

@@ -23,7 +23,7 @@ test("forms closeout matrix ties current product families to machine-checkable e
     "closeout",
   ]);
   assert.equal(matrix.rows.length, 5);
-  assert.equal(inventory.features.length, 19);
+  assert.equal(inventory.features.length, 13);
 
   const docsRow = matrix.rows.find((row) => row.family === "docsAndCloseout");
   assert.ok(docsRow);
@@ -31,7 +31,7 @@ test("forms closeout matrix ties current product families to machine-checkable e
     "package/product/signals_runtime/forms/closeout/forms_feature_docs_happy_path.test.mjs",
   ));
 
-  const resourceRow = matrix.rows.find((row) => row.family === "resourceBackedAndCollaborationPending");
+  const resourceRow = matrix.rows.find((row) => row.family === "resourceBackedAndCollaboration");
   assert.ok(resourceRow.resourceBranch.includes(
     "package/product/signals_runtime/forms/resource_source/state/form_resource_visible_selection_readback.test.mjs",
   ));

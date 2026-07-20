@@ -14,7 +14,7 @@ error: cannot construct `BridgeCommittedPatchItem` with struct literal syntax du
 18 | |         ),
    | |_________- private field
    |
-   = note: ...and other private field `relational_record_identity` that was not provided
+   = note: ...and other private fields `relational_record_identity` and `semantic_change` that were not provided
 help: you might have meant to use an associated function to build this type
    |
  8 -     let _item = BridgeCommittedPatchItem {
@@ -43,7 +43,7 @@ help: you might have meant to use an associated function to build this type
 17 -             ),
 18 -         ),
 19 -     };
- 8 +     let _item = BridgeCommittedPatchItem::from_relational_record_parts(_, _, _);
+ 8 +     let _item = BridgeCommittedPatchItem::from_relational_record_parts(_, _, _, _);
    |
  8 -     let _item = BridgeCommittedPatchItem {
  9 -         entity_identity: sealed_authority_placeholder(),
@@ -58,4 +58,18 @@ help: you might have meant to use an associated function to build this type
 18 -         ),
 19 -     };
  8 +     let _item = BridgeCommittedPatchItem::with_relational_record_target(_, _);
+   |
+ 8 -     let _item = BridgeCommittedPatchItem {
+ 9 -         entity_identity: sealed_authority_placeholder(),
+10 -         target: BridgeCommittedPatchTarget::entity_field_path(
+11 -             AspectLocator::new(
+12 -                 LocatorAuthority::Authoritative,
+13 -                 AspectKey::new("profile").expect("valid native aspect key"),
+14 -             ),
+15 -             CanonicalFieldPath::single(
+16 -                 FieldKey::new("name".to_owned()).expect("valid native field key"),
+17 -             ),
+18 -         ),
+19 -     };
+ 8 +     let _item = BridgeCommittedPatchItem::with_relational_semantic_change(_, _, _);
    |

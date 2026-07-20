@@ -4,6 +4,9 @@ use crate::adapter::{
     BridgeSourceAdapter, CommittedPatchSource, ContinuityLineageSource, InvalidationSink,
     SnapshotReadSource, SnapshotReaderPool, TruthBranchHeadSource, TruthWritebackAuthority,
 };
+use crate::correspondence::{
+    AdmittedQueryDependencyRegistry, BridgeSemanticCorrespondenceRegistration,
+};
 use crate::diagnostics::DiagnosticSink;
 use crate::error::{BridgeBuildError, BridgeBuildErrorKind};
 use crate::facade::RuntimeBridge;

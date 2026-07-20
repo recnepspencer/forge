@@ -24,7 +24,7 @@ use worth_store_test_support::{
     NativeStoreAspectFixture,
 };
 
-use crate::{counter_support, coverage_support};
+use super::{counter_support, coverage_support};
 
 pub(crate) fn recovery_slice_evidence() -> RecoveryDogfoodSliceEvidence {
     recovery_slice_evidence_named(

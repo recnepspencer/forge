@@ -73,6 +73,7 @@ impl SignalGraph {
             id.index()
         );
         self.arena.nodes[id.index() as usize].vacate();
+        self.conditional_dependency_versions.remove(&id);
         self.arena.active_nodes = self.arena.active_nodes.saturating_sub(1);
         self.arena.record_retired_node();
         if !self.arena.nodes[id.index() as usize].is_retired() {

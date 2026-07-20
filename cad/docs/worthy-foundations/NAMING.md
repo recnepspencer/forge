@@ -30,16 +30,19 @@ There is no fourth segment. If a crate feels like it needs one
 (`worthy-solver-curve-nurbs`), that is the signal to either stay in the
 parent crate or propose a new domain noun - not to invent sub-grammar.
 
-### Framework-family exception: Query audience facades
+### Framework-family exception: Query workspace
 
-The Query engine and its audience facades are **platform framework crates** in
-the root workspace. They are a reviewed exception to the ordinary
+The Query engine, cold certification leaf, and audience facades are **platform
+framework crates** in `workspaces/worth-query`. They are a reviewed exception to the ordinary
 `{tier}-{band}-{domain}` birth grammar and are **not** a precedent for other
 ungrammatical names:
 
 | Package | Kind | Legal consumers | Everyone else |
 |---|---|---|---|
-| `worth-query` | framework engine | audience facades only | denied |
+| `worth-query` | migration framework engine | host/replay facades and cold certification | denied |
+| `worth-query-declaration` | internal declaration authority | `worth-query-installation`, migration engine, declaration/host facades, cold certification | denied |
+| `worth-query-installation` | internal installation authority | migration engine, host facade, cold certification | denied |
+| `worth-query-certification` | cold certification leaf | explicit Query certification; cert-only replay facade when required | denied |
 | `worth-query-decl` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |
 | `worth-query-host` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |
 | `worth-query-replay` | audience facade | `cert` band only | denied |

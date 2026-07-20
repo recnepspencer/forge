@@ -1309,7 +1309,8 @@ async-only, and mixed-cause lanes.
 **Relevant Query docs**
 - [Support Matrix And Admission](../../crates/worth-query/docs/foundations/support-matrix-and-admission.md)
 - [Downstream Runtime Integration](../../crates/worth-query/docs/foundations/downstream-runtime-integration.md)
-- [Public Doc Coverage](../../crates/worth-query/docs/domain-capabilities/public-doc-coverage.md)
+- [Runtime-Installed Domains And Operations](../../workspaces/worth-query/crates/worth-query/docs/domain-capabilities/runtime-installed-domains.md)
+- [Domain Capability Documentation Certification](../../workspaces/worth-query/crates/worth-query/docs/domain-capabilities/public-doc-coverage.md)
 
 **Documentation follow-through**
 - Add or revise the phase's feature-facing docs with the `feature-doc-writer` skill before this phase can close.

@@ -3,8 +3,8 @@ use worth_store_physical_backend::BackendDurabilityProfileId;
 use crate::ProtocolFamily;
 
 use super::{
-    ExecutedProtocolCheck, ProtocolArtifactIdentityInspectionDenial, ProtocolCheckArtifactIdentity,
-    ProtocolCheckBounds, ProtocolCheckInvocation,
+    ExecutedProtocolCheck, ExternalToolIdentity, ProtocolArtifactIdentityInspectionDenial,
+    ProtocolCheckArtifactIdentity, ProtocolCheckBounds, ProtocolCheckInvocation,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,6 +19,7 @@ pub struct ProtocolCounterEvidenceIdentity {
     bounds: ProtocolCheckBounds,
     backend_profile: BackendDurabilityProfileId,
     artifacts: ProtocolCheckArtifactIdentity,
+    external_tool: Option<ExternalToolIdentity>,
     artifact_posture: ProtocolArtifactIdentityPosture,
 }
 
@@ -32,6 +33,7 @@ impl ProtocolCounterEvidenceIdentity {
             bounds: check.invocation().bounds(),
             backend_profile,
             artifacts: check.artifact_identity().clone(),
+            external_tool: Some(check.external_tool_identity().clone()),
             artifact_posture: ProtocolArtifactIdentityPosture::ExecutedAndObserved,
         }
     }
@@ -45,6 +47,7 @@ impl ProtocolCounterEvidenceIdentity {
             bounds: invocation.bounds(),
             backend_profile,
             artifacts: ProtocolCheckArtifactIdentity::declared_for(invocation)?,
+            external_tool: None,
             artifact_posture: ProtocolArtifactIdentityPosture::DeclaredStructuralFixture,
         })
     }
@@ -63,6 +66,10 @@ impl ProtocolCounterEvidenceIdentity {
 
     pub const fn artifacts(&self) -> &ProtocolCheckArtifactIdentity {
         &self.artifacts
+    }
+
+    pub const fn external_tool(&self) -> Option<&ExternalToolIdentity> {
+        self.external_tool.as_ref()
     }
 
     pub const fn artifact_posture(&self) -> ProtocolArtifactIdentityPosture {

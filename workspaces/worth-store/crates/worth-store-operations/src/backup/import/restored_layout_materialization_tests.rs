@@ -9,7 +9,6 @@ use worth_store_layout_indexes::materialization::{
 };
 use worth_store_offline_verifier::OfflineCustodyCapsuleObservation;
 use worth_store_physical_format::PhysicalStoreIdentity;
-use worth_store_physical_isolation::ReadCopyUpdateRootPublication;
 use worth_store_recovery_physics::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
     CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
@@ -54,7 +53,9 @@ fn import_publication_is_bound_to_the_exact_physical_owner_outcome() {
     let readiness = crate::admit_import_publication_readiness(materialization, &plan, &authority)
         .into_result()
         .expect("restored materialization and physical plan share current authority");
-    let publication = ReadCopyUpdateRootPublication::publish(plan).unwrap();
+    let publication =
+        worth_store_test_support::harness::physical_isolation::publish_in_temporary_store(plan)
+            .unwrap();
     let published = crate::complete_import_publication(readiness, publication)
         .into_result()
         .expect("exact physical owner outcome completes import publication");
@@ -92,7 +93,11 @@ fn another_physical_publication_cannot_complete_import_readiness() {
             .into_result()
             .unwrap();
     let substituted_plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&substituted);
-    let publication = ReadCopyUpdateRootPublication::publish(substituted_plan).unwrap();
+    let publication =
+        worth_store_test_support::harness::physical_isolation::publish_in_temporary_store(
+            substituted_plan,
+        )
+        .unwrap();
 
     assert!(matches!(
         crate::complete_import_publication(readiness, publication),

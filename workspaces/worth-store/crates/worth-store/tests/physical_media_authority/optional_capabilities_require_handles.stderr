@@ -1,0 +1,19 @@
+error[E0599]: no method named `direct_io` found for reference `&FilesystemBackendProfile` in the current scope
+ --> tests/physical_media_authority/optional_capabilities_require_handles.rs:4:13
+  |
+4 |     profile.direct_io();
+  |             ^^^^^^^^^ method not found in `&FilesystemBackendProfile`
+
+error[E0599]: no method named `sparse_allocate` found for reference `&FilesystemBackendProfile` in the current scope
+ --> tests/physical_media_authority/optional_capabilities_require_handles.rs:5:13
+  |
+5 |     profile.sparse_allocate(0, 4096);
+  |             ^^^^^^^^^^^^^^^ method not found in `&FilesystemBackendProfile`
+
+error[E0277]: the trait bound `QualifiedMediaCapabilities: From<FilesystemBackendProfile>` is not satisfied
+ --> tests/physical_media_authority/optional_capabilities_require_handles.rs:9:13
+  |
+9 |     profile.into()
+  |             ^^^^ the trait `From<FilesystemBackendProfile>` is not implemented for `QualifiedMediaCapabilities`
+  |
+  = note: required for `FilesystemBackendProfile` to implement `Into<QualifiedMediaCapabilities>`

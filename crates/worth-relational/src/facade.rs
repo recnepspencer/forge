@@ -61,13 +61,8 @@ pub mod commit_strategies {
     pub use crate::commit_strategies::{FrozenCommitStrategyRegistry, StrategyExecutionError};
 }
 
-pub mod bridge {
-    pub use crate::presentation::bridge::{
-        bridge_snapshot_identity_for_commit, bridge_snapshot_identity_for_handle,
-        commit_envelope_to_bridge_envelope, publication_bundle_to_bridge_envelope,
-        publication_patch_to_bridge_envelope, RuntimeBridgeRelationalSource,
-    };
-}
+#[path = "facade/bridge.rs"]
+pub mod bridge;
 
 pub mod diagnostics {
     pub use crate::diagnostics::data::RelationalDiagnosticsFacade;
@@ -287,6 +282,7 @@ pub mod publication {
     pub use crate::publication::patch::data::{
         PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchStreamBatch,
         PatchStreamPosition, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
+        PublishedAspectChangePrecision, PublishedAuthoritativeAspectChange,
         PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
         PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
         RecordStructuralChange,
@@ -337,8 +333,8 @@ pub mod schema {
         MinimumCardinalityEnforcement, PairMinimumSemantics, PartitionIsolationContractDeclaration,
         PartitionIsolationMode, ProposedSchemaTransition, RelationIntegrityDeclarations,
         RelationIntegrityPlanCatalog, RelationIntegrityPlanRevision, RelationKindRegistration,
-        RelationalSchemaRegistry, SchemaAuthoritySnapshot, SchemaBoundaryFingerprint,
-        SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
+        RelationalAspectChangeKind, RelationalSchemaRegistry, SchemaAuthoritySnapshot,
+        SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
         SchemaContinuationAdmissionObservation, SchemaContinuationClassification,
         SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
         SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaLineageOrderingSemantics,

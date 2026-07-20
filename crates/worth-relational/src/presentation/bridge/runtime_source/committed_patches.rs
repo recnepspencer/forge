@@ -4,23 +4,51 @@ use worth_runtime_bridge::facade::{
 };
 
 use super::RuntimeBridgeRelationalSource;
-use crate::capabilities::CommitEnvelopeSource;
 use crate::presentation::bridge::identities::parse_bridge_commit_identity;
-use crate::presentation::bridge::patch_envelopes::commit_envelope_to_bridge_envelope;
 
 impl CommittedPatchSource for RuntimeBridgeRelationalSource {
+    fn authoritative_source_profile(
+        &self,
+    ) -> Option<worth_runtime_bridge::facade::BridgeAuthoritativeSourceProfile> {
+        Some(
+            worth_runtime_bridge::facade::BridgeAuthoritativeSourceProfile::new(
+                self.runtime.runtime_instance_id(),
+                super::super::identities::relational_bridge_adapter_identity(
+                    self.runtime.runtime_instance_id(),
+                ),
+            )
+            .expect("Relational runtime authority always yields a valid Bridge source profile"),
+        )
+    }
+
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let commit_id = parse_bridge_commit_identity(request.commit_identity())?;
-        let envelope = self.runtime.commit_envelope(commit_id).ok_or_else(|| {
-            RelationalBridgeSourceError::new(format!(
-                "relational runtime has no authoritative commit envelope for bridge commit `{}`",
-                commit_id.0
-            ))
-        })?;
-
-        Ok(commit_envelope_to_bridge_envelope(envelope))
+        match self.publish_commit(commit_id) {
+            worth_proof::TransitionOutcome::Success(publication) => {
+                Ok(publication.into_bridge_envelope())
+            }
+            worth_proof::TransitionOutcome::Denied(denial) => {
+                Err(RelationalBridgeSourceError::new(format!(
+                    "relational committed patch could not be admitted by Bridge: {denial}"
+                )))
+            }
+            worth_proof::TransitionOutcome::Deferred(_) => Err(RelationalBridgeSourceError::new(
+                "relational committed patch publication deferred",
+            )),
+            worth_proof::TransitionOutcome::Stale(_) => Err(RelationalBridgeSourceError::new(
+                "relational committed patch authority is stale",
+            )),
+            worth_proof::TransitionOutcome::RebindRequired(_) => {
+                Err(RelationalBridgeSourceError::new(
+                    "relational committed patch requires graph rebind",
+                ))
+            }
+            worth_proof::TransitionOutcome::Failed(_) => Err(RelationalBridgeSourceError::new(
+                "relational committed patch lowering failed",
+            )),
+        }
     }
 }

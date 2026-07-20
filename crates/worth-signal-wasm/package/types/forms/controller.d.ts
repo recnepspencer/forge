@@ -376,5 +376,11 @@ export interface FormFactory {
     TSource,
     { [K in keyof TFields]: FormFieldHandleFor<TFields[K]> }
   >;
+  readonly define: <
+    TSource = SignalValue,
+    const TDeclaration extends FormDeclaration<TSource> = FormDeclaration<TSource>,
+  >(
+    declaration: TDeclaration,
+  ) => TDeclaration;
   readonly source: FormSourceFactory;
 }

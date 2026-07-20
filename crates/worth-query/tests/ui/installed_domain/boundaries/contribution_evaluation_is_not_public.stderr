@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::runtime::evaluate_requested_domain_capability_contribution`
- --> tests/ui/installed_domain/boundaries/contribution_evaluation_is_not_public.rs:1:5
-  |
-1 | use worth_query::facade::runtime::evaluate_requested_domain_capability_contribution;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `evaluate_requested_domain_capability_contribution` in `facade::runtime`

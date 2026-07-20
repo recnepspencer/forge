@@ -38,6 +38,7 @@ impl<SnapshotState, SignalState, BranchHeadState, MappingState>
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
+            query_dependency_registrations: self.query_dependency_registrations,
         }
     }
 }
@@ -80,6 +81,7 @@ impl<PatchState, SignalState, BranchHeadState, MappingState>
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
+            query_dependency_registrations: self.query_dependency_registrations,
         }
     }
 }
@@ -123,6 +125,7 @@ impl<SignalState, MappingState>
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
+            query_dependency_registrations: self.query_dependency_registrations,
         }
     }
 
@@ -181,6 +184,7 @@ impl<PatchState, SnapshotState, BranchHeadState, MappingState>
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
+            query_dependency_registrations: self.query_dependency_registrations,
         }
     }
 
@@ -295,6 +299,7 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
+            query_dependency_registrations: self.query_dependency_registrations,
         }
     }
 

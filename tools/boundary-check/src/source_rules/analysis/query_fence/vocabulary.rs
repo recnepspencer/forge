@@ -84,12 +84,16 @@ mod tests {
     #[test]
     fn query_type_names_come_from_the_canonical_facade_model() {
         let contract = QueryAudienceContract {
+            workspace: ".".into(),
             engine_package: "worth-query".into(),
+            certification_package: None,
+            internal_packages: Vec::new(),
             audiences: vec![QueryAudienceFacadeConfig {
                 package: "worth-query-decl".into(),
                 label: "declaration".into(),
                 allowed_bands: vec!["entry".into()],
                 guidance: "fixture".into(),
+                authority_packages: vec!["worth-query".into()],
             }],
         };
         let root =

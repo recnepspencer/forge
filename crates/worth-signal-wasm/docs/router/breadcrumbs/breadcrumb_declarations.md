@@ -1,90 +1,72 @@
 # Breadcrumb Declarations
 
-## What This Feature Is
-
-Breadcrumb declarations are the route- and layout-owned breadcrumb definitions
-you attach with `signals.router.breadcrumb(...)`.
-
-## Why You Use It
-
-- declare breadcrumb meaning beside route meaning
-- avoid rebuilding crumbs from URL segments
-- give routes one stable crumb id, label, and target posture
-
-## Stable Entry Points
-
-- `signals.router.breadcrumb(...)`
-- `signals.router.breadcrumbEntry(...)`
-- `route(..., { breadcrumb: ... })`
-
-## Core Mental Model
-
-Breadcrumbs are route truth, not decorative string arrays. Each route owns its
-own crumb contribution. The router composes the trail later.
-
-## How It Executes
-
-1. declare a crumb id and label
-2. optionally declare a target
-3. attach the declaration to a route
-4. let projection, admission, or history materialize real breadcrumb entries
-
-## Small Example
+Declare each breadcrumb beside the route that gives it meaning. The router can
+then compose, carry, restore, and explain the trail without guessing from URL
+segments.
 
 ```ts
-const projectRoute = signals.router.route("/projects/:projectId", {
-  breadcrumb: signals.router.breadcrumb({
-    id: "project",
-    label: ({ params }) => `Project ${params.projectId}`,
+const routes = signals.router.define({
+  projects: signals.router.route("/projects", {
+    breadcrumb: signals.router.breadcrumb({
+      id: "projects",
+      label: "Projects",
+      target: "/projects",
+    }),
   }),
-});
-```
-
-## Real Example
-
-```ts
-const resultRoute = signals.router.route("/search/results/:resultId", {
-  breadcrumb: signals.router.breadcrumb({
-    id: "result",
-    label: ({ params }) => `Result ${params.resultId}`,
-    parent: signals.router.breadcrumbParent({
-      fallback: signals.router.breadcrumbEntry({
-        id: "search-results",
-        label: "Search Results",
-        target: "/search",
-      }),
+  project: signals.router.route("/projects/:projectId", {
+    breadcrumb: signals.router.breadcrumb({
+      id: "project",
+      label: ({ params }) => `Project ${params.projectId}`,
     }),
   }),
 });
 ```
 
-## How It Relates To Other Features
+An id is stable identity. A label is presentation. A target is where the crumb
+leads. Do not use the label as identity or split the pathname to manufacture a
+trail.
 
-- parent strategy is covered in [Breadcrumb Parent Strategies](./breadcrumb_parent_strategies.md)
-- restore and replay authority is covered in
-  [Breadcrumb Replay And Restore](./breadcrumb_replay_restore.md)
+## Declaring A Parent Strategy
 
-## Inspection And Debugging
+A deep route can recompute, carry, or fall back to parent context:
 
-- `projectedRoute.breadcrumb()`
-- `projectedRoute.breadcrumbTrail()`
-- `admittedRoute.breadcrumb()`
-- `admittedRoute.breadcrumbTrail()`
+```ts
+const resultBreadcrumb = signals.router.breadcrumb({
+  id: "search-result",
+  label: ({ params }) => `Result ${params.resultId}`,
+  parent: signals.router.breadcrumbParent({
+    carry: true,
+    fallback: signals.router.breadcrumbEntry({
+      id: "search",
+      label: "Search",
+      target: "/search",
+    }),
+  }),
+});
+```
 
-## Anti-Patterns
+The happy path uses the declared route trail. Carry and fallback exist for
+navigation paths where the current URL alone cannot reproduce useful ancestry.
 
-- deriving crumbs by splitting path segments
-- using labels as crumb identity
-- forcing child routes to rebuild the entire trail
+## Read Provenance, Not Just Labels
 
-## Current Limits
+Materialized entries report `status` and `sourceKind`: a crumb may be resolved,
+recomputed, carried, restored, or fallback truth. `entry.provenance()` tells you
+which kind you have and whether restore or replay is available.
 
-- breadcrumb labels are synchronous strings on the public route breadcrumb
-  declaration surface
-- advanced ancestry comes from parent strategies and provenance, not from one
-  callback that invents the whole trail
+```ts
+const candidate = routes.project("/projects/p7");
+const trail = candidate?.route().breadcrumbTrail();
 
-## Related Docs
+for (const entry of trail?.entries ?? []) {
+  console.log(entry.label, entry.provenance().sourceKind);
+}
+```
 
-- [Breadcrumb Entries](./breadcrumb_entries.md)
-- [Breadcrumb Parent Strategies](./breadcrumb_parent_strategies.md)
+Breadcrumbs remain synchronous declarations. Fetch display names before
+admission through resource truth, or carry/restore a previously materialized
+label; do not hide network work inside the label callback.
+
+Next: [Breadcrumb Parent Strategies](./breadcrumb_parent_strategies.md),
+[Carried Provenance](./carried_provenance.md), and
+[Restored Provenance](./restored_provenance.md).

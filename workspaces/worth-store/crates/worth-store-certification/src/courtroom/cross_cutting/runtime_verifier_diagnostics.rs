@@ -3,7 +3,8 @@ use crate::{
     RuntimeVerifierComparisonReport, RuntimeVerifierParityTrace, RuntimeVerifierRelationship,
 };
 use worth_store_physical_format::{
-    PhysicalShortcutBoundary, PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind,
+    InMemoryPhysicalFormatModelDenial, InMemoryPhysicalFormatModelDenialKind,
+    PhysicalShortcutBoundary,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,9 +57,9 @@ impl RuntimeVerifierDiagnosticReport {
     }
 
     pub fn from_shortcut_facade_denial(
-        denial: &PhysicalStoreRuntimeDenial,
+        denial: &InMemoryPhysicalFormatModelDenial,
     ) -> Result<Self, RuntimeVerifierDiagnosticDenial> {
-        if denial.kind() != PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected {
+        if denial.kind() != InMemoryPhysicalFormatModelDenialKind::ShortcutBoundaryRejected {
             return Err(RuntimeVerifierDiagnosticDenial::UnexpectedFacadeDenial(
                 denial.kind(),
             ));
@@ -96,6 +97,6 @@ impl RuntimeVerifierDiagnosticReport {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeVerifierDiagnosticDenial {
     UnexpectedMismatch(RuntimeVerifierComparisonClassification),
-    UnexpectedFacadeDenial(PhysicalStoreRuntimeDenialKind),
+    UnexpectedFacadeDenial(InMemoryPhysicalFormatModelDenialKind),
     MissingShortcutBoundary,
 }

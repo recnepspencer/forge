@@ -230,9 +230,10 @@ fn executed_btree_mutation(
         .into_copy_on_write()
         .expect("B-tree mutation must retain copy-on-write authority");
     let mut runtime =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             inputs.old_root,
-        );
+        )
+        .unwrap();
     let first = copy_on_write_layout_mutation_execution().execute(&mut runtime, plan.clone());
     if let Some(ledger) = ledger.as_deref_mut() {
         ledger.record_copy_on_write_mutation_execution(first.owner_case_observation());

@@ -5,20 +5,34 @@
 //! synthetic courtroom-only witnesses and shortcut attempts that exist only to
 //! falsify production topology.
 
+#[cfg(feature = "certification-world")]
 mod blob;
+#[cfg(feature = "boundary-fixtures")]
 pub mod fixtures;
+#[cfg(feature = "layout-fixtures")]
 pub mod layout;
+#[cfg(feature = "layout-fixtures")]
 pub mod layout_evolution;
+#[cfg(feature = "layout-fixtures")]
 mod lsm_execution_fixture;
+#[cfg(feature = "physical-isolation-fixtures")]
 pub mod physical_isolation;
+#[cfg(feature = "physical-isolation-fixtures")]
 pub mod physical_reference;
+#[cfg(feature = "certification-world")]
 pub mod physical_simulation;
+#[cfg(feature = "certification-world")]
 mod pressure;
+#[cfg(feature = "boundary-fixtures")]
 pub mod production_facade;
+#[cfg(feature = "physical-isolation-fixtures")]
 pub mod recovery;
+#[cfg(feature = "certification-world")]
 mod security_scope;
+#[cfg(feature = "physical-isolation-fixtures")]
 pub mod test_authority;
 
+#[cfg(feature = "layout-fixtures")]
 pub use lsm_execution_fixture::{
     execute_baseline_lsm_membership_replacement_fixture, execute_baseline_lsm_persisted_fixture,
     execute_baseline_lsm_replay_source_fixture, execute_frontierless_lsm_replay_source_fixture,
@@ -28,4 +42,5 @@ pub use lsm_execution_fixture::{
     ExecutedLsmCompactionFixture, LsmMembershipReplacementCrashFixture, LsmOwnerCaseObservations,
     LsmReplayHostileMatrix, RepeatedLsmMembershipFixture,
 };
+#[cfg(feature = "boundary-fixtures")]
 pub use production_facade::*;

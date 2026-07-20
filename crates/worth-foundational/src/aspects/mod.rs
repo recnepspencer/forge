@@ -1,3 +1,4 @@
+mod binding;
 mod contracts;
 mod evolution;
 mod front_doors;
@@ -10,6 +11,7 @@ mod state;
 mod structs;
 mod validation;
 
+pub use binding::{AspectBinding, AuthoritativeAspectChangeKind, TruthPartitionRole};
 pub use contracts::{
     AbsenceLaw, AspectContract, AspectEquivalenceBasis, AspectShape, OpaqueAspectType,
     ReferenceAspectType,

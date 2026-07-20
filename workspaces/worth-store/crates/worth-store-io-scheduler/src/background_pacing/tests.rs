@@ -1,7 +1,6 @@
 mod interference_evidence;
 mod pacing_edges;
 mod policy_receipts;
-mod producer_declarations;
 mod progression;
 mod revocation_units;
 mod secure_io_preservation;

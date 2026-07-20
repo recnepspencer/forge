@@ -27,9 +27,10 @@ fn migration_and_rollback_publish_exact_version_binding_counters() {
         rollback_publication_plan(&current, "layout-rollback-publication", 1_903),
     );
     let mut publication =
-        worth_store_physical_isolation::PhysicalRootPublicationRuntime::from_current_root(
+        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             request.publication_source_root(),
-        );
+        )
+        .unwrap();
     let receipt = layout_rollback_execution(&mut publication)
         .execute(request)
         .into_published()

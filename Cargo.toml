@@ -3,7 +3,7 @@ resolver = "2"
 # Road 1 sub-workspaces under cad/workspaces own their own package membership.
 # Keep them out of the root workspace so whole-world orchestration must route
 # through explicit --manifest-path calls rather than silent root ownership.
-exclude = ["cad/workspaces/*", "crates/worth-geom"]
+exclude = ["cad/workspaces/*", "workspaces/*", "crates/worth-geom"]
 members = [
     "crates/worth-harness",
     "crates/worth-math",
@@ -12,10 +12,6 @@ members = [
 
     "crates/worth-runtime-bridge",
     "crates/worth-server",
-    "crates/worth-query",
-    "crates/worth-query-decl",
-    "crates/worth-query-host",
-    "crates/worth-query-replay",
     "crates/worth-foundational",
     "crates/worth-proof",
     "crates/worth-signal",
@@ -50,10 +46,10 @@ hadwiger-research = { path = "crates/hadwiger-research" }
 
 worth-runtime-bridge = { path = "crates/worth-runtime-bridge" }
 worth-server = { path = "crates/worth-server" }
-worth-query = { path = "crates/worth-query" }
-worth-query-decl = { path = "crates/worth-query-decl" }
-worth-query-host = { path = "crates/worth-query-host" }
-worth-query-replay = { path = "crates/worth-query-replay" }
+worth-query = { path = "workspaces/worth-query/crates/worth-query" }
+worth-query-decl = { path = "workspaces/worth-query/crates/worth-query-decl" }
+worth-query-host = { path = "workspaces/worth-query/crates/worth-query-host" }
+worth-query-replay = { path = "workspaces/worth-query/crates/worth-query-replay" }
 worth-foundational = { path = "crates/worth-foundational" }
 worth-proof = { path = "crates/worth-proof" }
 worth-signal = { path = "crates/worth-signal" }

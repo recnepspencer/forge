@@ -1,0 +1,11 @@
+error[E0603]: module `planning` is private
+ --> tests/ui/prohibition_registry/deep_phase_module_import_forbidden.rs:1:18
+  |
+1 | use worth_query::planning::plan_validated_bundle;
+  |                  ^^^^^^^^ private module
+  |
+note: the module `planning` is defined here
+ --> $WORKSPACE/crates/worth-query/src/lib.rs
+  |
+  | mod planning;
+  | ^^^^^^^^^^^^

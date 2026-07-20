@@ -15,9 +15,11 @@ use worth_store_physical_isolation::{
     CurrentGenerationPhysicalReference, GenerationCountedPhysicalReference,
 };
 
+#[cfg(feature = "certification-world")]
+use crate::native_aspect_fixture_authoring::authored_replay_boundary_scalar_string_fixture;
 use crate::native_aspect_fixture_authoring::{
-    authored_replay_boundary_scalar_string_fixture, authored_scalar_string_fixture,
-    authored_segment_header_fixture, AuthoredNativeStoreAspectFixture,
+    authored_scalar_string_fixture, authored_segment_header_fixture,
+    AuthoredNativeStoreAspectFixture,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,6 +61,7 @@ impl NativeStoreAspectFixture {
         }
     }
 
+    #[cfg(feature = "certification-world")]
     pub(crate) fn replay_boundary_scalar_string(value: &str) -> Self {
         Self {
             authored: authored_replay_boundary_scalar_string_fixture(value),

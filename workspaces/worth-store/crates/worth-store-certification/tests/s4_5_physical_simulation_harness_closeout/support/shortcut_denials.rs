@@ -11,7 +11,7 @@ use worth_store_physical_certification::{
     SyntheticHarnessShortcutDenialReceipt,
 };
 
-use crate::coverage_support;
+use super::super::coverage_support;
 
 pub(super) fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialReceipt> {
     vec![

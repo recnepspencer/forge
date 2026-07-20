@@ -1,98 +1,75 @@
 {
+  "schemaVersion": 2,
   "entrypoints": [
-    {
-      "id": "forms_home",
-      "doc": "forms/README.md"
-    },
-    {
-      "id": "forms_overview",
-      "doc": "forms/index.md"
-    },
-    {
-      "id": "forms_recipes",
-      "doc": "forms/recipes.md"
-    },
-    {
-      "id": "recipes",
-      "doc": "learn/recipes.md"
-    }
+    { "id": "forms_overview", "doc": "forms/index.md", "visibility": "public" },
+    { "id": "forms_glossary", "doc": "forms/glossary.md", "visibility": "supporting" },
+    { "id": "forms_recipes", "doc": "forms/recipes.md", "visibility": "supporting" }
   ],
   "features": [
     {
-      "id": "your_first_form",
-      "doc": "forms/getting-started/your-first-form.md"
+      "id": "getting_started",
+      "canonicalDoc": "forms/getting-started/your-first-form.md",
+      "docRoots": ["forms/getting-started/"]
     },
     {
-      "id": "choosing_a_form_source",
-      "doc": "forms/getting-started/choosing-a-form-source.md"
+      "id": "state_fields_and_changes",
+      "canonicalDoc": "forms/state/README.md",
+      "docRoots": ["forms/state/", "forms/changes/"]
     },
     {
-      "id": "common_form_patterns",
-      "doc": "forms/getting-started/common-form-patterns.md"
+      "id": "validation_and_messages",
+      "canonicalDoc": "forms/validation/README.md",
+      "docRoots": ["forms/validation/"]
     },
     {
-      "id": "source_truth_draft_and_effective_values",
-      "doc": "forms/state/source-truth-draft-and-effective-values.md"
+      "id": "readiness_and_permissions",
+      "canonicalDoc": "forms/availability/README.md",
+      "docRoots": ["forms/availability/"]
     },
     {
-      "id": "fields_and_field_paths",
-      "doc": "forms/state/fields-and-field-paths.md"
+      "id": "actions_and_submission",
+      "canonicalDoc": "forms/actions/README.md",
+      "docRoots": ["forms/actions/"]
     },
     {
-      "id": "repeated_items",
-      "doc": "forms/state/repeated-items.md"
+      "id": "multi_step_flows",
+      "canonicalDoc": "forms/steps/README.md",
+      "docRoots": ["forms/steps/"]
     },
     {
-      "id": "attachments_and_evidence_fields",
-      "doc": "forms/state/attachments-and-evidence-fields.md"
+      "id": "layout_inputs_and_accessibility",
+      "canonicalDoc": "forms/layout/README.md",
+      "docRoots": ["forms/layout/", "forms/inputs/", "forms/interaction/", "forms/media/"]
     },
     {
-      "id": "input_adapters",
-      "doc": "forms/state/input-adapters.md"
+      "id": "resource_backed_forms",
+      "canonicalDoc": "forms/resource-backed/README.md",
+      "docRoots": ["forms/resource-backed/"]
     },
     {
-      "id": "dirty_state",
-      "doc": "forms/changes/dirty-state.md"
+      "id": "lifecycle_and_route_continuity",
+      "canonicalDoc": "forms/lifecycle/README.md",
+      "docRoots": ["forms/lifecycle/", "forms/route-coupling/"]
     },
     {
-      "id": "patch_plans",
-      "doc": "forms/changes/patch-plans.md"
+      "id": "collaboration",
+      "canonicalDoc": "forms/collaboration/README.md",
+      "docRoots": ["forms/collaboration/"]
     },
     {
-      "id": "patching_complex_edit_forms",
-      "doc": "forms/changes/patching-complex-edit-forms.md"
+      "id": "diagnostics_and_recovery",
+      "canonicalDoc": "forms/diagnostics/README.md",
+      "docRoots": ["forms/diagnostics/", "forms/verification/"]
     },
     {
-      "id": "unchanged_forms_and_submit_readiness",
-      "doc": "forms/changes/unchanged-forms-and-submit-readiness.md"
+      "id": "form_api_reference",
+      "canonicalDoc": "api-reference/forms.md",
+      "docRoots": []
     },
     {
-      "id": "broad_replacement_vs_narrow_patches",
-      "doc": "forms/changes/broad-replacement-vs-narrow-patches.md"
-    },
-    {
-      "id": "validation_overview",
-      "doc": "forms/validation/validation-overview.md"
-    },
-    {
-      "id": "parse_failures",
-      "doc": "forms/validation/parse-failures.md"
-    },
-    {
-      "id": "visible_messages",
-      "doc": "forms/validation/visible-messages.md"
-    },
-    {
-      "id": "async_validation",
-      "doc": "forms/validation/async-validation.md"
-    },
-    {
-      "id": "server_canonicalization",
-      "doc": "forms/validation/server-canonicalization.md"
-    },
-    {
-      "id": "source_compatibility_and_draft_migration",
-      "doc": "forms/validation/source-compatibility-and-draft-migration.md"
+      "id": "form_export_catalog",
+      "canonicalDoc": "api-reference/form-export-catalog.md",
+      "docRoots": []
     }
   ]
 }

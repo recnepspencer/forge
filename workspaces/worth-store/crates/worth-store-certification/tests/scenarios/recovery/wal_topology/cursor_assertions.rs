@@ -1,6 +1,6 @@
 use worth_store_wal::ReplayCursor;
 
-use crate::scan_fixtures::{generation, lsn};
+use super::scan_fixtures::{generation, lsn};
 
 pub fn assert_cursor_topology(cursor: &ReplayCursor, expected: &[(u64, u64, u64)]) {
     assert_eq!(cursor_ranges(cursor), expected);

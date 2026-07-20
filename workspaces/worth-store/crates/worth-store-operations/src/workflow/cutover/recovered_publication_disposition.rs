@@ -3,10 +3,7 @@ use worth_store_authority::{
     StoreCurrentAuthorityWitness,
 };
 
-use crate::{
-    OperationalControlRecord, OperationalControlStore, OperationalControlStorePort,
-    OperationalTransitionId,
-};
+use crate::{OperationalControlRecord, OperationalControlStorePort, OperationalTransitionId};
 
 use super::publication_disposition::{
     readmitted_disposition_basis, rejection_disposition_basis, release_and_record,
@@ -22,7 +19,7 @@ pub(super) enum RecoveredCoreReadmissionOutcome {
 
 pub(super) fn attempt_recovered_readmission(
     recovered: RecoveredPublishedCore,
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     current: &StoreCurrentAuthorityWitness,
     fence_port: &impl RecoveryWriteFencePort,
@@ -102,7 +99,7 @@ pub(super) fn attempt_recovered_readmission(
 pub(super) fn abandon_recovered(
     recovered: RecoveredPublishedCore,
     reason_identity: [u8; 32],
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     fence_port: &impl RecoveryWriteFencePort,
 ) -> Result<PublishedAbandonedCore, RecoveryCutoverExecutionDenial> {
@@ -127,7 +124,7 @@ pub(super) fn abandon_recovered(
 pub(super) fn retain_recovered_for_forensics(
     recovered: RecoveredPublishedCore,
     retention_plan_identity: [u8; 32],
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     fence_port: &impl RecoveryWriteFencePort,
 ) -> Result<PublishedRetainedForForensicsCore, RecoveryCutoverExecutionDenial> {
@@ -155,7 +152,7 @@ pub(super) fn retain_recovered_for_forensics(
 fn terminal_recovered(
     recovered: RecoveredPublishedCore,
     basis: [u8; 32],
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     transition: OperationalTransitionId,
     fence_port: &impl RecoveryWriteFencePort,
     disposition: RecoveryWriteFenceDisposition,
@@ -194,7 +191,7 @@ fn terminal_recovered(
 
 #[allow(clippy::too_many_arguments)]
 fn persist(
-    control: &OperationalControlStore,
+    control: &dyn OperationalControlStorePort,
     authority: worth_store_authority::StoreCurrentAuthorityIdentity,
     observed_authority: worth_store_authority::StoreCurrentAuthorityIdentity,
     operation: crate::OperationalOperationId,

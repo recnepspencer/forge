@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::NormalizedBasisIntent`
- --> tests/ui/basis_lifecycle/proof/basis_lifecycle_normalized_intent_constructor_private.rs:2:5
-  |
-2 | use worth_query::facade::NormalizedBasisIntent;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `NormalizedBasisIntent` in `facade`

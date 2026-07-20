@@ -29,6 +29,7 @@ fn apply_template(template: String, orientation: &CrateOrientation) -> String {
             "{{deferred_routes}}",
             &render_lines(&orientation.deferred_routes),
         ),
+        ("{{public_surface}}", orientation.public_surface.as_str()),
         (
             "{{allowed_target_bands}}",
             &render_list(&orientation.allowed_target_bands),

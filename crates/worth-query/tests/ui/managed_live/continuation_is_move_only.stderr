@@ -1,5 +1,0 @@
-error[E0599]: no method named `clone` found for struct `WorthQueryManagedLiveContinuation` in the current scope
- --> tests/ui/managed_live/continuation_is_move_only.rs:4:30
-  |
-4 |     let _copy = continuation.clone();
-  |                              ^^^^^ method not found in `WorthQueryManagedLiveContinuation`

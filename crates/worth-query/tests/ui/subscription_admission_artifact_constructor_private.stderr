@@ -1,7 +1,0 @@
-error[E0560]: struct `QuerySubscriptionAdmissionArtifact` has no field named `admission_digest`
- --> tests/ui/subscription_admission_artifact_constructor_private.rs:5:9
-  |
-5 |         admission_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmissionArtifact` does not have this field
-  |
-  = note: all struct fields are already assigned

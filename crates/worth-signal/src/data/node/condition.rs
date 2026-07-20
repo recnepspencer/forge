@@ -11,6 +11,44 @@ use crate::schema::data::SignalSchemaBinding;
 
 use super::contract::NodeContract;
 
+/// Runtime-affine identity for a condition installed by the one graph-lowering
+/// owner. Unlike `Custom(String)`, this is not portable semantic text and
+/// cannot be reconstructed from a Query family name or reporting digest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct InstalledSignalConditionIdentity {
+    graph_instance_id: u64,
+    node: crate::data::handle::NodeId,
+    role: InstalledSignalConditionRole,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub(crate) enum InstalledSignalConditionRole {
+    Predicate,
+    TemporalWake,
+}
+
+impl InstalledSignalConditionIdentity {
+    pub(crate) const fn new(
+        graph_instance_id: u64,
+        node: crate::data::handle::NodeId,
+        role: InstalledSignalConditionRole,
+    ) -> Self {
+        Self {
+            graph_instance_id,
+            node,
+            role,
+        }
+    }
+
+    pub const fn graph_instance_id(self) -> u64 {
+        self.graph_instance_id
+    }
+
+    pub(crate) const fn role(self) -> InstalledSignalConditionRole {
+        self.role
+    }
+}
+
 /// Evaluation condition descriptor for a node.
 ///
 /// This is a policy declaration. Runtime gating integration is tier/runtime
@@ -30,6 +68,8 @@ pub enum EvaluationCondition {
     Temporal(TemporalCondition),
     /// Named custom condition handled by embedding runtime.
     Custom(String),
+    /// Opaque condition installed by an admitted runtime lowering owner.
+    Installed(InstalledSignalConditionIdentity),
 }
 
 /// Per-node evaluation configuration.

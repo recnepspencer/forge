@@ -1,4 +1,5 @@
 import init, { SignalWorkerRuntime } from "../../../raw_surface.js";
+import { createWorkerLocalTruthRuntime } from "../../local_truth/protocol/worker_local_truth_runtime.js";
 
 const earlyBrowserMessages = [];
 let browserMessageHandler = null;
@@ -16,6 +17,7 @@ if (typeof globalThis.addEventListener === "function") {
 await init();
 
 const runtime = new SignalWorkerRuntime();
+const localTruthRuntime = createWorkerLocalTruthRuntime(runtime);
 const port = await resolveWorkerPort();
 
 port.listen(async (message) => {
@@ -24,7 +26,9 @@ port.listen(async (message) => {
   }
   const { id, method, args = [] } = message;
   try {
-    const value = resolveRuntimeMethod(runtime, method, args);
+    const value = method === "localTruthCommand"
+      ? localTruthRuntime.command(args[0])
+      : resolveRuntimeMethod(runtime, method, args);
     port.postMessage({
       id,
       ok: true,

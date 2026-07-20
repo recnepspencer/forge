@@ -1,8 +1,12 @@
 import type { RouteState } from "./router";
 import { WorthLogo } from "./WorthLogo";
+import type { RefObject } from "react";
 
 interface LayoutProps {
   currentRoute: RouteState;
+  docsLinkRef: RefObject<HTMLAnchorElement | null>;
+  docsMenuOpen: boolean;
+  onDocsMenuToggle: () => void;
   onNavigate: (path: string) => void;
   children: React.ReactNode;
 }
@@ -14,6 +18,9 @@ const navItems = [
 
 export function Layout({
   currentRoute,
+  docsLinkRef,
+  docsMenuOpen,
+  onDocsMenuToggle,
   onNavigate,
   children,
 }: LayoutProps) {
@@ -32,13 +39,21 @@ export function Layout({
         <nav className="nav-links" aria-label="Primary">
           {navItems.map((item) => (
             <a
+              aria-controls={item.href === "#/docs" ? "docs-navigation" : undefined}
+              aria-expanded={item.href === "#/docs" && currentRoute.type === "docs" ? docsMenuOpen : undefined}
               key={item.href}
               href={item.href}
               className={`nav-link ${item.match(currentRoute) ? "active" : ""}`}
               onClick={(event) => {
                 event.preventDefault();
+                if (item.href === "#/docs") {
+                  onDocsMenuToggle();
+                  if (currentRoute.type !== "docs") onNavigate(item.href);
+                  return;
+                }
                 onNavigate(item.href);
               }}
+              ref={item.href === "#/docs" ? docsLinkRef : undefined}
             >
               {item.label}
             </a>

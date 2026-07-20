@@ -7,6 +7,8 @@ use crate::tests::support::*;
 use worth_foundational::facade::{
     AspectKey, AspectValue, ContractValidatedAspectValueView, FieldKey,
 };
+use worth_proof::TransitionOutcome;
+use worth_runtime_bridge::facade::TruthDeltaSurfaceKind;
 
 #[test]
 fn update_entity_fields_applies_struct_contract_field_patch() {
@@ -84,6 +86,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
             aspect_key,
             field_sets,
             field_clears,
+            ..
         }] if aspect_key == &AspectKey::new("summary").unwrap()
             && field_sets.len() == 1
             && field_sets[0].field == FieldKey::new("title").unwrap()
@@ -117,6 +120,28 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
         }]
     );
     assert!(field_clears.is_empty());
+
+    let TransitionOutcome::Success(bridge_envelope) =
+        crate::presentation::bridge::patch_envelopes::commit_envelope_to_bridge_envelope(
+            outcome.envelope(),
+        )
+    else {
+        panic!("real field patch must retain enough authority for Bridge publication");
+    };
+    let bridge_items = bridge_envelope.patch_body().canonical_items();
+    assert_eq!(bridge_items.len(), 1);
+    assert_eq!(
+        bridge_items[0].surface_kind(),
+        TruthDeltaSurfaceKind::EntityField
+    );
+    assert_eq!(
+        bridge_items[0]
+            .field_locator()
+            .expect("field-precise bridge target")
+            .field_path()
+            .fields(),
+        &[FieldKey::new("title").unwrap()]
+    );
 }
 
 pub(super) fn create_entity_with_summary_fields(

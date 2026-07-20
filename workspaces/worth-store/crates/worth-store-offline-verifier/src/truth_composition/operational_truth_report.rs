@@ -58,6 +58,7 @@ impl OperationalTruthCompositionBudget {
 
 #[derive(Debug)]
 pub struct OperationalTruthReport {
+    source_inspection_identity: [u8; 32],
     regions: Vec<OperationalTruthRegion>,
     coverage: CanonicalPhysicalCoverageProof,
     candidates: RecoveryCandidateSet,
@@ -65,6 +66,9 @@ pub struct OperationalTruthReport {
 }
 
 impl OperationalTruthReport {
+    pub const fn source_inspection_identity(&self) -> [u8; 32] {
+        self.source_inspection_identity
+    }
     pub fn regions(&self) -> &[OperationalTruthRegion] {
         &self.regions
     }
@@ -100,6 +104,7 @@ pub(crate) fn compose_operational_truth_with_owner_candidates(
     budget: OperationalTruthCompositionBudget,
     reject_interruption: &mut impl FnMut() -> Result<(), crate::OfflineInspectionDenial>,
 ) -> Result<OperationalTruthReport, OperationalTruthCompositionDenial> {
+    let source_inspection_identity = walked.inspection_evidence_identity();
     reject_invalid_media_shape(&walked, reject_interruption)?;
     let walked_owned_allocation_bytes = walked
         .owned_allocation_bytes()
@@ -140,6 +145,7 @@ pub(crate) fn compose_operational_truth_with_owner_candidates(
         .ok_or(OperationalTruthCompositionDenial::CoverageOverflow)?;
     enforce_owned_allocation_budget(actual_peak_owned_allocation_bytes, budget)?;
     Ok(OperationalTruthReport {
+        source_inspection_identity,
         coverage,
         regions,
         candidates,

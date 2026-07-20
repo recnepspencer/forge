@@ -1,9 +1,0 @@
-error: cannot construct `WorthQueryBackendAdmissibleMutation` with struct literal syntax due to private fields
- --> tests/ui/aspect_native_query/backend_admissible_mutation_struct_literal_private.rs:5:13
-  |
-5 |     let _ = WorthQueryBackendAdmissibleMutation {
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-6 |         shape: shape_fixture(),
-  |         ---------------------- private field
-  |
-  = note: ...and other private fields `authoritative_patch` and `portable_patch` that were not provided

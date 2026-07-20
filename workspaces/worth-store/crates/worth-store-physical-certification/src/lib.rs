@@ -11,17 +11,32 @@ mod drivers;
 mod evidence;
 mod faults;
 mod fixtures;
+mod fresh_process_offline_truth;
 mod observation;
 mod operational_recovery_audit_driver;
+#[cfg(test)]
+mod operational_recovery_authorization_fixture;
+mod operational_recovery_control_driver;
+mod operational_recovery_control_transition;
+mod operational_recovery_crash_evidence;
 mod operational_recovery_driver;
 #[cfg(test)]
 mod operational_recovery_driver_tests;
+mod operational_recovery_process_crash;
 mod operational_recovery_rejoin_driver;
+#[cfg(test)]
+mod operational_recovery_replica_driver_fixture;
+#[cfg(test)]
+mod operational_recovery_replica_driver_tests;
+#[cfg(test)]
+mod operational_recovery_replica_promotion_driver_tests;
+mod operational_recovery_trace;
 mod operational_recovery_yieldpoint;
 mod oracles;
 mod physical_isolation_handoff;
 mod planning;
 mod pressure_harness;
+mod process_probe;
 mod qualification;
 mod scenario;
 mod scenarios;
@@ -127,10 +142,16 @@ pub use fixtures::{
     FixtureMutationBoundary, FixtureMutationBoundarySet, FixtureNeedsBoundary,
     FixtureNeedsMaterialization, FixtureProfileNonClaim, FixtureProvenance,
     FixtureScaleDeclaration, FixtureStorageScale, LargeStoreFixtureProfile,
-    PersistedStoreFixtureManifest, PhysicalArtifactFixtureCatalog, PhysicalFixtureBuilder,
-    ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource,
-    ProductionBackedPhysicalFixture, ResolvedFixtureConstructionRecipe, StoreFixtureAuthority,
-    SyntheticFixtureAuthorityDenied,
+    MaterializedFixtureScaleEvidence, PersistedStoreFixtureManifest,
+    PhysicalArtifactFixtureCatalog, PhysicalFixtureBuilder, ProductionBackedFixtureMaterialization,
+    ProductionBackedFixtureSource, ProductionBackedPhysicalFixture,
+    ResolvedFixtureConstructionRecipe, StoreFixtureAuthority, SyntheticFixtureAuthorityDenied,
+};
+pub use fresh_process_offline_truth::{
+    write_offline_truth_observation_from_environment, FreshProcessDestroyedPrimaryCertification,
+    FreshProcessDestroyedPrimaryEvidence, FreshProcessOfflineTruthBaseline,
+    FreshProcessOfflineTruthDenial, FreshProcessOfflineTruthRunner, OFFLINE_TRUTH_CHALLENGE_ENV,
+    OFFLINE_TRUTH_REPORT_ENV, OFFLINE_TRUTH_ROLE_ENV, OFFLINE_TRUTH_TARGET_ENV,
 };
 #[cfg(any(test, feature = "certification-test-support"))]
 pub use harness::blob::{
@@ -163,9 +184,23 @@ pub use observation::{
     PhysicalSimulationObserver, RecoveryOutcomeKind, RecoveryOutcomeObservation,
     ShortcutRejectionObservation, ShortcutRejectionObservationKind,
 };
+pub use operational_recovery_control_driver::DrivenOperationalControlStore;
+pub use operational_recovery_control_transition::OperationalRecoveryControlTransitionKind;
+pub use operational_recovery_crash_evidence::{
+    OperationalRecoveryCrashCutDenial, OperationalRecoveryCrashCutEvidence,
+};
 pub use operational_recovery_driver::{
-    DrivenOperationalTransition, OperationalRecoveryDriverTrace,
-    OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
+    DrivenOperationalTransition, OperationalRecoveryProductionDriver, OperationalRecoveryYieldpoint,
+};
+pub use operational_recovery_process_crash::{
+    write_reopen_observation_from_environment, OperationalRecoveryControlCutRequest,
+    OperationalRecoveryFreshProcessRunner, OperationalRecoveryProcessCrashConfig,
+    OperationalRecoveryProcessCrashDenial, OperationalRecoveryProcessCrashEvidence,
+    PROCESS_CRASH_CHALLENGE_ENV, PROCESS_CRASH_REPORT_ENV, PROCESS_CRASH_ROLE_ENV,
+    PROCESS_CRASH_YIELDPOINT_ENV,
+};
+pub use operational_recovery_trace::{
+    OperationalRecoveryDriverTrace, OperationalRecoveryTraceJoinDenial,
 };
 pub use oracles::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
@@ -225,6 +260,14 @@ pub use pressure_harness::{
     IoPressureHarnessEvidence, IoPressureHarnessEvidenceDenial, IoPressureHarnessScenario,
     IoPressureHarnessSecureIoPosture, IoPressureOracleObservation, PhysicalFaultEvidenceClass,
     RealBackendSafetyQualification,
+};
+pub use process_probe::{
+    admit_current_process_probe, AdmittedProcessProbe, ProcessArtifactDisposition,
+    ProcessArtifactObservation, ProcessArtifactPath, ProcessEnvironmentBindingEvidence,
+    ProcessIdentityEvidence, ProcessIsolationRequirement, ProcessProbeDeclaration,
+    ProcessProbeEvidenceDenial, ProcessProbeExecution, ProcessProbeIntent, ProcessRole,
+    ProcessTermination, ProcessTerminationRequirement, SealedProcessProbeInput,
+    PROCESS_PROBE_EVIDENCE_ROOT_ENV,
 };
 pub use qualification::{
     evaluate_row_rebind, reject_copied_backend_qualification_row,
@@ -306,3 +349,4 @@ pub enum PhysicalCertificationLane {
     BlobScale,
     PhysicalIsolation,
 }
+mod certification_child_process;

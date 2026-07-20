@@ -2,14 +2,14 @@ use super::{
     FixtureAuthorityReceipt, FixtureMutationBoundary, PersistedStoreFixtureManifest,
     SyntheticFixtureAuthorityDenied,
 };
-use worth_store_physical_format::PlatformPhysicalReplayArtifact;
+use worth_store_physical_format::InMemoryPhysicalFormatReplayArtifact;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ProductionBackedPhysicalFixture {
     manifest: PersistedStoreFixtureManifest,
     authority_receipt: FixtureAuthorityReceipt,
     reopened_layout: worth_store_physical_format::PersistedPhysicalLayout,
-    replay_artifact: Option<PlatformPhysicalReplayArtifact>,
+    replay_artifact: Option<InMemoryPhysicalFormatReplayArtifact>,
 }
 
 impl ProductionBackedPhysicalFixture {
@@ -17,7 +17,7 @@ impl ProductionBackedPhysicalFixture {
         manifest: PersistedStoreFixtureManifest,
         authority_receipt: FixtureAuthorityReceipt,
         reopened_layout: worth_store_physical_format::PersistedPhysicalLayout,
-        replay_artifact: Option<PlatformPhysicalReplayArtifact>,
+        replay_artifact: Option<InMemoryPhysicalFormatReplayArtifact>,
     ) -> Self {
         Self {
             manifest,
@@ -41,7 +41,7 @@ impl ProductionBackedPhysicalFixture {
         &self.reopened_layout
     }
 
-    pub const fn replay_artifact(&self) -> Option<&PlatformPhysicalReplayArtifact> {
+    pub const fn replay_artifact(&self) -> Option<&InMemoryPhysicalFormatReplayArtifact> {
         self.replay_artifact.as_ref()
     }
 

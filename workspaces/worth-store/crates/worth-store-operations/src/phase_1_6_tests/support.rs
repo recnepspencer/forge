@@ -1,4 +1,15 @@
 pub(super) use super::control_selection_provider::TestControlStoreFencingProvider;
+pub(super) use crate::{
+    admit_backup_for_production_restore, inspect_control_store_copies, qualify_backup_custody,
+    record_independent_backup_verification, recover_online_backups, BackupMaterializationDenial,
+    ConfiguredFailureDomainId, ControlStoreAvailabilityDenial, ControlStoreTrustPosture,
+    CurrentRecoverySurfaceGapReport, OnlineBackupAdmissionDenial, OnlineBackupIntent,
+    OnlineBackupReadmissionFailure, OperationalControlAppendDenial, OperationalControlLocation,
+    OperationalControlRecord, OperationalControlReplayBudget, OperationalControlReplayResource,
+    OperationalControlStore, OperationalControlStoreOpenDenial, OperationalControlStorePort,
+    OperationalOperationId, OperationalRecoveryBoundaryLedger, OperationalTransitionId,
+    OperationalWorkflowKind, ProtectedOperationalMediaLocation,
+};
 pub(super) use worth_store_authority::{
     BackupRestoreAdmissionPolicy, ControlStoreFencingAuthority, ControlStoreGeneration,
 };
@@ -20,20 +31,6 @@ pub(super) use worth_store_physical_isolation::{
     CurrentGenerationPhysicalReference, ExecutedReachabilityEvidence,
     GenerationCountedPhysicalReference, HazardLeaseTable, HazardLeaseTableCapacity, ReclaimDenial,
     ReclaimEligibilityProof,
-};
-pub(super) use worth_store_security::StoreKeyVersionPosture;
-
-pub(super) use crate::{
-    admit_backup_for_production_restore, inspect_control_store_copies, qualify_backup_custody,
-    record_independent_backup_verification, recover_online_backups, BackupExportCustodyDeclaration,
-    BackupExportCustodyMode, BackupExportCustodyReadiness, BackupMaterializationDenial,
-    ConfiguredFailureDomainId, ControlStoreAvailabilityDenial, ControlStoreTrustPosture,
-    CurrentRecoverySurfaceGapReport, OnlineBackupAdmissionDenial, OnlineBackupIntent,
-    OnlineBackupReadmissionFailure, OperationalControlAppendDenial, OperationalControlLocation,
-    OperationalControlRecord, OperationalControlReplayBudget, OperationalControlReplayResource,
-    OperationalControlStore, OperationalControlStoreOpenDenial, OperationalControlStorePort,
-    OperationalOperationId, OperationalRecoveryBoundaryLedger, OperationalTransitionId,
-    OperationalWorkflowKind, ProtectedOperationalMediaLocation,
 };
 
 pub(crate) struct BackupScenario {
@@ -60,7 +57,7 @@ impl BackupScenario {
         std::fs::create_dir_all(&source).expect("source directory");
         std::fs::create_dir_all(&target).expect("target directory");
         let artifacts =
-            super::backup_artifact_fixture::canonical_backup_artifacts_at_root_generation(
+            crate::certification_scenario::backup_artifacts::canonical_backup_artifacts_at_root_generation(
                 case,
                 &source,
                 root_generation,
@@ -83,7 +80,7 @@ impl BackupScenario {
         std::fs::create_dir_all(&older_source).expect("older source directory");
         std::fs::create_dir_all(&newer_source).expect("newer source directory");
         let (older_artifacts, newer_artifacts) =
-            super::backup_artifact_fixture::canonical_backup_artifacts_across_one_root_publication(
+            crate::certification_scenario::backup_artifacts::canonical_backup_artifacts_across_one_root_publication(
                 case,
                 &older_source,
                 &newer_source,
@@ -112,7 +109,7 @@ impl BackupScenario {
         source: std::path::PathBuf,
         target: std::path::PathBuf,
         control: std::path::PathBuf,
-        artifacts: super::backup_artifact_fixture::CanonicalBackupArtifacts,
+        artifacts: crate::certification_scenario::backup_artifacts::CanonicalBackupArtifacts,
         root_generation: u64,
     ) -> Self {
         let target = if target.is_absolute() {
@@ -319,6 +316,17 @@ impl OperationalControlStorePort for FailingControlStore {
             )),
         ))
     }
+
+    fn compare_exchange_authorization_consumption(
+        &self,
+        _expected: Option<worth_store_authority::ControlStoreGeneration>,
+        record: &OperationalControlRecord,
+    ) -> Result<
+        worth_store_physical_backend::PhysicalControlAppendReceipt,
+        OperationalControlAppendDenial,
+    > {
+        self.append(record)
+    }
 }
 
 pub(super) struct ObserveReservedLeaseThenFail<'a> {
@@ -370,18 +378,18 @@ impl OperationalControlStorePort for ObserveReservedLeaseThenFail<'_> {
         }
         self.delegate.append(record)
     }
+
+    fn compare_exchange_authorization_consumption(
+        &self,
+        expected: Option<worth_store_authority::ControlStoreGeneration>,
+        record: &OperationalControlRecord,
+    ) -> Result<
+        worth_store_physical_backend::PhysicalControlAppendReceipt,
+        OperationalControlAppendDenial,
+    > {
+        self.delegate
+            .compare_exchange_authorization_consumption(expected, record)
+    }
 }
 
-pub(crate) fn backup_custody(
-    authority: &worth_store_authority::StoreCurrentAuthorityWitness,
-) -> BackupExportCustodyReadiness {
-    let admission = BackupExportCustodyDeclaration::native(
-        authority,
-        BackupExportCustodyMode::Backup,
-        StoreKeyVersionPosture::Current,
-    )
-    .expect("custody declaration")
-    .admit_with_current_authority(authority)
-    .expect("custody admission");
-    BackupExportCustodyReadiness::from_admitted_custody(admission).expect("custody readiness")
-}
+pub(crate) use super::backup_custody_fixture::backup_custody;
