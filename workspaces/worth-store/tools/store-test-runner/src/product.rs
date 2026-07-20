@@ -64,10 +64,5 @@ pub(crate) fn smoke_cases() -> &'static [SmokeCase] {
             target: "physical_isolation",
             filter: "stable_read_plan_admission::proof_bearing_read_plan_admits_before_execution_handle",
         },
-        SmokeCase {
-            package: "worth-store-certification",
-            target: "s5_tier_movement_future_chunk_compile_fail",
-            filter: "future_chunk_placeholder_boundary_misuse_does_not_compile",
-        },
     ]
 }

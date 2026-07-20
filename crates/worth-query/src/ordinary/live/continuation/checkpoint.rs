@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
+use crate::ordinary::read::WorthQueryReadProjectionBinding;
 use crate::runtime::{
     WorthQueryLiveView, WorthQueryManagedLiveWorkspaceCapability, WorthQueryUnrefinedLiveShape,
 };
@@ -84,6 +85,7 @@ pub struct WorthQueryManagedLiveContinuation {
     view: Option<WorthQueryLiveView<WorthQueryUnrefinedLiveShape>>,
     workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
     checkpoint: WorthQueryManagedLiveCheckpointReceipt,
+    projection_binding: Option<WorthQueryReadProjectionBinding>,
 }
 
 impl WorthQueryManagedLiveContinuation {
@@ -91,11 +93,13 @@ impl WorthQueryManagedLiveContinuation {
         view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
         checkpoint: WorthQueryManagedLiveCheckpointReceipt,
+        projection_binding: WorthQueryReadProjectionBinding,
     ) -> Self {
         Self {
             view: Some(view),
             workspace_capability,
             checkpoint,
+            projection_binding: Some(projection_binding),
         }
     }
 
@@ -118,12 +122,21 @@ impl WorthQueryManagedLiveContinuation {
     ) -> (
         WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         Arc<WorthQueryManagedLiveWorkspaceCapability>,
+        WorthQueryReadProjectionBinding,
     ) {
         let view = self
             .view
             .take()
             .expect("resumed continuation must retain its managed live view");
-        (view, Arc::clone(&self.workspace_capability))
+        let projection_binding = self
+            .projection_binding
+            .take()
+            .expect("resumed continuation must retain its projection binding");
+        (
+            view,
+            Arc::clone(&self.workspace_capability),
+            projection_binding,
+        )
     }
 }
 

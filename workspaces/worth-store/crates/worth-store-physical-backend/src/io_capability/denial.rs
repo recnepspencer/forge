@@ -31,6 +31,7 @@ pub enum BackendCapabilityAdmissionDenial {
         actual: CapabilityEvidenceClass,
     },
     ConfidenceLimitTooWeak,
+    FilesystemAdmissionEvidenceUnavailable,
     RawBackendLabel,
     RawConfigString,
     RawOsName,

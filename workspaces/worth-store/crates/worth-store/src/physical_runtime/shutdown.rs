@@ -39,6 +39,10 @@ impl ShutdownCoordinator {
         self.lifecycle.snapshot()
     }
 
+    pub(crate) fn progress_to_media_owned(&self) -> LifecycleStateSnapshot {
+        self.lifecycle.progress_to_media_owned()
+    }
+
     pub(crate) fn close(mut self, runtime_identity: RuntimeIdentity) -> ClosedRuntime {
         let declared_root = self.declared_root().clone();
         let root_admission = self

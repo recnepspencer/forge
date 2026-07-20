@@ -308,6 +308,9 @@ fn backend_evidence_basis(
         worth_store_physical_backend::CapabilityEvidenceClass::ObservedByProbe => {
             BackendCapabilityEvidenceBasis::observed_by_probe(1)
         }
+        worth_store_physical_backend::CapabilityEvidenceClass::EstablishedByFilesystemAdmission => {
+            BackendCapabilityEvidenceBasis::established_filesystem_admission_for_certification(1)
+        }
         worth_store_physical_backend::CapabilityEvidenceClass::UnverifiableAssumption => {
             BackendCapabilityEvidenceBasis::unverifiable_assumption()
         }

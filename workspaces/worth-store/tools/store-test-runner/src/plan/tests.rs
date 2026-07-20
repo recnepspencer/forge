@@ -59,23 +59,41 @@ fn integration_partitions_name_every_classified_binary_exactly() {
         for binary in expected {
             assert!(command.contains(&binary), "{binary} absent from {lane}");
         }
+        let selected_names = catalog
+            .targets()
+            .iter()
+            .filter(|target| target.lane == lane)
+            .map(|target| target.name.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        for target in selected_names {
+            assert!(
+                plan.units()[0]
+                    .arguments()
+                    .windows(2)
+                    .any(|pair| pair == ["--test", target]),
+                "Cargo was not narrowed to target `{target}` in {lane}"
+            );
+        }
     }
 }
 
 #[test]
 fn required_features_are_enabled_for_guarded_targets() {
     let catalog = TestCatalog::load(workspace_root()).unwrap();
-    let product = TestProduct::Ci {
-        lane: CiTestLane::Scenario,
-        shard: None,
-    };
-    let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
-    let guarded = &plan.units()[0];
-
-    assert!(guarded
-        .arguments()
-        .windows(2)
-        .any(|pair| pair == ["--features", "worth-store/certification-test-authority"]));
+    for product in [
+        TestProduct::Ui,
+        TestProduct::Ci {
+            lane: CiTestLane::Scenario,
+            shard: None,
+        },
+    ] {
+        let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
+        let guarded = &plan.units()[0];
+        assert!(guarded
+            .arguments()
+            .windows(2)
+            .any(|pair| pair == ["--features", "worth-store/certification-test-authority"]));
+    }
 }
 
 #[test]
@@ -95,13 +113,39 @@ fn ci_products_use_ci_output_and_nonincremental_cargo_profiles() {
 }
 
 #[test]
-fn every_smoke_unit_uses_exact_libtest_identity() {
+fn every_smoke_selector_names_one_exact_binary_test() {
     let catalog = TestCatalog::load(workspace_root()).unwrap();
     let plan = TestPlan::build(&TestProduct::Smoke, &catalog, workspace_root()).unwrap();
 
+    assert_eq!(plan.units().len(), 1);
     for unit in plan.units() {
-        assert!(unit.arguments().ends_with(&["--".into(), "--exact".into()]));
+        assert_eq!(
+            unit.expected_test_count(),
+            Some(crate::product::smoke_cases().len())
+        );
+        let command = unit.arguments().join(" ");
+        for case in crate::product::smoke_cases() {
+            assert!(command.contains(&format!(
+                "binary_id(={}::{}) & test(={})",
+                case.package, case.target, case.filter
+            )));
+        }
     }
+}
+
+#[test]
+fn owner_product_excludes_integration_scenario_and_ui_targets() {
+    let catalog = TestCatalog::load(workspace_root()).unwrap();
+    let product = TestProduct::Owner {
+        package: "worth-store".into(),
+    };
+    let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
+    let arguments = plan.units()[0].arguments();
+
+    for selector in ["--lib", "--bins", "--examples", "--benches"] {
+        assert!(arguments.iter().any(|argument| argument == selector));
+    }
+    assert!(!arguments.iter().any(|argument| argument == "--test"));
 }
 
 fn unit(identity: &str, origin: &str) -> TestExecutionUnit {
@@ -110,7 +154,7 @@ fn unit(identity: &str, origin: &str) -> TestExecutionUnit {
         origin.into(),
         Path::new("."),
         vec!["test".into()],
-        false,
+        None,
     )
 }
 

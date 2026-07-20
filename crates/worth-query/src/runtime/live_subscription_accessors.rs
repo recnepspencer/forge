@@ -1,5 +1,5 @@
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
-use crate::identity::CanonicalResultShapeDigest;
+use crate::identity::{CanonicalQueryDigest, CanonicalResultShapeDigest};
 use crate::identity_authority::{
     project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
 };
@@ -29,6 +29,10 @@ impl WorthQueryRuntimeLiveSubscriptionInstallation {
 
     pub fn query_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.query_identity
+    }
+
+    pub fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
+        &self.canonical_query_digest
     }
 
     pub fn view_shape_projection(

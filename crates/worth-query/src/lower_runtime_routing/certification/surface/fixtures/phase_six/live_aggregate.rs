@@ -252,6 +252,7 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
             "query",
             activation.query_declaration_identity(),
         ),
+        session.canonical().query().digest().clone(),
         crate::runtime::live_subscription_source_identity(
             "live_view",
             &crate::runtime::live_subscription_view_shape_source_identity(

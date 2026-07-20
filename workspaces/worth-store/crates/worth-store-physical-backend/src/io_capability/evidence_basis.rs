@@ -17,8 +17,33 @@ impl BackendCapabilityEvidenceBasis {
         }
     }
 
+    pub(crate) const fn established_by_filesystem_admission(confidence_limit_count: u8) -> Self {
+        Self::established(confidence_limit_count)
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub const fn established_filesystem_admission_for_certification(
+        confidence_limit_count: u8,
+    ) -> Self {
+        Self::established(confidence_limit_count)
+    }
+
+    const fn established(confidence_limit_count: u8) -> Self {
+        Self {
+            evidence_class: CapabilityEvidenceClass::EstablishedByFilesystemAdmission,
+            confidence_limits: CapabilityConfidenceLimits::bounded_backend_and_media(
+                confidence_limit_count,
+            ),
+        }
+    }
+
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn observed_by_probe(confidence_limit_count: u8) -> Self {
+        Self::observed(confidence_limit_count)
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    const fn observed(confidence_limit_count: u8) -> Self {
         Self {
             evidence_class: CapabilityEvidenceClass::ObservedByProbe,
             confidence_limits: CapabilityConfidenceLimits::bounded_backend_and_media(

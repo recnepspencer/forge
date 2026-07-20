@@ -2,6 +2,8 @@ mod arguments;
 mod catalog;
 mod classification;
 mod execution;
+#[cfg(test)]
+mod physical_writer_gate;
 mod plan;
 mod product;
 mod report;

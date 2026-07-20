@@ -359,8 +359,8 @@ appears that the existing specimens cannot express.
   closeout evidence and do not duplicate journey assertions
 - no phase-named tests, generic scenario matrix, checked-in case ledger, proof
   receipt graph, or per-feature Cartesian product
-- one maximal admitted ordinary feature profile plus the default profile is
-  sufficient unless a specific feature changes authority topology
+- default-profile owner compilation plus one maximal admitted authority UI
+  profile is sufficient unless a specific feature changes authority topology
 - assertions are numerous where necessary; executable worlds stay few
 - a failure must identify the violated invariant and causal boundary inside the
   journey rather than require one test binary per failure
@@ -370,7 +370,7 @@ The direct rerun commands are:
 ```text
 cargo test -p worth-store --test sealed_runtime_lifecycle_journey
 cargo test -p worth-store --test runtime_authority_pressure_journey
-cargo test -p worth-store --test physical_runtime_authority_ui
+cargo test -p worth-store --features certification-test-authority --test physical_runtime_authority_ui
 ```
 
 ## Non-Fake Acceptance Setup
@@ -956,9 +956,9 @@ controlled mutant lane.
 
 - run Journey A and Journey B as the only behavioral closeout worlds and show
   that their combined invariant set covers every phase's referenced assertion
-- run Compiler Boundary C once under default and maximal admitted ordinary
-  features; do not enumerate feature combinations without a known authority
-  difference
+- compile the ordinary product under default features, then run Compiler
+  Boundary C once under the maximal admitted authority feature; do not duplicate
+  the trybuild campaign without a known authority difference
 - apply the three representative controlled defects to the owning product and
   require failure at duplicate authority, heap-backed physical-owner
   installation, and false close respectively

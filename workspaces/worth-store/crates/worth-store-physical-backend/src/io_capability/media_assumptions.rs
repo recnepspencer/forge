@@ -43,8 +43,16 @@ impl BackendMediaAssumptionSet {
         Self { bits: 0 }
     }
 
+    pub(crate) const fn for_established_filesystem_admission() -> Self {
+        Self::platform_file()
+    }
+
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn platform_file_defaults() -> Self {
+        Self::platform_file()
+    }
+
+    const fn platform_file() -> Self {
         Self {
             bits: Self::BUFFERED_FILE
                 | Self::FSYNC_DURABILITY

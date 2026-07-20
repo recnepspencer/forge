@@ -10,10 +10,7 @@ fn construct_admission() {
 
 fn construct_runtime() {
     let _runtime = AdmittedPhysicalRuntime {
-        runtime_identity: unavailable(),
-        resource_lifecycle: unavailable(),
-        diagnostics: unavailable(),
-        shutdown: unavailable(),
+        core: unavailable(),
     };
 }
 

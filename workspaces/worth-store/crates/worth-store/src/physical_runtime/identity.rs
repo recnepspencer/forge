@@ -1,10 +1,7 @@
 use std::{
     num::NonZeroU64,
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
 };
-
-static NEXT_RUNTIME_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
 /// A caller-declared physical namespace.
 ///
@@ -32,13 +29,13 @@ pub struct RuntimeIdentity(NonZeroU64);
 
 impl RuntimeIdentity {
     pub(crate) fn generate() -> Option<Self> {
-        NEXT_RUNTIME_IDENTITY
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
-                next.checked_add(1)
-            })
-            .ok()
-            .and_then(NonZeroU64::new)
-            .map(Self)
+        loop {
+            let mut bytes = [0_u8; 8];
+            getrandom::fill(&mut bytes).ok()?;
+            if let Some(identity) = NonZeroU64::new(u64::from_le_bytes(bytes)) {
+                return Some(Self(identity));
+            }
+        }
     }
 
     pub const fn get(self) -> u64 {

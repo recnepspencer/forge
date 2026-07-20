@@ -8,6 +8,7 @@ const PHASE_MASK: u64 = (1 << PHASE_BITS) - 1;
 const ADMITTED_PHASE: u64 = 0;
 const CLOSED_PHASE: u64 = 1;
 const ABORTED_PHASE: u64 = 2;
+const MEDIA_OWNED_PHASE: u64 = 3;
 const INITIAL_GENERATION: u64 = 1;
 
 /// Identity of one lifecycle state within a runtime incarnation.
@@ -23,6 +24,7 @@ impl LifecycleGeneration {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ObservedLifecyclePhase {
     Admitted,
+    MediaOwned,
     Closed,
     Aborted,
 }
@@ -53,9 +55,11 @@ impl LifecycleState {
 
     fn finish(&self, terminal_phase: ObservedLifecyclePhase) -> LifecycleStateSnapshot {
         let admitted = self.snapshot();
-        assert_eq!(
-            admitted.phase,
-            ObservedLifecyclePhase::Admitted,
+        assert!(
+            matches!(
+                admitted.phase,
+                ObservedLifecyclePhase::Admitted | ObservedLifecyclePhase::MediaOwned
+            ),
             "the move-only shutdown owner permits exactly one terminal transition"
         );
         let terminal = LifecycleStateSnapshot {
@@ -78,6 +82,30 @@ impl LifecycleState {
             )
             .expect("no second terminal writer can race the move-only shutdown owner");
         terminal
+    }
+
+    fn progress_to_media_owned(&self) -> LifecycleStateSnapshot {
+        let admitted = self.snapshot();
+        assert_eq!(admitted.phase, ObservedLifecyclePhase::Admitted);
+        let media_owned = LifecycleStateSnapshot {
+            generation: LifecycleGeneration(
+                admitted
+                    .generation
+                    .get()
+                    .checked_add(1)
+                    .expect("media progression cannot exhaust lifecycle generations"),
+            ),
+            phase: ObservedLifecyclePhase::MediaOwned,
+        };
+        self.state
+            .compare_exchange(
+                encode_state(admitted.generation, admitted.phase),
+                encode_state(media_owned.generation, media_owned.phase),
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .expect("the consuming runtime transition is the sole phase writer");
+        media_owned
     }
 }
 
@@ -107,6 +135,10 @@ impl LifecycleCoordinator {
     pub(crate) fn finish_aborted(&self) -> LifecycleStateSnapshot {
         self.state.finish(ObservedLifecyclePhase::Aborted)
     }
+
+    pub(crate) fn progress_to_media_owned(&self) -> LifecycleStateSnapshot {
+        self.state.progress_to_media_owned()
+    }
 }
 
 fn encode_state(generation: LifecycleGeneration, phase: ObservedLifecyclePhase) -> u64 {
@@ -114,6 +146,7 @@ fn encode_state(generation: LifecycleGeneration, phase: ObservedLifecyclePhase) 
         ObservedLifecyclePhase::Admitted => ADMITTED_PHASE,
         ObservedLifecyclePhase::Closed => CLOSED_PHASE,
         ObservedLifecyclePhase::Aborted => ABORTED_PHASE,
+        ObservedLifecyclePhase::MediaOwned => MEDIA_OWNED_PHASE,
     };
     (generation.get() << PHASE_BITS) | phase
 }
@@ -123,6 +156,7 @@ fn decode_state(state: u64) -> LifecycleStateSnapshot {
         ADMITTED_PHASE => ObservedLifecyclePhase::Admitted,
         CLOSED_PHASE => ObservedLifecyclePhase::Closed,
         ABORTED_PHASE => ObservedLifecyclePhase::Aborted,
+        MEDIA_OWNED_PHASE => ObservedLifecyclePhase::MediaOwned,
         _ => unreachable!("the private lifecycle encoding emits only known phases"),
     };
     LifecycleStateSnapshot {

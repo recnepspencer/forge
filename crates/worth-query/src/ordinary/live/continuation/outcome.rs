@@ -155,8 +155,8 @@ impl WorthQueryManagedLiveResumeStop {
         self,
         workspace: &mut WorthQueryWorkspace,
     ) -> crate::ordinary::live::WorthQueryManagedLiveCloseOutcome {
-        let (view, capability) = self.continuation.into_resource_parts();
-        WorthQueryManagedLiveHandle::new(view, capability).close(workspace)
+        let (view, capability, projection_binding) = self.continuation.into_resource_parts();
+        WorthQueryManagedLiveHandle::new(view, capability, projection_binding).close(workspace)
     }
 
     pub(super) fn new(

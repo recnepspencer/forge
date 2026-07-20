@@ -16,6 +16,7 @@ pub struct WorthQueryLiveReadReceipt {
     installation_digest: String,
     installation_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,
     query_digest: String,
+    canonical_query_digest: String,
     canonical_result_shape_digest: CanonicalResultShapeDigest,
     canonical_result_shape_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,
     subscription_family_digest: String,
@@ -43,6 +44,7 @@ impl WorthQueryLiveReadReceipt {
             installation_digest: installation.installation_projection().label().to_string(),
             installation_identity: installation.installation_identity().clone(),
             query_digest: installation.query_projection().label().to_string(),
+            canonical_query_digest: installation.canonical_query_digest().as_str().to_string(),
             canonical_result_shape_digest: installation.canonical_result_shape_digest().clone(),
             canonical_result_shape_identity: installation.canonical_result_shape_identity().clone(),
             subscription_family_digest: installation
@@ -81,6 +83,10 @@ impl WorthQueryLiveReadReceipt {
 
     pub fn query_digest(&self) -> &str {
         &self.query_digest
+    }
+
+    pub fn canonical_query_digest(&self) -> &str {
+        &self.canonical_query_digest
     }
 
     pub fn view_shape_digest(&self) -> &str {
@@ -179,13 +185,15 @@ impl WorthQueryLiveReadReceipt {
         snapshot_identity: WorthQuerySnapshotIdentity,
         row_count: usize,
     ) -> Self {
+        let query_digest = query_digest.into();
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let canonical_result_shape_identity = canonical_result_shape_digest.evidence_identity();
         Self {
             view_name: view_name.into(),
             installation_digest: installation_digest.into(),
             installation_identity,
-            query_digest: query_digest.into(),
+            canonical_query_digest: query_digest.clone(),
+            query_digest,
             canonical_result_shape_identity,
             canonical_result_shape_digest,
             subscription_family_digest: subscription_family_digest.into(),

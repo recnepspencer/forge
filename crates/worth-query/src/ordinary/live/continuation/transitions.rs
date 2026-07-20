@@ -32,10 +32,13 @@ impl WorthQueryManagedLiveHandle {
             observation.pending_delivery_batch_count(),
             observation.last_delivery_sequence(),
         );
-        let (view, capability) = self.into_resource_parts();
+        let (view, capability, projection_binding) = self.into_resource_parts();
         WorthQueryManagedLiveCheckpointOutcome::Checkpointed(
             WorthQueryManagedLiveCheckpointCompletion::new(WorthQueryManagedLiveContinuation::new(
-                view, capability, checkpoint,
+                view,
+                capability,
+                checkpoint,
+                projection_binding,
             )),
         )
     }
@@ -104,9 +107,9 @@ impl WorthQueryManagedLiveContinuation {
             observation.last_delivery_sequence(),
             observation.pending_delivery_batch_count(),
         );
-        let (view, capability) = self.into_resource_parts();
+        let (view, capability, projection_binding) = self.into_resource_parts();
         WorthQueryManagedLiveResumeOutcome::Resumed(WorthQueryManagedLiveResumeCompletion::new(
-            WorthQueryManagedLiveHandle::new(view, capability),
+            WorthQueryManagedLiveHandle::new(view, capability, projection_binding),
             receipt,
         ))
     }

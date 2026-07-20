@@ -1,7 +1,7 @@
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
-use crate::identity::CanonicalResultShapeDigest;
+use crate::identity::{CanonicalQueryDigest, CanonicalResultShapeDigest};
 use crate::subscription::{
     ActiveSubscriptionCounters, QuerySubscriptionDeclarationCounters, QuerySubscriptionFamily,
     SubscriptionConsumerAttachment,
@@ -61,6 +61,7 @@ pub struct WorthQueryRuntimeLiveSubscriptionInstallation {
     pub(super) view_name: String,
     pub(super) authority_lane: WorthQueryAuthorityLane,
     pub(super) query_identity: WorthQueryEvidenceIdentity,
+    pub(super) canonical_query_digest: CanonicalQueryDigest,
     pub(super) view_shape_identity: WorthQueryEvidenceIdentity,
     pub(super) canonical_result_shape_digest: CanonicalResultShapeDigest,
     pub(super) canonical_result_shape_identity: WorthQueryEvidenceIdentity,
@@ -93,6 +94,7 @@ impl WorthQueryRuntimeLiveSubscriptionInstallation {
     pub(crate) fn new(
         view_name: impl Into<String>,
         query_source_identity: WorthQueryEvidenceIdentity,
+        canonical_query_digest: CanonicalQueryDigest,
         view_shape_source_identity: WorthQueryEvidenceIdentity,
         canonical_result_shape_digest: CanonicalResultShapeDigest,
         subscription_family: QuerySubscriptionFamily,
@@ -286,6 +288,7 @@ impl WorthQueryRuntimeLiveSubscriptionInstallation {
             view_name,
             authority_lane: WorthQueryAuthorityLane::AuthoritativeTruth,
             query_identity,
+            canonical_query_digest,
             view_shape_identity,
             canonical_result_shape_digest,
             canonical_result_shape_identity,

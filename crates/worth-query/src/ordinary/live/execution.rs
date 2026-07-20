@@ -1,5 +1,6 @@
 use crate::ordinary::read::{
-    admit_read_context_declaration, WorthQueryReadJourneyCounters, WorthQueryReadStop,
+    admit_read_context_declaration, WorthQueryReadJourneyCounters, WorthQueryReadProjectionBinding,
+    WorthQueryReadStop,
 };
 use crate::runtime::WorthQueryWorkspace;
 
@@ -35,9 +36,14 @@ impl WorthQueryLiveRequest {
         let journey = journey
             .record_planning_completed()
             .record_lower_runtime_execution_attempt();
+        let projection_binding = WorthQueryReadProjectionBinding::from_graph(&read_graph);
         match workspace.open_declared_live_graph(name, read_graph, &authority) {
             Ok(view) => WorthQueryLiveOpenOutcome::Opened(WorthQueryLiveOpenCompletion::new(
-                WorthQueryManagedLiveHandle::new(view, workspace.managed_live_capability()),
+                WorthQueryManagedLiveHandle::new(
+                    view,
+                    workspace.managed_live_capability(),
+                    projection_binding,
+                ),
                 context_receipt,
                 journey.record_lower_runtime_execution_completed(),
             )),

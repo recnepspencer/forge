@@ -4,9 +4,9 @@ error: cannot construct `WorthQueryManagedLiveContinuation` with struct literal 
 4 |     WorthQueryManagedLiveContinuation {}
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = note: private fields `view`, `workspace_capability` and `checkpoint` that were not provided
+  = note: private fields `view`, `workspace_capability`, `checkpoint` and `projection_binding` that were not provided
 help: you might have meant to use the `new` associated function
   |
 4 -     WorthQueryManagedLiveContinuation {}
-4 +     WorthQueryManagedLiveContinuation::new(_, _, _)
+4 +     WorthQueryManagedLiveContinuation::new(_, _, _, _)
   |

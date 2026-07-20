@@ -340,6 +340,7 @@ impl WorthQueryRuntime {
         let installation = WorthQueryRuntimeLiveSubscriptionInstallation::new(
             view_name,
             lowered_subscription.query_identity,
+            lowered_subscription.canonical_query_digest,
             lowered_subscription.live_view_identity,
             lowered_subscription.canonical_result_shape_digest,
             lowered_subscription.subscription_family,

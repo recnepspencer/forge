@@ -44,8 +44,8 @@ fn execute_unit(
     unit: &TestExecutionUnit,
     target_root: Option<&Path>,
 ) -> Result<UnitResult, String> {
-    if unit.is_filtered() {
-        require_matching_test(unit, target_root)?;
+    if let Some(expected) = unit.expected_test_count() {
+        require_matching_tests(unit, target_root, expected)?;
     }
     let started = Instant::now();
     let success = run(unit, target_root)?;
@@ -69,16 +69,25 @@ fn run(unit: &TestExecutionUnit, target_root: Option<&Path>) -> Result<bool, Str
         .map_err(|error| format!("failed to start `{}`: {error}", unit.display_command()))
 }
 
-fn require_matching_test(
+fn require_matching_tests(
     unit: &TestExecutionUnit,
     target_root: Option<&Path>,
+    expected: usize,
 ) -> Result<(), String> {
-    let mut command = command(unit, target_root);
-    if unit.arguments().iter().any(|argument| argument == "--") {
-        command.arg("--list");
+    let mut arguments = unit.arguments().to_vec();
+    let nextest = arguments.starts_with(&["nextest".into(), "run".into()]);
+    if nextest {
+        arguments[1] = "list".into();
+        arguments.retain(|argument| argument != "--no-fail-fast");
+        arguments.extend(["--message-format".into(), "oneline".into()]);
     } else {
-        command.args(["--", "--list"]);
+        if arguments.iter().any(|argument| argument == "--") {
+            arguments.push("--list".into());
+        } else {
+            arguments.extend(["--".into(), "--list".into()]);
+        }
     }
+    let mut command = command_with_arguments(unit, &arguments, target_root);
     let output = command.output().map_err(|error| {
         format!(
             "failed to list filtered unit `{}`: {error}",
@@ -93,27 +102,41 @@ fn require_matching_test(
         ));
     }
     let listing = String::from_utf8_lossy(&output.stdout);
-    let matches = listed_test_count(&listing);
-    if matches != 1 {
+    let matches = listed_test_count(&listing, nextest);
+    if matches != expected {
         Err(format!(
-            "filtered unit `{}` must match exactly one test, matched {matches}",
-            unit.identity(),
+            "filtered unit `{}` must match exactly {expected} tests, matched {matches}",
+            unit.identity()
         ))
     } else {
         Ok(())
     }
 }
 
-fn listed_test_count(listing: &str) -> usize {
+fn listed_test_count(listing: &str, nextest: bool) -> usize {
     listing
         .lines()
-        .filter(|line| line.trim_end().ends_with(": test"))
+        .filter(|line| {
+            if nextest {
+                !line.trim().is_empty()
+            } else {
+                line.trim_end().ends_with(": test")
+            }
+        })
         .count()
 }
 
 fn command(unit: &TestExecutionUnit, target_root: Option<&Path>) -> Command {
+    command_with_arguments(unit, unit.arguments(), target_root)
+}
+
+fn command_with_arguments(
+    unit: &TestExecutionUnit,
+    arguments: &[String],
+    target_root: Option<&Path>,
+) -> Command {
     let mut command = Command::new(unit.program());
-    command.args(unit.arguments()).current_dir(unit.directory());
+    command.args(arguments).current_dir(unit.directory());
     if unit.program() == "cargo" {
         if let Some(root) = target_root {
             command.env("CARGO_TARGET_DIR", root);
@@ -140,10 +163,11 @@ mod tests {
     use super::listed_test_count;
 
     #[test]
-    fn libtest_listing_requires_a_real_test() {
+    fn machine_readable_listing_requires_the_expected_tests() {
         let empty = "0 tests, 0 benchmarks\n";
         let populated = "module::works: test\n\n1 test, 0 benchmarks\n";
-        assert_eq!(listed_test_count(empty), 0);
-        assert_eq!(listed_test_count(populated), 1);
+        assert_eq!(listed_test_count(empty, false), 0);
+        assert_eq!(listed_test_count(populated, false), 1);
+        assert_eq!(listed_test_count("package::binary module::test\n", true), 1);
     }
 }

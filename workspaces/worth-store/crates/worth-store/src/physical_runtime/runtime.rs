@@ -10,6 +10,10 @@ use super::{
 
 /// Sole move-only owner of the responsibilities installed at admission.
 pub struct AdmittedPhysicalRuntime {
+    core: PhysicalRuntimeCore,
+}
+
+pub(super) struct PhysicalRuntimeCore {
     runtime_identity: RuntimeIdentity,
     resource_lifecycle: ResourceLifecycle,
     diagnostics: RuntimeDiagnostics,
@@ -25,41 +29,93 @@ impl AdmittedPhysicalRuntime {
         let resource_lifecycle = ResourceLifecycle::new(diagnostics.counter_cells());
         let shutdown = ShutdownCoordinator::admitted(root_admission, diagnostics.counter_cells());
         Self {
-            runtime_identity,
-            resource_lifecycle,
-            diagnostics,
-            shutdown,
+            core: PhysicalRuntimeCore {
+                runtime_identity,
+                resource_lifecycle,
+                diagnostics,
+                shutdown,
+            },
         }
     }
 
     pub const fn runtime_identity(&self) -> RuntimeIdentity {
-        self.runtime_identity
+        self.core.runtime_identity
     }
 
     pub fn declared_store_root(&self) -> &DeclaredStoreRoot {
-        self.shutdown.declared_root()
+        self.core.shutdown.declared_root()
     }
 
     pub fn observe(&self) -> ObservationHandle {
         ObservationHandle::new(
-            self.runtime_identity,
-            self.shutdown.lifecycle_state(),
-            self.resource_lifecycle.acquire_observation(),
+            self.core.runtime_identity,
+            self.core.shutdown.lifecycle_state(),
+            self.core.resource_lifecycle.acquire_observation(),
         )
     }
 
     pub fn installed_capabilities(&self) -> InstalledCapabilityStatus {
-        self.diagnostics
+        self.core
+            .diagnostics
             .record_capability_observations(PhysicalCapability::FAMILY_COUNT);
         InstalledCapabilityStatus::c3()
     }
 
     pub fn counters(&self) -> RuntimeCounterSnapshot {
-        let lifecycle = self.shutdown.lifecycle_snapshot();
-        self.diagnostics.snapshot(lifecycle.generation)
+        let lifecycle = self.core.shutdown.lifecycle_snapshot();
+        self.core.diagnostics.snapshot(lifecycle.generation)
     }
 
     pub fn close(self) -> ClosedRuntime {
+        self.core.close()
+    }
+
+    pub fn abort(self) -> AbortedRuntime {
+        self.core.abort()
+    }
+
+    pub fn try_admit_filesystem_media(
+        self,
+        admission: super::FilesystemMediaAdmission,
+    ) -> super::MediaAdmissionOutcome {
+        super::media_ownership::try_admit(self, admission)
+    }
+
+    pub(super) fn into_core(self) -> PhysicalRuntimeCore {
+        self.core
+    }
+
+    pub(super) const fn from_core(core: PhysicalRuntimeCore) -> Self {
+        Self { core }
+    }
+}
+
+impl PhysicalRuntimeCore {
+    pub(super) const fn runtime_identity(&self) -> RuntimeIdentity {
+        self.runtime_identity
+    }
+
+    pub(super) fn declared_store_root(&self) -> &DeclaredStoreRoot {
+        self.shutdown.declared_root()
+    }
+
+    pub(super) fn progress_to_media_owned(&self) {
+        self.shutdown.progress_to_media_owned();
+    }
+
+    pub(super) fn media_observation_parts(
+        &self,
+    ) -> (
+        std::sync::Arc<super::lifecycle::LifecycleState>,
+        super::resource_lifecycle::ObservationLease,
+    ) {
+        (
+            self.shutdown.lifecycle_state(),
+            self.resource_lifecycle.acquire_observation(),
+        )
+    }
+
+    pub(super) fn close(self) -> ClosedRuntime {
         let Self {
             runtime_identity,
             resource_lifecycle,
@@ -71,7 +127,7 @@ impl AdmittedPhysicalRuntime {
         closed
     }
 
-    pub fn abort(self) -> AbortedRuntime {
+    pub(super) fn abort(self) -> AbortedRuntime {
         let Self {
             runtime_identity,
             resource_lifecycle,

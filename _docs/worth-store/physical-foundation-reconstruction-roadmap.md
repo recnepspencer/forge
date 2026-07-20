@@ -570,6 +570,9 @@ unambiguous runtime into which real mechanisms must bind.
 
 ## C.4: Production Media Boundary And Stable Store Namespace
 
+Engineering spec:
+[physical-reconstruction-c4-production-media-boundary.md](physical-reconstruction-c4-production-media-boundary.md)
+
 ### Goal
 
 Create the single production I/O boundary through which the physical runtime
@@ -580,7 +583,10 @@ capability truth.
 
 This milestone establishes media mechanics and namespace law. It does not yet
 assign page, WAL, checkpoint, index, or blob semantics to every file. Those
-artifact owners consume this boundary in later milestones.
+artifact owners consume this boundary in later milestones. `worth-proof`
+supplies checked capability and C.3-to-C.4 progression topology without owning
+the runtime or OS effects. `worth-foundational` supplies canonical namespace
+and portable evidence vocabulary only after stronger Store-owned facts exist.
 
 ### Must Ship
 
@@ -604,6 +610,12 @@ artifact owners consume this boundary in later milestones.
   backend capability evidence
 - typed short-write, partial-read, ENOSPC, permission, stale-handle,
   unsupported-sync, and indeterminate-publication outcomes
+- proof-backed root/profile capability qualification and consuming runtime
+  admission that preserve denied, deferred, stale, rebind-required, and failed
+  postures without creating a second qualification authority lane
+- Store-owned stable identity plus an explicit Foundational canonical/boundary
+  lowering for independent comparison; digests and boundary artifacts cannot
+  open a root or promote a runtime
 - migration of existing file-writing primitives onto this boundary or an
   explicit deletion decision where they duplicate it
 
@@ -623,7 +635,10 @@ artifact owners consume this boundary in later milestones.
   ownership denial, cleanup posture, zero writes outside the admitted root, and
   absence of `MediaOwnedPhysicalRuntime` before successful real namespace
   admission are checked. Short write, sync failure, and rename interruption
-  localize to typed media outcomes.
+  localize to typed media outcomes. Capability and runtime progression preserve
+  their exact proof-outcome categories, while runtime and independent-observer
+  namespace meaning compares through the declared canonical basis without
+  replacing direct OS observation.
 - **Controlled defect:** report sync completion without invoking the backend
   barrier, or allow path escape beyond the root. The durability-sequence or
   namespace-confinement predicate must fail.
@@ -636,7 +651,9 @@ artifact owners consume this boundary in later milestones.
 `C.4` closes only when the canonical runtime owns a real store namespace, all
 ordinary physical effects cross one fault-interposable production boundary,
 backend capability claims are tied to observed media behavior, and only that
-real admission can construct the media-owned runtime phase.
+real admission can construct the media-owned runtime phase. A copied proof,
+stale basis, profile report, identity projection, digest, or Foundational
+artifact must open no capability or runtime door.
 
 ## C.5: Durable Page, Segment, Extent, And Manifest Path
 

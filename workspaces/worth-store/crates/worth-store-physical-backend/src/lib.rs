@@ -287,6 +287,8 @@
 //! use worth_store_physical_backend::StoreOwnedAccessPolicyExecution;
 //! let _forged = StoreOwnedAccessPolicyExecution { _private: () };
 //! ```
+extern crate self as worth_store_physical_backend;
+
 mod access_policy;
 mod backup_materialization;
 mod directory_durability;
@@ -295,6 +297,7 @@ mod durability_profile;
 mod execution;
 pub mod external_recovery_compile_fail;
 mod facade;
+mod filesystem_media;
 mod heavy_fixture;
 mod io_capability;
 mod media_topology;
