@@ -148,39 +148,29 @@ logAccess(user.id, request.url, "allowed?");`,
   },
   {
     id: 5,
-    title: "Every Write Is a Branch",
-    purpose: "Concurrent optimistic writes — an independent sibling, a failing parent, and its dependent child — settle out of order while a server-truth referee judges both screens live.",
-    preface: "Optimistic UI puts something on screen the server has not confirmed yet. That is fine — until several of those guesses overlap and one of them fails. The left window is the callback model exactly as TanStack Query's documentation recommends: snapshot in onMutate, restore in onError, invalidate on settle. In the right window every optimistic write forks its own effect branch: rejection retires one branch, confirmation merges one branch, and a dependent write is a child branch that closes out with its parent. A server-truth strip referees both screens, and each wears a live badge saying whether it still agrees with the server.",
+    title: "Optimistic Updates That Never Lie",
+    purpose: "A medical supply order stays responsive while three supplier checks resolve differently. The approved item stays, the controlled material leaves, and its required handling kit closes with it.",
+    preface: "Nobody working Central Supply wants to watch a spinner negotiate with a server. This demo submits three real inventory lines through the worker-first runtime and lets the purchasing screen show the result: one approval, one rejection, one related cancellation, and no valid work lost.",
     difficulty: "Intermediate",
-    primaryMessage: "One write, one branch. Rejection retires a branch — it never restores a shared snapshot.",
+    primaryMessage: "The inventory responds immediately without sacrificing exact closeout or an honest audit record.",
     WORTHCode: DEMO_FIVE_CODE,
-    alternativeName: "React Query (TanStack Query)",
-    alternativeCode: `const addLine = useMutation({
-  mutationFn: saveLine,
-  onMutate: async (line) => {
-    await queryClient.cancelQueries({ queryKey: ["po", "lines"] });
-    const previous = queryClient.getQueryData(["po", "lines"]);
-    queryClient.setQueryData(["po", "lines"], (cur = []) => [...cur, line]);
-    return { previous };
-  },
-  // restores a whole-cache snapshot — including anything
-  // that was confirmed after the snapshot was taken
-  onError: (_err, _line, ctx) =>
-    queryClient.setQueryData(["po", "lines"], ctx?.previous),
-  onSettled: () => {
-    // even the recommended fix needs a concurrency guard
-    if (queryClient.isMutating() === 1)
-      queryClient.invalidateQueries({ queryKey: ["po", "lines"] });
-  },
-});`,
-    explanationAlternative: "The rollback is your code restoring your closure variable. The cache cannot tell speculative rows from confirmed ones, so a failed write's rollback silently un-confirms whatever settled after its snapshot — and no record remains that the screen ever changed.",
-    explanationWORTH: "Every admitted write owns a native effect branch with an explicit fork basis and declared dependencies. Rejection retires exactly one branch (and closes out its dependents by policy); confirmation reconciles one resource locus and merges one branch. The visible value is a derived projection — rebuildable from canonical truth plus open effects — and every claim on screen is a runtime-issued receipt.",
+    alternativeName: "Shared snapshot rollback",
+    alternativeCode: `const before = readVisibleValue();
+applyOptimisticWrite(nextItem);
+
+try {
+  await save(nextItem);
+} catch {
+  restoreVisibleValue(before);
+}`,
+    explanationAlternative: "A shared snapshot remembers a value, not the causal identity of each overlapping request. Restoring it cannot express an independent success and a dependent cancellation honestly.",
+    explanationWORTH: "Every admitted write keeps its own identity and declared dependencies. Rejection removes exactly the failed request and closes its dependents; confirmation reconciles exactly the accepted item. The visible inventory is rebuildable from canonical truth plus pending effects, and every closeout claim is backed by a runtime-issued receipt.",
     whatYouGet: [
-      "One effect branch per optimistic write, drawn live as a graph",
+      "One independently tracked optimistic effect per inventory write",
       "Declared parent/child dependencies with typed closeout",
-      "A server-truth referee and live agreement badges on both screens",
-      "Arbitrary-order settlement: ten branches converge with zero residue",
-      "Clickable runtime receipts — branch, dependencies, terminal outcome"
+      "A scripted server referee and a live agreement badge on the application",
+      "Independent success preserved while parent and child close together",
+      "Clickable audit receipts — request identity, dependencies, terminal outcome"
     ],
     relatedDocsPath: "resources/effects/README"
   },

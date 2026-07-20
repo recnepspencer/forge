@@ -2,6 +2,11 @@ import React from "react";
 import { createSignals } from "worth-signals-wasm";
 
 import {
+  currentRoutePresentation,
+  routeRequestKey,
+  type RoutePresentation,
+} from "./routerSectionPresentation";
+import {
   ROLE_TRAINED_REV,
   REPLAY_PERSONAS,
   buildRouterSectionModel,
@@ -54,6 +59,14 @@ interface RouterSectionState {
   trainedRev: SopRevision;
 }
 
+interface RouterPageLine {
+  awaitSettlement: () => Promise<unknown>;
+  invalidate: () => void;
+  refresh: () => void;
+  status: () => { kind: string };
+  value: () => unknown;
+}
+
 function useStorySubscription(story: any): number {
   const [revision, setRevision] = React.useState(0);
 
@@ -85,8 +98,9 @@ export function useRouterSectionState(): RouterSectionState {
   const [activeTarget, setActiveTarget] = React.useState<string>("");
   const [navNonce, setNavNonce] = React.useState(0);
 
-  const [currentReport, setCurrentReport] = React.useState<any>(null);
-  const [pageLine, setPageLine] = React.useState<any>(null);
+  const [presentation, setPresentation] = React.useState<
+    RoutePresentation<unknown, RouterPageLine> | null
+  >(null);
   const [, setPageRevision] = React.useState(0);
   const [isNavigating, setIsNavigating] = React.useState(false);
 
@@ -145,8 +159,7 @@ export function useRouterSectionState(): RouterSectionState {
       return;
     }
     setStory(signals.router.browserHistory.story());
-    setCurrentReport(null);
-    setPageLine(null);
+    setPresentation(null);
   }, [signals, model, role]);
 
   const navigate = React.useCallback((target: string) => {
@@ -165,9 +178,15 @@ export function useRouterSectionState(): RouterSectionState {
     }
 
     const token = ++navigationTokenRef.current;
+    const requestKey = routeRequestKey({
+      activeTarget,
+      deviationGranted,
+      effectiveRevision: effectiveRev,
+      navigationNonce: navNonce,
+      role,
+    });
     const navigationKind = story.events().length === 0 ? "load" : "push";
     setIsNavigating(true);
-    setPageLine(null);
     setPageRevision((value) => value + 1);
 
     const facts = {
@@ -189,7 +208,8 @@ export function useRouterSectionState(): RouterSectionState {
       }
 
       story.record(report);
-      setCurrentReport(report);
+      const settledPresentation = { pageLine: null, report, requestKey };
+      setPresentation(settledPresentation);
 
       const outcome = describeOutcome(report, deviationGranted);
       logIdRef.current += 1;
@@ -215,14 +235,13 @@ export function useRouterSectionState(): RouterSectionState {
 
       const rawOutcome = report.outcome();
       if (rawOutcome.kind !== "admitted" || !rawOutcome.route().resourceNames().includes("page")) {
-        setPageLine(null);
         setPageRevision((value) => value + 1);
         setIsNavigating(false);
         return;
       }
 
       const nextLine = rawOutcome.route().resource("page").line();
-      setPageLine(nextLine);
+      setPresentation({ ...settledPresentation, pageLine: nextLine });
       setPageRevision((value) => value + 1);
       nextLine.invalidate();
       nextLine.refresh();
@@ -284,13 +303,27 @@ export function useRouterSectionState(): RouterSectionState {
     };
   }, [model, replayTargets, effectiveRev]);
 
+  const currentRequestKey = routeRequestKey({
+    activeTarget,
+    deviationGranted,
+    effectiveRevision: effectiveRev,
+    navigationNonce: navNonce,
+    role,
+  });
+  const currentPresentation = currentRoutePresentation(presentation, currentRequestKey);
   const currentOutcome = React.useMemo(
-    () => (currentReport ? describeOutcome(currentReport, deviationGranted) : null),
-    [currentReport, deviationGranted],
+    () =>
+      currentPresentation
+        ? describeOutcome(currentPresentation.report, deviationGranted)
+        : null,
+    [currentPresentation, deviationGranted],
   );
 
-  const pageStatusKind = pageLine?.status?.().kind ?? null;
-  const pageValue = pageLine && pageStatusKind === "fulfilled" ? pageLine.value() : null;
+  const pageStatusKind = currentPresentation?.pageLine?.status?.().kind ?? null;
+  const pageValue =
+    currentPresentation?.pageLine && pageStatusKind === "fulfilled"
+      ? currentPresentation.pageLine.value()
+      : null;
 
   return {
     accessLog,
@@ -300,7 +333,7 @@ export function useRouterSectionState(): RouterSectionState {
     deviationGranted,
     effectiveRev,
     grantDeviation,
-    isNavigating,
+    isNavigating: isNavigating || currentPresentation === null,
     model,
     navigate,
     pageValue,

@@ -8,21 +8,21 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test:demo-docs": "node --test tests/demo_documentation_contract.test.mjs",
+    "test:landing": "node --experimental-strip-types --test tests/landing_mobile_carousel.test.mjs",
     "test:demo5": "node --test tests/demo_five_concurrency.test.mjs",
     "test:demo6": "node --experimental-wasm-modules --test tests/demo_six_aspect_merge.test.mjs tests/demo_six_code_evidence.test.mjs tests/worker_bundle_integrity.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.100.14",
-    "worth-signals-wasm": "file:../../crates/worth-signal-wasm/pkg",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "worth-signals-wasm": "file:../../crates/worth-signal-wasm/pkg"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

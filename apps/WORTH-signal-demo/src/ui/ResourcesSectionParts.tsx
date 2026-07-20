@@ -1,15 +1,11 @@
 import React from "react";
 
 import {
-  formatOffset,
   PO_NUMBER,
-  PO_URL,
   type Agreement,
   type PanelEvent,
-  type PanelVariant,
   type PoLine,
   type ServerTruth,
-  type ServerTruthRecord,
 } from "./resourcesSectionSupport";
 
 function useVisibleToasts(events: readonly PanelEvent[]): readonly PanelEvent[] {
@@ -46,9 +42,9 @@ function useVisibleToasts(events: readonly PanelEvent[]): readonly PanelEvent[] 
 }
 
 function agreementLabel(agreement: Agreement): string {
-  if (agreement.kind === "matches") return "matches server";
+  if (agreement.kind === "matches") return "Inventory current";
   if (agreement.kind === "speculating") {
-    return `speculating · ${agreement.pendingCount} pending`;
+    return `${agreement.pendingCount} approval check${agreement.pendingCount === 1 ? "" : "s"}`;
   }
   const parts: string[] = [];
   if (agreement.missingLabels.length > 0) {
@@ -57,7 +53,7 @@ function agreementLabel(agreement: Agreement): string {
   if (agreement.phantomLabels.length > 0) {
     parts.push(`${agreement.phantomLabels.length} rejected record${agreement.phantomLabels.length === 1 ? "" : "s"} on screen`);
   }
-  return parts.join(" · ");
+  return parts.join(" / ");
 }
 
 export function AgreementBadge({ agreement }: { agreement: Agreement | null }): React.ReactElement | null {
@@ -69,111 +65,181 @@ export function AgreementBadge({ agreement }: { agreement: Agreement | null }): 
   );
 }
 
-const TRUTH_CHIP_LABEL: Record<ServerTruthRecord["status"], string> = {
-  pending: "deciding…",
-  confirmed: "confirmed",
-  rejected: "rejected",
-  cancelled: "cancelled",
+const SERVER_STATUS_LABEL = {
+  pending: "Approval pending",
+  confirmed: "Approved",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
+} as const;
+
+const PRODUCT_CATALOG: Record<string, {
+  image: string;
+  sku: string;
+  category: string;
+  location: string;
+  bin: string;
+  unitPrice: string;
+}> = {
+  "line-071": {
+    image: "/products/nitrile-gloves.jpg",
+    sku: "PPE-NG-440",
+    category: "Examination PPE",
+    location: "Central Supply",
+    bin: "A-14",
+    unitPrice: "$112.50",
+  },
+  "line-072": {
+    image: "/products/controlled-solvent.jpg",
+    sku: "LAB-CS-210",
+    category: "Controlled laboratory material",
+    location: "Hazard Storage",
+    bin: "H-03",
+    unitPrice: "$86.25",
+  },
+  "line-073": {
+    image: "/products/safety-goggles.jpg",
+    sku: "PPE-SG-118",
+    category: "Protective eyewear",
+    location: "Central Supply",
+    bin: "B-07",
+    unitPrice: "$74.40",
+  },
+  "line-074": {
+    image: "/products/solvent-handling-kit.jpg",
+    sku: "LAB-SHK-032",
+    category: "Hazard response kit",
+    location: "Hazard Storage",
+    bin: "H-08",
+    unitPrice: "$129.00",
+  },
 };
 
-export function PlatformOwner({
-  description,
-  title,
-  variant,
-}: {
-  description: string;
-  title: string;
-  variant: PanelVariant;
-}): React.ReactElement {
+export function MedicalInventoryHeader(): React.ReactElement {
   return (
-    <header className={`po-platform-owner po-platform-owner-${variant}`}>
-      <span>{variant === "tanstack" ? "Left column · shared cache" : "Right column · branch runtime"}</span>
-      <h2>{title}</h2>
-      <p>{description}</p>
+    <header className="po-app-topbar">
+      <div className="po-app-brand">
+        <span aria-hidden="true">+</span>
+        <div><strong>Northstar</strong><small>Supply Operations</small></div>
+      </div>
+      <div className="po-app-facility">Northstar Medical Center</div>
+      <div className="po-app-account"><span>Central Supply</span><b>ES</b></div>
     </header>
+  );
+}
+
+export function MedicalInventorySidebar(): React.ReactElement {
+  return (
+    <aside className="po-app-sidebar">
+      <span>Supply chain</span>
+      <nav aria-label="Supply chain navigation">
+        <span>Overview</span>
+        <span>Inventory</span>
+        <span className="is-active">Purchase orders</span>
+        <span>Suppliers</span>
+        <span>Receiving</span>
+      </nav>
+      <div className="po-app-sidebar-note">
+        <strong>Central Supply</strong>
+        <small>Building A / Level 1</small>
+      </div>
+    </aside>
   );
 }
 
 export function PoPanel({
   agreement,
-  caption,
   error,
   events,
   highlightId,
   lines,
   loading,
-  refetching,
   serverTruth = [],
-  title,
-  variant,
 }: {
   agreement: Agreement | null;
-  caption: string;
   error?: string | null;
   events: readonly PanelEvent[];
   highlightId: string | null;
   lines: readonly PoLine[] | null;
   loading: boolean;
-  refetching?: boolean;
   serverTruth: ServerTruth;
-  title: string;
-  variant: PanelVariant;
 }): React.ReactElement {
   const toasts = useVisibleToasts(events);
   const serverStatusById = new Map(serverTruth.map((record) => [record.line.id, record.status]));
   const diverged = agreement?.kind === "wrong";
 
   return (
-    <article className={`po-window po-window-${variant}`}>
-      <header className="po-window-chrome">
-        <span className="signals-code-dots" aria-hidden="true"><i /><i /><i /></span>
-        <code className="po-window-url">{PO_URL}</code>
-        <span className={`po-window-badge po-window-badge-${variant}`}>{title}</span>
-      </header>
-
+    <article className="po-window">
       <div className="po-window-body">
-        <div className="po-order-head">
-          <strong>{PO_NUMBER}</strong>
-          <span>Purchase order · line items</span>
-          {refetching ? <em className="po-refetching">refetching entire list…</em> : null}
-          <span className="po-order-agreement"><AgreementBadge agreement={agreement} /></span>
+        <div className="po-breadcrumbs">Supply chain <span>/</span> Purchase orders <span>/</span> {PO_NUMBER}</div>
+        <div className="po-inventory-title">
+          <div>
+            <span>Purchase order</span>
+            <h3>{PO_NUMBER}</h3>
+            <small>Created July 18, 2026</small>
+          </div>
+          <div className="po-order-heading-actions">
+            <span className="po-order-agreement"><AgreementBadge agreement={agreement} /></span>
+          </div>
         </div>
+
+        <dl className="po-order-metadata">
+          <div><dt>Supplier</dt><dd>Meridian Clinical Supply</dd></div>
+          <div><dt>Requested by</dt><dd>ICU Operations</dd></div>
+          <div><dt>Facility</dt><dd>Northstar Medical Center</dd></div>
+          <div><dt>Need by</dt><dd>Jul 22</dd></div>
+        </dl>
 
         {error ? (
           <div className="po-window-empty is-error">{error}</div>
         ) : loading || !lines ? (
           <div className="po-window-empty">
             <span className="po-spinner" aria-hidden="true" />
-            <span>loading lines…</span>
+            <span>loading lines...</span>
           </div>
         ) : (
           <div className="po-current-value">
             <div className="po-current-value-head">
-              <span>Current visible value</span>
-              <code>{lines.length} record{lines.length === 1 ? "" : "s"}</code>
-              {diverged ? <em>diverged here</em> : null}
+              <div><strong>Order items</strong><span>{lines.length} line item{lines.length === 1 ? "" : "s"}</span></div>
+              {diverged ? <em>Needs reconciliation</em> : null}
+            </div>
+            <div className="po-table-head" aria-hidden="true">
+              <span>Item</span><span>SKU</span><span>Qty</span><span>Unit price</span><span>Location</span><span>Approval status</span>
             </div>
             <ul className="po-lines">
               {lines.map((line) => {
                 const serverStatus = serverStatusById.get(line.id);
+                const product = PRODUCT_CATALOG[line.id];
                 return (
                   <li
                     className={`po-line${line.id === highlightId ? " is-highlighted" : ""}${serverStatus ? ` is-server-${serverStatus}` : ""}`}
                     key={line.id}
                   >
+                    <img
+                      alt=""
+                      className="po-line-image"
+                      height="96"
+                      src={product?.image}
+                      width="96"
+                    />
                     <div className="po-line-main">
                       <strong>{line.label}</strong>
-                      <span>{line.qty}</span>
+                      <span>{product?.category}</span>
                     </div>
+                    <code className="po-line-sku">{product?.sku}</code>
+                    <div className="po-line-stock">
+                      <strong>{line.qty}</strong>
+                    </div>
+                    <div className="po-line-price">{product?.unitPrice}</div>
+                    <div className="po-line-location"><span>{product?.location}</span><small>{product?.bin}</small></div>
                     <div className="po-line-statuses">
-                      <span className={`po-sync po-sync-${line.sync}`}>
-                        {line.sync === "synced" ? "synced" : "saving…"}
-                      </span>
                       {serverStatus ? (
                         <span className={`po-server-state po-server-state-${serverStatus}`}>
-                          server · {TRUTH_CHIP_LABEL[serverStatus]}
+                          {SERVER_STATUS_LABEL[serverStatus]}
                         </span>
                       ) : null}
+                      <span className={`po-sync po-sync-${line.sync}`}>
+                        {line.sync === "synced" ? "Synced" : "Submitting..."}
+                      </span>
                     </div>
                   </li>
                 );
@@ -182,7 +248,7 @@ export function PoPanel({
             {agreement && agreement.missingLabels.length > 0 ? (
               <div className="po-value-missing" role="status">
                 <span>Missing from this current value</span>
-                <strong>{agreement.missingLabels.join(" · ")}</strong>
+                <strong>{agreement.missingLabels.join(" / ")}</strong>
                 <em>server confirmed</em>
               </div>
             ) : null}
@@ -198,74 +264,7 @@ export function PoPanel({
           ))}
         </div>
       </div>
-
-      <footer className="po-window-caption">
-        <code>{caption}</code>
-      </footer>
     </article>
-  );
-}
-
-export function ServerTruthStrip({
-  baseMs,
-  truth,
-}: {
-  baseMs: number | null;
-  truth: ServerTruth;
-}): React.ReactElement {
-  return (
-    <section className="po-truth" aria-label="Server truth">
-      <header className="po-truth-head">
-        <span className="po-truth-title">Server truth · {PO_NUMBER}</span>
-        <code>the referee — both screens are judged against this</code>
-      </header>
-      <div className="po-truth-chips">
-        {truth.map((record) => (
-          <span className={`po-truth-chip po-truth-chip-${record.status}`} key={record.line.id}>
-            <strong>{record.line.label}</strong>
-            <em>
-              {TRUTH_CHIP_LABEL[record.status]}
-              {record.status !== "pending" && record.atMs > 0 && baseMs !== null
-                ? ` ${formatOffset(record.atMs, baseMs)}`
-                : ""}
-            </em>
-          </span>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function CliffhangerCard({
-  onDeliver,
-}: {
-  onDeliver: () => void;
-}): React.ReactElement {
-  return (
-    <aside className="po-cliffhanger" role="status">
-      <p className="po-cliffhanger-question">
-        The vendor check on the calibration kit is about to fail. The server has already
-        confirmed the sterile tubing. What should happen to it?
-      </p>
-      <button className="po-control-button po-cliffhanger-button" onClick={onDeliver} type="button">
-        Deliver the rejection
-      </button>
-    </aside>
-  );
-}
-
-export function VerdictLine({
-  healed,
-}: {
-  healed: boolean;
-}): React.ReactElement {
-  return (
-    <p className="po-verdict" role="status">
-      One rejection was delivered to both screens. Only one still agrees with the server.
-      {healed
-        ? " The left screen healed itself by refetching the entire list — and no record remains that it was ever wrong. The right screen was never wrong, and keeps the retired branches as evidence."
-        : " The left column marks the exact wrong row in red under Current visible value."}
-    </p>
   );
 }
 
@@ -281,15 +280,15 @@ export function ConvergenceReceipt({ facts }: { facts: ConvergenceFacts }): Reac
   return (
     <div className="po-convergence" role="status">
       <span className={`po-convergence-item ${facts.matchesServer ? "is-good" : "is-bad"}`}>
-        {facts.matchesServer ? "✓" : "✗"} visible records match scripted server truth
+        {facts.matchesServer ? "Correct:" : "Mismatch:"} inventory matches supplier approvals
       </span>
       <span className={`po-convergence-item ${facts.openEffectCount === 0 ? "is-good" : "is-bad"}`}>
-        {facts.openEffectCount === 0 ? "✓" : "✗"} open effects: {facts.openEffectCount}
+        {facts.openEffectCount === 0 ? "Closed:" : "Open:"} pending writes: {facts.openEffectCount}
       </span>
       <span className="po-convergence-item is-good">
-        {facts.mergedCount} merged · {facts.rejectedCount} rejected · {facts.cancelledCount} dependency-cancelled
+        {facts.mergedCount} accepted / {facts.rejectedCount} rejected / {facts.cancelledCount} related cancellation
       </span>
-      <code>line.effects().counters() · terminal receipts</code>
+      <code>verified from runtime counters and audit receipts</code>
     </div>
   );
 }

@@ -10,16 +10,11 @@ export interface PoWriteBody extends PoLine {
   attempt: number;
 }
 
-export type PanelVariant = "tanstack" | "worth";
-
 export type ScenarioPhase =
   | "idle"
-  | "arming"
-  | "cliffhanger"
-  | "diverged"
-  | "healed"
-  | "batchRunning"
-  | "batchSettled";
+  | "optimistic"
+  | "siblingConfirmed"
+  | "settled";
 
 export interface PanelEvent {
   id: string;
@@ -52,7 +47,6 @@ export function createRuntimeReceipt(
 }
 
 export const PO_NUMBER = "PO-1142";
-export const PO_URL = "procure.worth.example/orders/PO-1142";
 
 export const EXISTING_LINE: PoLine = Object.freeze({
   id: "line-071",
@@ -64,15 +58,15 @@ export const EXISTING_LINE: PoLine = Object.freeze({
 /** Added first; its vendor-qualification check is slow — and fails. */
 export const LINE_RISKY: PoLine = Object.freeze({
   id: "line-072",
-  label: "Calibration kit",
-  qty: "3 units",
+  label: "Controlled solvent",
+  qty: "3 drums",
   sync: "syncing",
 });
 
 /** Added second, while the first is still saving; confirms quickly. */
 export const LINE_SAFE: PoLine = Object.freeze({
   id: "line-073",
-  label: "Sterile tubing",
+  label: "Safety goggles",
   qty: "12 cases",
   sync: "syncing",
 });
@@ -80,19 +74,14 @@ export const LINE_SAFE: PoLine = Object.freeze({
 /** Depends on the risky request and is cancelled when that parent is rejected. */
 export const LINE_DEPENDENT: PoLine = Object.freeze({
   id: "line-074",
-  label: "Calibration certificate",
-  qty: "3 records",
+  label: "Solvent handling kit",
+  qty: "3 kits",
   sync: "syncing",
 });
 
-export const REJECT_MESSAGE = "Vendor is not qualified for calibrated equipment.";
+export const REJECT_MESSAGE = "Supplier is not approved for controlled materials.";
 
 export const FETCH_DELAY_MS = 1_200;
-export const HEALING_REFETCH_DELAY_MS = 3_000;
-export const BEAT_SIBLINGS_AT_MS = 1_000;
-export const BEAT_CONFIRM_SAFE_AT_MS = 2_400;
-export const BEAT_CLIFFHANGER_AT_MS = 3_400;
-
 /** The referee: what the scripted server knows each record's status to be. */
 export type ServerRecordStatus = "pending" | "confirmed" | "rejected" | "cancelled";
 
@@ -162,56 +151,6 @@ export function computeAgreement(
     return { kind: "speculating", missingLabels, phantomLabels, pendingCount };
   }
   return { kind: "matches", missingLabels, phantomLabels, pendingCount };
-}
-
-export interface ConcurrentScenarioRequest {
-  readonly line: PoLine;
-  readonly accepted: boolean;
-  readonly dependsOnLineId?: string;
-}
-
-export interface ConcurrentScenario {
-  readonly seed: number;
-  readonly requests: readonly ConcurrentScenarioRequest[];
-  readonly settlementOrder: readonly string[];
-}
-
-export function buildTenRequestScenario(seed: number): ConcurrentScenario {
-  const outcomes = [true, true, false, false, true, false, true, true, false, false];
-  const dependencyIndexes = new Map([[1, 0], [3, 2], [7, 6], [9, 8]]);
-  const requests = outcomes.map((accepted, index): ConcurrentScenarioRequest => {
-    const line: PoLine = {
-      id: `line-${80 + index}`,
-      label: `Controlled material ${index + 1}`,
-      qty: `${index + 1} lot${index === 0 ? "" : "s"}`,
-      sync: "syncing",
-    };
-    const dependencyIndex = dependencyIndexes.get(index);
-    return Object.freeze({
-      line: Object.freeze(line),
-      accepted,
-      ...(dependencyIndex === undefined
-        ? {}
-        : { dependsOnLineId: `line-${80 + dependencyIndex}` }),
-    });
-  });
-  const settlementOrder = seededShuffle(requests.map((request) => request.line.id), seed);
-  return Object.freeze({
-    seed,
-    requests: Object.freeze(requests),
-    settlementOrder: Object.freeze(settlementOrder),
-  });
-}
-
-function seededShuffle<T>(values: readonly T[], seed: number): T[] {
-  const shuffled = [...values];
-  let state = seed >>> 0;
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
-    const target = state % (index + 1);
-    [shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
-  }
-  return shuffled;
 }
 
 interface PendingSave {
@@ -286,6 +225,9 @@ export function createPoServer(): PoServer {
     },
     reset() {
       lines = [{ ...EXISTING_LINE }];
+      for (const entry of pending.values()) {
+        entry.reject(new Error("Scenario reset before the server responded."));
+      }
       pending.clear();
       decisions.clear();
     },
@@ -303,9 +245,4 @@ export function createPanelEvent(
     title,
     detail,
   };
-}
-
-export function formatOffset(atMs: number, baseMs: number | null): string {
-  if (baseMs === null) return "—";
-  return `t+${((atMs - baseMs) / 1000).toFixed(1)}s`;
 }

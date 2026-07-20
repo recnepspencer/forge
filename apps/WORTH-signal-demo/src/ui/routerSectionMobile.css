@@ -1,0 +1,121 @@
+@media (max-width: 700px) {
+  .mfg-section {
+    gap: 1rem;
+  }
+
+  .mfg-role-row {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-bottom: -1rem;
+    padding: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .mfg-role-row > span,
+  .mfg-role-row em {
+    grid-column: 1 / -1;
+  }
+
+  .mfg-role-row > span {
+    color: rgba(223, 228, 236, 0.72);
+    font-weight: 650;
+  }
+
+  .mfg-role-row button {
+    min-width: 0;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.3rem;
+    font-size: 0.7rem;
+    line-height: 1.15;
+  }
+
+  .mfg-role-row em {
+    font-size: 0.66rem;
+    line-height: 1.35;
+  }
+
+  .mfg-stage {
+    gap: 0;
+  }
+
+  .mfg-browser-card {
+    border-radius: 0;
+  }
+
+  .mfg-browser-chrome {
+    gap: 0.5rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .mfg-browser-url {
+    font-size: 0.64rem;
+  }
+
+  .mfg-role-badge {
+    padding-inline: 0.45rem;
+    font-size: 0.58rem;
+  }
+
+  .mfg-browser-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .mfg-browser-nav button {
+    min-height: 2.75rem;
+    padding: 0.45rem 0.5rem;
+    border-color: rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.018);
+    font-size: 0.72rem;
+    line-height: 1.2;
+  }
+
+  .mfg-browser-body {
+    min-height: 0;
+    padding: 0.85rem;
+  }
+
+  .mfg-page {
+    gap: 0.55rem;
+  }
+
+  .mfg-page-rows li {
+    gap: 0.7rem;
+    padding: 0.45rem 0;
+  }
+
+  .mfg-page-rows strong,
+  .mfg-page-rows span {
+    font-size: 0.76rem;
+  }
+
+  .mfg-execute-button,
+  .mfg-deviation-button {
+    width: 100%;
+    min-height: 2.75rem;
+    justify-self: stretch;
+  }
+
+  .mfg-log-panel {
+    padding: 0.85rem;
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
+  }
+
+  .mfg-log-row {
+    gap: 0.55rem;
+    padding: 0.55rem 0;
+  }
+
+  .mfg-log-footnote {
+    margin-top: 0.25rem;
+  }
+}

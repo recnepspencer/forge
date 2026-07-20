@@ -77,7 +77,9 @@ export const DemosContainer: React.FC<DemosContainerProps> = ({ demoId, onNaviga
       <section className="xai-hero xai-demo-route-hero">
         <div className="container xai-demo-route-shell">
           <div className="xai-demo-route-copy">
-            <span className="xai-eyebrow">{`Demo 0${demo.id}`}</span>
+            <span className="xai-eyebrow">
+              Demo<span className="xai-demo-eyebrow-index">{` 0${demo.id}`}</span>
+            </span>
             <h1>{demo.title}</h1>
             <p>{demo.purpose}</p>
           </div>
@@ -96,8 +98,16 @@ export const DemosContainer: React.FC<DemosContainerProps> = ({ demoId, onNaviga
             ) : null}
             <div className="xai-demo-route-count" aria-label="Jump to demo">
               {liveDemoIds.map((id) => (
-                <button className={id === demoId ? "active" : ""} key={id} onClick={() => onNavigate(`#/demos/${id}`)} type="button">
-                  {`0${id}`}
+                <button
+                  aria-current={id === demoId ? "page" : undefined}
+                  aria-label={`Demo ${id}`}
+                  className={id === demoId ? "active" : ""}
+                  key={id}
+                  onClick={() => onNavigate(`#/demos/${id}`)}
+                  type="button"
+                >
+                  <span className="xai-demo-count-wide" aria-hidden="true">{`0${id}`}</span>
+                  <span className="xai-demo-count-compact" aria-hidden="true">{id}</span>
                 </button>
               ))}
             </div>

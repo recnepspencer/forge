@@ -7,16 +7,16 @@ import {
 } from "worth-signals-wasm";
 
 import { useSignal } from "./Demos";
-import { BranchDagStrip, type DagLaneDatum } from "./ResourcesModelStrips";
+import { ResourcesOutcomeActivity, type EffectOutcome } from "./ResourcesOutcomeActivity";
 import {
   ConvergenceReceipt,
-  PlatformOwner,
+  MedicalInventoryHeader,
+  MedicalInventorySidebar,
   PoPanel,
   type ConvergenceFacts,
 } from "./ResourcesSectionParts";
 import { pushPanelEvent, type PanelController, type PanelProps } from "./resourcesSectionPanels";
 import {
-  EXISTING_LINE,
   PO_NUMBER,
   computeAgreement,
   createPanelEvent,
@@ -31,8 +31,6 @@ type SignalsRuntime = Awaited<ReturnType<typeof createSignals>>;
 
 interface EffectSummaryLike {
   readonly lifecycle: string;
-  readonly branchId: number;
-  readonly dependencyEffectIds: readonly string[];
   readonly terminal: { readonly kind: string } | null;
 }
 
@@ -40,14 +38,13 @@ interface AdmittedEffect {
   readonly effectId: string;
   readonly lineId: string;
   readonly label: string;
-  readonly admittedAtMs: number;
 }
 
 function admittedEffectId(result: ResourcePatchExecutionResult): string {
   if ("effectId" in result && typeof result.effectId === "string") {
     return result.effectId;
   }
-  throw new TypeError("branch-native patch admission did not return an effect identity");
+  throw new TypeError("effect admission did not return an effect identity");
 }
 
 function retiredEffectIds(result: ResourceEffectSettlementResult): readonly string[] {
@@ -59,26 +56,26 @@ function retiredEffectIds(result: ResourceEffectSettlementResult): readonly stri
 }
 
 export function ResourcesWORTHPanel({
-  baseMs,
   highlightId,
-  onAgreement,
   onController,
   phase,
   serverTruth,
 }: PanelProps) {
   const store = useMemo(() => createPoServer(), []);
   const [signals, setSignals] = useState<SignalsRuntime | null>(null);
+  const [runtimeCycle, setRuntimeCycle] = useState(0);
   const [bootError, setBootError] = useState<string | null>(null);
   const [events, setEvents] = useState<PanelEvent[]>([]);
-  const [dagLanes, setDagLanes] = useState<readonly DagLaneDatum[]>([]);
+  const [outcomes, setOutcomes] = useState<readonly EffectOutcome[]>([]);
   const [settlementSnapshot, setSettlementSnapshot] = useState<ReadonlyMap<string, unknown>>(
     new Map(),
   );
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const attemptRef = useRef(0);
   const admissionByLine = useRef(new Map<string, Promise<string>>());
+  const persistenceByLine = useRef(new Map<string, Promise<void>>());
+  const dependencyByLine = useRef(new Map<string, string>());
   const admittedEffects = useRef<AdmittedEffect[]>([]);
-  const settledAtByEffect = useRef(new Map<string, number>());
   const lastSettlementByEffect = useRef(new Map<string, unknown>());
 
   useEffect(() => {
@@ -95,7 +92,7 @@ export function ResourcesWORTHPanel({
       active = false;
       if (runtime) void runtime.terminate();
     };
-  }, []);
+  }, [runtimeCycle]);
 
   const WORTH = useMemo(() => {
     if (!signals) return null;
@@ -110,26 +107,17 @@ export function ResourcesWORTHPanel({
     return { linesFamily, line: linesFamily.line({ orderId: PO_NUMBER }) };
   }, [signals, store]);
 
-  /** Snapshot runtime-issued branch truth for React rendering. */
-  const bumpDag = useCallback(() => {
+  /** Snapshot runtime-issued effect truth for React rendering. */
+  const refreshOutcomes = useCallback(() => {
     if (!WORTH) return;
-    for (const entry of admittedEffects.current) {
-      if (settledAtByEffect.current.has(entry.effectId)) continue;
-      const summary = WORTH.line.effects().get(entry.effectId) as EffectSummaryLike | null;
-      if (summary?.terminal) settledAtByEffect.current.set(entry.effectId, performance.now());
-    }
-    setDagLanes(admittedEffects.current.flatMap((entry) => {
+    setOutcomes(admittedEffects.current.flatMap((entry) => {
       const summary = WORTH.line.effects().get(entry.effectId) as EffectSummaryLike | null;
       if (!summary) return [];
       return [{
         effectId: entry.effectId,
         label: entry.label,
-        admittedAtMs: entry.admittedAtMs,
-        settledAtMs: settledAtByEffect.current.get(entry.effectId) ?? null,
-        parentEffectId: summary.dependencyEffectIds[0] ?? null,
         lifecycle: summary.lifecycle,
         terminal: summary.terminal?.kind ?? null,
-        branchId: summary.branchId,
       }];
     }));
     setSettlementSnapshot(new Map(lastSettlementByEffect.current));
@@ -137,8 +125,8 @@ export function ResourcesWORTHPanel({
 
   useEffect(() => {
     if (!WORTH) return;
-    void WORTH.line.awaitSettlement().then(() => bumpDag());
-  }, [WORTH, bumpDag]);
+    void WORTH.line.awaitSettlement().then(() => refreshOutcomes());
+  }, [WORTH, refreshOutcomes]);
 
   const lineSignal = useMemo(() => (WORTH ? WORTH.line.signal() : null), [WORTH]);
   const watchedValue = useSignal<readonly PoLine[] | null>(signals as unknown, lineSignal);
@@ -146,10 +134,6 @@ export function ResourcesWORTHPanel({
   const loading = !WORTH || (!lines && !bootError);
 
   const agreement = useMemo(() => computeAgreement(lines, serverTruth), [lines, serverTruth]);
-
-  useEffect(() => {
-    onAgreement("worth", agreement, "live");
-  }, [agreement, onAgreement]);
 
   const selectedReceipt = useMemo(() => {
     if (!WORTH || !selectedEffectId) return null;
@@ -186,21 +170,21 @@ export function ResourcesWORTHPanel({
       });
       lastSettlementByEffect.current.set(effectId, settlement);
       cancelRetiredDependents(settlement, effectId);
-      bumpDag();
+      refreshOutcomes();
       const waiting = settlement.kind === "responseRecorded";
       pushPanelEvent(setEvents, createPanelEvent(
         "success",
         `${draft.label} ${waiting ? "accepted" : "confirmed"}`,
-        waiting ? "response recorded; canonical closeout waits for its dependencies" : "the effect branch merged and retired",
+        waiting ? "response recorded; closeout waits for its required item" : "the accepted request reconciled and closed",
       ));
     } catch (error) {
       const terminal = WORTH.line.effects().get(effectId)?.terminal;
       if (terminal?.kind === "dependencyCancelled") {
-        bumpDag();
+        refreshOutcomes();
         pushPanelEvent(setEvents, createPanelEvent(
           "error",
           `${draft.label} cancelled`,
-          "its dependency was rejected; the runtime retired the dependent branch",
+          "its required controlled material was rejected; the runtime cancelled this related request",
         ));
         return;
       }
@@ -209,11 +193,11 @@ export function ResourcesWORTHPanel({
       });
       lastSettlementByEffect.current.set(effectId, settlement);
       cancelRetiredDependents(settlement, effectId);
-      bumpDag();
+      refreshOutcomes();
       const message = error instanceof Error ? error.message : "server rejected the write";
       pushPanelEvent(setEvents, createPanelEvent("error", `${draft.label} failed`, message));
     }
-  }, [bumpDag, cancelRetiredDependents, WORTH, store]);
+  }, [cancelRetiredDependents, refreshOutcomes, WORTH, store]);
 
   const controller = useMemo<PanelController>(() => ({
     addLine: (poLine, options = {}) => {
@@ -242,27 +226,37 @@ export function ResourcesWORTHPanel({
           effectId,
           lineId: draft.id,
           label: draft.label,
-          admittedAtMs: performance.now(),
         });
-        bumpDag();
+        refreshOutcomes();
         pushPanelEvent(setEvents, createPanelEvent(
           "info",
-          `Adding ${draft.label}…`,
-          parentId ? "admitted on a derived dependency basis" : "admitted on its own effect branch",
+          `Adding ${draft.label}...`,
+          parentId ? "linked to its required inventory request" : "tracked as an independent inventory request",
         ));
         return effectId;
       })();
       admissionByLine.current.set(draft.id, admission);
-      void admission.then((effectId) => persistEffect(draft, effectId)).catch((error) => {
+      if (options.dependsOnLineId) {
+        dependencyByLine.current.set(draft.id, options.dependsOnLineId);
+      }
+      const persistence = admission.then((effectId) => persistEffect(draft, effectId)).catch((error) => {
         pushPanelEvent(setEvents, createPanelEvent(
           "error",
           `${draft.label} was not admitted`,
           error instanceof Error ? error.message : "unknown admission failure",
         ));
       });
+      persistenceByLine.current.set(draft.id, persistence);
       return admission.then(() => undefined);
     },
-    settle: (lineId, accepted) => store.settle(lineId, accepted),
+    settle: async (lineId, accepted) => {
+      store.settle(lineId, accepted);
+      await persistenceByLine.current.get(lineId);
+      const dependentWrites = [...dependencyByLine.current.entries()]
+        .filter(([, parentLineId]) => parentLineId === lineId)
+        .map(([dependentLineId]) => persistenceByLine.current.get(dependentLineId));
+      await Promise.all(dependentWrites);
+    },
     reset: async () => {
       if (WORTH) {
         const openEffects = [...WORTH.line.effects().open()].reverse();
@@ -275,49 +269,42 @@ export function ResourcesWORTHPanel({
       }
       store.reset();
       admissionByLine.current.clear();
+      persistenceByLine.current.clear();
+      dependencyByLine.current.clear();
       admittedEffects.current = [];
-      settledAtByEffect.current.clear();
       lastSettlementByEffect.current.clear();
-      setDagLanes([]);
+      setOutcomes([]);
       setSettlementSnapshot(new Map());
       setEvents([]);
       setSelectedEffectId(null);
-      if (!WORTH) return;
-      WORTH.line.invalidate();
-      WORTH.line.refresh();
-      const settlement = await WORTH.line.awaitSettlement({ timeoutMs: 5_000 });
-      if (settlement.resultKind !== "fulfilled") {
-        throw new TypeError(`Worth reset reload ended as ${settlement.resultKind}`);
-      }
-      const value = WORTH.line.value() as readonly PoLine[] | null;
-      if (value?.length !== 1 || value[0]?.id !== EXISTING_LINE.id) {
-        throw new TypeError("Worth reset reload did not restore the scripted server baseline");
-      }
+      setBootError(null);
+      setSignals(null);
+      setRuntimeCycle((current) => current + 1);
     },
-  }), [bumpDag, WORTH, persistEffect, store]);
+  }), [refreshOutcomes, WORTH, persistEffect, store]);
 
   useEffect(() => {
-    onController(controller);
+    onController(WORTH ? controller : null);
     return () => onController(null);
-  }, [controller, onController]);
+  }, [controller, onController, WORTH]);
 
   const convergence = useMemo<ConvergenceFacts | null>(() => {
-    if (phase !== "batchSettled" || !WORTH) return null;
+    if (phase !== "settled" || !WORTH) return null;
     const counters = WORTH.line.effects().counters() as { openEffectCount?: number };
     return {
       matchesServer: agreement?.kind === "matches",
       openEffectCount: counters.openEffectCount ?? 0,
-      mergedCount: dagLanes.filter((lane) => lane.terminal === "merged").length,
-      rejectedCount: dagLanes.filter((lane) => lane.terminal === "rejectedAndRetired").length,
-      cancelledCount: dagLanes.filter((lane) => lane.terminal === "dependencyCancelled").length,
+      mergedCount: outcomes.filter((outcome) => outcome.terminal === "merged").length,
+      rejectedCount: outcomes.filter((outcome) => outcome.terminal === "rejectedAndRetired").length,
+      cancelledCount: outcomes.filter((outcome) => outcome.terminal === "dependencyCancelled").length,
     };
-  }, [agreement?.kind, dagLanes, WORTH, phase]);
+  }, [agreement?.kind, outcomes, WORTH, phase]);
 
   const exportReceipts = useCallback(() => {
     if (!WORTH) return;
     const artifact = {
       exportedAt: new Date().toISOString(),
-      scenario: "po-concurrent-effect-branches",
+      scenario: "medical-inventory-concurrent-approvals",
       receipts: admittedEffects.current.map((entry) => ({
         effectId: entry.effectId,
         lineId: entry.lineId,
@@ -339,40 +326,31 @@ export function ResourcesWORTHPanel({
     URL.revokeObjectURL(url);
   }, [WORTH]);
 
-  const live = phase === "arming" || phase === "diverged" || phase === "batchRunning";
-  const selectedLabel = dagLanes.find((entry) => entry.effectId === selectedEffectId)?.label ?? null;
+  const selectedLabel = outcomes.find((entry) => entry.effectId === selectedEffectId)?.label ?? null;
 
   return (
     <div className="po-column">
-      <PlatformOwner
-        description="One effect branch per write · isolated closeout · runtime receipts"
-        title="Worth Signals"
-        variant="worth"
-      />
+      <MedicalInventoryHeader />
+      <MedicalInventorySidebar />
       <PoPanel
         agreement={agreement}
-        caption="worker-first · branchNative() · line.effects().confirm / reject"
         error={bootError}
         events={events}
         highlightId={highlightId}
         lines={lines}
         loading={loading}
         serverTruth={serverTruth}
-        title="Worth Signals"
-        variant="worth"
       />
-      <BranchDagStrip
-        baseMs={baseMs}
-        lanes={dagLanes}
-        live={live}
+      <ResourcesOutcomeActivity
+        outcomes={outcomes}
         onSelect={(effectId) => setSelectedEffectId((current) => (current === effectId ? null : effectId))}
         selectedId={selectedEffectId}
       />
       {selectedReceipt ? (
         <details className="po-receipt" open>
           <summary>
-            runtime receipt — {selectedLabel ?? selectedEffectId}
-            <button className="po-receipt-export" onClick={exportReceipts} type="button">Export all (JSON)</button>
+            Audit receipt: {selectedLabel ?? selectedEffectId}
+            <button className="po-receipt-export" onClick={exportReceipts} type="button">Export audit JSON</button>
           </summary>
           <pre>{JSON.stringify(selectedReceipt, null, 2)}</pre>
         </details>

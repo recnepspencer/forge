@@ -9,6 +9,8 @@ import { ResourceOptimisticArtifact } from "./ResourceOptimisticArtifact";
 import { RouterRouteField } from "./RouterRouteField";
 import { SignalWaveArtifact } from "./SignalWaveArtifact";
 import { LandingInstallCommand } from "./LandingInstallCommand";
+import { getLandingCarouselPosition } from "./landingCarouselPosition";
+import { useLandingCarouselViewport } from "./useLandingCarouselViewport";
 
 interface LandingPageProps {
   onNavigate: (path: string) => void;
@@ -79,23 +81,13 @@ const accentGlowColors = {
   signals: "rgba(125, 199, 255, 0.18)",
 } as const;
 
-type CarouselPosition = {
-  filter: string;
-  opacity: number;
-  pointerEvents: "auto" | "none";
-  rotateY: number;
-  scale: number;
-  x: string;
-  z: number;
-  zIndex: number;
-};
-
 const MotionDiv = motion.div as unknown as React.ElementType;
 const MotionArticle = motion.article as unknown as React.ElementType;
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   const [activeIndex, setActiveIndex] = React.useState(0);
   const prefersReducedMotion = useReducedMotion();
+  const narrowCarousel = useLandingCarouselViewport();
   const active = capabilitySlides[activeIndex];
   const previousSlide = capabilitySlides[(activeIndex - 1 + capabilitySlides.length) % capabilitySlides.length];
   const nextSlide = capabilitySlides[(activeIndex + 1) % capabilitySlides.length];
@@ -111,56 +103,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
     return raw;
   };
 
-  const cardPosition = (relative: number): CarouselPosition => {
-    if (prefersReducedMotion) {
-      return {
-        filter: "blur(0px) saturate(1)",
-        opacity: relative === 0 ? 1 : 0,
-        pointerEvents: relative === 0 ? "auto" : "none",
-        rotateY: 0,
-        scale: 1,
-        x: relative === 0 ? "0rem" : `${relative * 4}rem`,
-        z: 0,
-        zIndex: relative === 0 ? 5 : 1,
-      };
-    }
-
-    if (relative === 0) {
-      return {
-        filter: "blur(0px) saturate(1)",
-        opacity: 1,
-        pointerEvents: "auto",
-        rotateY: 0,
-        scale: 1,
-        x: "0rem",
-        z: 0,
-        zIndex: 5,
-      };
-    }
-
-    if (relative === -1 || relative === 1) {
-      return {
-        filter: "blur(5px) saturate(0.78)",
-        opacity: 0.42,
-        pointerEvents: "none",
-        rotateY: relative === -1 ? 68 : -68,
-        scale: 0.82,
-        x: relative === -1 ? "-42rem" : "42rem",
-        z: -240,
-        zIndex: 3,
-      };
-    }
-
-    return {
-      filter: "blur(12px) saturate(0.55)",
-      opacity: 0.08,
-      pointerEvents: "none",
-      rotateY: relative < 0 ? 78 : -78,
-      scale: 0.68,
-      x: relative < 0 ? "-54rem" : "54rem",
-      z: -420,
-      zIndex: 1,
-    };
+  const handleCarouselPanEnd = (_event: PointerEvent, info: { offset: { x: number } }) => {
+    if (Math.abs(info.offset.x) < 44) return;
+    goTo(activeIndex + (info.offset.x < 0 ? 1 : -1));
   };
 
   return (
@@ -208,18 +153,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           </button>
 
           <div className={`xai-capability-carousel accent-${active.accent}`}>
-            <div className="xai-carousel-window" aria-live="polite" aria-roledescription="carousel">
+            <MotionDiv
+              aria-label="Worth Signals capabilities"
+              aria-live="polite"
+              aria-roledescription="carousel"
+              className="xai-carousel-window"
+              onPanEnd={handleCarouselPanEnd}
+            >
               {capabilitySlides.map((slide, index) => {
                 const relative = relativePosition(index);
-                const position = cardPosition(relative);
+                const position = getLandingCarouselPosition({
+                  narrow: narrowCarousel,
+                  reducedMotion: Boolean(prefersReducedMotion),
+                  relative,
+                });
                 const demo = demoRegistry.find((entry) => entry.id === slide.id);
 
                 return (
                   <MotionArticle
                     key={slide.id}
                     animate={position}
+                    aria-hidden={relative !== 0}
+                    aria-label={`${slide.eyebrow}: ${slide.headline}`}
                     className={`xai-carousel-slide accent-${slide.accent}`}
                     initial={false}
+                    inert={relative !== 0 ? true : undefined}
                     transition={{
                       damping: 26,
                       mass: 0.78,
@@ -269,12 +227,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                   </MotionArticle>
                 );
               })}
-            </div>
+            </MotionDiv>
           </div>
 
           <button className="xai-carousel-arrow xai-carousel-arrow-right" onClick={() => goTo(activeIndex + 1)} title="Next capability" type="button">
             <ArrowRight aria-hidden="true" size={20} />
           </button>
+
+          <div className="xai-carousel-pagination" aria-label="Choose a capability" role="navigation">
+            {capabilitySlides.map((slide, index) => (
+              <button
+                key={slide.id}
+                aria-current={index === activeIndex ? "true" : undefined}
+                aria-label={`Show ${slide.eyebrow}`}
+                onClick={() => goTo(index)}
+                type="button"
+              />
+            ))}
+          </div>
         </div>
       </section>
     </main>

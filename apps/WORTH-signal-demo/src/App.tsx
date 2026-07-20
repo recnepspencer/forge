@@ -10,6 +10,7 @@ import "./ui/landingPage.css";
 import "./ui/landingMarketing.css";
 import "./ui/landingDemoRoute.css";
 import "./ui/worthTheme.css";
+import "./ui/landingMobileCarousel.css";
 
 function App() {
   const { route, navigate: navigateRoute } = useRouter();
