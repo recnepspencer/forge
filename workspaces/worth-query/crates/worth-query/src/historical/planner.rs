@@ -95,6 +95,7 @@ pub(crate) fn resolve_historical_materialization_path(
                     .predicted_historical_reconstruction_scope(),
         ));
     Ok(HistoricalPathResolved::new(
+        admission.requested_path().basis_proof().clone(),
         admission.requested_path().requested_path_class().clone(),
         admission.admitted_path().admitted_path_class().clone(),
         materialization.resolved_path_class().clone(),

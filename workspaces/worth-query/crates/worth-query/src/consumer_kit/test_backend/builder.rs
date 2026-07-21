@@ -200,6 +200,29 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
         self
     }
 
+    pub fn replayable_workflow_stage_executor<D: 'static, O, F: 'static, E>(
+        mut self,
+        domain: D,
+        operation: O,
+        family: F,
+        executor: E,
+    ) -> Self
+    where
+        O: 'static
+            + crate::domain_installation::WorthQueryExecutableDomainOperation<
+                D,
+                F,
+                Execution = crate::domain_installation::WorthQueryWorkflowOperation,
+            >,
+        E: crate::domain_installation::WorthQueryDomainWorkflowStageExecutor<D, O, F>
+            + crate::domain_installation::WorthQueryDomainReplaySemanticComparator<D, O, F>,
+    {
+        self.runtime_installers.push(Box::new(move |builder| {
+            builder.replayable_workflow_stage_executor(domain, operation, family, executor)
+        }));
+        self
+    }
+
     pub fn workflow_parallel_admission_provider<D: 'static, O: 'static, F: 'static, P>(
         mut self,
         domain: D,

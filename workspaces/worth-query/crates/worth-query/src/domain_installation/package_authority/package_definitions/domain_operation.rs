@@ -1,7 +1,8 @@
 use std::any::TypeId;
 
 pub use worth_query_installation::facade::{
-    WorthQueryArtifactPosture, WorthQueryArtifactReuseEquivalence, WorthQueryComparatorFamily,
+    WorthQueryAftermathPostcondition, WorthQueryArtifactPosture,
+    WorthQueryArtifactReuseEquivalence, WorthQueryComparatorFamily,
     WorthQueryComparatorRequirement, WorthQueryConditionalConditionClass,
     WorthQueryConditionalConsequenceRole, WorthQueryConditionalEvaluationCondition,
     WorthQueryConditionalGraphReadRole, WorthQueryConditionalNodeContext,
@@ -21,7 +22,8 @@ pub use worth_query_installation::facade::{
     WorthQueryOperationNativeProjectionContract, WorthQueryOperationParameterContract,
     WorthQueryOperationParameterField, WorthQueryOperationProjectionConsumptionContract,
     WorthQueryOperationProjectionRole, WorthQueryOperationPromotionContract,
-    WorthQueryOperationPublicationContract, WorthQueryOperationReplayContract,
+    WorthQueryOperationPublicationContract, WorthQueryOperationReplayComparatorContract,
+    WorthQueryOperationReplayContract, WorthQueryOperationReplayNoiseContract,
     WorthQueryOperationRequiredDomainRole, WorthQueryOperationResultState,
     WorthQueryOperationReversalContract, WorthQueryOperationSupportRequirements,
     WorthQueryOperationTerminalContract, WorthQueryOperationTouchContract,

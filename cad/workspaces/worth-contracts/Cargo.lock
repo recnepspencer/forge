@@ -5,3 +5,7 @@ version = 4
 [[package]]
 name = "worth-schema-core"
 version = "0.1.0"
+
+[[package]]
+name = "worth-schema-graph"
+version = "0.1.0"

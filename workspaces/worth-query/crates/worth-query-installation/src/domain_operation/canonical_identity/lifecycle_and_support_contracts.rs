@@ -9,7 +9,7 @@ pub(super) fn hash_lifecycle_and_support_contracts(
     hasher: &mut Sha256,
     semantics: &WorthQueryDomainOperationSemanticClosure,
 ) {
-    hash_text_field(hasher, "replay", replay_name(semantics.replay));
+    hash_text_field(hasher, "replay", &replay_name(semantics.replay));
     hash_reversal(hasher, &semantics.reversal);
     hash_text_field(hasher, "lineage", lineage_name(semantics.lineage));
     hash_text_field(hasher, "promotion", promotion_name(semantics.promotion));
@@ -49,11 +49,48 @@ fn hash_reversal(hasher: &mut Sha256, contract: &WorthQueryOperationReversalCont
         }
         WorthQueryOperationReversalContract::Compensation { operation } => {
             hash_text_field(hasher, "reversal", "compensation");
-            hash_text_field(hasher, "compensation-operation", operation);
+            hash_text_field(hasher, "compensation-operation", &operation.slot());
+        }
+        WorthQueryOperationReversalContract::ExactInverseWithPostcondition {
+            operation,
+            lowering_family,
+            postcondition,
+        } => {
+            hash_text_field(hasher, "reversal", "exact-inverse-with-postcondition");
+            hash_text_field(hasher, "inverse-operation", &operation.slot());
+            hash_text_field(hasher, "reversal-lowering", lowering_family);
+            hash_aftermath_postcondition(hasher, postcondition);
+        }
+        WorthQueryOperationReversalContract::CompensationWithPostcondition {
+            operation,
+            postcondition,
+        } => {
+            hash_text_field(hasher, "reversal", "compensation-with-postcondition");
+            hash_text_field(hasher, "compensation-operation", &operation.slot());
+            hash_aftermath_postcondition(hasher, postcondition);
         }
         WorthQueryOperationReversalContract::RebuildRequired { recovery_family } => {
             hash_text_field(hasher, "reversal", "rebuild-required");
             hash_text_field(hasher, "recovery-family", recovery_family);
+        }
+    }
+}
+
+fn hash_aftermath_postcondition(
+    hasher: &mut Sha256,
+    postcondition: &WorthQueryAftermathPostcondition,
+) {
+    match postcondition {
+        WorthQueryAftermathPostcondition::ExactPriorTruth => {
+            hash_text_field(hasher, "aftermath-postcondition", "exact-prior-truth");
+        }
+        WorthQueryAftermathPostcondition::InvariantRestored { invariant } => {
+            hash_text_field(hasher, "aftermath-postcondition", "invariant-restored");
+            hash_text_field(hasher, "aftermath-invariant", invariant);
+        }
+        WorthQueryAftermathPostcondition::BusinessPostcondition { identity } => {
+            hash_text_field(hasher, "aftermath-postcondition", "business-postcondition");
+            hash_text_field(hasher, "aftermath-business-postcondition", identity);
         }
     }
 }
@@ -124,11 +161,21 @@ fn hash_support(hasher: &mut Sha256, support: WorthQueryOperationSupportRequirem
     }
 }
 
-fn replay_name(posture: WorthQueryOperationReplayContract) -> &'static str {
+fn replay_name(posture: WorthQueryOperationReplayContract) -> String {
     match posture {
-        WorthQueryOperationReplayContract::NotSupported => "not-supported",
-        WorthQueryOperationReplayContract::ReExecutable => "re-executable",
-        WorthQueryOperationReplayContract::CertReplayable => "cert-replayable",
+        WorthQueryOperationReplayContract::NotSupported => "not-supported".into(),
+        WorthQueryOperationReplayContract::ReExecutable => "re-executable".into(),
+        WorthQueryOperationReplayContract::CertReplayable { comparator } => {
+            format!("cert-replayable:{}", comparator.family)
+        }
+        WorthQueryOperationReplayContract::CertReplayableWithNoise { comparator, noise } => {
+            let posture = if noise.diagnostic_warnings {
+                "diagnostic-noise"
+            } else {
+                "strict"
+            };
+            format!("cert-replayable:{posture}:{}", comparator.family)
+        }
     }
 }
 

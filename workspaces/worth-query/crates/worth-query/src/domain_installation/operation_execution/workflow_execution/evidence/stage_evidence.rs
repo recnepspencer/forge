@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use super::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowEffectEvidence,
     WorthQueryWorkflowInvariantOutcome, WorthQueryWorkflowPrimaryReadEvidence,
-    WorthQueryWorkflowStageWarning, WorthQueryWorkflowValue,
+    WorthQueryWorkflowSemanticValue, WorthQueryWorkflowStageWarning, WorthQueryWorkflowValue,
 };
 
 #[derive(Debug)]
@@ -169,6 +169,7 @@ pub struct WorthQueryWorkflowStageReceipt {
     pub(super) stage_identity: String,
     pub(super) predecessor_stage_identities: Vec<String>,
     pub(super) predecessor_receipt_identities: Vec<String>,
+    pub(super) input: WorthQueryWorkflowSemanticValue,
     pub(super) output: WorthQueryWorkflowValue,
     pub(super) result_state: Option<WorthQueryOperationResultState>,
     pub(super) warnings: Vec<WorthQueryWorkflowStageWarning>,
@@ -185,6 +186,7 @@ pub struct WorthQueryWorkflowStageReceipt {
         Vec<std::sync::Arc<WorthQueryWorkflowStageAuthorityProof>>,
     pub(super) execution_snapshot: crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
+    pub(crate) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
 }
 
 #[derive(Debug)]
@@ -218,6 +220,9 @@ impl WorthQueryWorkflowStageReceipt {
     }
     pub fn predecessor_proof_count(&self) -> usize {
         self.predecessor_authority_proofs.len()
+    }
+    pub fn input(&self) -> &WorthQueryWorkflowSemanticValue {
+        &self.input
     }
     pub(crate) fn output(&self) -> &WorthQueryWorkflowValue {
         &self.output
@@ -295,6 +300,7 @@ pub enum WorthQueryWorkflowAdvanceDenialKind {
     PrimaryReadEvidence,
     EffectEvidence,
     InvariantEvidence,
+    LineageEvidence,
     CostContract,
     OutputContract,
     TerminalContract,

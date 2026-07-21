@@ -3,7 +3,8 @@ use worth_foundational::facade::{
 };
 use worth_query::facade::domain;
 use worth_query_declaration::facade::authoring::{
-    AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField, DetailQueryBuilder,
+    AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField,
+    CollectionQueryBuilder, CollectionResultShapeBuilder, DetailQueryBuilder,
     DetailResultShapeBuilder, RootEntityKey,
 };
 use worth_query_declaration::facade::binding::QueryBindingDescriptor;
@@ -109,7 +110,29 @@ pub(crate) fn canonical_bundle(
         .unwrap()
         .into_raw();
     canonicalize_request(
-        AuthoredQueryBundleRequest::new(query, shape, QueryBindingDescriptor::new()).unwrap(),
+        AuthoredQueryBundleRequest::for_ordinary_read(query, shape, QueryBindingDescriptor::new())
+            .unwrap(),
+    )
+    .unwrap()
+}
+
+pub(crate) fn canonical_collection_bundle(
+    root: &str,
+) -> worth_query_declaration::facade::canonicalization::CanonicalQueryBundle {
+    let selector = AspectFieldSelector::new("identity", "id").unwrap();
+    let query = CollectionQueryBuilder::new(RootEntityKey::new(root).unwrap())
+        .project(selector)
+        .build()
+        .unwrap()
+        .into_raw();
+    let shape = CollectionResultShapeBuilder::new()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap()
+        .into_raw();
+    canonicalize_request(
+        AuthoredQueryBundleRequest::for_ordinary_read(query, shape, QueryBindingDescriptor::new())
+            .unwrap(),
     )
     .unwrap()
 }

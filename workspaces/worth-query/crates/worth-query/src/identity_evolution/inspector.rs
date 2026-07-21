@@ -27,6 +27,12 @@ fn inspector_identity_classification_from_outcome_family(
         IdentityEvolutionOutcomeFamily::IdentityBreak => {
             InspectorIdentityClassification::IdentityBreak
         }
+        IdentityEvolutionOutcomeFamily::GeneratedIdentity => {
+            InspectorIdentityClassification::AuthoritativeContinuity
+        }
+        IdentityEvolutionOutcomeFamily::RetiredIdentity => {
+            InspectorIdentityClassification::IdentityBreak
+        }
         IdentityEvolutionOutcomeFamily::Denied => InspectorIdentityClassification::Denied,
     }
 }

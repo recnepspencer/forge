@@ -1,0 +1,5 @@
+error[E0451]: field `_private` of struct `WorthQueryCertificationReplayCapability` is private
+ --> tests/ui/replay/certification_replay_capability_constructor_private.rs:4:61
+  |
+4 |     let _forged = WorthQueryCertificationReplayCapability { _private: () };
+  |                                                             ^^^^^^^^ private field

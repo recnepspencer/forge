@@ -19,7 +19,8 @@ pub use identity::{
 };
 pub use package::WorthQueryDomainPackage;
 pub use package_definitions::{
-    WorthQueryArtifactPosture, WorthQueryArtifactReuseEquivalence, WorthQueryComparatorFamily,
+    WorthQueryAftermathPostcondition, WorthQueryArtifactPosture,
+    WorthQueryArtifactReuseEquivalence, WorthQueryComparatorFamily,
     WorthQueryComparatorRequirement, WorthQueryConditionalConditionClass,
     WorthQueryConditionalConsequenceRole, WorthQueryConditionalEvaluationCondition,
     WorthQueryConditionalGraphReadRole, WorthQueryConditionalNodeContext,
@@ -42,7 +43,8 @@ pub use package_definitions::{
     WorthQueryOperationParameterContract, WorthQueryOperationParameterField,
     WorthQueryOperationProjectionConsumptionContract, WorthQueryOperationProjectionRole,
     WorthQueryOperationPromotionContract, WorthQueryOperationPublicationContract,
-    WorthQueryOperationReplayContract, WorthQueryOperationRequiredDomainRole,
+    WorthQueryOperationReplayComparatorContract, WorthQueryOperationReplayContract,
+    WorthQueryOperationReplayNoiseContract, WorthQueryOperationRequiredDomainRole,
     WorthQueryOperationResultState, WorthQueryOperationReversalContract,
     WorthQueryOperationSupportRequirements, WorthQueryOperationTerminalContract,
     WorthQueryOperationTouchContract, WorthQueryOperationValueFamily,

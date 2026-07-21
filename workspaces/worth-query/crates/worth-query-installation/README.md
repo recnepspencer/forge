@@ -43,8 +43,9 @@ Portable definitions must remain callback-free and runtime-independent.
 and family marker types to `WorthQueryDomainOperationSemanticClosure`.
 
 The closure states parameters, canonical query and result shape, graph reads,
-touches/effects, workflow, conditional nodes, publication, support, terminal
-states, failure classes, cost, and deterministic lowering identity.
+touches/effects, workflow, conditional nodes, replay, reversal, lineage,
+promotion, publication, support, terminal states, failure classes, cost, and
+deterministic lowering identity.
 
 Use typed `NotRequired` variants for absent capabilities. Provider absence and
 empty labels are not semantic declarations.
@@ -69,4 +70,7 @@ from portable installed artifacts without changing identity or denial outcomes.
 
 - [Runtime-Installed Domains And Operations](../worth-query/docs/domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](../worth-query/docs/domain-capabilities/conditional-installed-operations.md)
+- [Installed Operation Re-Execution And Replay](../worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
+- [Installed Operation Aftermath](../worth-query/docs/domain-capabilities/installed-operation-aftermath.md)
+- [Installed Operation Lineage And Promotion](../worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)
 - [Worth Query Orientation](../worth-query/docs/AI_README.md)
