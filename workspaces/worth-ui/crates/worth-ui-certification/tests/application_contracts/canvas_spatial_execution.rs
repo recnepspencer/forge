@@ -6,8 +6,9 @@ use worth_ui::facade::registry::{
 };
 use worth_ui::facade::runtime::{
     WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
-    WorthUiCanvasSpatialPlanAvailability, WorthUiHandleResolutionOutcome,
-    WorthUiRuntimeLaunchDenial, WorthUiSpatialHitTestPlan, WorthUiSpatialViewportPoint,
+    WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasViewportRequest,
+    WorthUiHandleResolutionOutcome, WorthUiRuntimeLaunchDenial, WorthUiSpatialHitTestRequest,
+    WorthUiSpatialViewportPoint,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_host_contract::{
@@ -52,41 +53,91 @@ fn real_wui_canvas_executes_only_from_the_host_bound_active_plan() {
         .execute_framework_turn(|_| {})
         .into_execution()
         .unwrap_or_else(|_| panic!("empty collection closes a framework turn"));
-    let receipt = execution
+    let first_receipt = execution
         .execute_canvas_spatial_frame(WorthUiCanvasSpatialFrameTarget::hit_test(
-            WorthUiSpatialHitTestPlan::for_viewport_point(
+            WorthUiSpatialHitTestRequest::for_viewport_point(
                 handle,
                 WorthUiSpatialViewportPoint::viewport(144, 96),
             ),
         ))
         .expect("active spatial hit test should execute directly");
 
-    assert_eq!(receipt.lane(), WorthUiCanvasSpatialLane::HitTest);
-    assert_eq!(receipt.queried_hit_test_region_count(), 1);
-    assert_eq!(receipt.touched_plan_indexes(), &[handle.plan_index()]);
+    assert_eq!(first_receipt.lane(), WorthUiCanvasSpatialLane::HitTest);
+    assert_eq!(first_receipt.queried_hit_test_region_count(), 1);
+    assert_eq!(first_receipt.touched_plan_indexes(), &[handle.plan_index()]);
     assert_eq!(
-        receipt.certification().host_session_identity(),
+        first_receipt.certification().host_session_identity(),
         host_session_identity
     );
-    assert_eq!(receipt.counters().skipped_noncanvas_plan_row_count(), 0);
     assert_eq!(
-        receipt.disposition(),
+        first_receipt.counters().skipped_noncanvas_plan_row_count(),
+        0
+    );
+    assert_eq!(
+        first_receipt.disposition(),
         WorthUiHostOutputDisposition::Consumed
     );
     assert_eq!(
-        receipt.output().receipt_reference().lane(),
+        first_receipt.output().receipt_reference().lane(),
         WorthUiHostOutputLane::CanvasSpatial
     );
-    let output = match receipt.output().payload() {
+    let first_output = match first_receipt.output().payload() {
         WorthUiHostOutputPayload::CanvasSpatial(output) => output,
         _ => panic!("canvas execution must emit the canvas payload"),
     };
     assert_eq!(
-        output.target(),
-        WorthUiCanvasSpatialHostOutputTarget::HitTest
+        first_output.target(),
+        WorthUiCanvasSpatialHostOutputTarget::HitTest {
+            viewport_x: 144,
+            viewport_y: 96,
+        }
     );
-    assert_ne!(output.meaning_digest(), 0);
-    assert_ne!(receipt.output().receipt_reference().digest(), 0);
+    let second_receipt = execution
+        .execute_canvas_spatial_frame(WorthUiCanvasSpatialFrameTarget::hit_test(
+            WorthUiSpatialHitTestRequest::for_viewport_point(
+                handle,
+                WorthUiSpatialViewportPoint::viewport(-8, 512),
+            ),
+        ))
+        .expect("a second exact hit-test point should execute");
+    let second_output = match second_receipt.output().payload() {
+        WorthUiHostOutputPayload::CanvasSpatial(output) => output,
+        _ => panic!("canvas execution must emit the canvas payload"),
+    };
+    assert_eq!(
+        second_output.target(),
+        WorthUiCanvasSpatialHostOutputTarget::HitTest {
+            viewport_x: -8,
+            viewport_y: 512,
+        }
+    );
+    assert_ne!(
+        first_output.meaning_digest(),
+        second_output.meaning_digest()
+    );
+    assert_ne!(
+        first_receipt.output().receipt_reference().digest(),
+        second_receipt.output().receipt_reference().digest()
+    );
+
+    let viewport_receipt = execution
+        .execute_canvas_spatial_frame(WorthUiCanvasSpatialFrameTarget::viewport(
+            WorthUiCanvasViewportRequest::pan_zoom(handle, 12, -4, 1_250)
+                .expect("positive zoom factor"),
+        ))
+        .expect("exact viewport request should execute");
+    let viewport_output = match viewport_receipt.output().payload() {
+        WorthUiHostOutputPayload::CanvasSpatial(output) => output,
+        _ => panic!("canvas execution must emit the canvas payload"),
+    };
+    assert_eq!(
+        viewport_output.target(),
+        WorthUiCanvasSpatialHostOutputTarget::Viewport {
+            pan_delta_x: 12,
+            pan_delta_y: -4,
+            zoom_milli_factor: 1_250,
+        }
+    );
 
     drop(execution);
     let _ = session.shutdown();

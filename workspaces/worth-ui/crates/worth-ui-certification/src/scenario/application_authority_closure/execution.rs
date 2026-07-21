@@ -101,7 +101,7 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
         candidate_inspection.generation_identity(),
         &initial_generation
     );
-    let catalog = admit_candidate_catalog(&mut prepared);
+    let catalog = admit_candidate_catalog(&session, &mut prepared);
     let lowered = session
         .lower_prepared_replacement(*prepared)
         .expect("prepared replacement should lower");

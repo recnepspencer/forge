@@ -1,21 +1,14 @@
 error[E0432]: unresolved imports `worth_ui::facade::WorthUiCandidateAuthoringLane`, `worth_ui::facade::WorthUiReplacementCandidate`
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_file_rust_replacement_parity/fail/rust_cannot_construct_replacement_candidate.rs
- help: consider importing this enum instead:
-worth_ui_runtime::facade::WorthUiCandidateAuthoringLane
- help: consider importing this struct instead:
-worth_ui_runtime::facade::WorthUiReplacementCandidate
 
 error[E0432]: unresolved import `worth_ui::facade::WorthUiExecutionPlan`
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_file_rust_replacement_parity/fail/rust_cannot_inject_active_plan_nodes.rs
- help: consider importing this struct instead
 
 error[E0432]: unresolved import `worth_ui::facade::WorthUiPlanSwapReceipt`
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_plan_swap/fail/plan_swap_receipt_fields_not_public.rs
- help: consider importing this struct instead
 
 error[E0432]: unresolved import `worth_ui::facade::WorthUiReloadFailure`
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_reload_failure/fail/reload_failure_fields_not_public.rs
- help: consider importing this struct instead
 
 error[E0432]: unresolved imports `worth_ui::facade::WorthUiReloadCertificationBundle`, `worth_ui::facade::WorthUiReloadLatencyCounters`, `worth_ui::facade::WorthUiReloadStormCandidateDenialReason`, `worth_ui::facade::WorthUiReloadStormCandidateStep`, `worth_ui::facade::WorthUiReloadStormCandidateStepKind`, `worth_ui::facade::WorthUiReloadStormCertification`, `worth_ui::facade::WorthUiReloadStormCertificationDenial`, `worth_ui::facade::WorthUiReloadStormCertificationDenialReason`, `worth_ui::facade::WorthUiReloadStormDeniedIteration`, `worth_ui::facade::WorthUiReloadStormIterationOutcome`, `worth_ui::facade::WorthUiReloadStormNoOpIteration`, `worth_ui::facade::WorthUiReloadStormOrderedTruth`, `worth_ui::facade::WorthUiReloadStormReceiptBinding`, `worth_ui::facade::WorthUiReloadStormScenario`, `worth_ui::facade::WorthUiReloadStormSuccessfulIteration`
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_reload_storm_certification/fail/reload_storm_certification_not_public_facade_api.rs

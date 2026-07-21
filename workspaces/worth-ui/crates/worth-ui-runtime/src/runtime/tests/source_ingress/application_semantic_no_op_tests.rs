@@ -161,6 +161,16 @@ fn allocation_value_change_activates_even_when_the_executable_plan_is_identical(
     }));
     assert_eq!(catalog.counters().submitted_row_visits(), 1);
     assert_eq!(catalog.counters().carried_row_visits(), 0);
+    assert_eq!(catalog.counters().derived_index_row_visits(), 2);
+    assert_eq!(catalog.counters().derived_index_membership_mutations(), 2);
+    assert_eq!(catalog.counters().derived_index_owner_mutations(), 4);
+    assert_eq!(
+        (
+            catalog.counters().derived_index_key_probes(),
+            catalog.counters().derived_index_node_copies(),
+        ),
+        (17, 9),
+    );
     assert_ne!(session.inspect_runtime(), prior);
 }
 

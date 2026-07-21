@@ -11,12 +11,16 @@ mod replay_digest;
 pub use certification::{
     WorthUiCertifiedMeasurementPacket, WorthUiComplexityContract, WorthUiCounterCaptureRichness,
 };
-pub use counter_family::{WorthUiCounterAuthority, WorthUiRuntimeCounterFamily};
-pub use counter_packet::{WorthUiCounterPacketBuilder, WorthUiMeasurementCounterPacket};
+pub use counter_family::WorthUiRuntimeCounterFamily;
+#[cfg(test)]
+pub use counter_packet::WorthUiCounterPacketBuilder;
+pub use counter_packet::WorthUiMeasurementCounterPacket;
 pub use denial::WorthUiMeasurementCertificationDenial;
 pub use foundational_bridge::{
     WorthUiFoundationalCounterBridge, WorthUiFoundationalCounterEvidence,
 };
-pub use frame_cost_counter::{WorthUiCounterValueKind, WorthUiFrameCostCounter};
+pub use frame_cost_counter::WorthUiFrameCostCounter;
 pub use measurement_boundary::WorthUiMeasurementBoundary;
-pub use query_evidence::{WorthUiMeasurementQueryEvidence, WorthUiMeasurementQueryEvidenceKind};
+pub use query_evidence::WorthUiMeasurementQueryEvidence;
+#[cfg(test)]
+pub use query_evidence::WorthUiMeasurementQueryEvidenceKind;

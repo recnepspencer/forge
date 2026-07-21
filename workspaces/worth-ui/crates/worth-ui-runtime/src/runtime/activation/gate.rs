@@ -154,7 +154,7 @@ impl WorthUiRuntime {
             WorthUiAllocationCatalogActivationDenial,
         >,
     {
-        let (prepared, delta_lowering, catalog_successor_receipt) = match catalog_input {
+        let (prepared, delta_lowering, mut catalog_successor_receipt) = match catalog_input {
             #[cfg(any(test, feature = "certification-support"))]
             UiAllocationCatalogReplacementInput::Complete(admitted_catalog) => {
                 deny_if_certification_interrupted("catalog activation preparation")?;
@@ -189,16 +189,19 @@ impl WorthUiRuntime {
                     crate::runtime::launch::UiAllocationCatalogPreparationDenial::PlanningAdmission(_) => WorthUiAllocationCatalogPreparationStage::PlanningAdmission,
                     crate::runtime::launch::UiAllocationCatalogPreparationDenial::CatalogPlanning(_) => WorthUiAllocationCatalogPreparationStage::CatalogPlanning,
                     crate::runtime::launch::UiAllocationCatalogPreparationDenial::ReceiptCommit(outcome) => match outcome.as_ref() {
+                        #[cfg(test)]
                         crate::runtime::UiAllocationReceiptCommitOutcome::RecomputePending(_) => WorthUiAllocationCatalogPreparationStage::ReceiptRecomputePending,
                         crate::runtime::UiAllocationReceiptCommitOutcome::Denied(denial) => match denial.as_ref() {
                             crate::runtime::UiAllocationReceiptCommitDenial::CatalogBindingCardinalityMismatch => WorthUiAllocationCatalogPreparationStage::ReceiptCatalogBindingCardinalityMismatch,
                             crate::runtime::UiAllocationReceiptCommitDenial::CatalogBindingIdentityMismatch { .. } => WorthUiAllocationCatalogPreparationStage::ReceiptCatalogBindingIdentityMismatch,
                             crate::runtime::UiAllocationReceiptCommitDenial::CatalogActivationAuthority(_) => WorthUiAllocationCatalogPreparationStage::ReceiptCatalogActivationAuthority,
                             crate::runtime::UiAllocationReceiptCommitDenial::CandidatePlanningDenied(_) => WorthUiAllocationCatalogPreparationStage::ReceiptCandidatePlanningDenied,
+                            #[cfg(test)]
                             crate::runtime::UiAllocationReceiptCommitDenial::ReuseDenied(_) => WorthUiAllocationCatalogPreparationStage::ReceiptReuseDenied,
                             crate::runtime::UiAllocationReceiptCommitDenial::AuthorityCounterExhausted(_) => WorthUiAllocationCatalogPreparationStage::ReceiptAuthorityCounterExhausted,
                             crate::runtime::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted => WorthUiAllocationCatalogPreparationStage::ReceiptEvidenceCounterExhausted,
                         },
+                        #[cfg(test)]
                         crate::runtime::UiAllocationReceiptCommitOutcome::Committed(_) => WorthUiAllocationCatalogPreparationStage::UnexpectedCommittedReceipt,
                     },
                 };
@@ -246,7 +249,7 @@ impl WorthUiRuntime {
                 }
                 crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::RegionalDelta(denial) => {
                     match denial {
-                        crate::runtime::plan_topology::WorthUiPlanRegionDeltaDenial::DuplicateCandidateRegion => WorthUiAllocationCatalogActivationDenial::RegionalDeltaDuplicateCandidateRegion,
+                        crate::runtime::planning::plan_topology::WorthUiPlanRegionDeltaDenial::DuplicateCandidateRegion => WorthUiAllocationCatalogActivationDenial::RegionalDeltaDuplicateCandidateRegion,
                     }
                 }
                 crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::PlanInput(denial) => {
@@ -340,7 +343,11 @@ impl WorthUiRuntime {
             },
         ) {
             Ok(publication) => {
-                let (plan_swap, query_retirement) = publication.into_parts();
+                let (plan_swap, query_retirement, derived_index_counters) =
+                    publication.into_parts();
+                if let Some(receipt) = catalog_successor_receipt.as_mut() {
+                    receipt.bind_derived_index_work(derived_index_counters);
+                }
                 Ok(WorthUiQueryAwarePlanOutcome::Activated(Box::new(
                     super::query_aware_plan_outcome::WorthUiQueryAwarePlanSwap::new(
                         plan_swap,

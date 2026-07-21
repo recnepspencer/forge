@@ -5,7 +5,7 @@ use super::{
 };
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationAuthoredEvidenceIndex};
 use crate::facade::lifecycle::{build_graph_evidence_indexes, WorthUiFacadeLifecycleBootstrap};
-use crate::facade::registry::CapabilitySnapshot;
+use crate::facade::registry::snapshot::CapabilitySnapshot;
 use crate::graph::{UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, UiGraphSnapshot};
 use std::rc::Rc;
 
@@ -236,24 +236,24 @@ impl WorthUiPreparedApplicationAuthority {
         &self,
         artifact_digest: crate::source::WorthUiArtifactDigest,
     ) -> Result<
-        crate::runtime::allocation_planning::WorthUiInitialAllocationCommit,
+        crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit,
         crate::runtime::WorthUiRuntimeLaunchDenial,
     > {
         let projection =
-            crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection::seal(
+            crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection::seal(
                 crate::runtime::WorthUiRuntimeFrameEpoch::initial(),
                 artifact_digest.raw(),
                 self.graph_snapshot.authority_identity(),
             );
-        crate::runtime::allocation_planning::WorthUiInitialAllocationCommit::commit(
+        crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit::commit(
             &self.graph_snapshot,
             projection,
         )
         .map_err(|denial| match denial {
-            crate::runtime::allocation_planning::WorthUiInitialAllocationCommitDenial::CandidateGraphAuthorityMismatch => {
+            crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommitDenial::CandidateGraphAuthorityMismatch => {
                 crate::runtime::WorthUiRuntimeLaunchDenial::InitialAllocationGraphAuthorityMismatch
             }
-            crate::runtime::allocation_planning::WorthUiInitialAllocationCommitDenial::ActiveAllocationObligations { node_count } => {
+            crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommitDenial::ActiveAllocationObligations { node_count } => {
                 crate::runtime::WorthUiRuntimeLaunchDenial::InitialAllocationObligationsUnsettled { node_count }
             }
         })

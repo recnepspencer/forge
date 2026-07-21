@@ -4,7 +4,7 @@ use super::replacement_impact_test_support::{
 };
 use super::source_ingress_test_support::{runtime_from_artifact, rust_import_artifact};
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::runtime::candidate::{
+use crate::runtime::replacement::candidate::{
     file_authored_replacement_candidate, rust_authored_replacement_candidate,
 };
 use crate::runtime::{

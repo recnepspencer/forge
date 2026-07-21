@@ -69,6 +69,7 @@ pub(crate) use authority::{
     UiAllocationInvalidationAdmissionContext, UiAllocationInvalidationAuthority,
     UiCommittedAllocationInvalidationContext,
 };
+pub(crate) use authority_index_delta::UiDerivedIndexDeltaCounters;
 pub(crate) use catalog_transition::{
     UiAllocationNeighborhoodActivationDenial, UiPreparedInvalidationCatalogTransition,
 };

@@ -10,7 +10,7 @@ use super::{
     WorthUiSteadyFrameFoundationalBridge, WorthUiSteadyFrameReportPlanner,
     WorthUiVirtualizedDataLane, WorthUiVisibleRange,
 };
-use crate::runtime::ordinary_lane::WorthUiOrdinaryLaneFrameExecutor;
+use crate::runtime::execution::ordinary_lane::WorthUiOrdinaryLaneFrameExecutor;
 use worth_foundational::FoundationalPerformanceReportMaterializationBoundary;
 
 #[test]

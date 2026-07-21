@@ -1,7 +1,7 @@
-use crate::runtime::lane_admission::WorthUiExtensionHookAdmissionPlanner;
+use crate::runtime::execution::lane_admission::WorthUiExtensionHookAdmissionPlanner;
 #[cfg(test)]
-use crate::runtime::lane_admission::WorthUiLaneAdmissionPlanner;
-use crate::runtime::plan_topology::WorthUiPlanTopologyAssembler;
+use crate::runtime::execution::lane_admission::WorthUiLaneAdmissionPlanner;
+use crate::runtime::planning::plan_topology::WorthUiPlanTopologyAssembler;
 use crate::runtime::planning::WorthUiExecutionPlanLoweringFacts;
 use crate::runtime::WorthUiRuntime;
 #[cfg(test)]

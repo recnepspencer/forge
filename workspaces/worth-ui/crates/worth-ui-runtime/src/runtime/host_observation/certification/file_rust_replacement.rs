@@ -1,4 +1,4 @@
-use crate::runtime::file_rust_replacement_parity::WorthUiFileRustReplacementPipelineReportParts;
+use crate::runtime::replacement::file_rust_replacement_parity::WorthUiFileRustReplacementPipelineReportParts;
 use crate::runtime::tests::allocation_planning_test_support::admitted_planning_admission;
 use crate::runtime::WorthUiRuntime;
 use crate::runtime::{

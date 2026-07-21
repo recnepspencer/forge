@@ -1363,15 +1363,17 @@ without ordinary-widget fallback.
 
 **Relevant subsystems and APIs**
 
-- canvas/spatial plan, node, viewport, overlay, hit-test, tool-state, draw hooks,
-  targets, receipts, counters, and certification
+- canvas/spatial plan, node, viewport, overlay, hit-test, tool-state, admitted
+  extension-hook evidence, targets, receipts, counters, and certification
 - extension-hook and lane admission
 - render-resource refs and lane handles
 
 **Deliverables**
 
-- Lower admitted spatial hooks, viewport meaning, hit-test plan, overlay plan,
-  tool-state access, and render-resource references into the sealed plan bundle.
+- Lower admitted spatial hook meaning into the lane-support digest and
+  generation-bound certification alongside viewport meaning, hit-test plan,
+  overlay plan, tool-state access, and render-resource references. Do not mint
+  duplicate hook-token objects from facts already sealed by host admission.
 - Bind every extension hook and resource ref to the exact host support and plan
   generation that admitted it.
 - Execute spatial targets directly from the active plan without graph search,
@@ -1428,13 +1430,14 @@ policy, never through a hidden ordinary pass.
 - HUD plan/node/builder, realtime overlay lane, targets, receipts, counters, and
   certification
 - high-frequency frame policy
-- realtime overlay hooks
+- admitted realtime extension-hook evidence
 - renderer-surface admission and handles
 
 **Deliverables**
 
-- Lower HUD rows, overlay hooks, renderer-surface references, and frame policy
-  into the active plan bundle.
+- Lower HUD rows, admitted overlay-hook meaning, renderer-surface references,
+  and frame policy into the active plan bundle; the sealed support digest is the
+  hook receipt rather than a second inert hook-token type.
 - Bind renderer surfaces to exact platform/session and plan generations.
 - Keep the high-frequency path free of ordinary layout, declaration/graph
   access, report materialization, and general-purpose allocation.
@@ -2145,8 +2148,10 @@ or compile-time debt.
   two-invocation compiler topology, zero lost diagnostic classes, zero net new
   physical compile fixtures, no ordinary nested Cargo invocation, and no
   generated fixture workspace.
-- Compare opening/closing medians for fast, `application_contracts`, compile-
-  contract, and full lanes. Real-boundary work may lengthen hostile execution,
+- Compare opening/closing medians for the targeted ordinary contract, fast,
+  `application_contracts`, and cold/warm compile-contract lanes; run the full
+  lane once as a closure smoke rather than turning it into a median benchmark.
+  Real-boundary work may lengthen hostile execution,
   but it may not move OS waits/storms into fast iteration or exceed the reviewed
   10 percent comparable-median gate without architectural correction.
 

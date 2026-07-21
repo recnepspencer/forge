@@ -85,14 +85,14 @@ fn real_source_component_replacement_publishes_exact_complete_regional_truth() {
             .transition_for_region(&retired_identity)
             .expect("retired region is indexed")
             .transition(),
-        crate::runtime::plan_topology::WorthUiPlanRegionTransition::Retired
+        crate::runtime::planning::plan_topology::WorthUiPlanRegionTransition::Retired
     );
     assert_eq!(
         evidence
             .transition_for_region(&inserted_identity)
             .expect("inserted region is indexed")
             .transition(),
-        crate::runtime::plan_topology::WorthUiPlanRegionTransition::Inserted
+        crate::runtime::planning::plan_topology::WorthUiPlanRegionTransition::Inserted
     );
     assert!(!plan.region_store().resolves(&stale));
     assert!(plan.region_store().handle_for(&inserted_identity).is_some());

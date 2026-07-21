@@ -120,8 +120,8 @@ fn summary_is_budgeted_and_links_read_only_query_evidence(fixture: &VirtualizedD
 
 #[test]
 fn hostile_full_scan_and_offset_modes_do_not_exist_in_the_executor() {
-    let target_source = include_str!("../../virtualized_data_lane/frame_target.rs");
-    let executor_source = include_str!("../../virtualized_data_lane/frame_executor.rs");
+    let target_source = include_str!("../../execution/virtualized_data_lane/frame_target.rs");
+    let executor_source = include_str!("../../execution/virtualized_data_lane/frame_executor.rs");
     let host_lane_source = include_str!("../../execution/host_lanes/virtualized_data.rs");
     for forbidden in [
         "FullCollectionScan",

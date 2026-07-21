@@ -13,8 +13,8 @@ pub(super) fn equal_visible_graph_evidence_cannot_cross_candidate_authority(
     let mut first = first;
     let mut second = second;
 
-    let _origin_catalog = admit_candidate_catalog(&mut first);
-    let foreign_catalog = admit_candidate_catalog(&mut second);
+    let _origin_catalog = admit_candidate_catalog(session, &mut first);
+    let foreign_catalog = admit_candidate_catalog(session, &mut second);
     let first_graph = first.candidate_graph();
     let second_graph = second.candidate_graph();
     assert_eq!(first_graph.node_count(), second_graph.node_count());

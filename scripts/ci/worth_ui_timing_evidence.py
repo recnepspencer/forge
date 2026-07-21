@@ -1,4 +1,8 @@
+import hashlib
+import re
 import statistics
+import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +17,11 @@ REQUIRED_MEASUREMENTS = {
     "warm_compile_contracts": "warm",
 }
 
+RFC3339_CAPTURE = re.compile(
+    r"^(?P<base>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})"
+    r"(?:\.(?P<fraction>\d{1,9}))?(?P<zone>Z|[+-]\d{2}:\d{2})$"
+)
+
 
 def timing_evidence_violations(
     root: Path, config: dict[str, Any]
@@ -22,32 +31,42 @@ def timing_evidence_violations(
         return [Violation("timing-evidence", f"missing {path.relative_to(root).as_posix()}")]
     evidence = load_json(path)
     violations: list[Violation] = []
-    if evidence.get("schema_version") != 1:
-        violations.append(Violation("timing-evidence", "schema_version must be 1"))
+    if evidence.get("schema_version") != 2:
+        violations.append(Violation("timing-evidence", "schema_version must be 2"))
     if evidence.get("milestone") != "3.9":
         violations.append(Violation("timing-evidence", "milestone must be 3.9"))
     opening = evidence.get("opening")
     if not isinstance(opening, dict):
         return [*violations, Violation("timing-evidence", "opening must be an object")]
-    violations.extend(run_set_violations("opening", opening))
+    violations.extend(run_set_violations(root, "opening", opening))
     closing = evidence.get("closing")
     if closing is not None:
         if not isinstance(closing, dict):
             violations.append(Violation("timing-evidence", "closing must be null or an object"))
         else:
-            violations.extend(run_set_violations("closing", closing))
+            violations.extend(run_set_violations(root, "closing", closing))
+            violations.extend(capture_order_violations(opening, closing))
             comparability = comparability_violations(opening, closing)
             violations.extend(comparability)
             if not comparability:
                 violations.extend(closing_budget_violations(opening, closing))
+            violations.extend(source_transition_violations(opening, closing))
     return violations
 
 
-def run_set_violations(label: str, run_set: dict[str, Any]) -> list[Violation]:
+def run_set_violations(root: Path, label: str, run_set: dict[str, Any]) -> list[Violation]:
     violations: list[Violation] = []
     for field in ("captured_at", "git_commit", "platform", "cargo", "rustc"):
         if not isinstance(run_set.get(field), str) or not run_set[field]:
             violations.append(Violation("timing-evidence", f"{label}.{field} is missing"))
+    captured_at = run_set.get("captured_at")
+    if isinstance(captured_at, str) and captured_at and parse_rfc3339(captured_at) is None:
+        violations.append(
+            Violation(
+                "timing-evidence-capture",
+                f"{label}.captured_at must be a valid RFC3339 timestamp",
+            )
+        )
     if not isinstance(run_set.get("cargo_incremental"), bool):
         violations.append(
             Violation("timing-evidence", f"{label}.cargo_incremental must be boolean")
@@ -55,6 +74,7 @@ def run_set_violations(label: str, run_set: dict[str, Any]) -> list[Violation]:
     cache = run_set.get("compiler_cache")
     if not isinstance(cache, str) or not cache:
         violations.append(Violation("timing-evidence", f"{label}.compiler_cache is missing"))
+    violations.extend(source_snapshot_violations(root, label, run_set))
     environment = run_set.get("environment")
     isolated_target_root = None
     if not isinstance(environment, dict):
@@ -102,6 +122,146 @@ def run_set_violations(label: str, run_set: dict[str, Any]) -> list[Violation]:
             )
         )
     return violations
+
+
+def source_snapshot_violations(
+    root: Path, label: str, run_set: dict[str, Any]
+) -> list[Violation]:
+    snapshot = run_set.get("source_snapshot")
+    if not isinstance(snapshot, dict):
+        return [Violation("timing-evidence-source", f"{label}.source_snapshot is missing")]
+    if snapshot.get("algorithm") != "sha256-path-and-git-blob-v1":
+        return [
+            Violation(
+                "timing-evidence-source",
+                f"{label}.source_snapshot.algorithm is unsupported",
+            )
+        ]
+    scope = snapshot.get("scope")
+    if not isinstance(scope, list) or not scope or not all(
+        isinstance(path, str) and path for path in scope
+    ):
+        return [
+            Violation("timing-evidence-source", f"{label}.source_snapshot.scope is invalid")
+        ]
+    kind = snapshot.get("kind")
+    try:
+        if kind == "working_tree":
+            digest, file_count = filesystem_source_digest(root, scope)
+        elif kind == "git_commit":
+            digest, file_count = git_commit_source_digest(
+                root, required_string(run_set, "git_commit"), scope
+            )
+        else:
+            return [
+                Violation(
+                    "timing-evidence-source",
+                    f"{label}.source_snapshot.kind must be working_tree or git_commit",
+                )
+            ]
+    except (OSError, subprocess.CalledProcessError, ValueError) as error:
+        return [
+            Violation(
+                "timing-evidence-source",
+                f"{label}.source_snapshot could not be verified: {error}",
+            )
+        ]
+    violations = []
+    if snapshot.get("digest") != digest:
+        violations.append(
+            Violation(
+                "timing-evidence-source",
+                f"{label}.source_snapshot.digest does not match the declared source bytes",
+            )
+        )
+    if snapshot.get("file_count") != file_count:
+        violations.append(
+            Violation(
+                "timing-evidence-source",
+                f"{label}.source_snapshot.file_count must be {file_count}",
+            )
+        )
+    return violations
+
+
+def filesystem_source_digest(root: Path, scope: list[str]) -> tuple[str, int]:
+    files: set[Path] = set()
+    for raw in scope:
+        scoped = root / raw
+        if scoped.is_file():
+            files.add(scoped)
+        elif scoped.is_dir():
+            files.update(
+                path
+                for path in scoped.rglob("*")
+                if path.is_file()
+                and not any(part in {".git", "target", "__pycache__"} for part in path.parts)
+            )
+        else:
+            raise ValueError(f"source scope does not exist: {raw}")
+    entries = []
+    for path in sorted(files):
+        relative = path.relative_to(root).as_posix()
+        entries.append((relative, git_blob_digest(path.read_bytes())))
+    return aggregate_source_entries(entries), len(entries)
+
+
+def git_commit_source_digest(
+    root: Path, commit: str, scope: list[str]
+) -> tuple[str, int]:
+    command = ["git", "ls-tree", "-r", "-z", commit, "--", *scope]
+    result = subprocess.run(command, cwd=root, check=True, capture_output=True)
+    entries = []
+    for raw in result.stdout.split(b"\0"):
+        if not raw:
+            continue
+        metadata, raw_path = raw.split(b"\t", 1)
+        _, object_type, object_id = metadata.split(b" ", 2)
+        if object_type != b"blob":
+            continue
+        entries.append((raw_path.decode("utf-8"), object_id.decode("ascii")))
+    return aggregate_source_entries(entries), len(entries)
+
+
+def git_blob_digest(data: bytes) -> str:
+    header = f"blob {len(data)}\0".encode("ascii")
+    return hashlib.sha1(header + data).hexdigest()
+
+
+def aggregate_source_entries(entries: list[tuple[str, str]]) -> str:
+    digest = hashlib.sha256()
+    for path, object_id in sorted(entries):
+        digest.update(path.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(object_id.encode("ascii"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def source_transition_digest(opening_digest: str, closing_digest: str) -> str:
+    return hashlib.sha256(
+        opening_digest.encode("ascii") + b"\0" + closing_digest.encode("ascii")
+    ).hexdigest()
+
+
+def source_transition_violations(opening, closing) -> list[Violation]:
+    opening_snapshot = opening.get("source_snapshot", {})
+    closing_snapshot = closing.get("source_snapshot", {})
+    if not isinstance(opening_snapshot, dict) or not isinstance(closing_snapshot, dict):
+        return []
+    opening_digest = opening_snapshot.get("digest")
+    closing_digest = closing_snapshot.get("digest")
+    if not isinstance(opening_digest, str) or not isinstance(closing_digest, str):
+        return []
+    expected = source_transition_digest(opening_digest, closing_digest)
+    if closing.get("source_transition_digest") != expected:
+        return [
+            Violation(
+                "timing-evidence-source",
+                "closing.source_transition_digest does not bind opening and closing source trees",
+            )
+        ]
+    return []
 
 
 def measurement_violations(
@@ -183,6 +343,38 @@ def valid_samples(samples: Any) -> bool:
         and len(samples) == 3
         and all(isinstance(sample, (int, float)) and sample > 0 for sample in samples)
     )
+
+
+def parse_rfc3339(value: str) -> tuple[datetime, int] | None:
+    matched = RFC3339_CAPTURE.fullmatch(value)
+    if matched is None:
+        return None
+    try:
+        zone = "+00:00" if matched.group("zone") == "Z" else matched.group("zone")
+        seconds = datetime.fromisoformat(f"{matched.group('base')}{zone}")
+        nanoseconds = int((matched.group("fraction") or "0").ljust(9, "0"))
+        return seconds, nanoseconds
+    except ValueError:
+        return None
+
+
+def capture_order_violations(opening, closing) -> list[Violation]:
+    opening_capture = opening.get("captured_at")
+    closing_capture = closing.get("captured_at")
+    if not isinstance(opening_capture, str) or not isinstance(closing_capture, str):
+        return []
+    opening_time = parse_rfc3339(opening_capture)
+    closing_time = parse_rfc3339(closing_capture)
+    if opening_time is None or closing_time is None:
+        return []
+    if closing_time <= opening_time:
+        return [
+            Violation(
+                "timing-evidence-capture",
+                "closing.captured_at must be later than opening.captured_at",
+            )
+        ]
+    return []
 
 
 def comparability_violations(opening, closing) -> list[Violation]:

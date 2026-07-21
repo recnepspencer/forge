@@ -4,9 +4,11 @@
 
 pub mod admission;
 mod app_inspection_closeout;
+pub mod application;
 pub mod declaration;
 pub mod entry;
 pub mod evidence;
+pub mod execution;
 pub mod graph;
 pub mod host_observation;
 mod host_session_authority;
@@ -27,13 +29,11 @@ pub mod prepared_application_authority;
 pub mod query_binding;
 pub mod registry;
 mod retained_obligation_registry;
-#[doc(hidden)]
-pub mod runtime_exports;
 pub mod runtime_handoff;
+pub mod source_ingress;
 
 pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 
-pub use crate::runtime::exports::*;
 pub use entry::{
     CapabilityRegistrationBuilder, WorthUi, WorthUiActiveApplicationSession,
     WorthUiActiveApplicationSessionIdentity, WorthUiActiveCanvasSpatialFrameCompletion,

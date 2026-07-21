@@ -6,14 +6,14 @@ use crate::facade::lifecycle::{
     WorthUiApplicationPreparationSource,
 };
 use crate::facade::prepared_application_authority::WorthUiHostSessionPlan;
-use crate::facade::registry::{
-    CapabilityRegistrationReport, CommandDescriptor, CommandProjectionDescriptor,
-    ComponentDescriptor, IconDescriptor, MosaicPlacementPolicyDescriptor,
-    MosaicRegionKindDescriptor, MosaicSizingContractDescriptor, MosaicStateSlotDescriptor,
-    NativeCapabilityDescriptor, PluginSlotDescriptor, RuntimeOutcomeProjectionDescriptor,
-    SettingDescriptor, SurfaceDescriptor, TaskPresentationDescriptor, ThemeTokenDescriptor,
-    WorthUiQueryViewRegistration,
+use crate::facade::registry::descriptor::{
+    CommandDescriptor, CommandProjectionDescriptor, ComponentDescriptor, IconDescriptor,
+    MosaicPlacementPolicyDescriptor, MosaicRegionKindDescriptor, MosaicSizingContractDescriptor,
+    MosaicStateSlotDescriptor, NativeCapabilityDescriptor, PluginSlotDescriptor,
+    RuntimeOutcomeProjectionDescriptor, SettingDescriptor, SurfaceDescriptor,
+    TaskPresentationDescriptor, ThemeTokenDescriptor, WorthUiQueryViewRegistration,
 };
+use crate::facade::registry::diagnostics::CapabilityRegistrationReport;
 use crate::facade::{WorthUiApp, WorthUiDslPackage};
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::WorthUiWatchedCandidateSubmission;
@@ -164,7 +164,7 @@ impl WorthUiBuilder {
     #[cfg(test)]
     pub(crate) fn register_view_binding(
         mut self,
-        descriptor: crate::facade::registry::ViewBindingDescriptor,
+        descriptor: crate::facade::registry::descriptor::ViewBindingDescriptor,
     ) -> Self {
         self.inner = self.inner.register_view_binding(descriptor);
         self

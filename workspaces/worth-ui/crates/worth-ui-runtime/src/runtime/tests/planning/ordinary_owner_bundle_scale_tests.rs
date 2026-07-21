@@ -4,7 +4,7 @@ use crate::capability::{
     SurfacePlacementClass, SurfaceStateClass,
 };
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::runtime::plan_topology::{
+use crate::runtime::planning::plan_topology::{
     WorthUiPlanRegionIdentity, WorthUiPlanRegionMutation, WorthUiPlanRegionSchema,
     WorthUiPlanRegionStore, WorthUiPlanRegionStoreDenial,
 };

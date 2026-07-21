@@ -125,7 +125,7 @@
     "worth-ui": {
       "inventory": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_cases.csv",
       "execution": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_execution.csv",
-      "inventory_count": 283,
+      "inventory_count": 248,
       "execution_count": 14,
       "aggregation_groups": [
         {
@@ -223,14 +223,14 @@
     "virtualized_data"
   ],
   "test_seam_roots": [
-    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution_plan_input",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/execution_plan_input",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution/host_lanes",
-    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/ordinary_lane",
-    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/virtualized_data_lane",
-    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/canvas_spatial_lane",
-    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/realtime_overlay_lane",
-    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/equivalence",
-    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/candidate",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution/ordinary_lane",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution/virtualized_data_lane",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution/canvas_spatial_lane",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/replacement/equivalence",
+    "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/replacement/candidate",
     "workspaces/worth-ui/crates/worth-ui-runtime/src/facade/entry"
   ],
   "timing_evidence": "_docs/worth-ui/milestone-3.9-timing-evidence.json",
@@ -238,7 +238,8 @@
   "real_filesystem_proof_sources": [
     "workspaces/worth-ui/crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs",
     "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/filesystem_source_acquisition.rs",
-    "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/filesystem_watcher_settlement.rs"
+    "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/filesystem_watcher_settlement.rs",
+    "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/multi_removal_filesystem.rs"
   ],
   "workspace_source_inventory_owner": "workspaces/worth-ui/crates/worth-ui-certification/src/topology/workspace_source_inventory.rs",
   "workspace_source_inventory_suite": "workspaces/worth-ui/crates/worth-ui-certification/tests/suites/topology_contracts.rs",

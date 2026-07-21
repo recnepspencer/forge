@@ -215,6 +215,44 @@ class WorthUiTestTopologySourceTests(TestCase):
 
             self.assertEqual(compile_reconciliation_violations(root, config), [])
 
+    def test_inventoried_compile_pass_must_be_executed(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            suites = root / "crate/tests/suites"
+            fixture_root = root / "crate/tests/ui"
+            suites.mkdir(parents=True)
+            fixture_root.mkdir(parents=True)
+            (fixture_root / "current.rs").write_text("fn main() {}\n", encoding="utf-8")
+            (fixture_root / "stale.rs").write_text("fn main() {}\n", encoding="utf-8")
+            inventory = (
+                "kind,path,legacy_harness\n"
+                "pass,tests/ui/current.rs,facade_owner\n"
+                "pass,tests/ui/stale.rs,facade_owner\n"
+            )
+            execution = (
+                "kind,path,legacy_harness\n"
+                "pass,tests/ui/current.rs,facade_owner\n"
+            )
+            (suites / "inventory.csv").write_text(inventory, encoding="utf-8")
+            (suites / "execution.csv").write_text(execution, encoding="utf-8")
+            config = {
+                "compile_contract_sessions": {
+                    "product": {
+                        "inventory": "crate/tests/suites/inventory.csv",
+                        "execution": "crate/tests/suites/execution.csv",
+                        "inventory_count": 2,
+                        "execution_count": 1,
+                        "structural_replacement_patterns": [],
+                    }
+                }
+            }
+
+            violations = compile_reconciliation_violations(root, config)
+
+            details = "\n".join(violation.detail for violation in violations)
+            self.assertIn("inventoried compile-pass is not executed", details)
+            self.assertIn("tests/ui/stale.rs", details)
+
     def test_compile_fixture_owner_rejects_uninventoried_targets_and_extra_sessions(self) -> None:
         with TemporaryDirectory() as temporary:
             root = Path(temporary)

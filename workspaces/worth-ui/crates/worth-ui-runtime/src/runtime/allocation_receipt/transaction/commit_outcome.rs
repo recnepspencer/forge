@@ -1,9 +1,13 @@
-use super::{UiAllocationReceipt, UiAllocationReceiptCommitDenial, UiAllocationReceiptReport};
+use super::UiAllocationReceiptCommitDenial;
+#[cfg(test)]
+use super::{UiAllocationReceipt, UiAllocationReceiptReport};
 
 /// Complete result of attempting to advance allocation receipt lineage.
 #[derive(Clone, Debug, PartialEq)]
 pub enum UiAllocationReceiptCommitOutcome {
+    #[cfg(test)]
     Committed(Box<UiAllocationReceipt>),
+    #[cfg(test)]
     RecomputePending(Box<UiAllocationReceiptReport>),
     Denied(Box<UiAllocationReceiptCommitDenial>),
 }

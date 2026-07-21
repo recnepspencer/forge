@@ -13,10 +13,13 @@ pub(crate) struct WorthUiSealedExecutionPlanBundle {
     execution_plan: WorthUiExecutionPlan,
     lane_admission: WorthUiLaneAdmission,
     host_binding: crate::facade::WorthUiHostPlanBinding,
-    ordinary: crate::runtime::ordinary_lane::WorthUiActiveOrdinaryPlanPosture,
-    virtualized: crate::runtime::virtualized_data_lane::WorthUiActiveVirtualizedDataPlanPosture,
-    canvas_spatial: crate::runtime::canvas_spatial_lane::WorthUiActiveCanvasSpatialPlanPosture,
-    realtime_overlay: crate::runtime::realtime_overlay_lane::WorthUiActiveRealtimePlanPosture,
+    ordinary: crate::runtime::execution::ordinary_lane::WorthUiActiveOrdinaryPlanPosture,
+    virtualized:
+        crate::runtime::execution::virtualized_data_lane::WorthUiActiveVirtualizedDataPlanPosture,
+    canvas_spatial:
+        crate::runtime::execution::canvas_spatial_lane::WorthUiActiveCanvasSpatialPlanPosture,
+    realtime_overlay:
+        crate::runtime::execution::realtime_overlay_lane::WorthUiActiveRealtimePlanPosture,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,33 +41,34 @@ impl WorthUiSealedExecutionPlanBundle {
         if !execution_plan.shares_lowering_authority_with(authority) {
             return Err(WorthUiExecutionPlanBundleDenial::ForeignLoweringAuthority);
         }
-        let ordinary = crate::runtime::ordinary_lane::WorthUiActiveOrdinaryPlanPosture::lower(
-            &execution_plan,
-            lane_admission,
-        )
-        .map_err(WorthUiExecutionPlanBundleDenial::OrdinaryPlan)?;
+        let ordinary =
+            crate::runtime::execution::ordinary_lane::WorthUiActiveOrdinaryPlanPosture::lower(
+                &execution_plan,
+                lane_admission,
+            )
+            .map_err(WorthUiExecutionPlanBundleDenial::OrdinaryPlan)?;
         let virtualized =
-            crate::runtime::virtualized_data_lane::WorthUiActiveVirtualizedDataPlanPosture::lower(
+            crate::runtime::execution::virtualized_data_lane::WorthUiActiveVirtualizedDataPlanPosture::lower(
                 &execution_plan,
                 lane_admission,
             )
             .map_err(WorthUiExecutionPlanBundleDenial::VirtualizedPlan)?;
         let canvas_spatial =
-            crate::runtime::canvas_spatial_lane::WorthUiActiveCanvasSpatialPlanPosture::lower(
+            crate::runtime::execution::canvas_spatial_lane::WorthUiActiveCanvasSpatialPlanPosture::lower(
                 &execution_plan,
                 lane_admission,
                 host_binding,
             )
             .map_err(WorthUiExecutionPlanBundleDenial::CanvasSpatialPlan)?;
         let realtime_overlay =
-            crate::runtime::realtime_overlay_lane::WorthUiActiveRealtimePlanPosture::lower(
+            crate::runtime::execution::realtime_overlay_lane::WorthUiActiveRealtimePlanPosture::lower(
                 &execution_plan,
                 lane_admission,
                 host_binding,
             )
             .map_err(WorthUiExecutionPlanBundleDenial::RealtimeOverlayPlan)?;
         let digest =
-            crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::regional_digest(
+            crate::runtime::planning::plan_equivalence::WorthUiExecutionPlanDigestor::regional_digest(
                 &execution_plan,
             )
             .0;

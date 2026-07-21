@@ -3,7 +3,9 @@ use crate::capability::{
     ComponentPropSchema, ComponentStateOwnership,
 };
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::runtime::plan_topology::{WorthUiPlanRegionMutation, WorthUiPlanRegionTransition};
+use crate::runtime::planning::plan_topology::{
+    WorthUiPlanRegionMutation, WorthUiPlanRegionTransition,
+};
 use crate::runtime::{WorthUiExecutablePlanDecisionKind, WorthUiPlanNodeInputFamily};
 use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
@@ -92,10 +94,11 @@ fn ordinary_to_canvas_transition_is_non_equivalent_and_leaves_no_ordinary_residu
     let successor = launch_runtime(&canvas_app, artifact(&canvas_app));
     let predecessor_plan = predecessor.active.active_plan();
     let successor_plan = successor.active.active_plan();
-    let equivalence = crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::compare(
-        predecessor_plan.exact_plan(),
-        successor_plan.exact_plan(),
-    );
+    let equivalence =
+        crate::runtime::planning::plan_equivalence::WorthUiExecutionPlanDigestor::compare(
+            predecessor_plan.exact_plan(),
+            successor_plan.exact_plan(),
+        );
     assert_eq!(
         equivalence.decision_kind(),
         WorthUiExecutablePlanDecisionKind::RebuildRequired

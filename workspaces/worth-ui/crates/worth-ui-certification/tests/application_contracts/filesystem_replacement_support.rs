@@ -20,7 +20,7 @@ pub(super) fn activate_current_filesystem_candidate(
     let mut prepared = session
         .prepare_replacement(submission)
         .expect("filesystem candidate should prepare through the public session");
-    let catalog = admit_candidate_catalog(&mut prepared);
+    let catalog = admit_candidate_catalog(session, &mut prepared);
     let lowered = session
         .lower_prepared_replacement(*prepared)
         .expect("prepared filesystem candidate should lower completely");

@@ -36,7 +36,7 @@ pub(super) fn regional_activation_inputs() -> RegionalActivationInputs {
 
 pub(super) fn candidate_reclamation_probe(
     candidate_plan: &crate::runtime::WorthUiExecutionPlan,
-) -> crate::runtime::plan_topology::WorthUiPlanRegionStorageReclamationProbe {
+) -> crate::runtime::planning::plan_topology::WorthUiPlanRegionStorageReclamationProbe {
     assert!(
         !candidate_plan.regional_evidence().transitions().is_empty(),
         "fixture must own candidate-only regional storage"
@@ -63,7 +63,9 @@ pub(super) fn assert_commit_resource_denial(
 }
 
 pub(super) fn assert_candidate_reclaimed(
-    probe: Option<crate::runtime::plan_topology::WorthUiPlanRegionStorageReclamationProbe>,
+    probe: Option<
+        crate::runtime::planning::plan_topology::WorthUiPlanRegionStorageReclamationProbe,
+    >,
 ) {
     assert!(
         probe.expect("candidate probe captured").is_reclaimed(),

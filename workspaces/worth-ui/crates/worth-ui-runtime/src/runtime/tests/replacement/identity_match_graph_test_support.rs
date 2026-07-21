@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::runtime::candidate::rust_authored_replacement_candidate;
+use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
 use crate::runtime::tests::replacement_impact_test_support::{admitted_candidate, launch_runtime};
 use crate::runtime::{
     WorthUiAccessibilityInvalidation, WorthUiAdmittedReplacementCandidate,

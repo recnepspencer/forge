@@ -80,8 +80,8 @@ impl WorthUiActiveRuntimeState {
         &self,
         authority: &crate::runtime::planning::WorthUiExecutionPlanLoweringFacts,
     ) -> Result<
-        crate::runtime::plan_topology::WorthUiPredecessorRegionProof,
-        crate::runtime::plan_topology::WorthUiPredecessorRegionProofDenial,
+        crate::runtime::planning::plan_topology::WorthUiPredecessorRegionProof,
+        crate::runtime::planning::plan_topology::WorthUiPredecessorRegionProofDenial,
     > {
         self.active_plan
             .predecessor_region_proof(self.active_artifact.digest().raw(), authority)

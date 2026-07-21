@@ -99,6 +99,17 @@ impl WorthUiPreparedApplicationReplacement {
             .admit_allocation_catalog_basis_set(entries)
     }
 
+    pub fn admit_candidate_allocation_neighborhood(
+        &self,
+        basis: &crate::evidence::UiMeasurementBasis,
+        selected: &crate::obligations::selection::UiSelectedObligationSet,
+    ) -> Result<
+        crate::evidence::UiAllocationNeighborhood,
+        crate::graph::UiAllocationNeighborhoodDenial,
+    > {
+        basis.admit_allocation_neighborhood(self.next_app.graph_snapshot(), selected)
+    }
+
     pub fn admit_candidate_allocation_catalog_delta(
         &self,
         changed: Vec<(

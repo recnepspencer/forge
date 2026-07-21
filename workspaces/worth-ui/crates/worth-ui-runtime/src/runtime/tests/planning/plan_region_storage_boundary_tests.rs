@@ -1,4 +1,4 @@
-use crate::runtime::plan_topology::{
+use crate::runtime::planning::plan_topology::{
     WorthUiPlanRegionIdentity, WorthUiPlanRegionMutation, WorthUiPlanRegionSchema,
     WorthUiPlanRegionStore, WorthUiPlanRegionTransition,
 };
@@ -266,7 +266,7 @@ fn lifecycle_lane_change_lowers_to_a_distinct_regional_transition() {
         node_inputs,
         plan_input.counters(),
     );
-    let delta = crate::runtime::plan_topology::WorthUiPlanRegionDelta::from_replacement(
+    let delta = crate::runtime::planning::plan_topology::WorthUiPlanRegionDelta::from_replacement(
         &node_plan,
         &lane_changed_input,
         0x1234,
@@ -349,7 +349,7 @@ fn scaled_inputs(inputs: &[WorthUiPlanNodeInput], count: usize) -> Vec<WorthUiPl
 
 fn changed_query_successor(
     inputs: Vec<WorthUiPlanNodeInput>,
-) -> crate::runtime::plan_topology::WorthUiPlanRegionSuccessor {
+) -> crate::runtime::planning::plan_topology::WorthUiPlanRegionSuccessor {
     let changed = query_input(&inputs)
         .clone()
         .with_family_for_test(WorthUiPlanNodeInputFamily::TokenStyle);

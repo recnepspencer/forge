@@ -63,7 +63,7 @@ pub(crate) fn framework_from_artifact(
     let app = WorthUi::app()
         .freeze()
         .expect("application preparation should succeed");
-    let candidate = crate::runtime::candidate::rust_authored_replacement_candidate(
+    let candidate = crate::runtime::replacement::candidate::rust_authored_replacement_candidate(
         artifact,
         app.capabilities().digest(),
         crate::runtime::WorthUiReplacementCause::rust_authored_input_change(1),

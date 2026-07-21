@@ -3,7 +3,7 @@ use super::ordinary_lane_test_support::{
     ordinary_lane_fixture_with_unrelated_diagnostics,
 };
 use crate::capability::{ThemeColorValue, ThemeTokenValue};
-use crate::runtime::ordinary_lane::WorthUiOrdinaryLaneFrameExecutor;
+use crate::runtime::execution::ordinary_lane::WorthUiOrdinaryLaneFrameExecutor;
 use crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning;
 use crate::runtime::{
     WorthUiComponentHandle, WorthUiExecutionLane, WorthUiHandleSlotGeneration,

@@ -213,7 +213,7 @@ fn activate_submission(
     if let Some(view) = candidate_view {
         admit_candidate_resource(&mut prepared, view, workspace);
     }
-    let catalog = admit_candidate_catalog(&mut prepared);
+    let catalog = admit_candidate_catalog(session, &mut prepared);
     let lowered = session
         .lower_prepared_replacement(*prepared)
         .expect("candidate lowers");

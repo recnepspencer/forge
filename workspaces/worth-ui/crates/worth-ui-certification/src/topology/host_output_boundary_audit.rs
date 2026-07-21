@@ -3,7 +3,12 @@ use syn::{ImplItem, Item, Signature, Visibility};
 
 use super::WorkspaceSourceInventory;
 
-const CANONICAL_PLAN_ROOTS: [&str; 5] = [
+const PLAN_AUTHORITY_ROOTS: [&str; 10] = [
+    "crates/worth-ui-runtime/src/runtime/planning/execution_plan_input",
+    "crates/worth-ui-runtime/src/runtime/planning/plan_topology",
+    "crates/worth-ui-runtime/src/runtime/planning/plan_equivalence",
+    "crates/worth-ui-runtime/src/runtime/execution/lane_admission",
+    "crates/worth-ui-runtime/src/runtime/execution/ordinary_lane",
     "crates/worth-ui-runtime/src/runtime/execution_plan_input",
     "crates/worth-ui-runtime/src/runtime/plan_topology",
     "crates/worth-ui-runtime/src/runtime/plan_equivalence",
@@ -28,7 +33,7 @@ const FORBIDDEN_FACADE_SYMBOLS: [&str; 7] = [
 
 pub fn audit_host_output_plan_encapsulation(inventory: &WorkspaceSourceInventory) -> Vec<String> {
     let mut violations = Vec::new();
-    for root in CANONICAL_PLAN_ROOTS {
+    for root in PLAN_AUTHORITY_ROOTS {
         for file in inventory.rust_files_under(root) {
             if file.text().to_ascii_lowercase().contains("egui") {
                 violations.push(format!(

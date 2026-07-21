@@ -1,5 +1,5 @@
 use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
-use crate::runtime::candidate::{
+use crate::runtime::replacement::candidate::{
     file_authored_replacement_candidate, rust_authored_replacement_candidate,
 };
 use crate::runtime::source_ingress::counters::WorthUiSourceIngressCounters;

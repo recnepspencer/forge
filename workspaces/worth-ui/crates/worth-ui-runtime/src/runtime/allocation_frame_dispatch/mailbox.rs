@@ -185,6 +185,7 @@ impl<'a> UiAllocationFrameIngressView<'a> {
         self.ingress.len()
     }
 
+    #[cfg(test)]
     pub fn is_empty(self) -> bool {
         self.ingress.is_empty()
     }

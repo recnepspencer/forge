@@ -1,14 +1,14 @@
-use crate::runtime::admission::WorthUiActiveReplacementBasis;
-use crate::runtime::equivalence::WorthUiRuntimeArtifactComparator;
-use crate::runtime::impact::WorthUiReplacementImpactClassifier;
-use crate::runtime::matching::WorthUiIdentityMatchGraphBuilder;
-use crate::runtime::narrowing::WorthUiRuntimeImpactNarrower;
-use crate::runtime::query_binding::WorthUiQueryBindingComparisonPlanner;
-use crate::runtime::query_live_rebind::WorthUiQueryLiveRebindPlanner;
-use crate::runtime::reconciliation::WorthUiDurableStateReconciliationPlanner;
+use crate::runtime::replacement::admission::WorthUiActiveReplacementBasis;
+use crate::runtime::replacement::equivalence::WorthUiRuntimeArtifactComparator;
+use crate::runtime::replacement::impact::WorthUiReplacementImpactClassifier;
+use crate::runtime::replacement::matching::WorthUiIdentityMatchGraphBuilder;
+use crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrower;
 use crate::runtime::replacement::node_classification::WorthUiNodeReplacementClassifier;
+use crate::runtime::replacement::query_binding::WorthUiQueryBindingComparisonPlanner;
+use crate::runtime::replacement::query_live_rebind::WorthUiQueryLiveRebindPlanner;
+use crate::runtime::replacement::reconciliation::WorthUiDurableStateReconciliationPlanner;
+use crate::runtime::replacement::state_inventory::WorthUiDurableStateInventoryBuilder;
 use crate::runtime::source_ingress::WorthUiSourceEventIngress;
-use crate::runtime::state_inventory::WorthUiDurableStateInventoryBuilder;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiAmbiguousReplacementDenial,
     WorthUiDurableStateInventory, WorthUiDurableStateInventoryDenial,
@@ -22,11 +22,10 @@ use crate::runtime::{
 };
 
 use super::transitions::{
-    WorthUiReplacementAdmissionBasis, WorthUiReplacementComparisonReady,
-    WorthUiReplacementIdentityReady, WorthUiReplacementImpactReady,
-    WorthUiReplacementLoweringReady, WorthUiReplacementNarrowingReady,
-    WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
-    WorthUiReplacementReconciliationReady,
+    WorthUiReplacementComparisonReady, WorthUiReplacementIdentityReady,
+    WorthUiReplacementImpactReady, WorthUiReplacementLoweringReady,
+    WorthUiReplacementNarrowingReady, WorthUiReplacementNodePlanReady,
+    WorthUiReplacementQueryComparisonReady, WorthUiReplacementReconciliationReady,
 };
 use crate::runtime::launch::runtime_instance::WorthUiRuntime;
 
@@ -35,29 +34,12 @@ impl WorthUiRuntime {
         WorthUiActiveReplacementBasis::from_observation(self.inspect_active())
     }
 
-    pub(crate) fn replacement_admission_transition(&self) -> WorthUiReplacementAdmissionBasis {
-        WorthUiReplacementAdmissionBasis(self.replacement_admission_basis())
-    }
-
     pub(crate) fn compare_admitted_replacement(
         &self,
         admitted: &WorthUiAdmittedReplacementCandidate,
     ) -> Result<WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial> {
         WorthUiRuntimeArtifactComparator::for_active_artifact(self.active.active_artifact())
             .compare_admitted(admitted)
-    }
-
-    pub(crate) fn compare_admitted_from_basis(
-        &self,
-        basis: &WorthUiReplacementAdmissionBasis,
-        admitted: WorthUiAdmittedReplacementCandidate,
-    ) -> Result<WorthUiReplacementComparisonReady, WorthUiRuntimeArtifactComparisonDenial> {
-        let _ = basis;
-        let comparison = self.compare_admitted_replacement(&admitted)?;
-        Ok(WorthUiReplacementComparisonReady {
-            admitted,
-            comparison,
-        })
     }
 
     pub(crate) fn classify_replacement_impact(
@@ -336,10 +318,13 @@ impl WorthUiRuntime {
         &self,
         admitted: WorthUiAdmittedReplacementCandidate,
     ) -> Result<WorthUiReplacementNodePlanReady, WorthUiReplacementLoweringDenial> {
-        let basis = self.replacement_admission_transition();
         let comparison = self
-            .compare_admitted_from_basis(&basis, admitted)
+            .compare_admitted_replacement(&admitted)
             .map_err(WorthUiReplacementLoweringDenial::Comparison)?;
+        let comparison = WorthUiReplacementComparisonReady {
+            admitted,
+            comparison,
+        };
         let impact = self
             .classify_replacement_impact_from_comparison(comparison)
             .map_err(WorthUiReplacementLoweringDenial::Impact)?;

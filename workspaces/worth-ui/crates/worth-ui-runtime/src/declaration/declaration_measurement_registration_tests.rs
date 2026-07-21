@@ -5,7 +5,7 @@ use crate::declaration::{
     UiDeclaredMeasurementPolicyPosture,
 };
 use crate::facade::entry::WorthUi;
-use crate::facade::registry::{
+use crate::facade::registry::descriptor::{
     MeasurementConstraint, MeasurementValue, MosaicChildRule, MosaicClippingPosture,
     MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority, MosaicOverflowBehavior,
     MosaicParentGrowthBehavior, MosaicRegionKindDescriptor, MosaicRegionKindId,

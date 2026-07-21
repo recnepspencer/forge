@@ -50,11 +50,10 @@ pub(crate) use allocation_neighborhood::UiGraphReplanConsequences;
 pub(crate) use allocation_neighborhood::UiGraphReplanTransactionBasis;
 pub use allocation_neighborhood::{
     UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationCatalogDelta,
-    UiAdmittedAllocationInvalidationTargetSet, UiAdmittedReplanNeighborhood,
-    UiAdmittedReplanNeighborhoodSet, UiAllocationCatalogBasisAdmissionDenial,
-    UiAllocationCatalogDeltaAdmissionDenial, UiAllocationNeighborhoodDenial,
-    UiReplanLocalityDenial, UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters,
-    UiReplanOverlapDisposition, UiReplanRootPosture, UiReplanWidenReason,
+    UiAdmittedAllocationInvalidationTargetSet, UiAdmittedReplanNeighborhoodSet,
+    UiAllocationCatalogBasisAdmissionDenial, UiAllocationCatalogDeltaAdmissionDenial,
+    UiAllocationNeighborhoodDenial, UiReplanLocalityDenial, UiReplanOverlapDisposition,
+    UiReplanRootPosture, UiReplanWidenReason,
 };
 pub(crate) use allocation_neighborhood::{
     UiAdmittedAllocationInvalidationTarget, UiAdmittedAllocationPlanReference,

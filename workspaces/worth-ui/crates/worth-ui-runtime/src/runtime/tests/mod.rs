@@ -110,6 +110,8 @@ mod lane_meaning_parity_test_support;
 mod lifecycle_path_parity;
 #[path = "execution/measurement_boundary_tests.rs"]
 mod measurement_boundary_tests;
+#[path = "source_ingress/multi_removal_activation_tests.rs"]
+mod multi_removal_activation_tests;
 #[path = "replacement/node_replacement_classification_boundary_tests.rs"]
 mod node_replacement_classification_boundary_tests;
 #[path = "replacement/node_replacement_classification_test_support.rs"]
@@ -168,6 +170,8 @@ mod regional_activation_test_support;
 mod regional_activation_transaction_tests;
 #[path = "execution/reload_counter_boundary_tests.rs"]
 mod reload_counter_boundary_tests;
+#[path = "execution/reload_counter_test_support.rs"]
+mod reload_counter_test_support;
 #[path = "host_observation/reload_failure_boundary_tests.rs"]
 mod reload_failure_boundary_tests;
 #[path = "host_observation/reload_failure_test_support.rs"]

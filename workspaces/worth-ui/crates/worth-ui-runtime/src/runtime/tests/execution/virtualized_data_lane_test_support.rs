@@ -35,7 +35,7 @@ pub(super) fn virtualized_data_denial_for_missing_support(
             )
             .expect("narrower lane admission succeeds")
     };
-    crate::runtime::virtualized_data_lane::WorthUiVirtualizedDataPlanBuilder::build(
+    crate::runtime::execution::virtualized_data_lane::WorthUiVirtualizedDataPlanBuilder::build(
         &context.execution_plan,
         &admission,
     )
@@ -56,7 +56,7 @@ pub(super) fn virtualized_data_denial_for_stale_lane_admission() -> WorthUiVirtu
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission still has data and Query support");
-    crate::runtime::virtualized_data_lane::WorthUiVirtualizedDataPlanBuilder::build(
+    crate::runtime::execution::virtualized_data_lane::WorthUiVirtualizedDataPlanBuilder::build(
         &context.execution_plan,
         &stale_admission,
     )

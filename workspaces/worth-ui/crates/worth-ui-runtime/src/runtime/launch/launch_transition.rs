@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use crate::capability::CapabilitySnapshotDigest;
 use crate::runtime::allocation_frame_dispatch::UiAllocationFrameFrameworkScheduler;
-use crate::runtime::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 use crate::runtime::allocation_receipt::UiAllocationReceiptLedger;
+use crate::runtime::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 
 use super::build_active_state::build_active_runtime_state;
 use super::launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
@@ -54,7 +54,7 @@ impl WorthUiRuntime {
     pub(crate) fn launch(
         launch: WorthUiRuntimeLaunch,
         lowering_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
-        initial_allocation_commit: crate::runtime::allocation_planning::WorthUiInitialAllocationCommit,
+        initial_allocation_commit: crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit,
         snapshot_digest: CapabilitySnapshotDigest,
         retained_allocation_planning_evidence: Rc<
             WorthUiRetainedAllocationPlanningEvidenceRegistry,
@@ -97,12 +97,13 @@ impl WorthUiRuntime {
                 frame_epoch,
             )
             .map_err(map_launch_lowering_denial)?;
-        let handles = crate::runtime::handle_allocation::WorthUiRuntimeHandleAllocator::allocate(
-            plan_lowering_authority.facts(),
-            arena_identity,
-        )
-        .map_err(WorthUiRuntimeLaunchDenial::HandleAllocation)?;
-        let (candidate_plan, lane_admission) = crate::runtime::plan_topology::WorthUiPlanTopologyAssembler::assemble_from_authority_with_lane_admission(
+        let handles =
+            crate::runtime::execution::handle_allocation::WorthUiRuntimeHandleAllocator::allocate(
+                plan_lowering_authority.facts(),
+                arena_identity,
+            )
+            .map_err(WorthUiRuntimeLaunchDenial::HandleAllocation)?;
+        let (candidate_plan, lane_admission) = crate::runtime::planning::plan_topology::WorthUiPlanTopologyAssembler::assemble_from_authority_with_lane_admission(
                 plan_lowering_authority.facts(),
                 &handles,
             )
@@ -199,7 +200,7 @@ fn map_launch_lowering_denial(
         }
         crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::RegionalDelta(denial) => {
             match denial {
-                crate::runtime::plan_topology::WorthUiPlanRegionDeltaDenial::DuplicateCandidateRegion => WorthUiRuntimeLaunchDenial::RegionalDeltaDuplicateCandidateRegion,
+                crate::runtime::planning::plan_topology::WorthUiPlanRegionDeltaDenial::DuplicateCandidateRegion => WorthUiRuntimeLaunchDenial::RegionalDeltaDuplicateCandidateRegion,
             }
         }
         crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::PlanInput(denial) => {

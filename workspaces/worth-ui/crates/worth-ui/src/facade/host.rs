@@ -1,6 +1,9 @@
 pub use worth_ui_runtime::facade::host_observation::{
     UiAdmittedHostMeasurement, UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
-    UiHostMeasurementNeed, UiHostMeasurementNormalizationContext, UiMeasurementEvidenceFamily,
+    UiHostMeasurementNeed, UiHostMeasurementNormalizationContext, UiHostPreviewDiscardReason,
+    UiHostPreviewPaintContext, UiHostPreviewPaintDenial, UiHostPreviewPaintDenialReport,
+    UiHostPreviewPaintDiscardReport, UiHostPreviewPaintDisposition, UiHostPreviewPaintGeometry,
+    UiHostPreviewPaintInput, UiHostPreviewPaintReceipt, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiViewportExtentRequest, WorthUiCanvasSpatialHostOutput,
     WorthUiCanvasSpatialHostOutputTarget, WorthUiHeadlessHost, WorthUiHostAdapter,
     WorthUiHostCapability, WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport,
@@ -8,7 +11,8 @@ pub use worth_ui_runtime::facade::host_observation::{
     WorthUiHostOutputGeneration, WorthUiHostOutputGenerationDenial,
     WorthUiHostOutputGenerationDenialReason, WorthUiHostOutputLane, WorthUiHostOutputPayload,
     WorthUiHostOutputReceiptReference, WorthUiOperationalHostAdapter, WorthUiOrdinaryHostOutput,
-    WorthUiOrdinaryHostOutputTarget, WorthUiRealtimeHostOutput, WorthUiVirtualizedDataHostOutput,
+    WorthUiOrdinaryHostOutputTarget, WorthUiPreviewPaintHost, WorthUiRealtimeHostOutput,
+    WorthUiVirtualizedDataHostOutput,
 };
 pub use worth_ui_runtime::facade::{
     WorthUiHostMeasurementCapability, WorthUiHostMeasurementSessionInput,

@@ -179,10 +179,10 @@ impl WorthUiActiveExecutionPlan {
         active_artifact_digest: u64,
         authority: &crate::runtime::planning::WorthUiExecutionPlanLoweringFacts,
     ) -> Result<
-        crate::runtime::plan_topology::WorthUiPredecessorRegionProof,
-        crate::runtime::plan_topology::WorthUiPredecessorRegionProofDenial,
+        crate::runtime::planning::plan_topology::WorthUiPredecessorRegionProof,
+        crate::runtime::planning::plan_topology::WorthUiPredecessorRegionProofDenial,
     > {
-        crate::runtime::plan_topology::WorthUiPredecessorRegionProof::from_active_plan(
+        crate::runtime::planning::plan_topology::WorthUiPredecessorRegionProof::from_active_plan(
             Rc::clone(&self.bundle),
             self.digest.as_u64(),
             active_artifact_digest,

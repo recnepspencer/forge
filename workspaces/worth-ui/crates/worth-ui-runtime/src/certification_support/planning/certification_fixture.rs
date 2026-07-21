@@ -2,7 +2,7 @@ use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::declaration::UiDeclaredMeasurementBasisSource;
 use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
-use crate::runtime::candidate::rust_authored_replacement_candidate;
+use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiPendingActivation,
     WorthUiReplacementCause, WorthUiRuntime, WorthUiRuntimeLaunch,

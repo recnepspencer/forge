@@ -51,6 +51,7 @@ pub(crate) use measurement::{
 };
 pub use measurement::{
     admit_measurement_basis, certify_measurement_basis_determinism,
+    certify_measurement_basis_determinism_for_active_host,
     certify_measurement_basis_determinism_for_scenarios,
     consume_declared_measurement_projection_facts, MeasurementEvidenceInput,
     UiCurrentMeasurementResult, UiMeasurementBasis, UiMeasurementBasisCertificationHostRequest,

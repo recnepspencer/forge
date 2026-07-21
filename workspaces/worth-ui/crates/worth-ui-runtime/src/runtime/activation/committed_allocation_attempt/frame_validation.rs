@@ -1,4 +1,4 @@
-use crate::runtime::frame_activation_gate::gate_receipt::WorthUiActivationGateReceiptParts;
+use crate::runtime::activation::frame_activation_gate::gate_receipt::WorthUiActivationGateReceiptParts;
 use crate::runtime::{
     WorthUiActivationGateCounters, WorthUiActivationGateDenial, WorthUiActivationGateDenialReason,
     WorthUiActivationGateReceipt, WorthUiActiveRuntimeObservation, WorthUiFrameBoundary,

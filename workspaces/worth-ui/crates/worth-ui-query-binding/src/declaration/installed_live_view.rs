@@ -38,7 +38,7 @@ impl WorthUiInstalledLiveQueryView {
         let declaration = self
             .installed_domain()
             .handle()
-            .live_measurements()
+            .live_measurements(self.definition().identity().as_str())
             .map_err(WorthUiQueryLiveOpenError::Declaration)?;
         declaration
             .using(context)

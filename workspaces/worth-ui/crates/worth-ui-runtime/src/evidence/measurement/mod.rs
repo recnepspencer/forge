@@ -15,6 +15,7 @@ mod unit_posture;
 
 pub use basis::{
     admit_measurement_basis, certify_measurement_basis_determinism,
+    certify_measurement_basis_determinism_for_active_host,
     certify_measurement_basis_determinism_for_scenarios, UiMeasurementBasis,
     UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationOutcome,
     UiMeasurementBasisCertificationReport, UiMeasurementBasisCertificationScenario,

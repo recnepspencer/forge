@@ -140,6 +140,14 @@ def session_violations(
     for row in removed:
         if row["path"] in covered_by:
             continue
+        if row["kind"] == "pass":
+            violations.append(
+                Violation(
+                    "compile-reconciliation",
+                    f"{session}: inventoried compile-pass is not executed: {row['path']}",
+                )
+            )
+            continue
         if row["kind"] == "fail" and not any(
             pattern.search(row["path"]) for pattern in patterns
         ):

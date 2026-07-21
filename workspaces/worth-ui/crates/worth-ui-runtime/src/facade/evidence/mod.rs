@@ -9,6 +9,7 @@ pub(crate) use retained_expansion::{
 pub use crate::evidence::{
     admit_measurement_basis, certify_allocation_planning_determinism,
     certify_allocation_planning_suite, certify_measurement_basis_determinism,
+    certify_measurement_basis_determinism_for_active_host,
     certify_measurement_basis_determinism_for_scenarios,
     consume_declared_measurement_projection_facts, MeasurementEvidenceInput,
     UiAllocationPlanningCertificationReport, UiAllocationPlanningCertificationSuiteKind,
@@ -32,4 +33,7 @@ pub use crate::evidence::{
     UiMeasurementEvidenceCategory, UiMeasurementEvidenceSlot, UiMeasurementGenerationCompatibility,
     UiMeasurementNeighborhoodClassHint, UiMeasurementResult, UiMeasurementRoundingPosture,
     UiMeasurementUnitPosture, UiMeasurementValue,
+};
+pub use crate::runtime::{
+    WorthUiFrameReportMaterializationBoundary, WorthUiSteadyFrameReportPlanner,
 };

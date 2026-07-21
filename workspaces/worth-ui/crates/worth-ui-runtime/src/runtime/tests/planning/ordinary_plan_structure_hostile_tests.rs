@@ -1,7 +1,9 @@
-use crate::runtime::plan_topology::{WorthUiPlanRegionStore, WorthUiPlanRegionStoreDenial};
 use crate::runtime::planning::execution_plan_input::{
     WorthUiChildRangePlanMeaning, WorthUiComponentPlanMeaning, WorthUiPlanOrdinaryMeaning,
     WorthUiStateSlotMeaningDenial, WorthUiStateSlotPlanMeaning, WorthUiStateSlotSuccession,
+};
+use crate::runtime::planning::plan_topology::{
+    WorthUiPlanRegionStore, WorthUiPlanRegionStoreDenial,
 };
 use crate::runtime::{
     WorthUiDurableStateCarryForward, WorthUiDurableStateFamilyId,
@@ -249,7 +251,9 @@ fn component_row(
 
 fn child_target_identities(store: &WorthUiPlanRegionStore, range_identity: &str) -> Vec<String> {
     let identity =
-        crate::runtime::plan_topology::WorthUiPlanRegionIdentity::from_exact_basis(range_identity);
+        crate::runtime::planning::plan_topology::WorthUiPlanRegionIdentity::from_exact_basis(
+            range_identity,
+        );
     let targets = store
         .executable_for(&identity)
         .expect("the child range executable is present")

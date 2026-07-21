@@ -15,7 +15,7 @@ use super::inspection_assembly::{
 
 impl WorthUiRuntime {
     pub fn digest_execution_plan(&self, plan: &WorthUiExecutionPlan) -> WorthUiExecutionPlanDigest {
-        crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::digest(plan).0
+        crate::runtime::planning::plan_equivalence::WorthUiExecutionPlanDigestor::digest(plan).0
     }
 
     pub fn compare_execution_plans(
@@ -23,7 +23,9 @@ impl WorthUiRuntime {
         previous: &WorthUiExecutionPlan,
         next: &WorthUiExecutionPlan,
     ) -> WorthUiExecutionPlanEquivalence {
-        crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::compare(previous, next)
+        crate::runtime::planning::plan_equivalence::WorthUiExecutionPlanDigestor::compare(
+            previous, next,
+        )
     }
 
     #[cfg(any(test, feature = "certification-support"))]
@@ -35,7 +37,9 @@ impl WorthUiRuntime {
         crate::runtime::WorthUiExecutionPlanInspection,
         crate::runtime::WorthUiPlanInspectionDenial,
     > {
-        crate::runtime::plan_inspection::WorthUiExecutionPlanInspector::inspect(plan, authority)
+        crate::runtime::planning::plan_inspection::WorthUiExecutionPlanInspector::inspect(
+            plan, authority,
+        )
     }
 
     pub fn inspect_allocation_planning(

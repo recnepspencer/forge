@@ -1,4 +1,6 @@
-use crate::runtime::activation_staging::{WorthUiActivationStager, WorthUiActivationStagingInput};
+use crate::runtime::activation::activation_staging::{
+    WorthUiActivationStager, WorthUiActivationStagingInput,
+};
 use crate::runtime::replacement::WorthUiReplacementLoweringReady;
 use crate::runtime::{WorthUiActivationStagingDenial, WorthUiPendingActivation};
 

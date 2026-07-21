@@ -5,7 +5,8 @@ use syn::visit::Visit;
 
 use super::WorkspaceSourceInventory;
 
-const MAPPING_ROOT: &str = "crates/worth-ui-runtime/src/runtime/diagnostics/mapping";
+const MAPPING_ROOT: &str =
+    "crates/worth-ui-runtime/src/runtime/host_observation/diagnostics/mapping";
 const EXPECTED_FAMILIES: &[&str] = &[
     "ActivationGate",
     "ActivationStaging",

@@ -1,11 +1,11 @@
-use super::query_binding::{
-    WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonCounters,
-    WorthUiQueryBindingComparisonEntry, WorthUiQueryBindingComparisonOutcome,
-    WorthUiQueryBindingPosture,
-};
 use super::query_binding_comparison_test_support::{
     denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
     query_artifact, standard_query_app,
+};
+use crate::runtime::replacement::query_binding::{
+    WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonCounters,
+    WorthUiQueryBindingComparisonEntry, WorthUiQueryBindingComparisonOutcome,
+    WorthUiQueryBindingPosture,
 };
 use crate::runtime::{
     WorthUiNodeReplacementPlan, WorthUiQueryBindingDriftDenialKind,

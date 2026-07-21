@@ -38,4 +38,5 @@ pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDeclarationClaims;
 pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDeclarationWitness;
 pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDslPackage;
 pub use source_event_ingress::{WorthUiSourceEventIngress, WorthUiSourceEventIngressSession};
+#[cfg(test)]
 pub use source_ingress_hook::WorthUiSourceIngressHook;

@@ -1,7 +1,7 @@
 use super::WorkspaceSourceInventory;
 
 const NODE_INPUT_PATH: &str =
-    "crates/worth-ui-runtime/src/runtime/execution_plan_input/node_input.rs";
+    "crates/worth-ui-runtime/src/runtime/planning/execution_plan_input/node_input.rs";
 const BUNDLE_PATH: &str =
     "crates/worth-ui-runtime/src/runtime/active/sealed_execution_plan_bundle.rs";
 

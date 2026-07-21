@@ -32,6 +32,8 @@ mod filesystem_watcher_settlement;
 mod headless_host_execution;
 #[path = "../application_contracts/headless_output_observer.rs"]
 mod headless_output_observer;
+#[path = "../application_contracts/multi_removal_filesystem.rs"]
+mod multi_removal_filesystem;
 #[path = "../application_contracts/public_application_lifecycle.rs"]
 mod public_application_lifecycle;
 #[path = "../application_contracts/query_consumer_kit_lifecycle.rs"]

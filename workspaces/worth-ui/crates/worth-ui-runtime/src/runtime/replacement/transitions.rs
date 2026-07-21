@@ -5,22 +5,6 @@ use crate::runtime::{
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeImpactNarrowing,
 };
 
-/// Active-runtime observation basis for replacement admission.
-#[derive(Debug, Clone)]
-pub struct WorthUiReplacementAdmissionBasis(
-    pub(crate) crate::runtime::WorthUiActiveReplacementBasis,
-);
-
-impl WorthUiReplacementAdmissionBasis {
-    pub fn into_active_basis(self) -> crate::runtime::WorthUiActiveReplacementBasis {
-        self.0
-    }
-
-    pub fn active_basis(&self) -> &crate::runtime::WorthUiActiveReplacementBasis {
-        &self.0
-    }
-}
-
 /// Artifact comparison completed for an admitted replacement candidate.
 #[derive(Debug)]
 pub struct WorthUiReplacementComparisonReady {
@@ -112,37 +96,9 @@ pub struct WorthUiReplacementLoweringReady {
     pub(crate) identity_match_counters: crate::runtime::WorthUiIdentityMatchCounters,
 }
 
-impl WorthUiReplacementComparisonReady {
-    pub fn admitted(&self) -> &WorthUiAdmittedReplacementCandidate {
-        &self.admitted
-    }
-
-    pub fn comparison(&self) -> &WorthUiRuntimeArtifactComparison {
-        &self.comparison
-    }
-}
-
-impl WorthUiReplacementImpactReady {
-    pub fn admitted(&self) -> &WorthUiAdmittedReplacementCandidate {
-        &self.admitted
-    }
-
-    pub fn comparison(&self) -> &WorthUiRuntimeArtifactComparison {
-        &self.comparison
-    }
-
-    pub fn impact(&self) -> &WorthUiReplacementImpactClassification {
-        &self.impact
-    }
-}
-
 impl WorthUiReplacementLoweringReady {
     pub fn admitted(&self) -> &WorthUiAdmittedReplacementCandidate {
         &self.admitted
-    }
-
-    pub fn impact(&self) -> &WorthUiReplacementImpactClassification {
-        &self.impact
     }
 
     pub fn narrowing(&self) -> &WorthUiRuntimeImpactNarrowing {

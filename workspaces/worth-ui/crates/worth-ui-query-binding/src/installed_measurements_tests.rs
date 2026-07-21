@@ -142,7 +142,7 @@ fn worth_ui_installed_live_handle_owns_activation_and_disposal() {
         .domain(WorthUiDomainEntry)
         .expect("Worth UI domain should be installed");
     let live = match handle
-        .live_measurements()
+        .live_measurements("worth-ui.measurements.test")
         .expect("Worth UI installed live declaration should admit")
         .using(domain::current())
         .open(&mut workspace)

@@ -9,11 +9,18 @@ pub(crate) enum UiAllocationNeighborhoodActivationDenial {
 pub(crate) struct UiPreparedInvalidationCatalogTransition {
     successor: super::UiAllocationInvalidationAuthority,
     scroll_evidence: crate::runtime::UiScrollCatalogSwapEvidence,
+    derived_index_counters: crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
 }
 
 impl UiPreparedInvalidationCatalogTransition {
     pub(crate) fn scroll_catalog_evidence(&self) -> crate::runtime::UiScrollCatalogSwapEvidence {
         self.scroll_evidence.clone()
+    }
+
+    pub(crate) fn derived_index_counters(
+        &self,
+    ) -> crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters {
+        self.derived_index_counters
     }
 }
 
@@ -83,6 +90,7 @@ impl super::UiAllocationInvalidationAuthority {
         Ok(UiPreparedInvalidationCatalogTransition {
             successor,
             scroll_evidence,
+            derived_index_counters: Default::default(),
         })
     }
 
@@ -122,7 +130,7 @@ impl super::UiAllocationInvalidationAuthority {
             .apply_activation_delta(affected, delta.changed_rows())
             .ok_or(UiAllocationNeighborhoodActivationDenial::StalePredecessor)?;
         successor.catalog = catalog;
-        successor
+        let derived_index_counters = successor
             .apply_index_delta(&removed, delta.changed_rows())
             .map_err(|()| UiAllocationNeighborhoodActivationDenial::DerivedIndexDiverged)?;
         successor
@@ -150,6 +158,7 @@ impl super::UiAllocationInvalidationAuthority {
         Ok(UiPreparedInvalidationCatalogTransition {
             successor,
             scroll_evidence,
+            derived_index_counters,
         })
     }
 

@@ -1,7 +1,9 @@
-pub use worth_ui_runtime::facade::registry::{
+pub use worth_ui_runtime::facade::registry::diagnostics::{
     CapabilityDiagnosticCode, CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity,
-    CapabilityRegistrationDiagnostic, CapabilityRegistrationReport, CapabilitySnapshot,
-    CapabilitySnapshotDigest, CapabilitySnapshotIndex, RegisteredCapabilitySet,
+    CapabilityRegistrationDiagnostic, CapabilityRegistrationReport,
+};
+pub use worth_ui_runtime::facade::registry::snapshot::{
+    CapabilitySnapshot, CapabilitySnapshotDigest, CapabilitySnapshotIndex, RegisteredCapabilitySet,
     SnapshotFamilyIndex, SnapshotFreezeReport, SnapshotLookupCounters, SnapshotLookupReport,
     SnapshotMetrics, SnapshotReferenceValidationReport, SnapshotReferenceViolation,
     SnapshotReferenceViolationKind,

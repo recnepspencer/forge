@@ -1,4 +1,4 @@
-use crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection;
+use crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection;
 use crate::runtime::WorthUiAllocationPlanningBasis;
 
 /// Lowered allocation payload owned by a committed receipt.

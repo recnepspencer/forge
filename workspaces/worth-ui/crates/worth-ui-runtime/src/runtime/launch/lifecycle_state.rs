@@ -46,7 +46,7 @@ pub struct WorthUiPendingActivation {
     candidate_application_authority:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
     allocation_planning_projection:
-        crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection,
+        crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection,
     staged_replacement: crate::runtime::WorthUiStagedReplacement,
     readiness: crate::runtime::WorthUiActivationReadiness,
     staging_report: crate::runtime::WorthUiActivationStagingReport,
@@ -61,7 +61,7 @@ impl WorthUiPendingActivation {
         staging_report: crate::runtime::WorthUiActivationStagingReport,
     ) -> Self {
         let allocation_planning_projection =
-            crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection::seal(
+            crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection::seal(
                 frame_epoch,
                 staged_replacement.candidate_artifact_digest(),
                 candidate_application_authority.graph_authority_identity(),
@@ -94,7 +94,7 @@ impl WorthUiPendingActivation {
 
     pub(crate) fn allocation_planning_projection(
         &self,
-    ) -> &crate::runtime::allocation_planning::WorthUiAllocationPlanningProjection {
+    ) -> &crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection {
         &self.allocation_planning_projection
     }
 

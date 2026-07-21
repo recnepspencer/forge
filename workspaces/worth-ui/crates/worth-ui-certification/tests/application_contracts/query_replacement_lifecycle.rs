@@ -176,7 +176,7 @@ fn denied_candidate_reaps_only_candidate_query_resources() {
         ))
         .expect("candidate replacement prepares");
     admit_candidate_resource(&mut candidate, &second, &mut workspace);
-    let candidate_catalog = admit_candidate_catalog(&mut candidate);
+    let candidate_catalog = admit_candidate_catalog(&session, &mut candidate);
     let pending = lower_and_stage(&session, (candidate, candidate_catalog)).0;
 
     let foreign_submission = submission(

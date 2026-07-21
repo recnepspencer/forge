@@ -1419,8 +1419,9 @@ scene renderer.
 
 - `WorthUiCanvasSpatialLane`
 - `WorthUiCanvasSpatialPlan`
-- `WorthUiSpatialHitTestPlan`
-- `WorthUiCanvasOverlayPlan`
+- `WorthUiCanvasViewportRequest`
+- `WorthUiSpatialHitTestRequest`
+- `WorthUiLaneHandle` for overlay execution
 - `WorthUiCanvasSpatialFrameReceipt`
 - `WorthUiCanvasDrawHook`
 - `WorthUiSpatialHitTestHook`

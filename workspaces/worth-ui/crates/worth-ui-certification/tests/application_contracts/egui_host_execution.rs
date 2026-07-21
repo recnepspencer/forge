@@ -282,7 +282,7 @@ fn prepare_replacement_with_catalog(
     let mut prepared = session
         .prepare_replacement(submission)
         .expect("candidate prepares");
-    let catalog = admit_candidate_catalog(&mut prepared);
+    let catalog = admit_candidate_catalog(session, &mut prepared);
     (prepared, catalog)
 }
 

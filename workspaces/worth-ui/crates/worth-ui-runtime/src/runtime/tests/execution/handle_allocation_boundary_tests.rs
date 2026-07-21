@@ -327,7 +327,7 @@ fn runtime_handle_allocation_for_lane_change() -> crate::runtime::WorthUiRuntime
 
 #[test]
 fn compact_handle_capacity_denies_before_index_or_generation_wraparound() {
-    use crate::runtime::handle_allocation::WorthUiHandleCapacity;
+    use crate::runtime::execution::handle_allocation::WorthUiHandleCapacity;
     use crate::runtime::WorthUiHandleCapacityExhaustion;
 
     assert_eq!(

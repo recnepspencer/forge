@@ -2,33 +2,23 @@
 
 mod replacement;
 
-pub use crate::source::WorthUiArtifactInputBodyAtom;
 pub use replacement::*;
 
 // --- graph-owned allocation locality ---
-pub use crate::graph::{
-    UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationInvalidationTargetSet,
-    UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet,
-    UiAllocationCatalogBasisAdmissionDenial, UiAllocationNeighborhoodDenial,
-    UiReplanLocalityDenial, UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters,
-    UiReplanOverlapDisposition, UiReplanRootPosture, UiReplanWidenReason,
-};
 
 // --- launch ---
-pub use super::active::{WorthUiActiveRuntimeObservation, WorthUiCrossLaneBundleReceipt};
+pub use super::active::WorthUiActiveRuntimeObservation;
+#[cfg(test)]
+pub use super::allocation_frame_dispatch::WorthUiPreviewPaintFollowOn;
 pub use super::allocation_frame_dispatch::{
     UiAdmittedAllocationStreamIngress, UiAllocationFrameDispatchDenial,
     UiAllocationFrameDispatcherCounters, UiAllocationFrameDuplicateWitness,
     UiAllocationFrameGatewayOutcome, UiAllocationFrameIngressDescriptor,
     UiAllocationFrameQuerySettlementPosture, UiAllocationFrameQueryWarningPosture,
     UiAllocationFrameSourceFact, UiAllocationFrameSourceFactPosture,
-    UiAllocationFrameSubmissionAssignment, UiAllocationFrameSubmissionOutcome,
-    UiFrameworkTransitionExecutionDenial, UiFrameworkTransitionPlanningCounters,
-    UiFrameworkTransitionPlanningDenial, WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn,
-    WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
-    WorthUiHostMeasurementTurnSource, WorthUiInteractionTurnSource, WorthUiPreviewPaintFollowOn,
-    WorthUiQueryProjectionTurnSource, WorthUiResolvedPreviewPaintCompletion,
-    WorthUiScrollOffsetTurnSource,
+    UiAllocationFrameSubmissionOutcome, UiFrameworkTransitionPlanningCounters,
+    WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
+    WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
 };
 pub(crate) use super::allocation_frame_dispatch::{
     UiAllocationFrameQueueDisposition, UiAllocationFrameReplacementTransition,
@@ -38,56 +28,51 @@ pub(crate) use super::allocation_frame_dispatch::{
     WorthUiDurableResizeSubmission, WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission,
     WorthUiQueryProjectionSubmission,
 };
+#[cfg(test)]
+pub use super::launch::WorthUiRuntimeFrameworkLoop;
 pub use super::launch::{
     WorthUiLastValidObservation, WorthUiPendingActivation, WorthUiRuntime,
-    WorthUiRuntimeFrameEpoch, WorthUiRuntimeFrameworkLoop, WorthUiRuntimeLaunch,
-    WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
+    WorthUiRuntimeFrameEpoch, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
+    WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
 };
 
 // --- planning ---
+#[cfg(test)]
 pub use super::allocation_frame_dispatch::{
-    UiAdmittedAllocationSourceOrder, UiAllocationFrameDispatcherState, UiAllocationFrameEpoch,
-    UiAllocationFrameIngressIdentity, UiAllocationFrameIngressKey,
-    UiAllocationFrameIngressSequence, UiAllocationFrameIngressView,
-    UiAllocationFrameMailboxStoragePosture, UiAllocationFramePauseReason,
-    UiAllocationFrameSourceGeneration, UiAllocationFrameSourceIdentity,
-    UiAllocationFrameSourceLane, UiAllocationFrameSourceLeaseIdentity,
-    UiAllocationFrameSubmissionDenial,
+    UiAdmittedAllocationSourceOrder, UiAllocationFrameIngressIdentity,
+    UiAllocationFrameIngressSequence, UiAllocationFramePauseReason,
+    UiAllocationFrameSourceIdentity, UiAllocationFrameSourceLane,
+};
+pub use super::allocation_frame_dispatch::{
+    UiAllocationFrameDispatcherState, UiAllocationFrameEpoch, UiAllocationFrameIngressKey,
+    UiAllocationFrameSourceGeneration,
 };
 pub use super::allocation_receipt::{
-    admit_host_paint, UiAllocationAnchorPosture, UiAllocationAuthorityCounter,
-    UiAllocationAuthorityCounterExhaustion, UiAllocationAxis, UiAllocationAxisAlignedBounds,
-    UiAllocationCandidate, UiAllocationConstraintPayloadShape,
-    UiAllocationConstraintPropagationShape, UiAllocationCounterName, UiAllocationCounterReport,
-    UiAllocationCounterValue, UiAllocationDenialEvidence, UiAllocationDenialEvidenceIdentity,
-    UiAllocationDenialFamily, UiAllocationDurableSemanticState, UiAllocationEdgeReference,
-    UiAllocationFreshnessConsumptionDenial, UiAllocationFreshnessTransition,
-    UiAllocationFreshnessTransitionCause, UiAllocationFreshnessTransitionDenial,
-    UiAllocationGeometryKnowledge, UiAllocationLeafRemeasureWitness, UiAllocationPreviewCandidate,
-    UiAllocationReceipt, UiAllocationReceiptCommitDenial, UiAllocationReceiptCommitOutcome,
-    UiAllocationReceiptConstraintShape, UiAllocationReceiptDenialCause,
-    UiAllocationReceiptDenialReport, UiAllocationReceiptEquivalenceBasis,
-    UiAllocationReceiptFreshnessPosture, UiAllocationReceiptGeneration,
-    UiAllocationReceiptIdentity, UiAllocationReceiptLagBound, UiAllocationReceiptReport,
+    UiAllocationAnchorPosture, UiAllocationAxis, UiAllocationAxisAlignedBounds,
+    UiAllocationCandidate, UiAllocationCounterName, UiAllocationDenialFamily,
+    UiAllocationDurableSemanticState, UiAllocationEdgeReference,
+    UiAllocationFreshnessConsumptionDenial, UiAllocationGeometryKnowledge,
+    UiAllocationPreviewCandidate, UiAllocationReceipt, UiAllocationReceiptCommitDenial,
+    UiAllocationReceiptCommitOutcome, UiAllocationReceiptDenialReport,
+    UiAllocationReceiptEquivalenceBasis, UiAllocationReceiptFreshnessPosture,
+    UiAllocationReceiptGeneration, UiAllocationReceiptIdentity, UiAllocationReceiptReport,
     UiAllocationReplanTransaction, UiAllocationReplanTransactionCommitDenial,
-    UiAllocationReplanTransactionCounters, UiAllocationReplanTransactionDenial,
     UiAllocationReplanTransactionOutcome, UiAllocationReuseDenial, UiAllocationReuseVerdict,
-    UiAllocationTruthDelta, UiAllocationTruthRevision, UiCommittedAllocationEvidenceSet,
     UiCommittedAllocationGeometryEvidence, UiCommittedAllocationLoweringInput,
-    UiCommittedAllocationReplan, UiCommittedPortalAnchorEvidence,
-    UiPortalAllocationCommitBindDenial, UiPortalAnchorObservationGeometryEvidence,
-    UiPreviewPaintIsolationOutcome, UiPreviewPaintIsolationReceipt,
-    UiPreviewPaintIsolationViolation,
+    UiCommittedAllocationReplan, UiPortalAllocationCommitBindDenial,
+    UiPreviewPaintIsolationOutcome, UiPreviewPaintIsolationViolation,
+};
+#[cfg(test)]
+pub use super::allocation_receipt::{
+    UiAllocationAuthorityCounter, UiCommittedAllocationEvidenceSet,
 };
 pub(crate) use super::invalidation_narrowing::UiAdmittedAllocationPlanReference;
 pub use super::invalidation_narrowing::UiAdmittedPortalMovement;
+#[cfg(test)]
+pub use super::invalidation_narrowing::UiScrollBindingCatalogCounters;
 pub use super::invalidation_narrowing::{
-    UiAllocationInvalidationNarrowingCounters, UiAllocationInvalidationNarrowingDenial,
-    UiAllocationInvalidationNarrowingRejection, UiAllocationInvalidationTarget,
-    UiNarrowedAllocationFramePlan, UiNarrowedAllocationInvalidation,
-    UiPortalBindingSuccessionCounters, UiPortalBindingSuccessionDenial,
-    UiPortalBindingSuccessionLineage, UiPortalBindingSuccessionReceipt,
-    UiScrollBindingCatalogCounters, UiScrollCatalogSwapEvidence, UiScrollInvalidationBindingDenial,
+    UiAllocationInvalidationNarrowingDenial, UiAllocationInvalidationNarrowingRejection,
+    UiAllocationInvalidationTarget, UiNarrowedAllocationFramePlan, UiScrollCatalogSwapEvidence,
     UiScrollOwnerAcquisitionDenial, UiScrollOwnerCatalogDenialReport, UiScrollOwnerCatalogReceipt,
 };
 pub(crate) use super::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
@@ -97,10 +82,10 @@ pub use super::planning::allocation_planning::{
     WorthUiAllocationPlanningInspection,
 };
 pub use super::planning::execution_plan_input::{
-    WorthUiComponentLoweringHook, WorthUiComponentLoweringHookFamily, WorthUiExecutionPlanInput,
-    WorthUiPlanLoweringBasis, WorthUiPlanLoweringContext, WorthUiPlanLoweringCounters,
-    WorthUiPlanLoweringDenial, WorthUiPlanLoweringDenialReason, WorthUiPlanNodeInput,
-    WorthUiPlanNodeInputFamily, WorthUiPlanNodeTopologyInput,
+    WorthUiComponentLoweringHook, WorthUiExecutionPlanInput, WorthUiPlanLoweringBasis,
+    WorthUiPlanLoweringContext, WorthUiPlanLoweringCounters, WorthUiPlanLoweringDenial,
+    WorthUiPlanLoweringDenialReason, WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily,
+    WorthUiPlanNodeTopologyInput,
 };
 pub use super::planning::plan_equivalence::{
     WorthUiExecutablePlanDecision, WorthUiExecutablePlanDecisionKind,
@@ -111,46 +96,40 @@ pub use super::planning::plan_equivalence::{
 };
 pub use super::planning::plan_inspection::{
     WorthUiArtifactToPlanProvenance, WorthUiExecutionPlanInspection, WorthUiLaneInspection,
-    WorthUiPlanInspectionCounters, WorthUiPlanInspectionDenial, WorthUiPlanInspectionDenialReason,
-    WorthUiPlanNodeInspection, WorthUiPlanProvenanceSource, WorthUiQueryInspectionLinks,
+    WorthUiPlanInspectionCounters, WorthUiPlanInspectionDenial, WorthUiPlanNodeInspection,
+    WorthUiQueryInspectionLinks,
+};
+#[cfg(test)]
+pub use super::planning::plan_inspection::{
+    WorthUiPlanInspectionDenialReason, WorthUiPlanProvenanceSource,
 };
 pub use super::planning::plan_topology::{
     WorthUiExecutionPlan, WorthUiPlanChildRange, WorthUiPlanConstructionCounters,
     WorthUiPlanExecutionLane, WorthUiPlanLanePartition, WorthUiPlanLookupIndex, WorthUiPlanNode,
-    WorthUiPlanNodeFamily, WorthUiPlanRegionHandle, WorthUiPlanRegionIdentity,
-    WorthUiPlanRegionStorageCounters, WorthUiPlanRegionStructure, WorthUiPlanRegionTransition,
-    WorthUiPlanRegionTransitionEvidence, WorthUiPlanRegionalEvidence, WorthUiPlanTopology,
-    WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial, WorthUiPlanTopologyDenialReason,
-    WorthUiRenderResourceRef,
+    WorthUiPlanNodeFamily, WorthUiPlanRegionIdentity, WorthUiPlanRegionStorageCounters,
+    WorthUiPlanRegionStructure, WorthUiPlanRegionTransition, WorthUiPlanRegionalEvidence,
+    WorthUiPlanTopology, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
+    WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
 };
-pub use super::planning::WorthUiPlanningLaneInput;
 pub use super::portal_anchored_allocation::UiPortalActivationBindingDenial;
 pub use super::portal_anchored_allocation::{
     UiAdmittedPortalAnchorObservation, UiPortalAllocationPlanningBasis, UiPortalAnchorIdentity,
     UiPortalAnchorIdentityTransition, UiPortalAnchorSuccessorDenial,
 };
-pub use super::scroll_owned_allocation::{
-    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, UiProjectedScrollOffset,
-    UiProjectedScrollOffsetDenial, UiProjectedScrollOffsetOutcome, UiScrollOffsetAllocationPosture,
-    UiScrollVirtualizationPosture,
-};
 pub use super::stream_policy::{
-    UiAllocationCadenceBudget, UiAllocationCadenceKind, UiAllocationCommitTarget,
-    UiAllocationDuplicatePosture, UiAllocationEvidenceCadence, UiAllocationFamilyPairOutcome,
-    UiAllocationFrameCadenceVerdict, UiAllocationFramePlanIdentity, UiAllocationFrameRejection,
-    UiAllocationFrameResolutionCounters, UiAllocationFrameResolutionDenial,
-    UiAllocationIngressPolicyVerdict, UiAllocationIntermediatePolicyVerdict,
-    UiAllocationInvalidationFamily, UiAllocationInvalidationIntent,
-    UiAllocationInvalidationReferenceDenial, UiAllocationPartialSettlementLaw,
-    UiAllocationSourceOrderVerdict, UiAllocationStreamCollapseLaw,
+    UiAllocationCadenceKind, UiAllocationDuplicatePosture, UiAllocationFrameCadenceVerdict,
+    UiAllocationFramePlanIdentity, UiAllocationFrameRejection, UiAllocationFrameResolutionCounters,
+    UiAllocationFrameResolutionDenial, UiAllocationIngressPolicyVerdict,
+    UiAllocationIntermediatePolicyVerdict, UiAllocationInvalidationFamily,
+    UiAllocationInvalidationIntent, UiAllocationInvalidationReferenceDenial,
+    UiAllocationPartialSettlementLaw, UiAllocationSourceOrderVerdict,
     UiAllocationStreamCompositionCounters, UiAllocationStreamCompositionDenial,
     UiAllocationStreamFamily, UiResolvedAllocationFramePlan, UiResolvedAllocationPolicyBranch,
     UiResolvedAllocationStreamPolicy,
 };
 pub(crate) use super::viewport_resize::UiViewportResizeCommitBasis;
 pub use super::viewport_resize::{
-    UiViewportCommittedReplan, UiViewportReceiptCommitStrategy, UiViewportResizeCounters,
-    UiViewportResizeDenial, UiViewportResizeOutcome,
+    UiViewportReceiptCommitStrategy, UiViewportResizeDenial, UiViewportResizeOutcome,
 };
 
 // --- activation ---
@@ -160,35 +139,33 @@ pub use super::activation::activation_staging::{
 };
 pub use super::activation::frame_activation_gate::{
     WorthUiActivationGateCounters, WorthUiActivationGateDenial, WorthUiActivationGateDenialReason,
-    WorthUiActivationGateReceipt, WorthUiFrameBoundary, WorthUiFrameBoundaryPosture,
+    WorthUiActivationGateReceipt, WorthUiFrameBoundary,
 };
+#[cfg(test)]
+pub use super::activation::UiCommittedAllocationActivationInspectionOutcome;
 pub use super::activation::{
-    UiCommittedAllocationActivationCounterExhaustion, UiCommittedAllocationActivationCounters,
-    UiCommittedAllocationActivationDenial, UiCommittedAllocationActivationDenialEvidence,
-    UiCommittedAllocationActivationDenialReason, UiCommittedAllocationActivationInspection,
-    UiCommittedAllocationActivationInspectionDenialKind,
-    UiCommittedAllocationActivationInspectionOutcome, WorthUiAllocationCatalogActivationDenial,
-    WorthUiAllocationCatalogPreparationStage, WorthUiNoOpProvenancePosture,
-    WorthUiNoOpQueryPosture, WorthUiSemanticNoOpReceipt, WorthUiSemanticNoOpWork,
+    UiCommittedAllocationActivationCounters, UiCommittedAllocationActivationDenial,
+    UiCommittedAllocationActivationDenialReason, WorthUiAllocationCatalogActivationDenial,
+    WorthUiNoOpProvenancePosture, WorthUiNoOpQueryPosture, WorthUiSemanticNoOpReceipt,
+    WorthUiSemanticNoOpWork,
 };
 pub use super::activation::{WorthUiPlanSwapReceipt, WorthUiPriorValidPlanObservation};
 pub use super::allocation_catalog_successor::{
     UiAllocationCatalogDeltaCounters, UiAllocationCatalogRowDisposition,
-    UiAllocationCatalogRowTransition, UiAllocationCatalogSuccessorReceipt,
+    UiAllocationCatalogRowTransition,
 };
 
 // --- execution ---
 pub use super::execution::canvas_spatial_lane::{
-    WorthUiCanvasDrawHook, WorthUiCanvasOverlayPlan, WorthUiCanvasRenderResourceRef,
     WorthUiCanvasSpatialCertification, WorthUiCanvasSpatialCounters,
     WorthUiCanvasSpatialFrameDenial, WorthUiCanvasSpatialFrameDenialReason,
     WorthUiCanvasSpatialFrameReceipt, WorthUiCanvasSpatialFrameTarget,
     WorthUiCanvasSpatialInspectionDenial, WorthUiCanvasSpatialLane, WorthUiCanvasSpatialNode,
     WorthUiCanvasSpatialPlan, WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasSpatialPlanDenial,
     WorthUiCanvasSpatialPlanDenialReason, WorthUiCanvasSpatialTargetSummary,
-    WorthUiCanvasViewportPlan, WorthUiCanvasViewportPlanDenial,
-    WorthUiCanvasViewportPlanDenialReason, WorthUiSpatialHitTestHook, WorthUiSpatialHitTestPlan,
-    WorthUiSpatialIndexStrategy, WorthUiSpatialToolStateHook, WorthUiSpatialViewportPoint,
+    WorthUiCanvasViewportRequest, WorthUiCanvasViewportRequestDenial,
+    WorthUiCanvasViewportRequestDenialReason, WorthUiSpatialHitTestRequest,
+    WorthUiSpatialIndexStrategy, WorthUiSpatialViewportPoint,
 };
 pub use super::execution::handle_allocation::{
     WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle,
@@ -206,8 +183,7 @@ pub use super::execution::lane_admission::{
     WorthUiLaneAdmission, WorthUiLaneAdmissionCounters, WorthUiLaneAdmissionDenial,
     WorthUiLaneAdmissionDenialReason, WorthUiLaneCostRegime, WorthUiLaneFailureMode,
     WorthUiLaneSupportDiagnostic, WorthUiLaneSupportRow, WorthUiLaneSupportStatus,
-    WorthUiLaneTeachingPosture, WorthUiQueryLaneSupportLinks, WorthUiUnsupportedHookDenial,
-    WorthUiUnsupportedHookDenialReason,
+    WorthUiQueryLaneSupportLinks, WorthUiUnsupportedHookDenial, WorthUiUnsupportedHookDenialReason,
 };
 pub use super::execution::lane_frame_cost_certification::{
     WorthUiBroadScanRegressionDenial, WorthUiFrameCostCertification,
@@ -238,27 +214,27 @@ pub use super::execution::realtime_overlay_lane::{
     WorthUiHudPlanDenial, WorthUiHudPlanDenialReason, WorthUiRealtimeCertification,
     WorthUiRealtimeFrameDenial, WorthUiRealtimeFrameDenialReason, WorthUiRealtimeFramePriority,
     WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameTarget, WorthUiRealtimeInspectionDenial,
-    WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayHook, WorthUiRealtimeOverlayLane,
-    WorthUiRealtimePlanAvailability, WorthUiRealtimeTargetSummary, WorthUiRendererSurfaceAdmission,
-    WorthUiRendererSurfaceHandle,
+    WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane, WorthUiRealtimePlanAvailability,
+    WorthUiRealtimeTargetSummary, WorthUiRendererSurfaceAdmission, WorthUiRendererSurfaceHandle,
 };
 pub(crate) use super::execution::reload_counter_boundary::WorthUiReloadCostSeed;
 pub use super::execution::reload_counter_boundary::{
     WorthUiCertifiedReloadLoweringCounterReceipt, WorthUiReloadCostContext,
-    WorthUiReloadCounterBoundary, WorthUiReloadCounterBoundaryDenial,
-    WorthUiReloadCounterBoundaryDenialReason, WorthUiReloadCounterStopStage,
-    WorthUiReloadLoweringCounterReceipt, WorthUiReloadLoweringCounterReceiptBuilder,
-    WorthUiReloadLoweringFoundationalBridge, WorthUiReloadLoweringFoundationalEvidence,
+    WorthUiReloadCounterBoundaryDenial, WorthUiReloadLoweringCounterReceipt,
+    WorthUiReloadLoweringCounterReceiptBuilder, WorthUiReloadLoweringFoundationalEvidence,
+};
+#[cfg(test)]
+pub use super::execution::reload_counter_boundary::{
+    WorthUiReloadCounterBoundary, WorthUiReloadCounterBoundaryDenialReason,
+    WorthUiReloadCounterStopStage, WorthUiReloadLoweringFoundationalBridge,
 };
 pub use super::execution::steady_frame_counter_boundary::{
     WorthUiCertifiedFrameExecutionReceipt, WorthUiFrameExecutionReceipt,
     WorthUiFrameReportMaterializationBoundary, WorthUiFrameWorkScope, WorthUiLaneFrameReceipt,
-    WorthUiLaneFrameReceiptKind, WorthUiRenderCostReceipt, WorthUiSteadyFrameCounterBoundary,
+    WorthUiLaneFrameReceiptKind, WorthUiSteadyFrameCounterBoundary,
     WorthUiSteadyFrameCounterDenial, WorthUiSteadyFrameCounterDenialReason,
-    WorthUiSteadyFrameCounterReceiptBuilder, WorthUiSteadyFrameCounters,
-    WorthUiSteadyFrameDiagnosticPolicy, WorthUiSteadyFrameFoundationalBridge,
-    WorthUiSteadyFrameFoundationalEvidence, WorthUiSteadyFrameReportPlan,
-    WorthUiSteadyFrameReportPlanner,
+    WorthUiSteadyFrameCounters, WorthUiSteadyFrameFoundationalBridge,
+    WorthUiSteadyFrameFoundationalEvidence, WorthUiSteadyFrameReportPlanner,
 };
 pub use super::execution::virtualized_data_lane::{
     WorthUiVirtualizedDataCertification, WorthUiVirtualizedDataCounters,
@@ -270,25 +246,24 @@ pub use super::execution::virtualized_data_lane::{
     WorthUiVirtualizedPlanSummaryDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
     WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
-pub use super::execution::WorthUiExecutionLaneInput;
 
 // --- host observation ---
+#[cfg(test)]
+pub use super::host_observation::diagnostics::WorthUiDiagnosticRichnessTier;
 pub use super::host_observation::diagnostics::{
-    WorthUiDiagnosticMaterialization, WorthUiDiagnosticProjectionHook,
-    WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticRichnessTier, WorthUiDiagnosticSource,
-    WorthUiDiagnosticSupportReport, WorthUiPlanDiagnostic, WorthUiReloadDiagnostic,
+    WorthUiDiagnosticProjectionHook, WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticSource,
     WorthUiRuntimeActivationStatus, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
     WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
-    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport, WorthUiSupportReportPolicy,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
+};
+#[cfg(test)]
+pub use super::host_observation::diagnostics_projection::{
+    WorthUiDiagnosticsProjectionDenialReason, WorthUiDiagnosticsProjectionHook,
+    WorthUiFrameCostSurfaceKind,
 };
 pub use super::host_observation::diagnostics_projection::{
-    WorthUiDiagnosticsProjection, WorthUiDiagnosticsProjectionCounters,
-    WorthUiDiagnosticsProjectionDenial, WorthUiDiagnosticsProjectionDenialReason,
-    WorthUiDiagnosticsProjectionHook, WorthUiDiagnosticsProjectionHookEffect,
-    WorthUiDiagnosticsProjectionRequest, WorthUiDiagnosticsSurfaceBinding, WorthUiFrameCostRow,
-    WorthUiFrameCostSurface, WorthUiFrameCostSurfaceKind, WorthUiPlanInspectionSurface,
-    WorthUiQueryStatusRow, WorthUiQueryStatusSurface, WorthUiReloadStatusSurface,
-    WorthUiRuntimeDiagnosticsProjection,
+    WorthUiFrameCostSurface, WorthUiPlanInspectionSurface, WorthUiQueryStatusSurface,
+    WorthUiReloadStatusSurface,
 };
 pub use super::host_observation::identity_state_query_certification::{
     WorthUiIdentityStateCertification, WorthUiIdentityStateQueryCertificationCounters,
@@ -319,6 +294,8 @@ pub use super::host_observation::{
 };
 
 // --- source ingress ---
+#[cfg(test)]
+pub use super::source_ingress::WorthUiSourceIngressHook;
 pub use super::source_ingress::{
     WorthUiCandidateComposition, WorthUiCandidateCompositionBasis, WorthUiCandidateOrderingReceipt,
     WorthUiFilesystemSourceAcquisitionDenial, WorthUiFilesystemSourceProvider,
@@ -328,9 +305,9 @@ pub use super::source_ingress::{
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
     WorthUiSettledSourceSnapshot, WorthUiSourceEventIngress, WorthUiSourceEventIngressSession,
     WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
-    WorthUiSourceIngressHook, WorthUiSourcePackageRevision, WorthUiSourceProvider,
-    WorthUiSourceProviderKind, WorthUiWatchedCandidateSubmission,
-    WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
+    WorthUiSourcePackageRevision, WorthUiSourceProvider, WorthUiSourceProviderKind,
+    WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial,
+    WorthUiWatcherEvent,
 };
 pub(crate) use super::source_ingress::{
     WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage,
@@ -338,10 +315,10 @@ pub(crate) use super::source_ingress::{
 
 // --- measurement ---
 pub use super::measurement::{
-    WorthUiCertifiedMeasurementPacket, WorthUiComplexityContract, WorthUiCounterAuthority,
-    WorthUiCounterCaptureRichness, WorthUiCounterPacketBuilder, WorthUiCounterValueKind,
+    WorthUiCertifiedMeasurementPacket, WorthUiComplexityContract, WorthUiCounterCaptureRichness,
     WorthUiFoundationalCounterBridge, WorthUiFoundationalCounterEvidence, WorthUiFrameCostCounter,
     WorthUiMeasurementBoundary, WorthUiMeasurementCertificationDenial,
-    WorthUiMeasurementCounterPacket, WorthUiMeasurementQueryEvidence,
-    WorthUiMeasurementQueryEvidenceKind, WorthUiRuntimeCounterFamily,
+    WorthUiMeasurementCounterPacket, WorthUiMeasurementQueryEvidence, WorthUiRuntimeCounterFamily,
 };
+#[cfg(test)]
+pub use super::measurement::{WorthUiCounterPacketBuilder, WorthUiMeasurementQueryEvidenceKind};

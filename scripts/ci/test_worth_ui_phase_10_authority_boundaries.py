@@ -37,6 +37,12 @@ class Phase10AuthorityBoundaryGuardTests(unittest.TestCase):
             violations = check_manifest(fixture.root, fixture.manifest)
             self.assertTrue(any("expected 1" in item.message for item in violations))
 
+    def test_non_empty_allowance_requires_architectural_review(self) -> None:
+        with fixture_workspace() as fixture:
+            del fixture.manifest["rules"][0]["rationale"]
+            violations = check_manifest(fixture.root, fixture.manifest)
+            self.assertTrue(any("reviewed rationale" in item.message for item in violations))
+
     def test_fallible_work_inside_live_commit_body_fails(self) -> None:
         with fixture_workspace() as fixture:
             prepared = fixture.root / "src" / "prepared.rs"
@@ -62,11 +68,15 @@ class fixture_workspace:
                 {
                     "id": "mint",
                     "pattern": "canonical_mint",
+                    "authority_owner": "catalog activation commit",
+                    "rationale": "the canonical commit boundary alone mints the activation",
                     "allowed": {"src/owner.rs": 1},
                 },
                 {
                     "id": "legacy",
                     "pattern": "legacy_publish",
+                    "authority_owner": "legacy compatibility owner",
+                    "rationale": "fixture proves deletion changes remain visible",
                     "allowed": {"src/legacy.rs": 1},
                 },
                 {

@@ -3,7 +3,8 @@ pub(super) struct UiCommittedAllocationSuccessors {
     next_active: crate::runtime::active::WorthUiActiveRuntimeState,
     invalidation_transition:
         crate::runtime::invalidation_narrowing::UiPreparedInvalidationCatalogTransition,
-    durable_resize_successor: crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
+    durable_resize_successor:
+        crate::runtime::replacement::reconciliation::WorthUiDurableResizeSourceAuthority,
 }
 
 pub(crate) struct UiPreparedCommittedAllocationActivation<'runtime> {
@@ -19,14 +20,14 @@ pub(crate) struct UiPreparedCommittedAllocationActivation<'runtime> {
     last_valid_successor: crate::runtime::launch::WorthUiLastValidRuntimeState,
     transient_interaction_admission: &'runtime mut crate::runtime::replacement::state_inventory::WorthUiTransientInteractionAdmissionAuthority,
     durable_resize_source:
-        &'runtime mut crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
+        &'runtime mut crate::runtime::replacement::reconciliation::WorthUiDurableResizeSourceAuthority,
     receipt_draft: super::WorthUiPlanSwapReceiptDraft,
     next_active: crate::runtime::active::WorthUiActiveRuntimeState,
     invalidation_transition:
         crate::runtime::invalidation_narrowing::UiPreparedInvalidationCatalogTransition,
     frame_assignment: crate::runtime::allocation_frame_dispatch::UiAllocationFrameEpochAssignment,
     durable_resize_successor:
-        crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
+        crate::runtime::replacement::reconciliation::WorthUiDurableResizeSourceAuthority,
     query_binding: &'runtime mut worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     query_succession: worth_ui_query_binding::WorthUiPreparedQueryBindingSuccession,
     active_application_authority: &'runtime mut crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
@@ -40,6 +41,7 @@ pub(crate) struct UiPreparedCommittedAllocationActivation<'runtime> {
 pub(crate) struct UiCommittedAllocationPublication {
     plan_swap: crate::runtime::WorthUiPlanSwapReceipt,
     query_retirement: worth_ui_query_binding::WorthUiQueryLiveRetirement,
+    derived_index_counters: crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
 }
 
 pub(super) struct UiCommittedAllocationCommitResources<'runtime> {
@@ -54,7 +56,7 @@ pub(super) struct UiCommittedAllocationCommitResources<'runtime> {
     pub last_valid: &'runtime mut crate::runtime::launch::WorthUiLastValidRuntimeState,
     pub transient_interaction_admission: &'runtime mut crate::runtime::replacement::state_inventory::WorthUiTransientInteractionAdmissionAuthority,
     pub durable_resize_source:
-        &'runtime mut crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority,
+        &'runtime mut crate::runtime::replacement::reconciliation::WorthUiDurableResizeSourceAuthority,
     pub query_binding: &'runtime mut worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     pub query_succession: worth_ui_query_binding::WorthUiPreparedQueryBindingSuccession,
     pub active_application_authority: &'runtime mut crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
@@ -73,7 +75,7 @@ impl UiCommittedAllocationSuccessors {
         invalidation_transition: crate::runtime::invalidation_narrowing::UiPreparedInvalidationCatalogTransition,
     ) -> Self {
         let durable_resize_successor =
-            crate::runtime::reconciliation::WorthUiDurableResizeSourceAuthority::prepare_successor(
+            crate::runtime::replacement::reconciliation::WorthUiDurableResizeSourceAuthority::prepare_successor(
                 ledger_transition.durable_reconciliation(),
             );
         Self {
@@ -134,6 +136,7 @@ impl UiCommittedAllocationSuccessors {
 
 impl UiPreparedCommittedAllocationActivation<'_> {
     pub(crate) fn commit_once(mut self) -> UiCommittedAllocationPublication {
+        let derived_index_counters = self.invalidation_transition.derived_index_counters();
         self.invalidation
             .commit_catalog_transition(self.invalidation_transition);
         self.ledger_commit.commit_once();
@@ -153,6 +156,7 @@ impl UiPreparedCommittedAllocationActivation<'_> {
         UiCommittedAllocationPublication {
             plan_swap: self.receipt_draft.finish(allocation_frame_replacement),
             query_retirement,
+            derived_index_counters,
         }
     }
 }
@@ -163,7 +167,12 @@ impl UiCommittedAllocationPublication {
     ) -> (
         crate::runtime::WorthUiPlanSwapReceipt,
         worth_ui_query_binding::WorthUiQueryLiveRetirement,
+        crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
     ) {
-        (self.plan_swap, self.query_retirement)
+        (
+            self.plan_swap,
+            self.query_retirement,
+            self.derived_index_counters,
+        )
     }
 }

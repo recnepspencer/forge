@@ -5,7 +5,10 @@ pub use crate::host::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
     UiHostMeasurementExecutionDenial, UiHostMeasurementInvalidationReason, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial,
-    UiPortalAnchorCoordinateSpacePosture,
+    UiHostPreviewDiscardReason, UiHostPreviewPaintContext, UiHostPreviewPaintDenial,
+    UiHostPreviewPaintDenialReport, UiHostPreviewPaintDiscardReport, UiHostPreviewPaintDisposition,
+    UiHostPreviewPaintGeometry, UiHostPreviewPaintInput, UiHostPreviewPaintReceipt,
+    UiPortalAnchorCoordinateSpacePosture, WorthUiPreviewPaintHost,
 };
 pub use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,

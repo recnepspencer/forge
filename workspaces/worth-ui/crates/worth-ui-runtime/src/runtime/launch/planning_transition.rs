@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 
 use crate::graph::UiGraphSnapshot;
 use crate::obligations::selection::UiSelectedObligationSet;
-use crate::runtime::handle_allocation::WorthUiRuntimeHandleAllocator;
+use crate::runtime::execution::handle_allocation::WorthUiRuntimeHandleAllocator;
 use crate::runtime::planning::{
     collect_planning_measurement_basis, construct_planning_lane_input,
     plan_allocation_for_pending_activation, WorthUiPlanningLaneAdmissionDenial,

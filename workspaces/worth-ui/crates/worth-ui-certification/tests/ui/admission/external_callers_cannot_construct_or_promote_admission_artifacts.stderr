@@ -13,6 +13,9 @@ worth_ui_runtime::facade::declaration::UiDeclarationGraphHandoff
 worth_ui::facade::declaration::UiDeclaredPostureContract
 worth_ui_runtime::facade::declaration::UiDeclaredPostureContract
 
+error[E0432]: unresolved imports `worth_ui_runtime::facade::WorthUiQuerySupportReceipt`, `worth_ui_runtime::facade::WorthUiRuntimeHandleAllocationReceipt`
+ --> tests/ui/declaration_posture/declared_posture_cannot_promote_to_runtime_receipts.rs
+
 error[E0432]: unresolved imports `worth_ui::facade::declaration::UiControlDeclarationFamily`, `worth_ui::facade::declaration::UiDiagnosticSurfaceDeclarationFamily`, `worth_ui::facade::declaration::UiIntentDeclarationFamily`, `worth_ui::facade::declaration::UiLocalCompositionDeclarationFamily`, `worth_ui::facade::declaration::UiMosaicDeclarationFamily`, `worth_ui::facade::declaration::UiPageDeclarationFamily`, `worth_ui::facade::declaration::UiPageSetDeclarationFamily`, `worth_ui::facade::declaration::UiQueryBindingDeclarationFamily`, `worth_ui::facade::declaration::UiRegionDeclarationFamily`
  --> tests/ui/declaration_family/external_callers_cannot_construct_family_wrappers.rs
  help: a similar name exists in the module
@@ -24,6 +27,9 @@ error[E0432]: unresolved imports `worth_ui::facade::declaration::UiControlDeclar
 
 error[E0432]: unresolved import `worth_ui::facade::declaration::UiStructuralDeclarationPayload`
  --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs
+
+error[E0432]: unresolved imports `worth_ui_runtime::facade::WorthUiQuerySupportReceipt`, `worth_ui_runtime::facade::WorthUiRuntimeHandleAllocationReceipt`
+ --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
 
 error[E0624]: associated function `new` is private
  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs
@@ -108,12 +114,6 @@ error[E0308]: mismatched types
 error[E0308]: mismatched types
  --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs
 
-error[E0308]: mismatched types
- --> tests/ui/declaration_posture/declared_posture_cannot_promote_to_runtime_receipts.rs
-
-error[E0308]: mismatched types
- --> tests/ui/declaration_posture/declared_posture_cannot_promote_to_runtime_receipts.rs
-
 error[E0624]: associated function `new` is private
  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs
 
@@ -162,12 +162,6 @@ error[E0624]: associated function `without_admitted_fact` is private
  --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
 
 error[E0624]: associated function `new` is private
- --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
-
-error[E0308]: mismatched types
- --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
-
-error[E0308]: mismatched types
  --> tests/ui/declaration_support/external_callers_cannot_construct_or_promote_declaration_support.rs
 
 error[E0308]: mismatched types

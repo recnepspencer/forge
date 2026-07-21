@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use super::construct_verified_planning_input_handoff;
 use super::WorthUiAllocationReplanDenial;
 use crate::evidence::{UiConstraintPropagationDenial, UiMeasurementBasis};
-use crate::runtime::allocation_planning::WorthUiAllocationPlanner;
+use crate::runtime::planning::allocation_planning::WorthUiAllocationPlanner;
 use crate::runtime::planning::UiAllocationCandidateMintAuthority;
 use crate::runtime::{
     UiAllocationCandidate, WorthUiAllocationPlanning, WorthUiAllocationPlanningBasis,
@@ -104,7 +104,7 @@ fn replan_admitted_candidate_with_portal(
         .cloned()
         .ok_or(WorthUiAllocationReplanDenial::CandidateProjectionUnavailable)?;
     let admission =
-        crate::runtime::allocation_planning::WorthUiAllocationPlanningAdmission::from_projection(
+        crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningAdmission::from_projection(
             projection,
             constraint_basis,
             portal,

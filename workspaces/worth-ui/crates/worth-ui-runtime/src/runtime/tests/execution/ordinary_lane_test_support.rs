@@ -5,7 +5,7 @@ use super::durable_state_inventory_test_support::platform_inventory;
 use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime,
 };
-use crate::runtime::ordinary_lane::WorthUiOrdinaryLanePlanBuilder;
+use crate::runtime::execution::ordinary_lane::WorthUiOrdinaryLanePlanBuilder;
 use crate::runtime::{
     WorthUiComponentLoweringHook, WorthUiExecutionLane, WorthUiExecutionLaneSupport,
     WorthUiExecutionPlan, WorthUiExecutionPlanInput, WorthUiLaneAdmission, WorthUiOrdinaryLanePlan,

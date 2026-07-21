@@ -7,8 +7,11 @@
       "id": "attempt_mint",
       "pattern": "UiCommittedAllocationActivationAttempt::new",
       "legacy": false,
+      "authority_owner": "allocation receipt ledger transition sealing",
+      "rationale": "only ledger commit boundaries may mint an activation attempt; removal commits are a distinct canonical ledger transition, not a bypass",
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/activation_catalog_commit.rs": 2
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/activation_catalog_commit.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/removal_catalog_commit.rs": 1
       }
     },
     {
@@ -51,6 +54,8 @@
       "id": "prepared_activation",
       "pattern": "UiPreparedCommittedAllocationActivation",
       "legacy": false,
+      "authority_owner": "prepared allocation activation",
+      "rationale": "the move-only prepared activation is defined and consumed solely by the activation owner",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 4
       }
@@ -65,9 +70,11 @@
       "id": "invalidation_commit",
       "pattern": "commit_catalog_transition",
       "legacy": false,
+      "authority_owner": "invalidation catalog publication",
+      "rationale": "the prepared activation calls the sole catalog-owned publication method after all fallible preparation succeeds",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog_transition.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog/catalog_transition.rs": 1
       }
     },
     {
@@ -98,12 +105,15 @@
       "id": "attempt_type_edges",
       "pattern": "UiCommittedAllocationActivationAttempt",
       "legacy": false,
+      "authority_owner": "allocation activation lifecycle",
+      "rationale": "type edges are limited to definition, validation, canonical ledger transitions, and launch orchestration that transports but cannot mint the attempt",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/activation_catalog_commit.rs": 3,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/planning_transition.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/removal_catalog_commit.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/planning_transition.rs": 3,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/mod.rs": 1
       }
     },
@@ -111,6 +121,8 @@
       "id": "attempt_identity_edges",
       "pattern": "UiCommittedAllocationActivationIdentity",
       "legacy": false,
+      "authority_owner": "allocation activation identity",
+      "rationale": "identity is minted by the attempt owner and borrowed by denial, validation, publication, and invalidation binding evidence without granting publication authority",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 3,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/denial.rs": 4,
@@ -118,6 +130,7 @@
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/identity.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/publication.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/active_set.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/mod.rs": 1
@@ -127,29 +140,39 @@
       "id": "committed_context_edges",
       "pattern": "committed_invalidation_context",
       "legacy": false,
+      "authority_owner": "committed allocation catalog binding",
+      "rationale": "catalog rows are the truth source; narrow accessors and full/delta derived-index construction may borrow their committed context but never replace it",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_catalog_binding.rs": 4,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/identity.rs": 3,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/active_set.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority_context_access.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority_index.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority_index_delta.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/index_delta/counter_tests.rs": 1
       }
     },
     {
       "id": "scroll_identity_constructors",
       "pattern": "UiScrollCatalogIdentity::new",
       "legacy": false,
+      "authority_owner": "scroll catalog successor construction",
+      "rationale": "full rebuild and delta successor builders are the only owners that derive scroll catalog identity",
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 2
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_catalog_delta.rs": 2
       }
     },
     {
       "id": "scroll_swap_evidence_edges",
       "pattern": "UiScrollCatalogSwapEvidence",
       "legacy": false,
+      "authority_owner": "prepared invalidation catalog transition",
+      "rationale": "scroll successor evidence is created with the off-side catalog transition and then carried through preflight and activation receipts",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/preflight.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/receipt.rs": 5,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/exports.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog_transition.rs": 3,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog/catalog_transition.rs": 4,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/mod.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_catalog_evidence.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/tests/activation/production_catalog_activation_test_support.rs": 1
@@ -159,6 +182,8 @@
       "id": "ledger_transition_edges",
       "pattern": "UiAllocationCatalogLedgerTransition",
       "legacy": false,
+      "authority_owner": "allocation receipt ledger lifecycle",
+      "rationale": "ledger transition state is defined, validated, transported, and created only by canonical activation or removal commits",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/identity.rs": 1,
@@ -169,18 +194,21 @@
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/receipt_ledger_entry.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/transaction.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/removal_catalog_commit.rs": 2
       }
     },
     {
       "id": "catalog_transition_edges",
       "pattern": "UiAllocationNeighborhoodCatalogTransition",
       "legacy": false,
+      "authority_owner": "invalidation neighborhood catalog lifecycle",
+      "rationale": "the transition is formed by activation validation and consumed by the catalog-owned prepare/publish boundary",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/active_set.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog_transition.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog/catalog_transition.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/mod.rs": 1
       }
     },
@@ -194,10 +222,14 @@
       "id": "structural_scroll_neighborhood_target",
       "pattern": "target_set_for_neighborhood",
       "legacy": false,
+      "authority_owner": "graph structural target projection",
+      "rationale": "full and delta portal/scroll index builders resolve structural targets from graph authority; no raw digest target is admitted",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/graph/allocation_neighborhood/replan_selection/transaction/replan_authority.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/portal_authority/portal_binding_index.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/portal_authority/portal_catalog_delta.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_catalog_delta.rs": 1
       }
     },
     {
@@ -210,6 +242,8 @@
       "id": "portal_planning_authority_seal",
       "pattern": "UiAdmittedPortalPlanningAuthority::seal",
       "legacy": false,
+      "authority_owner": "committed invalidation authority context",
+      "rationale": "the context constructor seals the one admitted portal planning authority used by downstream catalog bindings",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority_context.rs": 1
       }
@@ -218,6 +252,8 @@
       "id": "portal_activation_source_projection",
       "pattern": "\\.committed_portal_source\\(",
       "legacy": false,
+      "authority_owner": "committed catalog binding",
+      "rationale": "the committed binding alone projects portal activation source evidence from the sealed planning authority",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_catalog_binding.rs": 1
       }
@@ -226,6 +262,8 @@
       "id": "portal_activation_binding_validation",
       "pattern": "validate_portal_bindings",
       "legacy": false,
+      "authority_owner": "committed catalog activation validation",
+      "rationale": "binding validation is defined by committed catalog truth and invoked once by activation validation before publication",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_catalog_binding.rs": 1
@@ -241,6 +279,8 @@
       "id": "committed_geometry_mint",
       "pattern": "UiCommittedAllocationGeometryEvidence::from_candidate",
       "legacy": false,
+      "authority_owner": "committed allocation receipt",
+      "rationale": "candidate geometry becomes committed evidence only inside receipt construction",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_receipt.rs": 1
       }

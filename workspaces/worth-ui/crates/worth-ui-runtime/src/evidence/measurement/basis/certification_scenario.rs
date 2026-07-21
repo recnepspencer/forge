@@ -51,10 +51,35 @@ pub struct UiMeasurementBasisCertificationOutcome {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiMeasurementBasisCertificationScenarioError {
+    ActiveHostCapabilityReportMismatch,
     MissingQueryPrerequisites,
     MissingProjectionConsumption,
     ProjectionFactReceiptDenied(UiProjectionFactReceiptDenial),
     HostMeasurementEvidenceDenied(UiHostMeasurementEvidenceDenial),
+}
+
+/// Certifies against the exact operational host owned by an active session.
+/// The adapter stays sealed behind the capability, preventing an unrelated
+/// certification adapter from substituting a different host world.
+pub fn certify_measurement_basis_determinism_for_active_host(
+    scenario: &UiMeasurementBasisCertificationScenario,
+    capability: &crate::facade::WorthUiHostMeasurementCapability,
+) -> Result<UiMeasurementBasisCertificationOutcome, UiMeasurementBasisCertificationScenarioError> {
+    if &scenario.host_capability_report != capability.capability_report() {
+        return Err(
+            UiMeasurementBasisCertificationScenarioError::ActiveHostCapabilityReportMismatch,
+        );
+    }
+    let first_basis =
+        materialize_measurement_basis_for_certification(scenario, capability.adapter())?;
+    let second_basis =
+        materialize_measurement_basis_for_certification(scenario, capability.adapter())?;
+    let report = certify_measurement_basis_determinism(&first_basis, &second_basis);
+    Ok(UiMeasurementBasisCertificationOutcome {
+        first_basis,
+        second_basis,
+        report,
+    })
 }
 
 impl UiMeasurementBasisCertificationHostRequest {
@@ -156,7 +181,9 @@ pub fn certify_measurement_basis_determinism_for_scenarios<
     })
 }
 
-fn materialize_measurement_basis_for_certification<Adapter: WorthUiMeasurementHostAdapter>(
+fn materialize_measurement_basis_for_certification<
+    Adapter: WorthUiMeasurementHostAdapter + ?Sized,
+>(
     scenario: &UiMeasurementBasisCertificationScenario,
     host_adapter: &Adapter,
 ) -> Result<UiMeasurementBasis, UiMeasurementBasisCertificationScenarioError> {

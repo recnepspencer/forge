@@ -12,7 +12,7 @@ use super::{
     WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane, WorthUiSteadyFrameCounterBoundary,
     WorthUiVirtualizedDataCounters, WorthUiVirtualizedDataLane, WorthUiVisibleRange,
 };
-use crate::runtime::ordinary_lane::WorthUiOrdinaryLaneFrameExecutor;
+use crate::runtime::execution::ordinary_lane::WorthUiOrdinaryLaneFrameExecutor;
 
 pub(super) fn complete_lane_frame_cost_scenario(
     active_plan_digest: u64,

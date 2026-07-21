@@ -48,7 +48,7 @@ impl WorthUiActiveApplicationSession {
         self.app.generation_identity()
     }
 
-    pub fn capabilities(&self) -> &crate::facade::registry::CapabilitySnapshot {
+    pub fn capabilities(&self) -> &crate::facade::registry::snapshot::CapabilitySnapshot {
         self.app.capabilities()
     }
 

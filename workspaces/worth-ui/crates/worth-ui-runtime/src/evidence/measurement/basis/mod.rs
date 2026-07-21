@@ -24,6 +24,7 @@ pub use certification::{
     UiMeasurementBasisDeterminismPosture,
 };
 pub use certification_scenario::{
+    certify_measurement_basis_determinism_for_active_host,
     certify_measurement_basis_determinism_for_scenarios,
     UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationOutcome,
     UiMeasurementBasisCertificationScenario, UiMeasurementBasisCertificationScenarioError,

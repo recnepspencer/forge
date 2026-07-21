@@ -23,7 +23,7 @@ pub(super) fn prepare_catalog(
     let mut prepared = session
         .prepare_replacement(submission)
         .expect("replacement prepares");
-    let catalog = admit_candidate_catalog(&mut prepared);
+    let catalog = admit_candidate_catalog(session, &mut prepared);
     (prepared, catalog)
 }
 
@@ -127,7 +127,9 @@ pub(super) fn open_resource(
         .expect("installed authority matches")
     {
         WorthUiQueryLiveOpenOutcome::Opened(resource) => resource,
-        WorthUiQueryLiveOpenOutcome::Stopped(_) => panic!("live resource open stopped"),
+        WorthUiQueryLiveOpenOutcome::Stopped(stopped) => {
+            panic!("live resource open stopped: {stopped:?}")
+        }
     }
 }
 

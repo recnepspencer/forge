@@ -17,7 +17,7 @@ use crate::facade::{
     prepared_application_authority::{
         WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationGenerationIdentity,
     },
-    registry::CapabilitySnapshot,
+    registry::snapshot::CapabilitySnapshot,
     retained_obligation_registry::WorthUiRetainedObligationRegistry,
     runtime_handoff::{WorthUiRuntime, WorthUiRuntimeLaunchDenial},
 };

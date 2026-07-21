@@ -2,11 +2,11 @@ use super::dependency_impact_narrowing_test_support::{
     lower_rust_authored_artifact, query_bound_artifact, query_bound_surface_app,
     surface_and_query_binding_module,
 };
-use super::query_binding::WorthUiQueryBindingEvidenceIndex;
 use super::query_binding_comparison_test_support::{
     denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
     query_artifact, standard_query_app,
 };
+use crate::runtime::replacement::query_binding::WorthUiQueryBindingEvidenceIndex;
 use crate::runtime::{
     WorthUiNodeReplacementPlan, WorthUiQueryBindingComparisonDenial,
     WorthUiQueryBindingComparisonOutcome, WorthUiQueryBindingPostureDriftFamily,

@@ -15,34 +15,39 @@ impl UiAllocationReceiptLedger {
         super::UiAllocationReceiptCommitOutcome,
     > {
         let state = self.state.borrow();
-        let first_scope = affected.first().ok_or_else(binding_denial)?;
-        let removed_identity = state
-            .committed_by_scope
-            .get(first_scope)
-            .map(|receipt| {
-                receipt
-                    .committed_allocation()
-                    .allocation_neighborhood()
-                    .identity()
-                    .clone()
+        let removed_identities = affected
+            .iter()
+            .map(|scope| {
+                state.committed_by_scope.get(scope).map(|receipt| {
+                    receipt
+                        .committed_allocation()
+                        .allocation_neighborhood()
+                        .identity()
+                        .clone()
+                })
             })
-            .ok_or_else(binding_denial)?;
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(binding_denial)?
+            .into_boxed_slice();
         let generation = state.checked_transaction_generation().map_err(|denial| {
             super::UiAllocationReceiptCommitOutcome::denied(
                 super::UiAllocationReceiptCommitDenial::AuthorityCounterExhausted(denial),
             )
         })?;
         let transaction = super::UiAllocationReplanTransaction::for_catalog_removal_activation(
-            removed_identity,
+            removed_identities,
+            removal_overlap_disposition(affected),
             state.runtime_generation,
             generation,
             frame_epoch,
-        );
-        let counters = UiAllocationReplanTransactionCounters::preflight(0).map_err(|()| {
-            super::UiAllocationReceiptCommitOutcome::denied(
-                super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
-            )
-        })?;
+        )
+        .map_err(|_| binding_denial())?;
+        let counters =
+            UiAllocationReplanTransactionCounters::preflight(affected.len()).map_err(|()| {
+                super::UiAllocationReceiptCommitOutcome::denied(
+                    super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
+                )
+            })?;
         let bindings = super::UiCommittedAllocationCatalogBindings::seal(&[], &[])
             .map_err(super::UiAllocationReceiptCommitOutcome::denied)?;
         let outcome =
@@ -96,6 +101,29 @@ impl UiAllocationReceiptLedger {
             outcome,
             activation,
         ))
+    }
+}
+
+fn removal_overlap_disposition(
+    affected: &[crate::evidence::UiAllocationNeighborhoodScope],
+) -> crate::graph::UiReplanOverlapDisposition {
+    if affected.len() == 1 {
+        return crate::graph::UiReplanOverlapDisposition::Singleton;
+    }
+    let pairwise_disjoint = affected.iter().enumerate().all(|(ordinal, left)| {
+        affected[ordinal + 1..].iter().all(|right| {
+            !left.member_identity_digests().iter().any(|member| {
+                right
+                    .member_identity_digests()
+                    .binary_search(member)
+                    .is_ok()
+            })
+        })
+    });
+    if pairwise_disjoint {
+        crate::graph::UiReplanOverlapDisposition::PairwiseDisjoint
+    } else {
+        crate::graph::UiReplanOverlapDisposition::ContainmentMerged
     }
 }
 

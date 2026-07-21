@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, path::Path};
 
 use crate::facade::WorthUi;
-use crate::runtime::candidate::{
+use crate::runtime::replacement::candidate::{
     file_authored_replacement_candidate, rust_authored_replacement_candidate,
 };
 use crate::runtime::{

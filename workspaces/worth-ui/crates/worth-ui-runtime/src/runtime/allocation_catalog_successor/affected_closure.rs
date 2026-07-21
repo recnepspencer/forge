@@ -10,6 +10,11 @@ pub struct UiAllocationCatalogDeltaCounters {
     submitted_row_visits: usize,
     submitted_member_visits: usize,
     carried_row_visits: usize,
+    derived_index_row_visits: usize,
+    derived_index_membership_mutations: usize,
+    derived_index_owner_mutations: usize,
+    derived_index_key_probes: usize,
+    derived_index_node_copies: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -73,6 +78,37 @@ impl UiAllocationCatalogDeltaCounters {
     pub fn carried_row_visits(self) -> usize {
         self.carried_row_visits
     }
+
+    pub fn derived_index_row_visits(self) -> usize {
+        self.derived_index_row_visits
+    }
+
+    pub fn derived_index_membership_mutations(self) -> usize {
+        self.derived_index_membership_mutations
+    }
+
+    pub fn derived_index_owner_mutations(self) -> usize {
+        self.derived_index_owner_mutations
+    }
+
+    pub fn derived_index_key_probes(self) -> usize {
+        self.derived_index_key_probes
+    }
+
+    pub fn derived_index_node_copies(self) -> usize {
+        self.derived_index_node_copies
+    }
+
+    pub(crate) fn bind_derived_index_work(
+        &mut self,
+        work: crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
+    ) {
+        self.derived_index_row_visits = work.row_visits();
+        self.derived_index_membership_mutations = work.membership_mutations();
+        self.derived_index_owner_mutations = work.owner_mutations();
+        self.derived_index_key_probes = work.persistent_key_probes();
+        self.derived_index_node_copies = work.persistent_node_copies();
+    }
 }
 
 impl UiAllocationCatalogRowTransition {
@@ -104,6 +140,13 @@ impl UiAllocationCatalogSuccessorReceipt {
 
     pub fn counters(&self) -> UiAllocationCatalogDeltaCounters {
         self.counters
+    }
+
+    pub(crate) fn bind_derived_index_work(
+        &mut self,
+        work: crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
+    ) {
+        self.counters.bind_derived_index_work(work);
     }
 }
 

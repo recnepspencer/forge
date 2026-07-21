@@ -2,7 +2,9 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::rc::Rc;
 
-type Link<K, V> = Option<Rc<Node<K, V>>>;
+use super::mutation_work::UiPersistentIndexMutationWork;
+
+pub(super) type Link<K, V> = Option<Rc<Node<K, V>>>;
 
 /// Immutable AVL index used by replacement truth that must fork without
 /// copying unaffected rows. Updates allocate only the search path.
@@ -10,13 +12,13 @@ pub(crate) struct UiPersistentOrdMap<K, V> {
     root: Link<K, V>,
 }
 
-struct Node<K, V> {
-    key: K,
-    value: Rc<V>,
-    left: Link<K, V>,
-    right: Link<K, V>,
-    height: u16,
-    len: usize,
+pub(super) struct Node<K, V> {
+    pub(super) key: K,
+    pub(super) value: Rc<V>,
+    pub(super) left: Link<K, V>,
+    pub(super) right: Link<K, V>,
+    pub(super) height: u16,
+    pub(super) len: usize,
 }
 
 impl<K, V> Clone for UiPersistentOrdMap<K, V> {
@@ -43,25 +45,47 @@ impl<K: Ord + Clone, V> UiPersistentOrdMap<K, V> {
     }
 
     pub(crate) fn get(&self, key: &K) -> Option<&V> {
+        self.get_with_probes(key).0
+    }
+
+    pub(crate) fn get_with_probes(&self, key: &K) -> (Option<&V>, usize) {
         let mut cursor = self.root.as_deref();
+        let mut probes = 0;
         while let Some(node) = cursor {
+            probes += 1;
             match key.cmp(&node.key) {
                 Ordering::Less => cursor = node.left.as_deref(),
                 Ordering::Greater => cursor = node.right.as_deref(),
-                Ordering::Equal => return Some(node.value.as_ref()),
+                Ordering::Equal => return (Some(node.value.as_ref()), probes),
             }
         }
-        None
+        (None, probes)
     }
 
     pub(crate) fn insert(&mut self, key: K, value: V) {
-        self.root = Some(insert(self.root.take(), key, Rc::new(value)));
+        self.insert_with_work(key, value);
+    }
+
+    pub(crate) fn insert_with_work(&mut self, key: K, value: V) -> UiPersistentIndexMutationWork {
+        let mut work = UiPersistentIndexMutationWork::default();
+        self.root = Some(super::ordered_map_mutation::insert(
+            self.root.take(),
+            key,
+            Rc::new(value),
+            &mut work,
+        ));
+        work
     }
 
     pub(crate) fn remove(&mut self, key: &K) -> bool {
-        let (root, removed) = remove(self.root.take(), key);
+        self.remove_with_work(key).0
+    }
+
+    pub(crate) fn remove_with_work(&mut self, key: &K) -> (bool, UiPersistentIndexMutationWork) {
+        let mut work = UiPersistentIndexMutationWork::default();
+        let (root, removed) = super::ordered_map_mutation::remove(self.root.take(), key, &mut work);
         self.root = root;
-        removed
+        (removed, work)
     }
 
     pub(crate) fn iter(&self) -> UiPersistentOrdMapIter<'_, K, V> {
@@ -111,186 +135,11 @@ fn count_shared_nodes<K, V>(
         + count_shared_nodes(node.right.as_deref(), addresses)
 }
 
-fn insert<K: Ord + Clone, V>(root: Link<K, V>, key: K, value: Rc<V>) -> Rc<Node<K, V>> {
-    let Some(node) = root else {
-        return make_node(key, value, None, None);
-    };
-    match key.cmp(&node.key) {
-        Ordering::Less => balance(make_node(
-            node.key.clone(),
-            Rc::clone(&node.value),
-            Some(insert(node.left.clone(), key, value)),
-            node.right.clone(),
-        )),
-        Ordering::Greater => balance(make_node(
-            node.key.clone(),
-            Rc::clone(&node.value),
-            node.left.clone(),
-            Some(insert(node.right.clone(), key, value)),
-        )),
-        Ordering::Equal => make_node(key, value, node.left.clone(), node.right.clone()),
-    }
-}
-
-fn remove<K: Ord + Clone, V>(root: Link<K, V>, key: &K) -> (Link<K, V>, bool) {
-    let Some(node) = root else {
-        return (None, false);
-    };
-    match key.cmp(&node.key) {
-        Ordering::Less => {
-            let (left, removed) = remove(node.left.clone(), key);
-            let root = make_node(
-                node.key.clone(),
-                Rc::clone(&node.value),
-                left,
-                node.right.clone(),
-            );
-            (Some(balance(root)), removed)
-        }
-        Ordering::Greater => {
-            let (right, removed) = remove(node.right.clone(), key);
-            let root = make_node(
-                node.key.clone(),
-                Rc::clone(&node.value),
-                node.left.clone(),
-                right,
-            );
-            (Some(balance(root)), removed)
-        }
-        Ordering::Equal => match (&node.left, &node.right) {
-            (None, _) => (node.right.clone(), true),
-            (_, None) => (node.left.clone(), true),
-            (Some(_), Some(right)) => {
-                let (successor_key, successor_value, next_right) = take_min(Rc::clone(right));
-                (
-                    Some(balance(make_node(
-                        successor_key,
-                        successor_value,
-                        node.left.clone(),
-                        next_right,
-                    ))),
-                    true,
-                )
-            }
-        },
-    }
-}
-
-fn take_min<K: Ord + Clone, V>(node: Rc<Node<K, V>>) -> (K, Rc<V>, Link<K, V>) {
-    let Some(left) = &node.left else {
-        return (node.key.clone(), Rc::clone(&node.value), node.right.clone());
-    };
-    let (key, value, next_left) = take_min(Rc::clone(left));
-    let successor = balance(make_node(
-        node.key.clone(),
-        Rc::clone(&node.value),
-        next_left,
-        node.right.clone(),
-    ));
-    (key, value, Some(successor))
-}
-
-fn balance<K: Ord + Clone, V>(node: Rc<Node<K, V>>) -> Rc<Node<K, V>> {
-    let skew = height(&node.left) as i32 - height(&node.right) as i32;
-    if skew > 1 {
-        let left = Rc::clone(
-            node.left
-                .as_ref()
-                .expect("left-heavy node has a left child"),
-        );
-        return if height(&left.left) >= height(&left.right) {
-            rotate_right(node)
-        } else {
-            rotate_right(with_left(node, rotate_left(left)))
-        };
-    }
-    if skew < -1 {
-        let right = Rc::clone(
-            node.right
-                .as_ref()
-                .expect("right-heavy node has a right child"),
-        );
-        return if height(&right.right) >= height(&right.left) {
-            rotate_left(node)
-        } else {
-            rotate_left(with_right(node, rotate_right(right)))
-        };
-    }
-    node
-}
-
-fn rotate_left<K: Ord + Clone, V>(root: Rc<Node<K, V>>) -> Rc<Node<K, V>> {
-    let pivot = root
-        .right
-        .as_ref()
-        .expect("left rotation requires right child");
-    let left = make_node(
-        root.key.clone(),
-        Rc::clone(&root.value),
-        root.left.clone(),
-        pivot.left.clone(),
-    );
-    make_node(
-        pivot.key.clone(),
-        Rc::clone(&pivot.value),
-        Some(left),
-        pivot.right.clone(),
-    )
-}
-
-fn rotate_right<K: Ord + Clone, V>(root: Rc<Node<K, V>>) -> Rc<Node<K, V>> {
-    let pivot = root
-        .left
-        .as_ref()
-        .expect("right rotation requires left child");
-    let right = make_node(
-        root.key.clone(),
-        Rc::clone(&root.value),
-        pivot.right.clone(),
-        root.right.clone(),
-    );
-    make_node(
-        pivot.key.clone(),
-        Rc::clone(&pivot.value),
-        pivot.left.clone(),
-        Some(right),
-    )
-}
-
-fn with_left<K: Ord + Clone, V>(root: Rc<Node<K, V>>, left: Rc<Node<K, V>>) -> Rc<Node<K, V>> {
-    make_node(
-        root.key.clone(),
-        Rc::clone(&root.value),
-        Some(left),
-        root.right.clone(),
-    )
-}
-
-fn with_right<K: Ord + Clone, V>(root: Rc<Node<K, V>>, right: Rc<Node<K, V>>) -> Rc<Node<K, V>> {
-    make_node(
-        root.key.clone(),
-        Rc::clone(&root.value),
-        root.left.clone(),
-        Some(right),
-    )
-}
-
-fn make_node<K, V>(key: K, value: Rc<V>, left: Link<K, V>, right: Link<K, V>) -> Rc<Node<K, V>> {
-    Rc::new(Node {
-        key,
-        value,
-        height: 1 + height(&left).max(height(&right)),
-        len: 1 + node_len(&left) + node_len(&right),
-        left,
-        right,
-    })
-}
-
-fn height<K, V>(node: &Link<K, V>) -> u16 {
+pub(super) fn height<K, V>(node: &Link<K, V>) -> u16 {
     node.as_ref().map_or(0, |node| node.height)
 }
 
-fn node_len<K, V>(node: &Link<K, V>) -> usize {
+pub(super) fn node_len<K, V>(node: &Link<K, V>) -> usize {
     node.as_ref().map_or(0, |node| node.len)
 }
 
@@ -394,5 +243,24 @@ mod tests {
             map.shared_node_count_with(&predecessor) > ROWS - 128,
             "a bounded local delta must retain almost all unrelated predecessor nodes"
         );
+    }
+
+    #[test]
+    fn mutation_work_counts_exact_comparisons_and_allocated_nodes() {
+        let mut map = UiPersistentOrdMap::default();
+        let first = map.insert_with_work(2, "two");
+        assert_eq!(first.key_probes(), 0);
+        assert_eq!(first.node_copies(), 1);
+
+        map.insert(1, "one");
+        map.insert(3, "three");
+        let (value, probes) = map.get_with_probes(&3);
+        assert_eq!(value, Some(&"three"));
+        assert_eq!(probes, 2);
+
+        let (removed, work) = map.remove_with_work(&1);
+        assert!(removed);
+        assert_eq!(work.key_probes(), 2);
+        assert_eq!(work.node_copies(), 1);
     }
 }

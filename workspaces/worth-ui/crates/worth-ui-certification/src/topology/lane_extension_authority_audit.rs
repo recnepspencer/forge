@@ -3,47 +3,27 @@ use syn::{ImplItem, Item, Visibility};
 
 use super::WorkspaceSourceInventory;
 
-const SEALED_AUTHORITIES: [(&str, &str, &str); 6] = [
+const SEALED_AUTHORITIES: [(&str, &str, &str); 2] = [
     (
-        "crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/draw_hook.rs",
-        "WorthUiCanvasDrawHook",
-        "from_host_binding",
-    ),
-    (
-        "crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/hit_test_hook.rs",
-        "WorthUiSpatialHitTestHook",
-        "from_host_binding",
-    ),
-    (
-        "crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/tool_state_hook.rs",
-        "WorthUiSpatialToolStateHook",
-        "from_host_binding",
-    ),
-    (
-        "crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/canvas_node.rs",
+        "crates/worth-ui-runtime/src/runtime/execution/canvas_spatial_lane/plan_contract/canvas_node.rs",
         "WorthUiCanvasRenderResourceRef",
         "new",
     ),
     (
-        "crates/worth-ui-runtime/src/runtime/realtime_overlay_lane/overlay_hook.rs",
-        "WorthUiRealtimeOverlayHook",
-        "from_host_binding",
-    ),
-    (
-        "crates/worth-ui-runtime/src/runtime/realtime_overlay_lane/renderer_surface_admission.rs",
+        "crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane/renderer_surface/renderer_surface_admission.rs",
         "WorthUiRendererSurfaceAdmission",
         "new",
     ),
 ];
 
 const FRAME_EXECUTORS: [&str; 2] = [
-    "crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/frame_executor.rs",
-    "crates/worth-ui-runtime/src/runtime/realtime_overlay_lane/frame_executor.rs",
+    "crates/worth-ui-runtime/src/runtime/execution/canvas_spatial_lane/frame_execution/frame_executor.rs",
+    "crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane/frame_execution/frame_executor.rs",
 ];
 
 const REGIONAL_PLAN_BUILDERS: [(&str, &[&str]); 3] = [
     (
-        "crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/plan_builder.rs",
+        "crates/worth-ui-runtime/src/runtime/execution/canvas_spatial_lane/plan_contract/plan_builder.rs",
         &[
             "spatial_slots.for_each",
             "Vec::with_capacity",
@@ -51,11 +31,11 @@ const REGIONAL_PLAN_BUILDERS: [(&str, &[&str]); 3] = [
         ],
     ),
     (
-        "crates/worth-ui-runtime/src/runtime/realtime_overlay_lane/plan_builder.rs",
+        "crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane/plan_contract/plan_builder.rs",
         &["slots.for_each", "for _ in 0..row_count", ".collect::<Vec"],
     ),
     (
-        "crates/worth-ui-runtime/src/runtime/virtualized_data_lane/plan_builder.rs",
+        "crates/worth-ui-runtime/src/runtime/execution/virtualized_data_lane/plan_builder.rs",
         &["slots.for_each", "Vec::with_capacity", ".collect::<Vec"],
     ),
 ];

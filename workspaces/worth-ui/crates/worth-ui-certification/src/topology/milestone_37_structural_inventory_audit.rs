@@ -284,13 +284,14 @@ fn authority_mixing_findings(
         ));
     }
 
-    let planning_mod =
-        inventory.absolute_path("crates/worth-ui-runtime/src/runtime/allocation_planning/mod.rs");
+    let planning_mod = inventory
+        .absolute_path("crates/worth-ui-runtime/src/runtime/planning/allocation_planning/mod.rs");
     if read_file(inventory, &planning_mod).contains("mod certification_fixture") {
         findings.push(finding(
             "A-02",
             CleanupFailureMode::AuthorityMixing,
-            inventory.absolute_path("crates/worth-ui-runtime/src/runtime/allocation_planning"),
+            inventory
+                .absolute_path("crates/worth-ui-runtime/src/runtime/planning/allocation_planning"),
             6,
             "cert_fixture_fence",
             "production allocation_planning tree still hosts certification_fixture modules",

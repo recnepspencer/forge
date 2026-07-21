@@ -3,7 +3,6 @@ error[E0432]: unresolved import `worth_ui_runtime::evidence::evidence_slice`
 
 error[E0432]: unresolved import `worth_ui_runtime::facade::WorthUiRuntimeHost`
  --> tests/ui/facade_export/runtime_facade_root_does_not_export_runtime_host.rs
- help: a similar name exists in the module
 
 error[E0432]: unresolved import `worth_ui_inspection::runtime_inspection_scope_inventory`
  --> tests/ui/lifecycle/external_runtime_root_lifecycle_factories_are_not_public.rs

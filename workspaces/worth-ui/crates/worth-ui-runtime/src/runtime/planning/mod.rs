@@ -1,20 +1,13 @@
 //! Planning lane handoff order: measurement basis → constraint admission → allocation planning
 //! → plan topology → equivalence / inspection.
 
-#[path = "../allocation_planning/mod.rs"]
 pub mod allocation_planning;
 mod allocation_replan_denial;
-#[path = "../execution_plan_input/mod.rs"]
 pub mod execution_plan_input;
-#[path = "../execution_plan_lowering_authority.rs"]
 mod execution_plan_lowering_authority;
-#[path = "../execution_plan_lowering_identity.rs"]
 mod execution_plan_lowering_identity;
-#[path = "../plan_equivalence/mod.rs"]
 pub mod plan_equivalence;
-#[path = "../plan_inspection/mod.rs"]
 pub mod plan_inspection;
-#[path = "../plan_topology/mod.rs"]
 pub mod plan_topology;
 
 mod input_handoff;

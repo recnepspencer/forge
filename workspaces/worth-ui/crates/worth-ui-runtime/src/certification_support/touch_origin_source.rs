@@ -2,7 +2,7 @@ use crate::capability::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
 };
 use crate::facade::entry::{WorthUi, WorthUiApp};
-use crate::facade::registry::{
+use crate::facade::registry::descriptor::{
     ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass,
 };
@@ -70,7 +70,7 @@ pub(super) fn replacement_candidate(
     app: &WorthUiApp,
     variant: WorthUiTouchOriginFixtureVariant,
 ) -> crate::runtime::WorthUiReplacementCandidate {
-    crate::runtime::candidate::rust_authored_replacement_candidate(
+    crate::runtime::replacement::candidate::rust_authored_replacement_candidate(
         runtime_origin_artifact(app, variant),
         app.capabilities().digest(),
         crate::runtime::WorthUiReplacementCause::rust_authored_input_change(

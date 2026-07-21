@@ -115,8 +115,8 @@ pub(crate) use replan_authority::{
 pub(crate) use replan_selection::select_replan_neighborhoods;
 pub use replan_selection::{
     UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet, UiReplanLocalityDenial,
-    UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters, UiReplanOverlapDisposition,
-    UiReplanRootPosture, UiReplanWidenReason,
+    UiReplanNeighborhoodSelectionCounters, UiReplanOverlapDisposition, UiReplanRootPosture,
+    UiReplanWidenReason,
 };
 pub(crate) use replan_selection::{
     UiGraphReplanConsequences, UiGraphReplanTransactionBasis, UiPortalReplanConsequence,

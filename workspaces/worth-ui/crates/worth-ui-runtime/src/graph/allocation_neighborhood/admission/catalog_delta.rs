@@ -37,6 +37,12 @@ impl UiAdmittedAllocationCatalogDelta {
     pub fn removed_row_count(&self) -> usize {
         self.removed_roots.len()
     }
+
+    pub fn changed_roots(&self) -> impl Iterator<Item = crate::graph::UiGraphNodeIdentity> + '_ {
+        self.changed
+            .iter()
+            .map(|(basis, _)| basis.graph_node_identity())
+    }
 }
 
 impl crate::graph::UiGraphSnapshot {

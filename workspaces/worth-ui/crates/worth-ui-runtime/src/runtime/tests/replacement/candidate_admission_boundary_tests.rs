@@ -2,11 +2,11 @@ use std::{collections::BTreeMap, path::Path};
 
 use crate::capability::WorthUiQueryViewRegistration;
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::runtime::admission::{
+use crate::runtime::replacement::admission::{
     WorthUiCandidateAdmission, WorthUiCandidateAdmissionDenial, WorthUiQuerySupportReceipt,
     WorthUiQuerySupportStatus, WorthUiRuntimeReplacementPosture,
 };
-use crate::runtime::candidate::rust_authored_replacement_candidate;
+use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiCandidateArtifactBundle, WorthUiCandidateDependencyMetadata,
     WorthUiCandidateLoweringBasis, WorthUiReplacementCandidate, WorthUiReplacementCause,

@@ -200,7 +200,7 @@ impl FilesystemApplicationLifecycleScenario {
             .prepare_replacement(submission)
             .expect("filesystem replacement should prepare");
         let mut prepared = prepared;
-        let catalog = admit_candidate_catalog(&mut prepared);
+        let catalog = admit_candidate_catalog(session, &mut prepared);
         let lowered = session
             .lower_prepared_replacement(*prepared)
             .expect("filesystem replacement should lower");

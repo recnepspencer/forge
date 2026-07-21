@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 
-use crate::runtime::equivalence::WorthUiRuntimeArtifactComparator;
-use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputPreparer;
+use crate::runtime::planning::execution_plan_input::WorthUiExecutionPlanInputPreparer;
+use crate::runtime::replacement::equivalence::WorthUiRuntimeArtifactComparator;
 use crate::runtime::{
     UiAllocationCandidate, WorthUiAdmittedReplacementCandidate, WorthUiComponentLoweringHook,
     WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringDenial,

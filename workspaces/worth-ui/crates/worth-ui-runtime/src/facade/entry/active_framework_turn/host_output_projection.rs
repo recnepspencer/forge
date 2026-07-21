@@ -76,16 +76,23 @@ pub(super) fn realtime_output(
 fn canvas_host_target(
     target: crate::runtime::WorthUiCanvasSpatialFrameTarget,
 ) -> worth_ui_host_contract::WorthUiCanvasSpatialHostOutputTarget {
-    use crate::runtime::canvas_spatial_lane::WorthUiCanvasSpatialFrameTargetKind;
+    use crate::runtime::execution::canvas_spatial_lane::WorthUiCanvasSpatialFrameTargetKind;
     match target.kind() {
-        WorthUiCanvasSpatialFrameTargetKind::Viewport(_) => {
-            worth_ui_host_contract::WorthUiCanvasSpatialHostOutputTarget::Viewport
+        WorthUiCanvasSpatialFrameTargetKind::Viewport(request) => {
+            worth_ui_host_contract::WorthUiCanvasSpatialHostOutputTarget::Viewport {
+                pan_delta_x: request.pan_delta_x(),
+                pan_delta_y: request.pan_delta_y(),
+                zoom_milli_factor: request.zoom_milli_factor(),
+            }
         }
         WorthUiCanvasSpatialFrameTargetKind::Draw(_) => {
             worth_ui_host_contract::WorthUiCanvasSpatialHostOutputTarget::Draw
         }
-        WorthUiCanvasSpatialFrameTargetKind::HitTest(_) => {
-            worth_ui_host_contract::WorthUiCanvasSpatialHostOutputTarget::HitTest
+        WorthUiCanvasSpatialFrameTargetKind::HitTest(request) => {
+            worth_ui_host_contract::WorthUiCanvasSpatialHostOutputTarget::HitTest {
+                viewport_x: request.viewport_point().x(),
+                viewport_y: request.viewport_point().y(),
+            }
         }
         WorthUiCanvasSpatialFrameTargetKind::Overlay(_) => {
             worth_ui_host_contract::WorthUiCanvasSpatialHostOutputTarget::Overlay

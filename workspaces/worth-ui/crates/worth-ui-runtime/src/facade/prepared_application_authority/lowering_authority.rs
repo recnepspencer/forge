@@ -2,7 +2,7 @@ use std::fmt;
 use std::rc::Rc;
 
 use super::{WorthUiHostSessionPlan, WorthUiPreparedApplicationGenerationIdentity};
-use crate::facade::registry::CapabilitySnapshot;
+use crate::facade::registry::snapshot::CapabilitySnapshot;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiExecutionLaneSupport,
     WorthUiReplacementCandidateBasis,

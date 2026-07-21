@@ -106,10 +106,10 @@ fn successful_cutover_publishes_runtime_app_and_inspection_as_one_generation() {
         context.candidate_artifact_digest(),
         receipt.plan_swap().next_active_artifact_digest()
     );
-    reload_cost
-        .clone()
-        .certify()
-        .expect("production reload counters certify before projection");
+    let foundational = reload_cost
+        .foundational_evidence()
+        .expect("production reload counters certify before Foundational projection");
+    assert_eq!(foundational.receipt_count(), reload_cost.packets().len());
     assert_eq!(session.generation_identity(), &successor_generation);
     assert_eq!(
         session.inspect_runtime().generation_identity(),

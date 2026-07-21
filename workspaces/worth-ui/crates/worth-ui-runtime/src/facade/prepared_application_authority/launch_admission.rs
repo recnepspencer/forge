@@ -12,7 +12,7 @@ use super::{WorthUiHostSessionPlan, WorthUiPreparedApplicationLoweringAuthority}
 pub(crate) struct WorthUiPreparedLaunchAdmission {
     pub(crate) lowering_authority: WorthUiPreparedApplicationLoweringAuthority,
     pub(crate) initial_allocation_commit:
-        crate::runtime::allocation_planning::WorthUiInitialAllocationCommit,
+        crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit,
     pub(crate) artifact: Rc<WorthUiArtifact>,
     pub(crate) artifact_digest: WorthUiArtifactDigest,
     pub(crate) snapshot_digest: CapabilitySnapshotDigest,

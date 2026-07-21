@@ -24,4 +24,6 @@ pub use lifecycle_state::{
     WorthUiRuntimeShutdownReceipt,
 };
 pub use preservation::WorthUiLastValidObservation;
-pub use runtime_instance::{WorthUiRuntime, WorthUiRuntimeFrameworkLoop};
+pub use runtime_instance::WorthUiRuntime;
+#[cfg(test)]
+pub use runtime_instance::WorthUiRuntimeFrameworkLoop;

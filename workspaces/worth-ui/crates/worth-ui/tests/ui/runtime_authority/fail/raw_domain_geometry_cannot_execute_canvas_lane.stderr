@@ -1,14 +1,14 @@
-error[E0432]: unresolved import `worth_ui::facade::WorthUiSpatialHitTestPlan`
+error[E0432]: unresolved import `worth_ui::facade::WorthUiSpatialHitTestRequest`
  --> tests/ui/runtime_authority/fail/raw_domain_geometry_cannot_execute_canvas_lane.rs:1:5
   |
-1 | use worth_ui::facade::WorthUiSpatialHitTestPlan;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiSpatialHitTestPlan` in `facade`
+1 | use worth_ui::facade::WorthUiSpatialHitTestRequest;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiSpatialHitTestRequest` in `facade`
   |
 help: consider importing one of these structs instead
   |
-1 | use worth_ui::facade::runtime::WorthUiSpatialHitTestPlan;
+1 | use worth_ui::facade::runtime::WorthUiSpatialHitTestRequest;
   |                       +++++++++
-1 | use worth_ui_runtime::facade::WorthUiSpatialHitTestPlan;
+1 | use worth_ui_runtime::facade::WorthUiSpatialHitTestRequest;
   |             ++++++++
 
 error[E0432]: unresolved import `worth_ui::facade::WorthUiCanvasSpatialFrameTarget`
