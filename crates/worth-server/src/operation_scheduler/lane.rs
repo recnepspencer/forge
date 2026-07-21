@@ -12,6 +12,9 @@ pub enum WorthServerSchedulerLane {
         product_session_identity: String,
         draft_scope: String,
     },
+    DurableProductMutation {
+        scope_digest: String,
+    },
     ProductSessionCoordination {
         product_session_identity: String,
         coordination_lane: String,
@@ -49,6 +52,19 @@ impl WorthServerSchedulerLane {
                 Self::ProductDraftMutation {
                     product_session_identity: product_session_identity.to_string(),
                     draft_scope: draft_scope.to_string(),
+                }
+            }
+            WorthServerOperationAuthorityKind::DurableProductMutation => {
+                authority_metadata
+                    .durable_product_mutation_scope()
+                    .expect("durable product mutation plans must carry scope and preconditions");
+                Self::DurableProductMutation {
+                    scope_digest: plan
+                        .query_handoff()
+                        .operation_admission()
+                        .authority_footprint()
+                        .scope()
+                        .canonical_digest(),
                 }
             }
             WorthServerOperationAuthorityKind::ProductSessionCoordination => {
@@ -105,6 +121,9 @@ impl WorthServerSchedulerLane {
                 product_session_identity,
                 draft_scope,
             } => format!("product-draft:{product_session_identity}:{draft_scope}"),
+            Self::DurableProductMutation { scope_digest } => {
+                format!("durable-product:{scope_digest}")
+            }
             Self::ProductSessionCoordination {
                 product_session_identity,
                 coordination_lane,

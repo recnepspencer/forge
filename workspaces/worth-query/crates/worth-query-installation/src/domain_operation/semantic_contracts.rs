@@ -234,20 +234,35 @@ pub enum WorthQueryOperationInvariantContract {
     Declared { invariant_slots: Vec<String> },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryOperationReplayContract {
-    NotSupported,
-    ReExecutable,
-    CertReplayable,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryOperationReversalContract {
     Irreversible,
     ProvisionalDiscard,
-    ExactInverse { lowering_family: String },
-    Compensation { operation: String },
-    RebuildRequired { recovery_family: String },
+    ExactInverse {
+        lowering_family: String,
+    },
+    Compensation {
+        operation: super::WorthQueryDomainOperationIdentity,
+    },
+    ExactInverseWithPostcondition {
+        operation: super::WorthQueryDomainOperationIdentity,
+        lowering_family: String,
+        postcondition: WorthQueryAftermathPostcondition,
+    },
+    CompensationWithPostcondition {
+        operation: super::WorthQueryDomainOperationIdentity,
+        postcondition: WorthQueryAftermathPostcondition,
+    },
+    RebuildRequired {
+        recovery_family: String,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryAftermathPostcondition {
+    ExactPriorTruth,
+    InvariantRestored { invariant: String },
+    BusinessPostcondition { identity: String },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -362,3 +377,4 @@ pub struct WorthQueryOperationLoweringContract {
     pub family: String,
     pub deterministic: bool,
 }
+use super::replay_contract::WorthQueryOperationReplayContract;

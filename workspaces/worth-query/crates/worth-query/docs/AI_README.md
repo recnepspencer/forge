@@ -120,6 +120,9 @@ If you have no idea where to start, read these first:
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
+- [Installed Operation Re-Execution And Replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
+- [Installed Operation Aftermath](./domain-capabilities/installed-operation-aftermath.md)
+- [Installed Operation Lineage And Promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
 
 ## Declarative Capability Surface
 
@@ -234,10 +237,10 @@ Read next:
 Shared read authority, mutation intake, derived publication, and replay are
 separate named runtime lanes.
 
-This section describes Query's general shared-read and replay capabilities. It
-does not grant replay or reconstruction methods to the installed-operation
-phase chain described later; those phase types expose only the authorities
-explicitly implemented for that progression.
+This section describes Query's general shared-read and journal replay
+capabilities. Installed-operation semantic replay is a separate cert-only
+lane: it re-executes a retained installed workflow, compares the exact semantic
+trace, and exposes replay authority only through `worth-query-replay`.
 
 The important rule is that shared reads are real runtime-owned read authority,
 not copied snapshot convenience. A shared read context is basis-bound, sealed,
@@ -957,6 +960,8 @@ closure can declare:
 - portable conditional nodes;
 - graph reads, graph participation, touches, effects, and invariants;
 - publication and projection-consumption meaning;
+- replay comparison, reversal, postcondition, and recovery meaning;
+- identity evolution, lineage, and sparse promotion meaning;
 - terminal result states and failure classes;
 - cost and support requirements;
 - lowering identity and determinism posture.
@@ -988,7 +993,12 @@ Depending on declared meaning, construction may also require graph
 participation providers, one Runtime Bridge, one Signal graph bound through
 that bridge, conditional correspondences and provider sets, workflow-stage
 executors, parallel-admission providers, and explicit consumer-support
-posture. Runtime construction rejects missing, extra, duplicate, foreign, or
+posture. Replay comparators and aftermath evaluators are domain-owned hooks
+registered beside their installed operation; they do not let Query infer
+business truth from executor output. Persistent naming instead consumes the
+typed evidence of a naming mutation already executed through Query's naming
+surface.
+Runtime construction rejects missing, extra, duplicate, foreign, or
 same-label/different-marker registrations. Marker types and retained provider
 identities are authority inputs; matching strings are not substitutes.
 
@@ -1075,6 +1085,9 @@ Read next:
 
 - [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
+- [Installed Operation Re-Execution And Replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
+- [Installed Operation Aftermath](./domain-capabilities/installed-operation-aftermath.md)
+- [Installed Operation Lineage And Promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
 - [Aspects And Authority Lanes](./modeling/aspects-and-authority-lanes.md)
 - [Projection Consumption](./capabilities/projection-consumption.md)
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
@@ -1425,6 +1438,29 @@ installed correspondence as direct operations. Ineligible, suppressed, and
 deferred outcomes do not contact the stage executor. Reverted-clean execution
 keeps its work cost but does not claim a changed semantic output.
 
+Fresh re-execution remains an ordinary Query operation. Certification replay
+is different: only `worth-query-replay` can admit the original trace, replay
+basis, and exact historical correspondence, invoke the domain comparator, and
+issue an equivalence or drift result. Exact effects, publication, conditional
+observations, retained Signal evidence, lineage bindings, and comparator-owned
+semantics all participate; broad effect families or matching output labels do
+not establish equivalence.
+
+Aftermath starts from a completed workflow trace, executes the
+declared inverse or compensation through the same installed authority chain,
+and then asks the domain-owned evaluator to prove the exact target scope and
+postcondition. A successful candidate execution is not itself restoration
+proof. Failed verification preserves partial-effect evidence and the recovery
+posture instead of minting a clean receipt.
+
+Lineage starts from exact effect evidence and is bound to the receipts that
+actually produced it. Persistent naming requires an executed typed naming
+mutation that already embodies domain policy. Sparse promotion additionally
+requires exact publication evidence, Schema Graph's typed promotion grammar,
+and Foundational admission of the promoted identity. Raw identities, stage
+positions, free-form names, and matching strings are never lineage or promotion
+authority.
+
 Read next:
 
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
@@ -1432,6 +1468,9 @@ Read next:
 - [Subscription Selection And Diagnostics](./capabilities/subscription-selection-and-diagnostics.md)
 - [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
+- [Installed Operation Re-Execution And Replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
+- [Installed Operation Aftermath](./domain-capabilities/installed-operation-aftermath.md)
+- [Installed Operation Lineage And Promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
 
 ## Relational Truth And Invariants Through Query
 
@@ -1891,15 +1930,17 @@ The installed-operation surface currently includes portable operation
 semantics, graph participation, one operating-world root, bound execution,
 publication and consumption, installed workflow DAGs, portable conditional
 nodes, aspect-precise authoritative change publication, installed semantic
-correspondence, Signal-owned decisions, and Query-owned provenance on re-entry.
+correspondence, Signal-owned decisions, Query-owned provenance on re-entry,
+ordinary fresh re-execution, cert-only semantic replay, typed inverse and
+compensation aftermath, exact-effect lineage, persistent naming, and sparse
+identity promotion.
 
-Vocabulary for replay, reversal, lineage, sharing and leases,
-dependency-impact compilation, capability-bound invalidation, collection
-windows, or query-shaped patch delivery can record a typed required or absent
-posture in an operation definition. That vocabulary does not grant the later
-runtime authority. Do not manufacture those journeys from current receipts,
-phase values, reports, or lower-runtime APIs before their dedicated public
-authorities exist.
+Vocabulary for sharing and leases, dependency-impact compilation,
+capability-bound invalidation, collection windows, or query-shaped patch
+delivery can record a typed required or absent posture in an operation
+definition. That vocabulary does not grant the later runtime authority. Do not
+manufacture those journeys from current receipts, phase values, reports, or
+lower-runtime APIs before their dedicated public authorities exist.
 
 This boundary is specific to installed-operation phase values. Query's general
 history, replay, live, subscription, and other capability families remain as
@@ -1922,6 +1963,16 @@ can be inferred onto the installed progression.
 - Relational authoritative changes reach Signal execution only through an
   installed Runtime Bridge correspondence; Query exposes the semantic
   dependency and opaque Query-owned provenance rather than raw graph pieces.
+- Fresh re-execution stays in Query; certification replay authority is
+  exported only through `worth-query-replay` after exact semantic comparison
+  and historical-basis admission.
+- Aftermath authority comes from installed reversal or compensation meaning,
+  normal candidate execution, and a domain-owned exact-scope postcondition
+  proof. Partial effects remain visible when verification fails.
+- Lineage authority comes from exact effect evidence bound to producing
+  receipts. Persistent naming additionally requires the typed naming-mutation
+  lane, while sparse promotion requires Schema Graph grammar and Foundational
+  promoted-identity admission.
 - Ordinary product work starts in the owning capability namespace and retains
   its typed declaration, outcome, stop, receipt, or managed handle.
 - Downstream facts cross through `consume_projection(...)` and
@@ -1965,6 +2016,13 @@ Before building on a Query category, answer these:
 15. Am I relying on an authoritative installed package or retained provider,
     or on a rebuildable index, report, digest, or matching semantic key?
 16. Does an early denial prove zero later-phase work through exact counters?
+17. If this is installed-operation replay, am I using the cert-only facade and
+    comparing exact effects, publication, conditional evidence, and lineage?
+18. If this is aftermath, what domain proof establishes the exact target and
+    postcondition, and where are partial effects retained on failure?
+19. If this is lineage or promotion, what exact effect and publication evidence
+    binds the identity, and which Schema Graph and Foundational authorities
+    admit promotion?
 
 If you cannot answer those, read the owning docs before writing code.
 

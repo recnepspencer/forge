@@ -3,12 +3,15 @@ mod authorization;
 mod concurrency;
 mod declaration;
 mod denial;
+mod durable_product_mutation_admission;
 mod facade;
 mod footprint;
 mod footprint_receipt;
 mod metadata;
 mod posture;
 mod scope;
+
+pub(crate) use admission_logic::authorize_operation;
 
 pub use authorization::WorthServerOperationAuthorizationProof;
 pub use concurrency::{

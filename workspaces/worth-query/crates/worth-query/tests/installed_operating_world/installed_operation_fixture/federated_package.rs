@@ -49,7 +49,10 @@ fn federated_package_with_drift<G1: 'static, G2: 'static>(
     };
     semantics.reversal = if compensated {
         domain::WorthQueryOperationReversalContract::Compensation {
-            operation: "compensate-federated-read".into(),
+            operation: domain::WorthQueryDomainOperationIdentity::new(
+                "compensate-federated-read",
+                1,
+            ),
         }
     } else {
         domain::WorthQueryOperationReversalContract::Irreversible

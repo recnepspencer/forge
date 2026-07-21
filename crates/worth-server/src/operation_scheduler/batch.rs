@@ -45,7 +45,7 @@ impl WorthServerScheduledOperationBatch {
         self.execute_with_cancellation(std::iter::empty())
     }
 
-    pub fn execute_serialized_replay(self) -> WorthServerExecutedOperationBatch {
+    pub fn execute_serialized_control(self) -> WorthServerExecutedOperationBatch {
         execute_shared_read_slots(
             self.responses,
             self.slots,

@@ -49,9 +49,9 @@ impl WorthServerCompatibilityMutation {
         }
     }
 
-    pub(crate) fn to_replayed(
+    pub(crate) fn as_previously_completed(
         &self,
-        replay_receipt: super::idempotency::WorthServerIdempotentReplayReceipt,
+        retry_receipt: super::idempotency::WorthServerIdempotentRetryReceipt,
     ) -> Self {
         let envelope = WorthServerCompatibilityMutationEnvelope::new(
             self.envelope.support_posture().clone(),
@@ -59,7 +59,7 @@ impl WorthServerCompatibilityMutation {
             self.envelope.handoff_digest().to_string(),
             self.envelope.direct_context().clone(),
             self.envelope.response_envelope().clone(),
-            replay_receipt,
+            retry_receipt,
         );
         Self::new(
             self.operation_request.clone(),
@@ -103,12 +103,12 @@ impl WorthServerCompatibilityMutation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerCompatibilityMutationResult {
     Single {
-        receipt: WorthQueryWriteReceipt,
-        inspection: WorthQueryWriteReceiptInspection,
+        receipt: Box<WorthQueryWriteReceipt>,
+        inspection: Box<WorthQueryWriteReceiptInspection>,
     },
     Batch {
-        receipt: WorthQueryBatchWriteReceipt,
-        inspection: WorthQueryBatchWriteReceiptInspection,
+        receipt: Box<WorthQueryBatchWriteReceipt>,
+        inspection: Box<WorthQueryBatchWriteReceiptInspection>,
     },
 }
 

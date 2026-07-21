@@ -16,4 +16,5 @@ pub use input::WorthServerOperationPlannerInput;
 pub use plan::WorthServerLoweredOperationPlan;
 pub use proof::WorthServerOperationPlanProof;
 pub use receipt::WorthServerOperationPlanReceipt;
+pub(crate) use receipt::WorthServerOperationPlanReceiptParts;
 pub use strategy::WorthServerOperationExecutionStrategy;

@@ -6,6 +6,7 @@ mod performance;
 mod response;
 mod selection;
 
+pub(crate) use cancellation::WorthServerStreamCancellationReceiptParts;
 pub use cancellation::{WorthServerStreamCancellationKind, WorthServerStreamCancellationReceipt};
 pub use chunk::WorthServerStreamingChunk;
 pub use export::{WorthServerBackgroundExportRequest, WorthServerCompatibilityExport};

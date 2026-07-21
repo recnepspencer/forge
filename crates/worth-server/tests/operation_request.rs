@@ -57,7 +57,7 @@ fn equivalent_surface_inputs_lower_to_identical_operation_identity() {
                 .with_payload_envelope(payload)
                 .build(),
         )
-        .expect("WORTH-native operation request should admit");
+        .expect("Worth-native operation request should admit");
 
     assert_eq!(
         compat.identity().canonical_digest(),

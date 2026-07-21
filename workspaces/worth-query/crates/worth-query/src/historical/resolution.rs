@@ -4,9 +4,11 @@ use super::counters::HistoricalCounterSnapshot;
 use super::path_classes::{
     AdmittedHistoricalPathClass, RequestedHistoricalPathClass, ResolvedHistoricalPathClass,
 };
+use crate::basis::ResolvedBasisProof;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalPathResolved {
+    basis: ResolvedBasisProof,
     requested_path_class: RequestedHistoricalPathClass,
     admitted_path_class: AdmittedHistoricalPathClass,
     resolved_path_class: ResolvedHistoricalPathClass,
@@ -16,6 +18,10 @@ pub struct HistoricalPathResolved {
 }
 
 impl HistoricalPathResolved {
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
+    }
+
     pub fn requested_path_class(&self) -> &RequestedHistoricalPathClass {
         &self.requested_path_class
     }
@@ -41,6 +47,7 @@ impl HistoricalPathResolved {
     }
 
     pub(crate) fn new(
+        basis: ResolvedBasisProof,
         requested_path_class: RequestedHistoricalPathClass,
         admitted_path_class: AdmittedHistoricalPathClass,
         resolved_path_class: ResolvedHistoricalPathClass,
@@ -49,6 +56,7 @@ impl HistoricalPathResolved {
         counters: HistoricalCounterSnapshot,
     ) -> Self {
         Self {
+            basis,
             requested_path_class,
             admitted_path_class,
             resolved_path_class,

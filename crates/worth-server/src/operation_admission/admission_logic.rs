@@ -120,6 +120,23 @@ pub(super) fn admit_metadata_for_family(
             ))
         }
         (
+            WorthServerOperationFamily::ProductApplicationMutation,
+            WorthServerOperationAuthorityMetadata::DurableProductMutation {
+                authority_scope,
+                expected_basis_digest,
+                idempotency_key,
+                durability_contract_digest,
+            },
+        ) => super::durable_product_mutation_admission::admit_durable_product_mutation(
+            operation_request,
+            tenant_id,
+            workspace_id,
+            authority_scope,
+            expected_basis_digest,
+            idempotency_key,
+            durability_contract_digest,
+        ),
+        (
             WorthServerOperationFamily::ProductSessionCoordination,
             WorthServerOperationAuthorityMetadata::ProductSessionCoordination {
                 target,
@@ -222,7 +239,7 @@ pub(super) fn admit_metadata_for_family(
     }
 }
 
-pub(super) fn authorize_operation(
+pub(crate) fn authorize_operation(
     family: WorthServerOperationFamily,
     prepared_kind: WorthServerPreparedQueryHandoffKind,
     policy: Option<&WorthServerOperationAuthorizationPolicy>,
@@ -308,7 +325,7 @@ fn validate_shared_read_basis_kind(
     }
 }
 
-fn validate_shared_read_basis_digest(
+pub(super) fn validate_shared_read_basis_digest(
     operation_request: &WorthServerOperationRequest,
     basis_digest: &str,
 ) -> Result<(), String> {

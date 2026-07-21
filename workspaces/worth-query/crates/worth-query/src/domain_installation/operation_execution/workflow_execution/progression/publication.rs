@@ -67,6 +67,17 @@ where
             );
         }
         let publication_stage_identity = publication_stage.stage_identity().to_string();
+        let publication_subjects_by_evidence_identity = completion
+            .result()
+            .rows()
+            .iter()
+            .map(|row| {
+                (
+                    row.identity().evidence_identity().as_str().to_owned(),
+                    row.identity().clone(),
+                )
+            })
+            .collect();
         let receipt_identity = hash_parts(&[
             "worth_query_workflow_publication_v1".into(),
             format!("trace:{}", self.identity),
@@ -80,6 +91,7 @@ where
         TransitionOutcome::Success(WorthQueryPublishedWorkflow {
             trace: self,
             publication_stage_identity,
+            publication_subjects_by_evidence_identity,
             receipt_identity,
             phase_proof,
         })
@@ -97,6 +109,8 @@ pub enum WorthQueryWorkflowPublicationDenial {
 pub struct WorthQueryPublishedWorkflow<D, O, F, L: BasisOperationLane> {
     trace: WorthQueryCompletedWorkflowTrace<D, O, F, L>,
     publication_stage_identity: String,
+    publication_subjects_by_evidence_identity:
+        std::collections::HashMap<String, crate::memory_workspace::WorthQueryEntityIdentity>,
     receipt_identity: String,
     phase_proof: WorthQueryOperationPhaseProof<WorthQueryPublishedOperationPhase>,
 }
@@ -105,7 +119,20 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryPublishedWorkflow<D, O, F, L> {
     pub fn receipt_identity(&self) -> &str {
         &self.receipt_identity
     }
-
+    pub fn publication_stage_identity(&self) -> &str {
+        &self.publication_stage_identity
+    }
+    pub fn trace(&self) -> &WorthQueryCompletedWorkflowTrace<D, O, F, L> {
+        &self.trace
+    }
+    pub(crate) fn publication_carries_entity(
+        &self,
+        subject: &crate::memory_workspace::WorthQueryEntityIdentity,
+    ) -> bool {
+        self.publication_subjects_by_evidence_identity
+            .get(subject.evidence_identity().as_str())
+            == Some(subject)
+    }
     pub fn consume(
         mut self,
         consumer: WorthQueryConsumerProjectionContract<D, O, F, L>,

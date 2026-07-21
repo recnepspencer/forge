@@ -40,7 +40,26 @@ exports = [
 
 [[facades]]
 package = "worth-query-replay"
-exports = ["ScopedReplayBasis"]
+exports = [
+    "ScopedReplayBasis",
+    "WorthQueryCertificationReplayAdmissionDenial",
+    "WorthQueryCertificationReplayCapability",
+    "WorthQueryCertificationReplayCounters",
+    "WorthQueryCertificationReplayOutcome",
+    "WorthQueryCertificationReplayResult",
+    "WorthQueryCertificationReplayStop",
+    "WorthQueryHistoricalContext",
+    "WorthQueryHistoricalReplayAdmission",
+    "WorthQueryHistoricalReplayAdmissionDenial",
+    "WorthQueryInstalledHistoricalReplayPath",
+    "WorthQueryReplayBasisRelationship",
+    "WorthQueryReplayComparison",
+    "WorthQueryReplayDivergence",
+    "admit_installed_historical_replay_basis",
+    "issue_query_certification_replay_capability",
+    "replay_installed_workflow",
+    "replay_installed_workflow_historical",
+]
 
 [[facades]]
 package = "worth-schema-core"
@@ -52,4 +71,15 @@ exports = [
     "Name",
     "Tolerance",
     "Unit",
+]
+
+[[facades]]
+package = "worth-schema-graph"
+exports = [
+    "CarryingArtifactIdentity",
+    "DurableReferenceKind",
+    "GraphPromotionIdentityBasis",
+    "PromotionRequest",
+    "SubelementKey",
+    "lower_graph_promotion_identity_basis",
 ]

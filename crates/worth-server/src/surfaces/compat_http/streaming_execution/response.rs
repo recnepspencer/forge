@@ -198,16 +198,23 @@ impl WorthServerCompatibilityStream {
             })
             .expect("stream cancellation counters should materialize");
         WorthServerStreamCancellationReceipt::new(
-            kind,
-            self.emitted_chunks,
-            self.emitted_bytes,
-            true,
-            detail,
-            self.read.direct_context().workspace_target().tenant_id(),
-            self.read.direct_context().workspace_digest(),
-            self.read.direct_context().branch_digest(),
-            self.read.file_envelope().transfer_provenance().clone(),
-            performance_receipt,
+            super::WorthServerStreamCancellationReceiptParts {
+                kind,
+                chunks_emitted: self.emitted_chunks,
+                bytes_emitted: self.emitted_bytes,
+                canonical_result_completed: true,
+                detail: detail.to_string(),
+                tenant_id: self
+                    .read
+                    .direct_context()
+                    .workspace_target()
+                    .tenant_id()
+                    .to_string(),
+                workspace_digest: self.read.direct_context().workspace_digest().to_string(),
+                branch_digest: self.read.direct_context().branch_digest().to_string(),
+                transfer_provenance: self.read.file_envelope().transfer_provenance().clone(),
+                performance_receipt,
+            },
         )
     }
 }

@@ -4,14 +4,14 @@ mod declaration;
 mod denial;
 mod envelope;
 mod execution;
+mod execution_pipeline;
+mod lane_coordination;
 mod outcome;
 mod payload;
 mod plan;
 mod read_batch;
-mod read_batch_execution;
 mod registration;
 mod registry;
-mod runtime_support;
 mod schedule;
 mod surface;
 
@@ -35,8 +35,8 @@ pub use envelope::{WorthServerProductOperationEnvelope, WorthServerProductOperat
 pub use execution::WorthServerProductOperationRuntime;
 pub use outcome::{
     WorthServerCompletedProductOperation, WorthServerProductOperationFailure,
-    WorthServerProductOperationOutcome, WorthServerProductOperationReplayClass,
-    WorthServerProductOperationReplayDiagnostics, WorthServerProductOperationSuccess,
+    WorthServerProductOperationOutcome, WorthServerProductOperationRetryClass,
+    WorthServerProductOperationRetryDiagnostics, WorthServerProductOperationSuccess,
 };
 pub use payload::WorthServerProductOperationPayload;
 pub use plan::WorthServerLoweredProductOperationPlan;
@@ -51,3 +51,5 @@ pub use surface::{
     WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
     WorthServerProductOperationSurfaceDenialFacts,
 };
+
+pub(crate) use execution_pipeline::{build_durable_envelope, build_envelope};

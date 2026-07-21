@@ -16,7 +16,7 @@ use super::{
 use crate::WorthServerDirectProjectionRequest;
 
 pub(crate) enum WorthServerNamedLiveProjectionExecutionError {
-    Runtime(WorthQueryRuntimeError),
+    Runtime(Box<WorthQueryRuntimeError>),
     Consumption(ProjectionFactConsumptionPathError),
 }
 
@@ -211,15 +211,17 @@ impl WorthServerAdmittedDirectDeclaration {
         let live_read = self.with_workspace_mut(|workspace| {
             let live_target = workspace
                 .resolve_live_artifact_target(self.declaration_binding_label())
-                .map_err(WorthServerNamedLiveProjectionExecutionError::Runtime)?;
-            workspace
-                .read_live_target(&live_target)
-                .map_err(WorthServerNamedLiveProjectionExecutionError::Runtime)
+                .map_err(|error| {
+                    WorthServerNamedLiveProjectionExecutionError::Runtime(Box::new(error))
+                })?;
+            workspace.read_live_target(&live_target).map_err(|error| {
+                WorthServerNamedLiveProjectionExecutionError::Runtime(Box::new(error))
+            })
         })?;
         live_read
             .consume_projection_authority_with_binding(
                 request.binding_context(
-                    live_read.receipt().query_digest(),
+                    live_read.receipt().canonical_query_digest(),
                     live_read.receipt().view_shape_digest(),
                 ),
                 request.authority_contract_owned(),

@@ -1,5 +1,5 @@
 use super::{
-    WorthServerProductIdempotentReplayCertificationProof,
+    WorthServerProductIdempotentRetryCertificationProof,
     WorthServerProductMutationCertificationProof,
     WorthServerProductPressureShapeCertificationProof,
     WorthServerProductRouteParityCertificationProof,
@@ -14,7 +14,7 @@ pub struct WorthServerEditorLikeOperationFixture {
     route_parity: Option<WorthServerProductRouteParityCertificationProof>,
     pressure_shape: Option<WorthServerProductPressureShapeCertificationProof>,
     stale_apply_denial: Option<WorthServerProductStaleApplyDenialCertificationProof>,
-    idempotent_replay: Option<WorthServerProductIdempotentReplayCertificationProof>,
+    idempotent_retry: Option<WorthServerProductIdempotentRetryCertificationProof>,
 }
 
 impl WorthServerEditorLikeOperationFixture {
@@ -62,23 +62,23 @@ impl WorthServerEditorLikeOperationFixture {
         self
     }
 
-    pub fn with_idempotent_replay(
+    pub fn with_idempotent_retry(
         mut self,
-        proof: WorthServerProductIdempotentReplayCertificationProof,
+        proof: WorthServerProductIdempotentRetryCertificationProof,
     ) -> Self {
-        self.idempotent_replay = Some(proof);
+        self.idempotent_retry = Some(proof);
         self
     }
 
     pub fn canonical_digest(&self) -> String {
         format!(
-            "product-editor-like-fixture-v2|shared-read={}|mutation={}|route={}|shape={}|stale={}|replay={}",
+            "product-editor-like-fixture-v3|shared-read={}|mutation={}|route={}|shape={}|stale={}|retry={}",
             digest_label(self.shared_read_certification.as_ref().map(|proof| proof.canonical_digest())),
             digest_label(self.mutation_certification.as_ref().map(|proof| proof.canonical_digest())),
             digest_label(self.route_parity.as_ref().map(|proof| proof.canonical_digest())),
             digest_label(self.pressure_shape.as_ref().map(|proof| proof.canonical_digest())),
             digest_label(self.stale_apply_denial.as_ref().map(|proof| proof.canonical_digest())),
-            digest_label(self.idempotent_replay.as_ref().map(|proof| proof.canonical_digest())),
+            digest_label(self.idempotent_retry.as_ref().map(|proof| proof.canonical_digest())),
         )
     }
 
@@ -99,8 +99,8 @@ impl WorthServerEditorLikeOperationFixture {
         if self.stale_apply_denial.is_none() {
             labels.push("stale-apply-denial");
         }
-        if self.idempotent_replay.is_none() {
-            labels.push("idempotent-replay");
+        if self.idempotent_retry.is_none() {
+            labels.push("idempotent-retry");
         }
         labels
     }

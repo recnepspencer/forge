@@ -109,8 +109,9 @@ impl WorthServer {
             self.runtime.assembly().product_session_registry().clone(),
             self.runtime
                 .assembly()
-                .product_operation_replay_store()
+                .product_operation_retry_store()
                 .clone(),
+            self.runtime.assembly().counters().clone(),
         )
     }
 
@@ -161,51 +162,67 @@ impl WorthServer {
     }
 
     pub fn worth_native(&self) -> WorthServerWorthNativeFacade {
-        WorthServerWorthNativeFacade::new(
-            self.runtime.assembly().surfaces_facade().worth_native(),
-            self.runtime.assembly().operation_registry().clone(),
-            self.runtime.assembly().product_adapter_registry().clone(),
-            self.runtime.assembly().product_session_registry().clone(),
-            self.runtime
+        WorthServerWorthNativeFacade::new(crate::worth_native::WorthServerWorthNativeFacadeParts {
+            root: self.runtime.assembly().surfaces_facade().worth_native(),
+            operation_registry: self.runtime.assembly().operation_registry().clone(),
+            product_adapter_registry: self.runtime.assembly().product_adapter_registry().clone(),
+            product_session_registry: self.runtime.assembly().product_session_registry().clone(),
+            product_operation_retry_store: self
+                .runtime
                 .assembly()
-                .product_operation_replay_store()
+                .product_operation_retry_store()
                 .clone(),
-            self.request_contexts(),
-            self.middleware(),
-            WorthServerDirectDeclarationIntakeFacade::new(
+            counters: self.runtime.assembly().counters().clone(),
+            request_contexts: self.request_contexts(),
+            middleware: self.middleware(),
+            declaration_intake: WorthServerDirectDeclarationIntakeFacade::new(
                 self.runtime.assembly().config().query_handoff().clone(),
             ),
-            self.query_handoff(),
-            self.responses(),
-        )
+            query_handoff: self.query_handoff(),
+            responses: self.responses(),
+        })
     }
 
     pub fn compat_http(&self) -> WorthServerCompatibilityFacade {
         WorthServerCompatibilityFacade::new(
-            self.runtime.assembly().surfaces_facade().compat_http(),
-            self.runtime.assembly().operation_registry().clone(),
-            self.runtime.assembly().product_adapter_registry().clone(),
-            self.runtime.assembly().product_session_registry().clone(),
-            self.request_contexts(),
-            self.middleware(),
-            WorthServerDirectDeclarationIntakeFacade::new(
-                self.runtime.assembly().config().query_handoff().clone(),
-            ),
-            self.query_handoff(),
-            self.responses(),
-            self.operator_evidence(),
-            self.runtime
-                .assembly()
-                .compat_http_mutation_replay_store()
-                .clone(),
-            self.runtime
-                .assembly()
-                .product_operation_replay_store()
-                .clone(),
-            self.runtime
-                .assembly()
-                .compat_http_binary_ingress_store()
-                .clone(),
+            crate::surfaces::compat_http::WorthServerCompatibilityFacadeParts {
+                root: self.runtime.assembly().surfaces_facade().compat_http(),
+                operation_registry: self.runtime.assembly().operation_registry().clone(),
+                product_adapter_registry: self
+                    .runtime
+                    .assembly()
+                    .product_adapter_registry()
+                    .clone(),
+                product_session_registry: self
+                    .runtime
+                    .assembly()
+                    .product_session_registry()
+                    .clone(),
+                request_contexts: self.request_contexts(),
+                middleware: self.middleware(),
+                declaration_intake: WorthServerDirectDeclarationIntakeFacade::new(
+                    self.runtime.assembly().config().query_handoff().clone(),
+                ),
+                query_handoff: self.query_handoff(),
+                responses: self.responses(),
+                operator_evidence: self.operator_evidence(),
+                idempotency_store: self
+                    .runtime
+                    .assembly()
+                    .compat_http_mutation_retry_store()
+                    .clone(),
+                product_operation_retry_store: self
+                    .runtime
+                    .assembly()
+                    .product_operation_retry_store()
+                    .clone(),
+                binary_ingress_store: self
+                    .runtime
+                    .assembly()
+                    .compat_http_binary_ingress_store()
+                    .clone(),
+                counters: self.runtime.assembly().counters().clone(),
+            },
         )
     }
 

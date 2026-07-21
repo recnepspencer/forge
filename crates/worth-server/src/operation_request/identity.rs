@@ -14,18 +14,31 @@ pub struct WorthServerOperationIdentity {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerOperationIdentityParts {
+    pub(crate) operation_family: WorthServerOperationFamily,
+    pub(crate) tenant_id: String,
+    pub(crate) workspace_id: String,
+    pub(crate) target_identity: String,
+    pub(crate) operation_name: String,
+    pub(crate) basis_digest: Option<String>,
+    pub(crate) idempotency_key: Option<String>,
+    pub(crate) product_session_identity: Option<String>,
+    pub(crate) payload_identity: Option<String>,
+}
+
 impl WorthServerOperationIdentity {
-    pub(crate) fn new(
-        operation_family: WorthServerOperationFamily,
-        tenant_id: String,
-        workspace_id: String,
-        target_identity: String,
-        operation_name: String,
-        basis_digest: Option<String>,
-        idempotency_key: Option<String>,
-        product_session_identity: Option<String>,
-        payload_identity: Option<String>,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerOperationIdentityParts) -> Self {
+        let WorthServerOperationIdentityParts {
+            operation_family,
+            tenant_id,
+            workspace_id,
+            target_identity,
+            operation_name,
+            basis_digest,
+            idempotency_key,
+            product_session_identity,
+            payload_identity,
+        } = parts;
         let canonical_digest = format!(
             "worth-server-operation-identity-v1|family={}|tenant={tenant_id}|workspace={workspace_id}|target={target_identity}|operation={operation_name}|basis={}|idempotency={}|product_session={}|payload={}",
             operation_family.as_str(),
@@ -77,16 +90,16 @@ impl WorthServerOperationIdentity {
     }
 
     pub(crate) fn with_basis_digest(&self, basis_digest: Option<&str>) -> Self {
-        Self::new(
-            self.operation_family,
-            self.tenant_id.clone(),
-            self.workspace_id.clone(),
-            self.target_identity.clone(),
-            self.operation_name.clone(),
-            basis_digest.map(str::to_string),
-            self.idempotency_key.clone(),
-            self.product_session_identity.clone(),
-            self.payload_identity.clone(),
-        )
+        Self::new(WorthServerOperationIdentityParts {
+            operation_family: self.operation_family,
+            tenant_id: self.tenant_id.clone(),
+            workspace_id: self.workspace_id.clone(),
+            target_identity: self.target_identity.clone(),
+            operation_name: self.operation_name.clone(),
+            basis_digest: basis_digest.map(str::to_string),
+            idempotency_key: self.idempotency_key.clone(),
+            product_session_identity: self.product_session_identity.clone(),
+            payload_identity: self.payload_identity.clone(),
+        })
     }
 }

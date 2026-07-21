@@ -1,6 +1,5 @@
 #[path = "support/compat_http/phase_eight/runtime.rs"]
 mod compat_http_phase_eight_runtime;
-#[allow(dead_code)]
 #[path = "support/compat_http/phase_four_runtime.rs"]
 mod compat_http_phase_four_runtime;
 #[path = "support/compat_http/phase_twelve/abuse_budget_cases.rs"]

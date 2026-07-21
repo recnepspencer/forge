@@ -16,7 +16,7 @@ use super::{
     results::{
         AdvisoryIdentityCandidateSet, IdentityEvolutionAmbiguityBundle,
         IdentityEvolutionDeniedBundle, IdentityEvolutionIdentityBreakBundle,
-        IdentityEvolutionResultBundle, PluralIdentitySuccessorSet,
+        IdentityEvolutionResultBundle, IdentityLifecycleResult, PluralIdentitySuccessorSet,
         SingularIdentityContinuityResult,
     },
     synthetic::IdentityEvolutionSyntheticScenario,
@@ -24,11 +24,14 @@ use super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IdentityEvolutionExecutionFamily {
+    InstalledOperationComparison,
     DirectPredecessor,
     DirectSuccessor,
     DirectReplacement,
     DirectSplitSuccessors,
     DirectMergeSuccessor,
+    GeneratedIdentity,
+    RetiredIdentity,
     BranchLocalDirectEvolution,
     BranchToBranchComparison,
     CurrentToHistoricalComparison,
@@ -39,11 +42,14 @@ pub enum IdentityEvolutionExecutionFamily {
 impl IdentityEvolutionExecutionFamily {
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::InstalledOperationComparison => "installed_operation_comparison",
             Self::DirectPredecessor => "direct_predecessor",
             Self::DirectSuccessor => "direct_successor",
             Self::DirectReplacement => "direct_replacement",
             Self::DirectSplitSuccessors => "direct_split_successors",
             Self::DirectMergeSuccessor => "direct_merge_successor",
+            Self::GeneratedIdentity => "generated_identity",
+            Self::RetiredIdentity => "retired_identity",
             Self::BranchLocalDirectEvolution => "branch_local_direct_evolution",
             Self::BranchToBranchComparison => "branch_to_branch_comparison",
             Self::CurrentToHistoricalComparison => "current_to_historical_comparison",
@@ -349,7 +355,13 @@ fn execute_lineage(
                 IdentityEvolutionResultBundle::singular_identity_continuity(
                     SingularIdentityContinuityResult::new(
                         metadata,
-                        format!("successor:{}", descriptor.anchor_identity()),
+                        descriptor
+                            .exact_result_identities()
+                            .and_then(|identities| identities.first())
+                            .cloned()
+                            .unwrap_or_else(|| {
+                                format!("successor:{}", descriptor.anchor_identity())
+                            }),
                     ),
                 ),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
@@ -369,23 +381,30 @@ fn execute_lineage(
             )
         }
         (LineageTraversalFamily::DirectSplitSuccessors, _) => {
+            let successor_identities = descriptor
+                .exact_result_identities()
+                .map(<[String]>::to_vec)
+                .unwrap_or_else(|| {
+                    vec![
+                        format!("split-a:{}", descriptor.anchor_identity()),
+                        format!("split-b:{}", descriptor.anchor_identity()),
+                    ]
+                });
             counters.lineage_anchor_lookup_count = 1;
-            counters.lineage_step_count = 2;
+            counters.lineage_step_count = successor_identities.len();
             counters.predicted_lineage_width = 1;
-            counters.realized_lineage_width = 2;
-            counters.lineage_width_drift_count = 1;
-            counters.split_successor_fanout_width = 2;
+            counters.realized_lineage_width = successor_identities.len();
+            counters.lineage_width_drift_count = usize::from(successor_identities.len() != 1);
+            counters.split_successor_fanout_width = successor_identities.len();
             (
                 IdentityEvolutionResultBundle::plural_identity_successor_set(
-                    PluralIdentitySuccessorSet::new(
-                        metadata,
-                        vec![
-                            format!("split-a:{}", descriptor.anchor_identity()),
-                            format!("split-b:{}", descriptor.anchor_identity()),
-                        ],
-                    ),
+                    PluralIdentitySuccessorSet::new(metadata, successor_identities),
                 ),
-                IdentityEvolutionPredictionDriftOutcome::WidthDriftDetected,
+                if counters.lineage_width_drift_count == 0 {
+                    IdentityEvolutionPredictionDriftOutcome::WithinBudget
+                } else {
+                    IdentityEvolutionPredictionDriftOutcome::WidthDriftDetected
+                },
             )
         }
         (LineageTraversalFamily::DirectMergeSuccessor, _) => {
@@ -396,9 +415,38 @@ fn execute_lineage(
                 IdentityEvolutionResultBundle::singular_identity_continuity(
                     SingularIdentityContinuityResult::new(
                         metadata,
-                        format!("merge-successor:{}", descriptor.anchor_identity()),
+                        descriptor
+                            .exact_result_identities()
+                            .and_then(|identities| identities.first())
+                            .cloned()
+                            .unwrap_or_else(|| {
+                                format!("merge-successor:{}", descriptor.anchor_identity())
+                            }),
                     ),
                 ),
+                IdentityEvolutionPredictionDriftOutcome::WithinBudget,
+            )
+        }
+        (LineageTraversalFamily::GeneratedIdentity, _) => {
+            counters.lineage_anchor_lookup_count = 1;
+            counters.lineage_step_count = 1;
+            (
+                IdentityEvolutionResultBundle::generated_identity(IdentityLifecycleResult::new(
+                    metadata,
+                    descriptor.anchor_identity(),
+                )),
+                IdentityEvolutionPredictionDriftOutcome::WithinBudget,
+            )
+        }
+        (LineageTraversalFamily::RetiredIdentity, _) => {
+            counters.lineage_anchor_lookup_count = 1;
+            counters.identity_break_count = 1;
+            counters.realized_lineage_width = 0;
+            (
+                IdentityEvolutionResultBundle::retired_identity(IdentityLifecycleResult::new(
+                    metadata,
+                    descriptor.anchor_identity(),
+                )),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
@@ -548,8 +596,9 @@ fn execute_comparison(
         ..IdentityEvolutionExecutionCounters::default()
     };
 
-    let (result_bundle, prediction_drift_outcome) = if scenario
-        == IdentityEvolutionSyntheticScenario::AmbiguousCorrespondence
+    let (result_bundle, prediction_drift_outcome) = if comparison.intent()
+        == IdentityComparisonIntent::AmbiguousCandidateSet
+        || scenario == IdentityEvolutionSyntheticScenario::AmbiguousCorrespondence
     {
         counters.correspondence_candidate_count = 2;
         counters.ambiguous_correspondence_count = 1;
@@ -574,7 +623,9 @@ fn execute_comparison(
             ),
             IdentityEvolutionPredictionDriftOutcome::WithinBudget,
         )
-    } else if scenario == IdentityEvolutionSyntheticScenario::IdentityBreak {
+    } else if comparison.intent() == IdentityComparisonIntent::ExplicitContinuityBreak
+        || scenario == IdentityEvolutionSyntheticScenario::IdentityBreak
+    {
         counters.identity_break_count = 1;
         counters.realized_lineage_width = 0;
         (
@@ -674,6 +725,12 @@ fn execution_family_for_lineage(
         LineageTraversalFamily::DirectMergeSuccessor => {
             IdentityEvolutionExecutionFamily::DirectMergeSuccessor
         }
+        LineageTraversalFamily::GeneratedIdentity => {
+            IdentityEvolutionExecutionFamily::GeneratedIdentity
+        }
+        LineageTraversalFamily::RetiredIdentity => {
+            IdentityEvolutionExecutionFamily::RetiredIdentity
+        }
         LineageTraversalFamily::BranchLocalDirectEvolution => {
             IdentityEvolutionExecutionFamily::BranchLocalDirectEvolution
         }
@@ -684,6 +741,9 @@ fn execution_family_for_comparison(
     family: IdentityEvolutionComparisonBasisFamily,
 ) -> IdentityEvolutionExecutionFamily {
     match family {
+        IdentityEvolutionComparisonBasisFamily::InstalledOperation => {
+            IdentityEvolutionExecutionFamily::InstalledOperationComparison
+        }
         IdentityEvolutionComparisonBasisFamily::BranchToBranch => {
             IdentityEvolutionExecutionFamily::BranchToBranchComparison
         }
@@ -715,9 +775,9 @@ fn branch_locality_class_for_lineage(
         | LineageTraversalFamily::DirectSuccessor
         | LineageTraversalFamily::DirectReplacement
         | LineageTraversalFamily::DirectSplitSuccessors
-        | LineageTraversalFamily::DirectMergeSuccessor => {
-            BranchLocalityClass::CrossBranchAuthoritative
-        }
+        | LineageTraversalFamily::DirectMergeSuccessor
+        | LineageTraversalFamily::GeneratedIdentity
+        | LineageTraversalFamily::RetiredIdentity => BranchLocalityClass::CrossBranchAuthoritative,
     }
 }
 
@@ -739,9 +799,9 @@ fn authority_state_for_lineage(
         LineageTraversalFamily::DirectPredecessor
         | LineageTraversalFamily::DirectSuccessor
         | LineageTraversalFamily::DirectReplacement
-        | LineageTraversalFamily::DirectSplitSuccessors => {
-            PromotionOrMergeAuthorityState::NotRequired
-        }
+        | LineageTraversalFamily::DirectSplitSuccessors
+        | LineageTraversalFamily::GeneratedIdentity
+        | LineageTraversalFamily::RetiredIdentity => PromotionOrMergeAuthorityState::NotRequired,
     }
 }
 
@@ -764,6 +824,10 @@ fn outcome_family_for_lineage(
         LineageTraversalFamily::DirectSplitSuccessors => {
             IdentityEvolutionOutcomeFamily::PluralIdentitySuccessorSet
         }
+        LineageTraversalFamily::GeneratedIdentity => {
+            IdentityEvolutionOutcomeFamily::GeneratedIdentity
+        }
+        LineageTraversalFamily::RetiredIdentity => IdentityEvolutionOutcomeFamily::RetiredIdentity,
         LineageTraversalFamily::BranchLocalDirectEvolution
             if matches!(
                 scenario,
@@ -792,9 +856,13 @@ fn comparison_outcome_family(
     locality: BranchLocalityClass,
     scenario: IdentityEvolutionSyntheticScenario,
 ) -> IdentityEvolutionOutcomeFamily {
-    if scenario == IdentityEvolutionSyntheticScenario::IdentityBreak {
+    if comparison.intent() == IdentityComparisonIntent::ExplicitContinuityBreak
+        || scenario == IdentityEvolutionSyntheticScenario::IdentityBreak
+    {
         IdentityEvolutionOutcomeFamily::IdentityBreak
-    } else if scenario == IdentityEvolutionSyntheticScenario::AmbiguousCorrespondence {
+    } else if comparison.intent() == IdentityComparisonIntent::AmbiguousCandidateSet
+        || scenario == IdentityEvolutionSyntheticScenario::AmbiguousCorrespondence
+    {
         IdentityEvolutionOutcomeFamily::Ambiguity
     } else if comparison.intent() == IdentityComparisonIntent::AdvisoryCandidateSet {
         IdentityEvolutionOutcomeFamily::AdvisoryIdentityCandidateSet

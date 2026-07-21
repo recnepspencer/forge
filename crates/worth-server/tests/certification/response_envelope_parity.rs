@@ -5,13 +5,8 @@ use worth_server::{
     WorthServerResponseTransform, WorthServerSurfaceFamily, WorthServerTransportClass,
 };
 
-#[path = "../support/query_handoff/runtime.rs"]
-mod query_handoff_runtime;
-#[path = "../support/response_fixture.rs"]
-mod response_fixture;
-
-use query_handoff_runtime::TestWorkspaceProvider;
-use response_fixture::{
+use crate::query_handoff_runtime::TestWorkspaceProvider;
+use crate::response_fixture::{
     operator_evidence_record, query_handoff_success, shape_success, test_server,
     test_server_with_request_context_and_operator_evidence_config,
     test_server_with_response_config,
@@ -20,7 +15,7 @@ use response_fixture::{
 #[test]
 fn shape_preserves_canonical_success_envelope_truth_across_surface_families() {
     let server = test_server(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()
@@ -67,7 +62,7 @@ fn shape_preserves_canonical_success_envelope_truth_across_surface_families() {
 #[test]
 fn shape_preserves_canonical_mutation_success_envelope_truth_across_surface_families() {
     let server = test_server(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()
@@ -117,14 +112,14 @@ fn shape_preserves_canonical_mutation_success_envelope_truth_across_surface_fami
 #[test]
 fn shape_changes_success_diagnostics_richness_without_changing_semantic_truth() {
     let low_richness_server = test_server(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()
             .expect("middleware config should validate"),
     );
     let high_richness_server = test_server_with_response_config(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()
@@ -182,14 +177,14 @@ fn shape_changes_success_diagnostics_richness_without_changing_semantic_truth() 
 #[test]
 fn operator_evidence_keeps_exact_success_counters_and_richness_policy_distinct() {
     let low_richness_server = test_server(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()
             .expect("middleware config should validate"),
     );
     let high_richness_server = test_server_with_response_config(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()
@@ -277,7 +272,7 @@ fn operator_evidence_keeps_exact_success_counters_and_richness_policy_distinct()
 #[test]
 fn operator_evidence_preserves_support_truth_when_operational_minimal_elides_support_attachment() {
     let server = test_server_with_request_context_and_operator_evidence_config(
-        TestWorkspaceProvider::default(),
+        TestWorkspaceProvider,
         WorthServerMiddlewareConfig::builder()
             .with_query_mutation_enabled(true)
             .build()

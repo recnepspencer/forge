@@ -16,21 +16,29 @@ pub struct WorthServerProductSession {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerProductSessionParts {
+    pub(crate) identity: WorthServerProductSessionIdentity,
+    pub(crate) lifecycle: WorthServerProductSessionLifecycle,
+    pub(crate) expiry_posture: WorthServerProductSessionExpiryPosture,
+    pub(crate) operation_name: String,
+    pub(crate) tenant_id: String,
+    pub(crate) workspace_id: String,
+    pub(crate) branch_label: String,
+    pub(crate) basis_digest: Option<String>,
+}
+
 impl WorthServerProductSession {
-    pub(crate) fn new(
-        identity: WorthServerProductSessionIdentity,
-        lifecycle: WorthServerProductSessionLifecycle,
-        expiry_posture: WorthServerProductSessionExpiryPosture,
-        operation_name: impl Into<String>,
-        tenant_id: impl Into<String>,
-        workspace_id: impl Into<String>,
-        branch_label: impl Into<String>,
-        basis_digest: Option<String>,
-    ) -> Self {
-        let operation_name = operation_name.into();
-        let tenant_id = tenant_id.into();
-        let workspace_id = workspace_id.into();
-        let branch_label = branch_label.into();
+    pub(crate) fn new(parts: WorthServerProductSessionParts) -> Self {
+        let WorthServerProductSessionParts {
+            identity,
+            lifecycle,
+            expiry_posture,
+            operation_name,
+            tenant_id,
+            workspace_id,
+            branch_label,
+            basis_digest,
+        } = parts;
         let canonical_digest = format!(
             "worth-server-product-session-v1|identity={}|lifecycle={}|expiry={:?}|operation={}|tenant={}|workspace={}|branch={}|basis={}",
             identity.as_str(),

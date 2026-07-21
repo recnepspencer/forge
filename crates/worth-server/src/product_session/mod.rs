@@ -18,4 +18,5 @@ pub use lifecycle::WorthServerProductSessionLifecycle;
 pub(crate) use lifecycle_gate::admit_session_for_product_operation;
 pub use lifecycle_gate::{WorthServerProductSessionDenial, WorthServerProductSessionDenialCode};
 pub use record::WorthServerProductSession;
+pub(crate) use record::WorthServerProductSessionParts;
 pub use registry::WorthServerProductSessionRegistry;

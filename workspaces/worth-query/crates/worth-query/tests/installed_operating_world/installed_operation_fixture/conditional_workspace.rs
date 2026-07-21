@@ -18,13 +18,26 @@ pub(super) struct ConditionalModelGraphProvider;
 
 pub(super) fn conditional_model_graph_definition(
 ) -> domain::WorthQueryGraphParticipationDefinition<ConditionalModelGraph> {
+    conditional_model_graph_definition_with_identity(domain::WorthQueryGraphIdentityPosture::Opaque)
+}
+
+pub(super) fn conditional_lineage_model_graph_definition(
+) -> domain::WorthQueryGraphParticipationDefinition<ConditionalModelGraph> {
+    conditional_model_graph_definition_with_identity(
+        domain::WorthQueryGraphIdentityPosture::EvolvingLineage,
+    )
+}
+
+fn conditional_model_graph_definition_with_identity(
+    identity: domain::WorthQueryGraphIdentityPosture,
+) -> domain::WorthQueryGraphParticipationDefinition<ConditionalModelGraph> {
     domain::WorthQueryGraphParticipationDefinition::new(
         "model",
         domain::WorthQueryGraphParticipationContract {
             observation: domain::WorthQueryGraphObservationPosture::Snapshot,
             projection: domain::WorthQueryGraphProjectionPosture::NativeProjection,
             mutation: domain::WorthQueryGraphMutationPosture::NotRequired,
-            identity: domain::WorthQueryGraphIdentityPosture::Opaque,
+            identity,
             locality: domain::WorthQueryGraphLocalityPosture::InProcess,
             budget: domain::WorthQueryGraphBudgetPosture::ConstantAdmission,
             commit: domain::WorthQueryGraphCommitPosture::ReadOnly,

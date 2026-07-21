@@ -376,6 +376,6 @@ fn assert_private_cache_policy(cache_policy: &worth_server::WorthServerCompatibi
     assert!(!cache_policy.publicly_reusable());
     assert_eq!(
         cache_policy.vary(),
-        ["authorization", "x-WORTH-branch", "x-WORTH-diagnostics"].map(str::to_string)
+        ["authorization", "x-Worth-branch", "x-Worth-diagnostics"].map(str::to_string)
     );
 }

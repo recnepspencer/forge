@@ -203,6 +203,7 @@ impl WorthServerOperationReadinessFacade {
                 Ok(WorthServerOperationConcurrencyClass::ConcurrentSharedRead)
             }
             crate::WorthServerOperationAuthorityKind::ProductDraftMutation
+            | crate::WorthServerOperationAuthorityKind::DurableProductMutation
             | crate::WorthServerOperationAuthorityKind::DeterministicSubmission
             | crate::WorthServerOperationAuthorityKind::ProductSessionCoordination
             | crate::WorthServerOperationAuthorityKind::BinaryStreaming
@@ -223,6 +224,7 @@ fn dependency_relation(operation_admission: &WorthServerOperationAdmissionPostur
         }
         crate::WorthServerOperationAuthorityMetadata::SharedReadOnly { .. }
         | crate::WorthServerOperationAuthorityMetadata::ProductDraftMutation { .. }
+        | crate::WorthServerOperationAuthorityMetadata::DurableProductMutation { .. }
         | crate::WorthServerOperationAuthorityMetadata::ProductSessionCoordination { .. }
         | crate::WorthServerOperationAuthorityMetadata::BinaryStreaming { .. } => {
             "product-independent"

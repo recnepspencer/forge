@@ -104,6 +104,22 @@ fn derive_scheduler_lane(
                 "product-draft:{product_session_identity}:{draft_scope}"
             ))
         }
+        WorthServerOperationAuthorityKind::DurableProductMutation => {
+            authority_metadata
+                .durable_product_mutation_scope()
+                .ok_or_else(|| {
+                    invalid_product_scheduler_contract(
+                        "durable product mutations require scheduler-visible authority scope",
+                    )
+                })?;
+            Ok(format!(
+                "durable-product:{}",
+                plan.operation_admission()
+                    .authority_footprint()
+                    .scope()
+                    .canonical_digest()
+            ))
+        }
         WorthServerOperationAuthorityKind::ProductSessionCoordination => {
             let (target, coordination_lane) = authority_metadata
                 .product_session_coordination_target()

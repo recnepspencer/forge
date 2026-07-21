@@ -16,7 +16,7 @@ use fixture::{
 };
 
 #[test]
-fn worth_native_product_operation_replays_identical_idempotent_mutation_without_second_state_change(
+fn worth_native_product_operation_retries_identical_idempotent_mutation_without_second_state_change(
 ) {
     let backend = StatefulProductEditorBackend::new();
     let initial_basis = backend.basis_digest();
@@ -62,16 +62,16 @@ fn worth_native_product_operation_replays_identical_idempotent_mutation_without_
     assert_eq!(backend.title(), "Rename");
     assert_ne!(basis_after_first, initial_basis);
     assert_eq!(backend.basis_digest(), basis_after_first);
-    assert!(first.replay_diagnostics().is_authoritative());
-    assert!(first.replay_diagnostics().adapter_execution_attempted());
-    assert!(replayed.replay_diagnostics().is_replayed());
+    assert!(first.retry_diagnostics().is_executed());
+    assert!(first.retry_diagnostics().adapter_execution_attempted());
+    assert!(replayed.retry_diagnostics().is_previously_committed());
     assert!(replayed
-        .replay_diagnostics()
-        .adapter_execution_skipped_by_replay());
+        .retry_diagnostics()
+        .adapter_execution_skipped_by_retry());
     assert_eq!(
         replayed
-            .replay_receipt()
-            .and_then(|receipt| receipt.authoritative_operation_digest()),
+            .retry_receipt()
+            .and_then(|receipt| receipt.original_operation_digest()),
         Some(first.envelope().canonical_digest())
     );
 }
@@ -136,15 +136,15 @@ fn compat_product_operation_preserves_phase_eleven_replay_contract_via_request_s
     assert_eq!(backend.title(), "Rename");
     assert_ne!(basis_after_first, initial_basis);
     assert_eq!(backend.basis_digest(), basis_after_first);
-    assert!(first.replay_diagnostics().is_authoritative());
-    assert!(replayed.replay_diagnostics().is_replayed());
+    assert!(first.retry_diagnostics().is_executed());
+    assert!(replayed.retry_diagnostics().is_previously_committed());
     assert!(replayed
-        .replay_diagnostics()
-        .adapter_execution_skipped_by_replay());
+        .retry_diagnostics()
+        .adapter_execution_skipped_by_retry());
     assert_eq!(
         replayed
-            .replay_receipt()
-            .and_then(|receipt| receipt.authoritative_operation_digest()),
+            .retry_receipt()
+            .and_then(|receipt| receipt.original_operation_digest()),
         Some(first.envelope().canonical_digest())
     );
 }

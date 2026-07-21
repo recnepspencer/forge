@@ -11,7 +11,7 @@ pub enum WorthServerSurfaceFamily {
 impl WorthServerSurfaceFamily {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::WorthNative => "WORTH-native",
+            Self::WorthNative => "Worth-native",
             Self::CompatHttp => "compat-http",
             Self::Sync => "sync",
             Self::Lease => "lease",

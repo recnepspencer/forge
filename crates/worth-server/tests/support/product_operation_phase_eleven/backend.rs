@@ -9,6 +9,8 @@ use worth_server::{
     WorthServerProductOperationSupportSnapshot,
 };
 
+use crate::fixture::schema_bound_json;
+
 #[derive(Clone, Debug)]
 pub struct StatefulProductEditorBackend {
     state: Arc<Mutex<ProductEditorState>>,
@@ -52,6 +54,7 @@ pub fn stateful_editor_registration(
             WorthServerProductOperationDeclaration::product_read(
                 "product_editor.render_preview",
                 "product-editor.render-preview.v1",
+                result_contract("product-editor.render-preview.result.v1"),
                 WorthServerProductOperationBasisKind::ProductSessionDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("preview-session"),
             ),
@@ -60,6 +63,7 @@ pub fn stateful_editor_registration(
             WorthServerProductOperationDeclaration::product_mutation(
                 "product_editor.apply",
                 "product-editor.apply.v1",
+                result_contract("product-editor.apply.result.v1"),
                 WorthServerProductOperationBasisKind::ProductSessionDerived,
                 WorthServerProductOperationSupportSnapshot::production_admitted("apply-session"),
                 "draft",
@@ -84,10 +88,11 @@ impl WorthServerProductApplicationAdapter for StatefulProductEditorBackend {
             .lock()
             .expect("stateful editor backend should not poison");
         match operation.plan().declaration().operation_name() {
-            "product_editor.render_preview" => Ok(WorthServerProductOperationSuccess::new(
+            "product_editor.render_preview" => product_success(
+                operation,
                 "product_editor.render_preview",
-                format!("preview:{}:{}", state.basis_digest(), state.title),
-            )),
+                json!({ "basis": state.basis_digest(), "title": state.title }),
+            ),
             "product_editor.apply" => {
                 let body = operation.plan().payload().body();
                 if body.get("fail").and_then(|value| value.as_bool()) == Some(true) {
@@ -102,10 +107,11 @@ impl WorthServerProductApplicationAdapter for StatefulProductEditorBackend {
                     .unwrap_or("Untitled");
                 state.title = title.to_string();
                 state.revision += 1;
-                Ok(WorthServerProductOperationSuccess::new(
+                product_success(
+                    operation,
                     "product_editor.apply",
-                    format!("{}:{}", state.basis_digest(), state.title),
-                ))
+                    json!({ "basis": state.basis_digest(), "title": state.title }),
+                )
             }
             operation_name => Err(WorthServerProductAdapterExecutionError::failed(
                 "unsupported_operation",
@@ -140,4 +146,33 @@ fn declared(
     declaration: WorthServerProductOperationDeclaration,
 ) -> WorthServerProductOperationDeclaration {
     declaration.with_error_map(WorthServerProductOperationErrorMaps::passthrough())
+}
+
+impl Default for StatefulProductEditorBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn result_contract(schema_identity: &str) -> worth_server::WorthServerProductResultContract {
+    worth_server::WorthServerProductResultContract::canonical_json(schema_identity, 1, 16 * 1024)
+        .expect("stateful editor result contract should validate")
+}
+
+fn product_success(
+    operation: &worth_server::WorthServerScheduledProductOperation,
+    result_key: &str,
+    body: serde_json::Value,
+) -> Result<WorthServerProductOperationSuccess, WorthServerProductAdapterExecutionError> {
+    schema_bound_json::publish_schema_bound_json(
+        result_key,
+        operation.plan().declaration().result_contract(),
+        operation
+            .plan()
+            .declaration()
+            .result_contract()
+            .schema()
+            .identity(),
+        body,
+    )
 }

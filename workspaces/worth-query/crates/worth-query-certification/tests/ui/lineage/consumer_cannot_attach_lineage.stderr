@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `singular_successor` found for struct `InstalledIdentityEvolutionOutcome` in the current scope
+ --> tests/ui/lineage/consumer_cannot_attach_lineage.rs:7:62
+  |
+7 |     let _forged = domain::InstalledIdentityEvolutionOutcome::singular_successor(
+  |                                                              ^^^^^^^^^^^^^^^^^^ function or associated item not found in `InstalledIdentityEvolutionOutcome`

@@ -222,7 +222,7 @@ fn concurrency_class_requires_support_and_precondition_closure() {
         WorthServerPipelineIntent::worth_native_session("editor.apply"),
     )) {
         TransitionOutcome::Success(value) => value,
-        other => panic!("expected WORTH-native session admission, got {other:?}"),
+        other => panic!("expected Worth-native session admission, got {other:?}"),
     };
     let coordination_request = server
         .operation_requests()

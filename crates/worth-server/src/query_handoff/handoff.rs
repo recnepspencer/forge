@@ -24,6 +24,19 @@ pub struct WorthServerQueryHandoff {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerQueryHandoffParts {
+    pub(crate) operation_admission: WorthServerOperationAdmissionPosture,
+    pub(crate) operation: WorthServerQueryHandoffOperation,
+    pub(crate) workspace: WorthQueryWorkspace,
+    pub(crate) downstream_delivery_contract: WorthQueryRuntimeDownstreamDeliveryContract,
+    pub(crate) operation_support_posture: WorthServerOperationSupportPosture,
+    pub(crate) support_composition_receipt: WorthServerOperationSupportCompositionReceipt,
+    pub(crate) precondition_posture: WorthServerOperationPreconditionPosture,
+    pub(crate) concurrency_class: WorthServerOperationConcurrencyClass,
+    pub(crate) support_posture: WorthServerQuerySupportPosture,
+    pub(crate) canonical_digest: String,
+}
+
 impl fmt::Debug for WorthServerQueryHandoff {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("WorthServerQueryHandoff")
@@ -48,18 +61,19 @@ impl fmt::Debug for WorthServerQueryHandoff {
 }
 
 impl WorthServerQueryHandoff {
-    pub(crate) fn new(
-        operation_admission: WorthServerOperationAdmissionPosture,
-        operation: WorthServerQueryHandoffOperation,
-        workspace: WorthQueryWorkspace,
-        downstream_delivery_contract: WorthQueryRuntimeDownstreamDeliveryContract,
-        operation_support_posture: WorthServerOperationSupportPosture,
-        support_composition_receipt: WorthServerOperationSupportCompositionReceipt,
-        precondition_posture: WorthServerOperationPreconditionPosture,
-        concurrency_class: WorthServerOperationConcurrencyClass,
-        support_posture: WorthServerQuerySupportPosture,
-        canonical_digest: String,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerQueryHandoffParts) -> Self {
+        let WorthServerQueryHandoffParts {
+            operation_admission,
+            operation,
+            workspace,
+            downstream_delivery_contract,
+            operation_support_posture,
+            support_composition_receipt,
+            precondition_posture,
+            concurrency_class,
+            support_posture,
+            canonical_digest,
+        } = parts;
         Self {
             operation_admission,
             operation,

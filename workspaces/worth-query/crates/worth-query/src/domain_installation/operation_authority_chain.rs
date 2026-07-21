@@ -34,6 +34,14 @@ pub(crate) struct WorthQueryWorkflowStagePhase;
 pub(crate) struct WorthQueryCompletedWorkflowPhase;
 #[derive(Debug)]
 pub(crate) struct WorthQueryConditionalReentryPhase;
+#[derive(Debug)]
+pub(crate) struct WorthQueryDiscardedProvisionalPhase;
+#[derive(Debug)]
+pub(crate) struct WorthQueryLineageBoundOperationPhase;
+#[derive(Debug)]
+pub(crate) struct WorthQueryPersistentNamingPhase;
+#[derive(Debug)]
+pub(crate) struct WorthQueryPromotionOnReferencePhase;
 
 impl PhaseMarker for WorthQueryBoundOperationPhase {}
 impl PhaseMarker for WorthQueryExecutedOperationPhase {}
@@ -44,6 +52,10 @@ impl PhaseMarker for WorthQueryWorkflowRunPhase {}
 impl PhaseMarker for WorthQueryWorkflowStagePhase {}
 impl PhaseMarker for WorthQueryCompletedWorkflowPhase {}
 impl PhaseMarker for WorthQueryConditionalReentryPhase {}
+impl PhaseMarker for WorthQueryDiscardedProvisionalPhase {}
+impl PhaseMarker for WorthQueryLineageBoundOperationPhase {}
+impl PhaseMarker for WorthQueryPersistentNamingPhase {}
+impl PhaseMarker for WorthQueryPromotionOnReferencePhase {}
 
 #[derive(Debug)]
 pub(crate) struct WorthQueryOperationPhaseAnchor {

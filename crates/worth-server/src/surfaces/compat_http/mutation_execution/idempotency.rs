@@ -69,13 +69,13 @@ impl WorthServerIdempotencyKey {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthServerIdempotentReplayReceipt {
+pub enum WorthServerIdempotentRetryReceipt {
     Authoritative {
         idempotency_key: String,
         request_digest: String,
         canonical_digest: String,
     },
-    Replayed {
+    PreviouslyCompleted {
         idempotency_key: String,
         request_digest: String,
         authoritative_mutation_digest: String,
@@ -83,30 +83,30 @@ pub enum WorthServerIdempotentReplayReceipt {
     },
 }
 
-impl WorthServerIdempotentReplayReceipt {
+impl WorthServerIdempotentRetryReceipt {
     pub(crate) fn authoritative(key: &WorthServerIdempotencyKey, request_digest: &str) -> Self {
         Self::Authoritative {
             idempotency_key: key.value().to_string(),
             request_digest: request_digest.to_string(),
             canonical_digest: format!(
-                "compat-http-idempotent-replay-v1|class=authoritative|key:{}|request:{}",
+                "compat-http-idempotent-retry-v1|class=executed|key:{}|request:{}",
                 key.canonical_digest(),
                 request_digest,
             ),
         }
     }
 
-    pub(crate) fn replayed(
+    pub(crate) fn previously_completed(
         key: &WorthServerIdempotencyKey,
         request_digest: &str,
         authoritative_mutation_digest: &str,
     ) -> Self {
-        Self::Replayed {
+        Self::PreviouslyCompleted {
             idempotency_key: key.value().to_string(),
             request_digest: request_digest.to_string(),
             authoritative_mutation_digest: authoritative_mutation_digest.to_string(),
             canonical_digest: format!(
-                "compat-http-idempotent-replay-v1|class=replayed|key:{}|request:{}|authoritative:{}",
+                "compat-http-idempotent-retry-v1|class=previously-completed|key:{}|request:{}|authoritative:{}",
                 key.canonical_digest(),
                 request_digest,
                 authoritative_mutation_digest,
@@ -119,14 +119,14 @@ impl WorthServerIdempotentReplayReceipt {
             Self::Authoritative {
                 canonical_digest, ..
             }
-            | Self::Replayed {
+            | Self::PreviouslyCompleted {
                 canonical_digest, ..
             } => canonical_digest,
         }
     }
 
-    pub fn is_replayed(&self) -> bool {
-        matches!(self, Self::Replayed { .. })
+    pub fn is_previously_completed(&self) -> bool {
+        matches!(self, Self::PreviouslyCompleted { .. })
     }
 }
 

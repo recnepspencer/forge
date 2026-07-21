@@ -48,7 +48,7 @@ fn compat_http_streaming_matches_buffered_read_on_canonical_artifacts() {
     assert_eq!(streamed_bytes, export.payload_bytes());
     assert_eq!(
         String::from_utf8(export.payload_bytes().to_vec()).expect("payload should be utf-8 json"),
-        r#"[{"identity":{"id":"user-1"},"profile":{"display_name":"Ada WORTH"}}]"#
+        r#"[{"identity":{"id":"user-1"},"profile":{"display_name":"Ada Worth"}}]"#
     );
     assert_export_counters(
         &export,

@@ -12,24 +12,9 @@ use super::{
 
 pub(super) fn semantic_response(outcome: WorthServerRouteExecutionOutcome) -> Response {
     match outcome {
-        WorthServerRouteExecutionOutcome::ProductOperation(operation) => response_with_headers(
-            Json(json!({
-                "route_kind": "product_operation",
-                "operation_name": operation.envelope().operation_name(),
-                "envelope_kind": format!("{:?}", operation.envelope().kind()),
-                "canonical_digest": operation.envelope().canonical_digest(),
-                "plan_digest": operation.plan().map(|plan| plan.canonical_digest()),
-            })),
-            semantic_headers(
-                "product_operation",
-                Some(operation.envelope().operation_name()),
-                operation.plan().map(|plan| plan.canonical_digest()),
-                Some(operation.envelope().canonical_digest()),
-                operation
-                    .scheduler_admission()
-                    .map(|admission| admission.scheduler_lane()),
-            ),
-        ),
+        WorthServerRouteExecutionOutcome::ProductOperation(operation) => {
+            product_operation_response(*operation)
+        }
         WorthServerRouteExecutionOutcome::ProductSession(coordination) => response_with_headers(
             Json(json!({
                 "route_kind": "product_session",
@@ -49,6 +34,55 @@ pub(super) fn semantic_response(outcome: WorthServerRouteExecutionOutcome) -> Re
             operational_headers("operational"),
         ),
     }
+}
+
+fn product_operation_response(operation: crate::WorthServerCompletedProductOperation) -> Response {
+    let result = match operation.outcome() {
+        crate::WorthServerProductOperationOutcome::Success(success) => {
+            let artifact = success.result_artifact();
+            Some(json!({
+                "result_key": success.result_key(),
+                "schema_identity": artifact.contract().schema().identity(),
+                "schema_version": artifact.contract().schema().version(),
+                "encoding": artifact.contract().encoding().as_str(),
+                "canonicalization": artifact.contract().canonicalization().as_str(),
+                "body": artifact.body().value(),
+                "body_digest": artifact.body_digest(),
+                "artifact_digest": artifact.artifact_digest(),
+            }))
+        }
+        crate::WorthServerProductOperationOutcome::Denied(_)
+        | crate::WorthServerProductOperationOutcome::Failed(_) => None,
+    };
+    let durable_completion = operation.durable_mutation_receipt().map(|receipt| {
+        json!({
+            "disposition": receipt.disposition().as_str(),
+            "request_digest": receipt.request_digest(),
+            "completion_digest": receipt.completion_digest(),
+            "next_basis": receipt.next_basis().value(),
+            "product_commit_digest": receipt.product_commit_digest(),
+        })
+    });
+    response_with_headers(
+        Json(json!({
+            "route_kind": "product_operation",
+            "operation_name": operation.envelope().operation_name(),
+            "envelope_kind": format!("{:?}", operation.envelope().kind()),
+            "canonical_digest": operation.envelope().canonical_digest(),
+            "plan_digest": operation.plan().map(|plan| plan.canonical_digest()),
+            "result": result,
+            "durable_completion": durable_completion,
+        })),
+        semantic_headers(
+            "product_operation",
+            Some(operation.envelope().operation_name()),
+            operation.plan().map(|plan| plan.canonical_digest()),
+            Some(operation.envelope().canonical_digest()),
+            operation
+                .scheduler_admission()
+                .map(|admission| admission.scheduler_lane()),
+        ),
+    )
 }
 
 pub(super) fn operational_response(
@@ -100,10 +134,10 @@ fn semantic_headers(
     scheduler_lane: Option<&str>,
 ) -> HeaderMap {
     let mut headers = base_headers(route_kind, true);
-    insert_optional_header(&mut headers, "x-WORTH-operation-name", operation_name);
-    insert_optional_header(&mut headers, "x-WORTH-plan-digest", plan_digest);
-    insert_optional_header(&mut headers, "x-WORTH-envelope-digest", envelope_digest);
-    insert_optional_header(&mut headers, "x-WORTH-scheduler-lane", scheduler_lane);
+    insert_optional_header(&mut headers, "x-Worth-operation-name", operation_name);
+    insert_optional_header(&mut headers, "x-Worth-plan-digest", plan_digest);
+    insert_optional_header(&mut headers, "x-Worth-envelope-digest", envelope_digest);
+    insert_optional_header(&mut headers, "x-Worth-scheduler-lane", scheduler_lane);
     headers
 }
 
@@ -115,7 +149,7 @@ fn transport_denial_headers(code: WorthServerTransportDenialCode) -> HeaderMap {
     let mut headers = base_headers("transport_denial", false);
     insert_header(
         &mut headers,
-        "x-WORTH-transport-denial-code",
+        "x-Worth-transport-denial-code",
         &format!("{code:?}"),
     );
     headers
@@ -123,10 +157,10 @@ fn transport_denial_headers(code: WorthServerTransportDenialCode) -> HeaderMap {
 
 fn base_headers(route_kind: &str, entered_semantic_runtime: bool) -> HeaderMap {
     let mut headers = HeaderMap::new();
-    insert_header(&mut headers, "x-WORTH-route-kind", route_kind);
+    insert_header(&mut headers, "x-Worth-route-kind", route_kind);
     insert_header(
         &mut headers,
-        "x-WORTH-semantic-runtime-entered",
+        "x-Worth-semantic-runtime-entered",
         if entered_semantic_runtime {
             "true"
         } else {

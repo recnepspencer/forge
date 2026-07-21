@@ -290,6 +290,10 @@ path = "cad/workspaces/worth-contracts/crates/worth-schema-core"
 package = "worth-schema-core"
 
 [[born_crates]]
+path = "cad/workspaces/worth-contracts/crates/worth-schema-graph"
+package = "worth-schema-graph"
+
+[[born_crates]]
 path = "cad/workspaces/worth-packs/crates/worth-pack-registry"
 package = "worth-pack-registry"
 
@@ -313,6 +317,20 @@ allowed_entries = [
   "src/naming.rs",
   "src/tolerance.rs",
   "src/units.rs",
+]
+
+[[seed_skeletons]]
+path = "cad/workspaces/worth-contracts/crates/worth-schema-graph"
+package = "worth-schema-graph"
+lib_rs = "src/lib.rs"
+facade_rs = "src/facade.rs"
+allowed_entries = [
+  "AGENT_CONTEXT.md",
+  "Cargo.toml",
+  "src",
+  "src/facade.rs",
+  "src/lib.rs",
+  "src/promotion.rs",
 ]
 
 [[seed_skeletons]]

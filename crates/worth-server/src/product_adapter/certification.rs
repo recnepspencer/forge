@@ -8,6 +8,8 @@ pub enum WorthServerProductAdapterCertificationCode {
     MissingErrorMap,
     BlankDraftScope,
     BlankCoordinationLane,
+    MissingDurableMutationExecutor,
+    IncompatibleDurableMutationCapability,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

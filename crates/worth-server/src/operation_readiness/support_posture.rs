@@ -72,6 +72,9 @@ fn product_support_label(authority_metadata: &WorthServerOperationAuthorityMetad
         WorthServerOperationAuthorityMetadata::ProductDraftMutation { draft_scope, .. } => {
             format!("product-draft-mutation:{draft_scope}")
         }
+        WorthServerOperationAuthorityMetadata::DurableProductMutation {
+            authority_scope, ..
+        } => format!("durable-product-mutation:{authority_scope}"),
         WorthServerOperationAuthorityMetadata::ProductSessionCoordination {
             coordination_lane,
             ..

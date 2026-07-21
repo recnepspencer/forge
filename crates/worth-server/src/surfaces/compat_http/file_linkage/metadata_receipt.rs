@@ -45,22 +45,34 @@ pub struct WorthServerFileMetadataReceipt {
     canonical_digest: String,
 }
 
+pub(crate) struct WorthServerFileMetadataReceiptParts {
+    pub(crate) tenant_id: String,
+    pub(crate) workspace_digest: String,
+    pub(crate) branch_digest: String,
+    pub(crate) operation_name: String,
+    pub(crate) truth_kind: WorthServerFileMetadataTruthKind,
+    pub(crate) truth_digest: String,
+    pub(crate) basis_digest: Option<String>,
+    pub(crate) provenance: FoundationalBoundaryEvidenceProvenanceArtifact,
+}
+
 impl WorthServerFileMetadataReceipt {
-    pub(crate) fn new(
-        tenant_id: impl Into<String>,
-        workspace_digest: impl Into<String>,
-        branch_digest: impl Into<String>,
-        operation_name: impl Into<String>,
-        truth_kind: WorthServerFileMetadataTruthKind,
-        truth_digest: impl Into<String>,
-        basis_digest: Option<String>,
-        provenance: FoundationalBoundaryEvidenceProvenanceArtifact,
-    ) -> Self {
-        let tenant_id = tenant_id.into().trim().to_string();
-        let workspace_digest = workspace_digest.into().trim().to_string();
-        let branch_digest = branch_digest.into().trim().to_string();
-        let operation_name = operation_name.into().trim().to_string();
-        let truth_digest = truth_digest.into().trim().to_string();
+    pub(crate) fn new(parts: WorthServerFileMetadataReceiptParts) -> Self {
+        let WorthServerFileMetadataReceiptParts {
+            tenant_id,
+            workspace_digest,
+            branch_digest,
+            operation_name,
+            truth_kind,
+            truth_digest,
+            basis_digest,
+            provenance,
+        } = parts;
+        let tenant_id = tenant_id.trim().to_string();
+        let workspace_digest = workspace_digest.trim().to_string();
+        let branch_digest = branch_digest.trim().to_string();
+        let operation_name = operation_name.trim().to_string();
+        let truth_digest = truth_digest.trim().to_string();
         let metadata_identity = format!(
             "worth-server-file-metadata-identity-v1|tenant={tenant_id}|workspace={workspace_digest}|branch={branch_digest}|operation={operation_name}"
         );

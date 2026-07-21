@@ -22,12 +22,14 @@ pub(crate) use inventory::{
     WorthServerQueryDependencyCoveredPath,
 };
 pub use path_kind::WorthServerQueryDependencyAuditPathKind;
+pub(crate) use provenance::WorthServerQueryDependencySupportPinProvenanceParts;
 pub use provenance::{
     WorthServerQueryDependencyAuditProvenance, WorthServerQueryDependencyBoundaryAuditProvenance,
     WorthServerQueryDependencySupportPinProvenance,
     WorthServerQueryDependencyTestBackendResidueProvenance,
 };
 pub use receipt::{WorthServerQueryDependencyAudit, WorthServerQueryDependencyAuditReceipt};
+pub(crate) use row::WorthServerQueryDependencyAuditRowParts;
 pub use row::{WorthServerQueryDependencyAuditRow, WorthServerQueryDependencyAuditRowId};
 pub use runtime_readiness::WorthServerQueryDependencyRuntimeReadiness;
 pub use scope_posture::WorthServerQueryDependencyScopePosture;

@@ -5,6 +5,7 @@ mod evidence;
 mod execution;
 mod families;
 mod inspector;
+mod installed;
 mod metadata;
 mod performance;
 mod replay;
@@ -38,6 +39,11 @@ pub use families::{
 };
 pub use inspector::{
     InspectorIdentityArtifact, InspectorIdentityClassification, InspectorIdentityDigest,
+};
+pub(crate) use installed::InstalledIdentityEvolutionBinding;
+pub use installed::{
+    InstalledIdentityEvolutionKind, InstalledIdentityEvolutionOutcome,
+    WorthQueryFoundationalLineageAttachment,
 };
 pub use metadata::{
     BranchLocalityClass, IdentityEvolutionComplexityReport, IdentityEvolutionMetadata,

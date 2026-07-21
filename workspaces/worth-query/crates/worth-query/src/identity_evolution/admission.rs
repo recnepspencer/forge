@@ -258,7 +258,9 @@ fn admit_comparison(
     comparison: CorrespondenceIdentityComparison,
     synthetic_scenario: IdentityEvolutionSyntheticScenario,
 ) -> Result<AdmittedIdentityEvolutionQuery, IdentityEvolutionAdmissionError> {
-    if left_basis_digest == right_basis_digest {
+    if left_basis_digest == right_basis_digest
+        && basis_family != IdentityEvolutionComparisonBasisFamily::InstalledOperation
+    {
         return Err(IdentityEvolutionAdmissionError::new(
             IdentityEvolutionAdmissionFailureClass::ComparisonBasisPairingRequired,
             "comparison admission requires two distinct admitted bases",
@@ -301,6 +303,8 @@ fn cost_class_for_lineage(family: LineageTraversalFamily) -> IdentityEvolutionCo
         | LineageTraversalFamily::DirectReplacement
         | LineageTraversalFamily::DirectSplitSuccessors
         | LineageTraversalFamily::DirectMergeSuccessor
+        | LineageTraversalFamily::GeneratedIdentity
+        | LineageTraversalFamily::RetiredIdentity
         | LineageTraversalFamily::BranchLocalDirectEvolution => {
             IdentityEvolutionCostClass::ConstantDirectLookup
         }

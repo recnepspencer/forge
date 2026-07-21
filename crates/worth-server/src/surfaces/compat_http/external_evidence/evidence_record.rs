@@ -22,7 +22,7 @@ impl WorthServerExternalEvidenceRecord {
         response: WorthServerResponseEnvelope,
         facade: &WorthServerOperatorEvidenceFacade,
     ) -> Result<Self, WorthServerOperatorEvidenceMaterializationError> {
-        Self::project(surface_label, response, &facade)
+        Self::project(surface_label, response, facade)
     }
 
     pub(crate) fn project(

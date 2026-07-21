@@ -50,6 +50,7 @@ worth-query = { path = "workspaces/worth-query/crates/worth-query" }
 worth-query-decl = { path = "workspaces/worth-query/crates/worth-query-decl" }
 worth-query-host = { path = "workspaces/worth-query/crates/worth-query-host" }
 worth-query-replay = { path = "workspaces/worth-query/crates/worth-query-replay" }
+worth-schema-graph = { path = "cad/workspaces/worth-contracts/crates/worth-schema-graph" }
 worth-foundational = { path = "crates/worth-foundational" }
 worth-proof = { path = "crates/worth-proof" }
 worth-signal = { path = "crates/worth-signal" }

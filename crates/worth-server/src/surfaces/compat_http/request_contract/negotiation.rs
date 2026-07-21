@@ -83,7 +83,7 @@ fn negotiate_version(
 ) -> Result<WorthServerCompatibilityVersion, WorthServerCompatibilityDenial> {
     let version_values = canonical_request
         .canonical_headers()
-        .values("x-WORTH-api-version")
+        .values("x-Worth-api-version")
         .unwrap_or(&[]);
     if version_values.is_empty() {
         return Ok(WorthServerCompatibilityVersion::V1);

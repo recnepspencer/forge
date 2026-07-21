@@ -1,4 +1,5 @@
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
+use crate::evidence_identity::{WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 use crate::identity::BasisDigest;
 
 use super::{BasisResolutionMode, ExecutionBasisIntent, ResolvedSnapshotIdentity};
@@ -39,6 +40,24 @@ impl ResolvedBasisProof {
             resolution_mode,
             reporting_label: None,
         }
+    }
+
+    pub(crate) fn from_installed_operation(
+        operation_identity: &str,
+        basis_capability_identity: &str,
+    ) -> Self {
+        let identity =
+            WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::InstalledDomainExecution)
+                .field_value(
+                    WorthQueryEvidenceTag::new("installed_operation_identity"),
+                    operation_identity,
+                )
+                .field_value(
+                    WorthQueryEvidenceTag::new("basis_capability_identity"),
+                    basis_capability_identity,
+                )
+                .seal();
+        Self::new(identity, BasisResolutionMode::RuntimeDirect)
     }
 
     #[cfg(test)]

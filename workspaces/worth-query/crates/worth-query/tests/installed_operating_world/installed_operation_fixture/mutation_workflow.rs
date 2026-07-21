@@ -221,7 +221,10 @@ pub fn mixed_mutation_workflow_runtime<G: 'static>(
     semantics.invariants = domain::WorthQueryOperationInvariantContract::NotRequired;
     semantics.reversal = if compensated {
         domain::WorthQueryOperationReversalContract::Compensation {
-            operation: "compensate-mixed-workflow-mutation".into(),
+            operation: domain::WorthQueryDomainOperationIdentity::new(
+                "compensate-mixed-workflow-mutation",
+                1,
+            ),
         }
     } else {
         domain::WorthQueryOperationReversalContract::Irreversible

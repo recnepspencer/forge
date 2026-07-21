@@ -27,3 +27,7 @@ dependencies = ["worth-query"]
 [[packages]]
 package = "worth-schema-core"
 dependencies = []
+
+[[packages]]
+package = "worth-schema-graph"
+dependencies = []

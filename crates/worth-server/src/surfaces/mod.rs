@@ -51,7 +51,7 @@ pub use compat_http::{
     WorthServerExternalEvidenceRecord, WorthServerExternalRequestContract,
     WorthServerFileMetadataReceipt, WorthServerFileMetadataTruthKind,
     WorthServerFileTransferDisposition, WorthServerFileTransferProvenance,
-    WorthServerIdempotencyKey, WorthServerIdempotentReplayReceipt,
+    WorthServerIdempotencyKey, WorthServerIdempotentRetryReceipt,
     WorthServerIngressIntegrityDigest, WorthServerIngressPerformanceReceipt,
     WorthServerMetadataNormalizationReceipt, WorthServerMultipartUpload,
     WorthServerMutationPrecondition, WorthServerNegotiatedRepresentation,

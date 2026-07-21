@@ -51,9 +51,9 @@ pub(crate) fn admit_session_for_product_operation(
     session: Option<&WorthServerProductSession>,
     request: &WorthServerOperationRequest,
     basis_kind: WorthServerProductOperationBasisKind,
+    requires_mutation_session: bool,
 ) -> Result<(), WorthServerProductSessionDenial> {
-    let requires_session = request.identity().operation_family()
-        == WorthServerOperationFamily::ProductApplicationMutation
+    let requires_session = requires_mutation_session
         || basis_kind == WorthServerProductOperationBasisKind::ProductSessionDerived;
     if !requires_session {
         return Ok(());

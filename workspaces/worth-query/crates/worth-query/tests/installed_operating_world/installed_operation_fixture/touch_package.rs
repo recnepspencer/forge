@@ -42,7 +42,10 @@ pub fn federated_touch_package<G1: 'static, G2: 'static>(
     };
     if compensated {
         semantics.reversal = domain::WorthQueryOperationReversalContract::Compensation {
-            operation: "compensate-federated-touch".into(),
+            operation: domain::WorthQueryDomainOperationIdentity::new(
+                "compensate-federated-touch",
+                1,
+            ),
         };
     }
     semantics.cost.execution = domain::WorthQueryOperationCostClass::ExternalBoundary;

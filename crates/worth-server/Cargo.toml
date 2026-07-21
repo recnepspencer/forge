@@ -3,8 +3,8 @@ name = "worth-server"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Typed server facade and transport boundary for WORTH."
-repository = "https://github.com/recnepspencer/WORTH"
+description = "Typed server facade and transport boundary for Worth."
+repository = "https://github.com/recnepspencer/Worth"
 keywords = ["server", "facade", "axum", "typed"]
 categories = ["network-programming", "web-programming"]
 

@@ -455,6 +455,52 @@ making product-specific semantics part of `worth-server`.
   through the product adapter without product-specific semantics inside
   `worth-server`
 
+### Milestone 4.1: Canonical Product Results And Durable Product Mutation Join
+
+Spec: [milestone-4.1.md](./milestone-4.1.md)
+
+### Goal
+
+Replace product success keys and adapter-authored digests with canonical,
+schema-bearing result artifacts, then add the product-owned atomic mutation and
+completion join required by durable product truth.
+
+### Vision Coverage
+
+- product-application operation boundary for WORTH-native apps
+- mutation architecture foundation
+- self-describing compatibility responses
+- durable product authority without server-owned product truth
+
+### Must Ship
+
+- mandatory output schema, encoding, canonicalization, and size contracts
+- canonical result bodies and server-computed result artifact digests
+- durable product mutation authority distinct from product draft mutation
+- product-owned atomic basis, idempotency, mutation, next-basis, result, and
+  completion persistence
+- typed retry and indeterminate recovery conclusions
+- WORTH-native and compatibility HTTP result-artifact parity
+- product-shaped host-connection, manifest-admission, and deployment pressure
+
+### Must Preserve
+
+- product persistence remains authoritative for current basis and durable truth
+- Worth Server remains the admission, planning, scheduling, envelope,
+  diagnostics, and transport owner
+- product sessions do not become durable storage claims
+- ordinary retry does not become cert replay
+
+### Acceptance Evidence
+
+- adapter-supplied result digests and durable use of process-local retry state
+  are absent
+- fresh-runtime retry resolves one original canonical completion without a
+  second product mutation
+- stale basis and conflicting idempotency bindings perform zero mutation
+- direct and HTTP surfaces expose identical schema, body, and artifact digests
+- independent durable product scopes do not inherit a global mutation lock
+
 ### Milestone 5: Runtime-Backed Lease Registry And Server-Managed Subscription Foundation
 
 ### Goal
@@ -711,7 +757,8 @@ runtime rather than a thin transport shell around lower writes.
 ### Must Ship
 
 - schema-validated mutation admission at the server boundary
-- provenance-bearing mutation result envelopes
+- provenance-bearing mutation result envelopes derived from Milestone 4.1
+  canonical product result artifacts
 - branch-aware optimistic mutation flow over Query and Relational semantics
 - confirmation and rejection surfaces that preserve rollback and explanation
   truth
@@ -720,6 +767,8 @@ runtime rather than a thin transport shell around lower writes.
 
 ### Must Preserve
 
+- Milestone 4.1 remains the durable product mutation and canonical result
+  foundation; this milestone does not create a parallel transaction lane
 - optimistic mutation does not invent transport-local conflict folklore
 - mutation results preserve typed validation, denial, and provenance posture
 - branch-aware optimism remains a projection of runtime semantics, not a second
@@ -929,21 +978,21 @@ cluster, reconnect, load, policy, and topology pressure.
 ### Direct Milestone Mapping
 
 - request and session front door: Milestone 1
-- WORTH-native app facade: Milestones 2 and 4
+- WORTH-native app facade: Milestones 2, 4, and 4.1
 - HTTP surface architecture: Milestone 3
 - binary and asset architecture: Milestone 3
 - lease and subscription architecture: Milestones 5 and 6
 - sync protocol architecture: Milestone 6
 - authentication, authorization, and remask: Milestones 1 and 7
 - regulated deployment architecture: Milestone 8
-- branch-aware delivery architecture: Milestones 4 and 7
-- observability and provenance: Milestones 1, 4, 8, 10, and 14
+- branch-aware delivery architecture: Milestones 4, 4.1, and 7
+- observability and provenance: Milestones 1, 4, 4.1, 8, 10, and 14
 - view-specific delivery architecture: Milestone 9
-- mutation architecture: Milestones 4 and 10
+- mutation architecture: Milestones 4, 4.1, and 10
 - zero-trust and cryptography: Milestone 13
 - integration and extensibility architecture: Milestone 11
 - distributed scalability architecture: Milestone 14
-- multi-tenant architecture: Milestones 1, 4, and 7
+- multi-tenant architecture: Milestones 1, 4, 4.1, and 7
 - runtime-backed now versus durable later split: Milestones 5, 6, and 12
 
 ### Explicit Vision Capability Mapping
@@ -951,6 +1000,8 @@ cluster, reconnect, load, policy, and topology pressure.
 - Query-first server entry: Milestones 1, 2, 3, and 4
 - direct WORTH-native consumption instead of endpoint glue: Milestones 2 and 4
 - product-application operation runtime: Milestone 4
+- canonical product result publication: Milestone 4.1
+- durable product mutation join: Milestone 4.1
 - Query 9.7 concurrency consumption: Milestone 4
 - Query 9.8 consumer-kit consumption: Milestone 4
 - operation-declared route assembly: Milestone 4

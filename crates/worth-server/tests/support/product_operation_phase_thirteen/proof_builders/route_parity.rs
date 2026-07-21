@@ -174,7 +174,7 @@ fn headers() -> &'static [(&'static str, &'static str)] {
     ]
 }
 
-fn mutation_headers<'a>(session_identity: &'a str) -> [(&'a str, &'a str); 5] {
+fn mutation_headers(session_identity: &str) -> [(&str, &str); 5] {
     [
         ("x-principal-id", "principal-7"),
         ("x-tenant-id", "tenant-a"),

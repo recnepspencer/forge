@@ -24,6 +24,10 @@ Host code may:
 - obtain a workspace and installed domain handle
 - bind through `workspace.operating_world(...)`
 - execute the move-only operation or workflow progression
+- run ordinary installed workflow re-execution
+- admit and execute installed exact-inverse or compensation aftermath
+- inspect trace-bound lineage and request sparse promotion from an exact
+  carrying publication
 
 Host code must not:
 
@@ -32,9 +36,14 @@ Host code must not:
 - expose raw Signal node/aspect allocation as domain authoring
 - reconstruct Query authority from receipts or digests
 - import cert-only replay through the host facade
+- construct lineage outcomes or promoted graph identities from raw identities,
+  report rows, or digests
 
 ## Related Docs
 
 - [Worth Query Orientation](../worth-query/docs/AI_README.md)
 - [Runtime-Installed Domains And Operations](../worth-query/docs/domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](../worth-query/docs/domain-capabilities/conditional-installed-operations.md)
+- [Installed Operation Re-Execution And Replay](../worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
+- [Installed Operation Aftermath](../worth-query/docs/domain-capabilities/installed-operation-aftermath.md)
+- [Installed Operation Lineage And Promotion](../worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)

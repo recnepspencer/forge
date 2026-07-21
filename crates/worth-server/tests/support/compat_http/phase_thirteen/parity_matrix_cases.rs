@@ -235,9 +235,10 @@ fn compat_http_phase_thirteen_cross_surface_parity_matrix_stays_narrow_and_retry
     let (counting_server, attempted_writes) = phase_thirteen_counting_server();
     let (direct_mutation, compat_mutation) =
         direct_and_compat_mutation(&counting_server, "phase-thirteen-cross-surface");
-    let replay = idempotent_mutation(&counting_server, "phase-thirteen-replay", "phase-13-idem");
-    let replay_again =
-        idempotent_mutation(&counting_server, "phase-thirteen-replay", "phase-13-idem");
+    let first_retry_attempt =
+        idempotent_mutation(&counting_server, "phase-thirteen-retry", "phase-13-idem");
+    let resolved_retry =
+        idempotent_mutation(&counting_server, "phase-thirteen-retry", "phase-13-idem");
 
     let direct_mutation_bundle = WorthServerPhaseThirteenBundle::new()
         .with_digest(
@@ -272,40 +273,21 @@ fn compat_http_phase_thirteen_cross_surface_parity_matrix_stays_narrow_and_retry
                 compat_mutation.envelope().direct_context().provenance(),
             ),
         );
-    let replay_bundle = WorthServerPhaseThirteenBundle::new()
+    let first_retry_bundle = WorthServerPhaseThirteenBundle::new()
         .with_digest(
             MUTATION_RESULT_DIGEST,
-            replay.mutation_result().result_digest(),
+            first_retry_attempt.mutation_result().result_digest(),
         )
         .with_digest(
             RESPONSE_DIGEST,
-            replay.envelope().response_envelope().canonical_digest(),
-        )
-        .with_digest(
-            SUPPORT_POSTURE_DIGEST,
-            replay.envelope().direct_context().support_posture_digest(),
-        )
-        .with_digest(
-            PROVENANCE_DIGEST,
-            worth_native_assertions::direct_provenance_digest(
-                replay.envelope().direct_context().provenance(),
-            ),
-        );
-    let replay_again_bundle = WorthServerPhaseThirteenBundle::new()
-        .with_digest(
-            MUTATION_RESULT_DIGEST,
-            replay_again.mutation_result().result_digest(),
-        )
-        .with_digest(
-            RESPONSE_DIGEST,
-            replay_again
+            first_retry_attempt
                 .envelope()
                 .response_envelope()
                 .canonical_digest(),
         )
         .with_digest(
             SUPPORT_POSTURE_DIGEST,
-            replay_again
+            first_retry_attempt
                 .envelope()
                 .direct_context()
                 .support_posture_digest(),
@@ -313,7 +295,32 @@ fn compat_http_phase_thirteen_cross_surface_parity_matrix_stays_narrow_and_retry
         .with_digest(
             PROVENANCE_DIGEST,
             worth_native_assertions::direct_provenance_digest(
-                replay_again.envelope().direct_context().provenance(),
+                first_retry_attempt.envelope().direct_context().provenance(),
+            ),
+        );
+    let resolved_retry_bundle = WorthServerPhaseThirteenBundle::new()
+        .with_digest(
+            MUTATION_RESULT_DIGEST,
+            resolved_retry.mutation_result().result_digest(),
+        )
+        .with_digest(
+            RESPONSE_DIGEST,
+            resolved_retry
+                .envelope()
+                .response_envelope()
+                .canonical_digest(),
+        )
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            resolved_retry
+                .envelope()
+                .direct_context()
+                .support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            worth_native_assertions::direct_provenance_digest(
+                resolved_retry.envelope().direct_context().provenance(),
             ),
         );
 
@@ -328,8 +335,8 @@ fn compat_http_phase_thirteen_cross_surface_parity_matrix_stays_narrow_and_retry
         &[SUPPORT_POSTURE_DIGEST],
     );
     assert_bundle_digests_equal(
-        &replay_bundle,
-        &replay_again_bundle,
+        &first_retry_bundle,
+        &resolved_retry_bundle,
         &[
             MUTATION_RESULT_DIGEST,
             RESPONSE_DIGEST,
@@ -337,8 +344,14 @@ fn compat_http_phase_thirteen_cross_surface_parity_matrix_stays_narrow_and_retry
             PROVENANCE_DIGEST,
         ],
     );
-    assert!(!replay.envelope().replay_receipt().is_replayed());
-    assert!(replay_again.envelope().replay_receipt().is_replayed());
+    assert!(!first_retry_attempt
+        .envelope()
+        .retry_receipt()
+        .is_previously_completed());
+    assert!(resolved_retry
+        .envelope()
+        .retry_receipt()
+        .is_previously_completed());
     assert_eq!(
         attempted_writes.load(Ordering::Relaxed),
         3,

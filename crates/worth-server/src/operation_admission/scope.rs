@@ -15,6 +15,11 @@ pub enum WorthServerOperationScope {
         product_session_identity: String,
         draft_scope: String,
     },
+    DurableProductAuthority {
+        tenant_id: String,
+        workspace_id: String,
+        authority_scope: String,
+    },
     SyncLease {
         tenant_id: String,
         workspace_id: String,
@@ -71,38 +76,79 @@ impl WorthServerOperationScope {
         }
     }
 
+    pub(crate) fn durable_product_authority(
+        tenant_id: impl Into<String>,
+        workspace_id: impl Into<String>,
+        authority_scope: impl Into<String>,
+    ) -> Self {
+        Self::DurableProductAuthority {
+            tenant_id: tenant_id.into(),
+            workspace_id: workspace_id.into(),
+            authority_scope: authority_scope.into(),
+        }
+    }
+
     pub(crate) fn canonical_digest(&self) -> String {
-        match self {
+        let digest = match self {
             Self::Workspace {
                 tenant_id,
                 workspace_id,
-            } => format!(
-                "worth-server-operation-scope-v1|kind=workspace|tenant={tenant_id}|workspace={workspace_id}"
-            ),
+            } => crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+                "worth-server-operation-scope-v2",
+            )
+            .field("kind", "workspace")
+            .field("tenant", tenant_id)
+            .field("workspace", workspace_id),
             Self::WorkspaceBranch {
                 tenant_id,
                 workspace_id,
                 branch_label,
-            } => format!(
-                "worth-server-operation-scope-v1|kind=workspace-branch|tenant={tenant_id}|workspace={workspace_id}|branch={branch_label}"
-            ),
+            } => crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+                "worth-server-operation-scope-v2",
+            )
+            .field("kind", "workspace-branch")
+            .field("tenant", tenant_id)
+            .field("workspace", workspace_id)
+            .field("branch", branch_label),
             Self::ProductDraft {
                 tenant_id,
                 workspace_id,
                 product_session_identity,
                 draft_scope,
-            } => format!(
-                "worth-server-operation-scope-v1|kind=product-draft|tenant={tenant_id}|workspace={workspace_id}|session={product_session_identity}|draft={draft_scope}"
-            ),
+            } => crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+                "worth-server-operation-scope-v2",
+            )
+            .field("kind", "product-draft")
+            .field("tenant", tenant_id)
+            .field("workspace", workspace_id)
+            .field("session", product_session_identity)
+            .field("draft", draft_scope),
+            Self::DurableProductAuthority {
+                tenant_id,
+                workspace_id,
+                authority_scope,
+            } => crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+                "worth-server-operation-scope-v2",
+            )
+            .field("kind", "durable-product-authority")
+            .field("tenant", tenant_id)
+            .field("workspace", workspace_id)
+            .field("scope", authority_scope),
             Self::SyncLease {
                 tenant_id,
                 workspace_id,
                 branch_label,
                 lease_target,
-            } => format!(
-                "worth-server-operation-scope-v1|kind=sync-lease|tenant={tenant_id}|workspace={workspace_id}|branch={branch_label}|target={lease_target}"
-            ),
-        }
+            } => crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+                "worth-server-operation-scope-v2",
+            )
+            .field("kind", "sync-lease")
+            .field("tenant", tenant_id)
+            .field("workspace", workspace_id)
+            .field("branch", branch_label)
+            .field("target", lease_target),
+        };
+        digest.finish()
     }
 
     pub(crate) fn breadth(&self) -> usize {
@@ -110,6 +156,7 @@ impl WorthServerOperationScope {
             Self::Workspace { .. } => 2,
             Self::WorkspaceBranch { .. } => 3,
             Self::ProductDraft { .. } | Self::SyncLease { .. } => 4,
+            Self::DurableProductAuthority { .. } => 3,
         }
     }
 }

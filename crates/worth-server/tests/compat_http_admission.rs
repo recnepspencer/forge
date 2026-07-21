@@ -1,3 +1,5 @@
+#[path = "support/compat_http/admission_failure_cases.rs"]
+mod compat_http_admission_failure_cases;
 #[path = "support/compat_http/admission_runtime.rs"]
 mod compat_http_admission_runtime;
 
@@ -26,7 +28,7 @@ fn compat_http_canonicalizes_equivalent_requests_to_the_same_digest() {
             .with_query_pair("view", "detail")
             .with_query_pair("page", "1")
             .with_header("accept", "application/json")
-            .with_header("x-WORTH-api-version", "1")
+            .with_header("x-Worth-api-version", "1")
             .build()
             .expect("left input should validate"),
     );
@@ -42,7 +44,7 @@ fn compat_http_canonicalizes_equivalent_requests_to_the_same_digest() {
             .with_query_pair("page", "1")
             .with_query_pair("view", "detail")
             .with_header("Accept", "application/json")
-            .with_header("X-WORTH-Api-Version", "1")
+            .with_header("X-Worth-Api-Version", "1")
             .build()
             .expect("right input should validate"),
     );
@@ -169,8 +171,8 @@ fn compat_http_denies_conflicting_api_version_headers_before_request_context_low
             .with_route_family(WorthServerCompatHttpRouteFamily::Read)
             .with_method("GET")
             .with_path("/v1/users/123")
-            .with_header("x-WORTH-api-version", "1")
-            .with_header("x-WORTH-api-version", "2")
+            .with_header("x-Worth-api-version", "1")
+            .with_header("x-Worth-api-version", "2")
             .build()
             .expect("input should validate"),
     );
@@ -349,73 +351,5 @@ fn compat_http_canonicalizes_repeated_query_keys_to_one_identity() {
     assert_eq!(
         left.request_contract().canonical_digest(),
         right.request_contract().canonical_digest()
-    );
-}
-
-#[test]
-fn compat_http_malformed_request_contract_denies_before_request_context_resolution() {
-    let denial = compat_http_denial(
-        &compat_http_admission_test_server(),
-        WorthServerCompatibilityRequestInput::builder()
-            .with_authenticated_principal_id("principal-7")
-            .with_tenant_id("tenant-a")
-            .with_workspace_id("workspace-42")
-            .with_preview_id("preview-9")
-            .with_route_family(WorthServerCompatHttpRouteFamily::Read)
-            .with_method("GET")
-            .with_path("users/123")
-            .build()
-            .expect("input should validate"),
-    );
-
-    assert_eq!(
-        denial.code(),
-        WorthServerCompatibilityDenialCode::InvalidPath
-    );
-}
-
-#[test]
-fn compat_http_denies_blank_query_key_before_request_context_resolution() {
-    let denial = compat_http_denial(
-        &compat_http_admission_test_server(),
-        WorthServerCompatibilityRequestInput::builder()
-            .with_authenticated_principal_id("principal-7")
-            .with_tenant_id("tenant-a")
-            .with_workspace_id("workspace-42")
-            .with_preview_id("preview-9")
-            .with_route_family(WorthServerCompatHttpRouteFamily::Read)
-            .with_method("GET")
-            .with_path("/v1/users/123")
-            .with_query_pair("   ", "value")
-            .build()
-            .expect("input should validate"),
-    );
-
-    assert_eq!(
-        denial.code(),
-        WorthServerCompatibilityDenialCode::InvalidQueryPair
-    );
-}
-
-#[test]
-fn compat_http_denies_unsupported_accept_before_request_context_resolution() {
-    let denial = compat_http_denial(
-        &compat_http_admission_test_server(),
-        WorthServerCompatibilityRequestInput::builder()
-            .with_authenticated_principal_id("principal-7")
-            .with_tenant_id("tenant-a")
-            .with_workspace_id("workspace-42")
-            .with_preview_id("preview-9")
-            .with_route_family(WorthServerCompatHttpRouteFamily::Read)
-            .with_method("GET")
-            .with_path("/v1/users/123")
-            .with_header("accept", "text/plain")
-            .build()
-            .expect("input should validate"),
-    );
-
-    assert_eq!(
-        denial.code(),
-        WorthServerCompatibilityDenialCode::UnsupportedRepresentation
     );
 }

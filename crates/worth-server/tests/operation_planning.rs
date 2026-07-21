@@ -31,10 +31,7 @@ use worth_native_runtime::server_with_request_context_default;
 
 #[test]
 fn equivalent_operation_requests_lower_to_identical_plans() {
-    let server = test_server(
-        query_handoff_runtime::TestWorkspaceProvider::default(),
-        false,
-    );
+    let server = test_server(query_handoff_runtime::TestWorkspaceProvider, false);
     let worth_native = server
         .operation_planner()
         .lower(WorthServerOperationPlannerInput::new(
@@ -50,7 +47,7 @@ fn equivalent_operation_requests_lower_to_identical_plans() {
             ),
             WorthServerQueryHandoffOperation::query_read("users.profile"),
         ))
-        .expect("WORTH-native plan should lower");
+        .expect("Worth-native plan should lower");
     let compat_http = server
         .operation_planner()
         .lower(WorthServerOperationPlannerInput::new(
@@ -84,14 +81,8 @@ fn equivalent_operation_requests_lower_to_identical_plans() {
 
 #[test]
 fn plan_identity_excludes_diagnostics_richness_but_includes_support_and_strategy() {
-    let standard_server = test_server(
-        query_handoff_runtime::TestWorkspaceProvider::default(),
-        false,
-    );
-    let forensic_server = test_server(
-        query_handoff_runtime::TestWorkspaceProvider::default(),
-        false,
-    );
+    let standard_server = test_server(query_handoff_runtime::TestWorkspaceProvider, false);
+    let forensic_server = test_server(query_handoff_runtime::TestWorkspaceProvider, false);
     let standard = standard_server
         .operation_planner()
         .lower(WorthServerOperationPlannerInput::new(
@@ -175,10 +166,7 @@ fn plan_identity_excludes_diagnostics_richness_but_includes_support_and_strategy
 
 #[test]
 fn plan_counters_explain_strategy_selection() {
-    let server = test_server(
-        query_handoff_runtime::TestWorkspaceProvider::default(),
-        false,
-    );
+    let server = test_server(query_handoff_runtime::TestWorkspaceProvider, false);
     let plan = server
         .operation_planner()
         .lower(WorthServerOperationPlannerInput::new(
@@ -207,10 +195,7 @@ fn plan_counters_explain_strategy_selection() {
 
 #[test]
 fn mutation_plan_counters_reflect_branch_scoped_authority() {
-    let server = test_server(
-        query_handoff_runtime::TestWorkspaceProvider::default(),
-        true,
-    );
+    let server = test_server(query_handoff_runtime::TestWorkspaceProvider, true);
     let plan = server
         .operation_planner()
         .lower(WorthServerOperationPlannerInput::new(

@@ -66,6 +66,20 @@ impl WorthServerOperationConcurrencyFacade {
                 )),
             );
         }
+        if left.authority_footprint().authority_kind()
+            == WorthServerOperationAuthorityKind::DurableProductMutation
+            && right.authority_footprint().authority_kind()
+                == WorthServerOperationAuthorityKind::DurableProductMutation
+            && left.authority_footprint().scope().canonical_digest()
+                == right.authority_footprint().scope().canonical_digest()
+        {
+            return Err(
+                WorthServerOperationConcurrencyDenial::conflicting_mutable_authority(format!(
+                    "durable product scope `{}` cannot admit concurrent mutable execution",
+                    left.authority_footprint().scope().canonical_digest()
+                )),
+            );
+        }
         Ok(WorthServerOperationConcurrencyClass::SerializeDeterministically)
     }
 }

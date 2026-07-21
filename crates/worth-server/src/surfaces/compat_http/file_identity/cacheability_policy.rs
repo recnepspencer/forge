@@ -62,8 +62,8 @@ impl WorthServerCacheabilityPolicy {
     ) -> Self {
         let vary = vec![
             "authorization".to_string(),
-            "x-WORTH-branch".to_string(),
-            "x-WORTH-diagnostics".to_string(),
+            "x-Worth-branch".to_string(),
+            "x-Worth-diagnostics".to_string(),
         ];
         let cache_control = "private, no-store".to_string();
         let provenance = build_provenance(surface_kind, metadata_identity, branch_digest);

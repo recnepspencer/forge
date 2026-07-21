@@ -2,7 +2,7 @@ use crate::{
     WorthServerDirectContextArtifact, WorthServerQuerySupportPosture, WorthServerResponseEnvelope,
 };
 
-use super::idempotency::WorthServerIdempotentReplayReceipt;
+use super::idempotency::WorthServerIdempotentRetryReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthServerCompatibilityMutationEnvelope {
@@ -11,7 +11,7 @@ pub struct WorthServerCompatibilityMutationEnvelope {
     handoff_digest: String,
     direct_context: WorthServerDirectContextArtifact,
     response_envelope: WorthServerResponseEnvelope,
-    replay_receipt: WorthServerIdempotentReplayReceipt,
+    retry_receipt: WorthServerIdempotentRetryReceipt,
     canonical_digest: String,
 }
 
@@ -22,13 +22,13 @@ impl WorthServerCompatibilityMutationEnvelope {
         handoff_digest: String,
         direct_context: WorthServerDirectContextArtifact,
         response_envelope: WorthServerResponseEnvelope,
-        replay_receipt: WorthServerIdempotentReplayReceipt,
+        retry_receipt: WorthServerIdempotentRetryReceipt,
     ) -> Self {
         let canonical_digest = format!(
-            "worth-server-compat-mutation-envelope-v1|handoff:{}|response:{}|replay:{}",
+            "worth-server-compat-mutation-envelope-v2|handoff:{}|response:{}|retry:{}",
             handoff_digest,
             response_envelope.canonical_digest(),
-            replay_receipt.canonical_digest(),
+            retry_receipt.canonical_digest(),
         );
         Self {
             support_posture,
@@ -36,7 +36,7 @@ impl WorthServerCompatibilityMutationEnvelope {
             handoff_digest,
             direct_context,
             response_envelope,
-            replay_receipt,
+            retry_receipt,
             canonical_digest,
         }
     }
@@ -61,8 +61,8 @@ impl WorthServerCompatibilityMutationEnvelope {
         &self.response_envelope
     }
 
-    pub fn replay_receipt(&self) -> &WorthServerIdempotentReplayReceipt {
-        &self.replay_receipt
+    pub fn retry_receipt(&self) -> &WorthServerIdempotentRetryReceipt {
+        &self.retry_receipt
     }
 
     pub fn canonical_digest(&self) -> &str {
