@@ -204,11 +204,13 @@ pub(crate) fn admit_naming_intent(
                     "naming attach-to-new-target requires an insert/update lane, not delete",
                 ));
             }
-            if command.symbolic_target_reference().is_none() {
+            if command.mutation_family() != WorthQueryMutationFamily::Insert
+                && command.symbolic_target_reference().is_none()
+            {
                 return Err(WorthQueryNamingMutationDenial::new(
                     intent,
                     WorthQueryNamingMutationDenialKind::RequiresSameBatchTargetReference,
-                    "naming attach-to-new-target requires a same-batch symbolic target reference",
+                    "naming attach-to-new-target requires either the directly inserted target or a same-batch symbolic target reference",
                 ));
             }
         }

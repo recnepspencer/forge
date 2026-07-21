@@ -1,6 +1,7 @@
 use worth_foundational::facade::AspectContract;
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, runtime};
+mod aftermath;
 mod conditional_workflow;
 pub(crate) mod conditional_workspace;
 mod correspondence_bridge;
@@ -8,6 +9,7 @@ mod count_vertices;
 mod executors;
 mod federated_package;
 mod foreign_material;
+mod lineage_workflow;
 mod mutation_workflow;
 mod operation_semantics;
 mod required_domains;
@@ -15,7 +17,13 @@ mod semantic_drift;
 mod touch_package;
 mod workflow;
 mod workflow_parallel_providers;
-pub use conditional_workflow::conditional_workflow_workspace;
+pub use aftermath::{
+    aftermath_workspace, provisional_workflow_workspace, AftermathCandidate, AftermathContract,
+    AftermathFamily, AftermathOriginal, ProvisionalWorkflow,
+};
+pub use conditional_workflow::{
+    conditional_workflow_workspace, reverted_conditional_lineage_workflow_workspace,
+};
 pub(crate) use conditional_workspace::{
     conditional_installation, conditional_installation_with_change,
     conditional_public_workspace_with, conditional_workspace_with,
@@ -37,19 +45,22 @@ pub use foreign_material::{
     foreign_material_workspace, mismatched_cost_workspace, mismatched_determinism_workspace,
     mismatched_read_plan_workspace, missing_read_execution_workspace,
 };
+pub use lineage_workflow::{lineage_workflow_workspace, LineageEvidenceScenario};
 pub use mutation_workflow::{
     mixed_mutation_workflow_runtime, mutation_workflow_workspace, MutationFamily, WorkflowMutation,
 };
-pub(super) use operation_semantics::{canonical_bundle, semantic_closure};
+pub(super) use operation_semantics::{
+    canonical_bundle, canonical_collection_bundle, semantic_closure,
+};
 pub use required_domains::required_domain_runtime;
 pub use semantic_drift::semantic_drift_workspace;
 pub use touch_package::federated_touch_package;
 pub use workflow::{
     divergent_frontier_workspace, invalid_workflow_workspace,
     mismatched_workflow_determinism_workspace, mismatched_workflow_lowering_workspace,
-    missing_parallel_provider_workspace, nondeterministic_workflow_workspace,
-    reversed_workflow_workspace, serial_parallel_provider_workspace, workflow_workspace,
-    InvalidWorkflow,
+    missing_parallel_provider_workspace, missing_replay_comparator_workspace,
+    nondeterministic_workflow_workspace, reversed_workflow_workspace,
+    serial_parallel_provider_workspace, workflow_workspace, InvalidWorkflow,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

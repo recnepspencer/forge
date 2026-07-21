@@ -1,0 +1,16 @@
+error[E0432]: unresolved import `worth_query::facade::domain::WorthQueryCertificationReplayCapability`
+ --> tests/ui/replay/ordinary_facade_cannot_import_replay_capability.rs:1:5
+  |
+1 | use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryCertificationReplayCapability` in `facade::domain`
+  |
+help: a similar name exists in the module
+  |
+1 - use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
+1 + use worth_query::facade::domain::WorthQueryCompensationCapability;
+  |
+help: consider importing this struct instead
+  |
+1 - use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
+1 + use worth_query::facade::certification::WorthQueryCertificationReplayCapability;
+  |

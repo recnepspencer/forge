@@ -2,11 +2,18 @@ use crate::identity::{FailureDigest, ResultDigest};
 
 use super::{
     families::{
-        IdentityEvolutionAmbiguityReason, IdentityEvolutionDenialReason,
-        IdentityEvolutionIdentityBreakReason, IdentityEvolutionOutcomeFamily,
+        IdentityEvolutionDenialReason, IdentityEvolutionIdentityBreakReason,
+        IdentityEvolutionOutcomeFamily,
     },
     metadata::IdentityEvolutionMetadata,
 };
+
+#[path = "results/correspondence.rs"]
+mod correspondence;
+pub use correspondence::{AdvisoryIdentityCandidateSet, IdentityEvolutionAmbiguityBundle};
+#[path = "results/lifecycle.rs"]
+mod lifecycle;
+pub use lifecycle::IdentityLifecycleResult;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SingularIdentityContinuityResult {
@@ -83,84 +90,6 @@ impl PluralIdentitySuccessorSet {
             metadata,
             successor_identities,
             successor_set_digest,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AdvisoryIdentityCandidateSet {
-    metadata: IdentityEvolutionMetadata,
-    advisory_candidate_identities: Vec<String>,
-    advisory_digest: ResultDigest,
-}
-
-impl AdvisoryIdentityCandidateSet {
-    pub fn metadata(&self) -> &IdentityEvolutionMetadata {
-        &self.metadata
-    }
-
-    pub fn advisory_candidate_identities(&self) -> &[String] {
-        &self.advisory_candidate_identities
-    }
-
-    pub fn advisory_digest(&self) -> &ResultDigest {
-        &self.advisory_digest
-    }
-
-    pub(crate) fn new(
-        metadata: IdentityEvolutionMetadata,
-        advisory_candidate_identities: Vec<String>,
-    ) -> Self {
-        let mut parts = vec![format!(
-            "metadata_digest:{}",
-            metadata.metadata_digest().as_str()
-        )];
-        parts.extend(
-            advisory_candidate_identities
-                .iter()
-                .map(|candidate| format!("advisory_candidate_identity:{candidate}")),
-        );
-        let advisory_digest = ResultDigest::from_parts(&parts);
-        Self {
-            metadata,
-            advisory_candidate_identities,
-            advisory_digest,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IdentityEvolutionAmbiguityBundle {
-    metadata: IdentityEvolutionMetadata,
-    ambiguity_reason: IdentityEvolutionAmbiguityReason,
-    ambiguity_digest: FailureDigest,
-}
-
-impl IdentityEvolutionAmbiguityBundle {
-    pub fn metadata(&self) -> &IdentityEvolutionMetadata {
-        &self.metadata
-    }
-
-    pub fn ambiguity_reason(&self) -> IdentityEvolutionAmbiguityReason {
-        self.ambiguity_reason
-    }
-
-    pub fn ambiguity_digest(&self) -> &FailureDigest {
-        &self.ambiguity_digest
-    }
-
-    pub(crate) fn new(
-        metadata: IdentityEvolutionMetadata,
-        ambiguity_reason: IdentityEvolutionAmbiguityReason,
-    ) -> Self {
-        let ambiguity_digest = FailureDigest::from_parts(&[
-            format!("metadata_digest:{}", metadata.metadata_digest().as_str()),
-            format!("ambiguity_reason:{}", ambiguity_reason.as_str()),
-        ]);
-        Self {
-            metadata,
-            ambiguity_reason,
-            ambiguity_digest,
         }
     }
 }
@@ -244,6 +173,8 @@ enum IdentityEvolutionResultEnvelope {
     AdvisoryIdentityCandidateSet(AdvisoryIdentityCandidateSet),
     Ambiguity(IdentityEvolutionAmbiguityBundle),
     IdentityBreak(IdentityEvolutionIdentityBreakBundle),
+    GeneratedIdentity(IdentityLifecycleResult),
+    RetiredIdentity(IdentityLifecycleResult),
     Denied(IdentityEvolutionDeniedBundle),
 }
 
@@ -270,6 +201,12 @@ impl IdentityEvolutionResultBundle {
             IdentityEvolutionResultEnvelope::IdentityBreak(_) => {
                 IdentityEvolutionOutcomeFamily::IdentityBreak
             }
+            IdentityEvolutionResultEnvelope::GeneratedIdentity(_) => {
+                IdentityEvolutionOutcomeFamily::GeneratedIdentity
+            }
+            IdentityEvolutionResultEnvelope::RetiredIdentity(_) => {
+                IdentityEvolutionOutcomeFamily::RetiredIdentity
+            }
             IdentityEvolutionResultEnvelope::Denied(_) => IdentityEvolutionOutcomeFamily::Denied,
         }
     }
@@ -287,6 +224,8 @@ impl IdentityEvolutionResultBundle {
             }
             IdentityEvolutionResultEnvelope::Ambiguity(result) => result.metadata(),
             IdentityEvolutionResultEnvelope::IdentityBreak(result) => result.metadata(),
+            IdentityEvolutionResultEnvelope::GeneratedIdentity(result)
+            | IdentityEvolutionResultEnvelope::RetiredIdentity(result) => result.metadata(),
             IdentityEvolutionResultEnvelope::Denied(result) => result.metadata(),
         }
     }
@@ -298,6 +237,8 @@ impl IdentityEvolutionResultBundle {
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_)
             | IdentityEvolutionResultEnvelope::IdentityBreak(_)
+            | IdentityEvolutionResultEnvelope::GeneratedIdentity(_)
+            | IdentityEvolutionResultEnvelope::RetiredIdentity(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -309,6 +250,8 @@ impl IdentityEvolutionResultBundle {
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_)
             | IdentityEvolutionResultEnvelope::IdentityBreak(_)
+            | IdentityEvolutionResultEnvelope::GeneratedIdentity(_)
+            | IdentityEvolutionResultEnvelope::RetiredIdentity(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -320,6 +263,8 @@ impl IdentityEvolutionResultBundle {
             | IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_)
             | IdentityEvolutionResultEnvelope::IdentityBreak(_)
+            | IdentityEvolutionResultEnvelope::GeneratedIdentity(_)
+            | IdentityEvolutionResultEnvelope::RetiredIdentity(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -331,6 +276,8 @@ impl IdentityEvolutionResultBundle {
             | IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(_)
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::IdentityBreak(_)
+            | IdentityEvolutionResultEnvelope::GeneratedIdentity(_)
+            | IdentityEvolutionResultEnvelope::RetiredIdentity(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -343,6 +290,8 @@ impl IdentityEvolutionResultBundle {
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
+            IdentityEvolutionResultEnvelope::GeneratedIdentity(_)
+            | IdentityEvolutionResultEnvelope::RetiredIdentity(_) => None,
         }
     }
 
@@ -354,6 +303,22 @@ impl IdentityEvolutionResultBundle {
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_) => None,
             IdentityEvolutionResultEnvelope::IdentityBreak(_) => None,
+            IdentityEvolutionResultEnvelope::GeneratedIdentity(_)
+            | IdentityEvolutionResultEnvelope::RetiredIdentity(_) => None,
+        }
+    }
+
+    pub fn as_generated_identity(&self) -> Option<&IdentityLifecycleResult> {
+        match &self.envelope {
+            IdentityEvolutionResultEnvelope::GeneratedIdentity(result) => Some(result),
+            _ => None,
+        }
+    }
+
+    pub fn as_retired_identity(&self) -> Option<&IdentityLifecycleResult> {
+        match &self.envelope {
+            IdentityEvolutionResultEnvelope::RetiredIdentity(result) => Some(result),
+            _ => None,
         }
     }
 
@@ -384,6 +349,18 @@ impl IdentityEvolutionResultBundle {
     pub(crate) fn identity_break(result: IdentityEvolutionIdentityBreakBundle) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::IdentityBreak(result),
+        }
+    }
+
+    pub(crate) fn generated_identity(result: IdentityLifecycleResult) -> Self {
+        Self {
+            envelope: IdentityEvolutionResultEnvelope::GeneratedIdentity(result),
+        }
+    }
+
+    pub(crate) fn retired_identity(result: IdentityLifecycleResult) -> Self {
+        Self {
+            envelope: IdentityEvolutionResultEnvelope::RetiredIdentity(result),
         }
     }
 

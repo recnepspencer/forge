@@ -38,6 +38,7 @@ pub(crate) struct WorthQueryWorkflowExecutionDescriptor {
     pub(crate) lookup_cost: worth_query_installation::facade::WorthQueryOperationCostClass,
     pub(crate) execution_cost: worth_query_installation::facade::WorthQueryOperationCostClass,
     pub(crate) result_width_cost: worth_query_installation::facade::WorthQueryOperationCostClass,
+    pub(crate) replay_comparator_family: Option<&'static str>,
 }
 
 pub(super) fn operation_execution_descriptors(
@@ -243,6 +244,11 @@ pub(super) fn workflow_execution_descriptors(
                         .semantics()
                         .cost
                         .result_width,
+                    replay_comparator_family: match installed.authority.definition().semantics().replay {
+                        worth_query_installation::facade::WorthQueryOperationReplayContract::CertReplayable { comparator }
+                        | worth_query_installation::facade::WorthQueryOperationReplayContract::CertReplayableWithNoise { comparator, .. } => Some(comparator.family),
+                        _ => None,
+                    },
             })
         })
         .collect()

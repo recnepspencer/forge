@@ -3,45 +3,18 @@ use crate::identity::{BasisDigest, CanonicalQueryDigest};
 use crate::identity_authority::QueryCanonicalAuthority;
 
 use super::families::{IdentityEvolutionQueryFamily, LineageTraversalFamily};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub enum IdentityEvolutionComparisonBasisFamily {
-    BranchToBranch,
-    CurrentToHistorical,
-    HistoricalToHistorical,
-    PreviewToAuthoritative,
-}
-
-impl IdentityEvolutionComparisonBasisFamily {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::BranchToBranch => "branch_to_branch",
-            Self::CurrentToHistorical => "current_to_historical",
-            Self::HistoricalToHistorical => "historical_to_historical",
-            Self::PreviewToAuthoritative => "preview_to_authoritative",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub enum IdentityComparisonIntent {
-    AdvisoryCandidateSet,
-    AuthoritativeContinuityRequired,
-}
-
-impl IdentityComparisonIntent {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::AdvisoryCandidateSet => "advisory_candidate_set",
-            Self::AuthoritativeContinuityRequired => "authoritative_continuity_required",
-        }
-    }
-}
+#[path = "request/correspondence.rs"]
+mod correspondence;
+pub use correspondence::{
+    CorrespondenceIdentityComparison, IdentityComparisonIntent,
+    IdentityEvolutionComparisonBasisFamily,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LineageTraversalDescriptor {
     family: LineageTraversalFamily,
     anchor_identity: String,
+    exact_result_identities: Option<Vec<String>>,
 }
 
 impl LineageTraversalDescriptor {
@@ -86,54 +59,78 @@ impl LineageTraversalDescriptor {
         &self.anchor_identity
     }
 
+    pub(crate) fn generated_identity(identity: impl Into<String>) -> Self {
+        let identity = identity.into();
+        Self::from_exact_family(
+            LineageTraversalFamily::GeneratedIdentity,
+            identity.clone(),
+            [identity],
+        )
+    }
+
+    pub(crate) fn retired_identity(identity: impl Into<String>) -> Self {
+        Self::from_exact_family(
+            LineageTraversalFamily::RetiredIdentity,
+            identity,
+            std::iter::empty(),
+        )
+    }
+
+    pub(crate) fn exact_result_identities(&self) -> Option<&[String]> {
+        self.exact_result_identities.as_deref()
+    }
+
+    pub(crate) fn direct_successor_exact(
+        anchor_identity: impl Into<String>,
+        successor_identity: impl Into<String>,
+    ) -> Self {
+        Self::from_exact_family(
+            LineageTraversalFamily::DirectSuccessor,
+            anchor_identity,
+            [successor_identity.into()],
+        )
+    }
+
+    pub(crate) fn direct_split_successors_exact(
+        anchor_identity: impl Into<String>,
+        successor_identities: impl IntoIterator<Item = String>,
+    ) -> Self {
+        Self::from_exact_family(
+            LineageTraversalFamily::DirectSplitSuccessors,
+            anchor_identity,
+            successor_identities,
+        )
+    }
+
+    pub(crate) fn direct_merge_successor_exact(
+        anchor_identity: impl Into<String>,
+        successor_identity: impl Into<String>,
+    ) -> Self {
+        Self::from_exact_family(
+            LineageTraversalFamily::DirectMergeSuccessor,
+            anchor_identity,
+            [successor_identity.into()],
+        )
+    }
+
     fn from_family(family: LineageTraversalFamily, anchor_identity: impl Into<String>) -> Self {
         Self {
             family,
             anchor_identity: anchor_identity.into(),
+            exact_result_identities: None,
         }
     }
-}
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CorrespondenceIdentityComparison {
-    left_identity: String,
-    right_identity: String,
-    intent: IdentityComparisonIntent,
-}
-
-impl CorrespondenceIdentityComparison {
-    pub fn advisory_between(
-        left_identity: impl Into<String>,
-        right_identity: impl Into<String>,
+    fn from_exact_family(
+        family: LineageTraversalFamily,
+        anchor_identity: impl Into<String>,
+        result_identities: impl IntoIterator<Item = String>,
     ) -> Self {
         Self {
-            left_identity: left_identity.into(),
-            right_identity: right_identity.into(),
-            intent: IdentityComparisonIntent::AdvisoryCandidateSet,
+            family,
+            anchor_identity: anchor_identity.into(),
+            exact_result_identities: Some(result_identities.into_iter().collect()),
         }
-    }
-
-    pub fn authoritative_between(
-        left_identity: impl Into<String>,
-        right_identity: impl Into<String>,
-    ) -> Self {
-        Self {
-            left_identity: left_identity.into(),
-            right_identity: right_identity.into(),
-            intent: IdentityComparisonIntent::AuthoritativeContinuityRequired,
-        }
-    }
-
-    pub fn left_identity(&self) -> &str {
-        &self.left_identity
-    }
-
-    pub fn right_identity(&self) -> &str {
-        &self.right_identity
-    }
-
-    pub fn intent(&self) -> IdentityComparisonIntent {
-        self.intent
     }
 }
 
@@ -175,6 +172,46 @@ impl IdentityEvolutionQueryContext {
             basis: basis.proof().clone(),
             family: IdentityEvolutionQueryFamily::LineageTraversal,
             subject: IdentityEvolutionQuerySubject::LineageTraversal(descriptor),
+        }
+    }
+
+    pub(crate) fn installed_operation_lineage(
+        query_authority: &QueryCanonicalAuthority,
+        operation_identity: &str,
+        basis_capability_identity: &str,
+        descriptor: LineageTraversalDescriptor,
+    ) -> Self {
+        Self {
+            query_authority: query_authority.clone(),
+            basis: ResolvedBasisProof::from_installed_operation(
+                operation_identity,
+                basis_capability_identity,
+            ),
+            family: IdentityEvolutionQueryFamily::LineageTraversal,
+            subject: IdentityEvolutionQuerySubject::LineageTraversal(descriptor),
+        }
+    }
+
+    pub(crate) fn installed_operation_correspondence(
+        query_authority: &QueryCanonicalAuthority,
+        operation_identity: &str,
+        basis_capability_identity: &str,
+        comparison: CorrespondenceIdentityComparison,
+    ) -> Self {
+        let basis = ResolvedBasisProof::from_installed_operation(
+            operation_identity,
+            basis_capability_identity,
+        );
+        Self {
+            query_authority: query_authority.clone(),
+            basis: basis.clone(),
+            family: IdentityEvolutionQueryFamily::CorrespondenceIdentityComparison,
+            subject: IdentityEvolutionQuerySubject::CorrespondenceIdentityComparison {
+                comparison_basis_family: IdentityEvolutionComparisonBasisFamily::InstalledOperation,
+                left_basis: basis.clone(),
+                right_basis: basis,
+                comparison,
+            },
         }
     }
 

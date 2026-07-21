@@ -594,6 +594,7 @@ dependencies = [
  "worth-query-installation",
  "worth-relational",
  "worth-runtime-bridge",
+ "worth-schema-graph",
  "worth-signal",
 ]
 
@@ -670,6 +671,10 @@ dependencies = [
  "worth-query-installation",
  "worth-signal",
 ]
+
+[[package]]
+name = "worth-schema-graph"
+version = "0.1.0"
 
 [[package]]
 name = "worth-signal"

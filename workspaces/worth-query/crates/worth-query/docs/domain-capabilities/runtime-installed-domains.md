@@ -4,8 +4,9 @@
 
 Runtime-installed domains let a domain declare stable Query operations once
 and bind them to one concrete runtime. Use this when operation identity,
-parameters, reads, graph participation, workflow, publication, support, or cost
-must mean the same thing for every caller.
+parameters, reads, graph participation, workflow, replay, aftermath, lineage,
+publication, promotion, support, or cost must mean the same thing for every
+caller.
 
 The public surface is `worth_query::facade::domain`. Domain packages contain
 portable meaning. Runtime construction supplies volatile providers. A
@@ -22,6 +23,8 @@ operations.
   evidence through one move-only journey.
 - Publish and consume Query facts without reconstructing authority from rows or
   digests.
+- Re-execute, certify replay equivalence, bind aftermath, and carry identity
+  lineage without starting parallel runtime systems.
 
 ## Stable Entry Points
 
@@ -37,6 +40,9 @@ operations.
 - `runtime::WorthQueryWorkspace::operating_world(...)`
 - `domain::WorthQueryOperationFamilyView::bind(...)`
 - `domain::WorthQueryBoundDomainOperation`
+- `domain::WorthQueryBoundDomainOperation::reexecute(...)`
+- `domain::WorthQueryCompletedWorkflowTrace::admit_aftermath(...)`
+- `domain::WorthQueryCompletedWorkflowTrace::lineage_report()`
 
 Conditional nodes, graph providers, and workflows extend this same setup and
 binding path. They are not separate runtime roots.
@@ -54,8 +60,10 @@ There are four distinct things:
 
 The portable operation definition is authoritative for semantics. It includes
 the canonical query and result shape, graph-read contract, workflow and
-conditional declarations, publication posture, terminal states, failure
-classes, support requirements, cost contract, and lowering identity.
+conditional declarations, replay comparator posture, reversal and
+postcondition contract, lineage and promotion contract, publication posture,
+terminal states, failure classes, support requirements, cost contract, and
+lowering identity.
 
 The executor is authoritative only for volatile lowering mechanics. It must
 report the same lowering family, determinism, read declaration, and cost shape
@@ -398,11 +406,22 @@ Query owns:
 Application code advances the returned `WorthQueryWorkflowRun`. It does not
 keep a second stage ledger.
 
+Completed workflow traces also support fresh ordinary re-execution, exact
+aftermath admission, and trace-bound lineage inspection. Certification replay
+is deliberately absent from the ordinary host surface; import it through
+`worth_query_replay::facade`.
+
 ## How It Relates To Other Features
 
 - [Conditional Installed Operations](./conditional-installed-operations.md)
   adds portable eligibility, trigger, comparison, and incremental evaluation
   to the same operation definition and binding path.
+- [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
+  explains fresh execution identity and cert-only semantic comparison.
+- [Installed Operation Aftermath](./installed-operation-aftermath.md) explains
+  exact inverse, compensation, and failure recovery evidence.
+- [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
+  explains effect-bound identity evolution, naming, and sparse promotion.
 - [Projection Consumption](../capabilities/projection-consumption.md) owns the
   production fact extraction delegated to by the installed progression.
 - [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
@@ -455,15 +474,20 @@ a new handle.
 - Runtime installation occurs before runtime publication.
 - Handles and bound operations are not portable across runtimes or installation
   generations, even when packages are semantically equivalent.
-- Ordinary replay, reversal, lineage, sharing/leases, compiled dependency
-  impact, invalidation deltas, collection windows, and patch delivery require
-  their dedicated later authorities. Definition posture does not implement
-  them by itself.
+- Sharing/leases, compiled dependency impact, invalidation deltas, collection
+  windows, and patch delivery still require their dedicated later authorities.
+  Definition posture does not implement them by itself.
+- Installed-operation certification replay remains cert-only, and historical
+  execution currently supports retained snapshots rather than delta replay or
+  full reconstruction.
 - Rich reports remain derived projections and never become admission authority.
 
 ## Related Docs
 
 - [Conditional Installed Operations](./conditional-installed-operations.md)
+- [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
+- [Installed Operation Aftermath](./installed-operation-aftermath.md)
+- [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
 - [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

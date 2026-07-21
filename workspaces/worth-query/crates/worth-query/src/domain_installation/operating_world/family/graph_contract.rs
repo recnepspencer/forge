@@ -116,6 +116,7 @@ pub(super) fn admit_graph_contract<D, O, F>(
                 && matches!(
                     &semantics.reversal,
                     WorthQueryOperationReversalContract::Compensation { .. }
+                        | WorthQueryOperationReversalContract::CompensationWithPostcondition { .. }
                         | WorthQueryOperationReversalContract::RebuildRequired { .. }
                 )
         }

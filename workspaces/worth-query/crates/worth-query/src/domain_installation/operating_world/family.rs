@@ -312,7 +312,8 @@ fn require_compensation<D, O, F>(
     counters: WorthQueryOperationBindingCounters,
 ) -> Result<WorthQueryBoundCommitPosture, WorthQueryOperationBindingDenial> {
     match operation.definition().semantics().reversal {
-        WorthQueryOperationReversalContract::Compensation { .. } => {
+        WorthQueryOperationReversalContract::Compensation { .. }
+        | WorthQueryOperationReversalContract::CompensationWithPostcondition { .. } => {
             Ok(WorthQueryBoundCommitPosture::Compensated)
         }
         _ => Err(WorthQueryOperationBindingDenial::new(

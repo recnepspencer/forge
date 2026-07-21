@@ -309,7 +309,32 @@ fn validate_invariants(
 fn validate_reversal(contract: &WorthQueryOperationReversalContract) -> Result<(), &'static str> {
     let subject = match contract {
         WorthQueryOperationReversalContract::ExactInverse { lowering_family } => lowering_family,
-        WorthQueryOperationReversalContract::Compensation { operation } => operation,
+        WorthQueryOperationReversalContract::Compensation { .. } => return Ok(()),
+        WorthQueryOperationReversalContract::ExactInverseWithPostcondition {
+            operation,
+            lowering_family,
+            postcondition,
+        } => {
+            validate_text_sequence(
+                &[
+                    operation.slot(),
+                    lowering_family.clone(),
+                    aftermath_identity(postcondition).into(),
+                ],
+                "empty-aftermath-contract",
+            )?;
+            return Ok(());
+        }
+        WorthQueryOperationReversalContract::CompensationWithPostcondition {
+            operation,
+            postcondition,
+        } => {
+            validate_text_sequence(
+                &[operation.slot(), aftermath_identity(postcondition).into()],
+                "empty-aftermath-contract",
+            )?;
+            return Ok(());
+        }
         WorthQueryOperationReversalContract::RebuildRequired { recovery_family } => recovery_family,
         WorthQueryOperationReversalContract::Irreversible
         | WorthQueryOperationReversalContract::ProvisionalDiscard => return Ok(()),
@@ -318,6 +343,14 @@ fn validate_reversal(contract: &WorthQueryOperationReversalContract) -> Result<(
         return Err("empty-reversal-subject");
     }
     Ok(())
+}
+
+fn aftermath_identity(postcondition: &WorthQueryAftermathPostcondition) -> &str {
+    match postcondition {
+        WorthQueryAftermathPostcondition::ExactPriorTruth => "exact-prior-truth",
+        WorthQueryAftermathPostcondition::InvariantRestored { invariant } => invariant,
+        WorthQueryAftermathPostcondition::BusinessPostcondition { identity } => identity,
+    }
 }
 
 fn validate_publication(
