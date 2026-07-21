@@ -2,8 +2,8 @@ use worth_ui::facade::app::{
     WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
 };
 use worth_ui::facade::declaration::{
-    UiDeclarationArtifact, UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial,
-    UiDeclarationStructuralRole, UiDeclaredPostureAdmissionDenial, UiDeclaredPostureLaneKind,
+    UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial, UiDeclarationStructuralRole,
+    UiDeclaredPostureAdmissionDenial, UiDeclaredPostureLaneKind,
 };
 use worth_ui::facade::graph::{
     UiGraphContainmentClaim, UiGraphInstantiationPlan, UiGraphParticipationAxis,
@@ -11,9 +11,15 @@ use worth_ui::facade::graph::{
     UiGraphParticipationReasonSource, UiGraphParticipationStatus, UiGraphWorldProfile,
     UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
 };
-use worth_ui_dsl::{
-    UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+use worth_ui_dsl::WorthUiDslPackage;
+
+#[path = "graph_instantiation_runtime/support.rs"]
+mod support;
+
+use support::{
+    artifact_from_file_provenance, assert_participation_seed_axis, control_graph_input_spec,
+    graph_input_with_non_graph_obligations, graph_input_without_non_graph_obligations,
+    invalid_graph_input_spec, root_page_artifact,
 };
 
 #[test]
@@ -327,83 +333,4 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
         enriched_node.repeated_instance_basis().kind(),
         UiRepeatedInstanceBasisKind::DeclarationKeyed
     );
-}
-
-fn artifact_from_file_provenance<'a>(
-    app: &'a worth_ui::facade::app::WorthUiApp,
-    module_path: &str,
-    declaration_index: usize,
-) -> &'a UiDeclarationArtifact {
-    app.declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            let provenance = artifact.provenance().source_provenance();
-            provenance.module_path() == module_path
-                && provenance.declaration_index() == declaration_index
-        })
-        .unwrap_or_else(|| {
-            panic!(
-                "expected declaration artifact for {module_path}#{declaration_index} on freeze path"
-            )
-        })
-}
-
-fn root_page_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclarationArtifact {
-    app.declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            artifact
-                .graph_handoff()
-                .map(|handoff| handoff.role() == UiDeclarationStructuralRole::Page)
-                .unwrap_or(false)
-        })
-        .expect("bootstrap root page artifact should exist")
-}
-
-fn control_graph_input_spec() -> UiDslSemanticArtifactSpec {
-    graph_input_with_non_graph_obligations()
-}
-
-fn graph_input_without_non_graph_obligations() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.inspector.save"),
-        UiDslSemanticFamily::Control,
-        UiDslSourceProvenance::file_authored("app/graph_instantiation.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("control:save"))
-    .with_structural_token(UiDslStructuralToken::new("slot:footer"))
-    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-    .with_posture_token(UiDslPostureToken::new("service:portal"))
-}
-
-fn graph_input_with_non_graph_obligations() -> UiDslSemanticArtifactSpec {
-    graph_input_without_non_graph_obligations()
-        .with_posture_token(UiDslPostureToken::new("touch:press"))
-        .with_posture_token(UiDslPostureToken::new("measurement:hug-height"))
-}
-
-fn invalid_graph_input_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.inspector.invalid"),
-        UiDslSemanticFamily::Control,
-        UiDslSourceProvenance::file_authored("app/graph_instantiation_invalid.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("control:save"))
-    .with_posture_token(UiDslPostureToken::new("service:unknown"))
-}
-
-fn assert_participation_seed_axis(
-    entry: &worth_ui::facade::graph::UiGraphNodeInstantiationEntry,
-    axis: UiGraphParticipationAxis,
-    status: UiGraphParticipationStatus,
-    source: UiGraphParticipationReasonSource,
-    reason: UiGraphParticipationReasonCode,
-    evidence: UiGraphParticipationEvidenceHandle,
-) {
-    let participation = entry.participation_seed().axis(axis);
-
-    assert_eq!(participation.status(), status);
-    assert_eq!(participation.source(), source);
-    assert_eq!(participation.reason(), reason);
-    assert_eq!(participation.evidence_handle(), evidence);
 }

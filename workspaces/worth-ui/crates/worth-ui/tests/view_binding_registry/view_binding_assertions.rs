@@ -1,4 +1,4 @@
-use worth_ui::facade::FrozenViewBindingCapabilities;
+use worth_ui::facade::registry::FrozenViewBindingCapabilities;
 
 pub(crate) fn assert_registered_view_binding_ids(
     view_bindings: &FrozenViewBindingCapabilities,

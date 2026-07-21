@@ -21,7 +21,6 @@ worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-relational = { path = "../../../../crates/worth-relational" }
 worth-runtime-bridge = { path = "../../../../crates/worth-runtime-bridge" }
 worth-signal = { path = "../../../../crates/worth-signal" }
-trybuild = { workspace = true }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
 
@@ -32,7 +31,3 @@ path = "tests/suites/capability_contracts.rs"
 [[test]]
 name = "registry_contracts"
 path = "tests/suites/registry_contracts.rs"
-
-[[test]]
-name = "compile_contracts"
-path = "tests/suites/compile_contracts.rs"

@@ -7,12 +7,11 @@ use crate::runtime::{
 
 #[test]
 fn equivalent_lane_descriptors_produce_equivalent_lane_support() {
-    let (runtime, _plan_input, planning, _) = lane_fixture();
+    let (runtime, plan_input, planning, _) = lane_fixture();
     let support = WorthUiExecutionLaneSupport::platform_default();
     let permuted_support = crate::runtime::WorthUiExecutionLaneSupport::from_supported_lanes([
         WorthUiExecutionLane::SpecialCaseExtension,
         WorthUiExecutionLane::RenderResource,
-        WorthUiExecutionLane::EguiBoundary,
         WorthUiExecutionLane::LaneBoundary,
         WorthUiExecutionLane::DiagnosticsProjection,
         WorthUiExecutionLane::StyleToken,
@@ -24,8 +23,8 @@ fn equivalent_lane_descriptors_produce_equivalent_lane_support() {
         WorthUiExecutionLane::OrdinaryWidgetShell,
     ]);
 
-    let left = admit_lanes(&runtime, &planning, &support);
-    let right = admit_lanes(&runtime, &planning, &permuted_support);
+    let left = admit_lanes(&runtime, &planning, &plan_input, &support);
+    let right = admit_lanes(&runtime, &planning, &plan_input, &permuted_support);
 
     assert_eq!(left.support_digest(), right.support_digest());
     assert_eq!(left.rows(), right.rows());
@@ -39,11 +38,10 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
     let support_without_query =
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
 
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input.clone());
     let denial = runtime
-        .admit_execution_lanes(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &support_without_query,
-        )
+        .admit_execution_lanes(&facts, &support_without_query)
         .expect_err("unsupported lane denies before topology activation");
 
     assert_eq!(
@@ -65,14 +63,11 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
     let admission = admit_lanes(
         &runtime,
         &planning,
+        &plan_input,
         &WorthUiExecutionLaneSupport::platform_default(),
     );
     let plan = runtime
-        .assemble_execution_plan_topology_with_lane_admission(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &allocation,
-            &admission,
-        )
+        .assemble_execution_plan_topology_with_lane_admission(&facts, &allocation, &admission)
         .expect("admitted lanes allow topology activation");
     assert_eq!(
         plan.topology().traversal_order().len(),
@@ -82,13 +77,12 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
 
 #[test]
 fn query_lane_node_without_query_owned_support_link_denies() {
-    let (runtime, _broken_input, broken_planning) = spoofed_query_lane_fixture();
+    let (runtime, broken_input, broken_planning) = spoofed_query_lane_fixture();
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(&broken_planning, broken_input);
 
     let denial = runtime
-        .admit_execution_lanes(
-            &runtime.detached_allocation_lowering_input_for_test(&broken_planning),
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+        .admit_execution_lanes(&facts, &WorthUiExecutionLaneSupport::platform_default())
         .expect_err("query-shaped node without Query support link denies");
 
     assert_eq!(
@@ -102,16 +96,15 @@ fn query_lane_node_without_query_owned_support_link_denies() {
 
 #[test]
 fn topology_convenience_path_requires_lane_admission() {
-    let (runtime, _broken_input, broken_planning) = spoofed_query_lane_fixture();
+    let (runtime, broken_input, broken_planning) = spoofed_query_lane_fixture();
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(&broken_planning, broken_input);
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&broken_planning))
+        .allocate_runtime_handles(&facts)
         .expect("handle allocation still sees typed plan families");
 
     let denial = runtime
-        .assemble_execution_plan_topology(
-            &runtime.detached_allocation_lowering_input_for_test(&broken_planning),
-            &allocation,
-        )
+        .assemble_execution_plan_topology(&facts, &allocation)
         .expect_err("public topology assembly cannot bypass lane admission");
 
     assert_eq!(
@@ -191,10 +184,11 @@ fn query_bound_support_row_preserves_query_bound_posture() {
 
 #[test]
 fn private_component_lane_claim_rejected_without_lane_support() {
-    let (runtime, _plan_input, planning, _) = lane_fixture();
+    let (runtime, plan_input, planning, _) = lane_fixture();
     let admission = admit_lanes(
         &runtime,
         &planning,
+        &plan_input,
         &WorthUiExecutionLaneSupport::platform_default(),
     );
     let private_hook = WorthUiLaneAdapterHook::forbidden_for_test(
@@ -216,10 +210,11 @@ fn private_component_lane_claim_rejected_without_lane_support() {
 
 #[test]
 fn all_supported_hook_points_have_typed_admission_constructors() {
-    let (runtime, _plan_input, planning, _) = lane_fixture();
+    let (runtime, plan_input, planning, _) = lane_fixture();
     let admission = admit_lanes(
         &runtime,
         &planning,
+        &plan_input,
         &WorthUiExecutionLaneSupport::platform_default(),
     );
     let hooks = [
@@ -232,8 +227,6 @@ fn all_supported_hook_points_have_typed_admission_constructors() {
             "hook.virtualized",
             WorthUiExecutionLane::VirtualizedData,
         ),
-        WorthUiLaneAdapterHook::canvas_spatial_draw_and_hit_test("hook.canvas"),
-        WorthUiLaneAdapterHook::realtime_overlay_mechanics("hook.realtime"),
         WorthUiLaneAdapterHook::diagnostics_projection("hook.diagnostics"),
         WorthUiLaneAdapterHook::counter_families("hook.counters"),
         WorthUiLaneAdapterHook::report_materialization("hook.reports"),
@@ -250,10 +243,11 @@ fn all_supported_hook_points_have_typed_admission_constructors() {
 
 #[test]
 fn hook_admission_rejects_active_plan_or_query_authority_override() {
-    let (runtime, _plan_input, planning, _) = lane_fixture();
+    let (runtime, plan_input, planning, _) = lane_fixture();
     let admission = admit_lanes(
         &runtime,
         &planning,
+        &plan_input,
         &WorthUiExecutionLaneSupport::platform_default(),
     );
     let forbidden = [
@@ -292,17 +286,20 @@ fn hook_admission_rejects_active_plan_or_query_authority_override() {
 
 #[test]
 fn admitted_lane_adapter_hook_preserves_lane_counter_contract() {
-    let (runtime, _plan_input, planning, _) = lane_fixture();
+    let (runtime, plan_input, planning, _) = lane_fixture();
     let support = WorthUiExecutionLaneSupport::platform_default();
-    let admission = admit_lanes(&runtime, &planning, &support);
-    let hook = WorthUiLaneAdapterHook::canvas_spatial_draw_and_hit_test("canvas.draw.hit_test");
+    let admission = admit_lanes(&runtime, &planning, &plan_input, &support);
+    let hook = WorthUiLaneAdapterHook::lane_adapter_mechanics(
+        "virtualized.execution",
+        WorthUiExecutionLane::VirtualizedData,
+    );
 
     let hook_admission = runtime
         .admit_extension_hook(&admission, hook)
         .expect("supported lane adapter hook admits");
     let expected_row = support
-        .row_for_lane(WorthUiExecutionLane::CanvasSpatial)
-        .expect("canvas support row exists");
+        .row_for_lane(WorthUiExecutionLane::VirtualizedData)
+        .expect("virtualized support row exists");
 
     assert_eq!(hook_admission.preserved_lane_support(), expected_row);
     assert_eq!(hook_admission.counters().hook_admission_count(), 1);
@@ -315,37 +312,39 @@ fn admitted_lane_adapter_hook_preserves_lane_counter_contract() {
 }
 
 #[test]
-fn query_bound_lane_support_links_are_preserved_not_reauthored() {
+fn query_bound_lane_fact_links_are_preserved_not_reauthored() {
     let (runtime, plan_input, planning, _) = lane_fixture();
     let admission = admit_lanes(
         &runtime,
         &planning,
+        &plan_input,
         &WorthUiExecutionLaneSupport::platform_default(),
     );
     let query_inputs = plan_input
         .node_inputs()
         .iter()
-        .filter(|input| input.query_binding_posture().is_some())
+        .filter(|input| input.query_settled_fact_link().is_some())
         .collect::<Vec<_>>();
 
     assert!(!query_inputs.is_empty());
-    assert_eq!(admission.query_support_links().len(), query_inputs.len());
+    assert_eq!(admission.query_fact_links().len(), query_inputs.len());
     for (links, input) in admission
-        .query_support_links()
+        .query_fact_links()
         .iter()
         .zip(query_inputs.iter().copied())
     {
-        let posture = input
-            .query_binding_posture()
-            .expect("query support link comes from Query posture");
-        assert_eq!(links.posture(), posture);
+        assert_eq!(
+            links.settled_fact_link(),
+            input
+                .query_settled_fact_link()
+                .expect("query lane link comes from a settled-fact plan link")
+        );
         assert_eq!(
             links.binding_identity(),
             input
                 .query_binding_identity()
                 .expect("query support link carries typed binding identity")
         );
-        assert_eq!(links.required_surfaces(), input.query_required_surfaces());
     }
     assert_eq!(
         admission.counters().query_support_link_count(),

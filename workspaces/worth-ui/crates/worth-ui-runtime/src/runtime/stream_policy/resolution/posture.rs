@@ -21,6 +21,14 @@ pub(super) fn resolve_ingress_policy_verdict(
                 max_lag_frames: policy.budget().max_lag_frames(),
             }
         }
+        UiAllocationFrameSourceFact::QuerySettledFact { fact, .. } if fact.is_partial() => {
+            let policy =
+                crate::runtime::stream_policy::UiAllocationStreamPolicy::for_family(family);
+            UiAllocationIngressPolicyVerdict::PartialQueryStaleButBounded {
+                warnings: UiAllocationFrameQueryWarningPosture::None,
+                max_lag_frames: policy.budget().max_lag_frames(),
+            }
+        }
         _ => UiAllocationIngressPolicyVerdict::Current,
     }
 }

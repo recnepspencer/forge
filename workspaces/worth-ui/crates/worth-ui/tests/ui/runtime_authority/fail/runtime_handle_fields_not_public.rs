@@ -1,18 +1,21 @@
 use worth_ui::facade::{
-    WorthUiHandlePlanGeneration, WorthUiPlanNodeInputFamily, WorthUiRuntimeHandle,
+    WorthUiHandleArenaIdentity,
+    WorthUiHandleSlotGeneration,
+    WorthUiPlanNodeInputFamily,
+    WorthUiRuntimeHandleLocator,
+    runtime::WorthUiRuntimeHandle,
 };
 
 fn main() {
-    let generation = generation_from_public_option(None);
+    let arena_identity = WorthUiHandleArenaIdentity { value: 1 };
+    let slot_generation = WorthUiHandleSlotGeneration { value: 1 };
+    let locator = WorthUiRuntimeHandleLocator {
+        arena_identity,
+        plan_index: 0,
+        slot_generation,
+    };
     let _handle = WorthUiRuntimeHandle {
         family: WorthUiPlanNodeInputFamily::ComponentInvocation,
-        plan_index: 0,
-        plan_generation: generation,
+        locator,
     };
-}
-
-fn generation_from_public_option(
-    generation: Option<WorthUiHandlePlanGeneration>,
-) -> WorthUiHandlePlanGeneration {
-    generation.expect("test fixture never runs")
 }

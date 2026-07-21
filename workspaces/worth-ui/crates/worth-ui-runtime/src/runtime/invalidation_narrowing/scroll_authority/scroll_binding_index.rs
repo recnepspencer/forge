@@ -6,15 +6,16 @@ use super::{
 };
 use std::collections::BTreeMap;
 type HostWitness = crate::evidence::UiHostMeasurementAuthorityWitness;
-type QueryKey = worth_ui_query_binding::WorthUiQueryAuthorityIndexKey;
+type QueryKey = crate::evidence::measurement::basis::UiQueryAllocationSourceKey;
 use super::scroll_binding_key_index::BindingKeyIndex;
 use super::scroll_owner_acquisition::acquire_exact;
-type QueryIndex = BTreeMap<QueryKey, BindingKeyIndex>;
+type QueryIndex = crate::runtime::persistent_index::UiPersistentOrdMap<QueryKey, BindingKeyIndex>;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct UiScrollInvalidationBindingIndex {
-    host: BTreeMap<HostWitness, BindingKeyIndex>,
-    query: QueryIndex,
-    projection_contracts: BTreeMap<
+    pub(super) host:
+        crate::runtime::persistent_index::UiPersistentOrdMap<HostWitness, BindingKeyIndex>,
+    pub(super) query: QueryIndex,
+    pub(super) projection_contracts: crate::runtime::persistent_index::UiPersistentOrdMap<
         crate::runtime::UiScrollProjectionOwnerIdentity,
         (
             crate::runtime::UiAdmittedScrollOwnedContract,
@@ -106,7 +107,7 @@ impl UiScrollInvalidationBindingIndex {
                             let crate::runtime::UiAdmittedScrollExtentSource::QueryContent(query_source) = binding.contract().source() else {
                                 return Err(UiScrollInvalidationBindingDenial::ContradictorySource);
                             };
-                            let query_key = query_source.authority_index_key().clone();
+                            let query_key = query_source.source_key().clone();
                             query.entry(query_key).or_default().push(binding);
                             bump(&mut counters.index_writes)?;
                         }
@@ -115,11 +116,12 @@ impl UiScrollInvalidationBindingIndex {
             }
             let host = freeze(host, &mut counters)?;
             let frozen_query = freeze(query, &mut counters)?;
-            let mut projection_contracts = BTreeMap::new();
+            let mut projection_contracts =
+                crate::runtime::persistent_index::UiPersistentOrdMap::default();
             for binding in host
-                .values()
-                .flat_map(BindingKeyIndex::values)
-                .chain(frozen_query.values().flat_map(BindingKeyIndex::values))
+                .iter()
+                .flat_map(|(_, index)| index.values())
+                .chain(frozen_query.iter().flat_map(|(_, index)| index.values()))
             {
                 let Some(receipt_key) = binding.receipt_key() else {
                     continue;
@@ -129,11 +131,12 @@ impl UiScrollInvalidationBindingIndex {
                 bump(&mut counters.owner_validations)?;
                 let row = (binding.contract().clone(), node, receipt_key.clone());
                 if projection_contracts
-                    .insert(owner, row.clone())
-                    .is_some_and(|prior| prior != row)
+                    .get(&owner)
+                    .is_some_and(|prior| prior != &row)
                 {
                     return Err(UiScrollInvalidationBindingDenial::ConflictingOwnerCapability);
                 }
+                projection_contracts.insert(owner, row);
                 bump(&mut counters.projection_writes)?;
             }
             let query = frozen_query;
@@ -172,18 +175,24 @@ impl UiScrollInvalidationBindingIndex {
     }
     pub(super) fn query_extent(
         &self,
-        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     ) -> Result<
         (Option<&BindingKeyIndex>, u16),
         (super::authority::UiInvalidationAuthorityLookupDenial, u16),
     > {
-        let key = authority.authority_index_key().map_err(|_| {
+        let key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::from_managed_live_compatibility(authority).map_err(|_| {
             (
                 super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable,
                 1,
             )
         })?;
         Ok((self.query.get(&key), 1))
+    }
+    pub(super) fn settled_query_extent(
+        &self,
+        key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
+    ) -> (Option<&BindingKeyIndex>, u16) {
+        (self.query.get(key), 1)
     }
     pub(crate) fn projection_for_host(
         &self,
@@ -207,7 +216,34 @@ impl UiScrollInvalidationBindingIndex {
     }
     pub(crate) fn projection_for_query(
         &self,
-        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
+        allocation_receipt: &crate::runtime::UiAllocationReceipt,
+    ) -> Result<
+        crate::runtime::UiActivatedScrollOwner,
+        crate::runtime::UiScrollOwnerAcquisitionDenial,
+    > {
+        let key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::from_managed_live_compatibility(authority)
+            .map_err(|_| crate::runtime::UiScrollOwnerAcquisitionDenial::ContradictorySource)?;
+        self.projection_for_query_key(&key, allocation_receipt)
+    }
+
+    pub(crate) fn projection_for_settled_query(
+        &self,
+        receipt: &crate::evidence::UiSettledQueryFactReceipt,
+        allocation_receipt: &crate::runtime::UiAllocationReceipt,
+    ) -> Result<
+        crate::runtime::UiActivatedScrollOwner,
+        crate::runtime::UiScrollOwnerAcquisitionDenial,
+    > {
+        let key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::SettledSnapshot(
+            receipt.key().clone(),
+        );
+        self.projection_for_query_key(&key, allocation_receipt)
+    }
+
+    fn projection_for_query_key(
+        &self,
+        key: &QueryKey,
         allocation_receipt: &crate::runtime::UiAllocationReceipt,
     ) -> Result<
         crate::runtime::UiActivatedScrollOwner,
@@ -215,9 +251,7 @@ impl UiScrollInvalidationBindingIndex {
     > {
         let mut probes = 0;
         record_acquisition_lookup(&mut probes)?;
-        let (rows, authority_probes) = self
-            .query_extent(authority)
-            .map_err(|_| crate::runtime::UiScrollOwnerAcquisitionDenial::ContradictorySource)?;
+        let (rows, authority_probes) = self.settled_query_extent(key);
         for _ in 0..authority_probes {
             record_acquisition_lookup(&mut probes)?;
         }
@@ -274,41 +308,43 @@ fn record_acquisition_lookup(
     Ok(())
 }
 
-fn freeze<K: Ord>(
+fn freeze<K: Ord + Clone>(
     source: BTreeMap<K, Vec<UiAdmittedScrollInvalidationBinding>>,
     counters: &mut UiScrollBindingCatalogCounters,
-) -> Result<BTreeMap<K, BindingKeyIndex>, UiScrollInvalidationBindingDenial> {
+) -> Result<
+    crate::runtime::persistent_index::UiPersistentOrdMap<K, BindingKeyIndex>,
+    UiScrollInvalidationBindingDenial,
+> {
     bump(&mut counters.freeze_operations)?;
-    source
-        .into_iter()
-        .map(|(key, mut rows)| {
-            rows.sort_by_key(|row| {
-                row.receipt_key().map_or(
-                    row.contract().identity_digest(),
-                    crate::runtime::UiScrollReceiptActivationKey::identity_digest,
-                )
-            });
-            let mut sealed = BindingKeyIndex::default();
-            for row in rows {
-                let identity = row.receipt_key().map_or(
-                    row.contract().identity_digest(),
-                    crate::runtime::UiScrollReceiptActivationKey::identity_digest,
-                );
-                let Some(receipt_key) = row.receipt_key().cloned() else {
-                    return Err(UiScrollInvalidationBindingDenial::MissingReceiptBinding);
-                };
-                if sealed.contains_key(&receipt_key) {
-                    bump(&mut counters.duplicate_probes)?;
-                }
-                if let Some(prior) = sealed.get(&receipt_key) {
-                    if prior != &row {
-                        return Err(UiScrollInvalidationBindingDenial::ConflictingContractTarget);
-                    }
-                    continue;
-                }
-                sealed.insert(identity, row);
+    let mut frozen = crate::runtime::persistent_index::UiPersistentOrdMap::default();
+    for (key, mut rows) in source {
+        rows.sort_by_key(|row| {
+            row.receipt_key().map_or(
+                row.contract().identity_digest(),
+                crate::runtime::UiScrollReceiptActivationKey::identity_digest,
+            )
+        });
+        let mut sealed = BindingKeyIndex::default();
+        for row in rows {
+            let identity = row.receipt_key().map_or(
+                row.contract().identity_digest(),
+                crate::runtime::UiScrollReceiptActivationKey::identity_digest,
+            );
+            let Some(receipt_key) = row.receipt_key().cloned() else {
+                return Err(UiScrollInvalidationBindingDenial::MissingReceiptBinding);
+            };
+            if sealed.contains_key(&receipt_key) {
+                bump(&mut counters.duplicate_probes)?;
             }
-            Ok((key, sealed))
-        })
-        .collect()
+            if let Some(prior) = sealed.get(&receipt_key) {
+                if prior != &row {
+                    return Err(UiScrollInvalidationBindingDenial::ConflictingContractTarget);
+                }
+                continue;
+            }
+            sealed.insert(identity, row);
+        }
+        frozen.insert(key, sealed);
+    }
+    Ok(frozen)
 }

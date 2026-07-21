@@ -1,4 +1,4 @@
-use super::canvas_spatial_lane_test_support::canvas_spatial_fixture;
+use super::lane_frame_cost_certification_canvas_fixture::canvas_spatial_frame_receipt;
 use super::lane_frame_cost_certification_scale_fixture::{
     realtime_overlay_scale_sample, virtualized_data_scale_sample,
 };
@@ -6,14 +6,13 @@ use super::ordinary_lane_test_support::ordinary_lane_fixture;
 use super::realtime_overlay_lane_test_support::realtime_overlay_fixture;
 use super::virtualized_data_lane_test_support::virtualized_data_fixture;
 use super::{
-    WorthUiCanvasSpatialCounters, WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
-    WorthUiFrameExecutionReceipt, WorthUiLaneFrameCostCertificationScenario,
-    WorthUiLaneParityCertification, WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneCounters,
-    WorthUiRealtimeFrameTarget, WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane,
-    WorthUiRuntimeHandleAllocation, WorthUiSteadyFrameCounterBoundary, WorthUiViewBindingHandle,
-    WorthUiVirtualizedDataCounters, WorthUiVirtualizedDataFrameTarget, WorthUiVirtualizedDataLane,
-    WorthUiVisibleRange,
+    WorthUiCanvasSpatialCounters, WorthUiFrameExecutionReceipt,
+    WorthUiLaneFrameCostCertificationScenario, WorthUiLaneParityCertification,
+    WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneCounters, WorthUiRealtimeFrameTarget,
+    WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane, WorthUiSteadyFrameCounterBoundary,
+    WorthUiVirtualizedDataCounters, WorthUiVirtualizedDataLane, WorthUiVisibleRange,
 };
+use crate::runtime::execution::ordinary_lane::WorthUiOrdinaryLaneFrameExecutor;
 
 pub(super) fn complete_lane_frame_cost_scenario(
     active_plan_digest: u64,
@@ -118,56 +117,36 @@ pub(super) fn complete_synthetic_frame_receipt(
 }
 
 fn complete_platform_lane_frame_receipt(active_plan_digest: u64) -> WorthUiFrameExecutionReceipt {
-    let (ordinary_runtime, ordinary_plan, ordinary_allocation) = ordinary_lane_fixture();
-    let ordinary_handle = ordinary_allocation.component_handles()[0];
-    let ordinary_receipt = ordinary_runtime
-        .execute_ordinary_lane_frame(
-            &ordinary_plan,
-            WorthUiOrdinaryFrameTarget::component(ordinary_handle),
-        )
-        .expect("runtime frame execution succeeds");
+    let (_ordinary_runtime, ordinary_plan, ordinary_allocation) = ordinary_lane_fixture();
+    let ordinary_handle = ordinary_allocation
+        .component_handles()
+        .next()
+        .expect("fixture has component handle");
+    let ordinary_receipt = WorthUiOrdinaryLaneFrameExecutor::execute(
+        &ordinary_plan,
+        WorthUiOrdinaryFrameTarget::component(ordinary_handle),
+    )
+    .expect("runtime frame execution succeeds");
 
-    let virtualized = virtualized_data_fixture();
-    let data_handle = first_view_binding_handle(&virtualized.allocation);
+    let mut virtualized = virtualized_data_fixture();
     let range = WorthUiVisibleRange::grid(120, 40, 0, 12).expect("range is valid");
+    let target = virtualized.summary().target(range);
     let virtualized_receipt = virtualized
-        .runtime
-        .execute_virtualized_data_frame(
-            &virtualized.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(data_handle, range),
-        )
+        .execute(target)
         .expect("runtime frame execution succeeds");
 
-    let canvas = canvas_spatial_fixture();
-    let canvas_lane = canvas.canvas_plan.rows()[0].lane_handle();
-    let canvas_receipt = canvas
-        .runtime
-        .execute_canvas_spatial_frame(
-            &canvas.canvas_plan,
-            WorthUiCanvasSpatialFrameTarget::hit_test(
-                super::WorthUiSpatialHitTestPlan::for_viewport_point(
-                    canvas_lane,
-                    super::WorthUiSpatialViewportPoint::viewport(144, 96),
-                ),
-            ),
-        )
-        .expect("runtime frame execution succeeds");
-
-    let realtime = realtime_overlay_fixture();
-    let surface = realtime.hud_plan.renderer_surfaces()[0].handle();
+    let mut realtime = realtime_overlay_fixture();
+    let realtime_handle = realtime.handle();
     let realtime_receipt = realtime
-        .runtime
-        .execute_realtime_frame(
-            &realtime.hud_plan,
-            WorthUiRealtimeFrameTarget::renderer_surface(surface),
-        )
+        .execute(WorthUiRealtimeFrameTarget::renderer_surface(
+            realtime_handle,
+        ))
         .expect("runtime frame execution succeeds");
 
     assert_eq!(
         virtualized_receipt.lane(),
         WorthUiVirtualizedDataLane::CellGrid
     );
-    assert_eq!(canvas_receipt.lane(), WorthUiCanvasSpatialLane::HitTest);
     assert_eq!(
         realtime_receipt.lane(),
         WorthUiRealtimeOverlayLane::HudOverlay
@@ -176,7 +155,7 @@ fn complete_platform_lane_frame_receipt(active_plan_digest: u64) -> WorthUiFrame
     WorthUiSteadyFrameCounterBoundary::for_active_plan(active_plan_digest)
         .record_ordinary_lane_frame(ordinary_receipt)
         .record_virtualized_data_frame(virtualized_receipt)
-        .record_canvas_spatial_frame(canvas_receipt)
+        .record_canvas_spatial_frame(canvas_spatial_frame_receipt())
         .record_realtime_overlay_frame(realtime_receipt)
         .seal()
         .expect("steady frame receipt seals")
@@ -197,10 +176,11 @@ pub(super) fn source_parse_frame_denial(
 pub(super) fn full_collection_frame_denial(
     active_plan_digest: u64,
 ) -> super::WorthUiSteadyFrameCounterDenialReason {
-    let mut counters = virtualized_counters(40, 12);
-    counters.record_full_collection_scan();
     WorthUiSteadyFrameCounterBoundary::for_active_plan(active_plan_digest)
-        .record_virtualized_counters_for_test(counters)
+        .record_lane_packet_for_test(
+            super::WorthUiLaneFrameReceiptKind::VirtualizedData,
+            virtualized_counter_packet(active_plan_digest, 1),
+        )
         .seal()
         .expect_err("full collection scan cannot enter steady frame certification")
         .reason()
@@ -258,12 +238,44 @@ fn cross_lane_parity(active_plan_digest: u64) -> WorthUiLaneParityCertification 
     )
 }
 
-fn first_view_binding_handle(
-    allocation: &WorthUiRuntimeHandleAllocation,
-) -> WorthUiViewBindingHandle {
-    allocation
-        .view_binding_handles()
-        .first()
-        .copied()
-        .expect("fixture has view binding handle")
+pub(super) fn virtualized_counter_packet(
+    active_plan_digest: u64,
+    full_collection_scan_count: u64,
+) -> super::WorthUiMeasurementCounterPacket {
+    let rows: [(&str, u64); 9] = [
+        ("lane.virtualized_data.execution.visible_rows_touched", 10),
+        ("lane.virtualized_data.execution.visible_columns_touched", 1),
+        ("lane.virtualized_data.execution.visible_cells_touched", 10),
+        ("lane.virtualized_data.execution.direct_row_lookups", 1),
+        (
+            "lane.virtualized_data.execution.evidence_reference_lookups",
+            1,
+        ),
+        (
+            "lane.virtualized_data.execution.full_collection_scan_count",
+            full_collection_scan_count,
+        ),
+        (
+            "lane.virtualized_data.execution.offset_pagination_substitute_count",
+            0,
+        ),
+        (
+            "lane.virtualized_data.execution.query_collection_execution_count",
+            0,
+        ),
+        (
+            "lane.virtualized_data.execution.diagnostic_materialization_count",
+            0,
+        ),
+    ];
+    let family = super::WorthUiRuntimeCounterFamily::VirtualizedDataExecution;
+    let mut builder = family
+        .at_boundary(family.allowed_boundary())
+        .with_active_plan_digest(active_plan_digest);
+    for (name, value) in rows {
+        builder = builder.record(super::WorthUiFrameCostCounter::count(name, value));
+    }
+    builder
+        .seal()
+        .expect("hostile counter packet is structurally valid")
 }

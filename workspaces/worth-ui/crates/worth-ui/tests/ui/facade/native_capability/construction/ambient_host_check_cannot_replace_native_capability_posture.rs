@@ -1,4 +1,7 @@
-use worth_ui::facade::{AmbientHostCheck, NativeCapabilityDescriptor, NativeCapabilityId};
+use worth_ui::facade::{
+    registry::{NativeCapabilityDescriptor, NativeCapabilityId},
+    support::AmbientHostCheck,
+};
 
 fn main() {
     let native_id = NativeCapabilityId::new("platform.native.clipboard").expect("valid native id");

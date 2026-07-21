@@ -1,6 +1,5 @@
 use worth_ui_inspection::{UiEvidenceExpansionOutcome, UiEvidenceRichness};
 
-use crate::facade::WorthUiApplicationReplacementPreparation;
 use crate::runtime::tests::active_application_session_test_support::{
     admit_candidate_catalog, component_candidate_submission, source_backed_component_session,
 };
@@ -15,9 +14,7 @@ fn candidate_evidence_stays_isolated_until_successful_cutover() {
             "workspace.component.active_session_candidate",
         ))
         .expect("candidate application should prepare");
-    let WorthUiApplicationReplacementPreparation::Prepared(mut prepared) = outcome else {
-        panic!("structurally distinct candidate should not converge as a no-op");
-    };
+    let mut prepared = outcome;
     let catalog = admit_candidate_catalog(&mut prepared);
     let candidate_node = prepared
         .candidate_graph()
@@ -52,9 +49,13 @@ fn candidate_evidence_stays_isolated_until_successful_cutover() {
         .into_execution()
         .expect("empty framework turn should expose an activation boundary")
         .into_activation_boundary();
-    session
+    let cutover = session
         .activate_prepared_replacement(pending, catalog, boundary, None)
         .expect("candidate application should cut over");
+    let cutover = cutover
+        .into_activation()
+        .expect("changed executable meaning publishes a successor");
+    assert!(cutover.managed_live_compatibility_retirement().is_empty());
 
     let active_expansion =
         session.expand_evidence_ref(candidate_ref, UiEvidenceRichness::summary());

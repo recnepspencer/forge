@@ -34,12 +34,16 @@ mod admission_boundary_bypass;
 mod admission_denial_topology_runtime;
 #[path = "../admission_topology_audit.rs"]
 mod admission_topology_audit;
+#[path = "../allocation_planning_boundary_certification.rs"]
+mod allocation_planning_boundary_certification;
 #[path = "../application_authority_topology.rs"]
 mod application_authority_topology;
 #[path = "../declaration_residue_audit.rs"]
 mod declaration_residue_audit;
 #[path = "../declaration_topology_audit.rs"]
 mod declaration_topology_audit;
+#[path = "../executable_equivalence_topology_audit.rs"]
+mod executable_equivalence_topology_audit;
 #[path = "../graph_mutation_boundary_audit.rs"]
 mod graph_mutation_boundary_audit;
 #[path = "../graph_residue_audit.rs"]
@@ -56,6 +60,8 @@ mod inspection_boundary_purity_audit;
 mod inspection_contract_audit;
 #[path = "../inspection_growth_posture_audit.rs"]
 mod inspection_growth_posture_audit;
+#[path = "../lane_extension_authority_topology_audit.rs"]
+mod lane_extension_authority_topology_audit;
 #[path = "../legacy_surface_residue_audit.rs"]
 mod legacy_surface_residue_audit;
 #[path = "../measurement_boundary_purity_audit.rs"]
@@ -74,5 +80,7 @@ mod obligation_selection_topology_runtime;
 mod query_reporting_projection_boundary;
 #[path = "../responsibility_directory_topology.rs"]
 mod responsibility_directory_topology;
+#[path = "../runtime_diagnostic_family_mapping_audit.rs"]
+mod runtime_diagnostic_family_mapping_audit;
 #[path = "../topology_audit.rs"]
 mod topology_audit;

@@ -7,6 +7,8 @@ use crate::evidence::{
 };
 use crate::graph::{UiGraphGeneration, UiGraphNodeIdentity};
 
+use super::UiGraphNeighborhoodFootprint;
+
 #[derive(Clone, Debug)]
 pub(crate) struct UiAdmittedAllocationPlanReference {
     planning_identity_digest: u64,
@@ -64,7 +66,8 @@ pub(crate) enum UiGraphReplanTargetDisposition {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiReplanGenerationKey {
-    neighborhood_identity: UiAllocationNeighborhoodIdentity,
+    pub(in crate::graph::allocation_neighborhood) neighborhood_identity:
+        UiAllocationNeighborhoodIdentity,
     graph_generation: UiGraphGeneration,
     measurement_basis_generation: UiMeasurementBasisGeneration,
     pub(in crate::graph::allocation_neighborhood) planning_identity_digest: u64,
@@ -87,20 +90,24 @@ impl UiReplanGenerationKey {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct UiGraphReplanAuthority {
+    pub(in crate::graph::allocation_neighborhood) active_identity_digest: u64,
     pub(in crate::graph::allocation_neighborhood) active_neighborhoods:
-        Vec<super::activation_lifecycle::UiGraphNeighborhoodLifecycleEntry>,
-    generations_by_digest: BTreeMap<u64, Box<[UiReplanGenerationKey]>>,
-    targets_by_node: BTreeMap<UiGraphNodeIdentity, Box<[UiAdmittedAllocationInvalidationTarget]>>,
+        crate::runtime::persistent_index::UiPersistentOrdMap<
+            crate::evidence::UiAllocationNeighborhoodScope,
+            super::activation_lifecycle::UiGraphNeighborhoodLifecycleEntry,
+        >,
+    pub(in crate::graph::allocation_neighborhood) generations_by_digest:
+        crate::runtime::persistent_index::UiPersistentOrdMap<u64, Box<[UiReplanGenerationKey]>>,
+    pub(in crate::graph::allocation_neighborhood) targets_by_node:
+        crate::runtime::persistent_index::UiPersistentOrdMap<
+            UiGraphNodeIdentity,
+            Box<[UiAdmittedAllocationInvalidationTarget]>,
+        >,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct UiGraphReplanAdmission {
     targets: BTreeMap<UiGraphNodeIdentity, UiAdmittedAllocationInvalidationTarget>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub(crate) struct UiGraphNeighborhoodFootprint {
-    members: Box<[UiGraphNodeIdentity]>,
 }
 
 impl UiGraphReplanAdmission {
@@ -251,36 +258,7 @@ impl UiAdmittedAllocationInvalidationTarget {
     }
 }
 
-impl UiGraphNeighborhoodFootprint {
-    fn seal(neighborhood: &UiAllocationNeighborhood) -> Self {
-        let mut members = neighborhood
-            .members()
-            .iter()
-            .map(crate::evidence::UiAllocationNeighborhoodMember::graph_node_identity)
-            .collect::<Vec<_>>();
-        members.sort_unstable();
-        members.dedup();
-        Self {
-            members: members.into_boxed_slice(),
-        }
-    }
-
-    pub(crate) fn members(&self) -> &[UiGraphNodeIdentity] {
-        &self.members
-    }
-}
-
 impl UiGraphReplanAuthority {
-    pub(in crate::graph::allocation_neighborhood) fn rebuild_active_targets(&mut self) {
-        let targets = self
-            .active_neighborhoods
-            .iter()
-            .flat_map(|entry| entry.admission.targets())
-            .cloned()
-            .collect::<Vec<_>>();
-        self.replace(targets.iter());
-    }
-
     pub(crate) fn replace<'a>(
         &mut self,
         targets: impl Iterator<Item = &'a UiAdmittedAllocationInvalidationTarget>,
@@ -308,30 +286,30 @@ impl UiGraphReplanAuthority {
                 bucket.push(key);
             }
         }
-        self.generations_by_digest = next
-            .into_iter()
-            .map(|(digest, keys)| (digest, keys.into_boxed_slice()))
-            .collect();
-        self.targets_by_node = targets_by_node
-            .into_iter()
-            .map(|(node, mut targets)| {
-                targets.sort_by(|left, right| {
-                    let left_root =
-                        left.disposition == UiGraphReplanTargetDisposition::RootPrimaryEligible;
-                    let right_root =
-                        right.disposition == UiGraphReplanTargetDisposition::RootPrimaryEligible;
-                    left_root
-                        .cmp(&right_root)
-                        .then_with(|| left.consequence.cmp(&right.consequence))
-                        .then_with(|| {
-                            left.neighborhood_identity
-                                .identity_digest()
-                                .cmp(&right.neighborhood_identity.identity_digest())
-                        })
-                });
-                (node, targets.into_boxed_slice())
-            })
-            .collect();
+        self.generations_by_digest = Default::default();
+        for (digest, keys) in next {
+            self.generations_by_digest
+                .insert(digest, keys.into_boxed_slice());
+        }
+        self.targets_by_node = Default::default();
+        for (node, mut targets) in targets_by_node {
+            targets.sort_by(|left, right| {
+                let left_root =
+                    left.disposition == UiGraphReplanTargetDisposition::RootPrimaryEligible;
+                let right_root =
+                    right.disposition == UiGraphReplanTargetDisposition::RootPrimaryEligible;
+                left_root
+                    .cmp(&right_root)
+                    .then_with(|| left.consequence.cmp(&right.consequence))
+                    .then_with(|| {
+                        left.neighborhood_identity
+                            .identity_digest()
+                            .cmp(&right.neighborhood_identity.identity_digest())
+                    })
+            });
+            self.targets_by_node
+                .insert(node, targets.into_boxed_slice());
+        }
     }
 
     pub(crate) fn target_set(

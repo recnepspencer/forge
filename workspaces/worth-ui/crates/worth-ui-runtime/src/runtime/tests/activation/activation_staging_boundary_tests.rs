@@ -1,8 +1,8 @@
 use super::activation_staging_test_support::{activation_staging_inputs, ActivationStagingInputs};
 use crate::runtime::{
     WorthUiActivationStagingDenialReason, WorthUiDurableStateReconciliationPlan,
-    WorthUiNodeReplacementPlan, WorthUiPendingExecutionPlanLoweringInput,
-    WorthUiQueryLiveRebindPlan, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLaunchDenial,
+    WorthUiNodeReplacementPlan, WorthUiQueryLiveRebindPlan, WorthUiRuntimeFrameEpoch,
+    WorthUiRuntimeLaunchDenial,
 };
 
 #[test]
@@ -38,7 +38,7 @@ fn equivalent_replacement_inputs_produce_equivalent_pending_activation() {
             .staging_report()
             .counters()
             .staged_query_binding_count(),
-        1
+        0
     );
     assert!(
         first_pending
@@ -66,14 +66,6 @@ fn partial_replacement_bundle_cannot_be_activated() {
         WorthUiActivationStagingDenialReason::MissingQueryLiveRebindPlan
     );
     assert_eq!(query_denial.counters().rejected_missing_input_count(), 1);
-
-    let without_lowering_input = activation_staging_inputs();
-    let lowering_denial = without_lowering_input.stage_without_plan_lowering_input();
-    assert_eq!(
-        lowering_denial.reason(),
-        WorthUiActivationStagingDenialReason::MissingExecutionPlanLoweringInput
-    );
-    assert_eq!(lowering_denial.counters().rejected_missing_input_count(), 1);
 }
 
 #[test]
@@ -85,7 +77,6 @@ fn staging_does_not_mutate_active_runtime_state() {
         narrowing,
         node_plan,
         reconciliation_plan,
-        pending_execution_plan_lowering_input,
         ..
     } = activation_staging_inputs();
     let active_before = runtime.inspect_active();
@@ -97,11 +88,7 @@ fn staging_does_not_mutate_active_runtime_state() {
             &impact,
             &narrowing,
             &node_plan,
-            crate::runtime::WorthUiActivationStagingPlans::new(
-                Some(&reconciliation_plan),
-                None,
-                Some(&pending_execution_plan_lowering_input),
-            ),
+            crate::runtime::WorthUiActivationStagingPlans::new(Some(&reconciliation_plan), None),
         )
         .expect_err("missing query rebind denies");
 
@@ -184,115 +171,4 @@ fn staging_rejects_node_plan_from_different_active_runtime() {
         WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch
     );
     assert_eq!(denial.counters().rejected_mismatched_input_count(), 1);
-}
-
-#[test]
-fn staging_rejects_plan_lowering_input_from_different_candidate() {
-    let inputs = activation_staging_inputs();
-    let stale_input = WorthUiPendingExecutionPlanLoweringInput::from_staged_plans(
-        &WorthUiNodeReplacementPlan::new(
-            inputs.node_plan.active_artifact_digest(),
-            inputs.node_plan.candidate_artifact_digest() + 1,
-            inputs.node_plan.classifications().to_vec(),
-            inputs.node_plan.counters(),
-        ),
-        &inputs.reconciliation_plan,
-        &inputs.query_rebind_plan,
-    );
-
-    let denial = inputs.stage_with_plan_lowering_input(&stale_input);
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch
-    );
-    assert_eq!(denial.counters().rejected_mismatched_input_count(), 1);
-}
-
-#[test]
-fn staging_rejects_plan_lowering_input_with_same_digest_but_stale_query_width() {
-    let inputs = activation_staging_inputs();
-    let stale_same_digest_query = WorthUiQueryLiveRebindPlan::new(
-        inputs.query_rebind_plan.active_artifact_digest(),
-        inputs.query_rebind_plan.candidate_artifact_digest(),
-        Vec::new(),
-    );
-    let stale_input = WorthUiPendingExecutionPlanLoweringInput::from_staged_plans(
-        &inputs.node_plan,
-        &inputs.reconciliation_plan,
-        &stale_same_digest_query,
-    );
-
-    let denial = inputs.stage_with_plan_lowering_input(&stale_input);
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch
-    );
-    assert_eq!(denial.counters().rejected_mismatched_input_count(), 1);
-}
-
-#[test]
-fn staging_rejects_plan_lowering_input_with_same_digest_but_stale_node_width() {
-    let inputs = activation_staging_inputs();
-    let stale_same_digest_node_plan = WorthUiNodeReplacementPlan::new(
-        inputs.node_plan.active_artifact_digest(),
-        inputs.node_plan.candidate_artifact_digest(),
-        Vec::new(),
-        inputs.node_plan.counters(),
-    );
-    let stale_input = WorthUiPendingExecutionPlanLoweringInput::from_staged_plans(
-        &stale_same_digest_node_plan,
-        &inputs.reconciliation_plan,
-        &inputs.query_rebind_plan,
-    );
-
-    let denial = inputs.stage_with_plan_lowering_input(&stale_input);
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch
-    );
-    assert_eq!(denial.counters().rejected_mismatched_input_count(), 1);
-}
-
-#[test]
-fn staging_rejects_plan_lowering_input_with_same_digest_but_stale_reconciliation_width() {
-    let inputs = activation_staging_inputs();
-    let stale_same_digest_reconciliation = WorthUiDurableStateReconciliationPlan::new(
-        inputs.reconciliation_plan.active_artifact_digest(),
-        inputs.reconciliation_plan.candidate_artifact_digest(),
-        Vec::new(),
-        inputs.reconciliation_plan.counters(),
-    );
-    let stale_input = WorthUiPendingExecutionPlanLoweringInput::from_staged_plans(
-        &inputs.node_plan,
-        &stale_same_digest_reconciliation,
-        &inputs.query_rebind_plan,
-    );
-
-    let denial = inputs.stage_with_plan_lowering_input(&stale_input);
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch
-    );
-    assert_eq!(denial.counters().rejected_mismatched_input_count(), 1);
-}
-
-#[test]
-fn changed_admitted_query_support_contract_cannot_enter_staging() {
-    let mut inputs = activation_staging_inputs();
-    inputs.admitted = inputs
-        .admitted
-        .with_admitted_query_contract_for_test("stale-activation-contract");
-
-    let denial = inputs.stage_denial();
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged
-    );
-    assert_eq!(denial.counters().receipt_verification_count(), 1);
-    assert_eq!(denial.counters().verified_input_count(), 0);
 }

@@ -69,7 +69,9 @@ pub fn admit_measurement_basis(
     let basis_posture = selected.basis_posture();
     let generation = basis_generation(
         declaration_support_authority_generation,
-        selected.query_receipt,
+        selected
+            .query_receipt
+            .map(super::assembly::SelectedQueryReceipt::declaration_support_authority_generation),
         selected.host_capability_report,
         [
             selected.host_results.text_intrinsic_size,
@@ -125,6 +127,21 @@ impl UiMeasurementBasisGeneration {
 }
 
 impl UiMeasurementBasis {
+    pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
+        self.declaration_identity == other.declaration_identity
+            && self.graph_node_identity == other.graph_node_identity
+            && self.world_profile == other.world_profile
+            && self.declared_measurement_policy == other.declared_measurement_policy
+            && self.basis_posture == other.basis_posture
+            && self.neighborhood_class_hint == other.neighborhood_class_hint
+            && self.evidence_inputs.len() == other.evidence_inputs.len()
+            && self
+                .evidence_inputs
+                .iter()
+                .zip(other.evidence_inputs.iter())
+                .all(|(left, right)| left.operationally_matches(right))
+    }
+
     pub fn identity_digest(&self) -> u64 {
         self.identity_digest
     }
@@ -163,9 +180,9 @@ impl UiMeasurementBasis {
 
     pub(crate) fn query_allocation_mappings_for_source(
         &self,
-        authority_index_key: &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+        source_key: &super::UiQueryAllocationSourceKey,
     ) -> &[super::UiQueryAllocationTargetMapping] {
-        self.evidence_index.query_mappings(authority_index_key)
+        self.evidence_index.query_mappings(source_key)
     }
 
     pub(crate) fn host_measurement_result(
@@ -200,7 +217,7 @@ impl UiMeasurementBasis {
         &self,
     ) -> impl Iterator<
         Item = (
-            &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+            &super::UiQueryAllocationSourceKey,
             &super::UiQueryAllocationTargetMapping,
         ),
     > {

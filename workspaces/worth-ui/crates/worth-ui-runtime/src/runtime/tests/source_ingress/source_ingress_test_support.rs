@@ -12,7 +12,7 @@ pub(crate) fn file_import_provider() -> WorthUiSourceProvider {
 }
 
 pub(crate) fn file_import_provider_for(target_module_path: &str) -> WorthUiSourceProvider {
-    WorthUiSourceProvider::filesystem_root(r"C:\workspace")
+    WorthUiSourceProvider::in_memory("source-ingress-file-authored")
         .with_file("app/main.wui", format!(r#"import "{target_module_path}";"#))
         .with_file(target_module_path, "")
 }
@@ -63,7 +63,7 @@ pub(crate) fn framework_from_artifact(
     let app = WorthUi::app()
         .freeze()
         .expect("application preparation should succeed");
-    let candidate = crate::runtime::candidate::rust_authored_replacement_candidate(
+    let candidate = crate::runtime::replacement::candidate::rust_authored_replacement_candidate(
         artifact,
         app.capabilities().digest(),
         crate::runtime::WorthUiReplacementCause::rust_authored_input_change(1),

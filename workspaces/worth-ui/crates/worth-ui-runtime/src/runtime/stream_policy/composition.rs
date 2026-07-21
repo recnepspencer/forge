@@ -6,10 +6,10 @@ use super::{
 
 mod accessors;
 mod pair_policy;
+mod policy_join;
 
-use pair_policy::{
-    join_contract_policies, pair_contract, resolved_family_policy, UiAllocationFamilyPairContract,
-};
+use pair_policy::{pair_contract, UiAllocationFamilyPairContract};
+use policy_join::{join_contract_policies, resolved_family_policy};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiAllocationStreamCompositionDenial {

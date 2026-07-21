@@ -6,7 +6,7 @@ use crate::admission::{
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::verdict::UiObligationDispatchStopPosture;
 use worth_ui_host_contract::WorthUiHostCapabilityPosture;
-use worth_ui_query_binding::WorthUiQueryBasisPosture;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture;
 
 use super::{
     dispatch_execution::UiObligationDispatchExecution, UiObligationDispatchEntry,

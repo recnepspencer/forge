@@ -3,9 +3,8 @@ use super::allocation_planning_test_support::allocation_planning;
 use crate::runtime::{
     WorthUiExecutionPlan, WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
     WorthUiNodeReplacementCounters, WorthUiNodeReplacementPlan, WorthUiPlanExecutionLane,
-    WorthUiPlanLanePartition, WorthUiPlanNode, WorthUiPlanNodeInputFamily, WorthUiPlanTopology,
-    WorthUiQueryBindingComparison, WorthUiQueryLiveRebindPlan, WorthUiRuntime,
-    WorthUiRuntimeImpactNarrowing,
+    WorthUiPlanLanePartition, WorthUiPlanNodeInputFamily, WorthUiQueryBindingComparison,
+    WorthUiQueryLiveRebindPlan, WorthUiRuntime, WorthUiRuntimeImpactNarrowing,
 };
 
 pub(super) struct QueryPreservingLaneChangeFixture {
@@ -24,8 +23,11 @@ pub(super) fn query_preserving_lane_change_fixture() -> QueryPreservingLaneChang
     let node_plan = lane_change_plan(&inputs.node_plan);
     let narrowing = inputs.narrowing.clone();
     let query_rebind_plan = inputs.query_rebind_plan.clone();
+    let plan_input = inputs
+        .runtime
+        .prepare_reconstructive_plan_input_for_test(&inputs.admitted, &[]);
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let active_plan = assemble_plan_from_pending_activation(&runtime, pending);
+    let active_plan = assemble_plan_from_pending_activation(&runtime, pending, plan_input);
     let candidate_plan = plan_with_first_node_moved_to_next_lane(&active_plan);
     QueryPreservingLaneChangeFixture {
         runtime,
@@ -41,28 +43,7 @@ pub(super) fn query_preserving_lane_change_fixture() -> QueryPreservingLaneChang
 pub(super) fn plan_with_command_semantics_changed(
     plan: &WorthUiExecutionPlan,
 ) -> WorthUiExecutionPlan {
-    let mut traversal_order = plan.topology().traversal_order().to_vec();
-    let node = traversal_order
-        .first()
-        .expect("fixture includes a plan node")
-        .clone();
-    traversal_order[0] = WorthUiPlanNode::new(
-        node.runtime_handle(),
-        crate::runtime::WorthUiPlanNodeFamily::from_input_family(
-            WorthUiPlanNodeInputFamily::Command,
-        ),
-        node.child_range(),
-        node.region_structure(),
-        node.egui_boundary().cloned(),
-        node.render_resource_ref(),
-    );
-    WorthUiExecutionPlan::new(
-        plan.handle_receipt(),
-        WorthUiPlanTopology::new(traversal_order, plan.topology().child_ranges().to_vec()),
-        plan.lane_partitions().to_vec(),
-        plan.lookup_index().clone(),
-        plan.counters(),
-    )
+    plan.with_test_first_regional_family(WorthUiPlanNodeInputFamily::Command)
 }
 
 fn compare_queries(inputs: &ActivationStagingInputs) -> WorthUiQueryBindingComparison {
@@ -115,19 +96,15 @@ fn lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacement
 fn assemble_plan_from_pending_activation(
     runtime: &WorthUiRuntime,
     pending: crate::runtime::WorthUiPendingActivation,
+    plan_input: crate::runtime::WorthUiExecutionPlanInput,
 ) -> WorthUiExecutionPlan {
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
-    let planning = allocation_planning(runtime, &plan_input, "lane-meaning.active");
+    let planning = allocation_planning(runtime, &pending, "lane-meaning.active");
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("handles allocate");
     runtime
-        .assemble_execution_plan_topology(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &allocation,
-        )
+        .assemble_execution_plan_topology(&facts, &allocation)
         .expect("topology assembles")
 }
 
@@ -140,8 +117,7 @@ fn plan_with_first_node_moved_to_next_lane(plan: &WorthUiExecutionPlan) -> Worth
     let current_lane = partitions[source].lane();
     let indexes = partitions[source].plan_indexes().to_vec();
     partitions[source] = WorthUiPlanLanePartition::new(alternate_lane(current_lane), indexes);
-    WorthUiExecutionPlan::new(
-        plan.handle_receipt(),
+    plan.with_test_parts(
         plan.topology().clone(),
         partitions,
         plan.lookup_index().clone(),

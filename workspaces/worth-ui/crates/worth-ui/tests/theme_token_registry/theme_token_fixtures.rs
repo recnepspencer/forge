@@ -1,4 +1,4 @@
-use worth_ui::facade::{
+use worth_ui::facade::registry::{
     ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
     ThemeTokenSource, ThemeTokenValue,
 };

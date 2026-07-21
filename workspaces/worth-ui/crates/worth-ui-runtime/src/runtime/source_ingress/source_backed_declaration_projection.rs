@@ -111,9 +111,27 @@ fn source_backed_claim_entry(
         claims: WorthUiSourceBackedDeclarationClaims::new(
             format!("source-artifact:{module_path}|{membership_identity}"),
             source_backed_measurement_constraint_modifier(structure),
+            source_backed_measurement_basis_source(structure),
             sizing_contract_id,
         ),
     }))
+}
+
+fn source_backed_measurement_basis_source(
+    structure: &crate::source::WorthUiMosaicStructureFacts,
+) -> Option<crate::declaration::UiDeclaredMeasurementBasisSource> {
+    use crate::capability::MosaicSizingBehavior;
+    use crate::declaration::UiDeclaredMeasurementBasisSource;
+
+    if structure.root_regions().iter().any(|region| {
+        matches!(
+            region.descriptor().sizing_behavior(),
+            Some(MosaicSizingBehavior::OverlayAnchored)
+        )
+    }) {
+        return Some(UiDeclaredMeasurementBasisSource::PortalAnchor);
+    }
+    None
 }
 
 fn source_backed_membership_identity(

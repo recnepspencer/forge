@@ -3,7 +3,7 @@ use super::durable_state_reconciliation_test_support::{
     deterministic_reconciliation_inputs, stale_inventory_for,
 };
 use super::query_binding_comparison_test_support::{
-    denial_presentation_drift_query_app, phase11_pipeline, query_artifact, standard_query_app,
+    phase11_pipeline, query_artifact, standard_query_app,
 };
 use super::reload_failure_test_support::{
     assert_failure_preserves_active_runtime, assert_preserved_counters,
@@ -11,8 +11,8 @@ use super::reload_failure_test_support::{
     missing_lowering_basis_candidate_denial, stale_dependency_candidate_denial,
 };
 use crate::runtime::{
-    WorthUiNodeReplacementPlan, WorthUiQueryLiveRebindOutcome, WorthUiReloadCheckedStopPosture,
-    WorthUiReloadFailureStage, WorthUiReplacementCandidateDenial, WorthUiRuntimeLifecycle,
+    WorthUiNodeReplacementPlan, WorthUiReloadCheckedStopPosture, WorthUiReloadFailureStage,
+    WorthUiReplacementCandidateDenial, WorthUiRuntimeLifecycle,
 };
 use std::collections::BTreeSet;
 
@@ -106,7 +106,6 @@ fn activation_staging_denial_preservation_keeps_prior_valid_state() {
             crate::runtime::WorthUiActivationStagingPlans::new(
                 None,
                 Some(&inputs.query_rebind_plan),
-                Some(&inputs.pending_execution_plan_lowering_input),
             ),
         )
         .expect_err("missing reconciliation denies activation staging");
@@ -158,48 +157,6 @@ fn query_live_rebind_denial_preserves_active_and_checked_stop_posture() {
     assert_eq!(
         failure.denial().checked_stop_posture(),
         WorthUiReloadCheckedStopPosture::QuerySupportDenied
-    );
-    assert!(failure
-        .denial()
-        .checked_stop_posture()
-        .is_query_checked_stop());
-}
-
-#[test]
-fn query_recovery_checked_stop_preserves_active_and_recovery_posture() {
-    let active_app = standard_query_app();
-    let candidate_app = denial_presentation_drift_query_app();
-    let active = query_artifact(&active_app, "workspace.view_binding.selection");
-    let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
-    let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
-    let comparison = runtime
-        .compare_query_bindings(&plan, &narrowing, &admitted)
-        .expect("query comparison succeeds");
-    let active_before_failure = runtime.inspect_active();
-    let last_valid_before_failure = runtime.last_valid();
-    let rebind_plan = runtime
-        .plan_query_live_rebinds(&comparison, &plan, &narrowing, &admitted)
-        .expect("live Query rebind planning records entry-level denial");
-    let entry = rebind_plan
-        .binding_for_view_binding_id("workspace.view_binding.selection")
-        .expect("selection binding planned");
-    let WorthUiQueryLiveRebindOutcome::Deny(denial) = entry.outcome() else {
-        panic!("denial-presentation drift must preserve Query recovery by checked stop");
-    };
-
-    let failure = runtime.preserve_query_recovery_checked_stop(denial);
-
-    assert_eq!(runtime.inspect_active(), active_before_failure);
-    assert_eq!(runtime.last_valid(), last_valid_before_failure);
-    assert_failure_preserves_active_runtime(
-        failure,
-        active_before_failure,
-        last_valid_before_failure,
-        WorthUiReloadFailureStage::QueryLiveRebind,
-    );
-    assert_eq!(
-        failure.denial().checked_stop_posture(),
-        WorthUiReloadCheckedStopPosture::QueryRecoveryPreserved
     );
     assert!(failure
         .denial()

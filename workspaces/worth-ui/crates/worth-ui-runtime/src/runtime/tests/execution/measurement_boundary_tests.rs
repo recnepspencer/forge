@@ -318,7 +318,7 @@ fn invalid_foundational_contract_label_rejected_before_bridge_lowering() {
 }
 
 #[test]
-fn query_owned_counter_family_requires_query_evidence() {
+fn ui_query_rebind_planning_counters_do_not_forge_query_evidence() {
     let packet = WorthUiRuntimeCounterFamily::QueryRebindPlanning
         .at_boundary(WorthUiMeasurementBoundary::QueryRebindPlanning)
         .record(WorthUiFrameCostCounter::count(
@@ -328,18 +328,15 @@ fn query_owned_counter_family_requires_query_evidence() {
         .seal()
         .expect("packet should seal");
 
-    let denial = packet
+    let certified = packet
         .certify_against(
             WorthUiComplexityContract::hot_path("reload.query_rebind_planning")
                 .requires_boundary(WorthUiMeasurementBoundary::QueryRebindPlanning)
                 .requires_counter_family(WorthUiRuntimeCounterFamily::QueryRebindPlanning),
         )
-        .expect_err("Query-owned family needs Query evidence posture");
+        .expect("UI planning work is certified by UI counters");
 
-    assert_eq!(
-        denial,
-        WorthUiMeasurementCertificationDenial::MissingQueryEvidence
-    );
+    assert!(certified.packet().query_evidence().is_empty());
 }
 
 fn packet_with_richness(

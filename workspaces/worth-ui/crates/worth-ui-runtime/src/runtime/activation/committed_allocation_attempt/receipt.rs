@@ -20,6 +20,7 @@ pub struct WorthUiPlanSwapReceipt {
     allocation_frame_replacement: UiAllocationFrameReplacementTransition,
     scroll_catalog_evidence: UiScrollCatalogSwapEvidence,
     committed_allocation: UiCommittedAllocationReplan,
+    structural_reuse: crate::runtime::WorthUiPlanRegionalEvidence,
 }
 
 pub(crate) struct WorthUiPlanSwapReceiptDraft {
@@ -36,6 +37,7 @@ pub(crate) struct WorthUiPlanSwapReceiptDraft {
     pub(crate) counters: UiCommittedAllocationActivationCounters,
     pub(crate) scroll_catalog_evidence: UiScrollCatalogSwapEvidence,
     pub(crate) committed_allocation: UiCommittedAllocationReplan,
+    pub(crate) structural_reuse: crate::runtime::WorthUiPlanRegionalEvidence,
 }
 
 impl WorthUiPlanSwapReceiptDraft {
@@ -58,6 +60,7 @@ impl WorthUiPlanSwapReceiptDraft {
             allocation_frame_replacement,
             scroll_catalog_evidence: self.scroll_catalog_evidence,
             committed_allocation: self.committed_allocation,
+            structural_reuse: self.structural_reuse,
         }
     }
 }
@@ -150,5 +153,9 @@ impl WorthUiPlanSwapReceipt {
     }
     pub fn committed_allocation(&self) -> &UiCommittedAllocationReplan {
         &self.committed_allocation
+    }
+
+    pub fn structural_reuse(&self) -> &crate::runtime::WorthUiPlanRegionalEvidence {
+        &self.structural_reuse
     }
 }

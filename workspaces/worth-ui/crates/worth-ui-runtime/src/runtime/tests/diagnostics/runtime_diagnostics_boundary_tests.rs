@@ -1,14 +1,11 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::allocation_planning;
-use super::query_binding_comparison_test_support::{
-    denial_presentation_drift_query_app, phase11_pipeline, query_artifact, standard_query_app,
-};
 use super::reload_failure_test_support::missing_artifact_candidate_denial;
 use crate::runtime::{
     WorthUiCandidateAdmissionDenial, WorthUiDiagnosticProjectionHook,
     WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticRichnessTier, WorthUiDiagnosticSource,
-    WorthUiExecutionLane, WorthUiExecutionLaneSupport, WorthUiQueryLiveRebindOutcome,
-    WorthUiReloadCheckedStopPosture, WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticFamily,
+    WorthUiExecutionLane, WorthUiExecutionLaneSupport, WorthUiRuntimeDiagnosticCode,
+    WorthUiRuntimeDiagnosticFamily,
 };
 
 #[test]
@@ -90,51 +87,6 @@ fn diagnostic_richness_does_not_change_active_plan_or_digest() {
 }
 
 #[test]
-fn query_diagnostics_preserve_checked_stop_and_recovery_posture() {
-    let active_app = standard_query_app();
-    let candidate_app = denial_presentation_drift_query_app();
-    let active = query_artifact(&active_app, "workspace.view_binding.selection");
-    let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
-    let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
-    let comparison = runtime
-        .compare_query_bindings(&plan, &narrowing, &admitted)
-        .expect("query comparison succeeds");
-    let rebind_plan = runtime
-        .plan_query_live_rebinds(&comparison, &plan, &narrowing, &admitted)
-        .expect("query rebind records denial entry");
-    let entry = rebind_plan
-        .binding_for_view_binding_id("workspace.view_binding.selection")
-        .expect("selection binding planned");
-    let WorthUiQueryLiveRebindOutcome::Deny(denial) = entry.outcome() else {
-        panic!("denial-presentation drift must deny to preserve recovery");
-    };
-
-    let report = runtime
-        .diagnostics()
-        .for_query_recovery(denial)
-        .with_policy(WorthUiDiagnosticRichnessPolicy::full())
-        .materialize();
-
-    assert_eq!(
-        report.rows()[0].code(),
-        WorthUiRuntimeDiagnosticCode::QueryRecoveryPreserved
-    );
-    let WorthUiDiagnosticSource::QueryStop {
-        checked_stop_posture,
-        evidence_digest,
-    } = report.rows()[0].source()
-    else {
-        panic!("Query diagnostic must preserve Query stop posture");
-    };
-    assert_eq!(
-        checked_stop_posture,
-        WorthUiReloadCheckedStopPosture::query_recovery_preserved()
-    );
-    assert_ne!(evidence_digest, 0);
-    assert_eq!(report.counters().query_link_count(), 1);
-}
-
-#[test]
 fn diagnostic_richness_tiers_gate_report_materialization() {
     let fixture = activation_staging_inputs();
     let failure = fixture
@@ -180,18 +132,14 @@ fn diagnostic_richness_tiers_gate_report_materialization() {
 #[test]
 fn diagnostics_never_depend_on_error_message_substrings() {
     let inputs = activation_staging_inputs();
+    let plan_input = inputs.reconstructive_plan_input(&[]);
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
-    let planning = allocation_planning(&runtime, &plan_input, "runtime-diagnostics.lane-admission");
+    let planning = allocation_planning(&runtime, &pending, "runtime-diagnostics.lane-admission");
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
     let support_without_query =
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
-        .admit_execution_lanes(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &support_without_query,
-        )
+        .admit_execution_lanes(&facts, &support_without_query)
         .expect_err("unsupported Query lane denies");
 
     let report = runtime

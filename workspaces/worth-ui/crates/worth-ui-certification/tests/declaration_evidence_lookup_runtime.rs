@@ -1,10 +1,9 @@
 use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
+use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
-    UiEvidenceFamily, UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevance,
+    UiAuthoredSourceProvenanceRef, UiEvidenceFamily, UiEvidenceRichness,
+    UiInspectionDeclarationIdentity, UiInspectionQuery, UiInspectionRelevance,
     UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget, UiRelevanceFilter,
-};
-use worth_ui::facade::{
-    app::WorthUi, UiAuthoredSourceProvenanceRef, UiInspectionDeclarationIdentity,
 };
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,

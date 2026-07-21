@@ -1,3 +1,14 @@
+error[E0432]: unresolved import `worth_ui::facade::WorthUiHudPlan`
+ --> tests/ui/runtime_authority/fail/hud_plan_fields_not_public.rs:1:5
+  |
+1 | use worth_ui::facade::WorthUiHudPlan;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiHudPlan` in `facade`
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_ui_runtime::facade::WorthUiHudPlan;
+  |             ++++++++
+
 warning: unreachable expression
  --> tests/ui/runtime_authority/fail/hud_plan_fields_not_public.rs:6:25
   |
@@ -7,31 +18,3 @@ warning: unreachable expression
   |                         ^ unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
-
-error[E0451]: fields `handle_receipt`, `support_digest`, `hud_plan_digest`, `frame_policy`, `rows`, `renderer_surface_admissions`, `command_plan_indexes`, `accessibility_plan_indexes`, `diagnostics_plan_indexes`, `overlay_hooks` and `counters` of struct `WorthUiHudPlan` are private
-  --> tests/ui/runtime_authority/fail/hud_plan_fields_not_public.rs:5:9
-   |
- 4 |     let _plan = WorthUiHudPlan {
-   |                 -------------- in this type
- 5 |         handle_receipt: todo!(),
-   |         ^^^^^^^^^^^^^^ private field
- 6 |         support_digest: 1,
-   |         ^^^^^^^^^^^^^^ private field
- 7 |         hud_plan_digest: 2,
-   |         ^^^^^^^^^^^^^^^ private field
- 8 |         frame_policy: todo!(),
-   |         ^^^^^^^^^^^^ private field
- 9 |         rows: Vec::new(),
-   |         ^^^^ private field
-10 |         renderer_surface_admissions: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         command_plan_indexes: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
-12 |         accessibility_plan_indexes: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         diagnostics_plan_indexes: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         overlay_hooks: Vec::new(),
-   |         ^^^^^^^^^^^^^ private field
-15 |         counters: todo!(),
-   |         ^^^^^^^^ private field

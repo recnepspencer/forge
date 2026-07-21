@@ -80,6 +80,17 @@ impl UiMeasurementValue {
 }
 
 impl UiMeasurementResult {
+    pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
+        self.request_shape_digest == other.request_shape_digest
+            && self.evidence_category == other.evidence_category
+            && self.unit_posture == other.unit_posture
+            && self.coordinate_space == other.coordinate_space
+            && self.rounding_posture == other.rounding_posture
+            && self.assumption_profile == other.assumption_profile
+            && self.value == other.value
+            && self.portal_anchor_target_identity == other.portal_anchor_target_identity
+    }
+
     pub(crate) fn new_from_host_lane(input: UiHostMeasurementResultInput) -> Self {
         let UiHostMeasurementResultInput {
             request_identity,

@@ -1,15 +1,24 @@
+#[path = "authority/catalog/active_catalog_store.rs"]
+mod active_catalog_store;
+#[cfg(test)]
+#[path = "authority/catalog/active_catalog_store_tests.rs"]
+mod active_catalog_store_tests;
 #[path = "authority/active_set.rs"]
 mod active_set;
 #[path = "authority/authority.rs"]
 mod authority;
 #[path = "authority/authority_context.rs"]
 mod authority_context;
+#[path = "authority/authority_context_access.rs"]
+mod authority_context_access;
 #[path = "authority/authority_index.rs"]
 mod authority_index;
+#[path = "authority/authority_index_delta.rs"]
+mod authority_index_delta;
 #[cfg(test)]
 #[path = "authority/authority_tests.rs"]
 mod authority_tests;
-#[path = "authority/catalog_transition.rs"]
+#[path = "authority/catalog/catalog_transition.rs"]
 mod catalog_transition;
 #[path = "sources/committed_portal_source.rs"]
 mod committed_portal_source;
@@ -33,6 +42,8 @@ mod portal_binding;
 mod portal_binding_index;
 #[path = "portal_authority/portal_binding_succession.rs"]
 mod portal_binding_succession;
+#[path = "portal_authority/portal_catalog_delta.rs"]
+mod portal_catalog_delta;
 #[path = "authority/scroll_authority.rs"]
 mod scroll_authority;
 #[path = "scroll_authority/scroll_binding.rs"]
@@ -41,18 +52,26 @@ mod scroll_binding;
 mod scroll_binding_index;
 #[path = "scroll_authority/scroll_binding_key_index.rs"]
 mod scroll_binding_key_index;
+#[path = "scroll_authority/scroll_catalog_delta.rs"]
+mod scroll_catalog_delta;
 #[path = "scroll_authority/scroll_catalog_evidence.rs"]
 mod scroll_catalog_evidence;
 #[path = "sources/scroll_owner_acquisition.rs"]
 mod scroll_owner_acquisition;
+#[path = "authority/selection_certification.rs"]
+mod selection_certification;
+#[path = "selection/settled_query_fact.rs"]
+mod settled_query_fact;
 
 pub(crate) use crate::graph::UiAdmittedAllocationPlanReference;
+pub(crate) use active_catalog_store::UiActiveAllocationCatalog;
 pub(crate) use active_set::UiAllocationNeighborhoodCatalogTransition;
 pub(crate) use active_set::{UiAllocationActivationCatalog, UiAllocationActivationCatalogDenial};
 pub(crate) use authority::{
     UiAllocationInvalidationAdmissionContext, UiAllocationInvalidationAuthority,
     UiCommittedAllocationInvalidationContext,
 };
+pub(crate) use authority_index_delta::UiDerivedIndexDeltaCounters;
 pub(crate) use catalog_transition::{
     UiAllocationNeighborhoodActivationDenial, UiPreparedInvalidationCatalogTransition,
 };

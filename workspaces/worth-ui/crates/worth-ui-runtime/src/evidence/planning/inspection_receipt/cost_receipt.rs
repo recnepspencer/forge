@@ -22,8 +22,6 @@ pub enum UiAllocationPlanningCostClass {
 pub enum UiAllocationPlanningDeniedBroadeningReason {
     MeasurementBasisDenied,
     ConstraintSetDenied,
-    LoweringAdmissionMismatch,
-    PlanLoweringDenied,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -158,12 +156,6 @@ fn denied_broadening_reason_for(
         WorthUiAllocationPlanningDenialReason::ConstraintSetDenied => {
             UiAllocationPlanningDeniedBroadeningReason::ConstraintSetDenied
         }
-        WorthUiAllocationPlanningDenialReason::LoweringAdmissionMismatch => {
-            UiAllocationPlanningDeniedBroadeningReason::LoweringAdmissionMismatch
-        }
-        WorthUiAllocationPlanningDenialReason::PlanLoweringDenied => {
-            UiAllocationPlanningDeniedBroadeningReason::PlanLoweringDenied
-        }
     }
 }
 
@@ -172,7 +164,8 @@ fn query_fact_ref_count(measurement_basis: &UiMeasurementBasis) -> usize {
         .evidence_inputs()
         .iter()
         .filter(|input| match input {
-            MeasurementEvidenceInput::QueryProjectionFact(_) => true,
+            MeasurementEvidenceInput::QueryProjectionFact(_)
+            | MeasurementEvidenceInput::SettledQueryFact(_) => true,
             MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => {
                 evidence.query_projection_fact().is_some()
             }
@@ -194,7 +187,8 @@ fn host_evidence_ref_count(measurement_basis: &UiMeasurementBasis) -> usize {
             MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => {
                 evidence.host_measurement_result().is_some()
             }
-            MeasurementEvidenceInput::QueryProjectionFact(_) => false,
+            MeasurementEvidenceInput::QueryProjectionFact(_)
+            | MeasurementEvidenceInput::SettledQueryFact(_) => false,
         })
         .count()
 }

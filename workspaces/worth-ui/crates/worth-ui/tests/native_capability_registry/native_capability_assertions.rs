@@ -1,5 +1,6 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, FrozenNativeCapabilities,
+    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
+    registry::FrozenNativeCapabilities,
 };
 
 pub(crate) fn assert_registered_native_capability_ids(

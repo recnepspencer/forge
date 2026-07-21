@@ -135,11 +135,15 @@ fn run_hostile_workbench() -> WorkbenchSummary {
         },
     );
 
-    let growth = query.project();
+    let growth = query.settle_snapshot();
+    let fact_link = runtime.query_fact_link_for_test("inspector.measurements");
     let query_growth = runtime.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
             source
-                .admit_and_submit(growth)
+                .refresh_settled(growth)
+                .expect("settled Query growth atomically refreshes exact authority");
+            source
+                .submit_settled(&fact_link)
                 .expect("Query growth source admits");
         });
     });

@@ -62,10 +62,16 @@ pub enum UiGraphWorldProfile {
         session_label: UiGraphSessionLabel,
     },
     QuerySnapshotBasis {
-        prerequisites: Box<worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence>,
+        prerequisites: Box<
+            worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
+        >,
     },
     InstalledQueryBasis {
-        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
+    },
+    SettledQueryBinding {
+        view_binding_id: crate::capability::ViewBindingId,
+        query_binding_identity: Box<str>,
     },
 }
 
@@ -97,16 +103,25 @@ impl UiGraphWorldProfile {
         Self::TestCertification { session_label }
     }
     pub fn query_snapshot_basis(
-        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+        prerequisites: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
     ) -> Self {
         Self::QuerySnapshotBasis {
             prerequisites: Box::new(prerequisites),
         }
     }
     pub fn installed_query_basis(
-        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
     ) -> Self {
         Self::InstalledQueryBasis { authority }
+    }
+    pub fn settled_query_binding(
+        view_binding_id: crate::capability::ViewBindingId,
+        query_binding_identity: impl Into<String>,
+    ) -> Self {
+        Self::SettledQueryBinding {
+            view_binding_id,
+            query_binding_identity: query_binding_identity.into().into_boxed_str(),
+        }
     }
 
     pub(crate) fn identity_digest(&self) -> u64 {
@@ -148,6 +163,13 @@ impl UiGraphWorldProfile {
                     })
             }
             Self::InstalledQueryBasis { authority } => authority.identity().as_u64(),
+            Self::SettledQueryBinding {
+                view_binding_id,
+                query_binding_identity,
+            } => {
+                stable_text_digest(view_binding_id.as_str())
+                    ^ stable_text_digest(query_binding_identity).rotate_left(29)
+            }
         }
     }
 
@@ -175,6 +197,9 @@ impl UiGraphWorldProfile {
             }
             Self::QuerySnapshotBasis { .. } => stable_text_digest("graph-world-family:query"),
             Self::InstalledQueryBasis { .. } => stable_text_digest("graph-world-family:query"),
+            Self::SettledQueryBinding { .. } => {
+                stable_text_digest("graph-world-family:settled-query-binding")
+            }
         }
     }
 }

@@ -13,10 +13,9 @@ mod scheduler;
 mod source_capabilities;
 mod transition_planning;
 
-pub use completion::{
-    WorthUiFrameworkTurnCompletion, WorthUiPreviewPaintFollowOn,
-    WorthUiResolvedPreviewPaintCompletion,
-};
+pub use completion::WorthUiFrameworkTurnCompletion;
+#[cfg(test)]
+pub use completion::WorthUiPreviewPaintFollowOn;
 pub(crate) use completion::{WorthUiPendingDurableResize, WorthUiPendingPreviewPaint};
 pub use execution::WorthUiFrameworkTurnExecution;
 pub(crate) use outcome::UiAllocationFrameTurnOutcome;

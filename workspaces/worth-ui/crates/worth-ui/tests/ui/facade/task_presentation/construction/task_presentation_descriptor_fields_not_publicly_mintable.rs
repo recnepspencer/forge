@@ -1,8 +1,5 @@
 use worth_ui::facade::{
-    TaskPresentationCancellationPosture, TaskPresentationDescriptor,
-    TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationId,
-    TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility,
-    TaskPresentationRuntimeAuthorityPosture,
+    registry::{TaskPresentationCancellationPosture, TaskPresentationDescriptor, TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationId, TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility, TaskPresentationRuntimeAuthorityPosture},
 };
 
 fn main() {

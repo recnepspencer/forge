@@ -9,7 +9,7 @@ use super::transition_planning::{
 /// producing a sealed source frame that must first be consumed by Phase 5.
 #[derive(Debug)]
 pub struct WorthUiFrameworkTurnExecution<'runtime> {
-    pub(crate) _runtime: &'runtime WorthUiRuntime,
+    pub(crate) runtime: &'runtime WorthUiRuntime,
     pub(super) boundary: crate::runtime::WorthUiFrameBoundary,
     pub(super) planning_counters: super::UiFrameworkTransitionPlanningCounters,
 }
@@ -25,6 +25,10 @@ impl WorthUiFrameworkTurnExecution<'_> {
 
     pub fn planning_counters(&self) -> super::UiFrameworkTransitionPlanningCounters {
         self.planning_counters
+    }
+
+    pub(crate) fn active_artifact_digest(&self) -> u64 {
+        self.runtime.active.active_artifact().digest().raw()
     }
 }
 
@@ -103,10 +107,14 @@ fn execute_family(
     counters: super::UiFrameworkTransitionPlanningCounters,
 ) -> super::WorthUiFrameworkTurnCompletion<'_> {
     match family {
-        UiFrameworkTransitionFamilyPlan::NoIngress { boundary } => {
+        UiFrameworkTransitionFamilyPlan::NoIngress => {
+            let boundary = crate::runtime::WorthUiFrameBoundary::safe_to_activate(
+                runtime.frame_epoch(),
+                runtime.host_plan_binding.session_identity(),
+            );
             super::WorthUiFrameworkTurnCompletion::ReadyToExecute {
                 execution: WorthUiFrameworkTurnExecution {
-                    _runtime: runtime,
+                    runtime,
                     boundary,
                     planning_counters: counters,
                 },

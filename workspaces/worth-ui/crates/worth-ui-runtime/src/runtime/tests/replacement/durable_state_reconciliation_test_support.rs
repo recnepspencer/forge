@@ -148,11 +148,7 @@ pub(super) fn moved_scroll_anchor_inputs() -> (
     )]);
     let candidate = artifact_from_nodes([(
         "app/panels.wui",
-        vec![surface_node(
-            "surface:stable",
-            "workspace.surface.secondary",
-            0,
-        )],
+        vec![surface_node("surface:stable", "workspace.surface.main", 0)],
     )]);
     let (runtime, admitted, identity_narrowing) = runtime_and_narrowing(&app, active, candidate);
     let identity_report = runtime

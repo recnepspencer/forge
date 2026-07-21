@@ -9,8 +9,8 @@ use crate::graph::UiGraphWorldProfile;
 pub(crate) fn display_field_plus_entity_identity_projection_context(
     lane_label: &str,
 ) -> (
-    worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
+    worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     UiGraphWorldProfile,
 ) {
     let (prerequisites, authority) = worth_ui_query_prerequisite_fixture(

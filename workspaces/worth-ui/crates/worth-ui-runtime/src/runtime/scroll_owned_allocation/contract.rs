@@ -33,8 +33,7 @@ pub(crate) enum UiAdmittedScrollExtentSource {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiAdmittedScrollQuerySource {
-    pub(super) query_authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
-    pub(super) authority_index_key: worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+    pub(super) source_key: crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
     pub(super) target: crate::graph::UiGraphNodeIdentity,
 }
 
@@ -95,10 +94,10 @@ impl UiAdmittedScrollExtentSource {
 }
 
 impl UiAdmittedScrollQuerySource {
-    pub(crate) fn authority_index_key(
+    pub(crate) fn source_key(
         &self,
-    ) -> &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey {
-        &self.authority_index_key
+    ) -> &crate::evidence::measurement::basis::UiQueryAllocationSourceKey {
+        &self.source_key
     }
 
     pub(crate) fn target(&self) -> crate::graph::UiGraphNodeIdentity {
@@ -107,7 +106,7 @@ impl UiAdmittedScrollQuerySource {
 
     pub(super) fn identity_digest(&self) -> u64 {
         crate::declaration::stable_text_digest("worth-ui.scroll-query-source")
-            ^ self.authority_index_key.identity_digest().rotate_left(17)
+            ^ self.source_key.identity_digest().rotate_left(17)
             ^ self.target.digest().rotate_left(53)
     }
 }

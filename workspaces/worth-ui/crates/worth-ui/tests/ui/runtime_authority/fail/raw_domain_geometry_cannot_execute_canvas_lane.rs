@@ -1,5 +1,5 @@
-use worth_ui::facade::WorthUiSpatialHitTestPlan;
+use worth_ui::facade::WorthUiSpatialHitTestRequest;
 
 fn main() {
-    let _plan = WorthUiSpatialHitTestPlan::from_domain_geometry("solid-brep-face-17");
+    let _request = WorthUiSpatialHitTestRequest::from_domain_geometry("solid-brep-face-17");
 }

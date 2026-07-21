@@ -1,4 +1,8 @@
 use std::sync::Arc;
+use worth_ui_query_binding::compatibility::managed_live::{
+    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
+    WorthUiQueryPrerequisiteBoundary, WorthUiQueryProjectionConsumptionLane,
+};
 
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
 use worth_query::facade::foundation::{
@@ -11,10 +15,6 @@ use worth_ui::facade::graph::UiGraphWorldProfile;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken,
-};
-use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
-    WorthUiQueryPrerequisiteBoundary, WorthUiQueryProjectionConsumptionLane,
 };
 
 pub fn artifact_from_file_provenance<'a>(
@@ -98,7 +98,7 @@ pub fn query_snapshot_world_profile() -> UiGraphWorldProfile {
 pub fn query_prerequisites(
     world_profile: &UiGraphWorldProfile,
     query_basis: UiAdmissionQueryBasis,
-) -> worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence {
+) -> worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence {
     let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile else {
         panic!("query denial proofs require query snapshot worlds");
     };

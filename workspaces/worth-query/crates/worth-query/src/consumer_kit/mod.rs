@@ -123,10 +123,10 @@ pub use support_snapshot::{
     WorthQuerySupportSnapshotTerminalJsonDocument,
 };
 pub use test_backend::{
-    compare_test_backend_write_receipts, in_memory_test_runtime, query_test_backend_residue_audit,
-    WorthQueryInMemoryTestRuntimeBuilder, WorthQueryTestBackendEquivalenceReport,
-    WorthQueryTestBackendEquivalenceRow, WorthQueryTestBackendError,
-    WorthQueryTestBackendErrorKind, WorthQueryTestBackendResidueAudit,
+    advance_test_workspace_domain_installation_generation, compare_test_backend_write_receipts,
+    in_memory_test_runtime, query_test_backend_residue_audit, WorthQueryInMemoryTestRuntimeBuilder,
+    WorthQueryTestBackendEquivalenceReport, WorthQueryTestBackendEquivalenceRow,
+    WorthQueryTestBackendError, WorthQueryTestBackendErrorKind, WorthQueryTestBackendResidueAudit,
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
     WorthQueryTestBackendSchema,
 };

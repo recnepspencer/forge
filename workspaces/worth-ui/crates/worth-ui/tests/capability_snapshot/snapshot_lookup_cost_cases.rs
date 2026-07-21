@@ -1,7 +1,10 @@
 use worth_ui::facade::{
-    CommandProjectionId, MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId,
-    MosaicStateSlotId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId, SurfaceId,
-    TaskPresentationId, ThemeTokenId, ViewBindingId, WorthUi,
+    app::WorthUi,
+    registry::{
+        CommandProjectionId, MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId,
+        MosaicStateSlotId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId, SurfaceId,
+        TaskPresentationId, ThemeTokenId, ViewBindingId,
+    },
 };
 
 use super::snapshot_fixtures::{command_icon, command_id, command_with_icon};
@@ -137,7 +140,7 @@ fn snapshot_lookup_index_covers_every_frozen_family() {
     );
 }
 
-fn assert_index_backed(counters: worth_ui::facade::SnapshotLookupCounters) {
+fn assert_index_backed(counters: worth_ui::facade::diagnostics::SnapshotLookupCounters) {
     assert_eq!(counters.family_width(), 0);
     assert_eq!(counters.families_scanned(), 0);
 }

@@ -217,6 +217,10 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySettledDomainProjection<D, O, F, 
         self.consumed.published.executed.warnings()
     }
 
+    pub fn projection_warnings(&self) -> Option<&ProjectionConsumptionWarnings> {
+        self.consumed.projection_warnings()
+    }
+
     pub fn result_state(&self) -> WorthQueryOperationResultState {
         self.execution_receipt().result_state()
     }

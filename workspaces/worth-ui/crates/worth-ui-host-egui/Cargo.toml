@@ -12,5 +12,5 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-worth-ui-host-contract = { workspace = true }
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 egui = { workspace = true }

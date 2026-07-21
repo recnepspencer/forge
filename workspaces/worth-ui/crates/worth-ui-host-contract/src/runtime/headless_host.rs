@@ -1,6 +1,7 @@
 use super::{
-    UiHostObservationValue, UiMeasurementRequest, WorthUiHostCapabilityReport, WorthUiHostContract,
-    WorthUiMeasurementHostAdapter, WorthUiOperationalHostAdapter,
+    UiHostObservationValue, UiMeasurementRequest, WorthUiHostCapability,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+    WorthUiOperationalHostAdapter,
 };
 
 /// Operational host for applications that deliberately expose no native
@@ -20,6 +21,22 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessHost {
     }
 
     fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless())
+        WorthUiHostCapabilityReport::available(vec![
+            WorthUiHostCapability::CanvasSpatialDraw,
+            WorthUiHostCapability::CanvasSpatialHitTest,
+            WorthUiHostCapability::CanvasSpatialOverlay,
+            WorthUiHostCapability::CanvasSpatialToolState,
+            WorthUiHostCapability::CanvasSpatialRenderResource,
+            WorthUiHostCapability::RealtimeOverlayDraw,
+            WorthUiHostCapability::RealtimeOverlaySurface,
+            WorthUiHostCapability::RealtimeOverlayHook,
+        ])
+    }
+
+    fn consume_output(
+        &self,
+        _output: &super::WorthUiHostOutputEnvelope,
+    ) -> super::WorthUiHostOutputDisposition {
+        super::WorthUiHostOutputDisposition::Consumed
     }
 }

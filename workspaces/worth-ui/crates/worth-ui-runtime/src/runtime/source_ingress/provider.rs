@@ -27,12 +27,6 @@ pub(crate) struct WorthUiProvidedSourceModule {
 }
 
 impl WorthUiSourceProvider {
-    pub fn filesystem_root(root: impl Into<PathBuf>) -> Self {
-        let root = root.into();
-        let id = root.to_string_lossy().into_owned();
-        Self::new(WorthUiSourceProviderKind::Filesystem, id, root)
-    }
-
     pub fn editor_buffer(id: impl Into<String>) -> Self {
         Self::new(
             WorthUiSourceProviderKind::EditorBuffer,
@@ -62,6 +56,11 @@ impl WorthUiSourceProvider {
         relative_path: impl Into<String>,
         source_text: impl Into<String>,
     ) -> Self {
+        assert_ne!(
+            self.kind,
+            WorthUiSourceProviderKind::Filesystem,
+            "filesystem snapshots cannot accept caller-injected source text"
+        );
         self.source_modules.push(WorthUiProvidedSourceModule {
             relative_path: relative_path.into(),
             source_text: source_text.into(),
@@ -168,6 +167,26 @@ impl WorthUiProvidedSourceModule {
 }
 
 impl WorthUiSourceProvider {
+    pub(crate) fn filesystem_snapshot(
+        workspace_root: PathBuf,
+        source_modules: impl IntoIterator<Item = (String, String)>,
+    ) -> Self {
+        let id = workspace_root.to_string_lossy().into_owned();
+        Self {
+            kind: WorthUiSourceProviderKind::Filesystem,
+            id,
+            workspace_root,
+            source_modules: source_modules
+                .into_iter()
+                .map(|(relative_path, source_text)| WorthUiProvidedSourceModule {
+                    relative_path,
+                    source_text,
+                })
+                .collect(),
+            rust_authored_inputs: Vec::new(),
+        }
+    }
+
     fn new(
         kind: WorthUiSourceProviderKind,
         id: impl Into<String>,

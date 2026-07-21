@@ -25,6 +25,7 @@ def ledger_violations(root: Path, config: dict[str, Any]) -> list[Violation]:
         "proof_count",
         "fixture_count",
         "final_lane",
+        "final_package",
         "final_target",
         "disposition",
     }
@@ -76,7 +77,7 @@ def ledger_violations(root: Path, config: dict[str, Any]) -> list[Violation]:
 
 def reconcile_lane_ownership(row, identity, lane_targets, violations) -> None:
     lane = row["final_lane"]
-    target = f"{row['legacy_package']}:{row['final_target']}"
+    target = f"{row['final_package']}:{row['final_target']}"
     if lane not in lane_targets:
         violations.append(Violation("proof-ledger", f"{identity}: unknown lane {lane}"))
     elif target not in lane_targets[lane]:
@@ -106,7 +107,7 @@ def preserved_proof_paths(
 def reconcile_preserved_modules(
     root, row, identity, proof_paths, suite_targets, violations
 ) -> None:
-    suite = suite_targets.get((row["legacy_package"], row["final_target"]))
+    suite = suite_targets.get((row["final_package"], row["final_target"]))
     if suite is None:
         violations.append(Violation("proof-ledger", f"{identity}: final target is missing"))
         return

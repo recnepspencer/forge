@@ -5,7 +5,10 @@ pub use crate::host::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
     UiHostMeasurementExecutionDenial, UiHostMeasurementInvalidationReason, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial,
-    UiPortalAnchorCoordinateSpacePosture,
+    UiHostPreviewDiscardReason, UiHostPreviewPaintContext, UiHostPreviewPaintDenial,
+    UiHostPreviewPaintDenialReport, UiHostPreviewPaintDiscardReport, UiHostPreviewPaintDisposition,
+    UiHostPreviewPaintGeometry, UiHostPreviewPaintInput, UiHostPreviewPaintReceipt,
+    UiPortalAnchorCoordinateSpacePosture, WorthUiPreviewPaintHost,
 };
 pub use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,
@@ -18,8 +21,13 @@ pub use worth_ui_host_contract::{
     UiPortalAnchorTargetIdentity, UiScrollContainerViewportObservation,
     UiScrollContainerViewportRequest, UiTextBaselineMetricsObservation,
     UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
-    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHeadlessHost, WorthUiHostAdapter,
+    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiCanvasSpatialHostOutput,
+    WorthUiCanvasSpatialHostOutputTarget, WorthUiHeadlessHost, WorthUiHostAdapter,
     WorthUiHostCapability, WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiHostKind, WorthUiMeasurementHostAdapter,
-    WorthUiOperationalHostAdapter,
+    WorthUiHostContract, WorthUiHostKind, WorthUiHostOutputDisposition, WorthUiHostOutputEnvelope,
+    WorthUiHostOutputGeneration, WorthUiHostOutputGenerationDenial,
+    WorthUiHostOutputGenerationDenialReason, WorthUiHostOutputLane, WorthUiHostOutputPayload,
+    WorthUiHostOutputReceiptReference, WorthUiMeasurementHostAdapter,
+    WorthUiOperationalHostAdapter, WorthUiOrdinaryHostOutput, WorthUiOrdinaryHostOutputTarget,
+    WorthUiRealtimeHostOutput, WorthUiVirtualizedDataHostOutput,
 };

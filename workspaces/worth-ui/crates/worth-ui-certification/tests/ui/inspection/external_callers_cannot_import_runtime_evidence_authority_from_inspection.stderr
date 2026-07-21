@@ -8,5 +8,5 @@ error[E0432]: unresolved import `worth_ui_inspection::UiEvidenceIdentity`
   |                                             help: a similar name exists in the module: `UiEvidenceFamily`
   |
   = help: consider importing one of these structs instead:
-          worth_ui::facade::UiEvidenceIdentity
+          worth_ui::facade::inspection::UiEvidenceIdentity
           worth_ui_runtime::facade::evidence::UiEvidenceIdentity

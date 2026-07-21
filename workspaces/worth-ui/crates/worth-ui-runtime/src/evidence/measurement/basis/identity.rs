@@ -14,7 +14,7 @@ use super::{
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiMeasurementDependencyLineage, UiMeasurementDependencyMap,
     UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility,
-    UiMeasurementNeighborhoodClassHint, UiMeasurementResult, UiProjectionFactReceipt,
+    UiMeasurementNeighborhoodClassHint, UiMeasurementResult,
 };
 
 pub(super) struct UiMeasurementBasisIdentityInput<'a> {
@@ -34,19 +34,14 @@ pub(super) struct UiMeasurementBasisIdentityInput<'a> {
 
 pub(super) fn basis_generation(
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-    query_receipt: Option<&UiProjectionFactReceipt>,
+    query_receipt_generation: Option<UiEvidenceAuthorityGeneration>,
     host_capability_report: Option<&WorthUiHostCapabilityReport>,
     host_results: [Option<&UiMeasurementResult>; 6],
 ) -> UiMeasurementBasisGeneration {
     UiMeasurementBasisGeneration::new(
         declaration_support_authority_generation.as_u64()
-            ^ query_receipt
-                .map(|receipt| {
-                    receipt
-                        .declaration_support_authority_generation()
-                        .as_u64()
-                        .rotate_left(7)
-                })
+            ^ query_receipt_generation
+                .map(|generation| generation.as_u64().rotate_left(7))
                 .unwrap_or_default()
             ^ host_capability_report
                 .map(|report| report.observation_generation().as_u64().rotate_left(13))

@@ -16,9 +16,8 @@ use crate::runtime::allocation_frame_dispatch::{
 use crate::runtime::{
     UiAllocationFrameQuerySettlementPosture, UiAllocationFrameQueryWarningPosture,
     UiAllocationFrameSourceFact, UiAllocationInvalidationFamily, UiAllocationInvalidationIntent,
-    UiAllocationInvalidationReferenceDenial, UiAllocationPartialSettlementLaw,
-    UiAllocationStreamCompositionDenial, UiAllocationStreamFamily,
-    UiResolvedAllocationStreamPolicy, WorthUiTransientInteractionState,
+    UiAllocationPartialSettlementLaw, UiAllocationStreamCompositionDenial,
+    UiAllocationStreamFamily, UiResolvedAllocationStreamPolicy, WorthUiTransientInteractionState,
 };
 use posture::resolve_ingress_policy_verdict;
 pub(crate) use source_order_transition::UiAllocationSourceOrderTransition;
@@ -337,6 +336,20 @@ fn classify(fact: &UiAllocationFrameSourceFact) -> Result<(UiAllocationStreamFam
             let invalidation = if source.receipt().consumed_families().contains(
                 &worth_ui_query_binding::WorthUiQueryMeasurementFactFamily::ScrollContentExtent,
             ) {
+                UiAllocationInvalidationFamily::ContentExtentChange
+            } else {
+                UiAllocationInvalidationFamily::QueryMeasurementFactChange
+            };
+            (UiAllocationStreamFamily::QueryProjection, invalidation)
+        },
+        UiAllocationFrameSourceFact::QuerySettledFact { fact, .. } => {
+            let carries_content_extent = fact.measurement_facts().is_ok_and(|batch| {
+                batch.observations().iter().any(|observation| {
+                    observation.family()
+                        == worth_ui_query_binding::WorthUiQueryMeasurementFactFamily::ScrollContentExtent
+                })
+            });
+            let invalidation = if carries_content_extent {
                 UiAllocationInvalidationFamily::ContentExtentChange
             } else {
                 UiAllocationInvalidationFamily::QueryMeasurementFactChange

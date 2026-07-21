@@ -1,16 +1,16 @@
+use super::lane_frame_cost_certification_test_support::virtualized_counter_packet;
 use super::{
-    WorthUiCanvasSpatialCounters, WorthUiRealtimeLaneCounters, WorthUiSteadyFrameCounterBoundary,
-    WorthUiSteadyFrameCounterDenialReason, WorthUiVirtualizedDataCounters, WorthUiVisibleRange,
+    WorthUiCanvasSpatialCounters, WorthUiLaneFrameReceiptKind, WorthUiRealtimeLaneCounters,
+    WorthUiSteadyFrameCounterBoundary, WorthUiSteadyFrameCounterDenialReason,
 };
 
 #[test]
 fn steady_frame_rejects_virtualized_broad_collection_work() {
-    let mut virtualized = WorthUiVirtualizedDataCounters::default();
-    virtualized.record_visible_range(WorthUiVisibleRange::rows(30, 10).expect("range is valid"));
-    virtualized.record_full_collection_scan();
-
     let denial = WorthUiSteadyFrameCounterBoundary::for_active_plan(31)
-        .record_virtualized_counters_for_test(virtualized)
+        .record_lane_packet_for_test(
+            WorthUiLaneFrameReceiptKind::VirtualizedData,
+            virtualized_counter_packet(31, 1),
+        )
         .seal()
         .expect_err("full collection scans must not hide in virtualized steady frames");
 

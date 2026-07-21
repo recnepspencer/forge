@@ -80,52 +80,45 @@ mod truth_revision;
 #[path = "report_freshness/viewport_inspection.rs"]
 mod viewport_inspection;
 
-pub use allocation_counters::{
-    UiAllocationCounterName, UiAllocationCounterReport, UiAllocationCounterValue,
-};
+pub use allocation_counters::{UiAllocationCounterName, UiAllocationCounterReport};
 pub use candidate::UiAllocationCandidate;
 pub use commit_outcome::UiAllocationReceiptCommitOutcome;
 pub(crate) use committed_allocation::UiCommittedAllocation;
 pub(crate) use committed_catalog_binding::UiCommittedAllocationCatalogActivation;
 pub use committed_catalog_binding::UiCommittedAllocationCatalogActivationDenial;
+pub(crate) use committed_catalog_binding::UiCommittedAllocationCatalogActivationRow;
 pub(crate) use committed_catalog_binding::UiCommittedAllocationCatalogBindings;
 pub(crate) use committed_catalog_binding::UiCommittedPortalActivationSource;
 pub(crate) use committed_catalog_binding::UiCommittedScrollActivationSource;
-pub use committed_evidence::{UiCommittedAllocationEvidenceSet, UiCommittedPortalAnchorEvidence};
+pub use committed_evidence::UiCommittedAllocationEvidenceSet;
 pub use committed_lowering_input::UiCommittedAllocationLoweringInput;
 pub use committed_receipt::UiAllocationReceipt;
-pub use consumer_admission::{
-    admit_execution_lowering, admit_host_paint, UiAllocationFreshnessConsumptionDenial,
-};
+#[cfg(test)]
+pub use consumer_admission::admit_host_paint;
+pub use consumer_admission::{admit_execution_lowering, UiAllocationFreshnessConsumptionDenial};
 pub use denial::UiAllocationReceiptCommitDenial;
-pub use denial_report::{UiAllocationReceiptDenialCause, UiAllocationReceiptDenialReport};
-pub use denial_taxonomy::{
-    UiAllocationDenialEvidence, UiAllocationDenialEvidenceIdentity, UiAllocationDenialFamily,
-};
+pub use denial_report::UiAllocationReceiptDenialReport;
+pub use denial_taxonomy::UiAllocationDenialFamily;
 pub use durable_semantic_state::UiAllocationDurableSemanticState;
-pub use equivalence_basis::{
-    UiAllocationConstraintPayloadShape, UiAllocationConstraintPropagationShape,
-    UiAllocationReceiptConstraintShape, UiAllocationReceiptEquivalenceBasis,
-};
+pub use equivalence_basis::UiAllocationReceiptEquivalenceBasis;
 pub use geometry_evidence::{
     UiAllocationAnchorPosture, UiAllocationAxis, UiAllocationAxisAlignedBounds,
     UiAllocationEdgeReference, UiAllocationGeometryKnowledge,
-    UiCommittedAllocationGeometryEvidence, UiPortalAnchorObservationGeometryEvidence,
+    UiCommittedAllocationGeometryEvidence,
 };
 pub use prepared_portal_commit::UiPortalAllocationCommitBindDenial;
 pub use preview_candidate::UiAllocationPreviewCandidate;
-pub use preview_isolation::{
-    UiPreviewPaintIsolationOutcome, UiPreviewPaintIsolationReceipt,
-    UiPreviewPaintIsolationViolation,
-};
+pub use preview_isolation::{UiPreviewPaintIsolationOutcome, UiPreviewPaintIsolationViolation};
 pub use receipt_generation::UiAllocationReceiptGeneration;
 pub use receipt_identity::UiAllocationReceiptIdentity;
+#[cfg(test)]
 pub use receipt_report::{
-    UiAllocationFreshnessTransition, UiAllocationFreshnessTransitionCause,
-    UiAllocationFreshnessTransitionDenial, UiAllocationReceiptFreshnessPosture,
-    UiAllocationReceiptLagBound, UiAllocationReceiptReport,
+    UiAllocationFreshnessTransitionCause, UiAllocationFreshnessTransitionDenial,
 };
-pub use replan_transaction::{UiAllocationReplanTransaction, UiAllocationReplanTransactionDenial};
+pub use receipt_report::{
+    UiAllocationReceiptFreshnessPosture, UiAllocationReceiptLagBound, UiAllocationReceiptReport,
+};
+pub use replan_transaction::UiAllocationReplanTransaction;
 pub use reuse_verdict::{
     UiAllocationLeafRemeasureWitness, UiAllocationReuseDenial, UiAllocationReuseVerdict,
 };
@@ -133,9 +126,10 @@ pub use transaction_outcome::{
     UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionCounters,
     UiAllocationReplanTransactionOutcome, UiCommittedAllocationReplan,
 };
+#[cfg(test)]
+pub use truth_revision::UiAllocationAuthorityCounter;
 pub use truth_revision::{
-    UiAllocationAuthorityCounter, UiAllocationAuthorityCounterExhaustion, UiAllocationTruthDelta,
-    UiAllocationTruthRevision,
+    UiAllocationAuthorityCounterExhaustion, UiAllocationTruthDelta, UiAllocationTruthRevision,
 };
 
 pub(crate) use ledger_state::UiAllocationCatalogLedgerLineage;
@@ -149,3 +143,5 @@ pub(crate) use receipt_ledger::UiAllocationReceiptLedger;
 pub(in crate::runtime) use receipt_ledger_entry::UiPreparedAllocationCatalogLedgerCommit;
 #[path = "ledger_lifecycle/activation_catalog_commit.rs"]
 mod activation_catalog_commit;
+#[path = "ledger_lifecycle/removal_catalog_commit.rs"]
+mod removal_catalog_commit;

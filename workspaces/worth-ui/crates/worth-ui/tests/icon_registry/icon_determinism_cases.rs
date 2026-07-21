@@ -1,6 +1,9 @@
 use worth_ui::facade::{
-    IconAccessibilityPosture, IconColorSupport, IconDescriptor, IconFamily, IconSourceDescriptor,
-    IconThemePosture, WorthUi,
+    app::WorthUi,
+    registry::{
+        IconAccessibilityPosture, IconColorSupport, IconDescriptor, IconFamily,
+        IconSourceDescriptor, IconThemePosture,
+    },
 };
 
 use super::icon_assertions::assert_registered_icon_ids;

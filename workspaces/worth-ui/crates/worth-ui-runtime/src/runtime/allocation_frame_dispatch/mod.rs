@@ -17,27 +17,25 @@ pub(crate) use dispatcher::{
 };
 pub use epoch::UiAllocationFrameEpoch;
 pub(in crate::runtime) use framework_turn::UiPreparedFrameReplacementCommit;
+#[cfg(test)]
+pub use framework_turn::WorthUiPreviewPaintFollowOn;
 pub(crate) use framework_turn::{
     UiAllocationFrameFrameworkScheduler, UiPendingAllocationFrameHandoff,
 };
 pub use framework_turn::{
-    UiFrameworkTransitionExecutionDenial, UiFrameworkTransitionPlanningCounters,
-    UiFrameworkTransitionPlanningDenial, WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn,
-    WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
-    WorthUiHostMeasurementTurnSource, WorthUiInteractionTurnSource, WorthUiPreviewPaintFollowOn,
-    WorthUiQueryProjectionTurnSource, WorthUiResolvedPreviewPaintCompletion,
-    WorthUiScrollOffsetTurnSource,
+    UiFrameworkTransitionPlanningCounters, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
+    WorthUiFrameworkTurnExecution, WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
 };
 pub(crate) use gateway::UiAllocationFrameGatewayState;
 pub use gateway::{
     UiAllocationFrameGatewayOutcome, UiAllocationFrameQuerySettlementPosture,
     UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
-    UiAllocationFrameSourceFactPosture,
+    UiAllocationFrameSourceFactPosture, WorthUiQueryFrameIngressCounters,
+    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome,
 };
 #[cfg(test)]
 pub(crate) use gateway::{
     WorthUiDurableResizeSubmission, WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission,
-    WorthUiQueryProjectionSubmission,
 };
 pub(crate) use ingress::UiAllocationFrameSourceLease;
 pub use ingress::{

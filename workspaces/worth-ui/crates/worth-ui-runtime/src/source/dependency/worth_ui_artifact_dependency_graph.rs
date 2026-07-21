@@ -11,6 +11,7 @@ pub(crate) struct WorthUiArtifactDependencyGraph {
     module_dependencies: BTreeMap<WorthUiSourceModuleId, Vec<WorthUiSourceModuleId>>,
     subtree_digests: BTreeMap<WorthUiArtifactHandle, WorthUiArtifactSubtreeDigest>,
     runtime_hooks: BTreeMap<WorthUiArtifactHandle, Vec<WorthUiRuntimeDependencyHook>>,
+    query_hook_handles: BTreeMap<String, Vec<WorthUiArtifactHandle>>,
 }
 
 impl WorthUiArtifactDependencyGraph {
@@ -24,11 +25,22 @@ impl WorthUiArtifactDependencyGraph {
         edges.dedup();
         canonicalize_map_values(&mut module_dependencies);
         canonicalize_map_values(&mut runtime_hooks);
+        let mut query_hook_handles = BTreeMap::<String, Vec<WorthUiArtifactHandle>>::new();
+        for (handle, hooks) in &runtime_hooks {
+            for hook in hooks {
+                query_hook_handles
+                    .entry(hook.view_binding_id().as_str().to_owned())
+                    .or_default()
+                    .push(handle.clone());
+            }
+        }
+        canonicalize_map_values(&mut query_hook_handles);
         Self {
             edges,
             module_dependencies,
             subtree_digests,
             runtime_hooks,
+            query_hook_handles,
         }
     }
 
@@ -66,6 +78,18 @@ impl WorthUiArtifactDependencyGraph {
         &self,
     ) -> &BTreeMap<WorthUiArtifactHandle, Vec<WorthUiRuntimeDependencyHook>> {
         &self.runtime_hooks
+    }
+
+    pub(crate) fn runtime_hooks_for_query_binding<'graph>(
+        &'graph self,
+        view_binding_id: &'graph str,
+    ) -> impl Iterator<Item = &'graph WorthUiRuntimeDependencyHook> + 'graph {
+        self.query_hook_handles
+            .get(view_binding_id)
+            .into_iter()
+            .flatten()
+            .flat_map(|handle| self.runtime_hooks_for(handle))
+            .filter(move |hook| hook.view_binding_id().as_str() == view_binding_id)
     }
 }
 

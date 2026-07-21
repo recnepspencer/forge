@@ -98,11 +98,15 @@ fn phase_10_query_content_extent_replans_only_the_bound_scroll_neighborhood() {
     let (mut runtime, _, _, _query, active_receipt, _, _, mut query) =
         super::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let scroll_root = active_receipt.identity().graph_node_identity();
-    let attempt = query.project();
+    let projection = query.settle_snapshot();
+    let fact_link = runtime.query_fact_link_for_test("inspector.measurements");
     let completion = runtime.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
             source
-                .admit_and_submit(attempt)
+                .refresh_settled(projection)
+                .expect("ordinary Query settlement atomically refreshes exact authority");
+            source
+                .submit_settled(&fact_link)
                 .expect("ordinary Query settlement enters the allocation stream");
         });
     });

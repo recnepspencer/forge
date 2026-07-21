@@ -1,14 +1,14 @@
 use crate::facade::inspection_bridge::UiInspectionReceipt;
-use crate::facade::prepared_application_authority::{
-    WorthUiHostSessionPlan, WorthUiPreparedApplicationGenerationIdentity,
-};
+use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 use crate::runtime::{
-    WorthUiActiveRuntimeObservation, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
-    WorthUiRuntime, WorthUiRuntimeShutdownReceipt,
+    WorthUiActiveRuntimeObservation, WorthUiFrameworkTurn, WorthUiRuntime,
+    WorthUiRuntimeShutdownReceipt,
 };
 use worth_ui_inspection::UiInspectionQuery;
 
-use super::{WorthUiActiveApplicationSessionIdentity, WorthUiApp};
+use super::{
+    WorthUiActiveApplicationSessionIdentity, WorthUiActiveFrameworkTurnCompletion, WorthUiApp,
+};
 
 /// The one ordinary owner of a running Worth UI application generation.
 pub struct WorthUiActiveApplicationSession {
@@ -24,23 +24,12 @@ pub struct WorthUiActiveInspectionReceipt {
     receipt: UiInspectionReceipt,
 }
 
-/// One framework-turn result bound to the active application generation.
-pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
-    generation_identity: WorthUiPreparedApplicationGenerationIdentity,
-    completion: WorthUiFrameworkTurnCompletion<'session>,
-}
-
 impl WorthUiActiveApplicationSession {
     pub(super) fn new(
         app: WorthUiApp,
-        mut runtime: WorthUiRuntime,
-        host_session_plan: WorthUiHostSessionPlan,
+        runtime: WorthUiRuntime,
+        host_session: crate::facade::WorthUiHostSessionAuthority,
     ) -> Self {
-        let host_session = crate::facade::WorthUiHostSessionAuthority::activate(&host_session_plan);
-        runtime.bind_operational_host_session(
-            host_session.identity(),
-            host_session.observation_generation(),
-        );
         let identity =
             WorthUiActiveApplicationSessionIdentity::from_host_session(host_session.identity());
         Self {
@@ -59,7 +48,7 @@ impl WorthUiActiveApplicationSession {
         self.app.generation_identity()
     }
 
-    pub fn capabilities(&self) -> &crate::facade::registry::CapabilitySnapshot {
+    pub fn capabilities(&self) -> &crate::facade::registry::snapshot::CapabilitySnapshot {
         self.app.capabilities()
     }
 
@@ -69,11 +58,11 @@ impl WorthUiActiveApplicationSession {
         self.app.graph()
     }
 
-    pub fn source_ingress(
+    pub fn source_event_ingress(
         &self,
         provider: crate::runtime::WorthUiSourceProvider,
-    ) -> crate::runtime::WorthUiSourceWatcher {
-        self.runtime.source_ingress(provider)
+    ) -> crate::runtime::WorthUiSourceEventIngress {
+        self.runtime.source_event_ingress(provider)
     }
 
     pub fn inspect(&self, query: UiInspectionQuery) -> WorthUiActiveInspectionReceipt {
@@ -87,16 +76,135 @@ impl WorthUiActiveApplicationSession {
         self.runtime.inspect_active()
     }
 
+    pub fn inspect_query_state_residue(&self) -> crate::runtime::WorthUiStateQueryResidueScan {
+        self.runtime.inspect_query_state_residue()
+    }
+
     pub fn execute_framework_turn(
         &mut self,
         collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
     ) -> WorthUiActiveFrameworkTurnCompletion<'_> {
         let generation_identity = self.generation_identity().clone();
+        let host_session_identity = self.host_session.identity();
+        let host_adapter = self.host_session.output_adapter();
         let completion = self.runtime.execute_framework_turn(collect_sources);
         WorthUiActiveFrameworkTurnCompletion {
             generation_identity,
+            host_session_identity,
+            host_adapter,
             completion,
         }
+    }
+
+    pub fn ordinary_plan_availability(&self) -> crate::runtime::WorthUiOrdinaryPlanAvailability {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .ordinary_availability()
+    }
+
+    pub fn virtualized_plan_availability(
+        &self,
+    ) -> crate::runtime::WorthUiVirtualizedPlanAvailability {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .virtualized_availability()
+    }
+
+    pub fn query_fact_link(
+        &self,
+        binding_id: &str,
+    ) -> Option<crate::runtime::WorthUiQueryLaneFactLink> {
+        let binding_id = crate::capability::ViewBindingId::new(binding_id).ok()?;
+        self.runtime
+            .active
+            .active_plan_ref()
+            .query_fact_link_for_binding_id(&binding_id)
+    }
+
+    pub fn canvas_spatial_plan_availability(
+        &self,
+    ) -> crate::runtime::WorthUiCanvasSpatialPlanAvailability {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .canvas_spatial_availability()
+    }
+
+    pub fn first_canvas_spatial_handle(&self) -> Option<crate::runtime::WorthUiLaneHandle> {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .first_canvas_spatial_handle()
+    }
+
+    pub fn inspect_canvas_spatial_target(
+        &self,
+        handle: crate::runtime::WorthUiLaneHandle,
+    ) -> Result<
+        crate::runtime::WorthUiCanvasSpatialTargetSummary,
+        crate::runtime::WorthUiCanvasSpatialInspectionDenial,
+    > {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .canvas_spatial_summary(handle)
+    }
+
+    pub fn realtime_plan_availability(&self) -> crate::runtime::WorthUiRealtimePlanAvailability {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .realtime_availability()
+    }
+
+    pub fn first_realtime_renderer_surface(
+        &self,
+    ) -> Option<crate::runtime::WorthUiRendererSurfaceHandle> {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .first_realtime_handle()
+    }
+
+    pub fn inspect_realtime_target(
+        &self,
+        handle: crate::runtime::WorthUiRendererSurfaceHandle,
+    ) -> Result<
+        crate::runtime::WorthUiRealtimeTargetSummary,
+        crate::runtime::WorthUiRealtimeInspectionDenial,
+    > {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .realtime_summary(handle)
+    }
+
+    pub fn inspect_virtualized_plan(
+        &self,
+        request: crate::runtime::WorthUiVirtualizedPlanSummaryRequest,
+    ) -> Result<
+        crate::runtime::WorthUiVirtualizedPlanSummary,
+        crate::runtime::WorthUiVirtualizedPlanSummaryDenial,
+    > {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .virtualized_summary(&self.runtime.query_binding, request)
+    }
+
+    pub fn inspect_ordinary_plan(
+        &self,
+        request: crate::runtime::WorthUiOrdinaryPlanSummaryRequest,
+    ) -> Result<
+        crate::runtime::WorthUiOrdinaryPlanSummary,
+        crate::runtime::WorthUiOrdinaryPlanSummaryDenial,
+    > {
+        self.runtime
+            .active
+            .active_plan_ref()
+            .ordinary_summary(request)
     }
 
     pub fn host_session_identity(&self) -> crate::facade::WorthUiHostSessionIdentity {
@@ -110,35 +218,6 @@ impl WorthUiActiveApplicationSession {
     pub fn shutdown(self) -> WorthUiRuntimeShutdownReceipt {
         self.runtime.shutdown()
     }
-
-    #[cfg(test)]
-    pub(crate) fn replace_host_observation_generation_for_test(
-        &mut self,
-        observation_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
-    ) {
-        self.runtime
-            .replace_host_observation_generation_for_test(observation_generation);
-    }
-
-    #[cfg(test)]
-    pub(crate) fn allocation_ingress_count_for_test(&self) -> u64 {
-        self.runtime
-            .allocation_frame_dispatcher_counters()
-            .ingress_count()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn planning_inspection_authority_identity_for_test(&self) -> usize {
-        std::rc::Rc::as_ptr(self.app.retained_planning_authority()) as usize
-    }
-
-    #[cfg(test)]
-    pub(crate) fn planning_inspection_authority_is_runtime_coherent_for_test(&self) -> bool {
-        std::rc::Rc::ptr_eq(
-            self.app.retained_planning_authority(),
-            &self.runtime.retained_allocation_planning_evidence,
-        )
-    }
 }
 
 impl WorthUiActiveInspectionReceipt {
@@ -148,15 +227,5 @@ impl WorthUiActiveInspectionReceipt {
 
     pub fn receipt(&self) -> &UiInspectionReceipt {
         &self.receipt
-    }
-}
-
-impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
-    pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.generation_identity
-    }
-
-    pub fn into_completion(self) -> WorthUiFrameworkTurnCompletion<'session> {
-        self.completion
     }
 }

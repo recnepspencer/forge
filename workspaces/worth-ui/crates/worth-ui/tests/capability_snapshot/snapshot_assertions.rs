@@ -1,4 +1,4 @@
-use worth_ui::facade::{
+use worth_ui::facade::diagnostics::{
     CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, SnapshotReferenceValidationReport,
     SnapshotReferenceViolationKind,
 };

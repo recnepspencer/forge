@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface,
+    registry::{CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface},
 };
 
 fn main() {
@@ -9,11 +9,11 @@ fn main() {
         command_references: Vec::new(),
         eligible_categories: Vec::new(),
         groupings: Vec::new(),
-        ordering: worth_ui::facade::CommandProjectionOrdering::Declaration,
-        shortcut_visibility: worth_ui::facade::CommandProjectionShortcutVisibility::Hidden,
-        readiness_display_policy: worth_ui::facade::CommandProjectionReadinessDisplayPolicy::HideReadiness,
-        icon_label_policy: worth_ui::facade::CommandProjectionIconLabelPolicy::PreferCommandIconAndLabel,
-        overflow_behavior: worth_ui::facade::CommandProjectionOverflowBehavior::NoOverflow,
+        ordering: worth_ui::facade::registry::CommandProjectionOrdering::Declaration,
+        shortcut_visibility: worth_ui::facade::registry::CommandProjectionShortcutVisibility::Hidden,
+        readiness_display_policy: worth_ui::facade::registry::CommandProjectionReadinessDisplayPolicy::HideReadiness,
+        icon_label_policy: worth_ui::facade::registry::CommandProjectionIconLabelPolicy::PreferCommandIconAndLabel,
+        overflow_behavior: worth_ui::facade::registry::CommandProjectionOverflowBehavior::NoOverflow,
         mosaic_scope: None,
         meaning_overrides: Vec::new(),
     };

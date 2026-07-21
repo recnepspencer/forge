@@ -4,30 +4,50 @@ pub(crate) fn runtime_with_scroll_catalog() -> (
     crate::runtime::WorthUiRuntimeFrameworkLoop,
     Box<[crate::graph::UiGraphNodeIdentity]>,
     crate::evidence::UiMeasurementResult,
-    crate::evidence::UiProjectionFactReceipt,
+    crate::evidence::UiSettledQueryFactReceipt,
     crate::runtime::UiAllocationReceipt,
     crate::runtime::UiAllocationReceipt,
     crate::runtime::UiCommittedAllocationEvidenceSet,
     worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture,
 ) {
-    let inputs = activation_staging_inputs();
-    let (runtime, pending) = inputs.into_runtime_and_pending();
     let mut installed_query =
         worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture::new(
             "production-scroll-catalog-activation-scroll-1",
         );
-    let mut binding = installed_query.binding_plan().activate();
-    let settlement = binding
-        .admit(installed_query.project())
-        .expect("installed Query projection should settle before catalog admission");
-    let admitted_inputs = crate::runtime::tests::allocation_catalog_test_support::admitted_scroll_planning_admissions_from_settlement(
+    let inputs = super::super::activation_staging_test_support::activation_staging_inputs_with_installed_query_view(
+        installed_query.installed_view(),
+    );
+    let (runtime, pending) = inputs.into_runtime_and_pending();
+    let predecessor_link = runtime.query_fact_link_for_test("inspector.measurements");
+    let mut binding = installed_query.binding_plan().prepare_downstream_state();
+    let fact = binding
+        .admit_settled_snapshot(installed_query.settle_snapshot())
+        .expect("installed Query settlement should admit before catalog planning");
+    let admitted_inputs = crate::runtime::tests::allocation_catalog_test_support::admitted_scroll_planning_admissions_from_settled_fact(
         "production-scroll-catalog-activation",
         2,
-        &settlement,
+        "inspector.measurements",
+        &fact,
     );
     let activated = activate_catalog(runtime, pending, 2, true, false, Some(admitted_inputs));
     let mut runtime = activated.runtime;
-    runtime.install_query_binding_for_test(installed_query.binding_plan());
+    assert!(
+        runtime.query_fact_link_is_current_for_test("inspector.measurements"),
+        "activated Query fact link must belong to the published application generation"
+    );
+    runtime.install_query_binding_state_for_test(binding);
+    let mut stale_denial = None;
+    let completion = runtime.execute_framework_turn(|turn| {
+        turn.query_projection(|source| {
+            stale_denial = source.submit_settled(&predecessor_link).err();
+        });
+    });
+    drop(completion);
+    assert_eq!(
+        stale_denial,
+        Some(crate::runtime::WorthUiQueryFrameIngressDenial::StaleApplicationGeneration),
+        "a lane link issued by the predecessor generation must not survive publication"
+    );
     let basis = activated.planning.measurement_basis();
     let result = basis
         .host_allocation_requests()

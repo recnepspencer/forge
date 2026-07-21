@@ -14,6 +14,7 @@ fn equivalent_source_text_produces_equivalent_parsed_structure() {
             token accent = "blue";
             "#,
         )
+        .register_module_with_source("app/panels/inspector.wui", "component Inspector {}")
         .compile()
         .expect("package a should compile");
 
@@ -29,6 +30,7 @@ fn equivalent_source_text_produces_equivalent_parsed_structure() {
             token accent = "blue";
             "#,
         )
+        .register_module_with_source("app/panels/inspector.wui", "component Inspector {}")
         .compile()
         .expect("package b should compile");
 

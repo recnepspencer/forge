@@ -31,8 +31,6 @@ pub enum UiAllocationSolveConvergencePosture {
     FixedPointDeterministic,
     DeniedByMeasurementBasis,
     DeniedByConstraintSet,
-    DeniedByLoweringAdmissionMismatch,
-    DeniedByPlanLowering,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -135,12 +133,6 @@ pub(crate) fn convergence_posture_for_cycle_and_denial(
         }
         Some(WorthUiAllocationPlanningDenialReason::ConstraintSetDenied) => {
             UiAllocationSolveConvergencePosture::DeniedByConstraintSet
-        }
-        Some(WorthUiAllocationPlanningDenialReason::LoweringAdmissionMismatch) => {
-            UiAllocationSolveConvergencePosture::DeniedByLoweringAdmissionMismatch
-        }
-        Some(WorthUiAllocationPlanningDenialReason::PlanLoweringDenied) => {
-            UiAllocationSolveConvergencePosture::DeniedByPlanLowering
         }
         None => match (cycle_posture, fixed_point_policy) {
             (Some(UiConstraintCycleParticipationPosture::AdmittedFixedPoint), _)

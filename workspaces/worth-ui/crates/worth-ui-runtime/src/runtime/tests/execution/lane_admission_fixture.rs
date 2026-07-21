@@ -13,13 +13,15 @@ pub(super) fn lane_fixture() -> (
     WorthUiRuntimeHandleAllocation,
 ) {
     let inputs = activation_staging_inputs();
+    let plan_input = inputs
+        .runtime
+        .prepare_reconstructive_plan_input_for_test(&inputs.admitted, &[]);
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
-    let planning = allocation_planning(&runtime, &plan_input, "lane-admission.fixture");
+    let planning = allocation_planning(&runtime, &pending, "lane-admission.fixture");
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input.clone());
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("handles allocate");
     (runtime, plan_input, planning, allocation)
 }
@@ -31,25 +33,27 @@ pub(super) fn spoofed_query_lane_fixture() -> (
 ) {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = plan_input_with_spoofed_query_lane_identity(&runtime, pending);
-    let planning = allocation_planning(&runtime, &plan_input, "lane-admission.spoofed-query");
+    let plan_input = plan_input_with_spoofed_query_lane_identity(&runtime, &pending);
+    let planning = allocation_planning(&runtime, &pending, "lane-admission.spoofed-query");
     (runtime, plan_input, planning)
 }
 
 pub(super) fn admit_lanes(
     runtime: &WorthUiRuntime,
     planning: &UiAllocationCandidate,
+    plan_input: &crate::runtime::WorthUiExecutionPlanInput,
     support: &WorthUiExecutionLaneSupport,
 ) -> WorthUiLaneAdmission {
-    let lowering_input = runtime.detached_allocation_lowering_input_for_test(planning);
+    let facts =
+        runtime.detached_execution_plan_lowering_facts_for_test(planning, plan_input.clone());
     runtime
-        .admit_execution_lanes(&lowering_input, support)
+        .admit_execution_lanes(&facts, support)
         .expect("lane admission succeeds")
 }
 
 fn plan_input_with_spoofed_query_lane_identity(
     runtime: &WorthUiRuntime,
-    pending: crate::runtime::WorthUiPendingActivation,
+    pending: &crate::runtime::WorthUiPendingActivation,
 ) -> crate::runtime::WorthUiExecutionPlanInput {
     let hook = WorthUiComponentLoweringHook::registered(
         "component.local.spoofed_query_lane",

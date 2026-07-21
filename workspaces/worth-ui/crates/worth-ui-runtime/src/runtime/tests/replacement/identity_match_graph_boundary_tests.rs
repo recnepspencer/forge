@@ -1,4 +1,7 @@
-use crate::runtime::{WorthUiIdentityMatchDenial, WorthUiIdentityMatchNodeKind};
+use crate::runtime::{
+    WorthUiIdentityMatchDenial, WorthUiIdentityMatchNodeKind, WorthUiPlanTopologyDenialReason,
+    WorthUiRuntimeHandleAllocationDenialReason, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
+};
 
 use super::identity_match_graph_test_support::{
     artifact_from_nodes, component_node, component_node_with_descriptor, identity_match_app,
@@ -63,7 +66,7 @@ fn duplicate_candidate_identity_rejected_before_state_reconciliation() {
 }
 
 #[test]
-fn duplicate_active_identity_rejected_before_candidate_can_claim_state() {
+fn duplicate_active_identity_cannot_enter_the_runtime() {
     let app = identity_match_app();
     let active = artifact_from_nodes([(
         "app/main.wui",
@@ -72,27 +75,16 @@ fn duplicate_active_identity_rejected_before_candidate_can_claim_state() {
             component_node("component:dashboard", 1),
         ],
     )]);
-    let candidate = artifact_from_nodes([(
-        "app/main.wui",
-        vec![component_node("component:dashboard", 0)],
-    )]);
+    let denial = app
+        .launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(active))
+        .expect_err("duplicate active identity must be rejected before runtime admission");
 
-    let (runtime, admitted, narrowing) = runtime_and_narrowing(&app, active, candidate);
-    let denial = runtime
-        .build_identity_match_graph(&narrowing, &admitted)
-        .expect_err("duplicate active identity rejects");
-
-    match denial {
-        WorthUiIdentityMatchDenial::DuplicateActiveIdentity {
-            identity_basis,
-            counters,
-            ..
-        } => {
-            assert_eq!(identity_basis, "component:dashboard");
-            assert_eq!(counters.duplicate_active_identity_count(), 1);
-        }
-        other => panic!("unexpected denial: {other:?}"),
-    }
+    assert!(matches!(
+        denial,
+        WorthUiRuntimeLaunchDenial::HandleAllocation(denial)
+            if denial.reason()
+                == WorthUiRuntimeHandleAllocationDenialReason::DuplicatePlanLocalHandleClaim
+    ));
 }
 
 #[test]
@@ -236,7 +228,7 @@ fn duplicate_candidate_basis_across_node_kinds_is_rejected_as_kind_ambiguity() {
 }
 
 #[test]
-fn duplicate_active_basis_across_node_kinds_is_rejected_as_kind_ambiguity() {
+fn duplicate_active_basis_across_node_kinds_cannot_enter_the_active_plan() {
     let app = identity_match_app();
     let active = artifact_from_nodes([(
         "app/main.wui",
@@ -245,30 +237,15 @@ fn duplicate_active_basis_across_node_kinds_is_rejected_as_kind_ambiguity() {
             surface_node("identity:shared", "workspace.surface.main", 1),
         ],
     )]);
-    let candidate =
-        artifact_from_nodes([("app/main.wui", vec![component_node("identity:shared", 0)])]);
+    let denial = app
+        .launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(active))
+        .expect_err("an ambiguous identity cannot become active plan truth");
 
-    let (runtime, admitted, narrowing) = runtime_and_narrowing(&app, active, candidate);
-    let denial = runtime
-        .build_identity_match_graph(&narrowing, &admitted)
-        .expect_err("same active basis across node kinds rejects as kind ambiguity");
-
-    match denial {
-        WorthUiIdentityMatchDenial::ActiveIdentityKindMismatch {
-            identity_basis,
-            first_kind,
-            second_kind,
-            counters,
-            ..
-        } => {
-            assert_eq!(identity_basis, "identity:shared");
-            assert_eq!(first_kind, WorthUiIdentityMatchNodeKind::Component);
-            assert_eq!(second_kind, WorthUiIdentityMatchNodeKind::Surface);
-            assert_eq!(counters.identity_kind_mismatch_count(), 1);
-            assert_eq!(counters.duplicate_active_identity_count(), 0);
-        }
-        other => panic!("unexpected denial: {other:?}"),
-    }
+    assert!(matches!(
+        denial,
+        WorthUiRuntimeLaunchDenial::TopologyAssembly(denial)
+            if denial.reason() == WorthUiPlanTopologyDenialReason::DuplicateRegionIdentity
+    ));
 }
 
 #[test]

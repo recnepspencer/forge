@@ -1,7 +1,9 @@
 use worth_ui::facade::{
-    MosaicPlacementAction, MosaicPlacementEligibility, MosaicPlacementSource,
-    MosaicPlacementSupport, MosaicPlacementTarget, MosaicRegionRole, SurfacePlacementClass,
-    WorthUi,
+    app::WorthUi,
+    registry::{
+        MosaicPlacementAction, MosaicPlacementEligibility, MosaicPlacementSource,
+        MosaicPlacementSupport, MosaicPlacementTarget, MosaicRegionRole, SurfacePlacementClass,
+    },
 };
 
 use super::mosaic_placement_registry_fixtures::{complete_policy, placement_id};

@@ -11,7 +11,7 @@ use crate::obligations::verdict::{UiObligationDispatchStopPosture, UiObligationV
 use worth_ui_inspection::{
     UiEvidenceAuthorityGeneration, UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture,
 };
-use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 
 use super::projection_mapping::{
     inspection_decision, inspection_denial_posture, inspection_dispatch_posture, inspection_family,

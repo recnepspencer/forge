@@ -22,7 +22,7 @@ pub(super) fn function_overload_findings(
         ),
         (
             "O-03",
-            "crates/worth-ui-runtime/src/runtime/matching/worth_ui_identity_match_graph_builder",
+            "crates/worth-ui-runtime/src/runtime/replacement/matching/worth_ui_identity_match_graph_builder",
             "WorthUiIdentityMatchGraphBuilder",
             "build",
         ),
@@ -58,7 +58,7 @@ pub(super) fn file_size_findings(
     inventory: &WorkspaceSourceInventory,
 ) -> Vec<StructuralCleanupFinding> {
     let hotspot_roots = [
-        "crates/worth-ui-runtime/src/runtime/matching/worth_ui_identity_match_graph_builder",
+        "crates/worth-ui-runtime/src/runtime/replacement/matching/worth_ui_identity_match_graph_builder",
         "crates/worth-ui-runtime/src/evidence/measurement/projection/inspection_receipt",
         "crates/worth-ui-runtime/src/graph/allocation_neighborhood/constraint_pipeline",
         "crates/worth-ui-runtime/src/runtime/launch",

@@ -18,7 +18,6 @@ use super::{
 pub(crate) struct WorthQueryDomainInstallationRegistry {
     runtime_authority: WorthQueryRuntimeAuthorityIdentity,
     generation: WorthQueryDomainInstallationGeneration,
-    #[cfg(test)]
     generation_lease: WorthQueryDomainInstallationGenerationLease,
     records: Vec<WorthQueryInstalledDomainRecord>,
     by_marker_type: HashMap<TypeId, usize>,
@@ -77,7 +76,6 @@ impl WorthQueryDomainInstallationRegistry {
         Self {
             runtime_authority,
             generation,
-            #[cfg(test)]
             generation_lease,
             records,
             by_marker_type,
@@ -250,7 +248,6 @@ impl WorthQueryDomainInstallationRegistry {
         WorthQueryDomainExecutionIndexRebuildReport::new(retired_identity, rebuilt_identity, shape)
     }
 
-    #[cfg(test)]
     pub(crate) fn replace_with_successor_generation(&mut self) {
         let artifacts = self
             .records

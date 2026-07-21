@@ -1,4 +1,6 @@
-use worth_ui::facade::{CapabilitySnapshotDigest, SnapshotMetrics};
+use worth_ui::facade::{
+    diagnostics::{CapabilitySnapshotDigest, SnapshotMetrics},
+};
 
 fn main() {
     let _ = CapabilitySnapshotDigest::from_metrics(metrics());

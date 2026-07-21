@@ -25,10 +25,9 @@ pub use denial::{
 };
 pub use evidence::UiCommittedAllocationActivationDenialEvidence;
 pub(crate) use identity::UiCommittedAllocationActivationIdentity;
-pub use inspection::{
-    UiCommittedAllocationActivationInspection, UiCommittedAllocationActivationInspectionDenialKind,
-    UiCommittedAllocationActivationInspectionOutcome,
-};
+pub use inspection::UiCommittedAllocationActivationInspection;
+#[cfg(test)]
+pub use inspection::UiCommittedAllocationActivationInspectionOutcome;
 use preflight::UiCommittedAllocationPreflightDenial;
 use prepared::{UiCommittedAllocationCommitResources, UiCommittedAllocationSuccessors};
 pub(crate) use prior_valid_plan::WorthUiPriorValidPlan;

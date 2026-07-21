@@ -290,6 +290,33 @@ impl<'a> UiGraphTouchAuthority<'a> {
                     })
                 }
             }
+            UiGraphTouchOriginAuthority::SettledQueryBinding {
+                view_binding_id,
+                query_binding_identity,
+            } => {
+                let aligned = matches!(
+                    self.snapshot.world_profile(),
+                    UiGraphWorldProfile::SettledQueryBinding {
+                        view_binding_id: current_view,
+                        query_binding_identity: current_query,
+                    } if current_view == view_binding_id
+                        && current_query == query_binding_identity
+                );
+                if allow_mounted_receipt_transition_only
+                    && aligned
+                    && origin.receipt().authority_digest()
+                        == crate::declaration::stable_text_digest(view_binding_id.as_str())
+                            ^ crate::declaration::stable_text_digest(query_binding_identity)
+                                .rotate_left(29)
+                {
+                    Ok(())
+                } else {
+                    Err(UiGraphTouchDenial::OriginDoesNotAuthorizeGraphNode {
+                        origin_class: origin.receipt().class(),
+                        graph_node_identity,
+                    })
+                }
+            }
             UiGraphTouchOriginAuthority::AuthoredProvenanceDigests { digests } => self
                 .snapshot
                 .core_indexes()

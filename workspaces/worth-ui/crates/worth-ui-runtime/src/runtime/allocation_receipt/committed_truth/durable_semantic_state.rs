@@ -11,7 +11,7 @@ pub struct UiAllocationDurableSemanticState {
 impl UiAllocationDurableSemanticState {
     pub(crate) fn from_reconciliation(
         reconciliation: WorthUiDurableStateReconciliationPlan,
-        _: crate::runtime::reconciliation::UiAllocationDurableSemanticStateMintAuthority,
+        _: crate::runtime::replacement::reconciliation::UiAllocationDurableSemanticStateMintAuthority,
     ) -> Self {
         Self {
             reconciliation,

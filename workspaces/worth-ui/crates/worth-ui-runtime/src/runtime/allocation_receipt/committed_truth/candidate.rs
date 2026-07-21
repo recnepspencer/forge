@@ -81,11 +81,6 @@ impl UiAllocationCandidate {
         self.planning.allocation_constraint_set()
     }
 
-    #[cfg(test)]
-    pub(crate) fn node_inputs(&self) -> Option<&[crate::runtime::WorthUiPlanNodeInput]> {
-        self.planning.node_inputs()
-    }
-
     pub fn truth_category(&self) -> crate::evidence::allocation::UiAllocationTruthCategory {
         crate::evidence::allocation::UiAllocationTruthCategory::Candidate
     }

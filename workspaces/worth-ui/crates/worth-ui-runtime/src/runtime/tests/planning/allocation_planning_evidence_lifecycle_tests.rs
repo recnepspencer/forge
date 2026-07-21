@@ -1,7 +1,7 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis, changed_allocation_neighborhood,
-    changed_measurement_basis, planning_graph_authority,
+    admitted_measurement_basis, allocation_planning, allocation_planning_with_operator,
+    planning_graph_authority,
 };
 use crate::evidence::{evidence_authority_binding, evidence_ref, UiEvidenceMaterializedDetail};
 use worth_ui_inspection::{
@@ -13,23 +13,9 @@ fn planning_receipt_expansion_round_trips_by_planning_identity_not_graph_node_al
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let harness = runtime.inspection_ai_harness();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
-    let first_basis = admitted_measurement_basis("allocation.expand");
-    let first_neighborhood = admitted_allocation_neighborhood("allocation.expand");
-    let second_basis = changed_measurement_basis("allocation.expand");
-    let second_neighborhood = changed_allocation_neighborhood("allocation.expand");
-    let first = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input.clone(),
-        &first_basis,
-        &first_neighborhood,
-    );
-    let second = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input,
-        &second_basis,
-        &second_neighborhood,
-    );
+    let first = allocation_planning(&runtime, &pending, "allocation.expand");
+    let second =
+        allocation_planning_with_operator(&runtime, &pending, "allocation.expand", "operator:grid");
     let first_ref = {
         let receipt = harness.inspect_allocation_planning(&first);
         receipt.evidence_slice().refs()[0]

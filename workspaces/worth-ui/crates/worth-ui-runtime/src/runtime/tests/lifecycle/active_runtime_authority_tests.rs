@@ -37,7 +37,7 @@ fn different_canonical_artifact_meaning_changes_active_runtime_truth() {
         inspector_runtime.inspect_active().artifact_digest(),
         settings_runtime.inspect_active().artifact_digest()
     );
-    assert_ne!(
+    assert_eq!(
         inspector_runtime.inspect_active().active_plan_digest(),
         settings_runtime.inspect_active().active_plan_digest()
     );

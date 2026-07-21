@@ -1,7 +1,8 @@
-mod application_definition;
-mod authored_composition;
-mod candidate_catalog;
+pub(crate) mod application_definition;
+pub(crate) mod authored_composition;
+pub mod candidate_catalog;
 mod execution;
+mod foreign_graph_authority;
 mod operational_host;
 mod report;
 

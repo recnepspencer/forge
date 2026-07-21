@@ -26,9 +26,7 @@ pub(in crate::runtime::allocation_frame_dispatch::framework_turn) enum UiFramewo
 #[derive(Debug)]
 pub(in crate::runtime::allocation_frame_dispatch::framework_turn) enum UiFrameworkTransitionFamilyPlan
 {
-    NoIngress {
-        boundary: crate::runtime::WorthUiFrameBoundary,
-    },
+    NoIngress,
     Ordinary(UiOrdinaryAllocationExecutionPlan),
     Viewport(UiViewportResizeExecutionPlan),
     ViewportDenied(crate::runtime::UiViewportResizeDenial),
@@ -106,9 +104,7 @@ impl UiPlannedFrameworkTransition {
             predecessor_frame_epoch: frame_epoch,
             authority: UiFrameworkTransitionAuthorityPlan::NoIngress,
             counters: UiFrameworkTransitionPlanningCounters::default(),
-            family: UiFrameworkTransitionFamilyPlan::NoIngress {
-                boundary: crate::runtime::WorthUiFrameBoundary::safe_to_activate(frame_epoch),
-            },
+            family: UiFrameworkTransitionFamilyPlan::NoIngress,
         }
     }
 

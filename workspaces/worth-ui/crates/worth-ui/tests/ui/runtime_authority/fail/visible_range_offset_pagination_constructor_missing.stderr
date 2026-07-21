@@ -1,21 +1,25 @@
-error[E0599]: no function or associated item named `offset_page` found for struct `WorthUiVisibleRange` in the current scope
- --> tests/ui/runtime_authority/fail/visible_range_offset_pagination_constructor_missing.rs:4:39
+error[E0432]: unresolved import `worth_ui::facade::WorthUiVisibleRange`
+ --> tests/ui/runtime_authority/fail/visible_range_offset_pagination_constructor_missing.rs:1:5
   |
-4 |     let _range = WorthUiVisibleRange::offset_page(2, 100);
-  |                                       ^^^^^^^^^^^ function or associated item not found in `WorthUiVisibleRange`
+1 | use worth_ui::facade::WorthUiVisibleRange;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiVisibleRange` in `facade`
   |
-note: if you're trying to build a new `WorthUiVisibleRange` consider using one of the following associated functions:
-      WorthUiVisibleRange::rows
-      WorthUiVisibleRange::grid
- --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/../virtualized_data_lane/visible_range.rs
+help: consider importing one of these structs instead
   |
-  |       pub fn rows(start_row: u32, row_count: u32) -> Result<Self, WorthUiVisibleRangeDenial> {
-  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  | /     pub fn grid(
-  | |         start_row: u32,
-  | |         row_count: u32,
-  | |         start_column: u32,
-  | |         column_count: u32,
-  | |     ) -> Result<Self, WorthUiVisibleRangeDenial> {
-  | |________________________________________________^
+1 | use worth_ui::facade::app::WorthUiVisibleRange;
+  |                       +++++
+1 | use worth_ui_runtime::facade::WorthUiVisibleRange;
+  |             ++++++++
+
+error[E0432]: unresolved import `worth_ui::facade::WorthUiVirtualizedDataFrameTarget`
+ --> tests/ui/runtime_authority/fail/raw_query_string_cannot_execute_virtualized_data_lane.rs
+  |
+  | use worth_ui::facade::WorthUiVirtualizedDataFrameTarget;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiVirtualizedDataFrameTarget` in `facade`
+  |
+help: consider importing one of these structs instead
+  |
+1 | use worth_ui::facade::app::WorthUiVirtualizedDataFrameTarget;
+  |                       +++++
+1 | use worth_ui_runtime::facade::WorthUiVirtualizedDataFrameTarget;
+  |             ++++++++

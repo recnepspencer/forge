@@ -2,9 +2,12 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiAllocationReceiptCommitDenial {
     CatalogBindingCardinalityMismatch,
-    CatalogBindingIdentityMismatch { ordinal: u16 },
+    CatalogBindingIdentityMismatch {
+        ordinal: u16,
+    },
     CatalogActivationAuthority(Box<super::UiCommittedAllocationCatalogActivationDenial>),
     CandidatePlanningDenied(Box<super::UiAllocationReceiptDenialReport>),
+    #[cfg(test)]
     ReuseDenied(Box<super::UiAllocationReceiptDenialReport>),
     AuthorityCounterExhausted(super::UiAllocationAuthorityCounterExhaustion),
     EvidenceCounterExhausted,

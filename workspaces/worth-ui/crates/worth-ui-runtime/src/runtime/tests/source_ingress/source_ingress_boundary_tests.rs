@@ -48,7 +48,7 @@ fn equivalent_file_event_bursts_debounce_to_equivalent_candidates() {
 #[test]
 fn watcher_event_without_lowered_candidate_cannot_mutate_active_runtime() {
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(file_import_provider())
+        .source_event_ingress(file_import_provider())
         .start();
     let batch = session
         .ingest([WorthUiWatcherEvent::modified("app/main.wui")])
@@ -109,7 +109,7 @@ fn partial_write_and_atomic_rename_emit_one_ordered_candidate() {
 #[test]
 fn partial_write_without_stable_snapshot_is_denied_before_candidate_submission() {
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(file_import_provider())
+        .source_event_ingress(file_import_provider())
         .start();
 
     let denial = session
@@ -149,7 +149,7 @@ fn in_memory_source_provider_uses_same_candidate_admission() {
 #[test]
 fn rust_authored_provider_without_composition_cannot_be_candidate() {
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(WorthUiSourceProvider::rust_authored("rust-authored"))
+        .source_event_ingress(WorthUiSourceProvider::rust_authored("rust-authored"))
         .start();
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("rust-authored")])
@@ -167,7 +167,7 @@ fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection
         .freeze()
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(file_import_provider().with_rust_authored_input(rust_import_input()))
+        .source_event_ingress(file_import_provider().with_rust_authored_input(rust_import_input()))
         .start();
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("mixed")])
@@ -187,7 +187,7 @@ fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() 
         .freeze()
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(
+        .source_event_ingress(
             WorthUiSourceProvider::rust_authored("rust-authored")
                 .with_rust_authored_input(rust_import_input())
                 .with_rust_authored_input(
@@ -212,7 +212,7 @@ fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() 
 #[test]
 fn empty_source_ingress_hook_is_denied_before_debounce() {
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(file_import_provider())
+        .source_event_ingress(file_import_provider())
         .with_hook(crate::runtime::WorthUiSourceIngressHook::generated_source(
             "empty-generated",
             WorthUiSourceProvider::generated("empty-generated"),
@@ -237,7 +237,7 @@ fn duplicate_source_modules_report_source_package_rejection() {
         .with_file("app/main.wui", "")
         .with_file("app/./main.wui", "");
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(provider)
+        .source_event_ingress(provider)
         .start();
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("duplicate-source")])
@@ -259,7 +259,7 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
     let provider = WorthUiSourceProvider::in_memory("malformed-source")
         .with_file("app/main.wui", "component MissingBrace {");
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(provider)
+        .source_event_ingress(provider)
         .start();
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("malformed-source")])
@@ -279,7 +279,7 @@ fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
         .freeze()
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(file_import_provider())
+        .source_event_ingress(file_import_provider())
         .start();
     let batch = session
         .ingest([WorthUiWatcherEvent::modified("app/main.wui")])

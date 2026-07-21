@@ -26,6 +26,8 @@ pub struct UiDeclarationArtifact {
     source_backed_mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
     source_backed_mosaic_membership_name: Option<Box<str>>,
     source_backed_measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    source_backed_measurement_basis_source:
+        Option<crate::declaration::UiDeclaredMeasurementBasisSource>,
 }
 
 pub(crate) struct UiDeclarationArtifactInput {
@@ -63,6 +65,7 @@ impl UiDeclarationArtifact {
             source_backed_mosaic_sizing_contract_id: None,
             source_backed_mosaic_membership_name: None,
             source_backed_measurement_constraint_modifier: None,
+            source_backed_measurement_basis_source: None,
         }
     }
 
@@ -173,6 +176,13 @@ impl UiDeclarationArtifact {
         modifier: Option<UiDeclaredMeasurementConstraintModifier>,
     ) {
         self.source_backed_measurement_constraint_modifier = modifier;
+    }
+
+    pub(crate) fn admit_source_backed_measurement_basis_source(
+        &mut self,
+        basis_source: Option<crate::declaration::UiDeclaredMeasurementBasisSource>,
+    ) {
+        self.source_backed_measurement_basis_source = basis_source;
     }
 
     #[cfg(test)]
@@ -287,19 +297,27 @@ impl UiDeclarationArtifact {
         &self,
         admitted: &UiDeclaredPostureContract,
     ) -> UiDeclaredPostureContract {
-        let Some(modifier) = self.source_backed_measurement_constraint_modifier else {
+        let modifier = self.source_backed_measurement_constraint_modifier;
+        let basis_source = self.source_backed_measurement_basis_source;
+        if modifier.is_none() && basis_source.is_none() {
             return admitted.clone();
-        };
+        }
         let measurement_lane = admitted.measurement_policy();
         let measurement_policy = measurement_lane.admitted().cloned().or_else(|| {
-            UiDeclaredMeasurementPolicyPosture::new(None, Some(modifier), None, None, vec![])
+            UiDeclaredMeasurementPolicyPosture::new(None, modifier, basis_source, None, vec![])
         });
-        let measurement_policy = measurement_policy.map(|policy| {
-            if policy.constraint_modifier().is_some() {
-                policy
-            } else {
-                policy.with_constraint_modifier(modifier)
+        let measurement_policy = measurement_policy.map(|mut policy| {
+            if policy.constraint_modifier().is_none() {
+                if let Some(modifier) = modifier {
+                    policy = policy.with_constraint_modifier(modifier);
+                }
             }
+            if policy.basis_source().is_none() {
+                if let Some(basis_source) = basis_source {
+                    policy = policy.with_basis_source(basis_source);
+                }
+            }
+            policy
         });
 
         UiDeclaredPostureContract::new(

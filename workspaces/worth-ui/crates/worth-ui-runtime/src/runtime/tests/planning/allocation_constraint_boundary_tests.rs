@@ -1,23 +1,13 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis, changed_allocation_neighborhood,
-    changed_measurement_basis,
+    allocation_planning, allocation_planning_with_operator,
 };
 
 #[test]
 fn planning_basis_preserves_constraint_set_identity() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
-    let measurement_basis = admitted_measurement_basis("allocation.constraint.identity");
-    let neighborhood = admitted_allocation_neighborhood("allocation.constraint.identity");
-    let planning = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input,
-        &measurement_basis,
-        &neighborhood,
-    );
+    let planning = allocation_planning(&runtime, &pending, "allocation.constraint.identity");
 
     assert!(planning.is_admitted());
     assert_eq!(
@@ -39,22 +29,12 @@ fn planning_basis_preserves_constraint_set_identity() {
 fn changed_constraint_set_changes_planning_identity() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
-    let first_basis = admitted_measurement_basis("allocation.constraint.changed");
-    let first_neighborhood = admitted_allocation_neighborhood("allocation.constraint.changed");
-    let second_basis = changed_measurement_basis("allocation.constraint.changed");
-    let second_neighborhood = changed_allocation_neighborhood("allocation.constraint.changed");
-    let first = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input.clone(),
-        &first_basis,
-        &first_neighborhood,
-    );
-    let second = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input,
-        &second_basis,
-        &second_neighborhood,
+    let first = allocation_planning(&runtime, &pending, "allocation.constraint.changed");
+    let second = allocation_planning_with_operator(
+        &runtime,
+        &pending,
+        "allocation.constraint.changed",
+        "operator:grid",
     );
 
     assert_ne!(

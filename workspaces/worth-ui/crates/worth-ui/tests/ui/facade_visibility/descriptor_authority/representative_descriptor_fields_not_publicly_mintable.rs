@@ -1,7 +1,5 @@
 use worth_ui::facade::{
-    CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding, PluginCapabilityPermission,
-    PluginSlotDescriptor, PluginSlotDiagnostics, PluginSlotId, PluginSlotOrdering,
-    PluginSlotSupportPosture,
+    registry::{CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding, PluginCapabilityPermission, PluginSlotDescriptor, PluginSlotDiagnostics, PluginSlotId, PluginSlotOrdering, PluginSlotSupportPosture},
 };
 
 fn main() {

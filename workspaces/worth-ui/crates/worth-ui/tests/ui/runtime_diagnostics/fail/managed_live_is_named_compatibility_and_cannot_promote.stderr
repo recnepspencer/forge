@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_ui::facade::query_binding::WorthUiQueryLiveResource`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/managed_live_is_named_compatibility_and_cannot_promote.rs
+ help: consider importing this struct instead:
+worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource
+
+error[E0277]: the trait bound `WorthUiSettledSnapshotProjection: From<WorthUiQueryLiveRetirementCloseReceipt>` is not satisfied
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/managed_live_is_named_compatibility_and_cannot_promote.rs
+ note: required for `WorthUiQueryLiveRetirementCloseReceipt` to implement `Into<WorthUiSettledSnapshotProjection>`

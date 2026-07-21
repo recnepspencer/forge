@@ -4,7 +4,7 @@ use crate::admission::{
 use crate::graph::UiGraphNodeIdentity;
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::{WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport};
-use worth_ui_query_binding::{
+use worth_ui_query_binding::compatibility::managed_live::{
     WorthUiQueryBasisPosture, WorthUiQueryMeasurementFactEligibilityError,
     WorthUiQueryPrerequisiteEvidence,
 };
@@ -85,7 +85,7 @@ impl UiAdmissionTarget {
 
     pub fn with_query_prerequisites_from_query_authority(
         mut self,
-        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
         let Some(query_prerequisites) = self.query_prerequisites.take() else {
             return Ok(self);

@@ -1,6 +1,8 @@
 use worth_ui::facade::{
-    CapabilitySupportKind, CapabilitySupportPosture, CommandId, ComponentId, SupportRequirement,
-    SupportSnapshot,
+    registry::{CommandId, ComponentId},
+    support::{
+        CapabilitySupportKind, CapabilitySupportPosture, SupportRequirement, SupportSnapshot,
+    },
 };
 
 #[test]

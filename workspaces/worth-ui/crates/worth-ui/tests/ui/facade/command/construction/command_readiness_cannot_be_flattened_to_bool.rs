@@ -1,4 +1,6 @@
-use worth_ui::facade::{CommandDescriptor, CommandId};
+use worth_ui::facade::{
+    registry::{CommandDescriptor, CommandId},
+};
 
 fn main() {
     let _ = CommandDescriptor::new(

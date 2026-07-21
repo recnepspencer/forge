@@ -1,21 +1,29 @@
-warning: unreachable statement
- --> tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs:7:5
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiExecutionPlanInput`, `worth_ui::facade::WorthUiOrdinaryFrameTarget`
+ --> tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs:2:5
   |
-6 |     let host: WorthUiRuntime = todo!();
+2 |     WorthUiExecutionPlanInput,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiExecutionPlanInput` in `facade`
+3 |     WorthUiOrdinaryFrameTarget,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiOrdinaryFrameTarget` in `facade`
+  |
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiExecutionPlanInput
+  = help: consider importing one of these structs instead:
+          worth_ui::facade::app::WorthUiOrdinaryFrameTarget
+          worth_ui_runtime::facade::WorthUiOrdinaryFrameTarget
+
+warning: unreachable statement
+ --> tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs:9:5
+  |
+8 |     let host: WorthUiRuntime = todo!();
   |                                ------- any code following this expression is unreachable
-7 |     let input: WorthUiExecutionPlanInput = todo!();
+9 |     let input: WorthUiExecutionPlanInput = todo!();
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0599]: no method named `execute_ordinary_lane_frame` found for struct `WorthUiRuntimeFrameworkLoop` in the current scope
- --> tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs:8:18
-  |
-8 |     let _ = host.execute_ordinary_lane_frame(&input, WorthUiOrdinaryFrameTarget::root_shell());
-  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-help: there is a method `prepare_ordinary_lane_plan` with a similar name
-  |
-8 -     let _ = host.execute_ordinary_lane_frame(&input, WorthUiOrdinaryFrameTarget::root_shell());
-8 +     let _ = host.prepare_ordinary_lane_plan(&input, WorthUiOrdinaryFrameTarget::root_shell());
-  |
+error[E0599]: no method named `execute_ordinary_lane_frame` found for struct `worth_ui_runtime::runtime::launch::runtime_instance::WorthUiRuntimeFrameworkLoop` in the current scope
+  --> tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs:10:18
+   |
+10 |     let _ = host.execute_ordinary_lane_frame(&input, WorthUiOrdinaryFrameTarget::root_shell());
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `worth_ui_runtime::runtime::launch::runtime_instance::WorthUiRuntimeFrameworkLoop`

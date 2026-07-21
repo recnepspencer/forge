@@ -1,20 +1,20 @@
+use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
     UiEvidenceAuthorityGeneration, UiEvidenceAuthorityKind, UiEvidenceExpansionOutcome,
     UiEvidenceFamily, UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture,
-    UiEvidenceRichness, UiInspectionObligationFamily, UiInspectionObligationRelevanceDetail,
-    UiInspectionQuery, UiInspectionRelevance, UiInspectionScope, UiInspectionTarget,
-    UiRelevanceFamily, UiRelevanceFilter,
+    UiEvidenceRichness, UiInspectionQuery, UiInspectionScope, UiInspectionTarget,
 };
-use worth_ui::facade::{
-    admission::UiAdmissionTarget, admission::UiAdmissionWorld, app::WorthUi,
-    graph::UiGraphInstantiationPlan,
-};
-use worth_ui_dsl::{
-    UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
-};
+use worth_ui::facade::{admission::UiAdmissionTarget, admission::UiAdmissionWorld};
 
 use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
+
+#[path = "evidence_reference_runtime/support.rs"]
+mod support;
+
+use support::{
+    app_generation, first_graph_node_identity, graph_evidence_app, obligation_detail,
+    obligation_query, obligation_relevance, successor_graph_commit,
+};
 
 #[test]
 fn refs_only_receipts_preserve_selected_relevance_and_slice_reference() {
@@ -326,90 +326,4 @@ fn discarded_slice_closeout_makes_public_ref_expansion_return_tombstone_discarde
         }
     );
     assert!(expansion.materialized_detail().is_none());
-}
-
-fn app_generation(app: &worth_ui::facade::app::WorthUiApp) -> UiEvidenceAuthorityGeneration {
-    UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64())
-}
-
-fn obligation_query(graph_node_digest: u64, touch_identity_digest: u64) -> UiInspectionQuery {
-    UiInspectionQuery::new(
-        UiInspectionTarget::obligation_touch(graph_node_digest, touch_identity_digest),
-        UiInspectionScope::graph(),
-    )
-    .with_relevance(obligation_relevance())
-}
-
-fn graph_evidence_app() -> WorthUiApp {
-    WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.evidence.references")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.graph.evidence.reference"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(
-                            "app/evidence_reference_runtime.wui",
-                            0,
-                        ),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:test")),
-                ),
-        )
-        .freeze()
-        .expect("application preparation should succeed")
-}
-
-type WorthUiApp = worth_ui::facade::app::WorthUiApp;
-
-fn first_graph_node_identity(app: &WorthUiApp) -> worth_ui::facade::graph::UiGraphNodeIdentity {
-    let declaration_identity = app
-        .declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            artifact.provenance().source_provenance().module_path()
-                == "app/evidence_reference_runtime.wui"
-        })
-        .expect("graph evidence fixture declaration should exist")
-        .identity();
-    app.graph()
-        .lookup()
-        .declaration_instances(declaration_identity)
-        .value()[0]
-}
-
-fn successor_graph_commit(
-    app: &WorthUiApp,
-) -> worth_ui::facade::graph::UiGraphMutationCommitResult {
-    let handoffs = app
-        .declaration_artifacts()
-        .iter()
-        .map(|artifact| {
-            artifact
-                .graph_handoff()
-                .expect("graph evidence app declarations should lower to graph handoffs")
-        })
-        .collect::<Vec<_>>();
-
-    UiGraphInstantiationPlan::admit_handoffs(&handoffs, &[])
-        .expect("graph evidence app declarations should admit successor graph planning")
-        .commit_successor_generation(app.graph())
-        .expect("admitted graph plan should commit one real successor generation")
-}
-
-fn obligation_relevance() -> UiInspectionRelevance {
-    UiInspectionRelevance::local(UiRelevanceFilter::family(UiRelevanceFamily::Obligation))
-        .with_obligation_detail(
-            UiInspectionObligationRelevanceDetail::new()
-                .with_family(UiInspectionObligationFamily::QueryBindingRequirement),
-        )
-}
-
-fn obligation_detail(
-    detail: &worth_ui::facade::inspection::UiEvidenceMaterializedDetail,
-) -> &worth_ui::facade::inspection::UiInspectionObligationEvidenceReceipt {
-    match detail {
-        worth_ui::facade::inspection::UiEvidenceMaterializedDetail::Obligation(receipt) => receipt,
-        _ => panic!("expected obligation materialized detail"),
-    }
 }

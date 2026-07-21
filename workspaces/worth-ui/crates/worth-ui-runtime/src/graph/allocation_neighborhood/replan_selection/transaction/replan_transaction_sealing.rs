@@ -320,6 +320,7 @@ fn targets_of(
         crate::runtime::UiAllocationInvalidationTarget::Graph(target)
         | crate::runtime::UiAllocationInvalidationTarget::ResizePreview { target, .. }
         | crate::runtime::UiAllocationInvalidationTarget::QueryProjection { target, .. }
+        | crate::runtime::UiAllocationInvalidationTarget::SettledQueryFact { target }
         | crate::runtime::UiAllocationInvalidationTarget::HostMeasurement { target, .. }
         | crate::runtime::UiAllocationInvalidationTarget::DurableResize { target, .. } => target,
         crate::runtime::UiAllocationInvalidationTarget::PortalAnchor { movement } => {

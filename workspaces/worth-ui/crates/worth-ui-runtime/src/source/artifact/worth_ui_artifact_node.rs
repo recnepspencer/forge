@@ -110,6 +110,33 @@ artifact_node_common_accessors!(WorthUiArtifactBindingNode);
 artifact_node_common_accessors!(WorthUiArtifactThemeTokenNode);
 
 impl WorthUiArtifactNode {
+    pub(crate) fn has_same_semantic_meaning_ignoring_location(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Import(left), Self::Import(right)) => left.target == right.target,
+            (Self::Component(left), Self::Component(right)) => {
+                left.component == right.component
+                    && left.descriptor == right.descriptor
+                    && left.structure == right.structure
+            }
+            (Self::Surface(left), Self::Surface(right)) => {
+                left.surface == right.surface
+                    && left.descriptor == right.descriptor
+                    && left.structure == right.structure
+                    && left.semantics == right.semantics
+            }
+            (Self::Binding(left), Self::Binding(right)) => {
+                left.view_binding_reference == right.view_binding_reference
+                    && left.structure == right.structure
+            }
+            (Self::Token(left), Self::Token(right)) => {
+                left.theme_token == right.theme_token
+                    && left.entry == right.entry
+                    && left.semantics == right.semantics
+            }
+            _ => false,
+        }
+    }
+
     pub(crate) fn handle(&self) -> &WorthUiArtifactHandle {
         match self {
             Self::Import(node) => node.handle(),
@@ -127,6 +154,16 @@ impl WorthUiArtifactNode {
             Self::Surface(node) => node.authored_provenance_digest(),
             Self::Binding(node) => node.authored_provenance_digest(),
             Self::Token(node) => node.authored_provenance_digest(),
+        }
+    }
+
+    pub(crate) fn identity_seed(&self) -> &WorthUiArtifactIdentitySeed {
+        match self {
+            Self::Import(node) => node.identity_seed(),
+            Self::Component(node) => node.identity_seed(),
+            Self::Surface(node) => node.identity_seed(),
+            Self::Binding(node) => node.identity_seed(),
+            Self::Token(node) => node.identity_seed(),
         }
     }
 }

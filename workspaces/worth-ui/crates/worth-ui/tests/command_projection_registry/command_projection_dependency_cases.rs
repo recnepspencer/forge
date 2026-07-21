@@ -1,6 +1,8 @@
 use worth_ui::facade::{
-    CommandProjectionCommandReference, CommandProjectionDescriptor, CommandProjectionSurface,
-    WorthUi,
+    app::WorthUi,
+    registry::{
+        CommandProjectionCommandReference, CommandProjectionDescriptor, CommandProjectionSurface,
+    },
 };
 
 use super::command_projection_assertions::{
@@ -113,9 +115,9 @@ fn projection_references_unknown_mosaic_placement_rejected() {
                 command_projection_id("workspace.projection.region"),
                 CommandProjectionSurface::region_header_action(),
             )
-            .with_eligible_category(worth_ui::facade::CommandCategory::Workspace)
+            .with_eligible_category(worth_ui::facade::registry::CommandCategory::Workspace)
             .with_mosaic_scope(
-                worth_ui::facade::CommandProjectionMosaicScope::placement_policy(
+                worth_ui::facade::registry::CommandProjectionMosaicScope::placement_policy(
                     mosaic_placement_policy_id("workspace.placement.primary"),
                 ),
             ),
@@ -142,9 +144,9 @@ fn projection_mosaic_scope_resolves_against_registered_placement_policy() {
                 command_projection_id("workspace.projection.region"),
                 CommandProjectionSurface::region_header_action(),
             )
-            .with_eligible_category(worth_ui::facade::CommandCategory::Workspace)
+            .with_eligible_category(worth_ui::facade::registry::CommandCategory::Workspace)
             .with_mosaic_scope(
-                worth_ui::facade::CommandProjectionMosaicScope::placement_policy(
+                worth_ui::facade::registry::CommandProjectionMosaicScope::placement_policy(
                     mosaic_placement_policy_id("workspace.placement.primary"),
                 ),
             ),

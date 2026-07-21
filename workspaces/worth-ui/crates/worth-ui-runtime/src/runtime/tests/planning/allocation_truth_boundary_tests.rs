@@ -48,9 +48,17 @@ fn allocation_truth_categories_remain_nominal_and_receipt_consumers_require_comm
         UiAllocationTruthCategory::CommittedReceipt
     );
     assert!(preview.candidate_is_admitted());
+    let authority = runtime
+        .execution_plan_lowering_authority_from_committed_input_for_test(
+            pending,
+            receipt
+                .lowering_input()
+                .expect("committed receipt admits lowering"),
+        )
+        .expect("exact candidate and allocation projection seal lowering authority");
     runtime
-        .allocate_runtime_handles(&receipt)
-        .expect("only committed receipt enters handle allocation");
+        .allocate_runtime_handles(authority.facts())
+        .expect("only sealed post-commit authority enters handle allocation");
 }
 
 #[test]

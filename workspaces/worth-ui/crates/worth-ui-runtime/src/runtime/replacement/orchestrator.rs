@@ -1,32 +1,28 @@
-use crate::runtime::admission::WorthUiActiveReplacementBasis;
-use crate::runtime::equivalence::WorthUiRuntimeArtifactComparator;
-use crate::runtime::impact::WorthUiReplacementImpactClassifier;
-use crate::runtime::matching::WorthUiIdentityMatchGraphBuilder;
-use crate::runtime::narrowing::WorthUiRuntimeImpactNarrower;
-use crate::runtime::query_binding::WorthUiQueryBindingComparisonPlanner;
-use crate::runtime::query_live_rebind::WorthUiQueryLiveRebindPlanner;
-use crate::runtime::reconciliation::WorthUiDurableStateReconciliationPlanner;
+use crate::runtime::replacement::admission::WorthUiActiveReplacementBasis;
+use crate::runtime::replacement::equivalence::WorthUiRuntimeArtifactComparator;
+use crate::runtime::replacement::impact::WorthUiReplacementImpactClassifier;
+use crate::runtime::replacement::matching::WorthUiIdentityMatchGraphBuilder;
+use crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrower;
 use crate::runtime::replacement::node_classification::WorthUiNodeReplacementClassifier;
-use crate::runtime::source_ingress::WorthUiSourceWatcher;
-use crate::runtime::state_inventory::WorthUiDurableStateInventoryBuilder;
+use crate::runtime::replacement::reconciliation::WorthUiDurableStateReconciliationPlanner;
+use crate::runtime::replacement::state_inventory::WorthUiDurableStateInventoryBuilder;
+use crate::runtime::source_ingress::WorthUiSourceEventIngress;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiAmbiguousReplacementDenial,
-    WorthUiDurableStateFamily, WorthUiDurableStateInventory, WorthUiDurableStateInventoryDenial,
+    WorthUiDurableStateInventory, WorthUiDurableStateInventoryDenial,
     WorthUiDurableStateReconciliationDenial, WorthUiDurableStateReconciliationPlan,
     WorthUiIdentityMatchDenial, WorthUiIdentityMatchReport, WorthUiNodeReplacementPlan,
-    WorthUiPendingExecutionPlanLoweringInput, WorthUiQueryBindingComparison,
-    WorthUiQueryBindingComparisonDenial, WorthUiQueryLiveRebindPlan,
-    WorthUiQueryLiveRebindPlanDenial, WorthUiReplacementImpactClassification,
-    WorthUiReplacementImpactDenial, WorthUiRuntimeArtifactComparison,
-    WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeImpactNarrowing,
-    WorthUiRuntimeImpactNarrowingDenial,
+    WorthUiQueryBindingComparisonDenial, WorthUiQueryLiveRebindPlanDenial,
+    WorthUiReplacementImpactClassification, WorthUiReplacementImpactDenial,
+    WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
+    WorthUiRuntimeImpactNarrowing, WorthUiRuntimeImpactNarrowingDenial,
 };
 
 use super::transitions::{
-    WorthUiReplacementAdmissionBasis, WorthUiReplacementComparisonReady,
-    WorthUiReplacementIdentityReady, WorthUiReplacementImpactReady,
-    WorthUiReplacementLoweringReady, WorthUiReplacementNarrowingReady,
-    WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
+    WorthUiReplacementComparisonReady, WorthUiReplacementIdentityReady,
+    WorthUiReplacementImpactReady, WorthUiReplacementLoweringReady,
+    WorthUiReplacementNarrowingReady, WorthUiReplacementNodePlanReady,
+    WorthUiReplacementQueryComparisonReady, WorthUiReplacementQueryImpactReady,
     WorthUiReplacementReconciliationReady,
 };
 use crate::runtime::launch::runtime_instance::WorthUiRuntime;
@@ -34,10 +30,6 @@ use crate::runtime::launch::runtime_instance::WorthUiRuntime;
 impl WorthUiRuntime {
     pub(crate) fn replacement_admission_basis(&self) -> WorthUiActiveReplacementBasis {
         WorthUiActiveReplacementBasis::from_observation(self.inspect_active())
-    }
-
-    pub(crate) fn replacement_admission_transition(&self) -> WorthUiReplacementAdmissionBasis {
-        WorthUiReplacementAdmissionBasis(self.replacement_admission_basis())
     }
 
     pub(crate) fn compare_admitted_replacement(
@@ -48,25 +40,16 @@ impl WorthUiRuntime {
             .compare_admitted(admitted)
     }
 
-    pub(crate) fn compare_admitted_from_basis(
-        &self,
-        basis: &WorthUiReplacementAdmissionBasis,
-        admitted: WorthUiAdmittedReplacementCandidate,
-    ) -> Result<WorthUiReplacementComparisonReady, WorthUiRuntimeArtifactComparisonDenial> {
-        let _ = basis;
-        let comparison = self.compare_admitted_replacement(&admitted)?;
-        Ok(WorthUiReplacementComparisonReady {
-            admitted,
-            comparison,
-        })
-    }
-
     pub(crate) fn classify_replacement_impact(
         &self,
         comparison: &WorthUiRuntimeArtifactComparison,
         admitted: &WorthUiAdmittedReplacementCandidate,
     ) -> Result<WorthUiReplacementImpactClassification, WorthUiReplacementImpactDenial> {
-        WorthUiReplacementImpactClassifier::classify(comparison, admitted)
+        WorthUiReplacementImpactClassifier::classify(
+            self.active.active_artifact().artifact(),
+            comparison,
+            admitted,
+        )
     }
 
     pub(crate) fn classify_replacement_impact_from_comparison(
@@ -99,14 +82,16 @@ impl WorthUiRuntime {
     ) -> Result<WorthUiReplacementNarrowingReady, WorthUiRuntimeImpactNarrowingDenial> {
         let WorthUiReplacementImpactReady {
             admitted,
-            comparison: _,
+            comparison,
             impact,
         } = ready;
+        let artifact_comparison_counters = comparison.counters();
         let narrowing = self.narrow_replacement_impact(&impact, &admitted)?;
         Ok(WorthUiReplacementNarrowingReady {
             admitted,
             impact,
             narrowing,
+            artifact_comparison_counters,
         })
     }
 
@@ -120,12 +105,14 @@ impl WorthUiRuntime {
 
     pub(crate) fn build_identity_match_graph_from_narrowing(
         &self,
-        ready: WorthUiReplacementNarrowingReady,
+        ready: WorthUiReplacementQueryImpactReady,
     ) -> Result<WorthUiReplacementIdentityReady, WorthUiIdentityMatchDenial> {
-        let WorthUiReplacementNarrowingReady {
+        let WorthUiReplacementQueryImpactReady {
             admitted,
             impact,
             narrowing,
+            query_comparison,
+            artifact_comparison_counters,
         } = ready;
         let identity_report = self.build_identity_match_graph(&narrowing, &admitted)?;
         Ok(WorthUiReplacementIdentityReady {
@@ -133,6 +120,8 @@ impl WorthUiRuntime {
             impact,
             narrowing,
             identity_report,
+            query_comparison,
+            artifact_comparison_counters,
         })
     }
 
@@ -154,13 +143,19 @@ impl WorthUiRuntime {
             impact,
             narrowing,
             identity_report,
+            query_comparison,
+            artifact_comparison_counters,
         } = ready;
+        let identity_match_counters = identity_report.counters();
         let node_plan = self.classify_node_replacements(&impact, &narrowing, &identity_report)?;
         Ok(WorthUiReplacementNodePlanReady {
             admitted,
             impact,
             narrowing,
             node_plan,
+            query_comparison,
+            artifact_comparison_counters,
+            identity_match_counters,
         })
     }
 
@@ -168,11 +163,11 @@ impl WorthUiRuntime {
         WorthUiDurableStateInventoryBuilder::new()
     }
 
-    pub(crate) fn source_ingress(
+    pub(crate) fn source_event_ingress(
         &self,
         provider: crate::runtime::WorthUiSourceProvider,
-    ) -> WorthUiSourceWatcher {
-        WorthUiSourceWatcher::new(provider)
+    ) -> WorthUiSourceEventIngress {
+        WorthUiSourceEventIngress::new(provider)
     }
 
     pub(crate) fn reconcile_durable_state(
@@ -195,6 +190,9 @@ impl WorthUiRuntime {
             impact,
             narrowing,
             node_plan,
+            query_comparison,
+            artifact_comparison_counters,
+            identity_match_counters,
         } = ready;
         let reconciliation_plan = self.reconcile_durable_state(&node_plan, inventory)?;
         Ok(WorthUiReplacementReconciliationReady {
@@ -203,111 +201,33 @@ impl WorthUiRuntime {
             narrowing,
             node_plan,
             reconciliation_plan,
-        })
-    }
-
-    pub(crate) fn compare_query_bindings(
-        &self,
-        node_plan: &WorthUiNodeReplacementPlan,
-        narrowing: &WorthUiRuntimeImpactNarrowing,
-        admitted: &WorthUiAdmittedReplacementCandidate,
-    ) -> Result<WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonDenial> {
-        WorthUiQueryBindingComparisonPlanner::compare(
-            self.active.active_artifact().artifact(),
-            node_plan,
-            narrowing,
-            admitted,
-        )
-    }
-
-    pub(crate) fn compare_query_bindings_from_reconciliation(
-        &self,
-        ready: WorthUiReplacementReconciliationReady,
-    ) -> Result<WorthUiReplacementQueryComparisonReady, WorthUiQueryBindingComparisonDenial> {
-        let WorthUiReplacementReconciliationReady {
-            admitted,
-            impact,
-            narrowing,
-            node_plan,
-            reconciliation_plan,
-        } = ready;
-        let query_comparison = self.compare_query_bindings(&node_plan, &narrowing, &admitted)?;
-        Ok(WorthUiReplacementQueryComparisonReady {
-            admitted,
-            impact,
-            narrowing,
-            node_plan,
-            reconciliation_plan,
             query_comparison,
-        })
-    }
-
-    pub(crate) fn plan_query_live_rebinds(
-        &self,
-        comparison: &WorthUiQueryBindingComparison,
-        node_plan: &WorthUiNodeReplacementPlan,
-        narrowing: &WorthUiRuntimeImpactNarrowing,
-        admitted: &WorthUiAdmittedReplacementCandidate,
-    ) -> Result<WorthUiQueryLiveRebindPlan, WorthUiQueryLiveRebindPlanDenial> {
-        WorthUiQueryLiveRebindPlanner::plan(comparison, node_plan, narrowing, admitted)
-    }
-
-    pub(crate) fn prepare_pending_execution_plan_lowering_input(
-        &self,
-        node_plan: &WorthUiNodeReplacementPlan,
-        reconciliation_plan: &WorthUiDurableStateReconciliationPlan,
-        query_rebind_plan: &WorthUiQueryLiveRebindPlan,
-    ) -> WorthUiPendingExecutionPlanLoweringInput {
-        WorthUiPendingExecutionPlanLoweringInput::from_staged_plans(
-            node_plan,
-            reconciliation_plan,
-            query_rebind_plan,
-        )
-    }
-
-    pub(crate) fn prepare_replacement_lowering_from_query_comparison(
-        &self,
-        ready: WorthUiReplacementQueryComparisonReady,
-    ) -> Result<WorthUiReplacementLoweringReady, WorthUiQueryLiveRebindPlanDenial> {
-        let WorthUiReplacementQueryComparisonReady {
-            admitted,
-            impact,
-            narrowing,
-            node_plan,
-            reconciliation_plan,
-            query_comparison,
-        } = ready;
-        let query_rebind_plan =
-            self.plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)?;
-        let pending_execution_plan_lowering_input = self
-            .prepare_pending_execution_plan_lowering_input(
-                &node_plan,
-                &reconciliation_plan,
-                &query_rebind_plan,
-            );
-        Ok(WorthUiReplacementLoweringReady {
-            admitted,
-            impact,
-            narrowing,
-            node_plan,
-            reconciliation_plan,
-            query_rebind_plan,
-            pending_execution_plan_lowering_input,
+            artifact_comparison_counters,
+            identity_match_counters,
         })
     }
 
     pub(crate) fn prepare_application_replacement_lowering(
         &self,
         admitted: WorthUiAdmittedReplacementCandidate,
+        candidate_application_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+        candidate_query_binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
         configure: impl FnOnce(
             WorthUiDurableStateInventoryBuilder,
         ) -> WorthUiDurableStateInventoryBuilder,
     ) -> Result<WorthUiReplacementLoweringReady, WorthUiReplacementLoweringDenial> {
-        let node_plan = self.prepare_replacement_node_plan(admitted)?;
+        if !candidate_application_authority.admits_candidate(&admitted) {
+            return Err(WorthUiReplacementLoweringDenial::CandidateApplicationAuthorityMismatch);
+        }
+        let node_plan = self.prepare_replacement_node_plan(
+            admitted,
+            candidate_application_authority.query_binding_plan(),
+            candidate_query_binding,
+        )?;
         let inventory = configure(self.platform_durable_state_inventory())
             .build_for_replacement(&node_plan.node_plan)
             .map_err(WorthUiReplacementLoweringDenial::Inventory)?;
-        self.finish_replacement_lowering(node_plan, &inventory)
+        self.finish_replacement_lowering(node_plan, &inventory, candidate_application_authority)
     }
 
     #[cfg(test)]
@@ -316,26 +236,44 @@ impl WorthUiRuntime {
         admitted: WorthUiAdmittedReplacementCandidate,
         inventory: &WorthUiDurableStateInventory,
     ) -> Result<WorthUiReplacementLoweringReady, WorthUiReplacementLoweringDenial> {
-        let node_plan = self.prepare_replacement_node_plan(admitted)?;
-        self.finish_replacement_lowering(node_plan, inventory)
+        let candidate_application_authority = self
+            .active_application_lowering_authority
+            .synthetic_successor_for_certification(&admitted);
+        let candidate_query_binding = candidate_application_authority
+            .query_binding_plan()
+            .prepare_downstream_state();
+        let node_plan = self.prepare_replacement_node_plan(
+            admitted,
+            candidate_application_authority.query_binding_plan(),
+            &candidate_query_binding,
+        )?;
+        self.finish_replacement_lowering(node_plan, inventory, candidate_application_authority)
     }
 
     fn prepare_replacement_node_plan(
         &self,
         admitted: WorthUiAdmittedReplacementCandidate,
+        candidate_query_plan: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+        candidate_query_binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     ) -> Result<WorthUiReplacementNodePlanReady, WorthUiReplacementLoweringDenial> {
-        let basis = self.replacement_admission_transition();
         let comparison = self
-            .compare_admitted_from_basis(&basis, admitted)
+            .compare_admitted_replacement(&admitted)
             .map_err(WorthUiReplacementLoweringDenial::Comparison)?;
+        let comparison = WorthUiReplacementComparisonReady {
+            admitted,
+            comparison,
+        };
         let impact = self
             .classify_replacement_impact_from_comparison(comparison)
             .map_err(WorthUiReplacementLoweringDenial::Impact)?;
         let narrowing = self
             .narrow_replacement_impact_from_classification(impact)
             .map_err(WorthUiReplacementLoweringDenial::Narrowing)?;
+        let query_impact = self
+            .resolve_query_impact(narrowing, candidate_query_plan, candidate_query_binding)
+            .map_err(WorthUiReplacementLoweringDenial::QueryComparison)?;
         let identity = self
-            .build_identity_match_graph_from_narrowing(narrowing)
+            .build_identity_match_graph_from_narrowing(query_impact)
             .map_err(WorthUiReplacementLoweringDenial::Identity)?;
         let node_plan = self
             .classify_node_replacements_from_identity(identity)
@@ -343,35 +281,74 @@ impl WorthUiRuntime {
         Ok(node_plan)
     }
 
+    fn resolve_query_impact(
+        &self,
+        ready: WorthUiReplacementNarrowingReady,
+        candidate_query_plan: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+        candidate_query_binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    ) -> Result<WorthUiReplacementQueryImpactReady, WorthUiQueryBindingComparisonDenial> {
+        let WorthUiReplacementNarrowingReady {
+            admitted,
+            impact,
+            mut narrowing,
+            artifact_comparison_counters,
+        } = ready;
+        let query_comparison = self.compare_query_bindings_for_narrowing_with_candidate_authority(
+            &narrowing,
+            &admitted,
+            candidate_query_plan,
+            candidate_query_binding,
+        )?;
+        narrowing.replace_with_exact_query_invalidations(&query_comparison);
+        Ok(WorthUiReplacementQueryImpactReady {
+            admitted,
+            impact,
+            narrowing,
+            query_comparison,
+            artifact_comparison_counters,
+        })
+    }
+
     fn finish_replacement_lowering(
         &self,
         node_plan: WorthUiReplacementNodePlanReady,
         inventory: &WorthUiDurableStateInventory,
+        candidate_application_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
     ) -> Result<WorthUiReplacementLoweringReady, WorthUiReplacementLoweringDenial> {
         let reconciliation = self
             .reconcile_durable_state_from_node_plan(node_plan, inventory)
             .map_err(WorthUiReplacementLoweringDenial::Reconciliation)?;
-        let query_comparison = self
-            .compare_query_bindings_from_reconciliation(reconciliation)
-            .map_err(WorthUiReplacementLoweringDenial::QueryComparison)?;
-        self.prepare_replacement_lowering_from_query_comparison(query_comparison)
-            .map_err(WorthUiReplacementLoweringDenial::QueryRebind)
-    }
-
-    fn platform_durable_state_inventory(&self) -> WorthUiDurableStateInventoryBuilder {
-        self.durable_state_inventory()
-            .register_platform_family(WorthUiDurableStateFamily::focus_chain())
-            .register_platform_family(WorthUiDurableStateFamily::scroll_anchor())
-            .register_platform_family(WorthUiDurableStateFamily::selection_range())
-            .register_platform_family(WorthUiDurableStateFamily::text_edit_buffer())
-            .register_platform_family(WorthUiDurableStateFamily::splitter_position())
-            .register_platform_family(WorthUiDurableStateFamily::tab_state())
-            .register_platform_family(WorthUiDurableStateFamily::panel_visibility())
+        let WorthUiReplacementReconciliationReady {
+            admitted,
+            impact,
+            narrowing,
+            node_plan,
+            reconciliation_plan,
+            query_comparison,
+            artifact_comparison_counters,
+            identity_match_counters,
+        } = reconciliation;
+        let query_comparison = WorthUiReplacementQueryComparisonReady {
+            admitted,
+            impact,
+            narrowing,
+            node_plan,
+            reconciliation_plan,
+            query_comparison,
+            artifact_comparison_counters,
+            identity_match_counters,
+        };
+        self.prepare_replacement_lowering_from_query_comparison(
+            query_comparison,
+            candidate_application_authority,
+        )
+        .map_err(WorthUiReplacementLoweringDenial::QueryRebind)
     }
 }
 
 #[derive(Debug)]
 pub enum WorthUiReplacementLoweringDenial {
+    CandidateApplicationAuthorityMismatch,
     Inventory(WorthUiDurableStateInventoryDenial),
     Comparison(WorthUiRuntimeArtifactComparisonDenial),
     Impact(WorthUiReplacementImpactDenial),

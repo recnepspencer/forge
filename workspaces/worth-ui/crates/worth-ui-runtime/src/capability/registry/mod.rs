@@ -34,9 +34,11 @@ pub use command_projection::{
 };
 pub(crate) use component::{ComponentAcceptedRegistrationProof, ComponentRegistry};
 pub use component::{
-    ComponentAccessibilitySupport, ComponentChildPolicy, ComponentDescriptor,
-    ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema, ComponentStateOwnership,
-    FrozenComponentCapabilities,
+    ComponentAccessibilitySupport, ComponentCanvasSpatialContract, ComponentChildPolicy,
+    ComponentDescriptor, ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema,
+    ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
+    ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
+    ComponentStateOwnership, FrozenComponentCapabilities,
 };
 pub(crate) use family_names::{
     COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,

@@ -1,5 +1,6 @@
 mod admit;
 mod assembly;
+mod assembly_generation_compatibility;
 mod assembly_support;
 mod certification;
 mod certification_scenario;
@@ -7,6 +8,7 @@ mod certification_scenario;
 mod certification_tests;
 mod denial;
 mod evidence_index;
+mod host_result_slots;
 #[cfg(test)]
 mod hostile_tests;
 mod identity;
@@ -23,12 +25,14 @@ pub use certification::{
     UiMeasurementBasisDeterminismPosture,
 };
 pub use certification_scenario::{
+    certify_measurement_basis_determinism_for_active_host,
     certify_measurement_basis_determinism_for_scenarios,
     UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationOutcome,
     UiMeasurementBasisCertificationScenario, UiMeasurementBasisCertificationScenarioError,
 };
 pub use denial::{UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
+use host_result_slots::HostResultSlots;
 use identity::UiMeasurementBasisIdentityInput;
 pub(crate) use query_allocation_mapping::{
-    UiQueryAllocationPurpose, UiQueryAllocationTargetMapping,
+    UiQueryAllocationPurpose, UiQueryAllocationSourceKey, UiQueryAllocationTargetMapping,
 };

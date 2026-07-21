@@ -1,28 +1,12 @@
-error[E0599]: no function or associated item named `from_renderer_pointer` found for struct `WorthUiCanvasSpatialFrameTarget` in the current scope
- --> tests/ui/runtime_authority/fail/raw_renderer_pointer_cannot_execute_canvas_lane.rs:5:52
+error[E0432]: unresolved import `worth_ui::facade::WorthUiCanvasSpatialFrameTarget`
+ --> tests/ui/runtime_authority/fail/raw_renderer_pointer_cannot_execute_canvas_lane.rs:1:5
   |
-5 |     let _target = WorthUiCanvasSpatialFrameTarget::from_renderer_pointer(renderer_pointer);
-  |                                                    ^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiCanvasSpatialFrameTarget`
+1 | use worth_ui::facade::WorthUiCanvasSpatialFrameTarget;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiCanvasSpatialFrameTarget` in `facade`
   |
-note: if you're trying to build a new `WorthUiCanvasSpatialFrameTarget` consider using one of the following associated functions:
-      WorthUiCanvasSpatialFrameTarget::viewport
-      WorthUiCanvasSpatialFrameTarget::draw
-      WorthUiCanvasSpatialFrameTarget::hit_test
-      WorthUiCanvasSpatialFrameTarget::overlay
-      WorthUiCanvasSpatialFrameTarget::tool_state
- --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/../canvas_spatial_lane/frame_target.rs
+help: consider importing one of these structs instead
   |
-  |     pub fn viewport(viewport_plan: WorthUiCanvasViewportPlan) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  |     pub fn draw(lane_handle: WorthUiLaneHandle) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  |     pub fn hit_test(hit_test_plan: WorthUiSpatialHitTestPlan) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  |     pub fn overlay(overlay_plan: WorthUiCanvasOverlayPlan) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  |     pub fn tool_state(lane_handle: WorthUiLaneHandle) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | use worth_ui::facade::runtime::WorthUiCanvasSpatialFrameTarget;
+  |                       +++++++++
+1 | use worth_ui_runtime::facade::WorthUiCanvasSpatialFrameTarget;
+  |             ++++++++

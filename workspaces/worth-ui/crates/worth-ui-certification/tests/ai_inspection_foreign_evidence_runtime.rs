@@ -1,4 +1,8 @@
 use std::collections::BTreeSet;
+use worth_ui_query_binding::compatibility::managed_live::{
+    WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
+    WorthUiQueryProjectionConsumptionLane,
+};
 
 use worth_ui::facade::inspection::{
     UiEvidenceMaterializedDetail, UiEvidenceRichness, UiInspectionAiHarness,
@@ -7,10 +11,6 @@ use worth_ui::facade::inspection::{
     UiInspectionQueryForeignEvidenceArtifactKind, UiInspectionQueryForeignEvidenceKind,
     UiInspectionRelevance, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
     UiRelevanceFilter,
-};
-use worth_ui_query_binding::{
-    WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
-    WorthUiQueryProjectionConsumptionLane,
 };
 
 use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
@@ -157,7 +157,7 @@ fn foreign_ref_artifact_identity_digest(foreign_ref: UiInspectionForeignEvidence
 
 fn assert_route_supported_by_prerequisite(
     route: UiInspectionQueryForeignEvidenceKind,
-    prerequisite: &worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+    prerequisite: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
 ) {
     match route {
         UiInspectionQueryForeignEvidenceKind::ProjectionConsumption => assert_eq!(

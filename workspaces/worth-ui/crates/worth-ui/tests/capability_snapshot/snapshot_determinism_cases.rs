@@ -1,4 +1,4 @@
-use worth_ui::facade::WorthUi;
+use worth_ui::facade::app::WorthUi;
 
 use super::snapshot_fixtures::{command_icon, command_with_icon, component, theme_token};
 

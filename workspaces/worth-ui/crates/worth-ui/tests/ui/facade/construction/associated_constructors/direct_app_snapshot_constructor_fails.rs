@@ -1,4 +1,7 @@
-use worth_ui::facade::{CapabilityRegistrationReport, WorthUi, WorthUiApp};
+use worth_ui::facade::{
+    app::{WorthUi, WorthUiApp},
+    diagnostics::CapabilityRegistrationReport,
+};
 
 fn main() {
     let _ = WorthUiApp::from_registration_report(registration_report());

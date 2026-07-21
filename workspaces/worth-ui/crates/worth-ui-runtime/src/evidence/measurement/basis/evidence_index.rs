@@ -5,10 +5,8 @@ use crate::graph::UiGraphNodeIdentity;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(super) struct UiMeasurementEvidenceIndex {
-    query_by_source: BTreeMap<
-        worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
-        Vec<super::UiQueryAllocationTargetMapping>,
-    >,
+    query_by_source:
+        BTreeMap<super::UiQueryAllocationSourceKey, Vec<super::UiQueryAllocationTargetMapping>>,
     host_by_request: BTreeMap<worth_ui_host_contract::UiMeasurementRequestIdentity, usize>,
     durable_by_input: BTreeMap<u64, usize>,
 }
@@ -27,7 +25,21 @@ impl UiMeasurementEvidenceIndex {
                 );
                 let rows = index
                     .query_by_source
-                    .entry(mapping.authority_index_key().clone())
+                    .entry(mapping.source_key().clone())
+                    .or_default();
+                if !rows.iter().any(|row| row == &mapping) {
+                    rows.push(mapping);
+                    rows.sort_by_key(super::UiQueryAllocationTargetMapping::identity_digest);
+                }
+            }
+            if let Some(receipt) = input.as_settled_query_fact() {
+                let mapping = super::UiQueryAllocationTargetMapping::from_settled_receipt(
+                    receipt,
+                    query_target,
+                );
+                let rows = index
+                    .query_by_source
+                    .entry(mapping.source_key().clone())
                     .or_default();
                 if !rows.iter().any(|row| row == &mapping) {
                     rows.push(mapping);
@@ -53,10 +65,10 @@ impl UiMeasurementEvidenceIndex {
 
     pub(super) fn query_mappings(
         &self,
-        authority_index_key: &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+        source_key: &super::UiQueryAllocationSourceKey,
     ) -> &[super::UiQueryAllocationTargetMapping] {
         self.query_by_source
-            .get(authority_index_key)
+            .get(source_key)
             .map(Vec::as_slice)
             .unwrap_or_default()
     }
@@ -76,7 +88,7 @@ impl UiMeasurementEvidenceIndex {
         &self,
     ) -> impl Iterator<
         Item = (
-            &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+            &super::UiQueryAllocationSourceKey,
             &super::UiQueryAllocationTargetMapping,
         ),
     > {

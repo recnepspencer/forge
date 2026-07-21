@@ -1,4 +1,7 @@
-use worth_ui::facade::{MeasurementValue, MosaicSizingKind, WorthUi};
+use worth_ui::facade::{
+    app::WorthUi,
+    registry::{MeasurementValue, MosaicSizingKind},
+};
 
 use super::sizing_assertions::assert_registered_mosaic_sizing_ids;
 use super::sizing_fixtures::{

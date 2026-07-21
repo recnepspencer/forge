@@ -156,7 +156,8 @@ fn lineage_entry_has_supporting_input(
 
 fn has_query_support(inputs: &[MeasurementEvidenceInput]) -> bool {
     inputs.iter().any(|input| match input {
-        MeasurementEvidenceInput::QueryProjectionFact(_) => true,
+        MeasurementEvidenceInput::QueryProjectionFact(_)
+        | MeasurementEvidenceInput::SettledQueryFact(_) => true,
         MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => {
             evidence.query_projection_fact().is_some()
         }
@@ -178,6 +179,7 @@ fn has_host_result(
             .host_measurement_result()
             .is_some_and(|result| result.evidence_category() == category),
         MeasurementEvidenceInput::QueryProjectionFact(_)
+        | MeasurementEvidenceInput::SettledQueryFact(_)
         | MeasurementEvidenceInput::HostCapabilityReport(_)
         | MeasurementEvidenceInput::SiblingResizeSupport(_) => false,
     })

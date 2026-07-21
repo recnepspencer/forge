@@ -1,6 +1,6 @@
 use crate::evidence::{UiAllocationConstraintSet, UiAllocationNeighborhood, UiMeasurementBasis};
 use crate::graph::UiGraphGeneration;
-use crate::runtime::allocation_planning::WorthUiAllocationPlanningAdmission;
+use crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningAdmission;
 use crate::runtime::WorthUiPendingActivation;
 
 /// Witness that graph-admitted inputs align before planning admission is consumed.

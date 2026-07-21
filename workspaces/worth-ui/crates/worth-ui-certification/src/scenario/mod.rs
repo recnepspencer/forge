@@ -1,2 +1,3 @@
 pub mod application_authority_closure;
+pub mod filesystem_application_lifecycle;
 pub mod obligation_dispatch_prerequisite;

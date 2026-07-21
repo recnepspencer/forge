@@ -99,6 +99,15 @@ impl UiGraphSnapshot {
         self.nodes.len()
     }
 
+    pub(crate) fn graph_node_ids_for_authored_provenance(
+        &self,
+        authored_provenance_digest: u64,
+    ) -> &[UiGraphNodeIdentity] {
+        self.core_indexes
+            .declaration_correspondence()
+            .graph_node_ids_for_authored_provenance(authored_provenance_digest)
+    }
+
     pub fn mounted_receipt_slot_count(&self) -> usize {
         self.mounted_receipts.slots().len()
     }

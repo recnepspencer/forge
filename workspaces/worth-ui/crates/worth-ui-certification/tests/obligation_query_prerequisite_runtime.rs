@@ -1,10 +1,10 @@
 use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
-
-use worth_ui::facade::obligations::UiObligationFamily;
-use worth_ui_query_binding::{
+use worth_ui_query_binding::compatibility::managed_live::{
     WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
     WorthUiQueryProjectionConsumptionLane,
 };
+
+use worth_ui::facade::obligations::UiObligationFamily;
 
 use self::obligation_dispatch_prerequisite_support::{
     admission_targets::graph_aligned_query_target, application_authority::query_touch_app,

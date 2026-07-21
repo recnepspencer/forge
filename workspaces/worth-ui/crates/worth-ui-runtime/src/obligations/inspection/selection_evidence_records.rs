@@ -7,7 +7,7 @@ use crate::obligations::inspection::{
 use crate::obligations::prerequisites::UiObligationPrerequisiteEvidenceRef;
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::touch::UiGraphTouchDescriptor;
-use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 
 pub(crate) fn selected_obligation_evidence_records(
     selected: &UiSelectedObligationSet,
@@ -90,12 +90,12 @@ pub(crate) fn prerequisite_sources_from_target(
         sources.push(UiObligationEvidencePrerequisiteSource::QueryBasis);
         sources.push(UiObligationEvidencePrerequisiteSource::QueryProjectionConsumption);
         if query.inspection_lane()
-            == worth_ui_query_binding::WorthUiQueryInspectionLane::WorkspaceInspect
+            == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryInspectionLane::WorkspaceInspect
         {
             sources.push(UiObligationEvidencePrerequisiteSource::QueryInspection);
         }
         if query.causal_explanation_lane()
-            == worth_ui_query_binding::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
+            == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
         {
             sources.push(UiObligationEvidencePrerequisiteSource::QueryCausalExplanation);
         }
@@ -122,12 +122,12 @@ pub(crate) fn prerequisite_sources_from_refs(
                 sources.push(UiObligationEvidencePrerequisiteSource::QueryBasis);
                 sources.push(UiObligationEvidencePrerequisiteSource::QueryProjectionConsumption);
                 if evidence.inspection_lane()
-                    == worth_ui_query_binding::WorthUiQueryInspectionLane::WorkspaceInspect
+                    == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryInspectionLane::WorkspaceInspect
                 {
                     sources.push(UiObligationEvidencePrerequisiteSource::QueryInspection);
                 }
                 if evidence.causal_explanation_lane()
-                    == worth_ui_query_binding::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
+                    == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
                 {
                     sources.push(UiObligationEvidencePrerequisiteSource::QueryCausalExplanation);
                 }
