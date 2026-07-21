@@ -28,6 +28,17 @@ pub struct WorthUiReplacementPlannedCostEnvelope {
 }
 
 impl WorthUiPreparedApplicationReplacement {
+    pub fn admit_candidate_settled_query_projection(
+        &mut self,
+        projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
+    > {
+        self.candidate_query_binding
+            .admit_settled_snapshot(projection)
+    }
+
     pub fn candidate_graph(&self) -> crate::graph::UiGraphAuthority<'_> {
         self.next_app.graph()
     }
@@ -36,18 +47,14 @@ impl WorthUiPreparedApplicationReplacement {
         self.next_app.declaration_artifacts()
     }
 
-    pub fn admit_candidate_query_projection(
+    pub fn admit_candidate_managed_live_compatibility_projection(
         &mut self,
-        outcome: worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome,
-    ) -> Result<(), worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial> {
-        self.candidate_query_binding.admit(outcome).map(drop)
-    }
-
-    pub fn admit_candidate_live_query_projection(
-        &mut self,
-        resource: worth_ui_query_binding::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::WorthUiQueryLiveProjectionOutcome,
-    ) -> Result<(), worth_ui_query_binding::WorthUiQueryLiveAdmissionStop> {
+        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
+        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
+    ) -> Result<
+        (),
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
+    > {
         self.candidate_query_binding
             .admit_live(resource, outcome)
             .map(drop)
@@ -174,8 +181,7 @@ impl WorthUiLoweredApplicationReplacement {
             affected_handle_count: self.lowering.narrowing().affected_handle_count(),
             admission_checks: admission.candidate_proof_checks()
                 + admission.snapshot_compatibility_checks()
-                + admission.runtime_posture_checks()
-                + admission.query_support_checks(),
+                + admission.runtime_posture_checks(),
             artifact_comparisons: self
                 .lowering
                 .artifact_comparison_counters

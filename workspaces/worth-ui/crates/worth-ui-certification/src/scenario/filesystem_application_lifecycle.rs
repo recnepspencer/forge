@@ -167,10 +167,10 @@ impl FilesystemApplicationLifecycleScenario {
         .expect("filesystem-authored scaled canvas application should prepare")
     }
 
-    pub fn query_projection(
+    pub fn settled_query_projection(
         &mut self,
-    ) -> worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome {
-        self.query.project()
+    ) -> worth_ui_query_binding::WorthUiSettledSnapshotProjection {
+        self.query.settle_snapshot()
     }
 
     pub fn current_rust_submission(

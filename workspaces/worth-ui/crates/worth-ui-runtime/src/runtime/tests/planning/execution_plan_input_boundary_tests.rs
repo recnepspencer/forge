@@ -24,7 +24,7 @@ fn same_staged_artifact_produces_same_plan_input() {
 }
 
 #[test]
-fn unchanged_replacement_plan_input_materializes_no_candidate_wide_rows() {
+fn equivalent_replacement_materializes_no_query_binding_row() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
@@ -35,38 +35,38 @@ fn unchanged_replacement_plan_input_materializes_no_candidate_wide_rows() {
     assert!(plan_input.node_inputs().is_empty());
     assert_eq!(counters.staged_node_input_count(), 0);
     assert_eq!(counters.query_binding_input_count(), 0);
-    assert!(plan_input.basis().candidate_node_input_count() > 0);
-    assert!(plan_input.basis().query_binding_input_count() > 0);
+    assert_eq!(plan_input.basis().candidate_node_input_count(), 0);
+    assert_eq!(plan_input.basis().query_binding_input_count(), 0);
     assert!(counters.reconciliation_receipt_input_count() > 0);
     assert_eq!(counters.source_parse_count(), 0);
     assert_eq!(counters.registry_string_lookup_count(), 0);
 }
 
 #[test]
-fn preserved_query_binding_is_carried_by_successor_cardinality_not_a_delta_row() {
+fn equivalent_replacement_carries_no_fabricated_query_delta_row() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
         .prepare_execution_plan_input(pending)
         .expect("plan input prepares");
 
-    assert_eq!(plan_input.basis().query_binding_input_count(), 1);
-    assert!(plan_input
+    assert_eq!(plan_input.basis().query_binding_input_count(), 0);
+    assert!(!plan_input
         .node_inputs()
         .iter()
-        .all(|input| input.query_binding_identity().is_none()));
+        .any(|input| input.query_binding_identity().is_some()));
     assert_eq!(plan_input.counters().query_binding_input_count(), 0);
 }
 
 #[test]
-fn preserved_query_posture_does_not_force_candidate_wide_relowering() {
+fn equivalent_query_binding_does_not_force_candidate_wide_relowering() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
         .prepare_execution_plan_input(pending)
         .expect("plan input prepares");
 
-    assert_eq!(plan_input.basis().query_binding_input_count(), 1);
+    assert_eq!(plan_input.basis().query_binding_input_count(), 0);
     assert!(plan_input.node_inputs().is_empty());
     assert_eq!(plan_input.counters().query_binding_input_count(), 0);
 }

@@ -6,19 +6,19 @@ use crate::runtime::{WorthUiQueryBindingIdentity, WorthUiRuntimeHandle};
 pub struct WorthUiVirtualizedDataNode {
     runtime_handle: WorthUiRuntimeHandle,
     binding_identity: Rc<WorthUiQueryBindingIdentity>,
-    installed_reference: Rc<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
+    settled_fact_link: Rc<crate::runtime::WorthUiQuerySettledFactLink>,
 }
 
 impl WorthUiVirtualizedDataNode {
     pub(crate) fn new(
         runtime_handle: WorthUiRuntimeHandle,
         binding_identity: Rc<WorthUiQueryBindingIdentity>,
-        installed_reference: Rc<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
+        settled_fact_link: Rc<crate::runtime::WorthUiQuerySettledFactLink>,
     ) -> Self {
         Self {
             runtime_handle,
             binding_identity,
-            installed_reference,
+            settled_fact_link,
         }
     }
 
@@ -39,12 +39,16 @@ impl WorthUiVirtualizedDataNode {
     }
 
     pub fn definition(&self) -> &worth_ui_query_binding::WorthUiQueryViewDefinition {
-        self.installed_reference.definition()
+        self.settled_fact_link.definition()
+    }
+
+    pub fn settled_fact_link(&self) -> &crate::runtime::WorthUiQuerySettledFactLink {
+        &self.settled_fact_link
     }
 
     pub(crate) fn installed_reference(
         &self,
     ) -> &worth_ui_query_binding::WorthUiInstalledQueryBindingReference {
-        &self.installed_reference
+        self.settled_fact_link.installed_reference()
     }
 }

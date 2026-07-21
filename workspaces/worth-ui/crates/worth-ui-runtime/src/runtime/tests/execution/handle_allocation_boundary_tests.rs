@@ -85,7 +85,7 @@ fn query_view_binding_handle_preserves_query_owned_evidence_boundary() {
         .node_inputs()
         .iter()
         .filter(|input| {
-            input.query_binding_identity().is_some() && input.query_binding_posture().is_some()
+            input.query_binding_identity().is_some() && input.query_settled_fact_link().is_some()
         })
         .count();
 

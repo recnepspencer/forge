@@ -77,6 +77,19 @@ impl WorthUiScrollOffsetTurnSource<'_> {
             .borrow()
             .acquire_query_scroll_projection(query.query_authority(), allocation_receipt)
     }
+    pub fn acquire_settled_query_owner(
+        &self,
+        query: &crate::evidence::UiSettledQueryFactReceipt,
+        allocation_receipt: &crate::runtime::UiAllocationReceipt,
+    ) -> Result<
+        crate::runtime::UiActivatedScrollOwner,
+        crate::runtime::UiScrollOwnerAcquisitionDenial,
+    > {
+        self.runtime
+            .allocation_invalidation_index
+            .borrow()
+            .acquire_settled_query_scroll_projection(query, allocation_receipt)
+    }
     pub fn project(
         &mut self,
         offset: crate::runtime::UiProjectedScrollOffset,
@@ -183,23 +196,49 @@ fn admit_host_capability(
 }
 
 impl WorthUiQueryProjectionTurnSource<'_> {
-    pub fn admit_and_submit(
+    /// Retains Query's exact settled projection and returns its UI observation.
+    pub fn admit_settled(
         &mut self,
-        outcome: worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome,
+        projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        UiAllocationFrameGatewayOutcome,
-        worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
+        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
-        self.runtime.admit_and_submit_query_projection(outcome)
+        self.runtime.admit_settled_query_projection(projection)
     }
 
-    pub fn admit_live_and_submit(
+    /// Atomically replaces one retained settlement inside the active
+    /// application generation. A denial returns the candidate projection and
+    /// leaves the predecessor slot intact.
+    pub fn refresh_settled(
         &mut self,
-        resource: worth_ui_query_binding::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::WorthUiQueryLiveProjectionOutcome,
+        projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
+    > {
+        self.runtime.refresh_settled_query_projection(projection)
+    }
+
+    /// Resolve one requested active plan link to its retained UI fact and
+    /// submit only that fact to allocation ingress.
+    pub fn submit_settled(
+        &mut self,
+        link: &crate::runtime::WorthUiQueryLaneFactLink,
+    ) -> Result<
+        crate::runtime::WorthUiQueryFrameIngressOutcome,
+        crate::runtime::WorthUiQueryFrameIngressDenial,
+    > {
+        self.runtime.submit_settled_query_fact(link)
+    }
+
+    pub fn admit_managed_live_compatibility_and_submit(
+        &mut self,
+        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
+        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
-        worth_ui_query_binding::WorthUiQueryLiveAdmissionStop,
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
     > {
         self.runtime
             .admit_and_submit_live_query_projection(resource, outcome)

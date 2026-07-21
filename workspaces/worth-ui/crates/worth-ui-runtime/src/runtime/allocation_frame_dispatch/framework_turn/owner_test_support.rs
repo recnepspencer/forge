@@ -74,20 +74,31 @@ impl crate::runtime::WorthUiRuntime {
         )
     }
 
-    pub(crate) fn install_query_binding_for_test(
+    pub(crate) fn install_query_binding_state_for_test(
         &mut self,
-        plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+        binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     ) {
-        self.query_binding = plan.activate();
+        self.query_binding = binding;
     }
 
-    pub(crate) fn admit_query_projection_for_test(
-        &mut self,
-        outcome: worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome,
-    ) -> Result<
-        worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement,
-        worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
-    > {
-        self.query_binding.admit(outcome)
+    pub(crate) fn query_fact_link_for_test(
+        &self,
+        binding_id: &str,
+    ) -> crate::runtime::WorthUiQueryLaneFactLink {
+        let binding_id = crate::capability::ViewBindingId::new(binding_id)
+            .expect("static test binding identity");
+        self.active
+            .active_plan_ref()
+            .query_fact_link_for_binding_id(&binding_id)
+            .expect("active test plan retains the Query fact link")
+    }
+
+    pub(crate) fn query_fact_link_is_current_for_test(&self, binding_id: &str) -> bool {
+        self.query_fact_link_for_test(binding_id)
+            .belongs_to_generation(
+                &self
+                    .active_application_lowering_authority
+                    .generation_witness(),
+            )
     }
 }

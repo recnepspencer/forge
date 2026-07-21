@@ -1,5 +1,6 @@
 mod admit;
 mod assembly;
+mod assembly_generation_compatibility;
 mod assembly_support;
 mod certification;
 mod certification_scenario;
@@ -33,5 +34,5 @@ pub use denial::{UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
 use host_result_slots::HostResultSlots;
 use identity::UiMeasurementBasisIdentityInput;
 pub(crate) use query_allocation_mapping::{
-    UiQueryAllocationPurpose, UiQueryAllocationTargetMapping,
+    UiQueryAllocationPurpose, UiQueryAllocationSourceKey, UiQueryAllocationTargetMapping,
 };

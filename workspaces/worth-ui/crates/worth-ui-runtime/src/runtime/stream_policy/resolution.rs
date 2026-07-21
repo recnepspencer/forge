@@ -342,6 +342,20 @@ fn classify(fact: &UiAllocationFrameSourceFact) -> Result<(UiAllocationStreamFam
             };
             (UiAllocationStreamFamily::QueryProjection, invalidation)
         },
+        UiAllocationFrameSourceFact::QuerySettledFact { fact, .. } => {
+            let carries_content_extent = fact.measurement_facts().is_ok_and(|batch| {
+                batch.observations().iter().any(|observation| {
+                    observation.family()
+                        == worth_ui_query_binding::WorthUiQueryMeasurementFactFamily::ScrollContentExtent
+                })
+            });
+            let invalidation = if carries_content_extent {
+                UiAllocationInvalidationFamily::ContentExtentChange
+            } else {
+                UiAllocationInvalidationFamily::QueryMeasurementFactChange
+            };
+            (UiAllocationStreamFamily::QueryProjection, invalidation)
+        },
         UiAllocationFrameSourceFact::DurableResize(_) =>
             (UiAllocationStreamFamily::DurableResize, UiAllocationInvalidationFamily::DurableLocalResizeChange),
         UiAllocationFrameSourceFact::Interaction(value) => match value.state() {

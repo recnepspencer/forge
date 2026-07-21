@@ -1,9 +1,0 @@
-error[E0432]: unresolved import `worth_ui::facade::WorthUiQueryStatusSurface`
- --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/diagnostics_projection_rejects_freeform_query_status_rows.rs
-
-error[E0432]: unresolved import `worth_ui::facade::WorthUiDiagnosticProjectionHook`
- --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/projection_hook_cannot_mint_runtime_truth.rs
-
-error[E0308]: mismatched types
- --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/raw_strings_cannot_replace_diagnostic_codes.rs
- note: function defined here

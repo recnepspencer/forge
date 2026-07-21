@@ -12,10 +12,6 @@ pub enum WorthUiDiagnosticSource {
     PhaseDenial {
         evidence_digest: u64,
     },
-    QueryStop {
-        checked_stop_posture: WorthUiReloadCheckedStopPosture,
-        evidence_digest: u64,
-    },
     LaneAdmission {
         lane: Option<WorthUiExecutionLane>,
         evidence_digest: u64,
@@ -33,9 +29,6 @@ impl WorthUiDiagnosticSource {
                 ..
             } => upstream_evidence_digest,
             Self::PhaseDenial { evidence_digest }
-            | Self::QueryStop {
-                evidence_digest, ..
-            }
             | Self::LaneAdmission {
                 evidence_digest, ..
             } => Some(evidence_digest),

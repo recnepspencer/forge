@@ -16,6 +16,7 @@ use crate::evidence::measurement::{
 #[derive(Clone, Debug, PartialEq)]
 pub enum MeasurementEvidenceInput {
     QueryProjectionFact(UiProjectionFactReceipt),
+    SettledQueryFact(super::super::UiSettledQueryFactReceipt),
     HostMeasurementResult(UiMeasurementResult),
     HostCapabilityReport(WorthUiHostCapabilityReport),
     ChildIntrinsicMeasurement(UiChildIntrinsicMeasurementEvidence),
@@ -26,6 +27,7 @@ impl MeasurementEvidenceInput {
     pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::QueryProjectionFact(left), Self::QueryProjectionFact(right)) => left == right,
+            (Self::SettledQueryFact(left), Self::SettledQueryFact(right)) => left == right,
             (Self::HostMeasurementResult(left), Self::HostMeasurementResult(right)) => {
                 left.operationally_matches(right)
             }
@@ -42,6 +44,10 @@ impl MeasurementEvidenceInput {
 
     pub fn query_projection_fact(receipt: &UiProjectionFactReceipt) -> Self {
         Self::QueryProjectionFact(receipt.clone())
+    }
+
+    pub fn settled_query_fact(receipt: &super::super::UiSettledQueryFactReceipt) -> Self {
+        Self::SettledQueryFact(receipt.clone())
     }
 
     pub fn host_measurement_result(result: &UiMeasurementResult) -> Self {
@@ -118,6 +124,13 @@ impl MeasurementEvidenceInput {
                     ^ receipt.consumed_fact_family_set_digest().rotate_left(31)
                     ^ receipt.observation_identity_digest().rotate_left(37)
             }
+            Self::SettledQueryFact(receipt) => {
+                stable_text_digest("measurement-evidence-input:settled-query-fact")
+                    ^ stable_text_digest(receipt.view_binding_id().as_str()).rotate_left(11)
+                    ^ stable_text_digest(receipt.query_binding_identity()).rotate_left(19)
+                    ^ stable_text_digest(receipt.settlement_identity()).rotate_left(29)
+                    ^ receipt.observation_identity_digest().rotate_left(37)
+            }
             Self::HostMeasurementResult(result) => {
                 stable_text_digest("measurement-evidence-input:host-measurement-result")
                     ^ result.request_identity().as_u64().rotate_left(7)
@@ -149,6 +162,13 @@ impl MeasurementEvidenceInput {
     pub(crate) fn as_query_projection_fact(&self) -> Option<&UiProjectionFactReceipt> {
         match self {
             Self::QueryProjectionFact(receipt) => Some(receipt),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_settled_query_fact(&self) -> Option<&super::super::UiSettledQueryFactReceipt> {
+        match self {
+            Self::SettledQueryFact(receipt) => Some(receipt),
             _ => None,
         }
     }

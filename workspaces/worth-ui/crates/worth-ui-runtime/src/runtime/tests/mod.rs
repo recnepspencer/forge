@@ -108,6 +108,8 @@ mod lane_meaning_parity_boundary_tests;
 mod lane_meaning_parity_test_support;
 #[path = "lifecycle/lifecycle_path_parity.rs"]
 mod lifecycle_path_parity;
+#[path = "replacement/managed_live_compatibility_boundary_tests.rs"]
+mod managed_live_compatibility_boundary_tests;
 #[path = "execution/measurement_boundary_tests.rs"]
 mod measurement_boundary_tests;
 #[path = "source_ingress/multi_removal_activation_tests.rs"]
@@ -154,8 +156,6 @@ pub(crate) mod production_catalog_activation_test_support;
 mod query_binding_comparison_boundary_tests;
 #[path = "replacement/query_binding_comparison_test_support.rs"]
 mod query_binding_comparison_test_support;
-#[path = "replacement/query_live_rebind_boundary_tests.rs"]
-mod query_live_rebind_boundary_tests;
 #[path = "replacement/query_topology_impact_boundary_tests.rs"]
 mod query_topology_impact_boundary_tests;
 #[path = "execution/realtime_overlay_lane_boundary_tests.rs"]

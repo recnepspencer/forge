@@ -7,7 +7,6 @@ pub enum WorthUiActivationStagingDenialReason {
     MissingQueryLiveRebindPlan,
     ActiveArtifactDigestMismatch,
     CandidateArtifactDigestMismatch,
-    AdmittedQuerySupportContractChanged,
     ActiveRuntimeMutatedDuringStaging,
 }
 

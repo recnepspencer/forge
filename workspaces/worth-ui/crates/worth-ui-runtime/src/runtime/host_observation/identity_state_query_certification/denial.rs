@@ -52,7 +52,7 @@ pub enum WorthUiIdentityStateQueryCertificationDenialReason {
         active_artifact_digest: u64,
         candidate_artifact_digest: u64,
     },
-    UiLocalQueryStatusResidue {
+    StateQueryResidue {
         label: String,
     },
     MissingTypedQueryDriftDenial {

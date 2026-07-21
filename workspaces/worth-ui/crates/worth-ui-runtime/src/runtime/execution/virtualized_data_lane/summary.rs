@@ -8,7 +8,7 @@ pub struct WorthUiVirtualizedPlanSummaryRequest {
     row_budget: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WorthUiVirtualizedPlanSummary {
     row: WorthUiVirtualizedDataNode,
     evidence: Option<worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceReference>,

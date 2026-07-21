@@ -5,14 +5,14 @@ use crate::runtime::{
     WorthUiExecutionLane, WorthUiExecutionLaneDescriptor, WorthUiExecutionLaneSupport,
     WorthUiLaneAdmission, WorthUiLaneAdmissionCounters, WorthUiLaneAdmissionDenial,
     WorthUiLaneAdmissionDenialReason, WorthUiLaneSupportDiagnostic, WorthUiLaneSupportStatus,
-    WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocationBasis,
+    WorthUiQueryLaneFactLink, WorthUiRuntimeHandleAllocationBasis,
 };
 
 pub(crate) struct WorthUiLaneAdmissionPlanner;
 
 struct WorthUiPlanLaneAdmissionEvidence {
     descriptors: BTreeMap<WorthUiExecutionLane, WorthUiExecutionLaneDescriptor>,
-    query_support_links: Vec<WorthUiQueryLaneSupportLinks>,
+    query_fact_links: Vec<WorthUiQueryLaneFactLink>,
     missing_query_owned_support_link: bool,
 }
 
@@ -27,7 +27,7 @@ impl WorthUiLaneAdmissionPlanner {
         counters.record_plan_nodes(store.region_count());
         let mut lane_evidence = WorthUiPlanLaneAdmissionEvidence {
             descriptors: BTreeMap::new(),
-            query_support_links: Vec::new(),
+            query_fact_links: Vec::new(),
             missing_query_owned_support_link: false,
         };
         for family in regional_families() {
@@ -68,7 +68,7 @@ impl WorthUiLaneAdmissionPlanner {
 
         Ok(WorthUiLaneAdmission::new(
             support.rows().cloned().collect(),
-            lane_evidence.query_support_links,
+            lane_evidence.query_fact_links,
             WorthUiRuntimeHandleAllocationBasis::from_lowering_authority(authority).digest(),
             counters,
         ))
@@ -100,7 +100,7 @@ fn collect_plan_lane_admission_evidence(
 ) -> WorthUiPlanLaneAdmissionEvidence {
     let mut evidence = WorthUiPlanLaneAdmissionEvidence {
         descriptors: BTreeMap::new(),
-        query_support_links: Vec::new(),
+        query_fact_links: Vec::new(),
         missing_query_owned_support_link: false,
     };
 
@@ -129,11 +129,10 @@ fn record_query_lane_support_evidence(
     }
 
     if let Ok(plan_index) = u32::try_from(position) {
-        if let Some(links) =
-            WorthUiQueryLaneSupportLinks::from_plan_node_input(plan_index, node_input)
+        if let Some(links) = WorthUiQueryLaneFactLink::from_plan_node_input(plan_index, node_input)
         {
             counters.record_query_support_link();
-            evidence.query_support_links.push(links);
+            evidence.query_fact_links.push(links);
         }
     }
 
@@ -182,9 +181,7 @@ fn verify_query_lane_support_evidence(
         return Ok(());
     }
 
-    if lane_evidence.missing_query_owned_support_link
-        || lane_evidence.query_support_links.is_empty()
-    {
+    if lane_evidence.missing_query_owned_support_link || lane_evidence.query_fact_links.is_empty() {
         return Err(denial(
             WorthUiLaneAdmissionDenialReason::MissingQuerySupportLinks,
             Some(WorthUiExecutionLane::QueryBound),

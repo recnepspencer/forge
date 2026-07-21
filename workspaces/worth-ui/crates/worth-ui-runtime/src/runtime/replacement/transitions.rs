@@ -30,6 +30,17 @@ pub struct WorthUiReplacementNarrowingReady {
         crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
 }
 
+/// Exact Query comparison refined the provisional downstream impact scope.
+#[derive(Debug)]
+pub struct WorthUiReplacementQueryImpactReady {
+    pub(crate) admitted: WorthUiAdmittedReplacementCandidate,
+    pub(crate) impact: WorthUiReplacementImpactClassification,
+    pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
+}
+
 /// Identity match graph completed for a narrowed replacement.
 #[derive(Debug)]
 pub struct WorthUiReplacementIdentityReady {
@@ -37,6 +48,7 @@ pub struct WorthUiReplacementIdentityReady {
     pub(crate) impact: WorthUiReplacementImpactClassification,
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) identity_report: WorthUiIdentityMatchReport,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
     pub(crate) artifact_comparison_counters:
         crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
 }
@@ -48,6 +60,7 @@ pub struct WorthUiReplacementNodePlanReady {
     pub(crate) impact: WorthUiReplacementImpactClassification,
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
     pub(crate) artifact_comparison_counters:
         crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
     pub(crate) identity_match_counters: crate::runtime::WorthUiIdentityMatchCounters,
@@ -61,6 +74,7 @@ pub struct WorthUiReplacementReconciliationReady {
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
     pub(crate) reconciliation_plan: WorthUiDurableStateReconciliationPlan,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
     pub(crate) artifact_comparison_counters:
         crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
     pub(crate) identity_match_counters: crate::runtime::WorthUiIdentityMatchCounters,

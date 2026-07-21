@@ -40,7 +40,8 @@ pub(crate) struct UiPreparedCommittedAllocationActivation<'runtime> {
 
 pub(crate) struct UiCommittedAllocationPublication {
     plan_swap: crate::runtime::WorthUiPlanSwapReceipt,
-    query_retirement: worth_ui_query_binding::WorthUiQueryLiveRetirement,
+    query_retirement:
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
     derived_index_counters: crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
 }
 
@@ -166,7 +167,7 @@ impl UiCommittedAllocationPublication {
         self,
     ) -> (
         crate::runtime::WorthUiPlanSwapReceipt,
-        worth_ui_query_binding::WorthUiQueryLiveRetirement,
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
         crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
     ) {
         (

@@ -33,14 +33,6 @@ impl WorthUiRuntimeDiagnosticReport {
             if tier.emits_phase_references() && row.phase_reference_digest().is_some() {
                 counters.record_phase_reference();
             }
-            if tier.emits_query_links()
-                && matches!(
-                    row.source(),
-                    crate::runtime::host_observation::diagnostics::WorthUiDiagnosticSource::QueryStop { .. }
-                )
-            {
-                counters.record_query_link();
-            }
         }
         let rows = if tier.emits_rows() { rows } else { Vec::new() };
         let support_report = if support_policy.may_materialize_support_sections() {

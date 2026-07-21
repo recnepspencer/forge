@@ -76,6 +76,10 @@ impl WorthUiActiveApplicationSession {
         self.runtime.inspect_active()
     }
 
+    pub fn inspect_query_state_residue(&self) -> crate::runtime::WorthUiStateQueryResidueScan {
+        self.runtime.inspect_query_state_residue()
+    }
+
     pub fn execute_framework_turn(
         &mut self,
         collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
@@ -106,6 +110,17 @@ impl WorthUiActiveApplicationSession {
             .active
             .active_plan_ref()
             .virtualized_availability()
+    }
+
+    pub fn query_fact_link(
+        &self,
+        binding_id: &str,
+    ) -> Option<crate::runtime::WorthUiQueryLaneFactLink> {
+        let binding_id = crate::capability::ViewBindingId::new(binding_id).ok()?;
+        self.runtime
+            .active
+            .active_plan_ref()
+            .query_fact_link_for_binding_id(&binding_id)
     }
 
     pub fn canvas_spatial_plan_availability(

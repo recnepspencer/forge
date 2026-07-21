@@ -20,9 +20,42 @@ pub(crate) fn activation_staging_inputs() -> ActivationStagingInputs {
     activation_staging_inputs_for(app)
 }
 
+pub(crate) fn activation_staging_inputs_with_installed_query_view(
+    view: worth_ui_query_binding::WorthUiInstalledQueryView,
+) -> ActivationStagingInputs {
+    let binding_id = view.definition().identity().as_str().to_owned();
+    let app = crate::facade::WorthUi::app()
+        .register_query_view(view)
+        .expect("installed Query view registers for activation")
+        .freeze()
+        .expect("Query-bound activation application prepares");
+    activation_staging_inputs_for_bindings(app, &binding_id, &binding_id)
+}
+
+pub(crate) fn activation_staging_inputs_with_query_change() -> ActivationStagingInputs {
+    let app = standard_query_app();
+    activation_staging_inputs_for_bindings(
+        app,
+        "workspace.view_binding.selection",
+        "workspace.view_binding.detail",
+    )
+}
+
 pub(super) fn activation_staging_inputs_for(app: WorthUiApp) -> ActivationStagingInputs {
-    let active = query_artifact(&app, "workspace.view_binding.selection");
-    let candidate = query_artifact(&app, "workspace.view_binding.selection");
+    activation_staging_inputs_for_bindings(
+        app,
+        "workspace.view_binding.selection",
+        "workspace.view_binding.selection",
+    )
+}
+
+fn activation_staging_inputs_for_bindings(
+    app: WorthUiApp,
+    active_binding_id: &str,
+    candidate_binding_id: &str,
+) -> ActivationStagingInputs {
+    let active = query_artifact(&app, active_binding_id);
+    let candidate = query_artifact(&app, candidate_binding_id);
     let runtime = super::replacement_impact_test_support::launch_runtime(&app, active);
     let admitted =
         super::replacement_impact_test_support::admitted_candidate(&app, &runtime, candidate);
@@ -143,21 +176,6 @@ impl ActivationStagingInputs {
                 ),
             )
             .expect("activation staging succeeds")
-    }
-
-    pub(super) fn stage_denial(self) -> WorthUiActivationStagingDenial {
-        self.runtime
-            .stage_replacement_activation(
-                self.admitted,
-                &self.impact,
-                &self.narrowing,
-                &self.node_plan,
-                staging_plans(
-                    Some(&self.reconciliation_plan),
-                    Some(&self.query_rebind_plan),
-                ),
-            )
-            .expect_err("activation staging denies")
     }
 
     pub(super) fn stage_without_reconciliation(self) -> WorthUiActivationStagingDenial {

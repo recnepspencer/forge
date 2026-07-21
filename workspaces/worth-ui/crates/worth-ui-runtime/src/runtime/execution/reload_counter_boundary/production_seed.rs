@@ -26,7 +26,6 @@ impl WorthUiReloadCostSeed {
         .record_impact_narrowing_counters(lowering.narrowing.counters())
         .record_identity_match_counters(lowering.identity_match_counters)
         .record_reconciliation_counters(lowering.reconciliation_plan.counters())
-        .record_carried_query_support_receipt(report.query_support_receipt())
         .record_query_rebind_counters(lowering.query_rebind_plan.counters());
         Self {
             builder,

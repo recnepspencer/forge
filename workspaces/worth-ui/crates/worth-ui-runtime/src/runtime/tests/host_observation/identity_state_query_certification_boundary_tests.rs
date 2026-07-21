@@ -3,8 +3,7 @@ use super::durable_state_reconciliation_test_support::{
 };
 use super::identity_match_graph_test_support::identity_match_app;
 use super::identity_state_query_certification_test_support::{
-    ambiguous_plan_for_same_active, preserved_query_rebind_plan,
-    query_runtime_state_and_rebind_inputs, single_active_state_lifecycle_inputs,
+    ambiguous_plan_for_same_active, single_active_state_lifecycle_inputs,
     ui_local_drift_rebind_plan,
 };
 use super::query_binding_comparison_test_support::standard_query_app;
@@ -86,27 +85,6 @@ fn state_replacement_and_drop_receipts_match_actual_runtime_state() {
 }
 
 #[test]
-fn query_drift_certification_rejects_ui_local_loading_or_subscription_model() {
-    let (runtime, preserve_plan) = preserved_query_rebind_plan();
-    let app = standard_query_app();
-    let denial = runtime
-        .certify_identity_state_and_query_drift_against_snapshot(
-            WorthUiIdentityStateQueryCertificationScenario::named("ui local pseudo status")
-                .with_ui_local_query_status_probe("ui local status", preserve_plan),
-            app.capabilities(),
-        )
-        .expect_err("UI-local query status cannot substitute Query recovery");
-
-    match denial.reason() {
-        WorthUiIdentityStateQueryCertificationDenialReason::UiLocalQueryStatusResidue { label } => {
-            assert_eq!(label, "ui local status")
-        }
-        other => panic!("unexpected denial: {other:?}"),
-    }
-    assert_eq!(denial.counters().ui_local_probe_count(), 1);
-}
-
-#[test]
 fn certification_rejects_mismatched_capability_snapshot() {
     let (runtime, structural_plan, structural_inventory) = single_active_state_lifecycle_inputs();
     let wrong_snapshot_app = standard_query_app();
@@ -132,85 +110,6 @@ fn certification_rejects_mismatched_capability_snapshot() {
             active_snapshot_digest,
             provided_snapshot_digest,
         } => assert_ne!(active_snapshot_digest, provided_snapshot_digest),
-        other => panic!("unexpected denial: {other:?}"),
-    }
-}
-
-#[test]
-fn query_drift_certification_uses_query_stop_classes_not_messages() {
-    let (runtime, rebind_plan) = ui_local_drift_rebind_plan();
-    let app = standard_query_app();
-
-    let certification = runtime
-        .certify_identity_state_and_query_drift_against_snapshot(
-            WorthUiIdentityStateQueryCertificationScenario::named("typed query stop")
-                .with_query_rebind_plan_expecting_denial(
-                    "typed ui local denial",
-                    rebind_plan,
-                    WorthUiQueryBindingDriftDenialKind::UiLocalDenialPresentationWouldReplaceQueryRecovery,
-                ),
-            app.capabilities(),
-        )
-        .expect("typed query denial certifies");
-
-    assert_eq!(certification.query_drift().typed_denials().len(), 1);
-    assert_eq!(
-        certification.query_drift().typed_denial_kinds(),
-        vec![
-            WorthUiQueryBindingDriftDenialKind::UiLocalDenialPresentationWouldReplaceQueryRecovery
-        ]
-    );
-}
-
-#[test]
-fn query_drift_certification_rejects_wrong_typed_stop_expectation() {
-    let (runtime, rebind_plan) = ui_local_drift_rebind_plan();
-    let app = standard_query_app();
-
-    let denial = runtime
-        .certify_identity_state_and_query_drift_against_snapshot(
-            WorthUiIdentityStateQueryCertificationScenario::named("wrong typed query stop")
-                .with_query_rebind_plan_expecting_denial(
-                    "wrong denial family",
-                    rebind_plan,
-                    WorthUiQueryBindingDriftDenialKind::QuerySupportPostureNotAdmitted,
-                ),
-            app.capabilities(),
-        )
-        .expect_err("wrong typed Query stop denies");
-
-    match denial.reason() {
-        WorthUiIdentityStateQueryCertificationDenialReason::UnexpectedTypedQueryDriftDenial {
-            label,
-            expected,
-        } => {
-            assert_eq!(label, "wrong denial family");
-            assert_eq!(
-                *expected,
-                WorthUiQueryBindingDriftDenialKind::QuerySupportPostureNotAdmitted
-            );
-        }
-        other => panic!("unexpected denial: {other:?}"),
-    }
-}
-
-#[test]
-fn query_drift_certification_requires_declared_typed_stop_expectation() {
-    let (runtime, rebind_plan) = ui_local_drift_rebind_plan();
-    let app = standard_query_app();
-
-    let denial = runtime
-        .certify_identity_state_and_query_drift_against_snapshot(
-            WorthUiIdentityStateQueryCertificationScenario::named("undeclared query stop")
-                .with_query_rebind_plan("undeclared denied rebind", rebind_plan),
-            app.capabilities(),
-        )
-        .expect_err("denied query plan must declare expected typed stop");
-
-    match denial.reason() {
-        WorthUiIdentityStateQueryCertificationDenialReason::MissingTypedQueryDriftDenial {
-            label,
-        } => assert_eq!(label, "undeclared denied rebind"),
         other => panic!("unexpected denial: {other:?}"),
     }
 }
@@ -300,7 +199,7 @@ fn query_certification_rejects_rebind_plan_from_another_active_runtime() {
                 .with_query_rebind_plan_expecting_denial(
                     "foreign query rebind",
                     foreign_rebind_plan,
-                    WorthUiQueryBindingDriftDenialKind::UiLocalDenialPresentationWouldReplaceQueryRecovery,
+                    WorthUiQueryBindingDriftDenialKind::MissingCandidateUiRequirementsForRebind,
                 ),
             app.capabilities(),
         )
@@ -320,50 +219,22 @@ fn query_certification_rejects_rebind_plan_from_another_active_runtime() {
 }
 
 #[test]
-fn state_and_query_residue_scan_clean_after_failed_and_successful_reload_mix() {
-    let (runtime, state_plan, state_inventory, query_rebind_plan) =
-        query_runtime_state_and_rebind_inputs();
+fn strict_query_residue_scan_reads_the_active_plan_and_binding_stores() {
+    let (runtime, rebind_plan) = ui_local_drift_rebind_plan();
     let app = standard_query_app();
-    let ambiguous_plan = ambiguous_plan_for_same_active(&state_plan);
-    let ambiguous_denial = runtime
-        .reconcile_durable_state(&ambiguous_plan, &state_inventory)
-        .expect_err("ambiguous identity denies");
-    let state_reconciliation = runtime
-        .reconcile_durable_state(&state_plan, &state_inventory)
-        .expect("state reconciliation succeeds");
-
     let certification = runtime
         .certify_identity_state_and_query_drift_against_snapshot(
-            WorthUiIdentityStateQueryCertificationScenario::named("mixed reload storm")
-                .with_state_reconciliation_denial(
-                    "ambiguous failed reload",
-                    ambiguous_plan,
-                    ambiguous_denial,
-                )
-                .with_state_reconciliation_plan(
-                    "successful state reload",
-                    state_plan,
-                    state_reconciliation,
-                )
-                .with_query_rebind_plan_expecting_denial(
-                    "typed query recovery stop",
-                    query_rebind_plan,
-                    WorthUiQueryBindingDriftDenialKind::UiLocalDenialPresentationWouldReplaceQueryRecovery,
-                )
+            WorthUiIdentityStateQueryCertificationScenario::named("active Query residue")
+                .with_query_rebind_plan("typed UI requirement drift", rebind_plan)
                 .with_strict_residue_scan(),
             app.capabilities(),
         )
-        .expect("mixed failed/successful certification has clean residue");
+        .expect("the actual active Query stores are coherent");
 
-    assert!(certification.residue_scan().is_clean());
-    assert_eq!(
-        certification.counters().ambiguous_identity_denial_count(),
-        1
-    );
-    assert_eq!(
-        certification.query_drift().ui_local_recovery_denial_count(),
-        1
-    );
-    assert!(certification.residue_scan().scanned_state_receipts() > 0);
-    assert!(certification.residue_scan().scanned_query_bindings() > 0);
+    let scan = certification.residue_scan();
+    assert_eq!(scan.scanned_query_bindings(), 2);
+    assert_eq!(scan.scanned_plan_query_links(), 1);
+    assert_eq!(scan.scanned_settled_snapshots(), 0);
+    assert_eq!(scan.scanned_live_resources(), 0);
+    assert!(scan.is_clean());
 }

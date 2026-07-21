@@ -18,7 +18,8 @@ pub use super::allocation_frame_dispatch::{
     UiAllocationFrameSourceFact, UiAllocationFrameSourceFactPosture,
     UiAllocationFrameSubmissionOutcome, UiFrameworkTransitionPlanningCounters,
     WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
-    WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
+    WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters, WorthUiQueryFrameIngressDenial,
+    WorthUiQueryFrameIngressOutcome, WorthUiQueryProjectionTurnSource,
 };
 pub(crate) use super::allocation_frame_dispatch::{
     UiAllocationFrameQueueDisposition, UiAllocationFrameReplacementTransition,
@@ -26,7 +27,6 @@ pub(crate) use super::allocation_frame_dispatch::{
 #[cfg(test)]
 pub(crate) use super::allocation_frame_dispatch::{
     WorthUiDurableResizeSubmission, WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission,
-    WorthUiQueryProjectionSubmission,
 };
 #[cfg(test)]
 pub use super::launch::WorthUiRuntimeFrameworkLoop;
@@ -111,6 +111,7 @@ pub use super::planning::plan_topology::{
     WorthUiPlanTopology, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
     WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
 };
+pub use super::planning::query_binding::WorthUiQuerySettledFactLink;
 pub use super::portal_anchored_allocation::UiPortalActivationBindingDenial;
 pub use super::portal_anchored_allocation::{
     UiAdmittedPortalAnchorObservation, UiPortalAllocationPlanningBasis, UiPortalAnchorIdentity,
@@ -183,7 +184,7 @@ pub use super::execution::lane_admission::{
     WorthUiLaneAdmission, WorthUiLaneAdmissionCounters, WorthUiLaneAdmissionDenial,
     WorthUiLaneAdmissionDenialReason, WorthUiLaneCostRegime, WorthUiLaneFailureMode,
     WorthUiLaneSupportDiagnostic, WorthUiLaneSupportRow, WorthUiLaneSupportStatus,
-    WorthUiQueryLaneSupportLinks, WorthUiUnsupportedHookDenial, WorthUiUnsupportedHookDenialReason,
+    WorthUiQueryLaneFactLink, WorthUiUnsupportedHookDenial, WorthUiUnsupportedHookDenialReason,
 };
 pub use super::execution::lane_frame_cost_certification::{
     WorthUiBroadScanRegressionDenial, WorthUiFrameCostCertification,
@@ -256,14 +257,14 @@ pub use super::host_observation::diagnostics::{
     WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
     WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
 };
+pub use super::host_observation::diagnostics_projection::{
+    WorthUiBindingObservationRow, WorthUiBindingObservationSurface, WorthUiFrameCostSurface,
+    WorthUiPlanInspectionSurface, WorthUiReloadStatusSurface,
+};
 #[cfg(test)]
 pub use super::host_observation::diagnostics_projection::{
     WorthUiDiagnosticsProjectionDenialReason, WorthUiDiagnosticsProjectionHook,
     WorthUiFrameCostSurfaceKind,
-};
-pub use super::host_observation::diagnostics_projection::{
-    WorthUiFrameCostSurface, WorthUiPlanInspectionSurface, WorthUiQueryStatusSurface,
-    WorthUiReloadStatusSurface,
 };
 pub use super::host_observation::identity_state_query_certification::{
     WorthUiIdentityStateCertification, WorthUiIdentityStateQueryCertificationCounters,
@@ -318,7 +319,7 @@ pub use super::measurement::{
     WorthUiCertifiedMeasurementPacket, WorthUiComplexityContract, WorthUiCounterCaptureRichness,
     WorthUiFoundationalCounterBridge, WorthUiFoundationalCounterEvidence, WorthUiFrameCostCounter,
     WorthUiMeasurementBoundary, WorthUiMeasurementCertificationDenial,
-    WorthUiMeasurementCounterPacket, WorthUiMeasurementQueryEvidence, WorthUiRuntimeCounterFamily,
+    WorthUiMeasurementCounterPacket, WorthUiRuntimeCounterFamily,
 };
 #[cfg(test)]
-pub use super::measurement::{WorthUiCounterPacketBuilder, WorthUiMeasurementQueryEvidenceKind};
+pub use super::measurement::{WorthUiCounterPacketBuilder, WorthUiMeasurementQueryEvidence};

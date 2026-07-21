@@ -10,6 +10,7 @@ use crate::runtime::{
 
 struct WorthUiPreparedApplicationLoweringFacts {
     generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    generation_witness: super::WorthUiPreparedApplicationGenerationWitness,
     source_candidate_basis: Option<WorthUiReplacementCandidateBasis>,
     source_artifact_authority: Option<Rc<crate::source::WorthUiArtifact>>,
     graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
@@ -44,6 +45,7 @@ impl WorthUiPreparedApplicationLoweringAuthority {
         Self {
             facts: Rc::new(WorthUiPreparedApplicationLoweringFacts {
                 generation_identity,
+                generation_witness: super::WorthUiPreparedApplicationGenerationWitness::issue(),
                 source_candidate_basis,
                 source_artifact_authority,
                 graph_authority_identity,
@@ -91,6 +93,10 @@ impl WorthUiPreparedApplicationLoweringAuthority {
 
     pub(crate) fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
         &self.facts.generation_identity
+    }
+
+    pub(crate) fn generation_witness(&self) -> super::WorthUiPreparedApplicationGenerationWitness {
+        self.facts.generation_witness.clone()
     }
 
     pub(crate) fn graph_authority_identity(&self) -> crate::graph::UiGraphAuthorityIdentity {

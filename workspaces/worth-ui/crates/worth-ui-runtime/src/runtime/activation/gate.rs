@@ -32,7 +32,7 @@ impl WorthUiRuntime {
         let candidate_query_binding = pending_activation
             .candidate_application_authority()
             .query_binding_plan()
-            .activate();
+            .prepare_downstream_state();
         let successor_planning_authority =
             std::rc::Rc::clone(&self.retained_allocation_planning_evidence);
         self.activate_admitted_allocation_catalog_with_query_binding(
@@ -118,7 +118,7 @@ impl WorthUiRuntime {
         let candidate_query_binding = pending_activation
             .candidate_application_authority()
             .query_binding_plan()
-            .activate();
+            .prepare_downstream_state();
         let successor_planning_authority =
             std::rc::Rc::clone(&self.retained_allocation_planning_evidence);
         self.activate_admitted_allocation_catalog_with_boundary_source_and_query_binding(

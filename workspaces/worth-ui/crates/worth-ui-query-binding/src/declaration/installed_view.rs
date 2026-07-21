@@ -2,12 +2,11 @@ use super::{
     WorthUiQueryViewDefinition, WorthUiQueryViewIdentity, WorthUiQueryViewIdentityError,
     WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
 };
-use crate::{WorthUiInstalledQueryDomain, WorthUiQueryExt};
+use crate::WorthUiInstalledQueryDomain;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiQueryViewDeclarationDenial {
     InvalidIdentity(WorthUiQueryViewIdentityError),
-    QueryDeclarationUnavailable,
 }
 
 /// Registration-only envelope shared by snapshot and live view declarations.
@@ -42,18 +41,6 @@ impl WorthUiInstalledQueryDomain {
     ) -> Result<WorthUiInstalledQueryView, WorthUiQueryViewDeclarationDenial> {
         let identity = WorthUiQueryViewIdentity::new(identity)
             .map_err(WorthUiQueryViewDeclarationDenial::InvalidIdentity)?;
-        match lifecycle {
-            WorthUiQueryViewLifecycle::Snapshot => {
-                self.handle()
-                    .measurements()
-                    .map_err(|_| WorthUiQueryViewDeclarationDenial::QueryDeclarationUnavailable)?;
-            }
-            WorthUiQueryViewLifecycle::Live => {
-                self.handle()
-                    .live_measurements(identity.as_str())
-                    .map_err(|_| WorthUiQueryViewDeclarationDenial::QueryDeclarationUnavailable)?;
-            }
-        }
         Ok(WorthUiInstalledQueryView {
             installed_domain: self.clone(),
             definition: WorthUiQueryViewDefinition::measurement(

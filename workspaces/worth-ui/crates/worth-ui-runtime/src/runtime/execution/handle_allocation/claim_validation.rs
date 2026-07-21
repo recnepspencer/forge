@@ -39,7 +39,8 @@ fn reject_missing_query_binding_evidence(
     node_input: &WorthUiPlanNodeInput,
     counters: WorthUiRuntimeHandleAllocationCounters,
 ) -> Result<(), WorthUiRuntimeHandleAllocationDenial> {
-    if node_input.query_binding_identity().is_none() || node_input.query_binding_posture().is_some()
+    if node_input.query_binding_identity().is_none()
+        || node_input.query_settled_fact_link().is_some()
     {
         return Ok(());
     }

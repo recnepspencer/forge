@@ -2,9 +2,8 @@ use crate::runtime::{
     WorthUiActivationReadiness, WorthUiActivationStagingCounters, WorthUiActivationStagingDenial,
     WorthUiActivationStagingDenialReason, WorthUiActivationStagingReport,
     WorthUiActiveRuntimeObservation, WorthUiAdmittedReplacementCandidate,
-    WorthUiCandidateAdmissionDenial, WorthUiDurableStateReconciliationPlan,
-    WorthUiNodeReplacementPlan, WorthUiPendingActivation, WorthUiQueryLiveRebindPlan,
-    WorthUiReplacementImpactClassification, WorthUiRuntimeFrameEpoch,
+    WorthUiDurableStateReconciliationPlan, WorthUiNodeReplacementPlan, WorthUiPendingActivation,
+    WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification, WorthUiRuntimeFrameEpoch,
     WorthUiRuntimeImpactNarrowing, WorthUiStagedReplacement,
 };
 
@@ -58,13 +57,6 @@ impl WorthUiActivationStager {
             active_before,
             active_after,
             candidate_artifact_digest,
-            &mut counters,
-        )?;
-        reject_changed_query_support_receipt(
-            &admitted,
-            active_artifact_digest,
-            candidate_artifact_digest,
-            frame_epoch,
             &mut counters,
         )?;
         verify_required_digest_pair(
@@ -188,35 +180,6 @@ fn reject_active_mutation(
             WorthUiActivationStagingDenialReason::ActiveRuntimeMutatedDuringStaging,
             *counters,
         ))
-    }
-}
-
-fn reject_changed_query_support_receipt(
-    admitted: &WorthUiAdmittedReplacementCandidate,
-    active_artifact_digest: u64,
-    candidate_artifact_digest: u64,
-    frame_epoch: WorthUiRuntimeFrameEpoch,
-    counters: &mut WorthUiActivationStagingCounters,
-) -> Result<(), WorthUiActivationStagingDenial> {
-    counters.record_receipt_verification();
-    match admitted.verify_receipts_unchanged() {
-        Ok(()) => Ok(()),
-        Err(WorthUiCandidateAdmissionDenial::QuerySupportContractChanged { .. }) => {
-            Err(WorthUiActivationStagingDenial::new(
-                active_artifact_digest,
-                candidate_artifact_digest,
-                frame_epoch,
-                WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged,
-                *counters,
-            ))
-        }
-        Err(_) => Err(WorthUiActivationStagingDenial::new(
-            active_artifact_digest,
-            candidate_artifact_digest,
-            frame_epoch,
-            WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged,
-            *counters,
-        )),
     }
 }
 

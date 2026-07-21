@@ -5,8 +5,8 @@ use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::replacement_impact_test_support::impact_test_app;
 use crate::runtime::{
     WorthUiCandidateAdmission, WorthUiCandidateArtifactBundle, WorthUiCandidateAuthoringLane,
-    WorthUiCandidateDependencyMetadata, WorthUiCandidateLoweringBasis, WorthUiQuerySupportReceipt,
-    WorthUiQuerySupportStatus, WorthUiReplacementCandidate, WorthUiReplacementCause,
+    WorthUiCandidateDependencyMetadata, WorthUiCandidateLoweringBasis, WorthUiReplacementCandidate,
+    WorthUiReplacementCause,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
@@ -98,28 +98,16 @@ pub(super) fn lower_rust_authored_artifact<const N: usize>(
         .expect("canonical artifact assembles")
 }
 
-pub(super) fn candidate_with_forged_query_support(
-    runtime: &crate::runtime::WorthUiRuntime,
-    artifact: WorthUiArtifact,
-) -> crate::runtime::WorthUiAdmittedReplacementCandidate {
-    candidate_with_forged_query_support_hook_count(runtime, artifact, 1)
-}
-
 pub(super) fn candidate_with_forged_query_support_hook_count(
     runtime: &crate::runtime::WorthUiRuntime,
     artifact: WorthUiArtifact,
-    runtime_hook_count: usize,
+    _runtime_hook_count: usize,
 ) -> crate::runtime::WorthUiAdmittedReplacementCandidate {
     let artifact_digest =
         WorthUiArtifactDigestor::digest(&artifact, WorthUiArtifactEquivalenceBasis::semantic());
     let dependency_metadata = WorthUiCandidateDependencyMetadata::derive_for_artifact(&artifact);
     let lowering_basis = WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
         runtime.replacement_admission_basis().snapshot_digest(),
-        WorthUiQuerySupportReceipt::with_runtime_hook_count_for_test(
-            WorthUiQuerySupportStatus::Supported,
-            runtime_hook_count,
-            "dependency-impact-narrowing",
-        ),
     );
     let bundle = WorthUiCandidateArtifactBundle::from_optional_parts_for_test(
         artifact,

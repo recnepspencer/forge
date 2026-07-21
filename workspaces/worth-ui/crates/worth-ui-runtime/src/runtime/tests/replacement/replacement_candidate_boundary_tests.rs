@@ -6,8 +6,8 @@ use crate::runtime::replacement::candidate::{
 };
 use crate::runtime::{
     WorthUiCandidateArtifactBundle, WorthUiCandidateDependencyMetadata,
-    WorthUiCandidateLoweringBasis, WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus,
-    WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
+    WorthUiCandidateLoweringBasis, WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial,
+    WorthUiReplacementCause,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
@@ -201,13 +201,7 @@ fn default_snapshot_digest() -> crate::capability::CapabilitySnapshotDigest {
 }
 
 fn test_lowering_basis(snapshot_digest: u64) -> WorthUiCandidateLoweringBasis {
-    WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
-        snapshot_digest,
-        WorthUiQuerySupportReceipt::for_test(
-            WorthUiQuerySupportStatus::Supported,
-            "replacement-candidate",
-        ),
-    )
+    WorthUiCandidateLoweringBasis::from_raw_parts_for_test(snapshot_digest)
 }
 
 fn import_artifact<const N: usize>(targets: [&str; N]) -> WorthUiArtifact {

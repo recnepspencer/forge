@@ -38,7 +38,7 @@ fn equivalent_replacement_inputs_produce_equivalent_pending_activation() {
             .staging_report()
             .counters()
             .staged_query_binding_count(),
-        1
+        0
     );
     assert!(
         first_pending
@@ -171,21 +171,4 @@ fn staging_rejects_node_plan_from_different_active_runtime() {
         WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch
     );
     assert_eq!(denial.counters().rejected_mismatched_input_count(), 1);
-}
-
-#[test]
-fn changed_admitted_query_support_contract_cannot_enter_staging() {
-    let mut inputs = activation_staging_inputs();
-    inputs.admitted = inputs
-        .admitted
-        .with_admitted_query_contract_for_test("stale-activation-contract");
-
-    let denial = inputs.stage_denial();
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged
-    );
-    assert_eq!(denial.counters().receipt_verification_count(), 1);
-    assert_eq!(denial.counters().verified_input_count(), 0);
 }

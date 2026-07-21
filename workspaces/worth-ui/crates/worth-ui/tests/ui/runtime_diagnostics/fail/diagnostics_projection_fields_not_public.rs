@@ -1,6 +1,6 @@
-use worth_ui::facade::{
+use worth_ui::facade::diagnostics::{
     WorthUiDiagnosticsProjection, WorthUiDiagnosticsProjectionCounters,
-    WorthUiFrameCostSurface, WorthUiPlanInspectionSurface, WorthUiQueryStatusSurface,
+    WorthUiBindingObservationSurface, WorthUiFrameCostSurface, WorthUiPlanInspectionSurface,
     WorthUiReloadStatusSurface,
 };
 
@@ -24,7 +24,7 @@ fn main() {
             source_digest: 4,
             rows: Vec::new(),
         },
-        query_status: WorthUiQueryStatusSurface { rows: Vec::new() },
+        binding_observations: WorthUiBindingObservationSurface { rows: Vec::new() },
         counters: WorthUiDiagnosticsProjectionCounters::default(),
     };
 }

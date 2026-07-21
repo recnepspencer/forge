@@ -876,6 +876,85 @@ late optimization.
 - the zero-allocation executor claim is checked by an independent thread-scoped
   allocator observer as well as Worth UI counters
 
+### Milestone 3.9.1: Query 9.14 Consumer-Path Modernization
+
+Detailed spec: [milestone-3.9.1.md](./milestone-3.9.1.md)
+
+Status: Closed on 2026-07-21. Exact-source closing evidence records a 0.462 s
+targeted warm median, 8.070 s warm fast-lane median, and 80.738 s isolated cold
+compile-contract median. The bounded managed-live seam retains its explicit
+Query 9.14 Phase 17/19/23/24 exit trigger.
+
+This corrective modernization slice follows the closed 3.9 execution-plan
+lifecycle and precedes mounted receipts, hot rebind, broader projection
+consumption, and product Query surfaces. Query Milestone 9.14 Phases 1 through
+14 now provide installed operation semantic closure, one operating-world root,
+Query-minted consumer support, typed progression, settled projections, and
+exact identity that were not available when the older Worth UI binding path was
+formed.
+
+**Must ship**
+
+- a search-seeded, manually adjudicated subsystem inventory whose rows classify
+  each Query-facing seam as replace, retain, transitional, diagnostic-only, or
+  unrelated
+- a manually adjudicated boundary-edge matrix naming producer, consumer,
+  cardinality, lifetime, failure owner, cost, dependency direction, and the
+  forbidden shortcut for every authority crossing
+- typed installed Worth UI Query operations whose stable meaning is declared
+  once and whose volatile executors register separately
+- one binding-owned gateway that borrows Query's installed operating world per
+  replacement-admission or fact-refresh attempt; no operating-world value is
+  stored in active or frame state
+- exactly one Query consumer contract minted and consumed per bound execution;
+  the operating world and contract remain control-plane phase values while the
+  settled projection is retained once in generation-owned storage
+- compact generation-scoped UI fact references fan retained settlement proof
+  into planning and frame ingress without copying heavyweight authority into
+  each plan row
+- application replacement publishes binding topology through the existing 3.9
+  application transaction, while in-generation Query refresh replaces one
+  complete settlement/fact slot through the existing framework-turn source
+  transaction
+- removal of UI-local Query support, basis, settlement, and operational digest
+  authority while retaining legitimate UI-owned binding, invalidation,
+  allocation, and presentation derivations
+- exact installed-domain authority plus Query-minted binding identity and
+  currentness plus UI-meaning replacement equivalence, published only through
+  the complete 3.9 application transaction
+- an explicitly bounded managed-live compatibility seam until Query 9.14
+  Phases 17, 19, 23, and 24 provide the required public ordinary lifecycle
+- real public application and Consumer Kit certification consolidated into the
+  existing compiled scenario owners
+
+**Must preserve**
+
+- all closed Milestone 3.9 application, execution-plan, allocation-locality,
+  filesystem-ingress, atomic-publication, host, cleanup, and frame-cost truths
+- Query-free application construction and execution without dummy Query
+  ceremony
+- Query-owned stop, warning, result-state, counter, and authority topology
+  through every UI projection
+- UI-owned authored binding, result-shape, denial-presentation, dependency-
+  impact, allocation, and inspection meaning
+- the existing compiler-session and integration-target budgets
+
+**Acceptance evidence**
+
+- the manually resolved inventory has no ambiguous row and every transitional
+  row has a named exit trigger; no test claims migration success from a clean
+  grep or removed token
+- one real `.wui` application journey installs, binds, executes, publishes,
+  consumes, settles, lowers, activates, frames, inspects, replaces, and cleans
+  up through public facades
+- equal local representations cannot hide different Query authority, and exact
+  Query authority cannot hide different UI meaning
+- wrong-world, stale, mixed-receipt, unsupported, partial, interrupted, and
+  live-compatibility cases deny at their owning boundary while prior active
+  truth remains complete
+- boundary, agent-context, line-cap, workspace quality, and existing compile-
+  contract gates pass without a new nested build or test-target explosion
+
 ### Milestone 3.10: Mounted Receipts and Host Contract
 
 This slice closes the host boundary: host code may render and observe, but may

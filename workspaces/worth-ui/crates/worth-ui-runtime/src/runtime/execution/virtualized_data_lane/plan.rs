@@ -54,7 +54,7 @@ impl WorthUiVirtualizedDataPlan {
         Some(WorthUiVirtualizedDataNode::new(
             runtime_handle,
             executable.query_binding_identity_reference()?,
-            executable.query_installed_reference()?,
+            executable.query_settled_fact_link()?,
         ))
     }
 

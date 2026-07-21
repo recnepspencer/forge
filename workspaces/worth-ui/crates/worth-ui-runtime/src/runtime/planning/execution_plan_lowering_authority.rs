@@ -269,10 +269,10 @@ fn validate_query_constituents(
         match (
             is_query_row,
             node_input.query_binding_identity(),
-            node_input.query_installed_reference(),
-            node_input.query_binding_posture(),
+            node_input.query_settled_fact_link(),
         ) {
-            (true, Some(identity), Some(reference), Some(_)) => {
+            (true, Some(identity), Some(link)) => {
+                let reference = link.installed_reference();
                 if reference.definition().identity() != identity.query_view_identity()
                     || reference.definition().shape() != identity.result_shape()
                 {
@@ -286,22 +286,18 @@ fn validate_query_constituents(
                     );
                 }
             }
-            (true, Some(_), Some(_), None) | (true, None, None, None) => {
+            (true, None, None) => {
                 return Err(WorthUiExecutionPlanLoweringAuthorityDenial::MissingQueryPosture);
             }
-            (true, Some(_), None, Some(_)) | (true, Some(_), None, None) => {
+            (true, Some(_), None) => {
                 return Err(
                     WorthUiExecutionPlanLoweringAuthorityDenial::QueryDefinitionNotInstalled,
                 );
             }
-            (false, Some(_), _, _)
-            | (false, _, Some(_), _)
-            | (false, _, _, Some(_))
-            | (true, None, _, Some(_))
-            | (true, None, Some(_), _) => {
+            (false, Some(_), _) | (false, _, Some(_)) | (true, None, Some(_)) => {
                 return Err(WorthUiExecutionPlanLoweringAuthorityDenial::UnexpectedQueryPosture);
             }
-            (false, None, None, None) => {}
+            (false, None, None) => {}
         }
     }
     Ok(())

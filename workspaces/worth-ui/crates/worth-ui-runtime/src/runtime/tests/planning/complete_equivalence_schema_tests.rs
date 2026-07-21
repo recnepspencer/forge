@@ -6,7 +6,7 @@ use crate::runtime::planning::plan_topology::WorthUiPlanRegionStore;
 use crate::runtime::{
     WorthUiExecutablePlanDecisionKind, WorthUiExecutionLaneSupport, WorthUiExecutionPlanInput,
     WorthUiLaneAdmission, WorthUiNodeLifecycleTransition, WorthUiPlanNodeInput,
-    WorthUiPlanNodeInputFamily, WorthUiPlanNodeTopologyInput, WorthUiQueryRebindRequiredSurface,
+    WorthUiPlanNodeInputFamily, WorthUiPlanNodeTopologyInput,
 };
 
 use super::plan_topology_test_support::{allocate_handles, assemble, topology_fixture};
@@ -74,8 +74,7 @@ fn executable_schema_field_matrix_classifies_every_semantic_constituent() {
         .expect("fixture carries installed Query executable meaning")
         .clone();
     assert!(query.query_binding_identity().is_some());
-    assert!(query.query_installed_reference().is_some());
-    assert!(query.query_binding_posture().is_some());
+    assert!(query.query_settled_fact_link().is_some());
 
     let spatial = spatial_row(64);
     let realtime = realtime_row(8, 4, 16);
@@ -163,23 +162,9 @@ fn executable_schema_field_matrix_classifies_every_semantic_constituent() {
             false,
         ),
         schema_case(
-            "Query installed authority",
+            "Query settled fact link",
             query.clone(),
             query.clone().without_query_installed_reference_for_test(),
-            false,
-        ),
-        schema_case(
-            "Query executable posture",
-            query.clone(),
-            query.clone().without_query_binding_posture_for_test(),
-            false,
-        ),
-        schema_case(
-            "Query required live surfaces",
-            query.clone(),
-            query.with_query_required_surface_for_test(
-                WorthUiQueryRebindRequiredSurface::LiveViewsAndLivePromotion,
-            ),
             false,
         ),
     ];
@@ -205,7 +190,7 @@ fn lane_admission_equivalence_includes_support_but_excludes_provenance() {
     );
     let same_contract_new_basis = WorthUiLaneAdmission::new(
         baseline.rows().to_vec(),
-        baseline.query_support_links().to_vec(),
+        baseline.query_fact_links().to_vec(),
         baseline.plan_input_basis_digest().wrapping_add(1),
         baseline.counters(),
     );
@@ -213,7 +198,7 @@ fn lane_admission_equivalence_includes_support_but_excludes_provenance() {
     fewer_rows.pop().expect("fixture admits supported lanes");
     let changed_lane_support = WorthUiLaneAdmission::new(
         fewer_rows,
-        baseline.query_support_links().to_vec(),
+        baseline.query_fact_links().to_vec(),
         baseline.plan_input_basis_digest(),
         baseline.counters(),
     );
@@ -231,7 +216,7 @@ fn lane_admission_equivalence_includes_support_but_excludes_provenance() {
         );
     }
 
-    if !baseline.query_support_links().is_empty() {
+    if !baseline.query_fact_links().is_empty() {
         let changed_query_links = WorthUiLaneAdmission::new(
             baseline.rows().to_vec(),
             Vec::new(),
@@ -240,43 +225,6 @@ fn lane_admission_equivalence_includes_support_but_excludes_provenance() {
         );
         assert!(!baseline.executable_contract_matches(&changed_query_links));
     }
-}
-
-#[test]
-fn equal_artifact_digest_cannot_hide_changed_query_executable_meaning() {
-    let (runtime, plan_input, planning, _) = topology_fixture();
-    let baseline_handles = allocate_handles(&planning, &plan_input);
-    let baseline = assemble(&planning, &plan_input, &baseline_handles);
-    let mut changed_rows = plan_input.node_inputs().to_vec();
-    let query = changed_rows
-        .iter()
-        .position(|row| row.family() == WorthUiPlanNodeInputFamily::QueryViewBinding)
-        .expect("fixture carries a Query row");
-    changed_rows[query] = changed_rows[query]
-        .clone()
-        .with_query_required_surface_for_test(
-            WorthUiQueryRebindRequiredSurface::LiveViewsAndLivePromotion,
-        );
-    let changed_input = WorthUiExecutionPlanInput::new(
-        plan_input.basis().clone(),
-        plan_input.context().clone(),
-        changed_rows,
-        plan_input.counters(),
-    );
-    let changed_handles = allocate_handles(&planning, &changed_input);
-    let changed = assemble(&planning, &changed_input, &changed_handles);
-
-    assert_eq!(
-        baseline.regional_evidence().candidate_artifact_digest(),
-        changed.regional_evidence().candidate_artifact_digest(),
-        "hostile plans intentionally share the exact artifact digest"
-    );
-    assert_eq!(
-        runtime
-            .compare_execution_plans(&baseline, &changed)
-            .decision_kind(),
-        WorthUiExecutablePlanDecisionKind::RebuildRequired
-    );
 }
 
 struct ExecutableSchemaCase {

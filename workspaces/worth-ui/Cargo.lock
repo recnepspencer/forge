@@ -1534,7 +1534,15 @@ dependencies = [
  "worth-query-installation",
  "worth-relational",
  "worth-runtime-bridge",
+ "worth-schema-graph",
  "worth-signal",
+]
+
+[[package]]
+name = "worth-query-decl"
+version = "0.1.0"
+dependencies = [
+ "worth-query-declaration",
 ]
 
 [[package]]
@@ -1581,6 +1589,10 @@ dependencies = [
  "worth-query-installation",
  "worth-signal",
 ]
+
+[[package]]
+name = "worth-schema-graph"
+version = "0.1.0"
 
 [[package]]
 name = "worth-signal"
@@ -1670,7 +1682,9 @@ name = "worth-ui-query-binding"
 version = "0.1.0"
 dependencies = [
  "worth-foundational",
+ "worth-proof",
  "worth-query",
+ "worth-query-decl",
  "worth-relational",
 ]
 

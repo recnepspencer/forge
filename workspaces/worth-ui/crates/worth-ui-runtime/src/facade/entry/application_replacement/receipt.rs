@@ -49,11 +49,15 @@ impl WorthUiApplicationCutoverReceipt {
         &self.publication
     }
 
-    pub fn query_retirement(&self) -> &worth_ui_query_binding::WorthUiQueryLiveRetirement {
+    pub fn managed_live_compatibility_retirement(
+        &self,
+    ) -> &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement {
         &self.query_retirement
     }
 
-    pub fn into_query_retirement(self) -> worth_ui_query_binding::WorthUiQueryLiveRetirement {
+    pub fn into_managed_live_compatibility_retirement(
+        self,
+    ) -> worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement {
         self.query_retirement
     }
 

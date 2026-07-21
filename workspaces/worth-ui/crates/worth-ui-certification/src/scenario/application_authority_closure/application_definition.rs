@@ -34,6 +34,7 @@ pub(crate) const COMMAND: &str = "workspace.command.authority_save";
 pub(crate) const SURFACE: &str = "workspace.surface.authority_main";
 pub(crate) const STATE_SLOT: &str = "workspace.state.authority_scroll";
 pub(crate) const TOKEN: &str = "theme.text.authority_default";
+pub(crate) const QUERY_BINDING: &str = "inspector.measurements";
 pub(crate) const CROSS_LANE_CANVAS: &str = "workspace.component.cross_lane_canvas";
 pub(crate) const CROSS_LANE_REALTIME: &str = "workspace.component.cross_lane_realtime";
 

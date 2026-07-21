@@ -1,8 +1,8 @@
 use crate::runtime::execution::lane_meaning_parity::hash_fold::WorthUiLaneParityHashFold;
 use crate::runtime::{
     WorthUiCrossLaneSemanticReference, WorthUiExecutionPlan, WorthUiPlanNodeInputFamily,
-    WorthUiQueryBindingComparisonEntry, WorthUiQueryBindingPosture, WorthUiQueryLiveRebindEntry,
-    WorthUiQueryLiveRebindOutcome,
+    WorthUiQueryBindingComparisonEntry, WorthUiQueryBindingUiRequirements,
+    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome,
 };
 
 pub(super) enum WorthUiQueryReferenceSide {
@@ -33,11 +33,11 @@ pub(super) fn digest_query_posture_entry(
     let mut digest = WorthUiLaneParityHashFold::new(0x76de_81c2_9c7a_3451);
     digest.fold(entry.identity().canonical_identity());
     let posture = match side {
-        WorthUiQueryReferenceSide::Active => entry.active_posture(),
-        WorthUiQueryReferenceSide::Candidate => entry.candidate_posture(),
+        WorthUiQueryReferenceSide::Active => entry.active_ui_requirements(),
+        WorthUiQueryReferenceSide::Candidate => entry.candidate_ui_requirements(),
     };
     if let Some(posture) = posture {
-        fold_query_posture(&mut digest, posture);
+        fold_query_ui_requirements(&mut digest, posture);
     }
     digest.finish()
 }
@@ -47,13 +47,13 @@ pub(super) fn digest_query_rebind_entry(entry: &WorthUiQueryLiveRebindEntry) -> 
     digest.fold(entry.identity().canonical_identity());
     match entry.outcome() {
         WorthUiQueryLiveRebindOutcome::Preserve(preservation) => {
-            fold_query_posture(&mut digest, preservation.preserved_posture());
+            fold_query_ui_requirements(&mut digest, preservation.preserved_ui_requirements());
         }
         WorthUiQueryLiveRebindOutcome::Rebind(rebind) => {
-            fold_query_posture(&mut digest, rebind.candidate_posture());
+            fold_query_ui_requirements(&mut digest, rebind.candidate_ui_requirements());
         }
         WorthUiQueryLiveRebindOutcome::Retire(retirement) => {
-            fold_query_posture(&mut digest, retirement.active_posture());
+            fold_query_ui_requirements(&mut digest, retirement.active_ui_requirements());
         }
         WorthUiQueryLiveRebindOutcome::Deny(_) => digest.fold(0),
     }
@@ -72,9 +72,9 @@ pub(super) fn digest_references(references: &[WorthUiCrossLaneSemanticReference]
     digest.finish()
 }
 
-fn fold_query_posture(
+fn fold_query_ui_requirements(
     digest: &mut WorthUiLaneParityHashFold,
-    posture: &WorthUiQueryBindingPosture,
+    posture: &WorthUiQueryBindingUiRequirements,
 ) {
     digest.fold(posture.canonical_identity());
 }

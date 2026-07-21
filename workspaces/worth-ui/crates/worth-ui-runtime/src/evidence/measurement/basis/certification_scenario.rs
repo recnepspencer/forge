@@ -3,7 +3,9 @@ use worth_ui_host_contract::{
     WorthUiMeasurementHostAdapter,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
-use worth_ui_query_binding::{WorthUiQueryAuthorityHandle, WorthUiQueryPrerequisiteEvidence};
+use worth_ui_query_binding::compatibility::managed_live::{
+    WorthUiQueryAuthorityHandle, WorthUiQueryPrerequisiteEvidence,
+};
 
 use crate::declaration::{UiDeclarationIdentity, UiDeclaredMeasurementPolicyPosture};
 use crate::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};

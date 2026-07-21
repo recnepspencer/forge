@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use crate::runtime::{
     WorthUiComponentLoweringHook, WorthUiNodeLifecycleTransition, WorthUiPlanNodeInputFamily,
-    WorthUiPlanNodeTopologyInput, WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture,
-    WorthUiQueryLiveRebindEntry, WorthUiQueryRebindRequiredSurface,
+    WorthUiPlanNodeTopologyInput, WorthUiQueryBindingIdentity, WorthUiQueryLiveRebindEntry,
+    WorthUiQuerySettledFactLink,
 };
 
 // Exact executable equivalence deliberately excludes lifecycle action,
@@ -19,10 +19,7 @@ pub struct WorthUiPlanNodeInput {
     pub(super) family: WorthUiPlanNodeInputFamily,
     pub(super) transition: Option<WorthUiNodeLifecycleTransition>,
     pub(super) query_binding_identity: Option<Rc<WorthUiQueryBindingIdentity>>,
-    pub(super) query_installed_reference:
-        Option<Rc<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>>,
-    pub(super) query_binding_posture: Option<WorthUiQueryBindingPosture>,
-    pub(super) query_required_surfaces: Vec<WorthUiQueryRebindRequiredSurface>,
+    pub(super) query_settled_fact_link: Option<Rc<WorthUiQuerySettledFactLink>>,
     pub(super) query_preservation_receipt:
         Option<crate::runtime::WorthUiQueryBindingPreservationReceipt>,
     pub(super) topology_input: WorthUiPlanNodeTopologyInput,
@@ -40,9 +37,7 @@ impl PartialEq for WorthUiPlanNodeInput {
             && self.family == other.family
             && self.transition == other.transition
             && self.query_binding_identity == other.query_binding_identity
-            && self.query_installed_reference == other.query_installed_reference
-            && self.query_binding_posture == other.query_binding_posture
-            && self.query_required_surfaces == other.query_required_surfaces
+            && self.query_settled_fact_link == other.query_settled_fact_link
             && self.query_preservation_receipt == other.query_preservation_receipt
             && self.topology_input == other.topology_input
             && self.owner_identity_basis == other.owner_identity_basis
@@ -60,9 +55,7 @@ impl WorthUiPlanNodeInput {
         self.identity_basis == other.identity_basis
             && self.family == other.family
             && self.query_binding_identity == other.query_binding_identity
-            && self.query_installed_reference == other.query_installed_reference
-            && self.query_binding_posture == other.query_binding_posture
-            && self.query_required_surfaces == other.query_required_surfaces
+            && self.query_settled_fact_link == other.query_settled_fact_link
             && self.topology_input == other.topology_input
             && self.owner_identity_basis == other.owner_identity_basis
             && self.owned_region_identity_bases == other.owned_region_identity_bases
@@ -74,7 +67,6 @@ impl WorthUiPlanNodeInput {
     pub(crate) fn from_launch_query_binding(
         identity: &WorthUiQueryBindingIdentity,
         installed_reference: Option<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
-        posture: &WorthUiQueryBindingPosture,
         topology_input: WorthUiPlanNodeTopologyInput,
     ) -> Self {
         Self {
@@ -83,9 +75,8 @@ impl WorthUiPlanNodeInput {
             family: WorthUiPlanNodeInputFamily::QueryViewBinding,
             transition: Some(WorthUiNodeLifecycleTransition::Create),
             query_binding_identity: Some(Rc::new(identity.clone())),
-            query_installed_reference: installed_reference.map(Rc::new),
-            query_binding_posture: Some(posture.clone()),
-            query_required_surfaces: Vec::new(),
+            query_settled_fact_link: installed_reference
+                .map(|reference| Rc::new(WorthUiQuerySettledFactLink::seal(reference))),
             query_preservation_receipt: None,
             topology_input,
             owner_identity_basis: None,
@@ -101,8 +92,6 @@ impl WorthUiPlanNodeInput {
         installed_reference: Option<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
         topology_input: WorthUiPlanNodeTopologyInput,
     ) -> Self {
-        let query_binding_posture = super::query_rebind_node_input::posture(entry);
-        let query_required_surfaces = super::query_rebind_node_input::required_surfaces(entry);
         let query_preservation_receipt =
             super::query_rebind_node_input::preservation_receipt(entry);
         Self {
@@ -111,9 +100,8 @@ impl WorthUiPlanNodeInput {
             family: WorthUiPlanNodeInputFamily::QueryViewBinding,
             transition: Some(super::query_rebind_node_input::transition(entry)),
             query_binding_identity: Some(Rc::new(entry.identity().clone())),
-            query_installed_reference: installed_reference.map(Rc::new),
-            query_binding_posture,
-            query_required_surfaces,
+            query_settled_fact_link: installed_reference
+                .map(|reference| Rc::new(WorthUiQuerySettledFactLink::seal(reference))),
             query_preservation_receipt,
             topology_input,
             owner_identity_basis: None,
@@ -134,9 +122,7 @@ impl WorthUiPlanNodeInput {
             family,
             transition: None,
             query_binding_identity: None,
-            query_installed_reference: None,
-            query_binding_posture: None,
-            query_required_surfaces: Vec::new(),
+            query_settled_fact_link: None,
             query_preservation_receipt: None,
             topology_input: WorthUiPlanNodeTopologyInput::empty(),
             owner_identity_basis: None,
@@ -162,9 +148,7 @@ impl WorthUiPlanNodeInput {
             family,
             transition: Some(transition),
             query_binding_identity: None,
-            query_installed_reference: None,
-            query_binding_posture: None,
-            query_required_surfaces: Vec::new(),
+            query_settled_fact_link: None,
             query_preservation_receipt: None,
             topology_input,
             owner_identity_basis,
@@ -188,9 +172,7 @@ impl WorthUiPlanNodeInput {
             family: WorthUiPlanNodeInputFamily::CanvasSpatial,
             transition: Some(transition),
             query_binding_identity: None,
-            query_installed_reference: None,
-            query_binding_posture: None,
-            query_required_surfaces: Vec::new(),
+            query_settled_fact_link: None,
             query_preservation_receipt: None,
             topology_input,
             owner_identity_basis: None,
@@ -214,9 +196,7 @@ impl WorthUiPlanNodeInput {
             family: WorthUiPlanNodeInputFamily::RealtimeOverlay,
             transition: Some(transition),
             query_binding_identity: None,
-            query_installed_reference: None,
-            query_binding_posture: None,
-            query_required_surfaces: Vec::new(),
+            query_settled_fact_link: None,
             query_preservation_receipt: None,
             topology_input,
             owner_identity_basis: None,
@@ -258,24 +238,12 @@ impl WorthUiPlanNodeInput {
         self.query_binding_identity.as_ref().map(Rc::clone)
     }
 
-    pub(crate) fn query_installed_reference(
-        &self,
-    ) -> Option<&worth_ui_query_binding::WorthUiInstalledQueryBindingReference> {
-        self.query_installed_reference.as_deref()
+    pub fn query_settled_fact_link(&self) -> Option<&WorthUiQuerySettledFactLink> {
+        self.query_settled_fact_link.as_deref()
     }
 
-    pub(crate) fn query_installed_reference_shared(
-        &self,
-    ) -> Option<Rc<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>> {
-        self.query_installed_reference.as_ref().map(Rc::clone)
-    }
-
-    pub fn query_binding_posture(&self) -> Option<&WorthUiQueryBindingPosture> {
-        self.query_binding_posture.as_ref()
-    }
-
-    pub fn query_required_surfaces(&self) -> &[WorthUiQueryRebindRequiredSurface] {
-        &self.query_required_surfaces
+    pub(crate) fn query_settled_fact_link_shared(&self) -> Option<Rc<WorthUiQuerySettledFactLink>> {
+        self.query_settled_fact_link.as_ref().map(Rc::clone)
     }
 
     #[cfg(any(test, feature = "certification-support"))]

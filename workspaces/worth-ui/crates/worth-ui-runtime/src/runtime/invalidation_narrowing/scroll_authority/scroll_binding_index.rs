@@ -6,7 +6,7 @@ use super::{
 };
 use std::collections::BTreeMap;
 type HostWitness = crate::evidence::UiHostMeasurementAuthorityWitness;
-type QueryKey = worth_ui_query_binding::WorthUiQueryAuthorityIndexKey;
+type QueryKey = crate::evidence::measurement::basis::UiQueryAllocationSourceKey;
 use super::scroll_binding_key_index::BindingKeyIndex;
 use super::scroll_owner_acquisition::acquire_exact;
 type QueryIndex = crate::runtime::persistent_index::UiPersistentOrdMap<QueryKey, BindingKeyIndex>;
@@ -107,7 +107,7 @@ impl UiScrollInvalidationBindingIndex {
                             let crate::runtime::UiAdmittedScrollExtentSource::QueryContent(query_source) = binding.contract().source() else {
                                 return Err(UiScrollInvalidationBindingDenial::ContradictorySource);
                             };
-                            let query_key = query_source.authority_index_key().clone();
+                            let query_key = query_source.source_key().clone();
                             query.entry(query_key).or_default().push(binding);
                             bump(&mut counters.index_writes)?;
                         }
@@ -175,18 +175,24 @@ impl UiScrollInvalidationBindingIndex {
     }
     pub(super) fn query_extent(
         &self,
-        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     ) -> Result<
         (Option<&BindingKeyIndex>, u16),
         (super::authority::UiInvalidationAuthorityLookupDenial, u16),
     > {
-        let key = authority.authority_index_key().map_err(|_| {
+        let key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::from_managed_live_compatibility(authority).map_err(|_| {
             (
                 super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable,
                 1,
             )
         })?;
         Ok((self.query.get(&key), 1))
+    }
+    pub(super) fn settled_query_extent(
+        &self,
+        key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
+    ) -> (Option<&BindingKeyIndex>, u16) {
+        (self.query.get(key), 1)
     }
     pub(crate) fn projection_for_host(
         &self,
@@ -210,7 +216,34 @@ impl UiScrollInvalidationBindingIndex {
     }
     pub(crate) fn projection_for_query(
         &self,
-        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
+        allocation_receipt: &crate::runtime::UiAllocationReceipt,
+    ) -> Result<
+        crate::runtime::UiActivatedScrollOwner,
+        crate::runtime::UiScrollOwnerAcquisitionDenial,
+    > {
+        let key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::from_managed_live_compatibility(authority)
+            .map_err(|_| crate::runtime::UiScrollOwnerAcquisitionDenial::ContradictorySource)?;
+        self.projection_for_query_key(&key, allocation_receipt)
+    }
+
+    pub(crate) fn projection_for_settled_query(
+        &self,
+        receipt: &crate::evidence::UiSettledQueryFactReceipt,
+        allocation_receipt: &crate::runtime::UiAllocationReceipt,
+    ) -> Result<
+        crate::runtime::UiActivatedScrollOwner,
+        crate::runtime::UiScrollOwnerAcquisitionDenial,
+    > {
+        let key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::SettledSnapshot(
+            receipt.key().clone(),
+        );
+        self.projection_for_query_key(&key, allocation_receipt)
+    }
+
+    fn projection_for_query_key(
+        &self,
+        key: &QueryKey,
         allocation_receipt: &crate::runtime::UiAllocationReceipt,
     ) -> Result<
         crate::runtime::UiActivatedScrollOwner,
@@ -218,9 +251,7 @@ impl UiScrollInvalidationBindingIndex {
     > {
         let mut probes = 0;
         record_acquisition_lookup(&mut probes)?;
-        let (rows, authority_probes) = self
-            .query_extent(authority)
-            .map_err(|_| crate::runtime::UiScrollOwnerAcquisitionDenial::ContradictorySource)?;
+        let (rows, authority_probes) = self.settled_query_extent(key);
         for _ in 0..authority_probes {
             record_acquisition_lookup(&mut probes)?;
         }

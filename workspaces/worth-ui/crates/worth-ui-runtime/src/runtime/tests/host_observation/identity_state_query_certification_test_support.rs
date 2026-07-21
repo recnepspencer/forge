@@ -30,18 +30,6 @@ pub(super) fn ui_local_drift_rebind_plan() -> (
     (runtime, rebind_plan)
 }
 
-pub(super) fn preserved_query_rebind_plan() -> (
-    crate::runtime::WorthUiRuntimeFrameworkLoop,
-    WorthUiQueryLiveRebindPlan,
-) {
-    let app = standard_query_app();
-    let active = query_artifact(&app, "workspace.view_binding.selection");
-    let candidate = query_artifact(&app, "workspace.view_binding.selection");
-    let (runtime, admitted, narrowing, plan) = phase11_pipeline(&app, active, candidate);
-    let rebind_plan = query_rebind_plan(&runtime, &plan, &narrowing, &admitted);
-    (runtime, rebind_plan)
-}
-
 pub(super) fn single_active_state_lifecycle_inputs() -> (
     crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
@@ -75,24 +63,6 @@ pub(super) fn single_active_state_lifecycle_inputs() -> (
         .build_for_replacement(&plan)
         .expect("inventory builds");
     (runtime, plan, inventory)
-}
-
-pub(super) fn query_runtime_state_and_rebind_inputs() -> (
-    crate::runtime::WorthUiRuntimeFrameworkLoop,
-    WorthUiNodeReplacementPlan,
-    WorthUiDurableStateInventory,
-    WorthUiQueryLiveRebindPlan,
-) {
-    let active_app = standard_query_app();
-    let candidate_app = denial_presentation_drift_query_app();
-    let active = query_artifact(&active_app, "workspace.view_binding.selection");
-    let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
-    let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
-    let inventory = platform_inventory(&runtime)
-        .build_for_replacement(&plan)
-        .expect("query runtime inventory builds");
-    let rebind_plan = query_rebind_plan(&runtime, &plan, &narrowing, &admitted);
-    (runtime, plan, inventory, rebind_plan)
 }
 
 pub(super) fn ambiguous_plan_for_same_active(

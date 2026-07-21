@@ -15,7 +15,6 @@ pub struct WorthUiIdentityStateQueryCertificationCounters {
     query_rebound_binding_count: usize,
     query_retired_binding_count: usize,
     query_denied_binding_count: usize,
-    ui_local_probe_count: usize,
     residue_scan_count: usize,
 }
 
@@ -55,10 +54,6 @@ impl WorthUiIdentityStateQueryCertificationCounters {
             WorthUiQueryLiveRebindOutcome::Retire(_) => self.query_retired_binding_count += 1,
             WorthUiQueryLiveRebindOutcome::Deny(_) => self.query_denied_binding_count += 1,
         }
-    }
-
-    pub(crate) fn record_ui_local_probe(&mut self) {
-        self.ui_local_probe_count += 1;
     }
 
     pub(crate) fn record_residue_scan(&mut self) {
@@ -103,10 +98,6 @@ impl WorthUiIdentityStateQueryCertificationCounters {
 
     pub fn query_denied_binding_count(self) -> usize {
         self.query_denied_binding_count
-    }
-
-    pub fn ui_local_probe_count(self) -> usize {
-        self.ui_local_probe_count
     }
 
     pub fn residue_scan_count(self) -> usize {

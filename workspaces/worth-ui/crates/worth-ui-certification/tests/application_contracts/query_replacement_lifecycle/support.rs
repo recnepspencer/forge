@@ -2,18 +2,18 @@ use worth_query::facade::{domain, runtime};
 use worth_ui::facade::app::{
     WorthUiActiveApplicationSession, WorthUiPreparedApplicationReplacement,
 };
-use worth_ui::facade::query_binding::{
-    WorthUiInstalledLiveQueryView, WorthUiQueryLiveCloseOutcome, WorthUiQueryLiveOpenOutcome,
-    WorthUiQueryLiveResource, WorthUiQueryLiveRetirement, WorthUiQueryLiveRetirementCloseOutcome,
-};
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
 use worth_ui::facade::{
     app::{WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange},
     runtime::WorthUiFrameBoundary,
 };
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
+use worth_ui_query_binding::compatibility::managed_live::{
+    WorthUiInstalledLiveQueryView, WorthUiQueryLiveCloseOutcome, WorthUiQueryLiveOpenOutcome,
+    WorthUiQueryLiveResource, WorthUiQueryLiveRetirement, WorthUiQueryLiveRetirementCloseOutcome,
+};
 
-pub(super) fn prepare_catalog(
+pub(crate) fn prepare_catalog(
     session: &WorthUiActiveApplicationSession,
     submission: WorthUiWatchedCandidateSubmission,
 ) -> (
@@ -27,7 +27,7 @@ pub(super) fn prepare_catalog(
     (prepared, catalog)
 }
 
-pub(super) fn lower_and_stage(
+pub(crate) fn lower_and_stage(
     session: &WorthUiActiveApplicationSession,
     prepared: (
         Box<WorthUiPreparedApplicationReplacement>,
@@ -46,7 +46,7 @@ pub(super) fn lower_and_stage(
     (pending, prepared.1)
 }
 
-pub(super) fn activate(
+pub(crate) fn activate(
     session: &mut WorthUiActiveApplicationSession,
     pending: worth_ui::facade::app::WorthUiPendingApplicationCutover,
     catalog: worth_ui::facade::graph::UiAdmittedAllocationCatalogDelta,
@@ -59,7 +59,7 @@ pub(super) fn activate(
         .expect("changed Query-backed meaning publishes a successor")
 }
 
-pub(super) fn activation_boundary(
+pub(crate) fn activation_boundary(
     session: &mut WorthUiActiveApplicationSession,
 ) -> WorthUiFrameBoundary {
     session
@@ -83,7 +83,9 @@ pub(super) fn admit_active_resource(
     let mut admitted = false;
     let completion = session.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
-            admitted = source.admit_live_and_submit(resource, projection).is_ok();
+            admitted = source
+                .admit_managed_live_compatibility_and_submit(resource, projection)
+                .is_ok();
         });
     });
     drop(completion.into_completion());
@@ -101,7 +103,7 @@ pub(super) fn admit_candidate_resource(
         .unwrap_or_else(|_| panic!("candidate live read stopped"));
     let projection = resource.project(&read, domain::project_facts().entity_identities());
     candidate
-        .admit_candidate_live_query_projection(resource, projection)
+        .admit_candidate_managed_live_compatibility_projection(resource, projection)
         .expect("candidate owns its Query resource before publication");
 }
 

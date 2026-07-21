@@ -34,7 +34,8 @@ pub use worth_ui_runtime::facade::execution::{
 };
 pub use worth_ui_runtime::facade::runtime_handoff::{
     UiAllocationFrameGatewayOutcome, UiAllocationReplanTransactionOutcome,
-    WorthUiFrameworkTurnCompletion, WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
-    WorthUiRuntime, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
-    WorthUiTransientInteractionState,
+    WorthUiFrameworkTurnCompletion, WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters,
+    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome, WorthUiQueryLaneFactLink,
+    WorthUiQueryProjectionTurnSource, WorthUiRuntime, WorthUiRuntimeLaunch,
+    WorthUiRuntimeLaunchDenial, WorthUiTransientInteractionState,
 };

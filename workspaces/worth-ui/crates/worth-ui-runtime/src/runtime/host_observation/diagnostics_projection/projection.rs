@@ -1,5 +1,5 @@
 use crate::runtime::{
-    WorthUiFrameCostSurface, WorthUiPlanInspectionSurface, WorthUiQueryStatusSurface,
+    WorthUiBindingObservationSurface, WorthUiFrameCostSurface, WorthUiPlanInspectionSurface,
     WorthUiReloadStatusSurface, WorthUiRuntimeDiagnostic,
 };
 
@@ -14,7 +14,7 @@ pub struct WorthUiDiagnosticsProjection {
     reload_status: WorthUiReloadStatusSurface,
     plan_inspection: WorthUiPlanInspectionSurface,
     frame_costs: WorthUiFrameCostSurface,
-    query_status: WorthUiQueryStatusSurface,
+    binding_observations: WorthUiBindingObservationSurface,
     counters: WorthUiDiagnosticsProjectionCounters,
 }
 
@@ -26,7 +26,7 @@ pub(crate) struct WorthUiDiagnosticsProjectionInput {
     pub reload_status: WorthUiReloadStatusSurface,
     pub plan_inspection: WorthUiPlanInspectionSurface,
     pub frame_costs: WorthUiFrameCostSurface,
-    pub query_status: WorthUiQueryStatusSurface,
+    pub binding_observations: WorthUiBindingObservationSurface,
     pub counters: WorthUiDiagnosticsProjectionCounters,
 }
 
@@ -40,7 +40,7 @@ impl WorthUiDiagnosticsProjection {
             reload_status,
             plan_inspection,
             frame_costs,
-            query_status,
+            binding_observations,
             counters,
         } = input;
         Self {
@@ -51,7 +51,7 @@ impl WorthUiDiagnosticsProjection {
             reload_status,
             plan_inspection,
             frame_costs,
-            query_status,
+            binding_observations,
             counters,
         }
     }
@@ -84,8 +84,8 @@ impl WorthUiDiagnosticsProjection {
         &self.frame_costs
     }
 
-    pub fn query_status(&self) -> &WorthUiQueryStatusSurface {
-        &self.query_status
+    pub fn binding_observations(&self) -> &WorthUiBindingObservationSurface {
+        &self.binding_observations
     }
 
     pub fn counters(&self) -> WorthUiDiagnosticsProjectionCounters {

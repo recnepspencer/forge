@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(test)]
 use crate::source::{
@@ -11,6 +11,7 @@ pub(crate) struct WorthUiArtifact {
     modules: BTreeMap<WorthUiSourceModuleId, WorthUiArtifactModule>,
     canonical_module_order: Vec<WorthUiSourceModuleId>,
     node_identity_index: BTreeMap<String, (WorthUiSourceModuleId, usize)>,
+    query_binding_ids: BTreeSet<String>,
 }
 
 impl WorthUiArtifact {
@@ -19,6 +20,7 @@ impl WorthUiArtifact {
         canonical_module_order: Vec<WorthUiSourceModuleId>,
     ) -> Self {
         let mut node_identity_index = BTreeMap::new();
+        let mut query_binding_ids = BTreeSet::new();
         for module_id in &canonical_module_order {
             let Some(module) = modules.get(module_id) else {
                 continue;
@@ -29,15 +31,19 @@ impl WorthUiArtifact {
                     (module_id.clone(), node_index),
                 );
                 if let crate::source::WorthUiArtifactNode::Binding(binding) = node {
-                    node_identity_index.insert(
-                        binding
-                            .view_binding_reference()
-                            .view_binding()
-                            .id()
-                            .as_str()
-                            .to_owned(),
-                        (module_id.clone(), node_index),
-                    );
+                    let binding_id = binding
+                        .view_binding_reference()
+                        .view_binding()
+                        .id()
+                        .as_str()
+                        .to_owned();
+                    node_identity_index.insert(binding_id.clone(), (module_id.clone(), node_index));
+                    query_binding_ids.insert(binding_id);
+                }
+                if let crate::source::WorthUiArtifactNode::Surface(surface) = node {
+                    if let Some(binding) = surface.semantics().view_binding() {
+                        query_binding_ids.insert(binding.view_binding().id().as_str().to_owned());
+                    }
                 }
             }
         }
@@ -45,6 +51,7 @@ impl WorthUiArtifact {
             modules,
             canonical_module_order,
             node_identity_index,
+            query_binding_ids,
         }
     }
 
@@ -83,6 +90,10 @@ impl WorthUiArtifact {
     ) -> Option<&crate::source::WorthUiArtifactNode> {
         let (module_id, node_index) = self.node_identity_index.get(identity_basis)?;
         self.module(module_id)?.nodes().get(*node_index)
+    }
+
+    pub(crate) fn query_binding_ids(&self) -> &BTreeSet<String> {
+        &self.query_binding_ids
     }
 
     pub(crate) fn authored_provenance_digests(&self) -> Vec<u64> {

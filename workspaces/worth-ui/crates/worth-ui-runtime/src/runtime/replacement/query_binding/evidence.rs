@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::runtime::replacement::query_binding::{
     evidence_accumulator::WorthUiQueryBindingEvidenceAccumulator, WorthUiQueryBindingIdentity,
-    WorthUiQueryBindingPosture,
+    WorthUiQueryBindingUiRequirements,
 };
-use crate::runtime::{WorthUiCandidateDependencyMetadata, WorthUiQuerySupportReceipt};
+use crate::runtime::WorthUiCandidateDependencyMetadata;
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDependencyDeriver, WorthUiArtifactDependencyGraph,
     WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis, WorthUiArtifactNode,
@@ -13,7 +13,12 @@ use crate::source::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiQueryBindingEvidence {
     identity: WorthUiQueryBindingIdentity,
-    posture: WorthUiQueryBindingPosture,
+    ui_requirements: WorthUiQueryBindingUiRequirements,
+    installed_reference: Option<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
+    settled: Option<worth_ui_query_binding::WorthUiExactSettledSnapshotEvidence>,
+    exact_live_resource: Option<
+        worth_ui_query_binding::compatibility::managed_live::WorthUiExactManagedLiveResourceEvidence,
+    >,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -24,43 +29,129 @@ pub(crate) struct WorthUiQueryBindingEvidenceIndex {
 impl WorthUiQueryBindingEvidence {
     pub(super) fn new(
         identity: WorthUiQueryBindingIdentity,
-        posture: WorthUiQueryBindingPosture,
+        ui_requirements: WorthUiQueryBindingUiRequirements,
     ) -> Self {
-        Self { identity, posture }
+        Self {
+            identity,
+            ui_requirements,
+            installed_reference: None,
+            settled: None,
+            exact_live_resource: None,
+        }
     }
 
     pub(crate) fn identity(&self) -> &WorthUiQueryBindingIdentity {
         &self.identity
     }
 
-    pub(crate) fn posture(&self) -> &WorthUiQueryBindingPosture {
-        &self.posture
+    pub(crate) fn ui_requirements(&self) -> &WorthUiQueryBindingUiRequirements {
+        &self.ui_requirements
+    }
+
+    pub(crate) fn installed_reference(
+        &self,
+    ) -> Option<&worth_ui_query_binding::WorthUiInstalledQueryBindingReference> {
+        self.installed_reference.as_ref()
+    }
+
+    pub(crate) fn settled(
+        &self,
+    ) -> Option<&worth_ui_query_binding::WorthUiExactSettledSnapshotEvidence> {
+        self.settled.as_ref()
+    }
+
+    pub(crate) fn exact_live_resource(
+        &self,
+    ) -> Option<
+        &worth_ui_query_binding::compatibility::managed_live::WorthUiExactManagedLiveResourceEvidence,
+    >{
+        self.exact_live_resource.as_ref()
+    }
+
+    fn attach_query_authority(
+        &mut self,
+        plan: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+        binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    ) {
+        let identity = worth_ui_query_binding::WorthUiQueryViewIdentity::new(
+            self.identity.query_view_identity().as_str(),
+        )
+        .expect("admitted Query view identity remains valid");
+        self.installed_reference = plan.resolve_definition(&identity, self.identity.result_shape());
+        self.settled = self.installed_reference.as_ref().and_then(|reference| {
+            binding
+                .exact_settled_snapshot_evidence_for(reference)
+                .ok()
+                .flatten()
+        });
+        self.exact_live_resource = self.installed_reference.as_ref().and_then(|reference| {
+            binding
+                .exact_live_resource_evidence_for(reference)
+                .ok()
+                .flatten()
+        });
     }
 }
 
 impl WorthUiQueryBindingEvidenceIndex {
+    pub(crate) fn from_active_artifact_for_bindings(
+        active: &crate::runtime::active::WorthUiActiveArtifact,
+        binding_ids: &BTreeSet<String>,
+        plan: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+        binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    ) -> Self {
+        Self::from_artifact_and_graph_for_bindings(
+            active.artifact(),
+            active.dependency_graph(),
+            binding_ids,
+            plan,
+            binding,
+        )
+    }
+
+    pub(crate) fn from_artifact_and_graph_for_bindings(
+        artifact: &WorthUiArtifact,
+        graph: &WorthUiArtifactDependencyGraph,
+        binding_ids: &BTreeSet<String>,
+        plan: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+        binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    ) -> Self {
+        let bindings = binding_ids
+            .iter()
+            .filter_map(|binding_id| {
+                let mut accumulator = WorthUiQueryBindingEvidenceAccumulator::default();
+                record_artifact_link_for_binding(artifact, binding_id, &mut accumulator);
+                for hook in graph.runtime_hooks_for_query_binding(binding_id) {
+                    accumulator.record_runtime_hook(hook);
+                }
+                accumulator.finish(binding_id).map(|mut evidence| {
+                    evidence.attach_query_authority(plan, binding);
+                    (binding_id.clone(), evidence)
+                })
+            })
+            .collect();
+        Self { bindings }
+    }
+
     pub(crate) fn from_active_artifact(artifact: &WorthUiArtifact) -> Self {
         let report = WorthUiArtifactDependencyDeriver::derive_with_report(artifact);
         let metadata = WorthUiCandidateDependencyMetadata::from_derived_report(
             WorthUiArtifactDigestor::digest(artifact, WorthUiArtifactEquivalenceBasis::semantic()),
             report,
         );
-        Self::from_artifact_graph_and_support_receipt(
+        Self::from_artifact_graph_without_query_authority(
             artifact,
             metadata.invalidation_basis().dependency_graph(),
-            WorthUiQuerySupportReceipt::from_dependency_metadata(&metadata),
         )
     }
 
-    pub(crate) fn from_artifact_graph_and_support_receipt(
+    fn from_artifact_graph_without_query_authority(
         artifact: &WorthUiArtifact,
         graph: &WorthUiArtifactDependencyGraph,
-        query_support_receipt: WorthUiQuerySupportReceipt,
     ) -> Self {
         let mut accumulators = BTreeMap::<String, WorthUiQueryBindingEvidenceAccumulator>::new();
         record_artifact_links(artifact, &mut accumulators);
         record_runtime_hooks(graph, &mut accumulators);
-        record_query_support_receipt(query_support_receipt, &mut accumulators);
         Self {
             bindings: accumulators
                 .into_iter()
@@ -87,19 +178,36 @@ impl WorthUiQueryBindingEvidenceIndex {
 
     pub(crate) fn entries(
         &self,
-    ) -> impl Iterator<Item = (&WorthUiQueryBindingIdentity, &WorthUiQueryBindingPosture)> {
+    ) -> impl Iterator<
+        Item = (
+            &WorthUiQueryBindingIdentity,
+            &WorthUiQueryBindingUiRequirements,
+        ),
+    > {
         self.bindings
             .values()
-            .map(|evidence| (evidence.identity(), evidence.posture()))
+            .map(|evidence| (evidence.identity(), evidence.ui_requirements()))
     }
 }
 
-fn record_query_support_receipt(
-    receipt: WorthUiQuerySupportReceipt,
-    accumulators: &mut BTreeMap<String, WorthUiQueryBindingEvidenceAccumulator>,
+fn record_artifact_link_for_binding(
+    artifact: &WorthUiArtifact,
+    binding_id: &str,
+    accumulator: &mut WorthUiQueryBindingEvidenceAccumulator,
 ) {
-    for accumulator in accumulators.values_mut() {
-        accumulator.record_query_support_receipt(receipt);
+    let Some(node) = artifact.node_for_identity_basis(binding_id) else {
+        return;
+    };
+    match node {
+        WorthUiArtifactNode::Binding(binding) => {
+            accumulator.record_bound_view_binding(binding.view_binding_reference());
+        }
+        WorthUiArtifactNode::Surface(surface) => {
+            if let Some(view_binding) = surface.semantics().view_binding() {
+                accumulator.record_bound_view_binding(view_binding);
+            }
+        }
+        _ => {}
     }
 }
 

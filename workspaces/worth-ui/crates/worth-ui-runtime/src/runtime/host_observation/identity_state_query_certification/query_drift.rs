@@ -7,7 +7,6 @@ use crate::runtime::{
 pub struct WorthUiQueryDriftCertification {
     plans: Vec<WorthUiQueryLiveRebindPlan>,
     typed_denials: Vec<WorthUiQueryBindingDriftDenial>,
-    ui_local_recovery_denial_count: usize,
 }
 
 impl WorthUiQueryDriftCertification {
@@ -20,17 +19,9 @@ impl WorthUiQueryDriftCertification {
                 _ => None,
             })
             .collect::<Vec<_>>();
-        let ui_local_recovery_denial_count = typed_denials
-            .iter()
-            .filter(|denial| {
-                denial.reason()
-                    == WorthUiQueryBindingDriftDenialKind::UiLocalDenialPresentationWouldReplaceQueryRecovery
-            })
-            .count();
         Self {
             plans,
             typed_denials,
-            ui_local_recovery_denial_count,
         }
     }
 
@@ -47,9 +38,5 @@ impl WorthUiQueryDriftCertification {
             .iter()
             .map(WorthUiQueryBindingDriftDenial::reason)
             .collect()
-    }
-
-    pub fn ui_local_recovery_denial_count(&self) -> usize {
-        self.ui_local_recovery_denial_count
     }
 }

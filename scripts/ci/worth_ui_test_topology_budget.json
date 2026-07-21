@@ -85,7 +85,8 @@
       "workspaces/worth-ui/crates/worth-ui-certification/tests/query_reporting_projection_boundary.rs"
     ],
     "worth-ui-certification:query_binding_public_journey": [
-      "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/query_consumer_kit_lifecycle.rs"
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/query_consumer_kit_lifecycle.rs",
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/query_consumer_kit_vertical_journey.rs"
     ]
   },
   "packages": {
@@ -125,7 +126,7 @@
     "worth-ui": {
       "inventory": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_cases.csv",
       "execution": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_execution.csv",
-      "inventory_count": 248,
+      "inventory_count": 251,
       "execution_count": 14,
       "aggregation_groups": [
         {
@@ -220,7 +221,8 @@
   "test_seam_inventory": "_docs/worth-ui/milestone-3.9-test-seam-inventory.csv",
   "closed_phase": 18,
   "seam_free_families": [
-    "virtualized_data"
+    "virtualized_data",
+    "equivalence"
   ],
   "test_seam_roots": [
     "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/execution_plan_input",

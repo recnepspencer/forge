@@ -6,7 +6,9 @@ use worth_ui::facade::source::{
     WorthUiWatcherEvent,
 };
 
-use super::application_definition::{CANDIDATE_COMPONENT, CURRENT_COMPONENT, REGION, SIZING};
+use super::application_definition::{
+    CANDIDATE_COMPONENT, CURRENT_COMPONENT, QUERY_BINDING, REGION, SIZING,
+};
 
 pub(super) fn file_submission(
     component: &str,
@@ -15,7 +17,7 @@ pub(super) fn file_submission(
 ) -> WorthUiWatchedCandidateSubmission {
     lower(
         WorthUiSourceProvider::in_memory(provider_id)
-            .with_file("app/main.wui", file_source(component)),
+            .with_file("app/main.wui", query_file_source(component)),
         provider_id,
         snapshot,
     )
@@ -26,6 +28,23 @@ pub(crate) fn rust_submission(
     provider_id: &str,
     snapshot: &CapabilitySnapshot,
 ) -> WorthUiWatchedCandidateSubmission {
+    rust_submission_with_query_binding(component, provider_id, snapshot, false)
+}
+
+fn query_rust_submission(
+    component: &str,
+    provider_id: &str,
+    snapshot: &CapabilitySnapshot,
+) -> WorthUiWatchedCandidateSubmission {
+    rust_submission_with_query_binding(component, provider_id, snapshot, true)
+}
+
+fn rust_submission_with_query_binding(
+    component: &str,
+    provider_id: &str,
+    snapshot: &CapabilitySnapshot,
+    include_query_binding: bool,
+) -> WorthUiWatchedCandidateSubmission {
     let body = vec![
         identifier("region"),
         identifier(REGION),
@@ -35,13 +54,14 @@ pub(crate) fn rust_submission(
         WorthUiArtifactInputBodyAtom::Semicolon,
         WorthUiArtifactInputBodyAtom::RightBrace,
     ];
+    let mut module = WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        .with_component_body_atoms(component, body);
+    if include_query_binding {
+        module = module.with_binding(QUERY_BINDING);
+    }
     lower(
-        WorthUiSourceProvider::rust_authored(provider_id).with_rust_authored_input(
-            WorthUiRustAuthoredArtifactInput::from_modules([
-                WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
-                    .with_component_body_atoms(component, body),
-            ]),
-        ),
+        WorthUiSourceProvider::rust_authored(provider_id)
+            .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module])),
         provider_id,
         snapshot,
     )
@@ -51,12 +71,16 @@ pub(crate) fn file_source(component: &str) -> String {
     format!("component {component} {{ region {REGION} {{ sizing {SIZING}; }} }}")
 }
 
+fn query_file_source(component: &str) -> String {
+    format!("{}\nbinding {QUERY_BINDING} {{}}", file_source(component))
+}
+
 pub(super) fn current_file(snapshot: &CapabilitySnapshot) -> WorthUiWatchedCandidateSubmission {
     file_submission(CURRENT_COMPONENT, "authority-file", snapshot)
 }
 
 pub(super) fn current_rust(snapshot: &CapabilitySnapshot) -> WorthUiWatchedCandidateSubmission {
-    rust_submission(CURRENT_COMPONENT, "authority-rust", snapshot)
+    query_rust_submission(CURRENT_COMPONENT, "authority-rust", snapshot)
 }
 
 pub(super) fn candidate_file(snapshot: &CapabilitySnapshot) -> WorthUiWatchedCandidateSubmission {

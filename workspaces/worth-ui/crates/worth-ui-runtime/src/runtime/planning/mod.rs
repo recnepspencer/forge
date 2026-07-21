@@ -9,6 +9,7 @@ mod execution_plan_lowering_identity;
 pub mod plan_equivalence;
 pub mod plan_inspection;
 pub mod plan_topology;
+pub mod query_binding;
 
 mod input_handoff;
 mod measurement_basis;

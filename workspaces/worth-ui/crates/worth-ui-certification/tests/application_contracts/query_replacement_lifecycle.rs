@@ -1,16 +1,19 @@
 use worth_query::facade::domain;
 use worth_ui::facade::app::WorthUiApplicationCutoverDenial;
 use worth_ui::facade::app::{WorthUiPlanRegionTransition, WorthUiVirtualizedPlanAvailability};
-use worth_ui::facade::query_binding::{WorthUiQueryLiveOpenOutcome, WorthUiQueryWorkspaceExt};
+use worth_ui::facade::query_binding::WorthUiQueryWorkspaceExt;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveOpenOutcome;
 #[path = "query_replacement_lifecycle/mixed_real_lifecycle.rs"]
 mod mixed_real_lifecycle;
 #[path = "query_replacement_lifecycle/precommit_rollback.rs"]
 mod precommit_rollback;
 #[path = "query_replacement_lifecycle/scenario.rs"]
-mod scenario;
+pub(crate) mod scenario;
+#[path = "query_replacement_lifecycle/settled_snapshot_preservation.rs"]
+mod settled_snapshot_preservation;
 #[path = "query_replacement_lifecycle/support.rs"]
-mod support;
+pub(crate) mod support;
 
 use scenario::{
     application, installed_workspace, submission, ACTIVE_COMPONENT, FIRST_VIEW, NEXT_COMPONENT,
@@ -43,7 +46,7 @@ fn public_semantic_no_op_preserves_the_exact_real_query_live_resource() {
     );
     let prime = lower_and_stage(&session, prepare_catalog(&session, prime));
     let prime = activate(&mut session, prime.0, prime.1);
-    assert!(prime.query_retirement().is_empty());
+    assert!(prime.managed_live_compatibility_retirement().is_empty());
     let active_generation = session.generation_identity().clone();
     assert_visible_query_execution(&mut session);
 
@@ -103,7 +106,7 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
     let cutover = activate(&mut session, preserve.0, preserve.1);
 
     assert_ne!(cutover.active_generation(), &initial_generation);
-    assert!(cutover.query_retirement().is_empty());
+    assert!(cutover.managed_live_compatibility_retirement().is_empty());
     assert_visible_query_execution(&mut session);
     assert!(matches!(
         first
@@ -121,7 +124,8 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
     let mut switch = prepare_catalog(&session, switch_submission);
     admit_candidate_resource(&mut switch.0, &second, &mut workspace);
     let switch = lower_and_stage(&session, switch);
-    let retirement = activate(&mut session, switch.0, switch.1).into_query_retirement();
+    let retirement =
+        activate(&mut session, switch.0, switch.1).into_managed_live_compatibility_retirement();
 
     assert_eq!(retirement.len(), 1);
     assert_visible_query_execution(&mut session);
@@ -141,7 +145,8 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
         session.capabilities(),
     );
     let remove = lower_and_stage(&session, prepare_catalog(&session, remove_submission));
-    let retirement = activate(&mut session, remove.0, remove.1).into_query_retirement();
+    let retirement =
+        activate(&mut session, remove.0, remove.1).into_managed_live_compatibility_retirement();
 
     assert_eq!(retirement.len(), 1);
     assert_eq!(
@@ -305,7 +310,7 @@ fn bounded_query_rebind_storm_retires_each_predecessor_resource_exactly_once() {
             transitions.len() <= 3,
             "Query replacement stays closure-bounded"
         );
-        let retirement = cutover.into_query_retirement();
+        let retirement = cutover.into_managed_live_compatibility_retirement();
         assert_eq!(retirement.len(), 1);
         close_retirement(retirement, &mut workspace);
         assert_visible_query_execution(&mut session);
@@ -325,7 +330,7 @@ fn bounded_query_rebind_storm_retires_each_predecessor_resource_exactly_once() {
     );
     let remove = lower_and_stage(&session, prepare_catalog(&session, remove));
     close_retirement(
-        activate(&mut session, remove.0, remove.1).into_query_retirement(),
+        activate(&mut session, remove.0, remove.1).into_managed_live_compatibility_retirement(),
         &mut workspace,
     );
     let _ = session.shutdown();

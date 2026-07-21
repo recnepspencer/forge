@@ -213,14 +213,13 @@ fn query_links_for_node_input(
     counters: &mut WorthUiPlanInspectionCounters,
 ) -> Option<WorthUiQueryInspectionLinks> {
     let identity = node_input.query_binding_identity()?.clone();
-    let posture = node_input.query_binding_posture()?;
+    let settled_fact_link = node_input.query_settled_fact_link()?.clone();
     counters.record_query_link_preservation();
     counters.record_projection_consumption_link();
-    Some(WorthUiQueryInspectionLinks::from_query_posture(
+    Some(WorthUiQueryInspectionLinks::from_settled_fact_link(
         identity,
-        posture.clone(),
+        settled_fact_link,
         node_input.query_preservation_receipt(),
-        node_input.query_required_surfaces().to_vec(),
     ))
 }
 
@@ -244,7 +243,8 @@ fn capability_reference_for_node_input(node_input: &WorthUiPlanNodeInput) -> Opt
 fn provenance_source_for_node_input(
     node_input: &WorthUiPlanNodeInput,
 ) -> WorthUiPlanProvenanceSource {
-    if node_input.query_binding_identity().is_some() && node_input.query_binding_posture().is_some()
+    if node_input.query_binding_identity().is_some()
+        && node_input.query_settled_fact_link().is_some()
     {
         return WorthUiPlanProvenanceSource::QueryBinding;
     }

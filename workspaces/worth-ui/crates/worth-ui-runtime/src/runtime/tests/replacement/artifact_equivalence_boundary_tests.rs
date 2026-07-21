@@ -3,11 +3,9 @@ use std::{collections::BTreeMap, path::Path};
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
-    WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,
-    WorthUiCandidateAdmissionDenial, WorthUiQuerySupportStatus, WorthUiReplacementCause,
-    WorthUiRuntime, WorthUiRuntimeArtifactComparisonDenial,
-    WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeDiagnosticPolicy,
-    WorthUiRuntimeEquivalenceBasis, WorthUiRuntimeLaunch,
+    WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiReplacementCause,
+    WorthUiRuntime, WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeDiagnosticPolicy,
+    WorthUiRuntimeLaunch,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
@@ -158,79 +156,6 @@ fn meaningful_artifact_difference_classified_before_impact_narrowing() {
     assert_eq!(comparison.counters().artifact_comparisons(), 1);
     assert_eq!(comparison.counters().impact_narrowing_attempts(), 0);
     assert_eq!(comparison.counters().plan_lowering_attempts(), 0);
-}
-
-#[test]
-fn changed_admission_contract_rejected_before_artifact_comparison() {
-    let app = WorthUi::app()
-        .freeze()
-        .expect("application preparation should succeed");
-    let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
-    let admitted = admitted_candidate(&app, &runtime, ["app/panels/inspector.wui"]);
-    let current_contract_identity = admitted
-        .report()
-        .query_support_receipt()
-        .contract_identity();
-    let stale_admitted_contract_identity = query_contract_identity("stale-admission-contract");
-    let stale_admitted = admitted.with_admitted_query_contract_for_test("stale-admission-contract");
-
-    let denial = runtime
-        .compare_admitted_replacement(&stale_admitted)
-        .expect_err("changed admission receipt rejects before comparison");
-
-    assert_eq!(
-        denial,
-        WorthUiRuntimeArtifactComparisonDenial::AdmissionReceiptChanged {
-            denial: WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
-                admitted_contract_identity: stale_admitted_contract_identity,
-                current_contract_identity,
-            },
-            counters: Default::default(),
-        }
-    );
-    assert_eq!(denial.counters().artifact_comparisons(), 0);
-    assert_eq!(denial.counters().impact_narrowing_attempts(), 0);
-    assert_eq!(denial.counters().plan_lowering_attempts(), 0);
-}
-
-fn query_contract_identity(
-    label: &str,
-) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
-    let definition =
-        worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(label)
-            .expect("test Query contract label admits");
-    worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
-        definition.digest()
-    ])
-}
-
-#[test]
-fn same_digest_with_mismatched_equivalence_basis_rejected() {
-    let app = WorthUi::app()
-        .freeze()
-        .expect("application preparation should succeed");
-    let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
-    let candidate = admitted_candidate(&app, &runtime, ["app/panels/inspector.wui"]);
-    let mismatched_basis = WorthUiRuntimeEquivalenceBasis::semantic_artifact_meaning()
-        .with_required_query_support_status_for_test(WorthUiQuerySupportStatus::Deferred);
-
-    let denial = runtime
-        .compare_admitted_replacement_with_basis_for_test(&candidate, mismatched_basis)
-        .expect_err("support posture mismatch rejects even with same digest");
-    let candidate_basis = candidate.candidate().basis();
-
-    assert_eq!(
-        denial,
-        WorthUiRuntimeArtifactComparisonDenial::EquivalenceBasisMismatch {
-            runtime_basis: mismatched_basis,
-            candidate_basis,
-            candidate_query_support_status: WorthUiQuerySupportStatus::Supported,
-            counters: Default::default(),
-        }
-    );
-    assert_eq!(denial.counters().artifact_comparisons(), 0);
-    assert_eq!(denial.counters().impact_narrowing_attempts(), 0);
-    assert_eq!(denial.counters().plan_lowering_attempts(), 0);
 }
 
 fn admitted_candidate<const N: usize>(

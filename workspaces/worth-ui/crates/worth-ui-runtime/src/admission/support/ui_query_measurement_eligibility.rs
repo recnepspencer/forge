@@ -19,10 +19,13 @@ pub enum UiQueryMeasurementUnsupportedQueryReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiQueryMeasurementBasisAuthority {
     AdmittedPrerequisites {
-        prerequisites: Box<worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence>,
+        prerequisites: Box<
+            worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
+        >,
     },
     ProjectionConsumption {
-        authority: Box<worth_ui_query_binding::WorthUiQueryAuthorityHandle>,
+        authority:
+            Box<worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle>,
     },
 }
 
@@ -144,7 +147,8 @@ impl UiQueryMeasurementEligibility {
 
     pub fn query_resolution_mode(
         &self,
-    ) -> Option<worth_ui_query_binding::WorthUiQueryResolutionMode> {
+    ) -> Option<worth_ui_query_binding::compatibility::managed_live::WorthUiQueryResolutionMode>
+    {
         self.target
             .query_prerequisites()
             .map(|evidence| evidence.resolution_mode())
@@ -152,7 +156,9 @@ impl UiQueryMeasurementEligibility {
 
     pub fn query_projection_contract_identity(
         &self,
-    ) -> Option<worth_ui_query_binding::WorthUiQueryProjectionContractIdentity> {
+    ) -> Option<
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryProjectionContractIdentity,
+    > {
         self.target
             .query_prerequisites()
             .and_then(|evidence| evidence.projection_contract_identity())

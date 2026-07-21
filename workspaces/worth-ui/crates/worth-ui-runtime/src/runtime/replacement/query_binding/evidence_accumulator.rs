@@ -2,9 +2,8 @@ use std::collections::BTreeSet;
 
 use super::evidence::WorthUiQueryBindingEvidence;
 use crate::runtime::replacement::query_binding::{
-    WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture,
+    WorthUiQueryBindingIdentity, WorthUiQueryBindingUiRequirements,
 };
-use crate::runtime::WorthUiQuerySupportReceipt;
 use crate::source::{WorthUiBoundViewBindingReference, WorthUiRuntimeDependencyHook};
 use crate::{capability::ViewBindingId, source::WorthUiRuntimeDependencyHookKind};
 
@@ -12,7 +11,6 @@ use crate::{capability::ViewBindingId, source::WorthUiRuntimeDependencyHookKind}
 pub(super) struct WorthUiQueryBindingEvidenceAccumulator {
     definition: Option<worth_ui_query_binding::WorthUiQueryViewDefinition>,
     denial_presentation: Option<crate::capability::QueryDenialPresentation>,
-    query_support_receipt: Option<WorthUiQuerySupportReceipt>,
     runtime_surfaces: BTreeSet<WorthUiRuntimeDependencyHookKind>,
     inspection_available: bool,
     projection_consumption_available: bool,
@@ -36,34 +34,28 @@ impl WorthUiQueryBindingEvidenceAccumulator {
         self.runtime_surfaces.insert(hook.kind());
     }
 
-    pub(super) fn record_query_support_receipt(&mut self, receipt: WorthUiQuerySupportReceipt) {
-        self.query_support_receipt = Some(receipt);
-    }
-
     pub(super) fn finish(self, view_binding_id: &str) -> Option<WorthUiQueryBindingEvidence> {
         let definition = self.definition?;
-        let support_receipt = self.query_support_receipt?;
         let identity = WorthUiQueryBindingIdentity::new(
             &ViewBindingId::new(view_binding_id).expect("indexed view binding id remains valid"),
             &definition,
         );
-        let posture = WorthUiQueryBindingPosture::new(super::WorthUiQueryBindingPostureInput {
-            support_receipt,
-            installed_basis_authority: true,
-            lifecycle: definition.lifecycle(),
-            async_result_state_available: self
-                .runtime_surfaces
-                .contains(&WorthUiRuntimeDependencyHookKind::AsyncResultState),
-            recovery_available: self
-                .runtime_surfaces
-                .contains(&WorthUiRuntimeDependencyHookKind::SignalContinuation),
-            inspection_available: self.inspection_available,
-            projection_consumption_available: self.projection_consumption_available,
-            denial_presentation: self
-                .denial_presentation
-                .unwrap_or_else(crate::capability::QueryDenialPresentation::structured_status),
-        });
-        Some(WorthUiQueryBindingEvidence::new(identity, posture))
+        let ui_requirements =
+            WorthUiQueryBindingUiRequirements::new(super::WorthUiQueryBindingUiRequirementsInput {
+                lifecycle: definition.lifecycle(),
+                async_result_presentation: self
+                    .runtime_surfaces
+                    .contains(&WorthUiRuntimeDependencyHookKind::AsyncResultState),
+                recovery_presentation: self
+                    .runtime_surfaces
+                    .contains(&WorthUiRuntimeDependencyHookKind::SignalContinuation),
+                inspection_relevance: self.inspection_available,
+                projection_consumption: self.projection_consumption_available,
+                denial_presentation: self
+                    .denial_presentation
+                    .unwrap_or_else(crate::capability::QueryDenialPresentation::structured_status),
+            });
+        Some(WorthUiQueryBindingEvidence::new(identity, ui_requirements))
     }
 
     fn record_definition(

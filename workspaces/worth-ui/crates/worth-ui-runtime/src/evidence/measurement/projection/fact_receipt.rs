@@ -1,9 +1,11 @@
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
-use worth_ui_query_binding::WorthUiQueryResolutionMode;
-use worth_ui_query_binding::{
-    WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryResolutionMode;
+use worth_ui_query_binding::compatibility::managed_live::{
     WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError,
     WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
+};
+use worth_ui_query_binding::{
+    WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
 };
 
 use crate::declaration::{
@@ -18,6 +20,7 @@ use crate::evidence::shared::query_measurement_fact_family_digest::query_measure
 pub enum UiProjectionFactReceiptDenial {
     NoQueryMeasurementDependencies,
     QueryFactReceipt(WorthUiQueryMeasurementFactReceiptError),
+    SettledFactObservation(worth_ui_query_binding::WorthUiQueryMeasurementFactObservationError),
     MissingRequiredFactFamilies {
         required: Box<[WorthUiQueryMeasurementFactFamily]>,
         consumed: Box<[WorthUiQueryMeasurementFactFamily]>,
@@ -33,8 +36,10 @@ pub struct UiProjectionFactObservation {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiProjectionFactReceipt {
-    query_authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
-    authority_index_key: worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+    query_authority:
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
+    authority_index_key:
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityIndexKey,
     declaration_identity: UiDeclarationIdentity,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     query_resolution_mode: WorthUiQueryResolutionMode,
@@ -48,7 +53,9 @@ pub struct UiProjectionFactReceipt {
 }
 
 impl UiProjectionFactObservation {
-    fn from_query_observation(observation: WorthUiQueryMeasurementFactObservation) -> Self {
+    pub(super) fn from_query_observation(
+        observation: WorthUiQueryMeasurementFactObservation,
+    ) -> Self {
         let identity_digest = stable_text_digest("worth-ui.projection-fact-observation")
             ^ stable_text_digest(query_measurement_family_name(observation.family()))
                 .rotate_left(7)
@@ -74,13 +81,15 @@ impl UiProjectionFactObservation {
 }
 
 impl UiProjectionFactReceipt {
-    pub(crate) fn query_authority(&self) -> &worth_ui_query_binding::WorthUiQueryAuthorityHandle {
+    pub(crate) fn query_authority(
+        &self,
+    ) -> &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle {
         &self.query_authority
     }
 
     pub(crate) fn authority_index_key(
         &self,
-    ) -> &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey {
+    ) -> &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityIndexKey {
         &self.authority_index_key
     }
     pub fn declaration_identity(&self) -> &UiDeclarationIdentity {
@@ -129,7 +138,7 @@ pub fn consume_declared_measurement_projection_facts(
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     measurement_policy: &UiDeclaredMeasurementPolicyPosture,
     query_prerequisites: WorthUiQueryPrerequisiteEvidence,
-    query_authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    query_authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
 ) -> Result<UiProjectionFactReceipt, UiProjectionFactReceiptDenial> {
     let dependencies = declared_query_measurement_dependencies(measurement_policy)
         .ok_or(UiProjectionFactReceiptDenial::NoQueryMeasurementDependencies)?;

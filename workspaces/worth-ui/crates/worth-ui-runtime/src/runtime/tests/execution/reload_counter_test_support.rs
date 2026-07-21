@@ -2,10 +2,9 @@ use super::{
     WorthUiCandidateAdmissionCounters, WorthUiDurableStateReconciliationCounters,
     WorthUiExecutionPlanEquivalenceCounters, WorthUiIdentityMatchCounters,
     WorthUiImpactLookupCounters, WorthUiPlanLoweringCounters, WorthUiPlanTopologyCounters,
-    WorthUiQueryLiveRebindCounters, WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus,
-    WorthUiReloadCounterBoundary, WorthUiReloadCounterBoundaryDenial,
-    WorthUiReloadLoweringCounterReceipt, WorthUiRuntimeArtifactComparisonCounters,
-    WorthUiRuntimeHandleAllocationCounters,
+    WorthUiQueryLiveRebindCounters, WorthUiReloadCounterBoundary,
+    WorthUiReloadCounterBoundaryDenial, WorthUiReloadLoweringCounterReceipt,
+    WorthUiRuntimeArtifactComparisonCounters, WorthUiRuntimeHandleAllocationCounters,
 };
 
 pub(super) fn complete_receipt(
@@ -16,7 +15,6 @@ pub(super) fn complete_receipt(
         .record_impact_narrowing_counters(impact_counters())
         .record_identity_match_counters(identity_counters())
         .record_reconciliation_counters(reconciliation_counters())
-        .record_carried_query_support_receipt(query_support_receipt())
         .record_query_rebind_counters(query_rebind_counters())
         .record_plan_lowering_counters(plan_lowering_counters())
         .record_plan_assembly_counters(
@@ -32,7 +30,6 @@ pub(super) fn admission_counters() -> WorthUiCandidateAdmissionCounters {
     counters.record_candidate_proof_check();
     counters.record_snapshot_compatibility_check();
     counters.record_runtime_posture_check();
-    counters.record_query_support_check();
     counters
 }
 
@@ -74,13 +71,6 @@ pub(super) fn query_rebind_counters() -> WorthUiQueryLiveRebindCounters {
     let mut counters = WorthUiQueryLiveRebindCounters::default();
     counters.record_preserved_binding_for_test();
     counters
-}
-
-pub(super) fn query_support_receipt() -> WorthUiQuerySupportReceipt {
-    WorthUiQuerySupportReceipt::for_test(
-        WorthUiQuerySupportStatus::Supported,
-        "reload-counter-boundary",
-    )
 }
 
 pub(super) fn plan_lowering_counters() -> WorthUiPlanLoweringCounters {

@@ -38,7 +38,7 @@ path = "../../../../worth-ui/tests/ui/facade/construction/sealed_lifecycle/direc
 
 [[bin]]
 name = "product-runtime-diagnostics"
-path = "../../../../worth-ui/tests/ui/runtime_diagnostics/fail/diagnostics_projection_rejects_freeform_query_status_rows.rs"
+path = "../../../../worth-ui/tests/ui/runtime_diagnostics/fail/binding_observations_reject_freeform_status_rows.rs"
 
 [[bin]]
 name = "product-runtime-measurement"

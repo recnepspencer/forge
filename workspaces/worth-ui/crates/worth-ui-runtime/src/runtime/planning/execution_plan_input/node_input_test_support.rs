@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::runtime::{
     WorthUiNodeLifecycleTransition, WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily,
-    WorthUiPlanNodeTopologyInput, WorthUiQueryRebindRequiredSurface,
+    WorthUiPlanNodeTopologyInput,
 };
 
 impl WorthUiPlanNodeInput {
@@ -26,9 +26,7 @@ impl WorthUiPlanNodeInput {
             && family != WorthUiPlanNodeInputFamily::QueryViewBinding
         {
             self.query_binding_identity = None;
-            self.query_installed_reference = None;
-            self.query_binding_posture = None;
-            self.query_required_surfaces.clear();
+            self.query_settled_fact_link = None;
             self.query_preservation_receipt = None;
         }
         if family != WorthUiPlanNodeInputFamily::CanvasSpatial {
@@ -69,7 +67,10 @@ impl WorthUiPlanNodeInput {
         mut self,
         reference: worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
     ) -> Self {
-        self.query_installed_reference = Some(Rc::new(reference));
+        self.query_settled_fact_link = self
+            .query_settled_fact_link
+            .as_ref()
+            .map(|link| Rc::new(link.with_installed_reference_for_test(reference)));
         self
     }
 
@@ -79,20 +80,7 @@ impl WorthUiPlanNodeInput {
     }
 
     pub(crate) fn without_query_installed_reference_for_test(mut self) -> Self {
-        self.query_installed_reference = None;
-        self
-    }
-
-    pub(crate) fn without_query_binding_posture_for_test(mut self) -> Self {
-        self.query_binding_posture = None;
-        self
-    }
-
-    pub(crate) fn with_query_required_surface_for_test(
-        mut self,
-        surface: WorthUiQueryRebindRequiredSurface,
-    ) -> Self {
-        self.query_required_surfaces.push(surface);
+        self.query_settled_fact_link = None;
         self
     }
 

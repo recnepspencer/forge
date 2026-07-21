@@ -1,9 +1,9 @@
 use worth_query::facade::{read, runtime};
 
 use crate::{
-    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiQueryExt,
-    WorthUiQueryLiveOpenError, WorthUiQueryLiveOpenOutcome, WorthUiQueryViewDefinition,
-    WorthUiQueryViewLifecycle,
+    compatibility::managed_live::declaration::WorthUiManagedLiveDeclarationExt,
+    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiQueryLiveOpenError,
+    WorthUiQueryLiveOpenOutcome, WorthUiQueryViewDefinition, WorthUiQueryViewLifecycle,
 };
 
 /// Installed live view. Query-owned managed-resource operations are added on

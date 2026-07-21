@@ -6,13 +6,14 @@ use crate::source::{
 use crate::source::{
     WorthUiArtifactDependencyReport, WorthUiArtifactDigest, WorthUiIncrementalInvalidationBasis,
 };
+use std::rc::Rc;
 
 use super::worth_ui_candidate_dependency_metadata_digest::digest_dependency_report;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiCandidateDependencyMetadata {
     artifact_digest: WorthUiArtifactDigest,
-    dependency_report: WorthUiArtifactDependencyReport,
+    dependency_report: Rc<WorthUiArtifactDependencyReport>,
     dependency_metadata_digest: u64,
 }
 
@@ -32,7 +33,7 @@ impl WorthUiCandidateDependencyMetadata {
         let dependency_metadata_digest = digest_dependency_report(&dependency_report);
         Self {
             artifact_digest,
-            dependency_report,
+            dependency_report: Rc::new(dependency_report),
             dependency_metadata_digest,
         }
     }
@@ -42,12 +43,17 @@ impl WorthUiCandidateDependencyMetadata {
         self.artifact_digest
     }
 
-    pub(crate) fn dependency_report(&self) -> &WorthUiArtifactDependencyReport {
-        &self.dependency_report
-    }
-
     pub(crate) fn invalidation_basis(&self) -> &WorthUiIncrementalInvalidationBasis {
         self.dependency_report.basis()
+    }
+
+    pub(crate) fn dependency_report_authority(&self) -> Rc<WorthUiArtifactDependencyReport> {
+        Rc::clone(&self.dependency_report)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dependency_report(&self) -> &WorthUiArtifactDependencyReport {
+        &self.dependency_report
     }
 
     pub(crate) fn dependency_metadata_digest(&self) -> u64 {

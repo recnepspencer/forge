@@ -50,6 +50,17 @@ impl UiGraphTouchAuthority<'_> {
                     authority.clone(),
                 ))
             }
+            UiGraphWorldProfile::SettledQueryBinding {
+                view_binding_id,
+                query_binding_identity,
+            } => Ok(UiGraphTouchOriginWitness::settled_query_binding(
+                UiGraphTouchOriginReceipt::settled_query_fact_change(
+                    view_binding_id,
+                    query_binding_identity,
+                ),
+                view_binding_id.clone(),
+                query_binding_identity.clone(),
+            )),
             _ => Err(UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld),
         }
     }

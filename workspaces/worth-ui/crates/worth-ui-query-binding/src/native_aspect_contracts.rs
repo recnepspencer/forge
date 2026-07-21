@@ -3,8 +3,8 @@ use worth_foundational::facade::{
     AspectKey, FieldDeclaration, FieldKey, FieldRequirement, ScalarAspectType, StructAspectShape,
 };
 
-const IDENTITY_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4901);
-const MEASUREMENT_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4902);
+pub(crate) const IDENTITY_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4901);
+pub(crate) const MEASUREMENT_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4902);
 const SIZE_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4903);
 
 pub fn worth_ui_native_aspect_contracts() -> [AspectContract; 3] {

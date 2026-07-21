@@ -4,10 +4,10 @@ use crate::runtime::host_observation::diagnostics_projection::digest::{
     combine_digest, digest_debug,
 };
 use crate::runtime::host_observation::diagnostics_projection::{
-    WorthUiDiagnosticsProjection, WorthUiDiagnosticsProjectionCounters,
-    WorthUiDiagnosticsProjectionDenial, WorthUiDiagnosticsProjectionDenialReason,
-    WorthUiDiagnosticsProjectionHook, WorthUiDiagnosticsProjectionHookEffect,
-    WorthUiFrameCostSurface, WorthUiPlanInspectionSurface, WorthUiQueryStatusSurface,
+    WorthUiBindingObservationSurface, WorthUiDiagnosticsProjection,
+    WorthUiDiagnosticsProjectionCounters, WorthUiDiagnosticsProjectionDenial,
+    WorthUiDiagnosticsProjectionDenialReason, WorthUiDiagnosticsProjectionHook,
+    WorthUiDiagnosticsProjectionHookEffect, WorthUiFrameCostSurface, WorthUiPlanInspectionSurface,
     WorthUiReloadStatusSurface,
 };
 use crate::runtime::{
@@ -180,7 +180,8 @@ impl<'a> WorthUiDiagnosticsProjectionRequest<'a> {
             || WorthUiPlanInspectionSurface::absent(report.active_plan_digest()),
             WorthUiPlanInspectionSurface::from_inspection,
         );
-        let query_status = WorthUiQueryStatusSurface::from_sources(&rows, self.plan_inspection);
+        let binding_observations =
+            WorthUiBindingObservationSurface::from_sources(&rows, self.plan_inspection);
         let projection_digest = self.projection_digest(report, &rows);
         WorthUiDiagnosticsProjection::new(super::WorthUiDiagnosticsProjectionInput {
             active_artifact_digest: report.active_artifact_digest(),
@@ -190,7 +191,7 @@ impl<'a> WorthUiDiagnosticsProjectionRequest<'a> {
             reload_status,
             plan_inspection,
             frame_costs: self.frame_costs,
-            query_status,
+            binding_observations,
             counters: self.counters,
         })
     }
@@ -227,18 +228,10 @@ impl<'a> WorthUiDiagnosticsProjectionRequest<'a> {
 }
 
 fn query_row_count(
-    rows: &[crate::runtime::WorthUiRuntimeDiagnostic],
+    _rows: &[crate::runtime::WorthUiRuntimeDiagnostic],
     inspection: Option<&WorthUiExecutionPlanInspection>,
 ) -> usize {
-    let diagnostic_rows = rows
-        .iter()
-        .filter(|row| {
-            matches!(
-                row.source(),
-                crate::runtime::WorthUiDiagnosticSource::QueryStop { .. }
-            )
-        })
-        .count();
+    let diagnostic_rows = 0;
     let inspection_rows = inspection.map_or(0, |inspection| {
         inspection
             .nodes()

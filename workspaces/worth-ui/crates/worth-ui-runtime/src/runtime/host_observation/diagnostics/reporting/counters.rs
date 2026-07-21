@@ -21,10 +21,6 @@ impl WorthUiRuntimeDiagnosticCounters {
         self.phase_reference_count += 1;
     }
 
-    pub(crate) fn record_query_link(&mut self) {
-        self.query_link_count += 1;
-    }
-
     pub(crate) fn record_support_section(&mut self) {
         self.support_section_count += 1;
     }

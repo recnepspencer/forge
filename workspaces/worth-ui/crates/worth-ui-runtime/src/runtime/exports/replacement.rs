@@ -1,8 +1,7 @@
 pub use crate::runtime::replacement::admission::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,
     WorthUiCandidateAdmissionCounters, WorthUiCandidateAdmissionDenial,
-    WorthUiCandidateAdmissionReport, WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus,
-    WorthUiRuntimeReplacementPosture,
+    WorthUiCandidateAdmissionReport, WorthUiRuntimeReplacementPosture,
 };
 #[cfg(test)]
 pub use crate::runtime::replacement::candidate::{
@@ -11,6 +10,13 @@ pub use crate::runtime::replacement::candidate::{
 pub use crate::runtime::replacement::candidate::{
     WorthUiCandidateAuthoringLane, WorthUiCandidateDependencyMetadata, WorthUiReplacementCandidate,
     WorthUiReplacementCandidateBasis, WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
+};
+pub use crate::runtime::replacement::compatibility::managed_live::{
+    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
+    WorthUiQueryBindingPreservationReceipt, WorthUiQueryBindingRebindReason,
+    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters,
+    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
+    WorthUiQueryLiveRebindPlanDenial, WorthUiQueryRebindRequiredSurface,
 };
 pub use crate::runtime::replacement::equivalence::{
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonCounters,
@@ -45,19 +51,11 @@ pub use crate::runtime::replacement::narrowing::{
     WorthUiRendererResourceInvalidation, WorthUiRuntimeImpactNarrowing,
     WorthUiRuntimeImpactNarrowingDenial, WorthUiTokenInvalidation,
 };
-#[cfg(test)]
-pub use crate::runtime::replacement::query_binding::WorthUiQueryBindingComparisonCounters;
 pub use crate::runtime::replacement::query_binding::{
     WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonDenial,
     WorthUiQueryBindingComparisonEntry, WorthUiQueryBindingComparisonOutcome,
-    WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture, WorthUiQueryBindingPostureDriftFamily,
-};
-pub use crate::runtime::replacement::query_live_rebind::{
-    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
-    WorthUiQueryBindingPreservationReceipt, WorthUiQueryBindingRebindReason,
-    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters,
-    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
-    WorthUiQueryLiveRebindPlanDenial, WorthUiQueryRebindRequiredSurface,
+    WorthUiQueryBindingIdentity, WorthUiQueryBindingUiRequirements,
+    WorthUiQueryBindingUiRequirementsDriftFamily,
 };
 pub use crate::runtime::replacement::reconciliation::{
     WorthUiAdmittedDurableResizeInput, WorthUiAdmittedDurableResizeSourceFact,

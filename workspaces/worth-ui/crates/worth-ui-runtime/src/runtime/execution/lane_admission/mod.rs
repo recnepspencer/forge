@@ -7,7 +7,7 @@ mod hook_admission;
 mod hook_packets;
 mod lane;
 mod lane_admission_planner;
-mod query_support_links;
+mod query_fact_link;
 mod support;
 mod support_matrix;
 
@@ -23,6 +23,6 @@ pub use hook_packets::{
 };
 pub use lane::{WorthUiExecutionLane, WorthUiLaneCostRegime, WorthUiLaneFailureMode};
 pub(crate) use lane_admission_planner::WorthUiLaneAdmissionPlanner;
-pub use query_support_links::WorthUiQueryLaneSupportLinks;
+pub use query_fact_link::WorthUiQueryLaneFactLink;
 pub use support::{WorthUiLaneSupportDiagnostic, WorthUiLaneSupportRow, WorthUiLaneSupportStatus};
 pub use support_matrix::WorthUiExecutionLaneSupport;

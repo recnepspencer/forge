@@ -2,6 +2,7 @@ mod backend;
 mod builder;
 mod equivalence_report;
 mod error;
+mod installation_generation;
 mod residue_audit;
 mod schema;
 mod support_profile;
@@ -12,6 +13,7 @@ pub use equivalence_report::{
     WorthQueryTestBackendEquivalenceRow,
 };
 pub use error::{WorthQueryTestBackendError, WorthQueryTestBackendErrorKind};
+pub use installation_generation::advance_test_workspace_domain_installation_generation;
 pub use residue_audit::{
     query_test_backend_residue_audit, WorthQueryTestBackendResidueAudit,
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,

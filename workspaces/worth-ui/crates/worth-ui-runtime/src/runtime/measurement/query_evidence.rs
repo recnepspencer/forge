@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum WorthUiMeasurementQueryEvidenceKind {
+pub(crate) enum WorthUiMeasurementQueryEvidenceKind {
     SubscriptionSelectionDiagnostics,
     SignalCompatibilityAndContinuation,
     PlannerParallelAdmissionAndScalePosture,
@@ -48,7 +48,7 @@ impl WorthUiMeasurementQueryEvidence {
         }
     }
 
-    pub fn kind(&self) -> WorthUiMeasurementQueryEvidenceKind {
+    pub(crate) fn kind(&self) -> WorthUiMeasurementQueryEvidenceKind {
         self.kind
     }
 

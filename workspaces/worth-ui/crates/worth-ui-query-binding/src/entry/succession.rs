@@ -8,6 +8,7 @@ use crate::{
 pub enum WorthUiQueryBindingSuccessionDenial {
     DuplicateSuccessorView,
     ForeignSuccessorReference,
+    StaleSuccessorReference,
 }
 
 #[derive(Clone, Debug)]
@@ -44,6 +45,9 @@ impl super::WorthUiRuntimeQueryBinding {
         self,
         successor_references: impl IntoIterator<Item = WorthUiInstalledQueryBindingReference>,
     ) -> Result<WorthUiPreparedQueryBindingSuccession, WorthUiQueryBindingSuccessionDenial> {
+        if !self.installation_is_current() {
+            return Err(WorthUiQueryBindingSuccessionDenial::StaleSuccessorReference);
+        }
         let successor_references = successor_references.into_iter().collect::<Vec<_>>();
         let mut identities = BTreeSet::<WorthUiQueryViewIdentity>::new();
         for reference in &successor_references {
@@ -52,6 +56,9 @@ impl super::WorthUiRuntimeQueryBinding {
             }
             if !self.admits_reference(reference) {
                 return Err(WorthUiQueryBindingSuccessionDenial::ForeignSuccessorReference);
+            }
+            if !reference.installation_is_current() {
+                return Err(WorthUiQueryBindingSuccessionDenial::StaleSuccessorReference);
             }
         }
         Ok(WorthUiPreparedQueryBindingSuccession {
@@ -64,6 +71,9 @@ impl super::WorthUiRuntimeQueryBinding {
         self,
         changes: impl IntoIterator<Item = WorthUiQueryBindingSuccessionChange>,
     ) -> Result<WorthUiPreparedQueryBindingSuccession, WorthUiQueryBindingSuccessionDenial> {
+        if !self.installation_is_current() {
+            return Err(WorthUiQueryBindingSuccessionDenial::StaleSuccessorReference);
+        }
         let changes = changes.into_iter().collect::<Vec<_>>();
         let mut identities = BTreeSet::<WorthUiQueryViewIdentity>::new();
         for change in &changes {
@@ -74,6 +84,13 @@ impl super::WorthUiRuntimeQueryBinding {
                 if !self.admits_reference(reference) {
                     return Err(WorthUiQueryBindingSuccessionDenial::ForeignSuccessorReference);
                 }
+            }
+            if change
+                .successor
+                .as_ref()
+                .is_some_and(|reference| !reference.installation_is_current())
+            {
+                return Err(WorthUiQueryBindingSuccessionDenial::StaleSuccessorReference);
             }
             let identity = change
                 .successor
@@ -138,6 +155,7 @@ fn commit_regional_succession(
         if change.predecessor == change.successor {
             if let Some(reference) = &change.successor {
                 predecessor.take_settlement(reference);
+                predecessor.take_settled_snapshot(reference);
                 if let Some(candidate_resource) = predecessor.take_live_resource(reference) {
                     retirement.push(candidate_resource);
                 }
@@ -146,6 +164,7 @@ fn commit_regional_succession(
         }
         if let Some(reference) = &change.predecessor {
             successor.take_settlement(reference);
+            successor.take_settled_snapshot(reference);
             if let Some(resource) = successor.take_live_resource(reference) {
                 retirement.push(resource);
             }
@@ -153,6 +172,9 @@ fn commit_regional_succession(
         if let Some(reference) = &change.successor {
             if let Some(settlement) = predecessor.take_settlement(reference) {
                 successor.replace_settlement(reference, settlement);
+            }
+            if let Some(projection) = predecessor.take_settled_snapshot(reference) {
+                successor.replace_settled_snapshot(projection);
             }
             if let Some(resource) = predecessor.take_live_resource(reference) {
                 if let Some(displaced) = successor.replace_live_resource(reference, resource) {
@@ -162,6 +184,7 @@ fn commit_regional_succession(
         }
     }
     predecessor.drain_live_resources_into(retirement);
+    successor.finish_managed_live_succession(retirement);
 }
 
 fn commit_complete_succession(
@@ -177,6 +200,10 @@ fn commit_complete_succession(
         if let Some(settlement) = predecessor.take_settlement(reference) {
             successor.replace_settlement(reference, settlement);
         }
+        if let Some(projection) = predecessor.take_settled_snapshot(reference) {
+            successor.take_settled_snapshot(reference);
+            successor.replace_settled_snapshot(projection);
+        }
         if let Some(resource) = predecessor.take_live_resource(reference) {
             if let Some(candidate_resource) = successor.replace_live_resource(reference, resource) {
                 retirement.push(candidate_resource);
@@ -186,4 +213,5 @@ fn commit_complete_succession(
     predecessor.drain_live_resources_into(retirement);
     successor.retain_only_live_resources_for(successor_references, retirement);
     successor.retain_only_settlements_for(successor_references);
+    successor.finish_managed_live_succession(retirement);
 }

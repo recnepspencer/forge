@@ -250,7 +250,8 @@ fn diagnostics_projection_rejects_report_from_different_runtime() {
 
 #[test]
 fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
-    let inputs = activation_staging_inputs();
+    let inputs =
+        super::activation_staging_test_support::activation_staging_inputs_with_query_change();
     let (mut runtime, pending) = inputs.into_runtime_and_pending();
     let failure = runtime.preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
     let report = runtime
@@ -292,9 +293,9 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
 
     assert_eq!(
         denial.reason(),
-        WorthUiDiagnosticsProjectionDenialReason::PlanInspectionAuthorityMismatch
+        WorthUiDiagnosticsProjectionDenialReason::PlanInspectionDigestMismatch
     );
-    assert_eq!(
+    assert_ne!(
         candidate_inspection.plan_digest().raw(),
         report.active_plan_digest()
     );

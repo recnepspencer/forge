@@ -17,7 +17,7 @@ use worth_query::facade::runtime::{
     WorthQueryReadBuilder, WorthQueryReadDenial, WorthQueryWorkspace,
 };
 
-use crate::{
+use crate::compatibility::managed_live::{
     WorthUiQueryAuthorityHandle, WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
 };
 

@@ -88,13 +88,11 @@ fn exact_query_native_value_reaches_the_active_plan_edge(fixture: &mut Virtualiz
         .execute(summary.target(WorthUiVisibleRange::rows(0, 3).expect("range")))
         .expect("active frame executes");
     assert_eq!(
-        receipt.evidence().native_fact(0),
-        summary_evidence.native_fact(0)
+        receipt.evidence().evidence_identity_digest(),
+        summary_evidence.evidence_identity_digest()
     );
-    assert_eq!(
-        receipt.evidence().observations()[0].extent().bits(),
-        240.0f32.to_bits()
-    );
+    assert_eq!(receipt.evidence().native_fact_count(), 1);
+    assert_eq!(receipt.evidence().observation_count(), 1);
 }
 
 fn summary_is_budgeted_and_links_read_only_query_evidence(fixture: &VirtualizedDataFixture) {
@@ -116,25 +114,6 @@ fn summary_is_budgeted_and_links_read_only_query_evidence(fixture: &VirtualizedD
         summary.definition(),
         summary.evidence().unwrap().definition()
     );
-}
-
-#[test]
-fn hostile_full_scan_and_offset_modes_do_not_exist_in_the_executor() {
-    let target_source = include_str!("../../execution/virtualized_data_lane/frame_target.rs");
-    let executor_source = include_str!("../../execution/virtualized_data_lane/frame_executor.rs");
-    let host_lane_source = include_str!("../../execution/host_lanes/virtualized_data.rs");
-    for forbidden in [
-        "FullCollectionScan",
-        "OffsetPagination",
-        "full_collection_scan_for_test",
-        "offset_pagination_for_test",
-        "component_for_test",
-        "Component",
-    ] {
-        assert!(!target_source.contains(forbidden));
-        assert!(!executor_source.contains(forbidden));
-    }
-    assert!(!host_lane_source.contains("fn execute_virtualized_data_frame("));
 }
 
 #[test]

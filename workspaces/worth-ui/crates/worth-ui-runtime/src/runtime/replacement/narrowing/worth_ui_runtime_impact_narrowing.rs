@@ -137,6 +137,13 @@ impl WorthUiRuntimeImpactNarrowing {
         &self.query_dependency_invalidations
     }
 
+    pub(crate) fn replace_with_exact_query_invalidations(
+        &mut self,
+        comparison: &crate::runtime::WorthUiQueryBindingComparison,
+    ) {
+        self.query_dependency_invalidations = comparison.exact_invalidations().to_vec();
+    }
+
     pub fn lane_impact(&self) -> Option<&WorthUiLaneImpactClassification> {
         self.lane_impact.as_ref()
     }

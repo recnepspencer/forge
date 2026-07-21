@@ -60,6 +60,8 @@ mod scroll_catalog_evidence;
 mod scroll_owner_acquisition;
 #[path = "authority/selection_certification.rs"]
 mod selection_certification;
+#[path = "selection/settled_query_fact.rs"]
+mod settled_query_fact;
 
 pub(crate) use crate::graph::UiAdmittedAllocationPlanReference;
 pub(crate) use active_catalog_store::UiActiveAllocationCatalog;

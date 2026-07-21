@@ -8,6 +8,8 @@ use crate::runtime::{
 pub(crate) struct WorthUiSealedExecutionPlanBundle {
     generation_identity:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    generation_witness:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationWitness,
     digest: WorthUiExecutionPlanDigest,
     cross_lane_receipt: super::WorthUiCrossLaneBundleReceipt,
     execution_plan: WorthUiExecutionPlan,
@@ -89,6 +91,9 @@ impl WorthUiSealedExecutionPlanBundle {
                 .candidate_application_authority()
                 .generation_identity()
                 .clone(),
+            generation_witness: authority
+                .candidate_application_authority()
+                .generation_witness(),
             digest,
             cross_lane_receipt,
             execution_plan,
@@ -213,6 +218,40 @@ impl WorthUiSealedExecutionPlanBundle {
         self.virtualized.availability()
     }
 
+    pub(crate) fn query_fact_link_for_plan_index(
+        &self,
+        plan_index: u32,
+    ) -> Option<crate::runtime::WorthUiQuerySettledFactLink> {
+        self.virtualized
+            .row_for_plan_index(plan_index)
+            .map(|row| row.settled_fact_link().clone())
+    }
+
+    pub(crate) fn query_fact_link_for_binding_id(
+        &self,
+        binding_id: &crate::capability::ViewBindingId,
+    ) -> Option<crate::runtime::WorthUiQueryLaneFactLink> {
+        let identity = crate::runtime::WorthUiPlanRegionIdentity::from_exact_basis(
+            binding_id.as_str().to_owned(),
+        );
+        let handle = self.execution_plan.region_store().handle_for(&identity)?;
+        let plan_index = u32::try_from(handle.stable_slot()).ok()?;
+        let executable = self
+            .execution_plan
+            .region_store()
+            .executable_for(&identity)?;
+        Some(crate::runtime::WorthUiQueryLaneFactLink::from_active_plan(
+            plan_index,
+            executable
+                .query_binding_identity_reference()?
+                .as_ref()
+                .clone(),
+            executable.query_settled_fact_link()?.as_ref().clone(),
+            &self.generation_identity,
+            self.generation_witness.clone(),
+        ))
+    }
+
     pub(crate) fn canvas_spatial_availability(
         &self,
     ) -> crate::runtime::WorthUiCanvasSpatialPlanAvailability {
@@ -291,14 +330,14 @@ impl WorthUiSealedExecutionPlanBundle {
                     .execution_plan
                     .region_store()
                     .executable_for(identity)
-                    .and_then(|executable| executable.query_installed_reference())
-                    .map(|reference| reference.as_ref().clone());
+                    .and_then(|executable| executable.query_settled_fact_link())
+                    .map(|link| link.installed_reference().clone());
                 let successor = candidate
                     .execution_plan
                     .region_store()
                     .executable_for(identity)
-                    .and_then(|executable| executable.query_installed_reference())
-                    .map(|reference| reference.as_ref().clone());
+                    .and_then(|executable| executable.query_settled_fact_link())
+                    .map(|link| link.installed_reference().clone());
                 (predecessor.is_some() || successor.is_some()).then(|| {
                     worth_ui_query_binding::WorthUiQueryBindingSuccessionChange::new(
                         predecessor,

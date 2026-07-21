@@ -1,79 +1,37 @@
-use worth_foundational::facade::{AspectValue, CanonicalF32, CanonicalFieldPath, FieldKey};
-use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::foundation::ProjectionFactFieldPath;
-use worth_query::facade::{domain, runtime};
+use worth_query::facade::domain;
 use worth_ui::facade::{
     app::{WorthUi, WorthUiQueryViewRegistrationError},
     query_binding::{
-        worth_ui_domain_package, worth_ui_native_aspect_contracts,
-        WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryLiveCloseOutcome,
-        WorthUiQueryLiveOpenOutcome, WorthUiQueryWorkspaceExt,
+        WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryOperationAttemptDenial,
+        WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
     },
-    source::{WorthUiSourceEventIngress, WorthUiSourceProvider, WorthUiWatcherEvent},
+};
+use worth_ui_dsl::UiDslSourceProvenance;
+use worth_ui_query_binding::compatibility::managed_live::{
+    WorthUiQueryLiveCloseOutcome, WorthUiQueryLiveOpenOutcome,
+};
+
+use crate::query_consumer_kit_application::{
+    query_bound_rust_submission, query_bound_submission, query_free_app,
+};
+use crate::query_consumer_kit_workspace::{
+    installed_measurement_workspace, measurement_value_path, observation_basis,
 };
 
 #[test]
-fn external_consumer_installs_derives_registers_and_projects_through_public_facades() {
-    let mut workspace = installed_measurement_workspace("public-query-binding-journey");
-    let installed = workspace
-        .worth_ui()
-        .expect("the public extension resolves installed Worth UI authority");
-    let view = installed
-        .measurement_view("inspector.measurements")
-        .expect("the installed domain derives one coherent view");
-    let projection_view = view.clone();
-
-    let snapshot = WorthUi::app()
-        .register_query_view(view.clone())
-        .expect("the public builder registers installed authority")
-        .freeze()
-        .expect("capability snapshot preparation should succeed");
-    let submission = query_bound_submission(snapshot.capabilities());
-    let app = WorthUi::app()
-        .register_query_view(view)
-        .expect("the public builder registers installed authority")
-        .with_candidate_submission(submission)
-        .freeze()
-        .expect("application preparation should succeed");
-    assert_eq!(app.capabilities().view_bindings().len(), 1);
-    assert!(app.graph().node_count() > 0);
-    let mut session = app
+fn public_query_free_application_has_no_query_or_managed_live_runtime_cost() {
+    let session = query_free_app()
         .launch()
-        .expect("the Query-bound source candidate launches through the public session");
-
-    let completion = projection_view
-        .read()
-        .expect("installed read declaration")
-        .using(domain::current())
-        .run(&mut workspace)
-        .expect("workspace and installed view share authority")
-        .into_result()
-        .expect("installed read completion");
-    let outcome = projection_view
-        .project(
-            &completion,
-            domain::project_facts().display_field(measurement_value_path()),
-        )
-        .expect("the same installed view retains projection authority");
-    assert_eq!(
-        projection_view.definition().identity().as_str(),
-        "inspector.measurements"
-    );
-    let mut submission = None;
-    let active_generation = session.generation_identity().clone();
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|query| {
-            submission = Some(query.admit_and_submit(outcome));
-        });
-    });
-    assert_eq!(completion.generation_identity(), &active_generation);
-    drop(completion.into_completion());
-    let gateway = submission
-        .expect("the Query projection source ran")
-        .expect("the installed projection settled through the public runtime facade");
-    assert!(gateway.submission().is_some());
-    assert!(gateway.evidence().is_some());
-    assert_eq!(gateway.counters().ingress_count(), 1);
+        .expect("the real file-authored Query-free application launches");
+    let scan = session.inspect_query_state_residue();
+    assert!(!scan.query_installed());
+    assert_eq!(scan.scanned_query_bindings(), 0);
+    assert_eq!(scan.scanned_plan_query_links(), 0);
+    assert_eq!(scan.scanned_settled_snapshots(), 0);
+    assert_eq!(scan.scanned_live_resources(), 0);
+    assert_eq!(scan.managed_live_subsystem_construction_count(), 0);
+    assert_eq!(scan.managed_live_succession_operation_count(), 0);
+    assert!(scan.is_clean());
     let _shutdown = session.shutdown();
 }
 
@@ -119,7 +77,8 @@ fn public_framework_turn_atomically_admits_and_releases_a_real_query_live_resour
 
     let completion = session.execute_framework_turn(|turn| {
         turn.query_projection(|query| {
-            admission = Some(query.admit_live_and_submit(resource, projection));
+            admission =
+                Some(query.admit_managed_live_compatibility_and_submit(resource, projection));
         });
     });
 
@@ -162,18 +121,36 @@ fn public_builder_rejects_semantically_equal_views_from_foreign_query_installati
     let second = second_workspace
         .worth_ui()
         .expect("second installed Worth UI domain resolves");
-    let builder = WorthUi::app()
-        .register_query_view(
-            first
-                .measurement_view("inspector.measurements")
-                .expect("first view installs"),
+    let first_view = first
+        .measurement_view("inspector.measurements")
+        .expect("first view installs");
+    let second_view = second
+        .measurement_view("inspector.measurements")
+        .expect("second semantically equal view installs");
+    assert_eq!(
+        first_view.definition().digest(),
+        second_view.definition().digest(),
+        "the hostile pair deliberately shares its diagnostic definition digest"
+    );
+    let app = WorthUi::app()
+        .register_query_view(first_view.clone())
+        .expect("first installation registers")
+        .freeze()
+        .expect("first installation prepares");
+    let reference = app
+        .resolve_query_view(
+            &WorthUiQueryViewIdentity::new("inspector.measurements").unwrap(),
+            WorthUiQueryViewShape::Collection,
         )
+        .expect("prepared application retains its installed reference");
+    assert!(matches!(
+        reference.enter_snapshot_attempt(&second_workspace, observation_basis()),
+        Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch)
+    ));
+    let builder = WorthUi::app()
+        .register_query_view(first_view)
         .expect("first installation registers");
-    let denial = match builder.register_query_view(
-        second
-            .measurement_view("inspector.measurements")
-            .expect("second semantically equal view installs"),
-    ) {
+    let denial = match builder.register_query_view(second_view) {
         Ok(_) => panic!("foreign Query installation cannot join the prepared authority"),
         Err(denial) => denial,
     };
@@ -185,63 +162,62 @@ fn public_builder_rejects_semantically_equal_views_from_foreign_query_installati
     ));
 }
 
-fn query_bound_submission(
-    snapshot: &worth_ui::facade::diagnostics::CapabilitySnapshot,
-) -> worth_ui::facade::source::WorthUiWatchedCandidateSubmission {
-    let provider_id = "query-consumer-kit-source";
-    let mut ingress = WorthUiSourceEventIngress::new(
-        WorthUiSourceProvider::in_memory(provider_id)
-            .with_file("app/main.wui", "binding inspector.measurements {}"),
-    )
-    .start();
-    ingress
-        .ingest([WorthUiWatcherEvent::provider_revision(provider_id)])
-        .expect("Query-bound source settles")
-        .lower_to_candidate_submission(snapshot)
-        .expect("Query-bound source lowers to one inseparable candidate submission")
-}
+#[test]
+fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
+    let workspace = installed_measurement_workspace("authored-query-binding-convergence");
+    let installed = workspace.worth_ui().unwrap();
+    let view = installed
+        .measurement_view("inspector.measurements")
+        .unwrap();
+    let capability_app = WorthUi::app()
+        .register_query_view(view.clone())
+        .unwrap()
+        .freeze()
+        .unwrap();
+    let file_app = WorthUi::app()
+        .register_query_view(view.clone())
+        .unwrap()
+        .with_candidate_submission(query_bound_submission(capability_app.capabilities()))
+        .freeze()
+        .unwrap();
+    let rust_app = WorthUi::app()
+        .register_query_view(view)
+        .unwrap()
+        .with_candidate_submission(query_bound_rust_submission(capability_app.capabilities()))
+        .freeze()
+        .unwrap();
+    let identity = WorthUiQueryViewIdentity::new("inspector.measurements").unwrap();
+    let file_reference = file_app
+        .resolve_query_view(&identity, WorthUiQueryViewShape::Collection)
+        .unwrap();
+    let rust_reference = rust_app
+        .resolve_query_view(&identity, WorthUiQueryViewShape::Collection)
+        .unwrap();
 
-fn installed_measurement_workspace(label: &str) -> runtime::WorthQueryWorkspace {
-    let schema = WorthQueryTestBackendSchema::single_collection("WorthUiMeasurement")
-        .aspect_contracts(worth_ui_native_aspect_contracts())
-        .expect("native contracts")
-        .aspect("identity.id", "identity.id")
-        .expect("identity aspect")
-        .aspect("measurement.value", "measurement.value")
-        .expect("measurement aspect");
-    let mut workspace = in_memory_test_runtime()
-        .with_schema(schema)
-        .domain_package(worth_ui_domain_package())
-        .workspace(label)
-        .expect("installed Query workspace");
-    workspace
-        .insert("WorthUiMeasurement", |measurement| {
-            measurement
-                .set_aspect(
-                    runtime::WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")
-                        .expect("identity touch"),
-                    runtime::WorthQueryAuthoredAspectValue::string("measurement"),
-                )
-                .set_aspect(
-                    runtime::WorthQueryAspectTouch::from_authoring_ingress_text(
-                        "measurement.value",
-                    )
-                    .expect("measurement touch"),
-                    runtime::WorthQueryAuthoredAspectValue::native(AspectValue::Float32(
-                        CanonicalF32::from_f32(240.0),
-                    )),
-                )
-        })
-        .expect("measurement insertion");
-    workspace
-}
-
-fn measurement_value_path() -> ProjectionFactFieldPath {
-    ProjectionFactFieldPath::from_canonical_field_path(
-        CanonicalFieldPath::new([
-            FieldKey::new("measurement").expect("aspect path"),
-            FieldKey::new("value").expect("field path"),
-        ])
-        .expect("measurement path"),
-    )
+    assert_eq!(file_reference, rust_reference);
+    assert!(file_app
+        .declaration_artifacts()
+        .iter()
+        .any(|artifact| matches!(
+            artifact.provenance().source_provenance(),
+            UiDslSourceProvenance::FileAuthored { .. }
+        )));
+    assert!(rust_app
+        .declaration_artifacts()
+        .iter()
+        .any(|artifact| matches!(
+            artifact.provenance().source_provenance(),
+            UiDslSourceProvenance::RustAuthored { .. }
+        )));
+    let file_bound = file_reference
+        .enter_snapshot_attempt(&workspace, observation_basis())
+        .unwrap()
+        .bind_snapshot()
+        .unwrap();
+    let rust_bound = rust_reference
+        .enter_snapshot_attempt(&workspace, observation_basis())
+        .unwrap()
+        .bind_snapshot()
+        .unwrap();
+    assert_eq!(file_bound.binding_identity(), rust_bound.binding_identity());
 }

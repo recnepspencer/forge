@@ -14,7 +14,7 @@ pub struct WorthUiVirtualizedDataFrameReceipt {
     touched_plan_index: u32,
     touched_runtime_handle: WorthUiRuntimeHandle,
     binding_identity: Rc<WorthUiQueryBindingIdentity>,
-    evidence: worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceReference,
+    evidence: worth_ui_query_binding::WorthUiQueryFrameEvidence,
     counters: WorthUiVirtualizedDataCounters,
     certification: WorthUiVirtualizedDataCertification,
     resolution_evidence: WorthUiHandleResolutionEvidence,
@@ -28,7 +28,7 @@ pub(crate) struct WorthUiVirtualizedDataFrameReceiptInput {
     pub touched_plan_index: u32,
     pub touched_runtime_handle: WorthUiRuntimeHandle,
     pub binding_identity: Rc<WorthUiQueryBindingIdentity>,
-    pub evidence: worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceReference,
+    pub evidence: worth_ui_query_binding::WorthUiQueryFrameEvidence,
     pub counters: WorthUiVirtualizedDataCounters,
     pub certification: WorthUiVirtualizedDataCertification,
     pub resolution_evidence: WorthUiHandleResolutionEvidence,
@@ -76,8 +76,8 @@ impl WorthUiVirtualizedDataFrameReceipt {
         &self.binding_identity
     }
 
-    pub fn evidence(&self) -> &worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceReference {
-        &self.evidence
+    pub fn evidence(&self) -> worth_ui_query_binding::WorthUiQueryFrameEvidence {
+        self.evidence
     }
 
     pub fn counters(&self) -> WorthUiVirtualizedDataCounters {

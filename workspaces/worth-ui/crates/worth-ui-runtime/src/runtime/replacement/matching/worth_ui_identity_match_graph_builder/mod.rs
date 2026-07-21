@@ -15,9 +15,7 @@ use crate::runtime::{
     WorthUiIdentityMatchNodeSide, WorthUiIdentityMatchReport, WorthUiRuntimeImpactNarrowing,
 };
 
-use admission_guards::{
-    reject_changed_admission_receipts, reject_mismatched_active_basis, reject_mismatched_candidate,
-};
+use admission_guards::{reject_mismatched_active_basis, reject_mismatched_candidate};
 use index_nodes::index_artifact_nodes;
 use match_graph::build_match_graph;
 
@@ -33,7 +31,6 @@ impl WorthUiIdentityMatchGraphBuilder {
         let mut counters = WorthUiIdentityMatchCounters::default();
         reject_mismatched_active_basis(active_artifact, narrowing, counters)?;
         reject_mismatched_candidate(narrowing, admitted, counters)?;
-        reject_changed_admission_receipts(admitted, counters)?;
 
         let active_index = index_artifact_nodes(
             active_artifact.artifact(),

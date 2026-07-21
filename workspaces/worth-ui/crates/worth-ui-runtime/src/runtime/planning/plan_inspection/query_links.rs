@@ -1,28 +1,23 @@
-use crate::runtime::{
-    WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture, WorthUiQueryRebindRequiredSurface,
-};
+use crate::runtime::{WorthUiQueryBindingIdentity, WorthUiQuerySettledFactLink};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiQueryInspectionLinks {
     binding_identity: WorthUiQueryBindingIdentity,
-    posture: WorthUiQueryBindingPosture,
+    settled_fact_link: WorthUiQuerySettledFactLink,
     preservation_receipt: Option<crate::runtime::WorthUiQueryBindingPreservationReceipt>,
-    required_surfaces: Vec<WorthUiQueryRebindRequiredSurface>,
 }
 
 impl WorthUiQueryInspectionLinks {
     #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn from_query_posture(
+    pub(crate) fn from_settled_fact_link(
         binding_identity: WorthUiQueryBindingIdentity,
-        posture: WorthUiQueryBindingPosture,
+        settled_fact_link: WorthUiQuerySettledFactLink,
         preservation_receipt: Option<crate::runtime::WorthUiQueryBindingPreservationReceipt>,
-        required_surfaces: Vec<WorthUiQueryRebindRequiredSurface>,
     ) -> Self {
         Self {
             binding_identity,
-            posture,
+            settled_fact_link,
             preservation_receipt,
-            required_surfaces,
         }
     }
 
@@ -30,17 +25,13 @@ impl WorthUiQueryInspectionLinks {
         &self.binding_identity
     }
 
-    pub fn posture(&self) -> &WorthUiQueryBindingPosture {
-        &self.posture
+    pub fn settled_fact_link(&self) -> &WorthUiQuerySettledFactLink {
+        &self.settled_fact_link
     }
 
     pub fn preservation_receipt(
         &self,
     ) -> Option<crate::runtime::WorthUiQueryBindingPreservationReceipt> {
         self.preservation_receipt
-    }
-
-    pub fn required_surfaces(&self) -> &[WorthUiQueryRebindRequiredSurface] {
-        &self.required_surfaces
     }
 }

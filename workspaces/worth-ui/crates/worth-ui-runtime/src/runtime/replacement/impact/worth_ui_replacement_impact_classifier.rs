@@ -26,7 +26,6 @@ impl WorthUiReplacementImpactClassifier {
 
         reject_mismatched_active_basis(comparison, admitted, counters)?;
         reject_mismatched_comparison_candidate(comparison, admitted, counters)?;
-        reject_changed_admission_receipts(admitted, counters)?;
 
         if comparison.outcome() == WorthUiRuntimeArtifactComparisonOutcome::EquivalentNoOp {
             return Ok(classification(
@@ -58,21 +57,19 @@ impl WorthUiReplacementImpactClassifier {
     }
 }
 
-fn reject_changed_admission_receipts(
-    admitted: &WorthUiAdmittedReplacementCandidate,
-    counters: WorthUiReplacementImpactCounters,
-) -> Result<(), WorthUiReplacementImpactDenial> {
-    admitted.verify_receipts_unchanged().map_err(|denial| {
-        WorthUiReplacementImpactDenial::AdmissionReceiptChanged { denial, counters }
-    })
-}
-
 fn classify_meaningful_difference(
     active_artifact: &crate::source::WorthUiArtifact,
     comparison: &WorthUiRuntimeArtifactComparison,
     admitted: &WorthUiAdmittedReplacementCandidate,
     counters: &mut WorthUiReplacementImpactCounters,
 ) -> Result<WorthUiReplacementImpact, WorthUiReplacementImpactDenial> {
+    if active_artifact.query_binding_ids()
+        != admitted.artifact_bundle().artifact().query_binding_ids()
+    {
+        return Ok(WorthUiReplacementImpact::StructuralReplacement(
+            structural_scope_from_artifacts(active_artifact, admitted, counters),
+        ));
+    }
     match comparison
         .artifact_equivalence()
         .first_difference()
@@ -249,17 +246,26 @@ fn structural_scope_from_artifacts(
 ) -> WorthUiReplacementScope {
     let metadata = admitted.artifact_bundle().dependency_metadata();
     let graph = metadata.invalidation_basis().dependency_graph();
+    let candidate_artifact = admitted.artifact_bundle().artifact();
     let active_by_identity = active_artifact
         .identity_handles()
         .collect::<std::collections::BTreeMap<_, _>>();
-    let impacted_handles = admitted
-        .artifact_bundle()
-        .artifact()
+    let impacted_handles = candidate_artifact
         .identity_handles()
         .filter(|(identity, candidate_handle)| {
-            active_by_identity
-                .get(identity)
-                .is_none_or(|active_handle| active_handle.kind() != candidate_handle.kind())
+            let Some(active_handle) = active_by_identity.get(identity) else {
+                return true;
+            };
+            if active_handle.kind() != candidate_handle.kind() {
+                return true;
+            }
+            let active_node = active_artifact
+                .node_for_identity_basis(identity)
+                .expect("active identity index resolves its node");
+            let candidate_node = candidate_artifact
+                .node_for_identity_basis(identity)
+                .expect("candidate identity index resolves its node");
+            !active_node.has_same_semantic_meaning_ignoring_location(candidate_node)
         })
         .map(|(_, candidate_handle)| candidate_handle.clone())
         .collect::<Vec<_>>();

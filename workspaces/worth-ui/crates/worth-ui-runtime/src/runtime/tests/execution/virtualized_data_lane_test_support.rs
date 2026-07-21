@@ -90,17 +90,25 @@ impl VirtualizedDataFixture {
             .expect("query source app prepares")
             .launch()
             .expect("query source app launches");
-        let outcome = query.project();
+        let projection = query.settle_snapshot();
+        let fact_link = session
+            .query_fact_link("inspector.measurements")
+            .expect("active plan retains the Query fact link");
         let mut admission = None;
         let completion = session.execute_framework_turn(|turn| {
             turn.query_projection(|source| {
-                admission = Some(source.admit_and_submit(outcome));
+                admission = Some(
+                    source
+                        .admit_settled(projection)
+                        .map(|_| source.submit_settled(&fact_link)),
+                );
             });
         });
         drop(completion.into_completion());
         admission
             .expect("projection source executes")
-            .expect("projection admits through exact installed binding");
+            .expect("projection admits through exact installed binding")
+            .expect("settled fact submits through the compact plan link");
         Self { session }
     }
 

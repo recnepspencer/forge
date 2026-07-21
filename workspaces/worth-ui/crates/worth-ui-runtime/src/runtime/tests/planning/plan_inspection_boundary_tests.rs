@@ -64,7 +64,7 @@ fn plan_inspection_explains_artifact_and_capability_origin() {
         );
         if node_input.family() == WorthUiPlanNodeInputFamily::QueryViewBinding {
             if node_input.query_binding_identity().is_some() {
-                assert!(node_input.query_binding_posture().is_some());
+                assert!(node_input.query_settled_fact_link().is_some());
                 assert_eq!(
                     inspected_node.artifact_provenance().source(),
                     WorthUiPlanProvenanceSource::QueryBinding
@@ -134,7 +134,35 @@ fn semantic_plan_provenance_replay_is_deterministic_without_sharing_handles() {
         );
     }
     assert_eq!(left.lanes(), right.lanes());
-    assert_eq!(left.provenance(), right.provenance());
+    assert_eq!(left.provenance().len(), right.provenance().len());
+    for (left_row, right_row) in left.provenance().iter().zip(right.provenance()) {
+        assert_eq!(left_row.plan_index(), right_row.plan_index());
+        assert_eq!(left_row.identity_basis(), right_row.identity_basis());
+        assert_eq!(left_row.input_family(), right_row.input_family());
+        assert_eq!(
+            left_row.authored_provenance_digest(),
+            right_row.authored_provenance_digest()
+        );
+        assert_eq!(left_row.source(), right_row.source());
+        assert_eq!(
+            left_row.capability_reference(),
+            right_row.capability_reference()
+        );
+        match (left_row.query_links(), right_row.query_links()) {
+            (Some(left_links), Some(right_links)) => {
+                assert_eq!(
+                    left_links.binding_identity(),
+                    right_links.binding_identity()
+                );
+                assert_eq!(
+                    left_links.settled_fact_link(),
+                    right_links.settled_fact_link()
+                );
+            }
+            (None, None) => {}
+            _ => panic!("semantic replay must preserve Query link presence"),
+        }
+    }
     assert_eq!(left.counters(), right.counters());
 }
 
@@ -160,14 +188,13 @@ fn query_owned_inspection_links_are_preserved_not_reauthored() {
             "workspace.view_binding.selection"
         );
         assert_eq!(*links, &expected_links);
-        assert_eq!(links.posture(), expected_links.posture());
+        assert_eq!(
+            links.settled_fact_link(),
+            expected_links.settled_fact_link()
+        );
         assert_eq!(
             links.preservation_receipt(),
             expected_links.preservation_receipt()
-        );
-        assert_eq!(
-            links.required_surfaces(),
-            expected_links.required_surfaces()
         );
     }
     assert_eq!(

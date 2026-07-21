@@ -166,6 +166,40 @@ pub(super) fn query_receipt_compatibility(
     None
 }
 
+pub(super) fn settled_query_receipt_compatibility(
+    receipt: &crate::evidence::UiSettledQueryFactReceipt,
+    world_profile: &crate::graph::UiGraphWorldProfile,
+    declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
+) -> Option<UiMeasurementGenerationCompatibility> {
+    if receipt.declaration_support_authority_generation()
+        != declaration_support_authority_generation
+    {
+        return Some(
+            UiMeasurementGenerationCompatibility::StaleQueryFactReceipt {
+                expected: declaration_support_authority_generation,
+                observed: receipt.declaration_support_authority_generation(),
+            },
+        );
+    }
+    let crate::graph::UiGraphWorldProfile::SettledQueryBinding {
+        view_binding_id,
+        query_binding_identity,
+    } = world_profile
+    else {
+        return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
+            reason: crate::evidence::UiQueryWorldCompatibilityFailure::QueryAuthorityUnavailable,
+        });
+    };
+    if view_binding_id != receipt.view_binding_id()
+        || query_binding_identity.as_ref() != receipt.query_binding_identity()
+    {
+        return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
+            reason: crate::evidence::UiQueryWorldCompatibilityFailure::InstalledAuthorityMismatch,
+        });
+    }
+    None
+}
+
 pub(super) fn push_host_lineage(
     entries: &mut Vec<UiMeasurementDependencyLineageEntry>,
     result: Option<&UiMeasurementResult>,

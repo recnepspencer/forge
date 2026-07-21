@@ -70,11 +70,15 @@ fn one_real_file_authored_bundle_executes_every_sealed_lane_posture() {
     );
     assert!(equivalence.lane_partition_count() >= 4);
 
-    let projection = scenario.query_projection();
+    let projection = scenario.settled_query_projection();
+    let fact_link = session
+        .query_fact_link("inspector.measurements")
+        .expect("active plan retains one compact Query fact link");
     let mut projection_admitted = false;
     let projection_turn = session.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
-            projection_admitted = source.admit_and_submit(projection).is_ok();
+            projection_admitted = source.admit_settled(projection).is_ok()
+                && source.submit_settled(&fact_link).is_ok();
         });
     });
     assert!(projection_admitted);

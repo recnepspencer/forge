@@ -198,9 +198,14 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
     drop(interaction);
 
     let mut projection_admitted = false;
+    let fact_link = session
+        .query_fact_link("inspector.measurements")
+        .expect("active plan retains the installed Query fact link");
+    let settled = file_query.settle_snapshot();
     let completion = session.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
-            projection_admitted = source.admit_and_submit(file_query.project()).is_ok();
+            projection_admitted =
+                source.admit_settled(settled).is_ok() && source.submit_settled(&fact_link).is_ok();
         });
     });
     assert!(

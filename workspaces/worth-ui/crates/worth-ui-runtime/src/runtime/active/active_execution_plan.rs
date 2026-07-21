@@ -61,6 +61,27 @@ impl WorthUiActiveExecutionPlan {
         self.bundle.virtualized_availability()
     }
 
+    pub(crate) fn query_fact_link_for_plan_index(
+        &self,
+        plan_index: u32,
+    ) -> Option<crate::runtime::WorthUiQuerySettledFactLink> {
+        self.bundle.query_fact_link_for_plan_index(plan_index)
+    }
+
+    pub(crate) fn query_fact_link_for_binding_id(
+        &self,
+        binding_id: &crate::capability::ViewBindingId,
+    ) -> Option<crate::runtime::WorthUiQueryLaneFactLink> {
+        self.bundle.query_fact_link_for_binding_id(binding_id)
+    }
+
+    pub(crate) fn query_plan_state_observation(
+        &self,
+        binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    ) -> super::WorthUiActiveQueryPlanObservation {
+        self.bundle.query_plan_state_observation(binding)
+    }
+
     pub(crate) fn canvas_spatial_availability(
         &self,
     ) -> crate::runtime::WorthUiCanvasSpatialPlanAvailability {

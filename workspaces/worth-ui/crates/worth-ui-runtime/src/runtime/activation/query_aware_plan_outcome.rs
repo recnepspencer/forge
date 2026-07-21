@@ -2,7 +2,8 @@ use crate::runtime::WorthUiPlanSwapReceipt;
 
 pub(crate) struct WorthUiQueryAwarePlanSwap {
     plan_swap: WorthUiPlanSwapReceipt,
-    query_retirement: worth_ui_query_binding::WorthUiQueryLiveRetirement,
+    query_retirement:
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
     plan_decision: crate::runtime::WorthUiExecutablePlanDecision,
     catalog_successor_receipt: Option<crate::runtime::UiAllocationCatalogSuccessorReceipt>,
 }
@@ -31,7 +32,8 @@ impl WorthUiQueryAwarePlanOutcome {
 impl WorthUiQueryAwarePlanSwap {
     pub(super) fn new(
         plan_swap: WorthUiPlanSwapReceipt,
-        query_retirement: worth_ui_query_binding::WorthUiQueryLiveRetirement,
+        query_retirement:
+            worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
         plan_decision: crate::runtime::WorthUiExecutablePlanDecision,
         catalog_successor_receipt: Option<crate::runtime::UiAllocationCatalogSuccessorReceipt>,
     ) -> Self {
@@ -47,7 +49,7 @@ impl WorthUiQueryAwarePlanSwap {
         self,
     ) -> (
         WorthUiPlanSwapReceipt,
-        worth_ui_query_binding::WorthUiQueryLiveRetirement,
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
         crate::runtime::WorthUiExecutablePlanDecision,
         Option<crate::runtime::UiAllocationCatalogSuccessorReceipt>,
     ) {

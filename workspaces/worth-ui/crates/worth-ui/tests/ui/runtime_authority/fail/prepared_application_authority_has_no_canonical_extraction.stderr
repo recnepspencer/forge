@@ -80,7 +80,7 @@ error[E0432]: unresolved imports `worth_ui::facade::WorthUiComponentHandle`, `wo
 worth_ui::facade::runtime::WorthUiRealtimeFrameTarget
 worth_ui_runtime::facade::execution::WorthUiRealtimeFrameTarget
 
-error[E0432]: unresolved import `worth_ui::facade::WorthUiQueryBindingPosture`
+error[E0432]: unresolved import `worth_ui::facade::WorthUiQueryBindingUiRequirements`
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/local_query_result_state_enum_cannot_replace_query_binding_posture.rs
 
 error[E0432]: unresolved import `worth_ui::facade::WorthUiQueryBindingRebind`

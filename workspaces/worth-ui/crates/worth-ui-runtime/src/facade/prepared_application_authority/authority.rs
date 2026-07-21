@@ -227,7 +227,7 @@ impl WorthUiPreparedApplicationAuthority {
             artifact_digest,
             snapshot_digest: self.capability_snapshot.digest(),
             diagnostic_policy,
-            query_binding: self.query_binding_plan.activate(),
+            query_binding: self.query_binding_plan.prepare_downstream_state(),
             host_session_plan: self.host_session_plan.clone(),
         })
     }

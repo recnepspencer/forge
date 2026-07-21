@@ -10,6 +10,7 @@ mod app;
 mod app_builder;
 mod application_replacement;
 mod builder;
+pub use crate::runtime::exports::WorthUiAllocationCatalogActivationDenial;
 pub use active_application_session::{
     WorthUiActiveApplicationSession, WorthUiActiveInspectionReceipt,
 };

@@ -311,11 +311,13 @@ fn node_requires_rebind(
     active_node: &WorthUiIdentityMatchNode,
     narrowing: &WorthUiRuntimeImpactNarrowing,
 ) -> bool {
-    !narrowing.query_dependency_invalidations().is_empty()
-        && matches!(
-            active_node.kind(),
-            crate::runtime::WorthUiIdentityMatchNodeKind::Binding
-        )
+    matches!(
+        active_node.kind(),
+        crate::runtime::WorthUiIdentityMatchNodeKind::Binding
+    ) && narrowing
+        .query_dependency_invalidations()
+        .iter()
+        .any(|invalidation| invalidation.view_binding_id() == active_node.identity_basis())
 }
 
 fn node_requires_replace(

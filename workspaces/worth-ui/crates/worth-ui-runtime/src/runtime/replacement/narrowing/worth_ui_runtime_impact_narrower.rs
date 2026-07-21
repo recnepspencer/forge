@@ -26,7 +26,6 @@ impl WorthUiRuntimeImpactNarrower {
 
         reject_mismatched_active_basis(classification, admitted, counters)?;
         reject_mismatched_candidate(classification, admitted, counters)?;
-        reject_changed_admission_receipts(admitted, counters)?;
 
         counters.record_dependency_metadata_read();
         let basis = admitted
@@ -41,9 +40,8 @@ impl WorthUiRuntimeImpactNarrower {
             affected_subtree_digests_from_handles(&affected_handles, basis, &mut counters);
         let query_dependency_invalidations =
             query_invalidations_from_handles(&affected_handles, basis, &mut counters);
-        reject_query_receipt_dependency_metadata_mismatch(admitted, basis, counters)?;
         reject_affected_query_handles_without_query_invalidations(
-            admitted,
+            basis,
             &affected_handles,
             &query_dependency_invalidations,
             counters,
@@ -109,15 +107,6 @@ fn reject_mismatched_candidate(
             },
         )
     }
-}
-
-fn reject_changed_admission_receipts(
-    admitted: &WorthUiAdmittedReplacementCandidate,
-    counters: WorthUiImpactLookupCounters,
-) -> Result<(), WorthUiRuntimeImpactNarrowingDenial> {
-    admitted.verify_receipts_unchanged().map_err(|denial| {
-        WorthUiRuntimeImpactNarrowingDenial::AdmissionReceiptChanged { denial, counters }
-    })
 }
 
 fn affected_handles_from_impact(
@@ -201,39 +190,13 @@ fn query_invalidations_from_handles(
         .collect()
 }
 
-fn reject_query_receipt_dependency_metadata_mismatch(
-    admitted: &WorthUiAdmittedReplacementCandidate,
-    basis: &WorthUiIncrementalInvalidationBasis,
-    counters: WorthUiImpactLookupCounters,
-) -> Result<(), WorthUiRuntimeImpactNarrowingDenial> {
-    let receipt_runtime_hook_count = admitted
-        .report()
-        .query_support_receipt()
-        .runtime_hook_count();
-    let metadata_runtime_hook_count = runtime_hook_count_from_dependency_metadata(basis);
-    if receipt_runtime_hook_count == metadata_runtime_hook_count {
-        Ok(())
-    } else {
-        Err(
-            WorthUiRuntimeImpactNarrowingDenial::QueryDependencyMetadataReceiptMismatch {
-                receipt_runtime_hook_count,
-                metadata_runtime_hook_count,
-                counters,
-            },
-        )
-    }
-}
-
 fn reject_affected_query_handles_without_query_invalidations(
-    admitted: &WorthUiAdmittedReplacementCandidate,
+    basis: &WorthUiIncrementalInvalidationBasis,
     affected_handles: &[WorthUiArtifactHandle],
     query_invalidations: &[WorthUiQueryDependencyInvalidation],
     counters: WorthUiImpactLookupCounters,
 ) -> Result<(), WorthUiRuntimeImpactNarrowingDenial> {
-    let expected_runtime_hook_count = admitted
-        .report()
-        .query_support_receipt()
-        .runtime_hook_count();
+    let expected_runtime_hook_count = runtime_hook_count_from_dependency_metadata(basis);
     let affected_query_capable_node = affected_handles.iter().any(|handle| {
         matches!(
             handle.kind(),

@@ -208,7 +208,7 @@ fn scroll_owned_scenario(
     artifact: &UiDeclarationArtifact,
     world_profile: UiGraphWorldProfile,
     generation: UiEvidenceAuthorityGeneration,
-    authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     host_requests: &[UiMeasurementBasisCertificationHostRequest],
 ) -> UiMeasurementBasisCertificationScenario {
     let capability_report = capability_report();
@@ -274,7 +274,7 @@ fn measurement_policy(artifact: &UiDeclarationArtifact) -> UiDeclaredMeasurement
 fn admission_target(
     app: &WorthUiApp,
     artifact: &UiDeclarationArtifact,
-    authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
 ) -> worth_ui::facade::admission::UiAdmissionTarget {
     let touch = measurement_touch(
         app,

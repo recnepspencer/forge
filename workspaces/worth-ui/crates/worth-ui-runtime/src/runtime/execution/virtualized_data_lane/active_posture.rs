@@ -48,6 +48,16 @@ impl WorthUiActiveVirtualizedDataPlanPosture {
         }
     }
 
+    pub(crate) fn row_for_plan_index(
+        &self,
+        plan_index: u32,
+    ) -> Option<crate::runtime::WorthUiVirtualizedDataNode> {
+        match self {
+            Self::Executable(plan) => plan.row_for_plan_index(plan_index),
+            Self::QueryFree => None,
+        }
+    }
+
     pub(crate) fn execute(
         &self,
         query_binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,

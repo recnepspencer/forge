@@ -6,13 +6,14 @@ use worth_ui::facade::app::{
     WorthUiOrdinaryFrameTarget, WorthUiVirtualizedDataFrameTarget,
     WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
 };
-use worth_ui::facade::query_binding::{WorthUiInstalledLiveQueryView, WorthUiQueryWorkspaceExt};
+use worth_ui::facade::query_binding::WorthUiQueryWorkspaceExt;
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
     WorthUiWatchedCandidateSubmission,
 };
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_host_egui::WorthUiHostEgui;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiInstalledLiveQueryView;
 
 use super::scenario::{
     application_with_submission_and_host, capability_application, installed_workspace,
@@ -70,7 +71,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     let primed = activate_settled(&mut watcher, &mut session, None, &mut query_workspace)
         .into_activation()
         .expect("the first replacement primes complete allocation truth");
-    assert!(primed.query_retirement().is_empty());
+    assert!(primed.managed_live_compatibility_retirement().is_empty());
     assert_ne!(session.generation_identity(), &launch_generation);
     execute_real_egui_frame(&context, &mut session, true);
 
@@ -92,7 +93,10 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     .into_activation()
     .expect("bounded Query change publishes");
     assert_ne!(session.generation_identity(), &primed_generation);
-    close_retirement(changed.into_query_retirement(), &mut query_workspace);
+    close_retirement(
+        changed.into_managed_live_compatibility_retirement(),
+        &mut query_workspace,
+    );
     assert_stale_query_target(&mut session, first_target);
     execute_real_egui_frame(&context, &mut session, true);
 
@@ -134,7 +138,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
             .expect("restoration must return one canonical executable decision");
         assert_eq!(receipt.prior_generation(), &before_removed_import);
         assert_eq!(receipt.active_generation(), session.generation_identity());
-        assert!(receipt.query_retirement().is_empty());
+        assert!(receipt.managed_live_compatibility_retirement().is_empty());
     }
     execute_real_egui_frame(&context, &mut session, true);
 
@@ -142,7 +146,10 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     let query_free = activate_settled(&mut watcher, &mut session, None, &mut query_workspace)
         .into_activation()
         .expect("Query removal publishes");
-    close_retirement(query_free.into_query_retirement(), &mut query_workspace);
+    close_retirement(
+        query_free.into_managed_live_compatibility_retirement(),
+        &mut query_workspace,
+    );
     assert_eq!(
         session.virtualized_plan_availability(),
         WorthUiVirtualizedPlanAvailability::QueryFree
@@ -158,7 +165,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     )
     .into_activation()
     .expect("Query reintroduction publishes");
-    assert!(rebound.query_retirement().is_empty());
+    assert!(rebound.managed_live_compatibility_retirement().is_empty());
     execute_real_egui_frame(&context, &mut session, true);
 
     let frozen = freeze_churn_candidates(&session, CHURN_COUNT);
@@ -172,8 +179,11 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         )
         .into_activation()
         .expect("each production-frozen candidate publishes");
-        assert_eq!(changed.query_retirement().len(), 1);
-        close_retirement(changed.into_query_retirement(), &mut query_workspace);
+        assert_eq!(changed.managed_live_compatibility_retirement().len(), 1);
+        close_retirement(
+            changed.into_managed_live_compatibility_retirement(),
+            &mut query_workspace,
+        );
         execute_real_egui_frame(&context, &mut session, true);
     }
 

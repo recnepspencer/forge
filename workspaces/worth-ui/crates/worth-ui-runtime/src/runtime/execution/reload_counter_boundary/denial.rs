@@ -9,8 +9,6 @@ pub struct WorthUiReloadCounterBoundaryDenial {
 pub enum WorthUiReloadCounterBoundaryDenialReason {
     EmptyCounterReceipt,
     FullArtifactScanDetected,
-    RepeatedQuerySupportRediscovery,
-    MissingCarriedQueryEvidence,
     MissingRequiredCounterRow,
     UnexpectedCounterRow,
     DuplicateCounterRow,

@@ -36,8 +36,22 @@ mod headless_output_observer;
 mod multi_removal_filesystem;
 #[path = "../application_contracts/public_application_lifecycle.rs"]
 mod public_application_lifecycle;
+#[path = "../application_contracts/query_consumer_kit_application.rs"]
+mod query_consumer_kit_application;
+#[path = "../application_contracts/query_consumer_kit_denials.rs"]
+mod query_consumer_kit_denials;
+#[path = "../application_contracts/query_consumer_kit_inspection.rs"]
+mod query_consumer_kit_inspection;
 #[path = "../application_contracts/query_consumer_kit_lifecycle.rs"]
 mod query_consumer_kit_lifecycle;
+#[path = "../application_contracts/query_consumer_kit_partial.rs"]
+mod query_consumer_kit_partial;
+#[path = "../application_contracts/query_consumer_kit_vertical_journey.rs"]
+mod query_consumer_kit_vertical_journey;
+#[path = "../application_contracts/query_consumer_kit_workspace.rs"]
+mod query_consumer_kit_workspace;
+#[path = "../application_contracts/query_consumer_kit_wrong_binding.rs"]
+mod query_consumer_kit_wrong_binding;
 #[path = "../application_contracts/query_replacement_lifecycle.rs"]
 mod query_replacement_lifecycle;
 #[path = "../application_contracts/realtime_overlay_execution.rs"]

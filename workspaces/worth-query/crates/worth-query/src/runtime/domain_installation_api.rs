@@ -289,7 +289,6 @@ impl WorthQueryRuntime {
             .destroy_and_rebuild_execution_index()
     }
 
-    #[cfg(test)]
     pub(crate) fn replace_domain_installation_with_successor_generation(&mut self) {
         self.domain_installation_registry
             .replace_with_successor_generation();

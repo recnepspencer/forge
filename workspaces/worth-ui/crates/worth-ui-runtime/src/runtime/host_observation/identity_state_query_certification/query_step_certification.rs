@@ -1,8 +1,7 @@
 use crate::runtime::{
     WorthUiActiveRuntimeObservation, WorthUiIdentityStateQueryCertificationCounters,
     WorthUiIdentityStateQueryCertificationDenial,
-    WorthUiIdentityStateQueryCertificationDenialReason, WorthUiQueryBindingDriftDenialKind,
-    WorthUiQueryLiveRebindOutcome,
+    WorthUiIdentityStateQueryCertificationDenialReason, WorthUiQueryLiveRebindOutcome,
 };
 
 pub(crate) fn certify_query_rebind_step(
@@ -14,14 +13,12 @@ pub(crate) fn certify_query_rebind_step(
     reject_empty_query_plan_digest(step, *counters)?;
     let typed_denial_match = classify_query_step_denial_expectation(step, counters);
     reject_missing_expected_query_denial(step, typed_denial_match, *counters)?;
-    reject_undeclared_query_denial(step, *counters)?;
-    certify_ui_local_query_status_probe(step, typed_denial_match.saw_ui_local_denial, counters)
+    reject_undeclared_query_denial(step, *counters)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct WorthUiQueryStepDenialExpectationMatch {
     saw_expected_denial: bool,
-    saw_ui_local_denial: bool,
 }
 
 fn classify_query_step_denial_expectation(
@@ -29,7 +26,6 @@ fn classify_query_step_denial_expectation(
     counters: &mut WorthUiIdentityStateQueryCertificationCounters,
 ) -> WorthUiQueryStepDenialExpectationMatch {
     let mut saw_expected_denial = false;
-    let mut saw_ui_local_denial = false;
     for entry in step.rebind_plan().entries() {
         counters.record_query_binding(entry.outcome());
         if let WorthUiQueryLiveRebindOutcome::Deny(denial_reason) = entry.outcome() {
@@ -37,13 +33,10 @@ fn classify_query_step_denial_expectation(
                 .expected_denial()
                 .map(|expected| denial_reason.reason() == expected)
                 .unwrap_or(false);
-            saw_ui_local_denial |= denial_reason.reason()
-                == WorthUiQueryBindingDriftDenialKind::UiLocalDenialPresentationWouldReplaceQueryRecovery;
         }
     }
     WorthUiQueryStepDenialExpectationMatch {
         saw_expected_denial,
-        saw_ui_local_denial,
     }
 }
 
@@ -105,42 +98,7 @@ fn reject_undeclared_query_denial(
     step: &crate::runtime::WorthUiQueryDriftCertificationScenarioStep,
     counters: WorthUiIdentityStateQueryCertificationCounters,
 ) -> Result<(), WorthUiIdentityStateQueryCertificationDenial> {
-    if step.expected_denial().is_some()
-        || step.ui_local_status_probe()
-        || step.rebind_plan().counters().denied_binding_count() == 0
-    {
-        return Ok(());
-    }
-    Err(missing_typed_query_drift_denial(step, counters))
-}
-
-fn certify_ui_local_query_status_probe(
-    step: &crate::runtime::WorthUiQueryDriftCertificationScenarioStep,
-    saw_ui_local_denial: bool,
-    counters: &mut WorthUiIdentityStateQueryCertificationCounters,
-) -> Result<(), WorthUiIdentityStateQueryCertificationDenial> {
-    if !step.ui_local_status_probe() {
-        reject_absent_denials_for_expected_query_stop(step, *counters)
-    } else {
-        counters.record_ui_local_probe();
-        if saw_ui_local_denial {
-            Ok(())
-        } else {
-            Err(denial(
-                WorthUiIdentityStateQueryCertificationDenialReason::UiLocalQueryStatusResidue {
-                    label: step.label().to_owned(),
-                },
-                *counters,
-            ))
-        }
-    }
-}
-
-fn reject_absent_denials_for_expected_query_stop(
-    step: &crate::runtime::WorthUiQueryDriftCertificationScenarioStep,
-    counters: WorthUiIdentityStateQueryCertificationCounters,
-) -> Result<(), WorthUiIdentityStateQueryCertificationDenial> {
-    if step.expected_denial().is_none() || step.rebind_plan().counters().denied_binding_count() > 0
+    if step.expected_denial().is_some() || step.rebind_plan().counters().denied_binding_count() == 0
     {
         return Ok(());
     }

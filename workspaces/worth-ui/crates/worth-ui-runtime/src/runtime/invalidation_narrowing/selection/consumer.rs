@@ -251,7 +251,6 @@ fn narrow_source(
                     );
                 }
                 return Ok(UiAllocationInvalidationTarget::ScrollOwnedContentExtent {
-                    basis,
                     bindings: scroll_lookup.materialize_bindings(),
                 });
             }
@@ -272,6 +271,25 @@ fn narrow_source(
                 UiAllocationInvalidationNarrowingDenial::QueryTargetNotAdmitted { ordinal },
             )?;
             Ok(UiAllocationInvalidationTarget::QueryProjection { basis, target })
+        }
+        UiAllocationFrameSourceFact::QuerySettledFact {
+            view_binding_id,
+            fact,
+        } if matches!(
+            family,
+            UiAllocationInvalidationFamily::QueryMeasurementFactChange
+                | UiAllocationInvalidationFamily::ContentExtentChange
+        ) =>
+        {
+            super::settled_query_fact::narrow_settled_query_fact(
+                ingress_key,
+                family,
+                &view_binding_id,
+                &fact,
+                ordinal,
+                authority,
+                counters,
+            )
         }
         UiAllocationFrameSourceFact::HostMeasurement(measurement)
             if matches!(

@@ -2,7 +2,7 @@ use crate::runtime::{
     WorthUiCandidateAdmissionCounters, WorthUiCounterCaptureRichness,
     WorthUiDurableStateReconciliationCounters, WorthUiExecutionPlanEquivalenceCounters,
     WorthUiImpactLookupCounters, WorthUiMeasurementCounterPacket, WorthUiPlanLoweringCounters,
-    WorthUiPlanTopologyCounters, WorthUiQueryLiveRebindCounters, WorthUiQuerySupportReceipt,
+    WorthUiPlanTopologyCounters, WorthUiQueryLiveRebindCounters,
     WorthUiRuntimeArtifactComparisonCounters, WorthUiRuntimeCounterFamily,
     WorthUiRuntimeHandleAllocationCounters,
 };
@@ -28,8 +28,6 @@ pub enum WorthUiReloadCounterStopStage {
 pub struct WorthUiReloadLoweringCounterReceipt {
     stopped_at: WorthUiReloadCounterStopStage,
     packets: Vec<WorthUiMeasurementCounterPacket>,
-    carried_query_contract_identities: Vec<u64>,
-    query_support_rediscovery_count: u32,
     context: Option<WorthUiReloadCostContext>,
 }
 
@@ -57,8 +55,6 @@ pub struct WorthUiReloadLoweringCounterReceiptBuilder {
     capture_richness: WorthUiCounterCaptureRichness,
     packets: Vec<WorthUiMeasurementCounterPacket>,
     pending_query_rebind_counters: Option<WorthUiQueryLiveRebindCounters>,
-    carried_query_contract_identities: Vec<u64>,
-    query_support_rediscovery_count: u32,
     construction_denial: Option<WorthUiReloadCounterBoundaryDenialReason>,
     context: Option<WorthUiReloadCostContext>,
 }
@@ -70,8 +66,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             capture_richness: WorthUiCounterCaptureRichness::Standard,
             packets: Vec::new(),
             pending_query_rebind_counters: None,
-            carried_query_contract_identities: Vec::new(),
-            query_support_rediscovery_count: 0,
             construction_denial: None,
             context: None,
         }
@@ -89,7 +83,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         self.push_packet(
             WorthUiRuntimeCounterFamily::ReloadCandidateAdmission,
             phase_rows::admission_rows(counters),
-            false,
         );
         self
     }
@@ -101,7 +94,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         self.push_packet(
             WorthUiRuntimeCounterFamily::ArtifactComparison,
             phase_rows::artifact_comparison_rows(counters),
-            false,
         );
         self
     }
@@ -113,7 +105,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         self.push_packet(
             WorthUiRuntimeCounterFamily::ImpactNarrowing,
             phase_rows::impact_narrowing_rows(counters),
-            false,
         );
         self
     }
@@ -125,7 +116,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         self.push_packet(
             WorthUiRuntimeCounterFamily::IdentityReplacement,
             phase_rows::identity_rows(counters),
-            false,
         );
         self
     }
@@ -137,7 +127,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         self.push_packet(
             WorthUiRuntimeCounterFamily::DurableStateReconciliation,
             phase_rows::reconciliation_rows(counters),
-            false,
         );
         self
     }
@@ -150,22 +139,10 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         self
     }
 
-    pub fn record_carried_query_support_receipt(
-        mut self,
-        receipt: WorthUiQuerySupportReceipt,
-    ) -> Self {
-        self.carried_query_contract_identities
-            .push(receipt.contract_identity().as_u64());
-        self.carried_query_contract_identities.sort();
-        self.carried_query_contract_identities.dedup();
-        self
-    }
-
     pub fn record_plan_lowering_counters(mut self, counters: WorthUiPlanLoweringCounters) -> Self {
         self.push_packet(
             WorthUiRuntimeCounterFamily::PlanLowering,
             phase_rows::plan_lowering_rows(counters),
-            false,
         );
         self
     }
@@ -179,14 +156,7 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         self.push_packet(
             WorthUiRuntimeCounterFamily::PlanAssembly,
             phase_rows::plan_assembly_rows(handle, topology, equivalence),
-            false,
         );
-        self
-    }
-
-    #[cfg(test)]
-    pub fn record_query_support_rediscovery(mut self) -> Self {
-        self.query_support_rediscovery_count += 1;
         self
     }
 
@@ -211,11 +181,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
                 WorthUiReloadCounterBoundaryDenialReason::EmptyCounterReceipt,
             ));
         }
-        if self.query_support_rediscovery_count > 0 {
-            return Err(WorthUiReloadCounterBoundaryDenial::new(
-                WorthUiReloadCounterBoundaryDenialReason::RepeatedQuerySupportRediscovery,
-            ));
-        }
         if self.packets.iter().any(has_forbidden_broad_work) {
             return Err(WorthUiReloadCounterBoundaryDenial::new(
                 WorthUiReloadCounterBoundaryDenialReason::FullArtifactScanDetected,
@@ -225,8 +190,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         Ok(WorthUiReloadLoweringCounterReceipt {
             stopped_at: self.stopped_at,
             packets: self.packets,
-            carried_query_contract_identities: self.carried_query_contract_identities,
-            query_support_rediscovery_count: self.query_support_rediscovery_count,
             context: self.context,
         })
     }
@@ -235,7 +198,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         &mut self,
         family: WorthUiRuntimeCounterFamily,
         rows: Vec<crate::runtime::WorthUiFrameCostCounter>,
-        needs_query_evidence: bool,
     ) {
         if rows.iter().all(|row| row.value() == 0) {
             return;
@@ -245,12 +207,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             .with_capture_richness(self.capture_richness);
         for row in rows {
             builder = builder.record(row);
-        }
-        if needs_query_evidence {
-            for evidence in phase_rows::query_evidence_rows(&self.carried_query_contract_identities)
-            {
-                builder = builder.with_query_evidence(evidence);
-            }
         }
         match builder.seal() {
             Ok(packet) => self.packets.push(packet),
@@ -267,7 +223,6 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             self.push_packet(
                 WorthUiRuntimeCounterFamily::QueryRebindPlanning,
                 phase_rows::query_rebind_rows(counters),
-                true,
             );
         }
     }
@@ -280,18 +235,6 @@ impl WorthUiReloadLoweringCounterReceipt {
 
     pub fn packets(&self) -> &[WorthUiMeasurementCounterPacket] {
         &self.packets
-    }
-
-    pub fn carried_query_receipt_count(&self) -> u32 {
-        self.carried_query_contract_identities.len() as u32
-    }
-
-    pub fn carried_query_contract_identities(&self) -> &[u64] {
-        &self.carried_query_contract_identities
-    }
-
-    pub fn query_support_rediscovery_count(&self) -> u32 {
-        self.query_support_rediscovery_count
     }
 
     pub fn context(&self) -> Option<&WorthUiReloadCostContext> {

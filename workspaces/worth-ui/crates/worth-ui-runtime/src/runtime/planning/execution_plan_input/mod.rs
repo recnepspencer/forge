@@ -14,6 +14,7 @@ mod ordinary_meaning;
 mod preparer;
 mod query_rebind_node_input;
 mod realtime_meaning;
+mod replacement_input_collection;
 mod spatial_meaning;
 mod topology_input;
 

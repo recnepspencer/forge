@@ -76,7 +76,9 @@ pub(super) fn projection_consumption_attempt(
         schema_basis_authority,
     )
     .expect("runtime current snapshot basis should resolve from the ordinary declaration");
-    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+    let prerequisites =
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteBoundary::new(
+        )
         .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
         .expect("query prerequisites should admit");
     let world_profile = UiGraphWorldProfile::query_snapshot_basis(prerequisites);

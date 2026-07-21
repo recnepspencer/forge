@@ -243,7 +243,7 @@ fn query_measurement_eligibility_for_touch_rejects_unavailable_projection_consum
         denied_display_field_projection_consumption("unavailable-consumption");
     let _ = world_profile;
     assert!(
-        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(denied_consumption)
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle::from_outcome(denied_consumption)
             .is_err(),
         "denied Query consumption must not produce a downstream authority handle"
     );

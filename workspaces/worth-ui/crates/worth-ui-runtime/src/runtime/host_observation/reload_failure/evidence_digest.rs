@@ -3,7 +3,7 @@ use crate::runtime::{
     WorthUiActivationStagingDenialReason, WorthUiDurableStateFamilyId,
     WorthUiDurableStateReconciliationDenial, WorthUiNodeLifecycleTransition,
     WorthUiPlanLoweringDenial, WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
-    WorthUiQueryBindingPosture, WorthUiQueryBindingPostureDriftFamily,
+    WorthUiQueryBindingUiRequirements, WorthUiQueryBindingUiRequirementsDriftFamily,
     WorthUiQueryLiveRebindPlanDenial, WorthUiReplacementCandidateDenial,
 };
 
@@ -119,27 +119,21 @@ pub(crate) fn query_live_rebind_denial_digest(denial: &WorthUiQueryLiveRebindPla
                 ^ comparison_candidate_artifact_digest
                 ^ admitted_candidate_artifact_digest.rotate_left(11)
         }
-        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportContractChanged {
-            admitted_contract_identity,
-            current_contract_identity,
-        } => {
-            0xE0_00_00_05
-                ^ admitted_contract_identity.as_u64()
-                ^ current_contract_identity.as_u64().rotate_left(11)
-        }
     }
 }
 
 pub(crate) fn query_binding_drift_denial_digest(denial: &WorthUiQueryBindingDriftDenial) -> u64 {
     0xE1_00_00_01
         ^ denial.identity().canonical_identity()
-        ^ query_binding_posture_digest(denial.active_posture()).rotate_left(29)
-        ^ query_binding_posture_digest(denial.candidate_posture()).rotate_left(37)
+        ^ query_binding_ui_requirements_digest(denial.active_ui_requirements()).rotate_left(29)
+        ^ query_binding_ui_requirements_digest(denial.candidate_ui_requirements()).rotate_left(37)
         ^ query_binding_drift_reason_digest(denial.reason()).rotate_left(43)
         ^ query_binding_drift_families_digest(denial.drift_families()).rotate_left(53)
 }
 
-fn query_binding_posture_digest(posture: Option<&WorthUiQueryBindingPosture>) -> u64 {
+fn query_binding_ui_requirements_digest(
+    posture: Option<&WorthUiQueryBindingUiRequirements>,
+) -> u64 {
     match posture {
         Some(posture) => posture.canonical_identity(),
         None => 0,
@@ -148,31 +142,31 @@ fn query_binding_posture_digest(posture: Option<&WorthUiQueryBindingPosture>) ->
 
 fn query_binding_drift_reason_digest(reason: WorthUiQueryBindingDriftDenialKind) -> u64 {
     match reason {
-        WorthUiQueryBindingDriftDenialKind::UiLocalDenialPresentationWouldReplaceQueryRecovery => {
+        WorthUiQueryBindingDriftDenialKind::MissingCandidateUiRequirementsForRebind => {
             0xE2_00_00_01
         }
-        WorthUiQueryBindingDriftDenialKind::QuerySupportPostureNotAdmitted => 0xE2_00_00_02,
-        WorthUiQueryBindingDriftDenialKind::MissingCandidatePostureForRebind => 0xE2_00_00_03,
-        WorthUiQueryBindingDriftDenialKind::MissingActivePostureForRetirement => 0xE2_00_00_04,
+        WorthUiQueryBindingDriftDenialKind::MissingActiveUiRequirementsForRetirement => {
+            0xE2_00_00_02
+        }
     }
 }
 
-fn query_binding_drift_families_digest(families: &[WorthUiQueryBindingPostureDriftFamily]) -> u64 {
+fn query_binding_drift_families_digest(
+    families: &[WorthUiQueryBindingUiRequirementsDriftFamily],
+) -> u64 {
     families.iter().fold(0xE3_00_00_01, |digest, family| {
         digest.rotate_left(5) ^ query_binding_drift_family_digest(*family)
     })
 }
 
-fn query_binding_drift_family_digest(family: WorthUiQueryBindingPostureDriftFamily) -> u64 {
+fn query_binding_drift_family_digest(family: WorthUiQueryBindingUiRequirementsDriftFamily) -> u64 {
     match family {
-        WorthUiQueryBindingPostureDriftFamily::SupportAdmission => 0xE4_00_00_01,
-        WorthUiQueryBindingPostureDriftFamily::BasisCapability => 0xE4_00_00_02,
-        WorthUiQueryBindingPostureDriftFamily::LiveCompatibility => 0xE4_00_00_03,
-        WorthUiQueryBindingPostureDriftFamily::AsyncResultState => 0xE4_00_00_04,
-        WorthUiQueryBindingPostureDriftFamily::Recovery => 0xE4_00_00_05,
-        WorthUiQueryBindingPostureDriftFamily::Inspection => 0xE4_00_00_06,
-        WorthUiQueryBindingPostureDriftFamily::ProjectionConsumption => 0xE4_00_00_07,
-        WorthUiQueryBindingPostureDriftFamily::DenialPresentation => 0xE4_00_00_08,
+        WorthUiQueryBindingUiRequirementsDriftFamily::LifecycleDeclaration => 0xE4_00_00_01,
+        WorthUiQueryBindingUiRequirementsDriftFamily::AsyncResultPresentation => 0xE4_00_00_02,
+        WorthUiQueryBindingUiRequirementsDriftFamily::RecoveryPresentation => 0xE4_00_00_03,
+        WorthUiQueryBindingUiRequirementsDriftFamily::InspectionRelevance => 0xE4_00_00_04,
+        WorthUiQueryBindingUiRequirementsDriftFamily::ProjectionConsumption => 0xE4_00_00_05,
+        WorthUiQueryBindingUiRequirementsDriftFamily::DenialPresentation => 0xE4_00_00_06,
     }
 }
 
@@ -210,7 +204,6 @@ fn activation_staging_reason_digest(reason: WorthUiActivationStagingDenialReason
         WorthUiActivationStagingDenialReason::MissingQueryLiveRebindPlan => 0xF2_00_00_02,
         WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch => 0xF2_00_00_05,
         WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch => 0xF2_00_00_06,
-        WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged => 0xF2_00_00_07,
         WorthUiActivationStagingDenialReason::ActiveRuntimeMutatedDuringStaging => 0xF2_00_00_08,
     }
 }

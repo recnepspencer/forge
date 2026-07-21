@@ -155,26 +155,75 @@ impl WorthUiRuntime {
             .submit_admitted_host_measurement(admitted))
     }
 
-    pub(super) fn admit_and_submit_query_projection(
+    pub(super) fn admit_settled_query_projection(
         &mut self,
-        outcome: worth_ui_query_binding::WorthUiQuerySnapshotProjectionOutcome,
+        projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        UiAllocationFrameGatewayOutcome,
-        worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
+        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
-        let settlement = self.query_binding.admit(outcome)?;
-        Ok(self
-            .query_projection_submission()
-            .submit_query_projection_settlement(settlement))
+        self.query_binding.admit_settled_snapshot(projection)
+    }
+
+    pub(super) fn refresh_settled_query_projection(
+        &mut self,
+        projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
+    > {
+        self.query_binding.refresh_settled_snapshot(projection)
+    }
+
+    pub(super) fn submit_settled_query_fact(
+        &self,
+        link: &crate::runtime::WorthUiQueryLaneFactLink,
+    ) -> Result<
+        crate::runtime::WorthUiQueryFrameIngressOutcome,
+        crate::runtime::WorthUiQueryFrameIngressDenial,
+    > {
+        let mut counters = crate::runtime::WorthUiQueryFrameIngressCounters::default();
+        counters.record_link_resolution();
+        if !link.belongs_to_generation(
+            &self
+                .active_application_lowering_authority
+                .generation_witness(),
+        ) {
+            return Err(crate::runtime::WorthUiQueryFrameIngressDenial::StaleApplicationGeneration);
+        }
+        let active_link = self
+            .active
+            .active_plan_ref()
+            .query_fact_link_for_plan_index(link.plan_index())
+            .ok_or(crate::runtime::WorthUiQueryFrameIngressDenial::PlanRowNotActive)?;
+        if active_link != *link.settled_fact_link() {
+            return Err(crate::runtime::WorthUiQueryFrameIngressDenial::PlanBindingMismatch);
+        }
+        let fact = self
+            .query_binding
+            .settled_snapshot_fact_for(active_link.installed_reference())
+            .map_err(crate::runtime::WorthUiQueryFrameIngressDenial::RetainedFact)?
+            .clone();
+        counters.record_retained_fact_resolution();
+        let gateway = self.query_settled_fact_submission().submit(
+            link.plan_index(),
+            crate::capability::ViewBindingId::new(link.view_binding_id())
+                .expect("active plan binding identities remain valid"),
+            fact,
+        );
+        counters.record_allocation_submission();
+        Ok(crate::runtime::WorthUiQueryFrameIngressOutcome::new(
+            gateway, counters,
+        ))
     }
 
     pub(super) fn admit_and_submit_live_query_projection(
         &mut self,
-        resource: worth_ui_query_binding::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::WorthUiQueryLiveProjectionOutcome,
+        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
+        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
-        worth_ui_query_binding::WorthUiQueryLiveAdmissionStop,
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
     > {
         let settlement = self.query_binding.admit_live(resource, outcome)?;
         Ok(self
@@ -236,6 +285,14 @@ impl WorthUiRuntime {
         &self,
     ) -> super::super::gateway::WorthUiQueryProjectionSubmission {
         super::super::gateway::WorthUiQueryProjectionSubmission::new(
+            self.allocation_frame_scheduler.mailbox(),
+        )
+    }
+
+    pub(in crate::runtime::allocation_frame_dispatch) fn query_settled_fact_submission(
+        &self,
+    ) -> super::super::gateway::WorthUiQuerySettledFactSubmission {
+        super::super::gateway::WorthUiQuerySettledFactSubmission::new(
             self.allocation_frame_scheduler.mailbox(),
         )
     }

@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 
 use crate::facade::retained_obligation_registry::WorthUiRetainedObligationRegistry;
 use crate::obligations::inspection::UiObligationEvidenceRecord;
@@ -77,12 +77,12 @@ fn query_foreign_routes(
 ) -> impl Iterator<Item = UiInspectionQueryForeignEvidenceKind> + '_ {
     let mut routes = Vec::from([UiInspectionQueryForeignEvidenceKind::ProjectionConsumption]);
     if evidence.inspection_lane()
-        == worth_ui_query_binding::WorthUiQueryInspectionLane::WorkspaceInspect
+        == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryInspectionLane::WorkspaceInspect
     {
         routes.push(UiInspectionQueryForeignEvidenceKind::Inspection);
     }
     if evidence.causal_explanation_lane()
-        == worth_ui_query_binding::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
+        == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
     {
         routes.push(UiInspectionQueryForeignEvidenceKind::CausalExplanation);
     }

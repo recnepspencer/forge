@@ -2,7 +2,9 @@
 
 pub use crate::runtime::{
     UiAllocationCounterName, UiAllocationFrameGatewayOutcome, UiAllocationReplanTransactionOutcome,
-    UiPortalAnchorIdentity, WorthUiFrameworkTurnCompletion, WorthUiInteractionTurnSource,
+    UiPortalAnchorIdentity, WorthUiBindingObservationRow, WorthUiBindingObservationSurface,
+    WorthUiFrameworkTurnCompletion, WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters,
+    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome, WorthUiQueryLaneFactLink,
     WorthUiQueryProjectionTurnSource, WorthUiRuntime, WorthUiRuntimeDiagnostic,
     WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
     WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,

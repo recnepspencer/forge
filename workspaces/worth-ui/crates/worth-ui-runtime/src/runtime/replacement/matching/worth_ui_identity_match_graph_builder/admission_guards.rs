@@ -37,14 +37,3 @@ pub(super) fn reject_mismatched_candidate(
         })
     }
 }
-
-pub(super) fn reject_changed_admission_receipts(
-    admitted: &WorthUiAdmittedReplacementCandidate,
-    counters: WorthUiIdentityMatchCounters,
-) -> Result<(), WorthUiIdentityMatchDenial> {
-    admitted.verify_receipts_unchanged().map_err(|_| {
-        WorthUiIdentityMatchDenial::AdmissionReceiptChanged {
-            counters: Box::new(counters),
-        }
-    })
-}

@@ -29,7 +29,6 @@ pub struct WorthUiQueryDriftCertificationScenarioStep {
     label: String,
     rebind_plan: WorthUiQueryLiveRebindPlan,
     expected_denial: Option<WorthUiQueryBindingDriftDenialKind>,
-    ui_local_status_probe: bool,
 }
 
 impl WorthUiIdentityStateQueryCertificationScenario {
@@ -100,18 +99,6 @@ impl WorthUiIdentityStateQueryCertificationScenario {
         self
     }
 
-    pub fn with_ui_local_query_status_probe(
-        mut self,
-        label: impl Into<String>,
-        rebind_plan: WorthUiQueryLiveRebindPlan,
-    ) -> Self {
-        self.query_steps.push(
-            WorthUiQueryDriftCertificationScenarioStep::new(label, rebind_plan)
-                .with_ui_local_status_probe(),
-        );
-        self
-    }
-
     pub fn with_strict_residue_scan(mut self) -> Self {
         self.strict_residue_scan = true;
         self
@@ -158,17 +145,11 @@ impl WorthUiQueryDriftCertificationScenarioStep {
             label: label.into(),
             rebind_plan,
             expected_denial: None,
-            ui_local_status_probe: false,
         }
     }
 
     fn expecting_denial(mut self, expected_denial: WorthUiQueryBindingDriftDenialKind) -> Self {
         self.expected_denial = Some(expected_denial);
-        self
-    }
-
-    fn with_ui_local_status_probe(mut self) -> Self {
-        self.ui_local_status_probe = true;
         self
     }
 
@@ -182,9 +163,5 @@ impl WorthUiQueryDriftCertificationScenarioStep {
 
     pub fn expected_denial(&self) -> Option<WorthUiQueryBindingDriftDenialKind> {
         self.expected_denial
-    }
-
-    pub fn ui_local_status_probe(&self) -> bool {
-        self.ui_local_status_probe
     }
 }

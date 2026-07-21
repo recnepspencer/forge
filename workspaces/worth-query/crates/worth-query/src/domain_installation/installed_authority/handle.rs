@@ -47,6 +47,12 @@ impl<D> WorthQueryInstalledDomainHandle<D> {
     pub fn installation_identity(&self) -> &str {
         self.authority.installation_identity()
     }
+    /// Observes whether this exact installed authority is still the current
+    /// generation. Consumers may branch on freshness but cannot refresh or
+    /// reconstruct authority from this observation.
+    pub fn installation_is_current(&self) -> bool {
+        self.authority.is_current_installation_generation()
+    }
     pub fn authority(&self) -> &WorthQueryInstalledDomainAuthority {
         &self.authority
     }

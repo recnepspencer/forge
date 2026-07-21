@@ -1,19 +1,45 @@
 use worth_query::facade::domain::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationEntryContributionCategoryFamily,
-    WorthQueryDomainGraphObligationDefinition, WorthQueryDomainGraphReadOperationDefinition,
-    WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,
-    WorthQueryDomainIdentityNamespace, WorthQueryDomainPackage, WorthQueryDomainSemanticVersion,
+    WorthQueryDomainGraphObligationDefinition, WorthQueryDomainIdentityDeclaration,
+    WorthQueryDomainIdentityName, WorthQueryDomainIdentityNamespace, WorthQueryDomainPackage,
+    WorthQueryDomainSemanticVersion,
 };
-use worth_query::facade::read::RelationName;
 use worth_query::facade::runtime::{
     WorthQueryGraphObligationKind, WorthQueryGraphObligationOperatingWorldSelector,
     WorthQueryGraphTouchSelector,
 };
 
-use crate::WorthUiDomainEntry;
+use crate::{
+    compatibility::managed_live::declaration,
+    installed_domain::{measurement_recording, snapshot_measurement},
+    WorthUiDomainEntry,
+};
 
 pub fn worth_ui_domain_package() -> WorthQueryDomainPackage<WorthUiDomainEntry> {
+    finish_domain_package(
+        domain_package_base()
+            .operation(snapshot_measurement::snapshot_measurement_definition())
+            .operation(measurement_recording::measurement_recording_definition()),
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn worth_ui_domain_package_with_snapshot_definition(
+    snapshot_definition: worth_query::facade::domain::WorthQueryDomainOperationDefinition<
+        WorthUiDomainEntry,
+        snapshot_measurement::WorthUiSnapshotMeasurement,
+        snapshot_measurement::WorthUiSnapshotMeasurementFamily,
+    >,
+) -> WorthQueryDomainPackage<WorthUiDomainEntry> {
+    finish_domain_package(
+        domain_package_base()
+            .operation(snapshot_definition)
+            .operation(measurement_recording::measurement_recording_definition()),
+    )
+}
+
+fn domain_package_base() -> WorthQueryDomainPackage<WorthUiDomainEntry> {
     WorthQueryDomainPackage::declare(
         WorthUiDomainEntry,
         WorthQueryDomainIdentityDeclaration::new(
@@ -29,28 +55,25 @@ pub fn worth_ui_domain_package() -> WorthQueryDomainPackage<WorthUiDomainEntry> 
     .requires_capability(WorthQueryCapabilityFamily::WorkflowOrchestration)
     .requires_configuration(WorthQueryConfigSectionFamily::Query)
     .requires_configuration(WorthQueryConfigSectionFamily::Relational)
-    .graph_read_operation(measurement_allocation_operation())
-    .graph_obligation(WorthQueryDomainGraphObligationDefinition::new(
-        WorthQueryDomainIdentityName::new("measurement-allocation-integrity")
-            .expect("static Worth UI invariant name must admit"),
-        WorthQueryDomainSemanticVersion::new(1, 0),
-        WorthQueryGraphObligationKind::BlockingInvariant,
-        WorthQueryGraphTouchSelector::relation_kind("measurement.allocation")
-            .expect("static Worth UI relation must admit"),
-        WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
-    ))
-    .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::Admission)
-    .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::InvariantCapability)
-    .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview)
+    .graph_read_operation(declaration::measurement_allocation_operation())
 }
 
-pub(crate) fn measurement_allocation_operation() -> WorthQueryDomainGraphReadOperationDefinition {
-    WorthQueryDomainGraphReadOperationDefinition::new(
-        WorthQueryDomainIdentityName::new("measurement-allocation")
-            .expect("static Worth UI operation name must admit"),
-        1,
-    )
-    .accepts_relation(
-        RelationName::new("measurement.allocation").expect("static Worth UI relation must admit"),
-    )
+fn finish_domain_package(
+    package: WorthQueryDomainPackage<WorthUiDomainEntry>,
+) -> WorthQueryDomainPackage<WorthUiDomainEntry> {
+    package
+        .graph_obligation(WorthQueryDomainGraphObligationDefinition::new(
+            WorthQueryDomainIdentityName::new("measurement-allocation-integrity")
+                .expect("static Worth UI invariant name must admit"),
+            WorthQueryDomainSemanticVersion::new(1, 0),
+            WorthQueryGraphObligationKind::BlockingInvariant,
+            WorthQueryGraphTouchSelector::relation_kind("measurement.allocation")
+                .expect("static Worth UI relation must admit"),
+            WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
+        ))
+        .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::Admission)
+        .permits_contribution(
+            WorthQueryDeclarationEntryContributionCategoryFamily::InvariantCapability,
+        )
+        .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview)
 }

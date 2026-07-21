@@ -312,7 +312,7 @@ fn admitted_lane_adapter_hook_preserves_lane_counter_contract() {
 }
 
 #[test]
-fn query_bound_lane_support_links_are_preserved_not_reauthored() {
+fn query_bound_lane_fact_links_are_preserved_not_reauthored() {
     let (runtime, plan_input, planning, _) = lane_fixture();
     let admission = admit_lanes(
         &runtime,
@@ -323,27 +323,28 @@ fn query_bound_lane_support_links_are_preserved_not_reauthored() {
     let query_inputs = plan_input
         .node_inputs()
         .iter()
-        .filter(|input| input.query_binding_posture().is_some())
+        .filter(|input| input.query_settled_fact_link().is_some())
         .collect::<Vec<_>>();
 
     assert!(!query_inputs.is_empty());
-    assert_eq!(admission.query_support_links().len(), query_inputs.len());
+    assert_eq!(admission.query_fact_links().len(), query_inputs.len());
     for (links, input) in admission
-        .query_support_links()
+        .query_fact_links()
         .iter()
         .zip(query_inputs.iter().copied())
     {
-        let posture = input
-            .query_binding_posture()
-            .expect("query support link comes from Query posture");
-        assert_eq!(links.posture(), posture);
+        assert_eq!(
+            links.settled_fact_link(),
+            input
+                .query_settled_fact_link()
+                .expect("query lane link comes from a settled-fact plan link")
+        );
         assert_eq!(
             links.binding_identity(),
             input
                 .query_binding_identity()
                 .expect("query support link carries typed binding identity")
         );
-        assert_eq!(links.required_surfaces(), input.query_required_surfaces());
     }
     assert_eq!(
         admission.counters().query_support_link_count(),

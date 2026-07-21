@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 impl super::UiAllocationInvalidationAuthority {
     pub(super) fn rebuild_indexes(&mut self) {
         let mut query = BTreeMap::<
-            worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+            crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
             BTreeSet<crate::evidence::UiAllocationNeighborhoodScope>,
         >::new();
         let mut host_targets = BTreeMap::<

@@ -1,10 +1,8 @@
 use std::{collections::BTreeMap, path::Path};
 
-use crate::capability::WorthUiQueryViewRegistration;
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::replacement::admission::{
-    WorthUiCandidateAdmission, WorthUiCandidateAdmissionDenial, WorthUiQuerySupportReceipt,
-    WorthUiQuerySupportStatus, WorthUiRuntimeReplacementPosture,
+    WorthUiCandidateAdmission, WorthUiCandidateAdmissionDenial, WorthUiRuntimeReplacementPosture,
 };
 use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
@@ -16,11 +14,8 @@ use crate::source::{
     WorthUiArtifact, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
     WorthUiArtifactHandle, WorthUiArtifactIdentitySeed, WorthUiArtifactImportHandle,
     WorthUiArtifactImportNode, WorthUiArtifactInputReference, WorthUiArtifactModule,
-    WorthUiArtifactNode, WorthUiBindingSemanticsLowerer, WorthUiCanonicalArtifactAssembler,
-    WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
-    WorthUiIdentitySeedLowerer, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiSourceModuleId, WorthUiStructuralLegalityLowerer,
+    WorthUiArtifactNode, WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
+    WorthUiSourceModuleId,
 };
 
 mod candidate_admission_artifact_nodes;
@@ -45,7 +40,6 @@ fn same_candidate_and_same_active_basis_admit_equivalently() {
 
     assert_eq!(left_admitted.report(), right_admitted.report());
     assert_eq!(left_admitted.active_basis(), active_basis);
-    assert_eq!(left_admitted.verify_receipts_unchanged(), Ok(()));
 }
 
 #[test]
@@ -59,10 +53,6 @@ fn snapshot_mismatch_rejected_before_equivalence_comparison() {
         ["app/panels/inspector.wui"],
         WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
             active_basis.snapshot_digest() ^ 0x55aa,
-            WorthUiQuerySupportReceipt::for_test(
-                WorthUiQuerySupportStatus::Supported,
-                "snapshot-mismatch",
-            ),
         ),
     );
 
@@ -79,7 +69,6 @@ fn snapshot_mismatch_rejected_before_equivalence_comparison() {
     );
     assert_eq!(report.counters().snapshot_compatibility_checks(), 1);
     assert_eq!(report.counters().runtime_posture_checks(), 0);
-    assert_eq!(report.counters().query_support_checks(), 0);
     assert_eq!(report.counters().artifact_comparisons(), 0);
     assert_eq!(report.counters().plan_lowering_attempts(), 0);
 }
@@ -106,7 +95,6 @@ fn deferred_runtime_posture_rejected_before_plan_lowering() {
         })
     );
     assert_eq!(report.counters().runtime_posture_checks(), 1);
-    assert_eq!(report.counters().query_support_checks(), 0);
     assert_eq!(report.counters().artifact_comparisons(), 0);
     assert_eq!(report.counters().plan_lowering_attempts(), 0);
 }
@@ -133,138 +121,8 @@ fn unsupported_runtime_posture_rejected_before_plan_lowering() {
         })
     );
     assert_eq!(report.counters().runtime_posture_checks(), 1);
-    assert_eq!(report.counters().query_support_checks(), 0);
     assert_eq!(report.counters().artifact_comparisons(), 0);
     assert_eq!(report.counters().plan_lowering_attempts(), 0);
-}
-
-#[test]
-fn deferred_query_support_rejected_before_plan_lowering() {
-    let app = WorthUi::app()
-        .freeze()
-        .expect("application preparation should succeed");
-    let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
-    let active_basis = runtime.replacement_admission_basis();
-    let query_receipt = WorthUiQuerySupportReceipt::for_test(
-        WorthUiQuerySupportStatus::Deferred,
-        "deferred-query-support",
-    );
-    let candidate = candidate_with_lowering_basis(
-        ["app/panels/inspector.wui"],
-        WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
-            active_basis.snapshot_digest(),
-            query_receipt,
-        ),
-    );
-
-    let report = WorthUiCandidateAdmission::for_active_basis(active_basis)
-        .admit(candidate)
-        .expect_err("deferred query support denies");
-
-    assert_eq!(
-        report.denial(),
-        Some(WorthUiCandidateAdmissionDenial::DeferredQuerySupport {
-            receipt: query_receipt,
-        })
-    );
-    assert_eq!(report.counters().query_support_checks(), 1);
-    assert_eq!(report.counters().artifact_comparisons(), 0);
-    assert_eq!(report.counters().plan_lowering_attempts(), 0);
-}
-
-#[test]
-fn unsupported_query_support_rejected_before_plan_lowering() {
-    let app = WorthUi::app()
-        .freeze()
-        .expect("application preparation should succeed");
-    let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
-    let active_basis = runtime.replacement_admission_basis();
-    let query_receipt = WorthUiQuerySupportReceipt::for_test(
-        WorthUiQuerySupportStatus::Unsupported,
-        "unsupported-query-support",
-    );
-    let candidate = candidate_with_lowering_basis(
-        ["app/panels/inspector.wui"],
-        WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
-            active_basis.snapshot_digest(),
-            query_receipt,
-        ),
-    );
-
-    let report = WorthUiCandidateAdmission::for_active_basis(active_basis)
-        .admit(candidate)
-        .expect_err("unsupported query support denies");
-
-    assert_eq!(
-        report.denial(),
-        Some(WorthUiCandidateAdmissionDenial::UnsupportedQuerySupport {
-            receipt: query_receipt,
-        })
-    );
-    assert_eq!(report.counters().query_support_checks(), 1);
-    assert_eq!(report.counters().artifact_comparisons(), 0);
-    assert_eq!(report.counters().plan_lowering_attempts(), 0);
-}
-
-#[test]
-fn query_support_receipt_is_derived_from_runtime_dependency_metadata() {
-    let app = query_bound_app();
-    let artifact = query_bound_artifact(&app);
-    let runtime = launch_runtime(&app, artifact.clone());
-    let active_basis = runtime.replacement_admission_basis();
-    let candidate = rust_authored_replacement_candidate(
-        artifact,
-        app.capabilities().digest(),
-        WorthUiReplacementCause::manual_refresh(3),
-    )
-    .expect("query-bound candidate seals through dependency metadata");
-
-    let admitted = WorthUiCandidateAdmission::for_active_basis(active_basis)
-        .admit(candidate)
-        .expect("query-supported candidate admits");
-
-    let receipt = admitted.report().query_support_receipt();
-    assert_eq!(receipt.status(), WorthUiQuerySupportStatus::Supported);
-    assert_eq!(receipt.runtime_hook_count(), 4);
-    assert_eq!(
-        admitted.report().counters().snapshot_compatibility_checks(),
-        1
-    );
-    assert_eq!(admitted.report().counters().runtime_posture_checks(), 1);
-    assert_eq!(admitted.report().counters().query_support_checks(), 1);
-    assert_eq!(admitted.report().counters().artifact_comparisons(), 0);
-    assert_eq!(admitted.report().counters().plan_lowering_attempts(), 0);
-}
-
-#[test]
-fn admitted_candidate_cannot_swap_query_support_contracts_after_admission() {
-    let app = WorthUi::app()
-        .freeze()
-        .expect("application preparation should succeed");
-    let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
-    let active_basis = runtime.replacement_admission_basis();
-    let candidate = replacement_candidate(&app, ["app/panels/inspector.wui"]);
-
-    let admitted = WorthUiCandidateAdmission::for_active_basis(active_basis)
-        .admit(candidate)
-        .expect("candidate admits before receipt tampering");
-    let admitted_identity = admitted
-        .report()
-        .query_support_receipt()
-        .contract_identity();
-    let changed_identity = query_contract_identity("changed-after-admission");
-
-    assert_eq!(
-        admitted.verify_test_query_contract("changed-after-admission"),
-        Err(
-            WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
-                admitted_contract_identity: admitted_identity,
-                current_contract_identity: changed_identity,
-            }
-        )
-    );
-    assert_eq!(admitted.report().counters().artifact_comparisons(), 0);
-    assert_eq!(admitted.report().counters().plan_lowering_attempts(), 0);
 }
 
 fn replacement_candidate<const N: usize>(
@@ -308,54 +166,6 @@ fn launch_runtime(
 ) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(artifact))
         .expect("runtime launches from canonical artifact")
-}
-
-fn query_bound_app() -> WorthUiApp {
-    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
-        "candidate-admission-query-app",
-    );
-    let view = installed
-        .live_measurement_view("workspace.view_binding.selection")
-        .expect("installed live view should admit");
-    WorthUi::app()
-        .register_query_view(WorthUiQueryViewRegistration::new(view))
-        .expect("installed live view should register")
-        .freeze()
-        .expect("application preparation should succeed")
-}
-
-fn query_contract_identity(
-    label: &str,
-) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
-    let definition =
-        worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(label)
-            .expect("test Query contract label admits");
-    worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
-        definition.digest()
-    ])
-}
-
-fn query_bound_artifact(app: &WorthUiApp) -> WorthUiArtifact {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
-        &WorthUiRustAuthoredArtifactInput::from_modules([query_bound_module()]),
-    );
-    let resolved =
-        crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, app.capabilities())
-            .expect("query-bound artifact resolves");
-    let structured = WorthUiStructuralLegalityLowerer::lower(&resolved, app.capabilities())
-        .expect("query-bound artifact is structurally legal");
-    let bound = WorthUiBindingSemanticsLowerer::lower(&structured, app.capabilities())
-        .expect("query-bound artifact preserves binding semantics");
-    let identity_seeded = WorthUiIdentitySeedLowerer::lower(&bound)
-        .expect("query-bound artifact gets identity seeds")
-        .0;
-    WorthUiCanonicalArtifactAssembler::assemble(&identity_seeded)
-        .expect("query-bound artifact assembles")
-}
-
-fn query_bound_module() -> WorthUiRustAuthoredArtifactInputModule {
-    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
-        .with_binding("workspace.view_binding.selection")
 }
 
 fn import_artifact<const N: usize>(targets: [&str; N]) -> WorthUiArtifact {

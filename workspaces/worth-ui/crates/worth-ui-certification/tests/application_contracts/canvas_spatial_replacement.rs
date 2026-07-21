@@ -42,7 +42,7 @@ fn public_replacement_retires_and_remints_exact_canvas_resource_generation() {
         .expect("canvas removal activates")
         .into_activation()
         .expect("canvas removal changes executable meaning");
-    assert!(removal.query_retirement().is_empty());
+    assert!(removal.managed_live_compatibility_retirement().is_empty());
     assert_eq!(
         session
             .inspect_canvas_spatial_target(stale)
@@ -59,7 +59,9 @@ fn public_replacement_retires_and_remints_exact_canvas_resource_generation() {
         .expect("canvas reinsertion activates")
         .into_activation()
         .expect("canvas reinsertion changes executable meaning");
-    assert!(reinsertion.query_retirement().is_empty());
+    assert!(reinsertion
+        .managed_live_compatibility_retirement()
+        .is_empty());
     assert_eq!(
         session
             .inspect_canvas_spatial_target(stale)
@@ -151,7 +153,7 @@ fn remove_first_canvas_region(canvas_count: usize) -> CanvasReplacementEvidence 
         .expect("one-region canvas removal activates")
         .into_activation()
         .expect("one-region canvas removal changes executable meaning");
-    assert!(cutover.query_retirement().is_empty());
+    assert!(cutover.managed_live_compatibility_retirement().is_empty());
     let summary = cutover
         .plan_decision()
         .summary()

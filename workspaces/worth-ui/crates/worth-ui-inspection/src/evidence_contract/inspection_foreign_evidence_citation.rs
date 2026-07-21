@@ -2,7 +2,7 @@ use super::{
     UiInspectionForeignEvidenceRef, UiInspectionQueryForeignEvidenceArtifactKind,
     UiInspectionQueryForeignEvidenceKind, UiInspectionQueryForeignEvidenceRef,
 };
-use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiInspectionQueryForeignEvidenceCitation {

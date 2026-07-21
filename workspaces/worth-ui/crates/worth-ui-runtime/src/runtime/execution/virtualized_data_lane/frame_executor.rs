@@ -39,7 +39,7 @@ impl WorthUiVirtualizedDataFrameExecutor {
 
         counters.record_evidence_reference_lookup();
         let evidence = query_binding
-            .execution_evidence_for(row.installed_reference())
+            .frame_evidence_for(row.installed_reference())
             .map_err(|denial| {
                 counters.record_denial();
                 WorthUiVirtualizedDataFrameDenial::new(

@@ -3,7 +3,6 @@ pub struct WorthUiCandidateAdmissionCounters {
     candidate_proof_checks: usize,
     snapshot_compatibility_checks: usize,
     runtime_posture_checks: usize,
-    query_support_checks: usize,
     artifact_comparisons: usize,
     plan_lowering_attempts: usize,
 }
@@ -21,10 +20,6 @@ impl WorthUiCandidateAdmissionCounters {
         self.runtime_posture_checks += 1;
     }
 
-    pub(crate) fn record_query_support_check(&mut self) {
-        self.query_support_checks += 1;
-    }
-
     pub fn candidate_proof_checks(self) -> usize {
         self.candidate_proof_checks
     }
@@ -35,10 +30,6 @@ impl WorthUiCandidateAdmissionCounters {
 
     pub fn runtime_posture_checks(self) -> usize {
         self.runtime_posture_checks
-    }
-
-    pub fn query_support_checks(self) -> usize {
-        self.query_support_checks
     }
 
     pub fn artifact_comparisons(self) -> usize {

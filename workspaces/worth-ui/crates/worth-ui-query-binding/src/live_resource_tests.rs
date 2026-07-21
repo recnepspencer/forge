@@ -1,11 +1,11 @@
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, runtime};
 
-use crate::{
-    worth_ui_domain_package, WorthUiInstalledLiveQueryView, WorthUiQueryBindingPlan,
-    WorthUiQueryLiveAdmissionDenial, WorthUiQueryLiveCloseOutcome, WorthUiQueryLiveOpenOutcome,
-    WorthUiQueryLiveProjectionOutcome, WorthUiQueryLiveResource, WorthUiQueryWorkspaceExt,
+use crate::compatibility::managed_live::{
+    WorthUiInstalledLiveQueryView, WorthUiQueryLiveAdmissionDenial, WorthUiQueryLiveCloseOutcome,
+    WorthUiQueryLiveOpenOutcome, WorthUiQueryLiveProjectionOutcome, WorthUiQueryLiveResource,
 };
+use crate::{worth_ui_domain_package, WorthUiQueryBindingPlan, WorthUiQueryWorkspaceExt};
 
 #[test]
 fn live_resource_projection_is_admitted_atomically_by_the_exact_binding() {
@@ -23,7 +23,7 @@ fn live_resource_projection_is_admitted_atomically_by_the_exact_binding() {
             crate::WorthUiQueryViewShape::Collection,
         )
         .expect("installed reference");
-    let mut binding = plan.activate();
+    let mut binding = plan.prepare_downstream_state();
     let resource = open_resource(&view, &mut workspace);
     let projection = project_resource(&resource, &mut workspace);
 
@@ -61,7 +61,7 @@ fn foreign_equal_live_resource_is_denied_and_returned_for_query_close() {
     let mut binding = WorthUiQueryBindingPlan::default()
         .register_view(owner_view)
         .expect("owner binding")
-        .activate();
+        .prepare_downstream_state();
     let foreign_resource = open_resource(&foreign_view, &mut foreign_workspace);
     let foreign_projection = project_resource(&foreign_resource, &mut foreign_workspace);
 
@@ -69,10 +69,10 @@ fn foreign_equal_live_resource_is_denied_and_returned_for_query_close() {
         .admit_live(foreign_resource, foreign_projection)
         .expect_err("foreign installation cannot admit by equal definition");
 
-    assert_eq!(
+    assert!(matches!(
         stop.denial(),
         WorthUiQueryLiveAdmissionDenial::InstalledAuthorityMismatch
-    );
+    ));
     assert_closed(stop.into_resource(), &mut foreign_workspace);
 }
 
@@ -91,7 +91,7 @@ fn mismatched_live_definition_is_denied_before_projection_admission() {
         .expect("first registration")
         .register_view(second.clone())
         .expect("second registration")
-        .activate();
+        .prepare_downstream_state();
     let first_resource = open_resource(&first, &mut workspace);
     let first_projection = project_resource(&first_resource, &mut workspace);
     assert_closed(first_resource, &mut workspace);
@@ -101,10 +101,10 @@ fn mismatched_live_definition_is_denied_before_projection_admission() {
         .admit_live(second_resource, first_projection)
         .expect_err("resource and projection definitions cannot be mixed");
 
-    assert_eq!(
+    assert!(matches!(
         stop.denial(),
         WorthUiQueryLiveAdmissionDenial::ViewDefinitionMismatch
-    );
+    ));
     assert_closed(stop.into_resource(), &mut workspace);
 }
 
@@ -119,7 +119,7 @@ fn stale_projection_cannot_be_paired_with_a_reopened_live_resource() {
     let mut binding = WorthUiQueryBindingPlan::default()
         .register_view(view.clone())
         .expect("live registration")
-        .activate();
+        .prepare_downstream_state();
     let predecessor = open_resource(&view, &mut workspace);
     let stale_projection = project_resource(&predecessor, &mut workspace);
     assert_closed(predecessor, &mut workspace);
@@ -129,10 +129,10 @@ fn stale_projection_cannot_be_paired_with_a_reopened_live_resource() {
         .admit_live(successor, stale_projection)
         .expect_err("projection authority must belong to the admitted resource generation");
 
-    assert_eq!(
+    assert!(matches!(
         stop.denial(),
         WorthUiQueryLiveAdmissionDenial::ProjectionResourceMismatch
-    );
+    ));
     assert_closed(stop.into_resource(), &mut workspace);
 }
 
@@ -152,7 +152,7 @@ fn query_runtime_rejects_duplicate_open_without_replacing_the_active_resource() 
             crate::WorthUiQueryViewShape::Collection,
         )
         .expect("live reference");
-    let mut binding = plan.activate();
+    let mut binding = plan.prepare_downstream_state();
     let first = open_resource(&view, &mut workspace);
     let first_projection = project_resource(&first, &mut workspace);
     binding
@@ -181,16 +181,16 @@ fn query_free_binding_returns_the_unconsumed_live_resource() {
         .expect("live view");
     let resource = open_resource(&view, &mut workspace);
     let projection = project_resource(&resource, &mut workspace);
-    let mut binding = WorthUiQueryBindingPlan::default().activate();
+    let mut binding = WorthUiQueryBindingPlan::default().prepare_downstream_state();
 
     let stop = binding
         .admit_live(resource, projection)
         .expect_err("query-free binding denies live admission");
 
-    assert_eq!(
+    assert!(matches!(
         stop.denial(),
         WorthUiQueryLiveAdmissionDenial::QueryNotInstalled
-    );
+    ));
     assert_closed(stop.into_resource(), &mut workspace);
 }
 
@@ -233,9 +233,11 @@ fn measurement_workspace(name: &str) -> runtime::WorthQueryWorkspace {
         .expect("identity aspect")
         .aspect("measurement.value", "measurement.value")
         .expect("measurement aspect");
-    in_memory_test_runtime()
-        .with_schema(schema)
-        .domain_package(worth_ui_domain_package())
-        .workspace(name)
-        .expect("installed Query workspace")
+    crate::install_worth_ui_test_operation_executors(
+        in_memory_test_runtime()
+            .with_schema(schema)
+            .domain_package(worth_ui_domain_package()),
+    )
+    .workspace(name)
+    .expect("installed Query workspace")
 }

@@ -1,6 +1,5 @@
-use worth_ui_query_binding::{
-    WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView,
-};
+use worth_ui_query_binding::compatibility::managed_live::WorthUiInstalledLiveQueryView;
+use worth_ui_query_binding::{WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView};
 
 use super::{QueryDenialPresentation, VisibleStateBindingDeclaration};
 

@@ -1,12 +1,12 @@
 use crate::runtime::{
     WorthUiExecutionLane, WorthUiLaneAdmissionCounters, WorthUiLaneSupportRow,
-    WorthUiQueryLaneSupportLinks,
+    WorthUiQueryLaneFactLink,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiLaneAdmission {
     rows: Vec<WorthUiLaneSupportRow>,
-    query_support_links: Vec<WorthUiQueryLaneSupportLinks>,
+    query_fact_links: Vec<WorthUiQueryLaneFactLink>,
     plan_input_basis_digest: u64,
     support_digest: u64,
     counters: WorthUiLaneAdmissionCounters,
@@ -15,7 +15,7 @@ pub struct WorthUiLaneAdmission {
 impl WorthUiLaneAdmission {
     pub(crate) fn new(
         mut rows: Vec<WorthUiLaneSupportRow>,
-        query_support_links: Vec<WorthUiQueryLaneSupportLinks>,
+        query_fact_links: Vec<WorthUiQueryLaneFactLink>,
         plan_input_basis_digest: u64,
         counters: WorthUiLaneAdmissionCounters,
     ) -> Self {
@@ -23,7 +23,7 @@ impl WorthUiLaneAdmission {
         let support_digest = digest_rows(&rows);
         Self {
             rows,
-            query_support_links,
+            query_fact_links,
             plan_input_basis_digest,
             support_digest,
             counters,
@@ -34,8 +34,8 @@ impl WorthUiLaneAdmission {
         &self.rows
     }
 
-    pub fn query_support_links(&self) -> &[WorthUiQueryLaneSupportLinks] {
-        &self.query_support_links
+    pub fn query_fact_links(&self) -> &[WorthUiQueryLaneFactLink] {
+        &self.query_fact_links
     }
 
     pub fn support_digest(&self) -> u64 {
@@ -59,7 +59,7 @@ impl WorthUiLaneAdmission {
     }
 
     pub(crate) fn executable_contract_matches(&self, other: &Self) -> bool {
-        self.rows == other.rows && self.query_support_links == other.query_support_links
+        self.rows == other.rows && self.query_fact_links == other.query_fact_links
     }
 }
 

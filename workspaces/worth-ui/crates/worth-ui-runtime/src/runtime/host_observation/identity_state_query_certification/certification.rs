@@ -21,6 +21,7 @@ impl WorthUiIdentityStateCertification {
     pub(crate) fn certify(
         scenario: WorthUiIdentityStateQueryCertificationScenario,
         active_observation: WorthUiActiveRuntimeObservation,
+        residue_scan: WorthUiStateQueryResidueScan,
     ) -> Result<Self, WorthUiIdentityStateQueryCertificationDenial> {
         let mut counters = WorthUiIdentityStateQueryCertificationCounters::default();
         if scenario.is_empty() {
@@ -55,14 +56,9 @@ impl WorthUiIdentityStateCertification {
         }
 
         let query_drift = WorthUiQueryDriftCertification::new(rebind_plans);
-        let residue_scan = residue_scan_for(
-            &scenario,
-            state_receipts.len(),
-            counters.query_binding_count(),
-        );
         if scenario.strict_residue_scan() && !residue_scan.is_clean() {
             return Err(denial(
-                WorthUiIdentityStateQueryCertificationDenialReason::UiLocalQueryStatusResidue {
+                WorthUiIdentityStateQueryCertificationDenialReason::StateQueryResidue {
                     label: scenario.name().to_owned(),
                 },
                 counters,
@@ -108,14 +104,6 @@ impl WorthUiIdentityStateCertification {
     pub fn counters(&self) -> WorthUiIdentityStateQueryCertificationCounters {
         self.counters
     }
-}
-
-fn residue_scan_for(
-    _scenario: &WorthUiIdentityStateQueryCertificationScenario,
-    state_receipts: usize,
-    query_bindings: usize,
-) -> WorthUiStateQueryResidueScan {
-    WorthUiStateQueryResidueScan::clean(state_receipts, query_bindings)
 }
 
 fn denial(

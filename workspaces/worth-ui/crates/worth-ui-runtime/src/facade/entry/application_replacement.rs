@@ -72,7 +72,8 @@ pub struct WorthUiApplicationCutoverReceipt {
     active_generation: WorthUiPreparedApplicationGenerationIdentity,
     plan_swap: crate::runtime::WorthUiPlanSwapReceipt,
     plan_decision: crate::runtime::WorthUiExecutablePlanDecision,
-    query_retirement: worth_ui_query_binding::WorthUiQueryLiveRetirement,
+    query_retirement:
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
     allocation_catalog_successor: crate::runtime::UiAllocationCatalogSuccessorReceipt,
     publication: WorthUiApplicationPublicationObservation,
     reload_cost: Result<
@@ -159,7 +160,7 @@ impl WorthUiActiveApplicationSession {
             candidate_query_binding: next_app
                 .prepared_authority()
                 .query_binding_plan()
-                .activate(),
+                .prepare_downstream_state(),
             next_app,
             admitted,
             basis,
@@ -195,6 +196,7 @@ impl WorthUiActiveApplicationSession {
             .prepare_application_replacement_lowering(
                 prepared.admitted,
                 candidate_application_authority,
+                &prepared.candidate_query_binding,
                 configure,
             )
             .map_err(WorthUiApplicationReplacementLoweringDenial::Lowering)?;

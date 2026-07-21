@@ -9,7 +9,8 @@ pub use worth_ui_runtime::facade::registry::snapshot::{
     SnapshotReferenceViolationKind,
 };
 pub use worth_ui_runtime::facade::runtime_handoff::{
-    WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters,
-    WorthUiRuntimeDiagnosticFamily, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
+    WorthUiBindingObservationRow, WorthUiBindingObservationSurface, WorthUiRuntimeDiagnostic,
+    WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
     WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics,
 };

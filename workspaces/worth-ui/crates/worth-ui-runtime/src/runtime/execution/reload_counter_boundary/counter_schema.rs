@@ -6,7 +6,6 @@ pub(crate) const ADMISSION_NAMES: &[&str] = &[
     "reload.candidate_admission.candidate_proof_checks",
     "reload.candidate_admission.snapshot_compatibility_checks",
     "reload.candidate_admission.runtime_posture_checks",
-    "reload.candidate_admission.query_support_checks",
 ];
 
 pub(crate) const ARTIFACT_COMPARISON_NAMES: &[&str] =
@@ -89,13 +88,6 @@ pub(crate) fn validate_packet_schema(
     if expected.is_empty() {
         return Err(WorthUiReloadCounterBoundaryDenial::new(
             WorthUiReloadCounterBoundaryDenialReason::UnexpectedCounterRow,
-        ));
-    }
-    if packet.family() == WorthUiRuntimeCounterFamily::QueryRebindPlanning
-        && packet.query_evidence().is_empty()
-    {
-        return Err(WorthUiReloadCounterBoundaryDenial::new(
-            WorthUiReloadCounterBoundaryDenialReason::MissingCarriedQueryEvidence,
         ));
     }
     validate_no_duplicate_rows(packet)?;

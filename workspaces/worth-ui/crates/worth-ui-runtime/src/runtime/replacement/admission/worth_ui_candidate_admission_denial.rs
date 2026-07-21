@@ -1,6 +1,4 @@
-use crate::runtime::replacement::admission::{
-    WorthUiQuerySupportReceipt, WorthUiRuntimeReplacementPosture,
-};
+use crate::runtime::replacement::admission::WorthUiRuntimeReplacementPosture;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiCandidateAdmissionDenial {
@@ -13,15 +11,5 @@ pub enum WorthUiCandidateAdmissionDenial {
     },
     UnsupportedRuntimePosture {
         posture: WorthUiRuntimeReplacementPosture,
-    },
-    DeferredQuerySupport {
-        receipt: WorthUiQuerySupportReceipt,
-    },
-    UnsupportedQuerySupport {
-        receipt: WorthUiQuerySupportReceipt,
-    },
-    QuerySupportContractChanged {
-        admitted_contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
-        current_contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
     },
 }

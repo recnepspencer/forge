@@ -1,5 +1,6 @@
 use crate::runtime::replacement::query_binding::{
-    WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture, WorthUiQueryBindingPostureDriftFamily,
+    WorthUiQueryBindingIdentity, WorthUiQueryBindingUiRequirements,
+    WorthUiQueryBindingUiRequirementsDriftFamily,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -8,6 +9,13 @@ pub enum WorthUiQueryBindingComparisonOutcome {
     RebindRequired,
     MissingActiveBinding,
     MissingCandidateBinding,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthUiQueryBindingAuthorityDrift {
+    InstalledAuthority,
+    InstallationCurrentness,
+    BindingIdentity,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -19,17 +27,18 @@ pub struct WorthUiQueryBindingComparisonCounters {
     rebind_required_count: usize,
     missing_active_binding_count: usize,
     missing_candidate_binding_count: usize,
-    posture_drift_count: usize,
+    ui_requirement_drift_count: usize,
     affected_query_invalidation_count: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiQueryBindingComparisonEntry {
     identity: WorthUiQueryBindingIdentity,
-    active_posture: Option<WorthUiQueryBindingPosture>,
-    candidate_posture: Option<WorthUiQueryBindingPosture>,
+    active_ui_requirements: Option<WorthUiQueryBindingUiRequirements>,
+    candidate_ui_requirements: Option<WorthUiQueryBindingUiRequirements>,
     outcome: WorthUiQueryBindingComparisonOutcome,
-    posture_drifts: Vec<WorthUiQueryBindingPostureDriftFamily>,
+    ui_requirement_drifts: Vec<WorthUiQueryBindingUiRequirementsDriftFamily>,
+    authority_drifts: Vec<WorthUiQueryBindingAuthorityDrift>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,6 +47,7 @@ pub struct WorthUiQueryBindingComparison {
     candidate_artifact_digest: u64,
     entries: Vec<WorthUiQueryBindingComparisonEntry>,
     counters: WorthUiQueryBindingComparisonCounters,
+    exact_invalidations: Vec<crate::runtime::WorthUiQueryDependencyInvalidation>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -73,10 +83,10 @@ impl WorthUiQueryBindingComparisonCounters {
     pub(crate) fn record_entry(
         &mut self,
         outcome: WorthUiQueryBindingComparisonOutcome,
-        posture_drift_count: usize,
+        ui_requirement_drift_count: usize,
     ) {
         self.bindings_compared += 1;
-        self.posture_drift_count += posture_drift_count;
+        self.ui_requirement_drift_count += ui_requirement_drift_count;
         match outcome {
             WorthUiQueryBindingComparisonOutcome::PreserveMeaning => {
                 self.preserved_meaning_count += 1;
@@ -121,8 +131,8 @@ impl WorthUiQueryBindingComparisonCounters {
         self.missing_candidate_binding_count
     }
 
-    pub fn posture_drift_count(&self) -> usize {
-        self.posture_drift_count
+    pub fn ui_requirement_drift_count(&self) -> usize {
+        self.ui_requirement_drift_count
     }
 
     pub fn affected_query_invalidation_count(&self) -> usize {
@@ -133,17 +143,19 @@ impl WorthUiQueryBindingComparisonCounters {
 impl WorthUiQueryBindingComparisonEntry {
     pub(crate) fn new(
         identity: WorthUiQueryBindingIdentity,
-        active_posture: Option<WorthUiQueryBindingPosture>,
-        candidate_posture: Option<WorthUiQueryBindingPosture>,
+        active_ui_requirements: Option<WorthUiQueryBindingUiRequirements>,
+        candidate_ui_requirements: Option<WorthUiQueryBindingUiRequirements>,
         outcome: WorthUiQueryBindingComparisonOutcome,
-        posture_drifts: Vec<WorthUiQueryBindingPostureDriftFamily>,
+        ui_requirement_drifts: Vec<WorthUiQueryBindingUiRequirementsDriftFamily>,
+        authority_drifts: Vec<WorthUiQueryBindingAuthorityDrift>,
     ) -> Self {
         Self {
             identity,
-            active_posture,
-            candidate_posture,
+            active_ui_requirements,
+            candidate_ui_requirements,
             outcome,
-            posture_drifts,
+            ui_requirement_drifts,
+            authority_drifts,
         }
     }
 
@@ -151,20 +163,29 @@ impl WorthUiQueryBindingComparisonEntry {
         &self.identity
     }
 
-    pub fn active_posture(&self) -> Option<&WorthUiQueryBindingPosture> {
-        self.active_posture.as_ref()
+    pub fn active_ui_requirements(&self) -> Option<&WorthUiQueryBindingUiRequirements> {
+        self.active_ui_requirements.as_ref()
     }
 
-    pub fn candidate_posture(&self) -> Option<&WorthUiQueryBindingPosture> {
-        self.candidate_posture.as_ref()
+    pub fn candidate_ui_requirements(&self) -> Option<&WorthUiQueryBindingUiRequirements> {
+        self.candidate_ui_requirements.as_ref()
     }
 
     pub fn outcome(&self) -> WorthUiQueryBindingComparisonOutcome {
         self.outcome
     }
 
-    pub fn posture_drifts(&self) -> &[WorthUiQueryBindingPostureDriftFamily] {
-        &self.posture_drifts
+    pub fn ui_requirement_drifts(&self) -> &[WorthUiQueryBindingUiRequirementsDriftFamily] {
+        &self.ui_requirement_drifts
+    }
+
+    pub fn has_query_authority_drift(&self) -> bool {
+        !self.authority_drifts.is_empty()
+    }
+
+    pub(crate) fn requires_ui_invalidation(&self) -> bool {
+        self.outcome != WorthUiQueryBindingComparisonOutcome::PreserveMeaning
+            || !self.ui_requirement_drifts.is_empty()
     }
 }
 
@@ -174,13 +195,17 @@ impl WorthUiQueryBindingComparison {
         candidate_artifact_digest: u64,
         mut entries: Vec<WorthUiQueryBindingComparisonEntry>,
         counters: WorthUiQueryBindingComparisonCounters,
+        mut exact_invalidations: Vec<crate::runtime::WorthUiQueryDependencyInvalidation>,
     ) -> Self {
         entries.sort_by(|left, right| left.identity().cmp(right.identity()));
+        exact_invalidations.sort();
+        exact_invalidations.dedup();
         Self {
             active_artifact_digest,
             candidate_artifact_digest,
             entries,
             counters,
+            exact_invalidations,
         }
     }
 
@@ -207,5 +232,11 @@ impl WorthUiQueryBindingComparison {
         self.entries
             .iter()
             .find(|entry| entry.identity().view_binding_id() == view_binding_id)
+    }
+
+    pub(crate) fn exact_invalidations(
+        &self,
+    ) -> &[crate::runtime::WorthUiQueryDependencyInvalidation] {
+        &self.exact_invalidations
     }
 }

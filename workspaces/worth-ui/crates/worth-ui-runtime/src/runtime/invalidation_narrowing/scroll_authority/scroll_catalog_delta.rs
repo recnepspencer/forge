@@ -79,7 +79,7 @@ impl super::UiScrollInvalidationBindingIndex {
                 else {
                     return Err(super::UiScrollInvalidationBindingDenial::ContradictorySource);
                 };
-                remove_binding(&mut self.query, query.authority_index_key(), &key)?;
+                remove_binding(&mut self.query, query.source_key(), &key)?;
             }
             if !self
                 .projection_contracts
@@ -166,7 +166,7 @@ impl super::UiScrollInvalidationBindingIndex {
                 };
                 insert_binding(
                     &mut self.query,
-                    query.authority_index_key().clone(),
+                    query.source_key().clone(),
                     key.clone(),
                     binding,
                 )?;

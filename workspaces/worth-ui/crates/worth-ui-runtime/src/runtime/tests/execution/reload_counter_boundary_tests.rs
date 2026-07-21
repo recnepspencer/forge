@@ -1,13 +1,12 @@
 use super::reload_counter_test_support::{
     admission_counters, complete_receipt, impact_counters, plan_lowering_counters,
-    query_rebind_counters, query_support_receipt,
+    query_rebind_counters,
 };
 use super::{
     WorthUiDurableStateReconciliationCounters, WorthUiFrameCostCounter, WorthUiMeasurementBoundary,
-    WorthUiMeasurementCertificationDenial, WorthUiMeasurementQueryEvidenceKind,
-    WorthUiReloadCounterBoundary, WorthUiReloadCounterBoundaryDenialReason,
-    WorthUiReloadCounterStopStage, WorthUiReloadLoweringFoundationalBridge,
-    WorthUiRuntimeCounterFamily,
+    WorthUiMeasurementCertificationDenial, WorthUiReloadCounterBoundary,
+    WorthUiReloadCounterBoundaryDenialReason, WorthUiReloadCounterStopStage,
+    WorthUiReloadLoweringFoundationalBridge, WorthUiRuntimeCounterFamily,
 };
 
 #[test]
@@ -95,61 +94,14 @@ fn zero_work_phase_does_not_fabricate_a_counter_packet() {
 }
 
 #[test]
-fn reload_counter_detects_repeated_query_support_rediscovery() {
-    let denial = WorthUiReloadCounterBoundary::reload_completed()
-        .record_admission_counters(admission_counters())
-        .record_carried_query_support_receipt(query_support_receipt())
-        .record_query_rebind_counters(query_rebind_counters())
-        .record_query_support_rediscovery()
-        .seal()
-        .expect_err("Query support posture must be carried, not rediscovered");
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiReloadCounterBoundaryDenialReason::RepeatedQuerySupportRediscovery
-    );
-}
-
-#[test]
-fn query_rebind_counter_receipt_requires_carried_query_evidence() {
-    let denial = WorthUiReloadCounterBoundary::reload_completed()
-        .record_query_rebind_counters(query_rebind_counters())
-        .seal()
-        .expect_err("Query-bound counter packets must bind carried Query receipt evidence");
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiReloadCounterBoundaryDenialReason::MissingCarriedQueryEvidence
-    );
-}
-
-#[test]
-fn query_rebind_counter_receipt_carries_query_evidence_independent_of_builder_order() {
+fn query_rebind_counter_receipt_records_real_work_without_a_fake_support_receipt() {
     let receipt = WorthUiReloadCounterBoundary::reload_completed()
         .record_query_rebind_counters(query_rebind_counters())
-        .record_carried_query_support_receipt(query_support_receipt())
         .seal()
-        .expect("carried Query evidence must bind even when recorded after query counters");
+        .expect("Query rebind work is measured without reconstructing Query authority");
 
-    let query_packet = receipt
-        .packets()
-        .iter()
-        .find(|packet| packet.family() == WorthUiRuntimeCounterFamily::QueryRebindPlanning)
-        .expect("query rebind packet should be present");
-
-    assert_eq!(
-        receipt.carried_query_contract_identities(),
-        &[query_support_receipt().contract_identity().as_u64()]
-    );
-    assert_eq!(query_packet.query_evidence().len(), 1);
-    assert_eq!(
-        query_packet.query_evidence()[0].kind(),
-        WorthUiMeasurementQueryEvidenceKind::SubscriptionSelectionDiagnostics
-    );
-    assert_eq!(
-        query_packet.query_evidence()[0].evidence_digest(),
-        query_support_receipt().contract_identity().as_u64()
-    );
+    assert_eq!(receipt.packets().len(), 1);
+    assert!(receipt.packets()[0].query_evidence().is_empty());
 }
 
 #[test]

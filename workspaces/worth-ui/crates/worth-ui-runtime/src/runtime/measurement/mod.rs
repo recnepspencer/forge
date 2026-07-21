@@ -21,6 +21,5 @@ pub use foundational_bridge::{
 };
 pub use frame_cost_counter::WorthUiFrameCostCounter;
 pub use measurement_boundary::WorthUiMeasurementBoundary;
-pub use query_evidence::WorthUiMeasurementQueryEvidence;
 #[cfg(test)]
-pub use query_evidence::WorthUiMeasurementQueryEvidenceKind;
+pub use query_evidence::WorthUiMeasurementQueryEvidence;

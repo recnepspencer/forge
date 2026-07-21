@@ -75,6 +75,19 @@ impl WorthUiApp {
         self.prepared.capabilities()
     }
 
+    /// Resolve the compact installed-operation reference retained for one
+    /// registered Query view. The returned reference can enter Query only
+    /// through the attempt-scoped operating-world gateway.
+    pub fn resolve_query_view(
+        &self,
+        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        shape: worth_ui_query_binding::WorthUiQueryViewShape,
+    ) -> Option<worth_ui_query_binding::WorthUiInstalledQueryBindingReference> {
+        self.prepared
+            .query_binding_plan()
+            .resolve_definition(identity, shape)
+    }
+
     /// Inspect the canonical declaration artifacts admitted during app freeze.
     pub fn declaration_artifacts(&self) -> &[UiDeclarationArtifact] {
         self.prepared.declaration_artifacts()
@@ -98,7 +111,7 @@ impl WorthUiApp {
     pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
         &self,
         touch: &UiGraphTouchDescriptor,
-        authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
         self.admission()
             .admit_query_measurement_eligibility_for_touch_from_query_authority(touch, authority)
@@ -244,7 +257,9 @@ impl WorthUiApp {
             initial_allocation_commit,
             self.prepared.capabilities().digest(),
             Rc::clone(&self.retained_allocation_planning_evidence),
-            self.prepared.query_binding_plan().activate(),
+            self.prepared
+                .query_binding_plan()
+                .prepare_downstream_state(),
             host_session.plan_binding(),
         )?;
         Ok(runtime)

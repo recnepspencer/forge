@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiQueryViewDefinition,
+    WorthUiInstalledQueryBindingReference, WorthUiInstalledQueryView, WorthUiQueryViewDefinition,
     WorthUiQueryViewIdentity,
 };
 
 use super::{
-    WorthUiQueryBindingRegistrationDenial, WorthUiQueryBindingRegistrationDenialKind,
-    WorthUiQueryBindingSubsystem, WorthUiRuntimeQueryBinding,
+    WorthUiInstalledDownstreamQueryState, WorthUiQueryBindingRegistrationDenial,
+    WorthUiQueryBindingRegistrationDenialKind, WorthUiRuntimeQueryBinding,
 };
 
 /// Stable app-owned binding plan. Query-free and installed Query posture are
@@ -21,8 +21,7 @@ pub enum WorthUiQueryBindingPlan {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiInstalledQueryBindingPlan {
-    installed_domain: WorthUiInstalledQueryDomain,
-    definitions: BTreeMap<WorthUiQueryViewIdentity, WorthUiQueryViewDefinition>,
+    references: BTreeMap<WorthUiQueryViewIdentity, WorthUiInstalledQueryBindingReference>,
 }
 
 impl WorthUiQueryBindingPlan {
@@ -32,33 +31,37 @@ impl WorthUiQueryBindingPlan {
     ) -> Result<Self, WorthUiQueryBindingRegistrationDenial> {
         let view = view.into();
         let (installed_domain, definition) = view.into_parts();
+        let identity = definition.identity().clone();
+        let reference = WorthUiInstalledQueryBindingReference::new(installed_domain, definition);
         match self {
             Self::QueryFree => {
-                let mut definitions = BTreeMap::new();
-                definitions.insert(definition.identity().clone(), definition);
+                let mut references = BTreeMap::new();
+                references.insert(identity, reference);
                 Ok(Self::Installed(WorthUiInstalledQueryBindingPlan {
-                    installed_domain,
-                    definitions,
+                    references,
                 }))
             }
             Self::Installed(mut plan) => {
                 if !plan
-                    .installed_domain
-                    .shares_authority_with(&installed_domain)
+                    .references
+                    .values()
+                    .next()
+                    .expect("an installed plan is created with its first reference")
+                    .installed_domain()
+                    .shares_authority_with(reference.installed_domain())
                 {
                     return Err(WorthUiQueryBindingRegistrationDenial {
                         kind: WorthUiQueryBindingRegistrationDenialKind::ForeignInstalledDomain,
-                        identity: definition.identity().clone(),
+                        identity,
                     });
                 }
-                if plan.definitions.contains_key(definition.identity()) {
+                if plan.references.contains_key(&identity) {
                     return Err(WorthUiQueryBindingRegistrationDenial {
                         kind: WorthUiQueryBindingRegistrationDenialKind::DuplicateViewIdentity,
-                        identity: definition.identity().clone(),
+                        identity,
                     });
                 }
-                plan.definitions
-                    .insert(definition.identity().clone(), definition);
+                plan.references.insert(identity, reference);
                 Ok(Self::Installed(plan))
             }
         }
@@ -71,7 +74,11 @@ impl WorthUiQueryBindingPlan {
     pub fn definitions(&self) -> Vec<&WorthUiQueryViewDefinition> {
         match self {
             Self::QueryFree => Vec::new(),
-            Self::Installed(plan) => plan.definitions.values().collect(),
+            Self::Installed(plan) => plan
+                .references
+                .values()
+                .map(WorthUiInstalledQueryBindingReference::definition)
+                .collect(),
         }
     }
 
@@ -83,13 +90,8 @@ impl WorthUiQueryBindingPlan {
     ) -> Option<crate::WorthUiInstalledQueryBindingReference> {
         match self {
             Self::QueryFree => None,
-            Self::Installed(plan) => plan.definitions.get(identity).and_then(|definition| {
-                (definition.shape() == shape).then(|| {
-                    crate::WorthUiInstalledQueryBindingReference::new(
-                        plan.installed_domain.clone(),
-                        definition.clone(),
-                    )
-                })
+            Self::Installed(plan) => plan.references.get(identity).and_then(|reference| {
+                (reference.definition().shape() == shape).then(|| reference.clone())
             }),
         }
     }
@@ -103,23 +105,20 @@ impl WorthUiQueryBindingPlan {
         match self {
             Self::QueryFree => false,
             Self::Installed(plan) => {
-                plan.installed_domain
-                    .shares_authority_with(reference.installed_domain())
-                    && plan.definitions.get(reference.definition().identity())
-                        == Some(reference.definition())
+                plan.references.get(reference.definition().identity()) == Some(reference)
             }
         }
     }
 
-    pub fn activate(&self) -> WorthUiRuntimeQueryBinding {
+    /// Prepare UI-owned downstream fact retention. This does not create a
+    /// Query execution root; operation attempts enter Query through the
+    /// operating-world gateway.
+    pub fn prepare_downstream_state(&self) -> WorthUiRuntimeQueryBinding {
         match self {
             Self::QueryFree => WorthUiRuntimeQueryBinding::QueryFree,
-            Self::Installed(plan) => {
-                WorthUiRuntimeQueryBinding::Installed(Box::new(WorthUiQueryBindingSubsystem::new(
-                    plan.installed_domain.clone(),
-                    plan.definitions.clone(),
-                )))
-            }
+            Self::Installed(plan) => WorthUiRuntimeQueryBinding::Installed(Box::new(
+                WorthUiInstalledDownstreamQueryState::new(plan.references.clone()),
+            )),
         }
     }
 }

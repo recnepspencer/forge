@@ -1,12 +1,9 @@
 use std::borrow::Borrow;
 
 use crate::runtime::planning::execution_plan_input::WorthUiExecutionPlanInputPreparer;
-use crate::runtime::replacement::equivalence::WorthUiRuntimeArtifactComparator;
 use crate::runtime::{
     UiAllocationCandidate, WorthUiAdmittedReplacementCandidate, WorthUiComponentLoweringHook,
     WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringDenial,
-    WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
-    WorthUiRuntimeEquivalenceBasis,
 };
 
 use super::runtime_instance::WorthUiRuntime;
@@ -146,15 +143,5 @@ impl WorthUiRuntime {
                 .query_binding_plan(),
             component_hooks,
         )
-    }
-
-    pub(crate) fn compare_admitted_replacement_with_basis_for_test(
-        &self,
-        admitted: &WorthUiAdmittedReplacementCandidate,
-        runtime_basis: WorthUiRuntimeEquivalenceBasis,
-    ) -> Result<WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial> {
-        WorthUiRuntimeArtifactComparator::for_active_artifact(self.active.active_artifact())
-            .with_runtime_basis_for_test(runtime_basis)
-            .compare_admitted(admitted)
     }
 }

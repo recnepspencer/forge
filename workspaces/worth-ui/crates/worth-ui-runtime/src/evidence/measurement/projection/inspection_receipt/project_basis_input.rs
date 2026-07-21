@@ -20,6 +20,14 @@ pub(crate) fn project_basis_input(
                 consumed_fact_family_set_digest: receipt.consumed_fact_family_set_digest(),
             }
         }
+        MeasurementEvidenceInput::SettledQueryFact(receipt) => {
+            UiInspectionMeasurementBasisInput::QueryProjectionFact {
+                query_basis_digest: receipt.query_binding_identity().into(),
+                projection_contract_digest: receipt.settlement_identity().into(),
+                required_fact_family_set_digest: receipt.required_query_fact_family_set_digest(),
+                consumed_fact_family_set_digest: receipt.consumed_fact_family_set_digest(),
+            }
+        }
         MeasurementEvidenceInput::HostCapabilityReport(report) => {
             UiInspectionMeasurementBasisInput::HostCapabilityReport {
                 profile_digest: report.profile_identity_digest(),

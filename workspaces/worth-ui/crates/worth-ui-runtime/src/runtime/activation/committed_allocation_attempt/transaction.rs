@@ -32,9 +32,12 @@ impl PreparedActiveSuccessor {
             .staged_replacement()
             .admitted_candidate()
             .artifact_bundle();
-        let active_artifact = WorthUiActiveArtifact::new(
+        let active_artifact = WorthUiActiveArtifact::new_with_dependency_report(
             artifact_bundle.artifact_authority(),
             artifact_bundle.artifact_digest(),
+            artifact_bundle
+                .dependency_metadata()
+                .dependency_report_authority(),
         );
         let committed = ready.committed().clone();
         Ok(Self {

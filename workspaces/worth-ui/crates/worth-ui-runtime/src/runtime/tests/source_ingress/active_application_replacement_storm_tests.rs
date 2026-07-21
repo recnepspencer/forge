@@ -110,7 +110,7 @@ fn publish_structural_replacement(
     let cutover = cutover
         .into_activation()
         .expect("storm candidates change executable meaning");
-    assert!(cutover.query_retirement().is_empty());
+    assert!(cutover.managed_live_compatibility_retirement().is_empty());
     assert_eq!(
         cutover
             .allocation_catalog_successor()

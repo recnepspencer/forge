@@ -260,7 +260,7 @@ fn rehandle_node(
     }
 }
 
-fn component(id: &str) -> ComponentDescriptor {
+pub(super) fn component(id: &str) -> ComponentDescriptor {
     ComponentDescriptor::new(
         ComponentId::new(id).unwrap(),
         ComponentPropSchema::named("workspace.props"),
@@ -269,7 +269,7 @@ fn component(id: &str) -> ComponentDescriptor {
     )
 }
 
-fn surface(id: &str, component_id: &str) -> SurfaceDescriptor {
+pub(super) fn surface(id: &str, component_id: &str) -> SurfaceDescriptor {
     SurfaceDescriptor::new(
         SurfaceId::new(id).unwrap(),
         SurfaceKind::primary_content(),

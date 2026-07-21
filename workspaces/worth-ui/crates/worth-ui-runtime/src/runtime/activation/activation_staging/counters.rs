@@ -6,7 +6,6 @@ pub struct WorthUiActivationStagingCounters {
     staged_query_binding_count: usize,
     rejected_missing_input_count: usize,
     rejected_mismatched_input_count: usize,
-    receipt_verification_count: usize,
     active_mutation_observed_count: usize,
 }
 
@@ -35,10 +34,6 @@ impl WorthUiActivationStagingCounters {
         self.rejected_mismatched_input_count += 1;
     }
 
-    pub(crate) fn record_receipt_verification(&mut self) {
-        self.receipt_verification_count += 1;
-    }
-
     pub(crate) fn record_active_mutation_observed(&mut self) {
         self.active_mutation_observed_count += 1;
     }
@@ -65,10 +60,6 @@ impl WorthUiActivationStagingCounters {
 
     pub fn rejected_mismatched_input_count(&self) -> usize {
         self.rejected_mismatched_input_count
-    }
-
-    pub fn receipt_verification_count(&self) -> usize {
-        self.receipt_verification_count
     }
 
     pub fn active_mutation_observed_count(&self) -> usize {

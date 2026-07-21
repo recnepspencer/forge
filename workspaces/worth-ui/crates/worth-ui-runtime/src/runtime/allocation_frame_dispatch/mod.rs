@@ -30,12 +30,12 @@ pub(crate) use gateway::UiAllocationFrameGatewayState;
 pub use gateway::{
     UiAllocationFrameGatewayOutcome, UiAllocationFrameQuerySettlementPosture,
     UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
-    UiAllocationFrameSourceFactPosture,
+    UiAllocationFrameSourceFactPosture, WorthUiQueryFrameIngressCounters,
+    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome,
 };
 #[cfg(test)]
 pub(crate) use gateway::{
     WorthUiDurableResizeSubmission, WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission,
-    WorthUiQueryProjectionSubmission,
 };
 pub(crate) use ingress::UiAllocationFrameSourceLease;
 pub use ingress::{

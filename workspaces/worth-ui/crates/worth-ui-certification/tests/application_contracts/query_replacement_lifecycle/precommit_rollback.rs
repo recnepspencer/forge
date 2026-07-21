@@ -2,21 +2,29 @@ use worth_query::facade::domain;
 use worth_ui::facade::app::{
     WorthUiApplicationCutoverDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
 };
-use worth_ui::facade::query_binding::{WorthUiQueryLiveOpenOutcome, WorthUiQueryWorkspaceExt};
+use worth_ui::facade::query_binding::{
+    WorthUiInstalledQueryBindingReference, WorthUiQueryViewIdentity, WorthUiQueryViewShape,
+    WorthUiQueryWorkspaceExt,
+};
+use worth_ui_query_binding::compatibility::managed_live::{
+    WorthUiInstalledLiveQueryView, WorthUiQueryLiveOpenOutcome,
+};
 use worth_ui_test_support::{
     with_activation_precommit_interruption, WorthUiActivationPrecommitStage,
 };
 
 use super::scenario::{
-    application, installed_workspace, submission, FIRST_VIEW, NEXT_COMPONENT, SECOND_VIEW,
+    installed_workspace, mixed_live_snapshot_application, submission, FIRST_VIEW, NEXT_COMPONENT,
+    SECOND_VIEW, SNAPSHOT_VIEW,
 };
+use super::settled_snapshot_preservation::{admit_active_settlement, settle_snapshot};
 use super::support::{
     activation_boundary, admit_active_resource, admit_candidate_resource, close, open_resource,
     prepare_catalog,
 };
 
 #[test]
-fn every_fallible_precommit_stage_reaps_only_the_real_candidate_query_resource() {
+fn every_fallible_precommit_stage_reaps_candidate_live_state_and_preserves_exact_snapshot() {
     let mut workspace = installed_workspace("query-precommit-matrix");
     let installed = workspace.worth_ui().expect("Worth UI domain installed");
     let first = installed
@@ -25,13 +33,34 @@ fn every_fallible_precommit_stage_reaps_only_the_real_candidate_query_resource()
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("candidate view");
-    let mut session = application(first.clone(), second.clone())
-        .launch()
-        .expect("Query application launch");
+    let snapshot = installed
+        .measurement_view(SNAPSHOT_VIEW)
+        .expect("snapshot view");
+    let app = mixed_live_snapshot_application(first.clone(), second.clone(), snapshot);
+    let snapshot_reference = app
+        .resolve_query_view(
+            &WorthUiQueryViewIdentity::new(SNAPSHOT_VIEW).expect("snapshot identity"),
+            WorthUiQueryViewShape::Collection,
+        )
+        .expect("application retains the exact snapshot reference");
+    let mut session = app.launch().expect("Query application launch");
     admit_active_resource(&mut session, &first, &mut workspace);
+    let initial_snapshot = admit_active_settlement(
+        &mut session,
+        settle_snapshot(&snapshot_reference, &mut workspace),
+        false,
+    );
+    assert_eq!(initial_snapshot.source_generation().unwrap().as_u64(), 1);
 
-    for stage in WorthUiActivationPrecommitStage::ALL {
-        assert_query_rollback_at(stage, &mut session, &second, &mut workspace);
+    for (index, stage) in WorthUiActivationPrecommitStage::ALL.into_iter().enumerate() {
+        assert_query_rollback_at(
+            stage,
+            &mut session,
+            &second,
+            &snapshot_reference,
+            (index + 2) as u64,
+            &mut workspace,
+        );
     }
 
     assert!(matches!(
@@ -47,7 +76,9 @@ fn every_fallible_precommit_stage_reaps_only_the_real_candidate_query_resource()
 fn assert_query_rollback_at(
     stage: WorthUiActivationPrecommitStage,
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-    second: &worth_ui::facade::query_binding::WorthUiInstalledLiveQueryView,
+    second: &WorthUiInstalledLiveQueryView,
+    snapshot_reference: &WorthUiInstalledQueryBindingReference,
+    expected_snapshot_generation: u64,
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
 ) {
     let label = format!("query-precommit-{}", stage.label().replace(' ', "-"));
@@ -104,6 +135,18 @@ fn assert_query_rollback_at(
         .unwrap_or_else(|_| panic!("predecessor turn remains executable"))
         .execute_virtualized_data_frame(prior_target)
         .expect("the exact predecessor Query target remains executable");
+
+    let refreshed_snapshot = admit_active_settlement(
+        session,
+        settle_snapshot(snapshot_reference, workspace),
+        true,
+    );
+    assert_eq!(
+        refreshed_snapshot.source_generation().unwrap().as_u64(),
+        expected_snapshot_generation,
+        "{} must leave the exact predecessor settlement refreshable",
+        stage.label()
+    );
 
     close(open_resource(second, workspace), workspace);
 }

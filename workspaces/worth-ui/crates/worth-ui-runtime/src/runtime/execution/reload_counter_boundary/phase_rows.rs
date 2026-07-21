@@ -1,8 +1,8 @@
 use crate::runtime::{
     WorthUiCandidateAdmissionCounters, WorthUiDurableStateReconciliationCounters,
     WorthUiExecutionPlanEquivalenceCounters, WorthUiFrameCostCounter, WorthUiIdentityMatchCounters,
-    WorthUiImpactLookupCounters, WorthUiMeasurementBoundary, WorthUiMeasurementQueryEvidence,
-    WorthUiPlanLoweringCounters, WorthUiPlanTopologyCounters, WorthUiQueryLiveRebindCounters,
+    WorthUiImpactLookupCounters, WorthUiMeasurementBoundary, WorthUiPlanLoweringCounters,
+    WorthUiPlanTopologyCounters, WorthUiQueryLiveRebindCounters,
     WorthUiRuntimeArtifactComparisonCounters, WorthUiRuntimeCounterFamily,
     WorthUiRuntimeHandleAllocationCounters,
 };
@@ -22,10 +22,6 @@ pub(crate) fn admission_rows(
         count(
             "reload.candidate_admission.runtime_posture_checks",
             counters.runtime_posture_checks(),
-        ),
-        count(
-            "reload.candidate_admission.query_support_checks",
-            counters.query_support_checks(),
         ),
     ]
 }
@@ -246,15 +242,6 @@ pub(crate) fn plan_assembly_rows(
             equivalence.artifact_tree_scan_count(),
         ),
     ]
-}
-
-pub(crate) fn query_evidence_rows(
-    query_receipt_digests: &[u64],
-) -> Vec<WorthUiMeasurementQueryEvidence> {
-    query_receipt_digests
-        .iter()
-        .map(|digest| WorthUiMeasurementQueryEvidence::subscription_selection_diagnostics(*digest))
-        .collect()
 }
 
 pub(crate) fn boundary_for_family(

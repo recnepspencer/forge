@@ -28,8 +28,7 @@ pub(crate) struct WorthUiPlanRegionExecutable {
     realtime_meaning:
         Option<Rc<crate::runtime::planning::execution_plan_input::WorthUiRealtimePlanMeaning>>,
     query_binding_identity: Option<Rc<crate::runtime::WorthUiQueryBindingIdentity>>,
-    query_installed_reference:
-        Option<Rc<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>>,
+    query_settled_fact_link: Option<Rc<crate::runtime::WorthUiQuerySettledFactLink>>,
     root_shell: bool,
 }
 
@@ -78,10 +77,9 @@ impl WorthUiPlanRegionExecutable {
             return Err(super::WorthUiPlanRegionStoreDenial::RealtimeMeaningFamilyMismatch);
         }
         let query_binding_identity = input.query_binding_identity_reference();
-        let query_installed_reference = input.query_installed_reference_shared();
+        let query_settled_fact_link = input.query_settled_fact_link_shared();
         let is_query_row = family == WorthUiPlanNodeInputFamily::QueryViewBinding;
-        if is_query_row != (query_binding_identity.is_some() && query_installed_reference.is_some())
-        {
+        if is_query_row != (query_binding_identity.is_some() && query_settled_fact_link.is_some()) {
             return Err(super::WorthUiPlanRegionStoreDenial::QueryBindingFactsMismatch);
         }
         let root_shell = input.owner_identity_basis().is_none()
@@ -103,7 +101,7 @@ impl WorthUiPlanRegionExecutable {
             spatial_meaning,
             realtime_meaning,
             query_binding_identity,
-            query_installed_reference,
+            query_settled_fact_link,
             root_shell,
         })
     }
@@ -182,10 +180,10 @@ impl WorthUiPlanRegionExecutable {
         self.query_binding_identity.as_ref().map(Rc::clone)
     }
 
-    pub(crate) fn query_installed_reference(
+    pub(crate) fn query_settled_fact_link(
         &self,
-    ) -> Option<Rc<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>> {
-        self.query_installed_reference.as_ref().map(Rc::clone)
+    ) -> Option<Rc<crate::runtime::WorthUiQuerySettledFactLink>> {
+        self.query_settled_fact_link.as_ref().map(Rc::clone)
     }
 
     pub(super) fn semantic_digest(&self, seed: u64) -> u64 {
@@ -213,8 +211,8 @@ impl WorthUiPlanRegionExecutable {
                 crate::runtime::planning::execution_plan_input::WorthUiRealtimePlanMeaning::semantic_digest,
             ),
         );
-        if let Some(reference) = &self.query_installed_reference {
-            digest = fold(digest, reference.definition().digest().as_u64());
+        if let Some(link) = &self.query_settled_fact_link {
+            digest = fold(digest, link.definition().digest().as_u64());
         }
         for target in self.child_targets.iter() {
             digest = fold(digest, target.stable_slot());

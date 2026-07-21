@@ -17,7 +17,7 @@ struct ActivatedCatalogFixture {
     durable_root: Option<crate::graph::UiGraphNodeIdentity>,
     receipt: crate::runtime::UiAllocationReceipt,
     unrelated_receipt: crate::runtime::UiAllocationReceipt,
-    query: Option<crate::evidence::UiProjectionFactReceipt>,
+    query: Option<crate::evidence::UiSettledQueryFactReceipt>,
     committed_evidence: crate::runtime::UiCommittedAllocationEvidenceSet,
 }
 
@@ -163,7 +163,7 @@ fn activate_catalog(
                     .measurement_basis()
                     .evidence_inputs()
                     .iter()
-                    .any(|input| input.as_query_projection_fact().is_some())
+                    .any(|input| input.as_settled_query_fact().is_some())
             })
             .expect("scroll catalog exposes its structural scroll-owned candidate")
             .clone()
@@ -188,7 +188,7 @@ fn activate_catalog(
             .measurement_basis()
             .evidence_inputs()
             .iter()
-            .find_map(crate::evidence::MeasurementEvidenceInput::as_query_projection_fact)
+            .find_map(crate::evidence::MeasurementEvidenceInput::as_settled_query_fact)
             .cloned()
     });
     let durable_root = durable_resize.as_ref().and_then(|input| {
