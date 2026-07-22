@@ -24,7 +24,9 @@ mod offline_verifier;
 mod offline_walk;
 mod page_record;
 mod payload;
+mod placement;
 mod record_framing;
+mod record_identity;
 mod reference;
 mod security_metadata;
 pub mod store_namespace;
@@ -55,6 +57,9 @@ pub use binary_format::{
     PhysicalGoldenFormatHeaderFixture, PhysicalLocalityClass, PhysicalOperationComplexityContract,
     PhysicalOperationCounterRow, PhysicalOperationCounterSnapshot,
     PhysicalOperationEvidenceRequirement, PhysicalOperationKind, PhysicalPageSizeClass,
+    PhysicalRecordByteOrder, PhysicalRecordFormatDeclaration,
+    PhysicalRecordFormatDeclarationBuilder, PhysicalRecordFormatDenial,
+    PhysicalRecordFormatVersion, PhysicalRecordIntegrity, PhysicalRecordRootProtocol,
     PhysicalReservedFieldPolicy, PhysicalReservedFieldPolicyDeclaration,
 };
 pub use blob_manifest::{
@@ -62,9 +67,10 @@ pub use blob_manifest::{
     BlobPhysicalManifestRowKind, BlobPhysicalManifestValidation,
 };
 pub use bootstrap::{
-    physical_bootstrap_catalog, PhysicalBootstrapCatalogAuthority, PhysicalBootstrapCatalogDenial,
-    PhysicalBootstrapCatalogIdentity, PhysicalBootstrapCatalogOpenWitness,
-    PhysicalBootstrapCatalogWitness,
+    physical_bootstrap_catalog, BootstrapCatalog, BootstrapCatalogDenial, CurrentRootCatalogEntry,
+    CurrentRootCatalogGeneration, PhysicalBootstrapCatalogAuthority,
+    PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogIdentity,
+    PhysicalBootstrapCatalogOpenWitness, PhysicalBootstrapCatalogWitness, BOOTSTRAP_CATALOG_BYTES,
 };
 pub use canonical_basis::{
     prepare_physical_page_header_canonical_basis, PhysicalPageHeaderCanonicalBasisOutcome,
@@ -84,10 +90,12 @@ pub use denial::{
     PhysicalShortcutBoundary, PhysicalShortcutBoundaryDenial, PhysicalVocabularyError,
 };
 pub use extent_record::{
-    ExtentBackedRecordPlacement, ExtentBackedRecordView, ExtentMembership,
-    ExtentRecordAppendReport, ExtentRecordAppendRequest, ExtentRecordCounterSnapshot,
-    ExtentRecordDenial, ExtentRecordDenialKind, ExtentRecordLocateReport,
-    PhysicalExtentRecordAuthority,
+    decode_extent_chunk, encode_extent_chunk, prepare_extent_chunk, prepare_extent_chunk_reusing,
+    ExtentBackedRecordPlacement, ExtentBackedRecordView, ExtentChunkCoordinate, ExtentFrameDenial,
+    ExtentMembership, ExtentRecordAppendReport, ExtentRecordAppendRequest,
+    ExtentRecordCounterSnapshot, ExtentRecordDenial, ExtentRecordDenialKind,
+    ExtentRecordLocateReport, PhysicalExtentRecordAuthority, DURABLE_EXTENT_FRAME_HEADER_BYTES,
+    EXTENT_CHUNK_METADATA_BYTES,
 };
 pub use format_identity::{
     PhysicalEpoch, PhysicalExtentId, PhysicalFormatMagic, PhysicalFormatVersion,
@@ -98,9 +106,9 @@ pub use generation::{
     ExtentGenerationCell, ExtentGenerationCellBuilder, FreeSpaceReuseAddress, FreeSpaceReuseCell,
     FreeSpaceReuseCellBuilder, PageGenerationCell, PageGenerationCellBuilder,
     PhysicalCellReuseDomain, PhysicalGenerationAuthority, PhysicalGenerationAuthorityScope,
-    PhysicalGenerationOwner, RootPublicationCell, RootPublicationCellBuilder,
-    SegmentGenerationCell, SegmentGenerationCellBuilder, SlotGenerationCell,
-    SlotGenerationCellBuilder,
+    PhysicalGenerationOwner, RecordExtentGenerationCell, RecordExtentGenerationCellBuilder,
+    RootPublicationCell, RootPublicationCellBuilder, SegmentGenerationCell,
+    SegmentGenerationCellBuilder, SlotGenerationCell, SlotGenerationCellBuilder,
 };
 pub use header::{
     PhysicalDecodedHeader, PhysicalFrameHeader, PhysicalFrameKind, PhysicalHeaderAuthority,
@@ -127,14 +135,22 @@ pub use in_memory_physical_format_model::{
     PlatformPhysicalScanReport,
 };
 pub use manifest::{
-    AllocationClassManifestEntry, ExtentManifestEntry, ExtentManifestVocabulary,
-    FreeSpaceManifestEntry, ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot,
-    ManifestDiscoveryDenial, ManifestDiscoveryDenialKind, ManifestDiscoveryReport,
-    ManifestVocabularyKind, PhysicalCurrentReachabilitySource, PhysicalManifestUniverseBuilder,
-    PhysicalReclaimRegion, PhysicalReclaimRegionDenial, PhysicalRootManifest,
-    PhysicalRootManifestRebuildRow, PhysicalRootManifestRebuildSource,
-    PhysicalRootManifestRebuildWitness, PhysicalRootManifestVocabulary,
-    ReclaimedByteInterpretation, SegmentManifestEntry, SegmentManifestVocabulary,
+    maximum_current_root_entries, maximum_segment_manifest_pages, AllocationClassManifestEntry,
+    CurrentPhysicalRecordPlacement, DurableExtentManifest, DurableExtentRecordPlacement,
+    DurableFreeSpaceManifestHeader, DurableInlineRecordPlacement, DurablePhysicalRootManifest,
+    DurablePhysicalRootManifestBuilder, DurableSegmentManifest, ExtentManifestEntry,
+    ExtentManifestVocabulary, FreeSpaceBlockReference, FreeSpaceKey, FreeSpaceManifestEntry,
+    FreeSpaceRoutingDenial, ManifestBlockReference, ManifestDiscoveryAuthority,
+    ManifestDiscoveryCounterSnapshot, ManifestDiscoveryDenial, ManifestDiscoveryDenialKind,
+    ManifestDiscoveryReport, ManifestVocabularyKind, MembershipManifestDenial,
+    PhysicalCurrentReachabilitySource, PhysicalFreeSpaceMembershipBlock,
+    PhysicalManifestUniverseBuilder, PhysicalReclaimRegion, PhysicalReclaimRegionDenial,
+    PhysicalRootManifest, PhysicalRootManifestRebuildRow, PhysicalRootManifestRebuildSource,
+    PhysicalRootManifestRebuildWitness, PhysicalRootManifestVocabulary, PhysicalRootRoutingBlock,
+    PhysicalSegmentMembershipBlock, ReclaimedByteInterpretation, RecordAllocationClass,
+    RecordFreeSpaceManifestEntry, RecordSegmentPageManifestEntry, RootManifestDenial,
+    RootRoutingBlockDenial, SegmentManifestBlockReference, SegmentManifestEntry,
+    SegmentManifestVocabulary, SegmentMembershipBlockDenial, SegmentPageKey,
     SegmentPageManifestEntry,
 };
 pub use offline_verifier::{
@@ -147,22 +163,27 @@ pub use offline_verifier::{
 };
 pub use offline_walk::{
     classify_offline_artifact_family, observe_bounded_physical_bytes,
-    verify_bounded_extent_artifact, verify_bounded_extent_artifact_from_reader,
-    verify_bounded_page_artifact, verify_bounded_page_artifact_from_reader,
-    verify_bounded_root_manifest_artifact, verify_bounded_root_manifest_artifact_from_reader,
-    BoundedPhysicalArtifactDenial, BoundedPhysicalArtifactObservation,
-    OfflinePhysicalArtifactFamily, OfflineStructuralObservation, VerifiedRootManifestArtifact,
+    verify_bounded_extent_artifact_from_reader, verify_bounded_page_artifact_from_reader,
+    verify_bounded_root_manifest_artifact_from_reader, BoundedPhysicalArtifactDenial,
+    BoundedPhysicalArtifactObservation, OfflinePhysicalArtifactFamily,
+    OfflineStructuralObservation, VerifiedRootManifestArtifact,
 };
 pub use page_record::{
-    PageRecordCounterSnapshot, PageRecordDenial, PageRecordDenialKind, PhysicalPageRecordAuthority,
-    RecordAppendReport, RecordLocateReport, SlotAppendRequest, SlotDirectory, SlotDirectoryEntry,
-    SlotDirectoryEntryState,
+    append_inline_records_owned, decode_inline_record, encode_inline_page, inspect_inline_page,
+    inspect_inline_page_records, AppendedInlineRecord, InlinePageDenial, InlinePageGeometry,
+    InlinePageRecordDescriptor, InlineRecordAppend, InlineRecordRange, PageRecordCounterSnapshot,
+    PageRecordDenial, PageRecordDenialKind, PhysicalPageRecordAuthority, RecordAppendReport,
+    RecordLocateReport, SlotAppendRequest, SlotDirectory, SlotDirectoryEntry,
+    SlotDirectoryEntryState, DURABLE_INLINE_PAGE_PREFIX_BYTES, DURABLE_INLINE_SLOT_BYTES,
 };
 pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
+pub use placement::{RecordArtifactFile, RecordFrameCoordinate};
 pub use record_framing::{
-    FramedRecordPayload, FramedRecordView, RecordPagePayload, RecordPlacementClass,
-    RecordPlacementWitness,
+    durable_artifact_checksum, DurableFrameDenial, DurableFrameKind, FramedRecordPayload,
+    FramedRecordView, RecordPagePayload, RecordPlacementClass, RecordPlacementWitness,
+    DURABLE_FRAME_HEADER_BYTES,
 };
+pub use record_identity::PersistedRecordIdentity;
 pub use reference::{
     CheckpointAdjacencyPosture, CurrentRootManifestAdmission, ManifestMembershipDenial,
     ManifestMembershipProof, PhysicalFutureChunkId, PhysicalFutureChunkReference,

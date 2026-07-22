@@ -10,7 +10,10 @@ pub use admission_outcome::{
     MediaAdmissionInspectionRequired, MediaAdmissionOutcome, MediaAdmissionRebindRequired,
     MediaAdmissionStale,
 };
-pub use observation::{PhysicalMediaObservation, PhysicalMediaObserver};
+pub use observation::{
+    MediaOwnedObservationPhase, PhysicalMediaObservation, PhysicalMediaObserver,
+    RecordServingObservationPhase,
+};
 pub use runtime::MediaOwnedPhysicalRuntime;
 pub use shutdown::MediaShutdownOutcome;
 

@@ -106,7 +106,6 @@ impl MediaAdmissionRebindRequired {
 
 #[derive(Debug)]
 pub enum MediaAdmissionInspectionCause {
-    PostEffectDenial(MediaQualificationDenial),
     BackendFailure(MediaQualificationFailure),
 }
 
@@ -117,18 +116,6 @@ pub struct MediaAdmissionInspectionRequired {
 }
 
 impl MediaAdmissionInspectionRequired {
-    pub(super) const fn post_effect_denial(
-        runtime_identity: RuntimeIdentity,
-        terminal: AbortedRuntime,
-        denial: MediaQualificationDenial,
-    ) -> Self {
-        Self {
-            runtime_identity,
-            terminal,
-            cause: MediaAdmissionInspectionCause::PostEffectDenial(denial),
-        }
-    }
-
     pub(super) const fn backend_failure(
         runtime_identity: RuntimeIdentity,
         terminal: AbortedRuntime,

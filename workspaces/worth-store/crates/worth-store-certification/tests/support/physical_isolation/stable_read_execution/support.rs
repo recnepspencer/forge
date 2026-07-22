@@ -155,6 +155,7 @@ pub(crate) fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> Res
         admitted,
         ResidentFrameTableCapacity::frames(frame_count).unwrap(),
     )
+    .unwrap()
 }
 
 fn framed_record(

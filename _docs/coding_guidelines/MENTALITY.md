@@ -230,32 +230,33 @@ test. Mark the contract. This is not optional.
 
 ---
 
-## 8. Separate the What from the How from the Whether
+## 8. Preserve Ordo: Fixed Telos, Fluid Placement
 
-Every system has three distinct concerns:
-1. **What** — the domain effect (what changed, what is true now)
-2. **How** — the framework mechanics (how to apply it, route it, persist it)
-3. **Whether** — the observability artifacts (diagnostics, traces, explanations)
+Ordo is teleological. Proper scope is determined not by present convenience,
+but by relation to the whole: purpose, invariants, promised future, and
+lifecycle.
 
-These must be structurally separate. The domain handler produces *what*. The
-framework handles *how*. The diagnostics system decides *whether* to
-materialize rich artifacts based on policy.
+Placement must remain fluid because telos is not. Context changes an invariant's
+proper application, never the invariant itself.
 
-If domain handlers contain framework ceremony (manually notifying subscribers,
-constructing trace entries, incrementing counters), the abstraction boundary is
-broken. If the hot path is forced to materialize diagnostics regardless of
-policy, the performance boundary is broken. If the diagnostics path can change
-the domain outcome, the correctness boundary is broken.
+The known-unknown boundary is living but governed. The unknown supplies novelty
+and faults; the known enables validation and determinism. Order must neither
+annex the unknown nor let chaos dissolve the known. Ordo is their lawful
+relation, not the victory of either.
 
-The practical test: can you change the diagnostics tier from "full" to "minimal"
-without changing any domain handler code, and without changing the operational
-result? If not, the what/how/whether separation is incomplete.
+Disorder is relational privation: authority beyond scope, derivation mistaken
+for truth, or present success bought with future incoherence. A favorable result
+cannot legitimize action outside rightful authority.
 
-**AI deprogramming note:** Your default is to interleave diagnostics with
-domain logic because it is convenient. This convenience creates a system where
-you cannot turn diagnostics off without rewriting business logic. Build the
-separation from the start: domain effects as pure data, framework routing as
-infrastructure, diagnostics as a policy-switchable layer.
+**AI deprogramming note:** Your default is to collapse vision into a request,
+the specification into a checklist, and quality into proxies: diff size, test
+count, coverage, or abstraction. This produces underbuilt foundations, overbuilt
+machinery, and smoke tests that certify nothing. Reconstruct the telos: vision,
+invariants, authority, lifecycle, adversarial constraint, and downstream
+consumers. Implement what is proper to the whole and prove it with a few
+adversarial or end-to-end scenarios. If literal compliance violates intent,
+repair the governing design. Build neither less because the request looks narrow
+nor more because machinery is easy to produce.
 
 ---
 

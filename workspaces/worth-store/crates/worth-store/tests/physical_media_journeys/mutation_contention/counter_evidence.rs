@@ -3,7 +3,6 @@ use worth_store_physical_backend::{MediaCounterSnapshot, MediaOperationRole};
 
 pub(super) fn inspection_counters(cause: &MediaAdmissionInspectionCause) -> MediaCounterSnapshot {
     match cause {
-        MediaAdmissionInspectionCause::PostEffectDenial(denial) => *denial.counters(),
         MediaAdmissionInspectionCause::BackendFailure(failure) => *failure.counters(),
     }
 }

@@ -31,6 +31,7 @@ mod custody_capsule_observation;
 #[cfg(test)]
 mod custody_capsule_observation_tests;
 mod disaster_recovery_verification;
+mod durable_record_manifest;
 mod export_bundle_observation;
 mod forensic_acquisition;
 mod handoff;
@@ -68,6 +69,12 @@ pub use disaster_recovery_verification::{
     DisasterRecoveryVerificationDenial, DisasterRecoveryVerificationPolicy,
     DisasterRecoveryVerificationPolicyDenial, IndependentlyOpenedDisasterRecoveryBundle,
     IndependentlyVerifiedDisasterRecoveryBundle,
+};
+pub use durable_record_manifest::{
+    walk_current_durable_record_manifest, walk_non_current_durable_record_manifest,
+    OfflineAllocationClass, OfflineDurableManifestDenial, OfflineDurableManifestWalk,
+    OfflineFreeSpaceMembership, OfflineRecordIdentity, OfflineRecordPlacement,
+    OfflineSegmentPageMembership,
 };
 pub use export_bundle_observation::{
     inspect_offline_export_bundle, OfflineExportBundleObservation,

@@ -14,6 +14,7 @@ use worth_store_security::{
     classify_operator_identity_as_security_scope_source,
     classify_terminal_json_label_as_security_scope_source,
 };
+use worth_store_test_support::read_ahead_declaration_for_real_pool;
 
 use super::support::{backend_witness, point_read_budget, scheduler_security_scope};
 
@@ -21,7 +22,7 @@ use super::support::{backend_witness, point_read_budget, scheduler_security_scop
 fn secure_io_receipt_is_required_for_secure_queue_admission() {
     let reservation = worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = read_ahead_producer(budget);
+    let producer = read_ahead_producer(reservation.security_scope_identity(), budget);
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         IoSchedulerBackendCapabilityRequirement::DirectIo,
@@ -50,7 +51,7 @@ fn secure_io_receipt_is_required_for_secure_queue_admission() {
 fn ordinary_read_ahead_queue_admission_requires_secure_io_receipt() {
     let reservation = worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = read_ahead_producer(budget);
+    let producer = read_ahead_producer(reservation.security_scope_identity(), budget);
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("buffer-pool producer should lower");
     let backend = admit_backend_capability_for_scheduler_claim(
@@ -76,7 +77,7 @@ fn ordinary_read_ahead_queue_admission_requires_secure_io_receipt() {
 fn secure_io_receipt_operation_cannot_be_laundered() {
     let reservation = worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = read_ahead_producer(budget);
+    let producer = read_ahead_producer(reservation.security_scope_identity(), budget);
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         IoSchedulerBackendCapabilityRequirement::DirectIo,
@@ -153,9 +154,11 @@ fn lower_authority_sources_report_secure_io_classifier_denials() {
 }
 
 fn read_ahead_producer(
+    security: worth_store_security::StoreSecurityScopeIdentity,
     budget: worth_store_io_scheduler::BackgroundResourceBudget,
 ) -> BufferPoolQueueExecutionDeclaration {
-    BufferPoolQueueExecutionDeclaration::read_ahead(
+    read_ahead_declaration_for_real_pool(
+        security,
         11,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())

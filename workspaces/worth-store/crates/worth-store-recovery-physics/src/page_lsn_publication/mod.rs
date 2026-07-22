@@ -16,7 +16,9 @@ mod tests;
 
 pub use counters::PageLsnPublicationCounterSnapshot;
 pub use denial::{UnadmittedDirtyPagePublicationDenial, UnadmittedDirtyPagePublicationDenialKind};
-pub use dirty_publication_evidence::DirtyPublicationEvidence;
+pub use dirty_publication_evidence::{
+    DirtyPublicationEvidence, PhysicalDirtyPublicationCounters, RecoveryDirtyPageIdentity,
+};
 pub use no_undo_publication::{NoUndoPublicationEligibility, NoUndoPublicationProof};
 pub use page_flush_receipt::PageFlushRecoveryReceipt;
 pub use page_lsn::PageLsn;

@@ -128,6 +128,15 @@ impl<'owner> CoordinatedNamespaceMutation<'owner> {
     pub(super) fn belongs_to(&self, owner: MediaOwnerIdentity) -> bool {
         self.ownership.belongs_to(owner)
     }
+
+    pub(super) fn into_ownership(self) -> MutationAuthority<'owner> {
+        let Self {
+            ownership,
+            _sequence,
+        } = self;
+        drop(_sequence);
+        ownership
+    }
 }
 
 const LEASE_LIVE: u8 = 0;
@@ -147,29 +156,48 @@ impl MutationOwnershipLease {
         owner: MediaOwnerIdentity,
         namespace_directory: &NamespaceDirectoryHandle,
         boundary: &super::fault_interposition::MediaFaultInterposer,
-    ) -> Result<Self, MutationOwnershipDenial> {
+    ) -> Result<Self, super::owner_admission_effect::MutationOwnershipAcquisitionFailure> {
+        use super::owner_admission_effect::MutationOwnershipAcquisitionFailure;
+
         if !namespace_directory.belongs_to(owner) {
-            return Err(MutationOwnershipDenial::Confinement(
-                NamespaceConfinementDenial::structural(
+            return Err(MutationOwnershipAcquisitionFailure::before_effect(
+                MutationOwnershipDenial::Confinement(NamespaceConfinementDenial::structural(
                     super::NamespaceConfinementDenialKind::AuthorityMismatch,
-                ),
+                )),
             ));
         }
-        let attempt = MutationOwnershipAttempt::generate()?;
-        let lock = super::mutation_lock_file::open(owner, namespace_directory, boundary)?;
-        acquire_os_lease(&lock, boundary)?;
-        if let Err(denial) = publish_owner_observation(&lock, owner, attempt, boundary) {
-            let _ = FileExt::unlock(&lock);
-            boundary.shared_counters().ownership_released();
-            return Err(denial);
+        let attempt = MutationOwnershipAttempt::generate()
+            .map_err(MutationOwnershipAcquisitionFailure::before_effect)?;
+        let opened = super::mutation_lock_file::open(owner, namespace_directory, boundary)?;
+        if let Err(denial) = acquire_os_lease(&opened.file, boundary) {
+            return Err(MutationOwnershipAcquisitionFailure::new(
+                denial,
+                opened.effect_fate,
+                None,
+            ));
         }
-        Ok(Self {
+        let lease = Self {
             owner,
             attempt,
-            lock,
+            lock: opened.file,
             state: AtomicU8::new(LEASE_LIVE),
             counters: Arc::clone(boundary.shared_counters()),
-        })
+        };
+        if let Err(publication) = super::mutation_owner_publication::publish_owner_observation(
+            &lease.lock,
+            owner,
+            attempt,
+            boundary,
+        ) {
+            let effect_fate = opened.effect_fate.combine(publication.effect_fate);
+            let release = lease.release(boundary);
+            return Err(MutationOwnershipAcquisitionFailure::new(
+                publication.denial,
+                effect_fate,
+                Some(release),
+            ));
+        }
+        Ok(lease)
     }
 
     pub(super) fn belongs_to(&self, owner: MediaOwnerIdentity) -> bool {
@@ -249,97 +277,6 @@ fn acquire_os_lease(
                 Err(lock_error(error))
             }
         }
-    }
-}
-
-fn publish_owner_observation(
-    lock: &std::fs::File,
-    owner: MediaOwnerIdentity,
-    ownership_attempt: MutationOwnershipAttempt,
-    boundary: &super::fault_interposition::MediaFaultInterposer,
-) -> Result<(), MutationOwnershipDenial> {
-    use std::fmt::Write as _;
-    use std::io::{Seek, Write as _};
-
-    let mut observation = String::with_capacity(128);
-    boundary
-        .counters()
-        .explicit_heap_allocation(observation.capacity());
-    writeln!(&mut observation, "version=1").expect("writing to String cannot fail");
-    writeln!(&mut observation, "process={:010}", std::process::id())
-        .expect("writing to String cannot fail");
-    observation.push_str("runtime=");
-    append_hex(&mut observation, &owner.bytes());
-    observation.push('\n');
-    observation.push_str("attempt=");
-    append_hex(&mut observation, &ownership_attempt.bytes());
-    observation.push('\n');
-    let attempted_bytes = observation.len() as u64;
-    let attempt = boundary.begin(
-        super::MediaOperationRole::PublishMutationLeaseObservation,
-        attempted_bytes,
-    );
-    if let Some(error) = attempt.fail_before_error() {
-        attempt.denied();
-        return Err(lock_error(error));
-    }
-    if let Err(error) = lock.set_len(0) {
-        attempt.indeterminate(0);
-        return Err(lock_error(error));
-    }
-    let mut writer = lock;
-    if let Err(error) = writer.seek(std::io::SeekFrom::Start(0)) {
-        attempt.indeterminate(0);
-        return Err(lock_error(error));
-    }
-    let transfer_limit = attempt.transfer_limit(attempted_bytes) as usize;
-    let mut completed = 0;
-    while completed < transfer_limit {
-        match writer.write(&observation.as_bytes()[completed..transfer_limit]) {
-            Ok(0) => {
-                attempt.indeterminate(completed as u64);
-                return Err(lock_error(io::Error::new(
-                    io::ErrorKind::WriteZero,
-                    "lease observation write made no progress",
-                )));
-            }
-            Ok(bytes) => completed += bytes,
-            Err(error) => {
-                attempt.indeterminate(completed as u64);
-                return Err(lock_error(error));
-            }
-        }
-    }
-    if completed != observation.len() {
-        attempt.partial(completed as u64);
-        return Err(lock_error(io::Error::new(
-            io::ErrorKind::WriteZero,
-            "certification stopped lease observation after a known prefix",
-        )));
-    }
-    if let Some(error) = attempt.barrier_error() {
-        attempt.indeterminate(attempted_bytes);
-        return Err(lock_error(error));
-    }
-    if let Err(error) = lock.sync_data() {
-        attempt.indeterminate(attempted_bytes);
-        return Err(lock_error(error));
-    }
-    if attempt.effect_observation_is_indeterminate() {
-        attempt.indeterminate(attempted_bytes);
-        return Err(lock_error(io::Error::other(
-            "certification interrupted lease-publication observation",
-        )));
-    }
-    attempt.completed(attempted_bytes);
-    Ok(())
-}
-
-fn append_hex(encoded: &mut String, bytes: &[u8]) {
-    use std::fmt::Write;
-
-    for byte in bytes {
-        write!(encoded, "{byte:02x}").expect("writing to String cannot fail");
     }
 }
 

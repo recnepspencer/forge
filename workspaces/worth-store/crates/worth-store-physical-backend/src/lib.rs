@@ -1,4 +1,7 @@
 #![forbid(unsafe_code)]
+// Owner-free dependency graphs retain passive media vocabulary but cannot
+// activate the filesystem-owner graph. All-feature CI still denies dead code.
+#![cfg_attr(not(feature = "store-runtime-owner"), allow(dead_code))]
 //! Backend/media capability witnesses cannot be synthesized from raw fields:
 //! ```compile_fail
 //! use worth_store_physical_backend::AdmittedBackendCapabilityWitness;
@@ -248,11 +251,11 @@
 //!     AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind,
 //! };
 //! let _forged = AccessPolicyBufferLifecycle {
-//!     kind: AccessPolicyBufferLifecycleKind::PinnedS2Lease,
+//!     kind: AccessPolicyBufferLifecycleKind::PinnedPhysicalLease,
 //! };
 //! ```
 //! ```compile_fail
-//! let _forged = worth_store_physical_backend::AccessPolicyBufferLifecycle::from_buffer_pool_pinned_s2_lease();
+//! let _forged = worth_store_physical_backend::AccessPolicyBufferLifecycle { kind: AccessPolicyBufferLifecycleKind::PinnedPhysicalLease };
 //! ```
 //! ```compile_fail
 //! use worth_store_physical_backend::DirectIoAlignmentRequirement;

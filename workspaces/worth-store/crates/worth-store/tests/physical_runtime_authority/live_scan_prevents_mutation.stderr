@@ -1,0 +1,11 @@
+error[E0502]: cannot borrow `runtime` as mutable because it is also borrowed as immutable
+  --> tests/physical_runtime_authority/live_scan_prevents_mutation.rs:54:19
+   |
+47 |     let mut scan = runtime
+   |                    ------- immutable borrow occurs here
+...
+54 |     let _writer = runtime.records_mut();
+   |                   ^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+55 |     let mut scratch = [0_u8; 16];
+56 |     let _ = scan.read_next_into(&mut scratch);
+   |             ---- immutable borrow later used here

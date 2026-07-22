@@ -69,8 +69,12 @@ impl DirtyPageState {
 
     pub const fn access_policy_lifecycle_proof(self) -> AccessPolicyBufferLifecycle {
         match self.access_origin {
-            DirtyPageAccessOrigin::StoreBuffer => AccessPolicyBufferLifecycle::dirty_page_tracked(),
-            DirtyPageAccessOrigin::Mmap => AccessPolicyBufferLifecycle::dirty_mmap_page(),
+            DirtyPageAccessOrigin::StoreBuffer => {
+                AccessPolicyBufferLifecycle::from_dirty_page_observation()
+            }
+            DirtyPageAccessOrigin::Mmap => {
+                AccessPolicyBufferLifecycle::from_dirty_mmap_observation()
+            }
         }
     }
 

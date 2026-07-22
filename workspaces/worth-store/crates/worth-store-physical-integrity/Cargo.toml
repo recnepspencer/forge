@@ -18,6 +18,7 @@ worth-store-security.workspace = true
 
 [features]
 test-support = []
+legacy-certification-models = ["worth-store-buffer-pool/legacy-s2-models"]
 
 [lints]
 workspace = true

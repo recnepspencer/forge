@@ -7,8 +7,10 @@ license.workspace = true
 description = "Roadmap 2 S.2 bounded buffer pool and resident-memory contracts."
 
 [dependencies]
+sha2 = "0.10"
 worth-store-budgets.workspace = true
 worth-store-contracts.workspace = true
+worth-store-physical-backend.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
 
@@ -16,7 +18,8 @@ worth-store-security.workspace = true
 worth-store-readiness.workspace = true
 
 [features]
-certification-test-authority = []
+legacy-s2-models = []
+certification-test-authority = ["legacy-s2-models"]
 
 [lints]
 workspace = true

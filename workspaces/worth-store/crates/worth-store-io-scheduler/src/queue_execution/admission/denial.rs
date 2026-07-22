@@ -40,6 +40,7 @@ pub enum QueueExecutionAdmissionDenial {
     SecureIoDenied(SecureIoPreservationDenial),
     RawOperationLabelCannotAdmitQueueWork,
     CopiedReservationReceiptCannotAdmitQueueWork,
+    ProducerSecurityScopeMismatch,
     BackendPrivateQueueHandleCannotAdmitQueueWork,
     ElapsedTimeObservationCannotAdmitQueueWork,
 }

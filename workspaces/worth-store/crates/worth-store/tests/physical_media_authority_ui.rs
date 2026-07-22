@@ -1,5 +1,5 @@
 #[test]
-fn media_authority_and_raw_surfaces_are_compiler_sealed() {
+fn runtime_progression_is_compiler_sealed_and_public_raw_facades_stay_private() {
     let cases = trybuild::TestCases::new();
     cases.pass("tests/physical_media_authority/supported_media_admission.rs");
     cases.compile_fail("tests/physical_media_authority/media_runtime_authority_is_sealed.rs");

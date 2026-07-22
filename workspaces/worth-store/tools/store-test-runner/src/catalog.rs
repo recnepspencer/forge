@@ -266,6 +266,14 @@ mod tests {
             1,
             "C.4 observer must remain one ordinary binary target"
         );
+        assert_eq!(
+            catalog.binary_target_count(
+                "worth-store-offline-verifier",
+                "physical_store_offline_observer",
+            ),
+            1,
+            "C.5 must retain one separately linked offline record observer"
+        );
         assert!(
             catalog
                 .targets()
@@ -341,6 +349,7 @@ mod tests {
             [
                 "physical_media_authority_ui",
                 "physical_media_journeys",
+                "physical_record_journeys",
                 "physical_runtime_authority_ui",
                 "public_facade_downstream",
                 "runtime_authority_pressure_journey",

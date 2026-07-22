@@ -1,13 +1,6 @@
 use crate::{AllocationRequest, DirtyPageCount};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SpeculativePhysicalWorkKind {
-    ReadAhead,
-    Prefetch,
-    WriteBehind,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PrefetchWindow {
     resident_frames: u32,
 }

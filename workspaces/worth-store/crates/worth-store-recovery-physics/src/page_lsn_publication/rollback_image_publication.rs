@@ -1,7 +1,6 @@
-use worth_store_buffer_pool::DirtyPageIdentity;
 use worth_store_physical_format::PageGenerationCell;
 
-use super::PageLsn;
+use super::{PageLsn, RecoveryDirtyPageIdentity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RollbackImagePublicationPosture {
@@ -12,7 +11,7 @@ pub enum RollbackImagePublicationPosture {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RollbackImagePublicationDeclaration {
-    dirty_identity: DirtyPageIdentity,
+    dirty_identity: RecoveryDirtyPageIdentity,
     page_generation: PageGenerationCell,
     page_lsn: PageLsn,
     declaration_digest: String,
@@ -20,7 +19,7 @@ pub struct RollbackImagePublicationDeclaration {
 
 impl RollbackImagePublicationDeclaration {
     pub fn declare(
-        dirty_identity: DirtyPageIdentity,
+        dirty_identity: RecoveryDirtyPageIdentity,
         page_generation: PageGenerationCell,
         page_lsn: PageLsn,
         declaration_digest: impl Into<String>,
@@ -33,7 +32,7 @@ impl RollbackImagePublicationDeclaration {
         }
     }
 
-    pub(crate) const fn dirty_identity(&self) -> DirtyPageIdentity {
+    pub(crate) const fn dirty_identity(&self) -> RecoveryDirtyPageIdentity {
         self.dirty_identity
     }
 
