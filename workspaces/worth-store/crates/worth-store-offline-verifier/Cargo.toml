@@ -31,3 +31,9 @@ worth-store-security = { workspace = true, features = ["certification-test-autho
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "physical_store_offline_observer"
+path = "src/bin/physical_store_offline_observer.rs"
+test = false
+doctest = false

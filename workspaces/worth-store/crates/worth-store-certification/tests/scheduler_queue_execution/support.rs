@@ -5,7 +5,6 @@ use worth_foundational::{
     FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
     FoundationalPerformanceWorkClass,
 };
-use worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use worth_store_io_scheduler::{
@@ -22,11 +21,13 @@ use worth_store_physical_backend::{
     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
+use worth_store_test_support::read_ahead_declaration_for_real_pool;
 
 pub(super) fn admitted_plan() -> worth_store_io_scheduler::QueueExecutionReadyPlan {
     let reservation = admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = BufferPoolQueueExecutionDeclaration::read_ahead(
+    let producer = read_ahead_declaration_for_real_pool(
+        reservation.security_scope_identity(),
         7,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())

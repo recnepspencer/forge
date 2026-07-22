@@ -24,6 +24,7 @@ pub use admission::{
 };
 pub use backend_capability::{
     admit_backend_capability_for_scheduler_claim,
+    admit_backend_capability_for_scheduler_qualified_claim,
     admit_secure_frame_backend_capability_for_scheduler_claim,
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityDenial,
     IoSchedulerBackendCapabilityRequirement,

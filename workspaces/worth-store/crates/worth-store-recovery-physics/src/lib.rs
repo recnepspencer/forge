@@ -136,7 +136,9 @@ pub use layout_readmission::{
     RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionOutcomeView,
     RecoveryLayoutReadmissionWitness,
 };
-pub use memory_envelope::{RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial};
+pub use memory_envelope::{
+    RecoveryMemoryCounterSnapshot, RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial,
+};
 pub use offline_verifier::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
     CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
@@ -158,10 +160,11 @@ pub use page_lsn_publication::{
     DirtyPublicationEvidence, NoUndoPublicationEligibility, NoUndoPublicationProof,
     PageFlushRecoveryReceipt, PageLsn, PageLsnPublicationCounterSnapshot, PageRedoApplicationBasis,
     PageRedoDigestState, PageRedoEligibility, PageRedoEligibilityKind,
-    ReopenedPageRecoveryEvidence, RollbackImagePublicationDeclaration,
-    RollbackImagePublicationPosture, StalePageRecoveryClassification,
-    StalePageRecoveryClassificationKind, UnadmittedDirtyPagePublicationDenial,
-    UnadmittedDirtyPagePublicationDenialKind, WalBeforeDataOrderingProof,
+    PhysicalDirtyPublicationCounters, RecoveryDirtyPageIdentity, ReopenedPageRecoveryEvidence,
+    RollbackImagePublicationDeclaration, RollbackImagePublicationPosture,
+    StalePageRecoveryClassification, StalePageRecoveryClassificationKind,
+    UnadmittedDirtyPagePublicationDenial, UnadmittedDirtyPagePublicationDenialKind,
+    WalBeforeDataOrderingProof,
 };
 pub use partial_publication::{
     AmbiguousPublicationReport, NoUndoPartialPublicationClassification,

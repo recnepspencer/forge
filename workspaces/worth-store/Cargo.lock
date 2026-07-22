@@ -600,6 +600,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -1170,44 +1171,23 @@ name = "worth-store"
 version = "0.1.0"
 dependencies = [
  "getrandom",
+ "serde",
+ "serde_json",
  "sha2",
  "stats_alloc",
  "tempfile",
  "trybuild",
  "worth-foundational",
  "worth-proof",
- "worth-store-analysis",
  "worth-store-aspect-native",
- "worth-store-authority",
- "worth-store-blob-chunks",
- "worth-store-branch-deltas",
- "worth-store-budgets",
  "worth-store-buffer-pool",
  "worth-store-certification",
- "worth-store-claim-boundaries",
- "worth-store-compatibility",
  "worth-store-contracts",
- "worth-store-extensions",
  "worth-store-io-scheduler",
- "worth-store-layout-indexes",
- "worth-store-live-query",
- "worth-store-maintenance",
- "worth-store-modes",
  "worth-store-offline-verifier",
- "worth-store-operations",
  "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
- "worth-store-physical-isolation",
- "worth-store-recovery-physics",
- "worth-store-replication",
- "worth-store-retention",
- "worth-store-schema-lineage",
  "worth-store-security",
- "worth-store-snapshots",
- "worth-store-subscription-support",
- "worth-store-tiering",
- "worth-store-wal",
 ]
 
 [[package]]
@@ -1287,8 +1267,10 @@ dependencies = [
 name = "worth-store-buffer-pool"
 version = "0.1.0"
 dependencies = [
+ "sha2",
  "worth-store-budgets",
  "worth-store-contracts",
+ "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-readiness",
  "worth-store-security",
@@ -1411,6 +1393,7 @@ dependencies = [
  "worth-store-buffer-pool",
  "worth-store-contracts",
  "worth-store-physical-backend",
+ "worth-store-physical-format",
  "worth-store-physical-isolation",
  "worth-store-security",
  "worth-store-wal",
@@ -1548,14 +1531,13 @@ dependencies = [
  "stats_alloc",
  "sysinfo",
  "tempfile",
+ "winapi-util",
  "worth-foundational",
  "worth-proof",
  "worth-store-aspect-native",
  "worth-store-authority",
- "worth-store-buffer-pool",
  "worth-store-contracts",
  "worth-store-physical-format",
- "worth-store-readiness",
  "worth-store-security",
 ]
 

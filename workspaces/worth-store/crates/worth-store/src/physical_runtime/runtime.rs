@@ -103,6 +103,14 @@ impl PhysicalRuntimeCore {
         self.shutdown.progress_to_media_owned();
     }
 
+    pub(super) fn progress_to_record_serving(&self) {
+        self.shutdown.progress_to_record_serving();
+    }
+
+    pub(super) fn termination_guard(&self) -> super::lifecycle::LifecycleTerminationGuard {
+        super::lifecycle::LifecycleTerminationGuard::new(self.shutdown.lifecycle_state())
+    }
+
     pub(super) fn media_observation_parts(
         &self,
     ) -> (

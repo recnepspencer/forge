@@ -273,3 +273,102 @@ fn initialized_roots_preserve_valid_residue_but_reject_ambiguous_staged_names() 
     assert!(ambiguous.exists());
     assert!(residue_path.exists());
 }
+
+#[test]
+fn opened_root_binding_survives_a_real_name_aba() {
+    let parent = tempfile::tempdir().unwrap();
+    let root_a = parent.path().join("a");
+    let root_b = parent.path().join("b");
+    let first_a = qualified(&root_a);
+    let expected = first_a.qualification_report();
+    first_a.close();
+    qualified(&root_b).close();
+
+    let gate = MediaPauseGate::for_certification();
+    let schedule = MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
+        MediaOperationRole::ObserveRootProfile,
+        2,
+        MediaFaultDirective::PauseBefore(gate.clone()),
+    )])
+    .unwrap();
+    let admitted_root = root_a.clone();
+    let admission = std::thread::spawn(move || {
+        FilesystemMediaOwner::qualify(request(&admitted_root).with_fault_schedule(schedule))
+            .into_raw()
+    });
+    gate.wait_until_reached();
+
+    let held_a = parent.path().join("held-a");
+    let held_b = parent.path().join("held-b");
+    let swapped = std::fs::rename(&root_a, &held_a).is_ok();
+    if swapped {
+        std::fs::rename(&root_b, &root_a).unwrap();
+        std::fs::rename(&root_a, &held_b).unwrap();
+        std::fs::rename(&held_a, &root_a).unwrap();
+        std::fs::rename(&held_b, &root_b).unwrap();
+    } else {
+        assert!(
+            root_a.is_dir(),
+            "OS denial must preserve the opened root name"
+        );
+    }
+    gate.release();
+
+    let media = match admission.join().unwrap() {
+        TransitionOutcome::Success(media) => media,
+        _ => panic!("name ABA must retain the opened A binding"),
+    };
+    assert_eq!(media.qualification_report(), expected);
+    media.close();
+}
+
+#[test]
+fn different_root_left_at_the_ambient_name_fails_after_ownership() {
+    let parent = tempfile::tempdir().unwrap();
+    let root_a = parent.path().join("a");
+    let root_b = parent.path().join("b");
+    qualified(&root_a).close();
+    qualified(&root_b).close();
+
+    let gate = MediaPauseGate::for_certification();
+    let schedule = MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
+        MediaOperationRole::ObserveRootProfile,
+        2,
+        MediaFaultDirective::PauseBefore(gate.clone()),
+    )])
+    .unwrap();
+    let admitted_root = root_a.clone();
+    let admission = std::thread::spawn(move || {
+        FilesystemMediaOwner::qualify(request(&admitted_root).with_fault_schedule(schedule))
+            .into_raw()
+    });
+    gate.wait_until_reached();
+
+    let held_a = parent.path().join("held-a");
+    let replaced = std::fs::rename(&root_a, &held_a).is_ok();
+    if replaced {
+        std::fs::rename(&root_b, &root_a).unwrap();
+    } else {
+        assert!(
+            root_a.is_dir(),
+            "OS denial must preserve the opened root name"
+        );
+    }
+    gate.release();
+
+    let outcome = admission.join().unwrap();
+    if replaced {
+        assert!(matches!(
+            outcome,
+            TransitionOutcome::Failed(MediaQualificationFailure::PostOwnership {
+                cause,
+                ..
+            }) if matches!(*cause, MediaQualificationPostOwnershipCause::RootIdentityChanged(_))
+        ));
+    } else {
+        let TransitionOutcome::Success(media) = outcome else {
+            panic!("OS-denied replacement must preserve original admission");
+        };
+        media.close();
+    }
+}

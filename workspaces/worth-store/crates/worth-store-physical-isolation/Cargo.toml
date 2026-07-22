@@ -23,7 +23,8 @@ worth-store-security.workspace = true
 worth-store-wal.workspace = true
 
 [features]
-certification-authority = ["worth-store-recovery-physics/certification-test-authority", "worth-store-wal/certification-authority"]
+certification-authority = ["legacy-certification-models", "worth-store-recovery-physics/certification-test-authority", "worth-store-wal/certification-authority"]
+legacy-certification-models = ["worth-store-buffer-pool/legacy-s2-models"]
 phase20-layout-rule-construction = []
 
 [dev-dependencies]

@@ -1,10 +1,9 @@
-use worth_store_buffer_pool::DirtyPageIdentity;
 use worth_store_physical_backend::BackendDurabilityProfileId;
 use worth_store_physical_format::{PageGenerationCell, PhysicalGeneration, PhysicalPageId};
 
 use crate::LogSequenceNumber;
 
-use super::{PageLsn, PageLsnPublicationCounterSnapshot};
+use super::{PageLsn, PageLsnPublicationCounterSnapshot, RecoveryDirtyPageIdentity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnadmittedDirtyPagePublicationDenialKind {
@@ -24,7 +23,7 @@ pub enum UnadmittedDirtyPagePublicationDenialKind {
 pub struct UnadmittedDirtyPagePublicationDenial {
     kind: UnadmittedDirtyPagePublicationDenialKind,
     profile_id: Option<BackendDurabilityProfileId>,
-    dirty_identity: Option<DirtyPageIdentity>,
+    dirty_identity: Option<RecoveryDirtyPageIdentity>,
     expected_page: Option<PageGenerationCell>,
     observed_page: Option<PageGenerationCell>,
     page_id: Option<PhysicalPageId>,
@@ -57,7 +56,7 @@ impl UnadmittedDirtyPagePublicationDenial {
 
     pub(crate) const fn page_flush_before_wal_durability(
         profile_id: BackendDurabilityProfileId,
-        dirty_identity: DirtyPageIdentity,
+        dirty_identity: RecoveryDirtyPageIdentity,
         page: PageGenerationCell,
         page_lsn: PageLsn,
         wal_frontier: LogSequenceNumber,
@@ -80,7 +79,7 @@ impl UnadmittedDirtyPagePublicationDenial {
 
     pub(crate) const fn rollback_image_required(
         profile_id: BackendDurabilityProfileId,
-        dirty_identity: DirtyPageIdentity,
+        dirty_identity: RecoveryDirtyPageIdentity,
         page: PageGenerationCell,
         page_lsn: PageLsn,
         wal_frontier: LogSequenceNumber,
@@ -103,7 +102,7 @@ impl UnadmittedDirtyPagePublicationDenial {
 
     pub(crate) const fn rollback_image_declaration_mismatch(
         profile_id: BackendDurabilityProfileId,
-        dirty_identity: DirtyPageIdentity,
+        dirty_identity: RecoveryDirtyPageIdentity,
         expected_page: PageGenerationCell,
         observed_page: PageGenerationCell,
         page_lsn: PageLsn,
@@ -212,7 +211,7 @@ impl UnadmittedDirtyPagePublicationDenial {
         self.profile_id
     }
 
-    pub const fn dirty_identity(&self) -> Option<DirtyPageIdentity> {
+    pub const fn dirty_identity(&self) -> Option<RecoveryDirtyPageIdentity> {
         self.dirty_identity
     }
 

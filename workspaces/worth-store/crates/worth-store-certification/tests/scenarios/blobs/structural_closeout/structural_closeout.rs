@@ -55,7 +55,7 @@ fn facade_visibility_stays_narrow_at_closeout() {
     );
     assert_public_mods(
         &repo_root.join("workspaces/worth-store/crates/worth-store-physical-format/src/lib.rs"),
-        &["access", "physical_format_compile_fail"],
+        &["access", "store_namespace", "physical_format_compile_fail"],
     );
     assert_public_mods(
         &repo_root.join("workspaces/worth-store/crates/worth-store-test-support/src/lib.rs"),

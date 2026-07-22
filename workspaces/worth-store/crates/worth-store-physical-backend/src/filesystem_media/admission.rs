@@ -6,8 +6,9 @@ use super::{
     FilesystemBackendProfile, FilesystemMediaOwner, FilesystemMediaOwnerAdmissionDenial,
     FilesystemQualificationMode, FilesystemQualificationRequest, MediaQualificationDeferred,
     MediaQualificationDenial, MediaQualificationFailure, MediaQualificationIdentity,
-    MediaQualificationRebindRequired, MediaQualificationStale, QualifiedMediaCapabilities,
-    RootProfileQualificationBasis, RootProfileQualificationReport,
+    MediaQualificationPostOwnershipCause, MediaQualificationRebindRequired,
+    MediaQualificationStale, QualifiedMediaCapabilities, RootProfileQualificationBasis,
+    RootProfileQualificationReport,
 };
 
 pub type AdmittedFilesystemMedia = ProofOutcome<
@@ -24,11 +25,16 @@ pub struct QualifiedFilesystemMedia {
     profile: FilesystemBackendProfile,
     basis: RootProfileQualificationBasis,
     capabilities: QualifiedMediaCapabilities,
+    execution_capability: crate::AdmittedBackendCapabilityWitness,
     store_identity: StableStoreIdentity,
     mode: FilesystemQualificationMode,
 }
 
 impl QualifiedFilesystemMedia {
+    pub(super) const fn artifact_tree_owner(&self) -> &FilesystemMediaOwner {
+        &self.owner
+    }
+
     pub fn profile(&self) -> &FilesystemBackendProfile {
         &self.profile
     }
@@ -43,6 +49,21 @@ impl QualifiedFilesystemMedia {
 
     pub fn capabilities(&self) -> &QualifiedMediaCapabilities {
         &self.capabilities
+    }
+
+    pub(super) const fn execution_capability(&self) -> &crate::AdmittedBackendCapabilityWitness {
+        &self.execution_capability
+    }
+
+    /// Produces only a capability-kind claim for scheduler planning. This does
+    /// not expose the media owner, mutation lease, or execution witness.
+    #[cfg(feature = "store-runtime-owner")]
+    pub fn scheduler_capability_claim(
+        &self,
+        kind: crate::BackendCapabilityKind,
+        evidence: crate::CapabilityEvidenceClass,
+    ) -> Result<crate::BackendCapabilityClaimWitness, crate::BackendCapabilityAdmissionDenial> {
+        self.execution_capability.require(kind, evidence)
     }
 
     pub const fn store_identity(&self) -> StableStoreIdentity {
@@ -91,6 +112,7 @@ impl QualifiedFilesystemMedia {
             profile,
             basis,
             capabilities,
+            execution_capability: _,
             store_identity: _,
             mode: _,
         } = self;
@@ -179,7 +201,7 @@ impl FilesystemMediaOwner {
                     == FilesystemMediaOwnerAdmissionDenial::Ownership(
                         super::MutationOwnershipDenial::Contended,
                     )
-                    && !failure.changed_namespace() =>
+                    && !failure.effect_possible() =>
             {
                 return worth_proof::TransitionOutcome::deferred(
                     MediaQualificationDeferred::MutationOwnerContended {
@@ -188,10 +210,11 @@ impl FilesystemMediaOwner {
                 )
                 .into();
             }
-            Err(failure) if !failure.changed_namespace() => {
+            Err(failure) if !failure.effect_possible() => {
                 return worth_proof::TransitionOutcome::denied(
                     MediaQualificationDenial::OwnerPreEffect {
                         denial: failure.denial,
+                        release: failure.release,
                         counters: Box::new(failure.counters),
                     },
                 )
@@ -201,46 +224,50 @@ impl FilesystemMediaOwner {
                 return worth_proof::TransitionOutcome::failed(
                     MediaQualificationFailure::OwnerAfterEffect {
                         denial: failure.denial,
+                        release: failure.release,
                         counters: Box::new(failure.counters),
                     },
                 )
                 .into()
             }
         };
-        let profile =
-            match super::profile_observation::observe_profile(&request.root, owner.boundary()) {
-                Ok(profile) => profile,
-                Err(kind) => {
-                    let failure = MediaQualificationFailure::ProfileObservation {
-                        kind,
-                        counters: Box::new(owner.counters()),
-                    };
-                    return worth_proof::TransitionOutcome::failed(close_with_failure(
-                        owner, failure,
-                    ))
+        let profile = match super::profile_observation::observe_profile(
+            owner.root_directory_handle(),
+            owner.boundary(),
+        ) {
+            Ok(profile) => profile,
+            Err(kind) => {
+                let cause = MediaQualificationPostOwnershipCause::ProfileObservation { kind };
+                return worth_proof::TransitionOutcome::failed(close_after_ownership(owner, cause))
                     .into();
-                }
-            };
+            }
+        };
+        if let Err(denial) = super::namespace_admission::require_opened_root_identity(
+            &request.root,
+            owner.root_directory_handle().directory(),
+            owner.boundary(),
+        ) {
+            let cause = MediaQualificationPostOwnershipCause::RootIdentityChanged(denial);
+            return worth_proof::TransitionOutcome::failed(close_after_ownership(owner, cause))
+                .into();
+        }
         if let Some(denial) = super::profile_observation::deny_profile(&profile, owner.counters()) {
-            return worth_proof::TransitionOutcome::denied(close_with_denial(owner, denial)).into();
+            return fail_after_ownership_denial(owner, denial);
         }
         let binding = super::profile_observation::profile_binding(&profile, access_contract);
         if let Some(expected) = request.expected_basis.as_ref() {
             if let Some(drift) = super::qualification_basis_drift::basis_drift(expected, &binding) {
-                let failure = MediaQualificationFailure::ProfileChangedAfterOwnership {
-                    drift,
-                    counters: Box::new(owner.counters()),
-                };
-                return worth_proof::TransitionOutcome::failed(close_with_failure(owner, failure))
+                let cause = MediaQualificationPostOwnershipCause::ProfileChanged { drift };
+                return worth_proof::TransitionOutcome::failed(close_after_ownership(owner, cause))
                     .into();
             }
         }
         let admitted_identity =
             match super::namespace_identity_admission::admit_store_identity(&owner) {
                 Ok(identity) => identity,
-                Err(failure) => {
-                    return worth_proof::TransitionOutcome::failed(close_with_failure(
-                        owner, failure,
+                Err(cause) => {
+                    return worth_proof::TransitionOutcome::failed(close_after_ownership(
+                        owner, cause,
                     ))
                     .into()
                 }
@@ -253,10 +280,8 @@ impl FilesystemMediaOwner {
             && super::qualification_transaction::run_bounded_qualification(&owner, &request.root)
                 .is_err()
         {
-            let failure = MediaQualificationFailure::QualificationTransaction {
-                counters: Box::new(owner.counters()),
-            };
-            return worth_proof::TransitionOutcome::failed(close_with_failure(owner, failure))
+            let cause = MediaQualificationPostOwnershipCause::QualificationTransaction;
+            return worth_proof::TransitionOutcome::failed(close_after_ownership(owner, cause))
                 .into();
         }
         #[cfg(any(test, feature = "certification-test-authority"))]
@@ -264,13 +289,11 @@ impl FilesystemMediaOwner {
             owner.boundary().counters().qualification_transaction();
         }
         let Some(qualification) = MediaQualificationIdentity::generate() else {
-            let failure = MediaQualificationFailure::QualificationIdentityExhausted {
-                counters: Box::new(owner.counters()),
-            };
-            return worth_proof::TransitionOutcome::failed(close_with_failure(owner, failure))
+            let cause = MediaQualificationPostOwnershipCause::QualificationIdentityExhausted;
+            return worth_proof::TransitionOutcome::failed(close_after_ownership(owner, cause))
                 .into();
         };
-        let (buffered, file_sync, directory_sync, durable_rename) =
+        let (execution_capability, buffered, file_sync, directory_sync, durable_rename) =
             match super::capability_qualification::qualify_backend_claims(
                 &owner,
                 &admitted_identity,
@@ -282,10 +305,7 @@ impl FilesystemMediaOwner {
                         denial,
                         counters: Box::new(owner.counters()),
                     };
-                    return worth_proof::TransitionOutcome::denied(close_with_denial(
-                        owner, denial,
-                    ))
-                    .into();
+                    return fail_after_ownership_denial(owner, denial);
                 }
             };
         let capabilities = QualifiedMediaCapabilities::for_observed_profile(
@@ -302,6 +322,7 @@ impl FilesystemMediaOwner {
             profile,
             basis: RootProfileQualificationBasis::new(binding),
             capabilities,
+            execution_capability,
             store_identity,
             mode: request.mode,
         })
@@ -309,20 +330,32 @@ impl FilesystemMediaOwner {
     }
 }
 
-fn close_with_failure(
+fn close_after_ownership(
     owner: FilesystemMediaOwner,
-    failure: MediaQualificationFailure,
+    cause: MediaQualificationPostOwnershipCause,
 ) -> MediaQualificationFailure {
     let counters = owner.counter_observer();
-    let _release = owner.close();
-    failure.with_terminal_counters(counters.snapshot())
+    let release = owner.close();
+    MediaQualificationFailure::PostOwnership {
+        cause: Box::new(cause),
+        release,
+        counters: Box::new(counters.snapshot()),
+    }
 }
 
-fn close_with_denial(
+fn fail_after_ownership_denial(
     owner: FilesystemMediaOwner,
     denial: MediaQualificationDenial,
-) -> MediaQualificationDenial {
+) -> AdmittedFilesystemMedia {
     let counters = owner.counter_observer();
-    let _release = owner.close();
-    denial.with_terminal_counters(counters.snapshot())
+    let release = owner.close();
+    let counters = counters.snapshot();
+    worth_proof::TransitionOutcome::failed(MediaQualificationFailure::PostOwnership {
+        cause: Box::new(MediaQualificationPostOwnershipCause::Denied(Box::new(
+            denial.with_terminal_counters(counters),
+        ))),
+        release,
+        counters: Box::new(counters),
+    })
+    .into()
 }

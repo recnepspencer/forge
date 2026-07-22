@@ -16,11 +16,21 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
 
-concurrency:
-  group: worth-ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
+  worth-store-rustsec:
+    name: WORTH Store RustSec audit
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: workspaces/worth-store
+
   build-and-test:
     name: Build, Test, Lint
     runs-on: ubuntu-latest
@@ -193,6 +203,9 @@ jobs:
           cache-on-failure: true
       - name: Formatting
         run: cargo fmt --all -- --check
+      - name: Canonical residency feature graph
+        working-directory: .
+        run: bash scripts/ci/check_worth_store_residency_features.sh
       - name: Lint every Store target
         run: cargo clippy --workspace --all-targets -- -D warnings
 
@@ -264,6 +277,33 @@ jobs:
           cargo test -p worth-store-certification --test durability_recovery s10_operational_world::ci_and_release_profiles_preserve_the_scenario_topology -- --ignored --exact --nocapture --test-threads=1
           cargo test -p worth-store-certification --test durability_recovery s10_operational_world::ci_and_release_suites_join_all_three_scenarios -- --ignored --exact --nocapture --test-threads=1
           cargo test -p worth-store-certification --test durability_recovery s10_operational_world::reached_yieldpoint_labels_cannot_close_s10_without_fresh_process_crash_evidence -- --ignored --exact --nocapture --test-threads=1
+
+  worth-store-mutation-campaign:
+    name: WORTH Store causal mutation campaign
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: workspaces/worth-store
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: workspaces/worth-store -> target
+          shared-key: worth-store-mutants
+      - name: Execute every source-bound causal mutant
+        shell: bash
+        run: cargo run -q -p store-test-runner -- mutants | tee "${RUNNER_TEMP}/worth-store-mutants.jsonl"
+      - name: Preserve mutation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-store-mutants-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-store-mutants.jsonl
+          if-no-files-found: error
+          retention-days: 30
 
   worth_ui_quality:
     name: WORTH UI Quality and Topology

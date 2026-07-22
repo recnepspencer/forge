@@ -26,6 +26,7 @@ worth-store-wal.workspace = true
 
 [dev-dependencies]
 worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-format.workspace = true
 worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 

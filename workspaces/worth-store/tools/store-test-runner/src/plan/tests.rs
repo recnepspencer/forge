@@ -22,7 +22,7 @@ fn sharding_is_delegated_to_nextests_stable_hash_partition() {
     };
     let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
 
-    assert!(plan.units()[0]
+    assert!(integration_runner(&plan)
         .arguments()
         .windows(2)
         .any(|pair| pair == ["--partition", "hash:2/3"]));
@@ -50,7 +50,8 @@ fn integration_partitions_name_every_classified_binary_exactly() {
     for lane in [CiTestLane::Scenario, CiTestLane::Ui, CiTestLane::Formal] {
         let product = TestProduct::Ci { lane, shard: None };
         let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
-        let command = plan.units()[0].arguments().join(" ");
+        let runner = integration_runner(&plan);
+        let command = runner.arguments().join(" ");
         let expected = catalog
             .targets()
             .iter()
@@ -67,7 +68,7 @@ fn integration_partitions_name_every_classified_binary_exactly() {
             .collect::<std::collections::BTreeSet<_>>();
         for target in selected_names {
             assert!(
-                plan.units()[0]
+                runner
                     .arguments()
                     .windows(2)
                     .any(|pair| pair == ["--test", target]),
@@ -88,7 +89,7 @@ fn required_features_are_enabled_for_guarded_targets() {
         },
     ] {
         let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
-        let guarded = &plan.units()[0];
+        let guarded = integration_runner(&plan);
         assert!(guarded
             .arguments()
             .windows(2)
@@ -104,7 +105,7 @@ fn ci_products_use_ci_output_and_nonincremental_cargo_profiles() {
         shard: None,
     };
     let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
-    let arguments = plan.units()[0].arguments();
+    let arguments = integration_runner(&plan).arguments();
 
     assert!(arguments.windows(2).any(|pair| pair == ["--profile", "ci"]));
     assert!(arguments
@@ -117,14 +118,27 @@ fn every_smoke_selector_names_one_exact_binary_test() {
     let catalog = TestCatalog::load(workspace_root()).unwrap();
     let plan = TestPlan::build(&TestProduct::Smoke, &catalog, workspace_root()).unwrap();
 
-    assert_eq!(plan.units().len(), 1);
+    let expected_packages = crate::product::smoke_cases()
+        .iter()
+        .map(|case| case.package)
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(plan.units().len(), expected_packages.len());
     for unit in plan.units() {
+        let package = unit
+            .identity()
+            .strip_prefix("smoke::")
+            .expect("smoke unit identity must name its package");
+        let cases = crate::product::smoke_cases()
+            .iter()
+            .filter(|case| case.package == package)
+            .collect::<Vec<_>>();
         assert_eq!(
             unit.expected_test_count(),
-            Some(crate::product::smoke_cases().len())
+            Some(cases.len()),
+            "{package} smoke count drifted"
         );
         let command = unit.arguments().join(" ");
-        for case in crate::product::smoke_cases() {
+        for case in cases {
             assert!(command.contains(&format!(
                 "binary_id(={}::{}) & test(={})",
                 case.package, case.target, case.filter
@@ -156,6 +170,16 @@ fn unit(identity: &str, origin: &str) -> TestExecutionUnit {
         vec!["test".into()],
         None,
     )
+}
+
+fn integration_runner(plan: &TestPlan) -> &TestExecutionUnit {
+    plan.units()
+        .iter()
+        .find(|unit| {
+            unit.arguments()
+                .starts_with(&["nextest".into(), "run".into()])
+        })
+        .expect("integration products own one nextest runner")
 }
 
 fn workspace_root() -> &'static Path {

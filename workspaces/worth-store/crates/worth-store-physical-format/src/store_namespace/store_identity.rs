@@ -29,7 +29,7 @@ impl StableStoreIdentity {
         self.0
     }
 
-    pub(super) const fn from_published_record(identity: ProposedStoreIdentity) -> Self {
+    pub(crate) const fn from_published_record(identity: ProposedStoreIdentity) -> Self {
         Self(identity.bytes())
     }
 }

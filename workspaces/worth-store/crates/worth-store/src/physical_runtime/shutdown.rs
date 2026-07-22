@@ -43,7 +43,12 @@ impl ShutdownCoordinator {
         self.lifecycle.progress_to_media_owned()
     }
 
+    pub(crate) fn progress_to_record_serving(&self) -> LifecycleStateSnapshot {
+        self.lifecycle.progress_to_record_serving()
+    }
+
     pub(crate) fn close(mut self, runtime_identity: RuntimeIdentity) -> ClosedRuntime {
+        self.lifecycle.begin_termination();
         let declared_root = self.declared_root().clone();
         let root_admission = self
             .root_admission
@@ -62,6 +67,7 @@ impl ShutdownCoordinator {
     }
 
     pub(crate) fn abort(mut self, runtime_identity: RuntimeIdentity) -> AbortedRuntime {
+        self.lifecycle.begin_termination();
         let declared_root = self.declared_root().clone();
         let root_admission = self
             .root_admission
@@ -86,6 +92,7 @@ impl Drop for ShutdownCoordinator {
             return;
         };
 
+        self.lifecycle.begin_termination();
         root_admission.release_after(|| {
             self.lifecycle.finish_aborted();
             if std::thread::panicking() {

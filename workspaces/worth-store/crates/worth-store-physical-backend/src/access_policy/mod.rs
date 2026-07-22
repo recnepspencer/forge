@@ -5,6 +5,7 @@ mod counters;
 mod denial;
 mod execution;
 mod fault_posture;
+mod lifecycle;
 mod mode;
 mod page_cache;
 mod proof_authority;
@@ -26,6 +27,7 @@ pub use fault_posture::{
     MmapFaultHandling, MmapFaultPosture, MmapPunchHolePosture, MmapTruncatePosture,
     MmapVisibilityPosture, MmapWritebackPosture,
 };
+pub use lifecycle::{AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind};
 pub use mode::{StoreAccessMode, StoreAccessOperation};
 pub use page_cache::{PageCachePolicyKind, PageCachePolicyProof};
 pub use proof_authority::StoreAccessPolicyProofAuthority;
@@ -35,10 +37,6 @@ pub use security_scope::AccessPolicySecurityScope;
 pub use violation::{
     AccessPolicyExecutionObservation, AccessPolicyViolation, AccessPolicyViolationKind,
 };
-pub use worth_store_buffer_pool::{AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind};
-
-#[cfg(test)]
-mod dirty_mmap_lifecycle_tests;
 #[cfg(test)]
 mod execution_observation_tests;
 #[cfg(test)]

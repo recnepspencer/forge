@@ -125,7 +125,7 @@ fn resident_frame_table() -> ResidentFrameTable {
     ))
     .admit()
     .unwrap();
-    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap())
+    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap()).unwrap()
 }
 
 fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {

@@ -2,7 +2,9 @@ use crate::{
     ChunkIntegrityCounters, ChunkIntegrityDenial, ChunkIntegrityDenialKind,
     ChunkIntegrityStreamingWindowDenial, ScopedPhysicalValidatorInput,
 };
+#[cfg(feature = "legacy-certification-models")]
 use worth_store_buffer_pool::{AdmittedBackgroundEnvelope, BackgroundWorkClass};
+use worth_store_buffer_pool::{OperationAllocationGrant, OperationAllocationScope};
 use worth_store_physical_format::PhysicalScopeFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -12,6 +14,19 @@ pub struct ChunkIntegrityStreamingWindow {
 }
 
 impl ChunkIntegrityStreamingWindow {
+    pub fn from_allocation_grant(
+        object_bytes: u64,
+        allocation: &OperationAllocationGrant,
+    ) -> Result<Self, ChunkIntegrityStreamingWindowDenial> {
+        if allocation.scope() != OperationAllocationScope::Blob {
+            return Err(ChunkIntegrityStreamingWindowDenial::WrongAllocationScope {
+                actual: allocation.scope(),
+            });
+        }
+        Self::bounded(object_bytes, allocation.bytes())
+    }
+
+    #[cfg(feature = "legacy-certification-models")]
     pub fn from_admitted_streaming_envelope(
         envelope: AdmittedBackgroundEnvelope,
     ) -> Result<Self, ChunkIntegrityStreamingWindowDenial> {
@@ -28,7 +43,7 @@ impl ChunkIntegrityStreamingWindow {
         )
     }
 
-    pub(crate) fn bounded(
+    fn bounded(
         object_bytes: u64,
         window_bytes: u64,
     ) -> Result<Self, ChunkIntegrityStreamingWindowDenial> {

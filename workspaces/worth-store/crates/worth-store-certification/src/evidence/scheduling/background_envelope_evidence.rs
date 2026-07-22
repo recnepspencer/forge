@@ -1,7 +1,7 @@
 use worth_store_blob_chunks::LargeRecordStreamingEnvelope;
 use worth_store_buffer_pool::{
     AllocationScope, BackgroundEnvelopeCounterSnapshot, BackgroundEnvelopeDenialKind,
-    BackgroundMemoryInterferenceReport, BackgroundWorkClass,
+    BackgroundMemoryInterferenceReport, BackgroundWorkClass, OperationAllocationScope,
 };
 use worth_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use worth_store_physical_integrity::ScrubPlanningMemoryEnvelope;
@@ -22,7 +22,7 @@ impl BackgroundEnvelopeEvidenceBundle {
         streaming: LargeRecordStreamingEnvelope,
         interference_reports: &[BackgroundMemoryInterferenceReport],
     ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
-        reject_foreground_scope(
+        reject_recovery_scope(
             recovery.allocation_scope(),
             BackgroundWorkClass::RecoveryPlanning,
         )?;
@@ -64,7 +64,7 @@ impl BackgroundEnvelopeEvidenceBundle {
         Ok(Self {
             admitted_classes: BackgroundWorkClass::ALL,
             envelopes: [
-                BackgroundClassEnvelopeEvidence::from_counters(
+                BackgroundClassEnvelopeEvidence::from_recovery_counters(
                     BackgroundWorkClass::RecoveryPlanning,
                     recovery.counters(),
                 )?,
@@ -106,7 +106,17 @@ impl BackgroundEnvelopeEvidenceBundle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundClassEnvelopeEvidence {
     work_class: BackgroundWorkClass,
-    counters: BackgroundEnvelopeCounterSnapshot,
+    counters: BackgroundClassEnvelopeCounters,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BackgroundClassEnvelopeCounters {
+    admitted: u32,
+    allocation_bytes: u64,
+    resident_frames: u32,
+    resident_bytes: u64,
+    pinned_pages: u32,
+    copied_bytes: u64,
 }
 
 impl BackgroundClassEnvelopeEvidence {
@@ -114,10 +124,52 @@ impl BackgroundClassEnvelopeEvidence {
         work_class: BackgroundWorkClass,
         counters: BackgroundEnvelopeCounterSnapshot,
     ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
-        if counters.admitted() == 0
-            || counters.allocation_bytes_admitted() == 0
-            || counters.resident_frames_admitted() == 0
-            || counters.resident_bytes_admitted() == 0
+        Self::from_normalized(
+            work_class,
+            BackgroundClassEnvelopeCounters {
+                admitted: counters.admitted(),
+                allocation_bytes: counters.allocation_bytes_admitted(),
+                resident_frames: counters.resident_frames_admitted(),
+                resident_bytes: counters.resident_bytes_admitted(),
+                pinned_pages: counters.pinned_pages_admitted(),
+                copied_bytes: counters.copied_bytes(),
+            },
+        )
+    }
+
+    pub fn from_recovery_counters(
+        work_class: BackgroundWorkClass,
+        counters: worth_store_recovery_physics::RecoveryMemoryCounterSnapshot,
+    ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
+        Self::from_normalized(
+            work_class,
+            BackgroundClassEnvelopeCounters {
+                admitted: counters.admitted(),
+                allocation_bytes: counters.allocation_bytes_allocated(),
+                resident_frames: counters.resident_frames_admitted(),
+                resident_bytes: counters.resident_bytes_admitted(),
+                pinned_pages: counters.pinned_pages_admitted(),
+                copied_bytes: counters.copied_bytes(),
+            },
+        )
+    }
+
+    pub const fn work_class(self) -> BackgroundWorkClass {
+        self.work_class
+    }
+
+    pub const fn counters(self) -> BackgroundClassEnvelopeCounters {
+        self.counters
+    }
+
+    fn from_normalized(
+        work_class: BackgroundWorkClass,
+        counters: BackgroundClassEnvelopeCounters,
+    ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
+        if counters.admitted == 0
+            || counters.allocation_bytes == 0
+            || counters.resident_frames == 0
+            || counters.resident_bytes == 0
         {
             return Err(BackgroundEnvelopeEvidenceDenial::MissingEnvelopeCounters { work_class });
         }
@@ -126,13 +178,35 @@ impl BackgroundClassEnvelopeEvidence {
             counters,
         })
     }
+}
 
-    pub const fn work_class(self) -> BackgroundWorkClass {
-        self.work_class
+impl BackgroundClassEnvelopeCounters {
+    pub const fn admitted(self) -> u32 {
+        self.admitted
     }
 
-    pub const fn counters(self) -> BackgroundEnvelopeCounterSnapshot {
-        self.counters
+    pub const fn allocation_bytes_admitted(self) -> u64 {
+        self.allocation_bytes
+    }
+
+    pub const fn resident_frames_admitted(self) -> u32 {
+        self.resident_frames
+    }
+
+    pub const fn resident_bytes_admitted(self) -> u64 {
+        self.resident_bytes
+    }
+
+    pub const fn pinned_pages_admitted(self) -> u32 {
+        self.pinned_pages
+    }
+
+    pub const fn allocation_bytes_allocated(self) -> u64 {
+        self.allocation_bytes
+    }
+
+    pub const fn copied_bytes(self) -> u64 {
+        self.copied_bytes
     }
 }
 
@@ -159,6 +233,20 @@ fn reject_foreground_scope(
     work_class: BackgroundWorkClass,
 ) -> Result<(), BackgroundEnvelopeEvidenceDenial> {
     if scope == AllocationScope::Foreground {
+        Err(BackgroundEnvelopeEvidenceDenial::ForegroundScopeUsed { work_class })
+    } else {
+        Ok(())
+    }
+}
+
+fn reject_recovery_scope(
+    scope: OperationAllocationScope,
+    work_class: BackgroundWorkClass,
+) -> Result<(), BackgroundEnvelopeEvidenceDenial> {
+    if matches!(
+        scope,
+        OperationAllocationScope::ForegroundRead | OperationAllocationScope::ForegroundWrite
+    ) {
         Err(BackgroundEnvelopeEvidenceDenial::ForegroundScopeUsed { work_class })
     } else {
         Ok(())

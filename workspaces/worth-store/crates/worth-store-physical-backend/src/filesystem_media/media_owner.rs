@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -9,6 +8,9 @@ use super::{
     AdmittedStoreNamespace, ArtifactFamilyDirectory, MediaOwnerIdentity, MutationOwnerObservation,
     MutationOwnershipDenial, MutationOwnershipLease, NamespaceConfinementDenial, StagingDirectory,
 };
+
+#[path = "media_owner_admission.rs"]
+mod admission;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilesystemMediaOwnerAdmissionDenial {
@@ -43,6 +45,7 @@ pub struct FilesystemMediaOwner {
     next_file_handle_generation: AtomicU64,
     next_operation_identity: AtomicU64,
     file_mutation_sequences: super::file_mutation_sequence::FileMutationSequences,
+    artifact_mutations: Arc<super::artifact_mutation_coordinator::ArtifactMutationCoordinator>,
     store_root_publication_required: AtomicBool,
     root_parent_publication_required: AtomicBool,
     mutation_lease: MutationOwnershipLease,
@@ -51,20 +54,13 @@ pub struct FilesystemMediaOwner {
 pub(super) struct ObservedMediaOwnerAdmissionFailure {
     pub(super) denial: FilesystemMediaOwnerAdmissionDenial,
     pub(super) counters: super::MediaCounterSnapshot,
+    pub(super) effect_fate: super::owner_admission_effect::MediaOwnerAdmissionEffectFate,
+    pub(super) release: Option<super::OwnershipReleaseOutcome>,
 }
 
 impl ObservedMediaOwnerAdmissionFailure {
-    pub(super) fn changed_namespace(&self) -> bool {
-        [
-            super::MediaOperationRole::CreateDirectory,
-            super::MediaOperationRole::CreateMutationLease,
-        ]
-        .into_iter()
-        .any(|role| {
-            self.counters.completed_operations_for(role) > 0
-                || self.counters.partial_effects_for(role) > 0
-                || self.counters.indeterminate_effects_for(role) > 0
-        })
+    pub(super) const fn effect_possible(&self) -> bool {
+        self.effect_fate.effect_possible()
     }
 }
 
@@ -75,86 +71,6 @@ impl FilesystemMediaOwner {
 
     pub fn mutation_owner(&self) -> MutationOwnerObservation {
         self.mutation_lease.observation()
-    }
-
-    pub fn admit(
-        root: &Path,
-        _authority: FilesystemMediaAdmissionAuthority,
-    ) -> Result<Self, FilesystemMediaOwnerAdmissionDenial> {
-        Self::admit_with_schedule(root, super::MediaFaultSchedule::default())
-    }
-
-    pub(super) fn admit_with_schedule(
-        root: &Path,
-        schedule: super::MediaFaultSchedule,
-    ) -> Result<Self, FilesystemMediaOwnerAdmissionDenial> {
-        Self::admit_with_observation(root, schedule).map_err(|failure| failure.denial)
-    }
-
-    pub(super) fn admit_with_observation(
-        root: &Path,
-        schedule: super::MediaFaultSchedule,
-    ) -> Result<Self, ObservedMediaOwnerAdmissionFailure> {
-        let counters = Arc::new(super::operation_counters::MediaCounterCells::default());
-        let boundary =
-            super::fault_interposition::MediaFaultInterposer::new(schedule, Arc::clone(&counters));
-        Self::admit_with_boundary(root, boundary, counters)
-    }
-
-    pub(super) fn admit_with_boundary(
-        root: &Path,
-        boundary: super::fault_interposition::MediaFaultInterposer,
-        counters: Arc<super::operation_counters::MediaCounterCells>,
-    ) -> Result<Self, ObservedMediaOwnerAdmissionFailure> {
-        counters.ownership_attempt();
-        (|| {
-            let mut namespace = AdmittedStoreNamespace::create_or_open(root, &boundary)
-                .map_err(FilesystemMediaOwnerAdmissionDenial::Confinement)?;
-            let namespace_directory = namespace
-                .open_role_directory(StoreNamespaceRelativeRole::NamespaceDirectory, &boundary)
-                .map_err(FilesystemMediaOwnerAdmissionDenial::Confinement)?;
-            let mutation_lease = match MutationOwnershipLease::try_acquire(
-                namespace.owner_identity(),
-                &namespace_directory,
-                &boundary,
-            ) {
-                Ok(lease) => lease,
-                Err(denial) => {
-                    if denial == MutationOwnershipDenial::Contended {
-                        counters.ownership_contended();
-                    }
-                    return Err(FilesystemMediaOwnerAdmissionDenial::Ownership(denial));
-                }
-            };
-            let families = namespace
-                .open_role_directory(StoreNamespaceRelativeRole::FamiliesDirectory, &boundary)
-                .map(ArtifactFamilyDirectory::new)
-                .map_err(FilesystemMediaOwnerAdmissionDenial::Confinement)?;
-            let staging = namespace
-                .open_role_directory(StoreNamespaceRelativeRole::StagingDirectory, &boundary)
-                .map(StagingDirectory::new)
-                .map_err(FilesystemMediaOwnerAdmissionDenial::Confinement)?;
-            let store_root_publication_required = namespace.store_root_publication_required();
-            let root_parent_publication_required = namespace.root_parent_publication_required();
-            Ok(Self {
-                boundary,
-                namespace,
-                namespace_directory,
-                families,
-                staging,
-                mutation_lease,
-                namespace_mutation_sequence: std::sync::Mutex::new(()),
-                next_file_handle_generation: AtomicU64::new(5),
-                next_operation_identity: AtomicU64::new(1),
-                file_mutation_sequences: Default::default(),
-                store_root_publication_required: AtomicBool::new(store_root_publication_required),
-                root_parent_publication_required: AtomicBool::new(root_parent_publication_required),
-            })
-        })()
-        .map_err(|denial| ObservedMediaOwnerAdmissionFailure {
-            denial,
-            counters: counters.snapshot(),
-        })
     }
 
     pub(super) fn begin_mutation(
@@ -189,9 +105,11 @@ impl FilesystemMediaOwner {
             staging,
             mutation_lease,
             file_mutation_sequences,
+            artifact_mutations,
             ..
         } = self;
         drop((
+            artifact_mutations,
             file_mutation_sequences,
             staging,
             families,
@@ -316,7 +234,7 @@ impl FilesystemMediaOwner {
     pub(super) fn mutation_sequence_for(
         &self,
         file: &std::fs::File,
-    ) -> std::io::Result<std::sync::Arc<std::sync::Mutex<()>>> {
+    ) -> std::io::Result<super::file_mutation_sequence::FileMutationSequence> {
         self.file_mutation_sequences.for_file(file)
     }
 
@@ -332,6 +250,35 @@ impl FilesystemMediaOwner {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok(super::mutation_ownership::CoordinatedNamespaceMutation::new(ownership, sequence))
+    }
+
+    pub(super) fn begin_artifact_mutation(
+        &self,
+        paths: Vec<String>,
+    ) -> Result<
+        super::artifact_mutation_coordinator::CoordinatedArtifactMutation<'_>,
+        FilesystemMediaOwnerAdmissionDenial,
+    > {
+        let ownership = self.begin_mutation()?;
+        Ok(self.artifact_mutations.coordinate(ownership, paths))
+    }
+
+    pub(super) fn begin_artifact_namespace_mutation(
+        &self,
+        paths: Vec<String>,
+    ) -> Result<
+        super::artifact_mutation_coordinator::CoordinatedArtifactNamespaceMutation<'_>,
+        FilesystemMediaOwnerAdmissionDenial,
+    > {
+        let namespace = self.begin_namespace_mutation()?;
+        Ok(self
+            .artifact_mutations
+            .coordinate_namespace(namespace, paths))
+    }
+
+    #[cfg(test)]
+    pub(super) fn wait_until_artifact_mutation_is_contended(&self) {
+        self.artifact_mutations.wait_until_contended();
     }
 
     pub(super) fn require_owned_directory(

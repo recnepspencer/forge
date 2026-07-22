@@ -14,4 +14,10 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
         "tests/physical_runtime_authority/wrong_phase_and_physical_operations_are_absent.rs",
     );
     cases.compile_fail("tests/physical_runtime_authority/maximal_feature_profile_cannot_admit.rs");
+    cases.compile_fail("tests/physical_runtime_authority/live_scan_prevents_mutation.rs");
+    cases.compile_fail("tests/physical_runtime_authority/frame_view_cannot_outlive_lease.rs");
+    cases.compile_fail("tests/physical_runtime_authority/generic_completion_cannot_clean.rs");
+    cases.compile_fail(
+        "tests/physical_runtime_authority/physical_receipt_construction_is_sealed.rs",
+    );
 }

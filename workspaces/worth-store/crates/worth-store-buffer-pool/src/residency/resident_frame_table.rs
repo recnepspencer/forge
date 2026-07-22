@@ -12,6 +12,8 @@ use crate::{
 use std::collections::HashMap;
 use worth_store_physical_format::{PhysicalPayloadViewAdmission, PhysicalReference};
 
+mod open;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResidentFrameTableCapacity {
     frames: u32,
@@ -49,24 +51,6 @@ pub struct ResidentFrameTable {
 }
 
 impl ResidentFrameTable {
-    pub fn open(entry: AdmittedBufferPoolEntry, capacity: ResidentFrameTableCapacity) -> Self {
-        let frame_count = capacity.as_frames() as usize;
-        Self {
-            entry,
-            frames: vec![None; frame_count],
-            resident_source_index: HashMap::with_capacity(frame_count),
-            resident_slots: Vec::with_capacity(frame_count),
-            free_slots: free_slots(frame_count),
-            generations: vec![ResidentFrameGeneration::initial(); frame_count],
-            lease_epochs: vec![LeaseEpoch::initial(); frame_count],
-            counters: ResidentFrameCounterSnapshot::empty(),
-            pin_counters: PinLifecycleCounterSnapshot::empty(),
-            dirty_counters: DirtyPageCounterSnapshot::empty(),
-            eviction_counters: EvictionCounterSnapshot::empty(),
-            record_view_counters: RecordCopyCounterSnapshot::empty(),
-        }
-    }
-
     pub fn admit_frame(
         &mut self,
         request: ResidentFrameLoadRequest,
@@ -89,13 +73,17 @@ impl ResidentFrameTable {
         request: ResidentFrameLoadRequest,
         payload_admission: PhysicalPayloadViewAdmission<'_>,
     ) -> Result<ResidentFrameAdmission, ResidentFrameDenial> {
-        let resident_bytes =
-            ResidentFrameBytes::from_physical_format_payload_admission(request, payload_admission)?;
+        ResidentFrameBytes::validate_physical_format_payload_admission(request, payload_admission)?;
         if let Some(slot) = self.find_resident_slot(request) {
             self.counters = self.counters.with_hit();
             let identity = {
                 let record = self.record_at_slot_mut(slot)?;
                 if record.bytes().is_none() {
+                    let resident_bytes =
+                        ResidentFrameBytes::from_physical_format_payload_admission(
+                            request,
+                            payload_admission,
+                        )?;
                     record.attach_resident_bytes(resident_bytes);
                 }
                 record.identity()
@@ -106,6 +94,8 @@ impl ResidentFrameTable {
         self.counters = self.counters.with_miss();
         self.reject_resident_budget_overflow(request.frame_size().as_bytes())?;
         let slot = self.first_empty_slot()?;
+        let resident_bytes =
+            ResidentFrameBytes::from_physical_format_payload_admission(request, payload_admission)?;
         let identity = self.install_record(slot, request, Some(resident_bytes));
         Ok(self.admission_report(identity, request))
     }
@@ -370,13 +360,6 @@ impl ResidentFrameTable {
             self.resident_slots.remove(index);
         }
     }
-}
-
-fn free_slots(frame_count: usize) -> Vec<ResidentFrameSlot> {
-    (0..frame_count)
-        .rev()
-        .map(|index| ResidentFrameSlot::from_index(index as u32))
-        .collect()
 }
 
 pub(crate) fn next_lease_epoch(current: LeaseEpoch) -> Result<LeaseEpoch, ResidentFrameDenial> {

@@ -1,7 +1,6 @@
 use cap_fs_ext::{FollowSymlinks, OpenOptionsFollowExt};
 use cap_std::fs::OpenOptions;
 use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
 
 use super::{
     FilesystemMediaOwner, MediaHandleIdentity, MediaOperationFailure, MediaOperationIdentity,
@@ -28,7 +27,7 @@ pub struct NamespaceFileHandle<'owner, Access = MutableFileAccess> {
     role: MediaPathRole,
     file: std::fs::File,
     stable_file: same_file::Handle,
-    mutation_sequence: Option<Arc<Mutex<()>>>,
+    mutation_sequence: Option<super::file_mutation_sequence::FileMutationSequence>,
     _accounting: super::handle_accounting::MediaFileHandleAccounting,
     access: PhantomData<Access>,
 }
@@ -81,7 +80,6 @@ impl<'owner> NamespaceFileHandle<'owner, MutableFileAccess> {
             .as_ref()
             .expect("mutable handles always carry per-file coordination")
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 }
 

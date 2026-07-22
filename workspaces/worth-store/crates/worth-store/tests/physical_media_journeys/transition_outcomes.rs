@@ -191,6 +191,7 @@ fn backend_denial_after_preflight_returns_exact_runtime_and_counters() {
     let MediaQualificationDenial::OwnerPreEffect {
         denial: cause,
         counters,
+        ..
     } = denial.reason()
     else {
         panic!("backend denial must retain its exact effect posture");

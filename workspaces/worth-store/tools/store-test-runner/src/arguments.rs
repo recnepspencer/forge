@@ -9,6 +9,8 @@ pub(crate) struct Arguments {
     pub(crate) list: bool,
     pub(crate) target_root: Option<PathBuf>,
     pub(crate) report: Option<PathBuf>,
+    pub(crate) mutant: Option<u8>,
+    pub(crate) first_mutant: Option<u8>,
 }
 
 impl Arguments {
@@ -22,6 +24,8 @@ impl Arguments {
         let mut list = false;
         let mut target_root = None;
         let mut report = None;
+        let mut mutant = None;
+        let mut first_mutant = None;
 
         while let Some(argument) = arguments.next() {
             match argument.as_str() {
@@ -35,6 +39,18 @@ impl Arguments {
                     target_root = Some(PathBuf::from(value(&mut arguments, &argument)?))
                 }
                 "--report" => report = Some(PathBuf::from(value(&mut arguments, &argument)?)),
+                "--mutant" => {
+                    let raw = value(&mut arguments, &argument)?;
+                    mutant = Some(raw.parse().map_err(|_| {
+                        format!("--mutant requires an integer from 1 through 14, got `{raw}`")
+                    })?)
+                }
+                "--from-mutant" => {
+                    let raw = value(&mut arguments, &argument)?;
+                    first_mutant = Some(raw.parse().map_err(|_| {
+                        format!("--from-mutant requires an integer from 1 through 14, got `{raw}`")
+                    })?)
+                }
                 "--list" => list = true,
                 unknown => return Err(format!("unknown argument `{unknown}`\n{}", usage())),
             }
@@ -48,6 +64,7 @@ impl Arguments {
             },
             "smoke" => TestProduct::Smoke,
             "ui" => TestProduct::Ui,
+            "mutants" => TestProduct::Mutants,
             "ci" => TestProduct::Ci {
                 lane: partition.ok_or_else(|| "ci requires --partition <lane>".to_owned())?,
                 shard: shard(shard_index, shard_count)?,
@@ -63,12 +80,27 @@ impl Arguments {
         {
             return Err("partition and shard arguments are valid only for ci".into());
         }
+        if !matches!(product, TestProduct::Mutants) && (mutant.is_some() || first_mutant.is_some())
+        {
+            return Err("mutation selectors are valid only for mutants".into());
+        }
+        if mutant.is_some() && first_mutant.is_some() {
+            return Err("--mutant and --from-mutant are mutually exclusive".into());
+        }
+        if mutant
+            .or(first_mutant)
+            .is_some_and(|id| !(1..=14).contains(&id))
+        {
+            return Err("mutation selectors require an integer from 1 through 14".into());
+        }
 
         Ok(Self {
             product,
             list,
             target_root,
             report,
+            mutant,
+            first_mutant,
         })
     }
 }
@@ -98,8 +130,8 @@ fn shard(index: Option<usize>, count: Option<usize>) -> Result<Option<(usize, us
 }
 
 fn usage() -> String {
-    "usage: store-test-runner <owner -p PACKAGE|smoke|ui|ci --partition LANE> \
-     [--shard-index N --shard-count N] [--list] [--target-root PATH] [--report PATH]"
+    "usage: store-test-runner <owner -p PACKAGE|smoke|ui|mutants|ci --partition LANE> \
+     [--shard-index N --shard-count N] [--mutant N|--from-mutant N] [--list] [--target-root PATH] [--report PATH]"
         .into()
 }
 
@@ -143,5 +175,42 @@ mod tests {
                 package: "worth-store".into()
             }
         );
+    }
+
+    #[test]
+    fn parses_mutation_campaign() {
+        let parsed = Arguments::parse(["mutants".into(), "--list".into()]).unwrap();
+        assert!(parsed.list);
+        assert_eq!(parsed.product, TestProduct::Mutants);
+        assert_eq!(parsed.mutant, None);
+        assert_eq!(parsed.first_mutant, None);
+    }
+
+    #[test]
+    fn mutation_campaign_accepts_one_bounded_selector_mode() {
+        let selected =
+            Arguments::parse(["mutants".into(), "--mutant".into(), "14".into()]).unwrap();
+        assert_eq!(selected.mutant, Some(14));
+        assert_eq!(selected.first_mutant, None);
+
+        let resumed =
+            Arguments::parse(["mutants".into(), "--from-mutant".into(), "11".into()]).unwrap();
+        assert_eq!(resumed.mutant, None);
+        assert_eq!(resumed.first_mutant, Some(11));
+
+        for invalid in [
+            ["mutants", "--mutant", "0"],
+            ["mutants", "--from-mutant", "15"],
+        ] {
+            assert!(Arguments::parse(invalid.map(str::to_owned)).is_err());
+        }
+        assert!(Arguments::parse([
+            "mutants".into(),
+            "--mutant".into(),
+            "1".into(),
+            "--from-mutant".into(),
+            "2".into(),
+        ])
+        .is_err());
     }
 }

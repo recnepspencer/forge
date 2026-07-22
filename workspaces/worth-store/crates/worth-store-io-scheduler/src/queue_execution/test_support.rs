@@ -5,7 +5,6 @@ use worth_foundational::{
     FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
     FoundationalPerformanceWorkClass,
 };
-use worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
@@ -26,6 +25,10 @@ use crate::{
     SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
 };
 
+#[path = "test_support/buffer_pool_declaration.rs"]
+mod buffer_pool_declaration_fixture;
+pub(crate) use buffer_pool_declaration_fixture::buffer_pool_declaration;
+
 pub(crate) fn admitted_plan() -> QueueExecutionReadyPlan {
     admitted_plan_for_backend_profile(BackendTargetProfile::PosixFileFsyncDirSync)
 }
@@ -36,7 +39,8 @@ pub(crate) fn admitted_write_back_plan() -> QueueExecutionReadyPlan {
         .with_bandwidth_tokens(4096)
         .with_write_back_windows(1)
         .with_worker_permits(1);
-    let producer = BufferPoolQueueExecutionDeclaration::write_back(7, resource_shape);
+    let producer =
+        buffer_pool_declaration(true, reservation.security_scope_identity(), resource_shape);
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("write-back producer should lower to queue work");
     let backend = backend_for(work);

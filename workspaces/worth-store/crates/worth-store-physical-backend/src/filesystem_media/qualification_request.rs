@@ -6,7 +6,6 @@ use super::{RootProfileQualificationBasis, RootProfileQualificationReport};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilesystemQualificationMode {
     Production,
-    #[cfg(any(test, feature = "certification-test-authority"))]
     Certification,
 }
 
@@ -46,6 +45,7 @@ pub struct FilesystemQualificationRequest {
 }
 
 impl FilesystemQualificationRequest {
+    #[cfg(any(test, feature = "store-runtime-owner"))]
     pub fn production(root: impl Into<PathBuf>, access: FilesystemAccessPosture) -> Self {
         Self {
             root: root.into(),
