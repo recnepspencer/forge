@@ -49,18 +49,31 @@ pub(crate) struct WorthServerRuntimeAssembly {
     compat_http_binary_ingress_store: Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>>,
 }
 
+pub(crate) struct WorthServerRuntimeAssemblyParts {
+    pub(crate) config: WorthServerConfig,
+    pub(crate) surface_registry: WorthServerSurfaceRegistry,
+    pub(crate) operation_registry: WorthServerOperationRegistry,
+    pub(crate) product_adapter_registry: WorthServerProductAdapterRegistry,
+    pub(crate) route_assembly: WorthServerRouteAssembly,
+    pub(crate) counters: Arc<WorthServerCounters>,
+    pub(crate) product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
+    pub(crate) product_session_termination_observers: Vec<SharedProductSessionTerminationObserver>,
+    pub(crate) transport_caller_verifier: Option<Arc<dyn WorthServerTransportCallerVerifier>>,
+}
+
 impl WorthServerRuntimeAssembly {
-    pub(crate) fn new(
-        config: WorthServerConfig,
-        surface_registry: WorthServerSurfaceRegistry,
-        operation_registry: WorthServerOperationRegistry,
-        product_adapter_registry: WorthServerProductAdapterRegistry,
-        route_assembly: WorthServerRouteAssembly,
-        counters: Arc<WorthServerCounters>,
-        product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
-        product_session_termination_observers: Vec<SharedProductSessionTerminationObserver>,
-        transport_caller_verifier: Option<Arc<dyn WorthServerTransportCallerVerifier>>,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthServerRuntimeAssemblyParts) -> Self {
+        let WorthServerRuntimeAssemblyParts {
+            config,
+            surface_registry,
+            operation_registry,
+            product_adapter_registry,
+            route_assembly,
+            counters,
+            product_session_clock,
+            product_session_termination_observers,
+            transport_caller_verifier,
+        } = parts;
         let surfaces_facade = WorthServerSurfacesFacade::new(&surface_registry);
         let middleware_facade = WorthServerMiddlewareFacade::new(config.middleware().clone());
         let operator_evidence_facade =

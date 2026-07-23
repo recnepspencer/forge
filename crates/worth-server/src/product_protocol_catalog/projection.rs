@@ -171,9 +171,9 @@ fn assemble_catalog(
     )
 }
 
-fn product_route_index<'a>(
-    routes: &'a WorthServerRouteInventory,
-) -> BTreeMap<&'a str, Vec<&'a crate::WorthServerRouteInventoryRow>> {
+fn product_route_index(
+    routes: &WorthServerRouteInventory,
+) -> BTreeMap<&str, Vec<&crate::WorthServerRouteInventoryRow>> {
     let mut index = BTreeMap::<_, Vec<_>>::new();
     for route in routes.rows() {
         if let Some(operation_name) = route.operation_name() {

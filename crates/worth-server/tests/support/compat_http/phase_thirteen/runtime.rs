@@ -13,11 +13,13 @@ use worth_server::{
     WorthServerStreamingResponse,
 };
 
+use crate::compat_http_phase_four_runtime::request_support::{
+    compat_stream_input, default_stream_selection, streaming_response_success,
+};
 use crate::{
     compat_http_phase_eight_runtime, compat_http_phase_four_assertions,
-    compat_http_phase_four_runtime, compat_http_phase_nine_runtime, compat_http_phase_ten_runtime,
-    compat_http_phase_three_runtime, compat_http_phase_two_runtime, query_handoff_runtime,
-    worth_native_assertions,
+    compat_http_phase_nine_runtime, compat_http_phase_ten_runtime, compat_http_phase_three_runtime,
+    compat_http_phase_two_runtime, query_handoff_runtime, worth_native_assertions,
 };
 
 pub(crate) fn phase_thirteen_server() -> WorthServer {
@@ -158,11 +160,10 @@ pub(crate) fn finished_incremental_export(
     operation_name: &str,
     chunk_bytes: usize,
 ) -> WorthServerCompatibilityExport {
-    let response =
-        compat_http_phase_four_runtime::streaming_response_success(server.compat_http().stream(
-            compat_http_phase_four_runtime::compat_stream_input(server, operation_name),
-            worth_server::WorthServerStreamSelection::incremental().with_chunk_bytes(chunk_bytes),
-        ));
+    let response = streaming_response_success(server.compat_http().stream(
+        compat_stream_input(server, operation_name),
+        worth_server::WorthServerStreamSelection::incremental().with_chunk_bytes(chunk_bytes),
+    ));
     let mut stream = match response {
         WorthServerStreamingResponse::Stream(value) => value,
         other => panic!("expected incremental export, got {other:?}"),
@@ -178,11 +179,10 @@ pub(crate) fn buffered_export(
     server: &WorthServer,
     operation_name: &str,
 ) -> WorthServerCompatibilityExport {
-    let response =
-        compat_http_phase_four_runtime::streaming_response_success(server.compat_http().stream(
-            compat_http_phase_four_runtime::compat_stream_input(server, operation_name),
-            worth_server::WorthServerStreamSelection::buffered(),
-        ));
+    let response = streaming_response_success(server.compat_http().stream(
+        compat_stream_input(server, operation_name),
+        worth_server::WorthServerStreamSelection::buffered(),
+    ));
     match response {
         WorthServerStreamingResponse::Buffered(value) => value,
         other => panic!("expected buffered export, got {other:?}"),
@@ -194,11 +194,10 @@ pub(crate) fn cancellation_receipt(
     operation_name: &str,
     kind: WorthServerStreamCancellationKind,
 ) -> WorthServerStreamCancellationReceipt {
-    let response =
-        compat_http_phase_four_runtime::streaming_response_success(server.compat_http().stream(
-            compat_http_phase_four_runtime::compat_stream_input(server, operation_name),
-            compat_http_phase_four_runtime::default_stream_selection(),
-        ));
+    let response = streaming_response_success(server.compat_http().stream(
+        compat_stream_input(server, operation_name),
+        default_stream_selection(),
+    ));
     let mut stream = match response {
         WorthServerStreamingResponse::Stream(value) => value,
         other => panic!("expected stream cancellation probe, got {other:?}"),

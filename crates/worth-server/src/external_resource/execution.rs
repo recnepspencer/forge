@@ -38,14 +38,14 @@ impl<'a> WorthServerExternalResourceExecutionBoundary<'a> {
                         ),
                     );
                 }
-                WorthServerExternalResourceExecutionOutcome::Completed(
+                WorthServerExternalResourceExecutionOutcome::Completed(Box::new(
                     WorthServerCompletedExternalResourceExecution::new(
                         plan,
                         response.body().to_vec(),
                         response.transport_evidence_identity().to_string(),
                         counters(1, request_bytes, response_bytes),
                     ),
-                )
+                ))
             }
             WorthServerExternalResourceTransportOutcome::RejectedBeforeAttempt { reason_key } => {
                 WorthServerExternalResourceExecutionOutcome::Denied(
@@ -222,7 +222,7 @@ impl WorthServerExternalResourceExecutionFailure {
 
 #[derive(Clone, Debug)]
 pub enum WorthServerExternalResourceExecutionOutcome {
-    Completed(WorthServerCompletedExternalResourceExecution),
+    Completed(Box<WorthServerCompletedExternalResourceExecution>),
     Denied(WorthServerExternalResourceExecutionDenial),
     Failed(WorthServerExternalResourceExecutionFailure),
 }

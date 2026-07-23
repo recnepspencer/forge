@@ -16,6 +16,10 @@ use super::persistence_state::{
 use super::product_result::DurableMutationProductResult;
 use super::TestConcurrencyProbe;
 
+mod crash_execution;
+
+use crash_execution::injected_crash_execution;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DurableMutationCrashPoint {
     BeforeIntent,
@@ -386,19 +390,4 @@ fn build_completion(
         ),
     )
     .expect("test executor completion should match its attempt"))
-}
-
-fn injected_crash_execution(
-    crash: DurableMutationCrashPoint,
-    basis_compared: bool,
-) -> WorthServerDurableProductMutationExecution {
-    let conclusion = WorthServerDurableProductMutationConclusion::failed(
-        format!("injected_crash_{}", crash.as_str()),
-        format!("test executor injected crash at `{}`", crash.as_str()),
-    );
-    if basis_compared {
-        WorthServerDurableProductMutationExecution::after_basis_comparison(conclusion)
-    } else {
-        WorthServerDurableProductMutationExecution::before_basis_comparison(conclusion)
-    }
 }

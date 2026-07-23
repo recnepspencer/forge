@@ -18,7 +18,7 @@ use crate::{
     registration::{
         WorthServerSurfaceRegistration, WorthServerSurfaceRegistry, WorthServerSurfaceRegistryError,
     },
-    runtime::{WorthServerRuntime, WorthServerRuntimeAssembly},
+    runtime::{WorthServerRuntime, WorthServerRuntimeAssembly, WorthServerRuntimeAssemblyParts},
     transport::WorthServerRouteAssemblyError,
 };
 
@@ -117,17 +117,17 @@ impl WorthServerBuilder {
             &product_adapter_registry,
         )
         .map_err(WorthServerBuildError::InvalidRouteAssembly)?;
-        let assembly = WorthServerRuntimeAssembly::new(
+        let assembly = WorthServerRuntimeAssembly::new(WorthServerRuntimeAssemblyParts {
             config,
             surface_registry,
             operation_registry,
             product_adapter_registry,
             route_assembly,
             counters,
-            self.product_session_clock,
-            self.product_session_termination_observers,
-            self.transport_caller_verifier,
-        );
+            product_session_clock: self.product_session_clock,
+            product_session_termination_observers: self.product_session_termination_observers,
+            transport_caller_verifier: self.transport_caller_verifier,
+        });
         let runtime = WorthServerRuntime::from_assembly(assembly);
         Ok(WorthServer::new(runtime))
     }

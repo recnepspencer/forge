@@ -7,7 +7,7 @@ use worth_server::{
 use crate::compat_http_phase_eleven_assertions::{
     assert_binary_counter, assert_external_counter, finish_stream,
 };
-use crate::compat_http_phase_four_runtime::{
+use crate::compat_http_phase_four_runtime::request_support::{
     build_phase_four_server, build_phase_four_server_with_workspace_provider, compat_stream_input,
     oversized_streaming_provider, streaming_response_success,
 };

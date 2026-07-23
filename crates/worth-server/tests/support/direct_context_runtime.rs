@@ -187,9 +187,12 @@ impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
     }
 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
-        WorthQuerySnapshotIdentity::from_relational_snapshot(
-            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
+            worth_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(1, 1),
+            ),
         )
+        .expect("relational snapshot projection must retain its typed payload")
     }
 
     fn install_live_subscription(

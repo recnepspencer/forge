@@ -187,6 +187,7 @@ fn optional_header<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
 #[cfg(test)]
 mod tests {
     use super::lower_transport_request;
+    use crate::transport::WorthServerTransportPrincipal;
     use axum::http::{HeaderMap, HeaderValue};
     use std::collections::HashMap;
 

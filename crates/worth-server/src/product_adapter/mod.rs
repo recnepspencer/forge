@@ -13,6 +13,7 @@ mod read_batch;
 mod registration;
 mod registry;
 mod schedule;
+mod support_snapshot;
 mod surface;
 
 pub use adapter::{
@@ -25,8 +26,7 @@ pub use certification::{
 };
 pub use declaration::{
     WorthServerProductOperationAuthorityRequirement, WorthServerProductOperationBasisKind,
-    WorthServerProductOperationDeclaration, WorthServerProductOperationSupportSnapshot,
-    WorthServerProductReadTransport,
+    WorthServerProductOperationDeclaration, WorthServerProductReadTransport,
 };
 pub use denial::{
     WorthServerProductOperationDenial, WorthServerProductOperationDenialCode,
@@ -47,6 +47,7 @@ pub use registration::{
 };
 pub use registry::{WorthServerProductAdapterRegistry, WorthServerProductAdapterRegistryError};
 pub use schedule::{WorthServerProductSchedulerAdmission, WorthServerScheduledProductOperation};
+pub use support_snapshot::WorthServerProductOperationSupportSnapshot;
 pub use surface::{
     WorthServerProductOperationExecutionBoundary, WorthServerProductOperationInput,
     WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
