@@ -1,9 +1,8 @@
-use worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 use worth_store_contracts::QueueProducerResourceShape;
 
 use super::super::test_support::{
-    backend_for, grouping_for, point_read_budget, policy_receipt, secure_io_for_work,
-    GroupingTestMutation,
+    backend_for, buffer_pool_declaration, grouping_for, point_read_budget, policy_receipt,
+    secure_io_for_work, GroupingTestMutation,
 };
 use crate::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use crate::{
@@ -27,7 +26,7 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
     let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(budget),
+        policy_receipt(work),
     ))
     .expect("matching queue work should lower to an admitted execution plan");
 
@@ -60,15 +59,17 @@ fn producer_declaration_lowers_through_scheduler_admission() {
         .with_read_ahead_windows(1)
         .with_worker_permits(1)
         .with_cache_residency_hints(1);
-    let producer = BufferPoolQueueExecutionDeclaration::read_ahead(7, resource_shape);
+    let producer =
+        buffer_pool_declaration(false, reservation.security_scope_identity(), resource_shape);
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("producer shape should lower to queue work");
+    assert_eq!(work.buffer_pool_declaration(), Some(producer));
     let backend = backend_for(work);
     let work = work.with_secure_io_scope(secure_io_for_work(work, &backend));
     let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(work.requested_budget()),
+        policy_receipt(work),
     ))
     .expect("lowered producer work should admit through scheduler");
 
@@ -77,6 +78,42 @@ fn producer_declaration_lowers_through_scheduler_admission() {
     assert_eq!(
         plan.replay_identity().requested_budget(),
         work.requested_budget()
+    );
+}
+
+#[test]
+fn producer_declaration_rejects_hidden_security_identity_drift() {
+    let reservation = admitted_point_read_reservation_for_certification_test();
+    let admitted = reservation.security_scope_identity();
+    let stale_key_identity =
+        worth_store_security::StoreSecurityScopeIdentity::from_physical_security_scope(
+            admitted.physical_witness(),
+            admitted.key_scope(),
+            worth_store_security::StoreKeyVersionPosture::Stale,
+            admitted.tenant_scope(),
+            admitted.authenticity_requirement(),
+            admitted.custody_posture(),
+        );
+    assert_eq!(stale_key_identity.tenant_scope(), admitted.tenant_scope());
+    assert_eq!(stale_key_identity.key_scope(), admitted.key_scope());
+    assert_eq!(
+        stale_key_identity.authenticity_requirement(),
+        admitted.authenticity_requirement()
+    );
+    let producer = buffer_pool_declaration(
+        false,
+        stale_key_identity,
+        QueueProducerResourceShape::new()
+            .with_queue_slots(1)
+            .with_bandwidth_tokens(4096)
+            .with_read_ahead_windows(1)
+            .with_worker_permits(1)
+            .with_cache_residency_hints(1),
+    );
+
+    assert_eq!(
+        lower_buffer_pool_queue_declaration(producer, reservation),
+        Err(QueueExecutionAdmissionDenial::ProducerSecurityScopeMismatch)
     );
 }
 
@@ -97,7 +134,7 @@ fn grouping_mismatch_is_a_typed_admission_denial() {
     let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(budget),
+        policy_receipt(work),
     ))
     .expect_err("durability mismatch must not silently batch");
 

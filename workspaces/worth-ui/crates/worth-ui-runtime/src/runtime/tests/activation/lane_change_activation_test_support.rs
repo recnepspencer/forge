@@ -36,11 +36,6 @@ pub(super) fn lane_change_activation_inputs() -> LaneChangeActivationInputs {
             &inputs.admitted,
         )
         .expect("query rebind succeeds");
-    let lowering_input = runtime.prepare_pending_execution_plan_lowering_input(
-        &node_plan,
-        &reconciliation,
-        &query_rebind,
-    );
     let pending = runtime
         .stage_replacement_activation(
             inputs.admitted,
@@ -50,7 +45,6 @@ pub(super) fn lane_change_activation_inputs() -> LaneChangeActivationInputs {
             crate::runtime::WorthUiActivationStagingPlans::new(
                 Some(&reconciliation),
                 Some(&query_rebind),
-                Some(&lowering_input),
             ),
         )
         .expect("lane-change activation stages");

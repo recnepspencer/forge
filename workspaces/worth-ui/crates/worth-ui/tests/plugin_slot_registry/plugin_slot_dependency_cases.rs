@@ -1,5 +1,7 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, PluginSlotContributionReference, PluginSlotDescriptor, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{PluginSlotContributionReference, PluginSlotDescriptor},
 };
 
 use super::plugin_slot_assertions::{

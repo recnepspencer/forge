@@ -97,7 +97,7 @@ impl WorthQueryNamingMutationEvidence {
             resolved_target_entity_identity: bundle
                 .resolved_target_entity_identity_handle()
                 .map(|identity| {
-                    WorthQueryEntityIdentity::from_relational_record(
+                    WorthQueryEntityIdentity::from_runtime_receipt_record(
                         identity.relational_record_parts(),
                     )
                 })

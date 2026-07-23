@@ -1,148 +1,123 @@
+use super::active_application_session_test_support::source_backed_component_session;
 use super::virtualized_data_lane_test_support::{
     virtualized_data_denial_for_missing_support, virtualized_data_denial_for_stale_lane_admission,
-    virtualized_data_fixture,
+    virtualized_data_fixture, VirtualizedDataFixture,
 };
 use crate::runtime::{
-    WorthUiComponentHandle, WorthUiExecutionLane, WorthUiHandlePlanGeneration,
-    WorthUiViewBindingHandle, WorthUiVirtualizedDataFrameDenialReason,
-    WorthUiVirtualizedDataFrameTarget, WorthUiVirtualizedDataLane,
-    WorthUiVirtualizedDataPlanDenialReason, WorthUiVisibleRange, WorthUiVisibleRangeDenialReason,
+    WorthUiExecutionLane, WorthUiHandleSlotGeneration, WorthUiViewBindingHandle,
+    WorthUiVirtualizedDataFrameDenialReason, WorthUiVirtualizedDataLane,
+    WorthUiVirtualizedDataPlanDenialReason, WorthUiVirtualizedPlanAvailability,
+    WorthUiVirtualizedPlanSummaryDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
+    WorthUiVisibleRangeDenialReason,
 };
 
 #[test]
-fn equivalent_visible_range_inputs_produce_equivalent_data_lane_receipts() {
-    let left = virtualized_data_fixture();
-    let right = virtualized_data_fixture();
-    let left_handle = first_view_binding_handle(&left.allocation);
-    let right_handle = first_view_binding_handle(&right.allocation);
+fn active_virtualized_query_plan_contract() {
+    let mut fixture = virtualized_data_fixture();
+    equivalent_active_reference_and_range_produce_equivalent_receipts(&mut fixture);
+    active_lane_classifies_row_and_grid_breadth(&mut fixture);
+    exact_query_native_value_reaches_the_active_plan_edge(&mut fixture);
+    summary_is_budgeted_and_links_read_only_query_evidence(&fixture);
+    active_frame_rejects_stale_or_absent_view_handles(&mut fixture);
+}
+
+fn equivalent_active_reference_and_range_produce_equivalent_receipts(
+    fixture: &mut VirtualizedDataFixture,
+) {
     let range = WorthUiVisibleRange::grid(120, 40, 0, 12).expect("range is valid");
+    let target = fixture.summary().target(range);
 
-    let left_receipt = left
-        .runtime
-        .execute_virtualized_data_frame(
-            &left.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(left_handle, range),
-        )
-        .expect("runtime frame execution succeeds");
-    let right_receipt = right
-        .runtime
-        .execute_virtualized_data_frame(
-            &right.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(right_handle, range),
-        )
-        .expect("runtime frame execution succeeds");
+    let first = fixture
+        .execute(target)
+        .expect("first active frame executes");
+    let second = fixture
+        .execute(target)
+        .expect("second active frame executes");
 
-    assert_eq!(
-        left_receipt.certification().data_plan_digest(),
-        right_receipt.certification().data_plan_digest()
-    );
-    assert_eq!(left_receipt.visible_range(), right_receipt.visible_range());
-    assert_eq!(left_receipt.lane(), WorthUiVirtualizedDataLane::CellGrid);
-    assert_eq!(left_receipt.counters(), right_receipt.counters());
-    assert_eq!(left_receipt.counters().visible_row_touch_count(), 40);
-    assert_eq!(left_receipt.counters().visible_column_touch_count(), 12);
-    assert_eq!(left_receipt.counters().full_collection_scan_count(), 0);
+    assert_eq!(first.certification(), second.certification());
+    assert_eq!(first.binding_identity(), second.binding_identity());
+    assert_eq!(first.evidence(), second.evidence());
+    assert_eq!(first.visible_range(), second.visible_range());
+    assert_eq!(first.lane(), WorthUiVirtualizedDataLane::CellGrid);
+    assert_eq!(first.counters(), second.counters());
+    assert_eq!(first.counters().visible_row_touch_count(), 40);
+    assert_eq!(first.counters().visible_column_touch_count(), 12);
+    assert_eq!(first.counters().visible_cell_touch_count(), 480);
 }
 
-#[test]
-fn virtualized_data_lane_classifies_row_and_grid_frame_breadth() {
-    let fixture = virtualized_data_fixture();
-    let handle = first_view_binding_handle(&fixture.allocation);
-    let row_range = WorthUiVisibleRange::rows(20, 6).expect("row range is valid");
-    let grid_range = WorthUiVisibleRange::grid(20, 6, 4, 3).expect("grid range is valid");
+fn active_lane_classifies_row_and_grid_breadth(fixture: &mut VirtualizedDataFixture) {
+    let summary = fixture.summary();
+    let row_target = summary.target(WorthUiVisibleRange::rows(20, 6).expect("row range"));
+    let grid_target = summary.target(WorthUiVisibleRange::grid(20, 6, 4, 3).expect("grid range"));
 
-    let row_receipt = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(handle, row_range),
-        )
-        .expect("runtime frame execution succeeds");
-    let grid_receipt = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(handle, grid_range),
-        )
-        .expect("runtime frame execution succeeds");
+    let row = fixture.execute(row_target).expect("row frame executes");
+    let grid = fixture.execute(grid_target).expect("grid frame executes");
 
-    assert_eq!(row_receipt.lane(), WorthUiVirtualizedDataLane::RowList);
-    assert_eq!(grid_receipt.lane(), WorthUiVirtualizedDataLane::CellGrid);
-    assert_eq!(row_receipt.counters().visible_column_touch_count(), 1);
-    assert_eq!(grid_receipt.counters().visible_column_touch_count(), 3);
+    assert_eq!(row.lane(), WorthUiVirtualizedDataLane::RowList);
+    assert_eq!(grid.lane(), WorthUiVirtualizedDataLane::CellGrid);
+    assert_eq!(row.counters().visible_column_touch_count(), 1);
+    assert_eq!(grid.counters().visible_column_touch_count(), 3);
+    for counters in [row.counters(), grid.counters()] {
+        assert_eq!(counters.data_plan_row_count(), 0);
+        assert_eq!(counters.unrelated_plan_row_count(), 0);
+        assert_eq!(counters.family_index_read_count(), 0);
+        assert_eq!(counters.regional_executable_read_count(), 0);
+        assert_eq!(counters.full_collection_scan_count(), 0);
+        assert_eq!(counters.offset_pagination_substitute_count(), 0);
+        assert_eq!(counters.query_collection_execution_count(), 0);
+        assert_eq!(counters.diagnostic_materialization_count(), 0);
+        assert_eq!(counters.direct_row_lookup_count(), 1);
+        assert_eq!(counters.evidence_reference_lookup_count(), 1);
+    }
 }
 
-#[test]
-fn data_lane_rejects_full_collection_frame_scan() {
-    let fixture = virtualized_data_fixture();
-    let handle = first_view_binding_handle(&fixture.allocation);
-
-    let denial = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::full_collection_scan_for_test(handle),
-        )
-        .expect_err("runtime frame execution denies");
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiVirtualizedDataFrameDenialReason::FullCollectionScanCertificationFailure
-    );
-    assert_eq!(denial.counters().full_collection_scan_count(), 1);
-    assert_eq!(denial.counters().certification_failure_count(), 1);
-}
-
-#[test]
-fn query_shaped_patch_posture_preserved_in_data_lane() {
-    let fixture = virtualized_data_fixture();
-    let handle = first_view_binding_handle(&fixture.allocation);
-    let expected = fixture
-        .query_links
-        .iter()
-        .find(|links| links.plan_index() == handle.plan_index())
-        .expect("query support links exist for handle");
-    let range = WorthUiVisibleRange::rows(10, 5).expect("range is valid");
+fn exact_query_native_value_reaches_the_active_plan_edge(fixture: &mut VirtualizedDataFixture) {
+    let summary = fixture.summary();
+    let summary_evidence = summary.evidence().expect("projection evidence is linked");
+    let native = summary_evidence
+        .native_fact(0)
+        .and_then(|value| value.scalar())
+        .expect("measurement projection retains a scalar native value");
+    assert!(matches!(
+        native,
+        worth_foundational::AspectValue::Float32(value)
+            if *value == worth_foundational::CanonicalF32::from_f32(240.0)
+    ));
 
     let receipt = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(handle, range),
-        )
-        .expect("runtime frame execution succeeds");
-    let posture = receipt.query_patch_posture();
-
-    assert_eq!(posture.plan_index(), expected.plan_index());
-    assert_eq!(posture.view_binding_id(), expected.view_binding_id());
-    assert_eq!(posture.binding_identity(), expected.binding_identity());
-    assert_eq!(posture.posture(), expected.posture());
-    assert_eq!(posture.required_surfaces(), expected.required_surfaces());
+        .execute(summary.target(WorthUiVisibleRange::rows(0, 3).expect("range")))
+        .expect("active frame executes");
+    assert_eq!(
+        receipt.evidence().evidence_identity_digest(),
+        summary_evidence.evidence_identity_digest()
+    );
+    assert_eq!(receipt.evidence().native_fact_count(), 1);
+    assert_eq!(receipt.evidence().observation_count(), 1);
 }
 
-#[test]
-fn virtualized_data_lane_rejects_offset_pagination_as_cursor_substitute() {
-    let fixture = virtualized_data_fixture();
-    let handle = first_view_binding_handle(&fixture.allocation);
-
-    let denial = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::offset_pagination_for_test(handle),
-        )
-        .expect_err("runtime frame execution denies");
+fn summary_is_budgeted_and_links_read_only_query_evidence(fixture: &VirtualizedDataFixture) {
+    let zero_budget = fixture
+        .session
+        .inspect_virtualized_plan(WorthUiVirtualizedPlanSummaryRequest::new(0))
+        .expect_err("zero budget denies");
+    let summary = fixture.summary();
 
     assert_eq!(
-        denial.reason(),
-        WorthUiVirtualizedDataFrameDenialReason::OffsetPaginationSubstitute
+        zero_budget,
+        WorthUiVirtualizedPlanSummaryDenial::ZeroRowBudget
     );
-    assert_eq!(denial.counters().offset_pagination_substitute_count(), 1);
-    assert_eq!(denial.counters().denial_count(), 1);
+    assert_eq!(summary.total_view_row_count(), 1);
+    assert_eq!(summary.family_index_lookup_count(), 1);
+    assert_eq!(summary.direct_row_lookup_count(), 1);
+    assert_eq!(summary.evidence_reference_lookup_count(), 1);
+    assert_eq!(
+        summary.definition(),
+        summary.evidence().unwrap().definition()
+    );
 }
 
 #[test]
-fn virtualized_data_plan_requires_data_and_query_lane_support() {
+fn plan_requires_exact_data_and_query_lane_support() {
     let missing_data =
         virtualized_data_denial_for_missing_support(WorthUiExecutionLane::VirtualizedData);
     let missing_query =
@@ -159,66 +134,52 @@ fn virtualized_data_plan_requires_data_and_query_lane_support() {
 }
 
 #[test]
-fn virtualized_data_plan_rejects_stale_lane_admission_receipt() {
+fn plan_rejects_stale_lane_admission_before_index_reads() {
     let denial = virtualized_data_denial_for_stale_lane_admission();
-
     assert_eq!(
         denial.reason(),
         WorthUiVirtualizedDataPlanDenialReason::LaneAdmissionPlanMismatch
     );
     assert_eq!(denial.counters().certification_failure_count(), 1);
-    assert_eq!(denial.counters().data_plan_row_count(), 0);
+    assert_eq!(denial.counters().family_index_read_count(), 0);
 }
 
-#[test]
-fn virtualized_data_frame_rejects_stale_or_nondata_targets() {
-    let fixture = virtualized_data_fixture();
-    let fresh_handle = first_view_binding_handle(&fixture.allocation);
-    let stale_generation =
-        WorthUiHandlePlanGeneration::new(fresh_handle.plan_generation().as_u64() ^ 0xfeed);
-    let stale_handle = WorthUiViewBindingHandle::new(fresh_handle.plan_index(), stale_generation);
-    let absent_handle = WorthUiViewBindingHandle::new(
-        fresh_handle.plan_index() + 10_000,
-        fresh_handle.plan_generation(),
+fn active_frame_rejects_stale_or_absent_view_handles(fixture: &mut VirtualizedDataFixture) {
+    let fresh = fixture
+        .summary()
+        .target(WorthUiVisibleRange::rows(0, 3).expect("range"));
+    let handle = fresh.handle();
+    let stale = WorthUiViewBindingHandle::new(
+        handle.plan_index(),
+        WorthUiHandleSlotGeneration::new(handle.slot_generation().as_u64() + 1),
+        handle.arena_identity(),
     );
-    let component_handle =
-        WorthUiComponentHandle::new(fresh_handle.plan_index(), fresh_handle.plan_generation());
-    let range = WorthUiVisibleRange::rows(0, 3).expect("range is valid");
+    let absent = WorthUiViewBindingHandle::new(
+        handle.plan_index() + 10_000,
+        handle.slot_generation(),
+        handle.arena_identity(),
+    );
+    let range = fresh.visible_range();
 
     let stale_denial = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(stale_handle, range),
-        )
-        .expect_err("runtime frame execution denies");
+        .execute(crate::runtime::WorthUiVirtualizedDataFrameTarget::view_binding(stale, range))
+        .expect_err("stale handle denies");
     let absent_denial = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::view_binding(absent_handle, range),
-        )
-        .expect_err("runtime frame execution denies");
-    let component_denial = fixture
-        .runtime
-        .execute_virtualized_data_frame(
-            &fixture.data_plan,
-            WorthUiVirtualizedDataFrameTarget::component_for_test(component_handle),
-        )
-        .expect_err("runtime frame execution denies");
+        .execute(crate::runtime::WorthUiVirtualizedDataFrameTarget::view_binding(absent, range))
+        .expect_err("absent handle denies");
 
     assert_eq!(
         stale_denial.reason(),
-        WorthUiVirtualizedDataFrameDenialReason::TargetGenerationMismatch
+        WorthUiVirtualizedDataFrameDenialReason::TargetSlotGenerationMismatch
     );
-    assert_eq!(stale_denial.counters().certification_failure_count(), 1);
+    assert_eq!(stale_denial.counters().evidence_reference_lookup_count(), 0);
     assert_eq!(
         absent_denial.reason(),
         WorthUiVirtualizedDataFrameDenialReason::TargetNotInVirtualizedDataPlan
     );
     assert_eq!(
-        component_denial.reason(),
-        WorthUiVirtualizedDataFrameDenialReason::NonDataLaneClaim
+        absent_denial.counters().evidence_reference_lookup_count(),
+        0
     );
 }
 
@@ -244,12 +205,17 @@ fn visible_range_rejects_empty_or_overflowing_windows() {
     );
 }
 
-fn first_view_binding_handle(
-    allocation: &crate::runtime::WorthUiRuntimeHandleAllocation,
-) -> WorthUiViewBindingHandle {
-    allocation
-        .view_binding_handles()
-        .first()
-        .copied()
-        .expect("fixture has view binding handle")
+#[test]
+fn query_free_active_session_uses_explicit_cheap_posture() {
+    let session = source_backed_component_session();
+    assert_eq!(
+        session.virtualized_plan_availability(),
+        WorthUiVirtualizedPlanAvailability::QueryFree
+    );
+    assert_eq!(
+        session
+            .inspect_virtualized_plan(WorthUiVirtualizedPlanSummaryRequest::first_view())
+            .expect_err("query-free summary denies explicitly"),
+        WorthUiVirtualizedPlanSummaryDenial::ActivePlanIsQueryFree
+    );
 }

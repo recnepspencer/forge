@@ -1,24 +1,23 @@
 use crate::basis_lifecycle::BasisOperationLane;
-use crate::identity::hash_parts;
-use crate::ordinary::read::WorthQueryReadCompletion;
 use crate::runtime::WorthQueryWorkspace;
 use worth_proof::TransitionOutcome;
-
+mod publication_progression;
+mod receipt_identity;
 use super::bound_graph_execution::invoke_bound_graphs;
 use super::{
     WorthQueryBoundExecutionDenial, WorthQueryBoundExecutionDenialKind,
     WorthQueryBoundExecutionReceipt, WorthQueryBoundGraphExecutionReceipt,
-    WorthQueryDerivedPublicationReceipt, WorthQueryExecutableDomainOperation,
-    WorthQueryOperationExecutionContext, WorthQueryOperationExecutionCounters,
-    WorthQueryOperationExecutionWarning, WorthQueryOperationOutput,
-    WorthQueryPublishedDomainOperation, WorthQueryPublishingOperation, WorthQueryTerminalOperation,
+    WorthQueryExecutableDomainOperation, WorthQueryOperationExecutionContext,
+    WorthQueryOperationExecutionCounters, WorthQueryOperationExecutionWarning,
+    WorthQueryOperationOutput, WorthQueryTerminalOperation,
 };
 use crate::domain_installation::operation_authority_chain::{
     mint_operation_phase_proof, operation_phase_basis, WorthQueryExecutedOperationPhase,
     WorthQueryOperationPhaseProof,
 };
 use crate::domain_installation::WorthQueryBoundDomainOperation;
-
+pub use publication_progression::WorthQueryPublicationDenial;
+use receipt_identity::{direct_execution_receipt_identity, DirectExecutionIdentityInput};
 pub struct WorthQueryExecutedDomainOperation<D, O, F, L: BasisOperationLane, Output> {
     pub(super) bound: WorthQueryBoundDomainOperation<D, O, F, L>,
     pub(super) output: Output,
@@ -30,7 +29,6 @@ pub struct WorthQueryExecutedDomainOperation<D, O, F, L: BasisOperationLane, Out
     phase_proof: WorthQueryOperationPhaseProof<WorthQueryExecutedOperationPhase>,
     conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
 }
-
 pub type WorthQueryBoundExecutionOutcome<D, O, F, L, Output> = TransitionOutcome<
     WorthQueryExecutedDomainOperation<D, O, F, L, Output>,
     WorthQueryBoundExecutionDenial,
@@ -39,7 +37,6 @@ pub type WorthQueryBoundExecutionOutcome<D, O, F, L, Output> = TransitionOutcome
     WorthQueryBoundExecutionDenial,
     WorthQueryBoundExecutionDenial,
 >;
-
 impl<D, O, F, L: BasisOperationLane, Output> WorthQueryExecutedDomainOperation<D, O, F, L, Output> {
     pub fn receipt(&self) -> &WorthQueryBoundExecutionReceipt {
         &self.receipt
@@ -59,7 +56,6 @@ impl<D, O, F, L: BasisOperationLane, Output> WorthQueryExecutedDomainOperation<D
         &self.conditional
     }
 }
-
 impl<D, O, F, L: BasisOperationLane, Output> WorthQueryExecutedDomainOperation<D, O, F, L, Output>
 where
     O: WorthQueryExecutableDomainOperation<
@@ -74,7 +70,6 @@ where
         &self.output
     }
 }
-
 impl<D: 'static, O, F: 'static, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L>
 where
     O: WorthQueryExecutableDomainOperation<D, F, Execution = super::WorthQueryDirectOperation>,
@@ -88,11 +83,7 @@ where
             runtime_authority_checks: 1,
             ..Default::default()
         };
-        let witness =
-            crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness::from_authority(
-                std::sync::Arc::clone(self.operation().domain_authority()),
-            );
-        if let Err(denial) = workspace.validate_installed_domain_witness::<D>(&witness) {
+        if let Err(denial) = self.admit_direct_runtime_authority(workspace) {
             let kind = denial.kind();
             let stop = WorthQueryBoundExecutionDenial::new(
                 WorthQueryBoundExecutionDenialKind::RuntimeAuthority(kind),
@@ -112,16 +103,8 @@ where
                 }
             };
         }
-        counters.input_contract_checks += 1;
-        if !super::operation_input::input_satisfies_contract(
-            &input,
-            &self.definition().semantics().parameters,
-        ) {
-            return TransitionOutcome::Denied(WorthQueryBoundExecutionDenial::new(
-                WorthQueryBoundExecutionDenialKind::InputContract,
-                "operation input does not satisfy the installed parameter contract",
-                counters,
-            ));
+        if let Err(denial) = self.admit_direct_execution_contract(&input, &mut counters) {
+            return TransitionOutcome::Denied(denial);
         }
         let execution_snapshot = workspace.snapshot_identity();
         let execution_identity = format!(
@@ -131,13 +114,15 @@ where
         );
         let conditional = match crate::domain_installation::evaluate_bound_conditionals(
             &self,
-            workspace,
-            &execution_snapshot,
-            &execution_identity,
-            None,
-            None,
-            1,
-            &mut counters,
+            crate::domain_installation::WorthQueryConditionalEvaluationPass {
+                workspace,
+                snapshot: &execution_snapshot,
+                execution_identity: &execution_identity,
+                scope: crate::domain_installation::WorthQueryConditionalEvaluationScope::Operation,
+                workflow_run_identity: None,
+                attempt: 1,
+                counters: &mut counters,
+            },
         ) {
             Ok(conditional) => conditional,
             Err(crate::domain_installation::WorthQueryConditionalEvaluationStop::Deferred(
@@ -198,18 +183,7 @@ where
             match executor.execute::<D, O, F>(input, &context, workspace) {
                 Ok(material) => material,
                 Err(failure) => {
-                    let class = failure.class().clone();
-                    let kind = if self
-                        .definition()
-                        .semantics()
-                        .terminal
-                        .failure_classes
-                        .contains(&class)
-                    {
-                        WorthQueryBoundExecutionDenialKind::Executor(class)
-                    } else {
-                        WorthQueryBoundExecutionDenialKind::UndeclaredFailureClass(class)
-                    };
+                    let kind = self.classify_executor_failure(failure.class().clone());
                     return TransitionOutcome::Failed(
                         WorthQueryBoundExecutionDenial::new(kind, failure.detail(), counters)
                             .with_graph_receipts(graph_receipts),
@@ -235,47 +209,17 @@ where
                 .with_graph_receipts(graph_receipts),
             );
         }
-        let graph_evidence = graph_receipts
-            .iter()
-            .map(|receipt| {
-                format!(
-                    "{}:{:?}:{}:{}",
-                    receipt.role(),
-                    receipt.kind(),
-                    receipt.evidence_identity(),
-                    receipt
-                        .projection()
-                        .map(|projection| projection.receipt().result_digest())
-                        .unwrap_or("not-projected")
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(",");
-        let warning_evidence = warnings
-            .iter()
-            .map(|warning| format!("{warning:?}"))
-            .collect::<Vec<_>>()
-            .join(",");
         let output_identity = output.operation_output_identity();
-        let conditional_evidence = conditional
-            .iter()
-            .map(|item| item.signal_identity())
-            .collect::<Vec<_>>()
-            .join(",");
-        let identity = hash_parts(&[
-            "worth_query_bound_execution_v1".into(),
-            format!("binding:{}", self.binding_identity()),
-            format!("capability:{}", self.capability_identity()),
-            format!(
-                "snapshot:{}",
-                execution_snapshot.evidence_identity().as_str()
-            ),
-            format!("result_state:{result_state:?}"),
-            format!("warnings:{warning_evidence}"),
-            format!("graph_evidence:{graph_evidence}"),
-            format!("output:{output_identity}"),
-            format!("conditional:{conditional_evidence}"),
-        ]);
+        let identity = direct_execution_receipt_identity(DirectExecutionIdentityInput {
+            binding_identity: self.binding_identity(),
+            capability_identity: self.capability_identity(),
+            execution_snapshot: &execution_snapshot,
+            result_state,
+            warnings: &warnings,
+            graph_receipts: &graph_receipts,
+            output_identity: &output_identity,
+            conditional: &conditional,
+        });
         let receipt = WorthQueryBoundExecutionReceipt {
             identity,
             binding_identity: self.binding_identity().into(),
@@ -299,76 +243,91 @@ where
             conditional,
         })
     }
-}
 
-impl<D, O, F, L: BasisOperationLane>
-    WorthQueryExecutedDomainOperation<D, O, F, L, WorthQueryReadCompletion>
-where
-    O: WorthQueryExecutableDomainOperation<
-        D,
-        F,
-        Output = WorthQueryReadCompletion,
-        Publication = WorthQueryPublishingOperation,
-    >,
-{
-    pub fn publish(
-        mut self,
-    ) -> TransitionOutcome<
-        WorthQueryPublishedDomainOperation<D, O, F, L>,
-        WorthQueryPublicationDenial,
-        std::convert::Infallible,
-        WorthQueryPublicationDenial,
-        WorthQueryPublicationDenial,
-        WorthQueryPublicationDenial,
-    > {
-        if !self.bound.installation_is_current() {
-            return TransitionOutcome::Stale(
-                WorthQueryPublicationDenial::StaleInstallationGeneration,
+    fn admit_direct_runtime_authority(
+        &self,
+        workspace: &WorthQueryWorkspace,
+    ) -> Result<(), crate::domain_installation::WorthQueryDomainHandleDenial> {
+        let witness =
+            crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness::from_authority(
+                std::sync::Arc::clone(self.operation().domain_authority()),
             );
-        }
-        self.counters.publication_checks += 1;
-        let canonical = &self.bound.definition().semantics().canonical_query;
-        if !self.output.validates_installed_publication(
-            canonical,
-            self.bound.basis().normalized().family(),
-            &self.execution_snapshot,
-            self.bound
-                .operation()
-                .domain_authority()
-                .runtime_authority(),
+        workspace.validate_installed_domain_witness::<D>(&witness)
+    }
+
+    fn admit_direct_execution_contract(
+        &self,
+        input: &O::Input,
+        counters: &mut WorthQueryOperationExecutionCounters,
+    ) -> Result<(), WorthQueryBoundExecutionDenial> {
+        counters.input_contract_checks += 1;
+        if !super::operation_input::input_satisfies_contract(
+            input,
+            &self.definition().semantics().parameters,
         ) {
-            return TransitionOutcome::Denied(
-                WorthQueryPublicationDenial::ExecutionMaterialMismatch,
-            );
+            return Err(WorthQueryBoundExecutionDenial::new(
+                WorthQueryBoundExecutionDenialKind::InputContract,
+                "operation input does not satisfy the installed parameter contract",
+                *counters,
+            ));
         }
-        let identity = hash_parts(&[
-            "worth_query_derived_publication_v1".into(),
-            format!("execution:{}", self.receipt.identity()),
-            format!("query:{}", canonical.query().digest().as_str()),
-            format!(
-                "result_shape:{}",
-                canonical.result_shape().digest().as_str()
-            ),
-        ]);
-        let receipt = WorthQueryDerivedPublicationReceipt {
-            identity,
-            execution_identity: self.receipt.identity().into(),
-        };
-        let phase_proof = mint_operation_phase_proof(
-            receipt.identity().to_string(),
-            Some(self.phase_proof.payload().identity()),
-            operation_phase_basis(&self.phase_proof).clone(),
-        );
-        TransitionOutcome::Success(WorthQueryPublishedDomainOperation::mint(
-            self,
-            receipt,
-            phase_proof,
+        let semantics = self.definition().semantics();
+        if direct_graph_evidence_can_realize(semantics)
+            && matches!(
+                semantics.invariants,
+                crate::domain_installation::WorthQueryOperationInvariantContract::NotRequired
+            )
+            && matches!(
+                semantics.lineage,
+                crate::domain_installation::WorthQueryOperationLineageContract::NotRequired
+            )
+        {
+            return Ok(());
+        }
+        Err(WorthQueryBoundExecutionDenial::new(
+            WorthQueryBoundExecutionDenialKind::WorkflowEvidenceRequired,
+            "direct execution lacks an admitted evidence route for the declared effects, invariants, or lineage",
+            *counters,
         ))
+    }
+
+    fn classify_executor_failure(
+        &self,
+        class: crate::domain_installation::WorthQueryOperationFailureClass,
+    ) -> WorthQueryBoundExecutionDenialKind {
+        if self
+            .definition()
+            .semantics()
+            .terminal
+            .failure_classes
+            .contains(&class)
+        {
+            WorthQueryBoundExecutionDenialKind::Executor(class)
+        } else {
+            WorthQueryBoundExecutionDenialKind::UndeclaredFailureClass(class)
+        }
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryPublicationDenial {
-    StaleInstallationGeneration,
-    ExecutionMaterialMismatch,
+fn direct_graph_evidence_can_realize(
+    semantics: &worth_query_installation::facade::WorthQueryDomainOperationSemanticClosure,
+) -> bool {
+    use crate::domain_installation::{
+        WorthQueryOperationEffectContract as Effects,
+        WorthQueryOperationEffectFamily as EffectFamily,
+        WorthQueryOperationTouchContract as Touches,
+    };
+
+    match (&semantics.touches, &semantics.effects) {
+        (Touches::NotRequired, Effects::NotRequired) => true,
+        (Touches::Declared { graph_roles, .. }, Effects::Declared { effect_families }) => {
+            !graph_roles.is_empty()
+                && !effect_families.is_empty()
+                && effect_families
+                    .iter()
+                    .all(|family| *family == EffectFamily::Mutation)
+        }
+        (Touches::Declared { graph_roles, .. }, Effects::NotRequired) => !graph_roles.is_empty(),
+        (Touches::NotRequired, Effects::Declared { .. }) => false,
+    }
 }

@@ -32,6 +32,15 @@ impl WorthQueryLiveDeclaration {
     pub(crate) fn into_parts(self) -> (String, WorthQueryReadDeclaration) {
         (self.name, self.read)
     }
+
+    pub(crate) fn from_installed_read(name: String, read: WorthQueryReadDeclaration) -> Self {
+        let identity = live_declaration_identity(&name, &read);
+        Self {
+            name,
+            identity,
+            read,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -84,14 +93,21 @@ pub fn declare_live(
         return Err(WorthQueryLiveDeclarationStop::EmptyResourceName);
     }
     let read = declare(author).map_err(WorthQueryLiveDeclarationStop::Read)?;
-    let identity = WorthQueryLiveDeclarationIdentity(hash_parts(&[
-        "worth_query_managed_live_declaration_v1".to_string(),
-        format!("name:{name}"),
-        format!("read:{}", read.identity().as_str()),
-    ]));
+    let identity = live_declaration_identity(&name, &read);
     Ok(WorthQueryLiveDeclaration {
         name,
         identity,
         read,
     })
+}
+
+fn live_declaration_identity(
+    name: &str,
+    read: &WorthQueryReadDeclaration,
+) -> WorthQueryLiveDeclarationIdentity {
+    WorthQueryLiveDeclarationIdentity(hash_parts(&[
+        "worth_query_managed_live_declaration_v1".to_string(),
+        format!("name:{name}"),
+        format!("read:{}", read.identity().as_str()),
+    ]))
 }

@@ -243,6 +243,15 @@ pub(crate) fn admit_authoritative_intent_execution(
                     "mutating intent execution must publish at least one mutation delta; use idempotent-noop execution for no-op commits",
                 ));
             }
+            if !execution
+                .mutation_receipt()
+                .has_current_mutation_authority()
+            {
+                return Err(WorthQueryIntentAdmissionDenial::new(
+                    "mutation-receipt-authority-admission",
+                    "mutating intent execution requires an exact Bridge-authored commit and snapshot handoff before Query can admit current receipt authority",
+                ));
+            }
         }
         WorthQueryIntentExecutionKind::IdempotentNoop => {
             if execution.mutation_receipt().commit_identity.is_empty() {

@@ -6,8 +6,8 @@ error[E0308]: mismatched types
    |     |
    |     arguments to this function are incorrect
    |
-   = note: expected struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, QuerySubscriptionAuthority, QuerySubscriptionIdentityKind>`
-              found struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, QuerySubscriptionAuthority, QueryFeederIdentityKind>`
+   = note: expected struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, worth_query::identity_authority::authority::QuerySubscriptionAuthority, QuerySubscriptionIdentityKind>`
+              found struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, worth_query::identity_authority::authority::QuerySubscriptionAuthority, QueryFeederIdentityKind>`
 note: function defined here
   --> tests/ui/query_identity_authority/wrong_kind_cannot_satisfy_query_family.rs:11:4
    |

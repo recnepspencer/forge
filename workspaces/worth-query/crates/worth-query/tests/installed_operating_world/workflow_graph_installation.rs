@@ -88,7 +88,7 @@ fn installed_workflow_graph_converges_across_stage_declaration_order() {
 }
 
 fn installed_graph(name: &str, reversed: bool) -> Vec<String> {
-    let workspace = if reversed {
+    let mut workspace = if reversed {
         reversed_workflow_workspace(name)
     } else {
         workflow_workspace(name)
@@ -100,7 +100,7 @@ fn installed_graph(name: &str, reversed: bool) -> Vec<String> {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .installed_graph()
         .stages()

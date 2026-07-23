@@ -2,14 +2,34 @@ use worth_query::facade::{domain, runtime};
 
 use super::executors::ReadVertexExecutor;
 use super::{
-    conditional_runtime_bridge, conditional_runtime_bridge_with_change,
     configured_runtime_without_executors, read_vertex_definition, GeometryDomain, ReadFamily,
     ReadVertex,
 };
 
+mod causal_mismatch;
+mod controlled_workspace;
+mod installation;
 mod providers;
+mod public_runtime;
+mod sibling_live;
 
-use providers::{providers_for, DirectConditionalCompute};
+pub(crate) use causal_mismatch::conditional_causal_mismatch_installation;
+pub(crate) use controlled_workspace::{
+    conditional_controlled_workspace, conditional_controlled_workspace_with_donor,
+    ConditionalDonorWorkspaceScenario, ConditionalWorkspacePlacement,
+};
+pub(crate) use installation::{
+    conditional_installation, conditional_installation_with_change,
+    conditional_installation_with_repeated_value_changes, ConditionalInstallation,
+};
+pub(crate) use public_runtime::{
+    conditional_public_controlled_workspace_with,
+    conditional_public_observe_workspace_with_invalidation, conditional_public_workspace_with,
+};
+pub(crate) use sibling_live::conditional_public_sibling_workspace_with_change;
+
+use providers::providers_for;
+pub(crate) use providers::DirectConditionalCompute;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ConditionalModelGraph;
@@ -18,13 +38,26 @@ pub(super) struct ConditionalModelGraphProvider;
 
 pub(super) fn conditional_model_graph_definition(
 ) -> domain::WorthQueryGraphParticipationDefinition<ConditionalModelGraph> {
+    conditional_model_graph_definition_with_identity(domain::WorthQueryGraphIdentityPosture::Opaque)
+}
+
+pub(super) fn conditional_lineage_model_graph_definition(
+) -> domain::WorthQueryGraphParticipationDefinition<ConditionalModelGraph> {
+    conditional_model_graph_definition_with_identity(
+        domain::WorthQueryGraphIdentityPosture::EvolvingLineage,
+    )
+}
+
+fn conditional_model_graph_definition_with_identity(
+    identity: domain::WorthQueryGraphIdentityPosture,
+) -> domain::WorthQueryGraphParticipationDefinition<ConditionalModelGraph> {
     domain::WorthQueryGraphParticipationDefinition::new(
         "model",
         domain::WorthQueryGraphParticipationContract {
             observation: domain::WorthQueryGraphObservationPosture::Snapshot,
             projection: domain::WorthQueryGraphProjectionPosture::NativeProjection,
             mutation: domain::WorthQueryGraphMutationPosture::NotRequired,
-            identity: domain::WorthQueryGraphIdentityPosture::Opaque,
+            identity,
             locality: domain::WorthQueryGraphLocalityPosture::InProcess,
             budget: domain::WorthQueryGraphBudgetPosture::ConstantAdmission,
             commit: domain::WorthQueryGraphCommitPosture::ReadOnly,
@@ -113,59 +146,6 @@ pub(crate) fn conditional_workspace_without_lowering(
         .workspace(name)
 }
 
-pub(crate) fn conditional_public_workspace_with<P>(
-    name: &str,
-    node: domain::WorthQueryPortableConditionalNodeDeclaration,
-    installation: ConditionalInstallation,
-    compute: P,
-    harness: &crate::support::public_bridge_runtime::PublicBridgeRuntimeHarness,
-) -> Result<runtime::WorthQueryWorkspace, runtime::WorthQueryRuntimeError>
-where
-    P: domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>,
-{
-    let dependency_contract = node.dependencies()[0].contract().clone();
-    let builder = runtime::WorthQueryRuntime::builder()
-        .domain_package(conditional_package(vec![node]))
-        .expect("conditional public package should admit")
-        .graph_participation(conditional_model_graph_definition())
-        .graph_participation_provider(ConditionalModelGraph, ConditionalModelGraphProvider)
-        .conditional_signal_graph(installation.graph)
-        .conditional_node(
-            GeometryDomain,
-            ReadVertex,
-            ReadFamily,
-            ConditionalModelGraph,
-            domain::WorthQueryConditionalNodeLocation::operation(installation.node_identity)
-                .unwrap(),
-            vec![installation.dependency],
-            installation.providers,
-            compute,
-        )
-        .domain_operation_executor(GeometryDomain, ReadVertex, ReadFamily, ReadVertexExecutor)
-        .consumer_support_posture(
-            domain::WorthQueryConsumerSupportDimension::ConditionalEvaluation,
-            domain::WorthQueryConsumerSupportPosture::Supported,
-        )
-        .consumer_support_posture(
-            domain::WorthQueryConsumerSupportDimension::ConditionalComparator,
-            domain::WorthQueryConsumerSupportPosture::Supported,
-        )
-        .consumer_support_posture(
-            domain::WorthQueryConsumerSupportDimension::ConditionalTrigger,
-            domain::WorthQueryConsumerSupportPosture::Supported,
-        );
-    harness
-        .configure_runtime_builder(
-            builder,
-            installation.bridge,
-            [super::identity_contract(), dependency_contract],
-            crate::support::public_bridge_runtime::public_graph_support_profile(),
-        )
-        .build_backend_from_parts()
-        .build()?
-        .workspace(name)
-}
-
 fn conditional_workspace_builder(
     nodes: Vec<domain::WorthQueryPortableConditionalNodeDeclaration>,
 ) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
@@ -193,6 +173,13 @@ fn conditional_workspace_builder(
 fn conditional_package(
     nodes: Vec<domain::WorthQueryPortableConditionalNodeDeclaration>,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
+    conditional_package_with_access(nodes, domain::WorthQueryOperationGraphAccess::Project)
+}
+
+fn conditional_package_with_access(
+    nodes: Vec<domain::WorthQueryPortableConditionalNodeDeclaration>,
+    graph_access: domain::WorthQueryOperationGraphAccess,
+) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let base = read_vertex_definition(domain::WorthQuerySupportRequirement::Required);
     let mut semantics = base.semantics().clone();
     if let domain::WorthQueryOperationGraphReadContract::Declared { roles } =
@@ -202,13 +189,13 @@ fn conditional_package(
             .iter_mut()
             .find(|role| role.role == "model")
             .expect("conditional fixture declares the model graph read");
+        model.access = graph_access;
         for dependency in nodes.iter().flat_map(|node| node.dependencies()) {
-            let projection = domain::WorthQueryOperationNativeProjectionContract {
-                aspect_key: dependency.contract().key().clone(),
-                aspect_identity: dependency.contract().identity(),
-                contract_revision: dependency.contract().revision(),
-                mask: dependency.projection_mask().clone(),
-            };
+            let projection = domain::WorthQueryOperationNativeProjectionContract::new(
+                dependency.contract().clone(),
+                dependency.projection_mask().clone(),
+            )
+            .expect("conditional dependency projection is admitted by its contract");
             if !model.semantic_reads.contains(&projection) {
                 model.semantic_reads.push(projection);
             }
@@ -231,91 +218,6 @@ fn conditional_package(
     .operation(operation)
     .operation_graph_participation::<ReadVertex, ReadFamily, ConditionalModelGraph>("model");
     package
-}
-
-pub(crate) struct ConditionalInstallation {
-    pub(crate) bridge: worth_runtime_bridge::facade::RuntimeBridge,
-    pub(crate) graph: worth_signal::facade::SignalGraph,
-    pub(crate) node_identity: String,
-    pub(crate) signal_node: worth_signal::facade::NodeId,
-    pub(crate) dependency: domain::WorthQueryConditionalDependencyInstallation,
-    pub(crate) providers: worth_runtime_bridge::facade::BridgeConditionalProviderSet,
-}
-
-pub(crate) fn conditional_installation(
-    node: &domain::WorthQueryPortableConditionalNodeDeclaration,
-) -> ConditionalInstallation {
-    let dependency = &node.dependencies()[0];
-    let bridge = conditional_runtime_bridge(dependency);
-    let mut graph = worth_signal::facade::SignalGraph::new();
-    let signal_node_id = graph.node().build();
-    let worth_proof::TransitionOutcome::Success(signal_node) =
-        graph.admit_installed_node(signal_node_id)
-    else {
-        panic!("fresh Signal node should admit")
-    };
-    let target = worth_runtime_bridge::facade::BridgeSignalAspectTargetDeclaration::allocate(
-        worth_runtime_bridge::facade::BridgeAspectRegistrationId::from_stable_name(
-            "conditional-identity",
-        ),
-        worth_signal::facade::PartitionToken::new("geometry-signal"),
-        signal_node,
-    );
-    let source = match dependency.locality() {
-        domain::WorthQuerySemanticLocality::SourceRecord => {
-            Some(worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(0, 0, 1))
-        }
-        domain::WorthQuerySemanticLocality::SourcePartition(_)
-        | domain::WorthQuerySemanticLocality::WholeLogicalGraph => None,
-    };
-    ConditionalInstallation {
-        bridge,
-        graph,
-        node_identity: node.identity().to_string(),
-        signal_node: signal_node_id,
-        dependency: domain::WorthQueryConditionalDependencyInstallation::new(source, vec![target]),
-        providers: providers_for(node),
-    }
-}
-
-pub(crate) fn conditional_installation_with_change(
-    node: &domain::WorthQueryPortableConditionalNodeDeclaration,
-) -> (
-    ConditionalInstallation,
-    worth_runtime_bridge::facade::RelationalCommittedPatchRequest,
-    [worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts; 2],
-) {
-    let dependency = &node.dependencies()[0];
-    let (bridge, request, record, snapshots) = conditional_runtime_bridge_with_change(dependency);
-    let mut graph = worth_signal::facade::SignalGraph::new();
-    let signal_node_id = graph.node().build();
-    let worth_proof::TransitionOutcome::Success(signal_node) =
-        graph.admit_installed_node(signal_node_id)
-    else {
-        panic!("fresh Signal node should admit")
-    };
-    let target = worth_runtime_bridge::facade::BridgeSignalAspectTargetDeclaration::allocate(
-        worth_runtime_bridge::facade::BridgeAspectRegistrationId::from_stable_name(
-            "conditional-identity",
-        ),
-        worth_signal::facade::PartitionToken::new("geometry-signal"),
-        signal_node,
-    );
-    (
-        ConditionalInstallation {
-            bridge,
-            graph,
-            node_identity: node.identity().to_string(),
-            signal_node: signal_node_id,
-            dependency: domain::WorthQueryConditionalDependencyInstallation::new(
-                Some(record),
-                vec![target],
-            ),
-            providers: providers_for(node),
-        },
-        request,
-        snapshots,
-    )
 }
 
 pub(crate) fn shared_signal_node_workspace(

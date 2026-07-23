@@ -3,11 +3,10 @@ use std::rc::Rc;
 
 use crate::capability::CapabilitySnapshotDigest;
 use crate::runtime::allocation_frame_dispatch::UiAllocationFrameFrameworkScheduler;
-use crate::runtime::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 use crate::runtime::allocation_receipt::UiAllocationReceiptLedger;
+use crate::runtime::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 
 use super::build_active_state::build_active_runtime_state;
-use super::derive_plan::derive_launch_execution_plan;
 use super::launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
 use super::preservation::WorthUiLastValidRuntimeState;
 use super::runtime_instance::WorthUiRuntime;
@@ -19,15 +18,11 @@ impl WorthUiRuntime {
         retained_allocation_planning_evidence: Rc<
             WorthUiRetainedAllocationPlanningEvidenceRegistry,
         >,
-    ) -> Result<
-        (
-            Self,
-            crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
-        ),
-        WorthUiRuntimeLaunchDenial,
-    > {
+    ) -> Result<(Self, crate::facade::WorthUiHostSessionAuthority), WorthUiRuntimeLaunchDenial>
+    {
         let crate::facade::prepared_application_authority::WorthUiPreparedLaunchAdmission {
-            generation_identity,
+            lowering_authority,
+            initial_allocation_commit,
             artifact,
             artifact_digest,
             snapshot_digest,
@@ -35,6 +30,9 @@ impl WorthUiRuntime {
             query_binding,
             host_session_plan,
         } = admission;
+        let host_session = crate::facade::WorthUiHostSessionAuthority::activate(&host_session_plan)
+            .map_err(|_| WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted)?;
+        let host_plan_binding = host_session.plan_binding();
         let runtime = Self::launch(
             WorthUiRuntimeLaunch {
                 artifact,
@@ -43,22 +41,26 @@ impl WorthUiRuntime {
                 candidate_snapshot_digest: Some(snapshot_digest.as_u64()),
                 candidate_artifact_digest: Some(artifact_digest),
             },
-            generation_identity,
+            lowering_authority,
+            initial_allocation_commit,
             snapshot_digest,
             retained_allocation_planning_evidence,
             query_binding,
+            host_plan_binding,
         )?;
-        Ok((runtime, host_session_plan))
+        Ok((runtime, host_session))
     }
 
     pub(crate) fn launch(
         launch: WorthUiRuntimeLaunch,
-        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+        lowering_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+        initial_allocation_commit: crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit,
         snapshot_digest: CapabilitySnapshotDigest,
         retained_allocation_planning_evidence: Rc<
             WorthUiRetainedAllocationPlanningEvidenceRegistry,
         >,
         query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+        host_plan_binding: crate::facade::WorthUiHostPlanBinding,
     ) -> Result<Self, WorthUiRuntimeLaunchDenial> {
         let WorthUiRuntimeLaunch {
             artifact,
@@ -67,6 +69,9 @@ impl WorthUiRuntime {
             candidate_snapshot_digest,
             candidate_artifact_digest,
         } = launch;
+        let arena_identity = crate::runtime::WorthUiHandleArenaIdentity::from_host_session(
+            host_plan_binding.session_identity(),
+        );
         if let Some(candidate_snapshot_digest) = candidate_snapshot_digest {
             if candidate_snapshot_digest != snapshot_digest.as_u64() {
                 return Err(WorthUiRuntimeLaunchDenial::CandidateSnapshotMismatch {
@@ -82,9 +87,38 @@ impl WorthUiRuntime {
             ),
             None => seal_launch_artifact(artifact),
         };
-        let active_plan = derive_launch_execution_plan(artifact_digest, snapshot_digest);
+        let application_lowering_authority = lowering_authority;
+        let plan_lowering_authority =
+            crate::runtime::planning::WorthUiExecutionPlanLoweringAuthority::seal_launch(
+                application_lowering_authority.clone(),
+                initial_allocation_commit,
+                active_artifact.artifact(),
+                artifact_digest,
+                frame_epoch,
+            )
+            .map_err(map_launch_lowering_denial)?;
+        let handles =
+            crate::runtime::execution::handle_allocation::WorthUiRuntimeHandleAllocator::allocate(
+                plan_lowering_authority.facts(),
+                arena_identity,
+            )
+            .map_err(WorthUiRuntimeLaunchDenial::HandleAllocation)?;
+        let (candidate_plan, lane_admission) = crate::runtime::planning::plan_topology::WorthUiPlanTopologyAssembler::assemble_from_authority_with_lane_admission(
+                plan_lowering_authority.facts(),
+                &handles,
+            )
+            .map_err(WorthUiRuntimeLaunchDenial::TopologyAssembly)?;
+        let plan_bundle = crate::runtime::active::WorthUiSealedExecutionPlanBundle::seal(
+            plan_lowering_authority.facts(),
+            candidate_plan,
+            &lane_admission,
+            host_plan_binding,
+        )
+        .map_err(map_plan_bundle_denial)?;
+        let active_plan =
+            crate::runtime::active::WorthUiActiveExecutionPlan::from_lowered_bundle(plan_bundle);
+        plan_lowering_authority.finish_launch();
         let active = build_active_runtime_state(
-            generation_identity,
             active_artifact,
             active_plan,
             snapshot_digest,
@@ -95,6 +129,7 @@ impl WorthUiRuntime {
 
         let allocation_frame_scheduler = UiAllocationFrameFrameworkScheduler::launch(frame_epoch);
         Ok(Self {
+            active_application_lowering_authority: application_lowering_authority,
             active,
             last_valid,
             retained_allocation_planning_evidence,
@@ -107,10 +142,69 @@ impl WorthUiRuntime {
             query_binding,
             transient_interaction_admission: Default::default(),
             host_measurement_source: Rc::new(RefCell::new(Default::default())),
-            host_session_identity: None,
-            host_observation_generation: None,
+            host_session_identity: Some(host_plan_binding.session_identity()),
+            host_observation_generation: Some(host_plan_binding.observation_generation()),
+            host_plan_binding,
             durable_resize_source: Default::default(),
             scroll_offset_projection: Default::default(),
         })
+    }
+}
+
+fn map_plan_bundle_denial(
+    denial: crate::runtime::active::WorthUiExecutionPlanBundleDenial,
+) -> WorthUiRuntimeLaunchDenial {
+    match denial {
+        crate::runtime::active::WorthUiExecutionPlanBundleDenial::ForeignLoweringAuthority => {
+            WorthUiRuntimeLaunchDenial::ExecutionPlanAuthorityMismatch
+        }
+        crate::runtime::active::WorthUiExecutionPlanBundleDenial::OrdinaryPlan(denial) => {
+            WorthUiRuntimeLaunchDenial::OrdinaryPlan(denial)
+        }
+        crate::runtime::active::WorthUiExecutionPlanBundleDenial::VirtualizedPlan(denial) => {
+            WorthUiRuntimeLaunchDenial::VirtualizedPlan(denial)
+        }
+        crate::runtime::active::WorthUiExecutionPlanBundleDenial::CanvasSpatialPlan(denial) => {
+            WorthUiRuntimeLaunchDenial::CanvasSpatialPlan(denial)
+        }
+        crate::runtime::active::WorthUiExecutionPlanBundleDenial::RealtimeOverlayPlan(denial) => {
+            WorthUiRuntimeLaunchDenial::RealtimeOverlayPlan(denial)
+        }
+    }
+}
+
+fn map_launch_lowering_denial(
+    denial: crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial,
+) -> WorthUiRuntimeLaunchDenial {
+    match denial {
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::CandidateGraphAuthorityMismatch => {
+            WorthUiRuntimeLaunchDenial::CandidateGraphAuthorityMismatch
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::CandidateArtifactAuthorityMismatch => {
+            WorthUiRuntimeLaunchDenial::CandidateArtifactAuthorityMismatch
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::ForeignAllocationProjection => {
+            WorthUiRuntimeLaunchDenial::ForeignAllocationProjection
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::MissingQueryPosture => {
+            WorthUiRuntimeLaunchDenial::MissingQueryPosture
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::UnexpectedQueryPosture => {
+            WorthUiRuntimeLaunchDenial::UnexpectedQueryPosture
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::QueryDefinitionNotInstalled => {
+            WorthUiRuntimeLaunchDenial::QueryDefinitionNotInstalled
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::ForeignQueryInstalledAuthority => {
+            WorthUiRuntimeLaunchDenial::ForeignQueryInstalledAuthority
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::RegionalDelta(denial) => {
+            match denial {
+                crate::runtime::planning::plan_topology::WorthUiPlanRegionDeltaDenial::DuplicateCandidateRegion => WorthUiRuntimeLaunchDenial::RegionalDeltaDuplicateCandidateRegion,
+            }
+        }
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial::PlanInput(denial) => {
+            WorthUiRuntimeLaunchDenial::PlanInput(denial)
+        }
     }
 }

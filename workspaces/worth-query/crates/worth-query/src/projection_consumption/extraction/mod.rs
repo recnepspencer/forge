@@ -1,16 +1,13 @@
-mod consumed_scalar_value;
+mod error;
 mod grouped;
 mod live_binding;
 mod query_context;
 mod retained_binding;
-mod row_like;
-mod row_like_field_paths;
-mod row_like_values;
+mod row_materialization;
 mod write_receipt;
 
 use super::consumed::{ConsumedProjectionFactSet, ConsumedSourceReferenceFact};
 use super::contracts::MaterializedProjectionContract;
-use super::facts::ProjectionFactKind;
 use super::source::ProjectionSourceFamily;
 use super::source::ProjectionSourceReferenceIdentity;
 use crate::query_context::QueryContextExecutionArtifact;
@@ -25,43 +22,7 @@ use worth_runtime_bridge::facade::{
     BridgeGroupedTruthViewArtifact, BridgeMaterializedRowSetArtifact,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ProjectionFactExtractionError {
-    ContractSourceFamilyMismatch {
-        contract_family: ProjectionSourceFamily,
-        extractor_family: ProjectionSourceFamily,
-    },
-    SourceIdentityMismatch {
-        contract_source_identity: String,
-        provided_source_identity: String,
-    },
-    SourceArtifactMetadataMismatch {
-        metadata_label: &'static str,
-        contract_value: String,
-        provided_value: String,
-    },
-    MissingDeclaredFieldEvidence {
-        source_family: ProjectionSourceFamily,
-        source_identity: String,
-        field_key: String,
-        fact_kind: ProjectionFactKind,
-    },
-    InvalidDeclaredFieldValueShape {
-        source_family: ProjectionSourceFamily,
-        source_identity: String,
-        field_key: String,
-        fact_kind: ProjectionFactKind,
-        expected_shape: &'static str,
-    },
-    MissingWriteReceiptEvidence {
-        source_identity: String,
-        fact_kind: ProjectionFactKind,
-    },
-    SourceReferenceEvidenceMismatch {
-        expected_count: usize,
-        actual_count: usize,
-    },
-}
+pub use error::ProjectionFactExtractionError;
 
 impl MaterializedProjectionContract {
     pub fn extract_from_read_result(
@@ -83,7 +44,7 @@ impl MaterializedProjectionContract {
             self.result_digest(),
             Some(result.receipt().result_digest()),
         )?;
-        row_like::extract_read_result_facts(self, result)
+        row_materialization::extract_read_result_facts(self, result)
     }
 
     pub fn extract_from_live_read_result(
@@ -110,21 +71,21 @@ impl MaterializedProjectionContract {
             Some(self.canonical_result_shape_digest()),
             Some(result.receipt().view_shape_digest()),
         )?;
-        row_like::extract_live_read_result_facts(self, result)
+        row_materialization::extract_live_read_result_facts(self, result)
     }
 
     pub fn extract_from_relational_row_set(
         &self,
         row_set: &RelationalAuthoritativeRowSetArtifact,
     ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
-        row_like::extract_relational_row_set_facts(self, row_set)
+        row_materialization::extract_relational_row_set_facts(self, row_set)
     }
 
     pub fn extract_from_bridge_truth_view_row_set(
         &self,
         row_set: &BridgeMaterializedRowSetArtifact,
     ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
-        row_like::extract_bridge_row_set_facts(self, row_set)
+        row_materialization::extract_bridge_row_set_facts(self, row_set)
     }
 
     pub fn extract_from_relational_grouped_projection(

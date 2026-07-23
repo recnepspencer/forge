@@ -1,4 +1,4 @@
-use worth_ui::facade::CapabilityDiagnosticCode;
+use worth_ui::facade::diagnostics::CapabilityDiagnosticCode;
 
 fn requires_code(_code: CapabilityDiagnosticCode) {}
 

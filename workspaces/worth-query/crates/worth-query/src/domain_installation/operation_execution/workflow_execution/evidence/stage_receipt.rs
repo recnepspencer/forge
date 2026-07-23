@@ -2,6 +2,11 @@ use crate::basis_lifecycle::BasisOperationLane;
 use crate::domain_installation::operation_authority_chain::{
     mint_operation_phase_proof, operation_phase_basis,
 };
+use crate::domain_installation::operation_identity_basis::{
+    canonical_indexed_operation_material, canonical_operation_material, graph_call_kind_material,
+    lineage_outcome_material, operation_result_state_material, workflow_counter_material,
+    workflow_semantic_value_material, workflow_warning_material,
+};
 use crate::identity::hash_parts;
 
 use super::{
@@ -12,6 +17,7 @@ use super::{
 };
 
 pub(super) struct WorthQueryAdmittedWorkflowStageEvidence {
+    pub(super) input: super::WorthQueryWorkflowSemanticValue,
     pub(super) output: WorthQueryWorkflowValue,
     pub(super) result_state: Option<crate::domain_installation::WorthQueryOperationResultState>,
     pub(super) warnings: Vec<WorthQueryWorkflowStageWarning>,
@@ -22,6 +28,7 @@ pub(super) struct WorthQueryAdmittedWorkflowStageEvidence {
     pub(super) counters: WorthQueryWorkflowRunCounters,
     pub(super) execution_snapshot: crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
+    pub(super) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
@@ -32,36 +39,67 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
         evidence: WorthQueryAdmittedWorkflowStageEvidence,
     ) {
         let stage_identity = stage.identity();
-        let identity = hash_parts(&[
-            "worth_query_workflow_stage_receipt_v1".into(),
-            format!("run:{}", self.identity),
-            format!("stage:{stage_identity}"),
-            format!("predecessors:{}", predecessor_receipt_identities.join(",")),
-            format!("output:{}", evidence.output.semantic_part()),
-            format!("result_state:{:?}", evidence.result_state),
-            format!("warnings:{}", warning_semantics(&evidence)),
-            format!("graph_evidence:{}", graph_semantics(&evidence)),
-            format!("primary_reads:{}", read_semantics(&evidence)),
-            format!("effects:{}", effect_semantics(&evidence)),
-            format!("invariants:{}", invariant_semantics(&evidence)),
-            format!(
-                "parallel_admission:{}",
+        let identity_material = canonical_operation_material(vec![
+            (
+                "receipt.schema",
+                "worth-query-workflow-stage-receipt-v2".into(),
+            ),
+            ("receipt.run", self.identity.clone()),
+            ("receipt.stage", stage_identity.into()),
+            (
+                "receipt.predecessors",
+                canonical_indexed_operation_material(
+                    "receipt.predecessor",
+                    predecessor_receipt_identities.iter().cloned(),
+                ),
+            ),
+            (
+                "receipt.input",
+                workflow_semantic_value_material(&evidence.input),
+            ),
+            ("receipt.output", evidence.output.semantic_part()),
+            (
+                "receipt.result_state",
+                operation_result_state_material(evidence.result_state).into(),
+            ),
+            ("receipt.warnings", warning_semantics(&evidence)),
+            ("receipt.graph_evidence", graph_semantics(&evidence)),
+            ("receipt.primary_reads", read_semantics(&evidence)),
+            ("receipt.effects", effect_semantics(&evidence)),
+            ("receipt.invariants", invariant_semantics(&evidence)),
+            (
+                "receipt.parallel_admission",
                 self.active_parallel_admission
                     .as_ref()
                     .map(|receipt| receipt.identity())
                     .unwrap_or("not-required")
+                    .into(),
             ),
-            format!("counters:{:?}", evidence.counters),
-            format!(
-                "conditional:{}",
-                evidence
-                    .conditional
-                    .iter()
-                    .map(|item| item.signal_identity())
-                    .collect::<Vec<_>>()
-                    .join(",")
+            (
+                "receipt.counters",
+                workflow_counter_material(evidence.counters),
+            ),
+            (
+                "receipt.conditional",
+                canonical_indexed_operation_material(
+                    "receipt.conditional.semantic",
+                    evidence
+                        .conditional
+                        .iter()
+                        .map(
+                            crate::domain_installation::operation_execution::conditional_trace_semantic_material,
+                        ),
+                ),
+            ),
+            (
+                "receipt.lineage",
+                canonical_indexed_operation_material(
+                    "receipt.lineage.outcome",
+                    evidence.lineage.iter().map(lineage_outcome_material),
+                ),
             ),
         ]);
+        let identity = hash_parts(&[identity_material]);
         let predecessor_authority_proofs = stage
             .predecessors()
             .iter()
@@ -99,6 +137,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             stage_identity: stage_identity.into(),
             predecessor_stage_identities: stage.predecessors().to_vec(),
             predecessor_receipt_identities,
+            input: evidence.input,
             output: evidence.output,
             result_state: evidence.result_state,
             warnings: evidence.warnings,
@@ -113,6 +152,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             predecessor_authority_proofs,
             execution_snapshot: evidence.execution_snapshot,
             conditional: evidence.conditional,
+            lineage: evidence.lineage,
         });
         self.receipt_index
             .insert(stage_identity.into(), receipt_index);
@@ -121,71 +161,79 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
 }
 
 fn warning_semantics(evidence: &WorthQueryAdmittedWorkflowStageEvidence) -> String {
-    evidence
-        .warnings
-        .iter()
-        .map(|warning| format!("{warning:?}"))
-        .collect::<Vec<_>>()
-        .join(",")
+    canonical_indexed_operation_material(
+        "receipt.warning",
+        evidence.warnings.iter().map(workflow_warning_material),
+    )
 }
 
 fn graph_semantics(evidence: &WorthQueryAdmittedWorkflowStageEvidence) -> String {
-    evidence
-        .graph_receipts
-        .iter()
-        .map(|receipt| {
-            format!(
-                "{}:{:?}:{}:{}",
-                receipt.role(),
-                receipt.kind(),
-                receipt.evidence_identity(),
-                receipt
-                    .projection()
-                    .map(|projection| projection.receipt().result_digest())
-                    .unwrap_or("not-projected")
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",")
+    canonical_indexed_operation_material(
+        "receipt.graph",
+        evidence.graph_receipts.iter().map(|receipt| {
+            canonical_operation_material(vec![
+                ("graph.role", receipt.role().into()),
+                (
+                    "graph.kind",
+                    graph_call_kind_material(receipt.kind()).into(),
+                ),
+                ("graph.evidence", receipt.evidence_identity().into()),
+                (
+                    "graph.projection",
+                    receipt
+                        .projection()
+                        .map(|projection| projection.receipt().result_digest())
+                        .unwrap_or("not-projected")
+                        .into(),
+                ),
+            ])
+        }),
+    )
 }
 
 fn read_semantics(evidence: &WorthQueryAdmittedWorkflowStageEvidence) -> String {
-    evidence
-        .primary_read_evidence
-        .iter()
-        .map(|read| {
-            format!(
-                "{}:{}:{}",
-                read.role(),
-                read.read_receipt().read_graph_digest(),
-                read.read_receipt().result_digest(),
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",")
+    canonical_indexed_operation_material(
+        "receipt.read",
+        evidence.primary_read_evidence.iter().map(|read| {
+            canonical_operation_material(vec![
+                ("read.role", read.role().into()),
+                ("read.graph", read.read_receipt().read_graph_digest().into()),
+                ("read.result", read.read_receipt().result_digest().into()),
+            ])
+        }),
+    )
 }
 
 fn effect_semantics(evidence: &WorthQueryAdmittedWorkflowStageEvidence) -> String {
-    evidence
-        .effect_evidence
-        .iter()
-        .map(|effect| format!("{}:{}", effect.family().as_str(), effect.receipt_identity()))
-        .collect::<Vec<_>>()
-        .join(",")
+    canonical_indexed_operation_material(
+        "receipt.effect",
+        evidence.effect_evidence.iter().map(|effect| {
+            canonical_operation_material(vec![
+                ("effect.family", effect.family().as_str().into()),
+                ("effect.receipt", effect.receipt_identity().into()),
+            ])
+        }),
+    )
 }
 
 fn invariant_semantics(evidence: &WorthQueryAdmittedWorkflowStageEvidence) -> String {
-    evidence
-        .invariant_outcomes
-        .iter()
-        .map(|outcome| {
-            format!(
-                "{}:{}:{}",
-                outcome.invariant_role(),
-                outcome.installed_invariant_identity(),
-                outcome.effect_receipt_identities().join("+")
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",")
+    canonical_indexed_operation_material(
+        "receipt.invariant",
+        evidence.invariant_outcomes.iter().map(|outcome| {
+            canonical_operation_material(vec![
+                ("invariant.role", outcome.invariant_role().into()),
+                (
+                    "invariant.installed",
+                    outcome.installed_invariant_identity().into(),
+                ),
+                (
+                    "invariant.effects",
+                    canonical_indexed_operation_material(
+                        "invariant.effect",
+                        outcome.effect_receipt_identities().iter().cloned(),
+                    ),
+                ),
+            ])
+        }),
+    )
 }

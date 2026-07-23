@@ -1,24 +1,16 @@
-use worth_query::facade::{domain, read};
-
 use super::{
     WorthUiQueryViewDefinition, WorthUiQueryViewIdentity, WorthUiQueryViewIdentityError,
     WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
 };
-use crate::{
-    WorthUiDomainEntry, WorthUiInstalledQueryDomain, WorthUiQueryExt, WorthUiQueryProjectionOutcome,
-};
+use crate::WorthUiInstalledQueryDomain;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiQueryViewDeclarationDenial {
     InvalidIdentity(WorthUiQueryViewIdentityError),
-    QueryDeclarationUnavailable,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthUiQueryViewProjectionDenial {
-    InstalledAuthorityMismatch,
-}
-
+/// Registration-only envelope shared by snapshot and live view declarations.
+/// Execution methods live only on the lifecycle-specific public types.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiInstalledQueryView {
     installed_domain: WorthUiInstalledQueryDomain,
@@ -29,15 +21,17 @@ impl WorthUiInstalledQueryDomain {
     pub fn measurement_view(
         &self,
         identity: impl Into<String>,
-    ) -> Result<WorthUiInstalledQueryView, WorthUiQueryViewDeclarationDenial> {
+    ) -> Result<super::WorthUiInstalledSnapshotQueryView, WorthUiQueryViewDeclarationDenial> {
         self.measurement_view_with_lifecycle(identity, WorthUiQueryViewLifecycle::Snapshot)
+            .map(super::WorthUiInstalledSnapshotQueryView::from_registration)
     }
 
     pub fn live_measurement_view(
         &self,
         identity: impl Into<String>,
-    ) -> Result<WorthUiInstalledQueryView, WorthUiQueryViewDeclarationDenial> {
+    ) -> Result<super::WorthUiInstalledLiveQueryView, WorthUiQueryViewDeclarationDenial> {
         self.measurement_view_with_lifecycle(identity, WorthUiQueryViewLifecycle::Live)
+            .map(super::WorthUiInstalledLiveQueryView::from_registration)
     }
 
     fn measurement_view_with_lifecycle(
@@ -47,18 +41,6 @@ impl WorthUiInstalledQueryDomain {
     ) -> Result<WorthUiInstalledQueryView, WorthUiQueryViewDeclarationDenial> {
         let identity = WorthUiQueryViewIdentity::new(identity)
             .map_err(WorthUiQueryViewDeclarationDenial::InvalidIdentity)?;
-        match lifecycle {
-            WorthUiQueryViewLifecycle::Snapshot => {
-                self.handle()
-                    .measurements()
-                    .map_err(|_| WorthUiQueryViewDeclarationDenial::QueryDeclarationUnavailable)?;
-            }
-            WorthUiQueryViewLifecycle::Live => {
-                self.handle()
-                    .live_measurements()
-                    .map_err(|_| WorthUiQueryViewDeclarationDenial::QueryDeclarationUnavailable)?;
-            }
-        }
         Ok(WorthUiInstalledQueryView {
             installed_domain: self.clone(),
             definition: WorthUiQueryViewDefinition::measurement(
@@ -81,30 +63,5 @@ impl WorthUiInstalledQueryView {
 
     pub fn installed_domain(&self) -> &WorthUiInstalledQueryDomain {
         &self.installed_domain
-    }
-
-    pub fn read(
-        &self,
-    ) -> Result<
-        domain::WorthQueryInstalledDomainReadDeclaration<WorthUiDomainEntry>,
-        Box<read::WorthQueryReadDeclarationStop>,
-    > {
-        self.installed_domain.handle().measurements()
-    }
-
-    pub fn project(
-        &self,
-        completion: &domain::WorthQueryInstalledDomainReadCompletion<WorthUiDomainEntry>,
-        declaration: read::WorthQueryProjectionDeclaration,
-    ) -> Result<WorthUiQueryProjectionOutcome, WorthUiQueryViewProjectionDenial> {
-        if completion.receipt().installed_authority()
-            != &self.installed_domain.handle().authority_witness()
-        {
-            return Err(WorthUiQueryViewProjectionDenial::InstalledAuthorityMismatch);
-        }
-        Ok(WorthUiQueryProjectionOutcome::from_installed(
-            self.definition.clone(),
-            completion.project(declaration),
-        ))
     }
 }

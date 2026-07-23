@@ -78,7 +78,7 @@ impl<'table> PinnedPageLease<'table> {
     }
 
     pub const fn access_policy_lifecycle_proof(&self) -> AccessPolicyBufferLifecycle {
-        AccessPolicyBufferLifecycle::pinned_physical_substrate_lease()
+        AccessPolicyBufferLifecycle::from_pinned_residency_observation()
     }
 }
 

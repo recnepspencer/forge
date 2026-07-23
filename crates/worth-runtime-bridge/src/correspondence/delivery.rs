@@ -8,13 +8,14 @@ use super::delivery_preflight::{admit_envelope_source, preflight};
 use super::semantic_delivery_match::match_envelope;
 use super::{
     BridgeCorrespondenceAdmissionFailure, BridgeCorrespondenceDeferred,
-    BridgeCorrespondenceDeliveryDenial, BridgeCorrespondenceDenialKind,
-    BridgeCorrespondenceRebindRequired, BridgeCorrespondenceStale,
-    BridgeInstalledSemanticCorrespondence, CorrespondenceDeliveryCounters,
+    BridgeCorrespondenceDeliveryDenial, BridgeCorrespondenceDeliveryReceipt,
+    BridgeCorrespondenceDenialKind, BridgeCorrespondenceRebindRequired, BridgeCorrespondenceStale,
+    BridgeDeliveredCorrespondenceChangeSet, BridgeInstalledSemanticCorrespondence,
+    CorrespondenceDeliveryCounters,
 };
 
 pub type CorrespondenceDeliveryOutcome = TransitionOutcome<
-    CorrespondenceDeliveryCounters,
+    BridgeCorrespondenceDeliveryReceipt,
     BridgeCorrespondenceDeliveryDenial,
     BridgeCorrespondenceDeferred,
     BridgeCorrespondenceStale,
@@ -102,67 +103,35 @@ impl RuntimeBridge {
         if let Some(outcome) = preflight(self, correspondence, graph) {
             return outcome;
         }
-        let basis = correspondence.basis();
         let targets = correspondence.targets.as_slice();
-        counters.allocation_registry_lock_attempts += 1;
-        let allocation_registry = match self.correspondence_allocations.try_read() {
-            Ok(registry) => registry,
-            Err(std::sync::TryLockError::WouldBlock) => {
-                return TransitionOutcome::Deferred(
-                    BridgeCorrespondenceDeferred::GraphMutationInProgress,
-                )
-            }
-            Err(std::sync::TryLockError::Poisoned(_)) => {
-                return TransitionOutcome::Failed(
-                    BridgeCorrespondenceAdmissionFailure::LockPoisoned,
-                )
-            }
-        };
-        if targets
-            .iter()
-            .any(|target| !allocation_registry.admits_source_set(target))
+        if let Err(outcome) = self.admit_delivery_target_allocations(correspondence, &mut counters)
         {
-            return TransitionOutcome::RebindRequired(
-                BridgeCorrespondenceRebindRequired::AllocationSourceSet,
-            );
-        }
-        drop(allocation_registry);
-        if targets.iter().any(|target| {
-            target.signal_graph_instance_id != basis.signal_graph_instance_id
-                || !basis.signal_partitions.contains(&target.partition)
-        }) {
-            return TransitionOutcome::RebindRequired(
-                BridgeCorrespondenceRebindRequired::SignalGraphGeneration,
-            );
+            return outcome;
         }
 
-        let mut counters =
+        let matched =
             match match_envelope(correspondence.ready.payload(), targets, envelope, counters) {
-                Ok(counters) => counters,
+                Ok(matched) => matched,
                 Err(denial) => return TransitionOutcome::Denied(denial),
             };
+        let mut counters = matched.counters;
+        let change_set = BridgeDeliveredCorrespondenceChangeSet::new(
+            correspondence.basis().clone(),
+            correspondence.dependency().clone(),
+            envelope,
+            matched.changes,
+        );
         if counters.truth_targets_admitted == 0 {
-            return TransitionOutcome::Success(counters);
+            return TransitionOutcome::Success(BridgeCorrespondenceDeliveryReceipt::new(
+                counters, change_set,
+            ));
         }
 
-        let mut signal_capabilities = Vec::with_capacity(targets.len());
-        for target in targets {
-            let capability = match graph.admit_installed_aspect(target.node, target.aspect) {
-                TransitionOutcome::Success(capability) => capability,
-                _ => {
-                    return TransitionOutcome::RebindRequired(
-                        BridgeCorrespondenceRebindRequired::SignalGraphGeneration,
-                    )
-                }
+        let signal_capabilities =
+            match admit_signal_target_capabilities(graph, correspondence, &mut counters) {
+                Ok(capabilities) => capabilities,
+                Err(outcome) => return outcome,
             };
-            if capability.graph_instance_id() != target.signal_graph_instance_id {
-                return TransitionOutcome::RebindRequired(
-                    BridgeCorrespondenceRebindRequired::SignalGraphGeneration,
-                );
-            }
-            signal_capabilities.push(capability);
-            counters.signal_capability_admissions += 1;
-        }
         if worth_signal::facade::apply_installed_aspect_changes(graph, signal_capabilities).is_err()
         {
             return TransitionOutcome::Failed(
@@ -176,6 +145,79 @@ impl RuntimeBridge {
             .collect::<std::collections::BTreeSet<_>>()
             .len();
         counters.slots_touched = targets.len();
-        TransitionOutcome::Success(counters)
+        TransitionOutcome::Success(BridgeCorrespondenceDeliveryReceipt::new(
+            counters, change_set,
+        ))
     }
+
+    fn admit_delivery_target_allocations(
+        &self,
+        correspondence: &BridgeInstalledSemanticCorrespondence,
+        counters: &mut CorrespondenceDeliveryCounters,
+    ) -> Result<(), CorrespondenceDeliveryOutcome> {
+        counters.allocation_registry_lock_attempts += 1;
+        let allocation_registry = match self.correspondence_allocations.try_read() {
+            Ok(registry) => registry,
+            Err(std::sync::TryLockError::WouldBlock) => {
+                return Err(TransitionOutcome::Deferred(
+                    BridgeCorrespondenceDeferred::GraphMutationInProgress,
+                ))
+            }
+            Err(std::sync::TryLockError::Poisoned(_)) => {
+                return Err(TransitionOutcome::Failed(
+                    BridgeCorrespondenceAdmissionFailure::LockPoisoned,
+                ))
+            }
+        };
+        let targets = correspondence.targets.as_slice();
+        for target in targets {
+            counters.allocation_source_set_checks += 1;
+            if !allocation_registry.admits_source_set(target) {
+                return Err(TransitionOutcome::RebindRequired(
+                    BridgeCorrespondenceRebindRequired::AllocationSourceSet,
+                ));
+            }
+        }
+        drop(allocation_registry);
+        let basis = correspondence.basis();
+        for target in targets {
+            counters.signal_basis_target_checks += 1;
+            if target.signal_graph_instance_id != basis.signal_graph_instance_id
+                || !basis.signal_partitions.contains(&target.partition)
+            {
+                return Err(TransitionOutcome::RebindRequired(
+                    BridgeCorrespondenceRebindRequired::SignalGraphGeneration,
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+fn admit_signal_target_capabilities(
+    graph: &mut SignalGraph,
+    correspondence: &BridgeInstalledSemanticCorrespondence,
+    counters: &mut CorrespondenceDeliveryCounters,
+) -> Result<Vec<worth_signal::facade::InstalledSignalAspectCapability>, CorrespondenceDeliveryOutcome>
+{
+    let targets = correspondence.targets.as_slice();
+    let mut capabilities = Vec::with_capacity(targets.len());
+    for target in targets {
+        let capability = match graph.admit_installed_aspect(target.node, target.aspect) {
+            TransitionOutcome::Success(capability) => capability,
+            _ => {
+                return Err(TransitionOutcome::RebindRequired(
+                    BridgeCorrespondenceRebindRequired::SignalGraphGeneration,
+                ))
+            }
+        };
+        if capability.graph_instance_id() != target.signal_graph_instance_id {
+            return Err(TransitionOutcome::RebindRequired(
+                BridgeCorrespondenceRebindRequired::SignalGraphGeneration,
+            ));
+        }
+        capabilities.push(capability);
+        counters.signal_capability_admissions += 1;
+    }
+    Ok(capabilities)
 }

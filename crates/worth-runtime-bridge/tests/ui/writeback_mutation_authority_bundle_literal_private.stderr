@@ -1,3 +1,32 @@
+error: cannot construct `BridgeMutationCausalityBundle` with struct literal syntax due to private fields
+  --> tests/ui/writeback_mutation_authority_bundle_literal_private.rs:7:21
+   |
+ 7 |     let causality = BridgeMutationCausalityBundle {
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         causality_digest: sealed_authority_placeholder(),
+   |         ------------------------------------------------ private field
+ 9 |         truth_trigger_digest: sealed_authority_placeholder(),
+   |         ---------------------------------------------------- private field
+10 |         route_digest: sealed_authority_placeholder(),
+   |         -------------------------------------------- private field
+11 |         evaluation_surface_digest: sealed_authority_placeholder(),
+   |         --------------------------------------------------------- private field
+12 |         truth_view_digest: sealed_authority_placeholder(),
+   |         ------------------------------------------------- private field
+   |
+   = note: ...and other private fields `truth_trigger_identity`, `truth_view_snapshot_identity` and `mutation_subject` that were not provided
+help: you might have meant to use the `from_writeback_causality` associated function
+   |
+ 7 -     let causality = BridgeMutationCausalityBundle {
+ 8 -         causality_digest: sealed_authority_placeholder(),
+ 9 -         truth_trigger_digest: sealed_authority_placeholder(),
+10 -         route_digest: sealed_authority_placeholder(),
+11 -         evaluation_surface_digest: sealed_authority_placeholder(),
+12 -         truth_view_digest: sealed_authority_placeholder(),
+13 -     };
+ 7 +     let causality = BridgeMutationCausalityBundle::from_writeback_causality(_);
+   |
+
 error: cannot construct `BridgeMutationAuthorityBundle` with struct literal syntax due to private fields
   --> tests/ui/writeback_mutation_authority_bundle_literal_private.rs:29:13
    |
@@ -9,14 +38,6 @@ error: cannot construct `BridgeMutationAuthorityBundle` with struct literal synt
    |         ---------- private field
    |
    = note: ...and other private fields `existing_truth_binding`, `symbolic_target_reference`, `naming_mutation` and `continuity_mutation` that were not provided
-help: you might have meant to use the `from_writeback_artifacts` associated function
-   |
-29 -     let _ = BridgeMutationAuthorityBundle {
-30 -         causality,
-31 -         provenance,
-32 -     };
-29 +     let _ = BridgeMutationAuthorityBundle::from_writeback_artifacts(_, _, _, _, _);
-   |
 
 error: cannot construct `BridgeBatchMutationAuthorityBundle` with struct literal syntax due to private fields
   --> tests/ui/writeback_mutation_authority_bundle_literal_private.rs:33:13

@@ -6,6 +6,7 @@ use worth_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 
 mod entity_row;
 mod identities;
+mod mutation_authority_admission;
 mod native_patch;
 mod runtime_identity;
 #[cfg(test)]
@@ -180,6 +181,39 @@ pub struct WorthQueryMutationReceipt {
 }
 
 impl WorthQueryMutationReceipt {
+    pub(crate) fn has_current_mutation_authority(&self) -> bool {
+        self.bridge_authority.is_some()
+            && self.commit_identity.has_current_authority()
+            && self.snapshot_identity.has_current_authority()
+            && self
+                .deltas
+                .iter()
+                .all(|delta| delta.entity_identity.has_current_authority())
+    }
+
+    pub(crate) fn admit_runtime_write_authority(mut self) -> Self {
+        let Some(authority) = self.bridge_authority.as_ref() else {
+            return self;
+        };
+        if !mutation_authority_admission::bridge_authority_admits_receipt(
+            &self.commit_identity,
+            &self.snapshot_identity,
+            &self.deltas,
+            authority,
+        ) {
+            return self;
+        }
+        self.commit_identity = self.commit_identity.admit_runtime_write_authority();
+        self.snapshot_identity = self.snapshot_identity.admit_runtime_backend_authority();
+        for delta in &mut self.deltas {
+            delta.entity_identity = delta
+                .entity_identity
+                .clone()
+                .admit_runtime_write_authority();
+        }
+        self
+    }
+
     pub fn from_authoritative_parts(
         commit_identity: WorthQueryCommitIdentity,
         snapshot_identity: WorthQuerySnapshotIdentity,

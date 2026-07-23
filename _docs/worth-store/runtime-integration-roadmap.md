@@ -11,10 +11,14 @@ S.1-through-S.9 certification real before S.10 through S.12 finish. Part II
 does not compensate for an incomplete reconstruction with an integration-side
 backend or semantic persistence fallback.
 
-Part II builds one production runtime in which Worth Query remains the ordinary
-domain-facing language, Worth Relational remains MVCC and transaction authority,
-Worth Signal remains derived-computation authority, Worth Runtime Bridge remains
-the causal protocol layer, and Worth Store makes the joined system survive.
+Part II builds one public production runtime through a Store-backed composition
+root. Internally, that root owns two sibling instances and their narrow join:
+the Worth Query runtime owns semantic execution, the physical Store instance
+owns physical execution, and the Store-Query adapter translates between their
+public contracts. Worth Query remains the ordinary domain-facing language,
+Worth Relational remains MVCC and transaction authority, semantic Worth Signal
+remains derived-computation authority, Worth Runtime Bridge remains the causal
+protocol layer, and Worth Store makes the joined system survive.
 
 The previous semantic Store roadmap is deleted. Its document structure,
 milestone numbering, implementation topology, and closeout claims are not
@@ -70,11 +74,13 @@ or completion evidence for it.
   split into separately borrowable read, submission, lifecycle, and inspection
   authorities, while commit execution consumes a typed durability progression.
 - `composition_laws.md` protects one named semantic responsibility per unit. The
-  strongest constraint is that Part II may not create both a semantic Store
-  runtime and a Store-to-Query adapter that duplicate orchestration.
+  strongest constraint is that the composition root, Query runtime, physical
+  Store instance, and Store-Query adapter remain distinct responsibilities;
+  the adapter cannot become a third runtime or duplicate orchestration.
 - `domain_structure_laws.md` protects authority and dependency direction. Query
-  owns public intent and orchestration, Relational owns semantic truth, Signal
-  owns derivation, Bridge owns cross-runtime causality, Store owns byte survival,
+  owns public intent and semantic orchestration, Relational owns semantic
+  truth, semantic Signal owns semantic derivation, Bridge owns semantic causal
+  crossing, the physical Store instance owns byte survival and physical work,
   and the integration boundary owns only their transactional join.
 - `perf_laws.md` protects locality, boundedness, and honest cost. Parallel
   admission must consume planned read/write/conflict footprints; a branch label
@@ -121,7 +127,11 @@ The joined runtime must survive this hostile condition:
 > mutating branches while one-shot reads, live views, subscriptions, bulk work,
 > background maintenance, replication, schema evolution, and operator recovery
 > run concurrently. At minimum, five users read branch A, five users read branch
-> B, two writers submit on branch A, and two writers submit on branch B while
+> B, two mutations submit on branch A, and two mutations submit on branch B.
+> Same-branch submissions may be planned or queued concurrently, but exactly
+> one mutation at a time owns active branch-write authority for a branch-head
+> generation;
+> branch A and branch B may each have one active writer concurrently while
 > crashes are injected before durability, after durability but before semantic
 > publication, after publication but before acknowledgment, and during restart.
 > Every completed Query operation must retain canonical meaning, every admitted
@@ -133,7 +143,11 @@ The joined runtime must survive this hostile condition:
 The runtime has failed if it:
 
 - creates a second semantic Store runtime beside the Query runtime
+- turns the Store-Query adapter into a third runtime, scheduler, cache, truth
+  registry, or recovery authority
 - gives Query and Store different Relational instances or runtime identities
+- confuses the physical Store Signal graph with the semantic Query Signal
+  graph, or persists either graph as crash authority
 - persists Query receipts, digests, labels, or consumed projection authority as
   substitutes for fresh Query admission
 - allows Query to decide MVCC truth or Store to decide semantic visibility
@@ -141,6 +155,9 @@ The runtime has failed if it:
   have a recoverable relationship
 - serializes independent branch work through one runtime-wide mutex, mutable
   backend borrow, submission queue, or copied snapshot registry
+- admits two live active writers for one branch-head generation, lets queued
+  same-branch work emit mutation effects, or releases a writer fence from an
+  indeterminate outcome before recovery resolves it
 - treats different branches as automatically disjoint when a global invariant,
   index, quota, or authority surface is shared
 - lets physical WAL ordering become unnecessary semantic serialization
@@ -155,48 +172,71 @@ The runtime has failed if it:
 Part II freezes these decisions:
 
 1. Worth Query is the ordinary public runtime surface.
-2. There is one Store-backed Query runtime, not a standalone semantic Store
-   runtime followed by an adapter into Query.
-3. The Store-backed integration crate implements Query-owned runtime contracts
-   and composes Relational, Bridge, Signal, and physical Store authorities.
-4. Query core does not depend on Store. Physical Store crates do not depend on
-   Query. Only the integration boundary knows both public contract families.
+2. There is one public Store-backed Query runtime. Its composition root owns
+   one Query runtime instance, one physical Store instance, and one narrow
+   Store-Query adapter; there is no separately public semantic Store runtime.
+3. The Store-Query adapter implements Query-owned provider and transactional-
+   join contracts. It translates semantic intent to physical work and physical
+   evidence to semantic readmission, but it is not a runtime, scheduler, cache,
+   truth registry, or lifecycle authority of its own.
+4. Query core and the Query runtime do not depend on Store. The physical Store
+   instance does not depend on Query. Only the adapter and the composition root
+   know both public contract families.
 5. Exactly one Relational authority exists per runtime identity. Bridge consumes
    a published-read handle from that authority rather than a cloned runtime.
 6. MVCC visibility, transaction legality, branch truth, and conflict decisions
    remain Relational-owned.
-7. Store owns durable semantic artifact survival and physical access. It does
-   not mint Relational, Bridge, Signal, or Query authority from persisted
-   representations.
+7. Store owns durable semantic artifact survival and physical access through
+   its own sealed physical instance. Its private physical Signal graph is
+   derived and reconstructible; it cannot mint Relational, Bridge, semantic
+   Signal, or Query authority from persisted representations.
 8. Query declarations may be persisted. Query runtime authority is reacquired
    through fresh admission after recovery.
 9. Different branches may prepare and execute concurrently when the lowered
    plan carries sufficient disjointness proof. Shared authority coordinates at
    the narrowest real boundary.
-10. Same-branch writers may prepare concurrently, but publication revalidates
-    against the current head and returns typed conflict rather than losing an
-    update.
-11. Governed public transitions consume concrete platform authority witnesses
+10. Same-branch mutation submissions may be planned or queued concurrently,
+    but exactly one mutation at a time owns active branch-write authority for
+    one branch-head generation. The authority is Relational-owned, sealed,
+    generation-bound, non-cloneable, and consumed into publication, a proven
+    no-effect release, or an indeterminate recovery fence. A later same-branch
+    submission acquires authority only after the prior mutation reaches one of
+    those terminal postures and revalidates or replans against the then-current
+    head.
+11. Different branches may own active branch-write authority concurrently.
+    Branch-local ownership does not itself prove their work independent: before
+    parallel execution, lowered plans and global indexes, uniqueness, quotas,
+    cross-branch invariants, physical ordering, and other shared authority
+    coordinate independently at their narrowest real boundary.
+12. Governed public transitions consume concrete platform authority witnesses
     and proofs. A caller-defined generic marker, persisted receipt, digest, or
     projected identity cannot authorize progression.
-12. Query-owned and runtime-local artifacts remain in their strongest owning
+13. Query-owned and runtime-local artifacts remain in their strongest owning
     types. Foundational vocabulary is used at real shared boundaries, not as a
     universal internal envelope or second runtime model.
-13. Ordinary platform and product entry code reaches the runtime through
+14. Ordinary platform and product entry code reaches the runtime through
     `worth-query-decl` and `worth-query-host`, never by importing Query core or
     the Store integration crate directly.
-14. Query replay and reconstruction surfaces remain certification-only.
+15. Query replay and reconstruction surfaces remain certification-only.
     Operational Store restart consumes the runtime's dedicated recovery and
     readmission contracts; it does not route ordinary service through
     `worth-query-replay`.
-15. This roadmap is ordered by implementation dependency, not by the repository
+16. This roadmap is ordered by implementation dependency, not by the repository
     containing each edit. A milestone may require changes in Query, Relational,
     Bridge, Signal, Foundational, or Proof when those changes are prerequisites
     for the one Store-backed runtime.
-16. Store-gated execution, durable Query artifacts, and blob-backed delivery
+17. Store-gated execution, durable Query artifacts, and blob-backed delivery
     are implemented and closed here. Query retains canonical semantic contracts
     and runtime-backed proof, but does not carry a duplicate Store implementation
     sequence.
+18. The Query runtime's semantic Signal instance and the physical Store's
+    physical Signal instance have separate owners, identities, lifecycles, node
+    vocabularies, and recovery posture. They communicate only through adapter
+    contracts and neither imports the other's nodes or completion handles.
+19. Format, backend, residency, WAL, recovery, isolation, integrity, layout,
+    and blob mechanism crates remain ignorant of Query and semantic Signal.
+    Part II consumes the physical Store facade; it does not reach through it to
+    raw mechanisms or physical Signal state.
 
 ## Cross-Cutting Artifact Law
 
@@ -222,33 +262,56 @@ proliferated artifact graph.
 
 - `RuntimeBacked`: Query runs on its existing non-Store runtime substrate. No
   Store capability or durability claim is ambient.
-- `StoreBackedDurable`: the integration boundary owns composition, lifecycle,
-  durable acknowledgment, recovery, and admitted Store-backed Query families.
+- `StoreBackedDurable`: the composition root owns the Query runtime, physical
+  Store instance, and adapter lifecycles. Semantic working state and durable
+  physical state coexist: admitted families may be hot in the Query runtime,
+  hydrating, draining, or Store-only without changing their canonical meaning.
 - `StoreAttachedEmbedded`: an external host supplies the live runtime
-  authorities while the integration owns explicitly scoped persistence and
-  recovery contracts without stealing lifecycle ownership.
+  authorities while the composition root owns explicitly scoped physical
+  Store and adapter contracts without stealing host lifecycle ownership.
 - `Unavailable`: Store-backed vocabulary may remain visible for planning, but
   support admission fails typed before execution when the required physical,
   semantic, or deployment capability is absent.
+
+These modes describe admitted composition and deployment posture, not an
+exclusive choice between memory and database. In Store-backed modes, ordinary
+semantic state may move between a bounded in-memory working set and durable
+Store representations. Large blobs and other admitted physical-native families
+may be written and streamed through Store without full semantic hydration.
 
 ## Target Composition And DX
 
 The strongly preferred initial topology is:
 
 ```text
+                         Product / API
+                              |
+                       Worth Query facade
+                              |
+                 Store-backed composition root
+                    /                    \
+          Worth Query runtime       physical Store instance
+          Relational / semantic     physical authority / physical Signal /
+          Signal / Runtime Bridge   scheduler / buffer / WAL / media
+                    \                    /
+                     narrow Store-Query adapter
+```
+
+The rough directory target is:
+
+```text
 worth-store-query-runtime        sole Store-backed Query composition entry
-  composition/                   runtime construction and operating profiles
-  query_backend/                 Query-owned provider contract implementation
-  read_authority/                concurrent basis-pinned Query reads
-  submission_authority/          concurrent mutation intake and branch routing
-  lifecycle_authority/           live/subscription resource ownership
-  inspection_authority/          observational evidence only
-  semantic_lowering/             Relational meaning to physical write plans
-  durable_commit/                durability, publication, acknowledgment join
-  physical_access/               bounded Store read/range/stream providers
-  semantic_hydration/            physical records to Relational read material
-  residency/                     drain, eviction, cleanup, and rehydration
-  recovery/                      checkpoint, tail, PITR, and readmission joins
+  composition/                   construction, operating profile, close order
+  query_runtime/                 Query provider and authority-handle binding
+  physical_store/                physical Store facade and lifecycle binding
+  adapter/
+    semantic_lowering/           prepared semantic intent to physical plans
+    durable_commit/              durability, publication, acknowledgment join
+    physical_access/             basis requirements to Store access plans
+    semantic_hydration/          verified bytes to readmission material
+    artifact_association/        semantic identities to physical families
+    recovery_readmission/        recovered evidence to fresh semantic admission
+  lifecycle/                     joined quiesce, settle, recover, close
   facade/                        narrow construction and runtime handles
 
 worth-store-semantic-artifacts  persisted semantic records and codecs only
@@ -263,8 +326,10 @@ worth-store-runtime-certification joined hostile courtroom and scale proof
 ```
 
 This is a rough target, not permission to create bags. Milestone 1 may change
-crate cuts when ownership proves different, but it may not collapse the four
-runtime authorities or introduce a second public runtime.
+crate cuts when ownership proves different, but it may not collapse the sibling
+instances, make the adapter a third runtime, or introduce a second public
+runtime. Each adapter child is a named join; `adapter/` is not permission for a
+generic translation bag.
 
 The target construction experience is conceptually:
 
@@ -282,6 +347,15 @@ facade. Platform and product entry crates receive the legal Query declaration
 and host facades; they do not construct or import the Store integration
 directly. `operator_authority` represents a concrete sealed platform authority,
 not a caller-defined marker.
+
+Construction and recovery proceed bottom-up: admit and recover the physical
+Store instance; let the adapter identify the durable semantic frontier; create
+the one Relational authority; install semantic Signal and Runtime Bridge from
+published semantic handles; then expose Query. Shutdown proceeds top-down:
+quiesce Query admission and live work; let the adapter settle every admitted
+semantic/physical join; drain and close the physical Store instance; then
+release composition authority. A failure at any step returns one typed posture
+that preserves the exact authority and residue still requiring disposition.
 
 Normal product code sees Query capabilities, not Relational, Bridge, Signal,
 page, WAL, or backend wiring. Serious plans expose basis, consistency,
@@ -331,13 +405,30 @@ surface.
   before the Store-backed implementation is admitted, proving the seam belongs
   to Query rather than being a Store-only adapter shape
 - preserve one deterministic public submission contract while allowing the
-  backend to lower admitted work into branch-scoped preparation lanes instead
-  of one globally serialized execution lane
+  backend to plan or queue multiple same-branch submissions without treating
+  queued work as active mutation authority or forcing different branches
+  through one globally serialized execution lane
+- a move-owned `PlannedBranchMutation` or equivalently precise non-authority
+  packet carrying the requested branch basis and lowered read, write, conflict,
+  invalidation, locality, and shared-authority footprints; planning and queueing
+  this packet grants no mutation or publication authority
+- a Relational-owned, sealed, move-only active branch-write authority bound to
+  runtime identity, branch identity, observed branch-head generation, and
+  writer generation; at most one such authority may be live per branch-head
+  generation at a time while different branches may hold theirs concurrently
+- a Relational branch-writer admission owner with direct branch-identity lookup
+  and generation fencing rather than one runtime-wide submission mutex or FIFO;
+  queued plans carry no mutation or publication authority
+- consuming terminal progression for active branch-write authority: successful
+  publication advances the branch generation, proven no-effect releases the
+  current generation for fresh admission, and indeterminate durability or
+  publication fences new writers until recovery resolves the branch fate
 - explicit compatibility map from Query Milestones 9.7, 9.10, 9.11, 9.12, and
   9.13 into the provider contracts this roadmap consumes
 - a Store-backed Query backend contract implemented outside Query core
-- one composition root that owns the Store-backed backend and exposes ordinary
-  Query capability namespaces
+- one composition root that owns one Query runtime instance, one physical Store
+  instance, and one narrow adapter while exposing only ordinary Query
+  capability namespaces
 - one Relational runtime identity with distinct write authority and published
   read-source handles
 - Bridge construction from the published read source, not an `Arc` clone of a
@@ -349,6 +440,10 @@ surface.
 - dependency and residue checks forbidding:
   - Query core importing Store
   - physical Store importing Query
+  - semantic Signal importing physical Signal nodes or physical Signal
+    importing semantic nodes
+  - the adapter owning a scheduler, pending-work registry, cache, or independent
+    recovery lifecycle
   - platform or product entry crates importing Query core or the Store runtime
     instead of the Query audience facades
   - ordinary crates importing `worth-query-replay`
@@ -359,7 +454,7 @@ surface.
 
 - existing canonical Query declarations and typed outcomes
 - Relational authority over truth and MVCC
-- Signal authority over derived computation
+- semantic Signal authority over derived computation
 - Bridge authority over causal crossing
 - absent/non-Store Query operation
 
@@ -369,6 +464,11 @@ surface.
   execution authority
 - concurrency-shape proof that two read handles and two submission handles can
   exist without a global mutable backend borrow
+- a deterministic two-branch proof must queue two mutations for branch A and
+  two for branch B, admit exactly one active branch writer for each branch,
+  prove A and B progress concurrently, and prove neither queued same-branch
+  mutation can prepare authoritative truth, lower mutation-bearing physical
+  work, or publish; basis-pinned planning reads remain independently admissible
 - lifecycle proof that adding a managed runtime subsystem breaks every
   incomplete construction and fork site
 - residue proof that no parallel Store runtime or local pseudo-Query API exists
@@ -377,14 +477,16 @@ surface.
 
 Milestone 1 is not closed until Query can host the future Store-backed backend
 through autonomous authority handles, branch-disjoint work is not forced
-through one execution borrow, absent mode remains clean, and a runtime-wide
-lock or duplicate Relational instance cannot satisfy the public contract.
+through one execution borrow, at most one writer is active per branch generation
+at a time through compiler- and runtime-enforced authority without a global
+writer lock, absent mode remains clean, and a runtime-wide lock or duplicate
+Relational instance cannot satisfy the public contract.
 
 ## Milestone 2: Semantic-To-Physical Integration Spine
 
 ### Goal
 
-Build the real bidirectional seam that translates runtime-owned semantic
+Build the real Store-Query adapter that translates runtime-owned semantic
 artifacts into Part I physical operations and translates stable physical reads
 back into runtime-owned semantic material without transferring authority to the
 translation layer.
@@ -393,9 +495,10 @@ translation layer.
 
 Query and Relational own the semantic contracts presented to the seam. Store
 owns physical write, read, range, stream, lease, and durability contracts. The
-integration crate owns the typed lowering and hydration relationship between
-those public families. It does not decide Query meaning, Relational legality,
-or physical storage mechanics.
+adapter owns the typed lowering, evidence correlation, and hydration
+relationship between those public families. It does not decide Query meaning,
+Relational legality, physical storage mechanics, physical work readiness, or
+physical scheduling.
 
 ### Adversarial Constraint
 
@@ -424,6 +527,9 @@ or decoder that can mint semantic authority from bytes.
   flush, restart, read, hydrate, readmit, and compare one canonical artifact
 - dependency fences proving Query core and physical Store remain mutually
   ignorant while only the integration boundary imports both public contracts
+- visibility fences proving physical Signal nodes and completion handles do not
+  cross the adapter as semantic authority, and semantic Signal nodes do not
+  enter the physical Store instance
 
 ### Must Preserve
 
@@ -456,15 +562,16 @@ the acceptance proof.
 ### Goal
 
 Prove one complete Query mutation from declared intent through Relational
-transaction authority, physical Store durability, semantic publication, Query
-completion, crash, restart, and equivalent read.
+transaction authority, adapter lowering, physical Store durability, adapter
+evidence correlation, semantic publication, Query completion, crash, restart,
+and equivalent read.
 
 ### Boundary
 
-This milestone owns the transactional join. Relational decides whether a
-mutation is legal and prepares canonical truth; Store decides whether the bytes
-survive; Query completes only after those decisions form one recoverable
-progression.
+The Store-Query adapter owns the transactional join but none of its component
+truth. Relational decides whether a mutation is legal and prepares canonical
+truth; Store decides whether the bytes survive; Query completes only after the
+adapter proves those decisions form one recoverable progression.
 
 ### Adversarial Constraint
 
@@ -479,7 +586,10 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
 
   ```text
   AdmittedQueryMutation
+    -> PlannedBranchMutation
+    -> BranchWriteAdmittedMutation
     -> PreparedRelationalCommit
+    -> LoweredPhysicalCommit
     -> DurablyPersistedCommit
     -> PublishedRelationalCommit
     -> QueryCompletion
@@ -490,14 +600,22 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
   Store proof vocabulary
 - private constructors so no phase can be skipped or synthesized from ids,
   digests, receipts, or labels
+- `PlannedBranchMutation` may be constructed and queued concurrently with other
+  same-branch plans but carries no active writer or publication authority
+- `BranchWriteAdmittedMutation` consumes the Relational-owned active
+  branch-write authority for the exact branch-head generation; a planned or
+  queued mutation cannot construct `PreparedRelationalCommit`, lower Store
+  mutation work, or enter durability
 - canonical commit envelope, version identity, branch identity, parent basis,
-  mutation identity, and idempotency identity
-- physical lowering through Part I WAL/page/checkpoint contracts
+  active writer generation, mutation identity, and idempotency identity
+- physical lowering through the physical Store facade into its C.5.1 work
+  topology and Part I WAL/page/checkpoint contracts, never raw mechanisms
 - Store durability receipt bound to exact prepared semantic content
 - Relational publication that consumes the durability proof
 - group-commit-compatible durability without changing semantic commit identity
 - typed `Indeterminate` result with recovery handle where a client cannot know
-  whether an unacknowledged durable commit published
+  whether an unacknowledged durable commit published; this posture retains the
+  branch-generation fence so a later writer cannot overtake unresolved truth
 - retry deduplication returning the original canonical result
 - the first Store-backed Query read after fresh-process recovery
 
@@ -513,6 +631,10 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
 - crash matrix at every progression edge
 - exact acknowledgment proof for every supported backend capability tier
 - duplicate-request proof across fresh-process restart
+- same-branch queue proof that only the active generation owner can reach
+  preparation or durability, and that publication, proven no-effect, and
+  indeterminate outcomes respectively advance, release, or retain the branch
+  fence
 - in-memory runtime versus Store-backed canonical-result parity
 - controlled defect proving acknowledgment-before-durability is detected
 
@@ -534,9 +656,11 @@ permanently heap-resident.
 ### Boundary
 
 Query owns the declared read and result meaning. Relational owns MVCC basis and
-visibility. The integration owns access-plan lowering, physical lease carriage,
+visibility. The adapter owns access-plan lowering, physical lease carriage,
 record hydration, and readmission into the one Relational runtime. Store owns
-stable bytes and bounded physical access.
+stable bytes and bounded physical access; its Signal graph, scheduler state,
+and frame leases remain physical implementation authority rather than Query
+runtime state.
 
 ### Adversarial Constraint
 
@@ -599,11 +723,13 @@ does not grant parallel authority.
 
 ### Adversarial Constraint
 
-Five readers on branch A, five readers on branch B, two simultaneous writers on
-branch A, and two simultaneous writers on branch B must make progress while
-some reads fault cold data from Store, foreground reads remain basis-stable,
-branch-local disjoint writes avoid global serialization, overlapping same-
-branch writes cannot lose updates, and shared global authority coordinates
+Five readers on branch A, five readers on branch B, two concurrent mutation
+submissions on branch A, and two on branch B must make progress while exactly
+one mutation per branch-head generation owns active branch-write authority at a
+time.
+Branch A and branch B must write concurrently while their queued same-branch
+successors remain non-authoritative, some reads fault cold data from Store,
+foreground reads remain basis-stable, and shared global authority coordinates
 explicitly.
 
 ### Must Ship
@@ -613,11 +739,17 @@ explicitly.
 - proof-bearing parallel admission for structurally disjoint work
 - Relational-authorized `worth-proof` disjointness evidence, with no
   caller-mintable or branch-label-only substitute
-- branch-scoped submission lanes and generation-bound branch-head publication
+- branch-scoped planning and queueing lanes whose entries cannot mint active
+  mutation or publication authority
+- generation-bound active branch-write admission with exactly one move-owned
+  live authority per branch-head generation at a time and independent ownership
+  across branches
 - concurrent preparation and validation across independent branches
-- same-branch concurrent preparation with publication-time revalidation
+- same-branch successor revalidation or replanning after the active writer
+  advances or releases the branch generation
 - typed outcomes for conflict, rebase required, retryable head drift,
-  indeterminate durability, and unavailable parallel admission
+  branch writer busy, indeterminate branch fence, and unavailable parallel
+  admission
 - explicit shared-authority footprints for global indexes, uniqueness,
   cross-branch invariants, tenant quotas, and other real coordination points
 - physical group commit and total WAL ordering that do not serialize semantic
@@ -625,12 +757,17 @@ explicitly.
 - branch-local Signal invalidation and live-resource maintenance after durable
   publication
 - exact counters for admitted parallelism, denied parallelism, revalidation,
-  branch-head contention, physical coordination, and global coordination
+  active branch-writer acquisition, branch-writer busy denial, indeterminate
+  branch fencing, branch-head contention, physical coordination, and global
+  coordination
 
 ### Must Preserve
 
 - existing readers continue observing their pinned pre-commit basis
 - new readers observe only completely published heads
+- planned or queued same-branch submissions own no active mutation authority,
+  and an indeterminate writer prevents successor admission until recovery
+  resolves its exact publication fate
 - different branches do not imply disjointness when shared authority exists
 - same-branch conflicts never become last-writer-wins folklore
 - maintenance cannot revoke a protected physical or semantic read basis
@@ -639,7 +776,11 @@ explicitly.
 
 - the named ten-reader/four-writer two-branch scenario under deterministic
   schedule permutation
-- same-branch disjoint-write convergence and overlapping-write conflict proof
+- same-branch queue permutation proving exactly one active writer, generation-
+  ordered successor admission, and revalidation or replanning against the
+  predecessor's published head
+- sabotage proof that cloning an active branch writer, admitting two writers
+  for one generation, or letting queued work lower mutation effects is rejected
 - different-branch shared-global-index coordination proof
 - no-global-lock structural audit and contention-slope test
 - crash injection during concurrent group commit and branch-head publication
@@ -651,8 +792,10 @@ explicitly.
 
 Milestone 5 is not closed until independent branches demonstrate real
 concurrent progress, stable readers never block on ordinary writers, conflicts
-localize to the authority actually shared, and the monolithic mutable backend
-cannot reappear as a hidden serialization boundary.
+localize to the authority actually shared, exactly one mutation owns active
+write authority per branch generation at a time, and neither a monolithic
+mutable backend nor a global writer queue can reappear as a hidden serialization
+boundary.
 
 ## Milestone 6: Runtime Residency, Drainage, Cleanup, And Rehydration
 
@@ -664,10 +807,12 @@ discard, ephemeral cleanup, checkpointing, or durable retention.
 ### Boundary
 
 Each runtime subsystem owns the lifecycle and semantic classification of its
-resident state. A global residency admission authority allocates memory
-envelopes, observes pressure, and coordinates typed plans, but it cannot reach
-into subsystems and delete entries. Part I buffer-pool policy remains physical;
-this milestone governs semantic and runtime residency above it.
+resident state. A global semantic-residency admission authority allocates
+memory envelopes, observes pressure, and coordinates typed plans, but it cannot
+reach into subsystems and delete entries. Part I buffer-pool policy and
+physical Signal lifecycle remain inside the physical Store instance; this
+milestone governs semantic and Query-runtime residency above it and coordinates
+cross-instance pressure only through declared adapter contracts.
 
 ### Adversarial Constraint
 
@@ -682,13 +827,16 @@ authorized durable deletion.
 ### Must Ship
 
 - a complete residency inventory distinguishing at least:
-  - transaction-local and undurable write state
+  - planned or queued branch submissions without write authority
+  - active generation-bound branch writers and undurable write state
   - Relational authoritative working state and reconstructible historical state
   - pinned published bases and generation leases
-  - Signal derived evaluation state
+  - semantic Signal derived evaluation state
   - Query plans, results, indexes, and materializations
   - live/subscription resources and durable continuation support
-  - diagnostics, support expansions, recovery state, and physical buffer pages
+  - diagnostics, support expansions, and semantic recovery state
+  - observed physical Store budget and pressure posture, never ownership of
+    physical frames or physical Signal nodes
 - explicit drain actions:
   - `DropAndRebuild`
   - `EvictAndRehydrate`
@@ -729,6 +877,9 @@ authorized durable deletion.
   authority
 - runtime drainage cannot duplicate Part I buffer-pool eviction or authorize
   durable retention deletion
+- semantic pressure cannot directly cancel physical work, evict physical
+  frames, or mutate the physical Signal graph; it requests typed Store actions
+  through the adapter
 - users configure budgets, priorities, and service objectives; they do not
   configure unsafe internal eviction order or semantic invariants
 
@@ -760,7 +911,7 @@ truth without making persisted representations self-authorizing.
 ### Boundary
 
 This milestone owns durable semantic records and their exact physical mapping.
-It does not reopen Query, Relational, Bridge, or Signal authority from strings,
+It does not reopen Query, Relational, Bridge, or semantic Signal authority from strings,
 digests, or decoded bytes.
 
 ### Adversarial Constraint
@@ -814,9 +965,11 @@ tail, then re-enter Query through fresh typed admission.
 
 ### Boundary
 
-Part I recovers and verifies physical bytes. Part II decides which verified
-semantic artifacts reconstruct Relational authority, which derived Signal and
-Query state must rebuild, and which retained declarations may seek readmission.
+The physical Store instance first recovers and verifies physical bytes without
+Query. The adapter then identifies verified semantic artifacts and the durable
+semantic frontier. Only afterward does Part II reconstruct Relational authority,
+rebuild semantic Signal and Query state, and offer retained declarations for
+fresh readmission.
 
 ### Adversarial Constraint
 
@@ -833,6 +986,8 @@ or treating an old Query handle as current authority.
 - Store-backed access that avoids loading the full database into heap state
 - rebuild plans for Signal graphs, Query indexes, live resources, and other
   derived runtime state
+- independent disposal and reconstruction of physical and semantic Signal
+  graphs, with neither graph's serialized state accepted as recovery authority
 - retained Query declaration readmission through current support, policy,
   schema, tenant, and basis gates
 - semantic PITR, complete retained-authority rollback, and replica/bootstrap
@@ -1519,8 +1674,13 @@ its components—earns the claimed operating envelope.
 ### Scenario A: Two-Branch Interactive Concurrency Under Crash
 
 - five readers remain pinned to branch A and five to branch B
-- two writers submit concurrently to each branch
-- each branch receives both disjoint and overlapping writes
+- two mutations submit concurrently to each branch
+- exactly one mutation per branch-head generation owns active branch-write
+  authority at a time, while branch A and branch B may each write concurrently
+- the queued same-branch successor cannot prepare authoritative truth or emit
+  mutation effects until the active writer publishes, proves no effect, or is
+  resolved from an indeterminate recovery fence; basis-pinned planning reads
+  remain legal
 - a global uniqueness/index obligation makes one cross-branch pair coordinate
 - live views and subscriptions exist on both branches
 - group commit, branch-head publication, Signal routing, and Query completion
@@ -1606,10 +1766,20 @@ Part II is complete only when Worth Store can honestly say:
 - Worth Query is the single ordinary runtime language in runtime-backed and
   Store-backed modes
 - no second semantic Store runtime or Store-local pseudo-Query exists
+- one Store-backed composition root owns exactly one Query runtime instance,
+  one physical Store instance, and one narrow adapter between them
+- the adapter is the only semantic/physical join and owns no independent
+  scheduler, cache, work registry, truth, or recovery lifecycle
+- physical and semantic Signal graphs remain distinct, reconstructible under
+  their respective owners, and incapable of minting one another's authority
 - one Relational authority owns MVCC truth per runtime identity
 - Query read, submission, lifecycle, and inspection authorities are autonomous
 - independent branches make concurrent progress without a global backend lock
-- same-branch overlap produces typed conflict rather than lost update
+- exactly one mutation at a time owns active branch-write authority per
+  branch-head generation; same-branch successors remain planned or queued until
+  fresh admission against the resulting head
+- indeterminate mutation fate fences successor admission until recovery, while
+  shared global authority coordinates independently of branch ownership
 - every acknowledged Query mutation survives and every indeterminate mutation
   has a recovery path
 - Store-backed reads remain basis-exact and bounded for data larger than memory

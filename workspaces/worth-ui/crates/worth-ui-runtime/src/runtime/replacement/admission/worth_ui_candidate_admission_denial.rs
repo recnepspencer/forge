@@ -1,0 +1,15 @@
+use crate::runtime::replacement::admission::WorthUiRuntimeReplacementPosture;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiCandidateAdmissionDenial {
+    SnapshotMismatch {
+        candidate_snapshot_digest: u64,
+        active_snapshot_digest: u64,
+    },
+    DeferredRuntimePosture {
+        posture: WorthUiRuntimeReplacementPosture,
+    },
+    UnsupportedRuntimePosture {
+        posture: WorthUiRuntimeReplacementPosture,
+    },
+}

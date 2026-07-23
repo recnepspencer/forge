@@ -18,6 +18,7 @@ pub struct BridgeWritebackMapperEnvelope {
     strategy_class: BridgeWritebackStrategyClass,
     strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     causality_digest: Arc<str>,
+    mutation_subject_effect_intent_match: bool,
     effect_intent: BridgeWritebackEffectIntent,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
@@ -37,8 +38,10 @@ impl BridgeWritebackMapperEnvelope {
             .validated_declaration()
             .strategy_basis()
             .expect("admitted writeback contract must preserve strategy basis");
+        let mutation_subject_effect_intent_match =
+            causality.mutation_subject_matches_effect_intent(&effect_intent);
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-writeback-mapper-envelope|contract={}|family:{:?}|family-basis={}|effect-class:{:?}|strategy-class:{:?}|strategy-basis={}|strategy={}|causality={}|effect-intent={}|effect-intent-basis={}",
+            "bridge-writeback-mapper-envelope|contract={}|family:{:?}|family-basis={}|effect-class:{:?}|strategy-class:{:?}|strategy-basis={}|strategy={}|causality={}|subject-effect-match={mutation_subject_effect_intent_match}|effect-intent={}|effect-intent-basis={}",
             contract.digest(),
             family_basis.family_kind(),
             family_basis.digest(),
@@ -62,6 +65,7 @@ impl BridgeWritebackMapperEnvelope {
             strategy_class: strategy_basis.strategy_class(),
             strategy_descriptor_basis: strategy_basis.strategy_descriptor_basis().clone(),
             causality_digest: Arc::from(causality.digest().to_owned()),
+            mutation_subject_effect_intent_match,
             effect_intent,
             canonical_basis,
             digest: Arc::from(format!(
@@ -100,6 +104,10 @@ impl BridgeWritebackMapperEnvelope {
 
     pub fn causality_digest(&self) -> &str {
         self.causality_digest.as_ref()
+    }
+
+    pub(crate) fn mutation_subject_effect_intent_match(&self) -> bool {
+        self.mutation_subject_effect_intent_match
     }
 
     pub fn effect_intent(&self) -> &BridgeWritebackEffectIntent {

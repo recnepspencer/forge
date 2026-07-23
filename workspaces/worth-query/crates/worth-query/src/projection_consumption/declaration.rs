@@ -293,7 +293,7 @@ pub fn declare_projection_consumption(
             );
         }
     }
-    let declaration_digest = compose_declaration_digest(&source, &binding, requested.requested());
+    let declaration_digest = compose_declaration_digest(&source, &binding, &requested);
     Ok(ProjectionConsumptionDeclaration {
         source,
         binding,

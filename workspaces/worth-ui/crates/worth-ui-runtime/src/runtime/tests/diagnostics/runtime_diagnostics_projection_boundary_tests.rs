@@ -25,7 +25,7 @@ fn diagnostics_projection_preserves_runtime_diagnostic_identity() {
     let projection = fixture
         .runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .project()
         .expect("typed runtime report projects");
 
@@ -61,7 +61,7 @@ fn diagnostics_projection_cannot_mutate_active_plan() {
     let projection = fixture
         .runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .with_hook(WorthUiDiagnosticsProjectionHook::surface(
             "workspace.diagnostics.panel",
         ))
@@ -93,7 +93,7 @@ fn failed_reload_visible_without_blank_active_app() {
     let projection = fixture
         .runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .project()
         .expect("failed reload projects over previous active app");
 
@@ -136,7 +136,7 @@ fn diagnostics_projection_rejects_hook_identity_rewrite() {
     let denial = fixture
         .runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .with_hook(hook)
         .project()
         .expect_err("identity rewrite hook must deny");
@@ -163,7 +163,7 @@ fn frame_cost_surface_consumes_foundational_materialized_report() {
     let projection = fixture
         .runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .with_frame_costs(&frame_report)
         .project()
         .expect("Foundational frame report projects");
@@ -171,10 +171,10 @@ fn frame_cost_surface_consumes_foundational_materialized_report() {
     let rows = projection.frame_costs().rows();
     assert!(rows
         .iter()
-        .any(|row| row.kind() == WorthUiFrameCostSurfaceKind::FoundationalCounter));
+        .any(|row| row.kind() == WorthUiFrameCostSurfaceKind::Counter));
     assert!(rows
         .iter()
-        .any(|row| row.kind() == WorthUiFrameCostSurfaceKind::FoundationalEvidence));
+        .any(|row| row.kind() == WorthUiFrameCostSurfaceKind::Evidence));
     assert_eq!(projection.counters().frame_cost_rows(), rows.len());
     assert!(rows.iter().all(|row| row.evidence_digest() != 0));
 }
@@ -196,14 +196,14 @@ fn projection_digest_changes_when_typed_frame_cost_input_changes() {
     let low_cost_projection = fixture
         .runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .with_frame_costs(&low_cost_report)
         .project()
         .expect("low-cost frame report projects");
     let higher_cost_projection = fixture
         .runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .with_frame_costs(&higher_cost_report)
         .project()
         .expect("higher-cost frame report projects");
@@ -230,7 +230,7 @@ fn diagnostics_projection_rejects_report_from_different_runtime() {
 
     let denial = runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .project()
         .expect_err("cross-runtime report cannot project as current runtime truth");
 
@@ -250,7 +250,8 @@ fn diagnostics_projection_rejects_report_from_different_runtime() {
 
 #[test]
 fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
-    let inputs = activation_staging_inputs();
+    let inputs =
+        super::activation_staging_test_support::activation_staging_inputs_with_query_change();
     let (mut runtime, pending) = inputs.into_runtime_and_pending();
     let failure = runtime.preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
     let report = runtime
@@ -270,10 +271,10 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
         .activate_admitted_allocation_catalog_with_boundary_source(
             pending,
             admitted,
-            |runtime, _, candidate_plan, planning| {
+            |runtime, _, candidate_plan, lowering_facts| {
                 candidate_inspection = Some(
                     runtime
-                        .inspect_execution_plan(candidate_plan, planning)
+                        .inspect_execution_plan(candidate_plan, lowering_facts)
                         .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("plan inspection"))?,
                 );
                 Ok((boundary, None))
@@ -285,7 +286,7 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
 
     let denial = runtime
         .diagnostics_projection()
-        .from_report(&report)
+        .for_report(&report)
         .with_plan_inspection(&candidate_inspection)
         .project()
         .expect_err("candidate plan inspection cannot describe active report");
@@ -298,4 +299,10 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
         candidate_inspection.plan_digest().raw(),
         report.active_plan_digest()
     );
+    assert_eq!(
+        candidate_inspection.handle_arena_identity(),
+        runtime.active_handle_arena_identity()
+    );
+    assert!(!runtime
+        .active_plan_shares_lowering_identity_with(candidate_inspection.lowering_identity()));
 }

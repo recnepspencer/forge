@@ -1,4 +1,4 @@
-use worth_ui::facade::WorthUiRuntime;
+use worth_ui::facade::runtime::WorthUiRuntime;
 
 fn requires_clone<T: Clone>() {}
 

@@ -10,6 +10,7 @@ mod portable;
 mod state;
 mod structs;
 mod validation;
+mod value_posture;
 
 pub use binding::{AspectBinding, AuthoritativeAspectChangeKind, TruthPartitionRole};
 pub use contracts::{
@@ -61,6 +62,7 @@ pub use validation::{
     validate_aspect_value, ContractValidatedAspectArtifact, ContractValidatedAspectValue,
     ContractValidatedAspectValueView, ContractValidationDenial, ContractValidationInput,
 };
+pub use value_posture::AspectValuePosture;
 
 use crate::facade::ResponsibilityArea;
 

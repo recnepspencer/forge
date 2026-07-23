@@ -1,5 +1,6 @@
 mod admission_fault_interposition;
 mod allocation_probe;
+mod artifact_mutation_coordination;
 mod capability_profile;
 mod capability_qualification;
 mod fault_interposition;

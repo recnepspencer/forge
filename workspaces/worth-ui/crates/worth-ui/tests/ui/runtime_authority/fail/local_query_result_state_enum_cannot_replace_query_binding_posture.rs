@@ -1,4 +1,4 @@
-use worth_ui::facade::WorthUiQueryBindingPosture;
+use worth_ui::facade::WorthUiQueryBindingUiRequirements;
 
 enum LocalQueryResultState {
     Loading,
@@ -6,7 +6,7 @@ enum LocalQueryResultState {
     Cancelled,
 }
 
-fn accepts_query_posture(_posture: WorthUiQueryBindingPosture) {}
+fn accepts_query_posture(_posture: WorthUiQueryBindingUiRequirements) {}
 
 fn main() {
     accepts_query_posture(LocalQueryResultState::Loading);

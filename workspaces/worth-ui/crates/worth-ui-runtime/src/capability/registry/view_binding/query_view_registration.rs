@@ -1,4 +1,5 @@
-use worth_ui_query_binding::WorthUiInstalledQueryView;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiInstalledLiveQueryView;
+use worth_ui_query_binding::{WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView};
 
 use super::{QueryDenialPresentation, VisibleStateBindingDeclaration};
 
@@ -13,9 +14,9 @@ pub struct WorthUiQueryViewRegistration {
 }
 
 impl WorthUiQueryViewRegistration {
-    pub fn new(view: WorthUiInstalledQueryView) -> Self {
+    pub fn new(view: impl Into<WorthUiInstalledQueryView>) -> Self {
         Self {
-            view,
+            view: view.into(),
             visible_state_bindings: Vec::new(),
             denial_presentation: QueryDenialPresentation::StructuredStatus,
         }
@@ -60,6 +61,18 @@ impl WorthUiQueryViewRegistration {
 
 impl From<WorthUiInstalledQueryView> for WorthUiQueryViewRegistration {
     fn from(view: WorthUiInstalledQueryView) -> Self {
+        Self::new(view)
+    }
+}
+
+impl From<WorthUiInstalledSnapshotQueryView> for WorthUiQueryViewRegistration {
+    fn from(view: WorthUiInstalledSnapshotQueryView) -> Self {
+        Self::new(view)
+    }
+}
+
+impl From<WorthUiInstalledLiveQueryView> for WorthUiQueryViewRegistration {
+    fn from(view: WorthUiInstalledLiveQueryView) -> Self {
         Self::new(view)
     }
 }

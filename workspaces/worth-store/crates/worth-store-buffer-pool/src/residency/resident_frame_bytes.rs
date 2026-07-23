@@ -7,10 +7,10 @@ pub struct ResidentFrameBytes {
 }
 
 impl ResidentFrameBytes {
-    pub fn from_physical_format_payload_admission(
+    pub(crate) fn validate_physical_format_payload_admission(
         request: ResidentFrameLoadRequest,
         admission: PhysicalPayloadViewAdmission<'_>,
-    ) -> Result<Self, ResidentFrameDenial> {
+    ) -> Result<(), ResidentFrameDenial> {
         let view = admission.view();
         if view.witness() != request.header() {
             return Err(ResidentFrameDenial::new(
@@ -22,9 +22,21 @@ impl ResidentFrameBytes {
                 ResidentFrameDenialKind::ResidentPayloadLengthMismatch,
             ));
         }
-        Ok(Self {
-            payload: view.as_bytes().to_vec(),
-        })
+        Ok(())
+    }
+
+    pub fn from_physical_format_payload_admission(
+        request: ResidentFrameLoadRequest,
+        admission: PhysicalPayloadViewAdmission<'_>,
+    ) -> Result<Self, ResidentFrameDenial> {
+        Self::validate_physical_format_payload_admission(request, admission)?;
+        let bytes = admission.view().as_bytes();
+        let mut payload = Vec::new();
+        payload.try_reserve_exact(bytes.len()).map_err(|_| {
+            ResidentFrameDenial::new(ResidentFrameDenialKind::ResidentByteAllocationFailed)
+        })?;
+        payload.extend_from_slice(bytes);
+        Ok(Self { payload })
     }
 
     pub const fn as_bytes(&self) -> &[u8] {

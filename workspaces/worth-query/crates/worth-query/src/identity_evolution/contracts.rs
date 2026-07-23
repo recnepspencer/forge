@@ -75,6 +75,9 @@ impl IdentityEvolutionComplexityContract {
         family: IdentityEvolutionComparisonBasisFamily,
     ) -> Self {
         let contract_name = match family {
+            IdentityEvolutionComparisonBasisFamily::InstalledOperation => {
+                "installed_operation_identity_comparison"
+            }
             IdentityEvolutionComparisonBasisFamily::BranchToBranch => {
                 "branch_to_branch_identity_comparison"
             }

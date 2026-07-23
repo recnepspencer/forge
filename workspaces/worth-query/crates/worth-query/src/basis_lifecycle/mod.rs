@@ -1,12 +1,16 @@
 mod admission;
+mod admitted_capability;
+mod canonical_basis;
 mod certification;
 mod counters;
+mod decision_trace;
 mod declarative;
 mod dx;
 mod intent;
 mod lanes;
 mod lower_runtime;
 mod migration;
+mod normalized_intent;
 mod proofs;
 mod receipts;
 mod reuse;
@@ -23,6 +27,7 @@ pub use admission::{
     evaluate_basis_replay_eligibility, evaluate_basis_subscription_activation_eligibility,
     evaluate_basis_subscription_declaration_eligibility,
 };
+pub use admitted_capability::AdmittedBasisCapability;
 pub use certification::{
     basis_lifecycle_phase_artifact_manifest_digest, basis_lifecycle_phase_manifest,
     basis_lifecycle_phase_progression_digest, basis_lifecycle_proof_shape_audit,
@@ -39,6 +44,7 @@ pub use certification::{
     BasisLifecyclePublicBoundarySurface, BasisLifecycleSlopeDigest, BasisLifecycleSlopeFamily,
 };
 pub use counters::BasisEligibilityCounters;
+pub use decision_trace::BasisEligibilityDecisionTrace;
 pub use declarative::*;
 pub use dx::{
     basis_lifecycle, basis_lifecycle_dx_certification_digest, BasisLifecycleIntentBuilder,
@@ -62,10 +68,10 @@ pub use migration::{
     BasisLifecycleMigrationAudit, BasisLifecycleMigrationAuditRow, BasisLifecycleMigrationCounters,
     BasisLifecycleMigrationPosture, BasisLifecycleMigrationSurface,
 };
+pub use normalized_intent::NormalizedBasisIntent;
 pub use proofs::{
-    AdmittedBasisCapability, AdvisoryBasisEligibility, BasisEligibility,
-    BasisEligibilityDecisionTrace, BasisIntentDenial, DeferredBasisEligibility,
-    DeniedBasisCapability, NormalizedBasisIntent,
+    AdvisoryBasisEligibility, BasisEligibility, BasisIntentDenial, DeferredBasisEligibility,
+    DeniedBasisCapability,
 };
 pub(crate) use receipts::emit_certification_basis_receipt;
 pub use receipts::{

@@ -1,5 +1,6 @@
 pub use worth_ui_runtime::facade::graph::{
     project_aspect_evidence_ref, project_aspect_evidence_refs, UiAdmittedAllocationCatalogBasisSet,
+    UiAdmittedAllocationCatalogDelta, UiAllocationCatalogDeltaAdmissionDenial,
     UiAspectEvidenceLane, UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind,
     UiGraphAspectConsumer, UiGraphAspectConsumerKind, UiGraphAspectPublisher,
     UiGraphAspectPublisherKind, UiGraphAttachmentPosture, UiGraphAuthority,

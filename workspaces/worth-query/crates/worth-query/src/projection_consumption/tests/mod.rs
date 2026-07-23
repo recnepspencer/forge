@@ -1,4 +1,8 @@
+mod bound_fact_inventory;
+mod declared_native_fact_extraction;
 mod foundation;
+mod native_refinement_contract_context;
+mod native_whole_visibility;
 mod phase_five;
 mod phase_four;
 mod phase_one_authoring;

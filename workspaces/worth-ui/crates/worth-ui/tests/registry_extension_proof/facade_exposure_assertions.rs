@@ -1,4 +1,4 @@
-use worth_ui::facade::{RegistryFamily, RegistryFamilyFacadeExposure};
+use worth_ui::facade::support::{RegistryFamily, RegistryFamilyFacadeExposure};
 
 pub(crate) fn assert_every_family_has_facade_exposure_decision() {
     for registry_family in RegistryFamily::all() {

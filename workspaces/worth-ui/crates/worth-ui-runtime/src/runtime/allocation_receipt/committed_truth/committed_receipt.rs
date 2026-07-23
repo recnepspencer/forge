@@ -16,6 +16,17 @@ pub struct UiAllocationReceipt {
 }
 
 impl UiAllocationReceipt {
+    pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
+        self.equivalence_basis
+            .operationally_matches(&other.equivalence_basis)
+            && self.geometry_evidence == other.geometry_evidence
+            && self.resize_basis() == other.resize_basis()
+            && self
+                .committed_allocation
+                .measurement_basis()
+                .operationally_matches(other.committed_allocation.measurement_basis())
+    }
+
     pub(in crate::runtime::allocation_receipt) fn from_candidate(
         candidate: &super::UiAllocationCandidate,
         reuse_verdict: super::UiAllocationReuseVerdict,

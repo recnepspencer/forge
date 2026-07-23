@@ -29,33 +29,47 @@ impl ActiveSubscriptionLaneRegistry {
         let mut counters = admission.counters.clone();
         counters.active_lane_registry_lookup_count = 1;
 
-        if self
+        if let Some(lane_index) = self
             .lane_index_by_digest
-            .contains_key(&admission.lane_digest)
+            .get(&admission.lane_digest)
+            .copied()
         {
-            let lane_index = *self
-                .lane_index_by_digest
-                .get(&admission.lane_digest)
-                .expect("lane index exists after contains check");
-            self.generation += 1;
-            counters.active_lane_join_count = 1;
-            counters.shared_lane_count = 1;
-            counters.active_lane_handle_issue_count = 1;
-            self.lanes[lane_index]
-                .as_mut()
-                .expect("live lane index must reference active lane")
-                .lifecycle_posture = ActiveSubscriptionLifecyclePosture::SharedEquivalent;
-            let handle = ActiveSubscriptionLaneHandle::new(
-                admission.lane_digest.clone(),
-                admission.future_selection.clone(),
-                admission.basis_binding_identity.clone(),
-                admission.checkpoint_identity.clone(),
-                lane_index as u64,
-                self.generation,
-            );
-            return Ok((handle, counters));
+            return Ok(self.join_equivalent_open_lane(admission, lane_index, counters));
         }
 
+        Ok(self.create_open_lane(admission, counters))
+    }
+
+    fn join_equivalent_open_lane(
+        &mut self,
+        admission: ActiveSubscriptionLaneAdmission,
+        lane_index: usize,
+        mut counters: ActiveSubscriptionCounters,
+    ) -> (ActiveSubscriptionLaneHandle, ActiveSubscriptionCounters) {
+        self.generation += 1;
+        counters.active_lane_join_count = 1;
+        counters.shared_lane_count = 1;
+        counters.active_lane_handle_issue_count = 1;
+        self.lanes[lane_index]
+            .as_mut()
+            .expect("live lane index must reference active lane")
+            .lifecycle_posture = ActiveSubscriptionLifecyclePosture::SharedEquivalent;
+        let handle = ActiveSubscriptionLaneHandle::new(
+            admission.lane_digest.clone(),
+            admission.future_selection.clone(),
+            admission.basis_binding_identity.clone(),
+            admission.checkpoint_identity.clone(),
+            lane_index as u64,
+            self.generation,
+        );
+        (handle, counters)
+    }
+
+    fn create_open_lane(
+        &mut self,
+        admission: ActiveSubscriptionLaneAdmission,
+        mut counters: ActiveSubscriptionCounters,
+    ) -> (ActiveSubscriptionLaneHandle, ActiveSubscriptionCounters) {
         self.generation += 1;
         counters.active_lane_creation_count = 1;
         counters.active_lane_handle_issue_count = 1;
@@ -88,7 +102,7 @@ impl ActiveSubscriptionLaneRegistry {
             allocation_policy: admission.allocation_policy,
             attachment_count: 0,
         }));
-        Ok((handle, counters))
+        (handle, counters)
     }
 
     pub(super) fn join_lane(
@@ -230,6 +244,36 @@ impl ActiveSubscriptionLaneRegistry {
             return Ok(true);
         }
         Ok(false)
+    }
+
+    pub(super) fn commit_prepared_attachment_close(
+        &mut self,
+        lane_digest: &ActiveSubscriptionLaneDigest,
+        lane_index: usize,
+        attachment_digest: &SubscriptionConsumerAttachmentDigest,
+    ) -> bool {
+        assert_eq!(
+            self.lane_index_by_digest.get(lane_digest).copied(),
+            Some(lane_index),
+            "prepared lifecycle close lane must remain exact under exclusive runtime ownership"
+        );
+        assert_eq!(
+            self.attachment_lane_by_digest.remove(attachment_digest),
+            Some(lane_index),
+            "prepared lifecycle close attachment must remain active until commit"
+        );
+        let lane = self.lanes[lane_index]
+            .as_mut()
+            .expect("prepared lifecycle close must retain its active lane");
+        assert!(lane.attachment_count > 0);
+        lane.attachment_count -= 1;
+        if lane.attachment_count == 0 {
+            self.lane_index_by_digest.remove(lane_digest);
+            self.lanes[lane_index] = None;
+            true
+        } else {
+            false
+        }
     }
 
     pub(super) fn validate_attachment_close(

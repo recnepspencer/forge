@@ -52,7 +52,7 @@ fn repeated_unsupported_inspection_queries_stay_typed_and_equivalent() {
 
     assert_eq!(
         first_receipt.posture(),
-        Some(worth_ui::facade::UiInspectionPosture::deferred(
+        Some(worth_ui::facade::inspection::UiInspectionPosture::deferred(
             Some(UiInspectionMilestoneExpectation::Milestone31),
             UiInspectionSupportWorld::Authoritative,
         ))

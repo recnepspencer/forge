@@ -24,9 +24,10 @@ mod test_catalog;
 
 pub use authoritative_patch_publication::{
     RelationalBridgePatchPublication, RelationalBridgePublicationDeferred,
-    RelationalBridgePublicationFailure, RelationalBridgePublicationOutcome,
-    RelationalBridgePublicationRebindRequired, RelationalBridgePublicationStale,
-    RelationalOpaqueAspectWideningAdmission, RelationalOpaqueAspectWideningAdmissionDenial,
+    RelationalBridgePublicationDenial, RelationalBridgePublicationFailure,
+    RelationalBridgePublicationOutcome, RelationalBridgePublicationRebindRequired,
+    RelationalBridgePublicationStale, RelationalOpaqueAspectWideningAdmission,
+    RelationalOpaqueAspectWideningAdmissionDenial,
 };
 pub use identities::{bridge_snapshot_identity_for_commit, bridge_snapshot_identity_for_handle};
 pub use runtime_source::{RelationalBridgeSourceConfigurationError, RuntimeBridgeRelationalSource};

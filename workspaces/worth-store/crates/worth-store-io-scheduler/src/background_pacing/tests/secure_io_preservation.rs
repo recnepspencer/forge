@@ -121,10 +121,15 @@ fn admitted_background_queue_plan(
         panic!("secure background pressure should admit before queue lowering");
     };
     let work = lower_background_queue_lease(admitted.lease());
+    let policy = crate::admit_queue_policy_receipt(
+        work,
+        background_policy_receipt(work.requested_budget(), work.requested_budget()),
+    )
+    .expect("background policy receipt should bind exact work");
     admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         world.backend(),
-        background_policy_receipt(work.requested_budget(), work.requested_budget()),
+        policy,
     ))
     .expect("background lease should lower into queue admission with secure-I/O intact")
 }

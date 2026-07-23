@@ -97,6 +97,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
     ) -> Result<WorthQueryWorkflowAdvanceStep, WorthQueryWorkflowAdvanceDenial> {
         let counters_before = self.counters;
         let stage = self.admit_stage(stage_identity, &input, workspace)?;
+        let semantic_input = input.semantic_value();
         let graph_snapshot = workspace.snapshot_identity();
         let conditional = match super::workflow_conditional_stage_evaluation::evaluate(
             &self.bound,
@@ -177,6 +178,18 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 installed_read: self.executor.installed_read.as_ref(),
                 operation_graph_reads: self.bound.definition().semantics().graph_reads.roles(),
                 graph_receipts: &graph_receipts,
+                query_authority: self
+                    .bound
+                    .definition()
+                    .semantics()
+                    .canonical_query
+                    .query()
+                    .authority(),
+                identity_evolution_basis_identity: self
+                    .bound
+                    .basis()
+                    .capability_digest()
+                    .to_owned(),
             },
         );
         self.counters.stage_executor_contacts += 1;
@@ -208,6 +221,23 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         let mut primary_read_evidence = material.primary_graph_reads;
         let mut effect_evidence = material.effects;
         let executed_effects = material.executed_effects;
+        let lineage = material.lineage;
+        if !super::workflow_lineage_validation::valid_stage_lineage(
+            &lineage,
+            self.bound.definition().semantics().lineage,
+            &conditional,
+            self.bound.definition().canonical_identity(),
+            &self.identity,
+            stage_identity,
+            &effect_evidence,
+        ) {
+            return Err(WorthQueryWorkflowAdvanceDenial::with_executed_effects(
+                WorthQueryWorkflowAdvanceDenialKind::LineageEvidence,
+                self.counters,
+                executed_effects,
+            )
+            .with_graph_receipts(graph_receipts));
+        }
         primary_read_evidence.sort_by(|left, right| left.role().cmp(right.role()));
         let mut expected_primary_reads = self
             .bound
@@ -346,6 +376,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             &stage,
             predecessor_receipt_identities,
             WorthQueryAdmittedWorkflowStageEvidence {
+                input: semantic_input,
                 output,
                 result_state,
                 warnings,
@@ -356,6 +387,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 counters: stage_counters,
                 execution_snapshot: workspace.snapshot_identity(),
                 conditional,
+                lineage,
             },
         );
         Ok(WorthQueryWorkflowAdvanceStep::Advanced)

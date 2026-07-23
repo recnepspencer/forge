@@ -186,7 +186,7 @@ impl WorthQueryPortableConditionalNodeDeclaration {
     }
 }
 
-fn role_name(role: WorthQueryConditionalNodeRole) -> &'static str {
+pub(super) fn role_name(role: WorthQueryConditionalNodeRole) -> &'static str {
     match role {
         WorthQueryConditionalNodeRole::Computed => "computed",
         WorthQueryConditionalNodeRole::WorkflowStage => "workflow-stage",
@@ -194,7 +194,7 @@ fn role_name(role: WorthQueryConditionalNodeRole) -> &'static str {
     }
 }
 
-fn maintenance_name(posture: WorthQueryMaintenancePosture) -> &'static str {
+pub(super) fn maintenance_name(posture: WorthQueryMaintenancePosture) -> &'static str {
     match posture {
         WorthQueryMaintenancePosture::EagerOnEligibleInvalidation => {
             "eager-on-eligible-invalidation"
@@ -205,7 +205,7 @@ fn maintenance_name(posture: WorthQueryMaintenancePosture) -> &'static str {
     }
 }
 
-fn artifact_name(posture: WorthQueryArtifactPosture) -> &'static str {
+pub(super) fn artifact_name(posture: WorthQueryArtifactPosture) -> &'static str {
     match posture {
         WorthQueryArtifactPosture::Ephemeral => "ephemeral",
         WorthQueryArtifactPosture::ReusableWhenEquivalent => "reusable-when-equivalent",
@@ -213,7 +213,7 @@ fn artifact_name(posture: WorthQueryArtifactPosture) -> &'static str {
     }
 }
 
-fn output_relationship_name(relationship: WorthQueryOutputRelationship) -> &'static str {
+pub(super) fn output_relationship_name(relationship: WorthQueryOutputRelationship) -> &'static str {
     match relationship {
         WorthQueryOutputRelationship::IntermediateOnly => "intermediate-only",
         WorthQueryOutputRelationship::ContributesToOperationOutput => {

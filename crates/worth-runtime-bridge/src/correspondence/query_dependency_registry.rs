@@ -15,6 +15,23 @@ pub(crate) struct AdmittedQueryDependencyRegistry {
     signal_graph_instance_id: Option<u64>,
 }
 
+pub(crate) struct AdmittedQueryDependencyExtension {
+    registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
+    new_registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
+    counters: QueryDependencyExtensionCounters,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct QueryDependencyExtensionCounters {
+    pub(crate) existing_key_lookups: usize,
+    pub(crate) batch_key_lookups: usize,
+}
+
+pub(crate) struct QueryDependencyExtensionDenial {
+    pub(crate) error: BridgeBuildError,
+    pub(crate) counters: QueryDependencyExtensionCounters,
+}
+
 impl AdmittedQueryDependencyRegistry {
     pub(crate) fn freeze(
         mut registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
@@ -89,13 +106,118 @@ impl AdmittedQueryDependencyRegistry {
         self.authoritative.len()
     }
 
-    pub(crate) fn authoritative_registrations(
-        &self,
-    ) -> &[BridgeSemanticCorrespondenceRegistration] {
-        &self.authoritative
-    }
-
     pub(crate) fn signal_graph_instance_id(&self) -> Option<u64> {
         self.signal_graph_instance_id
+    }
+
+    pub(crate) fn admit_extension(
+        &self,
+        registrations: &[BridgeSemanticCorrespondenceRegistration],
+    ) -> Result<AdmittedQueryDependencyExtension, QueryDependencyExtensionDenial> {
+        let mut counters = QueryDependencyExtensionCounters::default();
+        let mut batch_by_key = BTreeMap::new();
+        let mut batch_by_authority = BTreeMap::new();
+        let mut new_registrations = Vec::new();
+        for registration in registrations {
+            require_compatible_signal_graph(self, registration, counters)?;
+            let key = registration.dependency.canonical_registration_key();
+            let authority_key = registration.dependency.authority_registration_key();
+            counters.existing_key_lookups += 2;
+            require_compatible_registration(
+                self.by_authority.get(&authority_key),
+                registration,
+                counters,
+            )?;
+            if let Some(existing) = self.index.get(&key) {
+                require_compatible_registration(Some(existing), registration, counters)?;
+                continue;
+            }
+            counters.batch_key_lookups += 2;
+            require_compatible_registration(
+                batch_by_authority.get(&authority_key),
+                registration,
+                counters,
+            )?;
+            require_compatible_registration(batch_by_key.get(&key), registration, counters)?;
+            batch_by_authority.insert(authority_key, registration.clone());
+            batch_by_key.insert(key, registration.clone());
+            new_registrations.push(registration.clone());
+        }
+        Ok(AdmittedQueryDependencyExtension {
+            registrations: registrations.to_vec(),
+            new_registrations,
+            counters,
+        })
+    }
+}
+
+impl AdmittedQueryDependencyExtension {
+    pub(crate) fn registrations(&self) -> &[BridgeSemanticCorrespondenceRegistration] {
+        &self.registrations
+    }
+
+    pub(crate) const fn counters(&self) -> QueryDependencyExtensionCounters {
+        self.counters
+    }
+
+    pub(crate) fn commit(self, registry: &mut AdmittedQueryDependencyRegistry) -> usize {
+        let committed = self.new_registrations.len();
+        for registration in self.new_registrations {
+            let key = registration.dependency.canonical_registration_key();
+            let authority_key = registration.dependency.authority_registration_key();
+            registry.index.insert(key, registration.clone());
+            registry
+                .by_authority
+                .insert(authority_key, registration.clone());
+            registry.authoritative.push(registration);
+        }
+        if let Some(first) = self.registrations.first() {
+            registry.signal_graph_instance_id = Some(first.signal_graph_instance_id());
+        }
+        committed
+    }
+}
+
+fn require_compatible_signal_graph(
+    registry: &AdmittedQueryDependencyRegistry,
+    registration: &BridgeSemanticCorrespondenceRegistration,
+    counters: QueryDependencyExtensionCounters,
+) -> Result<(), QueryDependencyExtensionDenial> {
+    if registry
+        .signal_graph_instance_id
+        .is_some_and(|installed| installed != registration.signal_graph_instance_id())
+    {
+        return Err(extension_denial(
+            BridgeBuildErrorKind::MixedSemanticCorrespondenceSignalGraphs,
+            "One Bridge runtime cannot own semantic correspondences for multiple Signal graphs. Install an explicit bridge runtime per executable graph.",
+            counters,
+        ));
+    }
+    Ok(())
+}
+
+fn require_compatible_registration(
+    existing: Option<&BridgeSemanticCorrespondenceRegistration>,
+    candidate: &BridgeSemanticCorrespondenceRegistration,
+    counters: QueryDependencyExtensionCounters,
+) -> Result<(), QueryDependencyExtensionDenial> {
+    if existing.is_some_and(|existing| existing != candidate) {
+        return Err(extension_denial(
+            BridgeBuildErrorKind::AmbiguousQueryDependencyRegistration,
+            "An installed Query dependency registration conflicts with the admitted extension.",
+            counters,
+        ));
+    }
+    Ok(())
+}
+
+fn extension_denial(
+    kind: BridgeBuildErrorKind,
+    detail: &str,
+    counters: QueryDependencyExtensionCounters,
+) -> QueryDependencyExtensionDenial {
+    QueryDependencyExtensionDenial {
+        error: BridgeBuildError::new(kind, detail),
+        counters,
     }
 }

@@ -6,6 +6,17 @@ pub enum WorthQueryGraphProviderCallKind {
     CommitAdmission,
 }
 
+impl WorthQueryGraphProviderCallKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Observe => "observe",
+            Self::Project => "project",
+            Self::TouchEffect => "touch-effect",
+            Self::CommitAdmission => "commit-admission",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphProviderCall {
     call_identity: String,
@@ -94,7 +105,7 @@ impl WorthQueryGraphProviderCall {
                 format!("role:{graph_role}"),
                 format!("query:{canonical_query_digest}"),
                 format!("basis:{basis_identity}"),
-                format!("kind:{kind:?}"),
+                format!("kind:{}", kind.as_str()),
                 format!("scope:{scope_identity}"),
             ]),
             kind,

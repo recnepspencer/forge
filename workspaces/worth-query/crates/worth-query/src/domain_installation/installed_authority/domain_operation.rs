@@ -16,6 +16,7 @@ pub struct WorthQueryInstalledDomainOperation<D, O, F> {
         Arc<worth_query_installation::facade::WorthQueryInstalledDomainOperationAuthority>,
     workflow_graph: Option<Arc<super::super::WorthQueryInstalledWorkflowGraph>>,
     graph_bindings: Vec<WorthQueryInstalledOperationGraphBinding>,
+    lookup_counters: WorthQueryInstalledDomainOperationLookupCounters,
     marker: PhantomData<InstalledOperationMarker<D, O, F>>,
 }
 
@@ -27,12 +28,14 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
         >,
         workflow_graph: Option<Arc<super::super::WorthQueryInstalledWorkflowGraph>>,
         graph_bindings: Vec<WorthQueryInstalledOperationGraphBinding>,
+        lookup_counters: WorthQueryInstalledDomainOperationLookupCounters,
     ) -> Self {
         Self {
             domain_authority,
             operation_authority,
             workflow_graph,
             graph_bindings,
+            lookup_counters,
             marker: PhantomData,
         }
     }
@@ -53,6 +56,10 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
 
     pub fn installation_generation(&self) -> WorthQueryDomainInstallationGeneration {
         self.domain_authority.installation_generation()
+    }
+
+    pub const fn lookup_counters(&self) -> WorthQueryInstalledDomainOperationLookupCounters {
+        self.lookup_counters
     }
 
     pub(crate) fn semantic_correspondence_candidate<G: 'static>(
@@ -149,6 +156,8 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
 pub struct WorthQueryInstalledDomainOperationLookupCounters {
     pub authority_checks: usize,
     pub indexed_operation_lookups: usize,
+    pub graph_binding_lookups: usize,
+    pub graph_bindings_retained: usize,
     pub package_content_scans: usize,
     pub planning_steps: usize,
     pub lower_runtime_contacts: usize,

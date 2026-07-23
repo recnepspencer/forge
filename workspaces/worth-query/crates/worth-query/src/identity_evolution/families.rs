@@ -22,6 +22,8 @@ pub enum LineageTraversalFamily {
     DirectReplacement,
     DirectSplitSuccessors,
     DirectMergeSuccessor,
+    GeneratedIdentity,
+    RetiredIdentity,
     BranchLocalDirectEvolution,
 }
 
@@ -33,6 +35,8 @@ impl LineageTraversalFamily {
             Self::DirectReplacement => "direct_replacement",
             Self::DirectSplitSuccessors => "direct_split_successors",
             Self::DirectMergeSuccessor => "direct_merge_successor",
+            Self::GeneratedIdentity => "generated_identity",
+            Self::RetiredIdentity => "retired_identity",
             Self::BranchLocalDirectEvolution => "branch_local_direct_evolution",
         }
     }
@@ -49,6 +53,8 @@ pub enum IdentityEvolutionOutcomeFamily {
     AdvisoryIdentityCandidateSet,
     Ambiguity,
     IdentityBreak,
+    GeneratedIdentity,
+    RetiredIdentity,
     Denied,
 }
 
@@ -60,6 +66,8 @@ impl IdentityEvolutionOutcomeFamily {
             Self::AdvisoryIdentityCandidateSet => "advisory_identity_candidate_set",
             Self::Ambiguity => "ambiguity",
             Self::IdentityBreak => "identity_break",
+            Self::GeneratedIdentity => "generated_identity",
+            Self::RetiredIdentity => "retired_identity",
             Self::Denied => "denied",
         }
     }

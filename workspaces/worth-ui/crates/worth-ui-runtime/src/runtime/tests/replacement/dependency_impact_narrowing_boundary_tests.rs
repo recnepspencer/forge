@@ -2,9 +2,9 @@ use std::collections::BTreeSet;
 
 use crate::runtime::tests::{
     dependency_impact_narrowing_test_support::{
-        candidate_with_forged_query_support, candidate_with_forged_query_support_hook_count,
-        lower_rust_authored_artifact, query_bound_app, query_bound_artifact,
-        query_bound_surface_app, surface_and_query_binding_module,
+        candidate_with_forged_query_support_hook_count, lower_rust_authored_artifact,
+        query_bound_app, query_bound_artifact, query_bound_surface_app,
+        surface_and_query_binding_module,
     },
     replacement_impact_test_support::{
         admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime, surface_module,
@@ -153,43 +153,6 @@ fn query_bound_change_cannot_be_narrowed_by_ui_subtree_only() {
             assert_eq!(counters.plan_lowering_attempts(), 0);
         }
         denial => panic!("expected Query dependency posture denial, got {denial:?}"),
-    }
-}
-
-#[test]
-fn query_receipt_runtime_hook_count_must_match_dependency_metadata() {
-    let app = query_bound_app();
-    let runtime = launch_runtime(
-        &app,
-        query_bound_artifact(&app, "workspace.view_binding.selection"),
-    );
-    let candidate = candidate_with_forged_query_support(
-        &runtime,
-        query_bound_artifact(&app, "workspace.view_binding.detail"),
-    );
-    let comparison = runtime
-        .compare_admitted_replacement(&candidate)
-        .expect("candidate compares before hostile narrowing");
-    let classification = runtime
-        .classify_replacement_impact(&comparison, &candidate)
-        .expect("candidate classifies before hostile narrowing");
-
-    let denial = runtime
-        .narrow_replacement_impact(&classification, &candidate)
-        .expect_err("forged Query receipt count denies against metadata hook count");
-
-    match denial {
-        WorthUiRuntimeImpactNarrowingDenial::QueryDependencyMetadataReceiptMismatch {
-            receipt_runtime_hook_count,
-            metadata_runtime_hook_count,
-            counters,
-        } => {
-            assert_eq!(receipt_runtime_hook_count, 1);
-            assert_eq!(metadata_runtime_hook_count, 4);
-            assert_eq!(counters.full_artifact_scans(), 0);
-            assert_eq!(counters.plan_lowering_attempts(), 0);
-        }
-        denial => panic!("expected Query dependency metadata denial, got {denial:?}"),
     }
 }
 

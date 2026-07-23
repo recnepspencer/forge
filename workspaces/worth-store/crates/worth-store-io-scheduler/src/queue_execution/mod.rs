@@ -7,7 +7,10 @@ mod policy;
 #[cfg(test)]
 mod test_execution;
 
-pub use admission::{admit_queue_execution_plan, QueueExecutionAdmissionRequest};
+pub use admission::{
+    admit_queue_execution_plan, admit_queue_policy_receipt, QueueExecutionAdmissionRequest,
+    QueuePolicyAdmissionReceipt,
+};
 pub use admission::{
     group_ready_queue_pair, QueueExecutionAdmissionDenial, QueueGroupedReadyPlans,
     QueueGroupingDenial, QueueGroupingOutcome, QueueGroupingRejected,
@@ -24,9 +27,10 @@ pub use observation::{
     QueueExecutionCounterSnapshot, QueueExecutionPlanBinding, QueueExecutionReplayIdentity,
 };
 pub use policy::{
-    lower_background_queue_lease, lower_buffer_pool_queue_declaration, lower_wal_queue_declaration,
-    QueueBackpressureCause, QueueDurabilityClass, QueueGroupingBasis, QueueReadAheadBasis,
-    QueueRecoveryOrdering, QueueWorkClass, QueueWorkDeclaration, QueueWriteBackBasis,
+    lower_background_queue_lease, lower_buffer_pool_queue_declaration,
+    lower_physical_foreground_work, lower_wal_queue_declaration, QueueBackpressureCause,
+    QueueDurabilityClass, QueueGroupingBasis, QueueLocalityIdentity, QueueReadAheadBasis,
+    QueueLocalityRelation, QueueRecoveryOrdering, QueueWorkClass, QueueWorkDeclaration, QueueWriteBackBasis,
     QueueWritebackPolicy,
 };
 #[cfg(test)]

@@ -11,7 +11,7 @@ use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::prepared_application_authority::{
     WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationAuthorityInput,
 };
-use crate::facade::registry::CapabilitySnapshot;
+use crate::facade::registry::snapshot::CapabilitySnapshot;
 use crate::graph::{admit_graph_handoffs, UiGraphWorldProfile};
 use std::rc::Rc;
 

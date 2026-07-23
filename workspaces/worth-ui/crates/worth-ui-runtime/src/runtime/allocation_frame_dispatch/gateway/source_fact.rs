@@ -19,6 +19,7 @@ pub enum UiAllocationFrameSourceFactPosture {
         settlement: UiAllocationFrameQuerySettlementPosture,
         warnings: UiAllocationFrameQueryWarningPosture,
     },
+    QuerySettledFact,
     Interaction,
     DurableResize,
 }
@@ -36,9 +37,13 @@ pub enum UiAllocationFrameSourceFactPosture {
 pub enum UiAllocationFrameSourceFact {
     HostMeasurement(crate::host::UiAdmittedHostMeasurement),
     QueryProjection {
-        source: Box<worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement>,
+        source: Box<worth_ui_query_binding::compatibility::managed_live::WorthUiQueryMeasurementFactSettlement>,
         posture: UiAllocationFrameQuerySettlementPosture,
         warnings: UiAllocationFrameQueryWarningPosture,
+    },
+    QuerySettledFact {
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: Box<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     },
     Interaction(crate::runtime::WorthUiAdmittedTransientInteraction),
     DurableResize(crate::runtime::WorthUiAdmittedDurableResizeSourceFact),
@@ -56,6 +61,7 @@ impl UiAllocationFrameSourceFact {
                 settlement: *posture,
                 warnings: *warnings,
             },
+            Self::QuerySettledFact { .. } => UiAllocationFrameSourceFactPosture::QuerySettledFact,
             Self::Interaction(_) => UiAllocationFrameSourceFactPosture::Interaction,
             Self::DurableResize(_) => UiAllocationFrameSourceFactPosture::DurableResize,
         }
@@ -75,6 +81,13 @@ impl Clone for UiAllocationFrameSourceFact {
                 source: source.clone(),
                 posture: *posture,
                 warnings: *warnings,
+            },
+            Self::QuerySettledFact {
+                view_binding_id,
+                fact,
+            } => Self::QuerySettledFact {
+                view_binding_id: view_binding_id.clone(),
+                fact: fact.clone(),
             },
             Self::Interaction(source) => Self::Interaction(*source),
             Self::DurableResize(source) => Self::DurableResize(source.clone()),

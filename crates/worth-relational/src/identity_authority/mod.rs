@@ -5,7 +5,7 @@ mod phase_one_compile_fail_targets;
 mod phase_one_family_map;
 mod phase_one_root_break_targets;
 
-pub use authority::{relational_source_truth_authority, RelationalSourceTruthAuthority};
+pub(crate) use authority::relational_source_truth_authority;
 pub use categories::{
     RelationalSourceTruthAuthorityIdentity, RelationalSourceTruthBoundaryBridgedIdentity,
     RelationalSourceTruthDigestIdentityEvidence, RelationalSourceTruthExternalIdentityToken,

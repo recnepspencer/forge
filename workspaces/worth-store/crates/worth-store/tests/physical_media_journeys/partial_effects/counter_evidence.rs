@@ -227,7 +227,6 @@ pub(super) fn assert_counter_conservation(report: &ChildReport) {
 
 pub(super) fn inspection_counters(cause: &MediaAdmissionInspectionCause) -> MediaCounterSnapshot {
     match cause {
-        MediaAdmissionInspectionCause::PostEffectDenial(denial) => *denial.counters(),
         MediaAdmissionInspectionCause::BackendFailure(failure) => *failure.counters(),
     }
 }

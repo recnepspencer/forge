@@ -38,6 +38,58 @@ fn memory_workspace_insert_aspects_tracks_changed_paths() {
 }
 
 #[test]
+fn runtime_receipt_identities_reject_equal_raw_projections_as_current_authority() {
+    let mut workspace =
+        WorthQueryMemoryWorkspace::collection("Task", [aspect("identity.id", "identity.id")])
+            .expect("memory workspace should build");
+    let receipt = workspace
+        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new(
+            touch("identity.id"),
+            text("task-1"),
+        )
+        .expect("identity aspect")])
+        .expect("insert should succeed");
+
+    let copied_commit = WorthQueryCommitIdentity::from_relational_commit_id(
+        receipt
+            .commit_identity
+            .relational_commit_id()
+            .expect("runtime receipt commit retains relational projection"),
+    );
+    let copied_snapshot = WorthQuerySnapshotIdentity::from_relational_snapshot(
+        receipt
+            .snapshot_identity
+            .relational_parts()
+            .expect("runtime receipt snapshot retains relational projection"),
+    );
+
+    assert!(receipt
+        .commit_identity
+        .is_same_current_identity_as(&receipt.commit_identity.clone()));
+    assert!(receipt
+        .snapshot_identity
+        .is_same_current_identity_as(&receipt.snapshot_identity.clone()));
+    assert!(!receipt
+        .commit_identity
+        .is_same_current_identity_as(&copied_commit));
+    assert!(!receipt
+        .snapshot_identity
+        .is_same_current_identity_as(&copied_snapshot));
+}
+
+#[test]
+fn empty_runtime_snapshot_is_current_but_public_empty_projection_is_not() {
+    let workspace =
+        WorthQueryMemoryWorkspace::collection("Task", [aspect("identity.id", "identity.id")])
+            .expect("memory workspace should build");
+    let current = workspace.snapshot_identity();
+    let copied_projection = WorthQuerySnapshotIdentity::empty_relational_state();
+
+    assert!(current.is_same_current_identity_as(&current.clone()));
+    assert!(!current.is_same_current_identity_as(&copied_projection));
+}
+
+#[test]
 fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
     let mut workspace = WorthQueryMemoryWorkspace::collection(
         "Task",

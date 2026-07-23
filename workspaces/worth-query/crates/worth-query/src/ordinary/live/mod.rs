@@ -4,6 +4,7 @@ mod delivery;
 mod disposal;
 mod execution;
 mod handle;
+mod installed_read;
 mod observation;
 mod outcome;
 mod request;
@@ -28,11 +29,13 @@ pub use delivery::{
     WorthQueryManagedLiveDelivery, WorthQueryManagedLiveDeliveryBatch,
     WorthQueryManagedLiveDeliveryCauseKind, WorthQueryManagedLiveMaintenanceWork,
 };
+pub(crate) use disposal::WorthQueryManagedLiveCloseCause;
 pub use disposal::{
     WorthQueryManagedLiveCloseOutcome, WorthQueryManagedLiveCloseReceipt,
     WorthQueryManagedLiveCloseStop, WorthQueryManagedLiveDisposalWork,
 };
 pub use handle::WorthQueryManagedLiveHandle;
+pub(crate) use installed_read::open_installed_read_live;
 pub use outcome::{
     WorthQueryLiveOpenCompletion, WorthQueryLiveOpenOutcome, WorthQueryLiveOpenStop,
 };

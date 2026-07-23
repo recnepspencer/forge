@@ -21,6 +21,7 @@ use crate::transactions::data::RecordRef;
 
 use super::patch_envelopes::{
     publication_patch_to_bridge_envelope, publication_patch_to_bridge_envelope_with_widening,
+    RelationalBridgePatchPublicationRequest,
 };
 
 #[test]
@@ -92,6 +93,10 @@ fn field_precision_and_structural_change_survive_one_bridge_envelope() {
             source_record_patches_filtered_out: 0,
             record_patches_inspected: 1,
             authoritative_operations_inspected: 1,
+            expected_operations_materialized: 1,
+            semantic_changes_inspected: 1,
+            semantic_changes_matched: 1,
+            semantic_changes_emission_classified: 1,
             field_targets_emitted: 1,
             whole_aspect_targets_emitted: 0,
             endpoint_targets_emitted: 0,
@@ -304,16 +309,25 @@ fn opaque_change_requires_explicit_precision_admission() {
         denial.kind(),
         BridgeRouteErrorKind::UnsupportedAuthoritativePatchPrecision
     );
+    assert_eq!(denial.counters().record_patches_inspected, 1);
+    assert_eq!(denial.counters().authoritative_operations_inspected, 1);
+    assert_eq!(denial.counters().semantic_changes_inspected, 1);
+    assert_eq!(denial.counters().field_targets_emitted, 0);
+    assert_eq!(denial.counters().whole_aspect_targets_emitted, 0);
 
+    let branch = BranchId("main".to_string());
     let TransitionOutcome::Success(envelope) = publication_patch_to_bridge_envelope_with_widening(
-        CommitId(9),
-        &BranchId("main".to_string()),
-        snapshot(9),
-        &patch,
-        Some(BridgeAspectChangeWideningCause::OpaquePayloadToWholeAspect),
-        worth_runtime_bridge::facade::BridgeProducerMetadata::bridge_harness_fixture(),
-        1,
-        0,
+        RelationalBridgePatchPublicationRequest {
+            commit_id: CommitId(9),
+            branch_id: &branch,
+            snapshot_identity: snapshot(9),
+            patch: &patch,
+            admitted_widening: Some(BridgeAspectChangeWideningCause::OpaquePayloadToWholeAspect),
+            producer_metadata:
+                worth_runtime_bridge::facade::BridgeProducerMetadata::bridge_harness_fixture(),
+            source_record_patches_examined: 1,
+            source_record_patches_filtered_out: 0,
+        },
     ) else {
         panic!("the exact owner-admitted opaque widening should publish");
     };

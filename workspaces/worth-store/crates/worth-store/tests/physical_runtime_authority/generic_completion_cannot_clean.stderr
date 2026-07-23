@@ -1,0 +1,31 @@
+error[E0308]: mismatched types
+ --> tests/physical_runtime_authority/generic_completion_cannot_clean.rs:8:33
+  |
+8 |     let _ = claim.publish_clean(&completion);
+  |                   ------------- ^^^^^^^^^^^ expected `&CompletedArtifactRangeWrite`, found `&BackendQueueExecutionCompletion`
+  |                   |
+  |                   arguments to this method are incorrect
+  |
+  = note: expected reference `&CompletedArtifactRangeWrite`
+             found reference `&BackendQueueExecutionCompletion`
+note: method defined here
+ --> $WORKSPACE/crates/worth-store-buffer-pool/src/physical_residency/lease.rs
+  |
+  |     pub fn publish_clean(
+  |            ^^^^^^^^^^^^^
+
+error[E0061]: this method takes 1 argument but 0 arguments were supplied
+  --> tests/physical_runtime_authority/generic_completion_cannot_clean.rs:12:19
+   |
+12 |     let _ = dirty.publish_clean();
+   |                   ^^^^^^^^^^^^^-- argument #1 of type `&CompletedArtifactRangeWrite` is missing
+   |
+note: method defined here
+  --> $WORKSPACE/crates/worth-store-buffer-pool/src/physical_residency/lease.rs
+   |
+   |     pub fn publish_clean(
+   |            ^^^^^^^^^^^^^
+help: provide the argument
+   |
+12 |     let _ = dirty.publish_clean(/* &CompletedArtifactRangeWrite */);
+   |                                 ++++++++++++++++++++++++++++++++++

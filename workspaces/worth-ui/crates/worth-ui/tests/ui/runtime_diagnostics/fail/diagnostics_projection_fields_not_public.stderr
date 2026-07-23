@@ -1,4 +1,4 @@
-error[E0451]: fields `active_artifact_digest`, `active_plan_digest`, `projection_digest`, `rows`, `reload_status`, `plan_inspection`, `frame_costs`, `query_status` and `counters` of struct `WorthUiDiagnosticsProjection` are private
+error[E0451]: fields `active_artifact_digest`, `active_plan_digest`, `projection_digest`, `rows`, `reload_status`, `plan_inspection`, `frame_costs`, `binding_observations` and `counters` of struct `WorthUiDiagnosticsProjection` are private
   --> tests/ui/runtime_diagnostics/fail/diagnostics_projection_fields_not_public.rs:9:9
    |
  8 |     let _projection = WorthUiDiagnosticsProjection {
@@ -20,8 +20,8 @@ error[E0451]: fields `active_artifact_digest`, `active_plan_digest`, `projection
 23 |         frame_costs: WorthUiFrameCostSurface {
    |         ^^^^^^^^^^^ private field
 ...
-27 |         query_status: WorthUiQueryStatusSurface { rows: Vec::new() },
-   |         ^^^^^^^^^^^^ private field
+27 |         binding_observations: WorthUiBindingObservationSurface { rows: Vec::new() },
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
 28 |         counters: WorthUiDiagnosticsProjectionCounters::default(),
    |         ^^^^^^^^ private field
 
@@ -59,8 +59,8 @@ error[E0451]: fields `source_digest` and `rows` of struct `WorthUiFrameCostSurfa
 25 |             rows: Vec::new(),
    |             ^^^^ private field
 
-error[E0451]: field `rows` of struct `WorthUiQueryStatusSurface` is private
+error[E0451]: field `rows` of struct `WorthUiBindingObservationSurface` is private
   --> tests/ui/runtime_diagnostics/fail/diagnostics_projection_fields_not_public.rs:27:51
    |
-27 |         query_status: WorthUiQueryStatusSurface { rows: Vec::new() },
-   |                                                   ^^^^ private field
+27 |         binding_observations: WorthUiBindingObservationSurface { rows: Vec::new() },
+   |                                                                     ^^^^ private field

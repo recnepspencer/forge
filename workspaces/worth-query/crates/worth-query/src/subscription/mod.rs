@@ -118,12 +118,14 @@ pub use active_posture::{
 pub use active_runtime::emit_query_mixed_cause_delivery_batch;
 #[cfg(test)]
 pub use active_runtime::emit_query_time_only_delivery_batch;
-pub(crate) use active_runtime::validate_subscription_lifecycle_close;
 pub use active_runtime::{
     advance_subscription_acknowledgement, apply_active_subscription_continuation,
     attach_subscription_consumer, build_active_delivery_work_packet, close_subscription_lifecycle,
     emit_query_delivery_batch, join_active_subscription_lane, open_active_subscription_lane,
     open_query_delivery_window, ActiveSubscriptionRuntime,
+};
+pub(crate) use active_runtime::{
+    commit_prepared_subscription_lifecycle_close, prepare_subscription_lifecycle_close,
 };
 pub use admission::{admit_query_subscription, QuerySubscriptionAdmissionArtifact};
 pub use admission_budget::QuerySubscriptionAdmissionBudget;

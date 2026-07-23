@@ -32,6 +32,11 @@ pub struct WorthQueryIntentExecution {
 }
 
 impl WorthQueryIntentExecution {
+    pub(in crate::runtime) fn admit_runtime_authority(mut self) -> Self {
+        self.mutation_receipt = self.mutation_receipt.admit_runtime_write_authority();
+        self
+    }
+
     pub fn admitted(
         strategy_identity: impl Into<String>,
         strategy_version: impl Into<String>,

@@ -51,6 +51,10 @@ impl AsyncCapableNode {
         AsyncNodeRequestIntent::new(self.node)
     }
 
+    pub fn request_intent_requiring_clean_dependencies(&self) -> AsyncNodeRequestIntent {
+        AsyncNodeRequestIntent::new(self.node).require_clean_dependencies()
+    }
+
     pub fn request_intent_with_transaction_deadline(
         &self,
         deadline: TemporalDuration,
@@ -67,6 +71,14 @@ impl AsyncCapableNode {
         expected_active: ResourceRequestHandle,
     ) -> AsyncNodeRevalidationIntent {
         AsyncNodeRevalidationIntent::with_expected_active(self.node, expected_active)
+    }
+
+    pub fn revalidation_intent_requiring_clean_dependencies(
+        &self,
+        expected_active: ResourceRequestHandle,
+    ) -> AsyncNodeRevalidationIntent {
+        AsyncNodeRevalidationIntent::with_expected_active(self.node, expected_active)
+            .require_clean_dependencies()
     }
 
     pub fn revalidation_intent_with_transaction_deadline(

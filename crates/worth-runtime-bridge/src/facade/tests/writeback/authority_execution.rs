@@ -54,6 +54,78 @@ fn runtime_executes_writeback_through_bound_authority() {
 }
 
 #[test]
+fn mutation_subject_cannot_authorize_a_different_effect_intent() {
+    let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
+    let lowered_policy = lowered_policy(&runtime);
+    let contract = runtime
+        .admit_writeback_declaration(
+            writeback_declaration(
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:subject-effect-mismatch",
+                ),
+                BridgeRequestKind::Authoritative,
+                BridgeWritebackRequestMode::WritebackCapable,
+                "subject-effect-mismatch",
+            ),
+            &lowered_policy,
+        )
+        .expect("writeback declaration should admit");
+    let subject_intent = writeback_effect_intent(
+        BridgeWritebackEffectClass::ProjectedStateDiff,
+        "subject-patch",
+    );
+    let subject = crate::facade::BridgeMutationSubject::from_effect_intent_and_touches(
+        crate::facade::BridgeMutationSubjectTarget::new(
+            "Task",
+            crate::facade::RelationalBridgeRecordIdentityParts::entity(1, 7, 0),
+            crate::facade::BridgeMutationSubjectKind::Updated,
+        ),
+        &subject_intent,
+        [crate::facade::BridgeMutationSubjectTouch::whole_aspect(
+            worth_foundational::facade::AspectKey::new("bridge.writeback.projected-state-diff")
+                .expect("static writeback aspect key is valid"),
+        )],
+    )
+    .expect("subject should cover its own concrete patch");
+    let causality = causality_basis(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:subject-effect-mismatch"),
+        "subject-effect-mismatch",
+    )
+    .bind_mutation_subject(subject);
+    let effect = runtime.lower_writeback_effect(
+        &contract,
+        &causality,
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:subject-effect-mismatch"),
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "different-effect-patch",
+        ),
+    );
+    let idempotence = runtime.classify_writeback_idempotence(
+        &effect,
+        &lowered_policy,
+        &truth_state_basis(&effect),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:subject-effect-mismatch",
+        ),
+        BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+    );
+
+    let error = runtime
+        .execute_writeback_authority(&contract, &effect, &idempotence)
+        .expect_err("mismatched mutation subject must deny before authority execution");
+
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::CausalityEffectMismatch
+    );
+    assert!(runtime
+        .diagnostics()
+        .last_writeback_execution_record()
+        .is_none());
+}
+
+#[test]
 fn runtime_records_native_writeback_execution_record_on_success() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::development());
     let lowered_policy = lowered_policy(&runtime);
@@ -154,18 +226,20 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
             &lowered_policy,
         )
         .expect("writeback declaration should admit");
-    let causality = causality_basis(
+    let effect_intent = writeback_effect_intent(
+        BridgeWritebackEffectClass::ProjectedStateDiff,
+        "mutation-authority-bundle",
+    );
+    let causality = mutation_causality_basis(
         BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:mutation-authority-bundle"),
         "mutation-authority-bundle",
+        &effect_intent,
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::admit_bridge_owned("effect:mutation-authority-bundle"),
-        writeback_effect_intent(
-            BridgeWritebackEffectClass::ProjectedStateDiff,
-            "mutation-authority-bundle",
-        ),
+        effect_intent,
     );
     let feedback = crate::facade::BridgeWritebackFeedbackProvenance::new(&effect);
     let idempotence = runtime.classify_writeback_idempotence(
@@ -178,20 +252,13 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
-    let (outcome, receipt) = runtime
-        .execute_writeback_authority(&contract, &effect, &idempotence)
-        .expect("authority execution should succeed");
+    let bundle = runtime
+        .execute_writeback_mutation_authority(&contract, &effect, &idempotence, &causality)
+        .expect("one successful writeback chain should mint mutation authority");
     let execution_record = runtime
         .diagnostics()
         .last_writeback_execution_record()
         .expect("runtime should retain a native writeback execution record");
-    let bundle = crate::facade::BridgeMutationAuthorityBundle::from_writeback_artifacts(
-        &causality,
-        &effect,
-        &feedback,
-        &execution_record,
-        Some(&outcome),
-    );
 
     assert_eq!(bundle.causality().causality_digest(), causality.digest());
     assert_eq!(
@@ -208,9 +275,14 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
     );
     assert_eq!(
         bundle.provenance().authoritative_artifact_digest(),
-        Some(outcome.authoritative_artifact_digest())
+        execution_record
+            .authority_receipt()
+            .map(|receipt| receipt.authoritative_artifact_digest())
     );
-    assert_eq!(bundle.provenance().receipt_digest(), Some(receipt.digest()));
+    assert_eq!(
+        bundle.provenance().receipt_digest(),
+        execution_record.receipt_digest()
+    );
     assert_eq!(
         bundle
             .provenance()
@@ -288,8 +360,7 @@ fn writeback_mutation_provenance_bundle_preserves_rejection_class() {
         .diagnostics()
         .last_writeback_execution_record()
         .expect("runtime should retain a rejection execution record");
-    let bundle = crate::facade::BridgeMutationAuthorityBundle::from_writeback_artifacts(
-        &causality,
+    let provenance = crate::facade::BridgeMutationProvenanceBundle::from_writeback_artifacts(
         &effect,
         &feedback,
         &execution_record,
@@ -297,13 +368,13 @@ fn writeback_mutation_provenance_bundle_preserves_rejection_class() {
     );
 
     assert_eq!(error.kind(), BridgeWritebackErrorKind::StrategyFailed);
-    assert_eq!(bundle.provenance().outcome_class(), None);
+    assert_eq!(provenance.outcome_class(), None);
     assert_eq!(
-        bundle.provenance().failure_class(),
+        provenance.failure_class(),
         Some(BridgeWritebackFailureClass::StrategyFailed)
     );
     assert_eq!(
-        bundle.provenance().receipt_digest(),
+        provenance.receipt_digest(),
         execution_record.receipt_digest()
     );
 }

@@ -34,6 +34,12 @@ pub(super) fn providers_for(
 
 struct EligibleCondition;
 
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for EligibleCondition {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+}
+
 impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for EligibleCondition {
     fn resolve(
         &self,
@@ -56,6 +62,12 @@ impl worth_runtime_bridge::facade::BridgeConditionalWakeProvider for EligibleCon
 
 struct RequestedTrigger;
 
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for RequestedTrigger {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+}
+
 impl worth_runtime_bridge::facade::BridgeConditionalTriggerProvider for RequestedTrigger {
     fn requested(&self) -> bool {
         true
@@ -63,6 +75,12 @@ impl worth_runtime_bridge::facade::BridgeConditionalTriggerProvider for Requeste
 }
 
 struct ExactComparator;
+
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for ExactComparator {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+}
 
 impl worth_runtime_bridge::facade::BridgeConditionalComparatorProvider for ExactComparator {
     fn has_meaningful_change(
@@ -75,11 +93,15 @@ impl worth_runtime_bridge::facade::BridgeConditionalComparatorProvider for Exact
     }
 }
 
-pub(super) struct DirectConditionalCompute;
+pub(crate) struct DirectConditionalCompute;
 
 impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
     for DirectConditionalCompute
 {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+
     fn compute(
         &self,
         _context: &domain::WorthQueryConditionalComputeContext,

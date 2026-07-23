@@ -1,26 +1,9 @@
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiDurableStateReconciliationPlan,
-    WorthUiIdentityMatchReport, WorthUiNodeReplacementPlan,
-    WorthUiPendingExecutionPlanLoweringInput, WorthUiQueryBindingComparison,
+    WorthUiIdentityMatchReport, WorthUiNodeReplacementPlan, WorthUiQueryBindingComparison,
     WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification,
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeImpactNarrowing,
 };
-
-/// Active-runtime observation basis for replacement admission.
-#[derive(Debug, Clone)]
-pub struct WorthUiReplacementAdmissionBasis(
-    pub(crate) crate::runtime::WorthUiActiveReplacementBasis,
-);
-
-impl WorthUiReplacementAdmissionBasis {
-    pub fn into_active_basis(self) -> crate::runtime::WorthUiActiveReplacementBasis {
-        self.0
-    }
-
-    pub fn active_basis(&self) -> &crate::runtime::WorthUiActiveReplacementBasis {
-        &self.0
-    }
-}
 
 /// Artifact comparison completed for an admitted replacement candidate.
 #[derive(Debug)]
@@ -43,6 +26,19 @@ pub struct WorthUiReplacementNarrowingReady {
     pub(crate) admitted: WorthUiAdmittedReplacementCandidate,
     pub(crate) impact: WorthUiReplacementImpactClassification,
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
+}
+
+/// Exact Query comparison refined the provisional downstream impact scope.
+#[derive(Debug)]
+pub struct WorthUiReplacementQueryImpactReady {
+    pub(crate) admitted: WorthUiAdmittedReplacementCandidate,
+    pub(crate) impact: WorthUiReplacementImpactClassification,
+    pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
 }
 
 /// Identity match graph completed for a narrowed replacement.
@@ -52,6 +48,9 @@ pub struct WorthUiReplacementIdentityReady {
     pub(crate) impact: WorthUiReplacementImpactClassification,
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) identity_report: WorthUiIdentityMatchReport,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
 }
 
 /// Node replacement plan completed for an identity-ready replacement.
@@ -61,6 +60,10 @@ pub struct WorthUiReplacementNodePlanReady {
     pub(crate) impact: WorthUiReplacementImpactClassification,
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
+    pub(crate) identity_match_counters: crate::runtime::WorthUiIdentityMatchCounters,
 }
 
 /// Durable-state reconciliation completed for a node-plan-ready replacement.
@@ -71,6 +74,10 @@ pub struct WorthUiReplacementReconciliationReady {
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
     pub(crate) reconciliation_plan: WorthUiDurableStateReconciliationPlan,
+    pub(crate) query_comparison: WorthUiQueryBindingComparison,
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
+    pub(crate) identity_match_counters: crate::runtime::WorthUiIdentityMatchCounters,
 }
 
 /// Query binding comparison completed for a reconciliation-ready replacement.
@@ -82,51 +89,30 @@ pub struct WorthUiReplacementQueryComparisonReady {
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
     pub(crate) reconciliation_plan: WorthUiDurableStateReconciliationPlan,
     pub(crate) query_comparison: WorthUiQueryBindingComparison,
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
+    pub(crate) identity_match_counters: crate::runtime::WorthUiIdentityMatchCounters,
 }
 
 /// Lowering input proof for activation staging; only minted by the replacement lane orchestrator.
 #[derive(Debug)]
 pub struct WorthUiReplacementLoweringReady {
+    pub(crate) candidate_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
     pub(crate) admitted: WorthUiAdmittedReplacementCandidate,
     pub(crate) impact: WorthUiReplacementImpactClassification,
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
     pub(crate) reconciliation_plan: WorthUiDurableStateReconciliationPlan,
     pub(crate) query_rebind_plan: WorthUiQueryLiveRebindPlan,
-    pub(crate) pending_execution_plan_lowering_input: WorthUiPendingExecutionPlanLoweringInput,
-}
-
-impl WorthUiReplacementComparisonReady {
-    pub fn admitted(&self) -> &WorthUiAdmittedReplacementCandidate {
-        &self.admitted
-    }
-
-    pub fn comparison(&self) -> &WorthUiRuntimeArtifactComparison {
-        &self.comparison
-    }
-}
-
-impl WorthUiReplacementImpactReady {
-    pub fn admitted(&self) -> &WorthUiAdmittedReplacementCandidate {
-        &self.admitted
-    }
-
-    pub fn comparison(&self) -> &WorthUiRuntimeArtifactComparison {
-        &self.comparison
-    }
-
-    pub fn impact(&self) -> &WorthUiReplacementImpactClassification {
-        &self.impact
-    }
+    pub(crate) artifact_comparison_counters:
+        crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
+    pub(crate) identity_match_counters: crate::runtime::WorthUiIdentityMatchCounters,
 }
 
 impl WorthUiReplacementLoweringReady {
     pub fn admitted(&self) -> &WorthUiAdmittedReplacementCandidate {
         &self.admitted
-    }
-
-    pub fn impact(&self) -> &WorthUiReplacementImpactClassification {
-        &self.impact
     }
 
     pub fn narrowing(&self) -> &WorthUiRuntimeImpactNarrowing {
@@ -145,9 +131,7 @@ impl WorthUiReplacementLoweringReady {
         &self.query_rebind_plan
     }
 
-    pub fn pending_execution_plan_lowering_input(
-        &self,
-    ) -> &WorthUiPendingExecutionPlanLoweringInput {
-        &self.pending_execution_plan_lowering_input
+    pub(crate) fn reload_cost_seed(&self) -> crate::runtime::WorthUiReloadCostSeed {
+        crate::runtime::WorthUiReloadCostSeed::from_lowering(self)
     }
 }

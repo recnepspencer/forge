@@ -149,7 +149,9 @@ fn generation_turnover_prevents_live_continuation_revival() {
         WorthQueryInstalledDomainLiveCheckpointOutcome::Checkpointed(continuation) => continuation,
         _ => panic!("installed live checkpoint must succeed"),
     };
-    workspace.replace_domain_installation_with_successor_generation();
+    workspace
+        .replace_domain_installation_with_successor_generation()
+        .unwrap();
 
     let WorthQueryInstalledDomainLiveResumeOutcome::AuthorityStopped(_, drift) =
         continuation.resume(&mut workspace)

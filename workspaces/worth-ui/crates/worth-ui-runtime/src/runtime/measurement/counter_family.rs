@@ -86,7 +86,7 @@ impl WorthUiRuntimeCounterFamily {
 
     pub fn authority(self) -> WorthUiCounterAuthority {
         match self {
-            Self::QueryRebindPlanning => WorthUiCounterAuthority::WorthQueryEvidence,
+            Self::QueryRebindPlanning => WorthUiCounterAuthority::WorthUiRuntime,
             Self::DiagnosticsProjection => WorthUiCounterAuthority::DiagnosticsProjection,
             _ => WorthUiCounterAuthority::WorthUiRuntime,
         }

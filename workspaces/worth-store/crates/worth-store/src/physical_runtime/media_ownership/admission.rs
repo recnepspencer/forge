@@ -3,7 +3,7 @@ use worth_proof::TransitionOutcome;
 use worth_store_physical_backend::MediaFaultSchedule;
 use worth_store_physical_backend::{
     FilesystemAccessPosture, FilesystemQualificationMode, FilesystemQualificationRequest,
-    MediaQualificationDenial, RootProfileQualificationReport,
+    RootProfileQualificationReport,
 };
 
 use super::{
@@ -13,7 +13,7 @@ use super::{
     },
     MediaAdmissionOutcome, MediaOwnedPhysicalRuntime,
 };
-use crate::physical_runtime::{runtime::AdmittedPhysicalRuntime, RuntimeIdentity};
+use crate::physical_runtime::runtime::AdmittedPhysicalRuntime;
 
 #[derive(Debug, Clone)]
 pub struct FilesystemMediaAdmission {
@@ -79,6 +79,10 @@ pub(in crate::physical_runtime) fn try_admit(
         FilesystemQualificationMode::Certification => {
             FilesystemQualificationRequest::certification(root, admission.access)
         }
+        #[cfg(not(feature = "certification-test-authority"))]
+        FilesystemQualificationMode::Certification => {
+            unreachable!("certification media admission has no ordinary constructor")
+        }
     };
     let request = request.for_runtime_incarnation(runtime_identity.get());
     #[cfg(feature = "certification-test-authority")]
@@ -92,21 +96,11 @@ pub(in crate::physical_runtime) fn try_admit(
             core.progress_to_media_owned();
             TransitionOutcome::success(MediaOwnedPhysicalRuntime::new(core, media)).into()
         }
-        TransitionOutcome::Denied(
-            denial @ MediaQualificationDenial::UnmanagedWriterPosture { .. },
-        ) => TransitionOutcome::denied(MediaAdmissionDenial::new(
+        TransitionOutcome::Denied(denial) => TransitionOutcome::denied(MediaAdmissionDenial::new(
             AdmittedPhysicalRuntime::from_core(core),
             denial,
         ))
         .into(),
-        TransitionOutcome::Denied(denial @ MediaQualificationDenial::OwnerPreEffect { .. }) => {
-            TransitionOutcome::denied(MediaAdmissionDenial::new(
-                AdmittedPhysicalRuntime::from_core(core),
-                denial,
-            ))
-            .into()
-        }
-        TransitionOutcome::Denied(denial) => inspection_required(core, runtime_identity, denial),
         TransitionOutcome::Deferred(deferred) => TransitionOutcome::deferred(
             MediaAdmissionDeferred::new(AdmittedPhysicalRuntime::from_core(core), deferred),
         )
@@ -130,18 +124,4 @@ pub(in crate::physical_runtime) fn try_admit(
             .into()
         }
     }
-}
-
-fn inspection_required(
-    core: crate::physical_runtime::runtime::PhysicalRuntimeCore,
-    runtime_identity: RuntimeIdentity,
-    denial: MediaQualificationDenial,
-) -> MediaAdmissionOutcome {
-    let terminal = core.abort();
-    TransitionOutcome::failed(MediaAdmissionInspectionRequired::post_effect_denial(
-        runtime_identity,
-        terminal,
-        denial,
-    ))
-    .into()
 }

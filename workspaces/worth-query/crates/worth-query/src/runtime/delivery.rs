@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::subscription::{
@@ -8,12 +6,10 @@ use crate::subscription::{
 };
 
 use super::{
-    WorthQueryAuthorityLane, WorthQueryLiveArtifactTarget,
-    WorthQueryLiveGraphReadMaintenanceReceipt, WorthQueryRuntimeAsyncResultState,
-    WorthQueryRuntimeLiveSubscriptionInstallation, WorthQueryRuntimeMixedCauseDelivery,
-    WorthQueryRuntimeRemaskPosture,
+    WorthQueryAuthorityLane, WorthQueryLiveGraphReadMaintenanceReceipt,
+    WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeLiveSubscriptionInstallation,
+    WorthQueryRuntimeMixedCauseDelivery, WorthQueryRuntimeRemaskPosture,
 };
-use crate::runtime::WorthQueryMutationTargetCollectionIdentity;
 
 pub(super) struct WorthQueryRuntimeLiveSubscriptionActivation {
     pub(super) installation: WorthQueryRuntimeLiveSubscriptionInstallation,
@@ -38,30 +34,32 @@ pub(super) struct WorthQueryRuntimeLiveSubscriptionState {
         Option<crate::intent_admission::WorthQueryReadExecutionBinding>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct WorthQueryLiveSubscriptionIndexEntry {
-    target_collection: WorthQueryMutationTargetCollectionIdentity,
-    targets: BTreeSet<WorthQueryLiveArtifactTarget>,
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct WorthQueryLiveMutationRoutingWork {
+    pub(crate) capability_index_lookups: usize,
+    pub(crate) live_collection_index_probes: usize,
+    pub(crate) live_relevance_index_probes: usize,
+    pub(crate) installed_collection_index_probes: usize,
+    pub(crate) installed_relevance_index_probes: usize,
+    pub(crate) live_target_candidates_visited: usize,
+    pub(crate) installed_target_candidates_selected: usize,
+    pub(crate) installed_candidates_skipped: usize,
+    pub(crate) target_overlap_deduplications: usize,
+    pub(crate) installed_route_index_probes: usize,
 }
 
-impl WorthQueryLiveSubscriptionIndexEntry {
-    fn new(target_collection: WorthQueryMutationTargetCollectionIdentity) -> Self {
-        Self {
-            target_collection,
-            targets: BTreeSet::new(),
-        }
-    }
-
-    pub(super) fn target_collection(&self) -> &WorthQueryMutationTargetCollectionIdentity {
-        &self.target_collection
-    }
-
-    pub(super) fn targets(&self) -> &BTreeSet<WorthQueryLiveArtifactTarget> {
-        &self.targets
-    }
-
-    fn targets_mut(&mut self) -> &mut BTreeSet<WorthQueryLiveArtifactTarget> {
-        &mut self.targets
+impl WorthQueryLiveMutationRoutingWork {
+    pub(crate) fn add(&mut self, other: Self) {
+        self.capability_index_lookups += other.capability_index_lookups;
+        self.live_collection_index_probes += other.live_collection_index_probes;
+        self.live_relevance_index_probes += other.live_relevance_index_probes;
+        self.installed_collection_index_probes += other.installed_collection_index_probes;
+        self.installed_relevance_index_probes += other.installed_relevance_index_probes;
+        self.live_target_candidates_visited += other.live_target_candidates_visited;
+        self.installed_target_candidates_selected += other.installed_target_candidates_selected;
+        self.installed_candidates_skipped += other.installed_candidates_skipped;
+        self.target_overlap_deduplications += other.target_overlap_deduplications;
+        self.installed_route_index_probes += other.installed_route_index_probes;
     }
 }
 
@@ -79,7 +77,13 @@ pub struct WorthQueryRuntimeDeliveryBatch {
     pub(super) patch_group_kind: QueryPatchGroupKind,
     pub(super) patch_group_identity: WorthQueryEvidenceIdentity,
     pub(super) patch_group_width: u64,
+    pub(super) relational_commit_identity:
+        Option<worth_runtime_bridge::facade::TruthCommitIdentity>,
+    pub(super) mutation_delta: Option<crate::memory_workspace::WorthQueryMutationDelta>,
     pub(super) live_graph_read_maintenance: Option<WorthQueryLiveGraphReadMaintenanceReceipt>,
+    pub(super) preclassified_installed_impact:
+        Option<crate::domain_installation::WorthQueryPreclassifiedInstalledLiveImpact>,
+    pub(super) routing_work: WorthQueryLiveMutationRoutingWork,
     pub(super) mixed_cause_delivery: WorthQueryRuntimeMixedCauseDelivery,
 }
 
@@ -97,6 +101,8 @@ impl WorthQueryRuntimeDeliveryBatch {
     pub(super) fn from_query_delivery(
         view_name: &str,
         batch: &QueryDeliveryBatch,
+        relational_commit_identity: Option<worth_runtime_bridge::facade::TruthCommitIdentity>,
+        mutation_delta: Option<crate::memory_workspace::WorthQueryMutationDelta>,
         live_graph_read_maintenance: Option<WorthQueryLiveGraphReadMaintenanceReceipt>,
     ) -> Self {
         Self {
@@ -112,7 +118,11 @@ impl WorthQueryRuntimeDeliveryBatch {
             patch_group_kind: batch.patch_group().kind(),
             patch_group_identity: batch.patch_group().patch_group_identity().clone(),
             patch_group_width: batch.patch_group().width(),
+            relational_commit_identity,
+            mutation_delta,
             live_graph_read_maintenance,
+            preclassified_installed_impact: None,
+            routing_work: WorthQueryLiveMutationRoutingWork::default(),
             mixed_cause_delivery: if batch.has_relational_patch() {
                 WorthQueryRuntimeMixedCauseDelivery::atomic_relational_patch(
                     batch.delivery_cause().delivery_cause_identity(),
@@ -194,10 +204,45 @@ impl WorthQueryRuntimeDeliveryBatch {
         self.patch_group_width
     }
 
+    pub fn relational_commit_identity(
+        &self,
+    ) -> Option<&worth_runtime_bridge::facade::TruthCommitIdentity> {
+        self.relational_commit_identity.as_ref()
+    }
+
+    pub(crate) fn mutation_delta(
+        &self,
+    ) -> Option<&crate::memory_workspace::WorthQueryMutationDelta> {
+        self.mutation_delta.as_ref()
+    }
+
     pub fn live_graph_read_maintenance(
         &self,
     ) -> Option<&WorthQueryLiveGraphReadMaintenanceReceipt> {
         self.live_graph_read_maintenance.as_ref()
+    }
+
+    pub(crate) fn preclassified_installed_impact(
+        &self,
+    ) -> Option<&crate::domain_installation::WorthQueryPreclassifiedInstalledLiveImpact> {
+        self.preclassified_installed_impact.as_ref()
+    }
+
+    pub(super) fn with_preclassified_installed_impact(
+        mut self,
+        impact: crate::domain_installation::WorthQueryPreclassifiedInstalledLiveImpact,
+    ) -> Self {
+        self.preclassified_installed_impact = Some(impact);
+        self
+    }
+
+    pub(super) fn with_routing_work(mut self, work: WorthQueryLiveMutationRoutingWork) -> Self {
+        self.routing_work = work;
+        self
+    }
+
+    pub(crate) const fn routing_work(&self) -> WorthQueryLiveMutationRoutingWork {
+        self.routing_work
     }
 
     pub fn mixed_cause_delivery(&self) -> &WorthQueryRuntimeMixedCauseDelivery {
@@ -244,38 +289,4 @@ impl WorthQueryRuntimeRetainedDelivery {
     pub(super) fn mixed_cause_delivery(&self) -> &WorthQueryRuntimeMixedCauseDelivery {
         &self.mixed_cause_delivery
     }
-}
-
-pub(super) fn register_live_subscription_index(
-    index: &mut Vec<WorthQueryLiveSubscriptionIndexEntry>,
-    view_name: &str,
-    target: WorthQueryLiveArtifactTarget,
-    request: &DeclarativeLiveQueryRequest,
-) {
-    unregister_live_subscription_index(index, view_name);
-    let target_collection = request.target_collection_identity();
-    let entry = match index.iter_mut().find(|entry| {
-        entry
-            .target_collection
-            .same_target_collection_as(&target_collection)
-    }) {
-        Some(entry) => entry,
-        None => {
-            index.push(WorthQueryLiveSubscriptionIndexEntry::new(target_collection));
-            index.last_mut().expect("inserted subscription index entry")
-        }
-    };
-    entry.targets_mut().insert(target);
-}
-
-pub(super) fn unregister_live_subscription_index(
-    index: &mut Vec<WorthQueryLiveSubscriptionIndexEntry>,
-    view_name: &str,
-) {
-    index.retain_mut(|entry| {
-        entry
-            .targets_mut()
-            .retain(|target| target.view_name() != view_name);
-        !entry.targets().is_empty()
-    });
 }

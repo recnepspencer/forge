@@ -1,4 +1,5 @@
-use worth_ui::facade::{WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLaunch};
+use worth_ui::facade::diagnostics::WorthUiRuntimeDiagnosticPolicy;
+use worth_ui::facade::runtime::{WorthUiRuntimeFrameEpoch, WorthUiRuntimeLaunch};
 
 fn main() {
     let _launch = WorthUiRuntimeLaunch {

@@ -51,6 +51,7 @@ impl BridgeCorrespondenceDenial {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct CorrespondenceAdmissionCounters {
     pub(crate) query_dependency_lookups: usize,
+    pub(crate) provided_registration_reads: usize,
     pub(crate) registered_targets_materialized: usize,
     pub(crate) source_profile_cache_reads: usize,
     pub(crate) allocation_registry_lock_attempts: usize,
@@ -78,6 +79,7 @@ impl CorrespondenceAdmissionCounters {
     pub const fn zero() -> Self {
         Self {
             query_dependency_lookups: 0,
+            provided_registration_reads: 0,
             registered_targets_materialized: 0,
             source_profile_cache_reads: 0,
             allocation_registry_lock_attempts: 0,
@@ -104,6 +106,10 @@ impl CorrespondenceAdmissionCounters {
 
     pub const fn query_dependency_lookups(self) -> usize {
         self.query_dependency_lookups
+    }
+
+    pub const fn provided_registration_reads(self) -> usize {
+        self.provided_registration_reads
     }
 
     pub const fn mapping_lookups(self) -> usize {

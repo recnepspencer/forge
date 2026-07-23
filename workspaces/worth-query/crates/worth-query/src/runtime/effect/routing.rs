@@ -320,7 +320,10 @@ fn collect_trigger_change(
                 derived_views.get(&WorthQueryDerivedMaterializationTarget::new(view_name))?;
             let mut changed_aspects = BTreeSet::new();
             for patch in &view.patches {
-                if patch.commit_identity() != &receipt.commit_identity {
+                if !patch
+                    .commit_identity()
+                    .is_same_current_identity_as(&receipt.commit_identity)
+                {
                     continue;
                 }
                 if patch.aspect_touches().is_empty() {

@@ -63,6 +63,7 @@ fn contention_returns_prior_authority_only_when_this_attempt_changed_nothing() {
     let failure = contender.join().unwrap();
     let worth_proof::TransitionOutcome::Failed(MediaQualificationFailure::OwnerAfterEffect {
         denial,
+        release: _,
         counters,
     }) = failure
     else {
@@ -101,5 +102,104 @@ fn lease_observation_barrier_failure_releases_the_real_os_lock() {
     let successor =
         FilesystemMediaOwner::admit(&root, FilesystemMediaAdmissionAuthority::for_test())
             .expect("failed lease publication must not retain OS authority");
+    successor.close();
+}
+
+#[test]
+fn effectful_existing_lock_failure_consumes_authority_and_reports_release() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("existing-store");
+    let first = match FilesystemMediaOwner::qualify(FilesystemQualificationRequest::production(
+        &root,
+        FilesystemAccessPosture::CoordinatedServiceAccount,
+    ))
+    .into_raw()
+    {
+        worth_proof::TransitionOutcome::Success(media) => media,
+        _ => panic!("control admission must initialize the namespace"),
+    };
+    first.close();
+
+    let schedule = MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
+        MediaOperationRole::PublishMutationLeaseObservation,
+        1,
+        MediaFaultDirective::FailBarrier {
+            kind: std::io::ErrorKind::Other,
+            raw_os_error: None,
+        },
+    )])
+    .unwrap();
+    let outcome = FilesystemMediaOwner::qualify(
+        FilesystemQualificationRequest::production(
+            &root,
+            FilesystemAccessPosture::CoordinatedServiceAccount,
+        )
+        .with_fault_schedule(schedule),
+    )
+    .into_raw();
+    let worth_proof::TransitionOutcome::Failed(MediaQualificationFailure::OwnerAfterEffect {
+        release,
+        counters,
+        ..
+    }) = outcome
+    else {
+        panic!("mutating the existing lock must consume admission authority");
+    };
+    assert_eq!(release, Some(OwnershipReleaseOutcome::Released));
+    assert_eq!(
+        counters.indeterminate_effects_for(MediaOperationRole::PublishMutationLeaseObservation),
+        1
+    );
+
+    let successor =
+        FilesystemMediaOwner::admit(&root, FilesystemMediaAdmissionAuthority::for_test())
+            .expect("reported release must correspond to released OS ownership");
+    successor.close();
+}
+
+#[test]
+fn pre_effect_existing_lock_failure_reports_release_before_authority_reuse() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("existing-store");
+    let first = match FilesystemMediaOwner::qualify(FilesystemQualificationRequest::production(
+        &root,
+        FilesystemAccessPosture::CoordinatedServiceAccount,
+    ))
+    .into_raw()
+    {
+        worth_proof::TransitionOutcome::Success(media) => media,
+        _ => panic!("control admission must initialize the namespace"),
+    };
+    first.close();
+
+    let schedule = MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
+        MediaOperationRole::PublishMutationLeaseObservation,
+        1,
+        MediaFaultDirective::FailBefore {
+            kind: std::io::ErrorKind::PermissionDenied,
+            raw_os_error: None,
+        },
+    )])
+    .unwrap();
+    let outcome = FilesystemMediaOwner::qualify(
+        FilesystemQualificationRequest::production(
+            &root,
+            FilesystemAccessPosture::CoordinatedServiceAccount,
+        )
+        .with_fault_schedule(schedule),
+    )
+    .into_raw();
+    let worth_proof::TransitionOutcome::Denied(MediaQualificationDenial::OwnerPreEffect {
+        release,
+        ..
+    }) = outcome
+    else {
+        panic!("pre-effect lease publication denial must preserve reusable authority");
+    };
+    assert_eq!(release, Some(OwnershipReleaseOutcome::Released));
+
+    let successor =
+        FilesystemMediaOwner::admit(&root, FilesystemMediaAdmissionAuthority::for_test())
+            .expect("reported release must precede authority reuse");
     successor.close();
 }

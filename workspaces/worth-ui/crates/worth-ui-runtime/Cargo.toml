@@ -14,9 +14,10 @@ workspace = true
 [features]
 default = []
 # Enables public re-export of SUPPORT AUTHORITY fixtures for worth-ui-test-support only.
-certification-support = []
+certification-support = ["worth-ui-query-binding/certification-construction"]
 
 [dependencies]
+notify = { workspace = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-ui-dsl = { path = "../worth-ui-dsl" }

@@ -303,7 +303,10 @@ impl FilesystemMediaOwner {
     }
 }
 
-#[cfg(windows)]
+pub(super) fn synchronize_directory_handle(directory: &cap_std::fs::Dir) -> std::io::Result<()> {
+    open_directory_sync_handle(directory)?.sync_all()
+}
+
 fn open_directory_sync_handle(directory: &cap_std::fs::Dir) -> std::io::Result<std::fs::File> {
     use cap_std::fs::OpenOptionsExt;
     const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;

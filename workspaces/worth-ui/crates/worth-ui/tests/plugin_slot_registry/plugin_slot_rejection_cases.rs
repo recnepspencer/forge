@@ -1,7 +1,10 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, PluginContributionFamily, PluginSlotDescriptor,
-    PluginSlotDiagnostics, PluginSlotGlobalMutationHook, PluginSlotOrdering,
-    PluginSlotSupportPosture, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        PluginContributionFamily, PluginSlotDescriptor, PluginSlotDiagnostics,
+        PluginSlotGlobalMutationHook, PluginSlotOrdering, PluginSlotSupportPosture,
+    },
 };
 
 use super::plugin_slot_assertions::assert_diagnostic_codes;

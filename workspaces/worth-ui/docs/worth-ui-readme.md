@@ -127,17 +127,23 @@ Replacement remains session-owned:
 
 ```text
 prepare replacement
--> typed no-op or prepared candidate authority
+-> prepared candidate authority
 -> candidate graph/allocation admission
 -> lower and stage
 -> framework-turn activation boundary
 -> atomic cutover
 ```
 
+Preparation is not a semantic no-op decision. The current lifecycle carries a
+successful preparation through complete-plan lowering and exact executable
+comparison. Only the activation decision can return a typed semantic no-op, and
+artifact digest equality cannot skip that work.
+
 Invalid or foreign input leaves the active generation intact. Host adapters
 cannot submit directly; observation capability comes from the active session.
-See `../AI_README.md` for the compact discovery guide and named facade entry
-points.
+See [Application lifecycle](./application-lifecycle.md) for the public workflow,
+cost receipts, and typed outcomes. See `../AI_README.md` for the compact
+discovery guide and named facade entry points.
 
 Worth UI wants product code to express UI meaning once, keep that meaning
 canonically identified, and let the runtime lower it through typed public lanes
@@ -850,8 +856,9 @@ exact runtime-affine Query domain authority. Application code does not assemble
 result shape, basis, lifecycle, capability status, or projection identity as
 independent fields.
 
-Projection crosses the UI boundary as one sealed
-`WorthUiQueryProjectionOutcome`. The binding edge may derive indexed UI facts,
+Projection crosses the UI boundary as one sealed lifecycle-specific outcome:
+`WorthUiQuerySnapshotProjectionOutcome` or
+`WorthUiQueryLiveProjectionOutcome`. The binding edge may derive indexed UI facts,
 but it may not split that outcome into independently trusted basis, receipt,
 support, source-label, fact-bag, or digest fields. Foundational native aspect
 values remain native through refinement and allocation/plan admission; they do

@@ -36,7 +36,7 @@ impl WorthQueryBackendMergeAuthority {
             .history()
             .resolve_merge_branch_basis(&source_branch, &target_branch)
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
-        let target_snapshot_identity = WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+        let target_snapshot_identity = WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
             worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
                 basis.target_head().commit_id,
                 basis.target_head().version_id,

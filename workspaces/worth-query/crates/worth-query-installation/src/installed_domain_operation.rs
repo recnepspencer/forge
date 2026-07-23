@@ -21,6 +21,14 @@ pub struct WorthQueryInstalledDomainOperationAuthority {
 }
 
 impl WorthQueryInstalledDomainOperationAuthority {
+    pub fn runtime_ordinal(&self) -> u64 {
+        self.runtime_ordinal
+    }
+
+    pub fn generation(&self) -> WorthQueryInstallationGeneration {
+        self.generation
+    }
+
     pub fn owner(&self) -> &str {
         &self.owner
     }

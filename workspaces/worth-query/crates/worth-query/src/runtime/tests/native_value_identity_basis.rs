@@ -11,7 +11,8 @@ use worth_foundational::facade::{
 use crate::projection_consumption::{
     bind_materialized_projection_contract, declare_projection_consumption,
     evaluate_projection_consumption_eligibility, projection_fact_field_path_from_segments,
-    ConsumedFieldValueFact, ConsumedNativeValue, ConsumedProjectionFactSet,
+    ConsumedFieldValueFact, ConsumedNativeValue, ConsumedProjectionContractProvenance,
+    ConsumedProjectionFactInventory, ConsumedProjectionFactSet, ConsumedProjectionSourceTruth,
     ProjectMaterializedFacts, ProjectionConsumptionBindingContext,
     ProjectionConsumptionEligibility, ProjectionConsumptionSource,
     ProjectionFactExtractionCounters, ProjectionSourceFamily,
@@ -129,22 +130,23 @@ fn struct_context_identities(value: StructAspectValue) -> (String, String, Strin
 fn fact_set(fact: ConsumedFieldValueFact) -> ConsumedProjectionFactSet {
     let contract = contract();
     ConsumedProjectionFactSet::new(
-        contract.declaration_digest(),
-        contract.contract_digest(),
-        contract.source_family(),
-        contract.source_identity_handle().clone(),
-        contract.support_posture().clone(),
-        None,
+        ConsumedProjectionContractProvenance::from_contract(&contract),
+        ConsumedProjectionSourceTruth::from_contract(
+            &contract,
+            crate::projection_consumption::ConsumedNativeLayoutProof::from_contract(&contract, 1),
+        ),
         ProjectionFactExtractionCounters::new(1, 1, 1, 1, 0),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        vec![fact],
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
+        ConsumedProjectionFactInventory {
+            entity_identities: Vec::new(),
+            view_local_identities: Vec::new(),
+            memberships: Vec::new(),
+            display_fields: vec![fact],
+            derived_fields: Vec::new(),
+            target_identities: Vec::new(),
+            source_references: Vec::new(),
+            effect_continuity_facts: Vec::new(),
+            relation_endpoints: Vec::new(),
+        },
     )
 }
 

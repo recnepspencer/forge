@@ -15,25 +15,34 @@ pub(super) struct PreparedActiveSuccessor {
 impl PreparedActiveSuccessor {
     pub(super) fn prepare(
         ready: super::UiCommittedAllocationValidation,
-        candidate_plan_digest: crate::runtime::WorthUiExecutionPlanDigest,
+        candidate_bundle: crate::runtime::active::WorthUiSealedExecutionPlanBundle,
         snapshot_digest: CapabilitySnapshotDigest,
     ) -> Result<Self, ()> {
-        if candidate_plan_digest.raw() != ready.candidate_execution_plan_digest() {
+        if candidate_bundle.digest().raw() != ready.candidate_execution_plan_digest()
+            || candidate_bundle.generation_identity()
+                != ready
+                    .pending_activation()
+                    .candidate_application_authority()
+                    .generation_identity()
+        {
             return Err(());
         }
-        let candidate_bundle = ready
+        let artifact_bundle = ready
             .pending_activation()
             .staged_replacement()
             .admitted_candidate()
             .artifact_bundle();
-        let active_artifact = WorthUiActiveArtifact::new(
-            candidate_bundle.artifact_authority(),
-            candidate_bundle.artifact_digest(),
+        let active_artifact = WorthUiActiveArtifact::new_with_dependency_report(
+            artifact_bundle.artifact_authority(),
+            artifact_bundle.artifact_digest(),
+            artifact_bundle
+                .dependency_metadata()
+                .dependency_report_authority(),
         );
         let committed = ready.committed().clone();
         Ok(Self {
             active_artifact,
-            active_plan: WorthUiActiveExecutionPlan::from_swap_authority(candidate_plan_digest),
+            active_plan: WorthUiActiveExecutionPlan::from_lowered_bundle(candidate_bundle),
             snapshot_digest,
             ledger_transition: ready.into_ledger_transition(),
             committed,
@@ -51,11 +60,11 @@ pub(super) fn prepare_active_successor(
     crate::runtime::UiCommittedAllocationReplan,
 ) {
     let next_active = WorthUiActiveRuntimeState::replacement_successor(
-        active,
         payload.active_artifact,
         payload.active_plan,
         payload.snapshot_digest,
         runtime_frame_epoch,
+        active.diagnostic_policy(),
     );
     (next_active, payload.ledger_transition, payload.committed)
 }

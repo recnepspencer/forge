@@ -1,0 +1,5 @@
+error[E0451]: fields `authority`, `maintenance_ordinal`, `impact`, `conditional_provenance`, `conditional_decision`, `sharing`, `epoch_work`, `affected_native_keys`, `disposition`, `cause`, `locality`, `continuation` and `counters` of struct `WorthQueryConsumerInvalidationDelta` are private
+ --> tests/ui/installed_domain/consumer_invalidation/invalidation_delta_constructor_private.rs:5:59
+  |
+5 |     let _forged = WorthQueryConsumerInvalidationDelta { ..panic!() };
+  |                                                           ^^^^^^^^ fields `authority`, `maintenance_ordinal`, `impact`, `conditional_provenance`, `conditional_decision`, `sharing`, `epoch_work`, `affected_native_keys`, `disposition`, `cause`, `locality`, `continuation` and `counters` are private

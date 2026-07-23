@@ -18,6 +18,7 @@ pub struct QueryMaterializationIdentityKind;
 pub struct QueryEffectLifecycleIdentityKind;
 pub struct QueryCausalInspectionIdentityKind;
 pub struct QuerySubscriptionIdentityKind;
+pub struct QueryOperationProgressionIdentityKind;
 
 impl FoundationalIdentityKind for QueryCommitIdentityKind {}
 impl FoundationalIdentityKind for QuerySnapshotIdentityKind {}
@@ -37,6 +38,7 @@ impl FoundationalIdentityKind for QueryMaterializationIdentityKind {}
 impl FoundationalIdentityKind for QueryEffectLifecycleIdentityKind {}
 impl FoundationalIdentityKind for QueryCausalInspectionIdentityKind {}
 impl FoundationalIdentityKind for QuerySubscriptionIdentityKind {}
+impl FoundationalIdentityKind for QueryOperationProgressionIdentityKind {}
 
 pub struct QueryCanonicalDigestIdentityBasis;
 pub struct QueryReceiptDigestIdentityBasis;

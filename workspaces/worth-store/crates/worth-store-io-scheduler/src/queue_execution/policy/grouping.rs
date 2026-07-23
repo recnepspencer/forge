@@ -5,6 +5,82 @@ use worth_store_security::{
 use super::{QueueDurabilityClass, QueueGroupingDenial, QueueWorkClass};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct QueueLocalityIdentity {
+    digest: [u8; 32],
+    envelope: Option<QueueLocalityEnvelope>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct QueueLocalityEnvelope {
+    artifact: [u8; 32],
+    start: u64,
+    end: u64,
+    covered_bytes: u64,
+    members: u16,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QueueLocalityRelation {
+    Exact,
+    Adjacent,
+    Disjoint,
+    OverlappingOrInterleaved,
+    StructurallyUnknown,
+}
+
+impl QueueLocalityIdentity {
+    pub const fn from_digest(digest: [u8; 32]) -> Self {
+        Self {
+            digest,
+            envelope: None,
+        }
+    }
+
+    pub const fn from_single_artifact_scope(
+        digest: [u8; 32],
+        artifact: [u8; 32],
+        start: u64,
+        end: u64,
+        covered_bytes: u64,
+        members: u16,
+    ) -> Self {
+        Self {
+            digest,
+            envelope: Some(QueueLocalityEnvelope {
+                artifact,
+                start,
+                end,
+                covered_bytes,
+                members,
+            }),
+        }
+    }
+
+    pub const fn as_bytes(self) -> [u8; 32] {
+        self.digest
+    }
+
+    pub fn relation(self, other: Self) -> QueueLocalityRelation {
+        if self.digest == other.digest {
+            return QueueLocalityRelation::Exact;
+        }
+        let (Some(left), Some(right)) = (self.envelope, other.envelope) else {
+            return QueueLocalityRelation::StructurallyUnknown;
+        };
+        if left.artifact != right.artifact {
+            return QueueLocalityRelation::Disjoint;
+        }
+        if left.end == right.start || right.end == left.start {
+            return QueueLocalityRelation::Adjacent;
+        }
+        if left.end <= right.start || right.end <= left.start {
+            return QueueLocalityRelation::Disjoint;
+        }
+        QueueLocalityRelation::OverlappingOrInterleaved
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueueRecoveryOrdering {
     NotRecoveryCritical,
     WalBeforeData,
@@ -29,6 +105,7 @@ pub struct QueueGroupingBasis {
     work_class: QueueWorkClass,
     recovery_ordering: QueueRecoveryOrdering,
     writeback_policy: QueueWritebackPolicy,
+    locality: Option<QueueLocalityIdentity>,
 }
 
 impl QueueGroupingBasis {
@@ -54,7 +131,13 @@ impl QueueGroupingBasis {
             work_class,
             recovery_ordering,
             writeback_policy,
+            locality: None,
         }
+    }
+
+    pub(crate) const fn with_locality(mut self, locality: QueueLocalityIdentity) -> Self {
+        self.locality = Some(locality);
+        self
     }
 
     pub fn compatible_with(self, other: Self) -> Result<(), QueueGroupingDenial> {
@@ -84,6 +167,9 @@ impl QueueGroupingBasis {
         }
         if self.writeback_policy != other.writeback_policy {
             return Err(QueueGroupingDenial::WritebackPolicyMismatch);
+        }
+        if self.locality != other.locality {
+            return Err(QueueGroupingDenial::LocalityMismatch);
         }
         Ok(())
     }
@@ -122,5 +208,9 @@ impl QueueGroupingBasis {
 
     pub const fn writeback_policy(self) -> QueueWritebackPolicy {
         self.writeback_policy
+    }
+
+    pub const fn locality(self) -> Option<QueueLocalityIdentity> {
+        self.locality
     }
 }

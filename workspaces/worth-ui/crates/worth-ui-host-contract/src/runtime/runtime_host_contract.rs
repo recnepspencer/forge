@@ -24,6 +24,11 @@ pub trait WorthUiOperationalHostAdapter: WorthUiMeasurementHostAdapter {
     fn operational_host_contract(&self) -> WorthUiHostContract;
 
     fn operational_capability_report(&self) -> super::WorthUiHostCapabilityReport;
+
+    fn consume_output(
+        &self,
+        output: &super::WorthUiHostOutputEnvelope,
+    ) -> super::WorthUiHostOutputDisposition;
 }
 
 /// A configured host is operational by construction. Contract-only markers

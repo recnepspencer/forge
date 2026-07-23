@@ -1,0 +1,5 @@
+error[E0451]: field `rows` of struct `WorthQueryConsumptionCostSnapshot` is private
+ --> tests/ui/installed_domain/consumption_cost/snapshot_constructor_is_private.rs:4:55
+  |
+4 |     let _forged = WorthQueryConsumptionCostSnapshot { rows: Vec::new() };
+  |                                                       ^^^^ private field

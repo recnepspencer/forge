@@ -33,8 +33,49 @@ fn safe_boundary_is_sealed_inside_the_canonical_receipt() {
             .activation_gate_receipt()
             .counters()
             .boundary_check_count(),
-        3
+        4
     );
+}
+
+#[test]
+fn successful_activation_publishes_one_complete_region_bundle() {
+    let (mut runtime, pending, admitted) = ordinary_inputs();
+    let predecessor = runtime.active.active_plan();
+    let predecessor_observation = runtime.inspect_active();
+    let boundary = runtime.safe_frame_boundary();
+    runtime
+        .activate_admitted_allocation_catalog_at_frame_boundary(pending, admitted, boundary, None)
+        .expect("regional successor activates");
+    let successor = runtime.active.active_plan();
+    let successor_plan = successor.exact_plan();
+    let evidence = successor_plan.regional_evidence();
+
+    assert!(successor_plan.region_count() > 0);
+    assert!(!successor_plan.has_reconstructive_flat_projection());
+    assert_eq!(
+        evidence.predecessor_artifact_digest(),
+        Some(predecessor_observation.artifact_digest())
+    );
+    assert_eq!(
+        evidence.candidate_artifact_digest(),
+        runtime.inspect_active().artifact_digest()
+    );
+    assert_eq!(
+        evidence.affected_region_count(),
+        evidence.transitions().len()
+    );
+    for transition in evidence.transitions() {
+        assert!(evidence
+            .transition_for_region(transition.region_identity())
+            .is_some());
+    }
+    for identity in predecessor.exact_plan().canonical_region_identities() {
+        if evidence.transition_for_region(&identity).is_none() {
+            assert!(predecessor
+                .exact_plan()
+                .shares_exact_region_storage_with(successor_plan, &identity,));
+        }
+    }
 }
 
 #[test]

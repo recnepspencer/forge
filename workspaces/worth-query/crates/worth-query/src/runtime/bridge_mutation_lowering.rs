@@ -187,7 +187,7 @@ fn bridge_resolved_target_identity(
 fn continuity_resolved_target_identity(
     parts: RelationalBridgeRecordIdentityParts,
 ) -> Option<BridgeContinuityResolvedTargetIdentity> {
-    BridgeContinuityResolvedTargetIdentity::new(parts.bridge_entity_identity()).ok()
+    BridgeContinuityResolvedTargetIdentity::new(parts.terminal_projection_for_reporting()).ok()
 }
 
 fn continuity_target_collection(value: &str) -> Option<BridgeContinuityTargetCollection> {

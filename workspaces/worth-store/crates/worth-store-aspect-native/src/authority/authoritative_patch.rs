@@ -1,6 +1,9 @@
-use worth_foundational::{AspectKey, AuthoritativeRecordAspectPatch};
+use worth_foundational::{AspectKey, AspectMask, AuthoritativeRecordAspectPatch, MutationMask};
 
-use crate::{StoreAspectIdentity, StoreAspectNativeDenial, StorePhysicalBoundaryWitness};
+use crate::{
+    StoreAspectContractStamp, StoreAspectIdentity, StoreAspectNativeDenial,
+    StorePhysicalBoundaryWitness,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoreAspectPatchAuthorityInput {
@@ -55,6 +58,51 @@ impl StoreAspectPatchBoundaryFact {
 
     pub const fn patch_input(&self) -> &StoreAspectPatchAuthorityInput {
         &self.patch_input
+    }
+
+    pub fn contract_stamp(&self) -> Option<StoreAspectContractStamp> {
+        let patch = self.patch_input.patch();
+        let mut stamps =
+            patch
+                .whole_aspect_sets()
+                .map(|(_, value)| StoreAspectContractStamp::from_validated_value(value))
+                .chain(
+                    patch
+                        .whole_aspect_clear_contracts()
+                        .map(|(_, contract)| StoreAspectContractStamp::from_contract(contract)),
+                )
+                .chain(patch.field_patches().map(|(_, field_patch)| {
+                    StoreAspectContractStamp::from_field_patch(field_patch)
+                }));
+        let first = stamps.next()?;
+        stamps.all(|stamp| stamp == first).then_some(first)
+    }
+
+    pub fn semantic_byte_width(&self) -> usize {
+        self.identity
+            .aspect_key()
+            .as_str()
+            .len()
+            .saturating_add(self.patch_input.patch().semantic_byte_width())
+    }
+
+    pub fn is_within_mutation_mask(&self, admitted: &AspectMask<MutationMask>) -> bool {
+        if admitted.is_whole_aspect() {
+            return true;
+        }
+        let patch = self.patch_input.patch();
+        if patch.whole_aspect_sets().next().is_some()
+            || patch.whole_aspect_clears().next().is_some()
+        {
+            return false;
+        }
+        patch.field_patches().all(|(_, field_patch)| {
+            field_patch
+                .mask()
+                .paths()
+                .iter()
+                .all(|path| admitted.paths().binary_search(path).is_ok())
+        })
     }
 }
 

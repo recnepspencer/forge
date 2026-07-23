@@ -34,28 +34,17 @@ impl WorthQueryRuntime {
         ))?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Intent)?;
         let declaration = binding.declaration().clone();
-        let execution = self.backend.execute_intent(&declaration)?;
+        let execution = self
+            .backend
+            .execute_intent(&declaration)?
+            .admit_runtime_authority();
         admit_authoritative_execution(binding.handoff(), &execution).map_err(|violation| {
             let handoff = WorthQueryAdmittedIntentExecutionHandoff::from(binding.handoff().clone());
             let decision_trace_envelope =
                 WorthQueryIntentDecisionTraceEnvelope::for_execution_violation(
                     &handoff, &execution, &violation,
                 );
-            let snapshot_evidence_identity = execution
-                .mutation_receipt()
-                .snapshot_identity
-                .evidence_identity();
-            let execution_provenance =
-                WorthQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
-                    binding.family(),
-                    binding.entrypoint(),
-                    binding.execution_seam(),
-                    binding.handoff().decision_digest(),
-                    binding.handoff().handoff_digest(),
-                    binding.binding_digest(),
-                    execution.outcome_digest(),
-                    &snapshot_evidence_identity,
-                );
+            let execution_provenance = authoritative_execution_provenance(&binding, &execution);
             self.intent_violation_error(
                 &declaration,
                 violation,
@@ -64,53 +53,16 @@ impl WorthQueryRuntime {
                 Some(execution_provenance),
             )
         })?;
-        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
         let handoff = WorthQueryAdmittedIntentExecutionHandoff::from(binding.handoff().clone());
-        let snapshot_evidence_identity = execution
-            .mutation_receipt()
-            .snapshot_identity
-            .evidence_identity();
-        let execution_provenance =
-            WorthQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
-                binding.family(),
-                binding.entrypoint(),
-                binding.execution_seam(),
-                binding.handoff().decision_digest(),
-                binding.handoff().handoff_digest(),
-                binding.binding_digest(),
-                execution.outcome_digest(),
-                &snapshot_evidence_identity,
-            );
+        let execution_provenance = authoritative_execution_provenance(&binding, &execution);
         let decision_trace_envelope =
             WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution(&handoff, &execution);
-        let write_receipt = self
-            .route_authoritative_mutation_receipt(
-                execution.mutation_receipt().clone(),
-                summary.0,
-                summary.1,
-                summary.2,
-                None,
-                None,
-                None,
-                Vec::new(),
-                None,
-                None,
-                Vec::new(),
-                None,
-                WorthQueryMutationMetadata::default(),
-                Some(decision_trace_envelope.clone()),
-                Some(execution_provenance.clone()),
-                None,
-            )
-            .map_err(|error| {
-                self.intent_execution_routing_error(
-                    &declaration,
-                    &execution,
-                    execution_provenance.clone(),
-                    decision_trace_envelope.clone(),
-                    error,
-                )
-            })?;
+        let write_receipt = self.route_admitted_intent_execution(
+            &declaration,
+            &execution,
+            &execution_provenance,
+            &decision_trace_envelope,
+        )?;
         Ok(WorthQueryIntentReceipt::from_authoritative_binding(
             &binding,
             &declaration,
@@ -139,27 +91,16 @@ impl WorthQueryRuntime {
             })?;
         let declaration = binding.declaration().clone();
         self.admit_effect_write_intent_graph_obligation_boundary(&handoff, &pending_delivery)?;
-        let execution = self.backend.execute_intent(&declaration)?;
+        let execution = self
+            .backend
+            .execute_intent(&declaration)?
+            .admit_runtime_authority();
         admit_effect_execution(binding.handoff(), &execution).map_err(|violation| {
             let decision_trace_envelope =
                 WorthQueryIntentDecisionTraceEnvelope::for_execution_violation(
                     &handoff, &execution, &violation,
                 );
-            let snapshot_evidence_identity = execution
-                .mutation_receipt()
-                .snapshot_identity
-                .evidence_identity();
-            let execution_provenance =
-                WorthQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
-                    binding.family(),
-                    binding.entrypoint(),
-                    binding.execution_seam(),
-                    binding.handoff().decision_digest(),
-                    binding.handoff().handoff_digest(),
-                    binding.binding_digest(),
-                    execution.outcome_digest(),
-                    &snapshot_evidence_identity,
-                );
+            let execution_provenance = effect_execution_provenance(&binding, &execution);
             self.intent_violation_error(
                 &declaration,
                 violation,
@@ -168,52 +109,15 @@ impl WorthQueryRuntime {
                 Some(execution_provenance),
             )
         })?;
-        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
-        let snapshot_evidence_identity = execution
-            .mutation_receipt()
-            .snapshot_identity
-            .evidence_identity();
-        let execution_provenance =
-            WorthQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
-                binding.family(),
-                binding.entrypoint(),
-                binding.execution_seam(),
-                binding.handoff().decision_digest(),
-                binding.handoff().handoff_digest(),
-                binding.binding_digest(),
-                execution.outcome_digest(),
-                &snapshot_evidence_identity,
-            );
+        let execution_provenance = effect_execution_provenance(&binding, &execution);
         let decision_trace_envelope =
             WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution(&handoff, &execution);
-        let write_receipt = self
-            .route_authoritative_mutation_receipt(
-                execution.mutation_receipt().clone(),
-                summary.0,
-                summary.1,
-                summary.2,
-                None,
-                None,
-                None,
-                Vec::new(),
-                None,
-                None,
-                Vec::new(),
-                None,
-                WorthQueryMutationMetadata::default(),
-                Some(decision_trace_envelope.clone()),
-                Some(execution_provenance.clone()),
-                None,
-            )
-            .map_err(|error| {
-                self.intent_execution_routing_error(
-                    &declaration,
-                    &execution,
-                    execution_provenance.clone(),
-                    decision_trace_envelope.clone(),
-                    error,
-                )
-            })?;
+        let write_receipt = self.route_admitted_intent_execution(
+            &declaration,
+            &execution,
+            &execution_provenance,
+            &decision_trace_envelope,
+        )?;
         let intent_receipt = WorthQueryIntentReceipt::from_effect_binding(
             &binding,
             &declaration,
@@ -268,4 +172,71 @@ impl WorthQueryRuntime {
             },
         )
     }
+
+    fn route_admitted_intent_execution(
+        &mut self,
+        declaration: &WorthQueryIntentDeclaration,
+        execution: &WorthQueryIntentExecution,
+        provenance: &WorthQueryIntentExecutionProvenance,
+        decision_trace: &WorthQueryIntentDecisionTraceEnvelope,
+    ) -> Result<WorthQueryWriteReceipt, WorthQueryRuntimeError> {
+        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
+        self.route_authoritative_mutation_receipt(
+            WorthQueryAuthoritativeMutationRoutingInput::from_intent_execution(
+                execution.mutation_receipt().clone(),
+                summary,
+                decision_trace.clone(),
+                provenance.clone(),
+            ),
+        )
+        .map_err(|error| {
+            self.intent_execution_routing_error(
+                declaration,
+                execution,
+                provenance.clone(),
+                decision_trace.clone(),
+                error,
+            )
+        })
+    }
+}
+
+fn authoritative_execution_provenance(
+    binding: &WorthQueryAuthoritativeIntentExecutionBinding,
+    execution: &WorthQueryIntentExecution,
+) -> WorthQueryIntentExecutionProvenance {
+    let snapshot_identity = execution
+        .mutation_receipt()
+        .snapshot_identity
+        .evidence_identity();
+    WorthQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+        binding.family(),
+        binding.entrypoint(),
+        binding.execution_seam(),
+        binding.handoff().decision_digest(),
+        binding.handoff().handoff_digest(),
+        binding.binding_digest(),
+        execution.outcome_digest(),
+        &snapshot_identity,
+    )
+}
+
+fn effect_execution_provenance(
+    binding: &WorthQueryEffectTriggeredIntentExecutionBinding,
+    execution: &WorthQueryIntentExecution,
+) -> WorthQueryIntentExecutionProvenance {
+    let snapshot_identity = execution
+        .mutation_receipt()
+        .snapshot_identity
+        .evidence_identity();
+    WorthQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+        binding.family(),
+        binding.entrypoint(),
+        binding.execution_seam(),
+        binding.handoff().decision_digest(),
+        binding.handoff().handoff_digest(),
+        binding.binding_digest(),
+        execution.outcome_digest(),
+        &snapshot_identity,
+    )
 }

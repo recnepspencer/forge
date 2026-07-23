@@ -1,4 +1,4 @@
-use worth_ui::facade::CommandId;
+use worth_ui::facade::registry::CommandId;
 
 fn main() {
     accepts_command("app.command.save");

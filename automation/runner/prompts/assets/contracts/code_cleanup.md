@@ -22,7 +22,7 @@ Also read the coding laws that govern cleanup work:
 - `_docs/coding_guidelines/domain_structure_laws.md`
 - `_docs/coding_guidelines/perf_laws.md`
 
-Read `_docs/more_guidelines/dx_laws.md` when public caller experience,
+Read `_docs/coding_guidelines/dx_laws.md` when public caller experience,
 facades, examples, or ergonomic capability flow changes.
 
 ## Cleanup posture

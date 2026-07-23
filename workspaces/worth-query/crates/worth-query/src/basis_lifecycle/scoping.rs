@@ -1,5 +1,6 @@
 use crate::identity::hash_parts;
 
+use super::admitted_capability::AdmittedBasisCapability;
 use super::counters::BasisEligibilityCounters;
 use super::lanes::{
     BasisOperationLane, CertificationLaneWitness, InspectionLaneWitness,
@@ -7,7 +8,6 @@ use super::lanes::{
     PreviewCloseoutLaneWitness, ReplayLaneWitness, SubscriptionActivationLaneWitness,
     SubscriptionDeclarationLaneWitness,
 };
-use super::proofs::AdmittedBasisCapability;
 use super::taxonomy::{BasisAuthorityPosture, BasisFamily, BasisLifecyclePosture};
 
 macro_rules! scoped_basis {

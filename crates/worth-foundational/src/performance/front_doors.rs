@@ -129,7 +129,7 @@ impl FoundationalPerformanceFrontDoor {
 
     pub fn work_class_definitions(
         &self,
-    ) -> [crate::performance::FoundationalPerformanceWorkClassDefinition; 6] {
+    ) -> [crate::performance::FoundationalPerformanceWorkClassDefinition; 8] {
         foundational_performance_work_class_definitions()
     }
 

@@ -95,7 +95,7 @@ fn reject_missing_lifecycle(
     counters: AccessPolicyCounterSnapshot,
 ) -> Result<(), AccessPolicyDenial> {
     match request.buffer_lifecycle().map(|lifecycle| lifecycle.kind()) {
-        Some(AccessPolicyBufferLifecycleKind::PinnedS2Lease)
+        Some(AccessPolicyBufferLifecycleKind::PinnedPhysicalLease)
         | Some(AccessPolicyBufferLifecycleKind::DirtyPageTracked) => Ok(()),
         Some(AccessPolicyBufferLifecycleKind::DirtyMmapPage)
             if request_involves_direct_io(request) =>

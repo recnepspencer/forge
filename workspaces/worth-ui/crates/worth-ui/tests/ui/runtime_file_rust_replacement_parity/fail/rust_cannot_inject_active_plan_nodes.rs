@@ -2,10 +2,12 @@ use worth_ui::facade::WorthUiExecutionPlan;
 
 fn main() {
     let _plan = WorthUiExecutionPlan {
+        lowering_identity: uninitialized_field(),
         handle_receipt: uninitialized_field(),
-        topology: uninitialized_field(),
-        lane_partitions: Vec::new(),
-        lookup_index: uninitialized_field(),
+        flat_projection: None,
+        region_store: uninitialized_field(),
+        construction_counters: uninitialized_field(),
+        regional_evidence: uninitialized_field(),
         counters: uninitialized_field(),
     };
 }

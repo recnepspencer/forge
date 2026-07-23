@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding,
+    registry::{CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding},
 };
 
 fn main() {

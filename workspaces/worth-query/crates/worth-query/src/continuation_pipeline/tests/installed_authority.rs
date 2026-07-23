@@ -50,7 +50,9 @@ fn prepared_continuation_rejects_stale_generation_on_current_handle() {
         .installed_authority()
         .authority()
         .installation_generation();
-    workspace.replace_domain_installation_with_successor_generation();
+    workspace
+        .replace_domain_installation_with_successor_generation()
+        .unwrap();
     let current_handle = continuation_handle_in(&workspace, "main");
     assert!(
         current_handle
@@ -88,7 +90,9 @@ fn prepared_continuation_rejects_stale_generation_on_current_handle() {
 fn stale_handle_cannot_prepare_after_generation_turnover() {
     let (mut workspace, stale_handle) = admitted_workspace("main");
     let request = target_request::<RuntimeFamily>(&stale_handle, "face-a", runtime_route_request());
-    workspace.replace_domain_installation_with_successor_generation();
+    workspace
+        .replace_domain_installation_with_successor_generation()
+        .unwrap();
 
     let WorthQueryPreparedContinuationOutcome::InstalledAuthorityDrift(drift) =
         stale_handle.prepare_continuation_from_target(request)

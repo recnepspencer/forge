@@ -120,7 +120,7 @@ truth basis remains folklore.
   protects bounded breadth, locality, and explicit equivalence contracts. 3.8
   must prove neighborhood-bounded replanning and receipt reuse without
   heuristic debounce folklore.
-- `more_guidelines/dx_laws.md`
+- `coding_guidelines/dx_laws.md`
   protects organized truth as developer experience. The correct Query-bound
   UI path must be the shortest declarative path, invalid next acts must be
   absent from autocomplete, and advanced evidence must remain inspectable

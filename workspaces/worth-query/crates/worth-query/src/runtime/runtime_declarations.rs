@@ -68,9 +68,7 @@ impl WorthQueryRuntime {
             schema_view,
             &activation,
         )?;
-        register_live_subscription_index(
-            &mut self.live_subscription_index,
-            &name,
+        self.live_subscription_index.register(
             WorthQueryLiveArtifactTarget::from_subscription_installation(&activation.installation),
             &activation.request,
         );

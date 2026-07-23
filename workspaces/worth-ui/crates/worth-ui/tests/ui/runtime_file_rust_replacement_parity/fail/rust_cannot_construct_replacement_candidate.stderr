@@ -1,13 +1,23 @@
-error[E0451]: fields `bundle`, `cause`, `provenance_handle` and `authoring_lane` of struct `WorthUiReplacementCandidate` are private
- --> tests/ui/runtime_file_rust_replacement_parity/fail/rust_cannot_construct_replacement_candidate.rs:5:9
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiCandidateAuthoringLane`, `worth_ui::facade::WorthUiReplacementCandidate`
+ --> tests/ui/runtime_file_rust_replacement_parity/fail/rust_cannot_construct_replacement_candidate.rs:1:24
   |
-4 |     let _candidate = WorthUiReplacementCandidate {
-  |                      --------------------------- in this type
-5 |         bundle: uninitialized_field(),
-  |         ^^^^^^ private field
-6 |         cause: uninitialized_field(),
-  |         ^^^^^ private field
-7 |         provenance_handle: uninitialized_field(),
-  |         ^^^^^^^^^^^^^^^^^ private field
-8 |         authoring_lane: WorthUiCandidateAuthoringLane::RustAuthored,
-  |         ^^^^^^^^^^^^^^ private field
+1 | use worth_ui::facade::{WorthUiCandidateAuthoringLane, WorthUiReplacementCandidate};
+  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiReplacementCandidate` in `facade`
+  |                        |
+  |                        no `WorthUiCandidateAuthoringLane` in `facade`
+  |
+  = help: consider importing this enum instead:
+          worth_ui_runtime::facade::WorthUiCandidateAuthoringLane
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiReplacementCandidate
+
+error[E0432]: unresolved import `worth_ui::facade::WorthUiExecutionPlan`
+ --> tests/ui/runtime_file_rust_replacement_parity/fail/rust_cannot_inject_active_plan_nodes.rs
+  |
+  | use worth_ui::facade::WorthUiExecutionPlan;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiExecutionPlan` in `facade`
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_ui_runtime::facade::WorthUiExecutionPlan;
+  |             ++++++++

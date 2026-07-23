@@ -26,7 +26,7 @@ pub(super) fn resolve(
     graph: &SignalGraph,
 ) -> Result<ResolvedCorrespondence, CorrespondenceAdmissionOutcome> {
     let unresolved = BridgeInstalledSemanticCorrespondence::begin(dependency);
-    let mut counters = CorrespondenceAdmissionCounters {
+    let counters = CorrespondenceAdmissionCounters {
         query_dependency_lookups: 1,
         ..CorrespondenceAdmissionCounters::default()
     };
@@ -39,6 +39,35 @@ pub(super) fn resolve(
             counters,
         ));
     };
+    resolve_declarations(runtime, unresolved, declarations, graph, counters)
+}
+
+pub(super) fn resolve_registration(
+    runtime: &RuntimeBridge,
+    registration: &super::BridgeSemanticCorrespondenceRegistration,
+    graph: &SignalGraph,
+) -> Result<ResolvedCorrespondence, CorrespondenceAdmissionOutcome> {
+    let unresolved = BridgeInstalledSemanticCorrespondence::begin(registration.dependency.clone());
+    let counters = CorrespondenceAdmissionCounters {
+        provided_registration_reads: 1,
+        ..CorrespondenceAdmissionCounters::default()
+    };
+    resolve_declarations(
+        runtime,
+        unresolved,
+        registration.targets.clone(),
+        graph,
+        counters,
+    )
+}
+
+fn resolve_declarations(
+    runtime: &RuntimeBridge,
+    unresolved: worth_proof::Recipe<worth_proof::Unresolved, BridgeSemanticDependencyCandidate>,
+    declarations: Vec<BridgeSignalAspectTargetDeclaration>,
+    graph: &SignalGraph,
+    mut counters: CorrespondenceAdmissionCounters,
+) -> Result<ResolvedCorrespondence, CorrespondenceAdmissionOutcome> {
     counters.registered_targets_materialized = declarations.len();
     let signal_graph = graph.installed_graph_capability();
     let graph_basis = declarations[0].graph_instance_id();

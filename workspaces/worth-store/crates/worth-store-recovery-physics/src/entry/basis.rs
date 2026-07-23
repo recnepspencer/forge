@@ -1,15 +1,15 @@
 use crate::{
     AdmittedRecoveryIntegrityInput, PartialPublicationBeforeWalReplayRead, RecoveryMemoryEnvelope,
 };
-use worth_store_buffer_pool::{AllocationScope, BackgroundEnvelopeCounterSnapshot};
+use worth_store_buffer_pool::OperationAllocationScope;
 use worth_store_contracts::{PhysicalAuthorityRecap, StableDigest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryEntryBasis {
     integrity_handoff_identity: StableDigest,
     integrity_damage_basis: StableDigest,
-    memory_allocation_scope: AllocationScope,
-    memory_counters: BackgroundEnvelopeCounterSnapshot,
+    memory_allocation_scope: OperationAllocationScope,
+    memory_counters: crate::RecoveryMemoryCounterSnapshot,
     physical_reference_count: u32,
     header_decode_witness_count: u32,
     payload_admission_witness_count: u32,
@@ -45,11 +45,11 @@ impl RecoveryEntryBasis {
         &self.integrity_damage_basis
     }
 
-    pub const fn memory_allocation_scope(&self) -> AllocationScope {
+    pub const fn memory_allocation_scope(&self) -> OperationAllocationScope {
         self.memory_allocation_scope
     }
 
-    pub const fn memory_counters(&self) -> BackgroundEnvelopeCounterSnapshot {
+    pub const fn memory_counters(&self) -> crate::RecoveryMemoryCounterSnapshot {
         self.memory_counters
     }
 

@@ -1,5 +1,8 @@
 use worth_ui::facade::{
-    MosaicPlacementAction, MosaicPlacementSource, MosaicPlacementTarget, MosaicRegionRole, WorthUi,
+    app::WorthUi,
+    registry::{
+        MosaicPlacementAction, MosaicPlacementSource, MosaicPlacementTarget, MosaicRegionRole,
+    },
 };
 
 use super::mosaic_placement_registry_assertions::assert_registered_mosaic_placement_ids;

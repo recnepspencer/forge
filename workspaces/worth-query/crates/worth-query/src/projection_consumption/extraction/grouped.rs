@@ -3,7 +3,8 @@ use worth_relational::facade::grouped_truth::RelationalGroupedProjectionArtifact
 use worth_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
 
 use super::super::consumed::{
-    ConsumedMembershipFact, ConsumedProjectionFactSet, ConsumedRelationEndpointFact,
+    ConsumedMembershipFact, ConsumedProjectionContractProvenance, ConsumedProjectionFactInventory,
+    ConsumedProjectionFactSet, ConsumedProjectionSourceTruth, ConsumedRelationEndpointFact,
     ConsumedViewLocalIdentityFact, ProjectionFactExtractionCounters,
 };
 use super::super::contracts::MaterializedProjectionContract;
@@ -156,12 +157,13 @@ where
         view_local_identities.len() + memberships.len() + relation_endpoints.len();
 
     Ok(ConsumedProjectionFactSet::new(
-        contract.declaration_digest(),
-        contract.contract_digest(),
-        contract.source_family(),
-        contract.source_identity_handle().clone(),
-        contract.support_posture().clone(),
-        contract.materialized_fact_posture().cloned(),
+        ConsumedProjectionContractProvenance::from_contract(contract),
+        ConsumedProjectionSourceTruth::from_contract(
+            contract,
+            crate::projection_consumption::ConsumedNativeLayoutProof::from_contract(
+                contract, row_count,
+            ),
+        ),
         ProjectionFactExtractionCounters::new(
             contract.fact_families().len(),
             contract.fact_families().len(),
@@ -169,14 +171,16 @@ where
             source_row_width_consumed,
             0,
         ),
-        Vec::new(),
-        view_local_identities,
-        memberships,
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        relation_endpoints,
+        ConsumedProjectionFactInventory {
+            entity_identities: Vec::new(),
+            view_local_identities,
+            memberships,
+            display_fields: Vec::new(),
+            derived_fields: Vec::new(),
+            target_identities: Vec::new(),
+            source_references: Vec::new(),
+            effect_continuity_facts: Vec::new(),
+            relation_endpoints,
+        },
     ))
 }

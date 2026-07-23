@@ -10,16 +10,30 @@ pub(super) fn writeback_causality_match_count(
     )
 }
 
+pub(super) struct WritebackExecutionCounterEvidence<'a> {
+    pub(super) loop_prevention: &'a BridgeWritebackLoopPreventionReport,
+    pub(super) outcome: Option<&'a BridgeWritebackAuthorityOutcome>,
+    pub(super) error_kind: Option<BridgeWritebackErrorKind>,
+    pub(super) candidate_present: bool,
+    pub(super) mapper_record_present: bool,
+    pub(super) request_present: bool,
+    pub(super) receipt_present: bool,
+    pub(super) replay_bundle_present: bool,
+}
+
 pub(super) fn writeback_execution_counters(
-    loop_prevention: &BridgeWritebackLoopPreventionReport,
-    outcome: Option<&BridgeWritebackAuthorityOutcome>,
-    error_kind: Option<BridgeWritebackErrorKind>,
-    candidate_present: bool,
-    mapper_record_present: bool,
-    request_present: bool,
-    receipt_present: bool,
-    replay_bundle_present: bool,
+    evidence: WritebackExecutionCounterEvidence<'_>,
 ) -> BridgeWritebackCounters {
+    let WritebackExecutionCounterEvidence {
+        loop_prevention,
+        outcome,
+        error_kind,
+        candidate_present,
+        mapper_record_present,
+        request_present,
+        receipt_present,
+        replay_bundle_present,
+    } = evidence;
     debug_assert!(
         !receipt_present || request_present,
         "receipts should only exist for emitted requests"
@@ -29,33 +43,9 @@ pub(super) fn writeback_execution_counters(
         "replay bundles should only exist for lowered outcomes"
     );
     let authority_boundary_observed = request_present || receipt_present;
-    let noop_count = usize::from(
-        loop_prevention.disposition() == BridgeWritebackLoopDisposition::CanonicalNoop
-            || outcome.is_some_and(|value| {
-                value.outcome_class() == BridgeWritebackOutcomeClass::CanonicalNoop
-            }),
-    );
-    let commit_count = usize::from(outcome.is_some_and(|value| {
-        value.outcome_class() == BridgeWritebackOutcomeClass::AuthoritativeCommit
-    }));
-    let strategy_rejection_count = usize::from(matches!(
-        error_kind,
-        Some(
-            BridgeWritebackErrorKind::StrategyUnavailable
-                | BridgeWritebackErrorKind::FamilyBindingMismatch
-                | BridgeWritebackErrorKind::StrategyDescriptorMismatch
-        )
-    ));
-    let validation_rejection_count = usize::from(matches!(
-        error_kind,
-        Some(
-            BridgeWritebackErrorKind::WritebackNotRequested
-                | BridgeWritebackErrorKind::PolicyRejected
-                | BridgeWritebackErrorKind::IdempotenceBasisMismatch
-                | BridgeWritebackErrorKind::InvariantRejected
-                | BridgeWritebackErrorKind::PreviewWritebackRejected
-        )
-    ));
+    let (noop_count, commit_count) = classify_outcome_counts(loop_prevention, outcome);
+    let (strategy_rejection_count, validation_rejection_count) =
+        classify_rejection_counts(error_kind);
 
     BridgeWritebackCounters::new(
         1,
@@ -83,6 +73,42 @@ pub(super) fn writeback_execution_counters(
         0,
         0,
     )
+}
+
+fn classify_outcome_counts(
+    loop_prevention: &BridgeWritebackLoopPreventionReport,
+    outcome: Option<&BridgeWritebackAuthorityOutcome>,
+) -> (usize, usize) {
+    let noop = loop_prevention.disposition() == BridgeWritebackLoopDisposition::CanonicalNoop
+        || outcome.is_some_and(|value| {
+            value.outcome_class() == BridgeWritebackOutcomeClass::CanonicalNoop
+        });
+    let commit = outcome.is_some_and(|value| {
+        value.outcome_class() == BridgeWritebackOutcomeClass::AuthoritativeCommit
+    });
+    (usize::from(noop), usize::from(commit))
+}
+
+fn classify_rejection_counts(error_kind: Option<BridgeWritebackErrorKind>) -> (usize, usize) {
+    let strategy = matches!(
+        error_kind,
+        Some(
+            BridgeWritebackErrorKind::StrategyUnavailable
+                | BridgeWritebackErrorKind::FamilyBindingMismatch
+                | BridgeWritebackErrorKind::StrategyDescriptorMismatch
+        )
+    );
+    let validation = matches!(
+        error_kind,
+        Some(
+            BridgeWritebackErrorKind::WritebackNotRequested
+                | BridgeWritebackErrorKind::PolicyRejected
+                | BridgeWritebackErrorKind::IdempotenceBasisMismatch
+                | BridgeWritebackErrorKind::InvariantRejected
+                | BridgeWritebackErrorKind::PreviewWritebackRejected
+        )
+    );
+    (usize::from(strategy), usize::from(validation))
 }
 
 pub(super) fn writeback_replay_validation_counters(mismatch: bool) -> BridgeWritebackCounters {

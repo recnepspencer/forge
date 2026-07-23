@@ -1,25 +1,19 @@
 use std::borrow::Borrow;
 
 use super::construct_verified_planning_input_handoff;
+use super::WorthUiAllocationReplanDenial;
 use crate::evidence::{UiConstraintPropagationDenial, UiMeasurementBasis};
-use crate::runtime::allocation_planning::WorthUiAllocationPlanner;
-use crate::runtime::launch::runtime_instance::WorthUiRuntime;
+use crate::runtime::planning::allocation_planning::WorthUiAllocationPlanner;
 use crate::runtime::planning::UiAllocationCandidateMintAuthority;
 use crate::runtime::{
     UiAllocationCandidate, WorthUiAllocationPlanning, WorthUiAllocationPlanningBasis,
     WorthUiAllocationPlanningCounters, WorthUiAllocationPlanningDenial,
-    WorthUiAllocationPlanningDenialReason, WorthUiExecutionPlanInput, WorthUiPendingActivation,
-    WorthUiPlanLoweringDenial,
+    WorthUiAllocationPlanningDenialReason, WorthUiPendingActivation,
 };
 
 pub(crate) enum ConstraintSetAdmissionDecision {
     Admitted(crate::graph::UiAdmittedAllocationConstraintBasis),
     Denied(UiConstraintPropagationDenial),
-}
-
-pub(crate) enum PlanLoweringDecision {
-    Lowered(WorthUiExecutionPlanInput),
-    Denied(WorthUiPlanLoweringDenial),
 }
 
 pub(crate) fn classify_constraint_set_admission(
@@ -29,16 +23,6 @@ pub(crate) fn classify_constraint_set_admission(
     match measurement_basis.admit_allocation_constraint_basis(allocation_neighborhood) {
         Ok(constraint_set) => ConstraintSetAdmissionDecision::Admitted(constraint_set),
         Err(denial) => ConstraintSetAdmissionDecision::Denied(denial),
-    }
-}
-
-pub(crate) fn lower_execution_plan_for_planning<P: Borrow<WorthUiPendingActivation>>(
-    host: &WorthUiRuntime,
-    pending_activation: P,
-) -> PlanLoweringDecision {
-    match host.prepare_execution_plan_input(pending_activation) {
-        Ok(lowered_input) => PlanLoweringDecision::Lowered(lowered_input),
-        Err(plan_lowering_denial) => PlanLoweringDecision::Denied(plan_lowering_denial),
     }
 }
 
@@ -58,8 +42,6 @@ pub(crate) fn build_constraint_set_denial_planning(
         WorthUiAllocationPlanningDenialReason::ConstraintSetDenied,
         None,
         Some(constraint_set_denial),
-        None,
-        None,
         counters,
     ));
     UiAllocationCandidate::from_planning(
@@ -69,7 +51,6 @@ pub(crate) fn build_constraint_set_denial_planning(
 }
 
 pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingActivation>>(
-    host: &WorthUiRuntime,
     pending_activation: P,
     measurement_basis: &UiMeasurementBasis,
     allocation_neighborhood: &crate::evidence::UiAllocationNeighborhood,
@@ -87,41 +68,24 @@ pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingAct
             let handoff =
                 construct_verified_planning_input_handoff(pending_activation, constraint_basis)
                     .expect("constraint admission must preserve graph-planning alignment");
-            match lower_execution_plan_for_planning(host, pending_activation) {
-                PlanLoweringDecision::Lowered(lowered_input) => {
-                    UiAllocationCandidate::from_planning(
-                        WorthUiAllocationPlanner::plan_from_lowered_input(
-                            handoff.into_admission(),
-                            lowered_input,
-                        ),
-                        UiAllocationCandidateMintAuthority::new(),
-                    )
-                }
-                PlanLoweringDecision::Denied(plan_lowering_denial) => {
-                    UiAllocationCandidate::from_planning(
-                        WorthUiAllocationPlanner::deny_from_plan_lowering(
-                            measurement_basis,
-                            allocation_neighborhood,
-                            plan_lowering_denial,
-                        ),
-                        UiAllocationCandidateMintAuthority::new(),
-                    )
-                }
-            }
+            UiAllocationCandidate::from_planning(
+                WorthUiAllocationPlanner::plan(handoff.into_admission()),
+                UiAllocationCandidateMintAuthority::new(),
+            )
         }
     }
 }
 
 pub(crate) fn replan_admitted_candidate(
     previous: &UiAllocationCandidate,
-) -> Result<UiAllocationCandidate, WorthUiAllocationPlanningDenialReason> {
+) -> Result<UiAllocationCandidate, WorthUiAllocationReplanDenial> {
     replan_admitted_candidate_with_portal(previous, None)
 }
 
 fn replan_admitted_candidate_with_portal(
     previous: &UiAllocationCandidate,
     portal: Option<crate::runtime::UiPortalAllocationPlanningBasis>,
-) -> Result<UiAllocationCandidate, WorthUiAllocationPlanningDenialReason> {
+) -> Result<UiAllocationCandidate, WorthUiAllocationReplanDenial> {
     let measurement_basis = previous.measurement_basis();
     let neighborhood = previous.allocation_neighborhood();
     let constraint_basis = portal
@@ -133,18 +97,20 @@ fn replan_admitted_candidate_with_portal(
                     .admit_allocation_constraint_basis_with_portal(neighborhood, portal)
             },
         )
-        .map_err(|_| WorthUiAllocationPlanningDenialReason::ConstraintSetDenied)?;
-    let lowered_input = previous
+        .map_err(|_| WorthUiAllocationReplanDenial::ConstraintSetDenied)?;
+    let projection = previous
         .planning()
-        .lowered_input()
-        .ok_or(WorthUiAllocationPlanningDenialReason::PlanLoweringDenied)?;
-    let admission = crate::runtime::allocation_planning::WorthUiAllocationPlanningAdmission::from_execution_plan_input(
-        &lowered_input,
-        constraint_basis,
-        portal,
-    );
+        .projection()
+        .cloned()
+        .ok_or(WorthUiAllocationReplanDenial::CandidateProjectionUnavailable)?;
+    let admission =
+        crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningAdmission::from_projection(
+            projection,
+            constraint_basis,
+            portal,
+        );
     Ok(UiAllocationCandidate::from_planning(
-        WorthUiAllocationPlanner::plan_from_lowered_input(admission, lowered_input),
+        WorthUiAllocationPlanner::plan(admission),
         UiAllocationCandidateMintAuthority::new(),
     ))
 }
@@ -207,11 +173,4 @@ pub(crate) fn replan_selected_candidates_with_resize(
         candidate.seal_resize_basis(basis.clone());
     }
     Ok(candidates)
-}
-
-#[cfg(test)]
-pub(crate) fn candidate_from_test_planning(
-    planning: WorthUiAllocationPlanning,
-) -> UiAllocationCandidate {
-    UiAllocationCandidate::from_planning(planning, UiAllocationCandidateMintAuthority::new())
 }

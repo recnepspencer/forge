@@ -1,4 +1,6 @@
-use worth_ui::facade::{CapabilitySnapshot, RegisteredCapabilitySet};
+use worth_ui::facade::{
+    diagnostics::{CapabilitySnapshot, RegisteredCapabilitySet},
+};
 
 fn main() {
     let _ = CapabilitySnapshot::from_registered_capabilities(registered_capabilities());

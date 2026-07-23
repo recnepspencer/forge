@@ -95,12 +95,28 @@ impl PhysicalRuntimeCore {
         self.runtime_identity
     }
 
+    pub(super) fn lifecycle_generation(&self) -> super::LifecycleGeneration {
+        self.shutdown.lifecycle_snapshot().generation
+    }
+
+    pub(super) fn lifecycle_state(&self) -> std::sync::Arc<super::lifecycle::LifecycleState> {
+        self.shutdown.lifecycle_state()
+    }
+
     pub(super) fn declared_store_root(&self) -> &DeclaredStoreRoot {
         self.shutdown.declared_root()
     }
 
     pub(super) fn progress_to_media_owned(&self) {
         self.shutdown.progress_to_media_owned();
+    }
+
+    pub(super) fn progress_to_record_serving(&self) {
+        self.shutdown.progress_to_record_serving();
+    }
+
+    pub(super) fn termination_guard(&self) -> super::lifecycle::LifecycleTerminationGuard {
+        super::lifecycle::LifecycleTerminationGuard::new(self.shutdown.lifecycle_state())
     }
 
     pub(super) fn media_observation_parts(

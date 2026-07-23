@@ -12,6 +12,8 @@ worth-query.workspace = true
 
 [dev-dependencies]
 trybuild.workspace = true
+worth-foundational.workspace = true
+worth-proof.workspace = true
 
 [[test]]
 name = "compile_certification"

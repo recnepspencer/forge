@@ -3,21 +3,25 @@ use std::marker::PhantomData;
 
 use crate::basis_lifecycle::BasisOperationLane;
 
+mod commit_posture;
+mod conditional_inventory;
 mod graph_contract;
 
 use super::authority_shape::WorthQueryBoundAuthorityShapeProofs;
+use commit_posture::admit_commit_posture;
+use conditional_inventory::{
+    admit_conditional_inventory, ConditionalInventoryAdmission, ConditionalInventoryOwner,
+};
 use graph_contract::admit_graph_contract;
 
 use super::{
-    WorthQueryBoundAuthoritySet, WorthQueryBoundCommitPosture, WorthQueryBoundDomainOperation,
-    WorthQueryBoundGraphParticipation, WorthQueryBoundRequiredDomain,
-    WorthQueryBoundRuntimeProviders, WorthQueryInstalledOperatingWorld,
-    WorthQueryOperationBindingCounters, WorthQueryOperationBindingDenial,
-    WorthQueryOperationBindingDenialKind,
+    WorthQueryBoundAuthoritySet, WorthQueryBoundDomainOperation, WorthQueryBoundGraphParticipation,
+    WorthQueryBoundRequiredDomain, WorthQueryBoundRuntimeProviders,
+    WorthQueryInstalledOperatingWorld, WorthQueryOperationBindingCounters,
+    WorthQueryOperationBindingDenial, WorthQueryOperationBindingDenialKind,
 };
 use crate::domain_installation::{
-    WorthQueryGraphCommitPosture, WorthQueryInstalledDomainHandle,
-    WorthQueryOperationEffectContract, WorthQueryOperationReversalContract,
+    WorthQueryInstalledDomainHandle, WorthQueryOperationEffectContract,
     WorthQueryOperationTouchContract,
 };
 
@@ -56,7 +60,7 @@ impl<'view, 'runtime, F, L: BasisOperationLane>
                     },
                     "installed operation lookup failed",
                     WorthQueryOperationBindingCounters {
-                        authority_checks: 1,
+                        authority_checks: denial.counters().authority_checks,
                         operation_lookups: denial.counters().indexed_operation_lookups,
                         ..WorthQueryOperationBindingCounters::default()
                     },
@@ -72,46 +76,40 @@ impl<'view, 'runtime, F, L: BasisOperationLane>
                 TypeId::of::<F>(),
             );
         let mut counters = WorthQueryOperationBindingCounters {
-            authority_checks: 1,
-            operation_lookups: 1,
+            authority_checks: operation.lookup_counters().authority_checks,
+            operation_lookups: operation.lookup_counters().indexed_operation_lookups,
+            graph_binding_lookups: operation.lookup_counters().graph_binding_lookups,
             ..WorthQueryOperationBindingCounters::default()
         };
         let semantics = operation.definition().semantics();
         counters.conditional_lowering_lookups += 1;
         let conditional_nodes = self.world.runtime.conditional_nodes::<D, O, F>();
-        let expected_conditional_count = semantics.conditional_nodes.len()
-            + match &semantics.workflow {
-                worth_query_installation::facade::WorthQueryOperationWorkflowContract::Declared(
-                    workflow,
-                ) => workflow
-                    .stages()
-                    .iter()
-                    .map(|stage| stage.semantics().conditional_nodes.len())
-                    .sum::<usize>(),
-                worth_query_installation::facade::WorthQueryOperationWorkflowContract::NotRequired => 0,
+        counters.conditional_lowerings_retained = conditional_nodes.len();
+        let conditional_inventory = admit_conditional_inventory(
+            operation.definition(),
+            &conditional_nodes,
+            ConditionalInventoryOwner {
+                runtime_authority: operation.domain_authority().runtime_authority().as_u64(),
+                installation_generation: operation.installation_generation().ordinal(),
+            },
+            &mut counters,
+        );
+        if !matches!(
+            conditional_inventory,
+            ConditionalInventoryAdmission::Admitted
+        ) {
+            let kind = match conditional_inventory {
+                ConditionalInventoryAdmission::Missing => {
+                    WorthQueryOperationBindingDenialKind::ConditionalLoweringNotInstalled
+                }
+                ConditionalInventoryAdmission::Drifted => {
+                    WorthQueryOperationBindingDenialKind::ConditionalLoweringDrift
+                }
+                ConditionalInventoryAdmission::Admitted => unreachable!(),
             };
-        if conditional_nodes.len() != expected_conditional_count {
             return Err(WorthQueryOperationBindingDenial::new(
-                WorthQueryOperationBindingDenialKind::ConditionalLoweringNotInstalled,
-                "installed conditional lowering count differs from the portable declaration",
-                counters,
-            ));
-        }
-        let exact_conditional_set = conditional_nodes.iter().all(|node| {
-            node.operation_identity == operation.definition().canonical_identity()
-                && node.runtime_authority
-                    == operation.domain_authority().runtime_authority().as_u64()
-                && node.installation_generation == operation.installation_generation().ordinal()
-                && crate::domain_installation::declared_node(
-                    operation.definition(),
-                    node.lowering.location(),
-                )
-                .is_some()
-        });
-        if !exact_conditional_set {
-            return Err(WorthQueryOperationBindingDenial::new(
-                WorthQueryOperationBindingDenialKind::ConditionalLoweringDrift,
-                "conditional lowering drifted from its operation, runtime, generation, or workflow stage",
+                kind,
+                "installed conditional lowerings differ from the portable declaration or owner",
                 counters,
             ));
         }
@@ -148,7 +146,7 @@ impl<'view, 'runtime, F, L: BasisOperationLane>
         }
         let mut graphs = Vec::with_capacity(bindings.len());
         for binding in bindings {
-            counters.graph_binding_lookups += 1;
+            counters.graph_participation_lookups += 1;
             let record = self
                 .world
                 .runtime
@@ -167,7 +165,7 @@ impl<'view, 'runtime, F, L: BasisOperationLane>
                     counters,
                 ));
             }
-            admit_graph_contract(&operation, &binding.role, &record, counters)?;
+            admit_graph_contract(&operation, &binding.role, &record, &mut counters)?;
             graphs.push(WorthQueryBoundGraphParticipation {
                 role: binding.role.clone(),
                 record,
@@ -201,6 +199,7 @@ impl<'view, 'runtime, F, L: BasisOperationLane>
                 authority,
             });
         }
+        counters.authority_shape_admissions += 1;
         let shape_proofs =
             WorthQueryBoundAuthorityShapeProofs::admit(&mut graphs, &mut required_domains)
                 .map_err(|_| {
@@ -210,9 +209,14 @@ impl<'view, 'runtime, F, L: BasisOperationLane>
                         counters,
                     )
                 })?;
-        let commit_posture = admit_commit_posture(&operation, &graphs, counters)?;
+        counters.commit_posture_classifications += 1;
+        let commit_posture = admit_commit_posture(&operation, &graphs, &mut counters)?;
+        counters.planning_steps += 1;
+        counters.executor_route_lookups += 1;
         let executor = self.world.runtime.domain_operation_executor::<D, O, F>();
+        counters.workflow_executor_route_lookups += 1;
         let workflow_executor = self.world.runtime.workflow_stage_executor::<D, O, F>();
+        counters.parallel_admission_route_lookups += 1;
         let workflow_parallel_admission_provider = self
             .world
             .runtime
@@ -233,92 +237,7 @@ impl<'view, 'runtime, F, L: BasisOperationLane>
                 workflow_parallel_admission_provider,
                 conditional_nodes,
             },
-        ))
-    }
-}
-
-fn admit_commit_posture<D, O, F>(
-    operation: &crate::domain_installation::WorthQueryInstalledDomainOperation<D, O, F>,
-    graphs: &[WorthQueryBoundGraphParticipation],
-    counters: WorthQueryOperationBindingCounters,
-) -> Result<WorthQueryBoundCommitPosture, WorthQueryOperationBindingDenial> {
-    let semantics = operation.definition().semantics();
-    let touched_roles = match &semantics.touches {
-        WorthQueryOperationTouchContract::Declared { graph_roles, .. } => graph_roles.as_slice(),
-        WorthQueryOperationTouchContract::NotRequired => &[],
-    };
-    let primary_graph_mutation = ((touched_roles.is_empty()
-        || matches!(
-            semantics.workflow,
-            worth_query_installation::facade::WorthQueryOperationWorkflowContract::Declared(_)
-        ))
-        && matches!(
-            semantics.effects,
-            WorthQueryOperationEffectContract::Declared { .. }
-        ))
-        || matches!(
-            &semantics.touches,
-            WorthQueryOperationTouchContract::Declared { graph_roles, .. }
-                if graph_roles.iter().any(|role| {
-                    semantics.graph_reads.roles().iter().any(|read| {
-                        read.role == *role
-                            && read.participation
-                                == crate::domain_installation::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph
-                    })
-                })
-        );
-    let mutating_graphs = graphs
-        .iter()
-        .filter(|graph| touched_roles.contains(&graph.role))
-        .collect::<Vec<_>>();
-    if mutating_graphs.is_empty() {
-        return Ok(if primary_graph_mutation {
-            WorthQueryBoundCommitPosture::Atomic
-        } else {
-            WorthQueryBoundCommitPosture::ReadOnly
-        });
-    }
-    if primary_graph_mutation {
-        return require_compensation(operation, counters);
-    }
-    let compensation_required = mutating_graphs.iter().any(|graph| {
-        graph.record.definition.contract.commit
-            == WorthQueryGraphCommitPosture::CompensationRequired
-    });
-    let atomic_count = mutating_graphs
-        .iter()
-        .filter(|graph| {
-            graph.record.definition.contract.commit
-                == WorthQueryGraphCommitPosture::AtomicAuthorityRequired
-        })
-        .count();
-    let mut commit_authorities = mutating_graphs
-        .iter()
-        .filter_map(|graph| graph.record.commit_authority.as_ref())
-        .map(std::sync::Arc::as_ref);
-    let first = commit_authorities.next();
-    let mismatch =
-        first.is_some_and(|first| commit_authorities.any(|next| !std::ptr::eq(first, next)));
-    let every_graph_shares_atomic_authority =
-        atomic_count == mutating_graphs.len() && first.is_some() && !mismatch;
-    if compensation_required || !every_graph_shares_atomic_authority {
-        return require_compensation(operation, counters);
-    }
-    Ok(WorthQueryBoundCommitPosture::Atomic)
-}
-
-fn require_compensation<D, O, F>(
-    operation: &crate::domain_installation::WorthQueryInstalledDomainOperation<D, O, F>,
-    counters: WorthQueryOperationBindingCounters,
-) -> Result<WorthQueryBoundCommitPosture, WorthQueryOperationBindingDenial> {
-    match operation.definition().semantics().reversal {
-        WorthQueryOperationReversalContract::Compensation { .. } => {
-            Ok(WorthQueryBoundCommitPosture::Compensated)
-        }
-        _ => Err(WorthQueryOperationBindingDenial::new(
-            WorthQueryOperationBindingDenialKind::CompensationUndeclared,
-            "primary and separate mutations or separate commit authorities require compensation",
             counters,
-        )),
+        ))
     }
 }

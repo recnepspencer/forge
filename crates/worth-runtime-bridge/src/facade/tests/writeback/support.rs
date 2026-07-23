@@ -291,6 +291,32 @@ pub(super) fn causality_basis(
     )
 }
 
+pub(super) fn mutation_causality_basis(
+    identity: BridgeWritebackCausalityIdentity,
+    truth_trigger_evidence_text: &str,
+    effect_intent: &BridgeWritebackEffectIntent,
+) -> BridgeWritebackNativeCausalityInputs {
+    let aspect_key = effect_intent
+        .authoritative_patch()
+        .whole_aspect_sets()
+        .next()
+        .map(|(aspect_key, _)| aspect_key.clone())
+        .expect("mutation authority test intent should contain one whole-aspect set");
+    let subject = crate::facade::BridgeMutationSubject::from_effect_intent_and_touches(
+        crate::facade::BridgeMutationSubjectTarget::new(
+            "BridgeMutationTestRecord",
+            crate::facade::RelationalBridgeRecordIdentityParts::entity(1, 7, 0),
+            crate::facade::BridgeMutationSubjectKind::Updated,
+        ),
+        effect_intent,
+        [crate::facade::BridgeMutationSubjectTouch::whole_aspect(
+            aspect_key,
+        )],
+    )
+    .expect("mutation authority test subject should cover its concrete patch");
+    causality_basis(identity, truth_trigger_evidence_text).bind_mutation_subject(subject)
+}
+
 pub(super) fn writeback_effect_intent(
     effect_class: BridgeWritebackEffectClass,
     marker: impl Into<String>,

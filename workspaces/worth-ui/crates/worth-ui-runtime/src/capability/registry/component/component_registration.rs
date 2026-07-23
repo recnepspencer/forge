@@ -1,7 +1,7 @@
 use crate::capability::{
-    CapabilityDiagnosticCode, CapabilitySupportKind, ComponentDescriptor, RegistrationCandidate,
-    RegistrationCandidateDiagnostic, RegistrationDependency, COMMAND_FAMILY_NAME,
-    COMPONENT_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME,
+    CapabilityDiagnosticCode, CapabilitySupportKind, ComponentDescriptor, ComponentExecutionLane,
+    RegistrationCandidate, RegistrationCandidateDiagnostic, RegistrationDependency,
+    COMMAND_FAMILY_NAME, COMPONENT_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME,
 };
 
 impl ComponentDescriptor {
@@ -46,6 +46,24 @@ fn add_component_descriptor_diagnostics(
         candidate = candidate.with_descriptor_diagnostic(RegistrationCandidateDiagnostic::new(
             CapabilityDiagnosticCode::IllegalComponentChildPolicy,
             "component child policy cannot claim shell layout authority",
+        ));
+    }
+
+    if descriptor.execution_lane() == ComponentExecutionLane::CanvasSpatial
+        && descriptor.canvas_spatial_contract().is_none()
+    {
+        candidate = candidate.with_descriptor_diagnostic(RegistrationCandidateDiagnostic::new(
+            CapabilityDiagnosticCode::MissingComponentCanvasSpatialContract,
+            "canvas spatial execution requires a bounded canvas contract",
+        ));
+    }
+
+    if descriptor.execution_lane() == ComponentExecutionLane::RealtimeOverlay
+        && descriptor.realtime_overlay_contract().is_none()
+    {
+        candidate = candidate.with_descriptor_diagnostic(RegistrationCandidateDiagnostic::new(
+            CapabilityDiagnosticCode::MissingComponentRealtimeOverlayContract,
+            "realtime overlay execution requires an immutable frame policy contract",
         ));
     }
 

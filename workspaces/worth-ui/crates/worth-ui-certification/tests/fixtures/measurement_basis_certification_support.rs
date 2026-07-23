@@ -1,8 +1,8 @@
 mod measurement_basis_query_support;
 
+use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::declaration::{UiDeclarationArtifact, UiDeclaredMeasurementPolicyPosture};
 use worth_ui::facade::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
-use worth_ui::facade::WorthUiApp;
 use worth_ui_host_contract::{
     UiFontMeasurementKey, UiFontMetricsObservation, UiFontMetricsRequest, UiHostObservationValue,
     UiMeasurementEvidenceFamily, UiMeasurementRequest, UiMeasurementRequestIdentity,
@@ -208,7 +208,7 @@ fn scroll_owned_scenario(
     artifact: &UiDeclarationArtifact,
     world_profile: UiGraphWorldProfile,
     generation: UiEvidenceAuthorityGeneration,
-    authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     host_requests: &[UiMeasurementBasisCertificationHostRequest],
 ) -> UiMeasurementBasisCertificationScenario {
     let capability_report = capability_report();
@@ -274,7 +274,7 @@ fn measurement_policy(artifact: &UiDeclarationArtifact) -> UiDeclaredMeasurement
 fn admission_target(
     app: &WorthUiApp,
     artifact: &UiDeclarationArtifact,
-    authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
 ) -> worth_ui::facade::admission::UiAdmissionTarget {
     let touch = measurement_touch(
         app,

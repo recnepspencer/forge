@@ -1,24 +1,22 @@
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
-use crate::data::node::EvaluationCondition;
 use crate::data::output::NodeEvaluationResult;
-use crate::logic::evaluation::EvaluationVerdict;
-use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 use worth_proof::{ExecuteReadyRecipeTransition, Transition};
 
-use super::artifact_reuse::resolve_artifact_reuse;
-use super::condition_resolution::{resolve_condition, ConditionDisposition};
-use super::dependency_versions::{
-    dependency_change_is_meaningful, observed_dependency_versions, record_dependency_versions,
-    SignalConditionalDependencyVersion,
-};
-use super::execution_proof::{prepare_execution_proof, SignalConditionalExecutedRecipe};
+mod application;
+mod preparation;
+
+use super::artifact_reuse::{resolve_artifact_reuse, SignalConditionalArtifactReuseObservation};
+use super::dependency_versions::{record_dependency_versions, SignalConditionalDependencyVersion};
+use super::execution_proof::SignalConditionalExecutedRecipe;
 use super::{
     InstalledSignalConditionResolver, InstalledSignalConditionalContract,
     SignalConditionalDecisionClass, SignalConditionalDecisionCounters,
     SignalConditionalDecisionEvidence,
 };
+use application::{apply_passive, ConditionalResolutionAttempt};
+use preparation::{prepare_conditional_attempt, PreparedConditionalAttempt};
 
 pub struct SignalConditionalExecutionRequest<'a> {
     pub(super) contract: &'a InstalledSignalConditionalContract,
@@ -75,70 +73,118 @@ impl SignalGraph {
         compute: impl FnOnce() -> Result<NodeEvaluationResult, SignalError>,
     ) -> Result<SignalConditionalDecisionEvidence, SignalConditionalExecutionFailure> {
         let mut counters = SignalConditionalDecisionCounters::default();
-        let result = execute_conditional_attempt(
-            self,
-            request,
-            condition_resolver,
-            comparator_resolver,
-            compute,
-            &mut counters,
-        );
+        let providers = ConditionalExecutionProviders {
+            condition: condition_resolver,
+            comparator: comparator_resolver,
+            compute: Some(compute),
+        };
+        let result = execute_conditional_attempt(self, request, providers, &mut counters);
         result.map_err(|error| SignalConditionalExecutionFailure { error, counters })
     }
 }
 
-fn execute_conditional_attempt(
+struct ConditionalExecutionProviders<'a, Condition, Comparator, Compute> {
+    condition: &'a mut Condition,
+    comparator: &'a mut Comparator,
+    compute: Option<Compute>,
+}
+
+struct ConditionalExecutionCompletion {
+    dependency_versions: Vec<SignalConditionalDependencyVersion>,
+    ready: super::execution_proof::SignalConditionalReadyRecipe,
+    node: crate::data::handle::NodeId,
+    output_aspect: crate::data::aspect::Aspect,
+    output_version_before: u64,
+    dependency_changed: bool,
+}
+
+struct ConditionalFinalization<'a> {
+    request: SignalConditionalExecutionRequest<'a>,
+    completion: ConditionalExecutionCompletion,
+    class: SignalConditionalDecisionClass,
+}
+
+fn execute_conditional_attempt<Condition, Comparator, Compute>(
     graph: &mut SignalGraph,
     request: SignalConditionalExecutionRequest<'_>,
-    condition_resolver: &mut impl InstalledSignalConditionResolver,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-    compute: impl FnOnce() -> Result<NodeEvaluationResult, SignalError>,
+    mut providers: ConditionalExecutionProviders<'_, Condition, Comparator, Compute>,
     counters: &mut SignalConditionalDecisionCounters,
-) -> Result<SignalConditionalDecisionEvidence, SignalError> {
-    validate_request(graph, &request)?;
-    let observed_dependency_versions = observed_dependency_versions(graph, request.contract)?;
-    let ready = prepare_execution_proof(graph, &request, &observed_dependency_versions)?;
-    let node = request.contract.node();
-    let output_aspect = crate::data::aspect::Aspect::new(0);
-    let output_version_before = graph.node_version_for_scope(node, output_aspect, None)?;
-    let dependencies = capture_dependencies(graph, node)?;
-    let dependency_changed =
-        dependency_change_is_meaningful(graph, request.contract, comparator_resolver, counters)?;
-    let has_dependencies =
-        !request.contract.dependency_aspects().is_empty() || !dependencies.as_slice().is_empty();
-    let external_trigger_requested = request.force_on_demand
-        || matches!(
-            request.contract.condition(),
-            EvaluationCondition::Installed(identity)
-                if matches!(
-                    identity.role(),
-                    crate::data::node::InstalledSignalConditionRole::TemporalWake
-                )
-        );
-    let class = if !dependency_changed && has_dependencies && !external_trigger_requested {
-        apply_passive(graph, node, dependencies, comparator_resolver)?;
+) -> Result<SignalConditionalDecisionEvidence, SignalError>
+where
+    Condition: InstalledSignalConditionResolver,
+    Comparator: ComparatorPolicyResolver,
+    Compute: FnOnce() -> Result<NodeEvaluationResult, SignalError>,
+{
+    let prepared = prepare_conditional_attempt(graph, &request, providers.comparator, counters)?;
+    let PreparedConditionalAttempt {
+        dependency_versions,
+        ready,
+        node,
+        output_aspect,
+        output_version_before,
+        dependencies,
+        dependency_changed,
+        passive_dependency_hit,
+    } = prepared;
+    let class = if passive_dependency_hit {
+        counters.application_contacts += 1;
+        apply_passive(graph, node, dependencies, providers.comparator)?;
         SignalConditionalDecisionClass::DependencyUnchanged
     } else {
         counters.condition_checks += 1;
-        resolve_and_apply_condition(
+        ConditionalResolutionAttempt {
             graph,
-            &request,
-            condition_resolver,
-            comparator_resolver,
-            compute,
+            request: &request,
+            providers: &mut providers,
             dependencies,
             counters,
-        )?
+        }
+        .resolve()?
     };
-    let output_version_after = graph.node_version_for_scope(node, output_aspect, None)?;
-    let artifact_reuse_admitted = resolve_artifact_reuse(
-        request.contract.artifact_reuse(),
+    finalize_conditional_attempt(
+        graph,
+        ConditionalFinalization {
+            request,
+            completion: ConditionalExecutionCompletion {
+                dependency_versions,
+                ready,
+                node,
+                output_aspect,
+                output_version_before,
+                dependency_changed,
+            },
+            class,
+        },
+        providers.comparator,
+        counters,
+    )
+}
+
+fn finalize_conditional_attempt(
+    graph: &mut SignalGraph,
+    finalization: ConditionalFinalization<'_>,
+    comparator: &mut impl ComparatorPolicyResolver,
+    counters: &mut SignalConditionalDecisionCounters,
+) -> Result<SignalConditionalDecisionEvidence, SignalError> {
+    let ConditionalFinalization {
+        request,
+        completion,
         class,
-        dependency_changed,
-        output_aspect,
-        output_version_before,
-        output_version_after,
-        comparator_resolver,
+    } = finalization;
+    retain_outcome_counter(class, counters);
+    counters.output_version_reads += 1;
+    let output_version_after =
+        graph.node_version_for_scope(completion.node, completion.output_aspect, None)?;
+    let artifact_reuse_admitted = resolve_artifact_reuse(
+        SignalConditionalArtifactReuseObservation {
+            policy: request.contract.artifact_reuse(),
+            class,
+            dependency_changed: completion.dependency_changed,
+            aspect: completion.output_aspect,
+            before: completion.output_version_before,
+            after: output_version_after,
+        },
+        comparator,
         counters,
     )?;
     if !matches!(
@@ -149,203 +195,76 @@ fn execute_conditional_attempt(
     ) {
         record_dependency_versions(graph, request.contract)?;
     }
-    let executed = ExecuteReadyRecipeTransition.transition(ready).into_value();
+    let executed = ExecuteReadyRecipeTransition
+        .transition(completion.ready)
+        .into_value();
+    counters.decisions_delivered += 1;
     Ok(mint_evidence(
         request,
-        class,
-        *counters,
-        artifact_reuse_admitted,
-        observed_dependency_versions,
-        executed,
+        ConditionalDecisionOutcome {
+            class,
+            counters: *counters,
+            artifact_reuse_admitted,
+            dependency_versions: completion.dependency_versions,
+            executed,
+        },
     ))
 }
 
-fn resolve_and_apply_condition(
-    graph: &mut SignalGraph,
-    request: &SignalConditionalExecutionRequest<'_>,
-    condition_resolver: &mut impl InstalledSignalConditionResolver,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-    compute: impl FnOnce() -> Result<NodeEvaluationResult, SignalError>,
-    dependencies: PreparedDependencyCapture,
+fn retain_outcome_counter(
+    class: SignalConditionalDecisionClass,
     counters: &mut SignalConditionalDecisionCounters,
-) -> Result<SignalConditionalDecisionClass, SignalError> {
-    let node = request.contract.node();
-    Ok(
-        match resolve_condition(graph, request, condition_resolver)? {
-            ConditionDisposition::Eligible => {
-                counters.compute_contacts += 1;
-                let prepared =
-                    PreparedEvaluation::from_result(compute()?).with_dependencies(dependencies);
-                let applied = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
-                    graph,
-                    node,
-                    prepared,
-                    comparator_resolver,
-                    None,
-                )?;
-                match applied.report.verdict {
-                    EvaluationVerdict::Recomputed => {
-                        counters.semantic_changes += 1;
-                        SignalConditionalDecisionClass::ComputedChanged
-                    }
-                    EvaluationVerdict::Suppressed { .. } => {
-                        SignalConditionalDecisionClass::ComputedRevertedClean
-                    }
-                    EvaluationVerdict::Deferred { .. } => {
-                        return Err(SignalError::internal(
-                            "computed conditional output cannot become a deferred verdict",
-                        ));
-                    }
-                }
-            }
-            ConditionDisposition::Suppressed => {
-                apply_passive(graph, node, dependencies, comparator_resolver)?;
-                SignalConditionalDecisionClass::SuppressedBeforeCompute
-            }
-            ConditionDisposition::Deferred => {
-                apply_deferred(graph, node, dependencies, comparator_resolver)?;
-                SignalConditionalDecisionClass::DeferredByCondition
-            }
-            ConditionDisposition::DeferredTemporal => {
-                apply_deferred(graph, node, dependencies, comparator_resolver)?;
-                SignalConditionalDecisionClass::DeferredTemporal
-            }
-            ConditionDisposition::DeferredOnDemand => {
-                apply_deferred(graph, node, dependencies, comparator_resolver)?;
-                SignalConditionalDecisionClass::DeferredOnDemand
-            }
-        },
-    )
-}
-
-fn validate_request(
-    graph: &SignalGraph,
-    request: &SignalConditionalExecutionRequest<'_>,
-) -> Result<(), SignalError> {
-    if request.contract.graph_instance_id() != graph.runtime_instance_id()
-        || request.attempt == 0
-        || request.snapshot_identity.is_empty()
-        || request.execution_identity.is_empty()
-    {
-        return Err(SignalError::invalid_input(
-            "conditional request carried a foreign graph, empty snapshot, or zero attempt",
-        ));
+) {
+    match class {
+        SignalConditionalDecisionClass::ComputedRevertedClean => {
+            counters.reverted_clean_outcomes += 1;
+        }
+        SignalConditionalDecisionClass::DeferredByCondition => {
+            counters.condition_deferrals += 1;
+        }
+        SignalConditionalDecisionClass::DeferredTemporal => {
+            counters.temporal_deferrals += 1;
+        }
+        SignalConditionalDecisionClass::DeferredOnDemand => {
+            counters.on_demand_deferrals += 1;
+        }
+        SignalConditionalDecisionClass::ComputedChanged
+        | SignalConditionalDecisionClass::DependencyUnchanged
+        | SignalConditionalDecisionClass::SuppressedBeforeCompute => {}
     }
-    graph.get_contract(request.contract.node()).map(|_| ())
 }
 
-fn capture_dependencies(
-    graph: &mut SignalGraph,
-    node: crate::data::handle::NodeId,
-) -> Result<PreparedDependencyCapture, SignalError> {
-    graph.refresh_runtime_dependencies_of(node)?;
-    let mut capture = PreparedDependencyCapture::new();
-    for edge in graph.current_runtime_dependencies_of(node)? {
-        capture.record(edge.source(), edge.aspect(), edge.scope_ref().cloned());
-    }
-    Ok(capture)
-}
-
-fn apply_passive(
-    graph: &mut SignalGraph,
-    node: crate::data::handle::NodeId,
-    dependencies: PreparedDependencyCapture,
-    resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<(), SignalError> {
-    let prepared =
-        PreparedEvaluation::reverted_clean_by_condition().with_dependencies(dependencies);
-    crate::logic::evaluation::apply_prepared_evaluation_with_policy(
-        graph, node, prepared, resolver, None,
-    )?;
-    Ok(())
-}
-
-fn apply_deferred(
-    graph: &mut SignalGraph,
-    node: crate::data::handle::NodeId,
-    dependencies: PreparedDependencyCapture,
-    resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<(), SignalError> {
-    let prepared = PreparedEvaluation::deferred_by_condition().with_dependencies(dependencies);
-    crate::logic::evaluation::apply_prepared_evaluation_with_policy(
-        graph, node, prepared, resolver, None,
-    )?;
-    Ok(())
-}
-
-fn mint_evidence(
-    request: SignalConditionalExecutionRequest<'_>,
+struct ConditionalDecisionOutcome {
     class: SignalConditionalDecisionClass,
     counters: SignalConditionalDecisionCounters,
     artifact_reuse_admitted: bool,
     dependency_versions: Vec<SignalConditionalDependencyVersion>,
     executed: SignalConditionalExecutedRecipe,
+}
+
+fn mint_evidence(
+    request: SignalConditionalExecutionRequest<'_>,
+    outcome: ConditionalDecisionOutcome,
 ) -> SignalConditionalDecisionEvidence {
-    let node = request.contract.node();
-    let dependency_identity = dependency_versions
-        .iter()
-        .map(|dependency| {
-            let scope = dependency.scope.as_ref().map_or_else(
-                || "unscoped".to_string(),
-                |scope| {
-                    let mode = match scope.match_mode {
-                        crate::data::output::PartitionMatchMode::WholePartition => "whole",
-                        crate::data::output::PartitionMatchMode::PartitionAndDetail => "detail",
-                    };
-                    format!(
-                        "{}:{}:{}",
-                        scope.partition.0.as_str(),
-                        scope.detail.as_deref().unwrap_or("none"),
-                        mode
-                    )
-                },
-            );
-            format!(
-                "{}:{}:{}:{}",
-                dependency.node.index(),
-                dependency.aspect.index(),
-                scope,
-                dependency.version
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("|");
-    let contract_identity = format!(
-        "condition={:?}|semantic-condition={:?}|dependencies={}|triggers={}|dependency-comparator={:?}|output-comparator={:?}|reuse={:?}",
-        request.contract.condition(), request.contract.semantic_condition(),
-        request.contract.dependency_aspects().bits(),
-        request.contract.trigger_aspects().bits(),
-        request.contract.dependency_comparator(),
-        request.contract.output_comparator(),
-        request.contract.artifact_reuse(),
+    let projection_basis = super::identity::decision_projection_basis(
+        request.contract,
+        request.snapshot_identity,
+        request.execution_identity,
+        request.attempt,
+        outcome.class,
+        &outcome.dependency_versions,
     );
+    let (authority, projection) =
+        super::identity::mint_signal_conditional_decision_identity(projection_basis);
     SignalConditionalDecisionEvidence {
-        identity: format!(
-            "signal-conditional:{}:{}:{}:{}:{}:{class:?}:{}:{}",
-            request.contract.graph_instance_id(),
-            node.index(),
-            node.generation(),
-            request.execution_identity,
-            request.attempt,
-            dependency_identity,
-            contract_identity,
-        ),
-        graph_instance_id: request.contract.graph_instance_id(),
-        node,
-        snapshot_identity: request.snapshot_identity.to_string(),
-        execution_identity: request.execution_identity.to_string(),
+        _authority: authority,
+        projection,
+        contract_authority: std::sync::Arc::clone(&request.contract.authority),
         attempt: request.attempt,
-        class,
-        counters,
-        artifact_reuse_admitted,
-        condition: request.contract.condition().clone(),
-        semantic_condition: request.contract.semantic_condition().clone(),
-        dependency_aspects: request.contract.dependency_aspects(),
-        trigger_aspects: request.contract.trigger_aspects(),
-        dependency_comparator: request.contract.dependency_comparator().clone(),
-        output_comparator: request.contract.output_comparator().clone(),
-        artifact_reuse: request.contract.artifact_reuse().clone(),
-        _dependency_versions: dependency_versions,
-        _execution: executed,
+        class: outcome.class,
+        counters: outcome.counters,
+        artifact_reuse_admitted: outcome.artifact_reuse_admitted,
+        _dependency_versions: outcome.dependency_versions,
+        _execution: outcome.executed,
     }
 }

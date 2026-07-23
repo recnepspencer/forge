@@ -1,117 +1,89 @@
-Performance Architecture Laws
-I. Core Laws
-Execution breadth must be bounded by semantic delta. Invalidation breadth, recomputation breadth, maintenance breadth, retention breadth, and flush breadth must not exceed the actual surface of changed meaning.
+# Performance Architecture Laws
 
-Authoritative truth, execution-derived structure, and consumer-facing projection must not share the same maintenance contract. Mutation cost must not scale with the number of views, indexes, explanations, diagnostics, or convenience surfaces attached to the same underlying state.
+## I. Core Laws
 
-Semantic intent should compile into execution strategy rather than being repeatedly reinterpreted during execution. Planning, lowering, normalization, and contract resolution should occur before the hot path consumes the work.
+Execution breadth must be bounded by semantic delta plus the smallest honest physical or algorithmic granule. Every resulting read, write, invalidation, recomputation, retention, or flush amplification must be named, measured, and policy-bounded.
 
-API shape must reflect traversal cost, reconstruction cost, synchronization cost, allocation cost, and breadth cost. Cheap-looking surfaces must not conceal broad scans, graph walks, reconstructive work, or rich-path behavior.
+Authoritative commit cost may scale only with declared synchronous invariants, never with arbitrary projections, diagnostics, explanations, or consumer count. Every derived structure must declare whether it participates synchronously in correctness or updates asynchronously, together with its write amplification and staleness contract.
 
-Locality boundaries and graph topology must be represented architecturally. Partition, region, scope, branch, adjacency, and similar locality forms must exist as first-class constraints on execution rather than being recovered later as optimization heuristics. Relationship storage must reflect traversal direction and frequency, not schema normalization. Bidirectional relationships require dual-indexed storage; the dual stores are distinct access patterns, not redundancy. Embed adjacency in the source entity when traversal is always source-initiated; use separate edge stores when the relationship set is independently maintained or batch-reconciled.
+Semantic intent, policy, topology, normalization, and dispatch narrowing must resolve before the hot path into the narrowest honest execution strategy. Runtime resolution is permitted only for facts unavailable upstream or themselves constituting the operation.
 
-No reuse without an explicit equivalence contract. Caching, suppression, memoization, diffing, and incremental recomputation require stable identity, canonical ordering, and a precise invalidation basis sufficient to justify reuse as a semantic claim rather than a heuristic accident.
+API shape must reveal traversal, reconstruction, synchronization, allocation, amplification, and coordination cost. Cheap-looking surfaces must not conceal broad scans, graph walks, reconstructive work, remote effects, or rich-path behavior.
 
-Policy and topology decisions belong before execution. Access, contract resolution, dispatch narrowing, and other control-plane decisions should be resolved before execution unless runtime facts are themselves the object of execution. The data plane should consume the narrowest execution path that can be resolved honestly upstream.
+Execution topology must represent dominant locality and traversal direction explicitly. Storage and access structures are selected from traversal frequency, update cost, density, and consistency requirements; every required traversal direction must have an explicit strategy and visible cost, but no particular index topology is universally mandatory.
 
-Boundary cardinality must match domain cardinality. Bulk domains must not be forced through scalar orchestration surfaces that externalize loops, fragment execution, and destroy amortization opportunities.
+Every reuse surface—caching, suppression, memoization, diffing, or incremental recomputation—requires stable identity, canonical ordering, comparator semantics, and a precise invalidation basis sufficient to justify sameness as a semantic claim.
 
-Expensive or critical properties must not be repeatedly rediscovered. Once sortedness, normalization, canonicality, eligibility, acyclicity, locality, or another costly fact has been proven within a trust boundary, later phases should consume that proof-bearing form or an equivalent explicit contract.
+Boundary cardinality must match domain cardinality. Bulk domains must expose bulk execution rather than externalizing scalar loops that fragment work and destroy amortization.
 
-Breadth, richness, and coordination cost must degrade by explicit policy. Do not let these properties degrade by hidden defaults, incidental coupling, or accidental phase changes under scale.
+Preserve expensive proof within a trust boundary when carriage costs less than rediscovery; revalidate only when authority, ownership, version, or trust changes, or when proof maintenance would cost more than reconstruction.
 
-Structural waste dominates constant waste. Scope failure, breadth failure, repeated maintenance, path conflation, projection inflation, repeated rediscovery, and avoidable coordination should be removed before tuning constants, capacities, layouts, or instruction-level details.
+Breadth, richness, coordination, and quality may degrade only by explicit policy. Degradation must identify the triggering budget, retained guarantees, weakened guarantees, and recovery posture.
 
-A performance claim is valid only at the boundary it names. Claims are only interpretable with counters that explain the work performed. End-to-end claims require end-to-end measurement; slope claims require scale-sensitive measurement.
+Structural waste dominates constant waste. Remove scope leakage, amplification, repeated maintenance, path conflation, projection inflation, repeated rediscovery, and avoidable coordination before tuning capacities, layouts, or instruction-level constants.
 
-Mechanical access patterns must reflect bulk processing, not conceptual taxonomy. Data evaluated together must be laid out together; CPU cache lines do not respect conceptual domains. Each pointer indirection on a hot path is a potential cache miss, and chains of indirection compound latency multiplicatively. Prefer flat, indexed, or arena-backed addressing over pointer-chasing topologies. Identity handles in performance-critical domains must encode as direct arena indices (index + generation), not as key-based lookups that impose hash computation and comparison cost per resolution.
+A performance claim is valid only at its named boundary and must carry counters explaining the work performed. End-to-end claims require end-to-end measurement; slope claims require scale-sensitive evidence across every independent input axis.
 
-Allocation is global coordination, not local arithmetic. Dynamic memory allocation is a hidden synchronization event with the memory subsystem and a deferred structural tax. It is not free compute. Operational hot-paths must execute within pre-allocated, arena-bounded, or explicitly lifecycle-managed footprints.
+A performance claim must name its workload distribution, scale axes, environment, hardware and runtime configuration, cold or warm posture, repetitions, variance, structural counters, and reported percentiles. Evidence may not transfer across an unmeasured workload, scale regime, execution lane, or environment.
 
-Allocations must belong to an explicit lifecycle scope. Arena, pool, bump, or reuse strategies should serve the dominant lifetime rather than defaulting to the general-purpose allocator. A pre-sized transaction-local buffer that clears between units of work is structurally superior to per-call heap allocation of identical capacity.
+Mechanical layout may co-locate data evaluated together without collapsing semantic ownership. Hot local handles should lower to flat, generational, or arena-indexed addressing when admission permits it; durable, external, or authority-bearing identity remains distinct. Pointer chasing, hashing, translation, and indirection are counted costs, not prohibited representations.
 
-Throughput scales exclusively with data independence, not core count. Shared mutable state forces systemic serialization. Reference counting is a common disguised form of contention: every clone and drop of a shared pointer is an atomic read-modify-write on a shared cache line, and high-frequency traffic here can dominate execution cost invisibly. True parallelism requires structural disjointness.
+Allocation must have a named lifecycle and bounded hot-path budget. General-purpose allocation, fragmentation, reclamation, initialization, and cross-thread ownership are coordination costs; operational paths use preallocated, pooled, arena-scoped, or explicitly budgeted storage matched to the dominant lifetime.
 
-Rejection must precede expensive construction. Execution should evaluate the cheapest, most restrictive disqualifying constraints before allocating memory, traversing topology, establishing coordination, or constructing rich intermediate state.
+Parallel throughput is bounded by structural independence and coordination depth, not core count alone. Shared mutation, cross-thread reference counting, atomics, locks, barriers, and queue handoffs are explicit costs; scalable plans carry disjointness, partitioning, or a measured synchronization budget.
 
-II. Tradeoff Laws
-Structural maintenance should be amortized across the largest semantically honest boundary. Batch when intermediate states are not semantically observed; maintain incrementally when latency slicing, memory pressure, visibility, or interaction semantics require intermediate observability.
+Rejection must precede expensive construction. Evaluate the cheapest, most restrictive disqualifying constraints before allocation, topology traversal, coordination, or rich intermediate construction.
 
-Carry proof forward when maintenance is cheaper than rediscovery. Re-derivation is acceptable when proof maintenance would increase invalidation breadth, representation cost, or coupling more than recomputation costs.
+Every cost belongs to a named lane: ordinary, cold-start, recovery or reconstruction, migration or compaction, diagnostic, or background maintenance. Work may move between lanes only by explicit policy; amortization and background execution do not erase cost, and deferred queues must remain bounded.
 
-Data should be moved rather than cloned. Move by default; clone only to buy an explicit semantic, temporal, ownership, isolation, or retry boundary. A clone without a second observer, boundary shift, or failure-containment purpose is structural waste.
+Latency and throughput contracts must declare arrival rate, burst model, service distribution, utilization envelope, headroom, queue bounds, and percentile or worst-case posture. Mean latency under unsaturated load cannot support a tail-latency or capacity claim; overload must reject, backpressure, or degrade before queues become unbounded.
 
-Defensive re-proof is a defect inside a trusted boundary. It is a necessity at an untrusted boundary. Re-validation, re-canonicalization, and re-eligibility checks should occur where authority, version, ownership, or trust changes—not blindly at every layer.
+Logical work and physical amplification are separate accounting domains. Boundaries must expose relevant bytes read and written, syscalls, durability barriers, messages, retries, compaction work, cache fills, and device or network round trips. Durability ordering and recovery work may not be optimized out of the claimed cost.
 
-Incremental maintenance is superior only when invariant cost remains lower than recomputation. Large maintained surfaces, fragile invariant webs, or broad invalidation can make rebuilds from source cheaper than incremental repair.
+Memory contracts must distinguish transient allocation, peak footprint, retained state, resident working set, and reclaimable projection. Page faults, eviction, cache misses, garbage collection, and reclamation are counted work. An operation with bounded immediate memory but unbounded retained or queued state is not memory-bounded.
 
-Sparse-optimized strategies are superior only while activity density remains low. Event-driven, change-tracked, and incremental systems must preserve an exit path to denser, brute-force execution modes when tracking overhead dominates saved work.
+## II. Tradeoff Laws
 
-Partition boundaries are profitable only when they improve the total cost surface. Communication density is a major axis, but partition only when the gains in locality, ownership, or isolation exceed the added coordination cost.
+Choose batch, incremental, rebuild, or desired-state-diff execution by total invariant cost across observability, density, memory, latency, and update breadth. Strategies must expose their profitable regime and a governed transition when density or maintenance cost crosses it. Under desired-state diffing, producers declare truth while the framework owns comparison, patching, and suppression.
 
-Speculative reflection of effects is a latency strategy, not a throughput law. Speculate only when divergence, rollback, reconciliation, and authority-lag costs remain lower than the latency cost of waiting for authoritative truth.
+Ownership multiplicity must equal observer multiplicity. Move by default; clone only to establish a named concurrent-observer, temporal, isolation, or retry boundary.
 
-III. Named Failure Modes
-Scope leakage: Invalidation, recomputation, retention, or flushing exceeds semantic delta.
+Partition boundaries are profitable only when gains in locality, ownership, or isolation exceed communication and coordination cost.
 
-Projection inflation: Derived, cached, indexed, explanatory, or diagnostic structures are maintained as though they were authoritative truth.
+Speculative reflection of effects is a latency strategy, not a throughput law. Speculate only when divergence, rollback, reconciliation, and authority-lag costs remain below the latency cost of waiting for authoritative truth.
 
-Plan / execute conflation: Execution reconstructs decisions that should have been resolved once during planning, lowering, or normalization.
+## III. Named Failure Modes
+
+Scope leakage: Invalidation, recomputation, retention, or flushing exceeds semantic delta and its declared operational granule.
+
+Projection inflation: Derived, cached, indexed, explanatory, or diagnostic structures are maintained as authoritative truth without a synchronous correctness contract.
+
+Plan/execute conflation: Execution reconstructs decisions that should have been resolved during planning, lowering, or normalization.
 
 Boundary cardinality mismatch: Scalar orchestration is imposed over bulk semantics.
 
 Per-edit structural maintenance: Topology, indexing, subscriber state, bookkeeping, or diagnostics are maintained per sub-edit inside a semantically atomic operation.
 
-Equivalence drift: Reuse surfaces exist without stable sameness semantics, canonical order, or disciplined invalidation.
+Equivalence drift: Reuse exists without stable sameness semantics, canonical order, comparator discipline, or precise invalidation.
 
-Path conflation: Operational paths inherit diagnostic, forensic, explanatory, or reconstructive cost by default.
+Path conflation: Ordinary paths inherit diagnostic, forensic, explanatory, reconstructive, migration, or maintenance cost.
 
 Breadth-coupled coordination: Local intent induces deep synchronous propagation or broad coordination inside one operational boundary.
 
-Repeated rediscovery: Later phases re-filter, re-prove, or re-derive facts already established upstream inside the same trust boundary.
+Repeated rediscovery: Later phases re-filter, re-prove, or re-derive facts already established inside the same trust boundary.
 
-Mechanical / semantic collapse: Mechanical optimization corrupts semantic boundaries, or semantic layering ignores mechanical cost to the point of dishonesty.
+Mechanical/semantic collapse: Mechanical optimization corrupts semantic ownership, or semantic layering conceals mechanical cost.
 
-IV. Operational Judgments
-For any disputed design, judge it on these axes:
+Amplification blindness: A small logical delta induces undeclared physical reads, writes, messages, retries, or compaction.
 
-Semantic scope: How much meaning actually changed?
+Saturation collapse: Average throughput hides nonlinear queue growth and tail latency near capacity.
 
-Execution breadth: How much work fanout does the design induce?
+Working-set escape: Retained state exceeds its residency budget and exports cost into faults, eviction, reclamation, or garbage collection.
 
-Maintenance surface: What derived structures must stay coherent?
+Background-cost laundering: A foreground path appears cheap by exporting unbounded work to maintenance queues.
 
-Equivalence basis: What justifies reuse?
+Benchmark scope laundering: A measured claim is applied to an unmeasured workload, scale, environment, percentile, or cold or warm regime.
 
-Locality preservation: Does work remain near the data and relationships it touches?
+## IV. Operational Review Vector
 
-Boundary honesty: Does the API reveal or conceal actual cost?
-
-Coordination depth: How much synchronous coupling is induced?
-
-Proof strategy: Should facts be preserved, recomputed, or revalidated at a boundary?
-
-Lifecycle fit: Do allocation and buffering strategies match the dominant lifetime?
-
-Density regime: Is the workload sparse, dense, bursty, or phase-shifting?
-
-Authority model: Where does truth live, and where are projections allowed to lag?
-
-Measurement boundary: What counters would prove the claim at the boundary being optimized?
-
-V. Condensed Tradeoff Templates
-Batch vs incremental: Choose the strategy with the lower total invariant cost across the true semantic boundary.
-
-Recompute vs maintain: Recompute when maintaining correctness across state transitions costs more than rebuilding from authority.
-
-Move vs clone: Move by default; clone only to buy a real boundary.
-
-Carry proof vs rediscover: Carry proof inside trusted boundaries; rediscover or revalidate at trust shifts.
-
-Sparse vs brute-force: Use sparse execution only while tracking overhead stays below recomputation waste.
-
-Partition vs unify: Partition only when the gains in locality, ownership, or isolation exceed the added coordination cost.
-
-Speculate vs wait for authority: Speculate only when reconciliation is cheaper than latency.
-
-Pre-resolve vs runtime-resolve: Resolve upstream unless the runtime fact is genuinely unavailable before execution or is itself semantically dynamic.
+Judge disputed designs by semantic scope, execution and amplification breadth, synchronous maintenance surface, equivalence basis, locality, boundary honesty, coordination depth, proof strategy, lifecycle fit, density regime, authority model, and measurement boundary.

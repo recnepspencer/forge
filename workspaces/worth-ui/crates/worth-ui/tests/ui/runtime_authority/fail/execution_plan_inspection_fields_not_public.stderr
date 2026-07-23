@@ -1,28 +1,10 @@
-error: cannot construct `WorthUiExecutionPlanInspection` with struct literal syntax due to private fields
-  --> tests/ui/runtime_authority/fail/execution_plan_inspection_fields_not_public.rs:8:23
-   |
- 8 |     let _inspection = WorthUiExecutionPlanInspection {
-   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 9 |         plan_digest: uninhabited(),
-   |         -------------------------- private field
-10 |         nodes: Vec::new(),
-   |         ----------------- private field
-11 |         lanes: Vec::new(),
-   |         ----------------- private field
-12 |         provenance: Vec::new(),
-   |         ---------------------- private field
-13 |         counters: uninhabited(),
-   |         ----------------------- private field
-   |
-   = note: ...and other private fields `active_artifact_digest` and `handle_basis_digest` that were not provided
-help: you might have meant to use the `new` associated function
-   |
- 8 -     let _inspection = WorthUiExecutionPlanInspection {
- 9 -         plan_digest: uninhabited(),
-10 -         nodes: Vec::new(),
-11 -         lanes: Vec::new(),
-12 -         provenance: Vec::new(),
-13 -         counters: uninhabited(),
-14 -     };
- 8 +     let _inspection = WorthUiExecutionPlanInspection::new(_, _, _, _, _, _, _);
-   |
+error[E0432]: unresolved import `worth_ui::facade::WorthUiExecutionPlanInspection`
+ --> tests/ui/runtime_authority/fail/execution_plan_inspection_fields_not_public.rs:1:5
+  |
+1 | use worth_ui::facade::WorthUiExecutionPlanInspection;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiExecutionPlanInspection` in `facade`
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_ui_runtime::facade::WorthUiExecutionPlanInspection;
+  |             ++++++++

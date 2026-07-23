@@ -1,11 +1,9 @@
-use super::query_test_support::InstalledQueryFixture;
 use crate::graph::UiGraphNodeIdentity;
 use crate::runtime::tests::source_ingress_test_support::{empty_artifact, framework_from_artifact};
 use crate::runtime::{
     UiAllocationFrameGatewayOutcome, UiAllocationFrameSourceFact,
     UiAllocationFrameSourceFactPosture, WorthUiDurableResizeSubmission,
-    WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission,
-    WorthUiQueryProjectionSubmission, WorthUiRuntimeFrameworkLoop,
+    WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission, WorthUiRuntimeFrameworkLoop,
     WorthUiTransientInteractionState,
 };
 
@@ -14,7 +12,6 @@ mod source_coordinates;
 
 pub(super) struct TestSourceGateways {
     host: WorthUiHostMeasurementSubmission,
-    query: WorthUiQueryProjectionSubmission,
     interaction: WorthUiInteractionSubmission,
     durable: WorthUiDurableResizeSubmission,
 }
@@ -32,12 +29,6 @@ impl TestSourceGateways {
         source: crate::host::UiAdmittedHostMeasurement,
     ) -> UiAllocationFrameGatewayOutcome {
         self.host.submit_admitted_host_measurement(source)
-    }
-    pub(super) fn submit_query_projection(
-        &mut self,
-        source: worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement,
-    ) -> UiAllocationFrameGatewayOutcome {
-        self.query.submit_query_projection_settlement(source)
     }
     pub(super) fn submit_interaction(
         &mut self,
@@ -63,7 +54,6 @@ where
 {
     let mut gateways = TestSourceGateways {
         host: runtime.host_measurement_submission(),
-        query: runtime.query_projection_submission(),
         interaction: runtime.interaction_submission(),
         durable: runtime.durable_resize_submission(),
     };
@@ -210,75 +200,4 @@ fn empty_framework_turn_is_typed_and_does_not_acknowledge() {
         run_framework_turn(&mut framework, |_| {}),
         TestFrameworkTurnPosture::Empty
     );
-}
-
-#[test]
-fn query_gateway_derives_and_submits_real_projection_consumption() {
-    let mut query = InstalledQueryFixture::new("runtime-gateway");
-    let mut framework = Box::new(framework_from_artifact(empty_artifact()));
-    framework.install_query_binding_for_test(query.binding_plan());
-    let settlement = framework
-        .admit_query_projection_for_test(query.project())
-        .expect("Query source should admit before submission");
-    let expected_source_identity = settlement
-        .allocation_source_identity()
-        .authority_index_key()
-        .clone();
-    let mut outcome = Box::new(None);
-    let turn_outcome = run_framework_turn(&mut framework, |turn| {
-        *outcome = Some(turn.submit_query_projection(settlement));
-    });
-    let outcome = outcome.take().expect("framework callback submits");
-    assert!(outcome
-        .submission()
-        .is_some_and(|submission| submission.is_queued()));
-    assert_eq!(
-        outcome
-            .evidence()
-            .expect("gateway evidence")
-            .ingress()
-            .key()
-            .source_identity()
-            .query_authority_index_key(),
-        Some(&expected_source_identity)
-    );
-    assert!(matches!(
-        outcome
-            .evidence()
-            .expect("gateway evidence")
-            .ingress()
-            .source_fact_posture(),
-        UiAllocationFrameSourceFactPosture::QueryProjection { settlement, .. }
-            if settlement == super::UiAllocationFrameQuerySettlementPosture::Settled
-    ));
-    assert_eq!(turn_outcome, TestFrameworkTurnPosture::Denied);
-}
-
-#[test]
-fn query_burst_uses_binding_order_and_transport_bound() {
-    let mut query = InstalledQueryFixture::new("bounded-query-burst");
-    let mut framework = framework_from_artifact(empty_artifact());
-    framework.install_query_binding_for_test(query.binding_plan());
-    let settlements = (0..=64)
-        .map(|_| {
-            framework
-                .admit_query_projection_for_test(query.project())
-                .expect("Query source should admit before submission")
-        })
-        .collect::<Vec<_>>();
-    let mut overflow = None;
-    run_framework_turn(&mut framework, |turn| {
-        for settlement in settlements.iter().take(64).cloned() {
-            let outcome = turn.submit_query_projection(settlement);
-            assert!(outcome
-                .submission()
-                .is_some_and(|submission| submission.is_queued()));
-        }
-        overflow = Some(turn.submit_query_projection(settlements[64].clone()));
-    });
-    let overflow = overflow.expect("overflow attempted in framework turn");
-    assert!(overflow
-        .submission()
-        .is_some_and(|submission| submission.is_backpressured()));
-    assert_eq!(overflow.counters().mailbox_high_watermark(), 64);
 }

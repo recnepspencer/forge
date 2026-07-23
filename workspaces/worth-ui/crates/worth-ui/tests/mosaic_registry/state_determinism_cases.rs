@@ -1,4 +1,7 @@
-use worth_ui::facade::{MosaicStateSlotKind, MosaicStateTruthPosture, WorthUi};
+use worth_ui::facade::{
+    app::WorthUi,
+    registry::{MosaicStateSlotKind, MosaicStateTruthPosture},
+};
 
 use super::state_assertions::{
     assert_reconciliation_keys, assert_registered_mosaic_state_slot_ids,

@@ -38,9 +38,24 @@ impl WorthQueryConsumerSupportCompatibilityDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryConsumerProjectionContractDenial {
-    StaleInstallationGeneration,
-    AlreadyMinted,
+    StaleInstallationGeneration {
+        counters: WorthQueryConsumerSupportAdmissionCounters,
+    },
+    AlreadyMinted {
+        counters: WorthQueryConsumerSupportAdmissionCounters,
+    },
     Compatibility(WorthQueryConsumerSupportCompatibilityDenial),
+}
+
+impl WorthQueryConsumerProjectionContractDenial {
+    pub fn counters(&self) -> WorthQueryConsumerSupportAdmissionCounters {
+        match self {
+            Self::StaleInstallationGeneration { counters } | Self::AlreadyMinted { counters } => {
+                *counters
+            }
+            Self::Compatibility(denial) => denial.counters(),
+        }
+    }
 }
 
 impl From<WorthQueryConsumerSupportCompatibilityDenial>

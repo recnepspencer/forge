@@ -42,20 +42,18 @@ impl WorthQueryJournalPosition {
     pub(in crate::runtime) fn try_from_commit_identity(
         commit_identity: &WorthQueryCommitIdentity,
     ) -> Result<Self, WorthQueryJournalPositionAdmissionError> {
-        match commit_identity {
-            WorthQueryCommitIdentity::RelationalBridge { bridge_identity } => {
-                let Some(commit_id) = bridge_identity.relational_commit_id() else {
-                    return Err(WorthQueryJournalPositionAdmissionError::new(
-                        "committed journal position requires relational commit payload",
-                    ));
-                };
-                Ok(Self::committed(commit_id))
-            }
-            WorthQueryCommitIdentity::Preview { evidence_identity } => {
-                Ok(Self::preview(evidence_identity.clone(), 0))
-            }
-            WorthQueryCommitIdentity::Absent => Ok(Self::absent()),
+        if let Some(commit_id) = commit_identity.relational_commit_id() {
+            return Ok(Self::committed(commit_id));
         }
+        if let Some(evidence_identity) = commit_identity.preview_evidence_identity() {
+            return Ok(Self::preview(evidence_identity.clone(), 0));
+        }
+        if commit_identity.is_empty() {
+            return Ok(Self::absent());
+        }
+        Err(WorthQueryJournalPositionAdmissionError::new(
+            "committed journal position requires relational commit payload",
+        ))
     }
 
     pub(in crate::runtime) fn from_commit_identity(

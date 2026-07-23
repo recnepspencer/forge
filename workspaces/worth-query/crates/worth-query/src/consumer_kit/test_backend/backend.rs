@@ -27,6 +27,7 @@ pub(super) struct WorthQueryInMemoryTestBackend {
     workspace: WorthQueryMemoryWorkspace,
     support_profile: WorthQueryRuntimeSupportProfile,
     live_views: BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryMutationTargetCollectionIdentity>,
+    live_close_failures: usize,
 }
 
 impl WorthQueryInMemoryTestBackend {
@@ -42,7 +43,21 @@ impl WorthQueryInMemoryTestBackend {
             workspace,
             support_profile,
             live_views: BTreeMap::new(),
+            live_close_failures: 0,
         }
+    }
+
+    pub(super) fn with_close_failures(
+        workspace: WorthQueryMemoryWorkspace,
+        support_profile: Option<WorthQueryRuntimeSupportProfile>,
+        live_close_failures: usize,
+    ) -> Self {
+        let mut backend = match support_profile {
+            Some(profile) => Self::with_support_profile(workspace, profile),
+            None => Self::new(workspace),
+        };
+        backend.live_close_failures = live_close_failures;
+        backend
     }
 
     fn ensure_declared_collection(
@@ -180,6 +195,12 @@ impl WorthQueryRuntimeBackend for WorthQueryInMemoryTestBackend {
     }
 
     fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        if self.live_close_failures > 0 {
+            self.live_close_failures -= 1;
+            return Err(WorthQueryWorkspaceError::new(
+                "in-memory lifecycle test injected a managed live close failure",
+            ));
+        }
         self.live_views
             .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
         Ok(())

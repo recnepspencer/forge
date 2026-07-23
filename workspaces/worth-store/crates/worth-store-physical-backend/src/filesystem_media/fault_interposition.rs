@@ -1,150 +1,11 @@
 use std::sync::OnceLock;
 use std::sync::{Arc, Mutex};
 
-use super::{operation_counters::MediaCounterCells, MediaOperationRole, MediaPauseGate};
-
-#[derive(Debug, Clone)]
-pub enum MediaFaultDirective {
-    FailBefore {
-        kind: std::io::ErrorKind,
-        raw_os_error: Option<i32>,
-    },
-    AllowPrefix {
-        bytes: u64,
-    },
-    IndeterminateAfterEffect,
-    FailBarrier {
-        kind: std::io::ErrorKind,
-        raw_os_error: Option<i32>,
-    },
-    PauseBefore(MediaPauseGate),
-    PauseAfter(MediaPauseGate),
-    InterruptReplacementObservation,
-}
-
-#[derive(Debug, Clone)]
-pub struct MediaFaultRule {
-    role: MediaOperationRole,
-    ordinal: u64,
-    directive: MediaFaultDirective,
-    owner: Option<super::MediaOwnerIdentity>,
-    store: Option<worth_store_physical_format::store_namespace::StableStoreIdentity>,
-    operation: Option<super::MediaOperationIdentity>,
-    runtime_incarnation: Option<u64>,
-}
-
-impl MediaFaultRule {
-    #[cfg(any(test, feature = "certification-test-authority"))]
-    pub(crate) fn for_certification(
-        role: MediaOperationRole,
-        ordinal: u64,
-        directive: MediaFaultDirective,
-    ) -> Self {
-        Self {
-            role,
-            ordinal,
-            directive,
-            owner: None,
-            store: None,
-            operation: None,
-            runtime_incarnation: None,
-        }
-    }
-
-    #[cfg(any(test, feature = "certification-test-authority"))]
-    pub fn for_owner(mut self, owner: super::MediaOwnerIdentity) -> Self {
-        self.owner = Some(owner);
-        self
-    }
-
-    #[cfg(any(test, feature = "certification-test-authority"))]
-    pub fn for_store(
-        mut self,
-        store: worth_store_physical_format::store_namespace::StableStoreIdentity,
-    ) -> Self {
-        self.store = Some(store);
-        self
-    }
-
-    #[cfg(any(test, feature = "certification-test-authority"))]
-    pub fn for_operation(mut self, operation: super::MediaOperationIdentity) -> Self {
-        self.operation = Some(operation);
-        self
-    }
-
-    #[cfg(any(test, feature = "certification-test-authority"))]
-    pub fn for_runtime_incarnation(mut self, runtime_incarnation: u64) -> Self {
-        self.runtime_incarnation = Some(runtime_incarnation);
-        self
-    }
-
-    fn matches(&self, context: super::MediaOperationContext) -> bool {
-        self.role == context.role()
-            && self.ordinal == context.role_ordinal()
-            && self
-                .owner
-                .is_none_or(|owner| context.owner() == Some(owner))
-            && self
-                .store
-                .is_none_or(|store| context.store() == Some(store))
-            && self
-                .operation
-                .is_none_or(|operation| context.operation() == Some(operation))
-            && self
-                .runtime_incarnation
-                .is_none_or(|runtime| context.runtime_incarnation() == Some(runtime))
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct MediaFaultSchedule {
-    rules: Arc<[MediaFaultRule]>,
-    lease_release_pause: Option<MediaPauseGate>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MediaFaultScheduleDenial {
-    ZeroOrdinal,
-    DuplicateSemanticMatch,
-    DirectiveRoleMismatch,
-}
-
-impl MediaFaultSchedule {
-    #[cfg(any(test, feature = "certification-test-authority"))]
-    pub(crate) fn for_certification(
-        rules: Vec<MediaFaultRule>,
-    ) -> Result<Self, MediaFaultScheduleDenial> {
-        for (index, rule) in rules.iter().enumerate() {
-            if rule.ordinal == 0 {
-                return Err(MediaFaultScheduleDenial::ZeroOrdinal);
-            }
-            if !super::fault_schedule_validation::directive_matches_role(rule.role, &rule.directive)
-            {
-                return Err(MediaFaultScheduleDenial::DirectiveRoleMismatch);
-            }
-            if rules[..index].iter().any(|prior| {
-                prior.role == rule.role
-                    && prior.ordinal == rule.ordinal
-                    && prior.owner == rule.owner
-                    && prior.store == rule.store
-                    && prior.operation == rule.operation
-                    && prior.runtime_incarnation == rule.runtime_incarnation
-            }) {
-                return Err(MediaFaultScheduleDenial::DuplicateSemanticMatch);
-            }
-        }
-        Ok(Self {
-            rules: rules.into(),
-            lease_release_pause: None,
-        })
-    }
-
-    #[cfg(any(test, feature = "certification-test-authority"))]
-    pub fn pause_before_lease_release(mut self, gate: MediaPauseGate) -> Self {
-        self.lease_release_pause = Some(gate);
-        self
-    }
-}
+use super::{
+    fault_schedule::{MediaFaultDirective, MediaFaultSchedule},
+    operation_counters::MediaCounterCells,
+    MediaOperationRole,
+};
 
 #[derive(Debug)]
 pub(super) struct MediaFaultInterposer {
@@ -287,7 +148,10 @@ impl MediaBoundaryAttempt<'_> {
 
     pub(super) fn transfer_limit(&self, requested: u64) -> u64 {
         match &self.directive {
-            Some(MediaFaultDirective::AllowPrefix { bytes }) => requested.min(*bytes),
+            Some(
+                MediaFaultDirective::AllowPrefix { bytes }
+                | MediaFaultDirective::AllowPrefixThenPause { bytes, .. },
+            ) => requested.min(*bytes),
             _ => requested,
         }
     }
@@ -365,7 +229,11 @@ impl MediaBoundaryAttempt<'_> {
     }
 
     fn after_boundary(&self) {
-        if let Some(MediaFaultDirective::PauseAfter(gate)) = &self.directive {
+        if let Some(
+            MediaFaultDirective::PauseAfter(gate)
+            | MediaFaultDirective::AllowPrefixThenPause { gate, .. },
+        ) = &self.directive
+        {
             gate.pause(Some(self.context));
         }
     }

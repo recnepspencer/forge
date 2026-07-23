@@ -80,6 +80,10 @@ pub struct BridgeCorrespondenceBasis {
 }
 
 impl BridgeCorrespondenceBasis {
+    pub fn query_basis(&self) -> &str {
+        &self.query_basis
+    }
+
     pub const fn query_runtime_authority(&self) -> u64 {
         self.query_runtime_authority
     }

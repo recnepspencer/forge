@@ -16,7 +16,7 @@ pub struct WorthUiReloadDebounce {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthUiDebouncedWatcherBatch {
+pub struct WorthUiSettledSourceSnapshot {
     provider: WorthUiSourceProvider,
     revision: WorthUiSourcePackageRevision,
     ordering_receipt: WorthUiCandidateOrderingReceipt,
@@ -26,7 +26,7 @@ pub struct WorthUiDebouncedWatcherBatch {
 impl WorthUiReloadDebounce {
     pub fn stable_window(window: Duration) -> Self {
         Self {
-            stable_window_millis: window.as_millis() as u64,
+            stable_window_millis: window.as_millis().min(u128::from(u64::MAX)) as u64,
         }
     }
 
@@ -34,12 +34,16 @@ impl WorthUiReloadDebounce {
         fold_texts([format!("stable-window-ms:{}", self.stable_window_millis)])
     }
 
+    pub(crate) fn settlement_window(&self) -> Duration {
+        Duration::from_millis(self.stable_window_millis)
+    }
+
     pub(crate) fn debounce(
         &self,
         provider: WorthUiSourceProvider,
         events: &[WorthUiWatcherEvent],
         sequence: u64,
-    ) -> Result<WorthUiDebouncedWatcherBatch, WorthUiSourceIngressDenial> {
+    ) -> Result<WorthUiSettledSourceSnapshot, WorthUiSourceIngressDenial> {
         if provider.is_empty() {
             return Err(WorthUiSourceIngressDenial::new(
                 WorthUiSourceIngressDenialReason::EmptyProvider,
@@ -67,7 +71,7 @@ impl WorthUiReloadDebounce {
         );
         let ordering_receipt =
             WorthUiCandidateOrderingReceipt::from_revision(&revision, self.policy_digest());
-        Ok(WorthUiDebouncedWatcherBatch {
+        Ok(WorthUiSettledSourceSnapshot {
             provider,
             revision,
             ordering_receipt,
@@ -84,7 +88,7 @@ impl Default for WorthUiReloadDebounce {
     }
 }
 
-impl WorthUiDebouncedWatcherBatch {
+impl WorthUiSettledSourceSnapshot {
     pub fn source_revision(&self) -> &WorthUiSourcePackageRevision {
         &self.revision
     }

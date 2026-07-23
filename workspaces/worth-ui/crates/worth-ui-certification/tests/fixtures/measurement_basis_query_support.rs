@@ -15,7 +15,7 @@ use worth_ui_dsl::{
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
-use worth_ui_query_binding::WorthUiQueryAuthorityHandle;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle;
 
 use self::projection_consumption_support::{
     aspect_touch, measurement_projection_workspace, projection_consumption_attempt,

@@ -18,6 +18,7 @@ worth-proof = { path = "../../../../crates/worth-proof" }
 worth-relational = { path = "../../../../crates/worth-relational" }
 worth-runtime-bridge = { path = "../../../../crates/worth-runtime-bridge" }
 worth-signal = { path = "../../../../crates/worth-signal" }
+worth-schema-graph.workspace = true
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 sha2 = "0.10"

@@ -189,6 +189,26 @@ mod bridge_mutation_lowering;
 mod builder;
 mod computed;
 mod concurrent_hostile_matrix;
+mod conditional_owner_delivery_admission;
+mod conditional_owner_delivery_continuation;
+mod installed_live_routing;
+mod live_subscription_target_index;
+mod shared_projection_owners;
+pub(crate) use conditional_owner_delivery_admission::{
+    WorthQueryStagedOwnerDeliveryAdmission, WorthQueryStagedOwnerDeliveryAdmissionError,
+};
+pub(crate) use conditional_owner_delivery_continuation::WorthQueryRetainedOwnerDeliveryClassification;
+pub(crate) use installed_live_routing::{
+    WorthQueryAdmittedStagedOwnerDelivery, WorthQueryClassifiedOwnerDeliveryEmissionError,
+};
+pub(crate) use shared_projection_owners::{
+    WorthQuerySharedConditionalDeliveryCompletion, WorthQuerySharedProjectionLeaseToken,
+};
+pub use shared_projection_owners::{
+    WorthQuerySharedExecutionOwnerIdentity, WorthQuerySharedLeaseRelease,
+    WorthQuerySharedLeaseReleaseCounters, WorthQuerySharedProjectionLeaseIdentity,
+};
+mod conditional_owner_delivery_lowering;
 mod delivery;
 mod domain_installation_api;
 mod downstream_delivery_contract;
@@ -255,6 +275,10 @@ mod remask_posture;
 mod runtime_api_contract;
 mod runtime_authoritative_mutation_obligation_dispatch;
 mod runtime_authoritative_mutation_routing;
+use runtime_authoritative_mutation_routing::{
+    WorthQueryAuthoritativeMutationExecutionEvidence, WorthQueryAuthoritativeMutationRoutingInput,
+    WorthQueryPreparedAuthoritativeMutationRouting,
+};
 mod runtime_batch_write_entrypoints;
 mod runtime_batch_write_intents;
 mod runtime_batch_writes;
@@ -333,7 +357,7 @@ pub use authority::{
     WorthQueryEffectAdmission, WorthQueryEffectPolicy, WorthQueryEffectPolicyDenial,
     WorthQueryPreviewOptions,
 };
-pub(crate) use backend::build_bridge_authority_bundle;
+pub(crate) use backend::{build_bridge_authority_bundle, WorthQueryBridgeMutationTarget};
 pub use backend::{
     runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationBoundaryReceipt,
@@ -372,10 +396,10 @@ pub use concurrent_hostile_matrix::{
 pub use concurrent_hostile_matrix::{
     WorthQueryConcurrentSubmissionIntake, WorthQueryConcurrentSubmissionRecord,
 };
+pub(crate) use delivery::WorthQueryLiveMutationRoutingWork;
 pub use delivery::WorthQueryRuntimeDeliveryBatch;
 use delivery::{
-    register_live_subscription_index, WorthQueryRuntimeLiveSubscriptionActivation,
-    WorthQueryRuntimeLiveSubscriptionState,
+    WorthQueryRuntimeLiveSubscriptionActivation, WorthQueryRuntimeLiveSubscriptionState,
 };
 use downstream_delivery_contract::project_downstream_delivery;
 pub use downstream_delivery_contract::{
@@ -636,7 +660,8 @@ pub use managed_live_resource::{
     WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveSubscriptionFamily,
 };
 pub(crate) use managed_live_resource::{
-    WorthQueryManagedLiveRuntimeDelivery, WorthQueryManagedLiveWorkspaceCapability,
+    WorthQueryManagedLiveResourceCloseCause, WorthQueryManagedLiveRuntimeDelivery,
+    WorthQueryManagedLiveWorkspaceCapability,
 };
 pub use mixed_cause_delivery::{
     WorthQueryRuntimeDeliveryCoalescingKind, WorthQueryRuntimeMixedCauseDelivery,
@@ -892,6 +917,10 @@ pub struct WorthQueryRuntime {
     conditional_signal_runtime: Option<worth_runtime_bridge::facade::BridgeOwnedSignalRuntime>,
     conditional_execution_registry:
         crate::domain_installation::WorthQueryConditionalExecutionRegistry,
+    installed_live_routes: installed_live_routing::WorthQueryInstalledLiveRoutes,
+    shared_projection_owners: shared_projection_owners::WorthQuerySharedProjectionOwnerRegistry,
+    conditional_installations:
+        Vec<Box<dyn crate::domain_installation::PendingConditionalInstallation>>,
     consumer_support_profile: crate::domain_installation::WorthQueryConsumerSupportProfile,
     native_aspect_contracts: native_aspect_contracts::WorthQueryNativeAspectContractRegistry,
     preview_session_labels: BTreeSet<WorthQuerySessionLabel>,
@@ -900,7 +929,7 @@ pub struct WorthQueryRuntime {
     live_subscriptions:
         BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryRuntimeLiveSubscriptionState>,
     materialized_read_views: BTreeMap<WorthQueryLiveArtifactTarget, DeclarativeLiveQueryRequest>,
-    live_subscription_index: Vec<delivery::WorthQueryLiveSubscriptionIndexEntry>,
+    live_subscription_index: live_subscription_target_index::WorthQueryLiveSubscriptionTargetIndex,
     installed_programs: BTreeMap<WorthQueryProgramInstallationIdentity, WorthQueryProgram>,
     run_traces: BTreeMap<WorthQueryProgramRunIdentity, WorthQueryProgramTrace>,
     derived_views: BTreeMap<WorthQueryDerivedMaterializationTarget, WorthQueryDerivedViewRuntime>,

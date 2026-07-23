@@ -103,6 +103,8 @@ pub use scope::security_scope_roles::{
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use scope::security_scope_test_authority::{
     admitted_security_scope_for_identity_for_test,
+    admitted_store_internal_security_scope_for_named_physical_witness_test,
+    admitted_store_internal_security_scope_for_physical_witness_test,
     admitted_store_internal_security_scope_for_io_qos_test,
     admitted_store_managed_root_security_scope_for_layout_partition_test,
     admitted_store_wal_checkpoint_security_scope_for_layout_partition_test,

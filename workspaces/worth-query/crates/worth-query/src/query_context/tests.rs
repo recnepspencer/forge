@@ -18,6 +18,8 @@ use crate::facade::policy::{
     PreviewSessionQueryContext,
 };
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
+use crate::memory_workspace::WorthQuerySnapshotIdentity;
+use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 #[test]
 fn current_branch_head_context_binding_preserves_runtime_digests() {
@@ -166,6 +168,67 @@ fn retained_historical_context_binding_reuses_admitted_history_artifacts() {
     assert_eq!(admitted.counters().historical_basis_lookup_count(), 1);
     assert_eq!(admitted.counters().historical_lookup_width(), 1);
     assert_eq!(admitted.counters().historical_path_rediscovery_count(), 0);
+}
+
+#[test]
+fn retained_historical_admission_owns_runtime_snapshot_matching() {
+    let snapshot = WorthQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(41, 7),
+    );
+    let admitted_projection = snapshot
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_owned();
+    let query_preflight = execution_preflights::direct_runtime_preflight();
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
+        admitted_projection.clone(),
+        1,
+        1,
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
+        admitted_projection.clone(),
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let admission = admit_historical_evaluation_path(request, capability)
+        .expect("retained snapshot path should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test(
+            admitted_projection.clone(),
+        ),
+    )
+    .expect("retained snapshot path should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+    let historical = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot(admitted_projection.clone()),
+            QueryContextBindingSource::Historical {
+                query_preflight: &query_preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("historical snapshot context should bind"),
+    )
+    .expect("historical snapshot context should admit");
+
+    assert!(historical.admits_runtime_snapshot(&snapshot));
+
+    let wrong_snapshot = WorthQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(41, 8),
+    );
+    assert!(!historical.admits_runtime_snapshot(&wrong_snapshot));
+
+    let branch_projection = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
+            QueryBasisContextRequest::branch_head(admitted_projection),
+            QueryContextBindingSource::RuntimeBranch(&query_preflight),
+        )
+        .expect("runtime branch projection should bind"),
+    )
+    .expect("runtime branch projection should admit");
+    assert!(!branch_projection.admits_runtime_snapshot(&snapshot));
 }
 
 #[test]

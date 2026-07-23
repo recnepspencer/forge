@@ -135,13 +135,8 @@ impl WorthQueryRuntime {
     ) -> BTreeSet<WorthQueryLiveArtifactTarget> {
         let mut candidates = BTreeSet::new();
         for delta in &receipt.deltas {
-            if let Some(entry) = self.live_subscription_index.iter().find(|entry| {
-                delta
-                    .target_collection_identity()
-                    .same_target_collection_as(entry.target_collection())
-            }) {
-                candidates.extend(entry.targets().iter().cloned());
-            }
+            candidates.extend(self.live_subscription_index.affected_targets(delta).targets);
+            candidates.extend(self.installed_live_routes.affected_targets(delta).targets);
         }
         candidates
     }
@@ -156,7 +151,9 @@ impl WorthQueryRuntime {
     }
 
     pub fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
-        self.backend.current_snapshot_identity()
+        self.backend
+            .current_snapshot_identity()
+            .admit_runtime_backend_authority()
     }
 
     pub fn install_program(

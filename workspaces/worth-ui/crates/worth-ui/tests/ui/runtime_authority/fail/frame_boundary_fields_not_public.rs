@@ -1,4 +1,8 @@
-use worth_ui::facade::{WorthUiFrameBoundary, WorthUiFrameBoundaryPosture, WorthUiRuntimeFrameEpoch};
+use worth_ui::facade::{
+    WorthUiFrameBoundary,
+    WorthUiFrameBoundaryPosture,
+    runtime::WorthUiRuntimeFrameEpoch,
+};
 
 fn main() {
     let _boundary = WorthUiFrameBoundary {

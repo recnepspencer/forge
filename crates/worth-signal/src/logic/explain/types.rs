@@ -18,16 +18,10 @@ mod presentation;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MeaningfulChangeReason {
     ExactDifference,
-    Tolerance {
-        epsilon: u64,
-    },
+    Tolerance { epsilon: u64 },
     OutputIdentity,
-    CustomComparator {
-        key: String,
-    },
-    InstalledComparator {
-        identity: crate::data::comparator::InstalledSignalComparatorIdentity,
-    },
+    CustomComparator { key: String },
+    InstalledComparator,
     InheritedComparator,
 }
 
@@ -232,10 +226,6 @@ pub(super) fn reason_for_policy(
         VersionComparatorPolicy::Custom { key } => {
             MeaningfulChangeReason::CustomComparator { key: key.clone() }
         }
-        VersionComparatorPolicy::Installed { identity } => {
-            MeaningfulChangeReason::InstalledComparator {
-                identity: *identity,
-            }
-        }
+        VersionComparatorPolicy::Installed { .. } => MeaningfulChangeReason::InstalledComparator,
     }
 }

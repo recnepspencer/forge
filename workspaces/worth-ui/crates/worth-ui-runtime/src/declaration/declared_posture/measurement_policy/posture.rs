@@ -58,6 +58,28 @@ impl UiDeclaredMeasurementPolicyPosture {
         self.basis_source
     }
 
+    pub(crate) fn with_basis_source(
+        mut self,
+        basis_source: UiDeclaredMeasurementBasisSource,
+    ) -> Self {
+        self.basis_source = Some(basis_source);
+        self
+    }
+
+    pub const fn requires_viewport_extent_observation(&self) -> bool {
+        matches!(
+            self.basis_source,
+            Some(UiDeclaredMeasurementBasisSource::ViewportExtent)
+        )
+    }
+
+    pub const fn requires_portal_anchor_observation(&self) -> bool {
+        matches!(
+            self.basis_source,
+            Some(UiDeclaredMeasurementBasisSource::PortalAnchor)
+        )
+    }
+
     pub const fn ownership_posture(&self) -> Option<UiDeclaredMeasurementOwnershipPosture> {
         self.ownership_posture
     }

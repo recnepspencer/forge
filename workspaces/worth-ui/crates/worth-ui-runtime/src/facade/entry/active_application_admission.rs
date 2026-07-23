@@ -9,7 +9,7 @@ impl WorthUiActiveApplicationSession {
     pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
         &self,
         touch: &crate::obligations::touch::UiGraphTouchDescriptor,
-        authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
         self.app
             .admit_query_measurement_eligibility_for_touch_from_query_authority(touch, authority)

@@ -1,7 +1,6 @@
 use worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 use worth_store_contracts::{QueueProducerKind, QueueProducerResourceShape};
 use worth_store_security::{StoreAuthenticityRequirement, StoreKeyScope, StoreTenantScope};
-use worth_store_wal::WalQueueExecutionDeclaration;
 
 use crate::foreground_reservation::{ForegroundIoLaneKind, ForegroundReservationReceipt};
 use crate::{
@@ -38,6 +37,7 @@ pub struct QueueWorkDeclaration {
     foreground_reservation: Option<ForegroundReservationReceipt>,
     grouping_basis: Option<QueueGroupingBasis>,
     secure_io: Option<SecureIoPreservationReceipt>,
+    buffer_pool_declaration: Option<BufferPoolQueueExecutionDeclaration>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -65,6 +65,7 @@ impl QueueWorkDeclaration {
             foreground_reservation: Some(reservation),
             grouping_basis: None,
             secure_io: None,
+            buffer_pool_declaration: None,
         }
     }
 
@@ -89,6 +90,7 @@ impl QueueWorkDeclaration {
             foreground_reservation: None,
             grouping_basis: None,
             secure_io: lease.secure_io(),
+            buffer_pool_declaration: None,
         }
     }
 
@@ -99,6 +101,14 @@ impl QueueWorkDeclaration {
 
     pub const fn with_secure_io_scope(mut self, secure_io: SecureIoPreservationReceipt) -> Self {
         self.secure_io = Some(secure_io);
+        self
+    }
+
+    pub(super) const fn with_buffer_pool_declaration(
+        mut self,
+        declaration: BufferPoolQueueExecutionDeclaration,
+    ) -> Self {
+        self.buffer_pool_declaration = Some(declaration);
         self
     }
 
@@ -133,10 +143,14 @@ impl QueueWorkDeclaration {
     pub const fn secure_io(self) -> Option<SecureIoPreservationReceipt> {
         self.secure_io
     }
+
+    pub const fn buffer_pool_declaration(self) -> Option<BufferPoolQueueExecutionDeclaration> {
+        self.buffer_pool_declaration
+    }
 }
 
 impl QueueProducerExecutionDeclaration {
-    const fn new(
+    pub(super) const fn new(
         kind: QueueProducerKind,
         resource_shape: QueueProducerResourceShape,
         flush_epoch: u64,
@@ -154,7 +168,7 @@ impl QueueProducerExecutionDeclaration {
         }
     }
 
-    pub fn lower_foreground(
+    pub(super) fn lower_foreground(
         self,
         reservation: ForegroundReservationReceipt,
     ) -> Result<QueueWorkDeclaration, QueueExecutionAdmissionDenial> {
@@ -176,38 +190,6 @@ impl QueueProducerExecutionDeclaration {
             writeback_policy_for_producer(self.kind),
         )))
     }
-}
-
-pub fn lower_wal_queue_declaration(
-    declaration: WalQueueExecutionDeclaration,
-    reservation: ForegroundReservationReceipt,
-) -> Result<QueueWorkDeclaration, QueueExecutionAdmissionDenial> {
-    let grouping_scope = declaration.grouping_scope();
-    QueueProducerExecutionDeclaration::new(
-        declaration.producer_kind(),
-        declaration.resource_shape(),
-        declaration.flush_epoch(),
-        grouping_scope.tenant_scope(),
-        grouping_scope.key_scope(),
-        grouping_scope.authenticity_requirement(),
-    )
-    .lower_foreground(reservation)
-}
-
-pub fn lower_buffer_pool_queue_declaration(
-    declaration: BufferPoolQueueExecutionDeclaration,
-    reservation: ForegroundReservationReceipt,
-) -> Result<QueueWorkDeclaration, QueueExecutionAdmissionDenial> {
-    let security_identity = reservation.security_scope_identity();
-    QueueProducerExecutionDeclaration::new(
-        declaration.producer_kind(),
-        declaration.resource_shape(),
-        declaration.flush_epoch(),
-        security_identity.tenant_scope(),
-        security_identity.key_scope(),
-        security_identity.authenticity_requirement(),
-    )
-    .lower_foreground(reservation)
 }
 
 pub fn lower_background_queue_lease(lease: BackgroundIdleCapacityLease) -> QueueWorkDeclaration {
@@ -319,7 +301,7 @@ const fn writeback_policy_for_producer(kind: QueueProducerKind) -> QueueWritebac
     }
 }
 
-fn budget_from_shape(
+pub(super) fn budget_from_shape(
     shape: QueueProducerResourceShape,
 ) -> Result<BackgroundResourceBudget, QueueExecutionAdmissionDenial> {
     let mut budget = BackgroundResourceBudget::new();

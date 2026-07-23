@@ -52,7 +52,7 @@ fn lifecycle_path_planning_uses_canonical_admission() {
 }
 
 #[test]
-fn lifecycle_path_parity_execution_lane_matches_direct_handle_allocation() {
+fn lifecycle_post_commit_authority_matches_lower_level_handle_algorithm() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let (measurement_basis, snapshot, selected) =
@@ -62,19 +62,27 @@ fn lifecycle_path_parity_execution_lane_matches_direct_handle_allocation() {
             .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
             .expect("execution parity planning admits through graph authority"),
     );
-
+    let committed_input = runtime.detached_allocation_lowering_input_for_test(&planning);
+    let authority = runtime
+        .execution_plan_lowering_authority_from_committed_input_for_test(
+            pending,
+            committed_input.clone(),
+        )
+        .expect("canonical post-commit lowering authority seals");
+    let lower_level_facts = runtime.execution_plan_lowering_facts_below_authority_for_test(
+        committed_input,
+        authority.facts().plan_input().clone(),
+    );
     let direct = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
-        .expect("direct handle allocation succeeds");
-    let via_lane = runtime
-        .allocate_runtime_handles_from_lane_input(crate::runtime::WorthUiExecutionLaneInput::new(
-            &runtime.detached_allocation_receipt_for_test(&planning),
-        ))
-        .expect("lane handle allocation succeeds");
+        .allocate_runtime_handles(authority.facts())
+        .expect("authority-backed handle allocation succeeds");
+    let lower_level = runtime
+        .allocate_runtime_handles(&lower_level_facts)
+        .expect("same admitted facts produce the same lower-level result");
 
     assert_eq!(
         direct.receipt().basis_digest(),
-        via_lane.receipt().basis_digest()
+        lower_level.receipt().basis_digest()
     );
 }
 

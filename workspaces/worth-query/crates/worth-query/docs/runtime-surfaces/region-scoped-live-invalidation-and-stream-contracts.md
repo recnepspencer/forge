@@ -45,12 +45,20 @@ LiveQueryPlan + LocalityPredicateContract
 
 Compare with [live views](live-views.md) for general live surface admission; use [subscription selection](../capabilities/subscription-selection-and-diagnostics.md) when choosing subscription vs retained live.
 
+This locality-aware stream surface is not the installed-operation consumer
+invalidation authority. A region-scoped plan narrows query-shaped live stream
+delivery. An installed bound projection instead compiles operation semantics,
+retains a managed owner and exact lease, and emits a capability-bound delta
+that must be readmitted before a consumer consequence is attached. Neither
+surface can be reconstructed from the other's digest or locality metadata.
+
 ## How It Relates
 
 - [Live views](live-views.md) — general live admission and workspace live API
 - [Subscription selection and diagnostics](../capabilities/subscription-selection-and-diagnostics.md) — sharing, continuation, durable replay debt
 - [Choosing: live view vs subscription](../domain-capabilities/choosing/live-view-vs-subscription.md)
 - [Collections, cursors, ordering](../authoring/collections-cursors-ordering-and-aggregations.md) — ordered collection partition admission class
+- [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](../domain-capabilities/bound-projection-sharing-and-invalidation.md) — installed-operation owner, lease, and consequence authority
 
 ## Good to Know
 

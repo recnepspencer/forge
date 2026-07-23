@@ -19,6 +19,87 @@ sources = [
 forbidden_targets = ["worth-store-operations", "worth-store-operations-vocabulary"]
 guidance = "lower owner crates expose sealed observations, plans, and receipts; Operations orchestrates downward"
 
+[[dependency_denials]]
+workspace_manifest = "workspaces/worth-store/Cargo.toml"
+sources = [
+  "worth-store-aspect-native",
+  "worth-store-blob-chunks",
+  "worth-store-buffer-pool",
+  "worth-store-io-scheduler",
+  "worth-store-layout-indexes",
+  "worth-store-physical-backend",
+  "worth-store-physical-format",
+  "worth-store-physical-integrity",
+  "worth-store-physical-isolation",
+  "worth-store-recovery-physics",
+  "worth-store-wal",
+]
+forbidden_targets = ["worth-signal"]
+guidance = "only the worth-store composition owner may bind physical mechanisms into the private physical Signal runtime"
+
+[[dependency_target_allowlists]]
+workspace_manifest = "workspaces/worth-store/Cargo.toml"
+governed_source_prefixes = ["worth-store"]
+target = "worth-signal"
+allowed_sources = ["worth-store"]
+guidance = "the worth-store composition owner is the sole Store package allowed to own the private physical Signal runtime"
+
+[[dependency_denials]]
+workspace_manifest = "Cargo.toml"
+sources = ["worth-signal"]
+source_prefixes = ["worth-signal"]
+forbidden_targets = ["worth-store", "worth-store-aspect-native"]
+forbidden_target_prefixes = ["worth-store"]
+guidance = "generic Signal cannot import Store composition or Store-owned physical aspect vocabulary"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-store/crates/worth-store/src/physical_runtime/work"
+forbidden_identifiers = [
+  "serde_json",
+  "BranchAuthority",
+  "BranchHead",
+  "BranchHeadGeneration",
+  "BranchWriter",
+  "BranchWriterAuthority",
+  "Mvcc",
+  "MVCC",
+  "project_store_boundary_fact_to_terminal_json",
+  "readmit_external_terminal_projection_document_as_store_aspect_state",
+  "readmit_terminal_json_projection_as_store_aspect_state",
+  "StoreTerminalJsonProjection",
+  "StoreTerminalJsonReadmission",
+  "StoreTerminalJsonReadmissionOutcome",
+  "StoreTerminalProjectionDenial",
+  "StoreTerminalProjectionDisplayLabel",
+  "StoreTerminalProjectionDocumentBytes",
+  "StoreTerminalProjectionText",
+]
+guidance = "C5.1 physical work foundations must not import serialization shortcuts or future branch/MVCC authority"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-store/crates/worth-store/src/physical_runtime/instance"
+forbidden_identifiers = [
+  "serde_json",
+  "BranchAuthority",
+  "BranchHead",
+  "BranchHeadGeneration",
+  "BranchWriter",
+  "BranchWriterAuthority",
+  "Mvcc",
+  "MVCC",
+  "project_store_boundary_fact_to_terminal_json",
+  "readmit_external_terminal_projection_document_as_store_aspect_state",
+  "readmit_terminal_json_projection_as_store_aspect_state",
+  "StoreTerminalJsonProjection",
+  "StoreTerminalJsonReadmission",
+  "StoreTerminalJsonReadmissionOutcome",
+  "StoreTerminalProjectionDenial",
+  "StoreTerminalProjectionDisplayLabel",
+  "StoreTerminalProjectionDocumentBytes",
+  "StoreTerminalProjectionText",
+]
+guidance = "the physical composition owner installs mechanisms but does not own future branch/MVCC authority"
+
 [machine_authority]
 canonical_config = "tools/boundary-check/config/road1.toml"
 mirrored_docs = [
@@ -290,6 +371,10 @@ path = "cad/workspaces/worth-contracts/crates/worth-schema-core"
 package = "worth-schema-core"
 
 [[born_crates]]
+path = "cad/workspaces/worth-contracts/crates/worth-schema-graph"
+package = "worth-schema-graph"
+
+[[born_crates]]
 path = "cad/workspaces/worth-packs/crates/worth-pack-registry"
 package = "worth-pack-registry"
 
@@ -313,6 +398,20 @@ allowed_entries = [
   "src/naming.rs",
   "src/tolerance.rs",
   "src/units.rs",
+]
+
+[[seed_skeletons]]
+path = "cad/workspaces/worth-contracts/crates/worth-schema-graph"
+package = "worth-schema-graph"
+lib_rs = "src/lib.rs"
+facade_rs = "src/facade.rs"
+allowed_entries = [
+  "AGENT_CONTEXT.md",
+  "Cargo.toml",
+  "src",
+  "src/facade.rs",
+  "src/lib.rs",
+  "src/promotion.rs",
 ]
 
 [[seed_skeletons]]

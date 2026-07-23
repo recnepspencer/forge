@@ -15,6 +15,7 @@ mod unit_posture;
 
 pub use basis::{
     admit_measurement_basis, certify_measurement_basis_determinism,
+    certify_measurement_basis_determinism_for_active_host,
     certify_measurement_basis_determinism_for_scenarios, UiMeasurementBasis,
     UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationOutcome,
     UiMeasurementBasisCertificationReport, UiMeasurementBasisCertificationScenario,
@@ -41,14 +42,16 @@ pub use inputs::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence,
     UiMeasurementSiblingResizeSupport, UiMeasurementSiblingResizeSupportSource,
 };
+pub(crate) use projection::UiSettledQueryFactKey;
+pub use projection::UiSettledQueryFactReceipt;
 pub(crate) use projection::{
     admit_declared_measurement_projection_fact_receipt,
     project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
     project_measurement_inspection_view,
 };
 pub use projection::{
-    consume_declared_measurement_projection_facts, UiProjectionFactReceipt,
-    UiProjectionFactReceiptDenial,
+    consume_declared_measurement_projection_facts, consume_settled_query_measurement_fact,
+    UiProjectionFactReceipt, UiProjectionFactReceiptDenial,
 };
 pub(crate) use result::UiHostMeasurementResultInput;
 pub use result::{UiCurrentMeasurementResult, UiMeasurementResult, UiMeasurementValue};

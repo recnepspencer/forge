@@ -12,6 +12,5 @@ impl WorthUiQueryWorkspaceExt for WorthQueryWorkspace {
     fn worth_ui(&self) -> Result<WorthUiInstalledQueryDomain, WorthUiQueryInstallationDenial> {
         self.domain(WorthUiDomainEntry)
             .map(WorthUiInstalledQueryDomain::from_handle)
-            .map_err(Into::into)
     }
 }

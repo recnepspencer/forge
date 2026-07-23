@@ -13,13 +13,13 @@ use super::{
     BridgeTruthProjectionIdentity,
 };
 
-pub fn admit_bridge_truth_authority_identity(
+pub(crate) fn admit_bridge_truth_authority_identity(
     value: impl Into<Arc<str>>,
 ) -> BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind> {
     admit_foundational_authority_identity(value.into(), bridge_truth_authority())
 }
 
-pub fn admit_bridge_truth_authority_identity_for_kind<Kind>(
+pub(crate) fn admit_bridge_truth_authority_identity_for_kind<Kind>(
     value: impl Into<Arc<str>>,
 ) -> BridgeTruthAuthorityIdentity<Arc<str>, Kind>
 where

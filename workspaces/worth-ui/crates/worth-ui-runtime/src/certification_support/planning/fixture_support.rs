@@ -4,7 +4,7 @@ use worth_ui_dsl::{
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
-use crate::capability::{ViewBindingDescriptor, ViewBindingFamily, ViewBindingId};
+use crate::capability::WorthUiQueryViewRegistration;
 use crate::declaration::{
     UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementConstraintModifier,
     UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
@@ -85,16 +85,15 @@ pub(super) fn intrinsic_basis(
 }
 
 pub(super) fn query_app() -> WorthUiApp {
-    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
-        "workspace.view_binding.selection",
-    )
-    .expect("suite query definition should admit");
+    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
+        "allocation-planning-certification",
+    );
+    let view = installed
+        .measurement_view("workspace.view_binding.selection")
+        .expect("suite Query view should install");
     WorthUi::app()
-        .register_view_binding(ViewBindingDescriptor::from_definition(
-            ViewBindingId::new("workspace.view_binding.selection").expect("valid binding id"),
-            ViewBindingFamily::collection(),
-            definition,
-        ))
+        .register_query_view(WorthUiQueryViewRegistration::new(view))
+        .expect("installed suite Query view should register")
         .freeze()
         .expect("application preparation should succeed")
 }

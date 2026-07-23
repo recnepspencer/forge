@@ -4,13 +4,11 @@ use super::super::batch_digest_helpers::{
 };
 use crate::memory_workspace::WorthQueryEntityIdentity;
 use crate::runtime::{
-    WorthQueryAspectTouch, WorthQueryContinuityMutationEvidence,
-    WorthQueryContinuityMutationFamily, WorthQueryExistingTruthAssertionEvidence,
-    WorthQueryExistingTruthBindingEvidence, WorthQueryMutationFamily,
-    WorthQueryNamingMutationEvidence, WorthQuerySymbolicTargetReferenceEvidence,
+    WorthQueryContinuityMutationEvidence, WorthQueryContinuityMutationFamily,
+    WorthQueryExistingTruthBindingEvidence, WorthQueryNamingMutationEvidence,
+    WorthQuerySymbolicTargetReferenceEvidence,
 };
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
-use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use worth_runtime_bridge::facade::{
     BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
     BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
@@ -20,6 +18,8 @@ use worth_runtime_bridge::facade::{
     BridgeNamingMutationBundle, BridgeNamingResolvedTargetIdentity, BridgeNamingTargetCollection,
     RelationalBridgeRecordIdentityParts,
 };
+
+mod existing_truth_mode;
 
 #[test]
 fn existing_truth_binding_batch_digest_changes_with_authoritative_identity() {
@@ -177,7 +177,8 @@ fn split_successor_batch_digest_changes_with_resolved_target_identity() {
                 continuity_identity("authority:task-1:b"),
             ],
             Some(resolved_target(
-                &RelationalBridgeRecordIdentityParts::entity(1, 1, 0).bridge_entity_identity(),
+                &RelationalBridgeRecordIdentityParts::entity(1, 1, 0)
+                    .terminal_projection_for_reporting(),
             )),
             Some(target_collection("Task")),
         )
@@ -192,7 +193,8 @@ fn split_successor_batch_digest_changes_with_resolved_target_identity() {
                 continuity_identity("authority:task-1:b"),
             ],
             Some(resolved_target(
-                &RelationalBridgeRecordIdentityParts::entity(2, 1, 0).bridge_entity_identity(),
+                &RelationalBridgeRecordIdentityParts::entity(2, 1, 0)
+                    .terminal_projection_for_reporting(),
             )),
             Some(target_collection("Task")),
         )
@@ -302,7 +304,7 @@ fn relational_entity(
     ))
 }
 
-fn retained_assertion_identity(
+pub(super) fn retained_assertion_identity(
     label: &'static str,
 ) -> crate::evidence_identity::WorthQueryEvidenceIdentity {
     crate::evidence_identity::worth_query_evidence_identity(
@@ -317,92 +319,4 @@ fn retained_assertion_identity(
         label,
     )
     .seal()
-}
-
-#[test]
-fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
-    let backend_verified = WorthQueryExistingTruthAssertionEvidence::backend_verified(
-        &crate::runtime::WorthQueryVerifiedExistingTruthAssertion::new(
-            &crate::runtime::WorthQueryExistingTruthTargetBinding::direct_entity(
-                crate::runtime::WorthQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::WorthQueryExistingTruthBindingAuthorityLabel::new("authority:left").expect("existing-truth authority label")).expect("existing-truth authority identity"),
-                relational_entity(1, 1, 0),
-            )
-            .expect("binding should build"),
-            &[crate::runtime::WorthQueryAuthoredAspectMutation::new(
-                title_value_touch(),
-                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("Seed title"),
-            )
-            .expect("aspect should build")],
-            crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
-        )
-        .expect("verified assertion should build"),
-    );
-
-    let update = super::summarize_existing_truth_modes(
-        &[WorthQueryMutationFamily::Update],
-        &[Some(backend_verified.clone())],
-    );
-    let delete = super::summarize_existing_truth_modes(
-        &[WorthQueryMutationFamily::Delete],
-        &[Some(backend_verified)],
-    );
-
-    assert_ne!(update.4, delete.4);
-}
-
-#[test]
-fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
-    let retained = WorthQueryExistingTruthAssertionEvidence::retained_assertion(
-        1,
-        retained_assertion_identity("retained-assertion"),
-    );
-    let backend_verified = WorthQueryExistingTruthAssertionEvidence::backend_verified(
-        &crate::runtime::WorthQueryVerifiedExistingTruthAssertion::new(
-            &crate::runtime::WorthQueryExistingTruthTargetBinding::direct_entity(
-                crate::runtime::WorthQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::WorthQueryExistingTruthBindingAuthorityLabel::new("authority:left").expect("existing-truth authority label")).expect("existing-truth authority identity"),
-                relational_entity(1, 1, 0),
-            )
-            .expect("binding should build"),
-            &[crate::runtime::WorthQueryAuthoredAspectMutation::new(
-                title_value_touch(),
-                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("Seed title"),
-            )
-            .expect("aspect should build")],
-            crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
-        )
-        .expect("verified assertion should build"),
-    );
-
-    let retained_summary = super::summarize_existing_truth_modes(
-        &[WorthQueryMutationFamily::Assertion],
-        &[Some(retained)],
-    );
-    let verified_summary = super::summarize_existing_truth_modes(
-        &[WorthQueryMutationFamily::Assertion],
-        &[Some(backend_verified)],
-    );
-
-    assert_ne!(retained_summary.4, verified_summary.4);
-}
-
-#[test]
-#[should_panic(expected = "invalid existing-truth assertion mode")]
-fn existing_truth_mode_summary_panics_on_invalid_family_mode_pair() {
-    let retained = WorthQueryExistingTruthAssertionEvidence::retained_assertion(
-        1,
-        retained_assertion_identity("retained-assertion"),
-    );
-
-    let _ = super::summarize_existing_truth_modes(
-        &[WorthQueryMutationFamily::Update],
-        &[Some(retained)],
-    );
-}
-
-fn title_value_touch() -> WorthQueryAspectTouch {
-    let aspect_key = AspectKey::new("title").expect("batch evidence test aspect key should admit");
-    let field_key = FieldKey::new("value").expect("batch evidence test field key should admit");
-    let field_path =
-        CanonicalFieldPath::new([field_key]).expect("batch evidence test field path should admit");
-    WorthQueryAspectTouch::aspect_field_path(aspect_key, field_path)
 }

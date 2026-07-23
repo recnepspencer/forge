@@ -18,6 +18,7 @@ pub struct BridgeMappedWritebackFamilyInput {
     strategy_class: BridgeWritebackStrategyClass,
     strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     causality_digest: Arc<str>,
+    mutation_subject_effect_intent_match: bool,
     effect_intent: BridgeWritebackEffectIntent,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
@@ -26,7 +27,7 @@ pub struct BridgeMappedWritebackFamilyInput {
 impl BridgeMappedWritebackFamilyInput {
     pub(crate) fn from_mapper_envelope(envelope: &BridgeWritebackMapperEnvelope) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-mapped-writeback-family-input|mapper-envelope={}|contract={}|family:{:?}|effect-class:{:?}|strategy-class:{:?}|strategy={}|causality={}|effect-intent={}|effect-intent-basis={}",
+            "bridge-mapped-writeback-family-input|mapper-envelope={}|contract={}|family:{:?}|effect-class:{:?}|strategy-class:{:?}|strategy={}|causality={}|subject-effect-match={}|effect-intent={}|effect-intent-basis={}",
             envelope.digest(),
             envelope.contract_digest(),
             envelope.family_kind(),
@@ -34,6 +35,7 @@ impl BridgeMappedWritebackFamilyInput {
             envelope.strategy_class(),
             envelope.strategy_descriptor_basis().digest(),
             envelope.causality_digest(),
+            envelope.mutation_subject_effect_intent_match(),
             envelope.effect_intent_digest(),
             envelope.effect_intent().patch_canonical_basis(),
         ));
@@ -50,6 +52,7 @@ impl BridgeMappedWritebackFamilyInput {
             strategy_class: envelope.strategy_class(),
             strategy_descriptor_basis: envelope.strategy_descriptor_basis().clone(),
             causality_digest: Arc::from(envelope.causality_digest().to_owned()),
+            mutation_subject_effect_intent_match: envelope.mutation_subject_effect_intent_match(),
             effect_intent: envelope.effect_intent().clone(),
             canonical_basis,
             digest: Arc::from(format!(
@@ -92,6 +95,10 @@ impl BridgeMappedWritebackFamilyInput {
 
     pub fn causality_digest(&self) -> &str {
         self.causality_digest.as_ref()
+    }
+
+    pub(crate) fn mutation_subject_effect_intent_match(&self) -> bool {
+        self.mutation_subject_effect_intent_match
     }
 
     pub fn effect_intent(&self) -> &BridgeWritebackEffectIntent {

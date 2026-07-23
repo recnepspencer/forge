@@ -8,7 +8,7 @@ use super::identity::{
 };
 use super::source::ProjectionSourceFamily;
 use super::support::{support_for_kind, ProjectionConsumptionSupportPosture};
-use crate::authorized_projection::AuthorizedProjectionFieldPath;
+use super::visibility::visibility_denial;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionDenialReason {
@@ -246,72 +246,123 @@ pub fn evaluate_projection_consumption_eligibility(
     };
     let mut warnings = Vec::new();
 
-    for request in declaration.requested().requested() {
+    for requested_fact in declaration.requested().requested() {
         counters.evaluated_fact_count += 1;
-        match support_for_kind(declaration.source(), request.kind()) {
-            ProjectionConsumptionSupportPosture::Admitted => {}
-            ProjectionConsumptionSupportPosture::AdmittedWithWarnings(kind) => {
-                counters.warning_count += 1;
-                warnings.push(kind);
-            }
-            ProjectionConsumptionSupportPosture::Deferred(reason) => {
-                counters.deferred_count = 1;
-                return ProjectionConsumptionEligibility::Deferred(DeferredProjectionConsumption {
-                    declaration_digest: declaration.declaration_digest().to_string(),
-                    source_family: declaration.source().family(),
-                    reason,
-                    counters,
-                    trace: ProjectionConsumptionEligibilityTrace {
-                        rule_label: "fact_family_deferred_for_source",
-                        explanation:
-                            "the requested fact family remains deferred for this source family in the current milestone slice",
-                    },
-                    failure_digest: compose_eligibility_deferred_failure_digest(
-                        declaration.declaration_digest(),
-                    ),
-                });
-            }
-            ProjectionConsumptionSupportPosture::SourceMismatch => {
-                counters.source_mismatch_count = 1;
-                return ProjectionConsumptionEligibility::SourceMismatch(
-                    SourceMismatchedProjectionConsumption {
-                        declaration_digest: declaration.declaration_digest().to_string(),
-                        source_family: declaration.source().family(),
-                        requested_fact_kind: request.kind(),
-                        counters,
-                        trace: ProjectionConsumptionEligibilityTrace {
-                            rule_label: "source_family_does_not_prove_fact_family",
-                            explanation:
-                                "the named source family does not prove the requested fact family",
-                        },
-                        failure_digest: compose_eligibility_source_mismatch_failure_digest(
-                            declaration.declaration_digest(),
-                            declaration.source().family(),
-                            request.kind(),
-                        ),
-                    },
-                );
-            }
-        }
-
-        if let Some(denial) = visibility_denial(declaration, request) {
-            counters.denied_count = 1;
-            return ProjectionConsumptionEligibility::Denied(DeniedProjectionConsumption {
-                declaration_digest: declaration.declaration_digest().to_string(),
-                reason: denial,
-                counters,
-                trace: ProjectionConsumptionEligibilityTrace {
-                    rule_label: "authorized_projection_visibility_denial",
-                    explanation:
-                        "the requested field-backed fact is not visible in the bound authorized projection",
-                },
-                failure_digest: compose_eligibility_denied_failure_digest(
-                    declaration.declaration_digest(),
-                ),
-            });
+        match admit_requested_fact(declaration, requested_fact, &mut counters) {
+            Ok(Some(warning)) => warnings.push(warning),
+            Ok(None) => {}
+            Err(terminal) => return terminal,
         }
     }
 
+    admitted_projection_consumption(declaration, counters, warnings)
+}
+
+fn admit_requested_fact(
+    declaration: &ProjectionConsumptionDeclaration,
+    requested_fact: &ProjectionFactRequest,
+    counters: &mut ProjectionConsumptionEligibilityCounters,
+) -> Result<Option<ProjectionConsumptionWarningKind>, ProjectionConsumptionEligibility> {
+    let warning = match support_for_kind(declaration.source(), requested_fact.kind()) {
+        ProjectionConsumptionSupportPosture::Admitted => None,
+        ProjectionConsumptionSupportPosture::AdmittedWithWarnings(kind) => {
+            counters.warning_count += 1;
+            Some(kind)
+        }
+        ProjectionConsumptionSupportPosture::Deferred(reason) => {
+            counters.deferred_count = 1;
+            return Err(deferred_projection_consumption(
+                declaration,
+                reason,
+                counters.clone(),
+            ));
+        }
+        ProjectionConsumptionSupportPosture::SourceMismatch => {
+            counters.source_mismatch_count = 1;
+            return Err(source_mismatched_projection_consumption(
+                declaration,
+                requested_fact.kind(),
+                counters.clone(),
+            ));
+        }
+    };
+    if let Some(denial) = visibility_denial(declaration, requested_fact) {
+        counters.denied_count = 1;
+        return Err(denied_projection_consumption(
+            declaration,
+            denial,
+            counters.clone(),
+        ));
+    }
+    Ok(warning)
+}
+
+fn deferred_projection_consumption(
+    declaration: &ProjectionConsumptionDeclaration,
+    reason: DeferredProjectionConsumptionReason,
+    counters: ProjectionConsumptionEligibilityCounters,
+) -> ProjectionConsumptionEligibility {
+    ProjectionConsumptionEligibility::Deferred(DeferredProjectionConsumption {
+        declaration_digest: declaration.declaration_digest().to_string(),
+        source_family: declaration.source().family(),
+        reason,
+        counters,
+        trace: ProjectionConsumptionEligibilityTrace {
+            rule_label: "fact_family_deferred_for_source",
+            explanation:
+                "the requested fact family remains deferred for this source family in the current milestone slice",
+        },
+        failure_digest: compose_eligibility_deferred_failure_digest(
+            declaration.declaration_digest(),
+        ),
+    })
+}
+
+fn source_mismatched_projection_consumption(
+    declaration: &ProjectionConsumptionDeclaration,
+    requested_fact_kind: ProjectionFactKind,
+    counters: ProjectionConsumptionEligibilityCounters,
+) -> ProjectionConsumptionEligibility {
+    ProjectionConsumptionEligibility::SourceMismatch(SourceMismatchedProjectionConsumption {
+        declaration_digest: declaration.declaration_digest().to_string(),
+        source_family: declaration.source().family(),
+        requested_fact_kind,
+        counters,
+        trace: ProjectionConsumptionEligibilityTrace {
+            rule_label: "source_family_does_not_prove_fact_family",
+            explanation: "the named source family does not prove the requested fact family",
+        },
+        failure_digest: compose_eligibility_source_mismatch_failure_digest(
+            declaration.declaration_digest(),
+            declaration.source().family(),
+            requested_fact_kind,
+        ),
+    })
+}
+
+fn denied_projection_consumption(
+    declaration: &ProjectionConsumptionDeclaration,
+    reason: ProjectionConsumptionDenialReason,
+    counters: ProjectionConsumptionEligibilityCounters,
+) -> ProjectionConsumptionEligibility {
+    ProjectionConsumptionEligibility::Denied(DeniedProjectionConsumption {
+        declaration_digest: declaration.declaration_digest().to_string(),
+        reason,
+        counters,
+        trace: ProjectionConsumptionEligibilityTrace {
+            rule_label: "authorized_projection_visibility_denial",
+            explanation:
+                "the requested field-backed fact is not visible in the bound authorized projection",
+        },
+        failure_digest: compose_eligibility_denied_failure_digest(declaration.declaration_digest()),
+    })
+}
+
+fn admitted_projection_consumption(
+    declaration: &ProjectionConsumptionDeclaration,
+    counters: ProjectionConsumptionEligibilityCounters,
+    warnings: Vec<ProjectionConsumptionWarningKind>,
+) -> ProjectionConsumptionEligibility {
     let admitted = AdmittedProjectionConsumption {
         declaration: declaration.clone(),
         declaration_digest: declaration.declaration_digest().to_string(),
@@ -345,45 +396,5 @@ pub fn evaluate_projection_consumption_eligibility(
                 warning_digest,
             },
         )
-    }
-}
-
-fn visibility_denial(
-    declaration: &ProjectionConsumptionDeclaration,
-    request: &ProjectionFactRequest,
-) -> Option<ProjectionConsumptionDenialReason> {
-    let field_path = request.field_path()?;
-    let field_key = field_path.terminal_projection_for_boundary();
-    let visible = declaration
-        .binding()
-        .authorized_visible_field_paths()
-        .iter()
-        .any(|candidate| authorized_field_matches_projection_fact(candidate, field_path));
-    if visible {
-        None
-    } else {
-        Some(ProjectionConsumptionDenialReason::FactFamilyNotVisible {
-            field_key: field_key.to_string(),
-        })
-    }
-}
-
-fn authorized_field_matches_projection_fact(
-    authorized: &AuthorizedProjectionFieldPath,
-    field_path: &super::facts::ProjectionFactFieldPath,
-) -> bool {
-    let fields = field_path.canonical_field_path().fields();
-    match fields {
-        [aspect] => {
-            authorized.native_aspect_key().as_str() == aspect.as_str()
-                && authorized.native_field_key().is_none()
-        }
-        [aspect, field] => {
-            authorized.native_aspect_key().as_str() == aspect.as_str()
-                && authorized
-                    .native_field_key()
-                    .is_some_and(|key| key == field)
-        }
-        _ => false,
     }
 }

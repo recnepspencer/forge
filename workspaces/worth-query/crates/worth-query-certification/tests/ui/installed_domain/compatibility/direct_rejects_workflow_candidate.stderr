@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/compatibility/direct_rejects_workflow_candidate.rs:14:31
+   |
+14 |     let _ = live.replace_with(candidate, witness, workspace);
+   |                  ------------ ^^^^^^^^^ expected `WorthQueryCurrentDomainProjection<..., ..., ..., ...>`, found `WorthQueryCurrentWorkflowProjection<..., ..., ..., ...>`
+   |                  |
+   |                  arguments to this method are incorrect
+   |
+   = note: expected struct `WorthQueryCurrentDomainProjection<D, O, F, ObservationLaneWitness>`
+              found struct `WorthQueryCurrentWorkflowProjection<D, O, F, ObservationLaneWitness>`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/projection_lifecycle/replacement.rs
+   |
+   |     pub fn replace_with(
+   |            ^^^^^^^^^^^^

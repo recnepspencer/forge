@@ -1,4 +1,6 @@
-use worth_foundational::FoundationalPerformanceBudgetKind;
+use worth_foundational::{
+    FoundationalPerformanceBudgetKind, FoundationalPerformanceWorkClass,
+};
 
 use crate::IoSchedulerBackendCapabilityRequirement;
 use crate::SecureIoPreservationDenial;
@@ -14,6 +16,7 @@ pub enum QueueGroupingDenial {
     WorkClassMismatch,
     RecoveryOrderingMismatch,
     WritebackPolicyMismatch,
+    LocalityMismatch,
     SecurityScopeMismatch,
     SecureIoReceiptMismatch,
     BackendCapabilityMismatch,
@@ -29,6 +32,9 @@ pub enum QueueExecutionAdmissionDenial {
         admitted: IoSchedulerBackendCapabilityRequirement,
     },
     PolicyReceiptHasNoBudgetDecision,
+    PolicyReceiptContextMismatch {
+        expected_work: FoundationalPerformanceWorkClass,
+    },
     PolicyReceiptBudgetMismatch {
         kind: FoundationalPerformanceBudgetKind,
         expected_requested_units: u32,
@@ -40,6 +46,7 @@ pub enum QueueExecutionAdmissionDenial {
     SecureIoDenied(SecureIoPreservationDenial),
     RawOperationLabelCannotAdmitQueueWork,
     CopiedReservationReceiptCannotAdmitQueueWork,
+    ProducerSecurityScopeMismatch,
     BackendPrivateQueueHandleCannotAdmitQueueWork,
     ElapsedTimeObservationCannotAdmitQueueWork,
 }

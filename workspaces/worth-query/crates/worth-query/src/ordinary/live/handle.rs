@@ -23,6 +23,12 @@ impl WorthQueryManagedLiveHandle {
         self.view().name()
     }
 
+    pub(crate) fn resource_identity(&self) -> &crate::WorthQueryEvidenceIdentity {
+        self.view()
+            .subscription_installation()
+            .installation_identity()
+    }
+
     pub fn read(
         &self,
         workspace: &mut WorthQueryWorkspace,
@@ -49,6 +55,15 @@ impl WorthQueryManagedLiveHandle {
             );
         }
         self.projection_binding().consume_live(read, declaration)
+    }
+
+    pub(crate) fn project_contract(
+        &self,
+        read: &WorthQueryLiveReadResult,
+        contract: crate::projection_consumption::ProjectionAuthorityContract,
+    ) -> WorthQueryProjectionOutcome {
+        self.projection_binding()
+            .consume_live_contract(read, contract)
     }
 
     pub fn drain(

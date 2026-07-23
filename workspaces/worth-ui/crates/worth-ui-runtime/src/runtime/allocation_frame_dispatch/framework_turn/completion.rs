@@ -3,9 +3,10 @@ use super::WorthUiFrameworkTurnExecution;
 /// A preview-bearing completion is consumed by exactly one terminal transition.
 ///
 /// ```compile_fail
-/// use worth_ui_runtime::facade::runtime_handoff::{
-///     UiHostPreviewDiscardReason, WorthUiFrameworkTurnCompletion, WorthUiPreviewPaintHost,
+/// use worth_ui_runtime::facade::host_observation::{
+///     UiHostPreviewDiscardReason, WorthUiPreviewPaintHost,
 /// };
+/// use worth_ui_runtime::facade::runtime_handoff::WorthUiFrameworkTurnCompletion;
 /// fn resolve_twice(
 ///     completion: WorthUiFrameworkTurnCompletion<'_>,
 ///     host: &mut impl WorthUiPreviewPaintHost,

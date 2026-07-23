@@ -1,5 +1,5 @@
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
-use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiObligationPrerequisiteEvidenceRef {

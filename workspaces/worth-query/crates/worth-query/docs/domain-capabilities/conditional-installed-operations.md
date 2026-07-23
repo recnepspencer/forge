@@ -374,9 +374,12 @@ not operational authority.
   Runtime Bridge.
 - Portable declarations describe temporal and on-demand meaning, but the host
   must supply the exact runtime wake or trigger provider.
-- Later replay, sharing, invalidation-delta, and patch authorities must carry
-  conditional provenance when implemented. Their vocabulary does not make
-  those paths available now.
+- Installed-operation certification replay compares the exact realized
+  conditional observations, Signal evidence, and decision path. Ordinary
+  shared-owner delivery retains the current admitted Signal decision in each
+  lease-bound invalidation delta. A suppressed, dependency-unchanged,
+  reverted-clean, or deferred decision cannot be promoted into a computed
+  patch. Query-shaped patch payloads remain a separate later capability.
 
 ## Related Docs
 
@@ -385,3 +388,5 @@ not operational authority.
 - [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
+- [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
+- [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./bound-projection-sharing-and-invalidation.md)

@@ -1,9 +1,7 @@
-use worth_foundational::facade::{
-    AspectContractRevision, AspectIdentity, AspectKey, AspectMask, ProjectionMask,
-};
+use worth_foundational::facade::{AspectIdentity, AspectKey};
 use worth_query_declaration::facade::canonicalization::CanonicalQueryBundle;
 
-use super::WorthQueryOperationWorkflowContract;
+use super::{WorthQueryOperationNativeProjectionContract, WorthQueryOperationWorkflowContract};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDomainOperationSemanticClosure {
@@ -105,49 +103,65 @@ pub enum WorthQueryOperationValueFamily {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryOperationNativeProjectionContract {
-    pub aspect_key: AspectKey,
-    pub aspect_identity: AspectIdentity,
-    pub contract_revision: AspectContractRevision,
-    pub mask: AspectMask<ProjectionMask>,
+pub enum WorthQueryOperationCollectionContract {
+    NotCollection,
+    Collection {
+        row_identity_field: WorthQueryOperationCollectionField,
+        ordering_fields: Vec<WorthQueryOperationCollectionField>,
+        grouping: WorthQueryOperationGroupingContract,
+        window: WorthQueryOperationWindowPolicy,
+        continuation: WorthQueryOperationContinuationPosture,
+    },
 }
 
-impl WorthQueryOperationNativeProjectionContract {
-    pub(crate) fn canonical_key(&self) -> String {
-        let mask = if self.mask.is_whole_aspect() {
-            "whole".to_string()
-        } else {
-            self.mask
-                .paths()
-                .iter()
-                .map(|path| {
-                    path.fields()
-                        .iter()
-                        .map(|field| field.as_str())
-                        .collect::<Vec<_>>()
-                        .join(".")
-                })
-                .collect::<Vec<_>>()
-                .join("|")
-        };
-        format!(
-            "{}|{}|{}|{}",
-            self.aspect_key.as_str(),
-            self.aspect_identity.0,
-            self.contract_revision.0,
-            mask
-        )
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct WorthQueryOperationCollectionField {
+    aspect_key: AspectKey,
+    field_path: worth_foundational::facade::CanonicalFieldPath,
+}
+
+impl WorthQueryOperationCollectionField {
+    pub fn new(
+        aspect_key: AspectKey,
+        field_path: worth_foundational::facade::CanonicalFieldPath,
+    ) -> Self {
+        Self {
+            aspect_key,
+            field_path,
+        }
+    }
+
+    pub fn from_dotted(value: &str) -> Option<Self> {
+        let mut parts = value.split('.');
+        let aspect_key = AspectKey::new(parts.next()?.to_owned())?;
+        let fields = parts
+            .map(|part| worth_foundational::facade::FieldKey::new(part.to_owned()))
+            .collect::<Option<Vec<_>>>()?;
+        let field_path = worth_foundational::facade::CanonicalFieldPath::new(fields)?;
+        Some(Self::new(aspect_key, field_path))
+    }
+
+    pub fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
+    }
+
+    pub fn field_path(&self) -> &worth_foundational::facade::CanonicalFieldPath {
+        &self.field_path
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthQueryOperationCollectionContract {
-    NotCollection,
-    Collection {
-        row_identity_field: String,
-        ordering_fields: Vec<String>,
-        continuation: WorthQueryOperationContinuationPosture,
+pub enum WorthQueryOperationGroupingContract {
+    Ungrouped,
+    Grouped {
+        grouping_fields: Vec<WorthQueryOperationCollectionField>,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryOperationWindowPolicy {
+    CompleteCollection,
+    ContinuationBounded,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -234,20 +248,35 @@ pub enum WorthQueryOperationInvariantContract {
     Declared { invariant_slots: Vec<String> },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryOperationReplayContract {
-    NotSupported,
-    ReExecutable,
-    CertReplayable,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryOperationReversalContract {
     Irreversible,
     ProvisionalDiscard,
-    ExactInverse { lowering_family: String },
-    Compensation { operation: String },
-    RebuildRequired { recovery_family: String },
+    ExactInverse {
+        lowering_family: String,
+    },
+    Compensation {
+        operation: super::WorthQueryDomainOperationIdentity,
+    },
+    ExactInverseWithPostcondition {
+        operation: super::WorthQueryDomainOperationIdentity,
+        lowering_family: String,
+        postcondition: WorthQueryAftermathPostcondition,
+    },
+    CompensationWithPostcondition {
+        operation: super::WorthQueryDomainOperationIdentity,
+        postcondition: WorthQueryAftermathPostcondition,
+    },
+    RebuildRequired {
+        recovery_family: String,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthQueryAftermathPostcondition {
+    ExactPriorTruth,
+    InvariantRestored { invariant: String },
+    BusinessPostcondition { identity: String },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -362,3 +391,4 @@ pub struct WorthQueryOperationLoweringContract {
     pub family: String,
     pub deterministic: bool,
 }
+use super::replay_contract::WorthQueryOperationReplayContract;

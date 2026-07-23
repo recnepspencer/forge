@@ -125,11 +125,21 @@ impl From<&ProjectionFactRequest> for FactDocument {
         Self {
             kind: fact_name(request).to_string(),
             path: request.field_path().map(|path| {
-                path.canonical_field_path()
-                    .fields()
-                    .iter()
-                    .map(|field| field.as_str().to_string())
-                    .collect()
+                if let Some(aspect) = path.native_aspect_key() {
+                    let mut parts = vec![aspect.as_str().to_string()];
+                    parts.extend(
+                        path.native_field_key()
+                            .map(|field| field.as_str().to_string()),
+                    );
+                    parts
+                } else {
+                    path.canonical_field_path()
+                        .expect("non-native projection facts retain a canonical field path")
+                        .fields()
+                        .iter()
+                        .map(|field| field.as_str().to_string())
+                        .collect()
+                }
             }),
         }
     }

@@ -1,3 +1,4 @@
+use super::admitted_capability::AdmittedBasisCapability;
 use super::counters::BasisEligibilityCounters;
 use super::lanes::{
     BasisOperationLane, CertificationLaneWitness, EffectAuthoringLaneWitness,
@@ -6,8 +7,8 @@ use super::lanes::{
     SubscriptionActivationLaneWitness, SubscriptionDeclarationLaneWitness,
 };
 use super::proofs::{
-    AdmittedBasisCapability, AdvisoryBasisEligibility, BasisEligibility, DeferredBasisEligibility,
-    DeniedBasisCapability, NormalizedBasisIntent,
+    AdvisoryBasisEligibility, BasisEligibility, DeferredBasisEligibility, DeniedBasisCapability,
+    NormalizedBasisIntent,
 };
 use super::support::{support_posture_for, BasisSupportPosture};
 use super::taxonomy::{

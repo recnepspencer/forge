@@ -7,8 +7,8 @@ pub(crate) use consequences::UiGraphReplanConsequences;
 pub(crate) use neighborhood_selection::UiGraphReplanTransactionBasis;
 pub use neighborhood_selection::{
     UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet, UiReplanLocalityDenial,
-    UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters, UiReplanOverlapDisposition,
-    UiReplanRootPosture, UiReplanWidenReason,
+    UiReplanNeighborhoodSelectionCounters, UiReplanOverlapDisposition, UiReplanRootPosture,
+    UiReplanWidenReason,
 };
 pub(crate) use portal_consequence::UiPortalReplanConsequence;
 pub(crate) use scroll_consequence::UiScrollReplanConsequence;

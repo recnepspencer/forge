@@ -146,6 +146,13 @@ const WORTH_QUERY_IDENTITY_PHASE_ONE_FAMILIES: &[WorthQueryIdentityPhaseOneFamil
         "workflow binding, lowering, and inspection",
     ),
     WorthQueryIdentityPhaseOneFamily::new(
+        "operation_progression",
+        "QueryOperationProgressionAuthority",
+        "QueryOperationProgressionIdentityKind",
+        QUERY_AUTHORITY_CATEGORIES,
+        "installed operation and workflow execution progression",
+    ),
+    WorthQueryIdentityPhaseOneFamily::new(
         "domain_capability",
         "QueryDomainCapabilityAuthority",
         "QueryDomainCapabilityIdentityKind",

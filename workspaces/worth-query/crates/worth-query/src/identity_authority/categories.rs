@@ -8,8 +8,9 @@ use super::authority::{
     QueryCausalInspectionAuthority, QueryDomainCapabilityAuthority,
     QueryDownstreamAdapterAuthority, QueryEffectLifecycleAuthority, QueryEvidenceAuthority,
     QueryFeederAuthority, QueryIntentAuthority, QueryMaterializationAuthority,
-    QueryReceiptAdmissionAuthority, QueryRuntimeBackendAuthority, QuerySignalInvalidationAuthority,
-    QuerySubscriptionAuthority, QueryTruthIdentityAdmissionAuthority, QueryWorkflowAuthority,
+    QueryOperationProgressionAuthority, QueryReceiptAdmissionAuthority,
+    QueryRuntimeBackendAuthority, QuerySignalInvalidationAuthority, QuerySubscriptionAuthority,
+    QueryTruthIdentityAdmissionAuthority, QueryWorkflowAuthority,
 };
 
 pub type QueryAuthorityIdentity<Value, Authority, Kind> =
@@ -66,3 +67,6 @@ pub type QuerySubscriptionAuthorityIdentity<Value, Kind> =
 
 pub type QueryTruthIdentityAdmissionAuthorityIdentity<Value, Kind> =
     QueryAuthorityIdentity<Value, QueryTruthIdentityAdmissionAuthority, Kind>;
+
+pub type QueryOperationProgressionAuthorityIdentity<Value, Kind> =
+    QueryAuthorityIdentity<Value, QueryOperationProgressionAuthority, Kind>;

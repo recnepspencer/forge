@@ -19,7 +19,7 @@ Read `_docs\coding_guidelines\MENTALITY.md`,
 `_docs\coding_guidelines\composition_laws.md`,
 `_docs\coding_guidelines\domain_structure_laws.md`, and
 `_docs\coding_guidelines\perf_laws.md` with special attention on every turn.
-Read `_docs\more_guidelines\dx_laws.md` when planning or changing public caller
+Read `_docs\coding_guidelines\dx_laws.md` when planning or changing public caller
 experience.
 
 For S.4.5, treat the work as building a usable physical database test operating

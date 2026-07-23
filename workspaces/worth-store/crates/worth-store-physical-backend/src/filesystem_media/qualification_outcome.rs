@@ -5,6 +5,7 @@ pub enum MediaQualificationDenial {
     },
     OwnerPreEffect {
         denial: super::FilesystemMediaOwnerAdmissionDenial,
+        release: Option<super::OwnershipReleaseOutcome>,
         counters: Box<super::MediaCounterSnapshot>,
     },
     RemoteFilesystem {
@@ -33,6 +34,13 @@ pub enum MediaQualificationDenial {
 }
 
 impl MediaQualificationDenial {
+    pub const fn release(&self) -> Option<super::OwnershipReleaseOutcome> {
+        match self {
+            Self::OwnerPreEffect { release, .. } => *release,
+            _ => None,
+        }
+    }
+
     pub const fn counters(&self) -> &super::MediaCounterSnapshot {
         match self {
             Self::UnmanagedWriterPosture { counters }
@@ -124,29 +132,31 @@ impl MediaQualificationRebindRequired {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MediaQualificationPostOwnershipCause {
+    ProfileObservation {
+        kind: std::io::ErrorKind,
+    },
+    RootIdentityChanged(super::NamespaceConfinementDenial),
+    ProfileChanged {
+        drift: super::MediaQualificationBasisDrift,
+    },
+    IdentityPublication,
+    IdentityRead,
+    QualificationTransaction,
+    QualificationIdentityExhausted,
+    Denied(Box<MediaQualificationDenial>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MediaQualificationFailure {
     OwnerAfterEffect {
         denial: super::FilesystemMediaOwnerAdmissionDenial,
+        release: Option<super::OwnershipReleaseOutcome>,
         counters: Box<super::MediaCounterSnapshot>,
     },
-    ProfileObservation {
-        kind: std::io::ErrorKind,
-        counters: Box<super::MediaCounterSnapshot>,
-    },
-    ProfileChangedAfterOwnership {
-        drift: super::MediaQualificationBasisDrift,
-        counters: Box<super::MediaCounterSnapshot>,
-    },
-    IdentityPublication {
-        counters: Box<super::MediaCounterSnapshot>,
-    },
-    IdentityRead {
-        counters: Box<super::MediaCounterSnapshot>,
-    },
-    QualificationTransaction {
-        counters: Box<super::MediaCounterSnapshot>,
-    },
-    QualificationIdentityExhausted {
+    PostOwnership {
+        cause: Box<MediaQualificationPostOwnershipCause>,
+        release: super::OwnershipReleaseOutcome,
         counters: Box<super::MediaCounterSnapshot>,
     },
 }
@@ -154,26 +164,23 @@ pub enum MediaQualificationFailure {
 impl MediaQualificationFailure {
     pub const fn counters(&self) -> &super::MediaCounterSnapshot {
         match self {
-            Self::OwnerAfterEffect { counters, .. }
-            | Self::ProfileObservation { counters, .. }
-            | Self::ProfileChangedAfterOwnership { counters, .. }
-            | Self::IdentityPublication { counters }
-            | Self::IdentityRead { counters }
-            | Self::QualificationTransaction { counters }
-            | Self::QualificationIdentityExhausted { counters } => counters,
+            Self::OwnerAfterEffect { counters, .. } | Self::PostOwnership { counters, .. } => {
+                counters
+            }
         }
     }
 
-    pub(super) fn with_terminal_counters(mut self, terminal: super::MediaCounterSnapshot) -> Self {
-        match &mut self {
-            Self::OwnerAfterEffect { counters, .. }
-            | Self::ProfileObservation { counters, .. }
-            | Self::ProfileChangedAfterOwnership { counters, .. }
-            | Self::IdentityPublication { counters }
-            | Self::IdentityRead { counters }
-            | Self::QualificationTransaction { counters }
-            | Self::QualificationIdentityExhausted { counters } => **counters = terminal,
+    pub const fn release(&self) -> Option<super::OwnershipReleaseOutcome> {
+        match self {
+            Self::OwnerAfterEffect { release, .. } => *release,
+            Self::PostOwnership { release, .. } => Some(*release),
         }
-        self
+    }
+
+    pub const fn post_ownership_cause(&self) -> Option<&MediaQualificationPostOwnershipCause> {
+        match self {
+            Self::OwnerAfterEffect { .. } => None,
+            Self::PostOwnership { cause, .. } => Some(cause),
+        }
     }
 }

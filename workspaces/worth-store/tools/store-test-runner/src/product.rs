@@ -10,6 +10,7 @@ pub(crate) enum TestProduct {
     },
     Smoke,
     Ui,
+    Mutants,
     Ci {
         lane: CiTestLane,
         shard: Option<(usize, usize)>,
@@ -22,6 +23,7 @@ impl TestProduct {
             Self::Owner { package } => format!("owner:{package}"),
             Self::Smoke => "smoke".into(),
             Self::Ui => "ui".into(),
+            Self::Mutants => "mutants".into(),
             Self::Ci { lane, shard } => match shard {
                 Some((index, count)) => format!("ci:{lane}:{index}/{count}"),
                 None => format!("ci:{lane}"),
@@ -63,6 +65,21 @@ pub(crate) fn smoke_cases() -> &'static [SmokeCase] {
             package: "worth-store-certification",
             target: "physical_isolation",
             filter: "stable_read_plan_admission::proof_bearing_read_plan_admits_before_execution_handle",
+        },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "empty_bootstrap_create_and_reopen_converge",
+        },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "scan_journeys::scan_batch_widths_converge_to_one_physical_sequence",
+        },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "publication_faults::possible_catalog_cutover_is_typed_indeterminate_and_close_adds_no_publication_effect",
         },
     ]
 }

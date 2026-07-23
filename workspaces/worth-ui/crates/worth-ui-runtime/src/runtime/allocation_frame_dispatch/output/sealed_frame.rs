@@ -151,6 +151,7 @@ impl UiAllocationFrameSubmissionAssignment {
     pub fn ingress_key(&self) -> UiAllocationFrameIngressKey {
         self.ingress_key.clone()
     }
+    #[cfg(test)]
     pub fn epoch(&self) -> UiAllocationFrameEpoch {
         self.epoch
     }

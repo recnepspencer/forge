@@ -7,5 +7,5 @@ mod policy;
 pub(crate) use commit_basis::UiViewportResizeCommitBasis;
 pub use counters::UiViewportResizeCounters;
 pub use denial::UiViewportResizeDenial;
-pub use outcome::{UiViewportCommittedReplan, UiViewportResizeOutcome};
+pub use outcome::UiViewportResizeOutcome;
 pub use policy::UiViewportReceiptCommitStrategy;

@@ -1,11 +1,4 @@
-use std::sync::Arc;
-
 use super::{
-    digest::{
-        batch_continuity_mutation_digest, batch_existing_truth_binding_digest,
-        batch_mutation_causality_digest, batch_mutation_provenance_digest,
-        batch_naming_mutation_digest, batch_symbolic_target_reference_digest,
-    },
     existing_truth::BridgeExistingTruthBindingBundle,
     provenance::{BridgeMutationCausalityBundle, BridgeMutationProvenanceBundle},
 };
@@ -13,7 +6,7 @@ use crate::writeback::{
     BridgeContinuityMutationBundle, BridgeDerivedWritebackEffect, BridgeNamingMutationBundle,
     BridgeSymbolicTargetReferenceBundle, BridgeWritebackAuthorityOutcome,
     BridgeWritebackExecutionRecord, BridgeWritebackFeedbackProvenance,
-    BridgeWritebackNativeCausalityInputs,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackOutcomeClass,
 };
 
 /// One bridge-authored carry-forward packet suitable for Query receipt lowering.
@@ -27,27 +20,70 @@ pub struct BridgeMutationAuthorityBundle {
     continuity_mutation: Option<BridgeContinuityMutationBundle>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BridgeMutationAuthorityBundleError {
+    MissingMutationSubject,
+    MutationSubjectEffectIntentMismatch,
+    CausalityEffectMismatch,
+    FeedbackEffectMismatch,
+    ExecutionRecordEffectMismatch,
+    ExecutionRecordOutcomeMismatch,
+    NonAuthoritativeOutcome,
+}
+
+impl std::fmt::Display for BridgeMutationAuthorityBundleError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingMutationSubject => formatter
+                .write_str("bridge mutation authority requires a retained mutation subject"),
+            Self::MutationSubjectEffectIntentMismatch => formatter.write_str(
+                "bridge mutation subject patch does not match the executed effect intent",
+            ),
+            Self::CausalityEffectMismatch => {
+                formatter.write_str("bridge mutation causality does not match the executed effect")
+            }
+            Self::FeedbackEffectMismatch => formatter.write_str(
+                "bridge writeback feedback provenance does not match the executed effect",
+            ),
+            Self::ExecutionRecordEffectMismatch => formatter
+                .write_str("bridge writeback execution record does not match the executed effect"),
+            Self::ExecutionRecordOutcomeMismatch => formatter.write_str(
+                "bridge writeback execution record does not match the authority outcome",
+            ),
+            Self::NonAuthoritativeOutcome => formatter
+                .write_str("bridge mutation authority requires an authoritative commit outcome"),
+        }
+    }
+}
+
+impl std::error::Error for BridgeMutationAuthorityBundleError {}
+
+pub(crate) struct SuccessfulWritebackArtifactChain<'a> {
+    pub(crate) causality: &'a BridgeWritebackNativeCausalityInputs,
+    pub(crate) effect: &'a BridgeDerivedWritebackEffect,
+    pub(crate) feedback: &'a BridgeWritebackFeedbackProvenance,
+    pub(crate) execution_record: &'a BridgeWritebackExecutionRecord,
+    pub(crate) outcome: &'a BridgeWritebackAuthorityOutcome,
+}
+
 impl BridgeMutationAuthorityBundle {
-    pub fn from_writeback_artifacts(
-        causality: &BridgeWritebackNativeCausalityInputs,
-        effect: &BridgeDerivedWritebackEffect,
-        feedback: &BridgeWritebackFeedbackProvenance,
-        execution_record: &BridgeWritebackExecutionRecord,
-        outcome: Option<&BridgeWritebackAuthorityOutcome>,
-    ) -> Self {
-        Self {
-            causality: BridgeMutationCausalityBundle::from_writeback_causality(causality),
+    pub(crate) fn from_successful_writeback_artifacts(
+        artifacts: SuccessfulWritebackArtifactChain<'_>,
+    ) -> Result<Self, BridgeMutationAuthorityBundleError> {
+        validate_successful_artifact_chain(&artifacts)?;
+        Ok(Self {
+            causality: BridgeMutationCausalityBundle::from_writeback_causality(artifacts.causality),
             provenance: BridgeMutationProvenanceBundle::from_writeback_artifacts(
-                effect,
-                feedback,
-                execution_record,
-                outcome,
+                artifacts.effect,
+                artifacts.feedback,
+                artifacts.execution_record,
+                Some(artifacts.outcome),
             ),
             existing_truth_binding: None,
             symbolic_target_reference: None,
             naming_mutation: None,
             continuity_mutation: None,
-        }
+        })
     }
 
     pub fn causality(&self) -> &BridgeMutationCausalityBundle {
@@ -101,272 +137,71 @@ impl BridgeMutationAuthorityBundle {
     }
 }
 
-/// One bridge-authored aggregate packet for an ordered authoritative mutation session.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeBatchMutationAuthorityBundle {
-    component_count: usize,
-    causality_bundle_count: usize,
-    provenance_bundle_count: usize,
-    existing_truth_binding_count: usize,
-    symbolic_target_reference_count: usize,
-    naming_mutation_count: usize,
-    continuity_mutation_count: usize,
-    outcome_class_count: usize,
-    authority_request_count: usize,
-    authority_receipt_count: usize,
-    aggregate_existing_truth_binding_digest: Option<Arc<str>>,
-    aggregate_symbolic_target_reference_digest: Option<Arc<str>>,
-    aggregate_naming_mutation_digest: Option<Arc<str>>,
-    aggregate_continuity_mutation_digest: Option<Arc<str>>,
-    aggregate_causality_digest: Arc<str>,
-    aggregate_provenance_digest: Arc<str>,
+fn validate_successful_artifact_chain(
+    artifacts: &SuccessfulWritebackArtifactChain<'_>,
+) -> Result<(), BridgeMutationAuthorityBundleError> {
+    let subject = artifacts
+        .causality
+        .mutation_subject()
+        .ok_or(BridgeMutationAuthorityBundleError::MissingMutationSubject)?;
+    if !subject.matches_effect_intent(artifacts.effect.effect_intent()) {
+        return Err(BridgeMutationAuthorityBundleError::MutationSubjectEffectIntentMismatch);
+    }
+    if artifacts.causality.digest() != artifacts.effect.causality_digest() {
+        return Err(BridgeMutationAuthorityBundleError::CausalityEffectMismatch);
+    }
+    if !feedback_matches_effect(artifacts.feedback, artifacts.effect) {
+        return Err(BridgeMutationAuthorityBundleError::FeedbackEffectMismatch);
+    }
+    if !execution_record_matches_effect(artifacts.execution_record, artifacts.effect) {
+        return Err(BridgeMutationAuthorityBundleError::ExecutionRecordEffectMismatch);
+    }
+    if artifacts.outcome.outcome_class() != BridgeWritebackOutcomeClass::AuthoritativeCommit {
+        return Err(BridgeMutationAuthorityBundleError::NonAuthoritativeOutcome);
+    }
+    if !execution_record_matches_outcome(artifacts.execution_record, artifacts.outcome) {
+        return Err(BridgeMutationAuthorityBundleError::ExecutionRecordOutcomeMismatch);
+    }
+    Ok(())
 }
 
-impl BridgeBatchMutationAuthorityBundle {
-    pub fn from_components(components: &[BridgeMutationAuthorityBundle]) -> Option<Self> {
-        if components.is_empty() {
-            return None;
-        }
-
-        let outcome_class_count = components
-            .iter()
-            .filter(|component| component.provenance().outcome_class().is_some())
-            .count();
-        let authority_request_count = components
-            .iter()
-            .filter(|component| component.provenance().authority_request().is_some())
-            .count();
-        let authority_receipt_count = components
-            .iter()
-            .filter(|component| component.provenance().authority_receipt().is_some())
-            .count();
-        let existing_truth_bindings = components
-            .iter()
-            .filter_map(|component| component.existing_truth_binding());
-        let symbolic_target_references = components
-            .iter()
-            .filter_map(|component| component.symbolic_target_reference());
-        let naming_mutations = components
-            .iter()
-            .filter_map(|component| component.naming_mutation());
-        let continuity_mutations = components
-            .iter()
-            .filter_map(|component| component.continuity_mutation());
-
-        let aggregate_existing_truth_binding_digest = batch_existing_truth_binding_digest(
-            existing_truth_bindings.map(|binding| binding.binding_digest().to_string()),
-        );
-        let aggregate_symbolic_target_reference_digest =
-            batch_symbolic_target_reference_digest(symbolic_target_references.map(|reference| {
-                format!(
-                    "{:?}:{}:{}:{}",
-                    reference.family(),
-                    reference.symbol(),
-                    reference.resolved_entity_identity(),
-                    reference.target_collection().unwrap_or("none")
-                )
-            }));
-        let aggregate_naming_mutation_digest =
-            batch_naming_mutation_digest(naming_mutations.map(|naming| {
-                format!(
-                    "{:?}:{:?}:{}:{}:{}:{}:{}",
-                    naming.family(),
-                    naming.outcome(),
-                    naming.attachment_identity(),
-                    naming.prior_authoritative_identity().unwrap_or("none"),
-                    naming.target_authoritative_identity().unwrap_or("none"),
-                    naming.resolved_target_entity_identity().unwrap_or("none"),
-                    naming.target_collection().unwrap_or("none")
-                )
-            }));
-        let aggregate_continuity_mutation_digest =
-            batch_continuity_mutation_digest(continuity_mutations.map(|continuity| {
-                format!(
-                    "{:?}:{:?}:{}:{}:{}:{}:{}:{}:{}",
-                    continuity.family(),
-                    continuity.outcome_class(),
-                    continuity.prior_authoritative_identity(),
-                    format_continuity_successor_identities(continuity),
-                    continuity.basis_binding_digest().unwrap_or("none"),
-                    continuity
-                        .resolved_target_entity_identity()
-                        .unwrap_or("none"),
-                    continuity.target_collection().unwrap_or("none"),
-                    continuity.lineage_digest(),
-                    continuity.continuity_resolution_digest()
-                )
-            }));
-
-        let aggregate_causality_digest =
-            batch_mutation_causality_digest(components.iter().flat_map(|component| {
-                [
-                    format!("causality:{}", component.causality().causality_digest()),
-                    format!(
-                        "truth-trigger:{}",
-                        component.causality().truth_trigger_digest()
-                    ),
-                    format!("route:{}", component.causality().route_digest()),
-                    format!(
-                        "evaluation:{}",
-                        component.causality().evaluation_surface_digest()
-                    ),
-                    format!("truth-view:{}", component.causality().truth_view_digest()),
-                ]
-            }));
-        let aggregate_provenance_digest =
-            batch_mutation_provenance_digest(components.iter().flat_map(|component| {
-                let provenance = component.provenance();
-                [
-                    format!("contract:{}", provenance.contract_digest()),
-                    format!(
-                        "writeback-effect-artifact:{}",
-                        provenance.writeback_effect_artifact_digest()
-                    ),
-                    format!("effect-intent:{}", provenance.effect_intent_digest()),
-                    format!(
-                        "effect-intent-basis:{}",
-                        provenance.effect_intent_patch_canonical_basis()
-                    ),
-                    format!(
-                        "feedback-provenance:{}",
-                        provenance.feedback_provenance_digest()
-                    ),
-                    format!("causality:{}", provenance.causality_digest()),
-                    format!(
-                        "strategy-basis:{}:{}",
-                        provenance.strategy_descriptor_basis().canonical_basis(),
-                        provenance.strategy_descriptor_basis().digest()
-                    ),
-                    format!("execution:{}", provenance.execution_record_digest()),
-                    format!(
-                        "outcome:{}",
-                        provenance
-                            .outcome_class()
-                            .map(|value| format!("{value:?}"))
-                            .unwrap_or_else(|| "none".to_string())
-                    ),
-                    format!(
-                        "authority-artifact-proof:{}",
-                        provenance.authoritative_artifact_digest().unwrap_or("none")
-                    ),
-                    format!("request:{}", provenance.request_digest().unwrap_or("none")),
-                    format!("receipt:{}", provenance.receipt_digest().unwrap_or("none")),
-                    format!(
-                        "failure:{}",
-                        provenance
-                            .failure_class()
-                            .map(|value| format!("{value:?}"))
-                            .unwrap_or_else(|| "none".to_string())
-                    ),
-                ]
-            }));
-
-        Some(Self {
-            component_count: components.len(),
-            causality_bundle_count: components.len(),
-            provenance_bundle_count: components.len(),
-            existing_truth_binding_count: components
-                .iter()
-                .filter(|component| component.existing_truth_binding().is_some())
-                .count(),
-            symbolic_target_reference_count: components
-                .iter()
-                .filter(|component| component.symbolic_target_reference().is_some())
-                .count(),
-            naming_mutation_count: components
-                .iter()
-                .filter(|component| component.naming_mutation().is_some())
-                .count(),
-            continuity_mutation_count: components
-                .iter()
-                .filter(|component| component.continuity_mutation().is_some())
-                .count(),
-            outcome_class_count,
-            authority_request_count,
-            authority_receipt_count,
-            aggregate_existing_truth_binding_digest,
-            aggregate_symbolic_target_reference_digest,
-            aggregate_naming_mutation_digest,
-            aggregate_continuity_mutation_digest,
-            aggregate_causality_digest,
-            aggregate_provenance_digest,
-        })
-    }
-
-    pub fn component_count(&self) -> usize {
-        self.component_count
-    }
-
-    pub fn causality_bundle_count(&self) -> usize {
-        self.causality_bundle_count
-    }
-
-    pub fn provenance_bundle_count(&self) -> usize {
-        self.provenance_bundle_count
-    }
-
-    pub fn existing_truth_binding_count(&self) -> usize {
-        self.existing_truth_binding_count
-    }
-
-    pub fn symbolic_target_reference_count(&self) -> usize {
-        self.symbolic_target_reference_count
-    }
-
-    pub fn naming_mutation_count(&self) -> usize {
-        self.naming_mutation_count
-    }
-
-    pub fn continuity_mutation_count(&self) -> usize {
-        self.continuity_mutation_count
-    }
-
-    pub fn outcome_class_count(&self) -> usize {
-        self.outcome_class_count
-    }
-
-    pub fn authority_request_count(&self) -> usize {
-        self.authority_request_count
-    }
-
-    pub fn authority_receipt_count(&self) -> usize {
-        self.authority_receipt_count
-    }
-
-    pub fn aggregate_existing_truth_binding_digest(&self) -> Option<&str> {
-        self.aggregate_existing_truth_binding_digest.as_deref()
-    }
-
-    pub fn aggregate_symbolic_target_reference_digest(&self) -> Option<&str> {
-        self.aggregate_symbolic_target_reference_digest.as_deref()
-    }
-
-    pub fn aggregate_naming_mutation_digest(&self) -> Option<&str> {
-        self.aggregate_naming_mutation_digest.as_deref()
-    }
-
-    pub fn aggregate_continuity_mutation_digest(&self) -> Option<&str> {
-        self.aggregate_continuity_mutation_digest.as_deref()
-    }
-
-    pub fn aggregate_causality_digest(&self) -> &str {
-        self.aggregate_causality_digest.as_ref()
-    }
-
-    pub fn aggregate_provenance_digest(&self) -> &str {
-        self.aggregate_provenance_digest.as_ref()
-    }
+fn feedback_matches_effect(
+    feedback: &BridgeWritebackFeedbackProvenance,
+    effect: &BridgeDerivedWritebackEffect,
+) -> bool {
+    feedback.contract_digest() == effect.contract_digest()
+        && feedback.writeback_effect_artifact_digest() == effect.digest()
+        && feedback.family_kind() == effect.family_kind()
+        && feedback.effect_class() == effect.effect_class()
+        && feedback.effect_intent_digest() == effect.effect_intent_digest()
+        && feedback.effect_intent_patch_canonical_basis()
+            == effect.effect_intent().patch_canonical_basis()
+        && feedback.causality_digest() == effect.causality_digest()
+        && feedback.strategy_class() == effect.strategy_class()
+        && feedback.strategy_descriptor_basis() == effect.strategy_descriptor_basis()
 }
 
-fn format_continuity_successor_identities(continuity: &BridgeContinuityMutationBundle) -> String {
-    if continuity.successor_authoritative_identities().is_empty() {
-        return "none".to_string();
-    }
+fn execution_record_matches_effect(
+    execution_record: &BridgeWritebackExecutionRecord,
+    effect: &BridgeDerivedWritebackEffect,
+) -> bool {
+    execution_record.contract_digest() == effect.contract_digest()
+        && execution_record.writeback_effect_artifact_digest() == effect.digest()
+        && execution_record.effect_intent_digest() == effect.effect_intent_digest()
+        && execution_record.effect_intent_patch_canonical_basis()
+            == effect.effect_intent().patch_canonical_basis()
+        && execution_record.family_kind() == effect.family_kind()
+        && execution_record.strategy_class() == effect.strategy_class()
+        && execution_record.causality_digest() == effect.causality_digest()
+}
 
-    continuity
-        .successor_authoritative_identities()
-        .iter()
-        .map(|identity| identity.as_str())
-        .collect::<Vec<_>>()
-        .join("|")
+fn execution_record_matches_outcome(
+    execution_record: &BridgeWritebackExecutionRecord,
+    outcome: &BridgeWritebackAuthorityOutcome,
+) -> bool {
+    execution_record.outcome_digest() == Some(outcome.digest())
+        && execution_record.outcome_class() == Some(outcome.outcome_class())
+        && execution_record.authority_request().is_some()
+        && execution_record.authority_receipt().is_some()
+        && execution_record.failure_class().is_none()
 }

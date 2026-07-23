@@ -9,13 +9,16 @@ mod certification_entry;
 mod declaration_public_surface_audit;
 mod declaration_residue_audit;
 mod dependency_audit;
+mod executable_equivalence_schema_audit;
 mod graph_mutation_boundary_audit;
 mod graph_residue_audit;
+mod host_output_boundary_audit;
 mod inspection_boundary_audit;
 mod inspection_boundary_certification;
 mod inspection_evidence_topology_audit;
 mod inspection_growth_posture_audit;
 mod inspection_topology_audit;
+mod lane_extension_authority_audit;
 mod legacy_surface_residue;
 mod lifecycle_propagation;
 mod measurement_boundary_audit;
@@ -24,7 +27,9 @@ mod milestone_37_structural_inventory_audit;
 mod obligation_boundary_audit;
 mod obligation_residue_audit;
 mod ownership_audit;
+mod product_lifecycle_facade_audit;
 mod public_surface_audit;
+mod runtime_diagnostic_family_mapping_audit;
 mod workspace_source_inventory;
 
 pub use admission_boundary_audit::audit_consumers_route_admission_through_worth_ui_facade;
@@ -57,6 +62,9 @@ pub use dependency_audit::{
     audit_host_egui_dependency_boundary, audit_no_cross_crate_deep_imports,
     audit_non_product_crates_route_declaration_through_worth_ui_facade,
 };
+pub use executable_equivalence_schema_audit::{
+    audit_complete_executable_equivalence_schema, audit_executable_node_schema_source,
+};
 pub use graph_mutation_boundary_audit::audit_graph_mutation_boundary_owns_snapshot_and_index_commit;
 pub use graph_residue_audit::{
     audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source,
@@ -64,6 +72,7 @@ pub use graph_residue_audit::{
     audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source,
     audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first,
 };
+pub use host_output_boundary_audit::audit_host_output_plan_encapsulation;
 pub use inspection_boundary_audit::audit_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_boundary_certification::certify_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_evidence_topology_audit::{
@@ -78,6 +87,7 @@ pub use inspection_topology_audit::{
     audit_inspection_future_artifact_seed_topology, audit_inspection_public_module_names,
     audit_inspection_public_module_role_purity,
 };
+pub use lane_extension_authority_audit::audit_lane_extension_authority;
 pub use legacy_surface_residue::{
     audit_legacy_crate_dispositions, audit_legacy_public_surface_narrowing,
     audit_legacy_shim_honesty, audit_no_parallel_legacy_authority,
@@ -111,4 +121,6 @@ pub use ownership_audit::{
     audit_public_surfaces_do_not_recreate_query_owned_lanes,
     audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option,
 };
+pub use product_lifecycle_facade_audit::audit_product_lifecycle_facade;
+pub use runtime_diagnostic_family_mapping_audit::audit_runtime_diagnostic_family_mapping;
 pub use workspace_source_inventory::{WorkspaceSourceFile, WorkspaceSourceInventory};

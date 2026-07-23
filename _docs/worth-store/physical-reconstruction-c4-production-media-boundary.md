@@ -266,6 +266,13 @@ recovery claim inherits the lie.
 | Canonical comparison and portable boundary evidence | `worth-foundational` | Runtime execution, OS effects, mutation authority |
 | Fault scheduling and independent comparison | certification surfaces | Backend replacement or production authority |
 
+Rust has no visibility that grants a backend item to exactly one sibling crate.
+Accordingly, the Store runtime progression and public facade are compiler-sealed,
+while activation of the unpublished backend's `store-runtime-owner` feature is a
+workspace-policy boundary enforced by the Store test runner. The code and tests
+must not describe that feature gate as compiler sealing: publishing the backend
+or permitting another manifest consumer requires a deliberate boundary redesign.
+
 ## Critical DX Target
 
 Ordinary application code sees one obvious progression and no raw media
@@ -2530,6 +2537,23 @@ Test-lane posture:
   S.1 through S.9 claim beyond its precise media/namespace boundary.
 
 ## Completion Standard
+
+### C.6 boundary hardening amendment
+
+- Root/profile qualification is handle-bound. The ambient path may select the
+  initial open and must be revalidated against that handle before admission,
+  but root identity, volume identity, mount selection, and capability facts
+  are derived from the opened directory handle. Matching volume candidates
+  that disagree materially fail closed.
+- Every artifact mutation uses one owner-local coordinator in this order:
+  live mutation ownership, namespace sequence when names can change, sorted
+  owner-relative path reservation, no-follow open, deterministic stable-file
+  sequence, then the effect. A chunked new file retains its reservation until
+  the construction handle is dropped.
+- Exact range writes return backend-minted receipts bound to owner, Store,
+  artifact coordinate, offset/length, payload digest, operation identity,
+  completed bytes, and durability posture. Partial or indeterminate effects
+  never project as completion.
 
 C.4 is complete only when Worth Store can truthfully say:
 

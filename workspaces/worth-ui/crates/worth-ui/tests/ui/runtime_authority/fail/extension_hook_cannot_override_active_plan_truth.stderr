@@ -1,25 +1,10 @@
-error[E0599]: no function or associated item named `active_plan_truth_override` found for struct `WorthUiLaneAdapterHook` in the current scope
- --> tests/ui/runtime_authority/fail/extension_hook_cannot_override_active_plan_truth.rs:4:41
+error[E0432]: unresolved import `worth_ui::facade::WorthUiLaneAdapterHook`
+ --> tests/ui/runtime_authority/fail/extension_hook_cannot_override_active_plan_truth.rs:1:5
   |
-4 |     let _hook = WorthUiLaneAdapterHook::active_plan_truth_override("component.override");
-  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiLaneAdapterHook`
+1 | use worth_ui::facade::WorthUiLaneAdapterHook;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiLaneAdapterHook` in `facade`
   |
-note: if you're trying to build a new `WorthUiLaneAdapterHook` consider using one of the following associated functions:
-      WorthUiLaneAdapterHook::source_ingress
-      WorthUiLaneAdapterHook::debounce_policy
-      WorthUiLaneAdapterHook::identity_seed_contribution
-      WorthUiLaneAdapterHook::durable_state_family_admission
-      and $N others
- --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/../lane_admission/hook.rs
+help: consider importing this struct instead
   |
-  |     pub fn source_ingress(hook_id: impl Into<String>) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  |     pub fn debounce_policy(hook_id: impl Into<String>) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  |     pub fn identity_seed_contribution(hook_id: impl Into<String>) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-  |     pub fn durable_state_family_admission(hook_id: impl Into<String>) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | use worth_ui_runtime::facade::WorthUiLaneAdapterHook;
+  |             ++++++++

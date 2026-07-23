@@ -7,9 +7,9 @@ pub(crate) use composition::{replacement_activation_policy, UiAllocationResolved
 #[cfg(test)]
 pub(crate) use composition::{resolve_stream_families, UiAllocationStreamCommitDecision};
 pub use composition::{
-    UiAllocationFamilyPairOutcome, UiAllocationIntermediatePolicyVerdict,
-    UiAllocationStreamCompositionCounters, UiAllocationStreamCompositionDenial,
-    UiResolvedAllocationPolicyBranch, UiResolvedAllocationStreamPolicy,
+    UiAllocationIntermediatePolicyVerdict, UiAllocationStreamCompositionCounters,
+    UiAllocationStreamCompositionDenial, UiResolvedAllocationPolicyBranch,
+    UiResolvedAllocationStreamPolicy,
 };
 pub use family::UiAllocationStreamFamily;
 pub(crate) use invalidation::UiAllocationFrameIngressRef;

@@ -61,6 +61,7 @@ where
             classification.dirty_partition_scope_count(),
             classification.contract_partition_scope_count(),
             classification.max_dependency_delta(),
+            classification.requires_clean_dependencies(),
             classification.previous_value_reference().cloned(),
             classification.decision_digest().clone(),
             performance,

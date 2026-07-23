@@ -3,7 +3,7 @@
 use worth_ui::facade::admission::UiAdmissionQueryBasis;
 use worth_ui::facade::graph::{UiGraphTouchDescriptor, UiGraphWorldProfile};
 use worth_ui_query_binding::certification::worth_ui_query_snapshot_prerequisites;
-use worth_ui_query_binding::{
+use worth_ui_query_binding::compatibility::managed_live::{
     WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
     WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
     WorthUiQueryProjectionConsumptionLane,

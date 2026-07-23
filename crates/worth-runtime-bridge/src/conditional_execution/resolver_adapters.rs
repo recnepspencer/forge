@@ -61,13 +61,14 @@ impl<'a> ConditionAdapter<'a> {
 impl worth_signal::facade::InstalledSignalConditionResolver for ConditionAdapter<'_> {
     fn resolve(
         &mut self,
-        identity: InstalledSignalConditionIdentity,
+        identity: &InstalledSignalConditionIdentity,
         context: &worth_signal::facade::ConditionEvaluationContext,
     ) -> Result<InstalledSignalConditionDecision, worth_signal::facade::SignalError> {
-        if !matches!(
-            self.lowering.signal_contract.condition(),
-            worth_signal::facade::EvaluationCondition::Installed(expected) if *expected == identity
-        ) {
+        if !self
+            .lowering
+            .signal_contract
+            .accepts_condition_identity(identity)
+        {
             return Err(worth_signal::facade::SignalError::invalid_input(
                 "installed condition identity did not match its retained Bridge lowering",
             ));
@@ -157,28 +158,26 @@ impl worth_signal::facade::VersionComparatorResolver for ComparatorAdapter<'_> {
 
     fn resolve_installed(
         &mut self,
-        identity: InstalledSignalComparatorIdentity,
+        identity: &InstalledSignalComparatorIdentity,
         aspect: worth_signal::facade::Aspect,
         cached: u64,
         current: u64,
     ) -> Result<bool, worth_signal::facade::SignalError> {
-        let dependency =
-            installed_comparator(self.lowering.signal_contract.dependency_comparator());
-        let output = installed_comparator(self.lowering.signal_contract.output_comparator());
-        let reuse = match self.lowering.signal_contract.artifact_reuse() {
-            worth_signal::facade::SignalConditionalArtifactReusePolicy::Installed(identity) => {
-                Some(*identity)
+        let provider = match self
+            .lowering
+            .signal_contract
+            .classify_comparator_identity(identity)
+        {
+            Some(worth_signal::facade::InstalledSignalComparatorUse::DependencyVersion) => {
+                self.lowering.providers.dependency_comparator.as_ref()
             }
-            _ => None,
-        };
-        let provider = if dependency == Some(identity) {
-            self.lowering.providers.dependency_comparator.as_ref()
-        } else if output == Some(identity) {
-            self.lowering.providers.output_comparator.as_ref()
-        } else if reuse == Some(identity) {
-            self.lowering.providers.reuse_comparator.as_ref()
-        } else {
-            None
+            Some(worth_signal::facade::InstalledSignalComparatorUse::OutputEquivalence) => {
+                self.lowering.providers.output_comparator.as_ref()
+            }
+            Some(worth_signal::facade::InstalledSignalComparatorUse::ArtifactReuse) => {
+                self.lowering.providers.reuse_comparator.as_ref()
+            }
+            None => None,
         }
         .ok_or_else(|| {
             worth_signal::facade::SignalError::invalid_input(
@@ -188,15 +187,6 @@ impl worth_signal::facade::VersionComparatorResolver for ComparatorAdapter<'_> {
         provider
             .has_meaningful_change(aspect, cached, current)
             .map_err(worth_signal::facade::SignalError::invalid_input)
-    }
-}
-
-fn installed_comparator(
-    policy: &worth_signal::facade::VersionComparatorPolicy,
-) -> Option<InstalledSignalComparatorIdentity> {
-    match policy {
-        worth_signal::facade::VersionComparatorPolicy::Installed { identity } => Some(*identity),
-        _ => None,
     }
 }
 

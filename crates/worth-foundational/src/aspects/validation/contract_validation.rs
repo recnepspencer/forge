@@ -54,10 +54,8 @@ fn validate_struct_value(
     }
 
     TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::struct_value(
-        contract.key().clone(),
+        contract.clone(),
         value,
-        contract.identity(),
-        contract.revision(),
     )))
 }
 
@@ -112,10 +110,8 @@ fn validate_scalar_family(
     }
     if found == expected {
         TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::scalar(
-            contract.key().clone(),
+            contract.clone(),
             value,
-            contract.identity(),
-            contract.revision(),
         )))
     } else {
         TransitionOutcome::denied(ContractValidationDenial::ScalarTypeMismatch { expected, found })

@@ -65,7 +65,7 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .freeze()
         .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
-        .source_ingress(
+        .source_event_ingress(
             WorthUiSourceProvider::in_memory(provider_revision)
                 .with_file("app/source_backed_graph_reorder.wui", source_text),
         )

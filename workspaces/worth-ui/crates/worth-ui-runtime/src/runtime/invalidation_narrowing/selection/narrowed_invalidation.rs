@@ -8,11 +8,13 @@ pub enum UiAllocationInvalidationTarget {
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
     },
     QueryProjection {
-        basis: worth_ui_query_binding::WorthUiQueryAllocationInvalidationBasis,
+        basis: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAllocationInvalidationBasis,
+        target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
+    },
+    SettledQueryFact {
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
     },
     ScrollOwnedContentExtent {
-        basis: worth_ui_query_binding::WorthUiQueryAllocationInvalidationBasis,
         bindings: Box<[super::UiAdmittedScrollInvalidationBinding]>,
     },
     HostMeasurement {

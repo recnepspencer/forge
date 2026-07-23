@@ -9,6 +9,9 @@ For architecture and usage, start with:
   map and current public conventions
 - [Runtime-Installed Domains And Operations](./crates/worth-query/docs/domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](./crates/worth-query/docs/domain-capabilities/conditional-installed-operations.md)
+- [Installed Operation Re-Execution And Replay](./crates/worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
+- [Installed Operation Aftermath](./crates/worth-query/docs/domain-capabilities/installed-operation-aftermath.md)
+- [Installed Operation Lineage And Promotion](./crates/worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)
 
 Use the smallest package that owns the change. Declaration work does not build
 installation, the remaining engine, replay, or certification:

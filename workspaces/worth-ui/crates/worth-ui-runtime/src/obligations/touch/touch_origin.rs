@@ -25,7 +25,7 @@ impl UiGraphTouchOriginReceipt {
     }
 
     pub(crate) fn query_fact_change(
-        prerequisites: &worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+        prerequisites: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
     ) -> Self {
         let canonical = prerequisites.canonical_basis_digest();
         let authority_digest = canonical
@@ -44,11 +44,22 @@ impl UiGraphTouchOriginReceipt {
     }
 
     pub(crate) fn installed_query_fact_change(
-        authority: &worth_ui_query_binding::WorthUiQueryBasisAuthority,
+        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
     ) -> Self {
         Self {
             class: UiGraphTouchOriginClass::QueryFactChange,
             authority_digest: authority.identity().as_u64(),
+        }
+    }
+
+    pub(crate) fn settled_query_fact_change(
+        view_binding_id: &crate::capability::ViewBindingId,
+        query_binding_identity: &str,
+    ) -> Self {
+        Self {
+            class: UiGraphTouchOriginClass::QueryFactChange,
+            authority_digest: crate::declaration::stable_text_digest(view_binding_id.as_str())
+                ^ crate::declaration::stable_text_digest(query_binding_identity).rotate_left(29),
         }
     }
 
@@ -110,7 +121,7 @@ impl UiGraphTouchOriginWitness {
 
     pub(crate) fn query_basis(
         receipt: UiGraphTouchOriginReceipt,
-        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+        prerequisites: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
     ) -> Self {
         Self {
             receipt,
@@ -122,11 +133,25 @@ impl UiGraphTouchOriginWitness {
 
     pub(crate) fn installed_query_basis(
         receipt: UiGraphTouchOriginReceipt,
-        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
     ) -> Self {
         Self {
             receipt,
             authority: UiGraphTouchOriginAuthority::InstalledQueryBasis { authority },
+        }
+    }
+
+    pub(crate) fn settled_query_binding(
+        receipt: UiGraphTouchOriginReceipt,
+        view_binding_id: crate::capability::ViewBindingId,
+        query_binding_identity: Box<str>,
+    ) -> Self {
+        Self {
+            receipt,
+            authority: UiGraphTouchOriginAuthority::SettledQueryBinding {
+                view_binding_id,
+                query_binding_identity,
+            },
         }
     }
 
@@ -163,10 +188,16 @@ pub(crate) enum UiGraphTouchOriginAuthority {
         declaration_identity: UiDeclarationIdentity,
     },
     QueryBasis {
-        prerequisites: Box<worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence>,
+        prerequisites: Box<
+            worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
+        >,
     },
     InstalledQueryBasis {
-        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
+    },
+    SettledQueryBinding {
+        view_binding_id: crate::capability::ViewBindingId,
+        query_binding_identity: Box<str>,
     },
     AuthoredProvenanceDigests {
         digests: Vec<u64>,

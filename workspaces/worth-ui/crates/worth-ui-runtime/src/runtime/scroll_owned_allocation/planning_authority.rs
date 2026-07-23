@@ -68,8 +68,7 @@ impl UiAdmittedScrollPlanningAuthority {
                 crate::runtime::UiCommittedScrollActivationSource::Query {
                     contract: self.bind(UiAdmittedScrollExtentSource::QueryContent(
                         UiAdmittedScrollQuerySource {
-                            query_authority: mapping.query_authority().clone(),
-                            authority_index_key: mapping.authority_index_key().clone(),
+                            source_key: mapping.source_key().clone(),
                             target: mapping.target(),
                         },
                     )),

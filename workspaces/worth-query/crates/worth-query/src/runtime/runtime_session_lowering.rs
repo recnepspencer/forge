@@ -27,7 +27,9 @@ pub(super) fn lower_runtime_live_subscription_request(
     let session = declare_runtime_live_query_session_with_grouped_baseline(
         request.clone(),
         schema_view,
-        backend.current_snapshot_identity(),
+        backend
+            .current_snapshot_identity()
+            .admit_runtime_backend_authority(),
         grouped_baseline_members_or_error(backend, view_name, request)?,
     )
     .map_err(|error| live_subscription_error(view_name, "live-lowering", error))?;
@@ -46,7 +48,9 @@ pub(super) fn lower_runtime_live_subscription_read_binding(
         read_graph.canonical().clone(),
         read_graph.validated().clone(),
         read_graph.execution_plan().clone(),
-        backend.current_snapshot_identity(),
+        backend
+            .current_snapshot_identity()
+            .admit_runtime_backend_authority(),
         grouped_baseline_members_or_error(backend, view_name, request)?,
     )
     .map_err(|error| live_subscription_error(view_name, "admitted-read-live-lowering", error))?;

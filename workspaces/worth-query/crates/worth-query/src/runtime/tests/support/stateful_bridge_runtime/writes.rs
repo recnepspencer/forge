@@ -100,9 +100,11 @@ pub(super) fn execute_write(
         &state.bridge,
         &snapshot_identity,
         &mutation,
-        &collection,
-        &entity_identity,
-        mutation_kind.clone(),
+        crate::runtime::WorthQueryBridgeMutationTarget::new(
+            &collection,
+            &entity_identity,
+            mutation_kind.clone(),
+        ),
     )?;
     Ok(test_mutation_receipt_with_bridge_authority(
         commit_identity,

@@ -11,48 +11,30 @@ default = []
 certification-test-authority = [
     "dep:worth-store-certification",
     "dep:worth-foundational",
+    "dep:worth-store-offline-verifier",
     "worth-store-physical-backend/certification-test-authority",
+    "worth-store-io-scheduler/certification-test-authority",
 ]
 
 [dependencies]
-worth-store-analysis.workspace = true
 worth-store-aspect-native.workspace = true
-worth-store-authority.workspace = true
-worth-store-blob-chunks.workspace = true
-worth-store-branch-deltas.workspace = true
-worth-store-budgets.workspace = true
 worth-store-buffer-pool.workspace = true
 worth-store-certification = { workspace = true, optional = true }
-worth-store-claim-boundaries.workspace = true
-worth-store-compatibility.workspace = true
 worth-store-contracts.workspace = true
-worth-store-extensions.workspace = true
 worth-store-io-scheduler.workspace = true
-worth-store-layout-indexes.workspace = true
-worth-store-live-query.workspace = true
-worth-store-maintenance.workspace = true
-worth-store-modes.workspace = true
-worth-store-offline-verifier.workspace = true
-worth-store-operations.workspace = true
-worth-store-physical-backend.workspace = true
+worth-store-offline-verifier = { workspace = true, optional = true }
+worth-store-physical-backend = { workspace = true, features = ["store-runtime-owner"] }
 worth-store-physical-format.workspace = true
-worth-store-physical-integrity.workspace = true
-worth-store-physical-isolation.workspace = true
-worth-store-recovery-physics.workspace = true
-worth-store-replication.workspace = true
-worth-store-retention.workspace = true
-worth-store-schema-lineage.workspace = true
 worth-store-security.workspace = true
-worth-store-snapshots.workspace = true
-worth-store-subscription-support.workspace = true
-worth-store-tiering.workspace = true
-worth-store-wal.workspace = true
 worth-proof = { path = "../../../../crates/worth-proof" }
+worth-signal = { path = "../../../../crates/worth-signal" }
 worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
 sha2 = "0.10"
 getrandom = "0.4"
 
 [dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 stats_alloc = "0.1"
 tempfile = "3"
 trybuild = "1.0"
@@ -85,4 +67,9 @@ required-features = ["certification-test-authority"]
 [[test]]
 name = "physical_runtime_authority_ui"
 path = "tests/physical_runtime_authority_ui.rs"
+required-features = ["certification-test-authority"]
+
+[[test]]
+name = "physical_record_journeys"
+path = "tests/physical_record_journeys.rs"
 required-features = ["certification-test-authority"]

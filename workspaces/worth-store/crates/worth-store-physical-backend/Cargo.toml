@@ -19,26 +19,27 @@ tempfile = "3"
 sysinfo = { version = "0.38.4", default-features = false, features = ["disk"] }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
-worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
 worth-store-authority.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1"
+
 [dev-dependencies]
 stats_alloc = "0.1.10"
 worth-store-aspect-native.workspace = true
-worth-store-buffer-pool = { workspace = true, features = ["certification-test-authority"] }
-worth-store-readiness.workspace = true
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 
 [build-dependencies]
 sha2 = "0.10"
 
 [features]
+store-runtime-owner = []
 certification-test-authority = [
+    "store-runtime-owner",
     "dep:worth-foundational",
-    "worth-store-buffer-pool/certification-test-authority",
 ]
 
 [lints]

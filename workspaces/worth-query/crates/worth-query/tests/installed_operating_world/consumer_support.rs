@@ -48,12 +48,21 @@ fn bound_projection_mints_one_query_owned_support_contract() {
         domain::WorthQueryConsumerSupportPosture::Supported
     );
     assert_eq!(contract.counters().dimensions_evaluated, 15);
+    assert_eq!(contract.counters().installation_generation_checks, 1);
+    assert_eq!(contract.counters().mint_guard_checks, 1);
     assert_eq!(contract.counters().reporting_digest_comparisons, 0);
     assert_eq!(contract.counters().downstream_hook_inspections, 0);
+    let denial = match bound.consumer_projection_contract() {
+        Ok(_) => panic!("a bound capability must not mint a second consumer contract"),
+        Err(denial) => denial,
+    };
     assert!(matches!(
-        bound.consumer_projection_contract(),
-        Err(domain::WorthQueryConsumerProjectionContractDenial::AlreadyMinted)
+        denial,
+        domain::WorthQueryConsumerProjectionContractDenial::AlreadyMinted { .. }
     ));
+    assert_eq!(denial.counters().installation_generation_checks, 1);
+    assert_eq!(denial.counters().mint_guard_checks, 1);
+    assert_eq!(denial.counters().dimensions_evaluated, 0);
     let boundary =
         contract.with_downstream_requirements(domain::WorthQueryConsumerBoundaryRequirements {
             presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,

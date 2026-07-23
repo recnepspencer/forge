@@ -44,6 +44,7 @@ pub(crate) fn resident_frame_table(frame_count: u32, dirty_pages: u32) -> Reside
         admitted,
         ResidentFrameTableCapacity::frames(frame_count).unwrap(),
     )
+    .unwrap()
 }
 
 fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {

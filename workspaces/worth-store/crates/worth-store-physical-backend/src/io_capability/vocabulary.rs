@@ -36,11 +36,28 @@ impl CapabilityEvidenceClass {
             (self, required),
             (Self::CertifiedBackendProfile, Self::CertifiedBackendProfile)
                 | (Self::CertifiedBackendProfile, Self::ExternallyGuaranteed)
+                | (
+                    Self::CertifiedBackendProfile,
+                    Self::EstablishedByFilesystemAdmission
+                )
+                | (Self::CertifiedBackendProfile, Self::ObservedByProbe)
+                | (Self::CertifiedBackendProfile, Self::DeclaredByConfig)
                 | (Self::ExternallyGuaranteed, Self::ExternallyGuaranteed)
+                | (Self::ExternallyGuaranteed, Self::ObservedByProbe)
+                | (Self::ExternallyGuaranteed, Self::DeclaredByConfig)
                 | (Self::ObservedByProbe, Self::ObservedByProbe)
+                | (Self::ObservedByProbe, Self::DeclaredByConfig)
                 | (
                     Self::EstablishedByFilesystemAdmission,
                     Self::EstablishedByFilesystemAdmission
+                )
+                | (
+                    Self::EstablishedByFilesystemAdmission,
+                    Self::ObservedByProbe
+                )
+                | (
+                    Self::EstablishedByFilesystemAdmission,
+                    Self::DeclaredByConfig
                 )
                 | (Self::DeclaredByConfig, Self::DeclaredByConfig)
                 | (Self::UnverifiableAssumption, Self::UnverifiableAssumption)

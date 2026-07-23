@@ -1,0 +1,9 @@
+error[E0451]: fields `request_identity` and `declaration_slot` of struct `WorthQueryNativeSelection` are private
+ --> tests/ui/projection_consumption/native_access/native_selection_struct_literal_private.rs:5:9
+  |
+4 |     let _ = WorthQueryNativeSelection {
+  |             ------------------------- in this type
+5 |         request_identity: 1,
+  |         ^^^^^^^^^^^^^^^^ private field
+6 |         declaration_slot: 0,
+  |         ^^^^^^^^^^^^^^^^ private field

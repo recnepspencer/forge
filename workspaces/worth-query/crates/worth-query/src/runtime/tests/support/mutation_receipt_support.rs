@@ -45,14 +45,5 @@ pub(in crate::runtime::tests) fn test_mutation_receipt_with_bridge_authority(
         )],
         bridge_authority,
     )
-}
-pub(in crate::runtime::tests) fn test_empty_mutation_receipt(
-    commit_identity: WorthQueryCommitIdentity,
-    snapshot_identity: WorthQuerySnapshotIdentity,
-) -> WorthQueryMutationReceipt {
-    WorthQueryMutationReceipt::from_authoritative_parts(
-        commit_identity,
-        snapshot_identity,
-        Vec::new(),
-    )
+    .admit_runtime_write_authority()
 }

@@ -50,6 +50,17 @@ impl UiGraphTouchAuthority<'_> {
                     authority.clone(),
                 ))
             }
+            UiGraphWorldProfile::SettledQueryBinding {
+                view_binding_id,
+                query_binding_identity,
+            } => Ok(UiGraphTouchOriginWitness::settled_query_binding(
+                UiGraphTouchOriginReceipt::settled_query_fact_change(
+                    view_binding_id,
+                    query_binding_identity,
+                ),
+                view_binding_id.clone(),
+                query_binding_identity.clone(),
+            )),
             _ => Err(UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld),
         }
     }
@@ -81,12 +92,12 @@ impl UiGraphTouchAuthority<'_> {
         inspection: &WorthUiExecutionPlanInspection,
     ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
         require_service_event_alignment(frame_receipt, inspection)?;
-        let touched_indexes = frame_receipt.touched_plan_indexes();
+        let touch = frame_receipt.touch();
         let digests = inspection_authored_provenance_digests(
             inspection
                 .provenance()
                 .iter()
-                .filter(|row| touched_indexes.contains(&row.plan_index())),
+                .filter(|row| touch.names_plan_index(row.plan_index())),
         );
         if digests.is_empty() {
             return Err(UiGraphTouchDenial::OriginAuthorityUnavailable {
@@ -94,11 +105,8 @@ impl UiGraphTouchAuthority<'_> {
             });
         }
 
-        let authority_digest = touched_indexes.iter().fold(0u64, |digest, index| {
-            digest ^ (*index as u64).rotate_left(9)
-        });
         Ok(UiGraphTouchOriginWitness::authored_provenance_digests(
-            UiGraphTouchOriginReceipt::service_event(authority_digest),
+            UiGraphTouchOriginReceipt::service_event(touch.touch_digest()),
             digests,
         ))
     }

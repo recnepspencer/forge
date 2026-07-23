@@ -1,4 +1,4 @@
-error[E0451]: fields `mapped_input_identity`, `mapper_envelope_digest`, `contract_digest`, `family_kind`, `effect_class`, `strategy_class`, `strategy_descriptor_basis`, `causality_digest`, `effect_intent`, `canonical_basis` and `digest` of struct `BridgeMappedWritebackFamilyInput` are private
+error[E0451]: fields `mapped_input_identity`, `mapper_envelope_digest`, `contract_digest`, `family_kind`, `effect_class`, `strategy_class`, `strategy_descriptor_basis`, `causality_digest`, `mutation_subject_effect_intent_match`, `effect_intent`, `canonical_basis` and `digest` of struct `BridgeMappedWritebackFamilyInput` are private
   --> tests/ui/writeback_mapped_input_literal_private.rs:5:9
    |
  4 |     let _ = BridgeMappedWritebackFamilyInput {
@@ -19,9 +19,11 @@ error[E0451]: fields `mapped_input_identity`, `mapper_envelope_digest`, `contrac
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 12 |         causality_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^ private field
-13 |         effect_intent: sealed_authority_placeholder(),
+13 |         mutation_subject_effect_intent_match: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         effect_intent: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^ private field
-14 |         canonical_basis: sealed_authority_placeholder(),
+15 |         canonical_basis: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
-15 |         digest: sealed_authority_placeholder(),
+16 |         digest: sealed_authority_placeholder(),
    |         ^^^^^^ private field

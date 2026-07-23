@@ -51,6 +51,19 @@ pub use crate::domain_capabilities::{
     WorthQueryDomainCapabilityCertifiedSurfaceInventory,
     WorthQueryDomainCapabilityCertifiedSurfaceRow,
 };
+pub use crate::domain_installation::certification_replay::{
+    issue_query_certification_replay_capability, replay_installed_workflow,
+    WorthQueryCertificationReplayAdmissionDenial, WorthQueryCertificationReplayCapability,
+    WorthQueryCertificationReplayCounters, WorthQueryCertificationReplayOutcome,
+    WorthQueryCertificationReplayResult, WorthQueryCertificationReplayStop,
+    WorthQueryHistoricalBasisCorrespondence, WorthQueryHistoricalReplayAdmission,
+    WorthQueryHistoricalReplayAdmissionDenial, WorthQueryReplayBasisRelationship,
+};
+pub use crate::domain_installation::historical_replay::{
+    admit_installed_historical_replay_basis, replay_installed_workflow_historical,
+    WorthQueryInstalledHistoricalReplayPath,
+};
+pub use crate::domain_installation::WorthQueryFoundationalReplayAttachment;
 pub use crate::effect_lifecycle::{
     certify_effect_execution_pipeline, effect_lifecycle_public_surface_inventory,
     effect_lifecycle_support_matrix, EffectExecutionCertificationBundle,

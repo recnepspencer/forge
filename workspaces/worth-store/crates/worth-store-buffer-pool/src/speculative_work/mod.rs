@@ -21,6 +21,6 @@ pub use speculative_work_plan::{
     SpeculativeWorkReplayIdentity, WriteBehindAdmission, WriteBehindPlan,
 };
 pub use speculative_work_request::{
-    PrefetchRequest, PrefetchWindow, ReadAheadRequest, SpeculativePhysicalWorkKind,
-    SpeculativeWorkRequestDenial, WriteBehindRequest,
+    PrefetchRequest, PrefetchWindow, ReadAheadRequest, SpeculativeWorkRequestDenial,
+    WriteBehindRequest,
 };

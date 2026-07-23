@@ -1,6 +1,9 @@
 use worth_foundational::AuthoritativeRecordAspectStateArtifact;
 
-use crate::{StoreAspectIdentity, StoreAspectNativeDenial, StorePhysicalBoundaryWitness};
+use crate::{
+    StoreAspectContractStamp, StoreAspectIdentity, StoreAspectNativeDenial,
+    StorePhysicalBoundaryWitness,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoreAspectAuthorityInput {
@@ -55,6 +58,27 @@ impl StoreAspectBoundaryFact {
 
     pub const fn authority_input(&self) -> &StoreAspectAuthorityInput {
         &self.authority_input
+    }
+
+    pub fn contract_stamp(&self) -> StoreAspectContractStamp {
+        let value = self
+            .authority_input
+            .admitted_state()
+            .payload()
+            .get(self.identity.aspect_key())
+            .expect("boundary-fact construction admits exactly this aspect identity");
+        StoreAspectContractStamp::from_validated_value(value)
+    }
+
+    pub fn semantic_byte_width(&self) -> usize {
+        self.identity.aspect_key().as_str().len().saturating_add(
+            self.authority_input
+                .admitted_state()
+                .payload()
+                .get(self.identity.aspect_key())
+                .expect("boundary-fact construction admits exactly this aspect identity")
+                .semantic_byte_width(),
+        )
     }
 }
 

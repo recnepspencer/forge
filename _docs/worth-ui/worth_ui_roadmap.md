@@ -693,8 +693,12 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 
 Detailed spec: [milestone-3.8.1.md](./milestone-3.8.1.md)
 
-**Status: Complete. Phases 1 through 14 and every closure gate are green.
-Milestone 3.9 is unblocked.**
+**Status: Structural and test-topology closure complete. A later hostile review
+found that filesystem/watcher certification exercised injected source and
+manufactured events rather than the production mechanisms named by the
+contract. Milestone 3.9 Phase 2 has now closed that corrective gate with real
+filesystem ingress and production watcher evidence; execution-plan work is
+unblocked only through Milestone 3.9's sealed Phase-3 authority chain.**
 
 This closure slice first repairs the test program's compilation, linking,
 fixture, and nested-build topology so repeated hostile certification is an
@@ -757,22 +761,73 @@ execution-plan lowering builds on the 3.8 substrate.
 
 Detailed spec: [milestone-3.9.md](./milestone-3.9.md)
 
+**Status: Closed. Phases 1 through 18 are closed.**
+
+The hostile reopening of Phases 9 through 13 is resolved with public real-
+filesystem hook/resource-generation replacement proofs, public large-canvas
+activation, the closed cross-lane bundle, executable field matrices, equal-
+digest hostility, real Query no-op lifetime, and late interruption coverage.
+Phase 14 now has persistent regional plan and allocation-catalog storage,
+stable slots, lane-local successor sealing, regional Query succession, and a
+candidate-owned allocation delta that derives the exact affected predecessor
+closure. Unaffected rows remain complete active truth through structural
+sharing; graph, invalidation, scroll, portal, Query, host, and durable indexes
+change incrementally from the same proof. Public carry and removal-only
+cutovers, scaled real-catalog storage retention, delta-local counters, and
+sustained churn close the allocation-locality gate. Phase 15 now binds the
+successor application into the same infallible publication as plan,
+allocation, state, scheduler, Query, host, planning, and inspection truth.
+Frame boundaries carry exact session authority, retryable denials retain the
+candidate explicitly, and public receipts plus real Query lifecycle tests
+prove coherent cutover and cleanup. Phase 16 binds final reload/frame counters
+to independent scale and allocator evidence. Phase 17 curates named `app` and
+`runtime` facades, compact inspection, and final lifecycle documentation.
+Phase 18 removes predecessor and test-only authority paths and closes real
+filesystem/watcher, Query, egui, headless, allocator, compile-contract,
+topology, boundary, line-cap, and quality proof. Comparable closing timing
+evidence records reviewed cost amendments while keeping real-mechanism waits
+and storms outside the ordinary fast lane.
+
 This slice begins only after Milestone 3.8.1 has closed the application,
 replacement, host-session, and framework-turn composition boundaries.
+Its first production gate closes the discovered filesystem/watcher reality gap:
+external tests write actual `.wui` files, while production Worth UI reads,
+watches, snapshots, and lowers them through the public application lifecycle.
 
 This slice ensures execution consumes lowered plans instead of reconstructing
 strategy from graph or declaration artifacts every frame. It consolidates the
 existing provisional plan, handle, lane, equivalence, and counter surfaces into
-one active-session-owned lifecycle; it does not add a parallel planner.
+one active-session-owned lifecycle; it does not add a parallel planner. The
+regional storage/equivalence/reclamation kernel is established before lane
+representations broaden so bounded replacement is foundational rather than a
+late optimization.
 
 **Must ship**
 
 - execution-plan lowering from one sealed application + graph + capability/
   Query + host-support + committed-allocation authority into active runtime
   plans
+- a distinct sealed pre-allocation projection that carries only allocation-
+  relevant candidate facts and cannot be reconstructed into execution-plan
+  input; committed allocation must join back to exact candidate authority before
+  the sole execution-plan lowerer can run
+- real filesystem source acquisition and operating-system watcher/debounce proof
+  using actual temporary `.wui` writes, atomic renames, removals, malformed
+  edits, and ordered frozen package snapshots; Worth UI never authors the files
+- one collision-safe regional plan storage/equivalence kernel carrying exact
+  predecessor proof, complete-successor semantics, bounded reuse/retirement,
+  and `O(P)` reclamation under churn
 - binding-owned Query projection/installed authority carried as one sealed
   constituent, with native aspect values preserved and no UI-local basis,
   status, fact, or lifecycle mirrors
+- lifecycle-typed installed snapshot and live views, plus atomic affine
+  admission of each managed live resource with its consumed projection;
+  Phase 8 owns candidate-only cleanup before Phase 15 re-proves the final
+  cross-family transaction
+- virtualized-data plan/handle/visible-range execution substrate for already-
+  admitted view references, without pulling general collection projection,
+  cursor ownership, result-state, or live collection-patch semantics forward
+  from Milestones 3.13 and 6
 - equivalence and no-op classification for candidate replacements
 - compact runtime handles for commands, components, children, tokens, and view
   bindings
@@ -781,8 +836,18 @@ one active-session-owned lifecycle; it does not add a parallel planner.
 - named counters for reload/lowering work and steady-frame execution work
 - WORTH Foundational performance-envelope integration for shared claim
   vocabulary and certified claim bundles
+- one minimal sealed host-output envelope that keeps adapters away from owned
+  plan/artifact authority and is extended into complete mounted receipts by
+  Milestone 3.10
+- phase-local compact evidence, relevance indexes, and budgeted inspection for
+  lowering, regions, handles, lanes, equivalence, activation, and frame cost
 - frozen compiler-session/target/case budgets and compiled-once adversarial
   scenarios that preserve iteration time
+- real filesystem/watcher, public lifecycle, Query Consumer Kit, egui/headless,
+  and allocator evidence placed as child modules of the existing
+  `worth-ui-certification` `application_contracts` target; compiler proof uses
+  the frozen checked-in two-invocation owner, with no generated/per-phase
+  fixture workspace, additional compiler session, or fast-lane OS wait
 
 **Acceptance evidence**
 
@@ -792,18 +857,111 @@ one active-session-owned lifecycle; it does not add a parallel planner.
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
 - initial lowering is bounded by plan width, replacement lowering by admitted
-  affected scope, and frame execution by intentionally touched rows
+  affected scope, and frame execution by pre-admitted target breadth with
+  actual touched rows no greater than requested rows
 - Query-backed rows retain runtime-affine authority and Query-owned live-resource
   lifecycle; UI activation coordinates succession and exact-once release but
   cannot recreate Query authority
-- no new compiler session, compile target, executable compile case, physical
-  compile fixture, nested Cargo invocation, or generated fixture workspace is
-  added
+- file-authored acceptance starts from bytes written to disk and observed by the
+  production filesystem/watcher adapters; `with_file` injection and handcrafted
+  watcher events cannot certify that claim
+- compiler proof runs through one checked-in owner in exactly two Cargo
+  invocations (negative and positive), reuses the caller's ordinary target
+  graph, and adds no private duplicate build, generated fixture workspace, or
+  ordinary-test nested Cargo invocation
+- egui and headless paths consume the same sealed host-neutral envelope meaning;
+  at least one real `egui::Context::run` frame and production headless frame
+  exercise their adapters, and neither adapter can receive an owned plan or
+  choose lane/UI semantics
+- the zero-allocation executor claim is checked by an independent thread-scoped
+  allocator observer as well as Worth UI counters
+
+### Milestone 3.9.1: Query 9.14 Consumer-Path Modernization
+
+Detailed spec: [milestone-3.9.1.md](./milestone-3.9.1.md)
+
+Status: Closed on 2026-07-21. Exact-source closing evidence records a 0.462 s
+targeted warm median, 8.070 s warm fast-lane median, and 80.738 s isolated cold
+compile-contract median. The bounded managed-live seam retains its explicit
+Query 9.14 Phase 17/19/23/24 exit trigger.
+
+This corrective modernization slice follows the closed 3.9 execution-plan
+lifecycle and precedes mounted receipts, hot rebind, broader projection
+consumption, and product Query surfaces. Query Milestone 9.14 Phases 1 through
+14 now provide installed operation semantic closure, one operating-world root,
+Query-minted consumer support, typed progression, settled projections, and
+exact identity that were not available when the older Worth UI binding path was
+formed.
+
+**Must ship**
+
+- a search-seeded, manually adjudicated subsystem inventory whose rows classify
+  each Query-facing seam as replace, retain, transitional, diagnostic-only, or
+  unrelated
+- a manually adjudicated boundary-edge matrix naming producer, consumer,
+  cardinality, lifetime, failure owner, cost, dependency direction, and the
+  forbidden shortcut for every authority crossing
+- typed installed Worth UI Query operations whose stable meaning is declared
+  once and whose volatile executors register separately
+- one binding-owned gateway that borrows Query's installed operating world per
+  replacement-admission or fact-refresh attempt; no operating-world value is
+  stored in active or frame state
+- exactly one Query consumer contract minted and consumed per bound execution;
+  the operating world and contract remain control-plane phase values while the
+  settled projection is retained once in generation-owned storage
+- compact generation-scoped UI fact references fan retained settlement proof
+  into planning and frame ingress without copying heavyweight authority into
+  each plan row
+- application replacement publishes binding topology through the existing 3.9
+  application transaction, while in-generation Query refresh replaces one
+  complete settlement/fact slot through the existing framework-turn source
+  transaction
+- removal of UI-local Query support, basis, settlement, and operational digest
+  authority while retaining legitimate UI-owned binding, invalidation,
+  allocation, and presentation derivations
+- exact installed-domain authority plus Query-minted binding identity and
+  currentness plus UI-meaning replacement equivalence, published only through
+  the complete 3.9 application transaction
+- an explicitly bounded managed-live compatibility seam until Query 9.14
+  Phases 17, 19, 23, and 24 provide the required public ordinary lifecycle
+- real public application and Consumer Kit certification consolidated into the
+  existing compiled scenario owners
+
+**Must preserve**
+
+- all closed Milestone 3.9 application, execution-plan, allocation-locality,
+  filesystem-ingress, atomic-publication, host, cleanup, and frame-cost truths
+- Query-free application construction and execution without dummy Query
+  ceremony
+- Query-owned stop, warning, result-state, counter, and authority topology
+  through every UI projection
+- UI-owned authored binding, result-shape, denial-presentation, dependency-
+  impact, allocation, and inspection meaning
+- the existing compiler-session and integration-target budgets
+
+**Acceptance evidence**
+
+- the manually resolved inventory has no ambiguous row and every transitional
+  row has a named exit trigger; no test claims migration success from a clean
+  grep or removed token
+- one real `.wui` application journey installs, binds, executes, publishes,
+  consumes, settles, lowers, activates, frames, inspects, replaces, and cleans
+  up through public facades
+- equal local representations cannot hide different Query authority, and exact
+  Query authority cannot hide different UI meaning
+- wrong-world, stale, mixed-receipt, unsupported, partial, interrupted, and
+  live-compatibility cases deny at their owning boundary while prior active
+  truth remains complete
+- boundary, agent-context, line-cap, workspace quality, and existing compile-
+  contract gates pass without a new nested build or test-target explosion
 
 ### Milestone 3.10: Mounted Receipts and Host Contract
 
 This slice closes the host boundary: host code may render and observe, but may
-not own visible UI meaning.
+not own visible UI meaning. It extends/refines Milestone 3.9's minimal sealed
+host-output envelope into complete mounted-node and mounted-frame receipts; it
+must not introduce a parallel runtime-to-host output path or reopen active-plan
+ownership.
 
 **Must ship**
 
@@ -884,7 +1042,9 @@ refresh.
 
 This slice broadens Milestone 2's declared binding references into a minimal
 runtime binding substrate, but not yet the full product surface richness of
-Milestone 6.
+Milestone 6. Milestone 3.9 proves only plan/handle/visible-range execution for
+already-admitted opaque view references; 3.13 owns the broader UI projection
+facts, schema/view-shape posture, result-state, and invalidation semantics.
 
 **Must ship**
 

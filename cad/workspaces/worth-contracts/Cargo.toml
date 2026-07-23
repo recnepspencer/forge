@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["crates/worth-schema-core"]
-default-members = ["crates/worth-schema-core"]
+members = ["crates/worth-schema-core", "crates/worth-schema-graph"]
+default-members = ["crates/worth-schema-core", "crates/worth-schema-graph"]
 
 [workspace.metadata.worth_topology]
 role = "road1_subworkspace"

@@ -39,7 +39,7 @@ impl WorthQueryJournalReplayRegistry {
         published_artifact_digest: WorthQueryEvidenceIdentity,
     ) -> Result<WorthQueryJournalReplayOutcome, WorthQueryJournalReplayDenial> {
         if let Some(basis_snapshot_identity) = request.basis_snapshot_identity() {
-            if basis_snapshot_identity != current_snapshot_identity {
+            if !basis_snapshot_identity.is_same_current_identity_as(current_snapshot_identity) {
                 return Err(self.deny(
                     WorthQueryJournalReplayDenialKind::StaleBasisReplay,
                     "journal replay basis no longer matches the current runtime snapshot",

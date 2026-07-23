@@ -2,7 +2,10 @@ use worth_ui::facade::declaration::{
     UiDeclaredHostCapabilityPosture, UiDeclaredPostureApplicability, UiDeclaredPostureContract,
     UiDeclaredPostureLane, UiDeclaredQueryBindingPosture,
 };
-use worth_ui::facade::{UiInspectionPosture, WorthUiHostCapability, WorthUiHostContract};
+use worth_ui::facade::{
+    host::{WorthUiHostCapability, WorthUiHostContract},
+    inspection::UiInspectionPosture,
+};
 
 fn main() {
     let query_binding = UiDeclaredPostureLane::new(

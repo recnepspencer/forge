@@ -12,8 +12,8 @@ use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
 use crate::facade::entry::WorthUiApp;
 use crate::runtime::{
     WorthUiCandidateAdmission, WorthUiDiagnosticProjectionHook, WorthUiDurableStateFamily,
-    WorthUiExecutionLaneSupport, WorthUiExecutionPlanInspection, WorthUiOrdinaryFrameTarget,
-    WorthUiOrdinaryLaneFrameReceipt, WorthUiReplacementCandidate, WorthUiRuntimeDiagnosticReport,
+    WorthUiExecutionPlanInspection, WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneFrameReceipt,
+    WorthUiReplacementCandidate, WorthUiRuntimeDiagnosticReport,
 };
 use worth_ui_host_contract::{
     WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
@@ -97,11 +97,6 @@ pub fn runtime_origin_fixture(
     let query_rebind = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)
         .expect("query rebind planning succeeds");
-    let pending_input = runtime.prepare_pending_execution_plan_lowering_input(
-        &node_plan,
-        &reconciliation,
-        &query_rebind,
-    );
     let pending = runtime
         .stage_replacement_activation(
             admitted,
@@ -111,71 +106,42 @@ pub fn runtime_origin_fixture(
             crate::runtime::WorthUiActivationStagingPlans {
                 reconciliation_plan: Some(&reconciliation),
                 query_rebind_plan: Some(&query_rebind),
-                pending_execution_plan_lowering_input: Some(&pending_input),
             },
         )
         .expect("activation staging succeeds");
     let (planning_snapshot, planning_basis, planning_obligations) =
         honest_planning_catalog_basis(&app);
     let admitted_catalog = planning_snapshot
-        .admit_allocation_catalog_basis_set(vec![(
-            planning_basis.clone(),
-            planning_obligations.clone(),
-        )])
+        .admit_allocation_catalog_basis_set(vec![(planning_basis, planning_obligations)])
         .expect("graph admits complete catalog basis");
-    let planning_input = runtime
-        .admit_planning_lane_input(
-            &pending,
-            &planning_snapshot,
-            planning_basis,
-            &planning_obligations,
-        )
-        .expect("certification enters planning through canonical graph admission");
-    let planning = runtime.plan_allocation(planning_input);
     let mut inspection = None;
-    let mut frame_receipt = None;
     let mut committed_allocation_receipt = None;
     runtime
         .activate_admitted_allocation_catalog_with_boundary_source(
             pending,
             admitted_catalog,
-            |runtime, allocation_receipt, plan, _planning| {
+            |runtime, allocation_receipt, plan, lowering_facts| {
                 committed_allocation_receipt = Some(allocation_receipt.clone());
-                let lowering_input = allocation_receipt
-                    .lowering_input()
-                    .map_err(crate::runtime::WorthUiAllocationCatalogActivationDenial::Freshness)?;
-                let lane_admission = runtime
-                    .admit_execution_lanes(
-                        &lowering_input,
-                        &WorthUiExecutionLaneSupport::platform_default(),
-                    )
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("lane admission"))?;
                 inspection = Some(
                     runtime
-                        .inspect_execution_plan(plan, planning.planning())
+                        .inspect_execution_plan(plan, lowering_facts)
                         .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("plan inspection"))?,
                 );
-                let ordinary_plan = runtime
-                    .prepare_ordinary_lane_plan(plan, &lane_admission)
-                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("ordinary plan preparation"))?;
                 let execution = runtime
                     .execute_framework_turn(|_| {})
                     .into_execution()
                     .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("framework turn"))?;
-                frame_receipt = Some(
-                    execution
-                        .execute_ordinary_lane_frame(
-                            &ordinary_plan,
-                            WorthUiOrdinaryFrameTarget::root_shell(),
-                        )
-                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("ordinary frame"))?,
-                );
                 Ok((execution.into_activation_boundary(), None))
             },
         )
         .expect("production catalog activation swaps active runtime truth");
     let inspection = inspection.expect("canonical activation inspects the candidate plan");
-    let frame_receipt = frame_receipt.expect("canonical activation executes the candidate frame");
+    let frame_receipt = runtime
+        .execute_framework_turn(|_| {})
+        .into_execution()
+        .expect("active runtime opens a framework execution turn")
+        .execute_active_ordinary_frame(WorthUiOrdinaryFrameTarget::root_shell())
+        .expect("the published active bundle executes its ordinary frame");
     let diagnostic_report = runtime
         .diagnostics()
         .for_projection_hook(&WorthUiDiagnosticProjectionHook::projection(

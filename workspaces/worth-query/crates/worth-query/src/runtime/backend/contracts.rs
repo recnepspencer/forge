@@ -320,9 +320,7 @@ pub trait WorthQueryRuntimeWriteAuthorityAdapter {
             bridge,
             snapshot_identity,
             mutation,
-            collection,
-            entity_identity,
-            mutation_kind,
+            super::WorthQueryBridgeMutationTarget::new(collection, entity_identity, mutation_kind),
         )
     }
 
@@ -331,7 +329,10 @@ pub trait WorthQueryRuntimeWriteAuthorityAdapter {
         mutation: &WorthQueryBackendAdmissibleMutation,
         receipt: WorthQueryMutationReceipt,
     ) -> WriteAuthorityExecutionReceipt {
-        WriteAuthorityExecutionReceipt::from_backend_admissible_mutation(mutation, receipt)
+        WriteAuthorityExecutionReceipt::from_backend_admissible_mutation(
+            mutation,
+            receipt.admit_runtime_write_authority(),
+        )
     }
 
     fn write(

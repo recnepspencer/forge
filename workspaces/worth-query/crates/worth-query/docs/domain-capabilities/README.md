@@ -19,6 +19,22 @@ diagnostics, and current limits.
 - [Conditional Installed Operations](./conditional-installed-operations.md)
   for semantic truth dependencies, conditions, triggers, thresholds,
   correspondence, Signal decisions, and Query re-entry.
+- [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
+  for fresh workflow execution, cert-only equivalence, localized divergence,
+  and retained-snapshot historical replay.
+- [Installed Operation Aftermath](./installed-operation-aftermath.md) for exact
+  inverse, compensation, postcondition verification, and partial-effect
+  recovery evidence.
+- [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
+  for effect-bound identity evolution, persistent naming, and sparse durable
+  graph identity.
+- [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./bound-projection-sharing-and-invalidation.md)
+  for declaration-indexed native access, relationship-specific compatibility,
+  managed transitions, dependency impact, one shared live owner, move-only
+  consumer leases, and exact invalidation deltas.
+- [Consumption Cost Evidence](./consumption-cost-evidence.md) for exact
+  boundary-local counters, settled operation snapshots, denial budgets, and
+  explicit Foundational receipt export.
 - [Typed Binding Pipeline](./typed-binding-pipeline.md) when an installed
   declaration context must select the next proof-bearing input.
 - [Ordinary Outcomes](./ordinary-outcomes.md) for the common completed/stopped

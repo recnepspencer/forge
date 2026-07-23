@@ -8,6 +8,8 @@ pub struct WorthUiNodeReplacementPlan {
     active_artifact_digest: u64,
     candidate_artifact_digest: u64,
     classifications: Vec<WorthUiNodeReplacementClassification>,
+    changed_classifications: Vec<WorthUiNodeReplacementClassification>,
+    candidate_structural_node_count: usize,
     counters: WorthUiNodeReplacementCounters,
 }
 
@@ -23,10 +25,26 @@ impl WorthUiNodeReplacementPlan {
                 .cmp(right.identity_basis())
                 .then_with(|| left.transition().cmp(&right.transition()))
         });
+        let changed_classifications = classifications
+            .iter()
+            .filter(|classification| {
+                classification.transition() != WorthUiNodeLifecycleTransition::Preserve
+            })
+            .cloned()
+            .collect();
+        let candidate_structural_node_count = classifications
+            .iter()
+            .filter(|classification| {
+                matches!(classification.candidate_kind(), Some(kind)
+                    if kind != crate::runtime::WorthUiIdentityMatchNodeKind::Binding)
+            })
+            .count();
         Self {
             active_artifact_digest,
             candidate_artifact_digest,
             classifications,
+            changed_classifications,
+            candidate_structural_node_count,
             counters,
         }
     }
@@ -41,6 +59,14 @@ impl WorthUiNodeReplacementPlan {
 
     pub fn classifications(&self) -> &[WorthUiNodeReplacementClassification] {
         &self.classifications
+    }
+
+    pub(crate) fn changed_classifications(&self) -> &[WorthUiNodeReplacementClassification] {
+        &self.changed_classifications
+    }
+
+    pub(crate) fn candidate_structural_node_count(&self) -> usize {
+        self.candidate_structural_node_count
     }
 
     pub fn counters(&self) -> WorthUiNodeReplacementCounters {

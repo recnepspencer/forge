@@ -59,7 +59,12 @@ pub struct WorthQueryManagedLiveDeliveryBatch {
     has_relational_patch: bool,
     patch_group_identity: WorthQueryEvidenceIdentity,
     patch_group_width: u64,
+    relational_commit_identity: Option<worth_runtime_bridge::facade::TruthCommitIdentity>,
+    mutation_delta: Option<crate::memory_workspace::WorthQueryMutationDelta>,
     maintenance_work: Option<WorthQueryManagedLiveMaintenanceWork>,
+    preclassified_installed_impact:
+        Option<crate::domain_installation::WorthQueryPreclassifiedInstalledLiveImpact>,
+    routing_work: crate::runtime::WorthQueryLiveMutationRoutingWork,
     ordered_cause_count: usize,
     suppressed_cause_count: usize,
     denied_cause_count: usize,
@@ -80,9 +85,13 @@ impl WorthQueryManagedLiveDeliveryBatch {
             has_relational_patch: batch.has_relational_patch(),
             patch_group_identity: batch.patch_group_identity().clone(),
             patch_group_width: batch.patch_group_width(),
+            relational_commit_identity: batch.relational_commit_identity().cloned(),
+            mutation_delta: batch.mutation_delta().cloned(),
             maintenance_work: batch
                 .live_graph_read_maintenance()
                 .map(WorthQueryManagedLiveMaintenanceWork::from_runtime),
+            preclassified_installed_impact: batch.preclassified_installed_impact().cloned(),
+            routing_work: batch.routing_work(),
             ordered_cause_count: mixed.ordered_cause_identities().len(),
             suppressed_cause_count: mixed.suppressed_cause_identities().len(),
             denied_cause_count: mixed.denied_cause_identities().len(),
@@ -125,8 +134,30 @@ impl WorthQueryManagedLiveDeliveryBatch {
         self.patch_group_width
     }
 
+    pub fn relational_commit_identity(
+        &self,
+    ) -> Option<&worth_runtime_bridge::facade::TruthCommitIdentity> {
+        self.relational_commit_identity.as_ref()
+    }
+
+    pub(crate) fn mutation_delta(
+        &self,
+    ) -> Option<&crate::memory_workspace::WorthQueryMutationDelta> {
+        self.mutation_delta.as_ref()
+    }
+
     pub fn maintenance_work(&self) -> Option<&WorthQueryManagedLiveMaintenanceWork> {
         self.maintenance_work.as_ref()
+    }
+
+    pub(crate) fn preclassified_installed_impact(
+        &self,
+    ) -> Option<&crate::domain_installation::WorthQueryPreclassifiedInstalledLiveImpact> {
+        self.preclassified_installed_impact.as_ref()
+    }
+
+    pub(crate) const fn routing_work(&self) -> crate::runtime::WorthQueryLiveMutationRoutingWork {
+        self.routing_work
     }
 
     pub fn ordered_cause_count(&self) -> usize {
@@ -242,5 +273,9 @@ impl WorthQueryManagedLiveDelivery {
 
     pub fn is_empty(&self) -> bool {
         self.batches.is_empty()
+    }
+
+    pub(crate) fn is_same_retained_delivery_as(&self, candidate: &Self) -> bool {
+        self == candidate
     }
 }

@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    IconAccessibilityPosture, IconDescriptor, IconFamily, IconId, IconThemePosture,
+    registry::{IconAccessibilityPosture, IconDescriptor, IconFamily, IconId, IconThemePosture},
 };
 
 fn main() {

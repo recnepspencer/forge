@@ -24,13 +24,17 @@ pub(super) fn evaluate<D: 'static, O: 'static, F: 'static, L: BasisOperationLane
     let mut counters = crate::domain_installation::WorthQueryOperationExecutionCounters::default();
     let outcome = crate::domain_installation::evaluate_bound_conditionals(
         bound,
-        workspace,
-        snapshot,
-        &execution_identity,
-        Some(stage_identity),
-        Some(run_identity),
-        attempt,
-        &mut counters,
+        crate::domain_installation::WorthQueryConditionalEvaluationPass {
+            workspace,
+            snapshot,
+            execution_identity: &execution_identity,
+            scope: crate::domain_installation::WorthQueryConditionalEvaluationScope::WorkflowStage(
+                stage_identity,
+            ),
+            workflow_run_identity: Some(run_identity),
+            attempt,
+            counters: &mut counters,
+        },
     );
     super::workflow_conditional_counters::add_conditional_counters(run_counters, counters);
     match outcome {

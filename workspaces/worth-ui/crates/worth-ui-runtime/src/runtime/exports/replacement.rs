@@ -1,20 +1,29 @@
 pub use crate::runtime::replacement::admission::{
-    WorthUiActiveReplacementBasis, WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,
+    WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,
     WorthUiCandidateAdmissionCounters, WorthUiCandidateAdmissionDenial,
-    WorthUiCandidateAdmissionReport, WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus,
-    WorthUiRuntimeReplacementPosture,
+    WorthUiCandidateAdmissionReport, WorthUiRuntimeReplacementPosture,
+};
+#[cfg(test)]
+pub use crate::runtime::replacement::candidate::{
+    WorthUiCandidateArtifactBundle, WorthUiCandidateLoweringBasis, WorthUiCandidateProvenanceHandle,
 };
 pub use crate::runtime::replacement::candidate::{
-    WorthUiCandidateArtifactBundle, WorthUiCandidateAuthoringLane,
-    WorthUiCandidateDependencyMetadata, WorthUiCandidateLoweringBasis,
-    WorthUiCandidateProvenanceHandle, WorthUiReplacementCandidate,
+    WorthUiCandidateAuthoringLane, WorthUiCandidateDependencyMetadata, WorthUiReplacementCandidate,
     WorthUiReplacementCandidateBasis, WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
 };
-pub use crate::runtime::replacement::equivalence::{
-    WorthUiRuntimeArtifactComparator, WorthUiRuntimeArtifactComparison,
-    WorthUiRuntimeArtifactComparisonCounters, WorthUiRuntimeArtifactComparisonDenial,
-    WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeEquivalenceBasis,
+pub use crate::runtime::replacement::compatibility::managed_live::{
+    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
+    WorthUiQueryBindingPreservationReceipt, WorthUiQueryBindingRebindReason,
+    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters,
+    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
+    WorthUiQueryLiveRebindPlanDenial, WorthUiQueryRebindRequiredSurface,
 };
+pub use crate::runtime::replacement::equivalence::{
+    WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonCounters,
+    WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeArtifactComparisonOutcome,
+    WorthUiRuntimeEquivalenceBasis,
+};
+#[cfg(test)]
 pub use crate::runtime::replacement::file_rust_replacement_parity::{
     WorthUiFileRustReplacementParityBoundary, WorthUiFileRustReplacementParityCounters,
     WorthUiFileRustReplacementParityDenial, WorthUiFileRustReplacementParityDenialReason,
@@ -22,37 +31,31 @@ pub use crate::runtime::replacement::file_rust_replacement_parity::{
     WorthUiFileRustReplacementSemanticReceipt,
 };
 pub use crate::runtime::replacement::impact::{
-    WorthUiAccessibilityImpact, WorthUiCommandImpact, WorthUiDurableStateImpactReceipts,
-    WorthUiLaneImpactClassification, WorthUiRendererResourceImpact, WorthUiReplacementImpact,
-    WorthUiReplacementImpactClassification, WorthUiReplacementImpactClassifier,
-    WorthUiReplacementImpactCounters, WorthUiReplacementImpactDenial, WorthUiReplacementScope,
-    WorthUiTokenThemeImpact, WorthUiUnsupportedReplacementImpact,
+    WorthUiAccessibilityImpact, WorthUiCommandImpact, WorthUiLaneImpactClassification,
+    WorthUiRendererResourceImpact, WorthUiReplacementImpact,
+    WorthUiReplacementImpactClassification, WorthUiReplacementImpactCounters,
+    WorthUiReplacementImpactDenial, WorthUiReplacementScope, WorthUiTokenThemeImpact,
+    WorthUiUnsupportedReplacementImpact,
 };
 pub use crate::runtime::replacement::matching::{
     WorthUiIdentityMatchCounters, WorthUiIdentityMatchDenial, WorthUiIdentityMatchEdge,
     WorthUiIdentityMatchGraph, WorthUiIdentityMatchNode, WorthUiIdentityMatchNodeKind,
-    WorthUiIdentityMatchNodeSide, WorthUiIdentityMatchReport, WorthUiIdentitySeedContribution,
-    WorthUiMovedNodeIdentity, WorthUiRepeatedTemplateIdentity,
+    WorthUiIdentityMatchNodeSide, WorthUiIdentityMatchReport, WorthUiMovedNodeIdentity,
+    WorthUiRepeatedTemplateIdentity,
 };
+#[cfg(test)]
+pub use crate::runtime::replacement::narrowing::WorthUiQueryDependencySurface;
 pub use crate::runtime::replacement::narrowing::{
     WorthUiAccessibilityInvalidation, WorthUiCommandBindingInvalidation,
-    WorthUiImpactLookupCounters, WorthUiQueryDependencyInvalidation, WorthUiQueryDependencySurface,
-    WorthUiRendererResourceInvalidation, WorthUiRuntimeImpactNarrower,
-    WorthUiRuntimeImpactNarrowing, WorthUiRuntimeImpactNarrowingDenial, WorthUiTokenInvalidation,
+    WorthUiImpactLookupCounters, WorthUiQueryDependencyInvalidation,
+    WorthUiRendererResourceInvalidation, WorthUiRuntimeImpactNarrowing,
+    WorthUiRuntimeImpactNarrowingDenial, WorthUiTokenInvalidation,
 };
 pub use crate::runtime::replacement::query_binding::{
-    WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonCounters,
-    WorthUiQueryBindingComparisonDenial, WorthUiQueryBindingComparisonEntry,
-    WorthUiQueryBindingComparisonOutcome, WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture,
-    WorthUiQueryBindingPostureDriftFamily,
-};
-pub use crate::runtime::replacement::query_live_rebind::{
-    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
-    WorthUiQueryBindingPreservation, WorthUiQueryBindingPreservationReceipt,
-    WorthUiQueryBindingRebind, WorthUiQueryBindingRebindReason, WorthUiQueryBindingRetirement,
-    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters,
-    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
-    WorthUiQueryLiveRebindPlanDenial, WorthUiQueryRebindRequiredSurface,
+    WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonDenial,
+    WorthUiQueryBindingComparisonEntry, WorthUiQueryBindingComparisonOutcome,
+    WorthUiQueryBindingIdentity, WorthUiQueryBindingUiRequirements,
+    WorthUiQueryBindingUiRequirementsDriftFamily,
 };
 pub use crate::runtime::replacement::reconciliation::{
     WorthUiAdmittedDurableResizeInput, WorthUiAdmittedDurableResizeSourceFact,
@@ -78,10 +81,5 @@ pub use crate::runtime::replacement::state_inventory::{
 pub use crate::runtime::replacement::{
     WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,
     WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
-    WorthUiNodeReplacementPlan, WorthUiReplacementAdmissionBasis,
-    WorthUiReplacementComparisonReady, WorthUiReplacementIdentityReady,
-    WorthUiReplacementImpactReady, WorthUiReplacementLoweringDenial,
-    WorthUiReplacementLoweringReady, WorthUiReplacementNarrowingReady,
-    WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
-    WorthUiReplacementReconciliationReady,
+    WorthUiNodeReplacementPlan, WorthUiReplacementLoweringDenial, WorthUiReplacementLoweringReady,
 };

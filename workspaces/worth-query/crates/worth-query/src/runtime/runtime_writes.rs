@@ -188,53 +188,36 @@ impl WorthQueryRuntime {
         shared_admission: Option<WorthQueryWriteAdmissionExecutionRecord>,
     ) -> Result<WorthQueryWriteReceipt, WorthQueryRuntimeError> {
         self.reap_abandoned_managed_live_resources()?;
-        let mutation_family = command.mutation_family();
-        let declared_collection_identity = command.declared_collection_identity();
-        let declared_entity_identity = command.declared_entity_identity();
-        let existing_truth_binding = command.existing_truth_binding().cloned();
-        let symbolic_target_reference = None;
-        let symbolic_aspect_resolution_evidence = Vec::new();
-        let naming_intent = command.naming_intent().cloned();
-        let continuity_intent = command.continuity_intent().cloned();
-        let declared_aspect_operations = command.declared_aspect_operations();
-        let declared_aspect_value_digest = command_declared_aspect_value_identity(&command);
-        let mutation_metadata = command.mutation_metadata();
+        let prepared_routing = WorthQueryPreparedAuthoritativeMutationRouting::from_direct_command(
+            &command,
+            verified_existing_truth_assertion,
+        );
         let receipt = self.execute_backend_or_synthetic_write(
             command,
             admitted_mutation,
-            declared_aspect_value_digest.as_ref(),
+            prepared_routing.declared_aspect_value_digest(),
         )?;
         let receipt = self.attach_optional_mutation_bundles(
             receipt,
-            existing_truth_binding.as_ref(),
-            continuity_intent.as_ref(),
-            naming_intent.as_ref(),
+            prepared_routing.existing_truth_binding(),
+            prepared_routing.continuity_intent(),
+            prepared_routing.naming_intent(),
         );
         let execution_provenance =
             self.shared_write_execution_provenance(shared_admission.as_ref(), &receipt);
         let decision_trace_envelope = self.shared_write_decision_trace_envelope(
             shared_admission.as_ref(),
-            mutation_family,
+            prepared_routing.mutation_family(),
             &receipt,
         );
-        let receipt = self.route_authoritative_mutation_receipt(
+        let receipt = self.route_authoritative_mutation_receipt(prepared_routing.complete(
             receipt,
-            mutation_family,
-            declared_collection_identity,
-            declared_entity_identity,
-            existing_truth_binding,
-            verified_existing_truth_assertion,
-            symbolic_target_reference,
-            symbolic_aspect_resolution_evidence,
-            naming_intent,
-            continuity_intent,
-            declared_aspect_operations,
-            declared_aspect_value_digest,
-            mutation_metadata,
-            decision_trace_envelope,
-            execution_provenance,
-            shared_admission.and_then(|record| record.obligation_dispatch),
-        )?;
+            WorthQueryAuthoritativeMutationExecutionEvidence {
+                decision_trace_envelope,
+                execution_provenance,
+                obligation_dispatch: shared_admission.and_then(|record| record.obligation_dispatch),
+            },
+        ))?;
         self.journal_replay.record_write_receipt(&receipt);
         Ok(receipt)
     }

@@ -2,7 +2,8 @@ use crate::{
     AllocationClassKind, ExtentGenerationCellBuilder, FreeSpaceReuseAddress,
     FreeSpaceReuseCellBuilder, PageGenerationCellBuilder, PhysicalExtentId, PhysicalPageId,
     PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId, PhysicalVocabularyError,
-    RootPublicationCellBuilder, SegmentGenerationCellBuilder, SlotGenerationCellBuilder,
+    RecordExtentGenerationCellBuilder, RootPublicationCellBuilder, SegmentGenerationCellBuilder,
+    SlotGenerationCellBuilder,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,6 +37,13 @@ impl PhysicalGenerationAuthority {
         extent_id: PhysicalExtentId,
     ) -> ExtentGenerationCellBuilder {
         ExtentGenerationCellBuilder::new(segment_id, extent_id)
+    }
+
+    pub const fn record_extent_cell(
+        self,
+        extent_id: PhysicalExtentId,
+    ) -> RecordExtentGenerationCellBuilder {
+        RecordExtentGenerationCellBuilder::new(extent_id)
     }
 
     pub fn free_space_slot_cell(

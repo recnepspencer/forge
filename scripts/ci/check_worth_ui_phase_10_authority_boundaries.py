@@ -42,6 +42,7 @@ def check_manifest(workspace: Path, manifest: dict[str, Any]) -> list[Violation]
         seen_ids.add(rule_id)
         pattern = re.compile(required_string(rule, "pattern"))
         allowed = normalized_allowed(rule_id, rule.get("allowed"), violations)
+        require_review(rule_id, rule, allowed, violations)
         actual = match_counts(workspace, sources, pattern)
         if actual != allowed:
             violations.extend(compare_counts(rule_id, allowed, actual))
@@ -87,6 +88,25 @@ def normalized_allowed(
         if count:
             allowed[Path(path).as_posix()] = count
     return allowed
+
+
+def require_review(
+    rule_id: str,
+    rule: dict[str, Any],
+    allowed: Counter[str],
+    violations: list[Violation],
+) -> None:
+    if not allowed:
+        return
+    for field in ("authority_owner", "rationale"):
+        value = rule.get(field)
+        if not isinstance(value, str) or not value.strip():
+            violations.append(
+                Violation(
+                    rule_id,
+                    f"non-empty allowed edges require a reviewed {field.replace('_', ' ')}",
+                )
+            )
 
 
 def compare_counts(rule_id: str, expected: Counter[str], actual: Counter[str]) -> list[Violation]:

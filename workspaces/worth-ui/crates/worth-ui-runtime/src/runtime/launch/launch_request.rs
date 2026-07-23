@@ -15,7 +15,28 @@ pub struct WorthUiRuntimeLaunch {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiRuntimeLaunchDenial {
+    HostSessionIdentityExhausted,
     PreparedApplicationHasNoRuntimeArtifact,
+    InitialAllocationGraphAuthorityMismatch,
+    InitialAllocationObligationsUnsettled {
+        node_count: usize,
+    },
+    CandidateGraphAuthorityMismatch,
+    CandidateArtifactAuthorityMismatch,
+    ForeignAllocationProjection,
+    MissingQueryPosture,
+    UnexpectedQueryPosture,
+    QueryDefinitionNotInstalled,
+    ForeignQueryInstalledAuthority,
+    RegionalDeltaDuplicateCandidateRegion,
+    PlanInput(crate::runtime::WorthUiPlanLoweringDenial),
+    HandleAllocation(crate::runtime::WorthUiRuntimeHandleAllocationDenial),
+    TopologyAssembly(crate::runtime::WorthUiPlanTopologyDenial),
+    ExecutionPlanAuthorityMismatch,
+    OrdinaryPlan(crate::runtime::WorthUiOrdinaryLanePlanDenial),
+    VirtualizedPlan(crate::runtime::WorthUiVirtualizedDataPlanDenial),
+    CanvasSpatialPlan(crate::runtime::WorthUiCanvasSpatialPlanDenial),
+    RealtimeOverlayPlan(crate::runtime::WorthUiHudPlanDenial),
     StalePendingActivation {
         pending_epoch: WorthUiRuntimeFrameEpoch,
         active_epoch: WorthUiRuntimeFrameEpoch,

@@ -147,20 +147,6 @@ impl crate::runtime::UiScrollOwnerAcquisitionDenial {
     }
 }
 
-impl crate::runtime::UiPortalAnchorSuccessorDenial {
-    pub fn denial_evidence(&self) -> UiAllocationDenialEvidence {
-        let family = match self {
-            Self::StaleEvidenceGeneration | Self::NormalizationAuthorityMismatch => {
-                UiAllocationDenialFamily::StaleHostEvidence
-            }
-            Self::EvidenceCategoryMismatch | Self::ObservationInvalid => {
-                UiAllocationDenialFamily::BrokenPortalAnchor
-            }
-        };
-        evidence(0x13, family, None, None, None, None)
-    }
-}
-
 impl crate::runtime::UiAllocationFrameResolutionDenial {
     pub fn denial_evidence(&self) -> UiAllocationDenialEvidence {
         use crate::runtime::UiAllocationFrameResolutionDenial as Denial;

@@ -6,17 +6,73 @@ use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiNodeReplacementPlan, WorthUiRuntimeImpactNarrowing,
 };
 use crate::source::{WorthUiArtifact, WorthUiRustAuthoredArtifactInputModule};
+use std::sync::OnceLock;
+
+static LIVE_QUERY_DOMAIN: OnceLock<worth_ui_query_binding::WorthUiInstalledQueryDomain> =
+    OnceLock::new();
+static SNAPSHOT_QUERY_DOMAIN: OnceLock<worth_ui_query_binding::WorthUiInstalledQueryDomain> =
+    OnceLock::new();
 
 pub(super) fn standard_query_app() -> WorthUiApp {
     query_app(true, QueryDenialPresentation::structured_status())
+}
+
+pub(super) fn fresh_standard_query_app() -> WorthUiApp {
+    fresh_query_app(true, QueryDenialPresentation::structured_status())
 }
 
 pub(super) fn lifecycle_drift_query_app() -> WorthUiApp {
     query_app(false, QueryDenialPresentation::structured_status())
 }
 
+pub(super) fn mixed_change_query_apps() -> (WorthUiApp, WorthUiApp) {
+    let active_installed = LIVE_QUERY_DOMAIN
+        .get_or_init(|| {
+            worth_ui_query_binding::certification::worth_ui_installed_test_domain("live-query-app")
+        })
+        .clone();
+    let candidate_installed = SNAPSHOT_QUERY_DOMAIN
+        .get_or_init(|| {
+            worth_ui_query_binding::certification::worth_ui_installed_test_domain(
+                "snapshot-query-app",
+            )
+        })
+        .clone();
+    let active = app_with_mixed_change_views(&active_installed, true);
+    let candidate = app_with_mixed_change_views(&candidate_installed, false);
+    (active, candidate)
+}
+
 pub(super) fn denial_presentation_drift_query_app() -> WorthUiApp {
     query_app(true, QueryDenialPresentation::advisory_text())
+}
+
+pub(super) fn wide_query_app(binding_count: usize) -> WorthUiApp {
+    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
+        "wide-query-comparison-app",
+    );
+    let mut builder = WorthUi::app();
+    for binding_index in 0..binding_count {
+        let binding_id = format!("workspace.view_binding.item_{binding_index:03}");
+        builder = builder
+            .register_query_view(query_registration(
+                &installed,
+                &binding_id,
+                true,
+                QueryDenialPresentation::structured_status(),
+            ))
+            .expect("installed wide Query view should register");
+    }
+    builder
+        .register_query_view(query_registration(
+            &installed,
+            "workspace.view_binding.replacement",
+            true,
+            QueryDenialPresentation::structured_status(),
+        ))
+        .expect("replacement Query view should register")
+        .freeze()
+        .expect("wide application preparation should succeed")
 }
 
 pub(super) fn query_artifact(app: &WorthUiApp, binding_id: &str) -> WorthUiArtifact {
@@ -24,6 +80,17 @@ pub(super) fn query_artifact(app: &WorthUiApp, binding_id: &str) -> WorthUiArtif
         app,
         [WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_binding(binding_id)],
     )
+}
+
+pub(super) fn query_artifact_with_bindings(
+    app: &WorthUiApp,
+    binding_ids: &[&str],
+) -> WorthUiArtifact {
+    let module = binding_ids.iter().fold(
+        WorthUiRustAuthoredArtifactInputModule::new("app/main.wui"),
+        |module, binding_id| module.with_binding(*binding_id),
+    );
+    lower_rust_authored_artifact(app, [module])
 }
 
 pub(super) fn phase11_pipeline(
@@ -57,15 +124,36 @@ pub(super) fn phase11_pipeline(
 }
 
 fn query_app(live: bool, denial: QueryDenialPresentation) -> WorthUiApp {
+    let (installed, label) = if live {
+        (&LIVE_QUERY_DOMAIN, "live-query-app")
+    } else {
+        (&SNAPSHOT_QUERY_DOMAIN, "snapshot-query-app")
+    };
+    let installed = installed
+        .get_or_init(|| {
+            worth_ui_query_binding::certification::worth_ui_installed_test_domain(label)
+        })
+        .clone();
+    app_from_installed_query_domain(&installed, live, denial)
+}
+
+fn fresh_query_app(live: bool, denial: QueryDenialPresentation) -> WorthUiApp {
     let installed =
         worth_ui_query_binding::certification::worth_ui_installed_test_domain(if live {
-            "live-query-app"
+            "fresh-live-query-app"
         } else {
-            "snapshot-query-app"
+            "fresh-snapshot-query-app"
         });
-    let selection =
-        query_registration(&installed, "workspace.view_binding.selection", live, denial);
-    let detail = query_registration(&installed, "workspace.view_binding.detail", live, denial);
+    app_from_installed_query_domain(&installed, live, denial)
+}
+
+fn app_from_installed_query_domain(
+    installed: &worth_ui_query_binding::WorthUiInstalledQueryDomain,
+    live: bool,
+    denial: QueryDenialPresentation,
+) -> WorthUiApp {
+    let selection = query_registration(installed, "workspace.view_binding.selection", live, denial);
+    let detail = query_registration(installed, "workspace.view_binding.detail", live, denial);
     WorthUi::app()
         .register_query_view(selection)
         .expect("installed selection view should register")
@@ -75,16 +163,47 @@ fn query_app(live: bool, denial: QueryDenialPresentation) -> WorthUiApp {
         .expect("application preparation should succeed")
 }
 
+fn app_with_mixed_change_views(
+    installed: &worth_ui_query_binding::WorthUiInstalledQueryDomain,
+    selection_is_live: bool,
+) -> WorthUiApp {
+    let denial = QueryDenialPresentation::structured_status();
+    WorthUi::app()
+        .register_query_view(query_registration(
+            installed,
+            "workspace.view_binding.selection",
+            selection_is_live,
+            denial,
+        ))
+        .expect("installed selection view should register")
+        .register_query_view(query_registration(
+            installed,
+            "workspace.view_binding.detail",
+            true,
+            denial,
+        ))
+        .expect("installed detail view should register")
+        .register_query_view(query_registration(
+            installed,
+            "workspace.view_binding.replacement",
+            true,
+            denial,
+        ))
+        .expect("installed replacement view should register")
+        .freeze()
+        .expect("mixed-change application preparation should succeed")
+}
+
 fn query_registration(
     installed: &worth_ui_query_binding::WorthUiInstalledQueryDomain,
     id: &str,
     live: bool,
     denial: QueryDenialPresentation,
 ) -> WorthUiQueryViewRegistration {
-    let view = if live {
-        installed.live_measurement_view(id)
+    let view: worth_ui_query_binding::WorthUiInstalledQueryView = if live {
+        installed.live_measurement_view(id).map(Into::into)
     } else {
-        installed.measurement_view(id)
+        installed.measurement_view(id).map(Into::into)
     }
     .expect("installed query view should admit");
     WorthUiQueryViewRegistration::new(view).with_denial_presentation(denial)

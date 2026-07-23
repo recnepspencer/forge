@@ -214,6 +214,30 @@ fn forbidden_residency_proofs_are_typed_denials_not_authority() {
     }
 }
 
+#[test]
+fn table_metadata_is_denied_before_an_unbounded_allocation() {
+    let budget = BufferPoolBudget::declare(
+        ResidentMemoryBudget::bytes(64).unwrap(),
+        PinnedPageBudget::pages(1).unwrap(),
+        DirtyPageBudget::pages(1).unwrap(),
+    );
+    let admitted =
+        S2PhysicalResidencyEntry::from_physical_substrate_snapshot(algorithm_model_snapshot())
+            .unwrap()
+            .with_budget(budget)
+            .admit()
+            .unwrap();
+    let denial = ResidentFrameTable::open(
+        admitted,
+        ResidentFrameTableCapacity::frames(u32::MAX).unwrap(),
+    )
+    .unwrap_err();
+    assert_eq!(
+        denial.kind(),
+        ResidentFrameDenialKind::TableMetadataBudgetExceeded,
+    );
+}
+
 fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameTable {
     let budget = BufferPoolBudget::declare(
         ResidentMemoryBudget::bytes(resident_bytes).unwrap(),
@@ -230,6 +254,7 @@ fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameT
         admitted,
         ResidentFrameTableCapacity::frames(frame_count).unwrap(),
     )
+    .unwrap()
 }
 
 fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {

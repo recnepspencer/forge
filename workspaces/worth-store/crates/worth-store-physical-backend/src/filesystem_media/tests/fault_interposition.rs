@@ -290,12 +290,16 @@ fn failed_containing_directory_barriers_are_reestablished_on_reopen() {
             FilesystemAccessPosture::CoordinatedServiceAccount,
         )
         .with_fault_schedule(schedule);
+        let worth_proof::TransitionOutcome::Failed(failure) =
+            FilesystemMediaOwner::qualify(request).into_raw()
+        else {
+            panic!("identity publication failure expected")
+        };
         assert!(matches!(
-            FilesystemMediaOwner::qualify(request).into_raw(),
-            worth_proof::TransitionOutcome::Failed(
-                MediaQualificationFailure::IdentityPublication { .. }
-            )
+            failure.post_ownership_cause(),
+            Some(MediaQualificationPostOwnershipCause::IdentityPublication)
         ));
+        assert_eq!(failure.release(), Some(OwnershipReleaseOutcome::Released));
         assert!(root.join("namespace/identity").is_file());
 
         let reopened = FilesystemMediaOwner::qualify(FilesystemQualificationRequest::production(
@@ -309,6 +313,51 @@ fn failed_containing_directory_barriers_are_reestablished_on_reopen() {
         assert_eq!(reopened.counters().attempts_for(role), 1);
         reopened.close();
     }
+}
+
+#[test]
+fn post_ownership_failure_preserves_unconfirmed_release_fate() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("unconfirmed-release");
+    let schedule = MediaFaultSchedule::for_certification(vec![
+        MediaFaultRule::for_certification(
+            MediaOperationRole::SynchronizeStoreRootPublication,
+            1,
+            MediaFaultDirective::FailBarrier {
+                kind: std::io::ErrorKind::Other,
+                raw_os_error: None,
+            },
+        ),
+        MediaFaultRule::for_certification(
+            MediaOperationRole::ReleaseMutationLease,
+            1,
+            MediaFaultDirective::FailBefore {
+                kind: std::io::ErrorKind::Other,
+                raw_os_error: None,
+            },
+        ),
+    ])
+    .unwrap();
+    let outcome = FilesystemMediaOwner::qualify(
+        FilesystemQualificationRequest::production(
+            &root,
+            FilesystemAccessPosture::CoordinatedServiceAccount,
+        )
+        .with_fault_schedule(schedule),
+    )
+    .into_raw();
+    let worth_proof::TransitionOutcome::Failed(failure) = outcome else {
+        panic!("post-ownership failure expected")
+    };
+    assert!(matches!(
+        failure.post_ownership_cause(),
+        Some(MediaQualificationPostOwnershipCause::IdentityPublication)
+    ));
+    assert!(matches!(
+        failure.release(),
+        Some(OwnershipReleaseOutcome::ReleaseUnconfirmed { .. })
+    ));
+    assert_eq!(failure.counters().ownership_releases(), 1);
 }
 
 #[test]

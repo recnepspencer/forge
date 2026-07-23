@@ -91,17 +91,24 @@ impl PreparedCorrespondenceBatch<'_> {
     }
 }
 
-pub(crate) fn prepare_correspondence_batch<'runtime>(
+pub(crate) fn prepare_registered_correspondence_batch<'runtime>(
     runtime: &'runtime RuntimeBridge,
-    dependencies: Vec<BridgeSemanticDependencyCandidate>,
+    registrations: &[super::BridgeSemanticCorrespondenceRegistration],
     graph: &SignalGraph,
 ) -> Result<PreparedCorrespondenceBatch<'runtime>, CorrespondenceAdmissionOutcome> {
-    let mut mapped = Vec::with_capacity(dependencies.len());
-    for dependency in dependencies {
-        let resolved = super::resolution::resolve(runtime, dependency, graph)?;
+    let mut mapped = Vec::with_capacity(registrations.len());
+    for registration in registrations {
+        let resolved = super::resolution::resolve_registration(runtime, registration, graph)?;
         mapped.push(super::target_mapping::map_targets(runtime, resolved)?);
     }
+    prepare_mapped_correspondence_batch(runtime, mapped, graph)
+}
 
+fn prepare_mapped_correspondence_batch<'runtime>(
+    runtime: &'runtime RuntimeBridge,
+    mut mapped: Vec<super::target_mapping::MappedCorrespondence>,
+    graph: &SignalGraph,
+) -> Result<PreparedCorrespondenceBatch<'runtime>, CorrespondenceAdmissionOutcome> {
     if let Some(first) = mapped.first_mut() {
         first.resolved.counters.allocation_registry_lock_attempts += 1;
     }
@@ -118,7 +125,14 @@ pub(crate) fn prepare_correspondence_batch<'runtime>(
             ));
         }
     };
+    prepare_allocations(mapped, registry, graph)
+}
 
+fn prepare_allocations<'runtime>(
+    mapped: Vec<super::target_mapping::MappedCorrespondence>,
+    registry: RwLockWriteGuard<'runtime, CorrespondenceAllocationRegistry>,
+    graph: &SignalGraph,
+) -> Result<PreparedCorrespondenceBatch<'runtime>, CorrespondenceAdmissionOutcome> {
     let mut pending_owners = BTreeMap::<AllocationKey, BTreeSet<String>>::new();
     let mut items = Vec::with_capacity(mapped.len());
     for mapped in mapped {

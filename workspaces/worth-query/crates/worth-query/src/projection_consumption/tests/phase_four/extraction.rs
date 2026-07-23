@@ -75,7 +75,7 @@ fn relational_row_set_extracts_identity_and_field_facts() {
         consumed.display_fields()[0]
             .field_path()
             .canonical_field_path(),
-        &canonical_field_path("profile.display_name")
+        Some(&canonical_field_path("profile.display_name"))
     );
 }
 
@@ -133,15 +133,15 @@ fn relational_row_set_preserves_struct_facts_and_typed_refinement_denials() {
     let denial = fact.as_int64().unwrap_err();
     assert_eq!(
         denial.expected(),
-        crate::projection_consumption::ConsumedNativeValueShape::Scalar(ScalarAspectType::Int64)
+        worth_foundational::facade::AspectValuePosture::Scalar(ScalarAspectType::Int64)
     );
     assert_eq!(
         denial.actual(),
-        crate::projection_consumption::ConsumedNativeValueShape::Struct
+        worth_foundational::facade::AspectValuePosture::Struct
     );
     assert_eq!(
         denial.field_path().canonical_field_path(),
-        &canonical_field_path("profile")
+        Some(&canonical_field_path("profile"))
     );
     assert_eq!(
         denial.source_family(),

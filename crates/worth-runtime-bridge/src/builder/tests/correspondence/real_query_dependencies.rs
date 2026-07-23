@@ -27,65 +27,75 @@ pub(super) fn dependency(label: &str) -> BridgeSemanticDependencyCandidate {
         .clone()
 }
 
-fn installed_dependencies() -> &'static [(String, BridgeSemanticDependencyCandidate)] {
-    DEPENDENCIES.get_or_init(|| {
-        let labels = fixture_labels();
-        let operation = operation_definition(&labels);
-        let package = query::WorthQueryPortableDomainPackage::new(
-            query::WorthQueryPortableDomainIdentity::new("worth.bridge-tests", 1, 0),
-        )
-        .domain_operation(operation)
-        .validate()
-        .expect("real correspondence Query package validates");
-        let admitted = query::WorthQueryInstallationAdmissionProfile::new(
-            "bridge-test-support-v1",
-            "bridge-test-config-v1",
-        )
-        .admit(package)
-        .expect("real correspondence Query package admits");
-        let installation_runtime = query::WorthQueryInstallationRuntimeIdentity::fresh();
-        let graph_authority = Arc::new(
-            query::WorthQueryInstalledGraphParticipationAuthority::install(
-                &installation_runtime,
-                "model",
-                "query-graph-adapter:bridge-tests",
-                Arc::new(BridgeQueryGraphProviderFixture),
-            )
-            .expect("real installed graph participation authority"),
-        );
-        let index = query::WorthQueryInstalledPackageIndex::build(
-            installation_runtime,
-            query::WorthQueryInstallationGeneration::initial(),
-            [admitted],
-        )
-        .expect("real correspondence Query package installs");
-        let operation = index
-            .domain_operation("worth.bridge-tests", "bridge-correspondence:1")
-            .expect("installed correspondence operation authority");
+pub(super) fn freshly_installed_dependency(label: &str) -> BridgeSemanticDependencyCandidate {
+    build_installed_dependencies()
+        .into_iter()
+        .find(|(candidate_label, _)| candidate_label == label)
+        .unwrap_or_else(|| panic!("missing fresh installed Query dependency fixture `{label}`"))
+        .1
+}
 
-        labels
-            .into_iter()
-            .map(|label| {
-                let authority = operation
-                    .conditional_dependency(
-                        query::WorthQueryConditionalNodeLocation::operation(label.clone())
-                            .expect("valid fixture node location"),
-                        0,
-                    )
-                    .expect("exact installed conditional dependency authority");
-                let entity_identity = (label != "query:partition").then(|| {
-                    crate::relational_identity::RelationalBridgeRecordIdentityParts::entity(0, 1, 1)
-                });
-                let candidate = BridgeSemanticDependencyCandidate::from_query_authority(
-                    authority,
-                    Arc::clone(&graph_authority),
-                    entity_identity,
+fn installed_dependencies() -> &'static [(String, BridgeSemanticDependencyCandidate)] {
+    DEPENDENCIES.get_or_init(build_installed_dependencies)
+}
+
+fn build_installed_dependencies() -> Vec<(String, BridgeSemanticDependencyCandidate)> {
+    let labels = fixture_labels();
+    let operation = operation_definition(&labels);
+    let package = query::WorthQueryPortableDomainPackage::new(
+        query::WorthQueryPortableDomainIdentity::new("worth.bridge-tests", 1, 0),
+    )
+    .domain_operation(operation)
+    .validate()
+    .expect("real correspondence Query package validates");
+    let admitted = query::WorthQueryInstallationAdmissionProfile::new(
+        "bridge-test-support-v1",
+        "bridge-test-config-v1",
+    )
+    .admit(package)
+    .expect("real correspondence Query package admits");
+    let installation_runtime = query::WorthQueryInstallationRuntimeIdentity::fresh();
+    let graph_authority = Arc::new(
+        query::WorthQueryInstalledGraphParticipationAuthority::install(
+            &installation_runtime,
+            "model",
+            "query-graph-adapter:bridge-tests",
+            Arc::new(BridgeQueryGraphProviderFixture),
+        )
+        .expect("real installed graph participation authority"),
+    );
+    let index = query::WorthQueryInstalledPackageIndex::build(
+        installation_runtime,
+        query::WorthQueryInstallationGeneration::initial(),
+        [admitted],
+    )
+    .expect("real correspondence Query package installs");
+    let operation = index
+        .domain_operation("worth.bridge-tests", "bridge-correspondence:1")
+        .expect("installed correspondence operation authority");
+
+    labels
+        .into_iter()
+        .map(|label| {
+            let authority = operation
+                .conditional_dependency(
+                    query::WorthQueryConditionalNodeLocation::operation(label.clone())
+                        .expect("valid fixture node location"),
+                    0,
                 )
-                .expect("installed Query dependency joins Bridge candidate");
-                (label, candidate)
-            })
-            .collect()
-    })
+                .expect("exact installed conditional dependency authority");
+            let entity_identity = (label != "query:partition").then(|| {
+                crate::relational_identity::RelationalBridgeRecordIdentityParts::entity(0, 1, 1)
+            });
+            let candidate = BridgeSemanticDependencyCandidate::from_query_authority(
+                authority,
+                Arc::clone(&graph_authority),
+                entity_identity,
+            )
+            .expect("installed Query dependency joins Bridge candidate");
+            (label, candidate)
+        })
+        .collect()
 }
 
 struct BridgeQueryGraphProviderFixture;
@@ -107,12 +117,11 @@ fn fixture_labels() -> Vec<String> {
 }
 
 fn operation_definition(labels: &[String]) -> query::WorthQueryPortableDomainOperationDefinition {
-    let native_projection = query::WorthQueryOperationNativeProjectionContract {
-        aspect_key: contract().key().clone(),
-        aspect_identity: contract().identity(),
-        contract_revision: contract().revision(),
-        mask: AspectMask::<ProjectionMask>::new([field_path()]),
-    };
+    let native_projection = query::WorthQueryOperationNativeProjectionContract::new(
+        contract(),
+        AspectMask::<ProjectionMask>::new([field_path()]),
+    )
+    .expect("the fixture projection mask is admitted by its native contract");
     let semantics = query::WorthQueryDomainOperationSemanticClosure {
         parameters: query::WorthQueryOperationParameterContract::NotRequired,
         native_projection: native_projection.clone(),
@@ -179,7 +188,68 @@ fn operation_definition(labels: &[String]) -> query::WorthQueryPortableDomainOpe
     .into_portable()
 }
 
-fn conditional_node(label: &str) -> query::WorthQueryPortableConditionalNodeDeclaration {
+pub(super) fn conditional_node(label: &str) -> query::WorthQueryPortableConditionalNodeDeclaration {
+    conditional_node_with_posture(label, FixtureConditionalPosture::Default)
+}
+
+pub(super) fn conditional_node_always_eligible(
+    label: &str,
+) -> query::WorthQueryPortableConditionalNodeDeclaration {
+    conditional_node_with_posture(label, FixtureConditionalPosture::AlwaysEligible)
+}
+
+pub(super) fn conditional_node_on_demand(
+    label: &str,
+) -> query::WorthQueryPortableConditionalNodeDeclaration {
+    conditional_node_with_posture(label, FixtureConditionalPosture::OnDemand)
+}
+
+pub(super) fn conditional_node_temporal(
+    label: &str,
+) -> query::WorthQueryPortableConditionalNodeDeclaration {
+    conditional_node_with_posture(label, FixtureConditionalPosture::Temporal)
+}
+
+pub(super) fn conditional_node_registered_comparator(
+    label: &str,
+) -> query::WorthQueryPortableConditionalNodeDeclaration {
+    conditional_node_with_posture(label, FixtureConditionalPosture::RegisteredComparator)
+}
+
+pub(super) fn conditional_node_domain_condition(
+    label: &str,
+) -> query::WorthQueryPortableConditionalNodeDeclaration {
+    conditional_node_with_posture(label, FixtureConditionalPosture::DomainCondition)
+}
+
+enum FixtureConditionalPosture {
+    Default,
+    AlwaysEligible,
+    OnDemand,
+    Temporal,
+    RegisteredComparator,
+    DomainCondition,
+}
+
+struct FixtureTrigger;
+impl query::WorthQueryOnDemandTriggerFamily for FixtureTrigger {
+    const PORTABLE_IDENTITY: &'static str = "worth.bridge-tests.trigger";
+}
+
+struct FixtureComparator;
+impl query::WorthQueryComparatorFamily for FixtureComparator {
+    const PORTABLE_IDENTITY: &'static str = "worth.bridge-tests.comparator";
+}
+
+struct FixtureCondition;
+impl query::WorthQueryDomainConditionFamily for FixtureCondition {
+    const PORTABLE_IDENTITY: &'static str = "worth.bridge-tests.condition";
+}
+
+fn conditional_node_with_posture(
+    label: &str,
+    posture: FixtureConditionalPosture,
+) -> query::WorthQueryPortableConditionalNodeDeclaration {
     let locality = if label == "query:partition" {
         BridgeSemanticLocality::SourcePartition(
             worth_foundational::facade::TruthPartitionRole::new("model-main").unwrap(),
@@ -198,6 +268,58 @@ fn conditional_node(label: &str) -> query::WorthQueryPortableConditionalNodeDecl
         [AuthoritativeAspectChangeKind::FieldSet],
     )
     .unwrap();
+    let filtered = || {
+        query::WorthQueryConditionalEvaluationCondition::aspect_filtered([dependency.clone()])
+            .unwrap()
+    };
+    let (condition, trigger, maintenance, dependency_comparator) =
+        match posture {
+            FixtureConditionalPosture::Default => (
+                filtered(),
+                query::WorthQueryConditionalTrigger::DependencyChange,
+                query::WorthQueryMaintenancePosture::LazyUntilObserved,
+                query::WorthQueryComparatorRequirement::FoundationalContractEquivalence,
+            ),
+            FixtureConditionalPosture::AlwaysEligible => (
+                query::WorthQueryConditionalEvaluationCondition::always_eligible(),
+                query::WorthQueryConditionalTrigger::DependencyChange,
+                query::WorthQueryMaintenancePosture::LazyUntilObserved,
+                query::WorthQueryComparatorRequirement::FoundationalContractEquivalence,
+            ),
+            FixtureConditionalPosture::OnDemand => (
+                query::WorthQueryConditionalEvaluationCondition::on_demand(),
+                query::WorthQueryConditionalTrigger::on_demand::<FixtureTrigger>(),
+                query::WorthQueryMaintenancePosture::OnDemandOnly,
+                query::WorthQueryComparatorRequirement::FoundationalContractEquivalence,
+            ),
+            FixtureConditionalPosture::Temporal => (
+                query::WorthQueryConditionalEvaluationCondition::temporal(
+                    query::WorthQueryTemporalCondition::IntervalNanoseconds(1),
+                ),
+                query::WorthQueryConditionalTrigger::Temporal(
+                    query::WorthQueryTemporalWake::MonotonicClock,
+                ),
+                query::WorthQueryMaintenancePosture::Temporal,
+                query::WorthQueryComparatorRequirement::FoundationalContractEquivalence,
+            ),
+            FixtureConditionalPosture::RegisteredComparator => (
+                filtered(),
+                query::WorthQueryConditionalTrigger::DependencyChange,
+                query::WorthQueryMaintenancePosture::LazyUntilObserved,
+                query::WorthQueryComparatorRequirement::registered::<FixtureComparator>(),
+            ),
+            FixtureConditionalPosture::DomainCondition => {
+                (
+                    query::WorthQueryConditionalEvaluationCondition::domain_specific::<
+                        FixtureCondition,
+                    >([])
+                    .unwrap(),
+                    query::WorthQueryConditionalTrigger::DependencyChange,
+                    query::WorthQueryMaintenancePosture::LazyUntilObserved,
+                    query::WorthQueryComparatorRequirement::FoundationalContractEquivalence,
+                )
+            }
+        };
     query::WorthQueryPortableConditionalNodeDeclaration::declare(
         label,
         query::WorthQueryConditionalNodeRole::Computed,
@@ -207,17 +329,14 @@ fn conditional_node(label: &str) -> query::WorthQueryPortableConditionalNodeDecl
         projection_role: query::WorthQueryOperationProjectionRole::new("profile").unwrap(),
     }])
     .required_context([query::WorthQueryConditionalNodeContext::Snapshot])
-    .evaluation(
-        query::WorthQueryConditionalEvaluationCondition::aspect_filtered([dependency]).unwrap(),
-        query::WorthQueryConditionalTrigger::DependencyChange,
-    )
+    .evaluation(condition, trigger)
     .comparison(
-        query::WorthQueryComparatorRequirement::FoundationalContractEquivalence,
+        dependency_comparator,
         query::WorthQueryOutputEquivalenceRequirement::ExactCanonicalValue,
     )
     .artifact_policy(
         query::WorthQueryArtifactReuseEquivalence::NotReusable,
-        query::WorthQueryMaintenancePosture::LazyUntilObserved,
+        maintenance,
         query::WorthQueryArtifactPosture::Ephemeral,
     )
     .output_relationship(query::WorthQueryOutputRelationship::ContributesToOperationOutput)

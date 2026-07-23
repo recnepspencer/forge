@@ -1,4 +1,4 @@
-error[E0599]: no method named `collect_and_submit` found for mutable reference `&mut WorthUiHostMeasurementTurnSource<'_>` in the current scope
+error[E0599]: no method named `collect_and_submit` found for mutable reference `&mut worth_ui_runtime::runtime::allocation_frame_dispatch::framework_turn::owner::WorthUiHostMeasurementTurnSource<'_>` in the current scope
   --> tests/ui/runtime_authority/fail/raw_host_adapter_cannot_submit_to_framework_turn.rs:13:28
    |
 13 |             let _ = source.collect_and_submit(adapter, input);

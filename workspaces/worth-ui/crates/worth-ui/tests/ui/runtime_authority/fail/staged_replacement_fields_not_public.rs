@@ -11,7 +11,6 @@ fn main() {
         node_plan: missing(),
         reconciliation_plan: missing(),
         query_rebind_plan: missing(),
-        pending_execution_plan_lowering_input: missing(),
     };
 }
 

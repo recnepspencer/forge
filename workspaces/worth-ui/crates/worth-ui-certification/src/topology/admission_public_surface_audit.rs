@@ -72,19 +72,9 @@ pub fn audit_admission_facades_are_curated_and_glob_free(workspace_root: &Path) 
     let product_names = collect_public_names(&product_path);
     let mut violations = Vec::new();
 
-    if parse_rust_file(&product_root_path)
-        .items
-        .iter()
-        .any(|item| {
-            matches!(
-                item,
-                Item::Mod(item_mod)
-                    if matches!(item_mod.vis, Visibility::Public(_)) && item_mod.ident == "compat"
-            )
-        })
-    {
+    if product_root_contains_flat_surface(&parse_rust_file(&product_root_path)) {
         violations.push(format!(
-            "{} must not publish `compat` as a public module; product callers must enter admission through `facade::admission`",
+            "{} must not declare a compatibility facade or flat root re-exports; product callers must enter through named facade modules",
             product_root_path.display()
         ));
     }
@@ -121,6 +111,14 @@ pub fn audit_admission_facades_are_curated_and_glob_free(workspace_root: &Path) 
     violations.sort();
     violations.dedup();
     violations
+}
+
+fn product_root_contains_flat_surface(parsed: &File) -> bool {
+    parsed.items.iter().any(|item| match item {
+        Item::Mod(item_mod) => item_mod.ident == "compat",
+        Item::Use(item_use) => matches!(item_use.vis, Visibility::Public(_)),
+        _ => false,
+    })
 }
 
 fn first_invalid_public_use(path: &Path, allowed_prefixes: &[&[&str]]) -> Option<String> {
@@ -219,4 +217,30 @@ fn curated_name_set() -> std::collections::BTreeSet<String> {
         .iter()
         .map(|name| (*name).to_owned())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::product_root_contains_flat_surface;
+
+    #[test]
+    fn compatibility_surface_audit_rejects_private_module_glob_reexport_loophole() {
+        let parsed = syn::parse_file("mod compat; pub use compat::*;")
+            .expect("hostile compatibility facade fixture parses");
+        assert!(product_root_contains_flat_surface(&parsed));
+    }
+
+    #[test]
+    fn compatibility_surface_audit_rejects_non_compat_flat_reexports() {
+        let parsed = syn::parse_file("pub use crate::support::SupportSnapshot;")
+            .expect("flat facade export fixture parses");
+        assert!(product_root_contains_flat_surface(&parsed));
+    }
+
+    #[test]
+    fn named_facade_modules_do_not_trigger_compatibility_surface_audit() {
+        let parsed =
+            syn::parse_file("pub mod app; pub mod runtime;").expect("named facade fixture parses");
+        assert!(!product_root_contains_flat_surface(&parsed));
+    }
 }

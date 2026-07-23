@@ -1,7 +1,7 @@
+use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::query_binding::{
     WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryViewDefinition,
 };
-use worth_ui::facade::WorthUi;
 
 use super::view_binding_fixtures::{
     detail_view_binding_from, table_view_binding_from, test_installed_domain,

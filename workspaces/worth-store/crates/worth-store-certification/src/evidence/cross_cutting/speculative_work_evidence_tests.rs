@@ -180,7 +180,7 @@ mod speculative_work_evidence_tests_support {
                 .with_budget(budget)
                 .admit()
                 .unwrap();
-        ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(4).unwrap())
+        ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(4).unwrap()).unwrap()
     }
 
     fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {

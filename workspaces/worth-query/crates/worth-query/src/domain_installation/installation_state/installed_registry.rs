@@ -18,7 +18,6 @@ use super::{
 pub(crate) struct WorthQueryDomainInstallationRegistry {
     runtime_authority: WorthQueryRuntimeAuthorityIdentity,
     generation: WorthQueryDomainInstallationGeneration,
-    #[cfg(test)]
     generation_lease: WorthQueryDomainInstallationGenerationLease,
     records: Vec<WorthQueryInstalledDomainRecord>,
     by_marker_type: HashMap<TypeId, usize>,
@@ -61,6 +60,22 @@ impl WorthQueryDomainInstallationRegistry {
                     .map(|artifact| artifact.portable_package.clone()),
             )
             .expect("locally admitted packages must build the portable installed index");
+        Self::from_artifacts_and_portable_index(
+            artifacts,
+            runtime_authority,
+            generation,
+            generation_lease,
+            portable_index,
+        )
+    }
+
+    fn from_artifacts_and_portable_index(
+        artifacts: Vec<WorthQueryInstalledDomainArtifact>,
+        runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+        generation: WorthQueryDomainInstallationGeneration,
+        generation_lease: WorthQueryDomainInstallationGenerationLease,
+        portable_index: worth_query_installation::facade::WorthQueryInstalledPackageIndex,
+    ) -> Self {
         let execution_index = WorthQueryInstalledDomainExecutionIndex::build(
             &artifacts,
             runtime_authority,
@@ -77,7 +92,6 @@ impl WorthQueryDomainInstallationRegistry {
         Self {
             runtime_authority,
             generation,
-            #[cfg(test)]
             generation_lease,
             records,
             by_marker_type,
@@ -250,23 +264,31 @@ impl WorthQueryDomainInstallationRegistry {
         WorthQueryDomainExecutionIndexRebuildReport::new(retired_identity, rebuilt_identity, shape)
     }
 
-    #[cfg(test)]
-    pub(crate) fn replace_with_successor_generation(&mut self) {
+    pub(crate) fn prepare_successor_generation(&self) -> Self {
         let artifacts = self
             .records
             .iter()
             .map(|record| record.artifact.clone())
             .collect::<Vec<_>>();
         let generation = self.generation.successor();
-        let generation_lease = self.generation_lease.clone();
-        generation_lease.advance_to(generation);
-        *self = Self::from_artifacts_at_generation(
+        let portable_index = self.portable_index.successor_generation();
+        // Staging authority is current only inside this unexposed registry.
+        // Committing later advances the prior registry's separate lease, so a
+        // failed conditional reinstall leaves every published handle current.
+        Self::from_artifacts_and_portable_index(
             artifacts,
             self.runtime_authority,
-            worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity::fresh(),
             generation,
-            generation_lease,
-        );
+            WorthQueryDomainInstallationGenerationLease::new(generation),
+            portable_index,
+        )
+    }
+
+    pub(crate) fn commit_successor_generation(&mut self, successor: Self) {
+        debug_assert_eq!(successor.runtime_authority, self.runtime_authority);
+        debug_assert_eq!(successor.generation, self.generation.successor());
+        self.generation_lease.advance_to(successor.generation);
+        *self = successor;
     }
 
     pub(crate) fn lookup_counters(&self) -> WorthQueryDomainInstallationLookupCounters {

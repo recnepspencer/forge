@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource,
+    registry::{ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource},
 };
 
 fn main() {

@@ -2,6 +2,11 @@ use std::sync::Arc;
 
 use worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration;
 
+use super::provider_semantics::{
+    BridgeConditionalProviderSemanticContracts, BridgeErasedProviderSemanticContract,
+};
+use super::BridgeConditionalProviderSemantics;
+
 #[derive(Debug, Clone)]
 pub struct BridgeConditionalResolverContext {
     pub dirty_aspects: worth_signal::facade::AspectMask,
@@ -107,7 +112,7 @@ pub trait BridgeConditionalComputeProvider: Send + Sync + 'static {
     ) -> Result<worth_signal::facade::NodeEvaluationResult, String>;
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct BridgeConditionalProviderSet {
     pub(crate) condition: Option<Arc<dyn BridgeConditionalConditionProvider>>,
     pub(crate) dependency_comparator: Option<Arc<dyn BridgeConditionalComparatorProvider>>,
@@ -116,40 +121,73 @@ pub struct BridgeConditionalProviderSet {
     pub(crate) trigger: Option<Arc<dyn BridgeConditionalTriggerProvider>>,
     pub(crate) wake: Option<Arc<dyn BridgeConditionalWakeProvider>>,
     pub(crate) compute: Option<Arc<dyn BridgeConditionalComputeProvider>>,
+    pub(super) semantic_contracts: BridgeConditionalProviderSemanticContracts,
 }
 
 impl BridgeConditionalProviderSet {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn condition(mut self, provider: impl BridgeConditionalConditionProvider) -> Self {
+    pub fn condition<P>(mut self, provider: P) -> Self
+    where
+        P: BridgeConditionalConditionProvider + BridgeConditionalProviderSemantics,
+    {
+        self.semantic_contracts.condition =
+            Some(BridgeErasedProviderSemanticContract::capture(&provider));
         self.condition = Some(Arc::new(provider));
         self
     }
-    pub fn dependency_comparator(
-        mut self,
-        provider: impl BridgeConditionalComparatorProvider,
-    ) -> Self {
+    pub fn dependency_comparator<P>(mut self, provider: P) -> Self
+    where
+        P: BridgeConditionalComparatorProvider + BridgeConditionalProviderSemantics,
+    {
+        self.semantic_contracts.dependency_comparator =
+            Some(BridgeErasedProviderSemanticContract::capture(&provider));
         self.dependency_comparator = Some(Arc::new(provider));
         self
     }
-    pub fn output_comparator(mut self, provider: impl BridgeConditionalComparatorProvider) -> Self {
+    pub fn output_comparator<P>(mut self, provider: P) -> Self
+    where
+        P: BridgeConditionalComparatorProvider + BridgeConditionalProviderSemantics,
+    {
+        self.semantic_contracts.output_comparator =
+            Some(BridgeErasedProviderSemanticContract::capture(&provider));
         self.output_comparator = Some(Arc::new(provider));
         self
     }
-    pub fn reuse_comparator(mut self, provider: impl BridgeConditionalComparatorProvider) -> Self {
+    pub fn reuse_comparator<P>(mut self, provider: P) -> Self
+    where
+        P: BridgeConditionalComparatorProvider + BridgeConditionalProviderSemantics,
+    {
+        self.semantic_contracts.reuse_comparator =
+            Some(BridgeErasedProviderSemanticContract::capture(&provider));
         self.reuse_comparator = Some(Arc::new(provider));
         self
     }
-    pub fn trigger(mut self, provider: impl BridgeConditionalTriggerProvider) -> Self {
+    pub fn trigger<P>(mut self, provider: P) -> Self
+    where
+        P: BridgeConditionalTriggerProvider + BridgeConditionalProviderSemantics,
+    {
+        self.semantic_contracts.trigger =
+            Some(BridgeErasedProviderSemanticContract::capture(&provider));
         self.trigger = Some(Arc::new(provider));
         self
     }
-    pub fn wake(mut self, provider: impl BridgeConditionalWakeProvider) -> Self {
+    pub fn wake<P>(mut self, provider: P) -> Self
+    where
+        P: BridgeConditionalWakeProvider + BridgeConditionalProviderSemantics,
+    {
+        self.semantic_contracts.wake =
+            Some(BridgeErasedProviderSemanticContract::capture(&provider));
         self.wake = Some(Arc::new(provider));
         self
     }
-    pub fn compute(mut self, provider: impl BridgeConditionalComputeProvider) -> Self {
+    pub fn compute<P>(mut self, provider: P) -> Self
+    where
+        P: BridgeConditionalComputeProvider + BridgeConditionalProviderSemantics,
+    {
+        self.semantic_contracts.compute =
+            Some(BridgeErasedProviderSemanticContract::capture(&provider));
         self.compute = Some(Arc::new(provider));
         self
     }

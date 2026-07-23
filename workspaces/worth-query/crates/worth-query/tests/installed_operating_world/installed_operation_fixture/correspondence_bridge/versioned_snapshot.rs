@@ -6,14 +6,14 @@ use worth_runtime_bridge::facade::{
 };
 
 #[derive(Clone)]
-pub(super) struct VersionedFixtureSnapshotSource {
+pub(crate) struct VersionedFixtureSnapshotSource {
     baseline_version: u64,
     before: AspectValue,
     after: AspectValue,
 }
 
 impl VersionedFixtureSnapshotSource {
-    pub(super) fn new(baseline_version: u64, before: AspectValue, after: AspectValue) -> Self {
+    pub(crate) fn new(baseline_version: u64, before: AspectValue, after: AspectValue) -> Self {
         Self {
             baseline_version,
             before,

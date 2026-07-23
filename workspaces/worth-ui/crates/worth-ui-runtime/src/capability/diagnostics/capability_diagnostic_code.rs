@@ -6,6 +6,8 @@ pub enum CapabilityDiagnosticCode {
     MissingComponentPropSchema,
     MissingComponentStateOwnership,
     IllegalComponentChildPolicy,
+    MissingComponentCanvasSpatialContract,
+    MissingComponentRealtimeOverlayContract,
     UnsupportedSurfacePlacementClass,
     InvalidSurfaceStateClass,
     ProductDomainSurfaceKind,

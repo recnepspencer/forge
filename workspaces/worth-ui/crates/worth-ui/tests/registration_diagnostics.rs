@@ -1,6 +1,8 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity, CapabilityRegistrationReport,
-    WorthUi,
+    app::WorthUi,
+    diagnostics::{
+        CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity, CapabilityRegistrationReport,
+    },
 };
 
 #[test]

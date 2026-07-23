@@ -26,7 +26,9 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
         let aspect_touches = mutation.declared_aspect_touches();
         let collection = mutation_collection(&mutation);
         let entity_identity =
-            crate::memory_workspace::admit_authored_entity_label("external-entity-1");
+            crate::memory_workspace::WorthQueryEntityIdentity::from_relational_record(
+                worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
+            );
         let snapshot_identity =
             crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
                 RelationalBridgeSnapshotIdentityParts::new(1, 1),
@@ -35,9 +37,11 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
             _bridge,
             &snapshot_identity,
             &mutation,
-            &collection,
-            &entity_identity,
-            WorthQueryMutationKind::Created,
+            crate::runtime::WorthQueryBridgeMutationTarget::new(
+                &collection,
+                &entity_identity,
+                WorthQueryMutationKind::Created,
+            ),
         )?;
         let receipt = test_mutation_receipt_with_bridge_authority(
             crate::memory_workspace::WorthQueryCommitIdentity::from_relational_commit_id(1),
@@ -137,9 +141,14 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
         for (index, mutation) in mutations.into_iter().enumerate() {
             let aspect_touches = mutation.declared_aspect_touches();
             let collection = mutation_collection(&mutation);
-            let entity_identity_text = format!("external-entity-{}", index + 1);
             let entity_identity =
-                crate::memory_workspace::admit_authored_entity_label(&entity_identity_text);
+                crate::memory_workspace::WorthQueryEntityIdentity::from_relational_record(
+                    worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(
+                        1,
+                        index as u64 + 1,
+                        0,
+                    ),
+                );
             let snapshot_identity =
                 crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
                     RelationalBridgeSnapshotIdentityParts::new(10, index as u64 + 1),
@@ -148,9 +157,11 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
                 _bridge,
                 &snapshot_identity,
                 &mutation,
-                &collection,
-                &entity_identity,
-                WorthQueryMutationKind::Created,
+                crate::runtime::WorthQueryBridgeMutationTarget::new(
+                    &collection,
+                    &entity_identity,
+                    WorthQueryMutationKind::Created,
+                ),
             )?;
             let receipt = test_mutation_receipt_with_bridge_authority(
                 crate::memory_workspace::WorthQueryCommitIdentity::from_relational_commit_id(
@@ -205,7 +216,8 @@ impl WorthQueryRuntimeSignalSinkAdapter for DriftingSignalSink {
     ) -> Result<SignalInvalidationBoundaryReceipt, WorthQueryWorkspaceError> {
         let mut drifted = receipt.clone();
         drifted.commit_identity =
-            crate::memory_workspace::admit_external_commit_label("drifted-signal-routing-commit");
+            crate::memory_workspace::admit_external_commit_label("drifted-signal-routing-commit")
+                .admit_runtime_write_authority();
         let routed = self.build_signal_invalidation_routing_receipt(&drifted)?;
         self.build_signal_invalidation_boundary_receipt(&drifted, routed)
     }

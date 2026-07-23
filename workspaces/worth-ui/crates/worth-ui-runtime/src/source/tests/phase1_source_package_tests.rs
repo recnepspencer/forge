@@ -9,16 +9,22 @@ fn equivalent_module_graphs_produce_equivalent_package_identity() {
     let workspace_root = PathBuf::from(r"C:\workspace");
 
     let package_a = WorthUiSourcePackageLoader::from_workspace_root(&workspace_root)
-        .register_module_with_imports("app/main.wui", ["app/panels/inspector.wui"])
-        .register_module("app/theme/tokens.wui")
-        .register_module_with_imports("app/panels/inspector.wui", ["app/theme/tokens.wui"])
+        .register_module_with_source("app/main.wui", r#"import "app/panels/inspector.wui";"#)
+        .register_module_with_source("app/theme/tokens.wui", "")
+        .register_module_with_source(
+            "app/panels/inspector.wui",
+            r#"import "app/theme/tokens.wui";"#,
+        )
         .compile()
         .expect("package a should compile");
 
     let package_b = WorthUiSourcePackageLoader::from_workspace_root(&workspace_root)
-        .register_module_with_imports("app/panels/inspector.wui", ["app/theme/tokens.wui"])
-        .register_module_with_imports("app/main.wui", ["app/panels/inspector.wui"])
-        .register_module("app/theme/tokens.wui")
+        .register_module_with_source(
+            "app/panels/inspector.wui",
+            r#"import "app/theme/tokens.wui";"#,
+        )
+        .register_module_with_source("app/main.wui", r#"import "app/panels/inspector.wui";"#)
+        .register_module_with_source("app/theme/tokens.wui", "")
         .compile()
         .expect("package b should compile");
 
@@ -64,20 +70,22 @@ fn source_text_change_changes_package_digest() {
 #[test]
 fn canonical_module_identity_ignores_relative_path_spelling_and_duplicate_import_edges() {
     let package_a = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_imports_and_source(
+        .register_module_with_source(
             r".\app\main.wui",
-            [r".\app\panels\inspector.wui", r".\app\panels\inspector.wui"],
-            "component Main {}",
+            r#"import "app/panels/inspector.wui";
+               import "app/panels/inspector.wui";
+               component Main {}"#,
         )
         .register_module_with_source(r".\app\panels\inspector.wui", "component Inspector {}")
         .compile()
         .expect("package a should compile");
 
     let package_b = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_imports_and_source(
+        .register_module_with_source(
             "app/main.wui",
-            ["app/panels/inspector.wui"],
-            "component Main {}",
+            r#"import "app/panels/inspector.wui";
+               import "app/panels/inspector.wui";
+               component Main {}"#,
         )
         .register_module_with_source("app/panels/inspector.wui", "component Inspector {}")
         .compile()
@@ -99,8 +107,8 @@ fn canonical_module_identity_ignores_relative_path_spelling_and_duplicate_import
 #[test]
 fn cyclic_source_module_import_rejected_before_parsing_progression() {
     let report = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_imports("app/main.wui", ["app/panels/inspector.wui"])
-        .register_module_with_imports("app/panels/inspector.wui", ["app/main.wui"])
+        .register_module_with_source("app/main.wui", r#"import "app/panels/inspector.wui";"#)
+        .register_module_with_source("app/panels/inspector.wui", r#"import "app/main.wui";"#)
         .compile()
         .expect_err("cyclic import graph should fail");
 
@@ -119,8 +127,8 @@ fn cyclic_source_module_import_rejected_before_parsing_progression() {
 #[test]
 fn duplicate_module_identity_rejected() {
     let report = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module(r".\app\main.wui")
-        .register_module("app/main.wui")
+        .register_module_with_source(r".\app\main.wui", "")
+        .register_module_with_source("app/main.wui", "")
         .compile()
         .expect_err("duplicate canonical module identity should fail");
 
@@ -138,9 +146,9 @@ fn duplicate_module_identity_rejected() {
 }
 
 #[test]
-fn unknown_import_target_rejected() {
+fn unknown_import_target_rejected_from_source_text() {
     let report = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_imports("app/main.wui", ["app/unknown.wui"])
+        .register_module_with_source("app/main.wui", r#"import "app/unknown.wui";"#)
         .compile()
         .expect_err("unknown import target should fail");
 
@@ -167,7 +175,7 @@ fn unknown_import_target_rejected() {
 #[test]
 fn module_path_cannot_escape_workspace_relative_package_boundary() {
     let report = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module("../outside.wui")
+        .register_module_with_source("../outside.wui", "")
         .compile()
         .expect_err("module path escaping the package root should fail");
 
@@ -186,7 +194,7 @@ fn module_path_cannot_escape_workspace_relative_package_boundary() {
 #[test]
 fn self_import_is_rejected_as_a_cycle() {
     let report = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_imports("app/main.wui", ["app/main.wui"])
+        .register_module_with_source("app/main.wui", r#"import "app/main.wui";"#)
         .compile()
         .expect_err("self-import cycle should fail");
 
@@ -202,15 +210,13 @@ fn self_import_is_rejected_as_a_cycle() {
 #[test]
 fn invalid_and_unknown_import_diagnostics_accumulate_before_cycle_analysis() {
     let report = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_imports(
+        .register_module_with_source(
             "app/main.wui",
-            [
-                "../outside.wui",
-                "app/missing.wui",
-                "app/panels/inspector.wui",
-            ],
+            r#"import "../outside.wui";
+               import "app/missing.wui";
+               import "app/panels/inspector.wui";"#,
         )
-        .register_module_with_imports("app/panels/inspector.wui", ["app/main.wui"])
+        .register_module_with_source("app/panels/inspector.wui", r#"import "app/main.wui";"#)
         .compile()
         .expect_err("invalid import package should fail before cycle analysis");
 

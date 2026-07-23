@@ -50,7 +50,7 @@ impl WorthQueryComparisonExecution for &mut WorthQueryWorkspace {
             return invalid_execution_resource();
         };
         let counters = WorthQueryComparisonJourneyCounters::validate_pair();
-        if !current.matches(self) || retained.snapshot_identity() != &self.snapshot_identity() {
+        if !current.matches(self) || !retained.admits_snapshot(&self.snapshot_identity()) {
             return stale_pair(counters);
         }
 

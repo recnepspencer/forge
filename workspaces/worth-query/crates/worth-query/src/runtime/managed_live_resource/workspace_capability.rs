@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::super::{WorthQueryLiveView, WorthQueryUnrefinedLiveShape};
@@ -24,6 +25,12 @@ impl WorthQueryAbandonedManagedLiveResource {
 #[derive(Debug, Default)]
 pub(crate) struct WorthQueryManagedLiveWorkspaceCapability {
     abandoned_resources: Mutex<Vec<WorthQueryAbandonedManagedLiveResource>>,
+    abandoned_shared_projection_leases: Mutex<
+        BTreeMap<
+            crate::runtime::WorthQuerySharedExecutionOwnerIdentity,
+            Vec<crate::runtime::WorthQuerySharedProjectionLeaseToken>,
+        >,
+    >,
 }
 
 impl WorthQueryManagedLiveWorkspaceCapability {
@@ -59,8 +66,60 @@ impl WorthQueryManagedLiveWorkspaceCapability {
             .any(|resource| resource.name() == name)
     }
 
+    pub(crate) fn abandon_shared_projection_lease(
+        &self,
+        token: crate::runtime::WorthQuerySharedProjectionLeaseToken,
+    ) {
+        self.abandoned_shared_projection_leases()
+            .entry(token.owner())
+            .or_default()
+            .push(token);
+    }
+
+    pub(crate) fn take_abandoned_shared_projection_leases(
+        &self,
+    ) -> Vec<crate::runtime::WorthQuerySharedProjectionLeaseToken> {
+        std::mem::take(&mut *self.abandoned_shared_projection_leases())
+            .into_values()
+            .flatten()
+            .collect()
+    }
+
+    pub(crate) fn take_abandoned_shared_projection_leases_for_owner(
+        &self,
+        owner: crate::runtime::WorthQuerySharedExecutionOwnerIdentity,
+    ) -> Vec<crate::runtime::WorthQuerySharedProjectionLeaseToken> {
+        self.abandoned_shared_projection_leases()
+            .remove(&owner)
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn restore_abandoned_shared_projection_leases(
+        &self,
+        leases: Vec<crate::runtime::WorthQuerySharedProjectionLeaseToken>,
+    ) {
+        let mut abandoned = self.abandoned_shared_projection_leases();
+        for token in leases {
+            abandoned.entry(token.owner()).or_default().push(token);
+        }
+    }
+
     fn abandoned_resources(&self) -> MutexGuard<'_, Vec<WorthQueryAbandonedManagedLiveResource>> {
         self.abandoned_resources
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn abandoned_shared_projection_leases(
+        &self,
+    ) -> MutexGuard<
+        '_,
+        BTreeMap<
+            crate::runtime::WorthQuerySharedExecutionOwnerIdentity,
+            Vec<crate::runtime::WorthQuerySharedProjectionLeaseToken>,
+        >,
+    > {
+        self.abandoned_shared_projection_leases
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }

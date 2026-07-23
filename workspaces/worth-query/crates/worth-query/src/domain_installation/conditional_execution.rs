@@ -4,19 +4,29 @@ mod installation;
 mod reentry;
 mod registry;
 
-pub use delivery::WorthQueryConditionalDeliveryDenial;
-pub(crate) use evaluation::{evaluate_bound_conditionals, WorthQueryConditionalEvaluationStop};
-pub(crate) use installation::{
-    declared_node, PendingConditionalInstallation, PendingConditionalNode,
+pub use delivery::{
+    WorthQueryConditionalAuthoritativeChangeDeliveryRequest, WorthQueryConditionalDeliveryDenial,
 };
+pub(crate) use evaluation::{
+    evaluate_bound_conditionals, evaluate_owner_impact_conditionals,
+    evaluate_settled_projection_conditionals, WorthQueryConditionalEvaluationPass,
+    WorthQueryConditionalEvaluationScope, WorthQueryConditionalEvaluationStop,
+    WorthQueryOwnerImpactConditionalEvaluationPass,
+};
+pub(crate) use installation::{PendingConditionalInstallation, PendingConditionalNode};
 pub use installation::{
     WorthQueryConditionalComputeContext, WorthQueryConditionalDependencyInstallation,
     WorthQueryConditionalNodeComputeProvider, WorthQueryConditionalNodeInstallationDenial,
+};
+pub(crate) use reentry::{
+    admit_conditional_authority, admit_conditional_decision,
+    WorthQueryConditionalAuthorityAdmission,
 };
 pub use reentry::{
     WorthQueryConditionalAdmissionDenial, WorthQueryConditionalOutcomeClass,
     WorthQueryConditionalProvenance, WorthQueryConditionalSemanticObservation,
     WorthQueryDeferredDomainOperation, WorthQueryDeferredWorkflowStage,
+    WorthQueryDeferredWorkflowStart,
 };
 pub use registry::WorthQueryConditionalExecutionIndexRebuildReport;
 pub(crate) use registry::{

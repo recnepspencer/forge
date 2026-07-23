@@ -1,9 +1,12 @@
 use worth_foundational::facade::{
-    AspectContractRevision, AspectIdentity, AspectKey, AspectMask, ProjectionMask,
+    AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
+    AspectKey, AspectMask, FieldDeclaration, FieldKey, FieldRequirement, ProjectionMask,
+    ScalarAspectType, StructAspectShape,
 };
 use worth_query::facade::domain;
 use worth_query_declaration::facade::authoring::{
-    AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField, DetailQueryBuilder,
+    AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField,
+    CollectionQueryBuilder, CollectionResultShapeBuilder, DetailQueryBuilder,
     DetailResultShapeBuilder, RootEntityKey,
 };
 use worth_query_declaration::facade::binding::QueryBindingDescriptor;
@@ -14,12 +17,11 @@ pub(crate) fn semantic_closure(
     projection_consumption: domain::WorthQuerySupportRequirement,
     publishes: bool,
 ) -> domain::WorthQueryDomainOperationSemanticClosure {
-    let native_projection = domain::WorthQueryOperationNativeProjectionContract {
-        aspect_key: AspectKey::new("identity").unwrap(),
-        aspect_identity: AspectIdentity(0x9140_0001),
-        contract_revision: AspectContractRevision(1),
-        mask: AspectMask::<ProjectionMask>::whole_aspect(),
-    };
+    let native_projection = domain::WorthQueryOperationNativeProjectionContract::new(
+        operation_identity_contract(1),
+        AspectMask::<ProjectionMask>::whole_aspect(),
+    )
+    .unwrap();
     domain::WorthQueryDomainOperationSemanticClosure {
         parameters: domain::WorthQueryOperationParameterContract::NotRequired,
         native_projection: native_projection.clone(),
@@ -94,6 +96,23 @@ pub(crate) fn semantic_closure(
     }
 }
 
+pub(crate) fn operation_identity_contract(revision: u64) -> AspectContract {
+    let id = FieldDeclaration::new(
+        FieldKey::new("id").unwrap(),
+        ScalarAspectType::String,
+        FieldRequirement::Required,
+        AbsenceLaw::Required,
+        AspectEvolutionPolicy::ExplicitBreakRequired,
+    )
+    .unwrap();
+    AspectContract::struct_aspect(
+        AspectKey::new("identity").unwrap(),
+        AspectIdentity(0x9140_0001),
+        AspectContractRevision(revision),
+        StructAspectShape::new([id]).unwrap(),
+    )
+}
+
 pub(crate) fn canonical_bundle(
     root: &str,
 ) -> worth_query_declaration::facade::canonicalization::CanonicalQueryBundle {
@@ -109,7 +128,29 @@ pub(crate) fn canonical_bundle(
         .unwrap()
         .into_raw();
     canonicalize_request(
-        AuthoredQueryBundleRequest::new(query, shape, QueryBindingDescriptor::new()).unwrap(),
+        AuthoredQueryBundleRequest::for_ordinary_read(query, shape, QueryBindingDescriptor::new())
+            .unwrap(),
+    )
+    .unwrap()
+}
+
+pub(crate) fn canonical_collection_bundle(
+    root: &str,
+) -> worth_query_declaration::facade::canonicalization::CanonicalQueryBundle {
+    let selector = AspectFieldSelector::new("identity", "id").unwrap();
+    let query = CollectionQueryBuilder::new(RootEntityKey::new(root).unwrap())
+        .project(selector)
+        .build()
+        .unwrap()
+        .into_raw();
+    let shape = CollectionResultShapeBuilder::new()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap()
+        .into_raw();
+    canonicalize_request(
+        AuthoredQueryBundleRequest::for_ordinary_read(query, shape, QueryBindingDescriptor::new())
+            .unwrap(),
     )
     .unwrap()
 }

@@ -26,7 +26,7 @@
 > - [composition_laws.md](../coding_guidelines/composition_laws.md)
 > - [domain_structure_laws.md](../coding_guidelines/domain_structure_laws.md)
 > - [perf_laws.md](../coding_guidelines/perf_laws.md)
-> - [dx_laws.md](../more_guidelines/dx_laws.md)
+> - [dx_laws.md](../coding_guidelines/dx_laws.md)
 > - [worth_query_vision.md](./worth_query_vision.md)
 > - [worth_query_roadmap.md](./worth_query_roadmap.md)
 > - [test-requirements.md](./test-requirements.md)

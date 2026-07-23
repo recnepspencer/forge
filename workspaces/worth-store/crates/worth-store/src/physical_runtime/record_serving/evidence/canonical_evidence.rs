@@ -1,0 +1,294 @@
+use worth_foundational::{
+    prepare_canonical_basis_sequence, CanonicalBasisConstructionDenial, CanonicalBasisDomain,
+    CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisReadyArtifact,
+    CanonicalBasisValue, CanonicalIntegerWidth, CanonicalizationRuleVersion,
+};
+use worth_proof::TransitionOutcome;
+use worth_store_offline_verifier::{
+    OfflineAllocationClass, OfflineDurableManifestWalk, OfflineRecordPlacement,
+};
+use worth_store_physical_format::CurrentPhysicalRecordPlacement;
+
+const DOMAIN: CanonicalBasisDomain = CanonicalBasisDomain::Future("store.physical.record-topology");
+const FIELD: CanonicalBasisEntryKind = CanonicalBasisEntryKind::Field;
+
+pub type RecordTopologyCanonicalBasisOutcome =
+    TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecordCanonicalObservationDenial {
+    ManifestUnavailable,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalRecordPublicationSummary {
+    pub(in crate::physical_runtime::record_serving) store_identity: [u8; 16],
+    pub(in crate::physical_runtime::record_serving) format_identity: [u8; 10],
+    pub(in crate::physical_runtime::record_serving) root_generation: u64,
+    pub(in crate::physical_runtime::record_serving) tree_identity: u64,
+    pub(in crate::physical_runtime::record_serving) node_capacity: u16,
+    pub(in crate::physical_runtime::record_serving) routing_level: Option<u16>,
+    pub(in crate::physical_runtime::record_serving) placements: Vec<CanonicalPlacement>,
+    pub(in crate::physical_runtime::record_serving) segment_pages: Vec<CanonicalSegmentPage>,
+    pub(in crate::physical_runtime::record_serving) free_space: Vec<CanonicalFreeSpace>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::physical_runtime::record_serving) struct CanonicalPlacement {
+    pub(in crate::physical_runtime::record_serving) epoch: [u8; 16],
+    pub(in crate::physical_runtime::record_serving) ordinal: u64,
+    pub(in crate::physical_runtime::record_serving) class: u8,
+    pub(in crate::physical_runtime::record_serving) owner: u64,
+    pub(in crate::physical_runtime::record_serving) secondary: u64,
+    pub(in crate::physical_runtime::record_serving) owner_generation: u64,
+    pub(in crate::physical_runtime::record_serving) secondary_generation: u64,
+    pub(in crate::physical_runtime::record_serving) slot_generation: u64,
+    pub(in crate::physical_runtime::record_serving) capacity: u64,
+    pub(in crate::physical_runtime::record_serving) payload_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::physical_runtime::record_serving) struct CanonicalSegmentPage {
+    pub(in crate::physical_runtime::record_serving) segment: u64,
+    pub(in crate::physical_runtime::record_serving) page: u64,
+    pub(in crate::physical_runtime::record_serving) page_generation: u64,
+    pub(in crate::physical_runtime::record_serving) data_generation: u64,
+    pub(in crate::physical_runtime::record_serving) data_page_count: u64,
+    pub(in crate::physical_runtime::record_serving) frame_index: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::physical_runtime::record_serving) struct CanonicalFreeSpace {
+    pub(in crate::physical_runtime::record_serving) class: u8,
+    pub(in crate::physical_runtime::record_serving) owner: u64,
+    pub(in crate::physical_runtime::record_serving) first_unallocated: u64,
+    pub(in crate::physical_runtime::record_serving) unallocated_count: u64,
+    pub(in crate::physical_runtime::record_serving) generation: u64,
+}
+
+pub fn lower_record_publication_canonical_basis(
+    summary: &PhysicalRecordPublicationSummary,
+) -> RecordTopologyCanonicalBasisOutcome {
+    lower_normalized(summary)
+}
+
+pub fn lower_offline_record_publication_canonical_basis(
+    walk: &OfflineDurableManifestWalk,
+) -> RecordTopologyCanonicalBasisOutcome {
+    let mut placements = walk
+        .placements()
+        .iter()
+        .copied()
+        .map(offline_placement)
+        .collect::<Vec<_>>();
+    let mut segment_pages = walk
+        .segment_pages()
+        .iter()
+        .map(|entry| CanonicalSegmentPage {
+            segment: entry.segment(),
+            page: entry.page(),
+            page_generation: entry.page_generation(),
+            data_generation: entry.data_generation(),
+            data_page_count: u64::from(entry.data_page_count()),
+            frame_index: u64::from(entry.frame_index()),
+        })
+        .collect::<Vec<_>>();
+    let mut free_space = walk
+        .free_space()
+        .iter()
+        .map(|entry| CanonicalFreeSpace {
+            class: match entry.class() {
+                OfflineAllocationClass::InlinePage => 1,
+                OfflineAllocationClass::Extent => 2,
+            },
+            owner: entry.owner(),
+            first_unallocated: entry.first_unallocated(),
+            unallocated_count: entry.unallocated_count(),
+            generation: entry.generation(),
+        })
+        .collect::<Vec<_>>();
+    placements.sort_unstable();
+    segment_pages.sort_unstable();
+    free_space.sort_unstable();
+    lower_normalized(&PhysicalRecordPublicationSummary {
+        store_identity: walk.store_identity(),
+        format_identity: walk.format_identity(),
+        root_generation: walk.root_generation(),
+        tree_identity: walk.tree_identity(),
+        node_capacity: walk.node_capacity(),
+        routing_level: walk.routing_level(),
+        placements,
+        segment_pages,
+        free_space,
+    })
+}
+
+fn lower_normalized(
+    summary: &PhysicalRecordPublicationSummary,
+) -> RecordTopologyCanonicalBasisOutcome {
+    let mut entries = vec![
+        entry(
+            "store.identity",
+            CanonicalBasisValue::UuidBytes(summary.store_identity),
+        ),
+        entry(
+            "format.identity",
+            CanonicalBasisValue::ExactText(hex(&summary.format_identity).into()),
+        ),
+        unsigned("root.generation", summary.root_generation),
+        unsigned("root.tree_identity", summary.tree_identity),
+        unsigned("root.node_capacity", u64::from(summary.node_capacity)),
+        unsigned(
+            "root.routing_level",
+            summary.routing_level.map_or(0, u64::from),
+        ),
+    ];
+    for placement in &summary.placements {
+        let prefix = format!("record.{}.{}", hex(&placement.epoch), placement.ordinal);
+        entries.extend([
+            unsigned(format!("{prefix}.class"), u64::from(placement.class)),
+            unsigned(format!("{prefix}.owner"), placement.owner),
+            unsigned(format!("{prefix}.secondary"), placement.secondary),
+            unsigned(
+                format!("{prefix}.owner_generation"),
+                placement.owner_generation,
+            ),
+            unsigned(
+                format!("{prefix}.secondary_generation"),
+                placement.secondary_generation,
+            ),
+            unsigned(
+                format!("{prefix}.slot_generation"),
+                placement.slot_generation,
+            ),
+            unsigned(format!("{prefix}.capacity"), placement.capacity),
+            unsigned(format!("{prefix}.payload_bytes"), placement.payload_bytes),
+        ]);
+    }
+    for page in &summary.segment_pages {
+        let prefix = format!("segment.{}.page.{}", page.segment, page.page);
+        entries.extend([
+            unsigned(format!("{prefix}.page_generation"), page.page_generation),
+            unsigned(format!("{prefix}.data_generation"), page.data_generation),
+            unsigned(format!("{prefix}.data_page_count"), page.data_page_count),
+            unsigned(format!("{prefix}.frame_index"), page.frame_index),
+        ]);
+    }
+    for free in &summary.free_space {
+        let prefix = format!("free.{}.{}", free.class, free.owner);
+        entries.extend([
+            unsigned(
+                format!("{prefix}.first_unallocated"),
+                free.first_unallocated,
+            ),
+            unsigned(
+                format!("{prefix}.unallocated_count"),
+                free.unallocated_count,
+            ),
+            unsigned(format!("{prefix}.generation"), free.generation),
+        ]);
+    }
+    prepare_canonical_basis_sequence(
+        CanonicalizationRuleVersion::new("store.physical.record-topology.v1").unwrap(),
+        DOMAIN,
+        entries,
+    )
+}
+
+pub(in crate::physical_runtime::record_serving) fn runtime_placement(
+    value: CurrentPhysicalRecordPlacement,
+) -> CanonicalPlacement {
+    match value {
+        CurrentPhysicalRecordPlacement::Inline(value) => CanonicalPlacement {
+            epoch: value.record().allocation_epoch(),
+            ordinal: value.record().ordinal(),
+            class: 1,
+            owner: value.segment().get(),
+            secondary: value.page().get(),
+            owner_generation: value.segment_generation(),
+            secondary_generation: value.page_generation(),
+            slot_generation: value.slot_generation(),
+            capacity: u64::from(value.segment_page_capacity()),
+            payload_bytes: value.payload_bytes(),
+        },
+        CurrentPhysicalRecordPlacement::Extent(value) => CanonicalPlacement {
+            epoch: value.record().allocation_epoch(),
+            ordinal: value.record().ordinal(),
+            class: 2,
+            owner: value.extent().get(),
+            secondary: 0,
+            owner_generation: value.extent_generation(),
+            secondary_generation: 0,
+            slot_generation: 0,
+            capacity: 0,
+            payload_bytes: value.payload_bytes(),
+        },
+    }
+}
+
+fn offline_placement(value: OfflineRecordPlacement) -> CanonicalPlacement {
+    match value {
+        OfflineRecordPlacement::Inline {
+            record,
+            segment,
+            page,
+            segment_generation,
+            page_generation,
+            slot_generation,
+            payload_bytes,
+            segment_page_capacity,
+            ..
+        } => CanonicalPlacement {
+            epoch: record.allocation_epoch(),
+            ordinal: record.ordinal(),
+            class: 1,
+            owner: segment,
+            secondary: page,
+            owner_generation: segment_generation,
+            secondary_generation: page_generation,
+            slot_generation,
+            capacity: u64::from(segment_page_capacity),
+            payload_bytes,
+        },
+        OfflineRecordPlacement::Extent {
+            record,
+            extent,
+            generation,
+            payload_bytes,
+        } => CanonicalPlacement {
+            epoch: record.allocation_epoch(),
+            ordinal: record.ordinal(),
+            class: 2,
+            owner: extent,
+            secondary: 0,
+            owner_generation: generation,
+            secondary_generation: 0,
+            slot_generation: 0,
+            capacity: 0,
+            payload_bytes,
+        },
+    }
+}
+
+fn unsigned(locus: impl Into<String>, value: u64) -> CanonicalBasisEntry {
+    entry(
+        locus,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits64,
+            value: u128::from(value),
+        },
+    )
+}
+
+fn entry(locus: impl Into<String>, value: CanonicalBasisValue) -> CanonicalBasisEntry {
+    CanonicalBasisEntry::new(
+        DOMAIN,
+        CanonicalBasisLocus::Named(locus.into().into()),
+        FIELD,
+        value,
+    )
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}

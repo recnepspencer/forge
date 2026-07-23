@@ -1,4 +1,4 @@
-use worth_ui::facade::SnapshotMetrics;
+use worth_ui::facade::diagnostics::SnapshotMetrics;
 
 fn main() {
     let _ = SnapshotMetrics {

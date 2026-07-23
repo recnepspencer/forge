@@ -1,7 +1,9 @@
 use worth_ui::facade::{
-    CommandCategory, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionGrouping, CommandProjectionOverflowBehavior, CommandProjectionSurface,
-    WorthUi,
+    app::WorthUi,
+    registry::{
+        CommandCategory, CommandProjectionCommandReference, CommandProjectionDescriptor,
+        CommandProjectionGrouping, CommandProjectionOverflowBehavior, CommandProjectionSurface,
+    },
 };
 
 use super::command_projection_assertions::assert_registered_command_projection_ids;
@@ -55,7 +57,7 @@ fn equivalent_command_projection_command_references_are_canonicalized() {
             .with_command_reference(CommandProjectionCommandReference::command(command_id(
                 "workspace.command.save",
             )))
-            .with_ordering(worth_ui::facade::CommandProjectionOrdering::ByCommandId),
+            .with_ordering(worth_ui::facade::registry::CommandProjectionOrdering::ByCommandId),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -76,7 +78,7 @@ fn equivalent_command_projection_command_references_are_canonicalized() {
             .with_command_reference(CommandProjectionCommandReference::command(command_id(
                 "workspace.command.open",
             )))
-            .with_ordering(worth_ui::facade::CommandProjectionOrdering::ByCommandId),
+            .with_ordering(worth_ui::facade::registry::CommandProjectionOrdering::ByCommandId),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -226,7 +228,7 @@ fn different_projection_policy_changes_snapshot_digest() {
         .expect("application preparation should succeed");
     let richer = WorthUi::app()
         .register_command_projection(
-            worth_ui::facade::CommandProjectionDescriptor::new(
+            worth_ui::facade::registry::CommandProjectionDescriptor::new(
                 command_projection_id("workspace.projection.palette"),
                 CommandProjectionSurface::command_palette(),
             )

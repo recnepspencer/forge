@@ -10,32 +10,38 @@ pub(super) fn snapshot_identity_from_runtime(
         .publication()
         .latest_bundle()
         .map(|bundle| {
-            WorthQuerySnapshotIdentity::from_relational_snapshot(
+            WorthQuerySnapshotIdentity::from_runtime_snapshot(
                 RelationalBridgeSnapshotIdentityParts::new(
                     bundle.commit.commit_id.0,
                     bundle.commit.version_id.0,
                 ),
             )
         })
-        .unwrap_or_else(WorthQuerySnapshotIdentity::empty_relational_state)
+        .unwrap_or_else(WorthQuerySnapshotIdentity::empty_runtime_state)
 }
 
 pub(super) fn entity_identity(
     entity: worth_relational::facade::identity::EntityId,
 ) -> WorthQueryEntityIdentity {
-    WorthQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
-        entity.partition_id.0,
-        entity.local_slot.0,
-        entity.generation.0,
-    ))
+    WorthQueryEntityIdentity::from_runtime_receipt_record(
+        RelationalBridgeRecordIdentityParts::entity(
+            entity.partition_id.0,
+            entity.local_slot.0,
+            entity.generation.0,
+        ),
+    )
 }
 
 pub(super) fn entity_id_from_identity(
     identity: WorthQueryEntityIdentity,
 ) -> Result<worth_relational::facade::identity::EntityId, WorthQueryWorkspaceError> {
-    let Some(parts) = identity.relational_record_parts() else {
+    let Some(parts) = identity
+        .has_current_authority()
+        .then(|| identity.relational_record_parts())
+        .flatten()
+    else {
         return Err(WorthQueryWorkspaceError::new(
-            "memory workspace mutations require relational entity identities",
+            "memory workspace mutations require current relational entity authority",
         ));
     };
     Ok(worth_relational::facade::identity::EntityId::new(

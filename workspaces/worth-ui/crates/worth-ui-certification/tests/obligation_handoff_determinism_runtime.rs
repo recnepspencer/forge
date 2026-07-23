@@ -3,7 +3,7 @@ use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obliga
 use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionTarget};
 use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::graph::UiGraphGeneration;
-use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 use worth_ui_runtime::facade::admission::UiSupportSnapshot;
 use worth_ui_runtime::facade::obligations::UiSelectedObligationSet;
 

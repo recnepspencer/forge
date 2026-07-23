@@ -51,9 +51,9 @@ impl WorthQueryRuntimeBuilder {
     pub(super) fn install_conditional_execution(
         conditional_runtime_bridge: Option<worth_runtime_bridge::facade::RuntimeBridge>,
         conditional_signal_graph: Option<worth_signal::facade::SignalGraph>,
-        pending_conditional_installations: Vec<
-            Box<dyn crate::domain_installation::PendingConditionalInstallation>,
-        >,
+        pending_conditional_installations: &[Box<
+            dyn crate::domain_installation::PendingConditionalInstallation,
+        >],
         domains: &crate::domain_installation::WorthQueryDomainInstallationRegistry,
         graphs: &crate::domain_installation::WorthQueryInstalledGraphParticipationRegistry,
     ) -> Result<
@@ -107,6 +107,48 @@ impl WorthQueryRuntimeBuilder {
         if installed.len() != expected {
             return Err(conditional_installation_error(
                 "conditional registration set did not converge on the declared node set",
+            ));
+        }
+        Ok((Some(signal), installed))
+    }
+
+    pub(crate) fn reinstall_conditional_execution(
+        current: Option<&worth_runtime_bridge::facade::BridgeOwnedSignalRuntime>,
+        retained_installations: &[Box<
+            dyn crate::domain_installation::PendingConditionalInstallation,
+        >],
+        domains: &crate::domain_installation::WorthQueryDomainInstallationRegistry,
+        graphs: &crate::domain_installation::WorthQueryInstalledGraphParticipationRegistry,
+    ) -> Result<
+        (
+            Option<worth_runtime_bridge::facade::BridgeOwnedSignalRuntime>,
+            crate::domain_installation::WorthQueryConditionalExecutionRegistry,
+        ),
+        crate::runtime::WorthQueryRuntimeError,
+    > {
+        if retained_installations.is_empty() {
+            return Ok((None, Default::default()));
+        }
+        let mut signal = current
+            .ok_or_else(|| {
+                conditional_installation_error(
+                    "conditional successor installation requires the current Bridge-owned Signal runtime",
+                )
+            })?
+            .successor_installation_runtime()
+            .map_err(|denial| {
+                conditional_installation_error(format!("{:?}: {}", denial.kind(), denial.detail()))
+            })?;
+        let mut installed =
+            crate::domain_installation::WorthQueryConditionalExecutionRegistry::default();
+        for retained in retained_installations {
+            retained
+                .install(domains, graphs, &mut signal, &mut installed)
+                .map_err(|denial| conditional_installation_error(format!("{denial:?}")))?;
+        }
+        if installed.len() != retained_installations.len() {
+            return Err(conditional_installation_error(
+                "conditional successor registration set did not converge",
             ));
         }
         Ok((Some(signal), installed))

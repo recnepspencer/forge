@@ -4,8 +4,10 @@ Worth UI is the product-facing UI authority. Start in `worth-ui` and use its
 named `facade` modules. Reach into a lower crate only when maintaining the
 owner implementation of that boundary.
 
-For the larger architectural map, read `docs/worth-ui-readme.md`. For installed
-Query views and projection consumption, read `docs/query-binding.md`.
+For the larger architectural map, read `docs/worth-ui-readme.md`. For the exact
+application and replacement workflow, read `docs/application-lifecycle.md`.
+For installed Query views and projection consumption, read
+`docs/query-binding.md`.
 
 ## Ordinary Application Lifecycle
 
@@ -82,17 +84,30 @@ Replacement stays inside the active session:
 ```text
 candidate submission
 -> prepare_replacement
--> typed NoOp or Prepared candidate authority
+-> Prepared candidate authority
 -> candidate-owned graph/allocation admission
 -> lower_prepared_replacement
+-> summary() / cost_envelope() observation
 -> stage_prepared_replacement
 -> framework-turn activation boundary
 -> activate_prepared_replacement
 ```
 
+Preparation does not decide semantic no-op. The current surface carries a
+successfully prepared candidate through allocation admission, complete plan
+lowering, exact executable comparison, and the activation decision. Only that
+final decision may return `WorthUiApplicationReplacementOutcome::SemanticNoOp`;
+an artifact digest is never sufficient authority to skip lowering.
+
 Successful cutover changes the application generation atomically. Invalid,
 foreign, stale, or incomplete candidates preserve the last complete active
 generation. The host session remains bound to the active application session.
+
+Lowering is reconstructive work and is intentionally visible in the method
+name. `summary()` and `cost_envelope()` are compact observations of work already
+performed; neither can stage, activate, or execute the candidate. Activated and
+semantic-no-op outcomes both expose `reload_cost()` derived from the real
+production work.
 
 ## Framework Turns
 
@@ -116,6 +131,12 @@ strategy, compare plan digests, or pass a plan to an executor. The active
 application session remains the authority that owns the executable generation
 and lends only scoped frame access. Plan and frame-cost inspection is
 observation, never an activation or execution path.
+
+Each active lane completion exposes `cost_receipt()`. Call it only when evidence
+is needed: report materialization stays outside the measured executor interval.
+The receipt is bound to the exact host-output generation and records requested
+and executed breadth; certification denies `executed > requested`. Host-adapter
+and renderer work is outside that executor boundary.
 
 ## Authority Checks
 

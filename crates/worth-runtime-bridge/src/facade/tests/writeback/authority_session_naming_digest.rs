@@ -109,17 +109,17 @@ fn execute_bridge_mutation_bundle(
     effect_intent_value: &str,
     idempotence_identity: BridgeWritebackIdempotenceIdentity,
 ) -> crate::facade::BridgeMutationAuthorityBundle {
-    let causality = causality_basis(causality_identity, truth_trigger_evidence_text);
-    let effect = runtime.lower_writeback_effect(
-        contract,
-        &causality,
-        effect_identity,
-        writeback_effect_intent(
-            BridgeWritebackEffectClass::ProjectedStateDiff,
-            effect_intent_value,
-        ),
+    let effect_intent = writeback_effect_intent(
+        BridgeWritebackEffectClass::ProjectedStateDiff,
+        effect_intent_value,
     );
-    let feedback = crate::facade::BridgeWritebackFeedbackProvenance::new(&effect);
+    let causality = mutation_causality_basis(
+        causality_identity,
+        truth_trigger_evidence_text,
+        &effect_intent,
+    );
+    let effect =
+        runtime.lower_writeback_effect(contract, &causality, effect_identity, effect_intent);
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         lowered_policy,
@@ -127,19 +127,7 @@ fn execute_bridge_mutation_bundle(
         idempotence_identity,
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
-    let (outcome, _) = runtime
-        .execute_writeback_authority(contract, &effect, &idempotence)
-        .expect("authority execution should succeed");
-    let execution_record = runtime
-        .diagnostics()
-        .last_writeback_execution_record()
-        .expect("runtime should retain a native writeback execution record");
-
-    crate::facade::BridgeMutationAuthorityBundle::from_writeback_artifacts(
-        &causality,
-        &effect,
-        &feedback,
-        &execution_record,
-        Some(&outcome),
-    )
+    runtime
+        .execute_writeback_mutation_authority(contract, &effect, &idempotence, &causality)
+        .expect("matching writeback execution should mint mutation authority")
 }

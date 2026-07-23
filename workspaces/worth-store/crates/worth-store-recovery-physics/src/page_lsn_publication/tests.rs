@@ -270,7 +270,7 @@ fn resident_frame_table() -> ResidentFrameTable {
     .with_budget(budget)
     .admit()
     .unwrap();
-    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(2).unwrap())
+    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(2).unwrap()).unwrap()
 }
 
 fn admit_payload_frame(table: &mut ResidentFrameTable, payload: &[u8]) -> ResidentFrameAdmission {

@@ -280,11 +280,14 @@ fn classify_matched_transition(
     if node_requires_lane_change(active_node, narrowing) {
         return WorthUiNodeLifecycleTransition::LaneChange;
     }
-    if active_node.handle() != candidate_node.handle() {
-        return WorthUiNodeLifecycleTransition::Move;
-    }
     if node_requires_rebind(active_node, narrowing) {
         return WorthUiNodeLifecycleTransition::Rebind;
+    }
+    if !active_node.has_same_semantic_meaning(candidate_node) {
+        return WorthUiNodeLifecycleTransition::Replace;
+    }
+    if active_node.handle().module_id() != candidate_node.handle().module_id() {
+        return WorthUiNodeLifecycleTransition::Move;
     }
     if node_requires_replace(active_node, impact, affected_handles) {
         return WorthUiNodeLifecycleTransition::Replace;
@@ -308,11 +311,13 @@ fn node_requires_rebind(
     active_node: &WorthUiIdentityMatchNode,
     narrowing: &WorthUiRuntimeImpactNarrowing,
 ) -> bool {
-    !narrowing.query_dependency_invalidations().is_empty()
-        && matches!(
-            active_node.kind(),
-            crate::runtime::WorthUiIdentityMatchNodeKind::Binding
-        )
+    matches!(
+        active_node.kind(),
+        crate::runtime::WorthUiIdentityMatchNodeKind::Binding
+    ) && narrowing
+        .query_dependency_invalidations()
+        .iter()
+        .any(|invalidation| invalidation.view_binding_id() == active_node.identity_basis())
 }
 
 fn node_requires_replace(

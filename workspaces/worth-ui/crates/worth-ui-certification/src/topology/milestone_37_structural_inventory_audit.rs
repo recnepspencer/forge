@@ -1,12 +1,16 @@
-use std::collections::BTreeSet;
 use std::path::Path;
 
 use super::workspace_source_inventory::WorkspaceSourceInventory;
 
 mod milestone_37_filesystem_findings;
+mod milestone_37_finding_catalog;
 
 use milestone_37_filesystem_findings::{
     count_files_matching, count_same_level_rust_files, read_file,
+};
+pub use milestone_37_finding_catalog::{
+    milestone_37_active_failure_modes, milestone_37_cleared_finding_ids,
+    milestone_37_critical_finding_ids, rejected_cosmetic_candidate_ids,
 };
 
 const RUNTIME_SAME_LEVEL_SINKHOLE_THRESHOLD: usize = 40;
@@ -82,31 +86,6 @@ pub fn structural_inventory_digest(findings: &[StructuralCleanupFinding]) -> u64
         }
     }
     digest
-}
-
-pub fn milestone_37_cleared_finding_ids() -> BTreeSet<&'static str> {
-    BTreeSet::from([
-        "F-01", "F-02", "F-03", "F-04", "B-01", "B-02", "B-03", "H-01", "H-02", "O-01", "O-02",
-        "O-03", "O-04", "S-01", "A-01", "A-02", "A-03", "A-04", "T-01", "T-02", "T-03", "T-04",
-    ])
-}
-
-pub fn milestone_37_critical_finding_ids() -> BTreeSet<&'static str> {
-    BTreeSet::from([])
-}
-
-pub fn milestone_37_active_failure_modes() -> BTreeSet<CleanupFailureMode> {
-    BTreeSet::from([])
-}
-
-pub fn rejected_cosmetic_candidate_ids() -> BTreeSet<&'static str> {
-    BTreeSet::from([
-        "COSMETIC-01",
-        "COSMETIC-02",
-        "COSMETIC-03",
-        "COSMETIC-04",
-        "COSMETIC-05",
-    ])
 }
 
 fn facade_leakage_findings(inventory: &WorkspaceSourceInventory) -> Vec<StructuralCleanupFinding> {
@@ -305,13 +284,14 @@ fn authority_mixing_findings(
         ));
     }
 
-    let planning_mod =
-        inventory.absolute_path("crates/worth-ui-runtime/src/runtime/allocation_planning/mod.rs");
+    let planning_mod = inventory
+        .absolute_path("crates/worth-ui-runtime/src/runtime/planning/allocation_planning/mod.rs");
     if read_file(inventory, &planning_mod).contains("mod certification_fixture") {
         findings.push(finding(
             "A-02",
             CleanupFailureMode::AuthorityMixing,
-            inventory.absolute_path("crates/worth-ui-runtime/src/runtime/allocation_planning"),
+            inventory
+                .absolute_path("crates/worth-ui-runtime/src/runtime/planning/allocation_planning"),
             6,
             "cert_fixture_fence",
             "production allocation_planning tree still hosts certification_fixture modules",
@@ -399,16 +379,5 @@ pub(super) fn finding(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn scoped_crate_roots_are_phase_1_inventory_scope() {
-        const SCOPED_CRATE_ROOTS: &[&str] = &[
-            "crates/worth-ui-runtime",
-            "crates/worth-ui-inspection",
-            "crates/worth-ui-query-binding",
-            "crates/worth-ui-certification",
-        ];
-
-        assert_eq!(SCOPED_CRATE_ROOTS.len(), 4);
-    }
-}
+#[path = "milestone_37_structural_inventory_audit/scope_tests.rs"]
+mod scope_tests;

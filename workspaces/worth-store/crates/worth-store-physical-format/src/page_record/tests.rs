@@ -203,7 +203,7 @@ fn locate_rejects_reference_for_different_segment_before_slot_lookup() {
 }
 
 #[test]
-fn appending_second_slot_rebases_existing_frame_offsets() {
+fn appending_second_slot_preserves_first_record_lookup() {
     let records = record_authority();
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let references = PhysicalReferenceAuthority::for_canonical_physical_format();

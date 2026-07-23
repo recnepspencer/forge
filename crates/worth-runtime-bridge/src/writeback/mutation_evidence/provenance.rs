@@ -7,10 +7,18 @@ use super::super::{
     BridgeWritebackStrategyDescriptorBasis,
 };
 use crate::adapter::{TruthWritebackReceipt, TruthWritebackRequest};
+use crate::input::envelope::TruthCommitIdentity;
+use crate::snapshot::TruthSnapshotIdentity;
+use crate::writeback::{
+    BridgeMutationSubject, BridgeMutationSubjectKind, BridgeMutationSubjectTouch,
+};
 
 /// Bridge-owned causality breadcrumbs for one authoritative mutation crossing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeMutationCausalityBundle {
+    truth_trigger_identity: TruthCommitIdentity,
+    truth_view_snapshot_identity: TruthSnapshotIdentity,
+    mutation_subject: Option<BridgeMutationSubject>,
     causality_digest: Arc<str>,
     truth_trigger_digest: Arc<str>,
     route_digest: Arc<str>,
@@ -21,6 +29,9 @@ pub struct BridgeMutationCausalityBundle {
 impl BridgeMutationCausalityBundle {
     pub fn from_writeback_causality(causality: &BridgeWritebackNativeCausalityInputs) -> Self {
         Self {
+            truth_trigger_identity: causality.truth_trigger_identity().clone(),
+            truth_view_snapshot_identity: causality.truth_view_snapshot_identity().clone(),
+            mutation_subject: causality.mutation_subject().cloned(),
             causality_digest: Arc::from(causality.digest().to_owned()),
             truth_trigger_digest: Arc::from(causality.truth_trigger_digest().to_owned()),
             route_digest: Arc::from(causality.route_digest().to_owned()),
@@ -47,6 +58,26 @@ impl BridgeMutationCausalityBundle {
 
     pub fn truth_view_digest(&self) -> &str {
         self.truth_view_digest.as_ref()
+    }
+
+    pub fn retains_truth_handoff(
+        &self,
+        commit: &TruthCommitIdentity,
+        snapshot: &TruthSnapshotIdentity,
+    ) -> bool {
+        &self.truth_trigger_identity == commit && &self.truth_view_snapshot_identity == snapshot
+    }
+
+    pub fn retains_mutation_subject(
+        &self,
+        target_collection: &str,
+        target_record: crate::relational_identity::RelationalBridgeRecordIdentityParts,
+        mutation_kind: BridgeMutationSubjectKind,
+        touches: &[BridgeMutationSubjectTouch],
+    ) -> bool {
+        self.mutation_subject.as_ref().is_some_and(|subject| {
+            subject.matches_projection(target_collection, target_record, mutation_kind, touches)
+        })
     }
 }
 

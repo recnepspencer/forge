@@ -1,7 +1,10 @@
 use worth_ui::facade::{
-    IconDescriptor, IconFamily, IconId, IconSourceDescriptor, RuntimeOutcomeAffordance,
-    RuntimeOutcomeFamily, RuntimeOutcomePresentation, RuntimeOutcomeProjectionDescriptor,
-    RuntimeOutcomeRecoveryPosture, RuntimeOutcomeSourceReference, RuntimeOutcomeTone, WorthUi,
+    app::WorthUi,
+    registry::{
+        IconDescriptor, IconFamily, IconId, IconSourceDescriptor, RuntimeOutcomeAffordance,
+        RuntimeOutcomeFamily, RuntimeOutcomePresentation, RuntimeOutcomeProjectionDescriptor,
+        RuntimeOutcomeRecoveryPosture, RuntimeOutcomeSourceReference, RuntimeOutcomeTone,
+    },
 };
 
 use super::runtime_outcome_projection_assertions::assert_registered_runtime_outcome_projection_ids;

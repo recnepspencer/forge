@@ -17,6 +17,23 @@ pub struct UiChildIntrinsicMeasurementEvidence {
 }
 
 impl UiChildIntrinsicMeasurementEvidence {
+    pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
+        if self.contributor_graph_node_identity != other.contributor_graph_node_identity {
+            return false;
+        }
+        match (&self.source, &other.source) {
+            (
+                UiChildIntrinsicMeasurementSource::QueryProjectionFact(left),
+                UiChildIntrinsicMeasurementSource::QueryProjectionFact(right),
+            ) => left == right,
+            (
+                UiChildIntrinsicMeasurementSource::HostMeasurementResult(left),
+                UiChildIntrinsicMeasurementSource::HostMeasurementResult(right),
+            ) => left.operationally_matches(right),
+            _ => false,
+        }
+    }
+
     pub fn for_query_projection_fact(
         contributor_graph_node_identity: UiGraphNodeIdentity,
         receipt: &UiProjectionFactReceipt,

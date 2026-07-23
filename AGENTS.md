@@ -6,10 +6,11 @@ This folder is home. Treat it that way.
 
 This repo builds the WORTH platform under a strict, mechanically-enforced
 constitution. If you are writing or reviewing code here, these laws bind you
-and are not optional. Read the ones relevant to your task before editing; they
-are short and load-bearing.
+and are not optional. Before editing, read every document under
+`_docs/coding_guidelines/` in full. Also read any relevant laws under
+`_docs/more_guidelines/`; all are short and load-bearing.
 
-**Governing laws** (`_docs/coding_guidelines/`, `_docs/more_guidelines/`):
+**Governing laws** (`_docs/coding_guidelines/`):
 
 - `MENTALITY.md` — foundation-first build order under adversarial pressure.
 - `arch_laws.md` — typed phase progression, contractual facades, compiler-visible
@@ -20,7 +21,9 @@ are short and load-bearing.
   and truth source.
 - `perf_laws.md` — hot-path honesty, carried proof, ordinary vs reconstructive
   cost kept distinct.
-- `more_guidelines/dx_laws.md` — DX targets; plan the DX as a real code block.
+- `testing_laws.md` — fixture honesty, independent evidence, real boundaries,
+  and compile-cost discipline.
+- `dx_laws.md` — DX targets; plan the DX as a real code block.
 
 **Platform constitution** (`cad/docs/worthy-foundations/`, `cad/docs/road-1/`):
 

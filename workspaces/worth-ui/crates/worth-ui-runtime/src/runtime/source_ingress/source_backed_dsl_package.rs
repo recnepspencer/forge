@@ -1,13 +1,16 @@
 use std::collections::BTreeMap;
 
 use crate::capability::MosaicSizingContractId;
-use crate::declaration::UiDeclaredMeasurementConstraintModifier;
+use crate::declaration::{
+    UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementConstraintModifier,
+};
 use crate::facade::WorthUiDslPackage;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiSourceBackedDeclarationClaims {
     mosaic_membership_name: Box<str>,
     measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    measurement_basis_source: Option<UiDeclaredMeasurementBasisSource>,
     mosaic_sizing_contract_id: MosaicSizingContractId,
 }
 
@@ -15,11 +18,13 @@ impl WorthUiSourceBackedDeclarationClaims {
     pub(crate) fn new(
         mosaic_membership_name: impl Into<Box<str>>,
         measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+        measurement_basis_source: Option<UiDeclaredMeasurementBasisSource>,
         mosaic_sizing_contract_id: MosaicSizingContractId,
     ) -> Self {
         Self {
             mosaic_membership_name: mosaic_membership_name.into(),
             measurement_constraint_modifier,
+            measurement_basis_source,
             mosaic_sizing_contract_id,
         }
     }
@@ -36,6 +41,10 @@ impl WorthUiSourceBackedDeclarationClaims {
 
     pub(crate) fn mosaic_sizing_contract_id(&self) -> &MosaicSizingContractId {
         &self.mosaic_sizing_contract_id
+    }
+
+    pub(crate) fn measurement_basis_source(&self) -> Option<UiDeclaredMeasurementBasisSource> {
+        self.measurement_basis_source
     }
 }
 
@@ -72,9 +81,21 @@ impl WorthUiSourceBackedDeclarationWitness {
                         .measurement_constraint_modifier()
                         .map_or(0, measurement_modifier_digest)
                         .rotate_left(23)
+                    ^ claims
+                        .measurement_basis_source()
+                        .map_or(0, measurement_basis_digest)
+                        .rotate_left(27)
                     ^ fold_text(claims.mosaic_sizing_contract_id().as_str()).rotate_left(29)
             },
         )
+    }
+}
+
+fn measurement_basis_digest(basis: UiDeclaredMeasurementBasisSource) -> u64 {
+    match basis {
+        UiDeclaredMeasurementBasisSource::ViewportExtent => fold_text("viewport_extent"),
+        UiDeclaredMeasurementBasisSource::ScrollViewport => fold_text("scroll_container_viewport"),
+        UiDeclaredMeasurementBasisSource::PortalAnchor => fold_text("portal_anchor"),
     }
 }
 

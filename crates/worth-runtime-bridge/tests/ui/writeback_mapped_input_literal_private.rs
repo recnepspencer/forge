@@ -10,6 +10,7 @@ fn main() {
         strategy_class: sealed_authority_placeholder(),
         strategy_descriptor_basis: sealed_authority_placeholder(),
         causality_digest: sealed_authority_placeholder(),
+        mutation_subject_effect_intent_match: false,
         effect_intent: sealed_authority_placeholder(),
         canonical_basis: sealed_authority_placeholder(),
         digest: sealed_authority_placeholder(),

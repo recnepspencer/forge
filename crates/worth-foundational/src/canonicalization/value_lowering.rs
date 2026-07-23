@@ -32,7 +32,11 @@ pub fn prepare_struct_aspect_value_identity_basis(
     CanonicalAspectValueIdentityBasis(material)
 }
 
-pub(crate) fn canonical_basis_value_for_aspect_value(value: &AspectValue) -> CanonicalBasisValue {
+/// Lowers one Foundational scalar into its typed canonical-basis value.
+///
+/// This is representation only; canonical readiness and comparison authority
+/// still require the corresponding Foundational preparation APIs.
+pub fn canonical_basis_value_for_aspect_value(value: &AspectValue) -> CanonicalBasisValue {
     match value {
         AspectValue::Null => CanonicalBasisValue::Null,
         AspectValue::Bool(value) => CanonicalBasisValue::Bool(*value),

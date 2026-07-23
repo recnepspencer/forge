@@ -2423,10 +2423,12 @@ or local value-family switches.
 - Typed access must not conceal a linear scan of all facts or source rows.
 
 **Test requirements**
-- Adversarial native parity test: every Foundational scalar family,
-  representative nested structs, canonical floats, and admitted absence
+- Adversarial native parity test: every Foundational scalar family, complete
+  multi-field values under Foundational's current flat `StructAspectValue`
+  law, dotted atomic aspect keys, canonical floats, and admitted absence
   postures observed through the bound capability equal Query's native
-  consumption oracle exactly.
+  consumption oracle exactly. Nested structs become a requirement only when
+  Foundational owns and admits a nested carrier; Query must not invent one.
 - Adversarial access rejection test: a key from another declaration, field,
   contract revision, domain installation, or value family cannot access or
   refine a fact, even when its printable field path is identical.
@@ -2439,6 +2441,10 @@ or local value-family switches.
   never manufacture them from paths.
 - Native carriers remain Foundational-owned and are borrowed or moved without
   stringify/reparse or JSON-shaped intermediates.
+- Foundational currently defines struct fields as `AspectValue` leaves, so
+  recursive struct nesting is not representable. This phase proves complete
+  flat structs and atomic dotted aspect keys and deliberately does not create a
+  Query-owned recursive value family.
 - Unsupported refinement preserves field, contract, source, and projection
   authority context in a typed denial.
 
@@ -2905,6 +2911,12 @@ diagnostic fingerprints remain observable but cannot key, compare,
 install, bind, share, admit, replace, rebind, reuse, release, or resume
 operational state.
 
+The migration is executed through the inventoried vertical slices in
+[`milestone-9.14-phase-21-identity-inventory.md`](./milestone-9.14-phase-21-identity-inventory.md).
+Each slice records its source owner, current authority leaks, intended
+cross-runtime handoff, and hostile closure evidence before production migration
+begins.
+
 **Relevant subsystems**
 - canonical Query identity and evidence identity
 - facade reporting, diagnostics, and inspection projections
@@ -2958,10 +2970,32 @@ operational state.
 - Operational indexes return candidates that must remain paired with retained
   authority and a Query-owned validation step.
 
+**Completion evidence**
+- The seven inventoried vertical slices are closed in
+  [`milestone-9.14-phase-21-identity-inventory.md`](./milestone-9.14-phase-21-identity-inventory.md),
+  including their source owner, boundary weakening/readmission path, and
+  hostile representation attacks.
+- Query current read identity is minted from admitted retained Bridge truth.
+  Query current mutation commit, snapshot, and entity identity is minted only
+  when one Bridge-owned causality bundle matches the receipt's exact commit,
+  snapshot, collection, Relational record, mutation kind, and canonical
+  Foundational patch/touch meaning. Bridge denies subject/effect patch drift
+  before authority execution. Equal raw projections and mismatched mutation
+  bundles fail Query admission, including the empty-runtime snapshot.
+- Query operation progression, aftermath, compatibility, shared lease, and
+  invalidation artifacts retain private owner identities alongside generic
+  Proof progression where progression is useful.
+- Replay and lineage use domain-owned semantic comparison. Reporting identity
+  cannot satisfy generic lineage equality or become ordinary replay authority.
+- Compiler certification denies raw identity-part extraction, raw
+  Relational-to-Query promotion, owner-marker facade imports, forged sharing
+  and invalidation construction, and replay-to-ordinary promotion.
+- Equality, ordering, and hashing remain only on identities that must
+  participate in legitimate representation-level collections. Operational
+  decisions require named owner methods or proof-bearing artifacts.
+
 **Open questions**
-- Exact trait exposure for opaque identities must be decided by the minimum
-  requirements of legitimate collections without reopening generic authority
-  comparison.
+- None.
 
 ### Phase 22: Consumption Cost Evidence And Exact Counters
 

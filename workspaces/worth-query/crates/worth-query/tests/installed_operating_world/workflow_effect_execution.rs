@@ -23,7 +23,8 @@ fn workflow_effect_uses_real_mutation_authority_and_retains_its_receipt() {
         observation_denial.kind(),
         domain::WorthQueryOperationBindingDenialKind::BasisLaneInsufficient
     );
-    assert_eq!(observation_denial.counters().graph_binding_lookups, 0);
+    assert_eq!(observation_denial.counters().graph_binding_lookups, 1);
+    assert_eq!(observation_denial.counters().graph_participation_lookups, 0);
 
     let bound = workspace
         .operating_world(mutation_basis())
@@ -35,7 +36,7 @@ fn workflow_effect_uses_real_mutation_authority_and_retains_its_receipt() {
         domain::WorthQueryBoundCommitPosture::Atomic
     );
     let run = bound
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "mutate",
@@ -74,7 +75,7 @@ fn failure_after_effect_retains_the_query_executed_partial_outcome() {
         .family(MutationFamily)
         .bind(&installed_domain, WorkflowMutation)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap();
     let denial = match run.advance(
         "mutate",
@@ -138,7 +139,7 @@ fn workflow_stage_cannot_skip_its_declared_primary_read() {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",
@@ -199,7 +200,7 @@ fn failing_stage_denial(name: &str, input: &str) -> domain::WorthQueryWorkflowAd
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",

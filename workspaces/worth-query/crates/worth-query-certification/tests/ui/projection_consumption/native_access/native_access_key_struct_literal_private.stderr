@@ -1,0 +1,16 @@
+error: cannot construct `WorthQueryNativeAccessKey` with struct literal syntax due to private fields
+ --> tests/ui/projection_consumption/native_access/native_access_key_struct_literal_private.rs:4:13
+  |
+4 |     let _ = WorthQueryNativeAccessKey {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         runtime_authority: 1,
+  |         -------------------- private field
+  |
+  = note: ...and other private fields that were not provided
+help: you might have meant to use the `mint` associated function
+  |
+4 -     let _ = WorthQueryNativeAccessKey {
+5 -         runtime_authority: 1,
+6 -     };
+4 +     let _ = WorthQueryNativeAccessKey::mint(_, _, _, _, _, _, _, _, _, _, _);
+  |

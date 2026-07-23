@@ -1,12 +1,16 @@
 use worth_ui::facade::{
-    CapabilityRegistrationReport, CommandCategory, CommandDescriptor, CommandId,
-    ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
-    ComponentStateOwnership, SettingDefaultPosture, SettingDefaultValue, SettingDescriptor,
-    SettingEditorHint, SettingId, SettingMigrationPosture, SettingOwnershipMetadata, SettingScope,
-    SettingValidationPosture, SettingValueSchema, TaskPresentationCancellationPosture,
-    TaskPresentationDescriptor, TaskPresentationFailurePosture, TaskPresentationFamily,
-    TaskPresentationId, TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility,
-    TaskPresentationRuntimeAuthorityPosture, WorthUi, WorthUiApp,
+    app::{WorthUi, WorthUiApp},
+    diagnostics::CapabilityRegistrationReport,
+    registry::{
+        CommandCategory, CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor,
+        ComponentId, ComponentPropSchema, ComponentStateOwnership, SettingDefaultPosture,
+        SettingDefaultValue, SettingDescriptor, SettingEditorHint, SettingId,
+        SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
+        SettingValueSchema, TaskPresentationCancellationPosture, TaskPresentationDescriptor,
+        TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationId,
+        TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility,
+        TaskPresentationRuntimeAuthorityPosture,
+    },
 };
 
 pub(crate) fn empty_app() -> WorthUiApp {

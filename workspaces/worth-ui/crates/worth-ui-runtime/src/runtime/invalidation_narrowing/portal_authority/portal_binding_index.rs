@@ -1,32 +1,41 @@
-use std::collections::BTreeMap;
-
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(crate) struct UiPortalInvalidationBindingIndex {
-    by_request: BTreeMap<
+    pub(super) by_request: crate::runtime::persistent_index::UiPersistentOrdMap<
         worth_ui_host_contract::UiMeasurementRequestIdentity,
         super::UiAdmittedPortalInvalidationBinding,
     >,
+    pub(super) identity_digest: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiPortalBindingDenial {
     DuplicateRequestIdentity,
+    MissingPredecessorBinding,
     MissingGraphTarget,
     ReceiptContextMismatch,
 }
 
+impl Default for UiPortalInvalidationBindingIndex {
+    fn default() -> Self {
+        Self {
+            by_request: Default::default(),
+            identity_digest: crate::declaration::stable_text_digest(
+                "worth-ui.portal-binding-index",
+            ),
+        }
+    }
+}
+
 impl UiPortalInvalidationBindingIndex {
     pub(crate) fn identity_digest(&self) -> u64 {
-        self.by_request.values().fold(
-            crate::declaration::stable_text_digest("worth-ui.portal-binding-index"),
-            |digest, binding| digest.wrapping_mul(0x100000001b3) ^ binding.identity_digest(),
-        )
+        self.identity_digest
     }
     pub(crate) fn seal(
         activation: &crate::runtime::allocation_receipt::UiCommittedAllocationCatalogActivation,
         graph: &crate::graph::UiGraphReplanAuthority,
     ) -> Result<Self, UiPortalBindingDenial> {
-        let mut by_request = BTreeMap::new();
+        let mut by_request = crate::runtime::persistent_index::UiPersistentOrdMap::default();
+        let mut identity_digest = Self::default().identity_digest;
         for row in activation.rows() {
             let Some(crate::runtime::allocation_receipt::UiCommittedPortalActivationSource::Host {
                 witness,
@@ -54,14 +63,17 @@ impl UiPortalInvalidationBindingIndex {
                 row.measurement_basis(),
             )
             .ok_or(UiPortalBindingDenial::ReceiptContextMismatch)?;
-            if by_request
-                .insert(witness.request_identity(), binding)
-                .is_some()
-            {
+            let request = witness.request_identity();
+            if by_request.get(&request).is_some() {
                 return Err(UiPortalBindingDenial::DuplicateRequestIdentity);
             }
+            identity_digest ^= binding.identity_digest();
+            by_request.insert(request, binding);
         }
-        Ok(Self { by_request })
+        Ok(Self {
+            by_request,
+            identity_digest,
+        })
     }
 
     pub(crate) fn movement(
@@ -154,6 +166,7 @@ impl UiPortalInvalidationBindingIndex {
             lineage.push(super::UiPortalBindingSuccessionLineage::new(
                 request, prior, receipt, portal,
             ));
+            successor.identity_digest ^= prior.identity_digest() ^ binding.identity_digest();
             successor.by_request.insert(request, binding);
             counters.replacement()?;
         }

@@ -8,6 +8,7 @@ pub enum UiCommittedAllocationActivationInspectionOutcome {
 pub enum UiCommittedAllocationActivationInspectionDenialKind {
     Validation,
     GraphPredecessorMismatch,
+    DerivedIndexDiverged,
     LedgerPredecessorMismatch,
     ScrollBinding,
     PortalBinding,
@@ -99,6 +100,9 @@ fn denial_kind(
         }
         super::UiCommittedAllocationActivationDenialReason::GraphPredecessorMismatch => {
             UiCommittedAllocationActivationInspectionDenialKind::GraphPredecessorMismatch
+        }
+        super::UiCommittedAllocationActivationDenialReason::DerivedIndexDiverged => {
+            UiCommittedAllocationActivationInspectionDenialKind::DerivedIndexDiverged
         }
         super::UiCommittedAllocationActivationDenialReason::LedgerPredecessorMismatch => {
             UiCommittedAllocationActivationInspectionDenialKind::LedgerPredecessorMismatch

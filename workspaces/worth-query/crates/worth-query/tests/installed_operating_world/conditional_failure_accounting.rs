@@ -59,6 +59,10 @@ struct FailingCompute(Arc<AtomicUsize>);
 impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
     for FailingCompute
 {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+
     fn compute(
         &self,
         _context: &domain::WorthQueryConditionalComputeContext,

@@ -1,7 +1,20 @@
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiReplacementCandidate`, `worth_ui::facade::WorthUiRuntimeImpactNarrowing`
+ --> tests/ui/runtime_authority/fail/unadmitted_candidate_cannot_enter_identity_matching.rs:2:5
+  |
+2 |     WorthUiReplacementCandidate,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiReplacementCandidate` in `facade`
+3 |     WorthUiRuntimeImpactNarrowing,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiRuntimeImpactNarrowing` in `facade`
+  |
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiReplacementCandidate
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiRuntimeImpactNarrowing
+
 error[E0624]: method `build_identity_match_graph` is private
-  --> tests/ui/runtime_authority/fail/unadmitted_candidate_cannot_enter_identity_matching.rs:10:18
+  --> tests/ui/runtime_authority/fail/unadmitted_candidate_cannot_enter_identity_matching.rs:12:18
    |
-10 |       let _ = host.build_identity_match_graph(narrowing, candidate);
+12 |       let _ = host.build_identity_match_graph(narrowing, candidate);
    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
    |
   ::: $WORKSPACE/crates/worth-ui-runtime/src/runtime/replacement/orchestrator.rs

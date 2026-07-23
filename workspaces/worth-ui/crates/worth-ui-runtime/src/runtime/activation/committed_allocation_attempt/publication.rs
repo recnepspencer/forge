@@ -1,19 +1,44 @@
 use super::UiCommittedAllocationValidation;
 use crate::runtime::activation::committed_allocation_attempt::UiCommittedAllocationPreflightDenial;
+use crate::runtime::WorthUiFrameBoundary;
 use crate::runtime::WorthUiRuntime;
-use crate::runtime::{WorthUiExecutionPlan, WorthUiFrameBoundary, WorthUiPlanSwapReceipt};
+
+pub(super) struct UiCommittedAllocationPublicationInput<'application> {
+    pub candidate_bundle: crate::runtime::active::WorthUiSealedExecutionPlanBundle,
+    pub query_succession: worth_ui_query_binding::WorthUiPreparedQueryBindingSuccession,
+    pub successor_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    pub successor_planning_authority:
+        std::rc::Rc<crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+    pub application_publication:
+        Option<crate::runtime::WorthUiPreparedApplicationPublication<'application>>,
+    pub boundary: WorthUiFrameBoundary,
+}
 
 pub(super) fn publish_validated_committed_allocation(
     runtime: &mut WorthUiRuntime,
     mut ready_activation: UiCommittedAllocationValidation,
-    candidate_plan: WorthUiExecutionPlan,
-    boundary: WorthUiFrameBoundary,
-) -> Result<WorthUiPlanSwapReceipt, crate::runtime::UiCommittedAllocationActivationDenial> {
+    input: UiCommittedAllocationPublicationInput<'_>,
+) -> Result<
+    super::prepared::UiCommittedAllocationPublication,
+    crate::runtime::UiCommittedAllocationActivationDenial,
+> {
+    let UiCommittedAllocationPublicationInput {
+        candidate_bundle,
+        query_succession,
+        successor_application_authority,
+        successor_planning_authority,
+        application_publication,
+        boundary,
+    } = input;
     let attempt_identity = ready_activation.attempt_identity().clone();
     let runtime_frame_epoch = runtime.frame_epoch();
+    deny_if_interrupted("graph predecessor check", &ready_activation)?;
     ready_activation.record_graph_predecessor_check()?;
+    deny_if_interrupted("scroll binding check", &ready_activation)?;
     ready_activation.record_scroll_binding_check()?;
     let prepared_catalog_transition = {
+        deny_if_interrupted("catalog transition read", &ready_activation)?;
         let authority = runtime
             .allocation_invalidation_index
             .try_borrow()
@@ -24,6 +49,7 @@ pub(super) fn publish_validated_committed_allocation(
                     crate::runtime::UiCommittedAllocationActivationDenialReason::CommitResourceUnavailable,
                 )
             })?;
+        deny_if_interrupted("catalog transition preparation", &ready_activation)?;
         authority.prepare_catalog_transition(ready_activation.allocation_catalog_transition())
     };
     let prepared_catalog_transition = match prepared_catalog_transition {
@@ -49,17 +75,28 @@ pub(super) fn publish_validated_committed_allocation(
                     crate::runtime::UiCommittedAllocationActivationDenialReason::GraphPredecessorMismatch,
                 ));
             }
-        };
+            Err(crate::runtime::invalidation_narrowing::UiAllocationNeighborhoodActivationDenial::DerivedIndexDiverged) => {
+                return Err(crate::runtime::UiCommittedAllocationActivationDenial::preparation(
+                    attempt_identity,
+                    ready_activation.activation_counters(),
+                    crate::runtime::UiCommittedAllocationActivationDenialReason::DerivedIndexDiverged,
+                ));
+            }
+    };
     let scroll_catalog_evidence = prepared_catalog_transition.scroll_catalog_evidence();
+    deny_if_interrupted("frame boundary check", &ready_activation)?;
     ready_activation.record_frame_boundary_check()?;
+    deny_if_interrupted("ledger predecessor check", &ready_activation)?;
     ready_activation.record_ledger_predecessor_check()?;
     let mut activation_counters = ready_activation.activation_counters();
+    deny_if_interrupted("committed preflight", &ready_activation)?;
     let preflight = super::preflight::preflight_committed_allocation(
             &runtime.active,
             ready_activation,
-            candidate_plan,
+            candidate_bundle,
             boundary,
             runtime_frame_epoch,
+            runtime.host_plan_binding.session_identity(),
         )
         .map_err(|denial| {
             let reason = match denial {
@@ -91,6 +128,12 @@ pub(super) fn publish_validated_committed_allocation(
                 reason,
             )
         })?;
+    activation_counters = preflight.activation_counters();
+    deny_after_preflight_if_interrupted(
+        "frame replacement check",
+        &attempt_identity,
+        activation_counters,
+    )?;
     if let Err(exhaustion) = activation_counters.record_frame_replacement_check() {
         return Err(
             crate::runtime::UiCommittedAllocationActivationDenial::counter_exhausted(
@@ -100,6 +143,11 @@ pub(super) fn publish_validated_committed_allocation(
             ),
         );
     }
+    deny_after_preflight_if_interrupted(
+        "invalidation write",
+        &attempt_identity,
+        activation_counters,
+    )?;
     let invalidation = match runtime.allocation_invalidation_index.try_borrow_mut() {
         Ok(invalidation) => invalidation,
         Err(_) => {
@@ -110,6 +158,11 @@ pub(super) fn publish_validated_committed_allocation(
                 ));
         }
     };
+    deny_after_preflight_if_interrupted(
+        "ledger commit preparation",
+        &attempt_identity,
+        activation_counters,
+    )?;
     let truth_resources = match preflight
         .acquire_truth_resources(&runtime.allocation_receipt_ledger, invalidation)
     {
@@ -122,6 +175,11 @@ pub(super) fn publish_validated_committed_allocation(
                 ));
         }
     };
+    deny_after_preflight_if_interrupted(
+        "frame commit preparation",
+        &attempt_identity,
+        activation_counters,
+    )?;
     let frame_commit =
         match runtime
             .allocation_frame_scheduler
@@ -149,6 +207,42 @@ pub(super) fn publish_validated_committed_allocation(
             last_valid: &mut runtime.last_valid,
             transient_interaction_admission: &mut runtime.transient_interaction_admission,
             durable_resize_source: &mut runtime.durable_resize_source,
+            query_binding: &mut runtime.query_binding,
+            query_succession,
+            active_application_authority: &mut runtime.active_application_lowering_authority,
+            successor_application_authority,
+            retained_planning_authority: &mut runtime.retained_allocation_planning_evidence,
+            successor_planning_authority,
+            application_publication,
         })
         .commit_once())
+}
+
+fn deny_if_interrupted(
+    stage: &'static str,
+    ready: &UiCommittedAllocationValidation,
+) -> Result<(), crate::runtime::UiCommittedAllocationActivationDenial> {
+    deny_after_preflight_if_interrupted(
+        stage,
+        ready.attempt_identity(),
+        ready.activation_counters(),
+    )
+}
+
+fn deny_after_preflight_if_interrupted(
+    stage: &'static str,
+    identity: &super::UiCommittedAllocationActivationIdentity,
+    counters: super::UiCommittedAllocationActivationCounters,
+) -> Result<(), crate::runtime::UiCommittedAllocationActivationDenial> {
+    if crate::runtime::activation::certification_precommit_interruption(stage) {
+        Err(
+            crate::runtime::UiCommittedAllocationActivationDenial::preparation(
+                identity.clone(),
+                counters,
+                crate::runtime::UiCommittedAllocationActivationDenialReason::CommitResourceUnavailable,
+            ),
+        )
+    } else {
+        Ok(())
+    }
 }

@@ -1,15 +1,20 @@
-error[E0451]: fields `active_plan_digest`, `diagnostic_policy`, `counters`, `lane_receipts` and `aggregate_packet` of struct `WorthUiFrameExecutionReceipt` are private
-  --> tests/ui/runtime_steady_frame_counter_boundary/fail/steady_frame_receipt_fields_not_public.rs:8:9
-   |
- 7 |     let _receipt = WorthUiFrameExecutionReceipt {
-   |                    ---------------------------- in this type
- 8 |         active_plan_digest: 1,
-   |         ^^^^^^^^^^^^^^^^^^ private field
- 9 |         diagnostic_policy: WorthUiSteadyFrameDiagnosticPolicy::Minimal,
-   |         ^^^^^^^^^^^^^^^^^ private field
-10 |         counters: WorthUiSteadyFrameCounters::default(),
-   |         ^^^^^^^^ private field
-11 |         lane_receipts: Vec::new(),
-   |         ^^^^^^^^^^^^^ private field
-12 |         aggregate_packet: packet(),
-   |         ^^^^^^^^^^^^^^^^ private field
+error[E0432]: unresolved imports `worth_ui::facade::WorthUiFrameExecutionReceipt`, `worth_ui::facade::WorthUiMeasurementCounterPacket`, `worth_ui::facade::WorthUiSteadyFrameCounters`, `worth_ui::facade::WorthUiSteadyFrameDiagnosticPolicy`
+ --> tests/ui/runtime_steady_frame_counter_boundary/fail/steady_frame_receipt_fields_not_public.rs:2:5
+  |
+2 |     WorthUiFrameExecutionReceipt, WorthUiMeasurementCounterPacket, WorthUiSteadyFrameCounters,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiSteadyFrameCounters` in `facade`
+  |     |                             |
+  |     |                             no `WorthUiMeasurementCounterPacket` in `facade`
+  |     no `WorthUiFrameExecutionReceipt` in `facade`
+3 |     WorthUiSteadyFrameDiagnosticPolicy,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiSteadyFrameDiagnosticPolicy` in `facade`
+  |
+  = help: consider importing one of these structs instead:
+          worth_ui::facade::runtime::WorthUiFrameExecutionReceipt
+          worth_ui_runtime::facade::WorthUiFrameExecutionReceipt
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiMeasurementCounterPacket
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::WorthUiSteadyFrameCounters
+  = help: consider importing this enum instead:
+          worth_ui_runtime::facade::WorthUiSteadyFrameDiagnosticPolicy

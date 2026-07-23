@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 use worth_store_physical_backend::{
     FilesystemBackendProfile, MediaCounterObserver, MediaCounterSnapshot, MutationOwnerObservation,
@@ -11,7 +11,13 @@ use crate::physical_runtime::{
     ObservationError, RuntimeCounterSnapshot, RuntimeIdentity,
 };
 
-pub struct PhysicalMediaObserver {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MediaOwnedObservationPhase;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RecordServingObservationPhase;
+
+pub struct PhysicalMediaObserver<Phase> {
     runtime_identity: RuntimeIdentity,
     store_identity: StableStoreIdentity,
     mutation_owner: MutationOwnerObservation,
@@ -19,11 +25,19 @@ pub struct PhysicalMediaObserver {
     media_counters: MediaCounterObserver,
     lifecycle: Arc<LifecycleState>,
     observed_generation: LifecycleGeneration,
+    expected_phase: ObservedLifecyclePhase,
     lease: ObservationLease,
+    phase: PhantomData<Phase>,
 }
 
-impl PhysicalMediaObserver {
-    pub(super) fn new(
+struct MediaObservationSubject {
+    runtime_identity: RuntimeIdentity,
+    store_identity: StableStoreIdentity,
+    mutation_owner: MutationOwnerObservation,
+}
+
+impl PhysicalMediaObserver<MediaOwnedObservationPhase> {
+    pub(in crate::physical_runtime) fn for_media_owned(
         runtime_identity: RuntimeIdentity,
         store_identity: StableStoreIdentity,
         mutation_owner: MutationOwnerObservation,
@@ -32,25 +46,74 @@ impl PhysicalMediaObserver {
         lifecycle: Arc<LifecycleState>,
         lease: ObservationLease,
     ) -> Self {
+        Self::new(
+            MediaObservationSubject {
+                runtime_identity,
+                store_identity,
+                mutation_owner,
+            },
+            profile,
+            media_counters,
+            lifecycle,
+            ObservedLifecyclePhase::MediaOwned,
+            lease,
+        )
+    }
+}
+
+impl PhysicalMediaObserver<RecordServingObservationPhase> {
+    pub(in crate::physical_runtime) fn for_record_serving(
+        runtime_identity: RuntimeIdentity,
+        store_identity: StableStoreIdentity,
+        mutation_owner: MutationOwnerObservation,
+        profile: FilesystemBackendProfile,
+        media_counters: MediaCounterObserver,
+        lifecycle: Arc<LifecycleState>,
+        lease: ObservationLease,
+    ) -> Self {
+        Self::new(
+            MediaObservationSubject {
+                runtime_identity,
+                store_identity,
+                mutation_owner,
+            },
+            profile,
+            media_counters,
+            lifecycle,
+            ObservedLifecyclePhase::RecordServing,
+            lease,
+        )
+    }
+}
+
+impl<Phase> PhysicalMediaObserver<Phase> {
+    fn new(
+        subject: MediaObservationSubject,
+        profile: FilesystemBackendProfile,
+        media_counters: MediaCounterObserver,
+        lifecycle: Arc<LifecycleState>,
+        expected_phase: ObservedLifecyclePhase,
+        lease: ObservationLease,
+    ) -> Self {
         let observed_generation = lifecycle.snapshot().generation;
         Self {
-            runtime_identity,
-            store_identity,
-            mutation_owner,
+            runtime_identity: subject.runtime_identity,
+            store_identity: subject.store_identity,
+            mutation_owner: subject.mutation_owner,
             profile: Arc::new(profile),
             media_counters,
             lifecycle,
             observed_generation,
+            expected_phase,
             lease,
+            phase: PhantomData,
         }
     }
 
-    pub fn snapshot(&self) -> Result<PhysicalMediaObservation, ObservationError> {
+    pub fn snapshot(&self) -> Result<PhysicalMediaObservation<Phase>, ObservationError> {
         self.lease.counters().record_lifecycle_observation();
         let before = self.lifecycle.snapshot();
-        if before.generation != self.observed_generation
-            || before.phase != ObservedLifecyclePhase::MediaOwned
-        {
+        if before.generation != self.observed_generation || before.phase != self.expected_phase {
             return Err(self.classify(before.phase, before.generation));
         }
         let media_counters = self.media_counters.snapshot();
@@ -67,11 +130,24 @@ impl PhysicalMediaObserver {
             media_counters,
             counters,
             generation: after.generation,
+            phase: PhantomData,
         })
     }
 
     pub fn media_counters(&self) -> MediaCounterSnapshot {
         self.media_counters.snapshot()
+    }
+
+    pub const fn runtime_identity(&self) -> RuntimeIdentity {
+        self.runtime_identity
+    }
+
+    pub const fn store_identity(&self) -> StableStoreIdentity {
+        self.store_identity
+    }
+
+    pub(in crate::physical_runtime) const fn observed_generation(&self) -> LifecycleGeneration {
+        self.observed_generation
     }
 
     pub fn runtime_counters(&self) -> RuntimeCounterSnapshot {
@@ -99,7 +175,7 @@ impl PhysicalMediaObserver {
     }
 }
 
-impl Clone for PhysicalMediaObserver {
+impl<Phase> Clone for PhysicalMediaObserver<Phase> {
     fn clone(&self) -> Self {
         Self {
             runtime_identity: self.runtime_identity,
@@ -109,12 +185,14 @@ impl Clone for PhysicalMediaObserver {
             media_counters: self.media_counters.clone(),
             lifecycle: Arc::clone(&self.lifecycle),
             observed_generation: self.observed_generation,
+            expected_phase: self.expected_phase,
             lease: self.lease.clone(),
+            phase: PhantomData,
         }
     }
 }
 
-pub struct PhysicalMediaObservation {
+pub struct PhysicalMediaObservation<Phase> {
     runtime_identity: RuntimeIdentity,
     store_identity: StableStoreIdentity,
     mutation_owner: MutationOwnerObservation,
@@ -122,9 +200,10 @@ pub struct PhysicalMediaObservation {
     media_counters: MediaCounterSnapshot,
     counters: RuntimeCounterSnapshot,
     generation: LifecycleGeneration,
+    phase: PhantomData<Phase>,
 }
 
-impl PhysicalMediaObservation {
+impl<Phase> PhysicalMediaObservation<Phase> {
     pub const fn runtime_identity(&self) -> RuntimeIdentity {
         self.runtime_identity
     }

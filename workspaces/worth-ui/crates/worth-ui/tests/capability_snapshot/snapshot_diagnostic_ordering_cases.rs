@@ -1,4 +1,4 @@
-use worth_ui::facade::{CapabilityDiagnosticCode, WorthUi};
+use worth_ui::facade::{app::WorthUi, diagnostics::CapabilityDiagnosticCode};
 
 use super::snapshot_assertions::{diagnostic_codes, diagnostic_topology};
 use super::snapshot_fixtures::{command, command_id, component, theme_token_id};

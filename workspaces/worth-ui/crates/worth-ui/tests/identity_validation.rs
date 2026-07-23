@@ -2,10 +2,13 @@ use std::collections::{BTreeSet, HashSet};
 use std::str::FromStr;
 
 use worth_ui::facade::{
-    CapabilityIdError, CommandId, CommandProjectionId, ComponentId, IconId,
-    MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId, MosaicStateOwnerScopeId,
-    MosaicStateSlotId, NativeCapabilityId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId,
-    SurfaceId, TaskPresentationId, ThemeTokenId, ViewBindingId,
+    registry::{
+        CommandId, CommandProjectionId, ComponentId, IconId, MosaicPlacementPolicyId,
+        MosaicRegionKindId, MosaicSizingContractId, MosaicStateOwnerScopeId, MosaicStateSlotId,
+        NativeCapabilityId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId, SurfaceId,
+        TaskPresentationId, ThemeTokenId, ViewBindingId,
+    },
+    support::CapabilityIdError,
 };
 
 #[test]

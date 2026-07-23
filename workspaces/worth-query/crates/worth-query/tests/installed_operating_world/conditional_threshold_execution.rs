@@ -67,9 +67,11 @@ fn typed_threshold_uses_authoritative_snapshots_and_signal_owned_comparison() {
             GeometryDomain,
             ReadVertex,
             ReadFamily,
-            &location,
-            0,
-            change,
+            domain::WorthQueryConditionalAuthoritativeChangeDeliveryRequest::new(
+                location.clone(),
+                0,
+                change,
+            ),
         )
         .unwrap()
     else {
@@ -142,11 +144,15 @@ fn bind<'a>(
         .unwrap()
 }
 
-struct ThresholdCompute(Arc<AtomicUsize>);
+pub(super) struct ThresholdCompute(pub(super) Arc<AtomicUsize>);
 
 impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
     for ThresholdCompute
 {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+
     fn compute(
         &self,
         _context: &domain::WorthQueryConditionalComputeContext,

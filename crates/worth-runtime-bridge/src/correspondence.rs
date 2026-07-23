@@ -1,5 +1,6 @@
 pub(crate) mod admission;
 mod admission_outcome;
+mod admitted_truth_identity;
 mod batch_admission;
 mod delivery;
 mod delivery_outcome;
@@ -19,8 +20,12 @@ mod slot_allocation;
 mod target_allocation;
 mod target_mapping;
 
-pub(crate) use batch_admission::{isolate_allocation_state, prepare_correspondence_batch};
-pub(crate) use query_dependency_registry::AdmittedQueryDependencyRegistry;
+pub(crate) use batch_admission::{
+    isolate_allocation_state, prepare_registered_correspondence_batch,
+};
+pub(crate) use query_dependency_registry::{
+    AdmittedQueryDependencyExtension, AdmittedQueryDependencyRegistry,
+};
 pub(crate) use slot_allocation::SharedCorrespondenceAllocationRegistry;
 
 pub use admission::CorrespondenceAdmissionOutcome;
@@ -29,8 +34,16 @@ pub use admission_outcome::{
     BridgeCorrespondenceDenialKind, BridgeCorrespondenceRebindRequired, BridgeCorrespondenceStale,
     CorrespondenceAdmissionCounters,
 };
+pub use admitted_truth_identity::{
+    BridgeAdmittedTruthCommitIdentity, BridgeAdmittedTruthRecordIdentity,
+    BridgeAdmittedTruthSnapshotIdentity,
+};
 pub use delivery::CorrespondenceDeliveryOutcome;
-pub use delivery_outcome::{BridgeCorrespondenceDeliveryDenial, CorrespondenceDeliveryCounters};
+pub use delivery_outcome::{
+    BridgeCorrespondenceDeliveryDenial, BridgeCorrespondenceDeliveryReceipt,
+    BridgeDeliveredCorrespondenceChange, BridgeDeliveredCorrespondenceChangeSet,
+    CorrespondenceDeliveryCounters,
+};
 pub use installed_witness::{
     BridgeCorrespondenceBasis, BridgeCorrespondencePrecision, BridgeInstalledSemanticCorrespondence,
 };

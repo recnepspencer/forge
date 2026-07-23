@@ -52,6 +52,32 @@ pub fn admit_backend_capability_for_scheduler_claim(
     })
 }
 
+pub fn admit_backend_capability_for_scheduler_qualified_claim(
+    claim: BackendCapabilityClaimWitness,
+    requirement: IoSchedulerBackendCapabilityRequirement,
+) -> Result<IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityDenial> {
+    if requirement == IoSchedulerBackendCapabilityRequirement::SecureFrameIo {
+        return Err(IoSchedulerBackendCapabilityDenial::SecureFrameRequiresSecurityScope);
+    }
+    if claim.kind() != requirement.capability_kind()
+        || !claim
+            .evidence_class()
+            .satisfies(requirement.required_evidence())
+    {
+        return Err(IoSchedulerBackendCapabilityDenial::BackendCapabilityDenied(
+            worth_store_physical_backend::BackendCapabilityAdmissionDenial::EvidenceClassTooWeak {
+                required: requirement.required_evidence(),
+                actual: claim.evidence_class(),
+            },
+        ));
+    }
+    Ok(IoSchedulerBackendCapabilityAdmission {
+        requirement,
+        claim,
+        security_scope_bound: false,
+    })
+}
+
 pub fn admit_secure_frame_backend_capability_for_scheduler_claim(
     witness: &AdmittedBackendCapabilityWitness,
     security_scope: &IoSchedulerSecurityScopeAdmission,

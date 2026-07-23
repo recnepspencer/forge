@@ -131,7 +131,7 @@ fn resident_frame_table() -> ResidentFrameTable {
     .with_budget(budget)
     .admit()
     .unwrap();
-    ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap())
+    ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap()).unwrap()
 }
 
 pub fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPayload {

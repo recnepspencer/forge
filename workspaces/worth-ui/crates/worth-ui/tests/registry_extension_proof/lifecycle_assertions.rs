@@ -1,4 +1,4 @@
-use worth_ui::facade::{RegistryFamily, RegistryFamilyLifecyclePropagation};
+use worth_ui::facade::support::{RegistryFamily, RegistryFamilyLifecyclePropagation};
 
 pub(crate) fn assert_every_family_requires_builder_initialization() {
     for registry_family in RegistryFamily::all() {

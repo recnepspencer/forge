@@ -57,6 +57,8 @@ fn admit_source_backed_mosaic_sizing_contracts(
             artifact.admit_source_backed_measurement_constraint_modifier(
                 claims.measurement_constraint_modifier(),
             );
+            artifact
+                .admit_source_backed_measurement_basis_source(claims.measurement_basis_source());
         }
     }
 }

@@ -191,19 +191,29 @@ fn compose_membership_entry(fact: &ConsumedMembershipFact) -> String {
 
 fn compose_field_value_entry(family: &str, fact: &ConsumedFieldValueFact) -> String {
     let value_basis = fact.value_canonical_identity_basis();
-    seal(
-        scope_encoder("consumed_field_value_entry_v1")
-            .field_shape(WorthQueryEvidenceTag::new("family"), family)
-            .field_shape(
-                WorthQueryEvidenceTag::new("source_row"),
-                fact.source_row_identity(),
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("field_key"),
-                fact.field_path().terminal_projection_for_boundary(),
-            )
-            .field_value(WorthQueryEvidenceTag::new("value"), value_basis.as_str()),
-    )
+    let encoder = scope_encoder("consumed_field_value_entry_v2")
+        .field_shape(WorthQueryEvidenceTag::new("family"), family)
+        .field_shape(
+            WorthQueryEvidenceTag::new("source_row"),
+            fact.source_row_identity(),
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("field_key"),
+            fact.field_path().terminal_projection_for_boundary(),
+        );
+    match value_basis {
+        super::super::consumed::ConsumedNativeValueIdentityBasis::Value(value) => {
+            seal(encoder.field_value(WorthQueryEvidenceTag::new("value"), value.as_str()))
+        }
+        super::super::consumed::ConsumedNativeValueIdentityBasis::Absent(posture) => {
+            let posture = match posture {
+                worth_foundational::facade::AbsenceLaw::Required => "required",
+                worth_foundational::facade::AbsenceLaw::Optional => "optional",
+                worth_foundational::facade::AbsenceLaw::Defaulted => "defaulted",
+            };
+            seal(encoder.field_shape(WorthQueryEvidenceTag::new("absence"), posture))
+        }
+    }
 }
 
 fn compose_target_identity_entry(fact: &ConsumedTargetIdentityFact) -> String {

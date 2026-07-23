@@ -5,7 +5,8 @@ pub(super) fn directive_matches_role(
     directive: &MediaFaultDirective,
 ) -> bool {
     match directive {
-        MediaFaultDirective::AllowPrefix { .. } => matches!(
+        MediaFaultDirective::AllowPrefix { .. }
+        | MediaFaultDirective::AllowPrefixThenPause { .. } => matches!(
             role,
             MediaOperationRole::PositionedRead
                 | MediaOperationRole::PositionedWrite
