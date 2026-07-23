@@ -59,7 +59,9 @@ pub use evidence::performance_evidence::{
 };
 pub use identity::{ExternalPhysicalRecordLocator, PhysicalRecordId};
 pub use lifecycle::record_lifecycle::RecordServingCounterSnapshot;
+pub(in crate::physical_runtime) use lifecycle::record_lifecycle::RecordServingOwner;
 pub use lifecycle::record_observation::{PhysicalRecordObservation, PhysicalRecordObserver};
+pub(in crate::physical_runtime) use lifecycle::serving_health::ServingHealth;
 pub use lifecycle::serving_runtime::{PhysicalRecordWriter, ServingPhysicalRuntime};
 pub use lifecycle::serving_shutdown::{
     RecordServingOwnerDisposition, RecordServingTerminalObservation, RecordServingTerminalPosture,
@@ -86,6 +88,7 @@ pub use publication::streaming::{
 };
 pub use publication::RecordPublicationStage;
 pub use residency::candidate_frame_residency::CandidateFrameContractViolation;
+pub(in crate::physical_runtime) use residency::frame_ports::RecordFramePorts;
 #[cfg(feature = "certification-test-authority")]
 pub use residency::frame_ports::{FramePortCounterObserver, FramePortCounterSnapshot};
 pub use residency::scheduled_writeback::{

@@ -12,8 +12,8 @@ use crate::foreground_reservation::{
 use crate::{
     admit_queue_execution_plan, group_ready_queue_pair, QueueDurabilityClass,
     QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueGroupingBasis,
-    QueueGroupingDenial, QueueGroupingOutcome, QueueRecoveryOrdering, QueueWorkClass,
-    QueueWorkDeclaration, QueueWritebackPolicy,
+    QueueGroupingDenial, QueueGroupingOutcome, QueueLocalityIdentity, QueueRecoveryOrdering,
+    QueueWorkClass, QueueWorkDeclaration, QueueWritebackPolicy,
 };
 
 #[test]
@@ -55,6 +55,10 @@ fn grouping_basis_compatibility_rejects_every_declared_axis() {
         (
             basis_with_writeback_policy(base),
             QueueGroupingDenial::WritebackPolicyMismatch,
+        ),
+        (
+            basis_with_locality(base),
+            QueueGroupingDenial::LocalityMismatch,
         ),
     ] {
         assert_eq!(base.compatible_with(mutated), Err(expected));
@@ -112,6 +116,10 @@ fn ready_grouping_rejects_derived_flush_recovery_and_writeback_axes() {
             basis_with_writeback_policy(base_grouping_basis()),
             QueueGroupingDenial::WritebackPolicyMismatch,
         ),
+        (
+            basis_with_locality(base_grouping_basis()),
+            QueueGroupingDenial::LocalityMismatch,
+        ),
     ] {
         let first = admit_plan_with_basis(base_grouping_basis()).expect("base plan should admit");
         let second = admit_plan_with_basis(basis).expect("derived-axis plan should admit");
@@ -138,13 +146,17 @@ fn admit_plan_with_basis(
     admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(budget),
+        policy_receipt(work),
     ))
 }
 
 fn base_grouping_basis() -> QueueGroupingBasis {
     let reservation = admitted_point_read_reservation_for_certification_test();
     grouping_for(reservation.security_scope_identity())
+}
+
+fn basis_with_locality(base: QueueGroupingBasis) -> QueueGroupingBasis {
+    base.with_locality(QueueLocalityIdentity::from_digest([7; 32]))
 }
 
 fn basis_with_security_scope(base: QueueGroupingBasis) -> QueueGroupingBasis {

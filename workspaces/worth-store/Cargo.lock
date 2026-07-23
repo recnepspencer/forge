@@ -1179,6 +1179,7 @@ dependencies = [
  "trybuild",
  "worth-foundational",
  "worth-proof",
+ "worth-signal",
  "worth-store-aspect-native",
  "worth-store-buffer-pool",
  "worth-store-certification",
@@ -1203,6 +1204,7 @@ name = "worth-store-aspect-native"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+ "sha2",
  "worth-foundational",
  "worth-proof",
  "worth-store-contracts",

@@ -39,6 +39,8 @@ mod manifest_scale;
 mod observer;
 #[path = "physical_record_journeys/page_packing_oracle.rs"]
 mod page_packing_oracle;
+#[path = "physical_record_journeys/physical_work/mod.rs"]
+mod physical_work;
 #[path = "c5/courtrooms.rs"]
 mod production_courtrooms;
 #[path = "physical_record_journeys/publication_failure_topology.rs"]

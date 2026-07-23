@@ -27,6 +27,7 @@ worth-store-physical-backend = { workspace = true, features = ["store-runtime-ow
 worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
 worth-proof = { path = "../../../../crates/worth-proof" }
+worth-signal = { path = "../../../../crates/worth-signal" }
 worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
 sha2 = "0.10"
 getrandom = "0.4"

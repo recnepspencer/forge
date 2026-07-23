@@ -113,10 +113,10 @@ fn dependency_snapshots_collapse_conflicting_duplicate_logical_entries_to_latest
 fn output_identity_uses_profile_native_stable_hash_constants() {
     let identity = OutputIdentity::new("worth-signal");
     #[cfg(feature = "profile-compact")]
-    assert_eq!(identity.stable_hash(), 0x3ffa6bfdb82b40cf_u64);
+    assert_eq!(identity.stable_hash(), 0xd928a3c3c4c36a5e_u64);
     #[cfg(any(feature = "profile-standard", feature = "profile-extended"))]
     assert_eq!(
         identity.stable_hash(),
-        0x3b58a385f680a7e1d1206b1e9f2feb17_u128
+        0x71f29c73493ba45f55abb8196909436e_u128
     );
 }

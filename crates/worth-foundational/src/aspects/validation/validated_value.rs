@@ -1,5 +1,6 @@
 use worth_proof::{Artifact, PhaseMarker};
 
+use crate::aspects::contracts::AspectContract;
 use crate::aspects::identity::{AspectContractRevision, AspectIdentity};
 use crate::aspects::keys::AspectKey;
 use crate::aspects::structs::StructAspectValue;
@@ -9,36 +10,30 @@ use serde::Serialize;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ContractValidatedAspectValue {
     key: AspectKey,
+    #[serde(skip)]
+    contract: AspectContract,
     contract_identity: AspectIdentity,
     contract_revision: AspectContractRevision,
     kind: ContractValidatedAspectValueKind,
 }
 
 impl ContractValidatedAspectValue {
-    pub(crate) fn scalar(
-        key: AspectKey,
-        value: AspectValue,
-        contract_identity: AspectIdentity,
-        contract_revision: AspectContractRevision,
-    ) -> Self {
+    pub(crate) fn scalar(contract: AspectContract, value: AspectValue) -> Self {
         Self {
-            key,
-            contract_identity,
-            contract_revision,
+            key: contract.key().clone(),
+            contract_identity: contract.identity(),
+            contract_revision: contract.revision(),
+            contract,
             kind: ContractValidatedAspectValueKind::Scalar(value),
         }
     }
 
-    pub(crate) fn struct_value(
-        key: AspectKey,
-        value: StructAspectValue,
-        contract_identity: AspectIdentity,
-        contract_revision: AspectContractRevision,
-    ) -> Self {
+    pub(crate) fn struct_value(contract: AspectContract, value: StructAspectValue) -> Self {
         Self {
-            key,
-            contract_identity,
-            contract_revision,
+            key: contract.key().clone(),
+            contract_identity: contract.identity(),
+            contract_revision: contract.revision(),
+            contract,
             kind: ContractValidatedAspectValueKind::Struct(value),
         }
     }
@@ -53,6 +48,27 @@ impl ContractValidatedAspectValue {
 
     pub fn contract_identity(&self) -> AspectIdentity {
         self.contract_identity
+    }
+
+    pub fn contract(&self) -> &AspectContract {
+        &self.contract
+    }
+
+    /// Stable logical width of the native semantic material retained here.
+    ///
+    /// This is deliberately independent of allocator layout and formatting.
+    pub fn semantic_byte_width(&self) -> usize {
+        let value = match &self.kind {
+            ContractValidatedAspectValueKind::Scalar(value) => value.semantic_byte_width(),
+            ContractValidatedAspectValueKind::Struct(value) => {
+                value.fields().fold(0_usize, |total, (field, value)| {
+                    total
+                        .saturating_add(field.as_str().len())
+                        .saturating_add(value.semantic_byte_width())
+                })
+            }
+        };
+        self.contract.semantic_byte_width().saturating_add(value)
     }
 
     pub fn view(&self) -> ContractValidatedAspectValueView<'_> {

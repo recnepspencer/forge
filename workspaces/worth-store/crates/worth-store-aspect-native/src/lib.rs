@@ -40,6 +40,7 @@ mod authority;
 mod boundary_locators;
 mod canonical_basis;
 mod contract_admission;
+mod contract_fingerprint;
 mod denial;
 mod equivalence_basis;
 mod handoff;
@@ -67,7 +68,9 @@ pub use canonical_basis::{
     StoreCanonicalBasisLane, StoreCanonicalBasisSourceDenial, StoreCanonicalBasisSourceKind,
     StoreCanonicalBasisSourceOwner, STORE_CANONICAL_BASIS_SOURCE_OWNERS,
 };
-pub use contract_admission::StoreAspectContractAdmission;
+pub use contract_admission::{
+    StoreAspectBindingStamp, StoreAspectContractAdmission, StoreAspectContractStamp,
+};
 pub use denial::StoreAspectNativeDenial;
 pub use equivalence_basis::{
     deny_basis_free_digest_comparison, deny_basis_free_parity, deny_basis_free_reuse,

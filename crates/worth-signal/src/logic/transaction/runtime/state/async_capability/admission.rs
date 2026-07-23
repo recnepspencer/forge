@@ -28,6 +28,7 @@ where
         let classification = self.classify_async_node_admission(
             intent.node(),
             intent.previous_value_reference(),
+            intent.requires_clean_dependencies(),
             AsyncAdmissionMode::NewLineage,
         )?;
         if classification.class() == AsyncNodeAdmissionClass::BlockedByCondition {
@@ -51,6 +52,7 @@ where
         let classification = self.classify_async_node_admission(
             intent.node(),
             intent.previous_value_reference(),
+            intent.requires_clean_dependencies(),
             AsyncAdmissionMode::Refresh,
         )?;
         if classification.class() == AsyncNodeAdmissionClass::BlockedByCondition {
@@ -71,6 +73,7 @@ where
         &mut self,
         node: NodeId,
         previous_value_reference: Option<&TemporalPreviousValueReference>,
+        requires_clean_dependencies: bool,
         mode: AsyncAdmissionMode,
     ) -> Result<AsyncNodeAdmissionClassification, SignalError> {
         self.ensure_live_async_node_owner(node, "admit async node request")?;
@@ -110,6 +113,12 @@ where
         if block_class.is_none() {
             block_class =
                 self.condition_block_class(node, &condition, dirty_aspects, max_dependency_delta)?;
+        }
+        if block_class.is_none()
+            && requires_clean_dependencies
+            && node_state != crate::data::node::NodeState::Clean
+        {
+            block_class = Some(AsyncNodeConditionBlockClass::DependencyNotReady);
         }
 
         let class = match (mode, block_class, lifecycle_class) {
@@ -173,6 +182,7 @@ where
                 .as_ref()
                 .map_or(0, |scopes| scopes.len() as u32),
             max_dependency_delta,
+            requires_clean_dependencies,
             previous_value_reference.cloned(),
             decision_digest,
             performance,

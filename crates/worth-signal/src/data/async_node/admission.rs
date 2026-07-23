@@ -26,6 +26,7 @@ pub enum AsyncNodeConditionBlockClass {
     PreviousValueReferenceDrifted,
     CustomConditionResolverRequired,
     CustomConditionRejected,
+    DependencyNotReady,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -40,6 +41,7 @@ pub struct AsyncNodeAdmissionClassification {
     dirty_partition_scope_count: u32,
     contract_partition_scope_count: u32,
     max_dependency_delta: u64,
+    requires_clean_dependencies: bool,
     previous_value_reference: Option<TemporalPreviousValueReference>,
     decision_digest: ResourcePolicyDigest,
     performance: ResourceBoundaryPerformanceEnvelope,
@@ -58,6 +60,7 @@ impl AsyncNodeAdmissionClassification {
         dirty_partition_scope_count: u32,
         contract_partition_scope_count: u32,
         max_dependency_delta: u64,
+        requires_clean_dependencies: bool,
         previous_value_reference: Option<TemporalPreviousValueReference>,
         decision_digest: ResourcePolicyDigest,
         performance: ResourceBoundaryPerformanceEnvelope,
@@ -73,6 +76,7 @@ impl AsyncNodeAdmissionClassification {
             dirty_partition_scope_count,
             contract_partition_scope_count,
             max_dependency_delta,
+            requires_clean_dependencies,
             previous_value_reference,
             decision_digest,
             performance,
@@ -117,6 +121,10 @@ impl AsyncNodeAdmissionClassification {
 
     pub fn max_dependency_delta(&self) -> u64 {
         self.max_dependency_delta
+    }
+
+    pub fn requires_clean_dependencies(&self) -> bool {
+        self.requires_clean_dependencies
     }
 
     pub fn previous_value_reference(&self) -> Option<&TemporalPreviousValueReference> {

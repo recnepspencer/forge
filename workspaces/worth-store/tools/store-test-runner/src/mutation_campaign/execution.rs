@@ -14,7 +14,9 @@ pub(super) fn execute(
     let source = sandbox.workspace().join(mutation.source);
     let original = std::fs::read_to_string(&source)
         .map_err(|error| format!("cannot read mutation source {}: {error}", source.display()))?;
-    let occurrences = original.matches(mutation.needle).count();
+    let needle = mutation.source_needle(&original);
+    let replacement = mutation.source_replacement(&original);
+    let occurrences = original.matches(needle.as_ref()).count();
     if occurrences != 1 {
         return Err(format!(
             "mutant {} requires one exact source seam in {}, found {occurrences}",
@@ -22,7 +24,7 @@ pub(super) fn execute(
             source.display()
         ));
     }
-    let mutated = original.replacen(mutation.needle, mutation.replacement, 1);
+    let mutated = original.replacen(needle.as_ref(), replacement.as_ref(), 1);
     std::fs::write(&source, &mutated)
         .map_err(|error| format!("cannot install mutant {}: {error}", mutation.id))?;
     let result = run_test(sandbox, mutation);

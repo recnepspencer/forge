@@ -76,4 +76,33 @@ impl AspectValue {
             _ => true,
         }
     }
+
+    /// Stable logical width of the native value, excluding allocator layout.
+    pub fn semantic_byte_width(&self) -> usize {
+        match self {
+            Self::Null => 1,
+            Self::Bool(_) | Self::Int8(_) | Self::UInt8(_) => 2,
+            Self::Int16(_) | Self::UInt16(_) => 3,
+            Self::Int32(_) | Self::UInt32(_) | Self::Float32(_) | Self::Date(_) => 5,
+            Self::Int64(_)
+            | Self::UInt64(_)
+            | Self::Float64(_)
+            | Self::Time(_)
+            | Self::Timestamp(_)
+            | Self::Bytes(_)
+            | Self::ContentRef(_) => 9,
+            Self::Decimal(value) => 1_usize.saturating_add(value.as_str().len()),
+            Self::BigInt(value) => 1_usize.saturating_add(value.as_str().len()),
+            Self::Rational(value) => 1_usize
+                .saturating_add(value.numerator.as_str().len())
+                .saturating_add(value.denominator.as_str().len()),
+            Self::String(super::scalar_wrappers::InternedString::Raw(value)) => {
+                1_usize.saturating_add(value.len())
+            }
+            Self::String(super::scalar_wrappers::InternedString::Symbol(_)) => 5,
+            Self::Uuid(_) => 17,
+            Self::TimestampTz(_) => 13,
+            Self::EntityRef(_) => 17,
+        }
+    }
 }

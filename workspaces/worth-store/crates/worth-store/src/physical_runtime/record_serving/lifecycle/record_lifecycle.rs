@@ -43,12 +43,12 @@ impl RecordServingCounterSnapshot {
     }
 }
 
-pub(in crate::physical_runtime::record_serving) struct RecordServingOwner {
+pub(in crate::physical_runtime) struct RecordServingOwner {
     counters: Arc<RecordServingCounterCells>,
 }
 
 impl RecordServingOwner {
-    pub(in crate::physical_runtime::record_serving) fn new() -> Self {
+    pub(in crate::physical_runtime) fn new() -> Self {
         Self {
             counters: Arc::new(RecordServingCounterCells::new()),
         }
@@ -66,6 +66,14 @@ impl RecordServingOwner {
         &self,
     ) -> Arc<RecordServingCounterCells> {
         Arc::clone(&self.counters)
+    }
+
+    pub(in crate::physical_runtime) fn into_terminal_snapshot(
+        self,
+    ) -> RecordServingCounterSnapshot {
+        let counters = Arc::clone(&self.counters);
+        drop(self);
+        counters.snapshot()
     }
 }
 
@@ -186,7 +194,7 @@ impl RecordServingCounterCells {
         }
     }
 
-    pub(in crate::physical_runtime::record_serving) fn snapshot(
+    pub(in crate::physical_runtime::record_serving::lifecycle) fn snapshot(
         &self,
     ) -> RecordServingCounterSnapshot {
         RecordServingCounterSnapshot {

@@ -53,4 +53,21 @@ impl AspectContract {
     pub fn evolution(&self) -> crate::aspects::evolution::AspectEvolutionPolicy {
         self.evolution
     }
+
+    /// Stable logical width of this contract's native semantic material.
+    pub fn semantic_byte_width(&self) -> usize {
+        let shape = match &self.shape {
+            AspectShape::Struct(shape) => shape.fields().iter().fold(1_usize, |total, field| {
+                total
+                    .saturating_add(field.key().as_str().len())
+                    .saturating_add(4)
+            }),
+            _ => 2,
+        };
+        self.key
+            .as_str()
+            .len()
+            .saturating_add(20)
+            .saturating_add(shape)
+    }
 }

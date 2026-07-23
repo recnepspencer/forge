@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ControlledMutation {
     pub(super) id: u8,
@@ -8,6 +10,24 @@ pub(super) struct ControlledMutation {
     pub(super) package: &'static str,
     pub(super) target: MutationTarget,
     pub(super) selector: &'static str,
+}
+
+impl ControlledMutation {
+    pub(super) fn source_needle(&self, source: &str) -> Cow<'static, str> {
+        source_line_ending(self.needle, source)
+    }
+
+    pub(super) fn source_replacement(&self, source: &str) -> Cow<'static, str> {
+        source_line_ending(self.replacement, source)
+    }
+}
+
+fn source_line_ending(template: &'static str, source: &str) -> Cow<'static, str> {
+    if source.contains("\r\n") {
+        Cow::Owned(template.replace('\n', "\r\n"))
+    } else {
+        Cow::Borrowed(template)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -201,13 +221,40 @@ mod tests {
             let source = workspace.join(mutation.source);
             let contents = std::fs::read_to_string(&source)
                 .unwrap_or_else(|error| panic!("cannot read {}: {error}", source.display()));
+            let needle = mutation.source_needle(&contents);
             assert_eq!(
-                contents.matches(mutation.needle).count(),
+                contents.matches(needle.as_ref()).count(),
                 1,
                 "mutant {} must bind exactly once in {}",
                 mutation.id,
                 source.display()
             );
         }
+    }
+
+    #[test]
+    fn mutation_source_binding_follows_lf_and_crlf_without_changing_the_seam() {
+        let mutation = &mutations()[0];
+        let lf_source = mutation.needle.to_owned();
+        let crlf_source = mutation.needle.replace('\n', "\r\n");
+
+        assert_eq!(
+            lf_source
+                .matches(mutation.source_needle(&lf_source).as_ref())
+                .count(),
+            1
+        );
+        assert_eq!(
+            crlf_source
+                .matches(mutation.source_needle(&crlf_source).as_ref())
+                .count(),
+            1
+        );
+        let crlf_replacement = mutation.source_replacement(&crlf_source);
+        assert_eq!(
+            crlf_replacement.matches("\r\n").count(),
+            mutation.replacement.matches('\n').count()
+        );
+        assert!(!crlf_replacement.replace("\r\n", "").contains('\n'));
     }
 }

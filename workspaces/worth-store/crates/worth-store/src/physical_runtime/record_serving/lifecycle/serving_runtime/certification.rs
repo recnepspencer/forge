@@ -1,6 +1,26 @@
 use super::ServingPhysicalRuntime;
 
 impl ServingPhysicalRuntime {
+    pub fn certification_begin_lifecycle_termination(&self) {
+        self.parts.termination.begin_for_certification();
+    }
+
+    pub fn certification_pause_physical_command_shards_after_lock(
+        &self,
+    ) -> crate::physical_runtime::certification::CertificationPhysicalSubmissionPauseGate {
+        self.parts
+            .work_submission
+            .pause_after_command_shard_lock_for_certification()
+    }
+
+    pub fn certification_fail_physical_signal_worker(&self) {
+        self.parts.signal_owner.fail_worker_for_certification();
+    }
+
+    pub fn certification_require_serving_inspection(&self) {
+        self.parts.health.revoke();
+    }
+
     pub fn certification_publication_summary(
         &self,
     ) -> Result<
@@ -9,12 +29,12 @@ impl ServingPhysicalRuntime {
     > {
         crate::physical_runtime::record_serving::evidence::canonical_observation::observe_runtime_topology(
             crate::physical_runtime::record_serving::evidence::canonical_observation::RuntimeTopologySource {
-                media: &self.media,
-                frame_load: self.frame_ports.loader(),
-                format: self.format,
-                access: self.access,
-                root: &self.current_root,
-                free_space: &self.free_space,
+                media: self.parts.executor.record_serving_media(),
+                frame_load: self.parts.frame_ports.loader(),
+                format: self.parts.format,
+                access: self.parts.access,
+                root: &self.parts.current_root,
+                free_space: &self.parts.free_space,
             },
         )
     }
@@ -22,7 +42,7 @@ impl ServingPhysicalRuntime {
     pub fn certification_frame_port_observer(
         &self,
     ) -> crate::physical_runtime::record_serving::FramePortCounterObserver {
-        self.frame_ports.observer()
+        self.parts.frame_ports.observer()
     }
 
     pub fn certification_admit_dirty_frame(
@@ -30,7 +50,8 @@ impl ServingPhysicalRuntime {
         coordinate: worth_store_physical_format::RecordFrameCoordinate,
         bytes: Vec<u8>,
     ) -> Result<(), worth_store_buffer_pool::PhysicalResidencyDenial> {
-        self.frame_ports
+        self.parts
+            .frame_ports
             .admit_dirty_for_certification(coordinate, bytes)
     }
 
@@ -44,12 +65,14 @@ impl ServingPhysicalRuntime {
         worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration,
         worth_store_buffer_pool::PhysicalResidencyDenial,
     > {
-        self.frame_ports.writeback_declaration_for_certification(
-            coordinate,
-            grouping,
-            flush_epoch,
-            resource_shape,
-        )
+        self.parts
+            .frame_ports
+            .writeback_declaration_for_certification(
+                coordinate,
+                grouping,
+                flush_epoch,
+                resource_shape,
+            )
     }
 
     #[cfg(test)]
@@ -59,7 +82,7 @@ impl ServingPhysicalRuntime {
     ) -> Vec<u8> {
         let mut bytes = vec![0; coordinate.length() as usize];
         crate::physical_runtime::record_serving::residency::artifact_tree::PhysicalRecordArtifactTree::new(
-            &self.media,
+            self.parts.executor.record_serving_media(),
         )
         .read_exact_at(coordinate.artifact(), coordinate.offset(), &mut bytes)
         .expect("certification artifact range must remain readable");

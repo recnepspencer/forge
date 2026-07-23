@@ -231,6 +231,40 @@ fn async_node_condition_gated_request_blocks_without_mutating_lifecycle_truth() 
 }
 
 #[test]
+fn async_node_clean_dependency_request_blocks_dirty_lineage_before_resource_admission() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let node = graph.node().build();
+    graph
+        .append_dependency(node, source, Aspect::new(0))
+        .expect("dependency should wire");
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 1));
+    let mut node_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut source_v1).expect("source should evaluate");
+    evaluate(&mut graph, node, &mut node_v1).expect("dependent should evaluate");
+    mark_dirty(&mut graph, source, Aspect::new(0)).expect("source should invalidate dependent");
+    let mut runtime = TestRuntime::build(graph);
+    let capability = runtime
+        .attach_async_capability(async_node_capability_declaration(node))
+        .expect("capability should attach");
+
+    let report = runtime
+        .admit_async_node_request(capability.request_intent_requiring_clean_dependencies())
+        .expect("dependency block should remain report-shaped");
+
+    assert_eq!(
+        report.classification().condition_block_class(),
+        Some(AsyncNodeConditionBlockClass::DependencyNotReady)
+    );
+    assert!(report.classification().requires_clean_dependencies());
+    assert!(report.resource_admission().is_none());
+    assert_eq!(
+        runtime.resource_runtime_summary().in_flight_request_count(),
+        0
+    );
+}
+
+#[test]
 fn async_node_temporal_request_admission_blocks_until_clock_reaches_ready_tick() {
     let mut graph = SignalGraph::new();
     let node = graph

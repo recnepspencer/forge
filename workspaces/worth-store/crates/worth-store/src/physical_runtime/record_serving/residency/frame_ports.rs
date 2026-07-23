@@ -19,7 +19,7 @@ use super::candidate_frame_publishers::{
 };
 use super::frame_loading::BoundedFrameLoader;
 
-pub(in crate::physical_runtime::record_serving) struct RecordFramePorts {
+pub(in crate::physical_runtime) struct RecordFramePorts {
     pool: PhysicalResidencyPool,
     loader: BoundedFrameLoader,
     publisher: BoundedCandidateFramePublisher,
@@ -70,7 +70,7 @@ impl RecordFramePorts {
     ) -> PhysicalResidencyCounters {
         self.pool.counters()
     }
-    pub(in crate::physical_runtime::record_serving) fn close(&self) -> PhysicalResidencyShutdown {
+    pub(in crate::physical_runtime) fn close(&self) -> PhysicalResidencyShutdown {
         self.pool.close()
     }
 

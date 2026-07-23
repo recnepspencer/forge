@@ -61,6 +61,11 @@ impl LifecycleTerminationGuard {
     fn begin(&self) {
         self.state.begin_termination();
     }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn begin_for_certification(&self) {
+        self.begin();
+    }
 }
 
 impl Drop for LifecycleTerminationGuard {

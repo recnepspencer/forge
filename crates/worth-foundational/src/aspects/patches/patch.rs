@@ -40,6 +40,34 @@ impl AuthoritativeRecordAspectPatch {
             && self.whole_aspect_clears.is_empty()
             && self.field_patches.is_empty()
     }
+
+    pub fn semantic_byte_width(&self) -> usize {
+        let sets = self
+            .whole_aspect_sets
+            .iter()
+            .fold(0_usize, |total, (key, value)| {
+                total
+                    .saturating_add(key.as_str().len())
+                    .saturating_add(value.semantic_byte_width())
+            });
+        let clears = self
+            .whole_aspect_clears
+            .iter()
+            .fold(0_usize, |total, (key, contract)| {
+                total
+                    .saturating_add(key.as_str().len())
+                    .saturating_add(contract.semantic_byte_width())
+            });
+        let fields = self
+            .field_patches
+            .iter()
+            .fold(0_usize, |total, (key, patch)| {
+                total
+                    .saturating_add(key.as_str().len())
+                    .saturating_add(patch.semantic_byte_width())
+            });
+        sets.saturating_add(clears).saturating_add(fields)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,5 +97,26 @@ impl FieldLevelAspectPatch {
 
     pub fn field_clears(&self) -> impl Iterator<Item = &FieldKey> {
         self.field_clears.iter()
+    }
+
+    pub fn semantic_byte_width(&self) -> usize {
+        let sets = self.field_sets.iter().fold(0_usize, |total, (key, value)| {
+            total
+                .saturating_add(key.as_str().len())
+                .saturating_add(value.semantic_byte_width())
+        });
+        let clears = self.field_clears.iter().fold(0_usize, |total, key| {
+            total.saturating_add(key.as_str().len())
+        });
+        let mask = self.mask.paths().iter().fold(0_usize, |total, path| {
+            path.fields().iter().fold(total, |path_total, field| {
+                path_total.saturating_add(field.as_str().len())
+            })
+        });
+        self.contract
+            .semantic_byte_width()
+            .saturating_add(sets)
+            .saturating_add(clears)
+            .saturating_add(mask)
     }
 }

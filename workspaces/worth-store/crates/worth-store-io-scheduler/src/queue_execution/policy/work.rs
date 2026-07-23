@@ -301,7 +301,7 @@ const fn writeback_policy_for_producer(kind: QueueProducerKind) -> QueueWritebac
     }
 }
 
-fn budget_from_shape(
+pub(super) fn budget_from_shape(
     shape: QueueProducerResourceShape,
 ) -> Result<BackgroundResourceBudget, QueueExecutionAdmissionDenial> {
     let mut budget = BackgroundResourceBudget::new();

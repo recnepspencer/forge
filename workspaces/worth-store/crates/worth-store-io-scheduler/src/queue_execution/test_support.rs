@@ -48,7 +48,7 @@ pub(crate) fn admitted_write_back_plan() -> QueueExecutionReadyPlan {
     admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(work.requested_budget()),
+        policy_receipt(work),
     ))
     .expect("write-back queue work should admit")
 }
@@ -69,7 +69,7 @@ pub(crate) fn admitted_plan_for_backend_profile(
     admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(budget),
+        policy_receipt(work),
     ))
     .expect("test plan should admit")
 }
@@ -313,8 +313,18 @@ impl TestBackendQueueCompletionBuilder {
 }
 
 pub(crate) fn policy_receipt(
-    budget: BackgroundResourceBudget,
-) -> worth_foundational::FoundationalPolicyAdmissionReceipt {
+    work: QueueWorkDeclaration,
+) -> crate::QueuePolicyAdmissionReceipt {
+    let budget = work.requested_budget();
+    let work_class = match work.durability_class() {
+        QueueDurabilityClass::ReadOnly => FoundationalPerformanceWorkClass::AuthoritativeRead,
+        QueueDurabilityClass::BufferedWrite | QueueDurabilityClass::WalCommit => {
+            FoundationalPerformanceWorkClass::AuthoritativeMutation
+        }
+        QueueDurabilityClass::PlatformDurable => {
+            FoundationalPerformanceWorkClass::PublicationDelivery
+        }
+    };
     let claim = performance()
         .claim()
         .policy_admission()
@@ -325,11 +335,11 @@ pub(crate) fn policy_receipt(
         .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
         .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
         .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
-        .include_work(FoundationalPerformanceWorkClass::ValidationPlanning)
+        .include_work(work_class)
         .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
         .finish()
         .expect("policy claim should build");
-    performance()
+    let receipt = performance()
         .policy_admission_receipt(claim)
         .budget_decision(
             FoundationalPerformanceBudgetKind::Breadth,
@@ -349,7 +359,8 @@ pub(crate) fn policy_receipt(
                 as u32,
         )
         .finish()
-        .expect("policy receipt should build")
+        .expect("policy receipt should build");
+    crate::admit_queue_policy_receipt(work, receipt).expect("policy receipt should bind exact work")
 }
 
 fn backend_witness_for_profile(

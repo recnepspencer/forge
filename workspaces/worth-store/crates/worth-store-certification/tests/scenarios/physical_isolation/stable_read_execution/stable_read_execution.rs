@@ -346,7 +346,7 @@ fn resident_frame_guard_rejects_mismatched_lease_provenance() {
         .unwrap();
     let pinned = lease.pin().unwrap();
     let admission = execution
-        .admit_byte_guard(PhysicalByteGuardScope::for_resident_frame(
+        .admit_byte_guard(PhysicalByteGuardScope::for_legacy_resident_frame(
             protected,
             pinned.resident_frame_token(),
         ))

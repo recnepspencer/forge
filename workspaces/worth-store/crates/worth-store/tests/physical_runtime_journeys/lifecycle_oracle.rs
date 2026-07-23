@@ -69,7 +69,7 @@ pub fn assert_terminal_observation(
             transition.source == OracleLifecyclePhase::Admitted && transition.action == action
         })
         .expect("the independent C.3 lifecycle table must cover every exercised action");
-    let expected_terminal_generation = admitted_generation.get() + 1;
+    let expected_terminal_generation = admitted_generation.get() + 2;
 
     match (transition.terminal, transition.observation, outcome) {
         (

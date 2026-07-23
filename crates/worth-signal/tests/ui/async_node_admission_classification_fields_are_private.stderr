@@ -26,7 +26,7 @@ error: cannot construct `AsyncNodeAdmissionClassification` with struct literal s
 19 |         performance: fake(),
    |         ------------------- private field
    |
-   = note: ...and other private fields `dirty_partition_scope_count` and `contract_partition_scope_count` that were not provided
+   = note: ...and other private fields `dirty_partition_scope_count`, `contract_partition_scope_count` and `requires_clean_dependencies` that were not provided
 help: you might have meant to use the `new` associated function
    |
  8 -     let _classification = AsyncNodeAdmissionClassification {
@@ -42,5 +42,5 @@ help: you might have meant to use the `new` associated function
 18 -         decision_digest: fake(),
 19 -         performance: fake(),
 20 -     };
- 8 +     let _classification = AsyncNodeAdmissionClassification::new(_, _, _, _, _, _, _, _, _, _, _, _, _);
+ 8 +     let _classification = AsyncNodeAdmissionClassification::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _);
    |
