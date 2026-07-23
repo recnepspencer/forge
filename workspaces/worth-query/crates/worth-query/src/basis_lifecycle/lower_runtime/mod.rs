@@ -1,7 +1,7 @@
 use crate::identity::hash_parts;
 
 use super::counters::BasisEligibilityCounters;
-use super::proofs::BasisEligibilityDecisionTrace;
+use super::decision_trace::BasisEligibilityDecisionTrace;
 use super::scoping::ScopedBasisProof;
 use super::taxonomy::{BasisAuthorityPosture, DeniedBasisCapabilityKind};
 use super::DeniedBasisCapability;

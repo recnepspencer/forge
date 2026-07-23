@@ -1,5 +1,6 @@
 mod builder;
 mod comparison;
+mod compatibility;
 mod condition;
 mod condition_parameter;
 mod declaration;
@@ -13,6 +14,15 @@ mod trigger;
 mod validation;
 
 pub use builder::WorthQueryPortableConditionalNodeBuilder;
+pub use compatibility::{
+    compare_portable_conditional_node_declarations, portable_conditional_node_canonical_material,
+    WorthQueryPortableConditionalComparisonEquivalent,
+    WorthQueryPortableConditionalComparisonMismatch,
+    WorthQueryPortableConditionalComparisonOutcome,
+    WorthQueryPortableConditionalComparisonUnsupported,
+    WorthQueryPortableConditionalDependencyLocation, WorthQueryPortableConditionalDependencyPart,
+    WorthQueryPortableConditionalDimension, WorthQueryPortableConditionalOutputPart,
+};
 pub use condition::{
     WorthQueryConditionalConditionClass, WorthQueryConditionalEvaluationCondition,
     WorthQueryDeltaComparisonDomain, WorthQueryDeltaThreshold, WorthQueryThresholdBoundary,

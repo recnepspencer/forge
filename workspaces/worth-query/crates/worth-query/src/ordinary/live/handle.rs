@@ -51,6 +51,15 @@ impl WorthQueryManagedLiveHandle {
         self.projection_binding().consume_live(read, declaration)
     }
 
+    pub(crate) fn project_contract(
+        &self,
+        read: &WorthQueryLiveReadResult,
+        contract: crate::projection_consumption::ProjectionAuthorityContract,
+    ) -> WorthQueryProjectionOutcome {
+        self.projection_binding()
+            .consume_live_contract(read, contract)
+    }
+
     pub fn drain(
         &self,
         workspace: &mut WorthQueryWorkspace,

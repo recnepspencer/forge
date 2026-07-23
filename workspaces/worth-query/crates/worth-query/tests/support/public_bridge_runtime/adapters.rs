@@ -23,6 +23,7 @@ use worth_query::facade::runtime::{
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts, RuntimeBridge,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 use super::external_row::{apply_aspects_to_external_row, external_row_from_aspects};
@@ -166,13 +167,11 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
         let entity_identity = match mutation.mutation_family() {
             worth_query::facade::runtime::WorthQueryMutationFamily::Insert => {
                 state.next_entity_identity += 1;
-                WorthQueryEntityIdentity::from_relational_record(
-                    RelationalBridgeRecordIdentityParts::entity(
-                        1,
-                        state.next_entity_identity as u64,
-                        0,
-                    ),
-                )
+                public_entity_identity(RelationalBridgeRecordIdentityParts::entity(
+                    1,
+                    state.next_entity_identity as u64,
+                    0,
+                ))
             }
             _ => mutation
                 .declared_entity_identity_ref()
@@ -196,8 +195,7 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
         let mutation_kind = apply_command(&mut state, &mutation, &collection, &entity_identity)?;
         state.next_commit_identity += 1;
         state.next_snapshot_token += 1;
-        let commit_identity =
-            WorthQueryCommitIdentity::from_relational_commit_id(state.next_commit_identity as u64);
+        let commit_identity = public_commit_identity(state.next_commit_identity as u64);
         let snapshot_identity = public_snapshot_identity(state.next_snapshot_token as u64);
         let bridge_authority = self.build_bridge_mutation_authority_bundle(
             _bridge,
@@ -289,7 +287,7 @@ impl WorthQueryRuntimeSnapshotIdentityAdapter for PublicSnapshotIdentityAdapter 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
         let state = self.state.borrow();
         match state.current_snapshot_parts {
-            Some((snapshot, version)) => WorthQuerySnapshotIdentity::from_relational_snapshot(
+            Some((snapshot, version)) => public_snapshot_from_parts(
                 RelationalBridgeSnapshotIdentityParts::new(snapshot, version),
             ),
             None => public_snapshot_identity(state.next_snapshot_token as u64),
@@ -298,9 +296,26 @@ impl WorthQueryRuntimeSnapshotIdentityAdapter for PublicSnapshotIdentityAdapter 
 }
 
 fn public_snapshot_identity(position: u64) -> WorthQuerySnapshotIdentity {
-    WorthQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(1, position),
+    public_snapshot_from_parts(RelationalBridgeSnapshotIdentityParts::new(1, position))
+}
+
+fn public_snapshot_from_parts(
+    parts: RelationalBridgeSnapshotIdentityParts,
+) -> WorthQuerySnapshotIdentity {
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
+        TruthSnapshotIdentity::from_relational_snapshot(parts),
     )
+    .expect("public relational snapshot projection retains typed parts")
+}
+
+fn public_commit_identity(position: u64) -> WorthQueryCommitIdentity {
+    WorthQueryCommitIdentity::from_bridge_commit_projection(
+        TruthCommitIdentity::from_relational_commit_id(position),
+    )
+}
+
+fn public_entity_identity(parts: RelationalBridgeRecordIdentityParts) -> WorthQueryEntityIdentity {
+    WorthQueryEntityIdentity::from_bridge_record_projection(parts)
 }
 
 pub(super) struct PublicSignalSinkAdapter;

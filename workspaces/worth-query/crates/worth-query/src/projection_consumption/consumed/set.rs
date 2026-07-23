@@ -4,6 +4,7 @@ use super::facts::{
     ConsumedViewLocalIdentityFact,
 };
 use super::field_value_fact::ConsumedFieldValueFact;
+use super::native_layout::ConsumedNativeLayoutProof;
 use crate::projection_consumption::identity::{
     compose_consumed_projection_fact_set_digest, compose_extraction_counters_digest,
 };
@@ -12,6 +13,7 @@ use crate::projection_consumption::ProjectionMaterializedFactPosture;
 
 use super::super::contracts::ProjectionContractSupportPosture;
 use super::super::source::{ProjectionSourceFamily, ProjectionSourceIdentity};
+use super::super::MaterializedProjectionContract;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ProjectionFactExtractionCounters {
@@ -71,49 +73,89 @@ impl ProjectionFactExtractionCounters {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ConsumedProjectionFactSet {
+pub(crate) struct ConsumedProjectionContractProvenance {
     declaration_digest: String,
     contract_digest: String,
-    source_family: ProjectionSourceFamily,
-    source_identity: ProjectionSourceIdentity,
     support_posture: ProjectionContractSupportPosture,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
+}
+
+impl ConsumedProjectionContractProvenance {
+    pub(crate) fn from_contract(contract: &MaterializedProjectionContract) -> Self {
+        Self {
+            declaration_digest: contract.declaration_digest().to_owned(),
+            contract_digest: contract.contract_digest().to_owned(),
+            support_posture: contract.support_posture().clone(),
+            materialized_fact_posture: contract.materialized_fact_posture().cloned(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ConsumedProjectionSourceTruth {
+    source_family: ProjectionSourceFamily,
+    source_identity: ProjectionSourceIdentity,
+    native_layout: ConsumedNativeLayoutProof,
+}
+
+impl ConsumedProjectionSourceTruth {
+    pub(crate) fn from_contract(
+        contract: &MaterializedProjectionContract,
+        native_layout: ConsumedNativeLayoutProof,
+    ) -> Self {
+        Self {
+            source_family: contract.source_family(),
+            source_identity: contract.source_identity_handle().clone(),
+            native_layout,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ConsumedProjectionFactInventory {
+    pub(crate) entity_identities: Vec<ConsumedEntityIdentityFact>,
+    pub(crate) view_local_identities: Vec<ConsumedViewLocalIdentityFact>,
+    pub(crate) memberships: Vec<ConsumedMembershipFact>,
+    pub(crate) display_fields: Vec<ConsumedFieldValueFact>,
+    pub(crate) derived_fields: Vec<ConsumedFieldValueFact>,
+    pub(crate) target_identities: Vec<ConsumedTargetIdentityFact>,
+    pub(crate) source_references: Vec<ConsumedSourceReferenceFact>,
+    pub(crate) effect_continuity_facts: Vec<ConsumedEffectContinuityFact>,
+    pub(crate) relation_endpoints: Vec<ConsumedRelationEndpointFact>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ConsumedProjectionFactSet {
+    provenance: ConsumedProjectionContractProvenance,
+    source_truth: ConsumedProjectionSourceTruth,
     counters: ProjectionFactExtractionCounters,
     fact_set_digest: String,
-    entity_identities: Vec<ConsumedEntityIdentityFact>,
-    view_local_identities: Vec<ConsumedViewLocalIdentityFact>,
-    memberships: Vec<ConsumedMembershipFact>,
-    display_fields: Vec<ConsumedFieldValueFact>,
-    derived_fields: Vec<ConsumedFieldValueFact>,
-    target_identities: Vec<ConsumedTargetIdentityFact>,
-    source_references: Vec<ConsumedSourceReferenceFact>,
-    effect_continuity_facts: Vec<ConsumedEffectContinuityFact>,
-    relation_endpoints: Vec<ConsumedRelationEndpointFact>,
+    facts: ConsumedProjectionFactInventory,
 }
 
 impl ConsumedProjectionFactSet {
     pub fn declaration_digest(&self) -> &str {
-        &self.declaration_digest
+        &self.provenance.declaration_digest
     }
 
     pub fn contract_digest(&self) -> &str {
-        &self.contract_digest
+        &self.provenance.contract_digest
     }
 
     pub fn source_family(&self) -> ProjectionSourceFamily {
-        self.source_family
+        self.source_truth.source_family
     }
 
     pub fn source_identity(&self) -> &str {
-        self.source_identity.as_str()
+        self.source_truth.source_identity.as_str()
     }
 
     pub fn source_identity_handle(&self) -> &ProjectionSourceIdentity {
-        &self.source_identity
+        &self.source_truth.source_identity
     }
 
     pub fn support_posture(&self) -> &ProjectionContractSupportPosture {
-        &self.support_posture
+        &self.provenance.support_posture
     }
 
     pub fn counters(&self) -> &ProjectionFactExtractionCounters {
@@ -121,47 +163,51 @@ impl ConsumedProjectionFactSet {
     }
 
     pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
-        self.materialized_fact_posture.as_ref()
+        self.provenance.materialized_fact_posture.as_ref()
     }
 
     pub fn fact_set_digest(&self) -> &str {
         &self.fact_set_digest
     }
 
+    pub(crate) fn native_layout(&self) -> &ConsumedNativeLayoutProof {
+        &self.source_truth.native_layout
+    }
+
     pub fn entity_identities(&self) -> &[ConsumedEntityIdentityFact] {
-        &self.entity_identities
+        &self.facts.entity_identities
     }
 
     pub fn view_local_identities(&self) -> &[ConsumedViewLocalIdentityFact] {
-        &self.view_local_identities
+        &self.facts.view_local_identities
     }
 
     pub fn memberships(&self) -> &[ConsumedMembershipFact] {
-        &self.memberships
+        &self.facts.memberships
     }
 
     pub fn display_fields(&self) -> &[ConsumedFieldValueFact] {
-        &self.display_fields
+        &self.facts.display_fields
     }
 
     pub fn derived_fields(&self) -> &[ConsumedFieldValueFact] {
-        &self.derived_fields
+        &self.facts.derived_fields
     }
 
     pub fn target_identities(&self) -> &[ConsumedTargetIdentityFact] {
-        &self.target_identities
+        &self.facts.target_identities
     }
 
     pub fn source_references(&self) -> &[ConsumedSourceReferenceFact] {
-        &self.source_references
+        &self.facts.source_references
     }
 
     pub fn effect_continuity_facts(&self) -> &[ConsumedEffectContinuityFact] {
-        &self.effect_continuity_facts
+        &self.facts.effect_continuity_facts
     }
 
     pub fn relation_endpoints(&self) -> &[ConsumedRelationEndpointFact] {
-        &self.relation_endpoints
+        &self.facts.relation_endpoints
     }
 
     pub fn issue_receipt(&self) -> ProjectionConsumptionReceipt {
@@ -169,61 +215,35 @@ impl ConsumedProjectionFactSet {
     }
 
     pub(crate) fn new(
-        declaration_digest: impl Into<String>,
-        contract_digest: impl Into<String>,
-        source_family: ProjectionSourceFamily,
-        source_identity: ProjectionSourceIdentity,
-        support_posture: ProjectionContractSupportPosture,
-        materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
+        provenance: ConsumedProjectionContractProvenance,
+        source_truth: ConsumedProjectionSourceTruth,
         counters: ProjectionFactExtractionCounters,
-        entity_identities: Vec<ConsumedEntityIdentityFact>,
-        view_local_identities: Vec<ConsumedViewLocalIdentityFact>,
-        memberships: Vec<ConsumedMembershipFact>,
-        display_fields: Vec<ConsumedFieldValueFact>,
-        derived_fields: Vec<ConsumedFieldValueFact>,
-        target_identities: Vec<ConsumedTargetIdentityFact>,
-        source_references: Vec<ConsumedSourceReferenceFact>,
-        effect_continuity_facts: Vec<ConsumedEffectContinuityFact>,
-        relation_endpoints: Vec<ConsumedRelationEndpointFact>,
+        facts: ConsumedProjectionFactInventory,
     ) -> Self {
-        let declaration_digest = declaration_digest.into();
-        let contract_digest = contract_digest.into();
         let fact_set_digest = compose_consumed_projection_fact_set_digest(
-            &declaration_digest,
-            &contract_digest,
-            source_family,
-            source_identity.as_str(),
-            &support_posture,
-            materialized_fact_posture.as_ref(),
+            &provenance.declaration_digest,
+            &provenance.contract_digest,
+            source_truth.source_family,
+            source_truth.source_identity.as_str(),
+            &provenance.support_posture,
+            provenance.materialized_fact_posture.as_ref(),
             &counters,
-            &entity_identities,
-            &view_local_identities,
-            &memberships,
-            &display_fields,
-            &derived_fields,
-            &target_identities,
-            &source_references,
-            &effect_continuity_facts,
-            &relation_endpoints,
+            &facts.entity_identities,
+            &facts.view_local_identities,
+            &facts.memberships,
+            &facts.display_fields,
+            &facts.derived_fields,
+            &facts.target_identities,
+            &facts.source_references,
+            &facts.effect_continuity_facts,
+            &facts.relation_endpoints,
         );
         Self {
-            declaration_digest,
-            contract_digest,
-            source_family,
-            source_identity,
-            support_posture,
-            materialized_fact_posture,
+            provenance,
+            source_truth,
             counters,
             fact_set_digest,
-            entity_identities,
-            view_local_identities,
-            memberships,
-            display_fields,
-            derived_fields,
-            target_identities,
-            source_references,
-            effect_continuity_facts,
-            relation_endpoints,
+            facts,
         }
     }
 }

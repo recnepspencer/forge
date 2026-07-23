@@ -96,7 +96,9 @@ pub(crate) fn representative_write_authority_row() -> RepresentativeArtifacts {
 }
 
 pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifacts {
-    let representative_task_identity = representative_entity_identity("task-9");
+    let representative_task_identity = WorthQueryEntityIdentity::from_relational_record(
+        worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 9, 0),
+    );
     let command = WorthQueryWriteCommand::UpdateAspects {
         entity_identity: representative_task_identity.clone(),
         aspects: vec![
@@ -131,30 +133,25 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
         &bridge,
         &snapshot_identity,
         &mutation,
-        "Task",
-        &representative_task_identity,
-        WorthQueryMutationKind::Updated,
+        crate::runtime::WorthQueryBridgeMutationTarget::new(
+            "Task",
+            &representative_task_identity,
+            WorthQueryMutationKind::Updated,
+        ),
     )
     .expect("representative signal authority should build");
     let mutation_receipt = WorthQueryMutationReceipt::from_bridge_authoritative_parts(
         WorthQueryCommitIdentity::from_relational_commit_id(1),
         snapshot_identity,
-        vec![
-            WorthQueryMutationDelta::from_touched_aspects(
-                "Task",
-                representative_task_identity,
-                WorthQueryMutationKind::Updated,
-                vec![status_value_touch()],
-            ),
-            WorthQueryMutationDelta::from_touched_aspects(
-                "Task",
-                representative_entity_identity("task-10"),
-                WorthQueryMutationKind::Updated,
-                vec![priority_value_touch()],
-            ),
-        ],
+        vec![WorthQueryMutationDelta::from_touched_aspects(
+            "Task",
+            representative_task_identity,
+            WorthQueryMutationKind::Updated,
+            vec![status_value_touch(), priority_value_touch()],
+        )],
         bridge_authority,
-    );
+    )
+    .admit_runtime_write_authority();
     let routing = SignalInvalidationRoutingReceipt::from_mutation_receipt(&mutation_receipt)
         .expect("representative signal routing fixture must carry bridge authority");
     let boundary_receipt =

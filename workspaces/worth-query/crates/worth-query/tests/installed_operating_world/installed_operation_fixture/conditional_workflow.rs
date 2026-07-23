@@ -2,11 +2,13 @@ use worth_query::facade::{domain, runtime};
 
 use super::conditional_workspace::{
     conditional_installation, conditional_lineage_model_graph_definition,
-    conditional_model_graph_definition, ConditionalModelGraphProvider,
+    conditional_model_graph_definition, ConditionalInstallation, ConditionalModelGraphProvider,
 };
 use super::executors::WorkflowStageExecutor;
 use super::lineage_workflow::{deferred_lineage_workflow_package, lineage_stages};
-use super::workflow::{valid_stages, workflow_package};
+use super::workflow::{
+    valid_stages, workflow_package, workflow_package_with_operation_conditionals,
+};
 use super::workflow_parallel_providers::WorkflowParallelProvider;
 use super::{
     configured_runtime_without_executors, ConditionalModelGraph, GeometryDomain, ReadFamily,
@@ -20,7 +22,14 @@ pub fn conditional_workflow_workspace(
     runtime::WorthQueryWorkspace,
     worth_query::facade::consumer_kit::WorthQueryTestBackendError,
 > {
-    configured_conditional_workflow_workspace(name, node, false, 1)
+    configured_conditional_workflow_workspace(
+        name,
+        node,
+        "publish",
+        false,
+        None,
+        WorkflowConditionalCompute(1),
+    )
 }
 
 pub fn reverted_conditional_lineage_workflow_workspace(
@@ -30,30 +39,130 @@ pub fn reverted_conditional_lineage_workflow_workspace(
     runtime::WorthQueryWorkspace,
     worth_query::facade::consumer_kit::WorthQueryTestBackendError,
 > {
-    configured_conditional_workflow_workspace(name, node, true, 0)
+    configured_conditional_workflow_workspace(
+        name,
+        node,
+        "publish",
+        true,
+        None,
+        WorkflowConditionalCompute(0),
+    )
 }
 
-fn configured_conditional_workflow_workspace(
+pub(crate) fn operation_conditional_workflow_workspace_with<P>(
     name: &str,
     node: domain::WorthQueryPortableConditionalNodeDeclaration,
-    with_lineage: bool,
-    output_version: u64,
+    installation: ConditionalInstallation,
+    compute: P,
 ) -> Result<
     runtime::WorthQueryWorkspace,
     worth_query::facade::consumer_kit::WorthQueryTestBackendError,
-> {
-    let installation = conditional_installation(&node);
+>
+where
+    P: domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRead, ReadFamily>,
+{
+    let workflow = domain::WorthQueryPortableWorkflowDefinition::new("start", valid_stages());
+    let package = workflow_package_with_operation_conditionals(workflow, true, vec![node])
+        .operation_graph_participation::<WorkflowRead, ReadFamily, ConditionalModelGraph>(
+        "model",
+    );
+    configured_runtime_without_executors(package)
+        .graph_participation(conditional_model_graph_definition())
+        .graph_participation_provider(ConditionalModelGraph, ConditionalModelGraphProvider)
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::ConditionalEvaluation,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::ConditionalComparator,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::ConditionalTrigger,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::ConditionalTemporalOrOnDemand,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .conditional_runtime(installation.bridge, installation.graph)
+        .conditional_node(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            ConditionalModelGraph,
+            domain::WorthQueryConditionalNodeLocation::operation(installation.node_identity)
+                .unwrap(),
+            vec![installation.dependency],
+            installation.providers,
+            compute,
+        )
+        .replayable_workflow_stage_executor(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowStageExecutor,
+        )
+        .workflow_parallel_admission_provider(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowParallelProvider,
+        )
+        .workspace(name)
+}
+
+pub(crate) fn stage_conditional_workflow_workspace_with<P>(
+    name: &str,
+    node: domain::WorthQueryPortableConditionalNodeDeclaration,
+    conditional_stage: &str,
+    installation: ConditionalInstallation,
+    compute: P,
+) -> Result<
+    runtime::WorthQueryWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+>
+where
+    P: domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRead, ReadFamily>,
+{
+    configured_conditional_workflow_workspace(
+        name,
+        node,
+        conditional_stage,
+        false,
+        Some(installation),
+        compute,
+    )
+}
+
+fn configured_conditional_workflow_workspace<P>(
+    name: &str,
+    node: domain::WorthQueryPortableConditionalNodeDeclaration,
+    conditional_stage: &str,
+    with_lineage: bool,
+    installation: Option<ConditionalInstallation>,
+    compute: P,
+) -> Result<
+    runtime::WorthQueryWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+>
+where
+    P: domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRead, ReadFamily>,
+{
+    let installation = installation.unwrap_or_else(|| conditional_installation(&node));
     let mut stages = if with_lineage {
         lineage_stages()
     } else {
         valid_stages()
     };
-    let publish = stages
-        .pop()
-        .expect("the standard workflow retains its publication stage");
-    let mut semantics = publish.semantics().clone();
+    let stage_index = stages
+        .iter()
+        .position(|stage| stage.identity() == conditional_stage)
+        .expect("the conditional stage belongs to the standard workflow");
+    let stage = stages.remove(stage_index);
+    let mut semantics = stage.semantics().clone();
     semantics.conditional_nodes = vec![node];
-    stages.push(publish.with_semantics(semantics));
+    stages.insert(stage_index, stage.with_semantics(semantics));
     let workflow = domain::WorthQueryPortableWorkflowDefinition::new("start", stages);
     let package = if with_lineage {
         deferred_lineage_workflow_package(workflow)
@@ -92,13 +201,13 @@ fn configured_conditional_workflow_workspace(
             ReadFamily,
             ConditionalModelGraph,
             domain::WorthQueryConditionalNodeLocation::workflow_stage(
-                "publish",
+                conditional_stage,
                 installation.node_identity,
             )
             .unwrap(),
             vec![installation.dependency],
             installation.providers,
-            WorkflowConditionalCompute(output_version),
+            compute,
         )
         .replayable_workflow_stage_executor(
             GeometryDomain,
@@ -119,6 +228,12 @@ struct WorkflowConditionalCompute(u64);
 impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRead, ReadFamily>
     for WorkflowConditionalCompute
 {
+    type SemanticContract = u64;
+
+    fn semantic_contract(&self) -> Self::SemanticContract {
+        self.0
+    }
+
     fn compute(
         &self,
         context: &domain::WorthQueryConditionalComputeContext,

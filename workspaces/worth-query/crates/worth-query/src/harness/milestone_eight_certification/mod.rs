@@ -622,7 +622,7 @@ fn grouped_runtime(rows: &[GroupedRowFixture]) -> RuntimeBridge {
             BridgeMappingId::from_stable_name("mapping"),
             TruthPatchScope::new(
                 MappingSelector::exact(
-                    milestone_eight_record_parts("task-1").bridge_entity_identity(),
+                    milestone_eight_record_parts("task-1").terminal_projection_for_reporting(),
                 ),
                 AspectKeySelector::exact(aspect_key("status")),
                 TruthPatchTargetSelector::entity_field(field_key("lane")),

@@ -26,6 +26,8 @@ pub(super) struct RelationalPublicationBasis {
     pub(super) source_basis: Arc<str>,
 }
 
+pub(super) type PublicationUnresolvedRecipe = Recipe<Unresolved, RelationalPublicationRequest>;
+
 type PublicationResolvedRecipe = Recipe<
     Resolved,
     RelationalPublicationRequest,
@@ -57,7 +59,7 @@ impl AuthorityMarker for RelationalPublicationReadinessAuthority {}
 
 pub(super) fn begin_publication(
     request: RelationalPublicationRequest,
-) -> Recipe<Unresolved, RelationalPublicationRequest> {
+) -> PublicationUnresolvedRecipe {
     Recipe::new(request)
 }
 

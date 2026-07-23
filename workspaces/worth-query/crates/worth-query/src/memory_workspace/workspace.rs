@@ -278,7 +278,7 @@ impl WorthQueryMemoryWorkspace {
             })
             .collect::<Vec<_>>();
         WorthQueryMutationReceipt {
-            commit_identity: WorthQueryCommitIdentity::from_relational_commit_id(
+            commit_identity: WorthQueryCommitIdentity::from_runtime_receipt_commit(
                 result.commit.commit_id.0,
             ),
             snapshot_identity,

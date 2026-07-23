@@ -422,6 +422,10 @@ is deliberately absent from the ordinary host surface; import it through
   exact inverse, compensation, and failure recovery evidence.
 - [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
   explains effect-bound identity evolution, naming, and sparse promotion.
+- [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./bound-projection-sharing-and-invalidation.md)
+  explains declaration-indexed native access, relationship-specific
+  compatibility, managed transitions, dependency impact, shared live owners,
+  consumer leases, and exact invalidation deltas.
 - [Projection Consumption](../capabilities/projection-consumption.md) owns the
   production fact extraction delegated to by the installed progression.
 - [Aspects And Authority Lanes](../modeling/aspects-and-authority-lanes.md)
@@ -474,9 +478,11 @@ a new handle.
 - Runtime installation occurs before runtime publication.
 - Handles and bound operations are not portable across runtimes or installation
   generations, even when packages are semantically equivalent.
-- Sharing/leases, compiled dependency impact, invalidation deltas, collection
-  windows, and patch delivery still require their dedicated later authorities.
-  Definition posture does not implement them by itself.
+- Collection windows and query-shaped patch delivery still require their
+  dedicated later authorities. Native access, compatibility, dependency
+  impact, sharing/leases, and invalidation are implemented, but declaration or
+  support posture alone does not mint them; enter through the bound projection
+  lifecycle described above.
 - Installed-operation certification replay remains cert-only, and historical
   execution currently supports retained snapshots rather than delta replay or
   full reconstruction.

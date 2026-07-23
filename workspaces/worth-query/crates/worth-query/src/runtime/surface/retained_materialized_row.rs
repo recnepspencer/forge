@@ -1,13 +1,20 @@
 use std::collections::BTreeMap;
 
 use worth_foundational::facade::{
-    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AspectValue,
-    CanonicalFieldPath, FieldKey, StructAspectValue,
+    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AspectKey,
+    AspectValue, CanonicalFieldPath, FieldKey, StructAspectValue,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct WorthQueryRetainedFieldPath {
-    path: CanonicalFieldPath,
+    locator: WorthQueryRetainedFieldLocator,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+enum WorthQueryRetainedFieldLocator {
+    Canonical(CanonicalFieldPath),
+    NativeAspect(AspectKey),
+    NativeField(AspectKey, FieldKey),
 }
 
 #[cfg(test)]
@@ -71,20 +78,44 @@ mod tests {
 
 impl WorthQueryRetainedFieldPath {
     pub fn from_canonical_field_path(path: CanonicalFieldPath) -> Self {
-        Self { path }
+        Self {
+            locator: WorthQueryRetainedFieldLocator::Canonical(path),
+        }
     }
 
-    pub fn canonical_field_path(&self) -> &CanonicalFieldPath {
-        &self.path
+    pub fn from_native_aspect_key(aspect: AspectKey) -> Self {
+        Self {
+            locator: WorthQueryRetainedFieldLocator::NativeAspect(aspect),
+        }
+    }
+
+    pub fn from_native_keys(aspect: AspectKey, field: FieldKey) -> Self {
+        Self {
+            locator: WorthQueryRetainedFieldLocator::NativeField(aspect, field),
+        }
+    }
+
+    pub fn canonical_field_path(&self) -> Option<&CanonicalFieldPath> {
+        match &self.locator {
+            WorthQueryRetainedFieldLocator::Canonical(path) => Some(path),
+            WorthQueryRetainedFieldLocator::NativeAspect(_)
+            | WorthQueryRetainedFieldLocator::NativeField(_, _) => None,
+        }
     }
 
     pub(crate) fn terminal_projection_for_boundary(&self) -> String {
-        self.path
-            .fields()
-            .iter()
-            .map(FieldKey::as_str)
-            .collect::<Vec<_>>()
-            .join(".")
+        match &self.locator {
+            WorthQueryRetainedFieldLocator::Canonical(path) => path
+                .fields()
+                .iter()
+                .map(FieldKey::as_str)
+                .collect::<Vec<_>>()
+                .join("."),
+            WorthQueryRetainedFieldLocator::NativeAspect(aspect) => aspect.as_str().to_string(),
+            WorthQueryRetainedFieldLocator::NativeField(aspect, field) => {
+                format!("{}.{}", aspect.as_str(), field.as_str())
+            }
+        }
     }
 }
 

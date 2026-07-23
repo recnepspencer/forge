@@ -19,6 +19,20 @@ pub(super) fn canonical_consumed_native_value(value: ConsumedNativeValueView<'_>
     match value {
         ConsumedNativeValueView::Scalar(value) => canonical_aspect_value(value),
         ConsumedNativeValueView::Struct(value) => canonical_struct_aspect_value(value),
+        ConsumedNativeValueView::Absent(posture) => {
+            let mut material = String::new();
+            token(&mut material, "value.kind", "absent");
+            token(
+                &mut material,
+                "value.absence",
+                match posture {
+                    worth_foundational::facade::AbsenceLaw::Required => "required",
+                    worth_foundational::facade::AbsenceLaw::Optional => "optional",
+                    worth_foundational::facade::AbsenceLaw::Defaulted => "defaulted",
+                },
+            );
+            material
+        }
     }
 }
 

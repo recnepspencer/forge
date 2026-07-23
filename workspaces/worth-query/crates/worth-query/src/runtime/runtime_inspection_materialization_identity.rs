@@ -27,9 +27,9 @@ pub(super) fn bundle_snapshot_identity(
         .map(|(_, snapshot_identity)| snapshot_identity);
     let has_single_snapshot_identity = shared_snapshot_identity
         .map(|expected| {
-            snapshot_identities
-                .iter()
-                .all(|(_, snapshot_identity)| snapshot_identity == expected)
+            snapshot_identities.iter().all(|(_, snapshot_identity)| {
+                expected.is_same_current_identity_as(snapshot_identity)
+            })
         })
         .unwrap_or(true);
     match snapshot_identities.as_slice() {

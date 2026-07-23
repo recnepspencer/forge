@@ -2,6 +2,7 @@ use worth_foundational::facade::{FoundationalIdentityBasis, FoundationalIdentity
 
 pub struct BridgeCommitIdentityKind;
 pub struct BridgeSnapshotIdentityKind;
+pub struct BridgeRecordIdentityKind;
 pub struct BridgePatchIdentityKind;
 pub struct BridgeBranchIdentityKind;
 pub struct BridgeEvidenceReferenceIdentityKind;
@@ -16,6 +17,7 @@ pub struct BridgeWritebackDeclarationIdentityKind;
 
 impl FoundationalIdentityKind for BridgeCommitIdentityKind {}
 impl FoundationalIdentityKind for BridgeSnapshotIdentityKind {}
+impl FoundationalIdentityKind for BridgeRecordIdentityKind {}
 impl FoundationalIdentityKind for BridgePatchIdentityKind {}
 impl FoundationalIdentityKind for BridgeBranchIdentityKind {}
 impl FoundationalIdentityKind for BridgeEvidenceReferenceIdentityKind {}

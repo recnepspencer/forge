@@ -3,13 +3,13 @@ use super::entries::compose_fact_request_entry_digest;
 use crate::WorthQueryEvidenceTag;
 
 use super::super::super::declaration::ProjectionConsumptionBindingContext;
-use super::super::super::facts::ProjectionFactRequest;
+use super::super::super::facts::ProjectMaterializedFacts;
 use super::super::super::source::ProjectionConsumptionSource;
 
-pub(crate) fn compose_declaration_digest<'a>(
+pub(crate) fn compose_declaration_digest(
     source: &ProjectionConsumptionSource,
     binding: &ProjectionConsumptionBindingContext,
-    requested: impl IntoIterator<Item = &'a ProjectionFactRequest>,
+    requested: &ProjectMaterializedFacts,
 ) -> String {
     let mut encoder = consumption_scope_encoder("projection_consumption_declaration_v1")
         .field_shape(
@@ -38,8 +38,10 @@ pub(crate) fn compose_declaration_digest<'a>(
         encoder = encoder.field_shape(WorthQueryEvidenceTag::new("result"), result_digest);
     }
     let fact_requests = requested
-        .into_iter()
-        .map(compose_fact_request_entry_digest)
+        .requested()
+        .map(|request| {
+            compose_fact_request_entry_digest(request, requested.native_contract_for(request))
+        })
         .collect::<Vec<_>>();
     seal(encoder.field_value_sequence(WorthQueryEvidenceTag::new("requested_fact"), fact_requests))
 }

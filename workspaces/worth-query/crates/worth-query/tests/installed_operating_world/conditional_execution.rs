@@ -12,6 +12,9 @@ use super::installed_operation_fixture::{
     WorkflowRead,
 };
 
+mod providers;
+use providers::CapturingCompute;
+
 #[test]
 fn changed_signal_decision_reenters_before_the_ordinary_executor() {
     let node = super::conditional_node_contract::node(
@@ -174,7 +177,7 @@ fn workflow_stage_retains_the_same_signal_decision_in_its_receipt() {
         .family(ReadFamily)
         .bind(&domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap();
     let run = run
         .advance(
@@ -297,6 +300,14 @@ fn reverted_clean_retains_compute_cost_but_mints_no_query_consequence() {
 
 struct StaticCondition(worth_signal::facade::InstalledSignalConditionDecision);
 
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for StaticCondition {
+    type SemanticContract = worth_signal::facade::InstalledSignalConditionDecision;
+
+    fn semantic_contract(&self) -> Self::SemanticContract {
+        self.0
+    }
+}
+
 impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for StaticCondition {
     fn resolve(
         &self,
@@ -321,6 +332,12 @@ impl CountedCompute {
 impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
     for CountedCompute
 {
+    type SemanticContract = u64;
+
+    fn semantic_contract(&self) -> Self::SemanticContract {
+        self.version
+    }
+
     fn compute(
         &self,
         _context: &domain::WorthQueryConditionalComputeContext,
@@ -330,34 +347,6 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
             worth_signal::facade::AspectVersion::from_updates([(
                 worth_signal::facade::Aspect::new(0),
                 self.version,
-            )]),
-        ))
-    }
-}
-
-type CapturedContext = (String, String, String, Option<String>, String, u64);
-
-struct CapturingCompute(Arc<Mutex<Option<CapturedContext>>>);
-
-impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
-    for CapturingCompute
-{
-    fn compute(
-        &self,
-        context: &domain::WorthQueryConditionalComputeContext,
-    ) -> Result<worth_signal::facade::NodeEvaluationResult, String> {
-        *self.0.lock().unwrap() = Some((
-            context.operation_identity().to_string(),
-            context.binding_identity().to_string(),
-            context.basis_identity().to_string(),
-            context.workflow_run_identity().map(str::to_string),
-            context.snapshot_identity().to_string(),
-            context.attempt(),
-        ));
-        Ok(worth_signal::facade::NodeEvaluationResult::from_version(
-            worth_signal::facade::AspectVersion::from_updates([(
-                worth_signal::facade::Aspect::new(0),
-                1,
             )]),
         ))
     }

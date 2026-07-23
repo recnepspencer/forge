@@ -86,9 +86,10 @@ impl WorthQueryWorkspace {
         self.runtime.validate_installed_domain_witness::<D>(witness)
     }
 
-    #[cfg(test)]
-    pub(crate) fn replace_domain_installation_with_successor_generation(&mut self) {
+    pub(crate) fn replace_domain_installation_with_successor_generation(
+        &mut self,
+    ) -> Result<(), crate::runtime::WorthQueryRuntimeError> {
         self.runtime
-            .replace_domain_installation_with_successor_generation();
+            .replace_domain_installation_with_successor_generation()
     }
 }

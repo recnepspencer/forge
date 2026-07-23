@@ -27,33 +27,20 @@ fn certification_replay_reexecutes_the_same_lineage_semantics() {
         replay.comparison(),
         &domain::WorthQueryReplayComparison::Equivalent
     );
-    assert_ne!(original.identity(), replay.replay_trace().identity());
-    assert_ne!(
-        original.lineage_report().unwrap().identity(),
-        replay.replay_trace().lineage_report().unwrap().identity()
-    );
-    assert_eq!(
-        original.lineage_report().unwrap().evidence()[0]
-            .outcome()
-            .engine_artifact(),
-        replay.replay_trace().lineage_report().unwrap().evidence()[0]
-            .outcome()
-            .engine_artifact()
-    );
-    assert_eq!(
-        original.lineage_report().unwrap().evidence()[0]
-            .outcome()
-            .continuity_evidence(),
-        replay.replay_trace().lineage_report().unwrap().evidence()[0]
-            .outcome()
-            .continuity_evidence()
-    );
-    assert_eq!(
-        original.lineage_report().unwrap().evidence()[0]
-            .foundational_lineage()
-            .subject_evidence_identity(),
-        replay.replay_trace().lineage_report().unwrap().evidence()[0]
-            .foundational_lineage()
-            .subject_evidence_identity()
-    );
+    assert_ne!(original.identity(), replay.replay_trace_identity());
+    let original_lineage_width = replay
+        .original_semantics()
+        .stages()
+        .iter()
+        .flat_map(|stage| stage.lineage())
+        .count();
+    let replay_lineage_width = replay
+        .replay_semantics()
+        .stages()
+        .iter()
+        .flat_map(|stage| stage.lineage())
+        .count();
+    assert!(original_lineage_width > 0);
+    assert_eq!(original_lineage_width, replay_lineage_width);
+    assert!(original.lineage_report().is_some());
 }

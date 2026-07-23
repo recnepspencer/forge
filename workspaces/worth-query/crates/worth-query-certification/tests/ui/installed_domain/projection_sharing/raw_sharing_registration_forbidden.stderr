@@ -1,0 +1,16 @@
+error[E0624]: method `register_shared_projection_owner` is private
+ --> tests/ui/installed_domain/projection_sharing/raw_sharing_registration_forbidden.rs:8:15
+  |
+8 |       workspace.register_shared_projection_owner(handle);
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: $WORKSPACE/crates/worth-query/src/runtime/shared_projection_owners/registry/workspace_release.rs
+  |
+  | /     pub(crate) fn register_shared_projection_owner(
+  | |         &mut self,
+  | |         bundle: crate::domain_installation::WorthQueryCheckedSharedOwnerRegistration,
+  | |     ) -> Result<
+  | |         WorthQuerySharedOwnerRegistration,
+  | |         crate::domain_installation::WorthQueryCheckedSharedOwnerRegistration,
+  | |     > {
+  | |_____- private method defined here

@@ -5,7 +5,8 @@ use worth_proof::TransitionOutcome;
 use super::{
     WorthQueryCompletedWorkflowTrace, WorthQueryExecutableDomainOperation,
     WorthQueryNormalizedWorkflowIntent, WorthQueryWorkflowAdvanceDenial,
-    WorthQueryWorkflowCompletionDenial, WorthQueryWorkflowOperation, WorthQueryWorkflowStartDenial,
+    WorthQueryWorkflowCompletionDenial, WorthQueryWorkflowOperation, WorthQueryWorkflowRunCounters,
+    WorthQueryWorkflowStartDenial,
 };
 use crate::domain_installation::WorthQueryAftermathExecutionDenial;
 use crate::domain_installation::WorthQueryBoundDomainOperation;
@@ -18,6 +19,10 @@ pub enum WorthQueryWorkflowReexecutionStop {
     ConditionalDeferred {
         stage_identity: String,
         executed_effects: Vec<super::WorthQueryWorkflowEffectEvidence>,
+    },
+    OperationConditionalDeferred {
+        conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
+        counters: WorthQueryWorkflowRunCounters,
     },
     Completion(WorthQueryWorkflowCompletionDenial),
     Aftermath(WorthQueryAftermathExecutionDenial),
@@ -32,7 +37,9 @@ impl WorthQueryWorkflowReexecutionStop {
             } => executed_effects,
             Self::Completion(denial) => denial.executed_effects(),
             Self::Aftermath(denial) => denial.partial_effects(),
-            Self::IntentDoesNotMatchInstalledGraph | Self::Start(_) => &[],
+            Self::IntentDoesNotMatchInstalledGraph
+            | Self::Start(_)
+            | Self::OperationConditionalDeferred { .. } => &[],
         }
     }
 }
@@ -58,7 +65,7 @@ where
         intent: WorthQueryNormalizedWorkflowIntent,
         workspace: &mut WorthQueryWorkspace,
     ) -> WorthQueryWorkflowReexecutionOutcome<D, O, F, L> {
-        let mut run = match self.start_workflow() {
+        let mut run = match self.start_workflow(workspace) {
             TransitionOutcome::Success(run) => run,
             TransitionOutcome::Denied(stop) => {
                 return TransitionOutcome::Denied(WorthQueryWorkflowReexecutionStop::Start(stop))
@@ -66,7 +73,14 @@ where
             TransitionOutcome::Stale(stop) => {
                 return TransitionOutcome::Stale(WorthQueryWorkflowReexecutionStop::Start(stop))
             }
-            TransitionOutcome::Deferred(never) => match never {},
+            TransitionOutcome::Deferred(deferred) => {
+                return TransitionOutcome::Deferred(
+                    WorthQueryWorkflowReexecutionStop::OperationConditionalDeferred {
+                        conditional: deferred.conditional,
+                        counters: deferred.counters,
+                    },
+                )
+            }
             TransitionOutcome::RebindRequired(stop) => {
                 return TransitionOutcome::RebindRequired(WorthQueryWorkflowReexecutionStop::Start(
                     stop,

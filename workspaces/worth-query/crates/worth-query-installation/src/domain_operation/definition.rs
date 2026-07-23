@@ -99,7 +99,7 @@ fn canonicalize_semantics(semantics: &mut WorthQueryDomainOperationSemanticClosu
     {
         for role in roles.iter_mut() {
             role.semantic_reads
-                .sort_by_key(super::WorthQueryOperationNativeProjectionContract::canonical_key);
+                .sort_by(super::WorthQueryOperationNativeProjectionContract::canonical_order);
             role.semantic_reads.dedup();
         }
         roles.sort_by(|left, right| left.role.cmp(&right.role));

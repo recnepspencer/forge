@@ -277,7 +277,7 @@ Close the typed declaration, contract, extraction, receipt, and envelope path
 for the covered retained/live artifact families.
 
 - Relevant source surfaces:
-  [projection_consumption/facts.rs](../../crates/worth-query/src/projection_consumption/facts.rs),
+  [projection_consumption/facts/mod.rs](../../workspaces/worth-query/crates/worth-query/src/projection_consumption/facts/mod.rs),
   [projection_consumption/extraction/mod.rs](../../crates/worth-query/src/projection_consumption/extraction/mod.rs),
   [projection_consumption/extraction/grouped.rs](../../crates/worth-query/src/projection_consumption/extraction/grouped.rs),
   [projection_consumption/extraction/query_context.rs](../../crates/worth-query/src/projection_consumption/extraction/query_context.rs),

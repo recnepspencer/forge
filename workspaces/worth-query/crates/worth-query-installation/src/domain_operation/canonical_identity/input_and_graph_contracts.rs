@@ -76,28 +76,19 @@ fn hash_native_projection(
     hasher: &mut Sha256,
     contract: &WorthQueryOperationNativeProjectionContract,
 ) {
-    hash_text_field(hasher, "native-aspect-key", contract.aspect_key.as_str());
     hash_text_field(
         hasher,
-        "native-aspect-identity",
-        &contract.aspect_identity.0.to_string(),
+        "native-contract-canonical-material",
+        contract.canonical_contract_material(),
     );
-    hash_text_field(
-        hasher,
-        "native-contract-revision",
-        &contract.contract_revision.0.to_string(),
-    );
-    if contract.mask.is_whole_aspect() {
+    if contract.mask().is_whole_aspect() {
         hash_text_field(hasher, "native-mask", "whole-aspect");
     } else {
-        for path in contract.mask.paths() {
-            let path = path
-                .fields()
-                .iter()
-                .map(|field| field.as_str())
-                .collect::<Vec<_>>()
-                .join(".");
-            hash_text_field(hasher, "native-mask-field", &path);
+        for path in contract.mask().paths() {
+            hash_text_field(hasher, "native-mask-path", "declared");
+            for field in path.fields() {
+                hash_text_field(hasher, "native-mask-field", field.as_str());
+            }
         }
     }
 }
@@ -110,17 +101,47 @@ fn hash_collection(hasher: &mut Sha256, contract: &WorthQueryOperationCollection
         WorthQueryOperationCollectionContract::Collection {
             row_identity_field,
             ordering_fields,
+            grouping,
+            window,
             continuation,
         } => {
             hash_text_field(hasher, "collection", "collection");
-            hash_text_field(hasher, "row-identity-field", row_identity_field);
-            hash_sequence(
+            hash_collection_field(hasher, "row-identity-field", row_identity_field);
+            for field in ordering_fields {
+                hash_collection_field(hasher, "ordering-field", field);
+            }
+            match grouping {
+                WorthQueryOperationGroupingContract::Ungrouped => {
+                    hash_text_field(hasher, "grouping", "ungrouped");
+                }
+                WorthQueryOperationGroupingContract::Grouped { grouping_fields } => {
+                    hash_text_field(hasher, "grouping", "grouped");
+                    for field in grouping_fields {
+                        hash_collection_field(hasher, "grouping-field", field);
+                    }
+                }
+            }
+            hash_text_field(
                 hasher,
-                "ordering-field",
-                ordering_fields.iter().map(String::as_str),
+                "window-policy",
+                match window {
+                    WorthQueryOperationWindowPolicy::CompleteCollection => "complete-collection",
+                    WorthQueryOperationWindowPolicy::ContinuationBounded => "continuation-bounded",
+                },
             );
             hash_text_field(hasher, "continuation", continuation_name(*continuation));
         }
+    }
+}
+
+fn hash_collection_field(
+    hasher: &mut Sha256,
+    label: &str,
+    field: &WorthQueryOperationCollectionField,
+) {
+    hash_text_field(hasher, label, field.aspect_key().as_str());
+    for part in field.field_path().fields() {
+        hash_text_field(hasher, "collection-field-path-part", part.as_str());
     }
 }
 
@@ -283,7 +304,8 @@ fn hash_graph_reads(hasher: &mut Sha256, contract: &WorthQueryOperationGraphRead
         }
         hash_text_field(hasher, "graph-access", graph_access_name(role.access));
         for read in &role.semantic_reads {
-            hash_text_field(hasher, "graph-semantic-read", &read.canonical_key());
+            hash_text_field(hasher, "graph-semantic-read", "declared");
+            hash_native_projection(hasher, read);
         }
     }
 }

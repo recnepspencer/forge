@@ -162,7 +162,9 @@ impl WorthQueryEffectTriggeredIntentExecutionBinding {
         pending_delivery: &WorthQueryEffectDelivery,
     ) -> bool {
         self.effect_name == pending_delivery.effect_name()
-            && &self.trigger_commit_identity == pending_delivery.commit_identity()
+            && self
+                .trigger_commit_identity
+                .is_same_current_identity_as(pending_delivery.commit_identity())
             && self.pending_delivery_digest == hash_effect_pending_delivery(pending_delivery)
     }
 }

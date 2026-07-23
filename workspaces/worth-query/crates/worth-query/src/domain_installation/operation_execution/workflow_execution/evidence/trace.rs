@@ -35,37 +35,16 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 &self,
             ));
         }
-        let mut receipt_identities = self
-            .receipts
-            .iter()
-            .map(|receipt| (receipt.stage_identity(), receipt.identity()))
-            .collect::<Vec<_>>();
-        receipt_identities.sort();
-        let identity = hash_parts(&[
-            "worth_query_completed_workflow_trace_v1".into(),
-            format!("run:{}", self.identity),
-            format!(
-                "receipts:{}",
-                receipt_identities
-                    .iter()
-                    .map(|(_, identity)| *identity)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-        ]);
-        let semantic_identity = semantic_trace_identity(&self);
-        let phase_proof = mint_operation_phase_proof(
-            identity.clone(),
-            Some(self.authority_proof.proof.payload().identity()),
-            operation_phase_basis(&self.authority_proof.proof).clone(),
-        );
-        let trace = WorthQueryCompletedWorkflowTrace {
-            run: self,
-            identity,
-            semantic_identity,
-            phase_proof,
-            lineage: None,
-        };
+        let mut trace = mint_completed_trace(self);
+        match crate::domain_installation::dependency_impact::compile_workflow_semantic_aspect_dependencies(&trace) {
+            Ok(dependency_closure) => trace.dependency_closure = Some(dependency_closure),
+            Err(denial) => {
+                return TransitionOutcome::Denied(WorthQueryWorkflowCompletionDenial::from_trace(
+                    WorthQueryWorkflowCompletionDenialKind::DependencyCompilation(denial),
+                    &trace,
+                ));
+            }
+        }
         match crate::domain_installation::operation_lineage::bind_execution_lineage(trace) {
             Ok(trace) => TransitionOutcome::Success(trace),
             Err((trace, _)) => {
@@ -75,6 +54,50 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 ))
             }
         }
+    }
+}
+
+fn mint_completed_trace<D, O, F, L: BasisOperationLane>(
+    run: WorthQueryWorkflowRun<D, O, F, L>,
+) -> WorthQueryCompletedWorkflowTrace<D, O, F, L> {
+    let mut receipt_identities = run
+        .receipts
+        .iter()
+        .map(|receipt| (receipt.stage_identity(), receipt.identity()))
+        .collect::<Vec<_>>();
+    receipt_identities.sort();
+    let operation_conditional = canonical_indexed_operation_material(
+        "workflow.operation.conditional",
+        run.operation_conditional_provenance()
+            .iter()
+            .map(super::workflow_conditional_trace::conditional_trace_operational_material),
+    );
+    let identity = hash_parts(&[
+        "worth_query_completed_workflow_trace_v1".into(),
+        format!("run:{}", run.identity),
+        format!("operation_conditional:{operation_conditional}"),
+        format!(
+            "receipts:{}",
+            receipt_identities
+                .iter()
+                .map(|(_, identity)| *identity)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    ]);
+    let semantic_identity = semantic_trace_identity(&run);
+    let phase_proof = mint_operation_phase_proof(
+        identity.clone(),
+        Some(run.authority_proof.proof.payload().identity()),
+        operation_phase_basis(&run.authority_proof.proof).clone(),
+    );
+    WorthQueryCompletedWorkflowTrace {
+        run,
+        identity,
+        semantic_identity,
+        phase_proof,
+        lineage: None,
+        dependency_closure: None,
     }
 }
 
@@ -90,6 +113,15 @@ fn semantic_trace_identity<D, O, F, L: BasisOperationLane>(
     hash_parts(&[
         "worth_query_workflow_semantic_trace_v1".into(),
         format!("operation:{}", run.bound.definition().canonical_identity()),
+        format!(
+            "operation_conditional:{}",
+            canonical_indexed_operation_material(
+                "workflow.operation.conditional",
+                run.operation_conditional_provenance()
+                    .iter()
+                    .map(super::workflow_conditional_trace::conditional_trace_semantic_material),
+            )
+        ),
         format!("stages:{}", semantic_parts.join("|")),
     ])
 }
@@ -184,12 +216,16 @@ pub enum WorthQueryWorkflowCompletionDenialKind {
     StaleInstallationGeneration,
     IncompleteStages,
     LineageEvidence,
+    DependencyCompilation(
+        crate::domain_installation::WorthQuerySemanticAspectDependencyCompilationDenial,
+    ),
 }
 
 #[derive(Debug)]
 pub struct WorthQueryWorkflowCompletionDenial {
     kind: WorthQueryWorkflowCompletionDenialKind,
     executed_effects: Vec<super::WorthQueryWorkflowEffectEvidence>,
+    counters: WorthQueryWorkflowRunCounters,
 }
 
 impl WorthQueryWorkflowCompletionDenial {
@@ -204,6 +240,7 @@ impl WorthQueryWorkflowCompletionDenial {
                 .iter()
                 .flat_map(|receipt| receipt.effect_evidence().iter().cloned())
                 .collect(),
+            counters: run.counters,
         }
     }
 
@@ -221,6 +258,10 @@ impl WorthQueryWorkflowCompletionDenial {
     pub fn executed_effects(&self) -> &[super::WorthQueryWorkflowEffectEvidence] {
         &self.executed_effects
     }
+
+    pub const fn counters(&self) -> WorthQueryWorkflowRunCounters {
+        self.counters
+    }
 }
 
 pub struct WorthQueryCompletedWorkflowTrace<D, O, F, L: BasisOperationLane> {
@@ -229,6 +270,8 @@ pub struct WorthQueryCompletedWorkflowTrace<D, O, F, L: BasisOperationLane> {
     semantic_identity: String,
     pub(super) phase_proof: WorthQueryOperationPhaseProof<WorthQueryCompletedWorkflowPhase>,
     pub(crate) lineage: Option<crate::domain_installation::WorthQueryTraceLineageReport>,
+    dependency_closure:
+        Option<crate::domain_installation::WorthQueryCompiledSemanticAspectDependencyClosure>,
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L> {
@@ -242,6 +285,14 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
     ) -> &WorthQueryOperationPhaseProof<WorthQueryCompletedWorkflowPhase> {
         &self.phase_proof
     }
+    pub(crate) fn workflow_run_identity(&self) -> &str {
+        self.run.identity()
+    }
+    pub(crate) fn installed_workflow_read(
+        &self,
+    ) -> Option<&crate::ordinary::read::WorthQueryReadDeclaration> {
+        self.run.executor.installed_read.as_ref()
+    }
     pub fn identity(&self) -> &str {
         debug_assert_eq!(self.phase_proof.payload().identity(), self.identity);
         &self.identity
@@ -252,6 +303,11 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
     pub fn stage_receipts(&self) -> &[WorthQueryWorkflowStageReceipt] {
         &self.run.receipts
     }
+    pub fn operation_conditional_provenance(
+        &self,
+    ) -> &[crate::domain_installation::WorthQueryConditionalProvenance] {
+        self.run.operation_conditional_provenance()
+    }
     pub fn counters(&self) -> WorthQueryWorkflowRunCounters {
         self.run.counters
     }
@@ -259,6 +315,28 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
         &self,
     ) -> Option<&crate::domain_installation::WorthQueryTraceLineageReport> {
         self.lineage.as_ref()
+    }
+    pub fn semantic_aspect_dependency_closure(
+        &self,
+    ) -> Option<&crate::domain_installation::WorthQueryCompiledSemanticAspectDependencyClosure>
+    {
+        self.dependency_closure.as_ref()
+    }
+    pub fn classify_authoritative_impact(
+        &self,
+        delivery: &worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryReceipt,
+        conditional: &crate::domain_installation::WorthQueryConditionalProvenance,
+    ) -> Result<
+        crate::domain_installation::WorthQueryImpactDecision,
+        crate::domain_installation::WorthQueryImpactAdmissionDenial,
+    > {
+        let closure = self.semantic_aspect_dependency_closure().ok_or_else(|| {
+            crate::domain_installation::WorthQueryImpactAdmissionDenial::new(
+                crate::domain_installation::WorthQueryImpactAdmissionDenialKind::DependencyClosureUnavailable,
+                crate::domain_installation::WorthQueryImpactCounters::default(),
+            )
+        })?;
+        crate::domain_installation::classify_owner_delivered_impact(closure, delivery, conditional)
     }
     pub(crate) fn refresh_semantic_identity_for_lineage(&mut self) {
         let Some(lineage) = &self.lineage else {

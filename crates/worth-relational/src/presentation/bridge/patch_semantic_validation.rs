@@ -13,47 +13,97 @@ use worth_runtime_bridge::facade::{
     BridgeRouteErrorKind,
 };
 
+use super::RelationalBridgePublicationDenial;
+
 pub(super) fn validate_authoritative_patch_semantics(
     envelope: &PublishedAuthoritativePatchEnvelope,
     admitted_widening: Option<BridgeAspectChangeWideningCause>,
-) -> Result<BridgeAuthoritativePatchLoweringCounters, BridgeRouteError> {
+) -> Result<BridgeAuthoritativePatchLoweringCounters, RelationalBridgePublicationDenial> {
+    let mut counters = BridgeAuthoritativePatchLoweringCounters::default();
     for record in &envelope.authoritative_record_patches {
-        validate_record(record, admitted_widening)?;
+        counters.record_patches_inspected += 1;
+        counters.authoritative_operations_inspected +=
+            record.authoritative_patch.full_grammar_operation_count() as u64;
+        if let Err(error) = validate_record(record, admitted_widening, &mut counters) {
+            return Err(RelationalBridgePublicationDenial::new(error, counters));
+        }
     }
-    Ok(lowering_counters(envelope, admitted_widening))
+    retain_emitted_target_counters(envelope, admitted_widening, &mut counters);
+    Ok(counters)
 }
 
 fn validate_record(
     record: &PublishedAuthoritativeRecordPatch,
     admitted_widening: Option<BridgeAspectChangeWideningCause>,
+    counters: &mut BridgeAuthoritativePatchLoweringCounters,
 ) -> Result<(), BridgeRouteError> {
     let expected = expected_changes(record);
-    if expected.len() != record.semantic_changes.len() {
-        return Err(denial(
-            "semantic change count did not match canonical patch operations",
-        ));
-    }
-
-    let contains_opaque = record
-        .semantic_changes
-        .iter()
-        .any(|change| change.kind() == AuthoritativeAspectChangeKind::Opaque);
-    if contains_opaque
-        && admitted_widening != Some(BridgeAspectChangeWideningCause::OpaquePayloadToWholeAspect)
-    {
-        return Err(BridgeRouteError::new(
-            BridgeRouteErrorKind::UnsupportedAuthoritativePatchPrecision,
-            "opaque authoritative change has no admitted field or whole-aspect widening",
-        ));
-    }
-
+    counters.expected_operations_materialized += expected.len() as u64;
+    require_exact_semantic_change_count(record, expected.len())?;
+    let contains_opaque = inspect_semantic_change_precision(record, counters);
+    require_opaque_widening_admission(contains_opaque, admitted_widening)?;
     let mut remaining = expected
         .into_iter()
         .fold(HashMap::new(), |mut counts, change| {
             *counts.entry(change).or_insert(0_usize) += 1;
             counts
         });
+    consume_record_semantic_changes(record, &mut remaining, counters)?;
+    require_complete_semantic_coverage(&remaining)?;
+    if contains_opaque != record.contains_opaque_aspect {
+        return Err(denial(
+            "opaque aspect posture did not match canonical semantic changes",
+        ));
+    }
+    Ok(())
+}
+
+fn require_exact_semantic_change_count(
+    record: &PublishedAuthoritativeRecordPatch,
+    expected_count: usize,
+) -> Result<(), BridgeRouteError> {
+    if expected_count == record.semantic_changes.len() {
+        return Ok(());
+    }
+    Err(denial(
+        "semantic change count did not match canonical patch operations",
+    ))
+}
+
+fn inspect_semantic_change_precision(
+    record: &PublishedAuthoritativeRecordPatch,
+    counters: &mut BridgeAuthoritativePatchLoweringCounters,
+) -> bool {
+    let mut contains_opaque = false;
     for change in &record.semantic_changes {
+        counters.semantic_changes_inspected += 1;
+        contains_opaque |= change.kind() == AuthoritativeAspectChangeKind::Opaque;
+    }
+    contains_opaque
+}
+
+fn require_opaque_widening_admission(
+    contains_opaque: bool,
+    admitted_widening: Option<BridgeAspectChangeWideningCause>,
+) -> Result<(), BridgeRouteError> {
+    if !contains_opaque
+        || admitted_widening == Some(BridgeAspectChangeWideningCause::OpaquePayloadToWholeAspect)
+    {
+        return Ok(());
+    }
+    Err(BridgeRouteError::new(
+        BridgeRouteErrorKind::UnsupportedAuthoritativePatchPrecision,
+        "opaque authoritative change has no admitted field or whole-aspect widening",
+    ))
+}
+
+fn consume_record_semantic_changes(
+    record: &PublishedAuthoritativeRecordPatch,
+    remaining: &mut HashMap<ExpectedChange, usize>,
+    counters: &mut BridgeAuthoritativePatchLoweringCounters,
+) -> Result<(), BridgeRouteError> {
+    for change in &record.semantic_changes {
+        counters.semantic_changes_matched += 1;
         if change.precision() != PublishedAspectChangePrecision::Exact {
             return Err(denial(
                 "Relational publication claimed widening before Bridge admission",
@@ -61,7 +111,7 @@ fn validate_record(
         }
         let matched = semantic_operation_candidates(change, record.structural_change)
             .into_iter()
-            .any(|candidate| consume_expected(&mut remaining, candidate));
+            .any(|candidate| consume_expected(remaining, candidate));
         if !matched {
             let remaining = remaining
                 .iter()
@@ -72,15 +122,15 @@ fn validate_record(
             )));
         }
     }
+    Ok(())
+}
 
+fn require_complete_semantic_coverage(
+    remaining: &HashMap<ExpectedChange, usize>,
+) -> Result<(), BridgeRouteError> {
     if !remaining.is_empty() {
         return Err(denial(
             "canonical authoritative patch operation had no semantic change",
-        ));
-    }
-    if contains_opaque != record.contains_opaque_aspect {
-        return Err(denial(
-            "opaque aspect posture did not match canonical semantic changes",
         ));
     }
     Ok(())
@@ -284,18 +334,14 @@ fn is_field_binding(binding: &AspectBinding) -> bool {
     )
 }
 
-fn lowering_counters(
+fn retain_emitted_target_counters(
     envelope: &PublishedAuthoritativePatchEnvelope,
     admitted_widening: Option<BridgeAspectChangeWideningCause>,
-) -> BridgeAuthoritativePatchLoweringCounters {
-    let mut counters = BridgeAuthoritativePatchLoweringCounters {
-        record_patches_inspected: envelope.authoritative_record_patches.len() as u64,
-        ..BridgeAuthoritativePatchLoweringCounters::default()
-    };
+    counters: &mut BridgeAuthoritativePatchLoweringCounters,
+) {
     for record in &envelope.authoritative_record_patches {
-        counters.authoritative_operations_inspected +=
-            record.authoritative_patch.full_grammar_operation_count() as u64;
         for change in &record.semantic_changes {
+            counters.semantic_changes_emission_classified += 1;
             use AuthoritativeAspectChangeKind as Kind;
             match change.kind() {
                 Kind::FieldSet | Kind::FieldClear => counters.field_targets_emitted += 1,
@@ -324,7 +370,6 @@ fn lowering_counters(
             }
         }
     }
-    counters
 }
 
 fn denial(detail: impl Into<String>) -> BridgeRouteError {

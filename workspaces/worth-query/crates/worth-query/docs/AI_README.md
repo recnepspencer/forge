@@ -123,6 +123,7 @@ If you have no idea where to start, read these first:
 - [Installed Operation Re-Execution And Replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
 - [Installed Operation Aftermath](./domain-capabilities/installed-operation-aftermath.md)
 - [Installed Operation Lineage And Promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
+- [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./domain-capabilities/bound-projection-sharing-and-invalidation.md)
 
 ## Declarative Capability Surface
 
@@ -240,7 +241,8 @@ separate named runtime lanes.
 This section describes Query's general shared-read and journal replay
 capabilities. Installed-operation semantic replay is a separate cert-only
 lane: it re-executes a retained installed workflow, compares the exact semantic
-trace, and exposes replay authority only through `worth-query-replay`.
+trace, exposes replay authority only through `worth-query-replay`, and returns
+inspection semantics rather than Query's ordinary completed-trace phase type.
 
 The important rule is that shared reads are real runtime-owned read authority,
 not copied snapshot convenience. A shared read context is basis-bound, sealed,
@@ -1924,6 +1926,29 @@ Need public DX:
 - expose a domain facade that forwards to Query instead of teaching raw lower
   runtime plumbing
 
+Need installed native values:
+
+- derive selections and `WorthQueryNativeAccessKey` values from the exact
+  consumer projection contract, move the built request through
+  `consume_bound(...)`, and access the settled or refreshed projection by key;
+  do not turn field paths into consumer-owned selectors
+
+Need installed capability compatibility or lifecycle:
+
+- ask the exact named question: same installation, compatible basis,
+  replacement, rebind, or execution sharing; these witnesses are not
+  interchangeable
+- promote, refresh, replace, rebind, cancel, and dispose through the typed
+  bound-projection states; retain stopped or cleanup-pending states for retry
+  or rollback instead of tracking resource identifiers locally
+
+Need shared installed live work or consumer invalidation:
+
+- enter through a Query-owned live owner and move-only leases, then derive and
+  readmit the capability-bound delta before attaching a consumer consequence
+- do not use region-scoped stream metadata, Foundational locators, copied
+  generations, or replay inspection as invalidation authority
+
 ## Current Installed-Operation Boundary
 
 The installed-operation surface currently includes portable operation
@@ -1933,19 +1958,91 @@ nodes, aspect-precise authoritative change publication, installed semantic
 correspondence, Signal-owned decisions, Query-owned provenance on re-entry,
 ordinary fresh re-execution, cert-only semantic replay, typed inverse and
 compensation aftermath, exact-effect lineage, persistent naming, and sparse
-identity promotion.
+identity promotion. It also includes declaration-indexed native access,
+relationship-specific pair-bound compatibility, proof-carrying promotion,
+refresh, replacement, rebind, cancellation and disposal, compiled dependency
+impact, shared live execution owners, move-only consumer leases, and
+capability-bound invalidation deltas.
 
-Vocabulary for sharing and leases, dependency-impact compilation,
-capability-bound invalidation, collection windows, or query-shaped patch
-delivery can record a typed required or absent posture in an operation
-definition. That vocabulary does not grant the later runtime authority. Do not
-manufacture those journeys from current receipts, phase values, reports, or
-lower-runtime APIs before their dedicated public authorities exist.
+Settled direct and workflow projections also expose a sealed consumption-cost
+snapshot. Query owns these operational measurements: lookup, binding, support,
+execution, dependency, and optional native-binding rows come from the real
+boundary-local counters. Later native access, refresh, invalidation, window,
+and patch work stays on its own result or denial. A snapshot may explicitly
+materialize a Foundational counter-backed receipt or report, but those derived
+artifacts cannot be readmitted as Query execution or lifecycle authority. See
+[Consumption Cost Evidence](./domain-capabilities/consumption-cost-evidence.md).
+
+Those downstream capabilities remain one authority chain. Native keys come
+from a bound projection request. Sharing requires current pair compatibility
+and dependency-closure reuse. One owner impact and epoch fan out to exact
+leases, and each delta must be readmitted against its current lease before a
+consumer-authored consequence can be attached. Attachment rechecks the owner
+epoch and borrows the workspace for the consequence lifetime, so a stale
+admitted delta cannot retain usable Query consequence authority. Consumers may
+explicitly widen their own response but cannot downgrade Query's required
+disposition. Readmission checks both the exact capability identity and its
+generation, not just a coincidentally equal declaration or version number.
+
+Ordinary live targets and installed semantic targets are routed through
+independent indexes and then deduplicated. Canonical path matching recognizes
+ancestor and descendant touches in both directions, and ordinary request
+routing covers projection, predicate, and ordering dependencies. The attached
+counters report the collection/relevance probes, selected and skipped
+candidates, overlap deduplication, per-target routing, fan-out, batches,
+touches, and native-key narrowing work that actually occurred.
+
+Foundational locators, masks, provenance, and derived boundary artifacts
+describe the delta but cannot act as it. Raw deltas project only
+`StaleRetained` provenance; fresh materialization requires a still-current
+admitted delta. Semantic convergence uses typed access-key meaning and canonical
+Foundational-backed bytes, including the complete conditional declaration,
+outcome, artifact-reuse posture, and realized observations while excluding
+operational Signal identity. The Foundational semantic boundary is derived
+from that same complete semantic projection, while work counters remain
+separate. Cert replay may reexecute the same installed mutation, but only the
+ordinary live owner and lease route emits and admits invalidation authority.
+See [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./domain-capabilities/bound-projection-sharing-and-invalidation.md).
+
+Collection windows and query-shaped patch delivery still have only their
+declared support vocabulary here. Do not manufacture those later journeys from
+invalidation deltas, reports, or lower-runtime APIs.
 
 This boundary is specific to installed-operation phase values. Query's general
 history, replay, live, subscription, and other capability families remain as
 described in their owning sections and support rows; they are not methods that
 can be inferred onto the installed progression.
+
+### Operational identity is not its representation
+
+Every current operational identity is minted by the runtime that owns the
+operation. Relational owns committed truth; Runtime Bridge owns admitted
+crossing and correspondence; Signal owns conditional decision evidence; Query
+owns its current basis, receipt, installed-operation progression, compatibility,
+lease, invalidation, aftermath, replay, and lineage artifacts.
+
+`worth-proof` carries generic progression and freshness. `worth-foundational`
+supplies the shared authority, boundary-bridged, projection, digest-evidence,
+and external-token categories. Neither surface upgrades a projection into
+owner authority. Boundary crossing weakens identity, and the receiving owner
+must validate retained source evidence before minting its own artifact.
+
+Mutation writeback makes that validation exact. Runtime Bridge binds the
+authoritative patch's Foundational touch meaning and the target collection,
+Relational record, and mutation kind into its causality before execution.
+Bridge carries the patch's canonical basis through lowering and denies a
+different effect intent before authority execution.
+Query admits the returned mutation receipt only when the same Bridge bundle
+also retains its exact commit and snapshot and matches its single delta. A
+bundle from another mutation, even one with the same broad writeback family or
+copied projections, cannot mint current Query identity.
+
+Use named methods such as `is_same_current_identity_as(...)` for operational
+identity decisions. Evidence identities, terminal reporting projections,
+digests, labels, formatted traces, external tokens, and index keys are for
+reporting or candidate selection. Matching bytes do not authorize work. Query
+does not export owner marker types or witness factories through its facade.
+See [Operational Identity Authority](./foundations/operational-identity-authority.md).
 
 ## Current Authority Roots
 
@@ -1965,7 +2062,9 @@ can be inferred onto the installed progression.
   dependency and opaque Query-owned provenance rather than raw graph pieces.
 - Fresh re-execution stays in Query; certification replay authority is
   exported only through `worth-query-replay` after exact semantic comparison
-  and historical-basis admission.
+  and historical-basis admission. Its result cannot be converted into an
+  ordinary completed trace; publication remains a separately bound ordinary
+  progression.
 - Aftermath authority comes from installed reversal or compensation meaning,
   normal candidate execution, and a domain-owned exact-scope postcondition
   proof. Partial effects remain visible when verification fails.
@@ -2023,6 +2122,13 @@ Before building on a Query category, answer these:
 19. If this is lineage or promotion, what exact effect and publication evidence
     binds the identity, and which Schema Graph and Foundational authorities
     admit promotion?
+20. If this is mutation readmission, does one Bridge-owned causality bundle
+    match the exact commit, snapshot, collection, Relational record, mutation
+    kind, and Foundational touch set, or am I pairing separately valid
+    projections into a second authority?
+21. If this claims bounded cost, which boundary-local result or denial carries
+    the exact counters, and is any Foundational export still treated only as
+    derived reporting evidence?
 
 If you cannot answer those, read the owning docs before writing code.
 

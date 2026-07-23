@@ -101,7 +101,9 @@ fn foreign_handle_and_stale_generation_deny_before_contribution_successors_are_i
     let stale_handle = current.domain(InstalledDomain).unwrap();
     let stale_surface = stale_handle.contributions(&current).unwrap();
     let stale_generation = stale_handle.installation_generation();
-    current.replace_domain_installation_with_successor_generation();
+    current
+        .replace_domain_installation_with_successor_generation()
+        .unwrap();
     let current_handle = current.domain(InstalledDomain).unwrap();
     assert!(current_handle.installation_generation() > stale_generation);
     let stale_denial = stale_handle.contributions(&current).unwrap_err();
@@ -140,7 +142,9 @@ fn generation_turnover_denies_each_query_owned_contribution_transition() {
     else {
         panic!("fixture must become eligible before generation turnover")
     };
-    admission_runtime.replace_domain_installation_with_successor_generation();
+    admission_runtime
+        .replace_domain_installation_with_successor_generation()
+        .unwrap();
     let worth_proof::TransitionOutcome::Denied(admission_denial) =
         admit_eligible_domain_capability_contribution(eligible)
     else {
@@ -173,7 +177,9 @@ fn generation_turnover_denies_each_query_owned_contribution_transition() {
     else {
         panic!("fixture must become admitted before generation turnover")
     };
-    preparation_runtime.replace_domain_installation_with_successor_generation();
+    preparation_runtime
+        .replace_domain_installation_with_successor_generation()
+        .unwrap();
     let worth_proof::TransitionOutcome::Denied(preparation_denial) =
         prepare_admitted_domain_capability_contribution_for_materialization(
             admitted,

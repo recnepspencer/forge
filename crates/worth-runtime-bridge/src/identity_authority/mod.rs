@@ -6,12 +6,15 @@ mod phase_one_compile_fail_targets;
 mod phase_one_family_map;
 mod phase_one_root_break_targets;
 
-pub use admission::{
+pub(crate) use admission::{
     admit_bridge_truth_authority_identity, admit_bridge_truth_authority_identity_for_kind,
+};
+pub use admission::{
     bridge_truth_digest_identity_evidence_from_external_token,
     bridge_truth_external_identity_token, bridge_truth_projection_identity_from_external_token,
 };
-pub use authority::{bridge_truth_authority, BridgeTruthAuthority};
+pub(crate) use authority::bridge_truth_authority;
+pub use authority::BridgeTruthAuthority;
 pub use categories::{
     BridgeTruthAuthorityIdentity, BridgeTruthBoundaryBridgedIdentity,
     BridgeTruthDigestIdentityEvidence, BridgeTruthExternalIdentityToken,
@@ -22,7 +25,7 @@ pub use kinds::{
     BridgeCausalReferenceIdentityKind, BridgeCommitIdentityKind,
     BridgeEvidenceReferenceIdentityKind, BridgePatchIdentityKind,
     BridgePreviewExecutionRecordIdentityKind, BridgePreviewSessionDeclarationIdentityKind,
-    BridgePreviewSessionIdentityKind, BridgeReceiptIdentityKind,
+    BridgePreviewSessionIdentityKind, BridgeReceiptIdentityKind, BridgeRecordIdentityKind,
     BridgeRetainedMappingDigestIdentityBasis, BridgeRetainedMappingIdentityKind,
     BridgeSnapshotIdentityKind, BridgeWritebackDeclarationIdentityKind,
 };

@@ -18,7 +18,7 @@ pub(super) struct TranscriptWriteAuthority;
 impl WorthQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
     fn write(
         &mut self,
-        _bridge: &RuntimeBridge,
+        bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         mutation: WorthQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, WorthQueryWorkspaceError> {
@@ -27,19 +27,22 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
             .map(|collection| collection.as_str().to_string())
             .unwrap_or("TranscriptEntity".to_string());
         let aspect_touches: Vec<WorthQueryAspectTouch> = mutation.declared_aspect_touches();
-        let entity_identity_text = "transcript-entity-1";
         let entity_identity =
-            crate::memory_workspace::admit_authored_entity_label(entity_identity_text);
+            crate::memory_workspace::WorthQueryEntityIdentity::from_relational_record(
+                worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
+            );
         let snapshot_identity = WorthQuerySnapshotIdentity::from_relational_snapshot(
             RelationalBridgeSnapshotIdentityParts::new(1, 1),
         );
         let bridge_authority = build_bridge_authority_bundle(
-            _bridge,
+            bridge,
             &snapshot_identity,
             &mutation,
-            &collection,
-            &entity_identity,
-            WorthQueryMutationKind::Updated,
+            crate::runtime::WorthQueryBridgeMutationTarget::new(
+                &collection,
+                &entity_identity,
+                WorthQueryMutationKind::Updated,
+            ),
         )?;
         let receipt = WorthQueryMutationReceipt::from_bridge_authoritative_parts(
             WorthQueryCommitIdentity::from_relational_commit_id(1),

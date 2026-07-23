@@ -52,7 +52,8 @@ Certification replay adds two gates:
 
 Replay authority stays in the cert-only `worth-query-replay` package. The
 ordinary host facade can execute and publish a workflow but cannot issue a
-certification replay capability.
+certification replay capability. A successful certification result contains
+inspection data, not the ordinary completed-trace phase object.
 
 ## How It Executes
 
@@ -118,7 +119,7 @@ assert!(matches!(
 ));
 assert_ne!(
     result.original_trace_identity(),
-    result.replay_trace().identity(),
+    result.replay_trace_identity(),
 );
 assert_eq!(
     result.original_execution_counters(),
@@ -128,7 +129,8 @@ assert_eq!(
 
 Equivalent semantics do not mean identical execution identity. The returned
 Foundational attachment describes the original/replay relationship without
-becoming replay authority.
+becoming replay authority. `replay_semantics()` is an inspection projection;
+it cannot be published, consumed, or settled as an ordinary workflow trace.
 
 ## How It Relates To Other Features
 
@@ -169,8 +171,10 @@ re-execution therefore does not hide mutations that happened before the stop.
   execution substrate.
 - Diagnostic warning differences are ignorable only when the installed replay
   contract explicitly declares that noise.
-- Replay does not grant ordinary consumers trace-inspection authority; publish
-  and consume the replay result through the normal Query progression.
+- Replay does not return an ordinary completed workflow trace. Product code
+  that needs publication executes and publishes through a separately bound
+  ordinary operation, then compares its typed result with certification
+  inspection evidence where required.
 
 ## Related Docs
 

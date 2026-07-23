@@ -61,7 +61,7 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
         consumed.display_fields()[0]
             .field_path()
             .canonical_field_path(),
-        &canonical_field_path("profile.display_name")
+        Some(&canonical_field_path("profile.display_name"))
     );
     assert_eq!(
         consumed.derived_fields()[1].native_value().scalar(),

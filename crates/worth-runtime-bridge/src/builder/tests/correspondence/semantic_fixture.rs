@@ -321,6 +321,9 @@ fn field_change_envelope_with_metadata(
     .expect("valid semantic envelope")
 }
 
+mod envelope_width;
+pub(super) use envelope_width::field_change_envelope_with_width;
+
 pub(super) fn contract() -> AspectContract {
     contract_at_revision(4)
 }

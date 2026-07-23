@@ -56,7 +56,7 @@ fn bridge_row_set_preserves_complete_struct_values_through_consumption() {
     );
     assert_eq!(
         fact.field_path().canonical_field_path(),
-        &CanonicalFieldPath::single(field_key("profile"))
+        Some(&CanonicalFieldPath::single(field_key("profile")))
     );
     assert_eq!(fact.projection_authority(), consumption.contract_digest());
 }

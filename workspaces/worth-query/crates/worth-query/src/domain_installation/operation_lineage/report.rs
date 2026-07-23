@@ -4,7 +4,7 @@ use crate::domain_installation::operation_authority_chain::{
 use crate::domain_installation::operation_identity_basis::lineage_outcome_material;
 use crate::identity_evolution::InstalledIdentityEvolutionOutcome;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct WorthQueryStageLineageDeclaration {
     stage_identity: String,
     outcomes: Vec<InstalledIdentityEvolutionOutcome>,
@@ -31,7 +31,7 @@ impl WorthQueryStageLineageDeclaration {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthQueryTraceLineageEvidence {
     stage_identity: String,
     stage_receipt_identity: String,

@@ -1,11 +1,42 @@
-use super::super::delivery::unregister_live_subscription_index;
 use super::super::*;
-use crate::subscription::{validate_subscription_lifecycle_close, SubscriptionLifecycleCloseout};
+use crate::subscription::{
+    commit_prepared_subscription_lifecycle_close, prepare_subscription_lifecycle_close,
+    SubscriptionLifecycleCloseout,
+};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthQueryManagedLiveResourceCloseCause {
+    Cancellation,
+    Disposal,
+    Replacement,
+    Rebind,
+    ReplacementRollback,
+    RebindRollback,
+    Abandonment,
+}
+
+impl WorthQueryManagedLiveResourceCloseCause {
+    fn request(
+        self,
+        attachment: crate::subscription::SubscriptionConsumerAttachment,
+    ) -> SubscriptionLifecycleCloseRequest {
+        match self {
+            Self::Cancellation => SubscriptionLifecycleCloseRequest::TerminateConsumer(attachment),
+            Self::Disposal
+            | Self::Replacement
+            | Self::Rebind
+            | Self::ReplacementRollback
+            | Self::RebindRollback
+            | Self::Abandonment => SubscriptionLifecycleCloseRequest::DetachConsumer(attachment),
+        }
+    }
+}
 
 impl WorthQueryRuntime {
     pub(crate) fn close_managed_live_view<T>(
         &mut self,
         view: &WorthQueryLiveView<T>,
+        cause: WorthQueryManagedLiveResourceCloseCause,
     ) -> Result<SubscriptionLifecycleCloseout, WorthQueryRuntimeError> {
         let target = WorthQueryLiveArtifactTarget::from_subscription_installation(
             view.subscription_installation(),
@@ -34,12 +65,11 @@ impl WorthQueryRuntime {
             ));
         }
 
-        let close_request =
-            SubscriptionLifecycleCloseRequest::DetachConsumer(state.consumer_attachment.clone());
-        validate_subscription_lifecycle_close(
+        let close_request = cause.request(state.consumer_attachment.clone());
+        let prepared = prepare_subscription_lifecycle_close(
             &self.active_subscriptions,
             &state.active_lane_handle,
-            &close_request,
+            close_request,
         )
         .map_err(|error| {
             lifecycle_close_error(
@@ -50,21 +80,13 @@ impl WorthQueryRuntime {
         self.backend
             .close_live_view(view.name())
             .map_err(|error| lifecycle_close_error(view.name(), error.to_string()))?;
-        let closeout = close_subscription_lifecycle(
-            &mut self.active_subscriptions,
-            &state.active_lane_handle,
-            close_request,
-        )
-        .map_err(|error| {
-            lifecycle_close_error(
-                view.name(),
-                format!("{}: {}", error.denial_kind().as_str(), error.message()),
-            )
-        })?;
+        let closeout =
+            commit_prepared_subscription_lifecycle_close(&mut self.active_subscriptions, prepared);
 
         self.live_subscriptions.remove(&target);
         self.materialized_read_views.remove(&target);
-        unregister_live_subscription_index(&mut self.live_subscription_index, view.name());
+        self.live_subscription_index.unregister(&target);
+        self.unregister_installed_live_route(&target);
         Ok(closeout)
     }
 }

@@ -6,8 +6,9 @@ This folder is home. Treat it that way.
 
 This repo builds the WORTH platform under a strict, mechanically-enforced
 constitution. If you are writing or reviewing code here, these laws bind you
-and are not optional. Read the ones relevant to your task before editing; they
-are short and load-bearing.
+and are not optional. Before editing, read every document under
+`_docs/coding_guidelines/` in full. Also read any relevant laws under
+`_docs/more_guidelines/`; all are short and load-bearing.
 
 **Governing laws** (`_docs/coding_guidelines/`, `_docs/more_guidelines/`):
 

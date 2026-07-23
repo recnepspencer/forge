@@ -4,15 +4,14 @@ use super::admission::{
     admit_basis_capability, evaluate_basis_inspection_advisory_eligibility,
     evaluate_basis_mutation_preparation_eligibility, evaluate_basis_observation_eligibility,
 };
+use super::admitted_capability::AdmittedBasisCapability;
 use super::intent::{normalize_raw_basis_intent, RawBasisIntent};
 use super::lanes::{
     BasisOperationLane, InspectionLaneWitness, MutationPreparationLaneWitness,
     ObservationLaneWitness,
 };
 use super::lower_runtime::{readmit_lower_runtime_evidence, LowerRuntimeBasisEvidence};
-use super::proofs::{
-    AdmittedBasisCapability, AdvisoryBasisEligibility, BasisIntentDenial, DeniedBasisCapability,
-};
+use super::proofs::{AdvisoryBasisEligibility, BasisIntentDenial, DeniedBasisCapability};
 use super::receipts::{
     emit_observation_basis_receipt, envelope_basis_use, BasisUseReceipt,
     SelfDescribingBasisEnvelope,

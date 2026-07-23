@@ -2,8 +2,7 @@ use crate::declarative_live::canonicalize_declarative_request;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{
-    execute_query_basis_context, HistoricalAdmissionClass, QueryContextFamily,
-    ScopedQueryBasisContext,
+    execute_query_basis_context, QueryContextFamily, ScopedQueryBasisContext,
 };
 use crate::runtime::{
     WorthQueryCountResult, WorthQueryEphemeralGraphIndexReceipt,
@@ -235,32 +234,11 @@ fn context_allows_runtime_materialization(
     match context.family() {
         QueryContextFamily::CurrentBranchHead => true,
         QueryContextFamily::HistoricalSnapshot => {
-            historical_snapshot_context_matches_bound_workspace(runtime_snapshot_identity, context)
+            context.admits_runtime_snapshot(runtime_snapshot_identity)
         }
         QueryContextFamily::BranchHead
         | QueryContextFamily::HistoricalCommit
         | QueryContextFamily::PreviewDerivedHistorical
         | QueryContextFamily::DiffComparison => false,
     }
-}
-
-fn historical_snapshot_context_matches_bound_workspace(
-    runtime_snapshot_identity: &WorthQuerySnapshotIdentity,
-    context: &ScopedQueryBasisContext,
-) -> bool {
-    let Some(HistoricalAdmissionClass::RuntimeRetained) = context.historical_admission_class()
-    else {
-        return false;
-    };
-    workspace_matches_declared_historical_basis(
-        runtime_snapshot_identity,
-        context.declared_basis_label(),
-    )
-}
-
-fn workspace_matches_declared_historical_basis(
-    runtime_snapshot_identity: &WorthQuerySnapshotIdentity,
-    declared_basis_label: &str,
-) -> bool {
-    runtime_snapshot_identity.matches_declared_historical_basis_label(declared_basis_label)
 }

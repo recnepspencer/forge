@@ -1,11 +1,12 @@
 use worth_foundational::FoundationalBoundaryEvidenceContinuityAttachmentScope;
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation, runtime};
+use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
-    aftermath_workspace, provisional_workflow_workspace, AftermathCandidate, AftermathContract,
-    AftermathFamily, AftermathOriginal, GeometryDomain, ProvisionalWorkflow,
+    aftermath_workspace, provisional_workflow_workspace, AftermathContract, AftermathFamily,
+    GeometryDomain, ProvisionalWorkflow,
 };
+use super::operation_aftermath_support::*;
 
 #[test]
 fn compensation_is_a_new_bound_operation_with_a_proof_carrying_relation() {
@@ -81,8 +82,7 @@ fn exact_inverse_has_its_own_typed_surface_and_exact_postcondition() {
         .unwrap()
         .target_entity_identity()
         .unwrap()
-        .relational_entity_record_parts()
-        .unwrap();
+        .clone();
     let candidate = bind_candidate(&workspace, basis);
     let capability = match original.admit_aftermath(candidate) {
         domain::WorthQueryAftermathAdmission::ExactInverse(capability) => capability,
@@ -122,13 +122,10 @@ fn exact_inverse_has_its_own_typed_surface_and_exact_postcondition() {
     let receipt = executed.trace().stage_receipts()[0].effect_evidence()[0]
         .mutation_receipt()
         .unwrap();
-    assert_eq!(
-        receipt
-            .target_entity_identity()
-            .unwrap()
-            .relational_entity_record_parts(),
-        Some(original_entity)
-    );
+    assert!(receipt
+        .target_entity_identity()
+        .unwrap()
+        .is_same_current_identity_as(&original_entity));
 }
 
 #[test]
@@ -268,7 +265,7 @@ fn candidate_failure_after_effect_retains_original_stop_and_recovery_truth() {
 }
 
 #[test]
-fn exact_inverse_on_a_different_target_retains_effect_truth_but_mints_no_relation() {
+fn reconstructed_inverse_target_is_rejected_before_effect_or_relation() {
     let mut workspace = aftermath_workspace(
         "aftermath-wrong-inverse-target",
         AftermathContract::WrongInverseTarget,
@@ -285,26 +282,20 @@ fn exact_inverse_on_a_different_target_retains_effect_truth_but_mints_no_relatio
         domain::WorthQueryAftermathAdmission::ExactInverse(capability) => capability,
         _ => panic!("installed exact inverse was not admitted"),
     };
-    let TransitionOutcome::Failed(domain::WorthQueryWorkflowReexecutionStop::Aftermath(denial)) =
-        capability.execute_workflow(&mut workspace)
-    else {
-        panic!("wrong-target inverse minted aftermath authority");
+    let stop = match capability.execute_workflow(&mut workspace) {
+        TransitionOutcome::Failed(stop) => stop,
+        TransitionOutcome::Success(_) => panic!("reconstructed target minted aftermath authority"),
+        _ => panic!("reconstructed target did not produce an exact failed execution"),
     };
-    assert_eq!(
-        denial.kind(),
-        domain::WorthQueryAftermathExecutionDenialKind::ExactInverseScopeMismatch
-    );
-    assert!(denial.candidate_trace_identity().is_some());
-    assert_eq!(denial.partial_effects().len(), 1);
-    assert!(denial.partial_effects()[0].mutation_receipt().is_some());
-    assert_eq!(
-        denial.recovery_posture(),
-        Some(
-            domain::WorthQueryAftermathFailureRecoveryPosture::DomainRecoveryRequired {
-                attempted_kind: domain::WorthQueryAftermathKind::ExactInverse,
-            }
-        )
-    );
+    assert!(stop.executed_effects().is_empty());
+    assert!(matches!(
+        stop,
+        domain::WorthQueryWorkflowReexecutionStop::Advance(denial)
+            if matches!(
+                denial.kind(),
+                domain::WorthQueryWorkflowAdvanceDenialKind::StageExecutor { .. }
+            )
+    ));
 }
 
 #[test]
@@ -326,93 +317,4 @@ fn provisional_discard_consumes_only_an_effect_free_provisional_trace() {
     let discarded = trace.discard_provisional().unwrap();
     assert_eq!(discarded.original_trace_identity(), trace_identity);
     assert_ne!(discarded.identity(), trace_identity);
-}
-
-fn assert_posture_denial(
-    contract: AftermathContract,
-    expected_denial: domain::WorthQueryAftermathAdmissionDenial,
-    expected_posture: domain::WorthQueryAftermathPosture,
-) {
-    let mut workspace = aftermath_workspace("aftermath-posture", contract).unwrap();
-    let basis = mutation_basis();
-    let original = bind_original(&workspace, basis.clone())
-        .reexecute(intent("apply"), &mut workspace)
-        .unwrap();
-    match original.admit_aftermath(bind_candidate(&workspace, basis)) {
-        domain::WorthQueryAftermathAdmission::Denied {
-            denial,
-            posture,
-            counters,
-        } => {
-            assert_eq!(denial, expected_denial);
-            assert_eq!(posture, expected_posture);
-            assert_eq!(counters.effect_receipt_checks, 0);
-            assert_eq!(counters.execution_contacts, 0);
-        }
-        _ => panic!("non-executable posture opened an aftermath capability"),
-    }
-}
-
-fn intent(input: &str) -> domain::WorthQueryNormalizedWorkflowIntent {
-    domain::WorthQueryNormalizedWorkflowIntent::new(vec![
-        domain::WorthQueryWorkflowIntentStage::new(
-            "apply",
-            domain::WorthQueryWorkflowIntentValue::EntityIdentity(input.into()),
-        ),
-    ])
-    .unwrap()
-}
-
-fn bind_original(
-    workspace: &runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness>,
-) -> domain::WorthQueryBoundDomainOperation<
-    GeometryDomain,
-    AftermathOriginal,
-    AftermathFamily,
-    foundation::MutationPreparationLaneWitness,
-> {
-    let installed = workspace.domain(GeometryDomain).unwrap();
-    workspace
-        .operating_world(basis)
-        .family(AftermathFamily)
-        .bind(&installed, AftermathOriginal)
-        .unwrap()
-}
-
-fn bind_candidate(
-    workspace: &runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness>,
-) -> domain::WorthQueryBoundDomainOperation<
-    GeometryDomain,
-    AftermathCandidate,
-    AftermathFamily,
-    foundation::MutationPreparationLaneWitness,
-> {
-    let installed = workspace.domain(GeometryDomain).unwrap();
-    workspace
-        .operating_world(basis)
-        .family(AftermathFamily)
-        .bind(&installed, AftermathCandidate)
-        .unwrap()
-}
-
-fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
-}
-
-fn branch_mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .branch_head("aftermath-foreign-basis", true)
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
 }

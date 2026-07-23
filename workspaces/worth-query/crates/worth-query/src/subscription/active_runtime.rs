@@ -34,7 +34,7 @@ use super::delivery_dimensions::{
 };
 use super::delivery_error::QueryDeliveryError;
 use super::delivery_window::{QueryDeliveryBatch, QueryDeliveryWindow};
-use super::delivery_work_packet::ActiveDeliveryWorkPacket;
+use super::delivery_work_packet::{ActiveDeliveryWorkPacket, ActiveDeliveryWorkPacketRequest};
 use super::maintenance_delta::{
     QueryMaintenanceDeltaLoweringReport, QuerySubscriptionMaintenanceDelta,
 };
@@ -133,8 +133,8 @@ pub fn open_query_delivery_window(
     attachment: &SubscriptionConsumerAttachment,
     budget: QueryDeliveryWindowBudget,
 ) -> Result<QueryDeliveryWindow, QueryDeliveryError> {
-    let (window, counters) = QueryDeliveryWindow::new(attachment, budget)?;
-    runtime.counters = counters;
+    let window = QueryDeliveryWindow::new(attachment, budget)?;
+    runtime.counters = window.counters().clone();
     Ok(window)
 }
 
@@ -153,10 +153,10 @@ pub fn build_active_delivery_work_packet(
     allocation_scope_width: ActiveAllocationScopeWidth,
     allocation_posture: ActiveSubscriptionAllocationPosture,
 ) -> Result<ActiveDeliveryWorkPacket, QueryDeliveryError> {
-    let (packet, counters) = ActiveDeliveryWorkPacket::new(
-        attachment.lane_digest().clone(),
-        attachment.attachment_digest().clone(),
-        delta,
+    let packet = ActiveDeliveryWorkPacket::new(ActiveDeliveryWorkPacketRequest {
+        active_lane_digest: attachment.lane_digest().clone(),
+        attachment_digest: attachment.attachment_digest().clone(),
+        maintenance_delta: delta,
         lowering_report,
         density_posture,
         affected_lane_width,
@@ -166,8 +166,8 @@ pub fn build_active_delivery_work_packet(
         preview_residue_width,
         allocation_scope_width,
         allocation_posture,
-    )?;
-    runtime.counters = counters;
+    })?;
+    runtime.counters = packet.counters().clone();
     Ok(packet)
 }
 
@@ -243,6 +243,39 @@ pub fn close_subscription_lifecycle(
     let closeout = SubscriptionLifecycleCloseout::new(request, lane_terminal);
     runtime.counters = closeout.counters().clone();
     Ok(closeout)
+}
+
+pub(crate) struct PreparedSubscriptionLifecycleClose {
+    lane_digest: super::ActiveSubscriptionLaneDigest,
+    lane_index: usize,
+    request: SubscriptionLifecycleCloseRequest,
+}
+
+pub(crate) fn prepare_subscription_lifecycle_close(
+    runtime: &ActiveSubscriptionRuntime,
+    handle: &ActiveSubscriptionLaneHandle,
+    request: SubscriptionLifecycleCloseRequest,
+) -> Result<PreparedSubscriptionLifecycleClose, SubscriptionLifecycleCloseError> {
+    validate_subscription_lifecycle_close(runtime, handle, &request)?;
+    Ok(PreparedSubscriptionLifecycleClose {
+        lane_digest: handle.lane_digest().clone(),
+        lane_index: handle.lane_index() as usize,
+        request,
+    })
+}
+
+pub(crate) fn commit_prepared_subscription_lifecycle_close(
+    runtime: &mut ActiveSubscriptionRuntime,
+    prepared: PreparedSubscriptionLifecycleClose,
+) -> SubscriptionLifecycleCloseout {
+    let lane_terminal = runtime.registry.commit_prepared_attachment_close(
+        &prepared.lane_digest,
+        prepared.lane_index,
+        prepared.request.attachment_digest(),
+    );
+    let closeout = SubscriptionLifecycleCloseout::new(prepared.request, lane_terminal);
+    runtime.counters = closeout.counters().clone();
+    closeout
 }
 
 pub(crate) fn validate_subscription_lifecycle_close(

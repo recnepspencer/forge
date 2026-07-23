@@ -9,6 +9,7 @@ pub use worth_query::facade::certification::{
     WorthQueryHistoricalReplayAdmission, WorthQueryHistoricalReplayAdmissionDenial,
     WorthQueryInstalledHistoricalReplayPath, WorthQueryReplayBasisRelationship,
 };
+pub use worth_query::facade::domain::{WorthQueryReplayComparison, WorthQueryReplayDivergence};
 /// Narrow cert-only scoped replay basis.
 ///
 /// ```
@@ -19,6 +20,3 @@ pub use worth_query::facade::certification::{
 /// ```
 pub use worth_query::facade::foundation::ScopedReplayBasis;
 pub use worth_query::facade::history::WorthQueryHistoricalContext;
-pub use worth_query::facade::domain::{
-    WorthQueryReplayComparison, WorthQueryReplayDivergence,
-};

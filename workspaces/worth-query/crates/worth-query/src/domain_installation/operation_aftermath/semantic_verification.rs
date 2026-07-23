@@ -174,11 +174,25 @@ pub(crate) fn exact_inverse_effect_scope_matches_original(
         let Some(candidate) = candidate.mutation_receipt() else {
             return (false, checks);
         };
-        if original.target_entity_identity() != candidate.target_entity_identity()
+        if !same_current_target_entity(original, candidate)
             || original.target_collection_identity() != candidate.target_collection_identity()
         {
             return (false, checks);
         }
     }
     (true, checks)
+}
+
+fn same_current_target_entity(
+    original: &crate::runtime::WorthQueryWriteReceipt,
+    candidate: &crate::runtime::WorthQueryWriteReceipt,
+) -> bool {
+    match (
+        original.target_entity_identity(),
+        candidate.target_entity_identity(),
+    ) {
+        (Some(original), Some(candidate)) => original.is_same_current_identity_as(candidate),
+        (None, None) => true,
+        _ => false,
+    }
 }

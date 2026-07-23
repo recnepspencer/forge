@@ -375,9 +375,11 @@ not operational authority.
 - Portable declarations describe temporal and on-demand meaning, but the host
   must supply the exact runtime wake or trigger provider.
 - Installed-operation certification replay compares the exact realized
-  conditional observations, Signal evidence, and decision path. Sharing,
-  invalidation-delta, and patch authorities remain later work and must carry
-  the same provenance when implemented.
+  conditional observations, Signal evidence, and decision path. Ordinary
+  shared-owner delivery retains the current admitted Signal decision in each
+  lease-bound invalidation delta. A suppressed, dependency-unchanged,
+  reverted-clean, or deferred decision cannot be promoted into a computed
+  patch. Query-shaped patch payloads remain a separate later capability.
 
 ## Related Docs
 
@@ -387,3 +389,4 @@ not operational authority.
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
+- [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./bound-projection-sharing-and-invalidation.md)

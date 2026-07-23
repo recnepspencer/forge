@@ -250,6 +250,15 @@ impl WorthQueryInstalledPackageIndex {
         .expect("an admitted installed package set must rebuild without conflict")
     }
 
+    pub fn successor_generation(&self) -> Self {
+        Self::build(
+            self.runtime.retained(),
+            self.generation.successor(),
+            self.packages.values().map(|record| record.package.clone()),
+        )
+        .expect("an admitted installed package set must advance without conflict")
+    }
+
     pub fn rebuild_report(&self) -> WorthQueryInstalledPackageIndexRebuildReport {
         let rebuilt = self.rebuild();
         WorthQueryInstalledPackageIndexRebuildReport::new(

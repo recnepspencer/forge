@@ -5,8 +5,8 @@ use super::executors::{
 };
 use super::workflow_parallel_providers::{SerialParallelProvider, WorkflowParallelProvider};
 use super::{
-    canonical_bundle, configured_runtime_without_executors, semantic_closure, GeometryDomain,
-    ReadFamily, WorkflowRead,
+    canonical_bundle, configured_runtime_without_executors, semantic_closure, AuxiliaryDomain,
+    GeometryDomain, ReadFamily, WorkflowRead,
 };
 
 #[path = "workflow/definitions.rs"]
@@ -22,6 +22,108 @@ pub fn workflow_workspace(
     worth_query::facade::consumer_kit::WorthQueryTestBackendError,
 > {
     build_workspace(name, workflow_definition(None))
+}
+
+pub fn controlled_workflow_workspace(
+    name: &str,
+) -> Result<
+    worth_query::facade::consumer_kit::WorthQueryControlledTestWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
+    configured_runtime_without_executors(workflow_package(workflow_definition(None), true))
+        .replayable_workflow_stage_executor(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowStageExecutor,
+        )
+        .workflow_parallel_admission_provider(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowParallelProvider,
+        )
+        .controlled_workspace(name)
+}
+
+pub fn failing_workflow_workspace(
+    name: &str,
+    failed_closes: usize,
+) -> Result<
+    runtime::WorthQueryWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
+    configured_runtime_without_executors(workflow_package(workflow_definition(None), true))
+        .replayable_workflow_stage_executor(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowStageExecutor,
+        )
+        .workflow_parallel_admission_provider(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowParallelProvider,
+        )
+        .fail_next_live_closes(failed_closes)
+        .workspace(name)
+}
+
+pub fn required_domain_workflow_workspace(
+    name: &str,
+) -> Result<
+    worth_query::facade::consumer_kit::WorthQueryControlledTestWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
+    let mut semantics = semantic_closure(
+        canonical_bundle("Vertex"),
+        domain::WorthQuerySupportRequirement::Required,
+        true,
+    );
+    semantics.lowering.deterministic = true;
+    semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
+        comparator: domain::WorthQueryOperationReplayComparatorContract {
+            family: "installed-workflow-exact-v1",
+        },
+    };
+    semantics.workflow =
+        domain::WorthQueryOperationWorkflowContract::Declared(workflow_definition(None));
+    semantics
+        .required_domains
+        .push(domain::WorthQueryOperationRequiredDomainRole::new("auxiliary").unwrap());
+    let operation = domain::WorthQueryDomainOperationDefinition::<
+        GeometryDomain,
+        WorkflowRead,
+        ReadFamily,
+    >::new(
+        domain::WorthQueryDomainOperationIdentity::new("workflow-read", 1),
+        semantics,
+    );
+    let geometry = domain::WorthQueryDomainPackage::declare(
+        GeometryDomain,
+        domain_identity::<GeometryDomain>("geometry"),
+    )
+    .operation(operation)
+    .operation_required_domain::<WorkflowRead, ReadFamily, AuxiliaryDomain>("auxiliary");
+    configured_runtime_without_executors(geometry)
+        .domain_package(domain::WorthQueryDomainPackage::declare(
+            AuxiliaryDomain,
+            domain_identity::<AuxiliaryDomain>("auxiliary"),
+        ))
+        .replayable_workflow_stage_executor(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowStageExecutor,
+        )
+        .workflow_parallel_admission_provider(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowParallelProvider,
+        )
+        .controlled_workspace(name)
 }
 
 pub fn reversed_workflow_workspace(
@@ -229,6 +331,14 @@ pub(super) fn workflow_package(
     workflow: domain::WorthQueryPortableWorkflowDefinition,
     deterministic: bool,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
+    workflow_package_with_operation_conditionals(workflow, deterministic, Vec::new())
+}
+
+pub(super) fn workflow_package_with_operation_conditionals(
+    workflow: domain::WorthQueryPortableWorkflowDefinition,
+    deterministic: bool,
+    conditional_nodes: Vec<domain::WorthQueryPortableConditionalNodeDeclaration>,
+) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let mut semantics = semantic_closure(
         canonical_bundle("Vertex"),
         domain::WorthQuerySupportRequirement::Required,
@@ -241,6 +351,7 @@ pub(super) fn workflow_package(
         },
     };
     semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
+    semantics.conditional_nodes = conditional_nodes;
     let operation = domain::WorthQueryDomainOperationDefinition::<
         GeometryDomain,
         WorkflowRead,
@@ -258,4 +369,12 @@ pub(super) fn workflow_package(
         ),
     )
     .operation(operation)
+}
+
+fn domain_identity<D>(name: &str) -> domain::WorthQueryDomainIdentityDeclaration<D> {
+    domain::WorthQueryDomainIdentityDeclaration::new(
+        domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
+        domain::WorthQueryDomainIdentityName::new(name).unwrap(),
+        domain::WorthQueryDomainSemanticVersion::new(1, 0),
+    )
 }

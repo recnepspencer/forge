@@ -1,0 +1,11 @@
+error[E0599]: no function or associated item named `new` found for struct `WorthQueryNativeAccessKey` in the current scope
+ --> tests/ui/projection_consumption/native_access/native_access_key_constructor_private.rs:5:32
+  |
+5 |     WorthQueryNativeAccessKey::new(path)
+  |                                ^^^ function or associated item not found in `WorthQueryNativeAccessKey`
+  |
+help: there is a method `ne` with a similar name
+  |
+5 -     WorthQueryNativeAccessKey::new(path)
+5 +     WorthQueryNativeAccessKey::ne(path)
+  |

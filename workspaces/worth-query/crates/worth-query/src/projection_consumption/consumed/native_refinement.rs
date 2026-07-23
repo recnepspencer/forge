@@ -1,35 +1,33 @@
 use worth_foundational::facade::{
-    AspectValue, CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32, CanonicalF64,
-    CanonicalRational, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz, ContentRefId,
-    EntityId, InternedString, ScalarAspectType, StructAspectValue,
+    AspectValue, AspectValuePosture, CanonicalBigInt, CanonicalDate, CanonicalDecimal,
+    CanonicalF32, CanonicalF64, CanonicalRational, CanonicalTime, CanonicalTimestamp,
+    CanonicalTimestampTz, ContentRefId, EntityId, InternedString, ScalarAspectType,
+    StructAspectValue,
 };
 
 use super::{ConsumedFieldValueFact, ConsumedNativeValueView};
 use crate::projection_consumption::{ProjectionFactFieldPath, ProjectionSourceFamily};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ConsumedNativeValueShape {
-    Scalar(ScalarAspectType),
-    Struct,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConsumedNativeRefinementDenial {
-    expected: ConsumedNativeValueShape,
-    actual: ConsumedNativeValueShape,
+    expected: AspectValuePosture,
+    actual: AspectValuePosture,
     field_path: ProjectionFactFieldPath,
     source_family: ProjectionSourceFamily,
     source_identity: String,
     source_row_identity: String,
     projection_authority: String,
+    contract_key: Option<worth_foundational::facade::AspectKey>,
+    contract_identity: Option<worth_foundational::facade::AspectIdentity>,
+    contract_revision: Option<worth_foundational::facade::AspectContractRevision>,
 }
 
 impl ConsumedNativeRefinementDenial {
-    pub fn expected(&self) -> ConsumedNativeValueShape {
+    pub fn expected(&self) -> AspectValuePosture {
         self.expected
     }
 
-    pub fn actual(&self) -> ConsumedNativeValueShape {
+    pub fn actual(&self) -> AspectValuePosture {
         self.actual
     }
 
@@ -52,6 +50,18 @@ impl ConsumedNativeRefinementDenial {
     pub fn projection_authority(&self) -> &str {
         &self.projection_authority
     }
+
+    pub fn contract_key(&self) -> Option<&worth_foundational::facade::AspectKey> {
+        self.contract_key.as_ref()
+    }
+
+    pub fn contract_identity(&self) -> Option<worth_foundational::facade::AspectIdentity> {
+        self.contract_identity
+    }
+
+    pub fn contract_revision(&self) -> Option<worth_foundational::facade::AspectContractRevision> {
+        self.contract_revision
+    }
 }
 
 macro_rules! scalar_refinement {
@@ -60,7 +70,7 @@ macro_rules! scalar_refinement {
             match self.native_value() {
                 ConsumedNativeValueView::Scalar(AspectValue::$variant(value)) => Ok(value),
                 actual => Err(self.refinement_denial(
-                    ConsumedNativeValueShape::Scalar(ScalarAspectType::$family),
+                    AspectValuePosture::Scalar(ScalarAspectType::$family),
                     actual,
                 )),
             }
@@ -72,10 +82,10 @@ impl ConsumedFieldValueFact {
     pub fn as_null(&self) -> Result<(), ConsumedNativeRefinementDenial> {
         match self.native_value() {
             ConsumedNativeValueView::Scalar(AspectValue::Null) => Ok(()),
-            actual => Err(self.refinement_denial(
-                ConsumedNativeValueShape::Scalar(ScalarAspectType::Null),
-                actual,
-            )),
+            actual => {
+                Err(self
+                    .refinement_denial(AspectValuePosture::Scalar(ScalarAspectType::Null), actual))
+            }
         }
     }
 
@@ -111,28 +121,33 @@ impl ConsumedFieldValueFact {
     pub fn as_struct(&self) -> Result<&StructAspectValue, ConsumedNativeRefinementDenial> {
         match self.native_value() {
             ConsumedNativeValueView::Struct(value) => Ok(value),
-            actual => Err(self.refinement_denial(ConsumedNativeValueShape::Struct, actual)),
+            actual => Err(self.refinement_denial(AspectValuePosture::Struct, actual)),
         }
     }
 
     fn refinement_denial(
         &self,
-        expected: ConsumedNativeValueShape,
+        expected: AspectValuePosture,
         actual: ConsumedNativeValueView<'_>,
     ) -> ConsumedNativeRefinementDenial {
+        let native_contract = self.native_contract_context();
         ConsumedNativeRefinementDenial {
             expected,
             actual: match actual {
                 ConsumedNativeValueView::Scalar(value) => {
-                    ConsumedNativeValueShape::Scalar(value.value_family())
+                    AspectValuePosture::Scalar(value.value_family())
                 }
-                ConsumedNativeValueView::Struct(_) => ConsumedNativeValueShape::Struct,
+                ConsumedNativeValueView::Struct(_) => AspectValuePosture::Struct,
+                ConsumedNativeValueView::Absent(posture) => AspectValuePosture::Absent(posture),
             },
             field_path: self.field_path().clone(),
             source_family: self.source_family(),
             source_identity: self.source_identity().to_string(),
             source_row_identity: self.source_row_identity().to_string(),
             projection_authority: self.projection_authority().to_string(),
+            contract_key: native_contract.map(|context| context.key().clone()),
+            contract_identity: native_contract.map(|context| context.identity()),
+            contract_revision: native_contract.map(|context| context.revision()),
         }
     }
 }
@@ -140,13 +155,13 @@ impl ConsumedFieldValueFact {
 #[cfg(test)]
 mod tests {
     use worth_foundational::facade::{
-        AspectValue, CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32, CanonicalF64,
-        CanonicalRational, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz, ContentRefId,
-        EntityId, FieldKey, InternedString, PartitionId, ScalarAspectType, StructAspectValue,
-        Symbol,
+        AspectValue, AspectValuePosture, CanonicalBigInt, CanonicalDate, CanonicalDecimal,
+        CanonicalF32, CanonicalF64, CanonicalRational, CanonicalTime, CanonicalTimestamp,
+        CanonicalTimestampTz, ContentRefId, EntityId, FieldKey, InternedString, PartitionId,
+        ScalarAspectType, StructAspectValue, Symbol,
     };
 
-    use super::{ConsumedNativeValueShape, ProjectionSourceFamily};
+    use super::ProjectionSourceFamily;
     use crate::projection_consumption::consumed::ConsumedNativeValue;
     use crate::projection_consumption::contracts::bind_materialized_projection_contract;
     use crate::projection_consumption::{
@@ -205,11 +220,11 @@ mod tests {
 
         assert_eq!(
             denial.expected(),
-            ConsumedNativeValueShape::Scalar(ScalarAspectType::Int32)
+            AspectValuePosture::Scalar(ScalarAspectType::Int32)
         );
         assert_eq!(
             denial.actual(),
-            ConsumedNativeValueShape::Scalar(ScalarAspectType::UInt32)
+            AspectValuePosture::Scalar(ScalarAspectType::UInt32)
         );
         assert_eq!(
             denial.field_path().terminal_projection_for_boundary(),
@@ -237,7 +252,7 @@ mod tests {
         assert_eq!(structured_fact.as_struct(), Ok(&structured));
         assert_eq!(
             structured_fact.as_uint32().unwrap_err().actual(),
-            ConsumedNativeValueShape::Struct
+            AspectValuePosture::Struct
         );
     }
 

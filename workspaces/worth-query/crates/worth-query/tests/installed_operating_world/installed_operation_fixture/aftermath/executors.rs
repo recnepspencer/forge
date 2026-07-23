@@ -75,6 +75,9 @@ impl
         domain::WorthQueryWorkflowStageMaterial,
         domain::WorthQueryWorkflowStageExecutorFailure,
     > {
+        if let domain::WorthQueryWorkflowValue::CurrentEntityIdentity(identity) = &input {
+            return execute_exact_inverse(identity.clone(), context, workspace);
+        }
         if let domain::WorthQueryWorkflowValue::EntityIdentity(value) = &input {
             if let Some(identity) = exact_inverse_identity(value) {
                 return execute_exact_inverse(identity, context, workspace);
@@ -89,31 +92,27 @@ impl
     ) -> Option<domain::WorthQueryNormalizedWorkflowIntent> {
         let value = match original.kind() {
             domain::WorthQueryAftermathKind::ExactInverse => {
-                let parts = original
-                    .effect_target(0)?
-                    .relational_entity_record_parts()?;
-                let local_slot = if self.wrong_inverse_target {
-                    parts.local_slot().saturating_sub(1)
+                let target = original.effect_target(0)?;
+                if self.wrong_inverse_target {
+                    domain::WorthQueryWorkflowIntentValue::EntityIdentity(format!(
+                        "copied:{}",
+                        target
+                            .evidence_identity()
+                            .terminal_projection_for_reporting()
+                    ))
                 } else {
-                    parts.local_slot()
-                };
-                format!(
-                    "exact:{}:{}:{}",
-                    parts.partition_id(),
-                    local_slot,
-                    parts.generation()
-                )
+                    domain::WorthQueryWorkflowIntentValue::CurrentEntityIdentity(target.clone())
+                }
             }
             domain::WorthQueryAftermathKind::Compensation if self.fail_after_effect => {
-                "fail-after-effect".into()
+                domain::WorthQueryWorkflowIntentValue::EntityIdentity("fail-after-effect".into())
             }
-            domain::WorthQueryAftermathKind::Compensation => "apply".into(),
+            domain::WorthQueryAftermathKind::Compensation => {
+                domain::WorthQueryWorkflowIntentValue::EntityIdentity("apply".into())
+            }
         };
         domain::WorthQueryNormalizedWorkflowIntent::new(vec![
-            domain::WorthQueryWorkflowIntentStage::new(
-                "apply",
-                domain::WorthQueryWorkflowIntentValue::EntityIdentity(value),
-            ),
+            domain::WorthQueryWorkflowIntentStage::new("apply", value),
         ])
         .ok()
     }
@@ -271,20 +270,10 @@ fn execute_exact_inverse(
 }
 
 fn exact_inverse_identity(value: &str) -> Option<foundation::WorthQueryEntityIdentity> {
-    let mut fields = value.strip_prefix("exact:")?.split(':');
-    let partition_id = fields.next()?.parse().ok()?;
-    let local_slot = fields.next()?.parse().ok()?;
-    let generation = fields.next()?.parse().ok()?;
-    if fields.next().is_some() {
-        return None;
-    }
+    let projection = value.strip_prefix("copied:")?;
     Some(
-        foundation::WorthQueryEntityIdentity::from_relational_record(
-            foundation::RelationalBridgeRecordIdentityParts::entity(
-                partition_id,
-                local_slot,
-                generation,
-            ),
+        foundation::WorthQueryEntityIdentity::admit_authored_entity_token(
+            foundation::QueryExternalIdentityToken::new(std::sync::Arc::from(projection)),
         ),
     )
 }

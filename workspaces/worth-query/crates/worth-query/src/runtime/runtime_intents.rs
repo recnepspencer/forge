@@ -281,14 +281,18 @@ impl WorthQueryRuntime {
                 .is_some_and(|delivery| {
                     delivery.family() == &WorthQueryEffectDeliveryFamily::PendingWriteIntent
                         && delivery.effect_name() == pending_delivery.effect_name()
-                        && delivery.commit_identity() == pending_delivery.commit_identity()
+                        && delivery
+                            .commit_identity()
+                            .is_same_current_identity_as(pending_delivery.commit_identity())
                 })
             {
                 runtime.deliveries.remove(pending_index);
             } else if let Some(index) = runtime.deliveries.iter().position(|delivery| {
                 delivery.family() == &WorthQueryEffectDeliveryFamily::PendingWriteIntent
                     && delivery.effect_name() == pending_delivery.effect_name()
-                    && delivery.commit_identity() == pending_delivery.commit_identity()
+                    && delivery
+                        .commit_identity()
+                        .is_same_current_identity_as(pending_delivery.commit_identity())
             }) {
                 runtime.deliveries.remove(index);
             }

@@ -7,7 +7,7 @@ use crate::data::node_meta::NodeMetaStore;
 use crate::data::tier_policy_table::TierPolicyTable;
 
 /// Version-change comparator policy for dependency snapshot checks.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum VersionComparatorPolicy {
     /// Treat any numeric difference as a meaningful change.
     #[default]
@@ -19,12 +19,52 @@ pub enum VersionComparatorPolicy {
     /// Delegate comparison to embedding runtime callback by stable key.
     Custom { key: String },
     /// Runtime-affine comparator installed by an admitted graph-lowering owner.
+    #[serde(skip)]
     Installed {
         identity: InstalledSignalComparatorIdentity,
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+impl PartialEq for VersionComparatorPolicy {
+    fn eq(&self, candidate: &Self) -> bool {
+        match (self, candidate) {
+            (Self::Exact, Self::Exact) | (Self::OutputIdentity, Self::OutputIdentity) => true,
+            (Self::Tolerance { epsilon: current }, Self::Tolerance { epsilon: candidate }) => {
+                current == candidate
+            }
+            (Self::Custom { key: current }, Self::Custom { key: candidate }) => {
+                current == candidate
+            }
+            (
+                Self::Installed { identity: current },
+                Self::Installed {
+                    identity: candidate,
+                },
+            ) => current.is_same_installed_identity(candidate),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for VersionComparatorPolicy {}
+
+impl std::hash::Hash for VersionComparatorPolicy {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        match self {
+            Self::Tolerance { epsilon } => epsilon.hash(state),
+            Self::Custom { key } => key.hash(state),
+            Self::Installed { identity } => {
+                identity.graph_instance_id.hash(state);
+                identity.node.hash(state);
+                identity.role.hash(state);
+            }
+            Self::Exact | Self::OutputIdentity => {}
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct InstalledSignalComparatorIdentity {
     graph_instance_id: u64,
     node: NodeId,
@@ -51,8 +91,26 @@ impl InstalledSignalComparatorIdentity {
         }
     }
 
-    pub const fn graph_instance_id(self) -> u64 {
+    pub(crate) const fn graph_instance_id(&self) -> u64 {
         self.graph_instance_id
+    }
+
+    pub(crate) const fn role(&self) -> InstalledSignalComparatorRole {
+        self.role
+    }
+
+    pub(crate) fn is_same_installed_identity(&self, candidate: &Self) -> bool {
+        self.graph_instance_id == candidate.graph_instance_id
+            && self.node == candidate.node
+            && self.role == candidate.role
+    }
+}
+
+impl std::fmt::Debug for InstalledSignalComparatorIdentity {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("InstalledSignalComparatorIdentity")
+            .finish_non_exhaustive()
     }
 }
 
@@ -71,7 +129,7 @@ impl VersionComparatorPolicy {
             Self::OutputIdentity => current != cached,
             Self::Custom { key } => resolver.resolve(key, aspect, cached, current)?,
             Self::Installed { identity } => {
-                resolver.resolve_installed(*identity, aspect, cached, current)?
+                resolver.resolve_installed(identity, aspect, cached, current)?
             }
         })
     }
@@ -90,14 +148,13 @@ pub trait VersionComparatorResolver {
 
     fn resolve_installed(
         &mut self,
-        identity: InstalledSignalComparatorIdentity,
+        _identity: &InstalledSignalComparatorIdentity,
         aspect: Aspect,
         _cached: u64,
         _current: u64,
     ) -> Result<bool, SignalError> {
         Err(SignalError::invalid_input(format!(
-            "installed comparator for graph {} requires its admitted runtime resolver for aspect {aspect:?}",
-            identity.graph_instance_id()
+            "installed comparator requires its admitted runtime resolver for aspect {aspect:?}"
         )))
     }
 }
@@ -115,7 +172,7 @@ impl<T: VersionComparatorResolver + ?Sized> VersionComparatorResolver for &mut T
 
     fn resolve_installed(
         &mut self,
-        identity: InstalledSignalComparatorIdentity,
+        identity: &InstalledSignalComparatorIdentity,
         aspect: Aspect,
         cached: u64,
         current: u64,

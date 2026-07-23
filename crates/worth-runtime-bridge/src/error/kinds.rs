@@ -154,6 +154,7 @@ pub enum BridgeWritebackErrorKind {
     FamilyBindingMismatch,
     StrategyDescriptorMismatch,
     IdempotenceBasisMismatch,
+    CausalityEffectMismatch,
     StaleTruthBasis,
     InvariantRejected,
     MergeAuthorityRejected,

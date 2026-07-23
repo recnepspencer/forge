@@ -1,3 +1,5 @@
+pub use worth_foundational::facade::AspectValuePosture;
+
 pub use crate::authoring::{
     AspectFieldKey, AspectFieldSelector, AspectName, AuthoredBundleError,
     AuthoredBundleFailureClass, AuthoredResultShapeField, AuthoringError, AuthoringFailureClass,
@@ -292,7 +294,7 @@ pub use crate::projection_consumption::{
     load_projection_authority_contract_document, projection_consumption_family_inventory,
     BoundProjectionFactFamily, ConsumedContinuityAuthorityIdentity, ConsumedEffectContinuityFact,
     ConsumedEntityIdentityFact, ConsumedFieldValueFact, ConsumedMembershipFact,
-    ConsumedNativeRefinementDenial, ConsumedNativeValueShape, ConsumedNativeValueView,
+    ConsumedNativeRefinementDenial, ConsumedNativeValueView,
     ConsumedProjectionAuthorityComplexityAxis, ConsumedProjectionAuthorityComplexityEvidence,
     ConsumedProjectionAuthorityComplexityRow, ConsumedProjectionAuthorityCounters,
     ConsumedProjectionAuthorityDenial, ConsumedProjectionAuthorityDenialKind,

@@ -6,8 +6,9 @@ use worth_foundational::facade::{
 
 use crate::domain_installation::{WorthQueryAftermathKind, WorthQueryAftermathPostcondition};
 use crate::domain_installation::{
-    WorthQueryGraphProviderCallKind, WorthQueryOperationResultState, WorthQueryWorkflowRunCounters,
-    WorthQueryWorkflowSemanticValue, WorthQueryWorkflowStageWarning,
+    WorthQueryGraphProviderCallKind, WorthQueryOperationExecutionWarning,
+    WorthQueryOperationResultState, WorthQueryWorkflowRunCounters, WorthQueryWorkflowSemanticValue,
+    WorthQueryWorkflowStageWarning,
 };
 use crate::identity_evolution::InstalledIdentityEvolutionOutcome;
 
@@ -133,6 +134,17 @@ pub(crate) fn workflow_warning_material(warning: &WorthQueryWorkflowStageWarning
     }
 }
 
+pub(crate) fn operation_warning_material(warning: &WorthQueryOperationExecutionWarning) -> String {
+    match warning {
+        WorthQueryOperationExecutionWarning::Advisory(detail) => {
+            canonical_operation_material(vec![("operation.warning.advisory", detail.clone())])
+        }
+        WorthQueryOperationExecutionWarning::Partial(detail) => {
+            canonical_operation_material(vec![("operation.warning.partial", detail.clone())])
+        }
+    }
+}
+
 pub(crate) fn operation_result_state_material(
     state: Option<WorthQueryOperationResultState>,
 ) -> &'static str {
@@ -147,12 +159,7 @@ pub(crate) fn operation_result_state_material(
 }
 
 pub(crate) fn graph_call_kind_material(kind: WorthQueryGraphProviderCallKind) -> &'static str {
-    match kind {
-        WorthQueryGraphProviderCallKind::Observe => "observe",
-        WorthQueryGraphProviderCallKind::Project => "project",
-        WorthQueryGraphProviderCallKind::TouchEffect => "touch-effect",
-        WorthQueryGraphProviderCallKind::CommitAdmission => "commit-admission",
-    }
+    kind.as_str()
 }
 
 pub(crate) fn workflow_counter_material(counters: WorthQueryWorkflowRunCounters) -> String {
@@ -230,6 +237,20 @@ pub(crate) fn workflow_counter_material(counters: WorthQueryWorkflowRunCounters)
             counters.unrelated_run_scans.to_string(),
         ),
         (
+            "counter.conditional_request_admission_checks",
+            counters.conditional_request_admission_checks.to_string(),
+        ),
+        (
+            "counter.conditional_contract_lookups",
+            counters.conditional_contract_lookups.to_string(),
+        ),
+        (
+            "counter.conditional_dependency_observation_reads",
+            counters
+                .conditional_dependency_observation_reads
+                .to_string(),
+        ),
+        (
             "counter.conditional_dependency_checks",
             counters.conditional_dependency_checks.to_string(),
         ),
@@ -242,6 +263,18 @@ pub(crate) fn workflow_counter_material(counters: WorthQueryWorkflowRunCounters)
             counters.conditional_condition_checks.to_string(),
         ),
         (
+            "counter.conditional_condition_deferrals",
+            counters.conditional_condition_deferrals.to_string(),
+        ),
+        (
+            "counter.conditional_temporal_deferrals",
+            counters.conditional_temporal_deferrals.to_string(),
+        ),
+        (
+            "counter.conditional_on_demand_deferrals",
+            counters.conditional_on_demand_deferrals.to_string(),
+        ),
+        (
             "counter.conditional_comparator_checks",
             counters.conditional_comparator_checks.to_string(),
         ),
@@ -250,12 +283,38 @@ pub(crate) fn workflow_counter_material(counters: WorthQueryWorkflowRunCounters)
             counters.conditional_compute_contacts.to_string(),
         ),
         (
+            "counter.conditional_output_version_reads",
+            counters.conditional_output_version_reads.to_string(),
+        ),
+        (
+            "counter.conditional_runtime_dependency_edges_captured",
+            counters
+                .conditional_runtime_dependency_edges_captured
+                .to_string(),
+        ),
+        (
+            "counter.conditional_application_contacts",
+            counters.conditional_application_contacts.to_string(),
+        ),
+        (
+            "counter.conditional_semantic_classifications",
+            counters.conditional_semantic_classifications.to_string(),
+        ),
+        (
+            "counter.conditional_reverted_clean_outcomes",
+            counters.conditional_reverted_clean_outcomes.to_string(),
+        ),
+        (
             "counter.conditional_semantic_changes",
             counters.conditional_semantic_changes.to_string(),
         ),
         (
             "counter.conditional_reuse_checks",
             counters.conditional_reuse_checks.to_string(),
+        ),
+        (
+            "counter.conditional_decisions_delivered",
+            counters.conditional_decisions_delivered.to_string(),
         ),
     ])
 }

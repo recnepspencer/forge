@@ -55,7 +55,7 @@ impl WorthQueryRuntimeBuilder {
             WorthQueryRuntimeBuilder::install_conditional_execution(
                 conditional_runtime_bridge,
                 conditional_signal_graph,
-                pending_conditional_installations,
+                &pending_conditional_installations,
                 &domain_installation_registry,
                 &graph_participation_registry,
             )?;
@@ -99,6 +99,9 @@ impl WorthQueryRuntimeBuilder {
             graph_participation_registry,
             conditional_signal_runtime,
             conditional_execution_registry,
+            installed_live_routes: Default::default(),
+            shared_projection_owners: Default::default(),
+            conditional_installations: pending_conditional_installations,
             consumer_support_profile,
             native_aspect_contracts,
             preview_session_labels: BTreeSet::new(),
@@ -106,7 +109,7 @@ impl WorthQueryRuntimeBuilder {
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
             materialized_read_views: BTreeMap::new(),
-            live_subscription_index: Vec::new(),
+            live_subscription_index: Default::default(),
             installed_programs: BTreeMap::new(),
             run_traces: BTreeMap::new(),
             derived_views: BTreeMap::new(),

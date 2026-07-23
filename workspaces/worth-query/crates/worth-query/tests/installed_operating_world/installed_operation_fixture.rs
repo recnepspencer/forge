@@ -1,7 +1,8 @@
-use worth_foundational::facade::AspectContract;
+pub(super) use super::conditional_node_contract::identity_contract;
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, runtime};
 mod aftermath;
+pub(crate) mod collection_impact;
 mod conditional_workflow;
 pub(crate) mod conditional_workspace;
 mod correspondence_bridge;
@@ -9,13 +10,17 @@ mod count_vertices;
 mod executors;
 mod federated_package;
 mod foreign_material;
+mod invalidation;
 mod lineage_workflow;
 mod mutation_workflow;
 mod operation_semantics;
+mod read_operation_types;
 mod required_domains;
 mod semantic_drift;
 mod touch_package;
 mod workflow;
+#[path = "installed_operation_fixture/workflow_lifecycle_runtime.rs"]
+mod workflow_lifecycle_runtime;
 mod workflow_parallel_providers;
 pub use aftermath::{
     aftermath_workspace, provisional_workflow_workspace, AftermathCandidate, AftermathContract,
@@ -24,13 +29,20 @@ pub use aftermath::{
 pub use conditional_workflow::{
     conditional_workflow_workspace, reverted_conditional_lineage_workflow_workspace,
 };
+pub(crate) use conditional_workflow::{
+    operation_conditional_workflow_workspace_with, stage_conditional_workflow_workspace_with,
+};
 pub(crate) use conditional_workspace::{
-    conditional_installation, conditional_installation_with_change,
-    conditional_public_workspace_with, conditional_workspace_with,
+    conditional_causal_mismatch_installation, conditional_controlled_workspace,
+    conditional_controlled_workspace_with_donor, conditional_installation,
+    conditional_installation_with_change, conditional_installation_with_repeated_value_changes,
+    conditional_public_observe_workspace_with_invalidation, conditional_public_workspace_with,
+    conditional_workspace_with, DirectConditionalCompute,
 };
 pub use conditional_workspace::{conditional_workspace, ConditionalModelGraph};
 pub(super) use correspondence_bridge::{
-    conditional_runtime_bridge, conditional_runtime_bridge_with_change, correspondence_bridge,
+    conditional_runtime_bridge, conditional_runtime_bridge_with_change,
+    conditional_runtime_bridge_with_repeated_value_changes, correspondence_bridge,
 };
 pub use count_vertices::{CountVertices, CountVerticesInput};
 pub use executors::graph_projection_material;
@@ -45,98 +57,30 @@ pub use foreign_material::{
     foreign_material_workspace, mismatched_cost_workspace, mismatched_determinism_workspace,
     mismatched_read_plan_workspace, missing_read_execution_workspace,
 };
+pub(crate) use invalidation::{
+    consume_empty_invalidation_epoch, materialized_invalidation_profile, settle_native,
+    settle_native_derived, shared_native_leases, shared_native_leases_with_invalidation,
+    InvalidationLease,
+};
+pub(crate) use lineage_workflow::{
+    grouped_lineage_workflow_workspace, lineage_invalidation_workspace,
+};
 pub use lineage_workflow::{lineage_workflow_workspace, LineageEvidenceScenario};
 pub use mutation_workflow::{
     mixed_mutation_workflow_runtime, mutation_workflow_workspace, MutationFamily, WorkflowMutation,
 };
 pub(super) use operation_semantics::{
-    canonical_bundle, canonical_collection_bundle, semantic_closure,
+    canonical_bundle, canonical_collection_bundle, operation_identity_contract, semantic_closure,
 };
-pub use required_domains::required_domain_runtime;
+pub use read_operation_types::{
+    FederatedRead, GeometryDomain, ReadExecutionInput, ReadFamily, ReadVertex, ReadVertexLookalike,
+    WorkflowRead,
+};
+pub use required_domains::{required_domain_runtime, AuxiliaryDomain};
 pub use semantic_drift::semantic_drift_workspace;
 pub use touch_package::federated_touch_package;
-pub use workflow::{
-    divergent_frontier_workspace, invalid_workflow_workspace,
-    mismatched_workflow_determinism_workspace, mismatched_workflow_lowering_workspace,
-    missing_parallel_provider_workspace, missing_replay_comparator_workspace,
-    nondeterministic_workflow_workspace, reversed_workflow_workspace,
-    serial_parallel_provider_workspace, workflow_workspace, InvalidWorkflow,
-};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct GeometryDomain;
-
-impl domain::WorthQueryDomainEntryMarker for GeometryDomain {
-    fn domain_key(&self) -> &'static str {
-        "WORTH.tests.geometry"
-    }
-
-    fn display_name(&self) -> &'static str {
-        "Geometry"
-    }
-
-    fn required_capability_families(&self) -> &'static [domain::WorthQueryCapabilityFamily] {
-        &[]
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct ReadVertex;
-
-pub struct ReadExecutionInput {
-    pub state: domain::WorthQueryOperationResultState,
-    pub warning: Option<domain::WorthQueryOperationExecutionWarning>,
-    pub failure: Option<domain::WorthQueryOperationFailureClass>,
-}
-
-impl Default for ReadExecutionInput {
-    fn default() -> Self {
-        Self {
-            state: domain::WorthQueryOperationResultState::Ready,
-            warning: None,
-            failure: None,
-        }
-    }
-}
-
-impl domain::WorthQueryOperationInput for ReadExecutionInput {
-    fn parameters(&self) -> Vec<domain::WorthQueryOperationParameter<'_>> {
-        Vec::new()
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct ReadVertexLookalike;
-
-#[derive(Clone, Copy, Debug)]
-pub struct ReadFamily;
-
-#[derive(Clone, Copy, Debug)]
-pub struct FederatedRead;
-
-#[derive(Clone, Copy, Debug)]
-pub struct WorkflowRead;
-
-impl domain::WorthQueryExecutableDomainOperation<GeometryDomain, ReadFamily> for ReadVertex {
-    type Input = ReadExecutionInput;
-    type Output = worth_query::facade::read::WorthQueryReadCompletion;
-    type Publication = domain::WorthQueryPublishingOperation;
-    type Execution = domain::WorthQueryDirectOperation;
-}
-
-impl domain::WorthQueryExecutableDomainOperation<GeometryDomain, ReadFamily> for FederatedRead {
-    type Input = ();
-    type Output = worth_query::facade::read::WorthQueryReadCompletion;
-    type Publication = domain::WorthQueryPublishingOperation;
-    type Execution = domain::WorthQueryDirectOperation;
-}
-
-impl domain::WorthQueryExecutableDomainOperation<GeometryDomain, ReadFamily> for WorkflowRead {
-    type Input = ();
-    type Output = worth_query::facade::read::WorthQueryReadCompletion;
-    type Publication = domain::WorthQueryPublishingOperation;
-    type Execution = domain::WorthQueryWorkflowOperation;
-}
+pub use workflow::*;
+pub use workflow_lifecycle_runtime::failing_controlled_workflow_workspace;
 
 pub fn workspace(
     name: &str,
@@ -331,6 +275,13 @@ fn configured_runtime_without_executors(
         .unwrap()
         .aspect("identity.id", "identity.id")
         .unwrap();
+    configured_runtime_without_executors_with_schema(package, schema)
+}
+
+pub(super) fn configured_runtime_without_executors_with_schema(
+    package: domain::WorthQueryDomainPackage<GeometryDomain>,
+    schema: WorthQueryTestBackendSchema,
+) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
     in_memory_test_runtime()
         .with_schema(schema)
         .domain_package(package)
@@ -392,8 +343,4 @@ fn count_vertices_definition(
         domain::WorthQueryDomainOperationIdentity::new("count-vertices", 1),
         semantics,
     )
-}
-
-fn identity_contract() -> AspectContract {
-    super::conditional_node_contract::identity_contract()
 }

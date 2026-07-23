@@ -106,7 +106,7 @@ pub(crate) fn exact_branch_snapshot_identity(
     let head = history
         .branch_head(&BranchId(branch.to_string()))
         .expect("exact branch fixture requires a current branch head");
-    WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
         worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
             head.commit_id,
             head.version_id,

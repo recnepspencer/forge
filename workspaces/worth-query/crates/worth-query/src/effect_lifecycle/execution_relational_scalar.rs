@@ -129,7 +129,7 @@ fn current_branch_snapshot_identity(
                 ),
             )
         })?;
-    WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
         worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
             head.commit_id,
             head.version_id,

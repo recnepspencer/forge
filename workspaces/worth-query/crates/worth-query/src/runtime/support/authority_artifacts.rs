@@ -74,6 +74,10 @@ impl WorthQueryMutationAuthorityIdentity {
         Self { label, identity }
     }
 
+    pub(crate) fn is_same_authority_as(&self, candidate: &Self) -> bool {
+        self.identity == candidate.identity
+    }
+
     pub fn existing_truth_binding_authority(
         label: WorthQueryExistingTruthBindingAuthorityLabel,
     ) -> Result<Self, WorthQueryWorkspaceError> {

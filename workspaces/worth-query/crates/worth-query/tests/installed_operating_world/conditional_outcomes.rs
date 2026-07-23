@@ -2,7 +2,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::{domain, foundation, read};
+
+mod provider_fixtures;
 
 use super::conditional_node_contract::{conditional_node_result, dependency, node, ManualRefresh};
 use super::installed_operation_fixture::conditional_workspace::shared_signal_node_workspace;
@@ -10,6 +12,7 @@ use super::installed_operation_fixture::{
     conditional_installation, conditional_installation_with_change, conditional_workspace_with,
     GeometryDomain, ReadExecutionInput, ReadFamily, ReadVertex,
 };
+use provider_fixtures::{CountedCompute, DeferredWake, DetachedCompute, UnrequestedTrigger};
 
 #[test]
 fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
@@ -37,6 +40,8 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
         .execute(ReadExecutionInput::default(), &mut workspace)
         .unwrap();
     assert_eq!(first.counters().conditional_compute_contacts, 1);
+    assert_eq!(first.counters().conditional_semantic_changes, 1);
+    assert_eq!(first.counters().conditional_decisions_delivered, 1);
     drop(first);
 
     let world = workspace.operating_world(observation_basis());
@@ -59,9 +64,64 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
     assert_eq!(second.counters().conditional_dependency_checks, 1);
     assert_eq!(second.counters().conditional_comparator_checks, 1);
     assert_eq!(second.counters().conditional_condition_checks, 0);
+    assert_eq!(second.counters().conditional_condition_deferrals, 0);
+    assert_eq!(second.counters().conditional_temporal_deferrals, 0);
+    assert_eq!(second.counters().conditional_on_demand_deferrals, 0);
     assert_eq!(second.counters().conditional_reuse_checks, 1);
+    assert_eq!(second.counters().conditional_decisions_delivered, 1);
     assert_eq!(second.counters().graph_provider_contacts, 0);
     assert_eq!(second.counters().executor_contacts, 0);
+}
+
+#[test]
+fn unchanged_dependency_opens_live_continuity_without_new_semantic_output() {
+    let node = node(
+        "promotion-dependency-unchanged",
+        domain::WorthQueryComparatorRequirement::ExactCanonicalValue,
+        domain::WorthQuerySemanticLocality::SourceRecord,
+    );
+    let installation = conditional_installation(&node);
+    let contacts = Arc::new(AtomicUsize::new(0));
+    let mut workspace = conditional_workspace_with(
+        "promotion-dependency-unchanged",
+        node,
+        installation,
+        CountedCompute(Arc::clone(&contacts)),
+    )
+    .unwrap();
+    let installed = workspace.domain(GeometryDomain).unwrap();
+    let bound = workspace
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&installed, ReadVertex)
+        .unwrap();
+    let consumer = bound.consumer_projection_contract().unwrap();
+    let settled = bound
+        .execute(ReadExecutionInput::default(), &mut workspace)
+        .unwrap()
+        .publish()
+        .unwrap()
+        .consume(consumer, read::project_facts().entity_identities())
+        .unwrap()
+        .settle()
+        .unwrap();
+
+    let live = match settled.into_lifecycle().promote(&mut workspace) {
+        domain::WorthQueryProjectionPromotionOutcome::Promoted(live) => live,
+        _ => panic!("fresh unchanged evidence did not admit live continuity"),
+    };
+    assert_eq!(contacts.load(Ordering::SeqCst), 1);
+    assert_eq!(live.receipt().counters().lifecycle_attempts, 1);
+    assert_eq!(live.receipt().counters().fresh_conditional_decisions, 1);
+    assert_eq!(live.receipt().counters().conditional_compute_contacts, 0);
+    assert_eq!(live.receipt().counters().conditional_semantic_changes, 0);
+    assert_eq!(
+        live.conditional_provenance()[0].class(),
+        domain::WorthQueryConditionalOutcomeClass::DependencyUnchanged
+    );
+    let refresh = live.refresh(&mut workspace).unwrap();
+    assert!(refresh.delivery().is_empty());
+    assert_eq!(refresh.work().delivery_batches(), 0);
 }
 
 #[test]
@@ -105,6 +165,10 @@ fn unrequested_on_demand_node_defers_without_compute_or_query_work() {
         domain::WorthQueryConditionalOutcomeClass::DeferredOnDemand
     );
     assert_eq!(deferred.counters().conditional_compute_contacts, 0);
+    assert_eq!(deferred.counters().conditional_condition_checks, 1);
+    assert_eq!(deferred.counters().conditional_on_demand_deferrals, 1);
+    assert_eq!(deferred.counters().conditional_temporal_deferrals, 0);
+    assert_eq!(deferred.counters().conditional_decisions_delivered, 1);
     assert_eq!(deferred.counters().graph_provider_contacts, 0);
     assert_eq!(deferred.counters().executor_contacts, 0);
 }
@@ -154,6 +218,10 @@ fn temporal_wake_defers_without_compute_or_query_work() {
         domain::WorthQueryConditionalOutcomeClass::DeferredTemporal
     );
     assert_eq!(deferred.counters().conditional_compute_contacts, 0);
+    assert_eq!(deferred.counters().conditional_condition_checks, 1);
+    assert_eq!(deferred.counters().conditional_temporal_deferrals, 1);
+    assert_eq!(deferred.counters().conditional_on_demand_deferrals, 0);
+    assert_eq!(deferred.counters().conditional_decisions_delivered, 1);
     assert_eq!(deferred.counters().graph_provider_contacts, 0);
     assert_eq!(deferred.counters().executor_contacts, 0);
 }
@@ -186,9 +254,11 @@ fn authoritative_patch_reenters_the_exact_query_owned_signal_graph() {
             GeometryDomain,
             ReadVertex,
             ReadFamily,
-            &location,
-            0,
-            request,
+            domain::WorthQueryConditionalAuthoritativeChangeDeliveryRequest::new(
+                location.clone(),
+                0,
+                request,
+            ),
         )
         .unwrap()
     else {
@@ -285,57 +355,6 @@ fn two_declarations_cannot_implicitly_share_one_signal_node() {
         panic!("implicit Signal-node sharing must reject runtime construction")
     };
     assert!(error.message().contains("SignalNodeAlreadyBound"));
-}
-
-struct UnrequestedTrigger;
-
-impl worth_runtime_bridge::facade::BridgeConditionalTriggerProvider for UnrequestedTrigger {
-    fn requested(&self) -> bool {
-        false
-    }
-}
-
-struct DeferredWake;
-
-impl worth_runtime_bridge::facade::BridgeConditionalWakeProvider for DeferredWake {
-    fn resolve(
-        &self,
-        _declaration: &domain::WorthQueryPortableConditionalNodeDeclaration,
-        _context: worth_runtime_bridge::facade::BridgeConditionalResolverContext,
-    ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String> {
-        Ok(worth_signal::facade::InstalledSignalConditionDecision::Deferred)
-    }
-}
-
-struct DetachedCompute(Arc<AtomicUsize>);
-
-impl worth_runtime_bridge::facade::BridgeConditionalComputeProvider for DetachedCompute {
-    fn compute(
-        &self,
-        _context: &mut dyn std::any::Any,
-    ) -> Result<worth_signal::facade::NodeEvaluationResult, String> {
-        self.0.fetch_add(1, Ordering::SeqCst);
-        Err("detached compute must never be invoked".into())
-    }
-}
-
-struct CountedCompute(Arc<AtomicUsize>);
-
-impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
-    for CountedCompute
-{
-    fn compute(
-        &self,
-        _context: &domain::WorthQueryConditionalComputeContext,
-    ) -> Result<worth_signal::facade::NodeEvaluationResult, String> {
-        self.0.fetch_add(1, Ordering::SeqCst);
-        Ok(worth_signal::facade::NodeEvaluationResult::from_version(
-            worth_signal::facade::AspectVersion::from_updates([(
-                worth_signal::facade::Aspect::new(0),
-                1,
-            )]),
-        ))
-    }
 }
 
 fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {

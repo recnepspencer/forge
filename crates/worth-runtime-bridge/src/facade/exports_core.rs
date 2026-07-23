@@ -9,14 +9,23 @@ pub use crate::adapter::{
 };
 pub use crate::builder::RuntimeBridgeBuilder;
 pub use crate::conditional_execution::{
-    BridgeConditionalComparatorProvider, BridgeConditionalComputeProvider,
-    BridgeConditionalConditionProvider, BridgeConditionalDecisionEvidence, BridgeConditionalDenial,
-    BridgeConditionalDenialKind, BridgeConditionalExecutionRequest,
-    BridgeConditionalInstallationRequest, BridgeConditionalProviderSet,
-    BridgeConditionalResolverContext, BridgeConditionalSemanticObservation,
-    BridgeConditionalTriggerProvider, BridgeConditionalWakeProvider,
-    BridgeInstalledConditionalLowering, BridgeInstalledConditionalLoweringCounters,
-    BridgeInstalledConditionalLoweringIdentity, BridgeOwnedSignalRuntime,
+    BridgeConditionalComparatorProvider, BridgeConditionalComparisonWork,
+    BridgeConditionalComputeProvider, BridgeConditionalConditionProvider,
+    BridgeConditionalContinuityDenial, BridgeConditionalContinuityMismatch,
+    BridgeConditionalDecisionEvidence, BridgeConditionalDecisionReentryRequest,
+    BridgeConditionalDenial, BridgeConditionalDenialKind, BridgeConditionalExecutionAffinity,
+    BridgeConditionalExecutionAffinityDenial, BridgeConditionalExecutionAffinityMismatch,
+    BridgeConditionalExecutionCounters, BridgeConditionalExecutionRequest,
+    BridgeConditionalInstallationRequest, BridgeConditionalLoweringAdmissionError,
+    BridgeConditionalLoweringContinuity, BridgeConditionalLoweringIdentityKind,
+    BridgeConditionalLoweringProjectionIdentity, BridgeConditionalLoweringRetention,
+    BridgeConditionalProviderRole, BridgeConditionalProviderSemantics,
+    BridgeConditionalProviderSet, BridgeConditionalQueryContinuationAdmission,
+    BridgeConditionalReentryCounters, BridgeConditionalResolverContext,
+    BridgeConditionalSemanticObservation, BridgeConditionalTriggerProvider,
+    BridgeConditionalWakeProvider, BridgeInstalledConditionalLowering,
+    BridgeInstalledConditionalLoweringCounters, BridgeLiveConditionalLowering,
+    BridgeOwnedSignalRuntime, BridgeRetainedConditionalDecisionSeed,
 };
 pub use crate::continuity::{
     BridgeContinuityArtifact, BridgeContinuityAuthorityBasis, BridgeContinuityAuthorityKind,
@@ -28,13 +37,17 @@ pub use crate::continuity::{
     ResolvedLineageContinuity, ResolvedLineageContinuitySet,
 };
 pub use crate::correspondence::{
-    BridgeCorrespondenceAdmissionFailure, BridgeCorrespondenceBasis, BridgeCorrespondenceDeferred,
-    BridgeCorrespondenceDeliveryDenial, BridgeCorrespondenceDenial, BridgeCorrespondenceDenialKind,
-    BridgeCorrespondencePrecision, BridgeCorrespondenceRebindRequired,
-    BridgeCorrespondenceRebuildReport, BridgeCorrespondenceStale,
-    BridgeInstalledSemanticCorrespondence, BridgeSemanticCorrespondenceRegistration,
-    BridgeSemanticDependencyCandidate, BridgeSemanticLocality, BridgeSignalAspectTargetDeclaration,
-    BridgeSignalGraphBinding, CorrespondenceAdmissionCounters, CorrespondenceAdmissionOutcome,
+    BridgeAdmittedTruthCommitIdentity, BridgeAdmittedTruthRecordIdentity,
+    BridgeAdmittedTruthSnapshotIdentity, BridgeCorrespondenceAdmissionFailure,
+    BridgeCorrespondenceBasis, BridgeCorrespondenceDeferred, BridgeCorrespondenceDeliveryDenial,
+    BridgeCorrespondenceDeliveryReceipt, BridgeCorrespondenceDenial,
+    BridgeCorrespondenceDenialKind, BridgeCorrespondencePrecision,
+    BridgeCorrespondenceRebindRequired, BridgeCorrespondenceRebuildReport,
+    BridgeCorrespondenceStale, BridgeDeliveredCorrespondenceChange,
+    BridgeDeliveredCorrespondenceChangeSet, BridgeInstalledSemanticCorrespondence,
+    BridgeSemanticCorrespondenceRegistration, BridgeSemanticDependencyCandidate,
+    BridgeSemanticLocality, BridgeSignalAspectTargetDeclaration, BridgeSignalGraphBinding,
+    CorrespondenceAdmissionCounters, CorrespondenceAdmissionOutcome,
     CorrespondenceDeliveryCounters, CorrespondenceDeliveryOutcome,
 };
 pub use crate::delivery::{

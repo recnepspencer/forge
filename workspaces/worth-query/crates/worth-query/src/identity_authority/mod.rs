@@ -9,25 +9,19 @@ mod projection;
 pub(crate) use admission::{
     admit_query_causal_inspection_authority_identity, admit_query_subscription_authority_identity,
 };
-pub use authority::{
-    query_causal_inspection_authority, query_domain_capability_authority,
-    query_downstream_adapter_authority, query_effect_lifecycle_authority, query_evidence_authority,
-    query_feeder_authority, query_intent_authority, query_materialization_authority,
-    query_receipt_admission_authority, query_runtime_backend_authority,
-    query_signal_invalidation_authority, query_subscription_authority,
-    query_truth_identity_admission_authority, query_workflow_authority,
-    QueryCausalInspectionAuthority, QueryDomainCapabilityAuthority,
-    QueryDownstreamAdapterAuthority, QueryEffectLifecycleAuthority, QueryEvidenceAuthority,
-    QueryFeederAuthority, QueryIntentAuthority, QueryMaterializationAuthority,
-    QueryReceiptAdmissionAuthority, QueryRuntimeBackendAuthority, QuerySignalInvalidationAuthority,
-    QuerySubscriptionAuthority, QueryTruthIdentityAdmissionAuthority, QueryWorkflowAuthority,
+pub(crate) use authority::{
+    query_domain_capability_authority, query_effect_lifecycle_authority,
+    query_operation_progression_authority, query_receipt_admission_authority,
+    query_runtime_backend_authority, query_signal_invalidation_authority,
+    query_subscription_authority, query_truth_identity_admission_authority,
 };
 pub use categories::{
     QueryAuthorityIdentity, QueryBoundaryBridgedIdentity, QueryCausalInspectionAuthorityIdentity,
     QueryDigestIdentityEvidence, QueryDomainCapabilityAuthorityIdentity,
     QueryDownstreamAdapterAuthorityIdentity, QueryEffectLifecycleAuthorityIdentity,
     QueryEvidenceAuthorityIdentity, QueryExternalIdentityToken, QueryFeederAuthorityIdentity,
-    QueryIntentAuthorityIdentity, QueryMaterializationAuthorityIdentity, QueryProjectionIdentity,
+    QueryIntentAuthorityIdentity, QueryMaterializationAuthorityIdentity,
+    QueryOperationProgressionAuthorityIdentity, QueryProjectionIdentity,
     QueryReceiptAuthorityIdentity, QueryRuntimeBackendAuthorityIdentity,
     QuerySignalInvalidationAuthorityIdentity, QuerySubscriptionAuthorityIdentity,
     QueryTruthIdentityAdmissionAuthorityIdentity, QueryWorkflowAuthorityIdentity,
@@ -37,8 +31,8 @@ pub use kinds::{
     QueryCommitIdentityKind, QueryDomainCapabilityIdentityKind, QueryEffectLifecycleIdentityKind,
     QueryEntityIdentityKind, QueryEvidenceIdentityKind, QueryFeederDigestIdentityBasis,
     QueryFeederIdentityKind, QueryIntentIdentityKind, QueryMaterializationIdentityKind,
-    QueryReceiptDigestIdentityBasis, QueryReceiptIdentityKind,
-    QueryRetainedBridgeMappingIdentityKind, QuerySessionIdentityKind,
+    QueryOperationProgressionIdentityKind, QueryReceiptDigestIdentityBasis,
+    QueryReceiptIdentityKind, QueryRetainedBridgeMappingIdentityKind, QuerySessionIdentityKind,
     QuerySignalInvalidationIdentityKind, QuerySignalRouteIdentityKind, QuerySnapshotIdentityKind,
     QuerySubscriptionIdentityKind, QueryWorkflowIdentityKind,
 };

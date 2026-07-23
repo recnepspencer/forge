@@ -1,12 +1,13 @@
 use worth_foundational::facade::{
-    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AspectValue,
-    CanonicalAspectValueIdentityBasis, StructAspectValue,
+    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AbsenceLaw,
+    AspectValue, CanonicalAspectValueIdentityBasis, StructAspectValue,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ConsumedNativeValue {
     Scalar(AspectValue),
     Struct(StructAspectValue),
+    Absent(AbsenceLaw),
 }
 
 impl ConsumedNativeValue {
@@ -16,6 +17,10 @@ impl ConsumedNativeValue {
 
     pub(crate) fn struct_value(value: StructAspectValue) -> Self {
         Self::Struct(value)
+    }
+
+    pub(crate) fn absent(posture: AbsenceLaw) -> Self {
+        Self::Absent(posture)
     }
 
     pub(crate) fn from_snapshot_read_value(
@@ -35,35 +40,54 @@ impl ConsumedNativeValue {
         match self {
             Self::Scalar(value) => ConsumedNativeValueView::Scalar(value),
             Self::Struct(value) => ConsumedNativeValueView::Struct(value),
+            Self::Absent(posture) => ConsumedNativeValueView::Absent(*posture),
         }
     }
 
-    pub(crate) fn canonical_identity_basis(&self) -> CanonicalAspectValueIdentityBasis {
+    pub(crate) fn canonical_identity_basis(&self) -> ConsumedNativeValueIdentityBasis {
         match self {
-            Self::Scalar(value) => prepare_aspect_value_identity_basis(value),
-            Self::Struct(value) => prepare_struct_aspect_value_identity_basis(value),
+            Self::Scalar(value) => {
+                ConsumedNativeValueIdentityBasis::Value(prepare_aspect_value_identity_basis(value))
+            }
+            Self::Struct(value) => ConsumedNativeValueIdentityBasis::Value(
+                prepare_struct_aspect_value_identity_basis(value),
+            ),
+            Self::Absent(posture) => ConsumedNativeValueIdentityBasis::Absent(*posture),
         }
     }
+}
+
+pub(crate) enum ConsumedNativeValueIdentityBasis {
+    Value(CanonicalAspectValueIdentityBasis),
+    Absent(AbsenceLaw),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ConsumedNativeValueView<'a> {
     Scalar(&'a AspectValue),
     Struct(&'a StructAspectValue),
+    Absent(AbsenceLaw),
 }
 
 impl<'a> ConsumedNativeValueView<'a> {
     pub fn scalar(self) -> Option<&'a AspectValue> {
         match self {
             Self::Scalar(value) => Some(value),
-            Self::Struct(_) => None,
+            Self::Struct(_) | Self::Absent(_) => None,
         }
     }
 
     pub fn struct_value(self) -> Option<&'a StructAspectValue> {
         match self {
-            Self::Scalar(_) => None,
+            Self::Scalar(_) | Self::Absent(_) => None,
             Self::Struct(value) => Some(value),
+        }
+    }
+
+    pub fn absence(self) -> Option<AbsenceLaw> {
+        match self {
+            Self::Absent(posture) => Some(posture),
+            Self::Scalar(_) | Self::Struct(_) => None,
         }
     }
 }

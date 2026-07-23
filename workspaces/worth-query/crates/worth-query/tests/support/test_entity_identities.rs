@@ -6,7 +6,7 @@ pub fn relational_test_entity_identity(label: &str) -> WorthQueryEntityIdentity 
     parse_typed_relational_record_parts(label)
         .or_else(|| parse_collection_slot_relational_record_parts(label))
         .or_else(|| relational_test_entity_identity_named_fixture(label))
-        .map(WorthQueryEntityIdentity::from_relational_record)
+        .map(WorthQueryEntityIdentity::from_bridge_record_projection)
         .unwrap_or_else(|| {
             WorthQueryEntityIdentity::admit_authored_entity_token(
                 worth_query::facade::foundation::QueryExternalIdentityToken::new(

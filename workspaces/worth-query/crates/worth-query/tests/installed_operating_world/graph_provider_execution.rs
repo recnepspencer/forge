@@ -225,6 +225,7 @@ fn graph_contract_insufficiency_denies_before_provider_contact() {
         domain::WorthQueryOperationBindingDenialKind::GraphAuthorityInsufficient
     );
     assert!(log.lock().unwrap().is_empty());
+    assert_eq!(denial.counters().graph_participation_lookups, 1);
     assert_eq!(denial.counters().graph_provider_contacts, 0);
 }
 

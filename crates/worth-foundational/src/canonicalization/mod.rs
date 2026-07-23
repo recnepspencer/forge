@@ -15,6 +15,8 @@ mod readiness;
 mod state_preparation;
 mod value_lowering;
 
+pub use value_lowering::canonical_basis_value_for_aspect_value;
+
 pub use basis::{
     prepare_canonical_basis_bundle, prepare_canonical_basis_sequence, CanonicalBasisBundle,
     CanonicalBasisConstructionDenial, CanonicalBasisDomain, CanonicalBasisEntry,

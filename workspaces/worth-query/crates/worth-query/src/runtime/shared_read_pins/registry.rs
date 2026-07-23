@@ -129,7 +129,11 @@ impl WorthQuerySharedReadPinRegistryState {
         snapshot_identity: WorthQuerySnapshotIdentity,
         current_generation: &WorthQuerySharedReadCurrentGeneration,
     ) -> WorthQuerySharedReadGenerationId {
-        if self.current_snapshot_identity.as_ref() == Some(&snapshot_identity) {
+        if self
+            .current_snapshot_identity
+            .as_ref()
+            .is_some_and(|current| current.is_same_current_identity_as(&snapshot_identity))
+        {
             let ordinal = self
                 .current_generation_ordinal
                 .expect("current snapshot identity requires current generation");
@@ -213,7 +217,11 @@ impl WorthQuerySharedReadPinRegistryState {
             .generations
             .iter()
             .filter_map(|(ordinal, entry)| {
-                (entry.snapshot().generation().snapshot_identity() == snapshot_identity)
+                entry
+                    .snapshot()
+                    .generation()
+                    .snapshot_identity()
+                    .is_same_current_identity_as(snapshot_identity)
                     .then_some(*ordinal)
             })
             .collect::<Vec<_>>();

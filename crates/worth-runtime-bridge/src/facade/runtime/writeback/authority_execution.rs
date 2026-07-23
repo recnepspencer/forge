@@ -1,10 +1,6 @@
+use super::authority_execution_artifacts::BridgeWritebackAuthorityExecutionArtifacts;
 use super::authority_execution_recording::{
-    blocked_before_authority_record, blocked_before_candidate_record, canonical_noop_record,
-    rejected_receipt_record, request_dispatch_failure_record, successful_authority_record,
-    validated_receipt_failure_record, WritebackAuthorityExecutionContext,
-};
-use super::authority_failure_mapping::{
-    map_writeback_failure_class, panic_content_message, validate_writeback_receipt_contract,
+    successful_authority_record, WritebackAuthorityAttempt, WritebackAuthorityExecutionContext,
 };
 use super::*;
 
@@ -98,51 +94,37 @@ impl RuntimeBridge {
         ),
         BridgeWritebackError,
     > {
+        self.execute_writeback_authority_artifacts_with_feedback_context(
+            contract,
+            effect,
+            idempotence,
+            incoming_feedback_context,
+        )
+        .map(BridgeWritebackAuthorityExecutionArtifacts::into_public_result)
+    }
+
+    pub(super) fn execute_writeback_authority_artifacts_with_feedback_context(
+        &self,
+        contract: &AdmittedBridgeWritebackContract,
+        effect: &BridgeDerivedWritebackEffect,
+        idempotence: &BridgeWritebackIdempotenceBasis,
+        incoming_feedback_context: Option<&BridgeWritebackFeedbackContext>,
+    ) -> Result<BridgeWritebackAuthorityExecutionArtifacts, BridgeWritebackError> {
+        if !effect.mutation_subject_effect_intent_match() {
+            return Err(BridgeWritebackError::new(
+                BridgeWritebackErrorKind::CausalityEffectMismatch,
+                "bridge mutation subject does not match the writeback effect intent",
+            ));
+        }
         let loop_prevention =
             self.classify_writeback_loop_prevention(effect, idempotence, incoming_feedback_context);
-        match loop_prevention.disposition() {
-            BridgeWritebackLoopDisposition::CanonicalNoop => {
-                let outcome = BridgeWritebackAuthorityOutcome::canonical_noop(idempotence);
-                let strategy_coherence =
-                    self.classify_writeback_strategy_coherence(contract, effect, idempotence);
-                let replay_bundle =
-                    self.replay_writeback_bundle(contract, effect, idempotence, &outcome);
-                let execution_context = WritebackAuthorityExecutionContext::new(
-                    contract,
-                    effect,
-                    idempotence,
-                    &loop_prevention,
-                    &strategy_coherence,
-                );
-                let execution_record =
-                    canonical_noop_record(&execution_context, &outcome, &replay_bundle);
-                self.diagnostics
-                    .record_writeback_execution(execution_record);
-                return Ok((loop_prevention, outcome, None));
-            }
-            BridgeWritebackLoopDisposition::RejectAsUnsafeFeedback => {
-                let error = BridgeWritebackError::new(
-                    BridgeWritebackErrorKind::InvariantRejected,
-                    format!(
-                        "unsafe bridge feedback suppressed before authority execution: {}",
-                        loop_prevention.digest()
-                    ),
-                );
-                let strategy_coherence =
-                    self.classify_writeback_strategy_coherence(contract, effect, idempotence);
-                let execution_context = WritebackAuthorityExecutionContext::new(
-                    contract,
-                    effect,
-                    idempotence,
-                    &loop_prevention,
-                    &strategy_coherence,
-                );
-                let execution_record = blocked_before_candidate_record(&execution_context, &error);
-                self.diagnostics
-                    .record_writeback_execution(execution_record);
-                return Err(error);
-            }
-            BridgeWritebackLoopDisposition::AllowAuthoritativeAttempt => {}
+        if let Some(terminal) = self.resolve_terminal_writeback_loop_disposition(
+            contract,
+            effect,
+            idempotence,
+            loop_prevention.clone(),
+        ) {
+            return terminal;
         }
 
         let strategy_coherence =
@@ -154,161 +136,59 @@ impl RuntimeBridge {
             &loop_prevention,
             &strategy_coherence,
         );
-        let candidate = match self.validate_writeback_candidate(
-            contract,
-            effect,
-            idempotence,
-            &loop_prevention,
-            &strategy_coherence,
-        ) {
-            Ok(candidate) => candidate,
-            Err(error) => {
-                let execution_record = blocked_before_candidate_record(&execution_context, &error);
-                self.diagnostics
-                    .record_writeback_execution(execution_record);
-                return Err(error);
-            }
-        };
-        let mapper_witness = BridgeWritebackMapperWitness::issue_from_effect(effect);
-        let mapper_record = BridgeWritebackMapperRecord::new(&mapper_witness, &candidate);
-        self.diagnostics
-            .record_writeback_mapper(mapper_record.clone());
-
-        let authority = match self.writeback_authority.as_ref() {
-            Some(authority) => authority,
-            None => {
-                let error = BridgeWritebackError::new(
-                    BridgeWritebackErrorKind::AuthorityDenied,
-                    "runtime has no truth writeback authority bound",
-                );
-                let execution_record = blocked_before_authority_record(
-                    &execution_context,
-                    &mapper_record,
-                    &candidate,
-                    &error,
-                );
-                self.diagnostics
-                    .record_writeback_execution(execution_record);
-                return Err(error);
-            }
-        };
+        let prepared = self.prepare_writeback_authority_candidate(&execution_context)?;
         let feedback_provenance = self.derive_writeback_feedback_provenance(effect);
         let request =
             TruthWritebackRequest::from_evidence(crate::adapter::TruthWritebackRequestEvidence {
                 contract,
-                candidate: &candidate,
+                candidate: prepared.candidate(),
                 effect,
-                mapper_witness: &mapper_witness,
+                mapper_witness: prepared.mapper_witness(),
                 feedback_provenance: &feedback_provenance,
                 loop_prevention: &loop_prevention,
                 strategy_coherence: &strategy_coherence,
                 idempotence,
             });
-        let request_for_validation = request.clone();
-        let authority_result = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            authority.execute_writeback(request)
-        })) {
-            Ok(result) => result,
-            Err(panic_content) => {
-                let error = BridgeWritebackError::new(
-                    BridgeWritebackErrorKind::StrategyPanicked,
-                    format!(
-                        "truth writeback authority panicked: {}",
-                        panic_content_message(panic_content)
-                    ),
-                );
-                let execution_record = request_dispatch_failure_record(
-                    &execution_context,
-                    &mapper_record,
-                    &candidate,
-                    &request_for_validation,
-                    &error,
-                );
-                self.diagnostics
-                    .record_writeback_execution(execution_record);
-                return Err(error);
-            }
-        };
-        let receipt = match authority_result {
-            Ok(receipt) => receipt,
-            Err(transport_error) => {
-                let error = BridgeWritebackError::new(
-                    BridgeWritebackErrorKind::StrategyFailed,
-                    format!("truth writeback authority failed: {transport_error}"),
-                );
-                let execution_record = request_dispatch_failure_record(
-                    &execution_context,
-                    &mapper_record,
-                    &candidate,
-                    &request_for_validation,
-                    &error,
-                );
-                self.diagnostics
-                    .record_writeback_execution(execution_record);
-                return Err(error);
-            }
-        };
-        if let Err(error) = validate_writeback_receipt_contract(&request_for_validation, &receipt) {
-            let execution_record = validated_receipt_failure_record(
-                &execution_context,
-                &mapper_record,
-                &candidate,
-                &request_for_validation,
-                &receipt,
-                &error,
-            );
-            self.diagnostics
-                .record_writeback_execution(execution_record);
-            return Err(error);
-        }
-        if receipt.outcome_class() == BridgeWritebackOutcomeClass::Rejected {
-            let failure_class = receipt
-                .failure_class()
-                .expect("rejected receipts must carry a failure class after validation");
-            let error = BridgeWritebackError::new(
-                map_writeback_failure_class(failure_class),
-                format!(
-                    "truth writeback authority rejected request `{}` with failure `{failure_class:?}`",
-                    receipt.request_digest()
-                ),
-            );
-            let execution_record = rejected_receipt_record(
-                &execution_context,
-                &mapper_record,
-                &candidate,
-                &request_for_validation,
-                &receipt,
-                failure_class,
-                &error,
-            );
-            self.diagnostics
-                .record_writeback_execution(execution_record);
-            return Err(error);
-        }
+        let attempt = WritebackAuthorityAttempt::new(&execution_context, &prepared, &request);
+        let receipt = self.dispatch_writeback_authority(&attempt)?;
+        Ok(self.complete_writeback_authority_execution(&attempt, receipt))
+    }
+
+    fn complete_writeback_authority_execution(
+        &self,
+        attempt: &WritebackAuthorityAttempt<'_>,
+        receipt: TruthWritebackReceipt,
+    ) -> BridgeWritebackAuthorityExecutionArtifacts {
         let outcome = match receipt.outcome_class() {
             BridgeWritebackOutcomeClass::CanonicalNoop => {
-                BridgeWritebackAuthorityOutcome::canonical_noop(idempotence)
+                BridgeWritebackAuthorityOutcome::canonical_noop(attempt.execution().idempotence())
             }
             BridgeWritebackOutcomeClass::AuthoritativeCommit => {
-                BridgeWritebackAuthorityOutcome::authoritative_commit(idempotence, &receipt)
+                BridgeWritebackAuthorityOutcome::authoritative_commit(
+                    attempt.execution().idempotence(),
+                    &receipt,
+                )
             }
             BridgeWritebackOutcomeClass::Rejected => unreachable!(
                 "rejected authority receipts are converted into typed bridge errors before outcome lowering"
             ),
         };
-        let replay_bundle = self.replay_writeback_bundle(contract, effect, idempotence, &outcome);
-        let execution_record = successful_authority_record(
-            &execution_context,
-            &mapper_record,
-            &candidate,
+        let replay_bundle = self.replay_writeback_bundle(
+            attempt.execution().contract(),
+            attempt.execution().effect(),
+            attempt.execution().idempotence(),
             &outcome,
-            &replay_bundle,
-            &request_for_validation,
-            &receipt,
         );
+        let execution_record =
+            successful_authority_record(&attempt, &outcome, &replay_bundle, &receipt);
         self.diagnostics
-            .record_writeback_execution(execution_record);
+            .record_writeback_execution(execution_record.clone());
 
-        Ok((loop_prevention, outcome, Some(receipt)))
+        BridgeWritebackAuthorityExecutionArtifacts::new(
+            attempt.execution().loop_prevention().clone(),
+            outcome,
+            Some(receipt),
+            execution_record,
+        )
     }
 }

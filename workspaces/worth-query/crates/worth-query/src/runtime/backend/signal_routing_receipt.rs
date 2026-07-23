@@ -29,6 +29,11 @@ impl SignalInvalidationRoutingReceipt {
                 "signal invalidation routing requires bridge-authored mutation authority",
             ));
         };
+        if !receipt.has_current_mutation_authority() {
+            return Err(WorthQueryWorkspaceError::new(
+                "signal invalidation routing requires current runtime commit, snapshot, and mutation-target authority",
+            ));
+        }
         let routed_collection_count = receipt
             .deltas
             .iter()
@@ -42,32 +47,11 @@ impl SignalInvalidationRoutingReceipt {
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let causality_evidence = WorthQueryMutationCausalityEvidence::from_bridge(authority);
         let provenance_evidence = WorthQueryMutationProvenanceEvidence::from_bridge(authority);
-        let receipt_identity = WorthQueryEvidenceIdentity::compose(
-            WorthQueryEvidenceScope::SignalInvalidationRoutingReceipt,
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("commit_identity"),
+        let receipt_identity = routing_identity_basis(
             &commit_evidence_identity,
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("snapshot_identity"),
             &snapshot_evidence_identity,
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("causality"),
-            causality_evidence.causality_digest().evidence_identity(),
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("route"),
-            causality_evidence.route_digest().evidence_identity(),
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("truth_view"),
-            causality_evidence.truth_view_digest().evidence_identity(),
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("provenance"),
-            provenance_evidence.contract_digest().evidence_identity(),
+            &causality_evidence,
+            &provenance_evidence,
         )
         .field_usize(WorthQueryEvidenceTag::new("delta_count"), delta_count)
         .field_usize(
@@ -143,10 +127,41 @@ impl SignalInvalidationRoutingReceipt {
         };
         let causality_evidence = WorthQueryMutationCausalityEvidence::from_bridge(authority);
         let provenance_evidence = WorthQueryMutationProvenanceEvidence::from_bridge(authority);
-        (self.commit_identity() != &receipt.commit_identity
-            || self.snapshot_identity() != &receipt.snapshot_identity
+        (!self
+            .commit_identity()
+            .is_same_current_identity_as(&receipt.commit_identity)
+            || !self
+                .snapshot_identity()
+                .is_same_current_identity_as(&receipt.snapshot_identity)
             || self.causality_evidence() != &causality_evidence
             || self.provenance_evidence() != &provenance_evidence)
             .then(|| "signal invalidation routing receipt drifted from write receipt".to_string())
     }
+}
+
+fn routing_identity_basis(
+    commit: &WorthQueryEvidenceIdentity,
+    snapshot: &WorthQueryEvidenceIdentity,
+    causality: &WorthQueryMutationCausalityEvidence,
+    provenance: &WorthQueryMutationProvenanceEvidence,
+) -> crate::evidence_identity::WorthQueryEvidenceIdentityEncoder {
+    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::SignalInvalidationRoutingReceipt)
+        .field_evidence_identity(WorthQueryEvidenceTag::new("commit_identity"), commit)
+        .field_evidence_identity(WorthQueryEvidenceTag::new("snapshot_identity"), snapshot)
+        .field_evidence_identity(
+            WorthQueryEvidenceTag::new("causality"),
+            causality.causality_digest().evidence_identity(),
+        )
+        .field_evidence_identity(
+            WorthQueryEvidenceTag::new("route"),
+            causality.route_digest().evidence_identity(),
+        )
+        .field_evidence_identity(
+            WorthQueryEvidenceTag::new("truth_view"),
+            causality.truth_view_digest().evidence_identity(),
+        )
+        .field_evidence_identity(
+            WorthQueryEvidenceTag::new("provenance"),
+            provenance.contract_digest().evidence_identity(),
+        )
 }

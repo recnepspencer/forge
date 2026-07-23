@@ -43,13 +43,7 @@ impl WorthQueryRuntime {
 
     pub(crate) fn execute_conditional(
         &mut self,
-        lowering: &std::sync::Arc<worth_runtime_bridge::facade::BridgeInstalledConditionalLowering>,
-        query_binding_identity: &str,
-        query_capability_identity: u64,
-        snapshot_identity: &str,
-        bridge_snapshot_identity: Option<&worth_runtime_bridge::facade::TruthSnapshotIdentity>,
-        execution_identity: &str,
-        attempt: u64,
+        request: worth_runtime_bridge::facade::BridgeConditionalExecutionRequest<'_>,
         context: &mut dyn std::any::Any,
     ) -> Result<
         worth_runtime_bridge::facade::BridgeConditionalDecisionEvidence,
@@ -68,27 +62,36 @@ impl WorthQueryRuntime {
                 0,
             )
         })?;
-        runtime
-            .execute(
-                worth_runtime_bridge::facade::BridgeConditionalExecutionRequest {
-                    lowering,
-                    query_binding_identity,
-                    query_capability_identity,
-                    snapshot_identity,
-                    bridge_snapshot_identity,
-                    execution_identity,
-                    attempt,
-                },
-                context,
+        runtime.execute(request, context).map_err(|denial| {
+            (
+                denial.kind(),
+                denial.detail().to_string(),
+                denial.signal_counters(),
+                denial.semantic_observation_reads(),
             )
-            .map_err(|denial| {
+        })
+    }
+
+    pub(crate) fn reenter_retained_conditional_decision(
+        &self,
+        request: worth_runtime_bridge::facade::BridgeConditionalDecisionReentryRequest<'_>,
+    ) -> Result<
+        worth_runtime_bridge::facade::BridgeConditionalDecisionEvidence,
+        (
+            String,
+            worth_runtime_bridge::facade::BridgeConditionalReentryCounters,
+        ),
+    > {
+        self.conditional_signal_runtime
+            .as_ref()
+            .ok_or_else(|| {
                 (
-                    denial.kind(),
-                    denial.detail().to_string(),
-                    denial.signal_counters(),
-                    denial.semantic_observation_reads(),
+                    "installed conditional runtime is unavailable".to_string(),
+                    Default::default(),
                 )
-            })
+            })?
+            .reenter_retained_conditional_decision(request)
+            .map_err(|denial| (denial.detail().to_string(), denial.reentry_counters()))
     }
 
     pub(crate) fn workflow_parallel_admission_provider<D: 'static, O: 'static, F: 'static>(
@@ -172,11 +175,19 @@ impl WorthQueryRuntime {
             .installed_domain_execution_index()
             .domain_operation_graph_bindings(domain_marker, operation_marker, family_marker)
             .to_vec();
+        let graph_bindings_retained = graph_bindings.len();
         Ok(WorthQueryInstalledDomainOperation::mint(
             handle.authority_arc(),
             authority,
             workflow_graph,
             graph_bindings,
+            crate::domain_installation::WorthQueryInstalledDomainOperationLookupCounters {
+                authority_checks: 1,
+                indexed_operation_lookups: 1,
+                graph_binding_lookups: 1,
+                graph_bindings_retained,
+                ..Default::default()
+            },
         ))
     }
 
@@ -289,9 +300,26 @@ impl WorthQueryRuntime {
             .destroy_and_rebuild_execution_index()
     }
 
-    #[cfg(test)]
-    pub(crate) fn replace_domain_installation_with_successor_generation(&mut self) {
+    pub(crate) fn replace_domain_installation_with_successor_generation(
+        &mut self,
+    ) -> Result<(), crate::runtime::WorthQueryRuntimeError> {
+        let successor = self
+            .domain_installation_registry
+            .prepare_successor_generation();
+        let (conditional_signal_runtime, conditional_execution_registry) =
+            crate::runtime::WorthQueryRuntimeBuilder::reinstall_conditional_execution(
+                self.conditional_signal_runtime.as_ref(),
+                &self.conditional_installations,
+                &successor,
+                &self.graph_participation_registry,
+            )?;
         self.domain_installation_registry
-            .replace_with_successor_generation();
+            .commit_successor_generation(successor);
+        if let Some(current) = self.conditional_signal_runtime.as_mut() {
+            current.revoke_conditional_liveness();
+        }
+        self.conditional_signal_runtime = conditional_signal_runtime;
+        self.conditional_execution_registry = conditional_execution_registry;
+        Ok(())
     }
 }

@@ -28,7 +28,7 @@ impl<'a> WorthQueryPreviewSession<'a> {
         let staged_preview_write_count = self.pending_commands.len();
         let promotion_snapshot_identity = self.runtime.current_snapshot_identity();
         let residue_snapshot = self.residue_snapshot();
-        if promotion_snapshot_identity != self.basis_snapshot_identity {
+        if !promotion_snapshot_identity.is_same_current_identity_as(&self.basis_snapshot_identity) {
             return Err(WorthQueryRuntimeError::PreviewPromotionStaleBasis(
                 WorthQueryPreviewPromotionDenialEvidence::stale_basis(
                     self.effect_policy,

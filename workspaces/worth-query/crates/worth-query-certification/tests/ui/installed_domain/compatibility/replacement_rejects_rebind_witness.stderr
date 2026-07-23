@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/compatibility/replacement_rejects_rebind_witness.rs:14:42
+   |
+14 |     let _ = live.replace_with(candidate, witness, workspace);
+   |                  ------------            ^^^^^^^ expected `WorthQueryReplacementWitness`, found `WorthQueryRebindWitness`
+   |                  |
+   |                  arguments to this method are incorrect
+   |
+note: method defined here
+  --> $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/projection_lifecycle/replacement.rs
+   |
+   |     pub fn replace_with(
+   |            ^^^^^^^^^^^^

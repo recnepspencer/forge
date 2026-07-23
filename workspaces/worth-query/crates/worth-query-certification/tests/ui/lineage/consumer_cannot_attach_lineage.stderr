@@ -1,3 +1,16 @@
+error[E0624]: associated function `from_relational_record` is private
+ --> tests/ui/lineage/consumer_cannot_attach_lineage.rs:4:53
+  |
+4 |       let raw = foundation::WorthQueryEntityIdentity::from_relational_record(
+  |                                                       ^^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query/src/memory_workspace/identities/entity.rs
+  |
+  | /     pub(crate) fn from_relational_record(
+  | |         relational_record: RelationalBridgeRecordIdentityParts,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
 error[E0599]: no function or associated item named `singular_successor` found for struct `InstalledIdentityEvolutionOutcome` in the current scope
  --> tests/ui/lineage/consumer_cannot_attach_lineage.rs:7:62
   |

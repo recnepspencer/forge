@@ -26,7 +26,7 @@ pub enum WorthQueryConditionalAdmissionDenial {
     SnapshotMismatch,
     AttemptMismatch,
     BoundCapabilityMismatch,
-    AuthorityContinuity,
+    AuthorityContinuity(worth_runtime_bridge::facade::BridgeConditionalDenialKind),
     SignalContractMismatch,
 }
 
@@ -71,7 +71,10 @@ impl std::fmt::Debug for WorthQueryConditionalProvenance {
             .debug_struct("WorthQueryConditionalProvenance")
             .field("location", &self.location)
             .field("class", &self.class)
-            .field("signal_identity", &self.bridge.signal().identity())
+            .field(
+                "signal_projection",
+                self.bridge.signal().projection().label(),
+            )
             .finish()
     }
 }
@@ -83,8 +86,10 @@ impl WorthQueryConditionalProvenance {
     pub const fn class(&self) -> WorthQueryConditionalOutcomeClass {
         self.class
     }
-    pub fn signal_identity(&self) -> &str {
-        self.bridge.signal().identity()
+    pub fn signal_projection(
+        &self,
+    ) -> &worth_signal::facade::SignalConditionalDecisionProjectionIdentity {
+        self.bridge.signal().projection()
     }
     pub fn artifact_reuse_admitted(&self) -> bool {
         self.bridge.signal().artifact_reuse_admitted()
@@ -138,6 +143,46 @@ pub struct WorthQueryDeferredWorkflowStage<D, O, F, L: BasisOperationLane> {
     pub(crate) conditional: Vec<WorthQueryConditionalProvenance>,
 }
 
+pub struct WorthQueryDeferredWorkflowStart<D, O, F, L: BasisOperationLane> {
+    pub(crate) bound: super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    pub(crate) conditional: Vec<WorthQueryConditionalProvenance>,
+    pub(crate) counters: super::super::WorthQueryWorkflowRunCounters,
+    pub(crate) run_identity: String,
+    pub(crate) attempt: u64,
+}
+
+impl<D, O, F, L: BasisOperationLane> std::fmt::Debug
+    for WorthQueryDeferredWorkflowStart<D, O, F, L>
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthQueryDeferredWorkflowStart")
+            .field("run_identity", &self.run_identity)
+            .field("attempt", &self.attempt)
+            .field("conditional", &self.conditional)
+            .field("counters", &self.counters)
+            .finish()
+    }
+}
+
+impl<D, O, F, L: BasisOperationLane> WorthQueryDeferredWorkflowStart<D, O, F, L> {
+    pub fn run_identity(&self) -> &str {
+        &self.run_identity
+    }
+
+    pub const fn attempt(&self) -> u64 {
+        self.attempt
+    }
+
+    pub fn conditional_provenance(&self) -> &[WorthQueryConditionalProvenance] {
+        &self.conditional
+    }
+
+    pub const fn counters(&self) -> super::super::WorthQueryWorkflowRunCounters {
+        self.counters
+    }
+}
+
 impl<D, O, F, L: BasisOperationLane> std::fmt::Debug
     for WorthQueryDeferredWorkflowStage<D, O, F, L>
 {
@@ -183,40 +228,27 @@ pub(crate) fn admit_conditional_decision<D, O, F, L: BasisOperationLane>(
     execution_identity: &str,
     attempt: u64,
 ) -> Result<WorthQueryConditionalProvenance, WorthQueryConditionalAdmissionDenial> {
-    if !bridge.retains_exact_lowering(&authority.lowering) {
-        return Err(WorthQueryConditionalAdmissionDenial::LoweringMismatch);
-    }
-    if bridge.query_binding_identity() != authority.binding_identity.as_ref()
-        || bridge.query_capability_identity() != authority.capability_identity
-    {
-        return Err(WorthQueryConditionalAdmissionDenial::BoundCapabilityMismatch);
-    }
-    if bridge.bridge_snapshot_identity() != bridge_snapshot_identity {
-        return Err(WorthQueryConditionalAdmissionDenial::SnapshotMismatch);
+    if !bridge.admits_query_continuation(
+        worth_runtime_bridge::facade::BridgeConditionalQueryContinuationAdmission {
+            lowering: &authority.lowering,
+            query_binding_identity: authority.binding_identity.as_ref(),
+            query_capability_identity: authority.capability_identity,
+            signal_snapshot_projection: snapshot_identity,
+            bridge_snapshot_identity,
+            signal_execution_projection: execution_identity,
+            attempt,
+        },
+    ) {
+        return Err(WorthQueryConditionalAdmissionDenial::AttemptMismatch);
     }
     let signal = bridge.signal();
-    authority
-        .lowering
-        .validate_signal_decision_contract(signal)
-        .map_err(|_| WorthQueryConditionalAdmissionDenial::SignalContractMismatch)?;
-    if signal.graph_instance_id() != authority.lowering.signal_graph_instance_id() {
-        return Err(WorthQueryConditionalAdmissionDenial::SignalGraphMismatch);
-    }
-    if signal.node() != authority.lowering.signal_node() {
-        return Err(WorthQueryConditionalAdmissionDenial::SignalNodeMismatch);
-    }
-    if signal.snapshot_identity() != snapshot_identity {
-        return Err(WorthQueryConditionalAdmissionDenial::SnapshotMismatch);
-    }
-    if signal.execution_identity() != execution_identity {
-        return Err(WorthQueryConditionalAdmissionDenial::AttemptMismatch);
-    }
-    if signal.attempt() != attempt {
-        return Err(WorthQueryConditionalAdmissionDenial::AttemptMismatch);
-    }
     let class = classify_signal_decision(signal.class());
     let admission = mint_operation_phase_proof(
-        signal.identity(),
+        format!(
+            "conditional-reentry:{}:{}",
+            bound.capability_identity(),
+            attempt
+        ),
         Some(bound.authority_proof().payload().identity()),
         operation_phase_basis(bound.authority_proof()).clone(),
     );
@@ -236,13 +268,8 @@ pub(crate) fn admit_conditional_authority<D, O, F, L: BasisOperationLane>(
     if node.operation_identity != bound.definition().canonical_identity() {
         return Err(WorthQueryConditionalAdmissionDenial::ForeignOperation);
     }
-    if node.runtime_authority
-        != bound
-            .operation()
-            .domain_authority()
-            .runtime_authority()
-            .as_u64()
-    {
+    let authority_basis = operation_phase_basis(bound.authority_proof());
+    if node.runtime_authority != authority_basis.runtime_authority {
         return Err(WorthQueryConditionalAdmissionDenial::ForeignRuntime);
     }
     if node.installation_generation != bound.operation().installation_generation().ordinal()
@@ -250,16 +277,17 @@ pub(crate) fn admit_conditional_authority<D, O, F, L: BasisOperationLane>(
     {
         return Err(WorthQueryConditionalAdmissionDenial::StaleInstallation);
     }
-    let authority_basis = operation_phase_basis(bound.authority_proof());
     let graph_authorities = bound.conditional_graph_authorities();
     node.lowering
         .validate_query_authority_continuity(
             &authority_basis.operation_identity,
-            authority_basis.runtime_authority,
+            authority_basis.installation_runtime_authority,
             authority_basis.installation_generation,
             &graph_authorities,
         )
-        .map_err(|_| WorthQueryConditionalAdmissionDenial::AuthorityContinuity)?;
+        .map_err(|denial| {
+            WorthQueryConditionalAdmissionDenial::AuthorityContinuity(denial.kind())
+        })?;
     Ok(WorthQueryConditionalAuthorityAdmission {
         lowering: std::sync::Arc::clone(&node.lowering),
         binding_identity: bound.binding_identity().into(),

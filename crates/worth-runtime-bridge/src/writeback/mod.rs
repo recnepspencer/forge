@@ -75,12 +75,15 @@ pub use mapper::{
     BridgeWritebackMapperRecord, BridgeWritebackMapperRecordIdentity, BridgeWritebackMapperWitness,
     BridgeWritebackMapperWitnessIdentity,
 };
+pub(crate) use mutation_evidence::SuccessfulWritebackArtifactChain;
 pub use mutation_evidence::{
     BridgeBatchMutationAuthorityBundle, BridgeExistingTruthBindingAuthoritativeIdentity,
     BridgeExistingTruthBindingBundle, BridgeExistingTruthBindingFamily,
     BridgeExistingTruthBindingOutcome, BridgeExistingTruthBindingResolvedTargetIdentity,
     BridgeExistingTruthBindingTargetCollection, BridgeMutationAuthorityBundle,
-    BridgeMutationCausalityBundle, BridgeMutationProvenanceBundle,
+    BridgeMutationAuthorityBundleError, BridgeMutationCausalityBundle,
+    BridgeMutationProvenanceBundle, BridgeMutationSubject, BridgeMutationSubjectError,
+    BridgeMutationSubjectKind, BridgeMutationSubjectTarget, BridgeMutationSubjectTouch,
 };
 pub use naming_mutation::{
     BridgeNamingAttachmentIdentity, BridgeNamingAuthoritativeIdentity, BridgeNamingMutationBundle,

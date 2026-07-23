@@ -82,11 +82,13 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             (
                 "receipt.conditional",
                 canonical_indexed_operation_material(
-                    "receipt.signal",
+                    "receipt.conditional.semantic",
                     evidence
                         .conditional
                         .iter()
-                        .map(|item| item.signal_identity().to_owned()),
+                        .map(
+                            crate::domain_installation::operation_execution::conditional_trace_semantic_material,
+                        ),
                 ),
             ),
             (

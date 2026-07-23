@@ -60,7 +60,7 @@ pub(crate) fn emit_mixed_cause_live_subscription_delivery(
     .map_err(|error| mixed_cause_delivery_error(view_name, error))?;
     let delivery_receipt = batch.receipt().clone();
     let mut runtime_batch =
-        WorthQueryRuntimeDeliveryBatch::from_query_delivery(view_name, &batch, None);
+        WorthQueryRuntimeDeliveryBatch::from_query_delivery(view_name, &batch, None, None, None);
     runtime_batch.mixed_cause_delivery = mixed_cause_delivery;
     state.last_delivery = Some(WorthQueryRuntimeRetainedDelivery::from_batch(
         &runtime_batch,

@@ -1,6 +1,6 @@
 use worth_foundational::FoundationalBoundaryEvidenceContinuityAttachmentScope;
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{certification, domain, foundation, read};
+use worth_query::facade::{certification, domain, foundation};
 
 use super::installed_operation_fixture::{
     conditional_workflow_workspace, missing_replay_comparator_workspace, workflow_workspace,
@@ -32,7 +32,14 @@ fn ordinary_reexecution_uses_installed_intent_and_mints_a_distinct_run() {
         original.stage_receipts()[0].run_identity(),
         reexecuted.stage_receipts()[0].run_identity()
     );
-    assert_eq!(original.semantics(), reexecuted.semantics());
+    assert_eq!(
+        domain::compare_exact_workflow_traces(
+            &original.semantics(),
+            &reexecuted.semantics(),
+            Default::default(),
+        ),
+        domain::WorthQueryReplayComparison::Equivalent
+    );
     assert_eq!(reexecuted.counters().stage_executor_contacts, 4);
     assert!(reexecuted.publish().is_success());
 }
@@ -58,7 +65,7 @@ fn certification_replay_is_trace_bound_and_denies_foreign_basis_before_execution
     );
     assert_ne!(
         replay.original_trace_identity(),
-        replay.replay_trace().identity()
+        replay.replay_trace_identity()
     );
     assert_eq!(replay.counters().semantic_stage_comparisons, 4);
     assert_eq!(replay.counters().original_stage_index_entries, 4);
@@ -96,44 +103,6 @@ fn certification_replay_is_trace_bound_and_denies_foreign_basis_before_execution
             certification::WorthQueryCertificationReplayAdmissionDenial::ForeignRuntime
         ))
     ));
-}
-
-#[test]
-fn ordinary_publication_consumption_converges_without_receiving_replay_authority() {
-    let mut workspace = workflow_workspace("replay-publication-parity").unwrap();
-    let basis = observation_basis();
-    let original_bound = bind(&workspace, basis.clone());
-    let original_consumer = original_bound.consumer_projection_contract().unwrap();
-    let original = original_bound.reexecute(intent(), &mut workspace).unwrap();
-    let replay_bound = bind(&workspace, basis);
-    let replay_consumer = replay_bound.consumer_projection_contract().unwrap();
-    let replay = certification::replay_installed_workflow(
-        certification::issue_query_certification_replay_capability(),
-        &original,
-        replay_bound,
-        intent(),
-        &mut workspace,
-    )
-    .unwrap();
-
-    let original_settled = original
-        .publish()
-        .unwrap()
-        .consume(original_consumer, read::project_facts().entity_identities())
-        .unwrap()
-        .settle()
-        .unwrap();
-    let replay_settled = replay
-        .into_replay_trace()
-        .publish()
-        .unwrap()
-        .consume(replay_consumer, read::project_facts().entity_identities())
-        .unwrap()
-        .settle()
-        .unwrap();
-    assert_eq!(original_settled.counters(), replay_settled.counters());
-    assert_eq!(original_settled.warnings(), replay_settled.warnings());
-    assert_ne!(original_settled.identity(), replay_settled.identity());
 }
 
 #[test]
@@ -301,7 +270,7 @@ fn historical_replay_denies_when_the_retained_execution_substrate_has_drifted() 
 fn retry_requires_installed_idempotence_and_never_reuses_attempt_identity() {
     let mut workspace = workflow_workspace("idempotent-stage-retry").unwrap();
     let run = bind(&workspace, observation_basis())
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",

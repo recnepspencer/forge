@@ -157,12 +157,14 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
             return denied(WorthQueryPersistentNameDenial::NamingAttachmentMismatch);
         }
         let naming_target_matches = match intent.target() {
-            WorthQueryPersistentNameTarget::ExistingAuthority(target) => {
-                naming.target_authoritative_identity() == Some(target)
-            }
+            WorthQueryPersistentNameTarget::ExistingAuthority(target) => naming
+                .target_authoritative_identity()
+                .is_some_and(|resolved| resolved.is_same_authority_as(target)),
             WorthQueryPersistentNameTarget::GeneratedEntity(target) => {
                 naming.outcome() == WorthQueryNamingMutationOutcome::AttachedToNewTarget
-                    && naming.resolved_target_entity_identity() == Some(target)
+                    && naming
+                        .resolved_target_entity_identity()
+                        .is_some_and(|resolved| resolved.is_same_current_identity_as(target))
             }
         };
         if !naming_target_matches {

@@ -4,14 +4,24 @@ use crate::WorthQueryEvidenceTag;
 use super::super::super::contracts::BoundProjectionFactFamily;
 use super::super::super::facts::ProjectionFactRequest;
 use super::super::super::source::ProjectionSourceReferenceIdentity;
+use super::super::super::DeclaredNativeFactContract;
 
-pub(crate) fn compose_fact_request_entry_digest(request: &ProjectionFactRequest) -> String {
+pub(crate) fn compose_fact_request_entry_digest(
+    request: &ProjectionFactRequest,
+    native_contract: Option<&DeclaredNativeFactContract>,
+) -> String {
     let mut encoder = consumption_scope_encoder("projection_fact_request_entry_v1")
         .field_shape(WorthQueryEvidenceTag::new("kind"), request.kind().as_str());
     if let Some(field) = request.field_path() {
         encoder = encoder.field_shape(
             WorthQueryEvidenceTag::new("field"),
             field.terminal_projection_for_boundary(),
+        );
+    }
+    if let Some(native_contract) = native_contract {
+        encoder = encoder.field_shape(
+            WorthQueryEvidenceTag::new("native_contract"),
+            native_contract.canonical_contract_material(),
         );
     }
     seal(encoder)
@@ -43,6 +53,12 @@ pub(crate) fn compose_bound_fact_family_entry_digest(
         encoder = encoder.field_shape(
             WorthQueryEvidenceTag::new("field"),
             field_path.terminal_projection_for_boundary(),
+        );
+    }
+    if let Some(native_contract) = fact_family.native_contract() {
+        encoder = encoder.field_shape(
+            WorthQueryEvidenceTag::new("native_contract"),
+            native_contract.canonical_contract_material(),
         );
     }
     seal(encoder)

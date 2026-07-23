@@ -25,6 +25,7 @@ pub struct WorthQueryInMemoryTestRuntimeBuilder {
     domain_installers: Vec<TestDomainInstaller>,
     runtime_installers: Vec<TestRuntimeInstaller>,
     support_profile: Option<crate::runtime::WorthQueryRuntimeSupportProfile>,
+    live_close_failures: usize,
 }
 
 pub fn in_memory_test_runtime() -> WorthQueryInMemoryTestRuntimeBuilder {
@@ -32,6 +33,20 @@ pub fn in_memory_test_runtime() -> WorthQueryInMemoryTestRuntimeBuilder {
 }
 
 impl WorthQueryInMemoryTestRuntimeBuilder {
+    /// Injects exact backend close failures for lifecycle ownership tests.
+    pub fn fail_next_live_closes(mut self, count: usize) -> Self {
+        self.live_close_failures = count;
+        self
+    }
+
+    pub fn controlled_workspace(
+        self,
+        name: impl Into<String>,
+    ) -> Result<super::WorthQueryControlledTestWorkspace, WorthQueryTestBackendError> {
+        self.workspace(name)
+            .map(super::WorthQueryControlledTestWorkspace::new)
+    }
+
     pub fn conditional_runtime(
         mut self,
         bridge: worth_runtime_bridge::facade::RuntimeBridge,
@@ -322,12 +337,11 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
                 format!("failed to build in-memory test backend workspace: {error}"),
             )
         })?;
-        let backend = match self.support_profile {
-            Some(profile) => {
-                WorthQueryInMemoryTestBackend::with_support_profile(memory_workspace, profile)
-            }
-            None => WorthQueryInMemoryTestBackend::new(memory_workspace),
-        };
+        let backend = WorthQueryInMemoryTestBackend::with_close_failures(
+            memory_workspace,
+            self.support_profile,
+            self.live_close_failures,
+        );
         let mut runtime_builder = WorthQueryRuntimeBuilder::new()
             .backend(backend)
             .with_precompiled_domain_installations(domain_installations);

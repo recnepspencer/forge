@@ -38,21 +38,12 @@ use crate::facade::runtime::{
 };
 use crate::intent_admission::dx::WorthQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::{admit_runtime_intent_request, WorthQueryRawIntentAdmissionRequest};
-use crate::memory_workspace::{
-    WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQuerySnapshotIdentity,
-};
+use crate::memory_workspace::{WorthQueryEntityIdentity, WorthQuerySnapshotIdentity};
 use crate::runtime::WorthQueryUnrefinedLiveShape;
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
-
-pub(super) fn certification_commit_identity_for(
-    namespace: impl AsRef<str>,
-    evidence: impl AsRef<str>,
-) -> WorthQueryCommitIdentity {
-    WorthQueryCommitIdentity::from_relational_commit_id(stable_certification_position(
-        namespace, evidence,
-    ))
-}
+use worth_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
+};
 
 pub(super) fn certification_snapshot_identity(
     label: impl AsRef<str>,
@@ -73,7 +64,11 @@ pub(super) fn certification_snapshot_identity_for(
 }
 
 pub(super) fn certification_entity_identity(label: impl AsRef<str>) -> WorthQueryEntityIdentity {
-    crate::memory_workspace::admit_authored_entity_label(label)
+    WorthQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        1,
+        stable_certification_position("certification-entity", label),
+        0,
+    ))
 }
 
 pub(super) fn identity_id_touch() -> WorthQueryAspectTouch {

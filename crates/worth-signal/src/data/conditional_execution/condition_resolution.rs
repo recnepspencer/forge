@@ -52,7 +52,7 @@ pub(super) fn resolve_condition(
         EvaluationCondition::OnDemand if request.force_on_demand => ConditionDisposition::Eligible,
         EvaluationCondition::OnDemand => ConditionDisposition::DeferredOnDemand,
         EvaluationCondition::Installed(identity) => {
-            match (identity.role(), resolver.resolve(*identity, &context)?) {
+            match (identity.role(), resolver.resolve(identity, &context)?) {
                 (_, InstalledSignalConditionDecision::Eligible) => ConditionDisposition::Eligible,
                 (_, InstalledSignalConditionDecision::Suppressed) => {
                     ConditionDisposition::Suppressed

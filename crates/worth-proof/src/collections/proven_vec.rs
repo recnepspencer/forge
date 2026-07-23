@@ -104,6 +104,23 @@ impl<T> UniqueVec<T> {
     pub fn into_parts(self) -> (Vec<T>, UniquenessProof) {
         (self.items, self.proof)
     }
+
+    /// Establishes equality uniqueness without reordering the owner-defined
+    /// sequence. The hash table is only an index; `Eq` remains decisive.
+    pub fn try_from_unique_preserving_order(items: Vec<T>) -> Result<Self, Vec<T>>
+    where
+        T: Eq + std::hash::Hash + Clone,
+    {
+        let mut seen = std::collections::HashSet::with_capacity(items.len());
+        if items.iter().cloned().all(|item| seen.insert(item)) {
+            Ok(Self::new(
+                items,
+                Proof::<Uniqueness, StructuralProofAuthority>::mint(),
+            ))
+        } else {
+            Err(items)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -136,6 +153,13 @@ mod tests {
         assert_eq!(items.as_slice(), &[1, 2, 3]);
         let (items, _proof) = items.into_parts();
         assert_eq!(items, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn order_preserving_uniqueness_is_a_linear_admission() {
+        let unique = UniqueVec::try_from_unique_preserving_order(vec!["b", "a"]).unwrap();
+        assert_eq!(unique.as_slice(), &["b", "a"]);
+        assert!(UniqueVec::try_from_unique_preserving_order(vec!["a", "a"]).is_err());
     }
 
     #[test]

@@ -15,6 +15,10 @@ It does not own runtime execution or stronger owner-specific authority.
 - evidence, provenance, lineage, support, and performance vocabulary shared by
   multiple owners
 
+Performance work keeps authoritative observation distinct from authoritative
+mutation. A read receipt must not claim that source truth advanced merely
+because it crossed an execution boundary.
+
 Use the facade:
 
 ```rust

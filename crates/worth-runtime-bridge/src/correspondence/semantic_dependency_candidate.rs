@@ -148,8 +148,16 @@ impl BridgeSemanticDependencyCandidate {
         self.query_authority.location()
     }
 
-    pub(crate) fn dependency_ordinal(&self) -> usize {
+    pub fn dependency_ordinal(&self) -> usize {
         self.query_authority.dependency_ordinal()
+    }
+
+    /// Reports whether both candidates retain the same installed Query and
+    /// graph-participation authorities. Semantic fields alone cannot establish
+    /// this correspondence.
+    pub fn retains_same_installed_authority_as(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.query_authority, &other.query_authority)
+            && Arc::ptr_eq(&self.graph_authority, &other.graph_authority)
     }
 
     pub(crate) fn matches_declared_dependency(

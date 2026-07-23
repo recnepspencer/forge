@@ -234,6 +234,7 @@ fn writeback_failure_class_label(value: BridgeWritebackFailureClass) -> &'static
         BridgeWritebackFailureClass::FamilyBindingMismatch => "family-binding-mismatch",
         BridgeWritebackFailureClass::StrategyDescriptorMismatch => "strategy-descriptor-mismatch",
         BridgeWritebackFailureClass::IdempotenceBasisMismatch => "idempotence-basis-mismatch",
+        BridgeWritebackFailureClass::CausalityEffectMismatch => "causality-effect-mismatch",
         BridgeWritebackFailureClass::StaleTruthBasis => "stale-truth-basis",
         BridgeWritebackFailureClass::InvariantRejected => "invariant-rejected",
         BridgeWritebackFailureClass::MergeAuthorityRejected => "merge-authority-rejected",

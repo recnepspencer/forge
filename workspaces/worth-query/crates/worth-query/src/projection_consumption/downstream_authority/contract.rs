@@ -1,7 +1,8 @@
 use std::collections::BTreeSet;
 
 use crate::projection_consumption::{
-    ProjectMaterializedFacts, ProjectionFactFieldPath, ProjectionFactRequest,
+    DeclaredNativeFactContract, NativeFactDeclarationConflict, ProjectMaterializedFacts,
+    ProjectionFactFieldPath, ProjectionFactRequest,
 };
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -97,6 +98,22 @@ impl ProjectionAuthorityContract {
     pub fn require_derived_field(mut self, field: ProjectionFactFieldPath) -> Self {
         self.requested_facts = self.requested_facts.derived_field_path(field);
         self
+    }
+
+    pub(crate) fn require_display_native(
+        mut self,
+        contract: DeclaredNativeFactContract,
+    ) -> Result<Self, NativeFactDeclarationConflict> {
+        self.requested_facts = self.requested_facts.display_native(contract)?;
+        Ok(self)
+    }
+
+    pub(crate) fn require_derived_native(
+        mut self,
+        contract: DeclaredNativeFactContract,
+    ) -> Result<Self, NativeFactDeclarationConflict> {
+        self.requested_facts = self.requested_facts.derived_native(contract)?;
+        Ok(self)
     }
 
     pub fn requirements(&self) -> impl Iterator<Item = ProjectionAuthorityRequirement> + '_ {

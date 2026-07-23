@@ -84,6 +84,7 @@ fn assert_graph_contract_denial(
         denial.kind(),
         domain::WorthQueryOperationBindingDenialKind::GraphAuthorityInsufficient
     );
+    assert_eq!(denial.counters().graph_participation_lookups, 1);
     assert_eq!(denial.counters().graph_provider_contacts, 0);
     assert!(log.lock().unwrap().is_empty());
 }

@@ -34,11 +34,107 @@ pub fn lineage_workflow_workspace(
     runtime::WorthQueryWorkspace,
     worth_query::facade::consumer_kit::WorthQueryTestBackendError,
 > {
+    lineage_workflow_workspace_with_grouping(
+        name,
+        lineage,
+        promotion_on_reference,
+        scenarios,
+        domain::WorthQueryOperationGroupingContract::Ungrouped,
+    )
+}
+
+pub(crate) fn lineage_invalidation_workspace(
+    name: &str,
+) -> Result<
+    runtime::WorthQueryWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
+    let target_identity = Arc::new(OnceLock::new());
+    let operation = lineage_workflow_operation(
+        domain::WorthQueryPortableWorkflowDefinition::new("start", lineage_stages()),
+        domain::WorthQueryOperationLineageContract::Preserve,
+        false,
+        canonical_collection_bundle("Vertex"),
+        lineage_collection_contract(domain::WorthQueryOperationGroupingContract::Ungrouped),
+    );
+    let package = super::package(false, false).operation(operation);
+    let mut workspace = super::configured_base_runtime_for_package(package)
+        .replayable_workflow_stage_executor(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            LineageWorkflowStageExecutor::new(
+                vec![LineageEvidenceScenario::PreservedIdentity],
+                Arc::clone(&target_identity),
+            ),
+        )
+        .workflow_parallel_admission_provider(
+            GeometryDomain,
+            WorkflowRead,
+            ReadFamily,
+            WorkflowParallelProvider,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::Sharing,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::Invalidation,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::DependencyImpact,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .workspace(name)?;
+    let seed = workspace
+        .insert("Vertex", |vertex| {
+            vertex.aspect("identity.id", "lineage-authoritative-target")
+        })
+        .expect("lineage invalidation target inserts through Query mutation authority");
+    target_identity
+        .set(seed.deltas()[0].entity_identity().clone())
+        .expect("lineage invalidation target identity is initialized once");
+    Ok(workspace)
+}
+
+pub(crate) fn grouped_lineage_workflow_workspace(
+    name: &str,
+    scenarios: Vec<LineageEvidenceScenario>,
+) -> Result<
+    runtime::WorthQueryWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
+    lineage_workflow_workspace_with_grouping(
+        name,
+        domain::WorthQueryOperationLineageContract::Evolve,
+        false,
+        scenarios,
+        domain::WorthQueryOperationGroupingContract::Grouped {
+            grouping_fields: vec![domain::WorthQueryOperationCollectionField::from_dotted(
+                "identity.id",
+            )
+            .expect("valid grouping field")],
+        },
+    )
+}
+
+fn lineage_workflow_workspace_with_grouping(
+    name: &str,
+    lineage: domain::WorthQueryOperationLineageContract,
+    promotion_on_reference: bool,
+    scenarios: Vec<LineageEvidenceScenario>,
+    grouping: domain::WorthQueryOperationGroupingContract,
+) -> Result<
+    runtime::WorthQueryWorkspace,
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
     let target_identity = Arc::new(OnceLock::new());
     let mut workspace = configured_runtime_without_executors(lineage_workflow_package(
         domain::WorthQueryPortableWorkflowDefinition::new("start", lineage_stages()),
         lineage,
         promotion_on_reference,
+        grouping,
     ))
     .replayable_workflow_stage_executor(
         GeometryDomain,
@@ -68,18 +164,29 @@ pub(super) fn lineage_workflow_package(
     workflow: domain::WorthQueryPortableWorkflowDefinition,
     lineage: domain::WorthQueryOperationLineageContract,
     promotion_on_reference: bool,
+    grouping: domain::WorthQueryOperationGroupingContract,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     configured_lineage_workflow_package(
         workflow,
         lineage,
         promotion_on_reference,
         canonical_collection_bundle("Vertex"),
-        domain::WorthQueryOperationCollectionContract::Collection {
-            row_identity_field: "identity.id".into(),
-            ordering_fields: vec!["identity.id".into()],
-            continuation: domain::WorthQueryOperationContinuationPosture::NotRequired,
-        },
+        lineage_collection_contract(grouping),
     )
+}
+
+fn lineage_collection_contract(
+    grouping: domain::WorthQueryOperationGroupingContract,
+) -> domain::WorthQueryOperationCollectionContract {
+    let identity_field = domain::WorthQueryOperationCollectionField::from_dotted("identity.id")
+        .expect("valid collection field");
+    domain::WorthQueryOperationCollectionContract::Collection {
+        row_identity_field: identity_field.clone(),
+        ordering_fields: vec![identity_field],
+        grouping,
+        window: domain::WorthQueryOperationWindowPolicy::CompleteCollection,
+        continuation: domain::WorthQueryOperationContinuationPosture::NotRequired,
+    }
 }
 
 pub(super) fn deferred_lineage_workflow_package(
@@ -101,6 +208,31 @@ fn configured_lineage_workflow_package(
     canonical_query: worth_query_declaration::facade::canonicalization::CanonicalQueryBundle,
     collection: domain::WorthQueryOperationCollectionContract,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
+    let operation = lineage_workflow_operation(
+        workflow,
+        lineage,
+        promotion_on_reference,
+        canonical_query,
+        collection,
+    );
+    domain::WorthQueryDomainPackage::declare(
+        GeometryDomain,
+        domain::WorthQueryDomainIdentityDeclaration::new(
+            domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
+            domain::WorthQueryDomainIdentityName::new("geometry").unwrap(),
+            domain::WorthQueryDomainSemanticVersion::new(1, 0),
+        ),
+    )
+    .operation(operation)
+}
+
+fn lineage_workflow_operation(
+    workflow: domain::WorthQueryPortableWorkflowDefinition,
+    lineage: domain::WorthQueryOperationLineageContract,
+    promotion_on_reference: bool,
+    canonical_query: worth_query_declaration::facade::canonicalization::CanonicalQueryBundle,
+    collection: domain::WorthQueryOperationCollectionContract,
+) -> domain::WorthQueryDomainOperationDefinition<GeometryDomain, WorkflowRead, ReadFamily> {
     let mut semantics = semantic_closure(
         canonical_query,
         domain::WorthQuerySupportRequirement::Required,
@@ -122,23 +254,10 @@ fn configured_lineage_workflow_package(
         },
     };
     semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
-    let operation = domain::WorthQueryDomainOperationDefinition::<
-        GeometryDomain,
-        WorkflowRead,
-        ReadFamily,
-    >::new(
+    domain::WorthQueryDomainOperationDefinition::<GeometryDomain, WorkflowRead, ReadFamily>::new(
         domain::WorthQueryDomainOperationIdentity::new("workflow-read", 1),
         semantics,
-    );
-    domain::WorthQueryDomainPackage::declare(
-        GeometryDomain,
-        domain::WorthQueryDomainIdentityDeclaration::new(
-            domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
-            domain::WorthQueryDomainIdentityName::new("geometry").unwrap(),
-            domain::WorthQueryDomainSemanticVersion::new(1, 0),
-        ),
     )
-    .operation(operation)
 }
 
 pub(super) fn lineage_stages() -> Vec<domain::WorthQueryPortableWorkflowStage> {

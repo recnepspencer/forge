@@ -1,10 +1,15 @@
+mod compatibility;
 mod conditional_execution;
+mod consumer_invalidation;
 mod consumer_support;
+mod consumption_cost;
+mod dependency_impact;
 mod execution_index;
 mod foundational_boundary_locator;
 mod graph_participation;
 mod installation_state;
 mod installed_authority;
+mod native_access;
 mod operating_world;
 mod operation_aftermath;
 mod operation_authority_chain;
@@ -25,8 +30,10 @@ pub(crate) use foundational_boundary_locator::{
 pub use graph_participation::*;
 pub use installation_state::*;
 pub use installed_authority::*;
+pub use native_access::*;
 pub use operating_world::*;
 pub use operation_aftermath::*;
+pub(crate) use operation_authority_chain::WorthQueryOperationAuthorityBasis;
 pub use operation_execution::*;
 pub use operation_lineage::*;
 pub use package_authority::*;
@@ -36,5 +43,9 @@ pub use package_installation_error::WorthQueryDomainPackageInstallationError;
 mod package_validation_matrix_tests;
 #[cfg(test)]
 mod tests;
+pub use compatibility::*;
 pub use conditional_execution::*;
+pub use consumer_invalidation::*;
 pub use consumer_support::*;
+pub use consumption_cost::*;
+pub use dependency_impact::*;

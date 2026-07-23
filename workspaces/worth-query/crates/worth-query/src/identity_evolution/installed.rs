@@ -5,8 +5,13 @@ use super::{
 use crate::runtime::{WorthQueryContinuityMutationEvidence, WorthQueryContinuityOutcomeClass};
 #[path = "installed/authority_subjects.rs"]
 mod authority_subjects;
+#[path = "installed/authority_validation.rs"]
+mod authority_validation;
 #[path = "installed/foundational_attachment.rs"]
 mod foundational_attachment;
+#[path = "installed/replay_semantics.rs"]
+mod replay_semantics;
+use authority_validation::{engine_matches_authority, semantic_evidence_identity};
 use foundational_attachment::FoundationalInstalledLineageIdentities;
 pub use foundational_attachment::WorthQueryFoundationalLineageAttachment;
 
@@ -124,8 +129,11 @@ impl InstalledIdentityEvolutionOutcome {
         };
         match continuity.outcome_class() {
             WorthQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor => {
-                if continuity.successor_authoritative_identity()
-                    == Some(continuity.prior_authoritative_identity())
+                if continuity
+                    .successor_authoritative_identity()
+                    .is_some_and(|successor| {
+                        successor.is_same_authority_as(continuity.prior_authoritative_identity())
+                    })
                 {
                     InstalledIdentityEvolutionKind::PreservedIdentity
                 } else {
@@ -228,171 +236,5 @@ impl InstalledIdentityEvolutionOutcome {
     ) -> Option<WorthQueryFoundationalLineageAttachment> {
         self.foundational_identities
             .attested_lineage(self.kind(), self.is_authoritative_continuity())
-    }
-}
-
-impl PartialEq for InstalledIdentityEvolutionOutcome {
-    fn eq(&self, other: &Self) -> bool {
-        self.semantic_identity == other.semantic_identity
-    }
-}
-
-impl Eq for InstalledIdentityEvolutionOutcome {}
-
-fn semantic_evidence_identity(
-    artifact: &IdentityEvolutionExecutionArtifact,
-    continuity: Option<&WorthQueryContinuityMutationEvidence>,
-    lifecycle_target: Option<&crate::memory_workspace::WorthQueryEntityIdentity>,
-    establishing_entity_targets: &[crate::memory_workspace::WorthQueryEntityIdentity],
-) -> crate::evidence_identity::WorthQueryEvidenceIdentity {
-    let identity = crate::evidence_identity::WorthQueryEvidenceIdentity::compose(
-        crate::evidence_identity::WorthQueryEvidenceScope::InstalledDomainExecution,
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("identity_family"),
-        "installed_identity_evolution_semantics_v3",
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("evolution_family"),
-        artifact.family().as_str(),
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("evolution_outcome"),
-        continuity
-            .map(|evidence| evidence.outcome_class().as_str())
-            .unwrap_or_else(|| artifact.result_bundle().outcome_family().as_str()),
-    )
-    .optional_evidence_identity(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("prior_identity"),
-        continuity.map(|evidence| evidence.prior_authoritative_identity().evidence_identity()),
-    );
-    let identity = if let Some(continuity) = continuity {
-        identity
-            .field_evidence_identity_sequence(
-                crate::evidence_identity::WorthQueryEvidenceTag::new("successor_identity"),
-                continuity
-                    .successor_authoritative_identities()
-                    .iter()
-                    .map(crate::runtime::WorthQueryMutationAuthorityIdentity::evidence_identity),
-            )
-            .field_evidence_identity(
-                crate::evidence_identity::WorthQueryEvidenceTag::new("lineage_digest"),
-                continuity.lineage_digest().evidence_identity(),
-            )
-            .field_evidence_identity(
-                crate::evidence_identity::WorthQueryEvidenceTag::new("resolution_digest"),
-                continuity
-                    .continuity_resolution_digest()
-                    .evidence_identity(),
-            )
-    } else {
-        identity
-    };
-    let lifecycle_identity =
-        lifecycle_target.map(crate::memory_workspace::WorthQueryEntityIdentity::evidence_identity);
-    let establishing_target_identities = establishing_entity_targets
-        .iter()
-        .map(crate::memory_workspace::WorthQueryEntityIdentity::evidence_identity)
-        .collect::<Vec<_>>();
-    identity
-        .field_evidence_identity_sequence(
-            crate::evidence_identity::WorthQueryEvidenceTag::new("establishing_entity_target"),
-            &establishing_target_identities,
-        )
-        .optional_evidence_identity(
-            crate::evidence_identity::WorthQueryEvidenceTag::new("lifecycle_target"),
-            lifecycle_identity.as_ref(),
-        )
-        .seal()
-}
-
-fn engine_matches_authority(
-    artifact: &IdentityEvolutionExecutionArtifact,
-    continuity: Option<&WorthQueryContinuityMutationEvidence>,
-    lifecycle_target: Option<&crate::memory_workspace::WorthQueryEntityIdentity>,
-) -> bool {
-    if let Some(target) = lifecycle_target {
-        let target_evidence_identity = target.evidence_identity();
-        let target_identity = target_evidence_identity.as_str();
-        return match artifact.family() {
-            IdentityEvolutionExecutionFamily::GeneratedIdentity => artifact
-                .result_bundle()
-                .as_generated_identity()
-                .is_some_and(|result| result.authoritative_identity() == target_identity),
-            IdentityEvolutionExecutionFamily::RetiredIdentity => artifact
-                .result_bundle()
-                .as_retired_identity()
-                .is_some_and(|result| result.authoritative_identity() == target_identity),
-            _ => false,
-        };
-    }
-    let Some(continuity) = continuity else {
-        return artifact.family()
-            == &IdentityEvolutionExecutionFamily::InstalledOperationComparison
-            && matches!(
-                artifact.result_bundle().outcome_family(),
-                IdentityEvolutionOutcomeFamily::AdvisoryIdentityCandidateSet
-                    | IdentityEvolutionOutcomeFamily::Ambiguity
-                    | IdentityEvolutionOutcomeFamily::IdentityBreak
-            );
-    };
-    let shape_matches = matches!(
-        (artifact.family(), continuity.outcome_class()),
-        (
-            IdentityEvolutionExecutionFamily::DirectSuccessor,
-            WorthQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
-        ) | (
-            IdentityEvolutionExecutionFamily::DirectSplitSuccessors,
-            WorthQueryContinuityOutcomeClass::ContinuesAsSplitSuccessors
-        ) | (
-            IdentityEvolutionExecutionFamily::DirectMergeSuccessor,
-            WorthQueryContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor
-        )
-    ) && matches!(
-        (
-            artifact.result_bundle().outcome_family(),
-            continuity.outcome_class()
-        ),
-        (
-            IdentityEvolutionOutcomeFamily::SingularIdentityContinuity,
-            WorthQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
-                | WorthQueryContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor
-        ) | (
-            IdentityEvolutionOutcomeFamily::PluralIdentitySuccessorSet,
-            WorthQueryContinuityOutcomeClass::ContinuesAsSplitSuccessors
-        )
-    );
-    if !shape_matches {
-        return false;
-    }
-    let exact_successors = continuity
-        .successor_authoritative_identities()
-        .iter()
-        .map(|identity| identity.evidence_identity().as_str())
-        .collect::<Vec<_>>();
-    match continuity.outcome_class() {
-        WorthQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
-        | WorthQueryContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor => {
-            artifact
-                .result_bundle()
-                .as_singular_identity_continuity()
-                .is_some_and(|result| {
-                    exact_successors.as_slice() == [result.authoritative_identity()]
-                })
-        }
-        WorthQueryContinuityOutcomeClass::ContinuesAsSplitSuccessors => artifact
-            .result_bundle()
-            .as_plural_identity_successor_set()
-            .is_some_and(|result| {
-                result
-                    .successor_identities()
-                    .iter()
-                    .map(String::as_str)
-                    .eq(exact_successors)
-            }),
-        WorthQueryContinuityOutcomeClass::RejectedNoAuthoritativeSuccessor
-        | WorthQueryContinuityOutcomeClass::RejectedAmbiguousSuccessor
-        | WorthQueryContinuityOutcomeClass::RejectedUnsupportedContinuityClass
-        | WorthQueryContinuityOutcomeClass::RejectedHistoricalResolutionFailure => false,
     }
 }

@@ -124,9 +124,9 @@ pub use support_snapshot::{
 };
 pub use test_backend::{
     compare_test_backend_write_receipts, in_memory_test_runtime, query_test_backend_residue_audit,
-    WorthQueryInMemoryTestRuntimeBuilder, WorthQueryTestBackendEquivalenceReport,
-    WorthQueryTestBackendEquivalenceRow, WorthQueryTestBackendError,
-    WorthQueryTestBackendErrorKind, WorthQueryTestBackendResidueAudit,
+    WorthQueryControlledTestWorkspace, WorthQueryInMemoryTestRuntimeBuilder,
+    WorthQueryTestBackendEquivalenceReport, WorthQueryTestBackendEquivalenceRow,
+    WorthQueryTestBackendError, WorthQueryTestBackendErrorKind, WorthQueryTestBackendResidueAudit,
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
     WorthQueryTestBackendSchema,
 };

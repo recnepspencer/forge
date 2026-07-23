@@ -77,6 +77,22 @@ impl WorthQueryProjectionDeclaration {
         self.contract = self.contract.require_derived_field(field);
         self
     }
+
+    pub(crate) fn display_native(
+        mut self,
+        contract: crate::projection_consumption::DeclaredNativeFactContract,
+    ) -> Result<Self, crate::projection_consumption::NativeFactDeclarationConflict> {
+        self.contract = self.contract.require_display_native(contract)?;
+        Ok(self)
+    }
+
+    pub(crate) fn derived_native(
+        mut self,
+        contract: crate::projection_consumption::DeclaredNativeFactContract,
+    ) -> Result<Self, crate::projection_consumption::NativeFactDeclarationConflict> {
+        self.contract = self.contract.require_derived_native(contract)?;
+        Ok(self)
+    }
 }
 
 #[derive(Debug)]
@@ -247,6 +263,14 @@ impl WorthQueryReadProjectionBinding {
         result: &crate::runtime::WorthQueryLiveReadResult,
         declaration: WorthQueryProjectionDeclaration,
     ) -> WorthQueryProjectionOutcome {
+        self.consume_live_contract(result, declaration.contract)
+    }
+
+    pub(crate) fn consume_live_contract(
+        &self,
+        result: &crate::runtime::WorthQueryLiveReadResult,
+        contract: ProjectionAuthorityContract,
+    ) -> WorthQueryProjectionOutcome {
         let authorized = match &self.authorized_projection {
             Ok(authorized) => authorized,
             Err(error) => {
@@ -259,7 +283,7 @@ impl WorthQueryReadProjectionBinding {
             &self.result_shape,
             authorized,
         );
-        match result.consume_projection_authority_with_binding(binding, declaration.contract) {
+        match result.consume_projection_authority_with_binding(binding, contract) {
             Ok(outcome) => WorthQueryProjectionOutcome::from_foundation(outcome),
             Err(
                 crate::projection_consumption::ProjectionFactConsumptionPathError::Declaration(

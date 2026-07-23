@@ -54,7 +54,7 @@ impl WorthQueryTestBackendSchema {
     }
 
     pub fn aspect(
-        mut self,
+        self,
         label: impl Into<String>,
         projection_field_path_text: impl Into<String>,
     ) -> Result<Self, WorthQueryTestBackendError> {
@@ -73,7 +73,6 @@ impl WorthQueryTestBackendSchema {
                     ),
                 )
             })?;
-        self.validate_mapping_contract(&aspect_touch)?;
         let projection_field_path_text = projection_field_path_text.into();
         ensure_non_blank(
             &projection_field_path_text,
@@ -91,6 +90,15 @@ impl WorthQueryTestBackendSchema {
                     )
                 },
             )?;
+        self.native_aspect_mapping(aspect_touch, native_field_path)
+    }
+
+    pub fn native_aspect_mapping(
+        mut self,
+        aspect_touch: WorthQueryAspectTouch,
+        native_field_path: CanonicalFieldPath,
+    ) -> Result<Self, WorthQueryTestBackendError> {
+        self.validate_mapping_contract(&aspect_touch)?;
         self.aspects.push(WorthQueryTestBackendAspect {
             touch: aspect_touch,
             native_field_path,

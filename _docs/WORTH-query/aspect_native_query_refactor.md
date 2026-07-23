@@ -64,7 +64,7 @@ Today, many core Query internals still treat authority, mutation lowering, mater
 - `crates/worth-query/src/runtime/mutation/aspect.rs` still centers `WORTHQueryAspectValue` on string paths and JSON lowering.
 - `crates/worth-query/src/runtime/workspace_queries.rs` still returns `Vec<serde_json::Value>` for derived materialization.
 - `crates/worth-query/src/runtime/computed/surface.rs` still stores computed rows and patch payloads as `serde_json::Value`.
-- `crates/worth-query/src/projection_consumption/extraction/row_like.rs` now feeds native aspect values into consumed field facts, but broader materialization rows still retain JSON compatibility surfaces.
+- `crates/worth-query/src/projection_consumption/extraction/row_materialization/row_like.rs` now feeds native aspect values into consumed field facts, but broader materialization rows still retain JSON compatibility surfaces.
 - `crates/worth-query/src/memory_workspace/mod.rs` still stores external row projections as `serde_json::Value` beside aspect maps and exposes dotted-path JSON lookup.
 
 So the open question is no longer "does Query mention aspects?" The open question is "which concrete subfolders and files still treat JSON or path strings as authority carriers, and what is the correct foundational target for each migration zone?" This doc answers that question by zone.
@@ -663,7 +663,7 @@ Migration class: read-side production blocker.
 
 Representative files:
 
-- `crates/worth-query/src/projection_consumption/extraction/row_like.rs`
+- `crates/worth-query/src/projection_consumption/extraction/row_materialization/row_like.rs`
 - `crates/worth-query/src/projection_consumption/extraction/grouped.rs`
 - `crates/worth-query/src/projection_consumption/extraction/query_context.rs`
 

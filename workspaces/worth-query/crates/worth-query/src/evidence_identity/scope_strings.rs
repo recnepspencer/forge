@@ -118,6 +118,7 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         WorthQueryEvidenceScope::ProjectionConsumptionCertificationIdentity => {
             "projection-consumption-certification-identity"
         }
+        WorthQueryEvidenceScope::ConsumerInvalidationDelta => "consumer-invalidation-delta",
         S::DomainCapabilityIdentity => "domain-capability-identity",
         S::DomainCapabilityCertificationIdentity => "domain-capability-certification-identity",
         installed_domain_evidence_scopes!() => installed_domain_evidence_scope_as_str(scope),

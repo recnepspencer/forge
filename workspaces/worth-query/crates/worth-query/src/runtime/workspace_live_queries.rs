@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 
@@ -30,10 +30,11 @@ impl WorthQueryWorkspace {
         &mut self,
         view: &super::WorthQueryLiveView<T>,
         capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+        cause: super::WorthQueryManagedLiveResourceCloseCause,
     ) -> Result<crate::subscription::SubscriptionLifecycleCloseout, WorthQueryRuntimeError> {
         self.admit_managed_live_capability(capability, view.name())?;
         self.runtime.reap_abandoned_managed_live_resources()?;
-        self.runtime.close_managed_live_view(view)
+        self.runtime.close_managed_live_view(view, cause)
     }
 
     pub(crate) fn read_managed_live_view<T>(
@@ -237,21 +238,20 @@ fn live_bundle_snapshot_identity(
             )
         })
         .collect::<Vec<_>>();
-    let distinct_snapshot_identities = snapshot_identities
-        .iter()
-        .map(|(_, snapshot_identity)| {
-            snapshot_identity
-                .evidence_identity()
-                .terminal_projection_for_reporting()
-                .to_string()
+    let shared_snapshot_identity = snapshot_identities
+        .first()
+        .map(|(_, snapshot_identity)| snapshot_identity);
+    let has_single_snapshot_identity = shared_snapshot_identity
+        .map(|expected| {
+            snapshot_identities.iter().all(|(_, snapshot_identity)| {
+                expected.is_same_current_identity_as(snapshot_identity)
+            })
         })
-        .collect::<BTreeSet<_>>();
+        .unwrap_or(true);
     match snapshot_identities.as_slice() {
         [] => Ok(WorthQuerySnapshotIdentity::empty_relational_state()),
-        [(_, snapshot_identity)] if distinct_snapshot_identities.len() == 1 => {
-            Ok(snapshot_identity.clone())
-        }
-        _ if distinct_snapshot_identities.len() == 1 => Ok(snapshot_identities[0].1.clone()),
+        [(_, snapshot_identity)] if has_single_snapshot_identity => Ok(snapshot_identity.clone()),
+        _ if has_single_snapshot_identity => Ok(snapshot_identities[0].1.clone()),
         _ => Err(WorthQueryRuntimeError::ReadCompositionDenied(
             super::WorthQueryReadDenial::new(
                 super::WorthQueryReadDenialKind::ExecutionDenied,

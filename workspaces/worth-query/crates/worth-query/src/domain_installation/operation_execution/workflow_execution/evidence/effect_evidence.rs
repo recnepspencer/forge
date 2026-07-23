@@ -57,6 +57,25 @@ impl WorthQueryWorkflowEffectEvidence {
         }
     }
 
+    pub(crate) fn semantic_replay_eq(&self, candidate: &Self) -> bool {
+        let candidate_family = candidate.family;
+        let (Some(subject), Some(candidate_receipt)) =
+            (self.mutation_receipt(), candidate.mutation_receipt())
+        else {
+            return false;
+        };
+        self.family == candidate_family
+            && subject.mutation_family() == candidate_receipt.mutation_family()
+            && subject.target_collection_identity()
+                == candidate_receipt.target_collection_identity()
+            && same_current_target_entity(subject, candidate_receipt)
+            && subject.declared_aspect_operations()
+                == candidate_receipt.declared_aspect_operations()
+            && subject.declared_aspect_value_digest()
+                == candidate_receipt.declared_aspect_value_digest()
+            && subject.deltas() == candidate_receipt.deltas()
+    }
+
     pub(crate) fn binds_workflow(
         &self,
         binding: &crate::workflow::WorkflowContextBinding,
@@ -68,6 +87,20 @@ impl WorthQueryWorkflowEffectEvidence {
                     && source.basis == basis
             }
         }
+    }
+}
+
+fn same_current_target_entity(
+    subject: &crate::runtime::WorthQueryWriteReceipt,
+    candidate: &crate::runtime::WorthQueryWriteReceipt,
+) -> bool {
+    match (
+        subject.target_entity_identity(),
+        candidate.target_entity_identity(),
+    ) {
+        (Some(subject), Some(candidate)) => subject.is_same_current_identity_as(candidate),
+        (None, None) => true,
+        _ => false,
     }
 }
 

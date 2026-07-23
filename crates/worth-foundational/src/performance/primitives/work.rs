@@ -5,6 +5,7 @@ use super::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FoundationalPerformanceWorkClass {
     AuthoritativeMutation,
+    AuthoritativeObservation,
     ValidationPlanning,
     PublicationDelivery,
     ReplayReconstruction,
@@ -13,13 +14,19 @@ pub enum FoundationalPerformanceWorkClass {
 }
 
 pub fn foundational_performance_work_class_definitions(
-) -> [FoundationalPerformanceWorkClassDefinition; 6] {
+) -> [FoundationalPerformanceWorkClassDefinition; 7] {
     [
         FoundationalPerformancePrimitiveDefinition::new(
             FoundationalPerformanceWorkClass::AuthoritativeMutation,
             "authoritative_mutation",
             "authoritative mutation or state-advancing work",
             "publication, replay, or support assembly by default",
+        ),
+        FoundationalPerformancePrimitiveDefinition::new(
+            FoundationalPerformanceWorkClass::AuthoritativeObservation,
+            "authoritative_observation",
+            "authoritative read or observation work that does not advance source truth",
+            "mutation, publication, replay, or support assembly by default",
         ),
         FoundationalPerformancePrimitiveDefinition::new(
             FoundationalPerformanceWorkClass::ValidationPlanning,

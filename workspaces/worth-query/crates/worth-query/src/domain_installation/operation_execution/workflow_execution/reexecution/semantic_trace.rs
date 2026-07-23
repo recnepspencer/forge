@@ -1,9 +1,8 @@
 use super::{
-    WorthQueryCompletedWorkflowTrace, WorthQueryWorkflowRunCounters,
-    WorthQueryWorkflowSemanticValue, WorthQueryWorkflowStageWarning,
+    WorthQueryCompletedWorkflowTrace, WorthQueryConditionalTraceMeaning,
+    WorthQueryWorkflowRunCounters, WorthQueryWorkflowSemanticValue, WorthQueryWorkflowStageWarning,
 };
 use crate::basis_lifecycle::BasisOperationLane;
-use crate::domain_installation::WorthQueryConditionalOutcomeClass;
 use crate::identity_evolution::InstalledIdentityEvolutionOutcome;
 use crate::memory_workspace::{WorthQueryEntityIdentity, WorthQueryMutationDelta};
 use crate::runtime::{
@@ -13,23 +12,10 @@ use crate::runtime::{
 use worth_query_installation::facade::{
     WorthQueryOperationEffectFamily, WorthQueryOperationResultState,
 };
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryConditionalTraceMeaning {
-    location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
-    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
-    outcome: WorthQueryConditionalOutcomeClass,
-    artifact_reuse_admitted: bool,
-    signal_identity: String,
-    observations: Vec<WorthQueryConditionalObservationMeaning>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryConditionalObservationMeaning {
-    dependency_ordinal: usize,
-    previous: Option<worth_foundational::facade::ContractValidatedAspectArtifact>,
-    current: worth_foundational::facade::ContractValidatedAspectArtifact,
-}
+#[path = "semantic_trace/comparison.rs"]
+mod comparison;
+pub use comparison::compare_exact_workflow_traces;
+pub(crate) use comparison::compare_exact_workflow_traces_counted;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryMutationTraceMeaning {
@@ -72,7 +58,7 @@ impl WorthQueryEffectTraceMeaning {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthQueryLineageTraceMeaning {
     outcome: InstalledIdentityEvolutionOutcome,
     effect_indices: Vec<usize>,
@@ -92,7 +78,7 @@ pub struct WorthQueryInvariantTraceMeaning {
     effect_indices: Vec<usize>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthQueryWorkflowStageTraceSemantics {
     stage_identity: String,
     predecessor_stage_identities: Vec<String>,
@@ -130,9 +116,10 @@ impl WorthQueryWorkflowStageTraceSemantics {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthQueryWorkflowTraceSemantics {
     operation_identity: String,
+    conditional_path: Vec<super::WorthQueryConditionalTraceMeaning>,
     stages: Vec<WorthQueryWorkflowStageTraceSemantics>,
     publication: Option<WorthQueryPublicationTraceMeaning>,
 }
@@ -144,6 +131,9 @@ impl WorthQueryWorkflowTraceSemantics {
     pub fn stages(&self) -> &[WorthQueryWorkflowStageTraceSemantics] {
         &self.stages
     }
+    pub fn operation_conditional_path(&self) -> &[super::WorthQueryConditionalTraceMeaning] {
+        &self.conditional_path
+    }
 }
 
 pub type WorthQueryReplayNoiseContract =
@@ -152,6 +142,7 @@ pub type WorthQueryReplayNoiseContract =
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryReplayDivergence {
     Operation,
+    OperationConditionalPath,
     StageSet,
     PredecessorTopology { stage: String },
     Input { stage: String },
@@ -163,6 +154,7 @@ pub enum WorthQueryReplayDivergence {
     ConditionalPath { stage: String },
     Lineage { stage: String },
     Publication,
+    DependencyClosure,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -173,103 +165,21 @@ pub enum WorthQueryReplayComparison {
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L> {
     pub fn semantics(&self) -> WorthQueryWorkflowTraceSemantics {
-        let mut lineage_by_stage = std::collections::BTreeMap::<&str, Vec<_>>::new();
-        if let Some(report) = self.lineage_report() {
-            for evidence in report.evidence() {
-                lineage_by_stage
-                    .entry(evidence.stage_identity())
-                    .or_default()
-                    .push(evidence);
-            }
-        }
+        let lineage_by_stage = lineage_evidence_by_stage(self);
         let mut stages = self
             .stage_receipts()
             .iter()
-            .map(|receipt| {
-                let effect_index = receipt
-                    .effect_evidence()
-                    .iter()
-                    .enumerate()
-                    .map(|(index, effect)| (effect.receipt_identity(), index))
-                    .collect::<std::collections::BTreeMap<_, _>>();
-                WorthQueryWorkflowStageTraceSemantics {
-                    stage_identity: receipt.stage_identity().to_owned(),
-                    predecessor_stage_identities: receipt.predecessor_stage_identities().to_vec(),
-                    input: receipt.input().clone(),
-                    output: receipt.output().semantic_value(),
-                    result_state: receipt.result_state(),
-                    warnings: receipt.warnings().to_vec(),
-                    effects: receipt
-                        .effect_evidence()
-                        .iter()
-                        .map(effect_meaning)
-                        .collect(),
-                    invariants: receipt
-                        .invariant_outcomes()
-                        .iter()
-                        .map(|outcome| WorthQueryInvariantTraceMeaning {
-                            invariant_role: outcome.invariant_role().to_owned(),
-                            installed_invariant_identity: outcome
-                                .installed_invariant_identity()
-                                .to_owned(),
-                            effect_indices: {
-                                let mut indices = outcome
-                                    .effect_receipt_identities()
-                                    .iter()
-                                    .map(|identity| {
-                                        *effect_index.get(identity.as_str()).expect(
-                                            "invariant admission validated every effect receipt identity",
-                                        )
-                                    })
-                                    .collect::<Vec<_>>();
-                                indices.sort_unstable();
-                                indices
-                            },
-                        })
-                        .collect(),
-                    conditional_path: receipt
-                        .conditional_provenance()
-                        .iter()
-                        .map(|item| WorthQueryConditionalTraceMeaning {
-                            location: item.location().clone(),
-                            declaration: item.declaration().clone(),
-                            outcome: item.class(),
-                            artifact_reuse_admitted: item.artifact_reuse_admitted(),
-                            signal_identity: item.signal_identity().to_owned(),
-                            observations: (0..item.semantic_observation_count())
-                                .filter_map(|ordinal| item.semantic_observation(ordinal))
-                                .map(|observation| WorthQueryConditionalObservationMeaning {
-                                    dependency_ordinal: observation.dependency_ordinal(),
-                                    previous: observation.previous().cloned(),
-                                    current: observation.current().clone(),
-                                })
-                                .collect(),
-                        })
-                        .collect(),
-                    lineage: lineage_by_stage
-                        .get(receipt.stage_identity())
-                        .into_iter()
-                        .flat_map(|evidence| evidence.iter().copied())
-                        .map(|evidence| WorthQueryLineageTraceMeaning {
-                            outcome: evidence.outcome().clone(),
-                            effect_indices: evidence
-                                .effect_receipt_identities()
-                                .iter()
-                                .map(|identity| {
-                                    *effect_index.get(identity.as_str()).expect(
-                                        "lineage binding validated every effect receipt identity",
-                                    )
-                                })
-                                .collect(),
-                        })
-                        .collect(),
-                }
-            })
+            .map(|receipt| stage_semantics(receipt, &lineage_by_stage))
             .collect::<Vec<_>>();
         stages.sort_by(|left, right| left.stage_identity.cmp(&right.stage_identity));
         let publication = publication_meaning(self, &stages);
         WorthQueryWorkflowTraceSemantics {
             operation_identity: self.run.bound.definition().canonical_identity().to_owned(),
+            conditional_path: self
+                .operation_conditional_provenance()
+                .iter()
+                .map(super::workflow_conditional_trace::conditional_trace_meaning)
+                .collect(),
             stages,
             publication,
         }
@@ -280,70 +190,107 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
     }
 }
 
-pub fn compare_exact_workflow_traces(
-    original: &WorthQueryWorkflowTraceSemantics,
-    candidate: &WorthQueryWorkflowTraceSemantics,
-    noise: WorthQueryReplayNoiseContract,
-) -> WorthQueryReplayComparison {
-    compare_exact_workflow_traces_counted(original, candidate, noise).0
-}
+type LineageEvidenceByStage<'a> = std::collections::BTreeMap<
+    &'a str,
+    Vec<&'a crate::domain_installation::WorthQueryTraceLineageEvidence>,
+>;
 
-pub(crate) fn compare_exact_workflow_traces_counted(
-    original: &WorthQueryWorkflowTraceSemantics,
-    candidate: &WorthQueryWorkflowTraceSemantics,
-    noise: WorthQueryReplayNoiseContract,
-) -> (WorthQueryReplayComparison, usize) {
-    use WorthQueryReplayDivergence as D;
-    if original.operation_identity != candidate.operation_identity {
-        return (WorthQueryReplayComparison::Diverged(D::Operation), 0);
-    }
-    if original.stages.len() != candidate.stages.len()
-        || original
-            .stages
-            .iter()
-            .zip(&candidate.stages)
-            .any(|(left, right)| left.stage_identity != right.stage_identity)
-    {
-        return (WorthQueryReplayComparison::Diverged(D::StageSet), 0);
-    }
-    for (index, (left, right)) in original.stages.iter().zip(&candidate.stages).enumerate() {
-        let stage = left.stage_identity.clone();
-        let divergence = if left.predecessor_stage_identities != right.predecessor_stage_identities
-        {
-            Some(D::PredecessorTopology { stage })
-        } else if left.input != right.input {
-            Some(D::Input { stage })
-        } else if left.output != right.output {
-            Some(D::Output { stage })
-        } else if left.result_state != right.result_state {
-            Some(D::ResultState { stage })
-        } else if !noise.diagnostic_warnings && left.warnings != right.warnings {
-            Some(D::Diagnostic { stage })
-        } else if left.effects != right.effects {
-            Some(D::Effect { stage })
-        } else if left.invariants != right.invariants {
-            Some(D::Invariant { stage })
-        } else if left.conditional_path != right.conditional_path {
-            Some(D::ConditionalPath { stage })
-        } else if left.lineage != right.lineage {
-            Some(D::Lineage { stage })
-        } else {
-            None
-        };
-        if let Some(divergence) = divergence {
-            return (WorthQueryReplayComparison::Diverged(divergence), index + 1);
+fn lineage_evidence_by_stage<D, O, F, L: BasisOperationLane>(
+    trace: &WorthQueryCompletedWorkflowTrace<D, O, F, L>,
+) -> LineageEvidenceByStage<'_> {
+    let mut by_stage = LineageEvidenceByStage::new();
+    if let Some(report) = trace.lineage_report() {
+        for evidence in report.evidence() {
+            by_stage
+                .entry(evidence.stage_identity())
+                .or_default()
+                .push(evidence);
         }
     }
-    if original.publication != candidate.publication {
-        return (
-            WorthQueryReplayComparison::Diverged(D::Publication),
-            original.stages.len(),
-        );
+    by_stage
+}
+
+fn stage_semantics(
+    receipt: &super::WorthQueryWorkflowStageReceipt,
+    lineage_by_stage: &LineageEvidenceByStage<'_>,
+) -> WorthQueryWorkflowStageTraceSemantics {
+    let effect_index = receipt
+        .effect_evidence()
+        .iter()
+        .enumerate()
+        .map(|(index, effect)| (effect.receipt_identity(), index))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    WorthQueryWorkflowStageTraceSemantics {
+        stage_identity: receipt.stage_identity().to_owned(),
+        predecessor_stage_identities: receipt.predecessor_stage_identities().to_vec(),
+        input: receipt.input().clone(),
+        output: receipt.output().semantic_value(),
+        result_state: receipt.result_state(),
+        warnings: receipt.warnings().to_vec(),
+        effects: receipt
+            .effect_evidence()
+            .iter()
+            .map(effect_meaning)
+            .collect(),
+        invariants: invariant_meanings(receipt, &effect_index),
+        conditional_path: receipt
+            .conditional_provenance()
+            .iter()
+            .map(super::workflow_conditional_trace::conditional_trace_meaning)
+            .collect(),
+        lineage: lineage_meanings(receipt, lineage_by_stage, &effect_index),
     }
-    (
-        WorthQueryReplayComparison::Equivalent,
-        original.stages.len(),
-    )
+}
+
+fn invariant_meanings(
+    receipt: &super::WorthQueryWorkflowStageReceipt,
+    effect_index: &std::collections::BTreeMap<&str, usize>,
+) -> Vec<WorthQueryInvariantTraceMeaning> {
+    receipt
+        .invariant_outcomes()
+        .iter()
+        .map(|outcome| {
+            let mut effect_indices = outcome
+                .effect_receipt_identities()
+                .iter()
+                .map(|identity| {
+                    *effect_index
+                        .get(identity.as_str())
+                        .expect("invariant admission validated every effect receipt identity")
+                })
+                .collect::<Vec<_>>();
+            effect_indices.sort_unstable();
+            WorthQueryInvariantTraceMeaning {
+                invariant_role: outcome.invariant_role().to_owned(),
+                installed_invariant_identity: outcome.installed_invariant_identity().to_owned(),
+                effect_indices,
+            }
+        })
+        .collect()
+}
+
+fn lineage_meanings(
+    receipt: &super::WorthQueryWorkflowStageReceipt,
+    lineage_by_stage: &LineageEvidenceByStage<'_>,
+    effect_index: &std::collections::BTreeMap<&str, usize>,
+) -> Vec<WorthQueryLineageTraceMeaning> {
+    lineage_by_stage
+        .get(receipt.stage_identity())
+        .into_iter()
+        .flat_map(|evidence| evidence.iter().copied())
+        .map(|evidence| WorthQueryLineageTraceMeaning {
+            outcome: evidence.outcome().clone(),
+            effect_indices: evidence
+                .effect_receipt_identities()
+                .iter()
+                .map(|identity| {
+                    *effect_index
+                        .get(identity.as_str())
+                        .expect("lineage binding validated every effect receipt identity")
+                })
+                .collect(),
+        })
+        .collect()
 }
 
 fn effect_meaning(

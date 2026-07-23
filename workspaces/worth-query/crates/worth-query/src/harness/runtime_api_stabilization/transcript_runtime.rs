@@ -10,7 +10,8 @@ use crate::facade::foundation::{
 use crate::facade::runtime::{
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
     SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationInput, WorthQueryAuthorityLane, WorthQueryBasisAdmissionEvidenceRow,
+    SubscriptionActivationInput, WorthQueryAuthoredAspectMutation, WorthQueryAuthorityLane,
+    WorthQueryBackendAdmissibleMutation, WorthQueryBasisAdmissionEvidenceRow,
     WorthQueryEffectPolicy, WorthQueryIntentAuthorityAdapter, WorthQueryIntentDeclaration,
     WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryPreviewBasisAdmission,
     WorthQueryRuntime, WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeFacadeFamily,
@@ -19,7 +20,7 @@ use crate::facade::runtime::{
     WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
     WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
     WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
-    WorthQueryWriteReceipt,
+    WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{WorthQueryCommitIdentity, WorthQuerySnapshotIdentity};
@@ -177,7 +178,7 @@ struct TranscriptIntentAuthority;
 impl WorthQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
     fn execute_intent(
         &mut self,
-        _bridge: &RuntimeBridge,
+        bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         declaration: &WorthQueryIntentDeclaration,
     ) -> Result<WorthQueryIntentExecution, WorthQueryWorkspaceError> {
@@ -185,16 +186,7 @@ impl WorthQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
             .input_string_field("collection")
             .unwrap_or("TranscriptEntity")
             .to_string();
-        let mutation_receipt = WorthQueryMutationReceipt::from_authoritative_parts(
-            transcript_commit_identity("transcript-intent-commit", &collection),
-            transcript_snapshot_identity("transcript-intent-snapshot", &collection),
-            vec![WorthQueryMutationDelta::from_touched_aspects(
-                collection,
-                crate::memory_workspace::admit_authored_entity_label("transcript-intent-entity-1"),
-                WorthQueryMutationKind::Updated,
-                Vec::new(),
-            )],
-        );
+        let mutation_receipt = transcript_intent_mutation_receipt(bridge, &collection)?;
         Ok(WorthQueryIntentExecution::admitted(
             declaration.strategy_name(),
             declaration.strategy_version(),
@@ -222,27 +214,62 @@ impl WorthQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
     }
 }
 
-fn transcript_commit_identity(namespace: &str, evidence: &str) -> WorthQueryCommitIdentity {
-    WorthQueryCommitIdentity::from_relational_commit_id(stable_transcript_position(
-        namespace, evidence,
-    ))
-}
-
-fn transcript_snapshot_identity(namespace: &str, evidence: &str) -> WorthQuerySnapshotIdentity {
-    let snapshot_id = stable_transcript_position(namespace, evidence);
-    let version_id = stable_transcript_position(format!("{namespace}:version"), evidence);
-    WorthQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(snapshot_id, version_id),
+fn transcript_intent_mutation_receipt(
+    bridge: &RuntimeBridge,
+    collection: &str,
+) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
+    let entity_identity = crate::memory_workspace::WorthQueryEntityIdentity::from_relational_record(
+        worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
+    );
+    let snapshot_identity = WorthQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(1, 1),
+    );
+    let touch = crate::runtime::WorthQueryAspectTouch::aspect_field_path(
+        worth_foundational::facade::AspectKey::new("identity")
+            .expect("transcript identity aspect should admit"),
+        worth_foundational::facade::CanonicalFieldPath::single(
+            worth_foundational::facade::FieldKey::new("id")
+                .expect("transcript identity field should admit"),
+        ),
+    );
+    let command = WorthQueryWriteCommand::UpdateAspects {
+        entity_identity: entity_identity.clone(),
+        aspects: vec![WorthQueryAuthoredAspectMutation::new_set(
+            touch.clone(),
+            WorthQueryAuthoredAspectMutation::native_string_value("transcript-intent-entity-1"),
+        )
+        .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?],
+        metadata: Default::default(),
+        naming_intent: None,
+        continuity_intent: None,
+    };
+    let contracts = crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry::from_contracts(
+        transcript_aspect_contracts(&[]),
     )
-}
-
-fn stable_transcript_position(namespace: impl AsRef<str>, evidence: impl AsRef<str>) -> u64 {
-    let mut acc = 14_695_981_039_346_656_037_u64;
-    for byte in namespace.as_ref().bytes().chain(evidence.as_ref().bytes()) {
-        acc ^= u64::from(byte);
-        acc = acc.wrapping_mul(1_099_511_628_211_u64);
-    }
-    acc
+    .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+    let mutation = WorthQueryBackendAdmissibleMutation::from_authored_command(command, &contracts)
+        .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+    let bridge_authority = crate::runtime::build_bridge_authority_bundle(
+        bridge,
+        &snapshot_identity,
+        &mutation,
+        crate::runtime::WorthQueryBridgeMutationTarget::new(
+            collection,
+            &entity_identity,
+            WorthQueryMutationKind::Updated,
+        ),
+    )?;
+    Ok(WorthQueryMutationReceipt::from_bridge_authoritative_parts(
+        WorthQueryCommitIdentity::from_relational_commit_id(1),
+        snapshot_identity,
+        vec![WorthQueryMutationDelta::from_touched_aspects(
+            collection,
+            entity_identity,
+            WorthQueryMutationKind::Updated,
+            vec![touch],
+        )],
+        bridge_authority,
+    ))
 }
 
 struct TranscriptSignalSink;

@@ -6,6 +6,7 @@ use super::source::{
     ProjectionSourceBasisAuthority, ProjectionSourceFamily, ProjectionSourceIdentity,
     ProjectionSourceReferenceIdentity,
 };
+use super::DeclaredNativeFactContract;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionContractSourcePosture {
@@ -53,6 +54,7 @@ impl ProjectionContractSupportPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoundProjectionFactFamily {
     request: ProjectionFactRequest,
+    native_contract: Option<DeclaredNativeFactContract>,
     support_posture: ProjectionContractSupportPosture,
 }
 
@@ -71,6 +73,10 @@ impl BoundProjectionFactFamily {
 
     pub fn support_posture(&self) -> &ProjectionContractSupportPosture {
         &self.support_posture
+    }
+
+    pub(crate) fn native_contract(&self) -> Option<&DeclaredNativeFactContract> {
+        self.native_contract.as_ref()
     }
 }
 
@@ -192,9 +198,12 @@ pub(crate) fn bind_materialized_projection_contract(
     let fact_families = declaration
         .requested()
         .requested()
-        .cloned()
         .map(|request| BoundProjectionFactFamily {
-            request,
+            native_contract: declaration
+                .requested()
+                .native_contract_for(request)
+                .cloned(),
+            request: request.clone(),
             support_posture: support_posture.clone(),
         })
         .collect::<Vec<_>>();

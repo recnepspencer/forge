@@ -10,10 +10,12 @@ mod envelope;
 mod extraction;
 mod facts;
 mod identity;
+mod native_contract;
 mod receipt;
 mod receipt_transitions;
 mod source;
 mod support;
+mod visibility;
 pub use certification::{
     certify_consumed_projection_authority, certify_projection_consumption_closeout_core,
     consumed_projection_authority_support_matrix, projection_consumption_family_inventory,
@@ -37,14 +39,18 @@ pub(crate) use certification::{
     intent_admission_admitted_projection_declaration,
     intent_admission_warning_projection_declaration,
 };
-#[cfg(test)]
-pub(crate) use consumed::ConsumedNativeValue;
+pub(crate) use consumed::ConsumedNativeLayoutProof;
 pub use consumed::{
     ConsumedContinuityAuthorityIdentity, ConsumedEffectContinuityFact, ConsumedEntityIdentityFact,
     ConsumedFieldValueFact, ConsumedMembershipFact, ConsumedNativeRefinementDenial,
-    ConsumedNativeValueShape, ConsumedNativeValueView, ConsumedProjectionFactSet,
-    ConsumedRelationEndpointFact, ConsumedSourceReferenceFact, ConsumedTargetIdentityFact,
-    ConsumedViewLocalIdentityFact, ProjectionFactExtractionCounters,
+    ConsumedNativeValueView, ConsumedProjectionFactSet, ConsumedRelationEndpointFact,
+    ConsumedSourceReferenceFact, ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact,
+    ProjectionFactExtractionCounters,
+};
+#[cfg(test)]
+pub(crate) use consumed::{
+    ConsumedNativeValue, ConsumedProjectionContractProvenance, ConsumedProjectionFactInventory,
+    ConsumedProjectionSourceTruth,
 };
 #[cfg(test)]
 pub(crate) use contracts::bind_materialized_projection_contract;
@@ -86,10 +92,13 @@ pub use envelope::{
     ProjectionConsumptionEnvelopeSourceRefs, SelfDescribingProjectionConsumptionEnvelope,
 };
 pub use extraction::ProjectionFactExtractionError;
-pub(crate) use facts::projection_fact_field_path_from_segments;
+pub(crate) use facts::{projection_fact_field_path_from_segments, NativeFactDeclarationConflict};
 pub use facts::{
     ProjectMaterializedFacts, ProjectionFactFieldPath, ProjectionFactKind, ProjectionFactRequest,
     ProjectionMaterializedFactPosture, ProjectionMaterializedFactPostureKind,
+};
+pub(crate) use native_contract::{
+    DeclaredNativeAspectContractBasis, DeclaredNativeFactContract, DeclaredNativeFactContractDenial,
 };
 pub use receipt::ProjectionConsumptionReceipt;
 pub use receipt_transitions::{

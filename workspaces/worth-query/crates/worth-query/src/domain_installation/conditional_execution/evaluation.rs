@@ -15,103 +15,216 @@ pub(crate) enum WorthQueryConditionalEvaluationStop {
     Reentry(super::WorthQueryConditionalAdmissionDenial),
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum WorthQueryConditionalEvaluationScope<'a> {
+    Operation,
+    WorkflowStage(&'a str),
+}
+
+pub(crate) struct WorthQueryConditionalEvaluationPass<'a> {
+    pub(crate) workspace: &'a mut crate::runtime::WorthQueryWorkspace,
+    pub(crate) snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
+    pub(crate) execution_identity: &'a str,
+    pub(crate) scope: WorthQueryConditionalEvaluationScope<'a>,
+    pub(crate) workflow_run_identity: Option<&'a str>,
+    pub(crate) attempt: u64,
+    pub(crate) counters: &'a mut super::super::WorthQueryOperationExecutionCounters,
+}
+
+pub(crate) struct WorthQueryOwnerImpactConditionalEvaluationPass<'a> {
+    pub(crate) evaluation: WorthQueryConditionalEvaluationPass<'a>,
+    pub(crate) location: &'a worth_query_installation::facade::WorthQueryConditionalNodeLocation,
+}
+
 pub(crate) fn evaluate_bound_conditionals<D, O, F, L: BasisOperationLane>(
     bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
-    workspace: &mut crate::runtime::WorthQueryWorkspace,
-    snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
-    execution_identity: &str,
-    stage_identity: Option<&str>,
-    workflow_run_identity: Option<&str>,
-    attempt: u64,
-    counters: &mut super::super::WorthQueryOperationExecutionCounters,
+    evaluation: WorthQueryConditionalEvaluationPass<'_>,
 ) -> Result<Vec<WorthQueryConditionalProvenance>, WorthQueryConditionalEvaluationStop> {
-    let snapshot_identity = snapshot.evidence_identity();
-    let mut admitted = Vec::new();
-    for node in bound
-        .conditional_nodes()
-        .iter()
-        .filter(|node| location_matches(node, stage_identity))
-    {
-        let authority = super::reentry::admit_conditional_authority(bound, node)
-            .map_err(WorthQueryConditionalEvaluationStop::Reentry)?;
-        let mut context = WorthQueryConditionalComputeContext::new(
-            node.lowering.location().clone(),
-            bound.definition().canonical_identity().to_string(),
-            bound.binding_identity().to_string(),
-            bound.basis().capability_digest().to_string(),
-            workflow_run_identity.map(str::to_string),
-            snapshot_identity.as_str().to_string(),
-            attempt,
-        );
-        let bridge = match workspace.execute_installed_conditional(
-            &node.lowering,
-            bound.binding_identity(),
-            bound.capability_identity(),
-            snapshot_identity.as_str(),
-            snapshot.bridge_identity(),
-            execution_identity,
-            attempt,
-            &mut context,
-        ) {
-            Ok(bridge) => bridge,
-            Err((kind, detail, signal_counters, semantic_observation_reads)) => {
-                retain_conditional_counters(counters, signal_counters);
-                counters.conditional_semantic_reads += semantic_observation_reads;
-                return Err(WorthQueryConditionalEvaluationStop::Failed { kind, detail });
+    evaluate_conditionals(
+        bound,
+        evaluation,
+        ConditionalAcceptance::FreshComputation,
+        None,
+    )
+}
+
+pub(crate) fn evaluate_settled_projection_conditionals<D, O, F, L: BasisOperationLane>(
+    bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    evaluation: WorthQueryConditionalEvaluationPass<'_>,
+) -> Result<Vec<WorthQueryConditionalProvenance>, WorthQueryConditionalEvaluationStop> {
+    evaluate_conditionals(
+        bound,
+        evaluation,
+        ConditionalAcceptance::SettledOutputContinuity,
+        None,
+    )
+}
+
+pub(crate) fn evaluate_owner_impact_conditionals<D, O, F, L: BasisOperationLane>(
+    bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    owner_impact: WorthQueryOwnerImpactConditionalEvaluationPass<'_>,
+) -> Result<Vec<WorthQueryConditionalProvenance>, WorthQueryConditionalEvaluationStop> {
+    let WorthQueryOwnerImpactConditionalEvaluationPass {
+        evaluation,
+        location,
+    } = owner_impact;
+    evaluate_conditionals(
+        bound,
+        evaluation,
+        ConditionalAcceptance::OwnerImpactObservation,
+        Some(location),
+    )
+}
+
+#[derive(Clone, Copy)]
+enum ConditionalAcceptance {
+    FreshComputation,
+    SettledOutputContinuity,
+    OwnerImpactObservation,
+}
+
+impl ConditionalAcceptance {
+    fn admits(self, provenance: &WorthQueryConditionalProvenance) -> bool {
+        match self {
+            Self::FreshComputation => {
+                provenance.class() == super::WorthQueryConditionalOutcomeClass::ComputedChanged
             }
-        };
-        let signal_counters = bridge.signal().counters();
-        counters.conditional_semantic_reads += bridge.semantic_observation_reads();
-        retain_conditional_counters(counters, signal_counters);
-        let provenance = admit_conditional_decision(
-            bound,
-            authority,
-            bridge,
-            snapshot_identity.as_str(),
-            snapshot.bridge_identity(),
-            execution_identity,
-            attempt,
+            Self::SettledOutputContinuity => matches!(
+                provenance.class(),
+                super::WorthQueryConditionalOutcomeClass::ComputedChanged
+                    | super::WorthQueryConditionalOutcomeClass::ComputedRevertedClean
+                    | super::WorthQueryConditionalOutcomeClass::DependencyUnchanged
+            ),
+            Self::OwnerImpactObservation => true,
+        }
+    }
+}
+
+fn evaluate_conditionals<D, O, F, L: BasisOperationLane>(
+    bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    mut evaluation: WorthQueryConditionalEvaluationPass<'_>,
+    acceptance: ConditionalAcceptance,
+    exact_location: Option<&worth_query_installation::facade::WorthQueryConditionalNodeLocation>,
+) -> Result<Vec<WorthQueryConditionalProvenance>, WorthQueryConditionalEvaluationStop> {
+    let mut admitted = Vec::new();
+    let scope = evaluation.scope;
+    for node in bound.conditional_nodes().iter().filter(|node| {
+        exact_location.map_or_else(
+            || location_matches(node, scope),
+            |location| node.lowering.location() == location,
         )
-        .map_err(WorthQueryConditionalEvaluationStop::Reentry)?;
-        let changed =
-            provenance.class() == super::WorthQueryConditionalOutcomeClass::ComputedChanged;
+    }) {
+        let provenance = evaluate_installed_conditional_node(bound, node, &mut evaluation)?;
+        let admitted_for_lane = acceptance.admits(&provenance);
         admitted.push(provenance);
-        if !changed {
+        if !admitted_for_lane {
             return Err(WorthQueryConditionalEvaluationStop::Deferred(admitted));
         }
     }
     Ok(admitted)
 }
 
+fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
+    bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    node: &WorthQueryInstalledConditionalNode,
+    evaluation: &mut WorthQueryConditionalEvaluationPass<'_>,
+) -> Result<WorthQueryConditionalProvenance, WorthQueryConditionalEvaluationStop> {
+    let authority = super::reentry::admit_conditional_authority(bound, node)
+        .map_err(WorthQueryConditionalEvaluationStop::Reentry)?;
+    let snapshot_identity = evaluation.snapshot.evidence_identity();
+    let mut context = WorthQueryConditionalComputeContext::new(
+        node.lowering.location().clone(),
+        bound.definition().canonical_identity().to_string(),
+        bound.binding_identity().to_string(),
+        bound.basis().capability_digest().to_string(),
+        evaluation.workflow_run_identity.map(str::to_string),
+        snapshot_identity.as_str().to_string(),
+        evaluation.attempt,
+    );
+    let bridge = evaluation
+        .workspace
+        .execute_installed_conditional(
+            worth_runtime_bridge::facade::BridgeConditionalExecutionRequest {
+                lowering: &node.lowering,
+                query_binding_identity: bound.binding_identity(),
+                query_capability_identity: bound.capability_identity(),
+                snapshot_identity: snapshot_identity.as_str(),
+                bridge_snapshot_identity: evaluation.snapshot.bridge_identity(),
+                execution_identity: evaluation.execution_identity,
+                attempt: evaluation.attempt,
+            },
+            &mut context,
+        )
+        .map_err(
+            |(kind, detail, signal_counters, semantic_observation_reads)| {
+                retain_conditional_counters(evaluation.counters, signal_counters);
+                evaluation.counters.conditional_semantic_reads += semantic_observation_reads;
+                WorthQueryConditionalEvaluationStop::Failed { kind, detail }
+            },
+        )?;
+    retain_conditional_evidence_counters(evaluation.counters, &bridge);
+    admit_conditional_decision(
+        bound,
+        authority,
+        bridge,
+        snapshot_identity.as_str(),
+        evaluation.snapshot.bridge_identity(),
+        evaluation.execution_identity,
+        evaluation.attempt,
+    )
+    .map_err(WorthQueryConditionalEvaluationStop::Reentry)
+}
+
+fn retain_conditional_evidence_counters(
+    counters: &mut super::super::WorthQueryOperationExecutionCounters,
+    bridge: &worth_runtime_bridge::facade::BridgeConditionalDecisionEvidence,
+) {
+    counters.conditional_semantic_reads += bridge.semantic_observation_reads();
+    retain_conditional_counters(counters, bridge.signal().counters());
+}
+
 fn retain_conditional_counters(
     counters: &mut super::super::WorthQueryOperationExecutionCounters,
     signal: worth_signal::facade::SignalConditionalDecisionCounters,
 ) {
+    counters.conditional_request_admission_checks += signal.request_admission_checks;
+    counters.conditional_contract_lookups += signal.contract_lookups;
+    counters.conditional_dependency_observation_reads += signal.dependency_observation_reads;
     counters.conditional_dependency_checks += signal.dependency_version_checks;
     counters.conditional_condition_checks += signal.condition_checks;
+    counters.conditional_condition_deferrals += signal.condition_deferrals;
+    counters.conditional_temporal_deferrals += signal.temporal_deferrals;
+    counters.conditional_on_demand_deferrals += signal.on_demand_deferrals;
     counters.conditional_comparator_checks += signal.comparator_checks;
     counters.conditional_compute_contacts += signal.compute_contacts;
+    counters.conditional_output_version_reads += signal.output_version_reads;
+    counters.conditional_runtime_dependency_edges_captured +=
+        signal.runtime_dependency_edges_captured;
+    counters.conditional_application_contacts += signal.application_contacts;
+    counters.conditional_semantic_classifications += signal.semantic_classifications;
+    counters.conditional_reverted_clean_outcomes += signal.reverted_clean_outcomes;
     counters.conditional_semantic_changes += signal.semantic_changes;
     counters.conditional_reuse_checks += signal.reuse_checks;
+    counters.conditional_decisions_delivered += signal.decisions_delivered;
 }
 
 fn location_matches(
     node: &WorthQueryInstalledConditionalNode,
-    stage_identity: Option<&str>,
+    scope: WorthQueryConditionalEvaluationScope<'_>,
 ) -> bool {
-    match (node.lowering.location(), stage_identity) {
+    match (node.lowering.location(), scope) {
         (
             worth_query_installation::facade::WorthQueryConditionalNodeLocation::Operation {
                 ..
             },
-            None,
+            WorthQueryConditionalEvaluationScope::Operation,
         ) => true,
         (
             worth_query_installation::facade::WorthQueryConditionalNodeLocation::WorkflowStage {
                 stage_identity: installed,
                 ..
             },
-            Some(expected),
+            WorthQueryConditionalEvaluationScope::WorkflowStage(expected),
         ) => installed == expected,
         _ => false,
     }

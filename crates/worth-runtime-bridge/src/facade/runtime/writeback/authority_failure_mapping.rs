@@ -20,6 +20,9 @@ pub(super) fn map_writeback_failure_class(
         BridgeWritebackFailureClass::IdempotenceBasisMismatch => {
             BridgeWritebackErrorKind::IdempotenceBasisMismatch
         }
+        BridgeWritebackFailureClass::CausalityEffectMismatch => {
+            BridgeWritebackErrorKind::CausalityEffectMismatch
+        }
         BridgeWritebackFailureClass::StaleTruthBasis => BridgeWritebackErrorKind::StaleTruthBasis,
         BridgeWritebackFailureClass::InvariantRejected => {
             BridgeWritebackErrorKind::InvariantRejected
@@ -66,6 +69,9 @@ pub(super) fn map_writeback_error_kind_to_failure_class(
         }
         BridgeWritebackErrorKind::IdempotenceBasisMismatch => {
             BridgeWritebackFailureClass::IdempotenceBasisMismatch
+        }
+        BridgeWritebackErrorKind::CausalityEffectMismatch => {
+            BridgeWritebackFailureClass::CausalityEffectMismatch
         }
         BridgeWritebackErrorKind::StaleTruthBasis => BridgeWritebackFailureClass::StaleTruthBasis,
         BridgeWritebackErrorKind::InvariantRejected => {

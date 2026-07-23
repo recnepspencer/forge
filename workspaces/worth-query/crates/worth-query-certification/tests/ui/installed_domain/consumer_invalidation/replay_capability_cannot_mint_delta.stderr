@@ -1,0 +1,5 @@
+error[E0599]: no method named `consumer_invalidation_delta` found for struct `WorthQueryCertificationReplayResult<D, O, F, L>` in the current scope
+ --> tests/ui/installed_domain/consumer_invalidation/replay_capability_cannot_mint_delta.rs:7:12
+  |
+7 |     replay.consumer_invalidation_delta(delivery)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryCertificationReplayResult<D, O, F, L>`

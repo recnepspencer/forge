@@ -1,8 +1,12 @@
 use worth_runtime_bridge::facade::{
-    BridgeConditionalComputeProvider, BridgeConditionalProviderSet,
-    BridgeSemanticCorrespondenceRegistration, BridgeSignalAspectTargetDeclaration,
-    RelationalBridgeRecordIdentityParts,
+    BridgeConditionalComputeProvider, BridgeConditionalProviderSemantics,
+    BridgeConditionalProviderSet, BridgeSemanticCorrespondenceRegistration,
+    BridgeSignalAspectTargetDeclaration, RelationalBridgeRecordIdentityParts,
 };
+
+mod authority_resolution;
+
+use authority_resolution::{installed_conditional_graph, installed_conditional_operation};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorthQueryConditionalComputeContext {
@@ -59,12 +63,31 @@ impl WorthQueryConditionalComputeContext {
 }
 
 pub trait WorthQueryConditionalNodeComputeProvider<D, O, F>: Send + Sync + 'static {
+    /// Complete owner-native compute meaning used when comparing a reinstalled
+    /// provider. Runtime counters and observation state do not belong here.
+    type SemanticContract: Eq + Send + Sync + 'static;
+
+    fn semantic_contract(&self) -> Self::SemanticContract;
+
     fn compute(
         &self,
         context: &WorthQueryConditionalComputeContext,
     ) -> Result<worth_signal::facade::NodeEvaluationResult, String>;
 }
 
+impl<D: 'static, O: 'static, F: 'static, P> BridgeConditionalProviderSemantics
+    for QueryComputeProvider<D, O, F, P>
+where
+    P: WorthQueryConditionalNodeComputeProvider<D, O, F>,
+{
+    type SemanticContract = P::SemanticContract;
+
+    fn semantic_contract(&self) -> Self::SemanticContract {
+        self.provider.semantic_contract()
+    }
+}
+
+#[derive(Clone)]
 pub struct WorthQueryConditionalDependencyInstallation {
     source_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     targets: Vec<BridgeSignalAspectTargetDeclaration>,
@@ -79,6 +102,27 @@ impl WorthQueryConditionalDependencyInstallation {
             source_record_identity,
             targets,
         }
+    }
+
+    fn rebound_for(
+        &self,
+        signal: &worth_runtime_bridge::facade::BridgeOwnedSignalRuntime,
+    ) -> Result<Self, WorthQueryConditionalNodeInstallationDenial> {
+        let targets = self
+            .targets
+            .iter()
+            .map(|target| signal.rebind_signal_target(target))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(
+                |denial| WorthQueryConditionalNodeInstallationDenial::Bridge {
+                    kind: denial.kind(),
+                    detail: denial.detail().to_string(),
+                },
+            )?;
+        Ok(Self {
+            source_record_identity: self.source_record_identity,
+            targets,
+        })
     }
 }
 
@@ -99,12 +143,12 @@ pub enum WorthQueryConditionalNodeInstallationDenial {
 }
 
 pub(crate) struct QueryComputeProvider<D, O, F, P> {
-    provider: P,
+    provider: std::sync::Arc<P>,
     _marker: std::marker::PhantomData<fn() -> (D, O, F)>,
 }
 
 impl<D, O, F, P> QueryComputeProvider<D, O, F, P> {
-    pub(crate) fn new(provider: P) -> Self {
+    pub(crate) fn new(provider: std::sync::Arc<P>) -> Self {
         Self {
             provider,
             _marker: std::marker::PhantomData,
@@ -208,7 +252,7 @@ fn location_matches(
 
 pub(crate) fn with_compute_provider<D: 'static, O: 'static, F: 'static, P>(
     providers: BridgeConditionalProviderSet,
-    provider: P,
+    provider: std::sync::Arc<P>,
 ) -> BridgeConditionalProviderSet
 where
     P: WorthQueryConditionalNodeComputeProvider<D, O, F>,
@@ -218,7 +262,7 @@ where
 
 pub(crate) trait PendingConditionalInstallation: Send {
     fn install(
-        self: Box<Self>,
+        &self,
         domains: &super::super::WorthQueryDomainInstallationRegistry,
         graphs: &super::super::WorthQueryInstalledGraphParticipationRegistry,
         signal: &mut worth_runtime_bridge::facade::BridgeOwnedSignalRuntime,
@@ -230,7 +274,7 @@ pub(crate) struct PendingConditionalNode<D, O, F, G, P> {
     location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
     dependencies: Vec<WorthQueryConditionalDependencyInstallation>,
     providers: BridgeConditionalProviderSet,
-    compute: P,
+    compute: std::sync::Arc<P>,
     _marker: std::marker::PhantomData<fn() -> (D, O, F, G)>,
 }
 
@@ -245,7 +289,7 @@ impl<D, O, F, G, P> PendingConditionalNode<D, O, F, G, P> {
             location,
             dependencies,
             providers,
-            compute,
+            compute: std::sync::Arc::new(compute),
             _marker: std::marker::PhantomData,
         }
     }
@@ -257,41 +301,45 @@ where
     P: WorthQueryConditionalNodeComputeProvider<D, O, F>,
 {
     fn install(
-        self: Box<Self>,
+        &self,
         domains: &super::super::WorthQueryDomainInstallationRegistry,
         graphs: &super::super::WorthQueryInstalledGraphParticipationRegistry,
         signal: &mut worth_runtime_bridge::facade::BridgeOwnedSignalRuntime,
         registry: &mut super::WorthQueryConditionalExecutionRegistry,
     ) -> Result<(), WorthQueryConditionalNodeInstallationDenial> {
-        let domain = domains
-            .domain::<D>()
-            .map_err(|_| WorthQueryConditionalNodeInstallationDenial::DomainNotInstalled)?;
-        let (authority, workflow) = domains
-            .execution_index()
-            .domain_operation_authority(
-                std::any::TypeId::of::<D>(),
-                std::any::TypeId::of::<O>(),
-                std::any::TypeId::of::<F>(),
-            )
-            .ok_or(WorthQueryConditionalNodeInstallationDenial::OperationNotInstalled)?;
-        let bindings = domains
-            .execution_index()
-            .domain_operation_graph_bindings(
-                std::any::TypeId::of::<D>(),
-                std::any::TypeId::of::<O>(),
-                std::any::TypeId::of::<F>(),
-            )
-            .to_vec();
-        let operation = super::super::WorthQueryInstalledDomainOperation::<D, O, F>::mint(
-            domain.authority_arc(),
-            authority,
-            workflow,
-            bindings,
-        );
-        let graph: super::super::WorthQueryInstalledGraphParticipation<G> = graphs
-            .get::<G>()
-            .map(super::super::WorthQueryInstalledGraphParticipation::new)
-            .map_err(|_| WorthQueryConditionalNodeInstallationDenial::GraphNotInstalled)?;
+        let operation = installed_conditional_operation::<D, O, F>(domains)?;
+        let graph = installed_conditional_graph::<G>(graphs)?;
+        let request = self.installation_request(signal, &operation, &graph)?;
+        let lowering = signal.install(request).map_err(|denial| {
+            WorthQueryConditionalNodeInstallationDenial::Bridge {
+                kind: denial.kind(),
+                detail: denial.detail().to_string(),
+            }
+        })?;
+        registry
+            .install::<D, O, F>(super::WorthQueryInstalledConditionalNode {
+                lowering,
+                operation_identity: operation.definition().canonical_identity().to_string(),
+                runtime_authority: operation.domain_authority().runtime_authority().as_u64(),
+                installation_generation: operation.installation_generation().ordinal(),
+            })
+            .map_err(|_| WorthQueryConditionalNodeInstallationDenial::DuplicateInstallation)
+    }
+}
+
+impl<D: 'static, O: 'static, F: 'static, G: 'static, P> PendingConditionalNode<D, O, F, G, P>
+where
+    P: WorthQueryConditionalNodeComputeProvider<D, O, F>,
+{
+    fn installation_request(
+        &self,
+        signal: &worth_runtime_bridge::facade::BridgeOwnedSignalRuntime,
+        operation: &super::super::WorthQueryInstalledDomainOperation<D, O, F>,
+        graph: &super::super::WorthQueryInstalledGraphParticipation<G>,
+    ) -> Result<
+        worth_runtime_bridge::facade::BridgeConditionalInstallationRequest,
+        WorthQueryConditionalNodeInstallationDenial,
+    > {
         let declaration = declared_node(operation.definition(), &self.location)
             .cloned()
             .ok_or(WorthQueryConditionalNodeInstallationDenial::DeclarationLookupDrift)?;
@@ -302,34 +350,27 @@ where
                 detail: "Query conditional registrations own the sole compute provider".into(),
             });
         }
+        let dependencies = self
+            .dependencies
+            .iter()
+            .map(|dependency| dependency.rebound_for(signal))
+            .collect::<Result<Vec<_>, _>>()?;
         let registrations = build_correspondence_registrations(
-            &operation,
-            &graph,
+            operation,
+            graph,
             self.location.clone(),
-            self.dependencies,
+            dependencies,
         )?;
-        let lowering = signal
-            .install(
-                worth_runtime_bridge::facade::BridgeConditionalInstallationRequest {
-                    declaration,
-                    location: self.location,
-                    registrations,
-                    providers: with_compute_provider::<D, O, F, P>(self.providers, self.compute),
-                },
-            )
-            .map_err(
-                |denial| WorthQueryConditionalNodeInstallationDenial::Bridge {
-                    kind: denial.kind(),
-                    detail: denial.detail().to_string(),
-                },
-            )?;
-        registry
-            .install::<D, O, F>(super::WorthQueryInstalledConditionalNode {
-                lowering,
-                operation_identity: operation.definition().canonical_identity().to_string(),
-                runtime_authority: operation.domain_authority().runtime_authority().as_u64(),
-                installation_generation: operation.installation_generation().ordinal(),
-            })
-            .map_err(|_| WorthQueryConditionalNodeInstallationDenial::DuplicateInstallation)
+        Ok(
+            worth_runtime_bridge::facade::BridgeConditionalInstallationRequest {
+                declaration,
+                location: self.location.clone(),
+                registrations,
+                providers: with_compute_provider::<D, O, F, P>(
+                    self.providers.clone(),
+                    std::sync::Arc::clone(&self.compute),
+                ),
+            },
+        )
     }
 }

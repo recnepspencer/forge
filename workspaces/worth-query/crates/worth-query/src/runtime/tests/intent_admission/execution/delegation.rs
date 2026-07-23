@@ -2,7 +2,8 @@ use super::*;
 
 #[test]
 fn execute_intent_delegates_to_canonical_admission_and_execution_handoff() {
-    let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let mut delegated_runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let mut canonical_runtime = intent_runtime_with_authority(TestIntentAuthority);
     let declaration = WorthQueryIntentDeclaration::strategy_commit(
         "canonical-runtime-intent",
         "strategy.intent.reconcile",
@@ -10,14 +11,15 @@ fn execute_intent_delegates_to_canonical_admission_and_execution_handoff() {
         "intent.reconcile.input.v1",
         test_intent_input([("entity", "task-1"), ("title", "Intent committed title")]),
     );
-    let canonical = runtime
+    let canonical = canonical_runtime
         .admit_authoritative_intent_for_execution(declaration.clone())
         .expect("canonical handoff should admit");
-    let canonical_binding = runtime.prepare_authoritative_intent_execution_binding(canonical);
-    let delegated = runtime
+    let canonical_binding =
+        canonical_runtime.prepare_authoritative_intent_execution_binding(canonical);
+    let delegated = delegated_runtime
         .execute_intent(declaration)
         .expect("delegated entrypoint should execute");
-    let canonical_receipt = runtime
+    let canonical_receipt = canonical_runtime
         .execute_authoritative_intent_execution_binding(canonical_binding)
         .expect("canonical handoff should execute");
 

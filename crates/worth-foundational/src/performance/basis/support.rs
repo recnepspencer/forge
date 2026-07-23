@@ -227,6 +227,7 @@ pub(super) fn allocation_posture_token(
 pub(super) fn work_class_token(value: FoundationalPerformanceWorkClass) -> &'static str {
     match value {
         FoundationalPerformanceWorkClass::AuthoritativeMutation => "authoritative-mutation",
+        FoundationalPerformanceWorkClass::AuthoritativeObservation => "authoritative-observation",
         FoundationalPerformanceWorkClass::ValidationPlanning => "validation-planning",
         FoundationalPerformanceWorkClass::PublicationDelivery => "publication-delivery",
         FoundationalPerformanceWorkClass::ReplayReconstruction => "replay-reconstruction",

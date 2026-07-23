@@ -13,7 +13,6 @@ impl WorthQueryDomainInstallationGeneration {
         self.0
     }
 
-    #[cfg(test)]
     pub(crate) fn successor(self) -> Self {
         Self(
             self.0
@@ -39,7 +38,6 @@ impl WorthQueryDomainInstallationGenerationLease {
         self.current_ordinal.load(Ordering::Acquire) == generation.ordinal()
     }
 
-    #[cfg(test)]
     pub(crate) fn advance_to(&self, generation: WorthQueryDomainInstallationGeneration) {
         self.current_ordinal
             .store(generation.ordinal(), Ordering::Release);

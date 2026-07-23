@@ -49,6 +49,9 @@ fn eligible_temporal_wake_is_checked_even_when_dependencies_are_unchanged() {
     );
     assert_eq!(stopped.counters().conditional_condition_checks, 1);
     assert_eq!(stopped.counters().conditional_compute_contacts, 1);
+    assert_eq!(stopped.counters().conditional_reverted_clean_outcomes, 1);
+    assert_eq!(stopped.counters().conditional_semantic_changes, 0);
+    assert_eq!(stopped.counters().conditional_decisions_delivered, 1);
 }
 
 #[test]
@@ -82,6 +85,9 @@ fn requested_on_demand_trigger_is_not_short_circuited_by_unchanged_dependencies(
         stopped.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::ComputedRevertedClean
     );
+    assert_eq!(stopped.counters().conditional_reverted_clean_outcomes, 1);
+    assert_eq!(stopped.counters().conditional_on_demand_deferrals, 0);
+    assert_eq!(stopped.counters().conditional_decisions_delivered, 1);
 }
 
 #[test]
@@ -124,6 +130,11 @@ fn domain_predicate_deferral_is_not_reported_as_temporal_or_on_demand() {
         stopped.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::DeferredByCondition
     );
+    assert_eq!(stopped.counters().conditional_condition_deferrals, 1);
+    assert_eq!(stopped.counters().conditional_temporal_deferrals, 0);
+    assert_eq!(stopped.counters().conditional_on_demand_deferrals, 0);
+    assert_eq!(stopped.counters().conditional_compute_contacts, 0);
+    assert_eq!(stopped.counters().conditional_decisions_delivered, 1);
 }
 
 #[test]
@@ -201,6 +212,12 @@ fn execute_second(
 
 struct EligibleCondition;
 
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for EligibleCondition {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+}
+
 impl worth_runtime_bridge::facade::BridgeConditionalWakeProvider for EligibleCondition {
     fn resolve(
         &self,
@@ -212,6 +229,12 @@ impl worth_runtime_bridge::facade::BridgeConditionalWakeProvider for EligibleCon
 }
 
 struct DeferredCondition;
+
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for DeferredCondition {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+}
 
 impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for DeferredCondition {
     fn resolve(
@@ -225,6 +248,12 @@ impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for Deferr
 
 struct EligiblePredicate;
 
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for EligiblePredicate {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+}
+
 impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for EligiblePredicate {
     fn resolve(
         &self,
@@ -237,6 +266,12 @@ impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for Eligib
 
 struct RequestedTrigger;
 
+impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for RequestedTrigger {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+}
+
 impl worth_runtime_bridge::facade::BridgeConditionalTriggerProvider for RequestedTrigger {
     fn requested(&self) -> bool {
         true
@@ -248,6 +283,10 @@ struct CountedCompute(Arc<AtomicUsize>);
 impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
     for CountedCompute
 {
+    type SemanticContract = ();
+
+    fn semantic_contract(&self) -> Self::SemanticContract {}
+
     fn compute(
         &self,
         _context: &domain::WorthQueryConditionalComputeContext,

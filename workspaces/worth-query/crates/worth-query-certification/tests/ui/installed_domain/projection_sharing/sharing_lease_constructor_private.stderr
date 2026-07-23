@@ -1,0 +1,33 @@
+error: cannot construct `WorthQuerySharedLiveProjectionLease<(), (), (), ObservationLaneWitness>` with struct literal syntax due to private fields
+  --> tests/ui/installed_domain/projection_sharing/sharing_lease_constructor_private.rs:8:5
+   |
+ 8 |     Lease {
+   |     ^^^^^
+ 9 |         source: panic!(),
+   |         ---------------- private field
+10 |         proof: panic!(),
+   |         --------------- private field
+11 |         workspace_capability: panic!(),
+   |         ------------------------------ private field
+12 |         token: panic!(),
+   |         --------------- private field
+   |
+   = note: ...and other private field `singleton_admission_counters` that was not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 8 -     Lease {
+ 9 -         source: panic!(),
+10 -         proof: panic!(),
+11 -         workspace_capability: panic!(),
+12 -         token: panic!(),
+13 -     }
+ 8 +     Lease::new(_, _, _, _, _)
+   |
+ 8 -     Lease {
+ 9 -         source: panic!(),
+10 -         proof: panic!(),
+11 -         workspace_capability: panic!(),
+12 -         token: panic!(),
+13 -     }
+ 8 +     Lease::from_parts(_, _, _, _, _)
+   |

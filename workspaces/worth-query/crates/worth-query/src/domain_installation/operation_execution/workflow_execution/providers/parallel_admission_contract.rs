@@ -1,4 +1,4 @@
-use worth_signal::facade::adapters::FrontierRouteEvidenceReceipt;
+use worth_signal::facade::adapters::{FrontierRouteEvidenceReason, FrontierRouteEvidenceReceipt};
 
 #[derive(Debug)]
 pub struct WorthQueryWorkflowParallelAdmissionCall {
@@ -159,7 +159,10 @@ impl WorthQueryWorkflowParallelAdmissionReceipt {
                     .collect::<Vec<_>>()
                     .join("|")
             ),
-            format!("lower_reason:{:?}", lower_receipt.reason()),
+            format!(
+                "lower_reason:{}",
+                lower_reason_material(lower_receipt.reason())
+            ),
         ]);
         Self {
             identity,
@@ -183,5 +186,24 @@ impl WorthQueryWorkflowParallelAdmissionReceipt {
 
     pub fn lower_receipt(&self) -> FrontierRouteEvidenceReceipt {
         self.lower_receipt
+    }
+}
+
+fn lower_reason_material(reason: FrontierRouteEvidenceReason) -> &'static str {
+    match reason {
+        FrontierRouteEvidenceReason::SerialExecutor => "serial_executor",
+        FrontierRouteEvidenceReason::BelowMinStageWidth => "below_min_stage_width",
+        FrontierRouteEvidenceReason::BelowPolicyWorkThreshold => "below_policy_work_threshold",
+        FrontierRouteEvidenceReason::ValidationHeavyStage => "validation_heavy_stage",
+        FrontierRouteEvidenceReason::BelowFullParallelThreshold => "below_full_parallel_threshold",
+        FrontierRouteEvidenceReason::FullParallelUnsupportedByMutableEngine => {
+            "full_parallel_unsupported_by_mutable_engine"
+        }
+        FrontierRouteEvidenceReason::AdmittedOperational => "admitted_operational",
+        FrontierRouteEvidenceReason::AdmittedDevelopment => "admitted_development",
+        FrontierRouteEvidenceReason::AdmittedForensic => "admitted_forensic",
+        FrontierRouteEvidenceReason::AdmittedProofSafeGroupedConcurrent => {
+            "admitted_proof_safe_grouped_concurrent"
+        }
     }
 }

@@ -4,7 +4,7 @@ use crate::domain_installation::{
     WorthQueryOperationGraphAccess, WorthQueryOperationGraphParticipation,
 };
 
-use super::bound_graph_execution::contact_graph;
+use super::bound_graph_execution::{contact_graph, BoundGraphInvocationRequest};
 use super::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowAdvanceDenial,
     WorthQueryWorkflowAdvanceDenialKind, WorthQueryWorkflowRunCounters,
@@ -105,6 +105,8 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
                 format!("roles:{}", roles.join(",")),
             ]),
             projection: None,
+            commit_authority_identity: Some(authority.identity()),
+            commit_graph_roles: roles,
         });
     }
     for participation in touch_participations {
@@ -132,11 +134,13 @@ fn contact<D, O, F, L: BasisOperationLane>(
     counters: WorthQueryWorkflowRunCounters,
 ) -> Result<WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowAdvanceDenial> {
     contact_graph(
-        bound,
-        participation,
-        kind,
-        scope_identity,
-        expected_snapshot,
+        BoundGraphInvocationRequest {
+            bound,
+            participation,
+            kind,
+            scope_identity,
+            expected_snapshot,
+        },
         &mut Default::default(),
     )
     .map_err(|denial| {

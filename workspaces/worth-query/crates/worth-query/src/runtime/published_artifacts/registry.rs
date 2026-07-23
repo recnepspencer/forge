@@ -138,7 +138,9 @@ impl WorthQueryPublishedArtifactGeneration {
         target: &WorthQueryDerivedMaterializationTarget,
     ) -> WorthQueryPublishedArtifactResolution {
         if self.ordinal != generation.ordinal()
-            || self.snapshot_identity != *generation.snapshot_identity()
+            || !self
+                .snapshot_identity
+                .is_same_current_identity_as(generation.snapshot_identity())
         {
             return WorthQueryPublishedArtifactResolution::MissingGeneration;
         }

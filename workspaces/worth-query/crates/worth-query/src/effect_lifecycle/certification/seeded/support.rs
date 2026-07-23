@@ -105,7 +105,7 @@ pub(super) fn branch_snapshot_identity(
     let head = history
         .branch_head(&BranchId(branch.to_string()))
         .expect("certification branch snapshot requires a current head");
-    WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
         worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
             head.commit_id,
             head.version_id,

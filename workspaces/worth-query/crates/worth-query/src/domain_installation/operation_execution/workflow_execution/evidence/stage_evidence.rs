@@ -77,13 +77,25 @@ pub struct WorthQueryWorkflowRunCounters {
     pub terminal_contract_checks: usize,
     pub consumption_contacts: usize,
     pub unrelated_run_scans: usize,
+    pub conditional_request_admission_checks: usize,
+    pub conditional_contract_lookups: usize,
+    pub conditional_dependency_observation_reads: usize,
     pub conditional_dependency_checks: usize,
     pub conditional_semantic_reads: usize,
     pub conditional_condition_checks: usize,
+    pub conditional_condition_deferrals: usize,
+    pub conditional_temporal_deferrals: usize,
+    pub conditional_on_demand_deferrals: usize,
     pub conditional_comparator_checks: usize,
     pub conditional_compute_contacts: usize,
+    pub conditional_output_version_reads: usize,
+    pub conditional_runtime_dependency_edges_captured: usize,
+    pub conditional_application_contacts: usize,
+    pub conditional_semantic_classifications: usize,
+    pub conditional_reverted_clean_outcomes: usize,
     pub conditional_semantic_changes: usize,
     pub conditional_reuse_checks: usize,
+    pub conditional_decisions_delivered: usize,
 }
 
 impl WorthQueryWorkflowRunCounters {
@@ -113,20 +125,45 @@ impl WorthQueryWorkflowRunCounters {
                 - before.terminal_contract_checks,
             consumption_contacts: self.consumption_contacts - before.consumption_contacts,
             unrelated_run_scans: self.unrelated_run_scans - before.unrelated_run_scans,
+            conditional_request_admission_checks: self.conditional_request_admission_checks
+                - before.conditional_request_admission_checks,
+            conditional_contract_lookups: self.conditional_contract_lookups
+                - before.conditional_contract_lookups,
+            conditional_dependency_observation_reads: self.conditional_dependency_observation_reads
+                - before.conditional_dependency_observation_reads,
             conditional_dependency_checks: self.conditional_dependency_checks
                 - before.conditional_dependency_checks,
             conditional_semantic_reads: self.conditional_semantic_reads
                 - before.conditional_semantic_reads,
             conditional_condition_checks: self.conditional_condition_checks
                 - before.conditional_condition_checks,
+            conditional_condition_deferrals: self.conditional_condition_deferrals
+                - before.conditional_condition_deferrals,
+            conditional_temporal_deferrals: self.conditional_temporal_deferrals
+                - before.conditional_temporal_deferrals,
+            conditional_on_demand_deferrals: self.conditional_on_demand_deferrals
+                - before.conditional_on_demand_deferrals,
             conditional_comparator_checks: self.conditional_comparator_checks
                 - before.conditional_comparator_checks,
             conditional_compute_contacts: self.conditional_compute_contacts
                 - before.conditional_compute_contacts,
+            conditional_output_version_reads: self.conditional_output_version_reads
+                - before.conditional_output_version_reads,
+            conditional_runtime_dependency_edges_captured: self
+                .conditional_runtime_dependency_edges_captured
+                - before.conditional_runtime_dependency_edges_captured,
+            conditional_application_contacts: self.conditional_application_contacts
+                - before.conditional_application_contacts,
+            conditional_semantic_classifications: self.conditional_semantic_classifications
+                - before.conditional_semantic_classifications,
+            conditional_reverted_clean_outcomes: self.conditional_reverted_clean_outcomes
+                - before.conditional_reverted_clean_outcomes,
             conditional_semantic_changes: self.conditional_semantic_changes
                 - before.conditional_semantic_changes,
             conditional_reuse_checks: self.conditional_reuse_checks
                 - before.conditional_reuse_checks,
+            conditional_decisions_delivered: self.conditional_decisions_delivered
+                - before.conditional_decisions_delivered,
         }
     }
 
@@ -271,130 +308,5 @@ impl WorthQueryWorkflowStageReceipt {
         &self,
     ) -> &[crate::domain_installation::WorthQueryConditionalProvenance] {
         &self.conditional
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryWorkflowStartDenial {
-    StaleInstallationGeneration,
-    WorkflowNotDeclared,
-    StageExecutorMissing,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthQueryWorkflowAdvanceDenialKind {
-    RuntimeAuthority(crate::domain_installation::WorthQueryDomainHandleDenialKind),
-    UnknownStage,
-    StageAlreadyCompleted,
-    PredecessorIncomplete(String),
-    PredecessorAuthorityMissing(String),
-    RequiredCapability(String),
-    RequiredDomain(String),
-    InputContract,
-    GraphProvider(String),
-    StageExecutor {
-        class: worth_query_installation::facade::WorthQueryOperationFailureClass,
-        detail: String,
-    },
-    UndeclaredFailureClass(worth_query_installation::facade::WorthQueryOperationFailureClass),
-    PrimaryReadEvidence,
-    EffectEvidence,
-    InvariantEvidence,
-    LineageEvidence,
-    CostContract,
-    OutputContract,
-    TerminalContract,
-    ParallelFrontierShape,
-    NonDeterministicLowering,
-    ParallelProviderMissing,
-    ParallelProvider(String),
-    ParallelNotAdmitted(worth_signal::facade::adapters::FrontierRouteSerialFallbackReason),
-    ConditionalExecution(worth_runtime_bridge::facade::BridgeConditionalDenialKind),
-    ConditionalReentry(crate::domain_installation::WorthQueryConditionalAdmissionDenial),
-}
-
-#[derive(Debug)]
-pub struct WorthQueryWorkflowAdvanceDenial {
-    kind: WorthQueryWorkflowAdvanceDenialKind,
-    evidence: Box<WorthQueryWorkflowAdvanceDenialEvidence>,
-}
-
-#[derive(Debug)]
-struct WorthQueryWorkflowAdvanceDenialEvidence {
-    counters: WorthQueryWorkflowRunCounters,
-    executed_effects: Vec<WorthQueryWorkflowEffectEvidence>,
-    graph_receipts: Vec<WorthQueryBoundGraphExecutionReceipt>,
-    completed_stage_receipts: Vec<WorthQueryWorkflowStageReceipt>,
-}
-
-impl WorthQueryWorkflowAdvanceDenial {
-    pub(super) fn new(
-        kind: WorthQueryWorkflowAdvanceDenialKind,
-        counters: WorthQueryWorkflowRunCounters,
-    ) -> Self {
-        Self {
-            kind,
-            evidence: Box::new(WorthQueryWorkflowAdvanceDenialEvidence {
-                counters,
-                executed_effects: Vec::new(),
-                graph_receipts: Vec::new(),
-                completed_stage_receipts: Vec::new(),
-            }),
-        }
-    }
-    pub(super) fn with_executed_effects(
-        kind: WorthQueryWorkflowAdvanceDenialKind,
-        counters: WorthQueryWorkflowRunCounters,
-        executed_effects: Vec<WorthQueryWorkflowEffectEvidence>,
-    ) -> Self {
-        Self {
-            kind,
-            evidence: Box::new(WorthQueryWorkflowAdvanceDenialEvidence {
-                counters,
-                executed_effects,
-                graph_receipts: Vec::new(),
-                completed_stage_receipts: Vec::new(),
-            }),
-        }
-    }
-    pub fn kind(&self) -> &WorthQueryWorkflowAdvanceDenialKind {
-        &self.kind
-    }
-    pub fn counters(&self) -> WorthQueryWorkflowRunCounters {
-        self.evidence.counters
-    }
-    pub fn executed_effects(&self) -> &[WorthQueryWorkflowEffectEvidence] {
-        &self.evidence.executed_effects
-    }
-    pub fn graph_receipts(&self) -> &[WorthQueryBoundGraphExecutionReceipt] {
-        &self.evidence.graph_receipts
-    }
-    pub fn completed_stage_receipts(&self) -> &[WorthQueryWorkflowStageReceipt] {
-        &self.evidence.completed_stage_receipts
-    }
-
-    pub(super) fn with_graph_receipts(
-        mut self,
-        graph_receipts: Vec<WorthQueryBoundGraphExecutionReceipt>,
-    ) -> Self {
-        self.evidence.graph_receipts = graph_receipts;
-        self
-    }
-
-    pub(super) fn prepend_executed_effects(
-        mut self,
-        mut prior_effects: Vec<WorthQueryWorkflowEffectEvidence>,
-    ) -> Self {
-        prior_effects.append(&mut self.evidence.executed_effects);
-        self.evidence.executed_effects = prior_effects;
-        self
-    }
-
-    pub(super) fn with_completed_stage_receipts(
-        mut self,
-        receipts: Vec<WorthQueryWorkflowStageReceipt>,
-    ) -> Self {
-        self.evidence.completed_stage_receipts = receipts;
-        self
     }
 }

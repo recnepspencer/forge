@@ -65,6 +65,7 @@ pub enum WorthQueryEvidenceScope {
     ExistingTruthResolvedTargetIdentity,
     ProjectionConsumptionIdentity,
     ProjectionConsumptionCertificationIdentity,
+    ConsumerInvalidationDelta,
     DomainCapabilityIdentity,
     DomainCapabilityCertificationIdentity,
     DomainPackageIdentity,

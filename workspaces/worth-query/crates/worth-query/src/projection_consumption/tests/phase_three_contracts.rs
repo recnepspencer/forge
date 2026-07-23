@@ -7,11 +7,10 @@ use super::super::{
     AdmittedProjectionConsumption, ProjectMaterializedFacts, ProjectionConsumptionBindingContext,
     ProjectionConsumptionDenialReason, ProjectionConsumptionEligibility,
     ProjectionConsumptionSource, ProjectionConsumptionWarningKind, ProjectionContractSourcePosture,
-    ProjectionContractSupportPosture, ProjectionFactKind, ProjectionSourceFamily,
+    ProjectionContractSupportPosture, ProjectionSourceFamily,
 };
-use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 
-fn test_binding(visible_fields: &[&str]) -> ProjectionConsumptionBindingContext {
+pub(super) fn test_binding(visible_fields: &[&str]) -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:test",
@@ -38,7 +37,7 @@ fn binding_with_policy(
     )
 }
 
-fn admitted(
+pub(super) fn admitted(
     source: ProjectionConsumptionSource,
     binding: ProjectionConsumptionBindingContext,
     requested: ProjectMaterializedFacts,
@@ -52,7 +51,7 @@ fn admitted(
     }
 }
 
-fn query_read_source() -> ProjectionConsumptionSource {
+pub(super) fn query_read_source() -> ProjectionConsumptionSource {
     ProjectionConsumptionSource::test_only(
         ProjectionSourceFamily::QueryReadReceipt,
         Some("query:test"),
@@ -358,67 +357,4 @@ fn contract_digest_changes_for_fact_inventory_and_policy_basis() {
         baseline.contract_digest(),
         different_policy.contract_digest()
     );
-}
-
-#[test]
-fn bound_fact_inventory_preserves_requested_kind_and_field_shape() {
-    let contract = admitted(
-        query_read_source(),
-        test_binding(&["identity.id", "profile.display_name"]),
-        ProjectMaterializedFacts::declare()
-            .entity_identities()
-            .display_field_path(
-                crate::projection_consumption::projection_fact_field_path_from_segments([
-                    worth_foundational::facade::FieldKey::new("profile")
-                        .expect("projection fact field segment should admit"),
-                    worth_foundational::facade::FieldKey::new("display_name")
-                        .expect("projection fact field segment should admit"),
-                ]),
-            )
-            .derived_field_path(
-                crate::projection_consumption::projection_fact_field_path_from_segments([
-                    worth_foundational::facade::FieldKey::new("profile")
-                        .expect("projection fact field segment should admit"),
-                    worth_foundational::facade::FieldKey::new("display_name")
-                        .expect("projection fact field segment should admit"),
-                ]),
-            ),
-    )
-    .bind_contract();
-
-    let kinds = contract
-        .fact_families()
-        .iter()
-        .map(|fact| {
-            (
-                fact.kind(),
-                fact.field_path()
-                    .map(|field_path| field_path.canonical_field_path().clone()),
-            )
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(
-        kinds,
-        vec![
-            (ProjectionFactKind::EntityIdentity, None),
-            (
-                ProjectionFactKind::DisplayField,
-                Some(canonical_field_path("profile.display_name"))
-            ),
-            (
-                ProjectionFactKind::DerivedField,
-                Some(canonical_field_path("profile.display_name"))
-            ),
-        ]
-    );
-}
-
-fn canonical_field_path(path: &str) -> CanonicalFieldPath {
-    CanonicalFieldPath::new(
-        path.split('.')
-            .map(|segment| FieldKey::new(segment.to_string()))
-            .collect::<Option<Vec<_>>>()
-            .expect("test field path should be canonical"),
-    )
-    .expect("test field path should not be empty")
 }

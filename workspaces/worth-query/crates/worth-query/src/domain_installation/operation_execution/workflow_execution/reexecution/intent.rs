@@ -13,6 +13,7 @@ pub enum WorthQueryWorkflowIntentValue {
     U64(u64),
     Text(String),
     EntityIdentity(String),
+    CurrentEntityIdentity(crate::memory_workspace::WorthQueryEntityIdentity),
 }
 
 impl WorthQueryWorkflowIntentValue {
@@ -24,6 +25,9 @@ impl WorthQueryWorkflowIntentValue {
             Self::U64(value) => WorthQueryWorkflowValue::U64(*value),
             Self::Text(value) => WorthQueryWorkflowValue::Text(value.clone()),
             Self::EntityIdentity(value) => WorthQueryWorkflowValue::EntityIdentity(value.clone()),
+            Self::CurrentEntityIdentity(value) => {
+                WorthQueryWorkflowValue::CurrentEntityIdentity(value.clone())
+            }
         }
     }
 }

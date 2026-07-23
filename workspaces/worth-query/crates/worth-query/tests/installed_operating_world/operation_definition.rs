@@ -1,11 +1,10 @@
-use worth_foundational::facade::AspectContractRevision;
 use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
     canonical_bundle, conflicting_workspace, lowering_mismatch_workspace,
     mismatched_cost_workspace, mismatched_determinism_workspace, mismatched_read_plan_workspace,
-    semantic_drift_workspace, unsupported_direct_effect_workspace, workspace, GeometryDomain,
-    ReadFamily, ReadVertex, ReadVertexLookalike,
+    operation_identity_contract, semantic_drift_workspace, unsupported_direct_effect_workspace,
+    workspace, GeometryDomain, ReadFamily, ReadVertex, ReadVertexLookalike,
 };
 
 struct DriftTrigger;
@@ -37,6 +36,18 @@ fn declaration_order_converges_to_one_installed_operation_meaning() {
     assert_eq!(
         direct_operation.definition(),
         reversed_operation.definition()
+    );
+    assert_eq!(
+        direct_operation.lookup_counters(),
+        domain::WorthQueryInstalledDomainOperationLookupCounters {
+            authority_checks: 1,
+            indexed_operation_lookups: 1,
+            graph_binding_lookups: 1,
+            graph_bindings_retained: 0,
+            package_content_scans: 0,
+            planning_steps: 0,
+            lower_runtime_contacts: 0,
+        }
     );
 }
 
@@ -157,6 +168,8 @@ fn marker_lookalike_misses_one_index_without_later_work() {
         domain::WorthQueryInstalledDomainOperationLookupCounters {
             authority_checks: 1,
             indexed_operation_lookups: 1,
+            graph_binding_lookups: 0,
+            graph_bindings_retained: 0,
             package_content_scans: 0,
             planning_steps: 0,
             lower_runtime_contacts: 0,
@@ -195,15 +208,27 @@ fn every_downstream_semantic_role_participates_in_atomic_installation() {
             }
         }),
         ("native-projection", |value| {
-            value.native_projection.contract_revision = AspectContractRevision(2)
+            value.native_projection = domain::WorthQueryOperationNativeProjectionContract::new(
+                operation_identity_contract(2),
+                worth_foundational::facade::AspectMask::whole_aspect(),
+            )
+            .unwrap()
         }),
         ("canonical-query", |value| {
             value.canonical_query = canonical_bundle("AlternateVertex")
         }),
         ("collection", |value| {
             value.collection = domain::WorthQueryOperationCollectionContract::Collection {
-                row_identity_field: "identity.id".into(),
-                ordering_fields: vec!["identity.id".into()],
+                row_identity_field: domain::WorthQueryOperationCollectionField::from_dotted(
+                    "identity.id",
+                )
+                .expect("valid collection field"),
+                ordering_fields: vec![domain::WorthQueryOperationCollectionField::from_dotted(
+                    "identity.id",
+                )
+                .expect("valid collection field")],
+                grouping: domain::WorthQueryOperationGroupingContract::Ungrouped,
+                window: domain::WorthQueryOperationWindowPolicy::ContinuationBounded,
                 continuation: domain::WorthQueryOperationContinuationPosture::SnapshotCursor,
             }
         }),

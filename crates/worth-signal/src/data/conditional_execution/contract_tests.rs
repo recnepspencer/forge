@@ -38,13 +38,8 @@ fn reinstalling_one_graph_node_preserves_role_bound_provider_identities() {
         .install_conditional_contract(&owner, second_capability, definition)
         .unwrap();
 
-    assert_eq!(first.condition(), second.condition());
-    assert_eq!(
-        first.dependency_comparator(),
-        second.dependency_comparator()
-    );
-    assert_eq!(first.output_comparator(), second.output_comparator());
-    assert_eq!(first.artifact_reuse(), second.artifact_reuse());
+    assert!(first.compare_semantic_continuity(&second).is_ok());
+    assert!(first.compare_execution_affinity(&second).is_ok());
 }
 
 #[test]

@@ -35,7 +35,9 @@ pub use intent_authority::{
     WorthQueryIntentAuthorityAdapter as WorthQueryRuntimeIntentAuthorityAdapter,
 };
 pub use merge_authority::WorthQueryBackendMergeAuthority;
-pub(crate) use mutation_authority::build_bridge_authority_bundle;
+pub(crate) use mutation_authority::{
+    build_bridge_authority_bundle, WorthQueryBridgeMutationTarget,
+};
 pub use parts::WorthQueryRuntimeBackendParts;
 pub use receipts::{
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationRoutingReceipt,

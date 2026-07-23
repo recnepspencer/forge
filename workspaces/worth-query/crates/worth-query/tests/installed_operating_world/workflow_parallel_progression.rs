@@ -17,7 +17,7 @@ fn admitted_parallel_frontier_retains_lower_proof_and_converges_with_serial_trac
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",
@@ -78,7 +78,7 @@ fn nondeterministic_lowering_cannot_enter_parallel_progression() {
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",
@@ -130,7 +130,7 @@ fn lower_runtime_parallel_denial_stops_before_frontier_graph_or_executor_work() 
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",
@@ -175,7 +175,7 @@ fn parallel_frontier_accepts_ready_incomparable_stages_with_distinct_predecessor
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",
@@ -224,7 +224,7 @@ fn complete_serial_trace(name: &str) -> String {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",

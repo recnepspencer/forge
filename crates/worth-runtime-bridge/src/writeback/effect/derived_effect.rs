@@ -30,6 +30,7 @@ pub struct BridgeDerivedWritebackEffect {
     strategy_class: crate::writeback::BridgeWritebackStrategyClass,
     strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     causality_digest: Arc<str>,
+    mutation_subject_effect_intent_match: bool,
     effect_intent: BridgeWritebackEffectIntent,
     effect_intent_digest: Arc<str>,
     canonical_basis: Arc<str>,
@@ -44,10 +45,12 @@ impl BridgeDerivedWritebackEffect {
         let contract_digest = Arc::<str>::from(mapped_input.contract_digest().to_owned());
         let strategy_descriptor_basis = mapped_input.strategy_descriptor_basis().clone();
         let causality_digest = Arc::<str>::from(mapped_input.causality_digest().to_owned());
+        let mutation_subject_effect_intent_match =
+            mapped_input.mutation_subject_effect_intent_match();
         let effect_intent = mapped_input.effect_intent().clone();
         let effect_intent_digest = Arc::<str>::from(effect_intent.digest().to_owned());
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-derived-writeback-effect|id={}|mapped-input={}|contract={}|family:{:?}|effect:{:?}|strategy-class:{:?}|strategy={}|causality={}|effect-intent={}|effect-intent-basis={}",
+            "bridge-derived-writeback-effect|id={}|mapped-input={}|contract={}|family:{:?}|effect:{:?}|strategy-class:{:?}|strategy={}|causality={}|subject-effect-match={mutation_subject_effect_intent_match}|effect-intent={}|effect-intent-basis={}",
             effect_identity.as_str(),
             mapped_input.digest(),
             contract_digest.as_ref(),
@@ -71,6 +74,7 @@ impl BridgeDerivedWritebackEffect {
             strategy_class: mapped_input.strategy_class(),
             strategy_descriptor_basis,
             causality_digest,
+            mutation_subject_effect_intent_match,
             effect_intent,
             effect_intent_digest,
             canonical_basis,
@@ -124,6 +128,10 @@ impl BridgeDerivedWritebackEffect {
 
     pub fn causality_digest(&self) -> &str {
         self.causality_digest.as_ref()
+    }
+
+    pub(crate) fn mutation_subject_effect_intent_match(&self) -> bool {
+        self.mutation_subject_effect_intent_match
     }
 
     pub fn canonical_basis(&self) -> &str {

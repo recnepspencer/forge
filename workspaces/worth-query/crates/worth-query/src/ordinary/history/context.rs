@@ -4,7 +4,7 @@ use crate::runtime::WorthQueryWorkspace;
 /// Sealed evidence naming the exact runtime snapshot a historical query may
 /// observe. Construct it through [`at`]; its fields cannot be fabricated by a
 /// consumer.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthQueryHistoricalContext {
     workspace_name: String,
     snapshot_identity: WorthQuerySnapshotIdentity,
@@ -24,6 +24,11 @@ impl WorthQueryHistoricalContext {
             .evidence_identity()
             .as_str()
             .to_string()
+    }
+
+    pub(crate) fn admits_snapshot(&self, candidate: &WorthQuerySnapshotIdentity) -> bool {
+        self.snapshot_identity
+            .is_same_current_identity_as(candidate)
     }
 }
 

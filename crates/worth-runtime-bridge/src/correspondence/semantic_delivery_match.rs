@@ -6,16 +6,22 @@ use crate::input::envelope::{
 
 use super::{
     BridgeCorrespondenceDeliveryDenial, BridgeCorrespondenceDenialKind,
-    BridgeSemanticDependencyCandidate, CorrespondenceDeliveryCounters,
-    InstalledCorrespondenceTarget,
+    BridgeDeliveredCorrespondenceChange, BridgeSemanticDependencyCandidate,
+    CorrespondenceDeliveryCounters, InstalledCorrespondenceTarget,
 };
+
+pub(crate) struct BridgeMatchedCorrespondenceChanges {
+    pub(crate) counters: CorrespondenceDeliveryCounters,
+    pub(crate) changes: Vec<BridgeDeliveredCorrespondenceChange>,
+}
 
 pub(crate) fn match_envelope(
     dependency: &BridgeSemanticDependencyCandidate,
     targets: &[InstalledCorrespondenceTarget],
     envelope: &BridgeCommittedPatchEnvelope,
     mut counters: CorrespondenceDeliveryCounters,
-) -> Result<CorrespondenceDeliveryCounters, BridgeCorrespondenceDeliveryDenial> {
+) -> Result<BridgeMatchedCorrespondenceChanges, BridgeCorrespondenceDeliveryDenial> {
+    let mut changes = Vec::new();
     let source_partition = envelope
         .producer_metadata()
         .authoritative_source()
@@ -25,83 +31,140 @@ pub(crate) fn match_envelope(
         let Some(change) = item.semantic_change() else {
             continue;
         };
+        counters.semantic_match_checks += 1;
         if !semantic_change_matches_basis(
-            dependency,
-            item.relational_record_identity_parts(),
+            SemanticMatchBasis {
+                dependency,
+                record: item.relational_record_identity_parts(),
+                source_partition,
+            },
             change,
-            source_partition,
+            &mut counters,
         ) {
             continue;
         }
-        let source_widening_admitted = targets
-            .iter()
-            .all(|target| target.admitted_source_widening == change.widening_cause());
-        if change.precision() == BridgeAspectChangePrecision::DeclaredWidening
-            && !source_widening_admitted
-        {
-            counters.failed_deliveries += 1;
-            return Err(BridgeCorrespondenceDeliveryDenial::new(
-                BridgeCorrespondenceDenialKind::MappingSemanticMismatch,
-                counters,
-            ));
+        if change.precision() == BridgeAspectChangePrecision::DeclaredWidening {
+            let source_widening_admitted = targets.iter().all(|target| {
+                counters.source_widening_target_checks += 1;
+                target.admitted_source_widening == change.widening_cause()
+            });
+            if !source_widening_admitted {
+                counters.failed_deliveries += 1;
+                return Err(BridgeCorrespondenceDeliveryDenial::new(
+                    BridgeCorrespondenceDenialKind::MappingSemanticMismatch,
+                    counters,
+                ));
+            }
         }
-        if change.precision() == BridgeAspectChangePrecision::Exact || source_widening_admitted {
-            counters.truth_targets_admitted += 1;
-        }
+        counters.truth_targets_admitted += 1;
+        changes.push(BridgeDeliveredCorrespondenceChange::semantic_aspect(
+            item.entity_identity().into(),
+            item.relational_record_identity_parts(),
+            change.clone(),
+        ));
     }
 
     if counters.truth_targets_admitted == 0 {
-        for change in envelope.patch_body().canonical_record_changes() {
-            counters.correspondence_lookups += 1;
-            if structural_change_matches(dependency, change, source_partition) {
-                counters.truth_targets_admitted += 1;
-            }
-        }
+        changes.extend(match_structural_changes(
+            dependency,
+            envelope,
+            source_partition,
+            &mut counters,
+        ));
     }
-    Ok(counters)
+    Ok(BridgeMatchedCorrespondenceChanges { counters, changes })
+}
+
+struct SemanticMatchBasis<'a> {
+    dependency: &'a BridgeSemanticDependencyCandidate,
+    record: Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+    source_partition: Option<&'a worth_foundational::facade::TruthPartitionRole>,
 }
 
 fn semantic_change_matches_basis(
-    dependency: &BridgeSemanticDependencyCandidate,
-    record: Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+    basis: SemanticMatchBasis<'_>,
     change: &crate::input::envelope::BridgeSemanticAspectChange,
-    source_partition: Option<&worth_foundational::facade::TruthPartitionRole>,
+    counters: &mut CorrespondenceDeliveryCounters,
 ) -> bool {
-    dependency.contract.key() == change.aspect_key()
-        && dependency.contract.identity() == change.aspect_identity()
-        && dependency.contract.revision() == change.contract_revision()
-        && &dependency.binding == change.binding()
-        && change_meaning_matches(&dependency.relevant_changes, change.kind())
+    basis.dependency.contract.key() == change.aspect_key()
+        && basis.dependency.contract.identity() == change.aspect_identity()
+        && basis.dependency.contract.revision() == change.contract_revision()
+        && &basis.dependency.binding == change.binding()
+        && change_meaning_matches(&basis.dependency.relevant_changes, change.kind(), counters)
         && locality_matches(
-            &dependency.locality,
-            dependency.source_record_identity,
-            record,
-            source_partition,
+            &basis.dependency.locality,
+            basis.dependency.source_record_identity,
+            basis.record,
+            basis.source_partition,
         )
-        && (dependency.projection_mask.is_whole_aspect()
+        && (basis.dependency.projection_mask.is_whole_aspect()
             || matches!(
                 change.kind(),
                 Change::WholeAspectSet | Change::WholeAspectClear
             )
-            || change
-                .field_path()
-                .is_some_and(|path| dependency.projection_mask.paths().contains(path)))
+            || change.field_path().is_some_and(|path| {
+                basis
+                    .dependency
+                    .projection_mask
+                    .paths()
+                    .iter()
+                    .any(|candidate| {
+                        counters.projection_paths_inspected += 1;
+                        candidate == path
+                    })
+            }))
 }
 
-fn change_meaning_matches(admitted: &[Change], authoritative: Change) -> bool {
-    admitted.contains(&authoritative)
+fn match_structural_changes(
+    dependency: &BridgeSemanticDependencyCandidate,
+    envelope: &BridgeCommittedPatchEnvelope,
+    source_partition: Option<&worth_foundational::facade::TruthPartitionRole>,
+    counters: &mut CorrespondenceDeliveryCounters,
+) -> Vec<BridgeDeliveredCorrespondenceChange> {
+    let mut changes = Vec::new();
+    for change in envelope.patch_body().canonical_record_changes() {
+        counters.correspondence_lookups += 1;
+        counters.semantic_match_checks += 1;
+        if structural_change_matches(dependency, change, source_partition, counters) {
+            counters.truth_targets_admitted += 1;
+            changes.push(BridgeDeliveredCorrespondenceChange::structural_record(
+                change.clone(),
+            ));
+        }
+    }
+    changes
+}
+
+fn change_meaning_matches(
+    admitted: &[Change],
+    authoritative: Change,
+    counters: &mut CorrespondenceDeliveryCounters,
+) -> bool {
+    contains_change(admitted, authoritative, counters)
         || matches!(
             authoritative,
             Change::WholeAspectSet | Change::WholeAspectClear
-                if admitted.contains(&Change::FieldSet)
-                    || admitted.contains(&Change::FieldClear)
+                if contains_change(admitted, Change::FieldSet, counters)
+                    || contains_change(admitted, Change::FieldClear, counters)
         )
+}
+
+fn contains_change(
+    admitted: &[Change],
+    expected: Change,
+    counters: &mut CorrespondenceDeliveryCounters,
+) -> bool {
+    admitted.iter().any(|candidate| {
+        counters.relevant_change_checks += 1;
+        *candidate == expected
+    })
 }
 
 fn structural_change_matches(
     dependency: &BridgeSemanticDependencyCandidate,
     change: &crate::input::envelope::BridgeCommittedRecordChange,
     source_partition: Option<&worth_foundational::facade::TruthPartitionRole>,
+    counters: &mut CorrespondenceDeliveryCounters,
 ) -> bool {
     let meaning = match (&dependency.binding, change.kind()) {
         (
@@ -139,7 +202,7 @@ fn structural_change_matches(
         }
         _ => None,
     };
-    meaning.is_some_and(|meaning| dependency.relevant_changes.contains(&meaning))
+    meaning.is_some_and(|meaning| contains_change(&dependency.relevant_changes, meaning, counters))
         && locality_matches(
             &dependency.locality,
             dependency.source_record_identity,

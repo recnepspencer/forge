@@ -105,7 +105,7 @@ pub enum WorthQueryCertificationReplayStop {
 
 pub struct WorthQueryCertificationReplayResult<D, O, F, L: BasisOperationLane> {
     original_trace_identity: String,
-    replay_trace: WorthQueryCompletedWorkflowTrace<D, O, F, L>,
+    replay_trace_identity: String,
     intent: WorthQueryNormalizedWorkflowIntent,
     basis_relationship: WorthQueryReplayBasisRelationship,
     original_semantics: WorthQueryWorkflowTraceSemantics,
@@ -113,18 +113,17 @@ pub struct WorthQueryCertificationReplayResult<D, O, F, L: BasisOperationLane> {
     comparison: WorthQueryReplayComparison,
     foundational_attachment: super::WorthQueryFoundationalReplayAttachment,
     original_execution_counters: WorthQueryWorkflowRunCounters,
+    replay_execution_counters: WorthQueryWorkflowRunCounters,
     counters: WorthQueryCertificationReplayCounters,
+    _operation: std::marker::PhantomData<fn() -> (D, O, F, L)>,
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryCertificationReplayResult<D, O, F, L> {
     pub fn original_trace_identity(&self) -> &str {
         &self.original_trace_identity
     }
-    pub fn replay_trace(&self) -> &WorthQueryCompletedWorkflowTrace<D, O, F, L> {
-        &self.replay_trace
-    }
-    pub fn into_replay_trace(self) -> WorthQueryCompletedWorkflowTrace<D, O, F, L> {
-        self.replay_trace
+    pub fn replay_trace_identity(&self) -> &str {
+        &self.replay_trace_identity
     }
     pub fn intent(&self) -> &WorthQueryNormalizedWorkflowIntent {
         &self.intent
@@ -144,8 +143,8 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCertificationReplayResult<D, O, F
     pub fn foundational_attachment(&self) -> &super::WorthQueryFoundationalReplayAttachment {
         &self.foundational_attachment
     }
-    pub fn replay_execution_counters(&self) -> WorthQueryWorkflowRunCounters {
-        self.replay_trace.exact_counters()
+    pub const fn replay_execution_counters(&self) -> WorthQueryWorkflowRunCounters {
+        self.replay_execution_counters
     }
     pub const fn original_execution_counters(&self) -> WorthQueryWorkflowRunCounters {
         self.original_execution_counters
@@ -233,38 +232,13 @@ pub(super) fn execute_admitted_replay<
 where
     O: WorthQueryExecutableDomainOperation<D, F, Execution = WorthQueryWorkflowOperation> + 'static,
 {
-    let replay_contract = bound.definition().semantics().replay;
-    let noise = match replay_contract {
-        WorthQueryOperationReplayContract::CertReplayable { .. } => {
-            WorthQueryReplayNoiseContract::default()
-        }
-        WorthQueryOperationReplayContract::CertReplayableWithNoise { noise, .. } => noise,
-        _ => return denied(WorthQueryCertificationReplayAdmissionDenial::ReplayNotInstalled),
+    let noise = match installed_replay_noise_contract(&bound) {
+        Ok(noise) => noise,
+        Err(denial) => return denied(denial),
     };
     let original_semantics = original.semantics();
     let original_execution_counters = original.exact_counters();
-    let original_stage_index = original_semantics
-        .stages()
-        .iter()
-        .map(|stage| (stage.stage_identity(), stage))
-        .collect::<std::collections::BTreeMap<_, _>>();
-    counters.original_stage_index_entries = original_stage_index.len();
-    let mut intent_matches = intent.stages().len() == original_semantics.stages().len();
-    if intent_matches {
-        for intent_stage in intent.stages() {
-            counters.intent_stage_checks += 1;
-            if !original_stage_index
-                .get(intent_stage.stage_identity())
-                .is_some_and(|original_stage| {
-                    intent_stage.input().runtime_value().semantic_value() == *original_stage.input()
-                })
-            {
-                intent_matches = false;
-                break;
-            }
-        }
-    }
-    if !intent_matches {
+    if !intent_matches_original_trace(&intent, &original_semantics, &mut counters) {
         return denied(
             WorthQueryCertificationReplayAdmissionDenial::IntentDoesNotMatchOriginalTrace,
         );
@@ -298,20 +272,32 @@ where
         TransitionOutcome::Failed(stop) => return TransitionOutcome::Failed(execution(stop)),
     };
     let replay_semantics = replay_trace.semantics();
-    let (mandatory_comparison, compared_stages) =
-        compare_exact_workflow_traces_counted(&original_semantics, &replay_semantics, noise);
+    let replay_trace_identity = replay_trace.identity().to_owned();
+    let replay_execution_counters = replay_trace.exact_counters();
+    let closures_converge = original
+        .semantic_aspect_dependency_closure()
+        .zip(replay_trace.semantic_aspect_dependency_closure())
+        .is_some_and(|(original, replay)| original.converges_with(replay));
+    let (mandatory_comparison, compared_stages) = if closures_converge {
+        compare_exact_workflow_traces_counted(&original_semantics, &replay_semantics, noise)
+    } else {
+        (
+            WorthQueryReplayComparison::Diverged(WorthQueryReplayDivergence::DependencyClosure),
+            0,
+        )
+    };
     counters.semantic_stage_comparisons = compared_stages;
     let comparison = enforce_query_replay_comparison(mandatory_comparison, || {
         comparator.compare(&original_semantics, &replay_semantics, noise)
     });
     let foundational_attachment = super::materialize_replay_attachment(
         original.identity(),
-        replay_trace.identity(),
+        &replay_trace_identity,
         comparison == WorthQueryReplayComparison::Equivalent,
     );
     TransitionOutcome::Success(WorthQueryCertificationReplayResult {
         original_trace_identity: original.identity().to_owned(),
-        replay_trace,
+        replay_trace_identity,
         intent,
         basis_relationship,
         original_semantics,
@@ -319,7 +305,45 @@ where
         comparison,
         foundational_attachment,
         original_execution_counters,
+        replay_execution_counters,
         counters,
+        _operation: std::marker::PhantomData,
+    })
+}
+
+fn installed_replay_noise_contract<D, O, F, L: BasisOperationLane>(
+    bound: &WorthQueryBoundDomainOperation<D, O, F, L>,
+) -> Result<WorthQueryReplayNoiseContract, WorthQueryCertificationReplayAdmissionDenial> {
+    match bound.definition().semantics().replay {
+        WorthQueryOperationReplayContract::CertReplayable { .. } => {
+            Ok(WorthQueryReplayNoiseContract::default())
+        }
+        WorthQueryOperationReplayContract::CertReplayableWithNoise { noise, .. } => Ok(noise),
+        _ => Err(WorthQueryCertificationReplayAdmissionDenial::ReplayNotInstalled),
+    }
+}
+
+fn intent_matches_original_trace(
+    intent: &WorthQueryNormalizedWorkflowIntent,
+    original_semantics: &WorthQueryWorkflowTraceSemantics,
+    counters: &mut WorthQueryCertificationReplayCounters,
+) -> bool {
+    let original_stage_index = original_semantics
+        .stages()
+        .iter()
+        .map(|stage| (stage.stage_identity(), stage))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    counters.original_stage_index_entries = original_stage_index.len();
+    if intent.stages().len() != original_semantics.stages().len() {
+        return false;
+    }
+    intent.stages().iter().all(|intent_stage| {
+        counters.intent_stage_checks += 1;
+        original_stage_index
+            .get(intent_stage.stage_identity())
+            .is_some_and(|original_stage| {
+                intent_stage.input().runtime_value().semantic_value() == *original_stage.input()
+            })
     })
 }
 

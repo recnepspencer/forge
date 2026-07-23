@@ -603,6 +603,8 @@ name = "worth-query-certification"
 version = "0.1.0"
 dependencies = [
  "trybuild",
+ "worth-foundational",
+ "worth-proof",
  "worth-query",
 ]
 

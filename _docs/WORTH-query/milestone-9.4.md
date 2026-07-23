@@ -1132,7 +1132,7 @@ reopening lower authority or degrading to row-bag folklore.
 - [runtime/read_composition_materialization.rs](../../crates/worth-query/src/runtime/read_composition_materialization.rs)
 - [projection_consumption/mod.rs](../../crates/worth-query/src/projection_consumption/mod.rs)
 - [projection_consumption/receipt.rs](../../crates/worth-query/src/projection_consumption/receipt.rs)
-- [projection_consumption/facts.rs](../../crates/worth-query/src/projection_consumption/facts.rs)
+- [projection_consumption/facts/mod.rs](../../workspaces/worth-query/crates/worth-query/src/projection_consumption/facts/mod.rs)
 
 **Relevant APIs**
 - `workspace.compose_read(...)`

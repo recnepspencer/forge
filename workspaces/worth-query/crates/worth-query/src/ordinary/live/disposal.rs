@@ -3,6 +3,30 @@ use crate::runtime::{WorthQueryRuntimeError, WorthQueryWorkspace};
 
 use super::WorthQueryManagedLiveHandle;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthQueryManagedLiveCloseCause {
+    Cancellation,
+    Disposal,
+    Replacement,
+    Rebind,
+    ReplacementRollback,
+    RebindRollback,
+}
+
+impl WorthQueryManagedLiveCloseCause {
+    fn runtime(self) -> crate::runtime::WorthQueryManagedLiveResourceCloseCause {
+        use crate::runtime::WorthQueryManagedLiveResourceCloseCause as Runtime;
+        match self {
+            Self::Cancellation => Runtime::Cancellation,
+            Self::Disposal => Runtime::Disposal,
+            Self::Replacement => Runtime::Replacement,
+            Self::Rebind => Runtime::Rebind,
+            Self::ReplacementRollback => Runtime::ReplacementRollback,
+            Self::RebindRollback => Runtime::RebindRollback,
+        }
+    }
+}
+
 #[derive(Debug)]
 #[must_use = "failed close outcomes retain the managed handle for retry"]
 pub enum WorthQueryManagedLiveCloseOutcome {
@@ -14,6 +38,7 @@ pub enum WorthQueryManagedLiveCloseOutcome {
 pub struct WorthQueryManagedLiveCloseReceipt {
     resource_name: String,
     closeout_identity: WorthQueryEvidenceIdentity,
+    closeout_kind: crate::subscription::SubscriptionLifecycleCloseoutKind,
     lane_terminal: bool,
     disposal_work: WorthQueryManagedLiveDisposalWork,
 }
@@ -25,6 +50,10 @@ impl WorthQueryManagedLiveCloseReceipt {
 
     pub fn closeout_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.closeout_identity
+    }
+
+    pub fn closeout_kind(&self) -> &crate::subscription::SubscriptionLifecycleCloseoutKind {
+        &self.closeout_kind
     }
 
     pub fn lane_terminal(&self) -> bool {
@@ -95,15 +124,25 @@ impl WorthQueryManagedLiveCloseStop {
 }
 
 impl WorthQueryManagedLiveHandle {
-    pub fn close(
+    pub fn close(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryManagedLiveCloseOutcome {
+        self.close_with_cause(workspace, WorthQueryManagedLiveCloseCause::Disposal)
+    }
+
+    pub(crate) fn close_with_cause(
         mut self,
         workspace: &mut WorthQueryWorkspace,
+        cause: WorthQueryManagedLiveCloseCause,
     ) -> WorthQueryManagedLiveCloseOutcome {
-        match workspace.close_managed_live_view(self.view(), self.workspace_capability()) {
+        match workspace.close_managed_live_view(
+            self.view(),
+            self.workspace_capability(),
+            cause.runtime(),
+        ) {
             Ok(closeout) => {
                 let receipt = WorthQueryManagedLiveCloseReceipt {
                     resource_name: self.name().to_string(),
                     closeout_identity: closeout.evidence_identity().clone(),
+                    closeout_kind: closeout.closeout_kind().clone(),
                     lane_terminal: closeout.lane_terminal(),
                     disposal_work: WorthQueryManagedLiveDisposalWork::from_closeout(&closeout),
                 };

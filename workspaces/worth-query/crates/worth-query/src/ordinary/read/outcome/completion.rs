@@ -60,7 +60,11 @@ impl WorthQueryReadCompletion {
             && self.context_receipt.context_kind() == WorthQueryReadContextKind::Current
             && self.context_receipt.canonical_query_digest() == canonical.query().digest().as_str()
             && self.result.receipt().canonical_query_digest() == canonical.query().digest().as_str()
-            && self.result.receipt().snapshot_identity() == expected_snapshot
+            && self
+                .result
+                .receipt()
+                .snapshot_identity()
+                .is_same_current_identity_as(expected_snapshot)
             && self
                 .projection_binding
                 .validates_installed_publication(canonical)

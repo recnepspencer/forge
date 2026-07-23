@@ -11,6 +11,7 @@ pub enum WorthQueryWorkflowValue {
     U64(u64),
     Text(String),
     EntityIdentity(String),
+    CurrentEntityIdentity(crate::memory_workspace::WorthQueryEntityIdentity),
     Projection(Box<crate::ordinary::read::WorthQueryReadCompletion>),
 }
 
@@ -28,6 +29,7 @@ impl WorthQueryWorkflowValue {
                 | (Self::U64(_), Contract::U64)
                 | (Self::Text(_), Contract::Text)
                 | (Self::EntityIdentity(_), Contract::EntityIdentity)
+                | (Self::CurrentEntityIdentity(_), Contract::EntityIdentity)
                 | (Self::Projection(_), Contract::Projection)
         )
     }
@@ -40,6 +42,9 @@ impl WorthQueryWorkflowValue {
             Self::U64(value) => format!("u64:{value}"),
             Self::Text(value) => format!("text:{value}"),
             Self::EntityIdentity(value) => format!("entity:{value}"),
+            Self::CurrentEntityIdentity(value) => {
+                format!("current-entity:{}", value.evidence_identity().as_str())
+            }
             Self::Projection(completion) => format!(
                 "projection:{}:{}",
                 completion.result().receipt().canonical_query_digest(),

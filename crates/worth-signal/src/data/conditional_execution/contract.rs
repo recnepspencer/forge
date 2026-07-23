@@ -114,7 +114,7 @@ pub struct SignalConditionalContractDefinition {
     pub artifact_reuse: SignalConditionalArtifactReuse,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum SignalConditionalArtifactReusePolicy {
     NotReusable,
     DependencyAndOutputEquivalent,
@@ -129,9 +129,21 @@ pub enum SignalConditionalContractDenial {
     StaleNode,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InstalledSignalComparatorUse {
+    DependencyVersion,
+    OutputEquivalence,
+    ArtifactReuse,
+}
+
+pub(super) struct InstalledSignalConditionalAuthority {
+    _owner_seal: (),
+}
+
 /// Opaque installed contract. Construction requires both the exact graph-local
 /// node capability and the graph's admitted lowering owner.
 pub struct InstalledSignalConditionalContract {
+    pub(super) authority: std::sync::Arc<InstalledSignalConditionalAuthority>,
     graph_instance_id: u64,
     node: NodeId,
     condition: EvaluationCondition,
@@ -178,6 +190,42 @@ impl InstalledSignalConditionalContract {
 
     pub fn artifact_reuse(&self) -> &SignalConditionalArtifactReusePolicy {
         &self.artifact_reuse
+    }
+
+    pub fn accepts_condition_identity(&self, candidate: &InstalledSignalConditionIdentity) -> bool {
+        matches!(
+            &self.condition,
+            EvaluationCondition::Installed(installed)
+                if installed.is_same_installed_identity(candidate)
+        )
+    }
+
+    pub fn classify_comparator_identity(
+        &self,
+        candidate: &InstalledSignalComparatorIdentity,
+    ) -> Option<InstalledSignalComparatorUse> {
+        if installed_comparator_identity(&self.dependency_comparator)
+            .is_some_and(|installed| installed.is_same_installed_identity(candidate))
+        {
+            return Some(InstalledSignalComparatorUse::DependencyVersion);
+        }
+        if installed_comparator_identity(&self.output_comparator)
+            .is_some_and(|installed| installed.is_same_installed_identity(candidate))
+        {
+            return Some(InstalledSignalComparatorUse::OutputEquivalence);
+        }
+        if matches!(
+            &self.artifact_reuse,
+            SignalConditionalArtifactReusePolicy::Installed(installed)
+                if installed.is_same_installed_identity(candidate)
+        ) {
+            return Some(InstalledSignalComparatorUse::ArtifactReuse);
+        }
+        None
+    }
+
+    pub fn retains_decision(&self, evidence: &super::SignalConditionalDecisionEvidence) -> bool {
+        std::sync::Arc::ptr_eq(&self.authority, &evidence.contract_authority)
     }
 }
 
@@ -228,6 +276,7 @@ impl SignalGraph {
         config.comparator = Some(output_comparator.clone());
         install_node_evaluation_config(self, node.node(), config)?;
         Ok(InstalledSignalConditionalContract {
+            authority: std::sync::Arc::new(InstalledSignalConditionalAuthority { _owner_seal: () }),
             graph_instance_id: self.runtime_instance_id(),
             node: node.node(),
             condition,
@@ -238,6 +287,15 @@ impl SignalGraph {
             output_comparator,
             artifact_reuse,
         })
+    }
+}
+
+fn installed_comparator_identity(
+    policy: &VersionComparatorPolicy,
+) -> Option<&InstalledSignalComparatorIdentity> {
+    match policy {
+        VersionComparatorPolicy::Installed { identity } => Some(identity),
+        _ => None,
     }
 }
 

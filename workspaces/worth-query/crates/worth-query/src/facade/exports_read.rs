@@ -24,12 +24,11 @@ pub use crate::ordinary::read::{
 };
 pub use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
 pub use crate::projection_consumption::{
-    ConsumedFieldValueFact, ConsumedNativeRefinementDenial, ConsumedNativeValueShape,
-    ConsumedNativeValueView, ConsumedProjectionAuthorityDenial, ConsumedProjectionFactSet,
-    DeferredProjectionConsumption, DeniedProjectionConsumption,
-    ProjectionConsumptionDeclarationError, ProjectionConsumptionWarnings,
-    ProjectionFactExtractionError, ProjectionFactFieldPath, SourceMismatchedProjectionConsumption,
-    WorthQueryConsumedProjectionAuthority,
+    ConsumedFieldValueFact, ConsumedNativeRefinementDenial, ConsumedNativeValueView,
+    ConsumedProjectionAuthorityDenial, ConsumedProjectionFactSet, DeferredProjectionConsumption,
+    DeniedProjectionConsumption, ProjectionConsumptionDeclarationError,
+    ProjectionConsumptionWarnings, ProjectionFactExtractionError, ProjectionFactFieldPath,
+    SourceMismatchedProjectionConsumption, WorthQueryConsumedProjectionAuthority,
 };
 pub use crate::runtime::{
     WorthQueryCountResult, WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,

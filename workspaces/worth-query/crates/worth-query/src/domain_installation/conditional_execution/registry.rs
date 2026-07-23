@@ -84,6 +84,48 @@ impl WorthQueryConditionalExecutionRegistry {
         self.authoritative.len()
     }
 
+    pub(crate) fn replace_lowerings_for_test<D: 'static, O: 'static, F: 'static>(
+        &mut self,
+        donor: &[Arc<WorthQueryInstalledConditionalNode>],
+        runtime_authority: u64,
+        installation_generation: u64,
+    ) -> Result<(), &'static str> {
+        let key = operation_key::<D, O, F>();
+        let current = self
+            .by_operation
+            .get(&key)
+            .ok_or("recipient conditional operation is not installed")?;
+        if current.len() != donor.len()
+            || current
+                .iter()
+                .zip(donor)
+                .any(|(current, donor)| current.lowering.location() != donor.lowering.location())
+        {
+            return Err("donor conditional lowering inventory does not match recipient");
+        }
+        let replacements = current
+            .iter()
+            .zip(donor)
+            .map(|(current, donor)| {
+                Arc::new(WorthQueryInstalledConditionalNode {
+                    lowering: Arc::clone(&donor.lowering),
+                    operation_identity: current.operation_identity.clone(),
+                    runtime_authority,
+                    installation_generation,
+                })
+            })
+            .collect::<Vec<_>>();
+        self.authoritative.retain(|installed| installed.key != key);
+        self.authoritative.extend(replacements.iter().map(|node| {
+            AuthoritativeConditionalInstallation {
+                key,
+                node: Arc::clone(node),
+            }
+        }));
+        self.by_operation.insert(key, replacements);
+        Ok(())
+    }
+
     pub(crate) fn destroy_and_rebuild_index(
         &mut self,
     ) -> WorthQueryConditionalExecutionIndexRebuildReport {

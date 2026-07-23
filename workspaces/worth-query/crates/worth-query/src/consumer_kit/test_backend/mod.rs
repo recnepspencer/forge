@@ -5,6 +5,7 @@ mod error;
 mod residue_audit;
 mod schema;
 mod support_profile;
+mod workspace_control;
 
 pub use builder::{in_memory_test_runtime, WorthQueryInMemoryTestRuntimeBuilder};
 pub use equivalence_report::{
@@ -17,6 +18,7 @@ pub use residue_audit::{
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
 };
 pub use schema::WorthQueryTestBackendSchema;
+pub use workspace_control::WorthQueryControlledTestWorkspace;
 
 #[cfg(test)]
 mod contract_fixtures;

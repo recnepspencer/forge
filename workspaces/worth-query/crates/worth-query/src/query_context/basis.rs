@@ -411,6 +411,28 @@ impl AdmittedQueryBasisContext {
         }
     }
 
+    pub(crate) fn admits_runtime_snapshot(
+        &self,
+        snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
+    ) -> bool {
+        let QueryBasisBindingEvidenceView::Historical {
+            admission,
+            metadata,
+            ..
+        } = self.binding.evidence()
+        else {
+            return false;
+        };
+        self.family() == &QueryContextFamily::HistoricalSnapshot
+            && self.historical_admission_class() == Some(&HistoricalAdmissionClass::RuntimeRetained)
+            && metadata.requested_path_class()
+                == &RequestedHistoricalPathClass::RequestedRetainedSnapshotPath
+            && metadata.resolved_path_class()
+                == &ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath
+            && snapshot
+                .matches_admitted_historical_projection(admission.requested_path().basis_identity())
+    }
+
     pub(crate) fn binding(&self) -> &QueryBasisContextBinding {
         &self.binding
     }

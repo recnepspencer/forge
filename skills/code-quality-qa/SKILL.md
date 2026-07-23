@@ -1,6 +1,6 @@
 ---
 name: code-quality-qa
-description: Run a hostile WORTH-quality structural review of production code. Use when the question is whether code truly lives up to `composition_laws.md` and `domain_structure_laws.md`, especially directory topology, file names, function decomposition, naming, helper placement, and module boundaries.
+description: Run a hostile WORTH-quality structural review of production code. Use when the question is whether code truly lives up to `composition_laws.md` and `domain_structure_laws.md`, especially directory topology, file names, function decomposition, parameter shape, naming, helper placement, and module boundaries.
 ---
 
 # Code Quality QA
@@ -128,16 +128,57 @@ Look aggressively for:
 - files over 400 lines without exemption
 - directories over 10 files without honest subdivision
 
+## Mandatory function scrutiny
+
+From the worktree root, inventory every dirty Rust file before judging function
+composition:
+
+```text
+python scripts/quality/scrutinize_rust_functions.py --dirty .
+```
+
+If `python` is unavailable, resolve the workspace Python runtime and invoke the
+same script with that executable. Use the other composable modes when the
+review scope is not the dirty worktree:
+
+```text
+python scripts/quality/scrutinize_rust_functions.py path/to/folder
+python scripts/quality/scrutinize_rust_functions.py --workspace path/to/workspace
+python scripts/quality/scrutinize_rust_functions.py --dirty path/to/worktree --format json
+```
+
+The dirty mode includes staged, unstaged, and untracked Rust files. It reports:
+
+- every function spanning more than 60 lines
+- every function with at least 5 explicit parameters; method receivers do not
+  count as parameters
+
+Treat every reported function as a cleanup candidate requiring deliberate
+review. Call attention to every candidate in the QA inventory, including its
+path, function name, measured size, parameter count, and the reason it was
+selected. A candidate is not automatically a finding and these thresholds are
+not bans. For each candidate, determine whether named semantic decomposition,
+a typed parameter object, a narrower phase input, or a better ownership
+boundary would improve the code. Record an explicit no-change disposition when
+the current shape is genuinely the clearest honest expression.
+
+Do not add suppressions or allowlists merely to silence the inventory. Use
+`--fail-on-candidates` only when a caller explicitly requests gating; the
+standard QA workflow remains advisory and judgment-based.
+
 ## Required workflow
 
 1. Read the two governing docs.
-2. Read the target files and nearby structure.
-3. Perform a hostile review.
-4. Report findings first.
-5. Fix the findings.
-6. Reassess whether the new directory names, file names, and function names
+2. Run the mandatory dirty-worktree function scrutiny inventory.
+3. Read every reported candidate, the target files, and nearby structure.
+4. Perform a hostile review.
+5. Report findings first and distinguish scrutiny candidates from actual
+   findings.
+6. Fix the findings.
+7. Reassess whether the new directory names, file names, and function names
    truly predict their contents.
-7. Repeat until no meaningful findings remain.
+8. Rerun the inventory and repeat until no meaningful findings remain; retain
+   explicit dispositions for candidates that honestly require no change.
 
 Do not run tests before structural edits are complete unless a compile error is
 needed to unblock the refactor. Prefer static review, targeted reads, and name

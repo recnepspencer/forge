@@ -1,0 +1,12 @@
+error: cannot construct `WorthQueryReplacementWitness` with struct literal syntax due to private fields
+ --> tests/ui/installed_domain/compatibility/witness_constructor_is_private.rs:4:13
+  |
+4 |     let _ = WorthQueryReplacementWitness {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `proof`, `evidence` and `counters` that were not provided
+help: you might have meant to use the `mint` associated function
+  |
+4 -     let _ = WorthQueryReplacementWitness {};
+4 +     let _ = WorthQueryReplacementWitness::mint(_, _, _, _);
+  |

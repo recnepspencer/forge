@@ -229,8 +229,11 @@ fn correspondence_observation(
     index: usize,
     subject: &foundation::WorthQueryEntityIdentity,
 ) -> Option<domain::WorthQueryInstalledCorrespondenceObservation> {
-    let candidate = foundation::WorthQueryEntityIdentity::from_relational_record(
-        foundation::RelationalBridgeRecordIdentityParts::entity(9, index as u64 + 1, 0),
+    let candidate_projection =
+        foundation::RelationalBridgeRecordIdentityParts::entity(9, index as u64 + 1, 0)
+            .terminal_projection_for_reporting();
+    let candidate = foundation::WorthQueryEntityIdentity::admit_authored_entity_token(
+        foundation::QueryExternalIdentityToken::new(Arc::from(candidate_projection)),
     );
     match scenario {
         LineageEvidenceScenario::AdvisoryCorrespondence => Some(

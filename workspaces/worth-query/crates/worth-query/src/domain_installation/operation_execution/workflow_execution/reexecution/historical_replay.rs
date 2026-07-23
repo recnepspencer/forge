@@ -86,7 +86,7 @@ pub fn admit_installed_historical_replay_basis<
         || original
             .stage_receipts()
             .iter()
-            .any(|receipt| receipt.execution_snapshot() != historical_context.snapshot_identity())
+            .any(|receipt| !historical_context.admits_snapshot(receipt.execution_snapshot()))
     {
         return TransitionOutcome::Denied(
             WorthQueryHistoricalReplayAdmissionDenial::HistoricalSnapshotDoesNotBindOriginalTrace,
@@ -133,7 +133,9 @@ where
         );
     }
     if admission.historical_workspace_name != workspace.name()
-        || admission.historical_snapshot_identity != workspace.snapshot_identity()
+        || !admission
+            .historical_snapshot_identity
+            .is_same_current_identity_as(&workspace.snapshot_identity())
     {
         return TransitionOutcome::Denied(
             super::certification_replay::WorthQueryCertificationReplayStop::Admission(

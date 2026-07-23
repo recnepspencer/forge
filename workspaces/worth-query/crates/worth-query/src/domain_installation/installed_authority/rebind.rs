@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
@@ -159,6 +160,8 @@ impl WorthQueryDomainRebindDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDomainRebindReceipt {
+    prior_authority: Arc<WorthQueryInstalledDomainAuthority>,
+    current_authority: Arc<WorthQueryInstalledDomainAuthority>,
     prior_witness_identity: WorthQueryEvidenceIdentity,
     current_witness_identity: WorthQueryEvidenceIdentity,
     package_identity: WorthQueryDomainPackageIdentity,
@@ -200,6 +203,8 @@ impl WorthQueryDomainRebindReceipt {
                 )
                 .seal();
         Self {
+            prior_authority: prior.authority_arc(),
+            current_authority: current.authority_arc(),
             prior_witness_identity: prior.witness_identity().clone(),
             current_witness_identity: current.witness_identity().clone(),
             package_identity,
@@ -227,6 +232,14 @@ impl WorthQueryDomainRebindReceipt {
     pub fn receipt_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.receipt_identity
     }
+
+    pub(crate) fn binds_authorities(
+        &self,
+        prior: &Arc<WorthQueryInstalledDomainAuthority>,
+        current: &Arc<WorthQueryInstalledDomainAuthority>,
+    ) -> bool {
+        Arc::ptr_eq(&self.prior_authority, prior) && Arc::ptr_eq(&self.current_authority, current)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -253,5 +266,14 @@ impl<D> WorthQueryReboundDomainHandle<D> {
 
     pub fn into_handle(self) -> WorthQueryInstalledDomainHandle<D> {
         self.handle
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        WorthQueryInstalledDomainHandle<D>,
+        WorthQueryDomainRebindReceipt,
+    ) {
+        (self.handle, self.receipt)
     }
 }

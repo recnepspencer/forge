@@ -15,7 +15,7 @@ fn installed_dag_mints_one_query_owned_trace_and_publication() {
         .bind(&installed_domain, WorkflowRead)
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
-    let run = bound.start_workflow().unwrap();
+    let run = bound.start_workflow(&mut workspace).unwrap();
     let run = run
         .advance(
             "start",
@@ -70,6 +70,85 @@ fn installed_dag_mints_one_query_owned_trace_and_publication() {
     assert_eq!(settled.counters().consumption_contacts, 1);
     assert!(!settled.authority().receipt().receipt_digest().is_empty());
     assert!(!settled.identity().is_empty());
+    let snapshot = settled.consumption_cost_snapshot();
+    let before = snapshot
+        .rows()
+        .iter()
+        .map(|row| (row.name(), (row.observed_count(), row.work_class())))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let receipt = snapshot.materialize_foundational_receipt().unwrap();
+    assert!(snapshot
+        .row("query.workflow_execution.stage_index_lookups")
+        .is_some());
+    assert_eq!(
+        receipt.bundle().counter_specs().len(),
+        receipt.counter_rows().len()
+    );
+    assert_eq!(before.len(), snapshot.rows().len());
+    assert_eq!(
+        receipt.bundle().claim().access_pattern(),
+        worth_foundational::FoundationalPerformanceAccessPatternPosture::TraversalLocal
+    );
+    for row in snapshot.rows() {
+        let expected = if row.name().starts_with("query.workflow_execution.") {
+            worth_foundational::FoundationalPerformanceWorkClass::AuthoritativeObservation
+        } else {
+            worth_foundational::FoundationalPerformanceWorkClass::ValidationPlanning
+        };
+        assert_eq!(row.work_class(), expected, "wrong class for {}", row.name());
+    }
+    let exported = receipt
+        .counter_rows()
+        .iter()
+        .map(|row| (row.name().as_str(), row.observed_count()))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    assert_eq!(
+        exported,
+        before
+            .iter()
+            .map(|(name, (count, _))| (*name, *count))
+            .collect()
+    );
+    assert_eq!(
+        before,
+        snapshot
+            .rows()
+            .iter()
+            .map(|row| (row.name(), (row.observed_count(), row.work_class())))
+            .collect()
+    );
+}
+
+#[test]
+fn incomplete_completion_denial_retains_exact_run_work_without_deeper_execution() {
+    let mut workspace = workflow_workspace("installed-workflow-incomplete").unwrap();
+    let installed_domain = workspace.domain(GeometryDomain).unwrap();
+    let run = workspace
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .start_workflow(&mut workspace)
+        .unwrap()
+        .advance(
+            "start",
+            domain::WorthQueryWorkflowValue::NotRequired,
+            &mut workspace,
+        )
+        .unwrap();
+    let before = run.counters();
+    let denial = match run.complete() {
+        TransitionOutcome::Denied(denial) => denial,
+        _ => panic!("incomplete workflow completed"),
+    };
+    assert_eq!(
+        denial.kind(),
+        domain::WorthQueryWorkflowCompletionDenialKind::IncompleteStages
+    );
+    assert_eq!(denial.counters(), before);
+    assert_eq!(denial.counters().stage_executor_contacts, 1);
+    assert_eq!(denial.counters().terminal_contract_checks, 1);
+    assert_eq!(denial.counters().consumption_contacts, 0);
 }
 
 #[test]
@@ -81,7 +160,7 @@ fn skipping_a_predecessor_denies_before_stage_executor_contact() {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap();
     let denial = match run.advance(
         "publish",
@@ -110,7 +189,7 @@ fn duplicate_stage_advancement_denies_without_a_second_executor_contact() {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",
@@ -135,15 +214,44 @@ fn duplicate_stage_advancement_denies_without_a_second_executor_contact() {
 }
 
 #[test]
+fn copied_stage_label_is_only_a_candidate_and_cannot_invent_progression() {
+    let mut workspace = workflow_workspace("installed-workflow-copied-stage-label").unwrap();
+    let installed_domain = workspace.domain(GeometryDomain).unwrap();
+    let run = workspace
+        .operating_world(observation_basis())
+        .family(ReadFamily)
+        .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .start_workflow(&mut workspace)
+        .unwrap();
+    let copied_label = format!("{}", "not-an-installed-stage");
+    let denial = match run.advance(
+        &copied_label,
+        domain::WorthQueryWorkflowValue::NotRequired,
+        &mut workspace,
+    ) {
+        TransitionOutcome::Denied(denial) => denial,
+        _ => panic!("a copied label invented workflow progression"),
+    };
+
+    assert_eq!(
+        denial.kind(),
+        &domain::WorthQueryWorkflowAdvanceDenialKind::UnknownStage
+    );
+    assert_eq!(denial.counters().stage_executor_contacts, 0);
+    assert_eq!(denial.counters().effect_receipt_checks, 0);
+}
+
+#[test]
 fn foreign_runtime_denies_stage_progression_before_executor_contact() {
-    let owner = workflow_workspace("installed-workflow-owner").unwrap();
+    let mut owner = workflow_workspace("installed-workflow-owner").unwrap();
     let installed_domain = owner.domain(GeometryDomain).unwrap();
     let run = owner
         .operating_world(observation_basis())
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut owner)
         .unwrap();
     let mut foreign = workflow_workspace("installed-workflow-foreign").unwrap();
     let denial = match run.advance(
@@ -182,7 +290,7 @@ fn complete_trace(name: &str, order: [&str; 2]) -> String {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             "start",

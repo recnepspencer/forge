@@ -36,9 +36,11 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
             bridge,
             &snapshot_identity,
             &mutation,
-            &collection,
-            &entity_identity_handle,
-            WorthQueryMutationKind::Updated,
+            crate::runtime::WorthQueryBridgeMutationTarget::new(
+                &collection,
+                &entity_identity_handle,
+                WorthQueryMutationKind::Updated,
+            ),
         )?;
         let receipt = WorthQueryMutationReceipt::from_bridge_authoritative_parts(
             commit_identity,

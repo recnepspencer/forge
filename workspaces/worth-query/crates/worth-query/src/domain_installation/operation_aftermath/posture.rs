@@ -46,6 +46,7 @@ pub enum WorthQueryAftermathAdmissionDenial {
     InstallationGenerationMismatch,
     BasisMismatch,
     NoExecutedEffects,
+    DependencyClosureMismatch,
     DeclarationIncomplete,
     Irreversible,
     ProvisionalDiscardOnly,

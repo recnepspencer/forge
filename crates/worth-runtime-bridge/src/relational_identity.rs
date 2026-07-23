@@ -100,7 +100,7 @@ impl RelationalBridgeRecordIdentityParts {
         Some(Self::new(kind, partition_id, local_slot, generation))
     }
 
-    pub fn bridge_entity_identity(self) -> String {
+    pub(crate) fn bridge_entity_identity(self) -> String {
         let prefix = match self.kind {
             RelationalBridgeRecordIdentityKind::Entity => RELATIONAL_RECORD_ENTITY_PREFIX,
             RelationalBridgeRecordIdentityKind::Relation => RELATIONAL_RECORD_RELATION_PREFIX,
@@ -109,6 +109,10 @@ impl RelationalBridgeRecordIdentityParts {
             "{prefix}{}:{}:{}",
             self.partition_id, self.local_slot, self.generation
         )
+    }
+
+    pub fn terminal_projection_for_reporting(self) -> String {
+        self.bridge_entity_identity()
     }
 }
 

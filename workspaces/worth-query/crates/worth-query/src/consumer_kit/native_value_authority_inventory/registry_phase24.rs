@@ -111,7 +111,7 @@ pub(super) const ROWS: &[Row] = &[
     ),
     Row::new(
         "extract_bridge_row_set_facts",
-        "src/projection_consumption/extraction/row_like.rs",
+        "src/projection_consumption/extraction/row_materialization/row_like.rs",
         &[],
         &["bridge materialization"],
         Class::ContractCapabilityProjection,

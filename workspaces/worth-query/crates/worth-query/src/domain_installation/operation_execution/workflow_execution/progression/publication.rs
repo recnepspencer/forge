@@ -5,9 +5,11 @@ use crate::domain_installation::operation_authority_chain::{
     WorthQuerySettledOperationPhase,
 };
 use crate::domain_installation::{
-    WorthQueryCompletedWorkflowTrace, WorthQueryConsumerProjectionContract,
-    WorthQueryExecutableDomainOperation, WorthQueryPublishingOperation,
-    WorthQueryWorkflowRunCounters, WorthQueryWorkflowValue,
+    WorthQueryBoundProjectionRequest, WorthQueryCompletedWorkflowTrace,
+    WorthQueryConsumerProjectionContract, WorthQueryExecutableDomainOperation,
+    WorthQueryNativeAccessDenial, WorthQueryNativeAccessKey, WorthQueryNativeAccessLayout,
+    WorthQueryNativeFieldAccess, WorthQueryPublishingOperation, WorthQueryWorkflowRunCounters,
+    WorthQueryWorkflowValue,
 };
 use crate::identity::hash_parts;
 use crate::ordinary::read::{WorthQueryProjectionDeclaration, WorthQueryProjectionOutcome};
@@ -213,10 +215,48 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryPublishedWorkflow<D, O, F, L> {
         );
         TransitionOutcome::Success(WorthQueryConsumedWorkflowProjection {
             published: self,
+            consumer,
             authority,
             warnings,
+            native_access: None,
             phase_proof,
         })
+    }
+
+    pub fn consume_bound(
+        self,
+        request: WorthQueryBoundProjectionRequest<D, O, F, L>,
+    ) -> TransitionOutcome<
+        WorthQueryConsumedWorkflowProjection<D, O, F, L>,
+        WorthQueryWorkflowConsumptionDenial,
+        WorthQueryWorkflowConsumptionDenial,
+        WorthQueryWorkflowConsumptionDenial,
+        WorthQueryWorkflowConsumptionDenial,
+        WorthQueryWorkflowConsumptionDenial,
+    > {
+        let (consumer, declaration, plan) = request.into_parts();
+        match self.consume(consumer, declaration) {
+            TransitionOutcome::Success(mut consumed) => {
+                match WorthQueryNativeAccessLayout::admit(
+                    plan,
+                    &consumed.consumer,
+                    &consumed.authority,
+                ) {
+                    Ok(layout) => {
+                        consumed.native_access = Some(layout);
+                        TransitionOutcome::Success(consumed)
+                    }
+                    Err(denial) => TransitionOutcome::Denied(
+                        WorthQueryWorkflowConsumptionDenial::NativeAccess(denial),
+                    ),
+                }
+            }
+            TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
+            TransitionOutcome::Deferred(denial) => TransitionOutcome::Deferred(denial),
+            TransitionOutcome::Stale(denial) => TransitionOutcome::Stale(denial),
+            TransitionOutcome::RebindRequired(denial) => TransitionOutcome::RebindRequired(denial),
+            TransitionOutcome::Failed(denial) => TransitionOutcome::Failed(denial),
+        }
     }
 }
 
@@ -224,6 +264,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryPublishedWorkflow<D, O, F, L> {
 pub enum WorthQueryWorkflowConsumptionDenial {
     StaleInstallationGeneration,
     ConsumerContractMismatch,
+    NativeAccess(WorthQueryNativeAccessDenial),
     PublicationStageMissing,
     PublicationStageOutputMismatch,
     Projection(Box<WorthQueryProjectionOutcome>),
@@ -231,8 +272,10 @@ pub enum WorthQueryWorkflowConsumptionDenial {
 
 pub struct WorthQueryConsumedWorkflowProjection<D, O, F, L: BasisOperationLane> {
     published: WorthQueryPublishedWorkflow<D, O, F, L>,
+    consumer: WorthQueryConsumerProjectionContract<D, O, F, L>,
     authority: Box<WorthQueryConsumedProjectionAuthority>,
     warnings: Option<ProjectionConsumptionWarnings>,
+    native_access: Option<WorthQueryNativeAccessLayout>,
     phase_proof: WorthQueryOperationPhaseProof<WorthQueryConsumedOperationPhase>,
 }
 
@@ -287,6 +330,28 @@ pub struct WorthQuerySettledWorkflowProjection<D, O, F, L: BasisOperationLane> {
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQuerySettledWorkflowProjection<D, O, F, L> {
+    pub(crate) fn bound_operation(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L> {
+        self.trace().bound()
+    }
+    pub(crate) fn consumer_contract(&self) -> &WorthQueryConsumerProjectionContract<D, O, F, L> {
+        &self.consumed.consumer
+    }
+    pub(crate) fn publication_stage_identity(&self) -> &str {
+        self.consumed.published.publication_stage_identity()
+    }
+    pub(crate) fn workflow_run_identity(&self) -> &str {
+        self.trace().workflow_run_identity()
+    }
+    pub(crate) fn installed_workflow_read(
+        &self,
+    ) -> Option<&crate::ordinary::read::WorthQueryReadDeclaration> {
+        self.trace().installed_workflow_read()
+    }
+    pub(crate) fn native_access_layout(&self) -> Option<&WorthQueryNativeAccessLayout> {
+        self.consumed.native_access.as_ref()
+    }
     pub fn identity(&self) -> &str {
         debug_assert_eq!(self.phase_proof.payload().identity(), self.identity);
         debug_assert_eq!(
@@ -306,5 +371,28 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySettledWorkflowProjection<D, O, F
     }
     pub fn counters(&self) -> WorthQueryWorkflowRunCounters {
         self.trace().counters()
+    }
+
+    pub fn native_value<'a>(
+        &'a self,
+        key: &WorthQueryNativeAccessKey,
+        row: usize,
+    ) -> Result<WorthQueryNativeFieldAccess<'a>, WorthQueryNativeAccessDenial> {
+        let Some(layout) = &self.consumed.native_access else {
+            return Err(WorthQueryNativeAccessLayout::unbound_denial(
+                &self.consumed.authority,
+                key,
+            ));
+        };
+        layout.access(&self.consumed.authority, key, row)
+    }
+
+    pub fn native_access_binding_counters(
+        &self,
+    ) -> Option<crate::domain_installation::WorthQueryNativeAccessBindingCounters> {
+        self.consumed
+            .native_access
+            .as_ref()
+            .map(WorthQueryNativeAccessLayout::binding_counters)
     }
 }

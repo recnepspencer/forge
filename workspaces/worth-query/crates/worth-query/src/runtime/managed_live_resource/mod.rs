@@ -6,6 +6,7 @@ mod shutdown;
 mod workspace_capability;
 
 pub(crate) use delivery::WorthQueryManagedLiveRuntimeDelivery;
+pub(crate) use disposal::WorthQueryManagedLiveResourceCloseCause;
 pub use observation::{
     WorthQueryManagedLiveActivationWork, WorthQueryManagedLiveLifecycleObservation,
     WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveSubscriptionFamily,

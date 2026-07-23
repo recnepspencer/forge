@@ -45,8 +45,8 @@ fn signal_invalidation_routing_receipt_rejects_authority_less_receipt() {
 }
 
 #[test]
-fn signal_invalidation_routing_receipt_summarizes_delta_width() {
-    let command_entity_identity = crate::memory_workspace::admit_authored_entity_label("task-1");
+fn signal_invalidation_routing_receipt_summarizes_authoritative_delta() {
+    let command_entity_identity = relational_entity_identity(1);
     let command = WorthQueryWriteCommand::UpdateAspects {
         entity_identity: command_entity_identity.clone(),
         aspects: vec![
@@ -75,42 +75,109 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
         &bridge,
         &snapshot_identity,
         &mutation,
-        "Task",
-        &command_entity_identity,
-        WorthQueryMutationKind::Updated,
+        crate::runtime::WorthQueryBridgeMutationTarget::new(
+            "Task",
+            &command_entity_identity,
+            WorthQueryMutationKind::Updated,
+        ),
     )
     .expect("test bridge authority should build");
     let receipt = WorthQueryMutationReceipt::from_bridge_authoritative_parts(
         crate::memory_workspace::WorthQueryCommitIdentity::from_relational_commit_id(1),
         snapshot_identity,
-        vec![
-            WorthQueryMutationDelta::from_touched_aspects(
-                "Task",
-                crate::memory_workspace::admit_authored_entity_label("task-1"),
-                WorthQueryMutationKind::Created,
-                vec![title_value_touch()],
-            ),
-            WorthQueryMutationDelta::from_touched_aspects(
-                "Task",
-                crate::memory_workspace::admit_authored_entity_label("task-2"),
-                WorthQueryMutationKind::Updated,
-                vec![status_value_touch()],
-            ),
-        ],
+        vec![WorthQueryMutationDelta::from_touched_aspects(
+            "Task",
+            command_entity_identity,
+            WorthQueryMutationKind::Updated,
+            vec![title_value_touch(), status_value_touch()],
+        )],
         bridge_authority,
-    );
+    )
+    .admit_runtime_write_authority();
 
     let routed = SignalInvalidationRoutingReceipt::from_mutation_receipt(&receipt)
         .expect("bridge-authored receipt should route");
 
     assert!(!routed.causality_digest().is_empty());
-    assert_eq!(routed.delta_count(), 2);
+    assert_eq!(routed.delta_count(), 1);
     assert_eq!(routed.routed_collection_count(), 1);
     assert_eq!(
         routed.receipt_identity().scope(),
         WorthQueryEvidenceScope::SignalInvalidationRoutingReceipt
     );
     assert!(!routed.receipt_identity().as_str().is_empty());
+}
+
+#[test]
+fn bridge_authority_cannot_admit_a_different_commit_or_snapshot_handoff() {
+    let authority = bridge_authority_for_title_value("Done");
+    let entity_identity = crate::memory_workspace::WorthQueryEntityIdentity::from_relational_record(
+        worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
+    );
+    let delta = WorthQueryMutationDelta::from_touched_aspects(
+        "Task",
+        entity_identity,
+        WorthQueryMutationKind::Updated,
+        vec![title_value_touch()],
+    );
+    let wrong_commit = WorthQueryMutationReceipt::from_bridge_authoritative_parts(
+        crate::memory_workspace::WorthQueryCommitIdentity::from_relational_commit_id(2),
+        crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        ),
+        vec![delta.clone()],
+        authority.clone(),
+    )
+    .admit_runtime_write_authority();
+    let wrong_snapshot = WorthQueryMutationReceipt::from_bridge_authoritative_parts(
+        crate::memory_workspace::WorthQueryCommitIdentity::from_relational_commit_id(1),
+        crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(2, 1),
+        ),
+        vec![delta],
+        authority,
+    )
+    .admit_runtime_write_authority();
+
+    assert!(!wrong_commit.has_current_mutation_authority());
+    assert!(!wrong_snapshot.has_current_mutation_authority());
+}
+
+#[test]
+fn bridge_authority_cannot_admit_a_different_mutation_subject() {
+    let authority = bridge_authority_for_title_value("Done");
+    let mismatched_deltas = [
+        WorthQueryMutationDelta::from_touched_aspects(
+            "OtherTask",
+            relational_entity_identity(1),
+            WorthQueryMutationKind::Updated,
+            vec![title_value_touch()],
+        ),
+        WorthQueryMutationDelta::from_touched_aspects(
+            "Task",
+            relational_entity_identity(2),
+            WorthQueryMutationKind::Updated,
+            vec![title_value_touch()],
+        ),
+        WorthQueryMutationDelta::from_touched_aspects(
+            "Task",
+            relational_entity_identity(1),
+            WorthQueryMutationKind::Created,
+            vec![title_value_touch()],
+        ),
+        WorthQueryMutationDelta::from_touched_aspects(
+            "Task",
+            relational_entity_identity(1),
+            WorthQueryMutationKind::Updated,
+            vec![status_value_touch()],
+        ),
+    ];
+
+    for delta in mismatched_deltas {
+        let receipt =
+            projected_receipt_for_delta(delta, authority.clone()).admit_runtime_write_authority();
+        assert!(!receipt.has_current_mutation_authority());
+    }
 }
 
 #[test]
@@ -133,7 +200,7 @@ fn bridge_writeback_effect_intent_is_bound_to_admitted_aspect_patch() {
 
 #[test]
 fn bridge_writeback_effect_intent_accepts_whole_entity_delete_empty_patch() {
-    let entity_identity = crate::memory_workspace::admit_authored_entity_label("task-1");
+    let entity_identity = relational_entity_identity(1);
     let command = WorthQueryWriteCommand::Delete {
         entity_identity: entity_identity.clone(),
     };
@@ -148,9 +215,11 @@ fn bridge_writeback_effect_intent_accepts_whole_entity_delete_empty_patch() {
         &bridge,
         &snapshot_identity,
         &mutation,
-        "Task",
-        &entity_identity,
-        WorthQueryMutationKind::Deleted,
+        crate::runtime::WorthQueryBridgeMutationTarget::new(
+            "Task",
+            &entity_identity,
+            WorthQueryMutationKind::Deleted,
+        ),
     )
     .expect("whole-entity delete should lower through an empty native patch");
     let basis = bridge_authority
@@ -165,7 +234,7 @@ fn bridge_writeback_effect_intent_accepts_whole_entity_delete_empty_patch() {
 fn bridge_authority_for_title_value(
     value: &str,
 ) -> worth_runtime_bridge::facade::BridgeMutationAuthorityBundle {
-    let entity_identity = crate::memory_workspace::admit_authored_entity_label("task-1");
+    let entity_identity = relational_entity_identity(1);
     let command = WorthQueryWriteCommand::UpdateAspects {
         entity_identity: entity_identity.clone(),
         aspects: vec![WorthQueryAuthoredAspectMutation::new_set(
@@ -187,11 +256,35 @@ fn bridge_authority_for_title_value(
         &bridge,
         &snapshot_identity,
         &mutation,
-        "Task",
-        &entity_identity,
-        WorthQueryMutationKind::Updated,
+        crate::runtime::WorthQueryBridgeMutationTarget::new(
+            "Task",
+            &entity_identity,
+            WorthQueryMutationKind::Updated,
+        ),
     )
     .expect("test bridge authority should build")
+}
+
+fn projected_receipt_for_delta(
+    delta: WorthQueryMutationDelta,
+    authority: worth_runtime_bridge::facade::BridgeMutationAuthorityBundle,
+) -> WorthQueryMutationReceipt {
+    WorthQueryMutationReceipt::from_bridge_authoritative_parts(
+        crate::memory_workspace::WorthQueryCommitIdentity::from_relational_commit_id(1),
+        crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        ),
+        vec![delta],
+        authority,
+    )
+}
+
+fn relational_entity_identity(
+    local_slot: u64,
+) -> crate::memory_workspace::WorthQueryEntityIdentity {
+    crate::memory_workspace::WorthQueryEntityIdentity::from_relational_record(
+        worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, local_slot, 0),
+    )
 }
 
 fn title_value_touch() -> WorthQueryAspectTouch {

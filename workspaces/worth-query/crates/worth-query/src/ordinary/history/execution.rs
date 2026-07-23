@@ -34,7 +34,7 @@ impl WorthQueryHistoricalRequest {
         }
         let counters = counters.admit_path();
         if self.context.workspace_name() != workspace.name()
-            || self.context.snapshot_identity() != &workspace.snapshot_identity()
+            || !self.context.admits_snapshot(&workspace.snapshot_identity())
         {
             return stopped(
                 WorthQueryHistoricalStopSource::StaleContext,

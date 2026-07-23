@@ -16,6 +16,10 @@ mod operation_output;
 mod progression;
 #[path = "direct_execution/evidence.rs"]
 mod progression_evidence;
+#[path = "projection_lifecycle/mod.rs"]
+mod projection_lifecycle;
+#[path = "projection_sharing/mod.rs"]
+mod projection_sharing;
 #[path = "direct_execution/executor_contract.rs"]
 mod provider;
 #[path = "direct_execution/executor_registry.rs"]
@@ -24,6 +28,10 @@ mod registry;
 mod workflow_conditional_counters;
 #[path = "workflow_execution/progression/conditional_stage_evaluation.rs"]
 mod workflow_conditional_stage_evaluation;
+#[path = "workflow_execution/progression/conditional_start_evaluation.rs"]
+mod workflow_conditional_start_evaluation;
+#[path = "workflow_execution/reexecution/conditional_trace.rs"]
+pub(crate) mod workflow_conditional_trace;
 #[path = "workflow_execution/evidence/effect_evidence.rs"]
 mod workflow_effect_evidence;
 #[path = "workflow_execution/evidence/stage_evidence.rs"]
@@ -68,12 +76,16 @@ mod workflow_semantic_trace;
 mod workflow_semantic_value;
 #[path = "workflow_execution/progression/stage_admission.rs"]
 mod workflow_stage_admission;
+#[path = "workflow_execution/evidence/stage_denial.rs"]
+mod workflow_stage_denial;
 #[path = "workflow_execution/contract/stage_execution_context.rs"]
 mod workflow_stage_execution_context;
 #[path = "workflow_execution/evidence/stage_receipt.rs"]
 mod workflow_stage_receipt;
 #[path = "workflow_execution/contract/stage_workspace.rs"]
 mod workflow_stage_workspace;
+#[path = "workflow_execution/evidence/start_evidence.rs"]
+mod workflow_start_evidence;
 #[path = "workflow_execution/evidence/trace.rs"]
 mod workflow_trace;
 
@@ -82,11 +94,59 @@ pub use operation_input::*;
 pub use operation_output::*;
 pub use progression::*;
 pub use progression_evidence::*;
+pub(crate) use projection_lifecycle::{
+    validate_live_source_authority, WorthQueryClassifiedOwnerDeliveryCompletion,
+};
+pub use projection_lifecycle::{
+    WorthQueryAuthorityRevalidationDomainProjection,
+    WorthQueryAuthorityRevalidationWorkflowProjection, WorthQueryBoundCapabilityGeneration,
+    WorthQueryCancelledDomainProjection, WorthQueryCancelledWorkflowProjection,
+    WorthQueryCurrentDomainProjection, WorthQueryCurrentWorkflowProjection,
+    WorthQueryDisposedDomainProjection, WorthQueryDisposedWorkflowProjection,
+    WorthQueryLiveBoundDomainProjection, WorthQueryLiveBoundWorkflowProjection,
+    WorthQueryLiveProjectionReceipt, WorthQueryLiveProjectionRefresh,
+    WorthQueryLiveProjectionRefreshAuthorityStop, WorthQueryLiveProjectionRefreshError,
+    WorthQueryLiveProjectionRefreshWork, WorthQueryProjectionCancellationOutcome,
+    WorthQueryProjectionCancellationStop, WorthQueryProjectionCleanupWork,
+    WorthQueryProjectionDisposalOutcome, WorthQueryProjectionDisposalStop,
+    WorthQueryProjectionLifecycleCloseCause, WorthQueryProjectionLifecycleCloseReceipt,
+    WorthQueryProjectionLifecycleTransitionCounters, WorthQueryProjectionPriorTransitionEvidence,
+    WorthQueryProjectionPromotionCounters, WorthQueryProjectionPromotionDenialKind,
+    WorthQueryProjectionPromotionOutcome, WorthQueryProjectionPromotionStop,
+    WorthQueryProjectionRebindOutcome, WorthQueryProjectionReplacementOutcome,
+    WorthQueryProjectionTransitionDenialKind, WorthQueryProjectionTransitionStop,
+    WorthQueryProjectionTransitionWork, WorthQueryRebindCleanupPendingDomainProjection,
+    WorthQueryRebindCleanupPendingWorkflowProjection, WorthQueryRebindCleanupRetryOutcome,
+    WorthQueryRebindRequiredDomainProjection, WorthQueryRebindRequiredWorkflowProjection,
+    WorthQueryRebindRollbackOutcome, WorthQueryReboundDomainProjection,
+    WorthQueryReboundWorkflowProjection, WorthQueryReplacedDomainProjection,
+    WorthQueryReplacedWorkflowProjection, WorthQueryReplacementCleanupPendingDomainProjection,
+    WorthQueryReplacementCleanupPendingWorkflowProjection,
+    WorthQueryReplacementCleanupRetryOutcome, WorthQueryReplacementRollbackOutcome,
+    WorthQueryStaleReadableDomainProjection, WorthQueryStaleReadableWorkflowProjection,
+    WorthQueryTransitionedProjectionCancellationOutcome, WorthQueryTransitionedProjectionCloseStop,
+    WorthQueryTransitionedProjectionDisposalOutcome,
+    WorthQueryTransitionedWorkflowProjectionCancellationOutcome,
+    WorthQueryTransitionedWorkflowProjectionCloseStop,
+    WorthQueryTransitionedWorkflowProjectionDisposalOutcome,
+    WorthQueryWorkflowProjectionCancellationOutcome, WorthQueryWorkflowProjectionCancellationStop,
+    WorthQueryWorkflowProjectionDisposalOutcome, WorthQueryWorkflowProjectionDisposalStop,
+    WorthQueryWorkflowProjectionPromotionOutcome, WorthQueryWorkflowProjectionPromotionStop,
+    WorthQueryWorkflowProjectionRebindOutcome, WorthQueryWorkflowProjectionReplacementOutcome,
+    WorthQueryWorkflowProjectionTransitionStop, WorthQueryWorkflowRebindCleanupRetryOutcome,
+    WorthQueryWorkflowRebindRollbackOutcome, WorthQueryWorkflowReplacementCleanupRetryOutcome,
+    WorthQueryWorkflowReplacementRollbackOutcome,
+};
+pub use projection_sharing::*;
+pub(crate) use projection_sharing::{
+    WorthQuerySharedProjectionEpochEvidence, WorthQuerySharedProjectionLeaseViewAuthority,
+};
 pub use provider::*;
 pub(crate) use registry::{
     WorthQueryDomainOperationExecutorRegistry, WorthQueryInstalledDomainOperationExecutor,
     WorthQueryPendingDomainOperationExecutors,
 };
+pub use workflow_conditional_trace::*;
 pub use workflow_effect_evidence::*;
 pub use workflow_evidence::*;
 pub use workflow_foundational_replay::*;
@@ -111,6 +171,8 @@ pub use workflow_retry::*;
 pub use workflow_run::*;
 pub use workflow_semantic_trace::*;
 pub use workflow_semantic_value::*;
+pub use workflow_stage_denial::*;
 pub use workflow_stage_execution_context::*;
 pub use workflow_stage_workspace::*;
+pub use workflow_start_evidence::*;
 pub use workflow_trace::*;

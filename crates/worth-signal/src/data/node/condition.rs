@@ -14,7 +14,7 @@ use super::contract::NodeContract;
 /// Runtime-affine identity for a condition installed by the one graph-lowering
 /// owner. Unlike `Custom(String)`, this is not portable semantic text and
 /// cannot be reconstructed from a Query family name or reporting digest.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone)]
 pub struct InstalledSignalConditionIdentity {
     graph_instance_id: u64,
     node: crate::data::handle::NodeId,
@@ -40,12 +40,26 @@ impl InstalledSignalConditionIdentity {
         }
     }
 
-    pub const fn graph_instance_id(self) -> u64 {
+    pub(crate) const fn graph_instance_id(&self) -> u64 {
         self.graph_instance_id
     }
 
-    pub(crate) const fn role(self) -> InstalledSignalConditionRole {
+    pub(crate) const fn role(&self) -> InstalledSignalConditionRole {
         self.role
+    }
+
+    pub(crate) fn is_same_installed_identity(&self, candidate: &Self) -> bool {
+        self.graph_instance_id == candidate.graph_instance_id
+            && self.node == candidate.node
+            && self.role == candidate.role
+    }
+}
+
+impl std::fmt::Debug for InstalledSignalConditionIdentity {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("InstalledSignalConditionIdentity")
+            .finish_non_exhaustive()
     }
 }
 
@@ -53,7 +67,7 @@ impl InstalledSignalConditionIdentity {
 ///
 /// This is a policy declaration. Runtime gating integration is tier/runtime
 /// specific and intentionally decoupled from node storage.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum EvaluationCondition {
     /// Always evaluate when dirty.
     #[default]
@@ -69,7 +83,26 @@ pub enum EvaluationCondition {
     /// Named custom condition handled by embedding runtime.
     Custom(String),
     /// Opaque condition installed by an admitted runtime lowering owner.
+    #[serde(skip)]
     Installed(InstalledSignalConditionIdentity),
+}
+
+impl PartialEq for EvaluationCondition {
+    fn eq(&self, candidate: &Self) -> bool {
+        match (self, candidate) {
+            (Self::Always, Self::Always) | (Self::OnDemand, Self::OnDemand) => true,
+            (Self::AspectFilter(current), Self::AspectFilter(candidate)) => current == candidate,
+            (Self::DeltaThreshold(current), Self::DeltaThreshold(candidate)) => {
+                current == candidate
+            }
+            (Self::Temporal(current), Self::Temporal(candidate)) => current == candidate,
+            (Self::Custom(current), Self::Custom(candidate)) => current == candidate,
+            (Self::Installed(current), Self::Installed(candidate)) => {
+                current.is_same_installed_identity(candidate)
+            }
+            _ => false,
+        }
+    }
 }
 
 /// Per-node evaluation configuration.

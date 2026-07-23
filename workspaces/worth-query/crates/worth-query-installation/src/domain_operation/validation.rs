@@ -2,9 +2,11 @@ use std::collections::BTreeSet;
 
 use super::*;
 
+mod conditional_graph_closure;
 mod workflow;
 
 use super::conditional_node::validate_conditional_nodes;
+use conditional_graph_closure::validate_conditional_graph_closure;
 use workflow::{validate_workflow, validate_workflow_closure};
 
 pub(super) fn validate_domain_operation_meaning(
@@ -54,134 +56,6 @@ pub(super) fn validate_domain_operation_meaning(
     Ok(())
 }
 
-fn validate_conditional_graph_closure(
-    semantics: &WorthQueryDomainOperationSemanticClosure,
-) -> Result<(), &'static str> {
-    for node in &semantics.conditional_nodes {
-        if node.role() == WorthQueryConditionalNodeRole::WorkflowStage {
-            return Err("workflow-stage-conditional-attached-at-operation");
-        }
-        validate_node_graph_closure(node, semantics, None)?;
-    }
-    if let WorthQueryOperationWorkflowContract::Declared(workflow) = &semantics.workflow {
-        for stage in workflow.stages() {
-            for node in &stage.semantics().conditional_nodes {
-                if node.role() != WorthQueryConditionalNodeRole::WorkflowStage {
-                    return Err("operation-conditional-attached-at-workflow-stage");
-                }
-                validate_node_graph_closure(node, semantics, Some(stage.semantics()))?;
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_node_graph_closure(
-    node: &WorthQueryPortableConditionalNodeDeclaration,
-    semantics: &WorthQueryDomainOperationSemanticClosure,
-    stage_semantics: Option<&WorthQueryWorkflowStageSemantics>,
-) -> Result<(), &'static str> {
-    for dependency in node.dependencies() {
-        let role_name = dependency.graph_read_role().as_str();
-        if stage_semantics
-            .is_some_and(|stage| !stage.graph_read_roles.iter().any(|role| role == role_name))
-        {
-            return Err("conditional-dependency-outside-stage-graph-read-role");
-        }
-        let Some(role) = semantics
-            .graph_reads
-            .roles()
-            .iter()
-            .find(|role| role.role == role_name)
-        else {
-            return Err("conditional-dependency-uses-undeclared-graph-read-role");
-        };
-        if !role
-            .semantic_reads
-            .iter()
-            .any(|read| projection_admits_dependency(read, dependency))
-        {
-            return Err("conditional-dependency-exceeds-graph-read-scope");
-        }
-    }
-    for output in node.outputs() {
-        match output {
-            WorthQueryConditionalNodeOutput::OperationOutput { projection_role } => {
-                if !matches!(
-                    &semantics.publication,
-                    WorthQueryOperationPublicationContract::DerivedProjection { projection_role: installed }
-                        if installed == projection_role
-                ) {
-                    return Err("conditional-output-uses-undeclared-operation-output-role");
-                }
-            }
-            WorthQueryConditionalNodeOutput::WorkflowStageOutput { contract } => {
-                if *contract == WorthQueryWorkflowValueContract::NotRequired
-                    || stage_semantics.is_none_or(|stage| stage.output != *contract)
-                {
-                    return Err("conditional-output-uses-undeclared-workflow-output-role");
-                }
-            }
-            WorthQueryConditionalNodeOutput::DerivedAspect { .. } => {}
-        }
-        let WorthQueryConditionalNodeOutput::DerivedAspect { consequences, .. } = output else {
-            continue;
-        };
-        for consequence in consequences {
-            match consequence {
-                WorthQueryConditionalConsequenceRole::DerivedOnly => {}
-                WorthQueryConditionalConsequenceRole::Touch(touch) => {
-                    let WorthQueryOperationTouchContract::Declared {
-                        graph_roles,
-                        scopes,
-                    } = &semantics.touches
-                    else {
-                        return Err("conditional-output-uses-undeclared-touch-role");
-                    };
-                    if !graph_roles.iter().any(|role| role == touch.graph_role())
-                        || !scopes.iter().any(|scope| scope == touch.scope())
-                    {
-                        return Err("conditional-output-uses-undeclared-touch-role");
-                    }
-                }
-                WorthQueryConditionalConsequenceRole::Effect(family) => {
-                    let WorthQueryOperationEffectContract::Declared { effect_families } =
-                        &semantics.effects
-                    else {
-                        return Err("conditional-output-uses-undeclared-effect-role");
-                    };
-                    if !effect_families.contains(family) {
-                        return Err("conditional-output-uses-undeclared-effect-role");
-                    }
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-fn projection_admits_dependency(
-    read: &WorthQueryOperationNativeProjectionContract,
-    dependency: &WorthQuerySemanticTruthDependency,
-) -> bool {
-    read.aspect_key == *dependency.contract().key()
-        && read.aspect_identity == dependency.contract().identity()
-        && read.contract_revision == dependency.contract().revision()
-        && projection_mask_contains(&read.mask, dependency.projection_mask())
-}
-
-fn projection_mask_contains(
-    admitted: &worth_foundational::facade::AspectMask<worth_foundational::facade::ProjectionMask>,
-    requested: &worth_foundational::facade::AspectMask<worth_foundational::facade::ProjectionMask>,
-) -> bool {
-    admitted.is_whole_aspect()
-        || (!requested.is_whole_aspect()
-            && requested
-                .paths()
-                .iter()
-                .all(|path| admitted.paths().contains(path)))
-}
-
 fn validate_parameters(
     contract: &WorthQueryOperationParameterContract,
 ) -> Result<(), &'static str> {
@@ -204,20 +78,42 @@ fn validate_collection(
     contract: &WorthQueryOperationCollectionContract,
 ) -> Result<(), &'static str> {
     let WorthQueryOperationCollectionContract::Collection {
-        row_identity_field,
+        row_identity_field: _,
         ordering_fields,
+        grouping,
+        window,
+        continuation,
         ..
     } = contract
     else {
         return Ok(());
     };
-    if row_identity_field.trim().is_empty() {
-        return Err("empty-row-identity-field");
-    }
     if ordering_fields.is_empty() {
         return Err("empty-collection-ordering");
     }
-    validate_text_sequence(ordering_fields, "empty-ordering-field")
+    if ordering_fields.iter().collect::<BTreeSet<_>>().len() != ordering_fields.len() {
+        return Err("duplicate-ordering-field");
+    }
+    if let WorthQueryOperationGroupingContract::Grouped { grouping_fields } = grouping {
+        if grouping_fields.is_empty() {
+            return Err("empty-collection-grouping");
+        }
+        if grouping_fields.iter().collect::<BTreeSet<_>>().len() != grouping_fields.len() {
+            return Err("duplicate-grouping-field");
+        }
+    }
+    match (continuation, window) {
+        (
+            WorthQueryOperationContinuationPosture::NotRequired,
+            WorthQueryOperationWindowPolicy::CompleteCollection,
+        )
+        | (
+            WorthQueryOperationContinuationPosture::SnapshotCursor
+            | WorthQueryOperationContinuationPosture::LiveCursor,
+            WorthQueryOperationWindowPolicy::ContinuationBounded,
+        ) => Ok(()),
+        _ => Err("collection-window-continuation-mismatch"),
+    }
 }
 
 fn validate_graph_reads(

@@ -52,6 +52,12 @@ artifact, orchestration, grouping, and recovery model.
 - if you need trace-bound identity evolution, persistent naming, or sparse
   graph promotion:
   [Installed Operation Lineage And Promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
+- if an installed projection needs declaration-indexed native access, managed
+  lifecycle, shared live execution, or exact capability-bound invalidation:
+  [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./domain-capabilities/bound-projection-sharing-and-invalidation.md)
+- if you need exact structural cost evidence or a derived Foundational
+  counter-backed receipt:
+  [Consumption Cost Evidence](./domain-capabilities/consumption-cost-evidence.md)
 - if you need the shortest chooser path inside domain work:
   [Choosing The Right Surface](./domain-capabilities/choosing/README.md)
 - if you want task-first guides for common multi-surface Query jobs:
@@ -90,6 +96,7 @@ artifact, orchestration, grouping, and recovery model.
 ## Foundations (feature docs)
 
 - [Workspace Overview](./foundations/workspace-overview.md)
+- [Operational Identity Authority](./foundations/operational-identity-authority.md)
 - [Branches And Previews](./foundations/branches-and-previews.md)
 - [Consumer Kit](./foundations/consumer-kit.md)
 - [Query operating modes](./foundations/query-operating-modes.md)
@@ -132,6 +139,7 @@ artifact, orchestration, grouping, and recovery model.
 - [Installed operation re-execution and replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
 - [Installed operation aftermath](./domain-capabilities/installed-operation-aftermath.md)
 - [Installed operation lineage and promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
+- [Consumption cost evidence](./domain-capabilities/consumption-cost-evidence.md)
 - [Lower-runtime capability routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Contributions hub](./domain-capabilities/contributions/README.md)
 - Choosers: [live vs subscription](./domain-capabilities/choosing/live-view-vs-subscription.md), [inspection vs cross-runtime explanation](./domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md), [projection vs inspection](./domain-capabilities/choosing/projection-consumption-vs-inspection.md)

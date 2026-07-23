@@ -59,6 +59,7 @@ pub struct WorthQueryBoundDomainOperation<D, O, F, L: BasisOperationLane> {
     graph_participations: Vec<WorthQueryBoundGraphParticipation>,
     required_domains: Vec<WorthQueryBoundRequiredDomain>,
     commit_posture: WorthQueryBoundCommitPosture,
+    binding_counters: super::WorthQueryOperationBindingCounters,
     binding_identity: String,
     capability_identity: u64,
     authority_proof: WorthQueryOperationPhaseProof<WorthQueryBoundOperationPhase>,
@@ -80,6 +81,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
         authorities: WorthQueryBoundAuthoritySet,
         consumer_support_profile: WorthQueryConsumerSupportProfile,
         providers: WorthQueryBoundRuntimeProviders,
+        binding_counters: super::WorthQueryOperationBindingCounters,
     ) -> Self {
         let required_domain_authority_identities = authorities
             .required_domains
@@ -103,11 +105,6 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
             })
             .collect::<Vec<_>>();
         let capability_identity = NEXT_BOUND_CAPABILITY_IDENTITY.fetch_add(1, Ordering::Relaxed);
-        let conditional_lowering_identities = providers
-            .conditional_nodes
-            .iter()
-            .map(|node| node.lowering.identity().as_str())
-            .collect::<Vec<_>>();
         let binding_identity = crate::identity::hash_parts(&[
             "worth_query_bound_operation_v1".into(),
             format!("operation:{}", operation.definition().canonical_identity()),
@@ -122,8 +119,8 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
                 required_domain_authority_identities.join(",")
             ),
             format!(
-                "conditional_lowerings:{}",
-                conditional_lowering_identities.join(",")
+                "conditional_lowering_count:{}",
+                providers.conditional_nodes.len()
             ),
         ]);
         let authority_proof = mint_operation_phase_proof(
@@ -131,7 +128,8 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
             None,
             WorthQueryOperationAuthorityBasis {
                 runtime_authority: operation.domain_authority().runtime_authority().as_u64(),
-                installation_generation: operation.installation_generation().ordinal(),
+                installation_runtime_authority: operation.operation_authority().runtime_ordinal(),
+                installation_generation: operation.operation_authority().generation().ordinal(),
                 domain_authority_identity: operation
                     .domain_authority()
                     .authority_identity()
@@ -151,6 +149,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
             graph_participations: authorities.graph_participations,
             required_domains: authorities.required_domains,
             commit_posture: authorities.commit_posture,
+            binding_counters,
             binding_identity,
             capability_identity,
             authority_proof,
@@ -181,6 +180,10 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
 
     pub fn binding_identity(&self) -> &str {
         &self.binding_identity
+    }
+
+    pub const fn binding_counters(&self) -> super::WorthQueryOperationBindingCounters {
+        self.binding_counters
     }
 
     pub fn graph_roles(&self) -> impl ExactSizeIterator<Item = &str> {
@@ -217,6 +220,14 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
 
     pub(crate) fn graph_participations(&self) -> &[WorthQueryBoundGraphParticipation] {
         &self.graph_participations
+    }
+
+    pub(crate) fn required_domains(&self) -> &[WorthQueryBoundRequiredDomain] {
+        &self.required_domains
+    }
+
+    pub(crate) fn consumer_support_profile(&self) -> &WorthQueryConsumerSupportProfile {
+        &self.consumer_support_profile
     }
 
     pub(crate) fn executor(&self) -> Option<&Arc<WorthQueryInstalledDomainOperationExecutor>> {
@@ -269,13 +280,20 @@ where
         WorthQueryConsumerProjectionContract<D, O, F, L>,
         WorthQueryConsumerProjectionContractDenial,
     > {
+        let mut counters = super::super::WorthQueryConsumerSupportAdmissionCounters::default();
+        counters.installation_generation_checks += 1;
         if !self.installation_is_current() {
-            return Err(WorthQueryConsumerProjectionContractDenial::StaleInstallationGeneration);
+            return Err(
+                WorthQueryConsumerProjectionContractDenial::StaleInstallationGeneration {
+                    counters,
+                },
+            );
         }
+        counters.mint_guard_checks += 1;
         if self.consumer_contract_minted.replace(true) {
-            return Err(WorthQueryConsumerProjectionContractDenial::AlreadyMinted);
+            return Err(WorthQueryConsumerProjectionContractDenial::AlreadyMinted { counters });
         }
-        WorthQueryConsumerProjectionContract::mint(self, &self.consumer_support_profile)
+        WorthQueryConsumerProjectionContract::mint(self, &self.consumer_support_profile, counters)
             .map_err(Into::into)
     }
 }

@@ -256,6 +256,7 @@ fn independent_equal_role_providers_deny_before_provider_contact() {
         denial.kind(),
         domain::WorthQueryOperationBindingDenialKind::CompensationUndeclared
     );
+    assert_eq!(denial.counters().graph_participation_lookups, 2);
     assert_eq!(denial.counters().graph_provider_contacts, 0);
     assert_eq!(denial.counters().planning_steps, 0);
     assert_eq!(contacts.load(Ordering::Relaxed), 0);

@@ -75,17 +75,23 @@ pub(super) fn synthetic_detail_rows_for_request(
     request: &DeclarativeLiveQueryRequest,
 ) -> Vec<WorthQueryEntity> {
     let anchor_identity = identity_anchor(request).unwrap_or("synthetic-anchor");
-    vec![WorthQueryEntity::from_native_field_values(
+    vec![WorthQueryEntity::from_aspect_projection(
         crate::memory_workspace::admit_authored_entity_label(anchor_identity),
-        BTreeMap::from([
-            (
-                native_field_path("identity.id"),
+        BTreeMap::from([(
+            worth_foundational::facade::AspectKey::new("read.synthetic").unwrap(),
+            AspectValue::Bool(true),
+        )]),
+        BTreeMap::from([(
+            worth_foundational::facade::AspectKey::new("identity").unwrap(),
+            worth_foundational::facade::StructAspectValue::new([(
+                FieldKey::new("id").unwrap(),
                 crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     anchor_identity.to_string(),
                 ),
-            ),
-            (native_field_path("read.synthetic"), AspectValue::Bool(true)),
-        ]),
+            )])
+            .unwrap(),
+        )]),
+        BTreeMap::new(),
     )]
 }
 

@@ -17,13 +17,13 @@ pub enum WorthQueryComparisonBasisFamily {
     BranchToBranch,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct WorthQueryCapturedComparisonBasis {
     workspace_name: String,
     snapshot: WorthQuerySnapshotIdentity,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct WorthQueryCapturedBranchComparisonBasis {
     workspace_name: String,
     runtime_basis: WorthQueryRuntimeBranchComparisonBasis,
@@ -54,7 +54,10 @@ impl WorthQueryCapturedBranchComparisonBasis {
 
     pub(crate) fn matches(&self, workspace: &WorthQueryWorkspace) -> bool {
         self.workspace_name == workspace.name()
-            && self.runtime_basis.snapshot() == &workspace.snapshot_identity()
+            && self
+                .runtime_basis
+                .snapshot()
+                .is_same_current_identity_as(&workspace.snapshot_identity())
     }
 }
 
@@ -75,11 +78,14 @@ impl WorthQueryCapturedComparisonBasis {
     }
 
     pub(crate) fn matches(&self, workspace: &WorthQueryWorkspace) -> bool {
-        self.workspace_name == workspace.name() && self.snapshot == workspace.snapshot_identity()
+        self.workspace_name == workspace.name()
+            && self
+                .snapshot
+                .is_same_current_identity_as(&workspace.snapshot_identity())
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) enum WorthQueryComparisonPairAuthority {
     CurrentAndRetained {
         current: WorthQueryCapturedComparisonBasis,
@@ -93,7 +99,7 @@ pub(crate) enum WorthQueryComparisonPairAuthority {
 
 /// A sealed structural comparison pair. Consumers choose the pair through the
 /// constructors below; they cannot substitute names, digests, or snapshots.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthQueryComparisonContext {
     pub(crate) authority: WorthQueryComparisonPairAuthority,
 }

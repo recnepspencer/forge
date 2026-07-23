@@ -10,13 +10,25 @@ pub struct WorthQueryOperationExecutionCounters {
     pub terminal_posture_checks: usize,
     pub publication_checks: usize,
     pub consumption_contacts: usize,
+    pub conditional_request_admission_checks: usize,
+    pub conditional_contract_lookups: usize,
+    pub conditional_dependency_observation_reads: usize,
     pub conditional_dependency_checks: usize,
     pub conditional_semantic_reads: usize,
     pub conditional_condition_checks: usize,
+    pub conditional_condition_deferrals: usize,
+    pub conditional_temporal_deferrals: usize,
+    pub conditional_on_demand_deferrals: usize,
     pub conditional_comparator_checks: usize,
     pub conditional_compute_contacts: usize,
+    pub conditional_output_version_reads: usize,
+    pub conditional_runtime_dependency_edges_captured: usize,
+    pub conditional_application_contacts: usize,
+    pub conditional_semantic_classifications: usize,
+    pub conditional_reverted_clean_outcomes: usize,
     pub conditional_semantic_changes: usize,
     pub conditional_reuse_checks: usize,
+    pub conditional_decisions_delivered: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,6 +61,8 @@ pub struct WorthQueryBoundGraphExecutionReceipt {
     pub(super) provider_receipt: String,
     pub(super) evidence_identity: String,
     pub(super) projection: Option<Box<crate::runtime::WorthQueryReadResult>>,
+    pub(super) commit_authority_identity: Option<(u64, std::any::TypeId)>,
+    pub(super) commit_graph_roles: Vec<String>,
 }
 
 impl WorthQueryBoundGraphExecutionReceipt {
@@ -66,6 +80,12 @@ impl WorthQueryBoundGraphExecutionReceipt {
     }
     pub fn has_projection_material(&self) -> bool {
         self.projection.is_some()
+    }
+    pub(crate) fn commit_authority_identity(&self) -> Option<(u64, std::any::TypeId)> {
+        self.commit_authority_identity
+    }
+    pub(crate) fn commit_graph_roles(&self) -> &[String] {
+        &self.commit_graph_roles
     }
 }
 
@@ -88,6 +108,7 @@ impl WorthQueryDerivedPublicationReceipt {
 pub enum WorthQueryBoundExecutionDenialKind {
     RuntimeAuthority(crate::domain_installation::WorthQueryDomainHandleDenialKind),
     InputContract,
+    WorkflowEvidenceRequired,
     GraphProvider,
     ExecutorRegistrationMissing,
     Executor(crate::domain_installation::WorthQueryOperationFailureClass),

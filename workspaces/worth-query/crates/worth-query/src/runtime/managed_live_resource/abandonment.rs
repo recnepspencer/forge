@@ -28,10 +28,14 @@ impl WorthQueryRuntime {
     pub(crate) fn reap_abandoned_managed_live_resources(
         &mut self,
     ) -> Result<(), WorthQueryRuntimeError> {
+        self.reap_abandoned_shared_projection_leases()?;
         let abandoned = self.managed_live_resource_capability.take_abandoned();
         let mut pending = abandoned.into_iter();
         while let Some(resource) = pending.next() {
-            if let Err(error) = self.close_managed_live_view(resource.view()) {
+            if let Err(error) = self.close_managed_live_view(
+                resource.view(),
+                WorthQueryManagedLiveResourceCloseCause::Abandonment,
+            ) {
                 let mut retry = vec![resource];
                 retry.extend(pending);
                 self.managed_live_resource_capability

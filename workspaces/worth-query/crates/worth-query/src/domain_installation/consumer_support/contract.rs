@@ -19,6 +19,8 @@ type ConsumerContractMarker<D, O, F, L> = fn() -> (D, O, F, L);
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryConsumerSupportAdmissionCounters {
+    pub installation_generation_checks: usize,
+    pub mint_guard_checks: usize,
     pub dimensions_evaluated: usize,
     pub reporting_digest_comparisons: usize,
     pub downstream_hook_inspections: usize,
@@ -53,14 +55,26 @@ pub struct WorthQueryConsumerProjectionContract<D, O, F, L: BasisOperationLane> 
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryConsumerProjectionContract<D, O, F, L> {
+    pub(crate) fn shares_execution_projection_with(&self, candidate: &Self) -> bool {
+        self.canonical_operation_identity == candidate.canonical_operation_identity
+            && self.canonical_projection.query() == candidate.canonical_projection.query()
+            && self.canonical_projection.result_shape()
+                == candidate.canonical_projection.result_shape()
+            && self.native_projection == candidate.native_projection
+            && self.collection == candidate.collection
+            && self.projection_consumption == candidate.projection_consumption
+            && self.requirements == candidate.requirements
+            && self.postures == candidate.postures
+    }
+
     pub(crate) fn mint(
         bound: &WorthQueryBoundDomainOperation<D, O, F, L>,
         profile: &WorthQueryConsumerSupportProfile,
+        mut counters: WorthQueryConsumerSupportAdmissionCounters,
     ) -> Result<Self, WorthQueryConsumerSupportCompatibilityDenial> {
         let requirements = bound.definition().semantics().support;
         let mut postures = [WorthQueryConsumerSupportPosture::Unsupported;
             WorthQueryConsumerSupportDimension::COUNT];
-        let mut counters = WorthQueryConsumerSupportAdmissionCounters::default();
         for dimension in WorthQueryConsumerSupportDimension::ALL {
             counters.dimensions_evaluated += 1;
             let posture = profile.posture(dimension);
@@ -106,6 +120,20 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryConsumerProjectionContract<D, O, 
 
     pub(crate) fn binds_capability(&self, identity: u64) -> bool {
         self.capability_identity == identity
+    }
+
+    pub(crate) fn capability_identity(&self) -> u64 {
+        self.capability_identity
+    }
+
+    pub(crate) fn runtime_authority(&self) -> u64 {
+        self.domain_authority.runtime_authority().as_u64()
+    }
+
+    pub(crate) fn domain_authority(
+        &self,
+    ) -> &std::sync::Arc<super::super::WorthQueryInstalledDomainAuthority> {
+        &self.domain_authority
     }
 
     pub fn basis_identity(&self) -> &str {

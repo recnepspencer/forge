@@ -96,6 +96,31 @@ implement a second extraction path.
 Do not combine a consumer contract from one bind with a publication from an
 equivalent-looking bind. The capability identity is part of admission.
 
+When an installed consumer needs bounded native access, derive the request and
+key from that same contract and move the request through `consume_bound`:
+
+```rust
+use worth_foundational::facade::FieldKey;
+
+let mut builder = consumer.projection_request();
+let selection = builder
+    .select_display_native_field(FieldKey::new("id").unwrap())
+    .unwrap();
+let request = builder.build().unwrap();
+let key = request.resolve_native_key(&selection).unwrap().into_key();
+let settled = published
+    .consume_bound(request)
+    .unwrap()
+    .settle()
+    .unwrap();
+let value = settled.native_value(&key, 0).unwrap();
+```
+
+This route binds the key to the runtime, installation generation, exact
+capability, selection, Foundational contract revision and value shape, and its
+indexed fact slot. A field path or key from an equivalent-looking bind cannot
+substitute for it.
+
 ## Small Example
 
 ```rust
@@ -192,6 +217,7 @@ and counters. These accessors explain an authority; they cannot recreate one.
 ## Related Docs
 
 - [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
+- [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](../domain-capabilities/bound-projection-sharing-and-invalidation.md)
 - [Declarative Query Experience](declarative-query-experience.md)
 - [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)
 - [Consumer Kit](../foundations/consumer-kit.md)

@@ -99,6 +99,28 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
     assert!(receipt.produced_mutation_digest().is_some());
     assert!(!receipt.receipt_digest().is_empty());
     assert_eq!(receipt.invariant_evidence(), ["test-invariant-authority"]);
+    assert!(receipt
+        .commit_identity()
+        .is_same_current_identity_as(&receipt.commit_identity().clone()));
+    assert!(receipt
+        .snapshot_identity()
+        .is_same_current_identity_as(&receipt.snapshot_identity().clone()));
+    let copied_commit = crate::memory_workspace::admit_external_commit_label(
+        receipt
+            .commit_identity()
+            .terminal_projection_for_reporting(),
+    );
+    let copied_snapshot = crate::memory_workspace::admit_external_snapshot_label(
+        receipt
+            .snapshot_identity()
+            .terminal_projection_for_reporting(),
+    );
+    assert!(!receipt
+        .commit_identity()
+        .is_same_current_identity_as(&copied_commit));
+    assert!(!receipt
+        .snapshot_identity()
+        .is_same_current_identity_as(&copied_snapshot));
     assert_eq!(runtime.drain_patches(&live).query_delivery_batches.len(), 1);
     assert_eq!(
         runtime
@@ -414,6 +436,43 @@ fn mutating_intent_with_empty_delta_denies_before_signal_routing() {
         0,
         "denied empty mutation must not route signal invalidation"
     );
+}
+
+#[test]
+fn mutating_intent_cannot_promote_projection_only_truth_into_query_authority() {
+    let mut runtime = WorthQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
+        .write_authority(TestWriteAuthority)
+        .signal_sink(TestSignalSink)
+        .subscription_activation(TestSubscriptionActivation)
+        .preview_basis(TestPreviewBasis)
+        .inspector_evidence(TestInspectorEvidence)
+        .intent_authority(AuthoritylessIntentAuthority)
+        .support_profile(intent_support_profile())
+        .build_backend_from_parts()
+        .build()
+        .expect("intent-capable runtime should build");
+
+    let error = runtime
+        .execute_intent(WorthQueryIntentDeclaration::strategy_commit(
+            "authorityless-mutating-intent",
+            "strategy.intent.reconcile",
+            "1.0",
+            "intent.reconcile.input.v1",
+            test_intent_input([("entity", "task-1")]),
+        ))
+        .expect_err("projection-only truth must not become a current Query receipt");
+
+    match error {
+        WorthQueryRuntimeError::IntentCommitDenied { stage, message, .. } => {
+            assert_eq!(stage, "mutation-receipt-authority-admission");
+            assert!(message.contains("Bridge-authored commit and snapshot handoff"));
+        }
+        other => panic!("expected intent authority admission denial, got {other:?}"),
+    }
 }
 
 #[test]

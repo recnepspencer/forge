@@ -15,6 +15,33 @@ fn public_bound_execution_projection_and_settlement_remain_one_chain() {
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
+    assert_eq!(
+        bound.binding_counters(),
+        domain::WorthQueryOperationBindingCounters {
+            authority_checks: 1,
+            operation_lookups: 1,
+            required_domain_lookups: 0,
+            graph_binding_lookups: 1,
+            graph_participation_lookups: 0,
+            graph_provider_contacts: 0,
+            conditional_lowering_lookups: 1,
+            conditional_lowerings_retained: 0,
+            conditional_declarations_inspected: 0,
+            conditional_workflow_stages_inspected: 0,
+            conditional_lowering_checks: 0,
+            graph_contract_checks: 0,
+            graph_read_role_checks: 0,
+            touched_graph_role_checks: 0,
+            commit_graph_checks: 0,
+            commit_authority_checks: 0,
+            planning_steps: 1,
+            authority_shape_admissions: 1,
+            commit_posture_classifications: 1,
+            executor_route_lookups: 1,
+            workflow_executor_route_lookups: 1,
+            parallel_admission_route_lookups: 1,
+        }
+    );
     let binding_identity = bound.binding_identity().to_string();
     let consumer = bound.consumer_projection_contract().unwrap();
 

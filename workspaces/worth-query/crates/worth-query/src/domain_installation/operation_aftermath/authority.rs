@@ -1,6 +1,13 @@
+use std::sync::Arc;
+use worth_foundational::facade::admit_foundational_authority_identity;
 use worth_proof::{
     Artifact, AssumptionBasis, AuthorityMarker, AuthorityWitness, CurrentValidity,
     FreshnessScopedBasis, NoProofs, PhaseMarker,
+};
+
+use crate::identity_authority::{
+    query_effect_lifecycle_authority, QueryEffectLifecycleAuthorityIdentity,
+    QueryEffectLifecycleIdentityKind,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,31 +45,58 @@ impl WorthQueryAftermathAuthorityAnchor {
     }
 }
 
-struct WorthQueryAftermathAuthority {
+struct WorthQueryAftermathProofAuthority {
     _private: (),
 }
-impl AuthorityMarker for WorthQueryAftermathAuthority {}
+impl AuthorityMarker for WorthQueryAftermathProofAuthority {}
 
-pub(crate) type WorthQueryAftermathAuthorityProof = Artifact<
+type WorthQueryAftermathProof = Artifact<
     WorthQueryAdmittedAftermathPhase,
     WorthQueryAftermathAuthorityAnchor,
     NoProofs,
     FreshnessScopedBasis<CurrentValidity, AssumptionBasis<WorthQueryAftermathAuthorityBasis>>,
 >;
 
+pub(crate) struct WorthQueryAftermathAuthorityProof {
+    proof: WorthQueryAftermathProof,
+    _owner_identity:
+        QueryEffectLifecycleAuthorityIdentity<Arc<str>, QueryEffectLifecycleIdentityKind>,
+}
+
+impl WorthQueryAftermathAuthorityProof {
+    pub(crate) fn payload(&self) -> &WorthQueryAftermathAuthorityAnchor {
+        self.proof.payload()
+    }
+
+    fn basis(
+        &self,
+    ) -> &FreshnessScopedBasis<CurrentValidity, AssumptionBasis<WorthQueryAftermathAuthorityBasis>>
+    {
+        self.proof.basis()
+    }
+}
+
 pub(crate) fn mint_aftermath_authority(
     identity: String,
     predecessor_identity: String,
     basis: WorthQueryAftermathAuthorityBasis,
 ) -> WorthQueryAftermathAuthorityProof {
-    Artifact::with_current_basis(
+    let owner_identity = admit_foundational_authority_identity(
+        Arc::<str>::from(identity.clone()),
+        query_effect_lifecycle_authority(),
+    );
+    let proof = Artifact::with_current_basis(
         WorthQueryAftermathAuthorityAnchor {
             identity,
             predecessor_identity,
         },
         basis,
-        AuthorityWitness::from_authority_marker(WorthQueryAftermathAuthority { _private: () }),
-    )
+        AuthorityWitness::from_authority_marker(WorthQueryAftermathProofAuthority { _private: () }),
+    );
+    WorthQueryAftermathAuthorityProof {
+        proof,
+        _owner_identity: owner_identity,
+    }
 }
 
 pub(crate) fn aftermath_authority_basis(

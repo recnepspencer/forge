@@ -1,3 +1,4 @@
+use super::super::workflow_conditional_trace::WorthQueryConditionalObservationMeaning;
 use super::*;
 
 #[test]
@@ -139,6 +140,158 @@ fn lineage_divergence_is_typed_and_localized_to_its_stage() {
     );
 }
 
+#[test]
+fn operational_signal_identity_is_not_replay_semantics() {
+    let original_meaning = conditional_meaning("signal:attempt-1", condition(true), "truth-a");
+    let mut replay_meaning = original_meaning.clone();
+    replay_meaning.signal_projection = "signal:attempt-2".into();
+    let mut original = trace(Vec::new());
+    original.conditional_path.push(original_meaning);
+    let mut replay = trace(Vec::new());
+    replay.conditional_path.push(replay_meaning);
+
+    assert_eq!(
+        compare_exact_workflow_traces(&original, &replay, Default::default()),
+        WorthQueryReplayComparison::Equivalent
+    );
+    assert_ne!(
+        original.conditional_path[0].signal_projection(),
+        replay.conditional_path[0].signal_projection()
+    );
+}
+
+#[test]
+fn condition_outcome_and_observation_drift_are_semantic() {
+    let original = conditional_meaning("signal:original", condition(true), "truth-a");
+
+    let mut condition_drift = original.clone();
+    condition_drift.declaration = condition(false);
+    assert_conditional_drift(&original, condition_drift);
+
+    let mut outcome_drift = original.clone();
+    outcome_drift.outcome =
+        crate::domain_installation::WorthQueryConditionalOutcomeClass::Suppressed;
+    assert_conditional_drift(&original, outcome_drift);
+
+    let mut observation_drift = original.clone();
+    observation_drift.observations[0].current = validated_truth("truth-b");
+    assert_conditional_drift(&original, observation_drift);
+}
+
+fn assert_conditional_drift(
+    original: &WorthQueryConditionalTraceMeaning,
+    candidate: WorthQueryConditionalTraceMeaning,
+) {
+    assert_ne!(original, &candidate);
+    assert_ne!(
+        super::super::workflow_conditional_trace::conditional_meaning_semantic_material(original),
+        super::super::workflow_conditional_trace::conditional_meaning_semantic_material(&candidate),
+    );
+    let mut original_trace = trace(Vec::new());
+    original_trace.conditional_path.push(original.clone());
+    let mut candidate_trace = trace(Vec::new());
+    candidate_trace.conditional_path.push(candidate);
+    assert_eq!(
+        compare_exact_workflow_traces(&original_trace, &candidate_trace, Default::default()),
+        WorthQueryReplayComparison::Diverged(WorthQueryReplayDivergence::OperationConditionalPath)
+    );
+}
+
+fn conditional_meaning(
+    signal_identity: &str,
+    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    truth: &str,
+) -> WorthQueryConditionalTraceMeaning {
+    WorthQueryConditionalTraceMeaning {
+        location: worth_query_installation::facade::WorthQueryConditionalNodeLocation::operation(
+            "gate",
+        )
+        .unwrap(),
+        declaration,
+        outcome: crate::domain_installation::WorthQueryConditionalOutcomeClass::ComputedChanged,
+        artifact_reuse_admitted: false,
+        signal_projection: signal_identity.into(),
+        observations: vec![WorthQueryConditionalObservationMeaning {
+            dependency_ordinal: 0,
+            previous: None,
+            current: validated_truth(truth),
+        }],
+    }
+}
+
+fn condition(
+    always: bool,
+) -> worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration {
+    use worth_query_installation::facade as installation;
+    let dependency = conditional_dependency();
+    installation::WorthQueryPortableConditionalNodeDeclaration::declare(
+        "gate",
+        installation::WorthQueryConditionalNodeRole::OperationGate,
+    )
+    .dependencies([dependency.clone()])
+    .outputs([
+        installation::WorthQueryConditionalNodeOutput::OperationOutput {
+            projection_role: installation::WorthQueryOperationProjectionRole::new("vertex")
+                .unwrap(),
+        },
+    ])
+    .required_context([installation::WorthQueryConditionalNodeContext::Snapshot])
+    .evaluation(
+        if always {
+            installation::WorthQueryConditionalEvaluationCondition::always_eligible()
+        } else {
+            installation::WorthQueryConditionalEvaluationCondition::aspect_filtered([dependency])
+                .unwrap()
+        },
+        installation::WorthQueryConditionalTrigger::DependencyChange,
+    )
+    .comparison(
+        installation::WorthQueryComparatorRequirement::ExactCanonicalValue,
+        installation::WorthQueryOutputEquivalenceRequirement::ExactCanonicalValue,
+    )
+    .artifact_policy(
+        installation::WorthQueryArtifactReuseEquivalence::NotReusable,
+        installation::WorthQueryMaintenancePosture::LazyUntilObserved,
+        installation::WorthQueryArtifactPosture::Ephemeral,
+    )
+    .output_relationship(installation::WorthQueryOutputRelationship::ContributesToOperationOutput)
+    .finish()
+    .unwrap()
+}
+
+fn conditional_dependency() -> worth_query_installation::facade::WorthQuerySemanticTruthDependency {
+    use worth_foundational::facade::{
+        AspectContract, AspectContractRevision, AspectIdentity, AspectKey, AspectMask, FieldKey,
+        ScalarAspectType,
+    };
+    worth_query_installation::facade::WorthQuerySemanticTruthDependency::new(
+        worth_query_installation::facade::WorthQueryConditionalGraphReadRole::new("model").unwrap(),
+        AspectContract::scalar(
+            AspectKey::new("truth").unwrap(),
+            AspectIdentity(91),
+            AspectContractRevision(1),
+            ScalarAspectType::String,
+        ),
+        AspectMask::whole_aspect(),
+        worth_relational::facade::schema::AspectBinding::EntityField {
+            field: FieldKey::new("truth").unwrap(),
+        },
+        worth_query_installation::facade::WorthQuerySemanticLocality::SourceRecord,
+        [worth_relational::facade::schema::RelationalAspectChangeKind::FieldSet],
+    )
+    .unwrap()
+}
+
+fn validated_truth(truth: &str) -> worth_foundational::facade::ContractValidatedAspectArtifact {
+    let contract = conditional_dependency().contract().clone();
+    worth_foundational::facade::validate_aspect_value(
+        &contract,
+        worth_foundational::facade::AspectValue::String(truth.into()).into(),
+    )
+    .into_result()
+    .unwrap()
+}
+
 fn lineage_outcome() -> InstalledIdentityEvolutionOutcome {
     let continuity = crate::runtime::WorthQueryContinuityMutationEvidence::test_only(
         crate::runtime::WorthQueryContinuityMutationFamily::RebindExistingTarget,
@@ -184,6 +337,7 @@ fn lineage_outcome() -> InstalledIdentityEvolutionOutcome {
 fn trace(stages: Vec<WorthQueryWorkflowStageTraceSemantics>) -> WorthQueryWorkflowTraceSemantics {
     WorthQueryWorkflowTraceSemantics {
         operation_identity: "operation".into(),
+        conditional_path: Vec::new(),
         stages,
         publication: None,
     }

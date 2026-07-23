@@ -21,6 +21,7 @@ mod basis;
 mod basis_lifecycle;
 mod binding;
 mod binding_pipeline;
+mod canonical_field_path_overlap_index;
 mod canonicalization;
 mod collection;
 mod composition;
