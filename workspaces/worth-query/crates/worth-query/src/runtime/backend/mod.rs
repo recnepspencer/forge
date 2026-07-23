@@ -22,10 +22,10 @@ pub use adapter_contracts::{
 };
 pub use bridge_backed::WorthQueryBridgeBackedRuntimeBackend;
 pub use contracts::{
-    runtime_subscription_support_evidence_identity, WorthQueryRuntimeBackend,
-    WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeSchemaAdapter,
-    WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
-    WorthQueryRuntimeWriteAuthorityAdapter,
+    runtime_subscription_support_evidence_identity, WorthQueryBackendEntityLookup,
+    WorthQueryRuntimeBackend, WorthQueryRuntimeExistingTruthVerificationAdapter,
+    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSnapshotIdentityAdapter,
+    WorthQueryRuntimeSourceAdapter, WorthQueryRuntimeWriteAuthorityAdapter,
 };
 pub use inspection_execution::{
     WorthQueryBackendInspectionError, WorthQueryBackendInspectionErrorKind,

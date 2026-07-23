@@ -19,8 +19,6 @@ mod inspection_receipt;
 pub mod lifecycle;
 mod measurement_inspection_evidence;
 #[cfg(test)]
-mod measurement_inspection_query_denial_tests;
-#[cfg(test)]
 mod measurement_inspection_test_support;
 #[cfg(test)]
 mod measurement_inspection_tests;

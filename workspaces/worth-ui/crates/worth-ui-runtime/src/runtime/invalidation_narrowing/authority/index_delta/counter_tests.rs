@@ -16,7 +16,7 @@ fn shared_host_key_fanout_has_constant_semantic_work_and_logarithmic_index_work(
             wide.persistent_key_probes(),
             wide.persistent_node_copies(),
         ),
-        (41, 34, 76, 54),
+        (41, 34, 75, 42),
     );
 }
 

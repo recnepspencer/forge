@@ -21,10 +21,10 @@ pub(crate) fn admitted_hostile_workbench_planning_admissions(
             "operator:portal-anchor",
             "operator:split",
         ],
-        Some(UiGraphWorldProfile::settled_query_binding(
+        Some(UiGraphWorldProfile::settled_query_fact(
             crate::capability::ViewBindingId::new(view_binding_id)
                 .expect("workbench Query binding identity"),
-            fact.query_binding_identity(),
+            fact,
         )),
         |ordinal, identity, target, app, capability, generation| match ordinal {
             1 => {

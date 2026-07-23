@@ -1,10 +1,3 @@
-use std::sync::Arc;
-
-use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
-use worth_query::facade::foundation::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QuerySchemaView,
-    WorthQuerySnapshotIdentity,
-};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::declaration::UiDeclarationSupportRowSchemaKind;
@@ -18,6 +11,7 @@ use worth_ui::facade::obligations::{
     UiObligationSupportBasis, UiObligationSupportSelectionPosture, UiObligationWorldProfileClass,
     UiSelectedObligation,
 };
+use worth_ui_certification::scenario::installed_query_world;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
@@ -162,7 +156,7 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
             UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
             UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::QuerySnapshotBasis,
+                UiObligationWorldProfileClass::SettledQueryBinding,
             ),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Supported,
@@ -195,7 +189,7 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
             UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
             UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::QuerySnapshotBasis,
+                UiObligationWorldProfileClass::SettledQueryBinding,
             ),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Supported,
@@ -229,7 +223,7 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
             UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
             UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::QuerySnapshotBasis,
+                UiObligationWorldProfileClass::SettledQueryBinding,
             ),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Supported,
@@ -317,21 +311,11 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
-        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-    );
-    let basis = admit_runtime_current_snapshot_basis_for_certification(
-        snapshot_identity.evidence_identity(),
-        QuerySchemaView::new(schema_basis_parts.join(":"), [], []),
+    let binding = schema_basis_parts.join(".").replace('-', "_");
+    installed_query_world::settled_query_world_profile(
+        worth_ui::facade::registry::ViewBindingId::new(binding.clone()).unwrap(),
+        format!("{binding}.{snapshot_label}").replace('-', "_"),
     )
-    .expect("runtime current snapshot basis should resolve");
-
-    let prerequisites =
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteBoundary::new(
-        )
-        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query prerequisites should admit");
-    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }
 
 fn obligation_by_family(

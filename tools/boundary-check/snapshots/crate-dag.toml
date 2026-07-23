@@ -13,6 +13,20 @@ package = "worth-pack-registry"
 dependencies = ["worth-schema-core"]
 
 [[packages]]
+package = "worth-query-certification"
+dependencies = [
+    "trybuild",
+    "worth-foundational",
+    "worth-proof",
+    "worth-query",
+    "worth-query-host",
+    "worth-query-replay",
+    "worth-relational",
+    "worth-runtime-bridge",
+    "worth-signal",
+]
+
+[[packages]]
 package = "worth-query-decl"
 dependencies = ["worth-query-declaration"]
 

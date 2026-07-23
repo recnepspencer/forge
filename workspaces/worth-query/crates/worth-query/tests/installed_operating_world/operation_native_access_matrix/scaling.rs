@@ -119,6 +119,7 @@ fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: boo
         .settle()
         .unwrap();
     let last_row = rows - 1;
+    let last_ordered_value = (0..rows).map(|row| format!("alpha-{row}")).max().unwrap();
     let mut indexed_accesses = 0;
     let mut refinement_checks = 0;
     let mut first_access = None;
@@ -128,7 +129,7 @@ fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: boo
             assert_eq!(
                 selected.value().scalar(),
                 Some(&worth_foundational::facade::AspectValue::String(
-                    worth_foundational::facade::InternedString::Raw(format!("alpha-{last_row}"))
+                    worth_foundational::facade::InternedString::Raw(last_ordered_value.clone())
                 ))
             );
         }

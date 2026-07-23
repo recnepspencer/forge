@@ -55,7 +55,7 @@ fn candidate_evidence_stays_isolated_until_successful_cutover() {
     let cutover = cutover
         .into_activation()
         .expect("changed executable meaning publishes a successor");
-    assert!(cutover.managed_live_compatibility_retirement().is_empty());
+    assert!(cutover.operation_live_retirement().is_empty());
 
     let active_expansion =
         session.expand_evidence_ref(candidate_ref, UiEvidenceRichness::summary());

@@ -6,7 +6,7 @@ use worth_ui_dsl::{
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 
-use super::query_prerequisites::query_snapshot_world_profile;
+use super::query_prerequisites::settled_query_world_profile;
 
 pub fn structural_touch_app() -> WorthUiApp {
     WorthUi::app()
@@ -21,7 +21,7 @@ pub fn structural_touch_app() -> WorthUiApp {
 
 pub fn query_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .with_graph_world_profile(query_snapshot_world_profile(
+        .with_graph_world_profile(settled_query_world_profile(
             "snapshot:phase5-dispatch-prereq",
             ["worth-ui.phase5", "dispatch", "query-prereq"],
         ))

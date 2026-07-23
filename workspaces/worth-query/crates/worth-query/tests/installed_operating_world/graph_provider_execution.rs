@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
     configured_runtime_for_package, configured_runtime_for_understated_cost_package,
@@ -33,7 +33,8 @@ fn projection_receipt_without_query_material_denies_before_executor_contact() {
             .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
@@ -94,7 +95,8 @@ fn every_graph_entrypoint_fails_at_its_exact_boundary_and_commit_precedes_touch(
         .unwrap();
         let installed = workspace.domain(GeometryDomain).unwrap();
         let bound = workspace
-            .operating_world(mutation_basis())
+            .prepare_mutation_operating_world()
+            .unwrap()
             .family(ReadFamily)
             .bind(&installed, FederatedRead)
             .unwrap();
@@ -140,7 +142,8 @@ fn read_only_participation_does_not_widen_the_mutating_commit_set() {
             .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
@@ -179,7 +182,8 @@ fn graph_projection_must_match_the_exact_execution_snapshot() {
         .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
@@ -213,7 +217,8 @@ fn graph_contract_insufficiency_denies_before_provider_contact() {
         .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let denial = match workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
     {
@@ -269,25 +274,4 @@ fn definition<G>(
             failure: domain::WorthQueryGraphFailureTopology::BoundaryFailure,
         },
     )
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
 }

@@ -321,7 +321,7 @@ UiActiveExecutionPlan
 UiPlanEquivalenceDecision
 UiFrameExecutionReceipt
 UiProjectionBinding
-UiProjectionFactReceipt
+UiSettledQueryFactReceipt
 UiIntentDeclaration
 UiIntentAdmission
 UiMountedNodeReceipt

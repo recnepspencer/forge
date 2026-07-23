@@ -1,79 +1,51 @@
-use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation::ObservationLaneWitness, read, runtime};
+use worth_query::facade::{
+    foundation::ObservationLaneWitness,
+    installed::{self, conditional, operation},
+    read, runtime,
+};
 
 use super::{
     WorthUiPreparedSnapshotConsumer, WorthUiQueryConsumerRequirements, WorthUiSettledSnapshotFact,
+    WorthUiSnapshotConsumerExecutionOutcome, WorthUiSnapshotProjectionConsumptionOutcome,
+    WorthUiSnapshotProjectionPublicationOutcome, WorthUiSnapshotProjectionSettlementOutcome,
 };
 
-type Executed = domain::WorthQueryExecutedDomainOperation<
+type Executed = operation::WorthQueryExecutedDomainOperation<
     crate::WorthUiDomainEntry,
     crate::WorthUiSnapshotMeasurement,
     crate::WorthUiSnapshotMeasurementFamily,
     ObservationLaneWitness,
     read::WorthQueryReadCompletion,
 >;
-type Published = domain::WorthQueryPublishedDomainOperation<
+type Published = operation::WorthQueryPublishedDomainOperation<
     crate::WorthUiDomainEntry,
     crate::WorthUiSnapshotMeasurement,
     crate::WorthUiSnapshotMeasurementFamily,
     ObservationLaneWitness,
 >;
-type Consumed = domain::WorthQueryConsumedDomainProjection<
+type Consumed = operation::WorthQueryConsumedDomainProjection<
     crate::WorthUiDomainEntry,
     crate::WorthUiSnapshotMeasurement,
     crate::WorthUiSnapshotMeasurementFamily,
     ObservationLaneWitness,
 >;
-type Settled = domain::WorthQuerySettledDomainProjection<
+type Settled = operation::WorthQuerySettledDomainProjection<
     crate::WorthUiDomainEntry,
     crate::WorthUiSnapshotMeasurement,
     crate::WorthUiSnapshotMeasurementFamily,
     ObservationLaneWitness,
 >;
-type ConsumerBoundary = domain::WorthQueryConsumerBoundary<
+type ConsumerBoundary = operation::WorthQueryConsumerBoundary<
     crate::WorthUiDomainEntry,
     crate::WorthUiSnapshotMeasurement,
     crate::WorthUiSnapshotMeasurementFamily,
     ObservationLaneWitness,
 >;
-type Deferred = domain::WorthQueryDeferredDomainOperation<
+type Deferred = operation::WorthQueryDeferredDomainOperation<
     crate::WorthUiDomainEntry,
     crate::WorthUiSnapshotMeasurement,
     crate::WorthUiSnapshotMeasurementFamily,
     ObservationLaneWitness,
->;
-
-pub type WorthUiSnapshotConsumerExecutionOutcome = TransitionOutcome<
-    WorthUiExecutedSnapshotConsumer,
-    domain::WorthQueryBoundExecutionDenial,
-    WorthUiDeferredSnapshotConsumer,
-    domain::WorthQueryBoundExecutionDenial,
-    domain::WorthQueryBoundExecutionDenial,
-    domain::WorthQueryBoundExecutionDenial,
->;
-pub type WorthUiSnapshotProjectionPublicationOutcome = TransitionOutcome<
-    WorthUiPublishedSnapshotConsumer,
-    domain::WorthQueryPublicationDenial,
-    std::convert::Infallible,
-    domain::WorthQueryPublicationDenial,
-    domain::WorthQueryPublicationDenial,
-    domain::WorthQueryPublicationDenial,
->;
-pub type WorthUiSnapshotProjectionConsumptionOutcome = TransitionOutcome<
-    WorthUiConsumedSnapshotProjection,
-    domain::WorthQueryProgressionDenial,
-    domain::WorthQueryProgressionDenial,
-    domain::WorthQueryProgressionDenial,
-    domain::WorthQueryProgressionDenial,
-    domain::WorthQueryProgressionDenial,
->;
-pub type WorthUiSnapshotProjectionSettlementOutcome = TransitionOutcome<
-    WorthUiSettledSnapshotProjection,
-    domain::WorthQueryProgressionDenial,
-    std::convert::Infallible,
-    domain::WorthQueryProgressionDenial,
-    domain::WorthQueryProgressionDenial,
-    domain::WorthQueryProgressionDenial,
 >;
 
 pub struct WorthUiDeferredSnapshotConsumer {
@@ -135,27 +107,35 @@ impl WorthUiPreparedSnapshotConsumer {
         workspace: &mut runtime::WorthQueryWorkspace,
     ) -> WorthUiSnapshotConsumerExecutionOutcome {
         let (reference, bound, consumer, requirements) = self.into_parts();
-        match bound.execute((), workspace) {
-            TransitionOutcome::Success(executed) => {
-                TransitionOutcome::Success(WorthUiExecutedSnapshotConsumer {
+        match installed::transition::execution(bound.execute((), workspace)) {
+            installed::transition::WorthQueryExecutionTransition::Executed(executed) => {
+                WorthUiSnapshotConsumerExecutionOutcome::Executed(WorthUiExecutedSnapshotConsumer {
                     executed,
                     consumer,
                     reference,
                     requirements,
                 })
             }
-            TransitionOutcome::Deferred(deferred) => {
-                TransitionOutcome::Deferred(WorthUiDeferredSnapshotConsumer {
+            installed::transition::WorthQueryExecutionTransition::Deferred(deferred) => {
+                WorthUiSnapshotConsumerExecutionOutcome::Deferred(WorthUiDeferredSnapshotConsumer {
                     deferred,
                     consumer,
                     reference,
                     requirements,
                 })
             }
-            TransitionOutcome::Denied(stop) => TransitionOutcome::Denied(stop),
-            TransitionOutcome::Stale(stop) => TransitionOutcome::Stale(stop),
-            TransitionOutcome::RebindRequired(stop) => TransitionOutcome::RebindRequired(stop),
-            TransitionOutcome::Failed(stop) => TransitionOutcome::Failed(stop),
+            installed::transition::WorthQueryExecutionTransition::Denied(stop) => {
+                WorthUiSnapshotConsumerExecutionOutcome::Denied(stop)
+            }
+            installed::transition::WorthQueryExecutionTransition::Stale(stop) => {
+                WorthUiSnapshotConsumerExecutionOutcome::Stale(stop)
+            }
+            installed::transition::WorthQueryExecutionTransition::RebindRequired(stop) => {
+                WorthUiSnapshotConsumerExecutionOutcome::RebindRequired(stop)
+            }
+            installed::transition::WorthQueryExecutionTransition::Failed(stop) => {
+                WorthUiSnapshotConsumerExecutionOutcome::Failed(stop)
+            }
         }
     }
 }
@@ -170,7 +150,7 @@ impl WorthUiDeferredSnapshotConsumer {
     pub fn installed_reference(&self) -> &crate::WorthUiInstalledQueryBindingReference {
         &self.reference
     }
-    pub fn query_boundary_requirements(&self) -> domain::WorthQueryConsumerBoundaryRequirements {
+    pub fn query_boundary_requirements(&self) -> operation::WorthQueryConsumerBoundaryRequirements {
         self.consumer.downstream_requirements()
     }
 }
@@ -183,14 +163,30 @@ impl WorthUiExecutedSnapshotConsumer {
             reference,
             requirements,
         } = self;
-        executed
-            .publish()
-            .map_success(|published| WorthUiPublishedSnapshotConsumer {
-                published,
-                consumer,
-                reference,
-                requirements,
-            })
+        match installed::transition::publication(executed.publish()) {
+            installed::transition::WorthQueryPublicationTransition::Published(published) => {
+                WorthUiSnapshotProjectionPublicationOutcome::Published(
+                    WorthUiPublishedSnapshotConsumer {
+                        published,
+                        consumer,
+                        reference,
+                        requirements,
+                    },
+                )
+            }
+            installed::transition::WorthQueryPublicationTransition::Denied(stop) => {
+                WorthUiSnapshotProjectionPublicationOutcome::Denied(stop)
+            }
+            installed::transition::WorthQueryPublicationTransition::Stale(stop) => {
+                WorthUiSnapshotProjectionPublicationOutcome::Stale(stop)
+            }
+            installed::transition::WorthQueryPublicationTransition::RebindRequired(stop) => {
+                WorthUiSnapshotProjectionPublicationOutcome::RebindRequired(stop)
+            }
+            installed::transition::WorthQueryPublicationTransition::Failed(stop) => {
+                WorthUiSnapshotProjectionPublicationOutcome::Failed(stop)
+            }
+        }
     }
 }
 
@@ -205,13 +201,35 @@ impl WorthUiPublishedSnapshotConsumer {
             reference,
             requirements,
         } = self;
-        published
-            .consume(consumer.into_query_contract(), request)
-            .map_success(|consumed| WorthUiConsumedSnapshotProjection {
-                consumed,
-                reference,
-                requirements,
-            })
+        map_consumption(
+            installed::transition::consumption(
+                published.consume(consumer.into_query_contract(), request),
+            ),
+            reference,
+            requirements,
+        )
+    }
+
+    pub fn consume_bound(
+        self,
+        request: operation::WorthQueryBoundProjectionRequest<
+            crate::WorthUiDomainEntry,
+            crate::WorthUiSnapshotMeasurement,
+            crate::WorthUiSnapshotMeasurementFamily,
+            worth_query::facade::foundation::ObservationLaneWitness,
+        >,
+    ) -> WorthUiSnapshotProjectionConsumptionOutcome {
+        let Self {
+            published,
+            consumer: _,
+            reference,
+            requirements,
+        } = self;
+        map_consumption(
+            installed::transition::consumption(published.consume_bound(request)),
+            reference,
+            requirements,
+        )
     }
 }
 
@@ -222,15 +240,69 @@ impl WorthUiConsumedSnapshotProjection {
             reference,
             requirements,
         } = self;
-        consumed.settle().map_success(|settled| {
-            let fact = WorthUiSettledSnapshotFact::from_settled(&settled);
-            WorthUiSettledSnapshotProjection {
-                settled,
-                reference,
-                requirements,
-                fact: std::sync::Arc::new(fact),
+        match installed::transition::settlement(consumed.settle()) {
+            installed::transition::WorthQuerySettlementTransition::Settled(settled) => {
+                let fact = WorthUiSettledSnapshotFact::from_settled(&settled);
+                WorthUiSnapshotProjectionSettlementOutcome::Settled(
+                    WorthUiSettledSnapshotProjection {
+                        settled,
+                        reference,
+                        requirements,
+                        fact: std::sync::Arc::new(fact),
+                    },
+                )
             }
-        })
+            installed::transition::WorthQuerySettlementTransition::Denied(stop) => {
+                WorthUiSnapshotProjectionSettlementOutcome::Denied(stop)
+            }
+            installed::transition::WorthQuerySettlementTransition::Stale(stop) => {
+                WorthUiSnapshotProjectionSettlementOutcome::Stale(stop)
+            }
+            installed::transition::WorthQuerySettlementTransition::RebindRequired(stop) => {
+                WorthUiSnapshotProjectionSettlementOutcome::RebindRequired(stop)
+            }
+            installed::transition::WorthQuerySettlementTransition::Failed(stop) => {
+                WorthUiSnapshotProjectionSettlementOutcome::Failed(stop)
+            }
+        }
+    }
+}
+
+fn map_consumption(
+    outcome: installed::transition::WorthQueryConsumptionTransition<
+        crate::WorthUiDomainEntry,
+        crate::WorthUiSnapshotMeasurement,
+        crate::WorthUiSnapshotMeasurementFamily,
+        ObservationLaneWitness,
+    >,
+    reference: crate::WorthUiInstalledQueryBindingReference,
+    requirements: WorthUiQueryConsumerRequirements,
+) -> WorthUiSnapshotProjectionConsumptionOutcome {
+    match outcome {
+        installed::transition::WorthQueryConsumptionTransition::Consumed(consumed) => {
+            WorthUiSnapshotProjectionConsumptionOutcome::Consumed(
+                WorthUiConsumedSnapshotProjection {
+                    consumed,
+                    reference,
+                    requirements,
+                },
+            )
+        }
+        installed::transition::WorthQueryConsumptionTransition::Denied(stop) => {
+            WorthUiSnapshotProjectionConsumptionOutcome::Denied(stop)
+        }
+        installed::transition::WorthQueryConsumptionTransition::Deferred(stop) => {
+            WorthUiSnapshotProjectionConsumptionOutcome::Deferred(stop)
+        }
+        installed::transition::WorthQueryConsumptionTransition::Stale(stop) => {
+            WorthUiSnapshotProjectionConsumptionOutcome::Stale(stop)
+        }
+        installed::transition::WorthQueryConsumptionTransition::RebindRequired(stop) => {
+            WorthUiSnapshotProjectionConsumptionOutcome::RebindRequired(stop)
+        }
+        installed::transition::WorthQueryConsumptionTransition::Failed(stop) => {
+            WorthUiSnapshotProjectionConsumptionOutcome::Failed(stop)
+        }
     }
 }
 
@@ -260,7 +332,7 @@ impl WorthUiSettledSnapshotProjection {
     pub(crate) fn shared_fact(&self) -> std::sync::Arc<WorthUiSettledSnapshotFact> {
         std::sync::Arc::clone(&self.fact)
     }
-    pub fn execution_warnings(&self) -> &[domain::WorthQueryOperationExecutionWarning] {
+    pub fn execution_warnings(&self) -> &[operation::WorthQueryOperationExecutionWarning] {
         self.settled.warnings()
     }
     pub fn projection_warnings(
@@ -268,16 +340,16 @@ impl WorthUiSettledSnapshotProjection {
     ) -> Option<&worth_query::facade::foundation::ProjectionConsumptionWarnings> {
         self.settled.projection_warnings()
     }
-    pub fn result_state(&self) -> domain::WorthQueryOperationResultState {
+    pub fn result_state(&self) -> operation::WorthQueryOperationResultState {
         self.settled.result_state()
     }
-    pub fn counters(&self) -> domain::WorthQueryOperationExecutionCounters {
+    pub fn counters(&self) -> operation::WorthQueryOperationExecutionCounters {
         self.settled.counters()
     }
-    pub fn publication_receipt(&self) -> &domain::WorthQueryDerivedPublicationReceipt {
+    pub fn publication_receipt(&self) -> &operation::WorthQueryDerivedPublicationReceipt {
         self.settled.publication_receipt()
     }
-    pub fn conditional_provenance(&self) -> &[domain::WorthQueryConditionalProvenance] {
+    pub fn conditional_provenance(&self) -> &[conditional::WorthQueryConditionalProvenance] {
         self.settled.conditional_provenance()
     }
     pub fn exact_evidence(&self) -> WorthUiExactSettledSnapshotEvidence {

@@ -6,8 +6,8 @@ pub struct WorthUiStateQueryResidueScan {
     scanned_plan_query_links: usize,
     scanned_settled_snapshots: usize,
     scanned_live_resources: usize,
-    managed_live_subsystem_construction_count: usize,
-    managed_live_succession_operation_count: usize,
+    operation_live_subsystem_construction_count: usize,
+    operation_live_succession_operation_count: usize,
     stale_installed_reference_count: usize,
     orphan_settlement_count: usize,
     orphan_live_resource_count: usize,
@@ -23,20 +23,20 @@ impl WorthUiStateQueryResidueScan {
         plan: crate::runtime::active::WorthUiActiveQueryPlanObservation,
         generation_matches: bool,
     ) -> Self {
-        let managed_live = query.managed_live();
+        let operation_live = query.operation_live();
         Self {
             query_installed: query.query_installed(),
             scanned_state_receipts,
             scanned_query_bindings: query.installed_reference_count(),
             scanned_plan_query_links: plan.query_binding_slot_count(),
             scanned_settled_snapshots: query.settled_snapshot_count(),
-            scanned_live_resources: managed_live.retained_resource_count(),
-            managed_live_subsystem_construction_count: managed_live.subsystem_construction_count(),
-            managed_live_succession_operation_count: managed_live.succession_operation_count(),
+            scanned_live_resources: operation_live.retained_resource_count(),
+            operation_live_subsystem_construction_count: operation_live
+                .subsystem_construction_count(),
+            operation_live_succession_operation_count: operation_live.succession_operation_count(),
             stale_installed_reference_count: query.stale_installed_reference_count(),
-            orphan_settlement_count: query.orphan_settled_snapshot_count()
-                + managed_live.projection_without_resource_count(),
-            orphan_live_resource_count: managed_live.resource_without_projection_count(),
+            orphan_settlement_count: query.orphan_settled_snapshot_count(),
+            orphan_live_resource_count: operation_live.orphan_resource_count(),
             foreign_plan_reference_count: plan.foreign_installed_reference_count(),
             missing_plan_link_count: plan.missing_settled_fact_link_count(),
             mixed_application_generation_count: usize::from(!generation_matches),
@@ -67,12 +67,12 @@ impl WorthUiStateQueryResidueScan {
         self.scanned_live_resources
     }
 
-    pub fn managed_live_subsystem_construction_count(&self) -> usize {
-        self.managed_live_subsystem_construction_count
+    pub fn operation_live_subsystem_construction_count(&self) -> usize {
+        self.operation_live_subsystem_construction_count
     }
 
-    pub fn managed_live_succession_operation_count(&self) -> usize {
-        self.managed_live_succession_operation_count
+    pub fn operation_live_succession_operation_count(&self) -> usize {
+        self.operation_live_succession_operation_count
     }
 
     pub fn stale_installed_reference_count(&self) -> usize {

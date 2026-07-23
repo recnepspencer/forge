@@ -132,7 +132,9 @@ impl WorthUiSettledSnapshotInspection<'_> {
         self.exact_projection.fact().query_binding_identity()
     }
 
-    pub fn result_state(&self) -> worth_query::facade::domain::WorthQueryOperationResultState {
+    pub fn result_state(
+        &self,
+    ) -> worth_query::facade::installed::operation::WorthQueryOperationResultState {
         self.exact_projection.result_state()
     }
 

@@ -7,9 +7,15 @@ use super::conditional_workspace::{
     ConditionalModelGraph, ConditionalModelGraphProvider,
 };
 use super::{
-    canonical_collection_bundle, configured_runtime_without_executors,
-    configured_runtime_without_executors_with_schema, identity_contract,
-    operation_identity_contract, semantic_closure, GeometryDomain, ReadFamily,
+    canonical_ordered_collection_bundle, configured_runtime_without_executors,
+    configured_runtime_without_executors_with_schema, operation_identity_contract,
+    semantic_closure, GeometryDomain, ReadFamily,
+};
+
+mod routing_contract;
+
+use routing_contract::{
+    routing_collection_read_declaration, routing_collection_schema, routing_collection_semantics,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -25,7 +31,23 @@ impl domain::WorthQueryExecutableDomainOperation<GeometryDomain, ReadFamily>
 }
 
 #[derive(Clone, Copy)]
-struct ImpactCollectionExecutor;
+struct ImpactCollectionExecutor {
+    routing_order: bool,
+}
+
+impl ImpactCollectionExecutor {
+    const fn identity_ordered() -> Self {
+        Self {
+            routing_order: false,
+        }
+    }
+
+    const fn routing_ordered() -> Self {
+        Self {
+            routing_order: true,
+        }
+    }
+}
 
 impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ImpactCollectionRead, ReadFamily>
     for ImpactCollectionExecutor
@@ -38,7 +60,11 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ImpactCollectionR
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
-        Some(collection_read_declaration())
+        Some(if self.routing_order {
+            routing_collection_read_declaration()
+        } else {
+            collection_read_declaration()
+        })
     }
 
     fn execute(
@@ -121,7 +147,7 @@ pub(crate) fn conditional_collection_workspace_with_change(
             GeometryDomain,
             ImpactCollectionRead,
             ReadFamily,
-            ImpactCollectionExecutor,
+            ImpactCollectionExecutor::identity_ordered(),
         )
         .consumer_support_posture(
             domain::WorthQueryConsumerSupportDimension::Continuation,
@@ -174,7 +200,7 @@ pub(crate) fn impact_collection_workspace(
             GeometryDomain,
             ImpactCollectionRead,
             ReadFamily,
-            ImpactCollectionExecutor,
+            ImpactCollectionExecutor::identity_ordered(),
         )
         .workspace(name)
 }
@@ -209,7 +235,7 @@ pub(crate) fn impact_collection_invalidation_workspace(
         GeometryDomain,
         ImpactCollectionRead,
         ReadFamily,
-        ImpactCollectionExecutor,
+        ImpactCollectionExecutor::routing_ordered(),
     )
     .workspace(name)
 }
@@ -243,7 +269,7 @@ fn plain_collection_package() -> domain::WorthQueryDomainPackage<GeometryDomain>
 
 fn collection_semantics() -> domain::WorthQueryDomainOperationSemanticClosure {
     let mut semantics = semantic_closure(
-        canonical_collection_bundle("Vertex"),
+        canonical_ordered_collection_bundle("Vertex", "identity", "id"),
         domain::WorthQuerySupportRequirement::Required,
         true,
     );
@@ -257,25 +283,6 @@ fn collection_semantics() -> domain::WorthQueryDomainOperationSemanticClosure {
         continuation: domain::WorthQueryOperationContinuationPosture::SnapshotCursor,
     };
     semantics.support.continuation = domain::WorthQuerySupportRequirement::Required;
-    semantics
-}
-
-fn routing_collection_semantics() -> domain::WorthQueryDomainOperationSemanticClosure {
-    let mut semantics = collection_semantics();
-    let domain::WorthQueryOperationCollectionContract::Collection {
-        ordering_fields,
-        grouping,
-        ..
-    } = &mut semantics.collection
-    else {
-        unreachable!("collection semantics retain their collection contract")
-    };
-    *ordering_fields =
-        vec![
-            domain::WorthQueryOperationCollectionField::from_dotted("ordering.position")
-                .expect("valid installed-only ordering field"),
-        ];
-    *grouping = domain::WorthQueryOperationGroupingContract::Ungrouped;
     semantics
 }
 
@@ -328,7 +335,11 @@ fn collection_read_declaration() -> &'static read::WorthQueryReadDeclaration {
                     ],
                     [],
                 ),
-                |query| query.project(read::AspectFieldSelector::new("identity", "id").unwrap()),
+                |query| {
+                    query
+                        .project(read::AspectFieldSelector::new("identity", "id").unwrap())
+                        .order_by(read::OrderingSelector::ascending("identity", "id").unwrap())
+                },
                 |shape| {
                     shape
                         .field(read::AuthoredResultShapeField::new("identity", "id", "id").unwrap())
@@ -337,35 +348,4 @@ fn collection_read_declaration() -> &'static read::WorthQueryReadDeclaration {
         })
         .expect("collection declaration is canonical")
     })
-}
-
-fn routing_collection_schema() -> worth_query::facade::consumer_kit::WorthQueryTestBackendSchema {
-    use worth_foundational::facade::{
-        AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
-        AspectKey, FieldDeclaration, FieldKey, FieldRequirement, ScalarAspectType,
-        StructAspectShape,
-    };
-    let position = FieldDeclaration::new(
-        FieldKey::new("position").unwrap(),
-        ScalarAspectType::String,
-        FieldRequirement::Required,
-        AbsenceLaw::Required,
-        AspectEvolutionPolicy::ExplicitBreakRequired,
-    )
-    .unwrap();
-    let ordering = AspectContract::struct_aspect(
-        AspectKey::new("ordering").unwrap(),
-        AspectIdentity(0x5751_9018),
-        AspectContractRevision(1),
-        StructAspectShape::new([position]).unwrap(),
-    );
-    worth_query::facade::consumer_kit::WorthQueryTestBackendSchema::single_collection("Vertex")
-        .aspect_contract(identity_contract())
-        .unwrap()
-        .aspect_contract(ordering)
-        .unwrap()
-        .aspect("identity.id", "identity.id")
-        .unwrap()
-        .aspect("ordering.position", "ordering.position")
-        .unwrap()
 }

@@ -164,8 +164,7 @@ fn query_fact_ref_count(measurement_basis: &UiMeasurementBasis) -> usize {
         .evidence_inputs()
         .iter()
         .filter(|input| match input {
-            MeasurementEvidenceInput::QueryProjectionFact(_)
-            | MeasurementEvidenceInput::SettledQueryFact(_) => true,
+            MeasurementEvidenceInput::SettledQueryFact(_) => true,
             MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => {
                 evidence.query_projection_fact().is_some()
             }
@@ -187,8 +186,7 @@ fn host_evidence_ref_count(measurement_basis: &UiMeasurementBasis) -> usize {
             MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => {
                 evidence.host_measurement_result().is_some()
             }
-            MeasurementEvidenceInput::QueryProjectionFact(_)
-            | MeasurementEvidenceInput::SettledQueryFact(_) => false,
+            MeasurementEvidenceInput::SettledQueryFact(_) => false,
         })
         .count()
 }

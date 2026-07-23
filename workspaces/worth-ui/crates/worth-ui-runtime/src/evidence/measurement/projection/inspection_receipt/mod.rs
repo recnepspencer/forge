@@ -6,7 +6,6 @@ mod project_basis_input;
 mod project_compatibility;
 mod project_denial;
 mod project_evidence_maps;
-mod query_reporting_projection;
 
 use worth_ui_inspection::{
     UiInspectionMeasurementDenialPosture, UiInspectionMeasurementEvidenceView,

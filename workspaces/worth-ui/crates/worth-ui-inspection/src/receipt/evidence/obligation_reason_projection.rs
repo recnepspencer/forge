@@ -63,7 +63,7 @@ pub enum UiInspectionObligationWorldProfileClass {
     Diagnostic,
     HostObservation,
     TestCertification,
-    QuerySnapshotBasis,
+    SettledQueryBinding,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

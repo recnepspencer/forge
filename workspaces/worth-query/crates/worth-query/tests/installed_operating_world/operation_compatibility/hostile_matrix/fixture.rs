@@ -100,13 +100,30 @@ pub(in super::super) fn no_primary_read_runtime() -> WorthQueryInMemoryTestRunti
         )
 }
 
-pub(in super::super) fn bind(
+pub(in super::super) fn bind_current(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
-    basis: foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness>,
 ) -> BoundRead {
     workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
+        .family(ReadFamily)
+        .bind(installed, CompatibilityNoPrimaryRead)
+        .unwrap()
+}
+
+pub(in super::super) fn bind_branch(
+    workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
+    installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
+) -> BoundRead {
+    workspace
+        .observe_branch_operating_world(
+            worth_query::facade::installed::WorthQueryBranchHeadIdentity::new(
+                "compatibility-branch",
+            )
+            .unwrap(),
+        )
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, CompatibilityNoPrimaryRead)
         .unwrap()

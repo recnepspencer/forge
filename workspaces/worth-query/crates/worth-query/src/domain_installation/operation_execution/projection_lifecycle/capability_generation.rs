@@ -2,7 +2,7 @@
 pub struct WorthQueryBoundCapabilityGeneration(u64);
 
 impl WorthQueryBoundCapabilityGeneration {
-    pub(super) fn mint() -> Self {
+    pub(crate) fn mint() -> Self {
         static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
         let ordinal = NEXT
             .fetch_update(

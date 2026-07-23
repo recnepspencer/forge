@@ -50,6 +50,19 @@ pub(super) fn matrix_value(row: u64) -> StructAspectValue {
     .unwrap()
 }
 
+pub(crate) fn matrix_value_with_order(row: u64, order: &str) -> StructAspectValue {
+    let order_field = sample_field(15);
+    StructAspectValue::new(matrix_value(row).fields().map(|(field, value)| {
+        let value = if field == &order_field {
+            AspectValue::String(InternedString::Raw(order.to_string()))
+        } else {
+            value.clone()
+        };
+        (field.clone(), value)
+    }))
+    .unwrap()
+}
+
 pub(super) fn scalar_samples() -> Vec<AspectValue> {
     vec![
         AspectValue::Null,

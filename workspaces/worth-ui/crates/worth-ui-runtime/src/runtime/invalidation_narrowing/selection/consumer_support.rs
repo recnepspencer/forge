@@ -38,7 +38,6 @@ pub(super) fn target_count(target: &UiAllocationInvalidationTarget) -> Option<us
     Some(match target {
         UiAllocationInvalidationTarget::Graph(target)
         | UiAllocationInvalidationTarget::ResizePreview { target, .. }
-        | UiAllocationInvalidationTarget::QueryProjection { target, .. }
         | UiAllocationInvalidationTarget::SettledQueryFact { target }
         | UiAllocationInvalidationTarget::HostMeasurement { target, .. }
         | UiAllocationInvalidationTarget::DurableResize { target, .. } => {

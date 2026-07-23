@@ -35,7 +35,7 @@ pub fn worth_ui_installed_test_domain(label: &str) -> WorthUiInstalledQueryDomai
 /// Hostile integration fixture owned by the only crate allowed to translate
 /// Query execution into Worth UI binding artifacts.
 pub struct WorthUiInstalledQueryTestFixture {
-    workspace: WorthQueryWorkspace,
+    pub(super) workspace: WorthQueryWorkspace,
     view: WorthUiInstalledSnapshotQueryView,
 }
 
@@ -103,7 +103,7 @@ impl WorthUiInstalledQueryTestFixture {
             )
             .expect("fixture resolves its installed snapshot reference");
         reference
-            .enter_snapshot_attempt(&self.workspace, observation_basis())
+            .enter_snapshot_attempt(&self.workspace)
             .expect("fixture enters the exact Query operating world")
             .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
                 worth_query::facade::domain::WorthQueryConsumerBoundaryRequirements {
@@ -133,17 +133,12 @@ impl WorthUiInstalledQueryTestFixture {
             .settle()
             .unwrap()
     }
-}
 
-fn observation_basis() -> worth_query::facade::foundation::AdmittedBasisCapability<
-    worth_query::facade::foundation::ObservationLaneWitness,
-> {
-    worth_query::facade::foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
+    pub fn settle_retained_fact(&mut self) -> crate::WorthUiSettledSnapshotFact {
+        let plan = self.binding_plan();
+        let mut downstream = plan.prepare_downstream_state();
+        downstream
+            .admit_settled_snapshot(self.settle_snapshot())
+            .expect("fixture settlement belongs to its installed binding plan")
+    }
 }

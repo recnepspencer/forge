@@ -94,7 +94,8 @@ fn graph_node_measurement_inspection_reports_query_fact_failure_on_public_lane()
 
 #[test]
 fn graph_node_measurement_inspection_success_matches_direct_runtime_projection() {
-    let (_, consumption, world_profile) = display_field_projection_context("measurement-success");
+    let (view_binding_id, fact, world_profile) =
+        display_field_projection_context("measurement-success");
     let host_report = capability_report(29);
     let host_result = host_result_font_metrics(
         91,
@@ -115,7 +116,7 @@ fn graph_node_measurement_inspection_success_matches_direct_runtime_projection()
         "app/measurement_inspection.wui",
         0,
     )
-    .with_query_authority(consumption)
+    .with_settled_query_fact(view_binding_id, fact)
     .with_host_capability_report(host_report)
     .with_host_measurement_results([host_result, scroll_container_viewport, viewport_extent]);
     let app = query_measurement_app_in_world(world_profile, Some(bundle.clone()));
@@ -148,7 +149,7 @@ fn graph_node_measurement_inspection_success_matches_direct_runtime_projection()
 
 #[test]
 fn graph_node_measurement_inspection_reports_compatibility_on_public_lane() {
-    let (_, consumption, world_profile) =
+    let (view_binding_id, fact, world_profile) =
         display_field_projection_context("measurement-inspection-compatibility");
     let host_report = capability_report(17);
     let stale_host_result = host_result_font_metrics(
@@ -163,7 +164,7 @@ fn graph_node_measurement_inspection_reports_compatibility_on_public_lane() {
                 "app/measurement_inspection.wui",
                 0,
             )
-            .with_query_authority(consumption)
+            .with_settled_query_fact(view_binding_id, fact)
             .with_host_capability_report(host_report)
             .with_host_measurement_results([stale_host_result]),
         ),
@@ -191,7 +192,7 @@ fn graph_node_measurement_inspection_reports_compatibility_on_public_lane() {
 
 #[test]
 fn graph_node_measurement_inspection_reports_unsupported_query_posture_on_public_lane() {
-    let (_, consumption, _) =
+    let (view_binding_id, fact, _) =
         display_field_projection_context("measurement-inspection-unsupported");
     let host_report = capability_report(19);
     let host_result = host_result_font_metrics(
@@ -207,7 +208,7 @@ fn graph_node_measurement_inspection_reports_unsupported_query_posture_on_public
                 "app/measurement_inspection.wui",
                 0,
             )
-            .with_query_authority(consumption)
+            .with_settled_query_fact(view_binding_id, fact)
             .with_host_capability_report(host_report)
             .with_host_measurement_results([host_result]),
         ),

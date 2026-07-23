@@ -1,12 +1,10 @@
 //! Admitted and deliberately denied obligation-selection targets.
 
 use worth_ui::facade::admission::{
-    UiAdmissionQueryBasis, UiAdmissionSelectionBudget, UiAdmissionTarget, UiAdmissionWorld,
+    UiAdmissionSelectionBudget, UiAdmissionTarget, UiAdmissionWorld,
 };
 use worth_ui::facade::graph::UiGraphTouchDescriptor;
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
-
-use super::query_prerequisites::query_prerequisites;
 
 pub fn selection_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
     UiAdmissionTarget::graph_node(
@@ -15,32 +13,8 @@ pub fn selection_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
     )
 }
 
-pub fn wrong_query_basis_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_query_prerequisites(query_prerequisites(
-        touch,
-        UiAdmissionQueryBasis::WrongWorldProjection,
-    ))
-}
-
 pub fn graph_aligned_query_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_query_prerequisites(query_prerequisites(
-        touch,
-        UiAdmissionQueryBasis::GraphAligned,
-    ))
-}
-
-pub fn stale_query_basis_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_query_prerequisites(query_prerequisites(
-        touch,
-        UiAdmissionQueryBasis::StaleReceipt,
-    ))
-}
-
-pub fn ambiguous_query_basis_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_query_prerequisites(query_prerequisites(
-        touch,
-        UiAdmissionQueryBasis::AmbiguousSources,
-    ))
+    selection_target(touch)
 }
 
 pub fn missing_host_capability_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {

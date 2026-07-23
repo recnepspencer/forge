@@ -30,8 +30,6 @@ fn topology_suite_uses_one_stable_workspace_source_inventory() {
 
 #[path = "../admission_boundary_bypass.rs"]
 mod admission_boundary_bypass;
-#[path = "../admission_denial_topology_runtime.rs"]
-mod admission_denial_topology_runtime;
 #[path = "../admission_topology_audit.rs"]
 mod admission_topology_audit;
 #[path = "../allocation_planning_boundary_certification.rs"]
@@ -54,8 +52,6 @@ mod graph_topology_authority_runtime;
 mod graph_topology_runtime;
 #[path = "../inspection_boundary_bypass.rs"]
 mod inspection_boundary_bypass;
-#[path = "../inspection_boundary_purity_audit.rs"]
-mod inspection_boundary_purity_audit;
 #[path = "../inspection_contract_audit.rs"]
 mod inspection_contract_audit;
 #[path = "../inspection_growth_posture_audit.rs"]

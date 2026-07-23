@@ -1,11 +1,70 @@
 use super::WorthQueryWorkspace;
 
 impl WorthQueryWorkspace {
-    pub fn operating_world<L: crate::basis_lifecycle::BasisOperationLane>(
+    pub(crate) fn operating_world<L: crate::basis_lifecycle::BasisOperationLane>(
         &self,
-        basis: crate::basis_lifecycle::AdmittedBasisCapability<L>,
+        entry: crate::domain_installation::WorthQueryOperatingWorldEntry<L>,
     ) -> crate::domain_installation::WorthQueryInstalledOperatingWorld<'_, L> {
-        crate::domain_installation::WorthQueryInstalledOperatingWorld::new(&self.runtime, basis)
+        crate::domain_installation::WorthQueryInstalledOperatingWorld::new(
+            &self.runtime,
+            entry.into_capability(),
+        )
+    }
+
+    pub fn observe_operating_world(
+        &self,
+    ) -> Result<
+        crate::domain_installation::WorthQueryInstalledOperatingWorld<
+            '_,
+            crate::basis_lifecycle::ObservationLaneWitness,
+        >,
+        crate::domain_installation::WorthQueryOperatingWorldEntryDenial,
+    > {
+        crate::domain_installation::WorthQueryOperatingWorldEntry::observe_current()
+            .map(|entry| self.operating_world(entry))
+    }
+
+    pub fn observe_branch_operating_world(
+        &self,
+        branch_identity: crate::domain_installation::WorthQueryBranchHeadIdentity,
+    ) -> Result<
+        crate::domain_installation::WorthQueryInstalledOperatingWorld<
+            '_,
+            crate::basis_lifecycle::ObservationLaneWitness,
+        >,
+        crate::domain_installation::WorthQueryOperatingWorldEntryDenial,
+    > {
+        crate::domain_installation::WorthQueryOperatingWorldEntry::observe_branch(&branch_identity)
+            .map(|entry| self.operating_world(entry))
+    }
+
+    pub fn prepare_mutation_operating_world(
+        &self,
+    ) -> Result<
+        crate::domain_installation::WorthQueryInstalledOperatingWorld<
+            '_,
+            crate::basis_lifecycle::MutationPreparationLaneWitness,
+        >,
+        crate::domain_installation::WorthQueryOperatingWorldEntryDenial,
+    > {
+        crate::domain_installation::WorthQueryOperatingWorldEntry::prepare_current_mutation()
+            .map(|entry| self.operating_world(entry))
+    }
+
+    pub fn prepare_branch_mutation_operating_world(
+        &self,
+        branch_identity: crate::domain_installation::WorthQueryBranchHeadIdentity,
+    ) -> Result<
+        crate::domain_installation::WorthQueryInstalledOperatingWorld<
+            '_,
+            crate::basis_lifecycle::MutationPreparationLaneWitness,
+        >,
+        crate::domain_installation::WorthQueryOperatingWorldEntryDenial,
+    > {
+        crate::domain_installation::WorthQueryOperatingWorldEntry::prepare_branch_mutation(
+            &branch_identity,
+        )
+        .map(|entry| self.operating_world(entry))
     }
 
     pub fn graph_participation<G: 'static>(
@@ -16,23 +75,6 @@ impl WorthQueryWorkspace {
         crate::domain_installation::WorthQueryGraphParticipationLookupDenial,
     > {
         self.runtime.graph_participation(marker)
-    }
-
-    pub fn operation<D, O, F>(
-        &self,
-        handle: &crate::domain_installation::WorthQueryInstalledDomainHandle<D>,
-        operation: O,
-        family: F,
-    ) -> Result<
-        crate::domain_installation::WorthQueryInstalledDomainOperation<D, O, F>,
-        crate::domain_installation::WorthQueryInstalledDomainOperationLookupDenial,
-    >
-    where
-        D: 'static,
-        O: 'static,
-        F: 'static,
-    {
-        self.runtime.operation(handle, operation, family)
     }
 
     pub fn domain<D: 'static>(

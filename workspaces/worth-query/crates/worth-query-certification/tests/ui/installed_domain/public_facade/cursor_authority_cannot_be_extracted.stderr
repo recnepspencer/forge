@@ -1,0 +1,7 @@
+error[E0451]: field `capability_identity` of struct `WorthQueryCollectionCursor` is private
+ --> tests/ui/installed_domain/public_facade/cursor_authority_cannot_be_extracted.rs:5:9
+  |
+4 |     let WorthQueryCollectionCursor {
+  |         -------------------------- in this type
+5 |         capability_identity,
+  |         ^^^^^^^^^^^^^^^^^^^ private field

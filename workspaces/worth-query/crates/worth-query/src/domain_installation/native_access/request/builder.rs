@@ -29,10 +29,18 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryProjectionRequestBuilder<D, O, F,
         let native_basis =
             DeclaredNativeAspectContractBasis::new(consumer.native_projection().contract().clone());
         let request_identity = consumer.capability_identity();
+        let declaration = match consumer.collection() {
+            crate::domain_installation::WorthQueryOperationCollectionContract::NotCollection => {
+                project_facts()
+            }
+            crate::domain_installation::WorthQueryOperationCollectionContract::Collection {
+                ..
+            } => project_facts().entity_identities().view_local_identities(),
+        };
         Self {
             consumer,
             native_basis,
-            declaration: project_facts(),
+            declaration,
             pending: Vec::new(),
             request_identity,
         }
@@ -51,6 +59,20 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryProjectionRequestBuilder<D, O, F,
         self.add_field(WorthQueryNativeFactLane::Display, field)
     }
 
+    pub fn select_display_native_field_name(
+        &mut self,
+        field: &str,
+    ) -> Result<WorthQueryNativeSelection, WorthQueryNativeProjectionRequestDenial> {
+        let field = FieldKey::new(field).ok_or_else(|| {
+            request_denial(
+                WorthQueryNativeProjectionRequestDenialKind::UnknownField,
+                self.consumer.native_projection().contract(),
+                None,
+            )
+        })?;
+        self.select_display_native_field(field)
+    }
+
     pub fn select_derived_native_aspect(
         &mut self,
     ) -> Result<WorthQueryNativeSelection, WorthQueryNativeProjectionRequestDenial> {
@@ -62,6 +84,20 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryProjectionRequestBuilder<D, O, F,
         field: FieldKey,
     ) -> Result<WorthQueryNativeSelection, WorthQueryNativeProjectionRequestDenial> {
         self.add_field(WorthQueryNativeFactLane::Derived, field)
+    }
+
+    pub fn select_derived_native_field_name(
+        &mut self,
+        field: &str,
+    ) -> Result<WorthQueryNativeSelection, WorthQueryNativeProjectionRequestDenial> {
+        let field = FieldKey::new(field).ok_or_else(|| {
+            request_denial(
+                WorthQueryNativeProjectionRequestDenialKind::UnknownField,
+                self.consumer.native_projection().contract(),
+                None,
+            )
+        })?;
+        self.select_derived_native_field(field)
     }
 
     pub fn build(

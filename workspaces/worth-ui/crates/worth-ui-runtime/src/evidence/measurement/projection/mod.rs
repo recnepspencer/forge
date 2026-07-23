@@ -9,13 +9,9 @@ mod inspection_receipt_tests;
 #[cfg(test)]
 pub(crate) mod query_context_test_support;
 mod settled_fact_receipt;
-#[cfg(test)]
-pub(crate) mod variant_test_support;
 
-pub(crate) use fact_receipt::admit_declared_measurement_projection_fact_receipt;
 pub use fact_receipt::{
-    consume_declared_measurement_projection_facts, UiProjectionFactReceipt,
-    UiProjectionFactReceiptDenial,
+    consume_declared_measurement_projection_facts, UiSettledQueryFactReceiptDenial,
 };
 pub(crate) use inspection_receipt::{
     project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,

@@ -50,6 +50,14 @@ impl WorthQueryWorkspace {
         self.runtime.current_snapshot_identity()
     }
 
+    pub(crate) fn collection_entity(
+        &self,
+        collection: &str,
+        identity: &crate::memory_workspace::WorthQueryEntityIdentity,
+    ) -> super::WorthQueryBackendEntityLookup {
+        self.runtime.backend.collection_entity(collection, identity)
+    }
+
     pub(crate) fn runtime_authority_identity(&self) -> super::WorthQueryRuntimeAuthorityIdentity {
         self.runtime.authority_identity
     }

@@ -26,6 +26,7 @@ pub struct WorthQueryInMemoryTestRuntimeBuilder {
     runtime_installers: Vec<TestRuntimeInstaller>,
     support_profile: Option<crate::runtime::WorthQueryRuntimeSupportProfile>,
     live_close_failures: usize,
+    collection_entity_lookup_disabled: bool,
 }
 
 pub fn in_memory_test_runtime() -> WorthQueryInMemoryTestRuntimeBuilder {
@@ -33,6 +34,12 @@ pub fn in_memory_test_runtime() -> WorthQueryInMemoryTestRuntimeBuilder {
 }
 
 impl WorthQueryInMemoryTestRuntimeBuilder {
+    /// Removes exact collection entity lookup to exercise honest reset paths.
+    pub fn without_collection_entity_lookup(mut self) -> Self {
+        self.collection_entity_lookup_disabled = true;
+        self
+    }
+
     /// Injects exact backend close failures for lifecycle ownership tests.
     pub fn fail_next_live_closes(mut self, count: usize) -> Self {
         self.live_close_failures = count;
@@ -341,6 +348,7 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
             memory_workspace,
             self.support_profile,
             self.live_close_failures,
+            !self.collection_entity_lookup_disabled,
         );
         let mut runtime_builder = WorthQueryRuntimeBuilder::new()
             .backend(backend)

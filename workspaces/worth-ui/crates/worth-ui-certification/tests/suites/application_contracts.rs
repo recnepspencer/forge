@@ -1,7 +1,5 @@
 //! Semantic integration suite. Individual responsibilities remain in named child modules.
 
-#[path = "../admission_report_runtime.rs"]
-mod admission_report_runtime;
 #[path = "../admission_support_runtime.rs"]
 mod admission_support_runtime;
 #[path = "../application_contracts/allocation_observing_host.rs"]
@@ -52,6 +50,8 @@ mod query_consumer_kit_vertical_journey;
 mod query_consumer_kit_workspace;
 #[path = "../application_contracts/query_consumer_kit_wrong_binding.rs"]
 mod query_consumer_kit_wrong_binding;
+#[path = "../application_contracts/query_domain_certification_scenarios.rs"]
+mod query_domain_certification_scenarios;
 #[path = "../application_contracts/query_replacement_lifecycle.rs"]
 mod query_replacement_lifecycle;
 #[path = "../application_contracts/realtime_overlay_execution.rs"]

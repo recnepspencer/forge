@@ -284,7 +284,13 @@ guidance = "Worth UI production code consumes Query only through worth-ui-query-
 workspace = "workspaces/worth-query"
 engine_package = "worth-query"
 certification_package = "worth-query-certification"
+certification_authority_packages = ["worth-query-host", "worth-query-replay"]
+certification_consumers = ["worth-ui-certification"]
 internal_packages = ["worth-query-declaration", "worth-query-installation"]
+
+[[rule_contracts.query_audience.facade_surfaces]]
+label = "worth-query-host::installed"
+source = "workspaces/worth-query/crates/worth-query/src/facade/exports_installed.rs"
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-decl"

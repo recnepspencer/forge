@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    WorthUiInstalledQueryBindingReference, WorthUiQueryLiveRetirement, WorthUiQueryViewIdentity,
+    WorthUiInstalledQueryBindingReference, WorthUiOperationLiveRetirement, WorthUiQueryViewIdentity,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -115,7 +115,7 @@ impl WorthUiPreparedQueryBindingSuccession {
     pub fn commit_once(
         self,
         active: &mut super::WorthUiRuntimeQueryBinding,
-    ) -> WorthUiQueryLiveRetirement {
+    ) -> WorthUiOperationLiveRetirement {
         let mut predecessor =
             std::mem::replace(active, super::WorthUiRuntimeQueryBinding::QueryFree);
         let mut successor = self.candidate;
@@ -140,7 +140,7 @@ impl WorthUiPreparedQueryBindingSuccession {
             }
         }
         *active = successor;
-        WorthUiQueryLiveRetirement::new(retirement)
+        WorthUiOperationLiveRetirement::new(retirement)
     }
 }
 
@@ -148,70 +148,68 @@ fn commit_regional_succession(
     predecessor: &mut super::WorthUiRuntimeQueryBinding,
     successor: &mut super::WorthUiRuntimeQueryBinding,
     changes: &[WorthUiQueryBindingSuccessionChange],
-    retirement: &mut Vec<crate::WorthUiQueryLiveResource>,
+    retirement: &mut Vec<crate::WorthUiOperationLiveResource>,
 ) {
     successor.swap_runtime_state_with(predecessor);
     for change in changes {
         if change.predecessor == change.successor {
             if let Some(reference) = &change.successor {
-                predecessor.take_settlement(reference);
                 predecessor.take_settled_snapshot(reference);
-                if let Some(candidate_resource) = predecessor.take_live_resource(reference) {
+                if let Some(candidate_resource) =
+                    predecessor.take_operation_live_resource(reference)
+                {
                     retirement.push(candidate_resource);
                 }
             }
             continue;
         }
         if let Some(reference) = &change.predecessor {
-            successor.take_settlement(reference);
             successor.take_settled_snapshot(reference);
-            if let Some(resource) = successor.take_live_resource(reference) {
+            if let Some(resource) = successor.take_operation_live_resource(reference) {
                 retirement.push(resource);
             }
         }
         if let Some(reference) = &change.successor {
-            if let Some(settlement) = predecessor.take_settlement(reference) {
-                successor.replace_settlement(reference, settlement);
-            }
             if let Some(projection) = predecessor.take_settled_snapshot(reference) {
                 successor.replace_settled_snapshot(projection);
             }
-            if let Some(resource) = predecessor.take_live_resource(reference) {
-                if let Some(displaced) = successor.replace_live_resource(reference, resource) {
+            if let Some(resource) = predecessor.take_operation_live_resource(reference) {
+                if let Some(displaced) =
+                    successor.replace_operation_live_resource(reference, resource)
+                {
                     retirement.push(displaced);
                 }
             }
         }
     }
-    predecessor.drain_live_resources_into(retirement);
-    successor.finish_managed_live_succession(retirement);
+    predecessor.drain_operation_live_resources_into(retirement);
+    successor.finish_operation_live_succession(retirement);
 }
 
 fn commit_complete_succession(
     predecessor: &mut super::WorthUiRuntimeQueryBinding,
     successor: &mut super::WorthUiRuntimeQueryBinding,
     successor_references: &[WorthUiInstalledQueryBindingReference],
-    retirement: &mut Vec<crate::WorthUiQueryLiveResource>,
+    retirement: &mut Vec<crate::WorthUiOperationLiveResource>,
 ) {
     for reference in successor_references {
         if !predecessor.admits_reference(reference) {
             continue;
         }
-        if let Some(settlement) = predecessor.take_settlement(reference) {
-            successor.replace_settlement(reference, settlement);
-        }
         if let Some(projection) = predecessor.take_settled_snapshot(reference) {
             successor.take_settled_snapshot(reference);
             successor.replace_settled_snapshot(projection);
         }
-        if let Some(resource) = predecessor.take_live_resource(reference) {
-            if let Some(candidate_resource) = successor.replace_live_resource(reference, resource) {
+        if let Some(resource) = predecessor.take_operation_live_resource(reference) {
+            if let Some(candidate_resource) =
+                successor.replace_operation_live_resource(reference, resource)
+            {
                 retirement.push(candidate_resource);
             }
         }
     }
-    predecessor.drain_live_resources_into(retirement);
-    successor.retain_only_live_resources_for(successor_references, retirement);
+    predecessor.drain_operation_live_resources_into(retirement);
+    successor.retain_only_operation_live_resources_for(successor_references, retirement);
     successor.retain_only_settlements_for(successor_references);
-    successor.finish_managed_live_succession(retirement);
+    successor.finish_operation_live_succession(retirement);
 }

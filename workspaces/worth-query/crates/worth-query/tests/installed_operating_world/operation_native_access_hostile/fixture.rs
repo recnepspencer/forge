@@ -157,15 +157,3 @@ pub(super) fn assert_request_denial(
 pub(super) fn id_field() -> FieldKey {
     FieldKey::new("id").unwrap()
 }
-
-pub(super) fn observation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}

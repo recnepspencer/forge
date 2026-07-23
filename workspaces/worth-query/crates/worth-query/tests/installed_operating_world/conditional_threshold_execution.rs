@@ -138,7 +138,8 @@ fn bind<'a>(
     foundation::ObservationLaneWitness,
 > {
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap()
@@ -165,15 +166,4 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
             )]),
         ))
     }
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

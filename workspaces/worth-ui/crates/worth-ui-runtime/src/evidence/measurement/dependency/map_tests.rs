@@ -12,7 +12,6 @@ use crate::evidence::measurement::projection::fact_test_support::{
     host_result_font_metrics, host_result_portal_anchor, host_result_scroll_container_viewport,
     host_result_viewport_extent, scroll_viewport_policy, synthetic_declaration_identity,
 };
-use crate::evidence::measurement::projection::variant_test_support::display_field_plus_entity_identity_projection_context;
 use crate::evidence::{
     admit_measurement_basis, consume_declared_measurement_projection_facts,
     MeasurementEvidenceInput, UiMeasurementDependencyLineageKind, UiMeasurementDependencyMapEntry,
@@ -53,7 +52,7 @@ fn basis_dependency_map_preserves_typed_lineage_families() {
         generation,
         &policy,
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
                 1,
@@ -160,7 +159,7 @@ fn local_measurement_inputs_classify_to_narrow_neighborhood_hints() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
                 6,
@@ -177,100 +176,6 @@ fn local_measurement_inputs_classify_to_narrow_neighborhood_hints() {
     assert_eq!(
         viewport_basis.neighborhood_class_hint(),
         UiMeasurementNeighborhoodClassHint::ViewportDependency
-    );
-}
-
-#[test]
-fn unrelated_query_projection_facts_do_not_widen_measurement_neighborhood() {
-    let generation = UiEvidenceAuthorityGeneration::new(17);
-    let capability_report = capability_report(77);
-    let declaration_identity = synthetic_declaration_identity("basis-query-separation");
-
-    let (baseline_prerequisites, baseline_attempt, baseline_world_profile) =
-        display_field_projection_context("basis-query-separation");
-    let baseline_receipt = consume_declared_measurement_projection_facts(
-        declaration_identity.clone(),
-        generation,
-        &scroll_viewport_policy(),
-        baseline_prerequisites,
-        &baseline_attempt,
-    )
-    .expect("baseline query receipt should admit");
-
-    let (expanded_prerequisites, expanded_attempt, expanded_world_profile) =
-        display_field_plus_entity_identity_projection_context("basis-query-separation");
-    let expanded_receipt = consume_declared_measurement_projection_facts(
-        declaration_identity.clone(),
-        generation,
-        &scroll_viewport_policy(),
-        expanded_prerequisites,
-        &expanded_attempt,
-    )
-    .expect("expanded query receipt should admit");
-
-    assert_ne!(
-        baseline_receipt.projection_fact_set_digest_for_diagnostics(),
-        expanded_receipt.projection_fact_set_digest_for_diagnostics()
-    );
-    assert_ne!(
-        baseline_receipt.projection_consumption_receipt_digest_for_diagnostics(),
-        expanded_receipt.projection_consumption_receipt_digest_for_diagnostics()
-    );
-
-    let baseline_basis = admit_measurement_basis(
-        declaration_identity.clone(),
-        UiGraphNodeIdentity::new(104),
-        baseline_world_profile,
-        generation,
-        &scroll_viewport_policy(),
-        &[
-            MeasurementEvidenceInput::query_projection_fact(&baseline_receipt),
-            MeasurementEvidenceInput::host_capability_report(&capability_report),
-            MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
-                8,
-                &capability_report,
-                generation,
-            )),
-            MeasurementEvidenceInput::host_measurement_result(&host_result_viewport_extent(
-                9,
-                &capability_report,
-                generation,
-            )),
-        ],
-    );
-    let expanded_basis = admit_measurement_basis(
-        declaration_identity,
-        UiGraphNodeIdentity::new(104),
-        expanded_world_profile,
-        generation,
-        &scroll_viewport_policy(),
-        &[
-            MeasurementEvidenceInput::query_projection_fact(&expanded_receipt),
-            MeasurementEvidenceInput::host_capability_report(&capability_report),
-            MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
-                8,
-                &capability_report,
-                generation,
-            )),
-            MeasurementEvidenceInput::host_measurement_result(&host_result_viewport_extent(
-                9,
-                &capability_report,
-                generation,
-            )),
-        ],
-    );
-
-    assert_eq!(
-        baseline_basis.dependency_map().entries(),
-        expanded_basis.dependency_map().entries()
-    );
-    assert_eq!(
-        baseline_basis.dependency_map().identity_digest(),
-        expanded_basis.dependency_map().identity_digest()
-    );
-    assert_eq!(
-        baseline_basis.neighborhood_class_hint(),
-        expanded_basis.neighborhood_class_hint()
     );
 }
 

@@ -58,6 +58,12 @@ impl WorthQueryConsumerInvalidationDelta {
         &self.affected_native_keys
     }
 
+    pub fn affected_entity_identities(
+        &self,
+    ) -> &[crate::memory_workspace::WorthQueryEntityIdentity] {
+        self.epoch_work.affected_entities()
+    }
+
     pub const fn disposition(&self) -> WorthQueryConsumerInvalidationDisposition {
         self.disposition
     }

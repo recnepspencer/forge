@@ -1,14 +1,12 @@
 use worth_query::facade::domain;
 use worth_ui::facade::query_binding::{
-    WorthUiQueryAllocationDetail, WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
-    WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-    WorthUiSnapshotConsumerPreparationDenial,
+    WorthUiQueryViewShape, WorthUiQueryWorkspaceExt, WorthUiSnapshotConsumerPreparationDenial,
 };
-use worth_ui_query_binding::WorthUiQueryInspectionRelevance;
 
 use crate::query_consumer_kit_application::file_authored_query_app;
 use crate::query_consumer_kit_workspace::{
-    installed_measurement_workspace, observation_basis, unsupported_measurement_workspace,
+    installed_measurement_workspace, interactive_borrowed_collection_requirements,
+    unsupported_measurement_workspace,
 };
 
 #[test]
@@ -19,20 +17,18 @@ fn unsupported_consumer_contract_denies_without_mutating_the_active_application(
         .unwrap()
         .measurement_view("inspector.measurements")
         .unwrap();
+    let view_identity = view.definition().identity().clone();
     let app = file_authored_query_app(view);
     let reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new("inspector.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&view_identity, WorthUiQueryViewShape::Collection)
         .unwrap();
     let session = app.launch().expect("the prior application launches");
     let prior = session.inspect_runtime();
 
     let denial = match reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
-        .prepare_snapshot_consumer(requirements())
+        .prepare_snapshot_consumer(interactive_borrowed_collection_requirements())
     {
         Ok(_) => panic!("unsupported Query support cannot mint a consumer contract"),
         Err(denial) => denial,
@@ -57,17 +53,15 @@ fn duplicate_consumer_contract_mint_is_query_owned_and_leaves_active_truth_compl
         .unwrap()
         .measurement_view("inspector.measurements")
         .unwrap();
+    let view_identity = view.definition().identity().clone();
     let app = file_authored_query_app(view);
     let reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new("inspector.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&view_identity, WorthUiQueryViewShape::Collection)
         .unwrap();
     let session = app.launch().expect("the prior application launches");
     let prior = session.inspect_runtime();
     let bound = reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
         .bind_snapshot()
         .unwrap();
@@ -78,24 +72,11 @@ fn duplicate_consumer_contract_mint_is_query_owned_and_leaves_active_truth_compl
         Err(denial) => denial,
     };
 
-    assert_eq!(
+    assert!(matches!(
         denial,
-        domain::WorthQueryConsumerProjectionContractDenial::AlreadyMinted
-    );
+        domain::WorthQueryConsumerProjectionContractDenial::AlreadyMinted { .. }
+    ));
     assert_eq!(session.inspect_runtime(), prior);
     assert!(session.inspect_query_state_residue().is_clean());
     let _ = session.shutdown();
-}
-
-fn requirements() -> WorthUiQueryConsumerRequirements {
-    WorthUiQueryConsumerRequirements::new(
-        domain::WorthQueryConsumerBoundaryRequirements {
-            presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
-            allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
-        },
-        WorthUiQueryAllocationDetail::BorrowedFactSlice,
-        WorthUiQueryViewShape::Collection,
-        WorthUiQueryDenialPresentation::StructuredStatus,
-        WorthUiQueryInspectionRelevance::Relevant,
-    )
 }

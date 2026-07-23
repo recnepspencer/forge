@@ -206,7 +206,7 @@ fn ai_harness_matches_ordinary_receipts_and_expansion_for_obligation_neighborhoo
     assert_eq!(cost.traversals_denied(), 0);
     assert_eq!(cost.omitted_by_budget(), 0);
     assert!(!cost.broad_scan_used());
-    assert_eq!(harnessed_expansion.foreign_evidence_refs().len(), 3);
+    assert!(harnessed_expansion.foreign_evidence_refs().is_empty());
 }
 
 #[test]

@@ -355,7 +355,8 @@ fn failed_last_close_retains_the_exact_lease_and_backend_until_retry() {
 pub(super) fn settle(workspace: &mut runtime::WorthQueryWorkspace) -> SettledProjection {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -369,15 +370,4 @@ pub(super) fn settle(workspace: &mut runtime::WorthQueryWorkspace) -> SettledPro
         .unwrap()
         .settle()
         .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

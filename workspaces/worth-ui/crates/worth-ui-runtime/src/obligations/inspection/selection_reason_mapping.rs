@@ -113,8 +113,8 @@ pub(super) fn inspection_selection_reason(
                 UiObligationWorldProfileClass::TestCertification => {
                     UiInspectionObligationWorldProfileClass::TestCertification
                 }
-                UiObligationWorldProfileClass::QuerySnapshotBasis => {
-                    UiInspectionObligationWorldProfileClass::QuerySnapshotBasis
+                UiObligationWorldProfileClass::SettledQueryBinding => {
+                    UiInspectionObligationWorldProfileClass::SettledQueryBinding
                 }
             })
         }

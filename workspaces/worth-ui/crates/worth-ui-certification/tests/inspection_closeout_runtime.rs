@@ -1,15 +1,12 @@
-use std::collections::BTreeSet;
-
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
     UiEvidenceBudget, UiEvidenceExpansionOutcome, UiEvidenceFamily,
     UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture, UiEvidenceRichness,
     UiInspectionAiHarness, UiInspectionAiHarnessLane, UiInspectionClosedSemanticLane,
     UiInspectionCloseoutGuarantee, UiInspectionCloseoutNonGoal, UiInspectionCostLane,
-    UiInspectionDerivedIndexLane, UiInspectionForeignEvidenceRef,
-    UiInspectionQueryForeignEvidenceKind, UiInspectionRefLifecycleLane,
-    UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionSliceLane,
-    UiInspectionTargetClass,
+    UiInspectionDerivedIndexLane, UiInspectionQueryForeignEvidenceKind,
+    UiInspectionRefLifecycleLane, UiInspectionRelevanceOutcome, UiInspectionScope,
+    UiInspectionSliceLane, UiInspectionTargetClass,
 };
 
 #[path = "fixtures/inspection_closeout_support.rs"]
@@ -173,7 +170,7 @@ fn inspection_closeout_report_enumerates_milestone35_lanes_guarantees_and_non_go
 }
 
 #[test]
-fn closeout_runtime_covers_exact_family_relevance_and_query_citation_lanes() {
+fn closeout_runtime_covers_exact_family_relevance_without_retired_query_citations() {
     let app = closeout_app();
     let artifact = &app.declaration_artifacts()[0];
     let graph_node_digest = graph_node_digest(&app);
@@ -229,20 +226,7 @@ fn closeout_runtime_covers_exact_family_relevance_and_query_citation_lanes() {
         )]
     );
     assert_eq!(expansion.outcome(), UiEvidenceExpansionOutcome::Available);
-    assert_eq!(
-        expansion
-            .foreign_evidence_refs()
-            .iter()
-            .map(|foreign_ref| match foreign_ref {
-                UiInspectionForeignEvidenceRef::Query(query_ref) => query_ref.kind(),
-            })
-            .collect::<BTreeSet<_>>(),
-        BTreeSet::from([
-            UiInspectionQueryForeignEvidenceKind::ProjectionConsumption,
-            UiInspectionQueryForeignEvidenceKind::Inspection,
-            UiInspectionQueryForeignEvidenceKind::CausalExplanation,
-        ])
-    );
+    assert!(expansion.foreign_evidence_refs().is_empty());
 }
 
 #[test]

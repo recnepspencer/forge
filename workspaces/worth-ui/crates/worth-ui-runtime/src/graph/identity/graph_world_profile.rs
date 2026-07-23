@@ -61,14 +61,6 @@ pub enum UiGraphWorldProfile {
     TestCertification {
         session_label: UiGraphSessionLabel,
     },
-    QuerySnapshotBasis {
-        prerequisites: Box<
-            worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
-        >,
-    },
-    InstalledQueryBasis {
-        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
-    },
     SettledQueryBinding {
         view_binding_id: crate::capability::ViewBindingId,
         query_binding_identity: Box<str>,
@@ -102,19 +94,24 @@ impl UiGraphWorldProfile {
     pub fn test_certification(session_label: UiGraphSessionLabel) -> Self {
         Self::TestCertification { session_label }
     }
-    pub fn query_snapshot_basis(
-        prerequisites: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
+    pub fn settled_query_view(
+        view_binding_id: crate::capability::ViewBindingId,
+        view: &worth_ui_query_binding::WorthUiInstalledQueryView,
     ) -> Self {
-        Self::QuerySnapshotBasis {
-            prerequisites: Box::new(prerequisites),
-        }
+        Self::settled_query_binding(
+            view_binding_id,
+            view.definition().identity().as_str().to_owned(),
+        )
     }
-    pub fn installed_query_basis(
-        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
+
+    pub fn settled_query_fact(
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
     ) -> Self {
-        Self::InstalledQueryBasis { authority }
+        Self::settled_query_binding(view_binding_id, fact.query_binding_identity().to_owned())
     }
-    pub fn settled_query_binding(
+
+    fn settled_query_binding(
         view_binding_id: crate::capability::ViewBindingId,
         query_binding_identity: impl Into<String>,
     ) -> Self {
@@ -148,21 +145,6 @@ impl UiGraphWorldProfile {
             Self::TestCertification { session_label } => {
                 session_digest("test-certification", session_label.as_str())
             }
-            Self::QuerySnapshotBasis { prerequisites } => {
-                let bytes = prerequisites
-                    .canonical_basis_digest()
-                    .value()
-                    .bytes()
-                    .to_owned();
-                bytes
-                    .iter()
-                    .take(8)
-                    .enumerate()
-                    .fold(0u64, |digest, (index, byte)| {
-                        digest | (u64::from(*byte) << (index * 8))
-                    })
-            }
-            Self::InstalledQueryBasis { authority } => authority.identity().as_u64(),
             Self::SettledQueryBinding {
                 view_binding_id,
                 query_binding_identity,
@@ -195,8 +177,6 @@ impl UiGraphWorldProfile {
             Self::TestCertification { .. } => {
                 stable_text_digest("graph-world-family:test-certification")
             }
-            Self::QuerySnapshotBasis { .. } => stable_text_digest("graph-world-family:query"),
-            Self::InstalledQueryBasis { .. } => stable_text_digest("graph-world-family:query"),
             Self::SettledQueryBinding { .. } => {
                 stable_text_digest("graph-world-family:settled-query-binding")
             }

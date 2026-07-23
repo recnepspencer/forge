@@ -53,7 +53,8 @@ fn bind(
     foundation::ObservationLaneWitness,
 > {
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(domain, ReadVertex)
         .unwrap()
@@ -85,15 +86,4 @@ fn native_id_request(
     let request = builder.build().unwrap();
     let key = request.resolve_native_key(&selection).unwrap().into_key();
     (request, key)
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

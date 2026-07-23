@@ -19,7 +19,6 @@ const RESPONSIBILITY_ROOTS: &[&str] = &[
     "crates/worth-ui-runtime/src/runtime/planning/plan_topology/region",
     "crates/worth-ui-runtime/src/runtime/execution/canvas_spatial_lane",
     "crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane",
-    "crates/worth-ui-query-binding/src/prerequisites",
 ];
 
 const REQUIRED_RESPONSIBILITY_HOMES: &[&str] = &[
@@ -48,9 +47,6 @@ const REQUIRED_RESPONSIBILITY_HOMES: &[&str] = &[
     "crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane/plan_contract",
     "crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane/frame_execution",
     "crates/worth-ui-runtime/src/runtime/execution/realtime_overlay_lane/renderer_surface",
-    "crates/worth-ui-query-binding/src/prerequisites/basis",
-    "crates/worth-ui-query-binding/src/prerequisites/measurement",
-    "crates/worth-ui-query-binding/src/prerequisites/allocation",
 ];
 
 #[test]

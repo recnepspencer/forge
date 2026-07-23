@@ -63,6 +63,12 @@ impl WorthQueryReadDeclaration {
         }
     }
 
+    pub(crate) fn declarative_request(
+        &self,
+    ) -> &crate::declarative_live::DeclarativeLiveQueryRequest {
+        self.intent.declarative_request()
+    }
+
     /// Split one declaration into the two single-use observations required by
     /// Query-owned comparison execution.
     ///

@@ -1,9 +1,8 @@
 use crate::admission::{UiAdmissionReport, UiLegalityPosture};
 use crate::obligations::inspection::{
-    prerequisite_sources_from_target, query_prerequisite_evidence_from_target,
-    UiObligationEvidenceAuthoritySource, UiObligationEvidenceDecision,
-    UiObligationEvidenceDenialPosture, UiObligationEvidenceHandle, UiObligationEvidenceHandleKind,
-    UiObligationEvidenceRecord, UiObligationEvidenceRecordInput,
+    prerequisite_sources_from_target, UiObligationEvidenceAuthoritySource,
+    UiObligationEvidenceDecision, UiObligationEvidenceDenialPosture, UiObligationEvidenceHandle,
+    UiObligationEvidenceHandleKind, UiObligationEvidenceRecord, UiObligationEvidenceRecordInput,
     UiObligationLegalityReasonEvidence,
 };
 
@@ -40,8 +39,6 @@ fn admission_record(report: &UiAdmissionReport) -> UiObligationEvidenceRecord {
         denial_posture: legality_reason.and_then(denial_posture_from_legality_reason),
         selection_reasons: Box::new([]),
         prerequisite_sources: prerequisite_sources_from_target(target).into_boxed_slice(),
-        query_prerequisite_evidence: query_prerequisite_evidence_from_target(target)
-            .into_boxed_slice(),
         non_selection_reason: None,
         legality_reason,
     })

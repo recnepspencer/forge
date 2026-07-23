@@ -24,10 +24,6 @@ pub(super) fn selection_target_for_touch(
     )
     .with_selection_budget(target.selection_budget());
 
-    if let Some(query_prerequisites) = target.query_prerequisites() {
-        selection_target = selection_target.with_query_prerequisites(query_prerequisites.clone());
-    }
-
     if let Some(host_capability_report) = target.host_capability_report() {
         selection_target =
             selection_target.with_host_capability_report(host_capability_report.clone());

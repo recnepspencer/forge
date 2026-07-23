@@ -7,10 +7,6 @@ pub enum UiAllocationInvalidationTarget {
         sample: crate::runtime::UiResizePreviewSample,
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
     },
-    QueryProjection {
-        basis: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAllocationInvalidationBasis,
-        target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
-    },
     SettledQueryFact {
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
     },

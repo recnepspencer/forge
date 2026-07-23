@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use super::conditional_node_contract::node;
 use super::installed_operation_fixture::{
@@ -28,7 +28,8 @@ fn failed_conditional_compute_retains_exact_lower_runtime_work() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -70,15 +71,4 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
         self.0.fetch_add(1, Ordering::SeqCst);
         Err("declared compute failed".into())
     }
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

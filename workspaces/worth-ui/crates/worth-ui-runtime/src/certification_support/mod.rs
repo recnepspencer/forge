@@ -12,8 +12,8 @@ mod touch_origin_source;
 
 pub use crate::admission::{
     UiMeasurementAdmissionPosture, UiMeasurementCapabilityGateReason,
-    UiMeasurementUnsupportedReason, UiQueryMeasurementBasisAuthority,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
+    UiMeasurementUnsupportedReason, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
 };
 pub use crate::declaration::UiDeclaredMeasurementMode;
 pub(crate) use activation_interruption::interrupt_if_armed;

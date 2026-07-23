@@ -22,7 +22,8 @@ fn completed_workflow_closure_retains_declared_and_realized_roles_at_exact_d_cos
     let mut workspace = mutation_workflow_workspace("dependency-impact-workflow").unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let trace = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(MutationFamily)
         .bind(&installed, WorkflowMutation)
         .unwrap()
@@ -72,8 +73,7 @@ fn completed_workflow_closure_retains_declared_and_realized_roles_at_exact_d_cos
 #[test]
 fn certification_replay_preserves_the_compiled_workflow_closure() {
     let mut workspace = workflow_workspace("dependency-impact-replay").unwrap();
-    let basis = observation_basis();
-    let original = bind_workflow(&workspace, basis.clone())
+    let original = bind_workflow(&workspace)
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let original_closure = original.semantic_aspect_dependency_closure().unwrap();
@@ -81,7 +81,7 @@ fn certification_replay_preserves_the_compiled_workflow_closure() {
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
-        bind_workflow(&workspace, basis),
+        bind_workflow(&workspace),
         intent(),
         &mut workspace,
     )
@@ -299,7 +299,8 @@ pub(super) fn bind_direct(
     foundation::ObservationLaneWitness,
 > {
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap()
@@ -359,7 +360,6 @@ pub(super) fn closure_summary(
 
 fn bind_workflow(
     workspace: &runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     WorkflowRead,
@@ -368,29 +368,9 @@ fn bind_workflow(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
-        .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-pub(super) fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
         .unwrap()
 }

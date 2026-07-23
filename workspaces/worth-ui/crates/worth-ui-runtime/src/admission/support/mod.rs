@@ -10,8 +10,8 @@ pub use ui_measurement_admission::{
 };
 pub(crate) use ui_query_measurement_eligibility::UiQueryMeasurementEligibilityInput;
 pub use ui_query_measurement_eligibility::{
-    UiQueryMeasurementBasisAuthority, UiQueryMeasurementEligibility,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
+    UiQueryMeasurementEligibility, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
 };
 pub use ui_support_posture::{UiSupportPosture, UiSupportReason};
 pub use ui_support_snapshot::UiSupportSnapshot;

@@ -7,7 +7,7 @@ use worth_query::facade::domain;
 use worth_query_declaration::facade::authoring::{
     AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField,
     CollectionQueryBuilder, CollectionResultShapeBuilder, DetailQueryBuilder,
-    DetailResultShapeBuilder, RootEntityKey,
+    DetailResultShapeBuilder, OrderingSelector, RootEntityKey,
 };
 use worth_query_declaration::facade::binding::QueryBindingDescriptor;
 use worth_query_declaration::facade::canonicalization::canonicalize_request;
@@ -140,6 +140,30 @@ pub(crate) fn canonical_collection_bundle(
     let selector = AspectFieldSelector::new("identity", "id").unwrap();
     let query = CollectionQueryBuilder::new(RootEntityKey::new(root).unwrap())
         .project(selector)
+        .build()
+        .unwrap()
+        .into_raw();
+    let shape = CollectionResultShapeBuilder::new()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap()
+        .into_raw();
+    canonicalize_request(
+        AuthoredQueryBundleRequest::for_ordinary_read(query, shape, QueryBindingDescriptor::new())
+            .unwrap(),
+    )
+    .unwrap()
+}
+
+pub(crate) fn canonical_ordered_collection_bundle(
+    root: &str,
+    ordering_aspect: &str,
+    ordering_field: &str,
+) -> worth_query_declaration::facade::canonicalization::CanonicalQueryBundle {
+    let query = CollectionQueryBuilder::new(RootEntityKey::new(root).unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .project(AspectFieldSelector::new(ordering_aspect, ordering_field).unwrap())
+        .order_by(OrderingSelector::ascending(ordering_aspect, ordering_field).unwrap())
         .build()
         .unwrap()
         .into_raw();

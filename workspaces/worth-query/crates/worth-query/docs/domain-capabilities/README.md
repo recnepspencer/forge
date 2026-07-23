@@ -80,6 +80,7 @@ are not alternative setup roots.
 
 - [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
 - [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)
+- [Installed Operation Certification Kit](./certification/installed-operation-certification-kit.md)
 - [Installed Domain Closeout Evidence](./platform-entry-closeout.md)
 - [Domain Capability Documentation Certification](./public-doc-coverage.md)
 
