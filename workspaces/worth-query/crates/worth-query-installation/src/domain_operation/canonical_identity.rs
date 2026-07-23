@@ -1,5 +1,7 @@
+mod conditional_nodes;
 mod input_and_graph_contracts;
 mod lifecycle_and_support_contracts;
+mod workflow_contract;
 
 use sha2::{Digest, Sha256};
 
@@ -19,6 +21,7 @@ pub(super) fn canonical_operation_identity(
         &identity.version().to_string(),
     );
     input_and_graph_contracts::hash_input_and_graph_contracts(&mut hasher, semantics);
+    workflow_contract::hash_workflow_contract(&mut hasher, &semantics.workflow);
     lifecycle_and_support_contracts::hash_lifecycle_and_support_contracts(&mut hasher, semantics);
     format!("{:x}", hasher.finalize())
 }

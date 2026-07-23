@@ -21,7 +21,7 @@ pub fn read_only(
     workspace
         .capture_ordinary_preview_authority(label, WorthQueryEffectPolicy::DeriveOnly)
         .map(|authority| WorthQueryReadOnlyPreviewContext { authority })
-        .map_err(|error| workflow::WorthQueryWorkflowContextStop::from_runtime(error))
+        .map_err(workflow::WorthQueryWorkflowContextStop::from_runtime)
 }
 
 pub fn promotion(

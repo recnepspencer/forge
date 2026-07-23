@@ -88,7 +88,7 @@ impl WorthQueryRuntimeDownstreamDeliveryContract {
             aggregate_support_posture(durable_resume_rows.iter().map(|row| row.posture()));
         let runtime_resume_support_identity = lower_runtime_support_row_identity(runtime_resume);
         let durable_resume_support_identity =
-            lower_runtime_support_rows_aggregate_identity(durable_resume_rows.into_iter());
+            lower_runtime_support_rows_aggregate_identity(durable_resume_rows);
         let runtime_resume_support_status = runtime_resume.posture();
         let contract_identity = runtime_downstream_delivery_contract_identity(
             backend_posture,

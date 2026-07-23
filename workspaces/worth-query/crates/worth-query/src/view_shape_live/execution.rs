@@ -115,10 +115,7 @@ fn execute_live_view_shape_change_inner(
             counters,
         );
     }
-    let core_execution = match core_execution {
-        Ok(execution) => execution,
-        Err(error) => return Err(error.into()),
-    };
+    let core_execution = core_execution?;
 
     let patch_envelope = match (family, core_execution.patch_envelope().payload()) {
         (LiveViewShapeFamily::Table, LivePatchPayload::OrderedCollection(patch)) => {

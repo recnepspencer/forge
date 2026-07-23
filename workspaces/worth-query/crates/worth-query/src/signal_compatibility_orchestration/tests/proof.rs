@@ -273,7 +273,7 @@ fn admitted_same_world_different_handle(
     proof_signal_context(SharedIdentityDifferentHandleWorld)
 }
 
-fn local_input<I: WorthQueryDeclarationInput<SignalDomain>>(
+fn local_input<I>(
     handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         SignalDomain,
         SignalWorld,
@@ -284,7 +284,7 @@ fn local_input<I: WorthQueryDeclarationInput<SignalDomain>>(
     I,
 >
 where
-    I: LocalSignalInput,
+    I: WorthQueryDeclarationInput<SignalDomain> + LocalSignalInput,
 {
     let envelope = handle
         .declare_review_progress_describe_plan_receipt_and_envelope(I::new_local(id))

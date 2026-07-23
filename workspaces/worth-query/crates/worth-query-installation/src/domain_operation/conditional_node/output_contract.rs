@@ -85,26 +85,8 @@ pub(crate) fn output_token(output: &WorthQueryConditionalNodeOutput) -> String {
             format!("operation-output:{}", projection_role.as_str())
         }
         WorthQueryConditionalNodeOutput::WorkflowStageOutput { contract } => {
-            format!(
-                "workflow-stage-output:{}",
-                workflow_value_contract_name(*contract)
-            )
+            format!("workflow-stage-output:{}", contract.canonical_token())
         }
-    }
-}
-
-fn workflow_value_contract_name(
-    contract: crate::domain_operation::WorthQueryWorkflowValueContract,
-) -> &'static str {
-    use crate::domain_operation::WorthQueryWorkflowValueContract as Contract;
-    match contract {
-        Contract::NotRequired => "not-required",
-        Contract::Bool => "bool",
-        Contract::I64 => "i64",
-        Contract::U64 => "u64",
-        Contract::Text => "text",
-        Contract::EntityIdentity => "entity-identity",
-        Contract::Projection => "projection",
     }
 }
 

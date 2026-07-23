@@ -224,7 +224,7 @@ fn stale_conditional_installation_stops_before_lowering_or_signal_work() {
     assert_eq!(stale.counters().planning_attempts, 0);
 }
 
-fn bind<'a>(
+fn bind(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
 ) -> domain::WorthQueryBoundDomainOperation<

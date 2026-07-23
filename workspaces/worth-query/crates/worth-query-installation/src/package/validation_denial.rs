@@ -10,6 +10,8 @@ pub enum WorthQueryPortablePackageValidationDenialKind {
     DuplicateDefinition,
     ConflictingDefinition,
     InvalidDomainOperation,
+    DuplicateArtifactContract,
+    ConflictingArtifactContract,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -89,6 +91,22 @@ impl WorthQueryPortablePackageValidationDenial {
         Self::new(
             WorthQueryPortablePackageValidationDenialKind::InvalidDomainOperation,
             Some(WorthQueryPortableDefinitionKind::DomainOperation),
+            subject,
+        )
+    }
+
+    pub(super) fn duplicate_artifact_contract(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::DuplicateArtifactContract,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conflicting_artifact_contract(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConflictingArtifactContract,
+            None,
             subject,
         )
     }

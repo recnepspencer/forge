@@ -189,7 +189,7 @@ mod tests {
             "consequence-aftermath",
             "explanation-inspection",
         ] {
-            assert!(categories.iter().any(|seen| *seen == category));
+            assert!(categories.contains(&category));
         }
     }
 

@@ -1,8 +1,11 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+mod artifact_contract_admission;
+mod artifact_contract_authority;
 mod authority;
 mod authority_validation;
+mod construction;
 mod denial;
 mod index_identity;
 mod rebuild_report;
@@ -16,13 +19,12 @@ pub use rebuild_report::{
 };
 
 use crate::admission::WorthQueryAdmittedPortableDomainPackage;
+use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::WorthQueryValidatedDomainOperation;
 use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
 use crate::installed_domain_operation::WorthQueryInstalledDomainOperationAuthority;
 use crate::installed_operation::WorthQueryInstalledOperationAuthority;
 use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
-
-use index_identity::{authority_nonce, index_identity};
 
 #[derive(Debug)]
 struct WorthQueryInstalledPackageRecord {
@@ -38,95 +40,13 @@ pub struct WorthQueryInstalledPackageIndex {
     definitions:
         BTreeMap<(WorthQueryPortableDefinitionKind, String, String), WorthQueryPortableDefinition>,
     domain_operations: BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
+    artifact_contracts: BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
     identity: String,
     counters: WorthQueryInstalledPackageIndexCounters,
     indexed_operation_lookups: AtomicUsize,
 }
 
 impl WorthQueryInstalledPackageIndex {
-    pub fn build(
-        runtime: WorthQueryInstallationRuntimeIdentity,
-        generation: WorthQueryInstallationGeneration,
-        packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
-    ) -> Result<Self, WorthQueryInstalledPackageIndexDenial> {
-        let mut records = BTreeMap::<String, WorthQueryInstalledPackageRecord>::new();
-        let mut definitions = BTreeMap::new();
-        let mut domain_operations = BTreeMap::new();
-        let mut counters = WorthQueryInstalledPackageIndexCounters::default();
-
-        for package in packages {
-            let owner = package.package().domain_identity().owner().to_string();
-            counters.package_rows_examined += 1;
-            if let Some(existing) = records.get(&owner) {
-                if existing
-                    .package
-                    .package()
-                    .has_same_authoritative_meaning(package.package())
-                {
-                    if existing.package.has_same_admission_authority(&package) {
-                        counters.equivalent_packages_converged += 1;
-                        continue;
-                    }
-                    return Err(WorthQueryInstalledPackageIndexDenial::new(
-                        WorthQueryInstalledPackageIndexDenialKind::ConflictingAdmissionProfile,
-                        owner,
-                    ));
-                }
-                return Err(WorthQueryInstalledPackageIndexDenial::new(
-                    WorthQueryInstalledPackageIndexDenialKind::ConflictingPackage,
-                    owner,
-                ));
-            }
-
-            for definition in package.package().definitions() {
-                counters.definition_rows_examined += 1;
-                admit_definition(&mut definitions, &owner, definition)?;
-            }
-            for operation in package.package().validated_domain_operations() {
-                counters.domain_operation_rows_examined += 1;
-                domain_operations.insert(
-                    (owner.clone(), operation.definition().identity().slot()),
-                    operation.clone(),
-                );
-            }
-
-            let authority_nonce = authority_nonce(
-                &runtime,
-                generation,
-                package.package().identity(),
-                package.admission_identity(),
-            );
-            records.insert(
-                owner,
-                WorthQueryInstalledPackageRecord {
-                    package,
-                    authority_nonce,
-                },
-            );
-        }
-
-        counters.installed_package_count = records.len();
-        counters.installed_definition_count = definitions.len();
-        counters.installed_domain_operation_count = domain_operations.len();
-        let identity = index_identity(
-            &runtime,
-            generation,
-            &records,
-            &definitions,
-            &domain_operations,
-        );
-        Ok(Self {
-            runtime,
-            generation,
-            packages: records,
-            definitions,
-            domain_operations,
-            identity,
-            counters,
-            indexed_operation_lookups: AtomicUsize::new(0),
-        })
-    }
-
     pub fn identity(&self) -> &str {
         &self.identity
     }
@@ -141,6 +61,10 @@ impl WorthQueryInstalledPackageIndex {
 
     pub fn installed_domain_operation_count(&self) -> usize {
         self.domain_operations.len()
+    }
+
+    pub fn installed_artifact_contract_count(&self) -> usize {
+        self.artifact_contracts.len()
     }
 
     pub fn indexed_operation_lookups(&self) -> usize {
@@ -267,32 +191,6 @@ impl WorthQueryInstalledPackageIndex {
             rebuilt.counters,
         )
     }
-}
-
-fn admit_definition(
-    definitions: &mut BTreeMap<
-        (WorthQueryPortableDefinitionKind, String, String),
-        WorthQueryPortableDefinition,
-    >,
-    owner: &str,
-    definition: &WorthQueryPortableDefinition,
-) -> Result<(), WorthQueryInstalledPackageIndexDenial> {
-    let key = (
-        definition.kind(),
-        owner.to_string(),
-        definition.slot().to_string(),
-    );
-    if let Some(existing) = definitions.get(&key) {
-        if existing == definition {
-            return Ok(());
-        }
-        return Err(WorthQueryInstalledPackageIndexDenial::new(
-            WorthQueryInstalledPackageIndexDenialKind::ConflictingDefinition,
-            definition.slot(),
-        ));
-    }
-    definitions.insert(key, definition.clone());
-    Ok(())
 }
 
 #[cfg(test)]

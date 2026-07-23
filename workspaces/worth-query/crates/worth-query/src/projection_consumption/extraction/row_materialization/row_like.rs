@@ -67,8 +67,8 @@ pub(in crate::projection_consumption::extraction) fn extract_bridge_row_set_fact
             Ok((
                 row.row_identity().as_str(),
                 row.fields()
-                    .iter()
-                    .map(|(_key, bridge_field)| {
+                    .values()
+                    .map(|bridge_field| {
                         let value = match bridge_field.validated_value().payload().view() {
                             ContractValidatedAspectValueView::Scalar(value) => {
                                 ConsumedNativeValue::scalar(value.clone())

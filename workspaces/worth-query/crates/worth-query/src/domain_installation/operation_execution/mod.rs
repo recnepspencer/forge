@@ -78,6 +78,8 @@ mod workflow_semantic_value;
 mod workflow_stage_admission;
 #[path = "workflow_execution/evidence/stage_denial.rs"]
 mod workflow_stage_denial;
+#[path = "workflow_execution/progression/stage_evidence_validation.rs"]
+mod workflow_stage_evidence_validation;
 #[path = "workflow_execution/contract/stage_execution_context.rs"]
 mod workflow_stage_execution_context;
 #[path = "workflow_execution/evidence/stage_receipt.rs"]

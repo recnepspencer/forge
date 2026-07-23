@@ -55,7 +55,7 @@ fn lowered_merge_declaration_can_be_inspected_in_query_shape() {
     let inspection =
         inspect_merge_conflicts(&inspection_declaration, &lowered, &inspection_artifact)
             .expect("inspection should succeed");
-    assert!(inspection.rows().len() >= 1);
+    assert!(!inspection.rows().is_empty());
     let source_addition_row = inspection
         .rows()
         .iter()
@@ -245,7 +245,7 @@ fn post_merge_inspection_denies_non_authoritative_mutation_outcomes() {
     let authority_binding_identity = binding.basis_identity();
     let lowered = lower_mutation_intent_declaration(
         &declaration,
-        &authority_binding_identity,
+        authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields:

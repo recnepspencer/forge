@@ -44,7 +44,7 @@ fn graph_identity_and_cost_postures_are_real_binding_requirements() {
                 domain::WorthQueryGraphProjectionPosture::NativeProjection,
             ))
             .graph_participation_provider(RemoteB, SelectiveProvider::new(&log, None))
-            .workspace(&format!("graph-contract-{name}"))
+            .workspace(format!("graph-contract-{name}"))
             .unwrap();
         assert_graph_contract_denial(&workspace, &log, name);
     }

@@ -1,0 +1,8 @@
+# WORTH uses explicit semantic inputs for proof construction and typed outcome
+# topologies whose variants intentionally carry complete recovery evidence.
+# Keep these generic Clippy heuristics bounded above the largest reviewed
+# ordinary surface; repository-specific function scrutiny and the 400-line
+# guard remain the composition enforcement.
+too-many-arguments-threshold = 32
+enum-variant-size-threshold = 32768
+type-complexity-threshold = 512

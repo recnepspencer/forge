@@ -295,8 +295,8 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
     );
     assert_eq!(resolution_map.len(), 8);
     assert_graph_composition_resolution_snapshot(
-        &resolution_map,
-        &vec![
+        resolution_map,
+        &[
             (
                 1,
                 Some("target.id".to_string()),
@@ -407,8 +407,8 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
                 lineage.aggregate_continuity_resolution_digest()
             );
             assert_graph_composition_resolution_maps_match(
-                &inspection.graph_composition_resolution_map(),
-                &resolution_map,
+                inspection.graph_composition_resolution_map(),
+                resolution_map,
             );
             assert_eq!(
                 inspection.component_operations()[7]

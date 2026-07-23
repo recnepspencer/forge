@@ -50,7 +50,7 @@ pub(crate) fn orchestrate_progressed_declaration_with_contributions_checked_on_h
         Err(outcome) => return outcome,
     };
     let linked = linked_artifacts_for_envelope(&declaration.envelope);
-    let intent_results = process_contributions::<D, I>(
+    let intent_results = process_contributions(
         declaration.target.clone(),
         declaration.declaration_aspect_record.clone(),
         contributions,

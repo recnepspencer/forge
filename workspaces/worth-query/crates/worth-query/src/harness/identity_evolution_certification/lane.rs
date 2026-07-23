@@ -71,7 +71,7 @@ impl IdentityEvolutionCertificationLane {
         evidence: &IdentityEvolutionCertificationResultEvidence,
         inspector_identity: InspectorIdentityArtifact,
     ) -> Self {
-        let replay = compare_identity_evolution_result_replay(&evidence, &evidence);
+        let replay = compare_identity_evolution_result_replay(evidence, evidence);
         Self {
             query_digest: evidence.query_digest().as_str().to_string(),
             basis_digest: evidence.basis_digest().as_str().to_string(),

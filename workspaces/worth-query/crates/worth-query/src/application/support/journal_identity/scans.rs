@@ -50,7 +50,7 @@ pub fn scan_journal_identity_required_pattern_failures(
             row.required_patterns()
                 .iter()
                 .filter(|pattern| !path_contains(workspace_root, row.path(), pattern))
-                .map(|pattern| WorthQueryJournalIdentityScanFailure::new(row.path(), *pattern))
+                .map(|pattern| WorthQueryJournalIdentityScanFailure::new(row.path(), pattern))
                 .collect::<Vec<_>>()
         })
         .collect()
@@ -70,7 +70,7 @@ fn scan_patterns(
     patterns
         .iter()
         .filter(|pattern| contents.contains(**pattern))
-        .map(|pattern| WorthQueryJournalIdentityScanFailure::new(relative_path, *pattern))
+        .map(|pattern| WorthQueryJournalIdentityScanFailure::new(relative_path, pattern))
         .collect()
 }
 

@@ -250,18 +250,3 @@ pub(super) fn value_family_name(
         WorthQueryQuantityValueFamily::Float64 => "float64",
     }
 }
-
-pub(super) fn workflow_value_contract_name(
-    value: crate::domain_operation::WorthQueryWorkflowValueContract,
-) -> &'static str {
-    use crate::domain_operation::WorthQueryWorkflowValueContract as Contract;
-    match value {
-        Contract::NotRequired => "not-required",
-        Contract::Bool => "bool",
-        Contract::I64 => "i64",
-        Contract::U64 => "u64",
-        Contract::Text => "text",
-        Contract::EntityIdentity => "entity-identity",
-        Contract::Projection => "projection",
-    }
-}

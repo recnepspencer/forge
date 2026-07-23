@@ -82,6 +82,13 @@ pub(super) fn canonical_identity(
             operation.canonical_identity(),
         );
     }
+    for contract in &package.artifact_contracts {
+        hash_text_field(
+            &mut hasher,
+            "artifact-contract-identity",
+            contract.identity().as_str(),
+        );
+    }
     for contribution in &package.contributions {
         hash_text_field(&mut hasher, "contribution", contribution.as_str());
     }

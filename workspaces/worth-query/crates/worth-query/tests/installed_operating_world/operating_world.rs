@@ -209,14 +209,11 @@ fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
     let executed = bound.execute((), &mut workspace).unwrap();
     assert_eq!(executed.graph_receipts().len(), 2);
-    assert_eq!(
-        executed
-            .graph_receipts()
-            .iter()
-            .find(|receipt| receipt.role() == "remote-a")
-            .is_some_and(|receipt| receipt.has_projection_material()),
-        true
-    );
+    assert!(executed
+        .graph_receipts()
+        .iter()
+        .find(|receipt| receipt.role() == "remote-a")
+        .is_some_and(|receipt| receipt.has_projection_material()));
     assert_eq!(
         executed.warnings(),
         [domain::WorthQueryOperationExecutionWarning::Advisory(

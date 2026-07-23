@@ -98,6 +98,16 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 result_large_err = "allow"
+# Phase-carried counter proofs are incremented where work occurs; a single
+# initializer would conceal the phase that incurred each cost.
+field_reassign_with_default = "allow"
+# Exported outcome vocabulary keeps domain qualifiers, and stable nested
+# topology may repeat a semantic root when child responsibilities differ.
+enum_variant_names = "allow"
+module_inception = "allow"
+# Domain `from_*` transitions may borrow the authority-bearing receiver; they
+# are not collection-conversion conventions.
+wrong_self_convention = "allow"
 
 # ---- Profile tuning ----
 # Dev/test builds: opt-level 0 for workspace crates (fast iteration),

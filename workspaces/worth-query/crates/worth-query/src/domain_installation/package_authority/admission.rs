@@ -25,6 +25,12 @@ pub enum WorthQueryDomainPackageAdmissionDenialKind {
     DisabledConfiguration,
     DeferredOperatingRequirement,
     UnsupportedOperatingRequirement,
+    UnsupportedArtifactVersion,
+    RetiredArtifactVersion,
+    ArtifactMigrationRequired,
+    AmbiguousArtifactMigration,
+    DeferredArtifactComparator,
+    UnsupportedArtifactComparator,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

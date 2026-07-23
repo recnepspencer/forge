@@ -18,9 +18,14 @@ pub enum WorthQueryWorkflowValue {
 impl WorthQueryWorkflowValue {
     pub(crate) fn satisfies(
         &self,
-        contract: worth_query_installation::facade::WorthQueryWorkflowValueContract,
+        contract: &worth_query_installation::facade::WorthQueryWorkflowValueContract,
     ) -> bool {
         use worth_query_installation::facade::WorthQueryWorkflowValueContract as Contract;
+        if matches!(contract, Contract::InstalledArtifact(_)) {
+            // Phase 1 installs semantic meaning only. Phase 2 introduces the
+            // runtime-affine managed handle that can satisfy this edge.
+            return false;
+        }
         matches!(
             (self, contract),
             (Self::NotRequired, Contract::NotRequired)

@@ -223,7 +223,7 @@ fn build_receipt<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D
         claim_receipt_evidence_boundary_surface(surface),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        materialized_profile.clone(),
+        *materialized_profile,
     )
     .expect("retained crossing truth should materialize a foundational boundary receipt");
     let descriptive_receipt = evidence_ref.receipt().cloned();

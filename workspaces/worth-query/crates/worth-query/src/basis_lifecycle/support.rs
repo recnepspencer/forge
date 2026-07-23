@@ -212,7 +212,7 @@ fn support_decision_for(family: BasisFamily, operation_lane: &'static str) -> Ba
                 posture: *posture,
                 matched_row: Some(BasisLifecycleSupportRow::new(
                     *row_family,
-                    *row_lane,
+                    row_lane,
                     *posture,
                 )),
                 rows_consulted,

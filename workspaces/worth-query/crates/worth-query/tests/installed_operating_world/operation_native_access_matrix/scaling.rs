@@ -69,9 +69,11 @@ struct CaseCounters {
 
 fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: bool) -> CaseCounters {
     let mut workspace = matrix_workspace(name, rows, unrelated_world);
-    let unrelated_views = unrelated_world
-        .then(|| install_unrelated_views(&mut workspace, name))
-        .unwrap_or_default();
+    let unrelated_views = if unrelated_world {
+        install_unrelated_views(&mut workspace, name)
+    } else {
+        Default::default()
+    };
     assert_eq!(unrelated_views.len(), usize::from(unrelated_world) * 8);
     if unrelated_world {
         assert_unrelated_domains_installed(&workspace);

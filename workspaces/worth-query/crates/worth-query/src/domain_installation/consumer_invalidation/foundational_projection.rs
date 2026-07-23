@@ -76,7 +76,7 @@ pub(super) fn foundational_projection(
     WorthQueryFoundationalInvalidationProjection {
         scopes,
         locality: delta.locality(),
-        semantic_boundary: semantic_boundary.clone(),
+        semantic_boundary,
         provenance: super::foundational_identity::provenance(semantic_boundary, freshness),
     }
 }

@@ -57,7 +57,7 @@ impl WorthQueryConsumerResidueAudit {
     ) -> Self {
         let root = root.into();
         self.required_roots.push(root.clone());
-        self.allowed_query_owned_roots.push(root.into());
+        self.allowed_query_owned_roots.push(root);
         self
     }
 

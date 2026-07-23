@@ -96,6 +96,24 @@ fn map_admission_denial(
         WorthQueryInstallationAdmissionDenialKind::UnsupportedOperatingRequirement => {
             WorthQueryDomainPackageAdmissionDenialKind::UnsupportedOperatingRequirement
         }
+        WorthQueryInstallationAdmissionDenialKind::UnsupportedArtifactVersion => {
+            WorthQueryDomainPackageAdmissionDenialKind::UnsupportedArtifactVersion
+        }
+        WorthQueryInstallationAdmissionDenialKind::RetiredArtifactVersion => {
+            WorthQueryDomainPackageAdmissionDenialKind::RetiredArtifactVersion
+        }
+        WorthQueryInstallationAdmissionDenialKind::ArtifactMigrationRequired => {
+            WorthQueryDomainPackageAdmissionDenialKind::ArtifactMigrationRequired
+        }
+        WorthQueryInstallationAdmissionDenialKind::AmbiguousArtifactMigration => {
+            WorthQueryDomainPackageAdmissionDenialKind::AmbiguousArtifactMigration
+        }
+        WorthQueryInstallationAdmissionDenialKind::DeferredArtifactComparator => {
+            WorthQueryDomainPackageAdmissionDenialKind::DeferredArtifactComparator
+        }
+        WorthQueryInstallationAdmissionDenialKind::UnsupportedArtifactComparator => {
+            WorthQueryDomainPackageAdmissionDenialKind::UnsupportedArtifactComparator
+        }
     };
     WorthQueryDomainPackageAdmissionDenial::new(kind, denial.subject())
 }

@@ -143,30 +143,31 @@ fn bound_query_facade_installs_correspondence_with_operation_authority() {
         )
         .unwrap();
     let (bridge, publication_request) = correspondence_bridge(registration);
-    let mut graph_binding = bridge.bind_signal_graph(&mut signal_graph).unwrap();
+    {
+        let mut graph_binding = bridge.bind_signal_graph(&mut signal_graph).unwrap();
 
-    let worth_proof::TransitionOutcome::Success(installed) = operation
-        .install_semantic_correspondence(
-            geometry_node_location(),
-            0,
-            &graph_participation,
-            Some(fixture_record_identity()),
-            &mut graph_binding,
-        )
-    else {
-        panic!("Query should retain the installed correspondence authority")
-    };
-    assert_eq!(installed.installation_generation(), 1);
-    assert_eq!(installed.target_count(), 1);
-    assert!(!installed.graph_participation_identity().is_empty());
-    let worth_proof::TransitionOutcome::Success(counters) =
-        installed.deliver_authoritative_change(&mut graph_binding, publication_request)
-    else {
-        panic!("the real Relational publication should drive Signal invalidation")
-    };
-    assert_eq!(counters.truth_targets_admitted(), 1);
-    assert_eq!(counters.signal_seeds_emitted(), 1);
-    drop(graph_binding);
+        let worth_proof::TransitionOutcome::Success(installed) = operation
+            .install_semantic_correspondence(
+                geometry_node_location(),
+                0,
+                &graph_participation,
+                Some(fixture_record_identity()),
+                &mut graph_binding,
+            )
+        else {
+            panic!("Query should retain the installed correspondence authority")
+        };
+        assert_eq!(installed.installation_generation(), 1);
+        assert_eq!(installed.target_count(), 1);
+        assert!(!installed.graph_participation_identity().is_empty());
+        let worth_proof::TransitionOutcome::Success(counters) =
+            installed.deliver_authoritative_change(&mut graph_binding, publication_request)
+        else {
+            panic!("the real Relational publication should drive Signal invalidation")
+        };
+        assert_eq!(counters.truth_targets_admitted(), 1);
+        assert_eq!(counters.signal_seeds_emitted(), 1);
+    }
     assert_eq!(
         signal_graph.node_aspect_version(node).unwrap().get(aspect),
         1

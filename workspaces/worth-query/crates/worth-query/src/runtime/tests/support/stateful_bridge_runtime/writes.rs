@@ -333,7 +333,7 @@ pub(super) fn external_row_text_at_path(
     external_row: &NativeExternalRow,
     field_path: &CanonicalFieldPath,
 ) -> Option<String> {
-    match external_row.get(&field_path)? {
+    match external_row.get(field_path)? {
         AspectValue::String(value) => Some(match value {
             worth_foundational::facade::InternedString::Raw(value) => value.clone(),
             worth_foundational::facade::InternedString::Symbol(symbol) => {

@@ -111,9 +111,7 @@ pub(super) fn probe_existing_truth(
         );
         fields.push(field);
     }
-    Ok(WorthQueryExistingTruthProbe::backend_verified(
-        request, fields,
-    )?)
+    WorthQueryExistingTruthProbe::backend_verified(request, fields)
 }
 
 fn authoritative_row<'a>(

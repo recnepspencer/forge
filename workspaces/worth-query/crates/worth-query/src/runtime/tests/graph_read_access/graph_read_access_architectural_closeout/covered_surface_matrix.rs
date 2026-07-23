@@ -244,9 +244,9 @@ fn closeout_authority_workspace_and_family(
     (workspace, family)
 }
 
-fn assert_consumed_access_plan_receipt<'a>(
+fn assert_consumed_access_plan_receipt(
     label: &str,
-    result: &'a WorthQueryReadResult,
+    result: &WorthQueryReadResult,
 ) -> CloseoutAccessReceiptDigestReadout {
     let receipt = result.receipt();
     let plan = receipt

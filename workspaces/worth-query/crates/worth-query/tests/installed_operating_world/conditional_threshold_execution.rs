@@ -128,7 +128,7 @@ fn typed_threshold_uses_authoritative_snapshots_and_signal_owned_comparison() {
     );
 }
 
-fn bind<'a>(
+fn bind(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
 ) -> domain::WorthQueryBoundDomainOperation<

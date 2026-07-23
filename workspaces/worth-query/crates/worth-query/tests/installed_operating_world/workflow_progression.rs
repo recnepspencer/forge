@@ -229,7 +229,7 @@ fn copied_stage_label_is_only_a_candidate_and_cannot_invent_progression() {
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap();
-    let copied_label = format!("{}", "not-an-installed-stage");
+    let copied_label = "not-an-installed-stage".to_string();
     let denial = match run.advance(
         &copied_label,
         domain::WorthQueryWorkflowValue::NotRequired,

@@ -45,9 +45,9 @@ pub(crate) fn admit_boolean_predicate_expression_for_read_graph(
     )
 }
 
-fn admitted_predicate_index<'a>(
-    admitted_predicates: &'a [WorthQueryAdmittedGraphReadPredicateField],
-) -> BTreeMap<AdmittedPredicateKey, &'a WorthQueryAdmittedGraphReadPredicateField> {
+fn admitted_predicate_index(
+    admitted_predicates: &[WorthQueryAdmittedGraphReadPredicateField],
+) -> BTreeMap<AdmittedPredicateKey, &WorthQueryAdmittedGraphReadPredicateField> {
     admitted_predicates
         .iter()
         .map(|field| (AdmittedPredicateKey::from_admitted_field(field), field))

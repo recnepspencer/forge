@@ -71,11 +71,11 @@ impl WorthQueryRuntime {
             installed_target_candidates_selected: targets.len(),
             ..Default::default()
         };
-        for target in targets.iter().cloned() {
+        for target in targets {
             let route = self
                 .installed_live_routes
                 .routes
-                .get_mut(&target)
+                .get_mut(target)
                 .expect("installed owner route index must retain its target");
             let mut routing_work = crate::runtime::WorthQueryLiveMutationRoutingWork {
                 capability_index_lookups: 1,

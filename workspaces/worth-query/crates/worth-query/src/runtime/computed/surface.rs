@@ -17,19 +17,10 @@ use crate::memory_workspace::{
 };
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct WorthQueryDerivedViewMaterialization {
     rows: Vec<WorthQueryRetainedMaterializedRow>,
     published: bool,
-}
-
-impl Default for WorthQueryDerivedViewMaterialization {
-    fn default() -> Self {
-        Self {
-            rows: Vec::new(),
-            published: false,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

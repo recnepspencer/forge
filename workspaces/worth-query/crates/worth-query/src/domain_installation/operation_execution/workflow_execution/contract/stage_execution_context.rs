@@ -77,10 +77,6 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     pub fn predecessor_receipts(&self) -> &[WorthQueryWorkflowPredecessorReceipt<'a>] {
         &self.predecessor_receipts
     }
-    pub(crate) fn effect_workflow_binding(&self) -> &crate::workflow::WorkflowContextBinding {
-        &self.effect_workflow_binding
-    }
-
     pub fn execute_identity_evolution(
         &self,
         establishing_effect: &WorthQueryWorkflowEffectEvidence,
@@ -91,42 +87,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
         let mutation_receipt = establishing_effect
             .mutation_receipt()
             .ok_or(WorthQueryWorkflowStageLineageDenial::RuntimeMutationEvidenceRequired)?;
-        let continuity = mutation_receipt.continuity_mutation_evidence();
-        let (descriptor, lifecycle_target) = match mutation_receipt.mutation_family() {
-            crate::runtime::WorthQueryMutationFamily::Insert => {
-                let target = mutation_receipt.target_entity_identity().ok_or(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                )?;
-                (
-                    crate::identity_evolution::LineageTraversalDescriptor::generated_identity(
-                        target.evidence_identity().as_str().to_owned(),
-                    ),
-                    Some(target.clone()),
-                )
-            }
-            crate::runtime::WorthQueryMutationFamily::Delete => {
-                let target = mutation_receipt.target_entity_identity().ok_or(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                )?;
-                (
-                    crate::identity_evolution::LineageTraversalDescriptor::retired_identity(
-                        target.evidence_identity().as_str().to_owned(),
-                    ),
-                    Some(target.clone()),
-                )
-            }
-            crate::runtime::WorthQueryMutationFamily::Update => (
-                authoritative_continuity_descriptor(continuity.ok_or(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                )?)?,
-                None,
-            ),
-            crate::runtime::WorthQueryMutationFamily::Assertion => {
-                return Err(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                );
-            }
-        };
+        let (descriptor, lifecycle_target) = lineage_traversal(mutation_receipt)?;
         let query =
             crate::identity_evolution::IdentityEvolutionQueryContext::installed_operation_lineage(
                 &self.query_authority,
@@ -141,7 +102,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
                 .map_err(WorthQueryWorkflowStageLineageDenial::IdentityEvolutionAdmission)?;
         crate::identity_evolution::InstalledIdentityEvolutionOutcome::from_execution(
             artifact,
-            continuity.cloned(),
+            mutation_receipt.continuity_mutation_evidence().cloned(),
             lifecycle_target,
             crate::identity_evolution::InstalledIdentityEvolutionBinding {
                 operation_identity: self.operation_identity,
@@ -306,6 +267,53 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
                 && declared.participation
                     == worth_query_installation::facade::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph
         })
+    }
+}
+
+fn lineage_traversal(
+    mutation_receipt: &crate::runtime::WorthQueryWriteReceipt,
+) -> Result<
+    (
+        crate::identity_evolution::LineageTraversalDescriptor,
+        Option<crate::memory_workspace::WorthQueryEntityIdentity>,
+    ),
+    WorthQueryWorkflowStageLineageDenial,
+> {
+    let required_target = || {
+        mutation_receipt
+            .target_entity_identity()
+            .ok_or(WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired)
+    };
+    match mutation_receipt.mutation_family() {
+        crate::runtime::WorthQueryMutationFamily::Insert => {
+            let target = required_target()?;
+            Ok((
+                crate::identity_evolution::LineageTraversalDescriptor::generated_identity(
+                    target.evidence_identity().as_str().to_owned(),
+                ),
+                Some(target.clone()),
+            ))
+        }
+        crate::runtime::WorthQueryMutationFamily::Delete => {
+            let target = required_target()?;
+            Ok((
+                crate::identity_evolution::LineageTraversalDescriptor::retired_identity(
+                    target.evidence_identity().as_str().to_owned(),
+                ),
+                Some(target.clone()),
+            ))
+        }
+        crate::runtime::WorthQueryMutationFamily::Update => Ok((
+            authoritative_continuity_descriptor(
+                mutation_receipt.continuity_mutation_evidence().ok_or(
+                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
+                )?,
+            )?,
+            None,
+        )),
+        crate::runtime::WorthQueryMutationFamily::Assertion => {
+            Err(WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired)
+        }
     }
 }
 

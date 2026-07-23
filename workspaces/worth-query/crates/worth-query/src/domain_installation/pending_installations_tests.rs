@@ -135,8 +135,7 @@ fn failed_late_compilation_leaves_every_pending_installation_index_unchanged() {
 
     let denial = pending
         .install(fully_populated_failing_package())
-        .err()
-        .expect("out-of-range invariant lowering must deny installation");
+        .expect_err("out-of-range invariant lowering must deny installation");
 
     assert_eq!(
         denial.kind(),

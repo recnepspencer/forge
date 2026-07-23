@@ -54,7 +54,7 @@ impl<D: 'static, O, F, L: BasisOperationLane>
         counters.sharing_readmission_checks = 1;
         if !delta.sharing.readmits_lease(
             readmission.source_identity,
-            &crate::domain_installation::operation_authority_chain::operation_phase_basis(
+            crate::domain_installation::operation_authority_chain::operation_phase_basis(
                 self.snapshot().bound_operation().authority_proof(),
             ),
             readmission.closure,

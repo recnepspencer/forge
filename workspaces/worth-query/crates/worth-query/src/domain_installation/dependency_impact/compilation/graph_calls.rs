@@ -73,7 +73,7 @@ pub(super) fn realized_calls_match<D, O, F, L: BasisOperationLane>(
             matches!(
                 read.participation,
                 crate::domain_installation::WorthQueryOperationGraphParticipation::SeparateAuthority { .. }
-            ) && active_read_roles.map_or(true, |roles| roles.contains(&read.role))
+            ) && active_read_roles.is_none_or(|roles| roles.contains(&read.role))
         })
         .map(|read| {
             (

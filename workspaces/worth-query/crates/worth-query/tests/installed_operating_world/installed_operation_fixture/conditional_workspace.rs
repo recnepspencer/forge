@@ -212,7 +212,8 @@ fn conditional_package_with_access(
         ReadVertex,
         ReadFamily,
     >::new(base.identity().clone(), semantics);
-    let package = domain::WorthQueryDomainPackage::declare(
+
+    domain::WorthQueryDomainPackage::declare(
         GeometryDomain,
         domain::WorthQueryDomainIdentityDeclaration::new(
             domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
@@ -221,8 +222,7 @@ fn conditional_package_with_access(
         ),
     )
     .operation(operation)
-    .operation_graph_participation::<ReadVertex, ReadFamily, ConditionalModelGraph>("model");
-    package
+    .operation_graph_participation::<ReadVertex, ReadFamily, ConditionalModelGraph>("model")
 }
 
 pub(crate) fn shared_signal_node_workspace(

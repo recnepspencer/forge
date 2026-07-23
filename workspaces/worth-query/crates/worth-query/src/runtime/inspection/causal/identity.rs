@@ -116,23 +116,23 @@ pub(super) fn compose_bridge_causal_envelope_identity(
         .field_shape(WorthQueryEvidenceTag::new("role"), "bridge-causal-envelope")
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("request"),
-            &identity.request_evidence_identity(),
+            identity.request_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("anchor"),
-            &identity.causal_observation_anchor_evidence_identity(),
+            identity.causal_observation_anchor_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("bindings"),
-            &identity.evidence_binding_evidence_identity(),
+            identity.evidence_binding_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("counters"),
-            &identity.counter_evidence_identity(),
+            identity.counter_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("identity"),
-            &identity.envelope_evidence_identity(),
+            identity.envelope_evidence_identity(),
         )
         .seal()
 }
@@ -153,19 +153,19 @@ pub(super) fn compose_bridge_causal_explanation_envelope_identity(
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("admission_summary"),
-            &envelope.admission_summary_evidence_identity(),
+            envelope.admission_summary_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("request"),
-            &envelope.request_evidence_identity(),
+            envelope.request_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("anchor"),
-            &envelope.causal_observation_anchor_evidence_identity(),
+            envelope.causal_observation_anchor_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("envelope"),
-            &envelope.envelope_evidence_identity(),
+            envelope.envelope_evidence_identity(),
         )
         .seal()
 }
@@ -189,19 +189,19 @@ pub(super) fn compose_bridge_causal_envelope_receipt_identity(
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("envelope_identity"),
-            &receipt.envelope_identity_evidence(),
+            receipt.envelope_identity_evidence(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("envelope"),
-            &receipt.envelope_evidence_identity(),
+            receipt.envelope_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("counters"),
-            &receipt.counter_evidence_identity(),
+            receipt.counter_evidence_identity(),
         )
         .field_bridge_retained_evidence_identity(
             WorthQueryEvidenceTag::new("receipt"),
-            &receipt.receipt_evidence_identity(),
+            receipt.receipt_evidence_identity(),
         )
         .seal()
 }

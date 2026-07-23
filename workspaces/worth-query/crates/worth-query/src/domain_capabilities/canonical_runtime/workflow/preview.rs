@@ -199,7 +199,7 @@ where
         &source_label,
         &binding_identity,
         request_identity,
-        &preview_session_identity,
+        preview_session_identity,
         &evaluation_class,
         request_family_label,
     );
@@ -210,7 +210,7 @@ where
         payload,
         &binding_identity,
         request_identity,
-        &preview_session_identity,
+        preview_session_identity,
         &evaluation_class,
         request_family_label,
     );

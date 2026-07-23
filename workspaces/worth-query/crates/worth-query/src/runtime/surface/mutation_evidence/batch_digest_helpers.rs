@@ -182,7 +182,7 @@ fn symbolic_target_reference_identity(
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("symbol"),
-                &reference.symbol().evidence_identity(),
+                reference.symbol().evidence_identity(),
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("resolved_entity"),
@@ -216,7 +216,7 @@ fn symbolic_aspect_resolution_identity(
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("symbol"),
-                &resolution.symbol().evidence_identity(),
+                resolution.symbol().evidence_identity(),
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("resolved_entity"),
@@ -247,7 +247,7 @@ fn continuity_mutation_identity(
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("prior_authority"),
-                &continuity
+                continuity
                     .prior_authoritative_identity()
                     .evidence_identity(),
             )
@@ -260,11 +260,11 @@ fn continuity_mutation_identity(
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("lineage"),
-                &continuity.lineage_digest().evidence_identity(),
+                continuity.lineage_digest().evidence_identity(),
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("continuity_resolution"),
-                &continuity
+                continuity
                     .continuity_resolution_digest()
                     .evidence_identity(),
             );
@@ -305,7 +305,7 @@ fn naming_mutation_identity(
             )
             .field_evidence_identity(
                 WorthQueryEvidenceTag::new("attachment"),
-                &naming.attachment_identity().evidence_identity(),
+                naming.attachment_identity().evidence_identity(),
             );
     if let Some(prior) = naming.prior_authoritative_identity() {
         identity = identity.field_evidence_identity(

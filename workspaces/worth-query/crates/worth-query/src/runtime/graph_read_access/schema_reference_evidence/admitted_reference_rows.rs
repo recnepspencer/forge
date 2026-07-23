@@ -49,7 +49,7 @@ impl WorthQueryAdmittedGraphReadRelation {
         depth: usize,
     ) -> Self {
         Self {
-            relation: relation.into(),
+            relation,
             direction,
             depth,
         }

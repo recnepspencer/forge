@@ -127,11 +127,8 @@ impl WorthQueryContinuityMutationEvidence {
             }
         };
         let prior_authoritative_identity = intent.prior_authoritative_identity().clone();
-        let successor_authoritative_identities = intent
-            .successor_authoritative_identities()
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
+        let successor_authoritative_identities =
+            intent.successor_authoritative_identities().to_vec();
         let basis_binding_digest = basis_binding_identity.map(|identity| {
             WorthQueryMutationEvidenceDigest::source_identity("continuity-basis-binding", identity)
         });

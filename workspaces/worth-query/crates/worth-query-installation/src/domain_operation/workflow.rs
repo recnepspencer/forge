@@ -173,7 +173,7 @@ impl WorthQueryWorkflowCostRole {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum WorthQueryWorkflowValueContract {
     #[default]
     NotRequired,
@@ -183,4 +183,39 @@ pub enum WorthQueryWorkflowValueContract {
     Text,
     EntityIdentity,
     Projection,
+    InstalledArtifact(crate::domain_computation::WorthQueryArtifactContractReference),
+}
+
+impl WorthQueryWorkflowValueContract {
+    pub fn installed_artifact(
+        reference: crate::domain_computation::WorthQueryArtifactContractReference,
+    ) -> Self {
+        Self::InstalledArtifact(reference)
+    }
+
+    pub(crate) const fn canonical_kind(&self) -> &'static str {
+        match self {
+            Self::NotRequired => "not-required",
+            Self::Bool => "bool",
+            Self::I64 => "i64",
+            Self::U64 => "u64",
+            Self::Text => "text",
+            Self::EntityIdentity => "entity-identity",
+            Self::Projection => "projection",
+            Self::InstalledArtifact(_) => "installed-artifact",
+        }
+    }
+
+    pub(crate) fn canonical_token(&self) -> String {
+        match self {
+            Self::InstalledArtifact(reference) => format!(
+                "{}:{}:{}:{}",
+                self.canonical_kind(),
+                reference.family().as_str(),
+                reference.schema_version().get(),
+                reference.protocol_version().get()
+            ),
+            _ => self.canonical_kind().to_string(),
+        }
+    }
 }

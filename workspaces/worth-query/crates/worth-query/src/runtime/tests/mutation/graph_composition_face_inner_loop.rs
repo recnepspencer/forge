@@ -201,8 +201,8 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     );
     assert_eq!(resolution_map.len(), 5);
     assert_graph_composition_resolution_snapshot(
-        &resolution_map,
-        &vec![
+        resolution_map,
+        &[
             (
                 3,
                 Some("loop.id".to_string()),
@@ -305,8 +305,8 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
                 5
             );
             assert_graph_composition_resolution_maps_match(
-                &inspection.graph_composition_resolution_map(),
-                &resolution_map,
+                inspection.graph_composition_resolution_map(),
+                resolution_map,
             );
             assert_eq!(
                 inspection.component_operations()[3]

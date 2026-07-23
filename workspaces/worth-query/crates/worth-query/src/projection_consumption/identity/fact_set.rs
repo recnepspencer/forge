@@ -104,7 +104,7 @@ pub(crate) fn compose_consumed_projection_fact_set_digest(
             )
             .field_shape(
                 WorthQueryEvidenceTag::new("counters"),
-                &compose_extraction_counters_digest(counters),
+                compose_extraction_counters_digest(counters),
             )
             .field_value_sequence(
                 WorthQueryEvidenceTag::new("entity_identity"),

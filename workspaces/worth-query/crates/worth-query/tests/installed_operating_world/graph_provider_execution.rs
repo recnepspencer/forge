@@ -91,7 +91,7 @@ fn every_graph_entrypoint_fails_at_its_exact_boundary_and_commit_precedes_touch(
             SharedCommit,
             SelectiveProvider::commit(&log, commit_failure, vec!["remote-a", "remote-b"]),
         )
-        .workspace(&format!("graph-sabotage-{name}"))
+        .workspace(format!("graph-sabotage-{name}"))
         .unwrap();
         let installed = workspace.domain(GeometryDomain).unwrap();
         let bound = workspace

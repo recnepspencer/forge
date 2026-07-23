@@ -103,6 +103,7 @@ pub(super) fn stage(
     input: domain::WorthQueryWorkflowValueContract,
     output: domain::WorthQueryWorkflowValueContract,
 ) -> domain::WorthQueryPortableWorkflowStage {
+    let produces_projection = matches!(output, domain::WorthQueryWorkflowValueContract::Projection);
     domain::WorthQueryPortableWorkflowStage::new(
         identity,
         predecessors,
@@ -113,14 +114,11 @@ pub(super) fn stage(
     .with_semantics(domain::WorthQueryWorkflowStageSemantics {
         input,
         output,
-        graph_read_roles: matches!(output, domain::WorthQueryWorkflowValueContract::Projection)
+        graph_read_roles: produces_projection
             .then_some("model".into())
             .into_iter()
             .collect(),
-        cost_roles: standard_cost_roles(matches!(
-            output,
-            domain::WorthQueryWorkflowValueContract::Projection
-        )),
+        cost_roles: standard_cost_roles(produces_projection),
         terminal_result_states: terminal
             .then_some(domain::WorthQueryOperationResultState::Ready)
             .into_iter()

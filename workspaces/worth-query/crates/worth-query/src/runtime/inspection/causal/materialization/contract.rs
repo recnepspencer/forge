@@ -108,12 +108,9 @@ fn validate_requested_replay_posture(
     requested_families: &[CausalEvidenceFamily],
     envelope: &BridgeCausalExplanationEnvelope,
 ) -> Result<(), CausalInspectionMaterializationError> {
-    let bridge_replay_requested = requested_families
-        .iter()
-        .any(|family| *family == CausalEvidenceFamily::BridgeReplay);
-    let signal_cursor_requested = requested_families
-        .iter()
-        .any(|family| *family == CausalEvidenceFamily::SignalReplayCursor);
+    let bridge_replay_requested = requested_families.contains(&CausalEvidenceFamily::BridgeReplay);
+    let signal_cursor_requested =
+        requested_families.contains(&CausalEvidenceFamily::SignalReplayCursor);
     if !bridge_replay_requested && !signal_cursor_requested {
         return Ok(());
     }

@@ -44,14 +44,11 @@ fn support_matrix_is_family_aware_for_all_admitted_subscription_families() {
             report.support_posture(),
             &QuerySubscriptionSupportPosture::RuntimeBackedCertified
         );
-        assert_eq!(
-            report
-                .support_matrix()
-                .capability_projection()
-                .label()
-                .is_empty(),
-            false
-        );
+        assert!(!report
+            .support_matrix()
+            .capability_projection()
+            .label()
+            .is_empty());
         assert_eq!(
             report
                 .support_matrix()

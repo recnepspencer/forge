@@ -68,7 +68,7 @@ impl WorthQueryIntentAdmissionRepresentativeFamilyRow {
     }
 
     pub fn posture_detail(&self) -> &'static str {
-        &self.posture_detail
+        self.posture_detail
     }
 
     pub fn row_digest(&self) -> &str {

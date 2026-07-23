@@ -40,16 +40,11 @@ impl WorthQueryContributionIntent {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub enum WorthQueryContributionComposedMaterializationPolicy {
+    #[default]
     None,
     Summary(FoundationalProfileSet),
-}
-
-impl Default for WorthQueryContributionComposedMaterializationPolicy {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

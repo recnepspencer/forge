@@ -1,7 +1,10 @@
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub enum WorthQueryGraphObligationPreflightWitness {
+    #[default]
     Missing,
-    Satisfied { witness_digest: String },
+    Satisfied {
+        witness_digest: String,
+    },
 }
 
 impl WorthQueryGraphObligationPreflightWitness {
@@ -31,11 +34,5 @@ impl WorthQueryGraphObligationPreflightWitness {
 
     pub fn is_satisfied(&self) -> bool {
         matches!(self, Self::Satisfied { .. })
-    }
-}
-
-impl Default for WorthQueryGraphObligationPreflightWitness {
-    fn default() -> Self {
-        Self::Missing
     }
 }

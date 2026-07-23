@@ -8,6 +8,7 @@
 
 mod admission;
 mod canonical_hash_encoding;
+mod domain_computation;
 mod domain_operation;
 mod generation;
 mod installed_domain_operation;
@@ -20,14 +21,41 @@ mod package_requirements;
 #[cfg(test)]
 mod admission_profile_tests;
 #[cfg(test)]
+mod domain_computation_admission_tests;
+#[cfg(test)]
+mod domain_computation_artifact_fixture;
+#[cfg(test)]
+mod domain_computation_authority_tests;
+#[cfg(test)]
+mod domain_computation_canonical_identity_tests;
+#[cfg(test)]
+mod domain_computation_conflict_tests;
+#[cfg(test)]
+mod domain_computation_evolution_tests;
+#[cfg(test)]
+mod domain_computation_occurrence_tests;
+#[cfg(test)]
+mod domain_computation_reproducibility_tests;
+#[cfg(test)]
+mod domain_computation_search_tests;
+#[cfg(test)]
+mod domain_computation_transformation_tests;
+#[cfg(test)]
+mod domain_computation_validation_tests;
+#[cfg(test)]
+mod domain_computation_workflow_closure_tests;
+#[cfg(test)]
+mod domain_computation_workflow_test_support;
+#[cfg(test)]
 mod package_validation_tests;
 
 pub mod facade {
     pub use crate::admission::{
-        WorthQueryAdmittedPortableDomainPackage, WorthQueryInstallationAdmissionDenial,
-        WorthQueryInstallationAdmissionDenialKind, WorthQueryInstallationAdmissionProfile,
-        WorthQueryInstallationSupportStatus,
+        WorthQueryAdmittedPortableDomainPackage, WorthQueryArtifactVersionSupport,
+        WorthQueryInstallationAdmissionDenial, WorthQueryInstallationAdmissionDenialKind,
+        WorthQueryInstallationAdmissionProfile, WorthQueryInstallationSupportStatus,
     };
+    pub use crate::domain_computation::*;
     pub use crate::domain_operation::*;
     pub use crate::generation::{
         WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,

@@ -1,3 +1,4 @@
+mod artifact_closure;
 mod definition;
 mod identity;
 mod validation_denial;
@@ -14,6 +15,7 @@ pub use validation_denial::{
     WorthQueryPortablePackageValidationDenial, WorthQueryPortablePackageValidationDenialKind,
 };
 
+use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::{
     WorthQueryPortableDomainOperationDefinition, WorthQueryValidatedDomainOperation,
 };
@@ -22,6 +24,7 @@ use crate::package_requirements::{
     WorthQueryInstallationCapabilityFamily, WorthQueryInstallationConfigSectionFamily,
     WorthQueryInstallationContributionCategory, WorthQueryInstallationOperatingRequirement,
 };
+use artifact_closure::{reject_artifact_contract_conflicts, validate_workflow_artifact_closure};
 
 #[derive(Clone, Debug)]
 pub struct WorthQueryPortableDomainPackage {
@@ -31,6 +34,7 @@ pub struct WorthQueryPortableDomainPackage {
     operating: Vec<WorthQueryInstallationOperatingRequirement>,
     definitions: Vec<WorthQueryPortableDefinition>,
     domain_operations: Vec<WorthQueryPortableDomainOperationDefinition>,
+    artifact_contracts: Vec<WorthQueryPortableArtifactContract>,
     contributions: Vec<WorthQueryInstallationContributionCategory>,
 }
 
@@ -43,6 +47,7 @@ impl WorthQueryPortableDomainPackage {
             operating: Vec::new(),
             definitions: Vec::new(),
             domain_operations: Vec::new(),
+            artifact_contracts: Vec::new(),
             contributions: Vec::new(),
         }
     }
@@ -78,6 +83,11 @@ impl WorthQueryPortableDomainPackage {
         self
     }
 
+    pub fn artifact_contract(mut self, contract: WorthQueryPortableArtifactContract) -> Self {
+        self.artifact_contracts.push(contract);
+        self
+    }
+
     pub fn permits_contribution(mut self, value: impl Into<String>) -> Self {
         self.contributions
             .push(WorthQueryInstallationContributionCategory::new(value));
@@ -99,6 +109,20 @@ impl WorthQueryPortableDomainPackage {
         self.domain_operations
             .sort_by(|left, right| left.identity().cmp(right.identity()));
         reject_domain_operation_conflicts(&self.domain_operations)?;
+        self.artifact_contracts.sort_by(|left, right| {
+            (
+                left.family(),
+                left.schema_version(),
+                left.protocol_version(),
+            )
+                .cmp(&(
+                    right.family(),
+                    right.schema_version(),
+                    right.protocol_version(),
+                ))
+        });
+        reject_artifact_contract_conflicts(&self.artifact_contracts)?;
+        validate_workflow_artifact_closure(&self.domain_operations, &self.artifact_contracts)?;
         let mut validated_domain_operations = Vec::with_capacity(self.domain_operations.len());
         for operation in self.domain_operations.iter().cloned() {
             let slot = operation.identity().slot();
@@ -170,6 +194,7 @@ impl WorthQueryValidatedPortableDomainPackage {
             && self.operating_requirements() == other.operating_requirements()
             && self.definitions() == other.definitions()
             && self.domain_operations() == other.domain_operations()
+            && self.artifact_contracts() == other.artifact_contracts()
             && self.contribution_policy() == other.contribution_policy()
     }
 
@@ -199,6 +224,10 @@ impl WorthQueryValidatedPortableDomainPackage {
 
     pub fn domain_operations(&self) -> &[WorthQueryPortableDomainOperationDefinition] {
         &self.artifact.payload().domain_operations
+    }
+
+    pub fn artifact_contracts(&self) -> &[WorthQueryPortableArtifactContract] {
+        &self.artifact.payload().artifact_contracts
     }
 
     pub(crate) fn validated_domain_operations(&self) -> &[WorthQueryValidatedDomainOperation] {

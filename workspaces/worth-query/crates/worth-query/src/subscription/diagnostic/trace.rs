@@ -223,9 +223,8 @@ pub fn trace_denied_query_subscription_diagnostics(
         declaration.is_some() || lowering.is_some() || admission.is_some() || support.is_some(),
     )?;
 
-    if selection_context.selection().is_some() {
-        if failure_is_selection_stage(*failure.stage()) {
-            return Err(QuerySubscriptionDiagnosticBundleError::new(
+    if selection_context.selection().is_some() && failure_is_selection_stage(*failure.stage()) {
+        return Err(QuerySubscriptionDiagnosticBundleError::new(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic trace assembly may not bind an admitted family selection context to a family-selection denial",
                 &[
@@ -233,7 +232,6 @@ pub fn trace_denied_query_subscription_diagnostics(
                     format!("failure_stage:{}", failure.stage().as_str()),
                 ],
             ));
-        }
     }
 
     if let Some(declaration) = declaration {

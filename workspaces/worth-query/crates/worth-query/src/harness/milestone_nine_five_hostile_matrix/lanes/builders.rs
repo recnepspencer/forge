@@ -29,7 +29,7 @@ pub fn direct_table_lane(
     let canonical = direct_collection();
     let view = table_view(&canonical);
     let saved = freeze_ordinary_grouped_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);
@@ -57,7 +57,7 @@ pub fn named_scope_table_lane() -> MilestoneNineFiveHostileLaneBundle {
     let composed = named_scope_collection();
     let view = table_view(composed.canonical());
     let saved = freeze_ordinary_grouped_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);
@@ -94,7 +94,7 @@ pub fn direct_detail_live_lane() -> MilestoneNineFiveHostileLaneBundle {
     let canonical = direct_detail();
     let view = detail_view(&canonical);
     let saved = freeze_ordinary_detail_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);
@@ -125,7 +125,7 @@ pub fn template_detail_live_lane() -> MilestoneNineFiveHostileLaneBundle {
     let composed = template_detail();
     let view = detail_view(composed.canonical());
     let saved = freeze_ordinary_detail_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);
@@ -162,7 +162,7 @@ pub fn grouped_ordinary_lane() -> MilestoneNineFiveHostileLaneBundle {
     let canonical = direct_collection();
     let view = grouped_view(&canonical);
     let saved = freeze_ordinary_grouped_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);
@@ -193,7 +193,7 @@ pub fn grouped_preserved_lane() -> MilestoneNineFiveHostileLaneBundle {
     let composed = basis_aware_composed_collection();
     let view = grouped_view(composed.canonical());
     let saved = freeze_future_preserving_grouped_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);
@@ -230,7 +230,7 @@ pub fn template_public_bridge_table_lane() -> MilestoneNineFiveHostileLaneBundle
     let composed = template_collection();
     let view = table_view(composed.canonical());
     let saved = freeze_ordinary_grouped_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);
@@ -265,7 +265,7 @@ pub fn template_public_bridge_table_lane() -> MilestoneNineFiveHostileLaneBundle
 
 pub fn preserved_detail_lane() -> MilestoneNineFiveHostileLaneBundle {
     let saved = freeze_future_preserving_detail_saved_query(
-        &application_support_report().report_digest().to_string(),
+        application_support_report().report_digest(),
         CAPABILITY_IDENTITY,
     );
     let reuse = exact_saved_query_reuse(&saved);

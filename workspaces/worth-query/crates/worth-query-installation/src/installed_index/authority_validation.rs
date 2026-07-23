@@ -2,6 +2,7 @@ use super::{
     WorthQueryInstalledPackageAuthority, WorthQueryInstalledPackageIndex,
     WorthQueryInstalledPackageIndexDenial, WorthQueryInstalledPackageIndexDenialKind,
 };
+use crate::domain_computation::WorthQueryInstalledArtifactContractAuthority;
 use crate::installed_domain_operation::WorthQueryInstalledDomainOperationAuthority;
 use crate::installed_operation::WorthQueryInstalledOperationAuthority;
 
@@ -97,6 +98,33 @@ impl WorthQueryInstalledPackageIndex {
             return Err(WorthQueryInstalledPackageIndexDenial::new(
                 WorthQueryInstalledPackageIndexDenialKind::OperationSemanticsChanged,
                 slot,
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_artifact_contract(
+        &self,
+        authority: &WorthQueryInstalledArtifactContractAuthority,
+    ) -> Result<(), WorthQueryInstalledPackageIndexDenial> {
+        self.validate(&WorthQueryInstalledPackageAuthority {
+            runtime_ordinal: authority.runtime_ordinal,
+            generation: authority.generation,
+            owner: authority.owner.clone(),
+            package_identity: authority.package_identity.clone(),
+            admission_identity: authority.admission_identity.clone(),
+            authority_nonce: authority.package_authority_nonce,
+        })?;
+        let current = self.artifact_contract(
+            &authority.owner,
+            authority.contract.family().as_str(),
+            authority.contract.schema_version(),
+            authority.contract.protocol_version(),
+        )?;
+        if current.contract != authority.contract {
+            return Err(WorthQueryInstalledPackageIndexDenial::new(
+                WorthQueryInstalledPackageIndexDenialKind::ArtifactContractSemanticsChanged,
+                authority.contract.family().as_str(),
             ));
         }
         Ok(())

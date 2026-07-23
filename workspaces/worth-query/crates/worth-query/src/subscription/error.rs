@@ -60,7 +60,7 @@ impl QuerySubscriptionFamilySelectionError {
         let diagnostic = QuerySubscriptionDiagnosticEvidence::denied(
             diagnostic_stage,
             message.clone(),
-            &source_identity,
+            source_identity,
             &counters.evidence_identity(),
         );
         Self {

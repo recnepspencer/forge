@@ -80,7 +80,10 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
         .is_empty());
     assert!(!receipt.admission_identity().as_str().is_empty());
     assert!(!receipt.receipt_digest().is_empty());
-    assert_eq!(branch.branch_intent_receipts(), [receipt.clone()]);
+    assert_eq!(
+        branch.branch_intent_receipts(),
+        std::slice::from_ref(&receipt)
+    );
     assert_eq!(
         attempted.get(),
         0,
