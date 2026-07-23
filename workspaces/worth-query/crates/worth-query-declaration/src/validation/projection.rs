@@ -64,7 +64,7 @@ pub fn validate_projection_entries(
         counters.record_projection_validated();
         validated_projection.push(ValidatedProjectionEntry::from_canonical(
             projection,
-            field.kind().clone(),
+            *field.kind(),
         ));
         events.push(ValidationEvent::ProjectionValidated {
             aspect: key.aspect().to_string(),

@@ -88,7 +88,7 @@ pub fn validate_predicate_entries(
         }
 
         counters.record_predicate_validated();
-        legal_predicates.push((predicate.clone(), field.kind().clone(), value_kind));
+        legal_predicates.push((predicate.clone(), *field.kind(), value_kind));
         events.push(ValidationEvent::PredicateValidated {
             aspect: key.aspect().to_string(),
             field: key.field().to_string(),

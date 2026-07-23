@@ -28,8 +28,16 @@ fn worth_ui_production_consumers_have_no_query_authority_residue() {
         .expect("reference consumer production sources must parse");
 
     report.assert_clean();
-    assert!(
-        report.scanned_file_count() > 100,
-        "the audit must cover the real production consumer tree"
-    );
+    for required_suffix in [
+        "workspaces/worth-ui/crates/worth-ui-query-binding/src/lib.rs",
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/lib.rs",
+    ] {
+        assert!(
+            report
+                .audited_source_paths()
+                .iter()
+                .any(|path| path.ends_with(required_suffix)),
+            "the production audit omitted its required source root sentinel {required_suffix}"
+        );
+    }
 }

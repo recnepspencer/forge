@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 pub struct WorthQueryCertificationScenarioReport {
     scenario_identity: String,
     kind: WorthQueryCertificationScenarioKind,
-    journey_checkpoints: BTreeSet<WorthQueryCertificationJourneyCheckpoint>,
+    required_journey_checkpoints: BTreeSet<WorthQueryCertificationJourneyCheckpoint>,
     counters: WorthQueryCertificationCounters,
 }
 
@@ -16,13 +16,13 @@ impl WorthQueryCertificationScenarioReport {
     pub(crate) fn new(
         scenario_identity: String,
         kind: WorthQueryCertificationScenarioKind,
-        journey_checkpoints: BTreeSet<WorthQueryCertificationJourneyCheckpoint>,
+        required_journey_checkpoints: BTreeSet<WorthQueryCertificationJourneyCheckpoint>,
         counters: WorthQueryCertificationCounters,
     ) -> Self {
         Self {
             scenario_identity,
             kind,
-            journey_checkpoints,
+            required_journey_checkpoints,
             counters,
         }
     }
@@ -35,8 +35,10 @@ impl WorthQueryCertificationScenarioReport {
         self.kind
     }
 
-    pub fn journey_checkpoints(&self) -> &BTreeSet<WorthQueryCertificationJourneyCheckpoint> {
-        &self.journey_checkpoints
+    pub fn required_journey_checkpoints(
+        &self,
+    ) -> &BTreeSet<WorthQueryCertificationJourneyCheckpoint> {
+        &self.required_journey_checkpoints
     }
 
     pub fn counters(&self) -> &WorthQueryCertificationCounters {

@@ -12,5 +12,7 @@ fn query_compiler_boundaries_hold() {
 
 #[path = "certification_kit_contracts.rs"]
 mod certification_kit_contracts;
+#[path = "hostile_provider_fixture.rs"]
+mod hostile_provider_fixture;
 #[path = "reference_consumer_residue.rs"]
 mod reference_consumer_residue;

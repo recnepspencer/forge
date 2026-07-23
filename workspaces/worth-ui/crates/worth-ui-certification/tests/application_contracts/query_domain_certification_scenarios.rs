@@ -16,6 +16,7 @@ use worth_ui_query_binding::certification::{
 struct WorthUiSemanticProvider {
     identity: &'static str,
     facts: Option<WorthUiInstalledOperationCertificationFacts>,
+    semantic_drift: Option<(Kind, &'static str)>,
 }
 
 impl WorthUiSemanticProvider {
@@ -23,6 +24,15 @@ impl WorthUiSemanticProvider {
         Self {
             identity,
             facts: None,
+            semantic_drift: None,
+        }
+    }
+
+    fn with_semantic_drift(identity: &'static str, kind: Kind, observed: &'static str) -> Self {
+        Self {
+            identity,
+            facts: None,
+            semantic_drift: Some((kind, observed)),
         }
     }
 
@@ -43,7 +53,10 @@ impl WorthQueryCertificationProvider for WorthUiSemanticProvider {
         &mut self,
         scenario: &WorthQueryCertificationScenario,
     ) -> Result<WorthQueryCertificationObservation, String> {
-        let value = provider_fact(scenario.kind(), self.facts());
+        let value = match self.semantic_drift {
+            Some((kind, observed)) if kind == scenario.kind() => observed.to_owned(),
+            _ => provider_fact(scenario.kind(), self.facts()),
+        };
         WorthQueryCertificationObservation::new(
             [(fact_key(scenario.kind()).to_owned(), value)],
             expected_provider_counters(),
@@ -70,6 +83,26 @@ fn worth_ui_registers_its_narrow_installed_operation_semantics() {
             "worth-ui-fixture-b".to_owned()
         ]
     );
+}
+
+#[test]
+fn worth_ui_domain_oracle_rejects_adapter_semantic_drift() {
+    let suite = complete_worth_ui_suite();
+    let mut first = WorthUiSemanticProvider::new("worth-ui-fixture-a");
+    let mut second = WorthUiSemanticProvider::with_semantic_drift(
+        "worth-ui-fixture-b",
+        Kind::DependencyImpact,
+        "required",
+    );
+
+    assert!(matches!(
+        certify_provider_pair(&suite, &mut first, &mut second),
+        Err(worth_query_certification::facade::WorthQueryCertificationFailure::OracleMismatch {
+            provider,
+            scenario,
+            ..
+        }) if provider == "worth-ui-fixture-b" && scenario == "allocation-dependency-impact"
+    ));
 }
 
 fn complete_worth_ui_suite() -> WorthQueryCertificationSuite {
