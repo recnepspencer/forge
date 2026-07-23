@@ -1,16 +1,14 @@
 use worth_foundational::facade::CanonicalF32;
 use worth_query::facade::domain;
-use worth_ui::facade::query_binding::{
-    WorthUiQueryAllocationDetail, WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
-    WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-};
+use worth_ui::facade::query_binding::{WorthUiQueryViewShape, WorthUiQueryWorkspaceExt};
 use worth_ui_query_binding::{
     WorthUiQueryInspection, WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionRelevance,
 };
 
 use crate::query_consumer_kit_application::file_authored_query_app;
 use crate::query_consumer_kit_workspace::{
-    measurement_value_path, observation_basis, partial_measurement_workspace,
+    interactive_borrowed_collection_requirements, measurement_value_path,
+    partial_measurement_workspace,
 };
 
 #[test]
@@ -21,26 +19,15 @@ fn public_partial_query_settlement_preserves_posture_and_derives_only_ui_facts()
         .unwrap()
         .measurement_view("inspector.measurements")
         .unwrap();
+    let view_identity = view.definition().identity().clone();
     let app = file_authored_query_app(view);
     let reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new("inspector.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&view_identity, WorthUiQueryViewShape::Collection)
         .unwrap();
     let settled = reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
-        .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
-            domain::WorthQueryConsumerBoundaryRequirements {
-                presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
-                allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
-            },
-            WorthUiQueryAllocationDetail::BorrowedFactSlice,
-            WorthUiQueryViewShape::Collection,
-            WorthUiQueryDenialPresentation::StructuredStatus,
-            WorthUiQueryInspectionRelevance::Relevant,
-        ))
+        .prepare_snapshot_consumer(interactive_borrowed_collection_requirements())
         .unwrap()
         .execute(&mut workspace)
         .unwrap()

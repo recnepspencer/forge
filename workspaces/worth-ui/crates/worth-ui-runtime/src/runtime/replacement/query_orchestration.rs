@@ -1,8 +1,8 @@
 use crate::runtime::launch::runtime_instance::WorthUiRuntime;
-use crate::runtime::replacement::compatibility::managed_live::WorthUiQueryLiveRebindPlanner;
 use crate::runtime::replacement::query_binding::{
     WorthUiQueryBindingComparisonPlanner, WorthUiQueryBindingReplacementAuthority,
 };
+use crate::runtime::replacement::query_succession::WorthUiQueryLiveRebindPlanner;
 use crate::runtime::replacement::transitions::WorthUiReplacementQueryComparisonReady;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiNodeReplacementPlan, WorthUiQueryBindingComparison,

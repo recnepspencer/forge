@@ -115,7 +115,7 @@ fn foreign_runtime_denial_preserves_the_projection_for_owner_retry() {
     let mut owner = configured_runtime()
         .workspace("projection-lifecycle-owner")
         .unwrap();
-    let settled = settle(&mut owner, observation_basis());
+    let settled = settle(&mut owner);
     let mut foreign = configured_runtime()
         .workspace("projection-lifecycle-foreign")
         .unwrap();
@@ -140,7 +140,7 @@ fn stale_installation_and_unsupported_basis_stop_before_lifecycle_work() {
     let mut controlled = configured_runtime()
         .controlled_workspace("projection-lifecycle-stale")
         .unwrap();
-    let settled = settle(&mut controlled, observation_basis());
+    let settled = settle(&mut controlled);
     controlled.advance_domain_installation_generation().unwrap();
     let stale = match settled.into_lifecycle().promote(&mut controlled) {
         domain::WorthQueryProjectionPromotionOutcome::Stale(stale) => stale,
@@ -154,7 +154,13 @@ fn stale_installation_and_unsupported_basis_stop_before_lifecycle_work() {
         .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let denial = match workspace
-        .operating_world(branch_basis())
+        .observe_branch_operating_world(
+            worth_query::facade::installed::WorthQueryBranchHeadIdentity::new(
+                "branch:projection-lifecycle",
+            )
+            .unwrap(),
+        )
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
     {
@@ -173,7 +179,7 @@ fn live_refresh_revalidates_installation_before_maintenance_or_delivery() {
     let mut workspace = configured_runtime()
         .controlled_workspace("projection-lifecycle-live-drift")
         .unwrap();
-    let settled = settle(&mut workspace, observation_basis());
+    let settled = settle(&mut workspace);
     let live = match settled.into_lifecycle().promote(&mut workspace) {
         domain::WorthQueryProjectionPromotionOutcome::Promoted(live) => live,
         _ => panic!("current projection did not promote before drift"),
@@ -204,7 +210,7 @@ fn unsupported_live_support_denies_before_conditional_or_planning_work() {
         )
         .workspace("projection-lifecycle-unsupported-live")
         .unwrap();
-    let settled = settle(&mut workspace, observation_basis());
+    let settled = settle(&mut workspace);
     let stop = match settled.into_lifecycle().promote(&mut workspace) {
         domain::WorthQueryProjectionPromotionOutcome::Denied(stop) => stop,
         _ => panic!("unsupported live support did not deny promotion"),
@@ -217,13 +223,11 @@ fn unsupported_live_support_denies_before_conditional_or_planning_work() {
     assert_no_attempt_or_planning(stop.counters());
 }
 
-fn settle(
-    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness>,
-) -> SettledProjection {
+fn settle(workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace) -> SettledProjection {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -244,7 +248,8 @@ fn settle_native(
 ) -> (SettledProjection, domain::WorthQueryNativeAccessKey) {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -275,26 +280,4 @@ fn assert_no_attempt_or_planning(counters: domain::WorthQueryProjectionPromotion
     assert_eq!(counters.planning_attempts, 0);
     assert_eq!(counters.lower_runtime_contacts, 0);
     assert_eq!(counters.managed_resource_registrations, 0);
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-fn branch_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .branch_head("branch:projection-lifecycle", true)
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

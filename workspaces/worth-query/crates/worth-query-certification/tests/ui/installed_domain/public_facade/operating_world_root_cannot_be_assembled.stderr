@@ -1,0 +1,7 @@
+error[E0451]: fields `runtime` and `basis` of struct `WorthQueryInstalledOperatingWorld` are private
+  --> tests/ui/installed_domain/public_facade/operating_world_root_cannot_be_assembled.rs:11:41
+   |
+11 |     WorthQueryInstalledOperatingWorld { runtime, basis }
+   |                                         ^^^^^^^  ^^^^^ private field
+   |                                         |
+   |                                         private field

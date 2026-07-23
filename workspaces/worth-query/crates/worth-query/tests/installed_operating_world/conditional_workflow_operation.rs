@@ -29,7 +29,8 @@ fn eligible_operation_condition_enters_the_run_before_any_stage_work() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap();
@@ -73,7 +74,8 @@ fn deferred_operation_condition_returns_fresh_retry_authority_and_zero_stage_wor
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap();
@@ -119,7 +121,8 @@ fn ineligible_operation_condition_cannot_create_a_workflow_run() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap();
@@ -275,15 +278,4 @@ fn changed_result() -> Result<worth_signal::facade::NodeEvaluationResult, String
             1,
         )]),
     ))
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

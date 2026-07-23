@@ -102,7 +102,7 @@ fn viewport_neighborhood_admits_parent_peers_without_non_layout_broadening() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
                 31,
@@ -215,7 +215,7 @@ fn portal_anchor_neighborhood_stays_root_scoped_without_page_broadening() {
         generation,
         &portal_anchor_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
                 51,

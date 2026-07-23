@@ -9,13 +9,8 @@ pub enum UiAllocationFrameSourceLane {
     DurableState,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub enum UiAllocationFrameSourceIdentity {
-    Numeric(u64),
-    Query(
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAllocationSourceIdentity,
-    ),
-}
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct UiAllocationFrameSourceIdentity(u64);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct UiAllocationFrameSourceGeneration(u64);
@@ -71,37 +66,18 @@ impl UiAllocationFrameIngressIdentity {
 
 impl UiAllocationFrameSourceIdentity {
     pub fn as_u64(&self) -> Option<u64> {
-        match self {
-            Self::Numeric(value) => Some(*value),
-            Self::Query(_) => None,
-        }
-    }
-
-    pub fn query_authority_index_key(
-        &self,
-    ) -> Option<&worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityIndexKey>
-    {
-        match self {
-            Self::Query(value) => Some(value.authority_index_key()),
-            Self::Numeric(_) => None,
-        }
+        Some(self.0)
     }
 
     #[cfg(test)]
     pub(crate) fn for_test(value: u64) -> Self {
-        Self::Numeric(value)
-    }
-
-    pub(in crate::runtime::allocation_frame_dispatch) fn from_query(
-        value: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAllocationSourceIdentity,
-    ) -> Self {
-        Self::Query(value)
+        Self(value)
     }
 }
 
 impl From<u64> for UiAllocationFrameSourceIdentity {
     fn from(value: u64) -> Self {
-        Self::Numeric(value)
+        Self(value)
     }
 }
 

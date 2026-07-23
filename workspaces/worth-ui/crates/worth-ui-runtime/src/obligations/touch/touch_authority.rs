@@ -250,46 +250,6 @@ impl<'a> UiGraphTouchAuthority<'a> {
                     })
                 }
             }
-            UiGraphTouchOriginAuthority::QueryBasis { prerequisites } => {
-                let canonical = prerequisites.canonical_basis_digest();
-                let expected = canonical
-                    .value()
-                    .bytes()
-                    .iter()
-                    .take(8)
-                    .enumerate()
-                    .fold(0u64, |digest, (index, byte)| {
-                        digest | (u64::from(*byte) << (index * 8))
-                    });
-                if allow_mounted_receipt_transition_only
-                    && origin.receipt().authority_digest() == expected
-                {
-                    Ok(())
-                } else {
-                    Err(UiGraphTouchDenial::OriginDoesNotAuthorizeGraphNode {
-                        origin_class: origin.receipt().class(),
-                        graph_node_identity,
-                    })
-                }
-            }
-            UiGraphTouchOriginAuthority::InstalledQueryBasis { authority } => {
-                let aligned = matches!(
-                    self.snapshot.world_profile(),
-                    UiGraphWorldProfile::InstalledQueryBasis { authority: current }
-                        if current.shares_authority_with(authority)
-                );
-                if allow_mounted_receipt_transition_only
-                    && aligned
-                    && origin.receipt().authority_digest() == authority.identity().as_u64()
-                {
-                    Ok(())
-                } else {
-                    Err(UiGraphTouchDenial::OriginDoesNotAuthorizeGraphNode {
-                        origin_class: origin.receipt().class(),
-                        graph_node_identity,
-                    })
-                }
-            }
             UiGraphTouchOriginAuthority::SettledQueryBinding {
                 view_binding_id,
                 query_binding_identity,

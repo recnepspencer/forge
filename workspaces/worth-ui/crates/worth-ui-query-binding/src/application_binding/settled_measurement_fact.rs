@@ -1,8 +1,8 @@
 use worth_query::facade::{
-    domain,
     foundation::{
         ConsumedFieldValueFact, ConsumedNativeValueView, WorthQueryConsumedProjectionAuthority,
     },
+    installed::operation,
 };
 
 use crate::{
@@ -29,7 +29,7 @@ pub struct WorthUiSettledSnapshotFact {
     measurement_facts:
         Result<WorthUiSettledMeasurementFactBatch, WorthUiQueryMeasurementFactObservationError>,
     native_facts: Box<[ConsumedFieldValueFact]>,
-    result_state: domain::WorthQueryOperationResultState,
+    result_state: operation::WorthQueryOperationResultState,
     execution_warning_count: usize,
     projection_warning_count: usize,
     source_generation: Option<WorthUiSettledSnapshotSourceGeneration>,
@@ -58,8 +58,8 @@ impl WorthUiSettledMeasurementFactBatch {
 }
 
 impl WorthUiSettledSnapshotFact {
-    pub(super) fn from_settled<D, O, F, L>(
-        settled: &domain::WorthQuerySettledDomainProjection<D, O, F, L>,
+    pub(crate) fn from_settled<D, O, F, L>(
+        settled: &operation::WorthQuerySettledDomainProjection<D, O, F, L>,
     ) -> Self
     where
         L: worth_query::facade::foundation::BasisOperationLane,
@@ -128,12 +128,12 @@ impl WorthUiSettledSnapshotFact {
         self.native_facts.get(index).map(|fact| fact.native_value())
     }
 
-    pub fn result_state(&self) -> domain::WorthQueryOperationResultState {
+    pub fn result_state(&self) -> operation::WorthQueryOperationResultState {
         self.result_state
     }
 
     pub fn is_partial(&self) -> bool {
-        self.result_state == domain::WorthQueryOperationResultState::Partial
+        self.result_state == operation::WorthQueryOperationResultState::Partial
     }
 
     pub fn execution_warning_count(&self) -> usize {

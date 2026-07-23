@@ -16,9 +16,7 @@ pub(crate) struct WorthUiQueryBindingEvidence {
     ui_requirements: WorthUiQueryBindingUiRequirements,
     installed_reference: Option<worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
     settled: Option<worth_ui_query_binding::WorthUiExactSettledSnapshotEvidence>,
-    exact_live_resource: Option<
-        worth_ui_query_binding::compatibility::managed_live::WorthUiExactManagedLiveResourceEvidence,
-    >,
+    exact_live_resource: Option<worth_ui_query_binding::WorthUiExactOperationLiveResourceEvidence>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -62,9 +60,7 @@ impl WorthUiQueryBindingEvidence {
 
     pub(crate) fn exact_live_resource(
         &self,
-    ) -> Option<
-        &worth_ui_query_binding::compatibility::managed_live::WorthUiExactManagedLiveResourceEvidence,
-    >{
+    ) -> Option<&worth_ui_query_binding::WorthUiExactOperationLiveResourceEvidence> {
         self.exact_live_resource.as_ref()
     }
 
@@ -86,7 +82,7 @@ impl WorthUiQueryBindingEvidence {
         });
         self.exact_live_resource = self.installed_reference.as_ref().and_then(|reference| {
             binding
-                .exact_live_resource_evidence_for(reference)
+                .exact_operation_live_resource_evidence_for(reference)
                 .ok()
                 .flatten()
         });

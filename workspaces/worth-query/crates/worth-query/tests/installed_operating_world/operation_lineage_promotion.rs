@@ -2,7 +2,7 @@ use worth_proof::TransitionOutcome;
 use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{lineage_workflow_workspace, LineageEvidenceScenario};
-use super::operation_lineage::{execute, mutation_basis};
+use super::operation_lineage::execute;
 
 #[test]
 fn promotion_mints_query_admitted_graph_identity_and_rejects_the_wrong_publication() {
@@ -13,7 +13,7 @@ fn promotion_mints_query_admitted_graph_identity_and_rejects_the_wrong_publicati
         vec![LineageEvidenceScenario::SingularSuccessor],
     )
     .unwrap();
-    let published = execute(&mut workspace, mutation_basis()).publish().unwrap();
+    let published = execute(&mut workspace).publish().unwrap();
     let expected_subject = published.trace().lineage_report().unwrap().evidence()[0]
         .outcome()
         .continuity_evidence()
@@ -64,7 +64,7 @@ fn plural_lineage_cannot_invent_authority_to_entity_correspondence_by_position()
         vec![LineageEvidenceScenario::SplitSuccessors],
     )
     .unwrap();
-    let published = execute(&mut workspace, mutation_basis()).publish().unwrap();
+    let published = execute(&mut workspace).publish().unwrap();
 
     assert!(matches!(
         published.admit_promotion_on_reference(reference_intent("vertex")),

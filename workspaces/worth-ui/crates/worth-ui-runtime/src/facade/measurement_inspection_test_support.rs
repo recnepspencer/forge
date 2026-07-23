@@ -134,12 +134,9 @@ pub(super) fn direct_measurement_view_for_graph_node(
     if let Some(report) = bundle.host_capability_report() {
         admission_target = admission_target.with_host_capability_report(report.clone());
     }
-    let authority = bundle
-        .query_authority()
-        .expect("success parity path should carry Query authority");
-    admission_target = admission_target
-        .with_query_prerequisites_from_query_authority(authority)
-        .expect("query projection consumption should bind prerequisites");
+    let (view_binding_id, fact) = bundle
+        .settled_query_fact()
+        .expect("success parity path should carry one retained settled Query fact");
 
     let selected = app
         .admission()
@@ -150,10 +147,11 @@ pub(super) fn direct_measurement_view_for_graph_node(
         .expect("success parity path should admit measurement requirement");
     let query_eligibility = app
         .admission()
-        .admit_query_measurement_eligibility_from_query_authority(
+        .admit_query_measurement_eligibility_from_settled_fact(
             &selected,
             &measurement_admission,
-            authority.clone(),
+            view_binding_id.clone(),
+            fact,
         )
         .expect("success parity path should admit query measurement eligibility");
     let projection_receipt = query_eligibility
@@ -161,7 +159,7 @@ pub(super) fn direct_measurement_view_for_graph_node(
         .cloned()
         .expect("success parity path should yield query projection receipt");
 
-    let mut evidence_inputs = vec![MeasurementEvidenceInput::query_projection_fact(
+    let mut evidence_inputs = vec![MeasurementEvidenceInput::settled_query_fact(
         &projection_receipt,
     )];
     if let Some(report) = bundle.host_capability_report() {

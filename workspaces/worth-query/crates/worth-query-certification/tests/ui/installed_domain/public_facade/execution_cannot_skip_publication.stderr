@@ -1,0 +1,5 @@
+error[E0599]: no method named `settle` found for struct `WorthQueryExecutedDomainOperation<D, O, F, L, Output>` in the current scope
+ --> tests/ui/installed_domain/public_facade/execution_cannot_skip_publication.rs:8:22
+  |
+8 |     let _ = executed.settle();
+  |                      ^^^^^^ method not found in `WorthQueryExecutedDomainOperation<D, O, F, L, Output>`

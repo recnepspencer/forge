@@ -1,4 +1,4 @@
-use crate::compatibility::managed_live::WorthUiManagedLiveCompatibilityObservation;
+use crate::WorthUiOperationLiveObservation;
 
 /// Read-only structural observation of one runtime Query binding owner.
 ///
@@ -12,7 +12,7 @@ pub struct WorthUiRuntimeQueryStateObservation {
     stale_installed_reference_count: usize,
     settled_snapshot_count: usize,
     orphan_settled_snapshot_count: usize,
-    managed_live: WorthUiManagedLiveCompatibilityObservation,
+    operation_live: WorthUiOperationLiveObservation,
 }
 
 /// Non-authoritative classification of an installed-reference membership check.
@@ -31,7 +31,7 @@ impl WorthUiRuntimeQueryStateObservation {
         stale_installed_reference_count: usize,
         settled_snapshot_count: usize,
         orphan_settled_snapshot_count: usize,
-        managed_live: WorthUiManagedLiveCompatibilityObservation,
+        operation_live: WorthUiOperationLiveObservation,
     ) -> Self {
         Self {
             query_installed: true,
@@ -39,7 +39,7 @@ impl WorthUiRuntimeQueryStateObservation {
             stale_installed_reference_count,
             settled_snapshot_count,
             orphan_settled_snapshot_count,
-            managed_live,
+            operation_live,
         }
     }
 
@@ -63,7 +63,7 @@ impl WorthUiRuntimeQueryStateObservation {
         self.orphan_settled_snapshot_count
     }
 
-    pub fn managed_live(self) -> WorthUiManagedLiveCompatibilityObservation {
-        self.managed_live
+    pub fn operation_live(self) -> WorthUiOperationLiveObservation {
+        self.operation_live
     }
 }

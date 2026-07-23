@@ -9,9 +9,9 @@ use crate::memory_workspace::{
 use crate::runtime::{
     runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
     LiveViewDeclarationAdmissionReceipt, SubscriptionActivationReceipt,
-    WorthQueryBackendAdmissibleMutation, WorthQueryBasisAdmissionEvidenceRow,
-    WorthQueryEffectPolicy, WorthQueryIntentDeclaration, WorthQueryIntentExecution,
-    WorthQueryLiveArtifactTarget, WorthQueryMutationFamily,
+    WorthQueryBackendAdmissibleMutation, WorthQueryBackendEntityLookup,
+    WorthQueryBasisAdmissionEvidenceRow, WorthQueryEffectPolicy, WorthQueryIntentDeclaration,
+    WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryMutationFamily,
     WorthQueryMutationTargetCollectionIdentity, WorthQueryPreviewBasisAdmission,
     WorthQueryRuntimeBackend, WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
     WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportProfile, WorthQueryWriteCommand,
@@ -28,6 +28,7 @@ pub(super) struct WorthQueryInMemoryTestBackend {
     support_profile: WorthQueryRuntimeSupportProfile,
     live_views: BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryMutationTargetCollectionIdentity>,
     live_close_failures: usize,
+    collection_entity_lookup_supported: bool,
 }
 
 impl WorthQueryInMemoryTestBackend {
@@ -44,6 +45,7 @@ impl WorthQueryInMemoryTestBackend {
             support_profile,
             live_views: BTreeMap::new(),
             live_close_failures: 0,
+            collection_entity_lookup_supported: true,
         }
     }
 
@@ -51,12 +53,14 @@ impl WorthQueryInMemoryTestBackend {
         workspace: WorthQueryMemoryWorkspace,
         support_profile: Option<WorthQueryRuntimeSupportProfile>,
         live_close_failures: usize,
+        collection_entity_lookup_supported: bool,
     ) -> Self {
         let mut backend = match support_profile {
             Some(profile) => Self::with_support_profile(workspace, profile),
             None => Self::new(workspace),
         };
         backend.live_close_failures = live_close_failures;
+        backend.collection_entity_lookup_supported = collection_entity_lookup_supported;
         backend
     }
 
@@ -245,6 +249,23 @@ impl WorthQueryRuntimeBackend for WorthQueryInMemoryTestBackend {
             return self.workspace.entities();
         }
         Vec::new()
+    }
+
+    fn collection_entity(
+        &self,
+        collection: &str,
+        identity: &crate::memory_workspace::WorthQueryEntityIdentity,
+    ) -> WorthQueryBackendEntityLookup {
+        if !self.collection_entity_lookup_supported {
+            return WorthQueryBackendEntityLookup::Unsupported;
+        }
+        if collection != self.workspace.kind_name() {
+            return WorthQueryBackendEntityLookup::Absent;
+        }
+        self.workspace
+            .entity(identity)
+            .map(WorthQueryBackendEntityLookup::Found)
+            .unwrap_or(WorthQueryBackendEntityLookup::Absent)
     }
 
     fn drain_live_patches_for_target(

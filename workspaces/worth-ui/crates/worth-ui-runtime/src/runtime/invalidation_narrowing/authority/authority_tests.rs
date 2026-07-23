@@ -261,9 +261,12 @@ fn query_mapping_consumes_admitted_projection_receipt_and_neighborhood_proof() {
     let receipt = basis
         .evidence_inputs()
         .iter()
-        .find_map(crate::evidence::MeasurementEvidenceInput::as_query_projection_fact)
+        .find_map(crate::evidence::MeasurementEvidenceInput::as_settled_query_fact)
         .expect("fixture carries projection-consumption evidence");
-    let query_authority = receipt.query_authority().clone();
+    let source_key =
+        crate::evidence::measurement::basis::UiQueryAllocationSourceKey::SettledSnapshot(
+            receipt.key().clone(),
+        );
     let root = basis.graph_node_identity();
     let (graph, selected) = planning_graph_authority("phase6-query-mapping", "operator:stack");
     let neighborhood = selected
@@ -273,7 +276,7 @@ fn query_mapping_consumes_admitted_projection_receipt_and_neighborhood_proof() {
     install_graph_authority_fixture(&mut authority, authority_context(basis, neighborhood));
 
     let lookup = authority
-        .query_target(&query_authority)
+        .settled_query_target(&source_key)
         .expect("settled Query mapping admits");
     assert_eq!(lookup.probes, 3);
     assert_eq!(lookup.target.unwrap().graph_node_identities(), &[root]);

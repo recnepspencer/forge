@@ -1,14 +1,21 @@
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authoring::{
     AspectFieldKey, NativeComparisonOperator, RelationName, WorthQueryPredicateOperand,
 };
-use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativePredicateFilter};
+use crate::declarative_live::{
+    DeclarativeLiveQueryRequest, DeclarativeOrderingField, DeclarativePredicateFilter,
+};
 use crate::memory_workspace::WorthQueryEntity;
 use crate::runtime::{WorthQueryReadBuiltInOperator, WorthQueryReadGraph};
 use worth_foundational::facade::{
     AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
 };
+
+mod ordering_key;
+
+pub(crate) use ordering_key::{canonical_ordering_key, WorthQueryCanonicalOrderingKey};
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct WorthQueryReadMaterializedRowIdentity {
@@ -173,14 +180,33 @@ fn order_rows(
     mut rows: Vec<WorthQueryEntity>,
     request: &DeclarativeLiveQueryRequest,
 ) -> Vec<WorthQueryEntity> {
-    if request
-        .ordering()
-        .iter()
-        .any(|ordering| is_identity_field_key(ordering.source_field_key()))
-    {
-        rows.sort_by_key(row_identity_label);
-    }
+    rows.sort_by(|left, right| compare_ordered_rows(left, right, request.ordering()));
     rows
+}
+
+pub(crate) fn compare_ordered_rows(
+    left: &WorthQueryEntity,
+    right: &WorthQueryEntity,
+    ordering: &[DeclarativeOrderingField],
+) -> Ordering {
+    ordering
+        .iter()
+        .map(|entry| compare_ordering_entry(left, right, entry))
+        .find(|ordering| !ordering.is_eq())
+        .unwrap_or_else(|| left.identity().cmp(right.identity()))
+}
+
+fn compare_ordering_entry(
+    left: &WorthQueryEntity,
+    right: &WorthQueryEntity,
+    ordering: &DeclarativeOrderingField,
+) -> Ordering {
+    let comparison = row_field_value(left, ordering.source_field_key())
+        .cmp(&row_field_value(right, ordering.source_field_key()));
+    match ordering.direction() {
+        crate::authoring::OrderingDirection::Ascending => comparison,
+        crate::authoring::OrderingDirection::Descending => comparison.reverse(),
+    }
 }
 
 fn identity_anchor(request: &DeclarativeLiveQueryRequest) -> Option<&str> {
@@ -245,7 +271,7 @@ fn row_identity_label(row: &WorthQueryEntity) -> Option<WorthQueryReadMaterializ
         .map(WorthQueryReadMaterializedRowIdentity::from_label)
 }
 
-fn row_matches_predicates(
+pub(crate) fn row_matches_predicates(
     row: &WorthQueryEntity,
     predicates: &[DeclarativePredicateFilter],
 ) -> bool {
@@ -255,7 +281,7 @@ fn row_matches_predicates(
 }
 
 fn row_matches_predicate(row: &WorthQueryEntity, predicate: &DeclarativePredicateFilter) -> bool {
-    let value = row.scalar_value_at(&predicate_field_path(predicate.source_field_key()));
+    let value = row_field_value(row, predicate.source_field_key());
     match predicate {
         DeclarativePredicateFilter::Equality(filter) => {
             value.is_some_and(|value| aspect_value_matches_scalar(value, filter.value()))
@@ -287,6 +313,16 @@ fn predicate_field_path(field: &AspectFieldKey) -> CanonicalFieldPath {
         field.native_aspect_key().as_str(),
         field.native_field_key().as_str()
     ))
+}
+
+fn row_field_value<'a>(
+    row: &'a WorthQueryEntity,
+    field: &AspectFieldKey,
+) -> Option<&'a AspectValue> {
+    row.struct_aspect_value(&field.native_aspect_key())
+        .and_then(|value| value.get(&field.native_field_key()))
+        .or_else(|| row.aspect_value(&field.native_aspect_key()))
+        .or_else(|| row.scalar_value_at(&predicate_field_path(field)))
 }
 
 fn aspect_value_matches_scalar(value: &AspectValue, expected: &WorthQueryPredicateOperand) -> bool {

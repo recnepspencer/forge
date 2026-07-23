@@ -2,20 +2,15 @@ mod reference_catalog;
 mod settled_snapshot;
 
 use std::collections::BTreeMap;
-use std::sync::Arc;
 
+use crate::operation_live::WorthUiOperationLiveRetention;
 use reference_catalog::WorthUiInstalledReferenceCatalog;
 use settled_snapshot::WorthUiSettledSnapshotRetention;
 
-use crate::compatibility::managed_live::{
-    WorthUiExactManagedLiveResourceEvidence, WorthUiManagedLiveCompatibilityObservation,
-    WorthUiManagedLiveCompatibilityRetention,
-};
-
 use crate::{
-    WorthUiInstalledQueryBindingReference, WorthUiQueryLiveAdmissionDenial,
-    WorthUiQueryLiveAdmissionStop, WorthUiQueryLiveProjectionOutcome, WorthUiQueryLiveResource,
-    WorthUiQueryMeasurementFactSettlement, WorthUiQueryViewExecutionEvidenceDenial,
+    WorthUiExactOperationLiveResourceEvidence, WorthUiInstalledQueryBindingReference,
+    WorthUiOperationLiveAdmissionDenial, WorthUiOperationLiveAdmissionStop,
+    WorthUiOperationLiveResource, WorthUiQueryViewExecutionEvidenceDenial,
     WorthUiQueryViewExecutionEvidenceReference, WorthUiQueryViewIdentity,
 };
 
@@ -24,7 +19,7 @@ use crate::{
 #[derive(Debug)]
 pub struct WorthUiInstalledDownstreamQueryState {
     references: WorthUiInstalledReferenceCatalog,
-    managed_live: Option<WorthUiManagedLiveCompatibilityRetention>,
+    operation_live: Option<WorthUiOperationLiveRetention>,
     settled_snapshot: WorthUiSettledSnapshotRetention,
 }
 
@@ -36,15 +31,15 @@ impl WorthUiInstalledDownstreamQueryState {
         let has_live_reference = references.has_live_reference();
         Self {
             references,
-            managed_live: has_live_reference.then(Default::default),
+            operation_live: has_live_reference.then(Default::default),
             settled_snapshot: Default::default(),
         }
     }
 
     pub(super) fn swap_retained_state_with(&mut self, other: &mut Self) {
-        match (&mut self.managed_live, &mut other.managed_live) {
+        match (&mut self.operation_live, &mut other.operation_live) {
             (Some(left), Some(right)) => left.swap_with(right),
-            _ => std::mem::swap(&mut self.managed_live, &mut other.managed_live),
+            _ => std::mem::swap(&mut self.operation_live, &mut other.operation_live),
         }
         self.settled_snapshot.swap_with(&mut other.settled_snapshot);
     }
@@ -98,57 +93,30 @@ impl WorthUiInstalledDownstreamQueryState {
         Ok(self.settled_snapshot.exact_evidence_for(reference))
     }
 
-    #[cfg(test)]
-    pub(super) fn rebuild_settled_snapshot_index(&mut self) {
-        self.settled_snapshot.rebuild_index();
-    }
-
-    pub(super) fn admit_live(
+    pub(super) fn admit_operation_live(
         &mut self,
-        resource: WorthUiQueryLiveResource,
-        outcome: WorthUiQueryLiveProjectionOutcome,
-    ) -> Result<WorthUiQueryMeasurementFactSettlement, WorthUiQueryLiveAdmissionStop> {
-        let (definition, outcome, installed_execution) = outcome.into_transfer().into_parts();
-        let reference = match self.references.reference_for_projection(&definition) {
-            Ok(reference) => reference,
-            Err(denial) => {
-                return Err(WorthUiQueryLiveAdmissionStop::new(
-                    WorthUiQueryLiveAdmissionDenial::Projection(denial),
-                    resource,
-                ));
-            }
-        };
-        let resource =
-            validate_live_resource(reference, &definition, &installed_execution, resource)?;
-        let Some(managed_live) = self.managed_live.as_mut() else {
-            return Err(WorthUiQueryLiveAdmissionStop::new(
-                WorthUiQueryLiveAdmissionDenial::CompatibilityNotInstalled,
+        resource: WorthUiOperationLiveResource,
+    ) -> Result<(), WorthUiOperationLiveAdmissionStop> {
+        let reference = resource.installed_reference().clone();
+        if self.references.validate(&reference).is_err() {
+            return Err(WorthUiOperationLiveAdmissionStop::new(
+                WorthUiOperationLiveAdmissionDenial::ForeignInstalledReference,
                 resource,
             ));
         };
-        if managed_live.contains(reference) {
-            return Err(WorthUiQueryLiveAdmissionStop::new(
-                WorthUiQueryLiveAdmissionDenial::LiveResourceAlreadyAdmitted,
+        let Some(operation_live) = self.operation_live.as_mut() else {
+            return Err(WorthUiOperationLiveAdmissionStop::new(
+                WorthUiOperationLiveAdmissionDenial::ForeignInstalledReference,
+                resource,
+            ));
+        };
+        if operation_live.contains(&reference) {
+            return Err(WorthUiOperationLiveAdmissionStop::new(
+                WorthUiOperationLiveAdmissionDenial::DuplicateResource,
                 resource,
             ));
         }
-        let identity = definition.identity().clone();
-        let settlement = match managed_live.admit_projection(
-            definition,
-            outcome,
-            installed_execution,
-            reference,
-        ) {
-            Ok(settlement) => settlement,
-            Err(denial) => {
-                return Err(WorthUiQueryLiveAdmissionStop::new(
-                    WorthUiQueryLiveAdmissionDenial::Projection(denial),
-                    resource,
-                ));
-            }
-        };
-        managed_live.insert_after_vacancy_check(identity, resource);
-        Ok(settlement)
+        operation_live.admit(resource)
     }
 
     pub(super) fn validate_reference(
@@ -176,10 +144,18 @@ impl WorthUiInstalledDownstreamQueryState {
                 ),
             );
         }
-        self.managed_live
+        let resource = self
+            .operation_live
             .as_ref()
             .ok_or(WorthUiQueryViewExecutionEvidenceDenial::ProjectionNotAdmitted)?
-            .execution_evidence_for(reference)
+            .resource(reference)
+            .ok_or(WorthUiQueryViewExecutionEvidenceDenial::ProjectionNotAdmitted)?;
+        Ok(
+            WorthUiQueryViewExecutionEvidenceReference::from_settled_snapshot(
+                reference.clone(),
+                resource.shared_fact(),
+            ),
+        )
     }
 
     pub(super) fn frame_evidence_for(
@@ -192,107 +168,95 @@ impl WorthUiInstalledDownstreamQueryState {
                 reference, fact,
             ));
         }
-        self.managed_live
+        let resource = self
+            .operation_live
             .as_ref()
             .ok_or(WorthUiQueryViewExecutionEvidenceDenial::ProjectionNotAdmitted)?
-            .frame_evidence_for(reference)
+            .resource(reference)
+            .ok_or(WorthUiQueryViewExecutionEvidenceDenial::ProjectionNotAdmitted)?;
+        Ok(crate::WorthUiQueryFrameEvidence::from_settled_snapshot(
+            reference,
+            resource.fact(),
+        ))
     }
 
-    pub(super) fn exact_live_resource_evidence_for(
+    pub(super) fn exact_operation_live_resource_evidence_for(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
     ) -> Result<
-        Option<WorthUiExactManagedLiveResourceEvidence>,
+        Option<WorthUiExactOperationLiveResourceEvidence>,
         WorthUiQueryViewExecutionEvidenceDenial,
     > {
         self.validate_reference(reference)?;
         Ok(self
-            .managed_live
+            .operation_live
             .as_ref()
-            .and_then(|managed_live| managed_live.exact_evidence(reference)))
+            .and_then(|operation_live| operation_live.exact_evidence(reference)))
     }
 
-    pub(super) fn retains_live_resource_for(
+    pub(super) fn retains_operation_live_resource_for(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
     ) -> Result<bool, WorthUiQueryViewExecutionEvidenceDenial> {
-        self.exact_live_resource_evidence_for(reference)
+        self.exact_operation_live_resource_evidence_for(reference)
             .map(|evidence| evidence.is_some())
     }
 
-    pub(super) fn take_settlement(
+    pub(super) fn take_operation_live_resource(
         &mut self,
         reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Option<Arc<WorthUiQueryMeasurementFactSettlement>> {
-        self.managed_live
+    ) -> Option<WorthUiOperationLiveResource> {
+        self.operation_live
             .as_mut()
-            .and_then(|managed_live| managed_live.take_settlement(reference))
+            .and_then(|operation_live| operation_live.take(reference))
     }
 
-    pub(super) fn replace_settlement(
+    pub(super) fn replace_operation_live_resource(
         &mut self,
         reference: &WorthUiInstalledQueryBindingReference,
-        settlement: Arc<WorthUiQueryMeasurementFactSettlement>,
-    ) {
-        self.managed_live
-            .get_or_insert_with(Default::default)
-            .replace_settlement(reference, settlement);
-    }
-
-    pub(super) fn take_live_resource(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Option<WorthUiQueryLiveResource> {
-        self.managed_live
-            .as_mut()
-            .and_then(|managed_live| managed_live.take(reference))
-    }
-
-    pub(super) fn replace_live_resource(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-        resource: WorthUiQueryLiveResource,
-    ) -> Option<WorthUiQueryLiveResource> {
-        match self.managed_live.as_mut() {
-            Some(managed_live) => managed_live.replace(reference, resource),
+        resource: WorthUiOperationLiveResource,
+    ) -> Option<WorthUiOperationLiveResource> {
+        debug_assert_eq!(resource.installed_reference(), reference);
+        match self.operation_live.as_mut() {
+            Some(operation_live) => operation_live.insert(resource),
             None if self.references.has_live_reference() => {
-                let mut managed_live = WorthUiManagedLiveCompatibilityRetention::default();
-                let displaced = managed_live.replace(reference, resource);
-                self.managed_live = Some(managed_live);
+                let mut operation_live = WorthUiOperationLiveRetention::default();
+                let displaced = operation_live.insert(resource);
+                self.operation_live = Some(operation_live);
                 displaced
             }
             None => Some(resource),
         }
     }
 
-    pub(super) fn drain_live_resources_into(
+    pub(super) fn drain_operation_live_resources_into(
         &mut self,
-        retirement: &mut Vec<WorthUiQueryLiveResource>,
+        retirement: &mut Vec<WorthUiOperationLiveResource>,
     ) {
-        if let Some(managed_live) = self.managed_live.as_mut() {
-            managed_live.drain_into(retirement);
+        if let Some(operation_live) = self.operation_live.as_mut() {
+            operation_live.drain_into(retirement);
         }
     }
 
-    pub(super) fn retain_only_live_resources_for(
+    pub(super) fn retain_only_operation_live_resources_for(
         &mut self,
         references: &[WorthUiInstalledQueryBindingReference],
-        retirement: &mut Vec<WorthUiQueryLiveResource>,
+        retirement: &mut Vec<WorthUiOperationLiveResource>,
     ) {
-        if let Some(managed_live) = self.managed_live.as_mut() {
-            managed_live.retain_only(references, retirement);
+        if let Some(operation_live) = self.operation_live.as_mut() {
+            operation_live.retain_only(references, retirement);
         }
     }
 
-    pub(super) fn finish_managed_live_succession(
+    pub(super) fn finish_operation_live_succession(
         &mut self,
-        retirement: &mut Vec<WorthUiQueryLiveResource>,
+        retirement: &mut Vec<WorthUiOperationLiveResource>,
     ) {
         if self.references.has_live_reference() {
             return;
         }
-        if let Some(mut managed_live) = self.managed_live.take() {
-            managed_live.drain_into(retirement);
+        if let Some(mut operation_live) = self.operation_live.take() {
+            operation_live.drain_into(retirement);
         }
     }
 
@@ -300,9 +264,6 @@ impl WorthUiInstalledDownstreamQueryState {
         &mut self,
         references: &[WorthUiInstalledQueryBindingReference],
     ) {
-        if let Some(managed_live) = self.managed_live.as_mut() {
-            managed_live.retain_only_settlements(references);
-        }
         self.settled_snapshot.retain_only(references);
     }
 
@@ -320,12 +281,12 @@ impl WorthUiInstalledDownstreamQueryState {
         self.settled_snapshot.replace(projection);
     }
 
-    pub(super) fn managed_live_compatibility_observation(
-        &self,
-    ) -> WorthUiManagedLiveCompatibilityObservation {
-        self.managed_live
+    pub(super) fn operation_live_observation(&self) -> crate::WorthUiOperationLiveObservation {
+        self.operation_live
             .as_ref()
-            .map_or_else(Default::default, |managed_live| managed_live.observation())
+            .map_or_else(Default::default, |operation_live| {
+                operation_live.observation(|reference| self.references.validate(reference).is_ok())
+            })
     }
 
     pub(super) fn query_state_observation(&self) -> crate::WorthUiRuntimeQueryStateObservation {
@@ -337,35 +298,7 @@ impl WorthUiInstalledDownstreamQueryState {
             self.references.stale_reference_count(),
             settled_snapshot_count,
             orphan_settled_snapshot_count,
-            self.managed_live_compatibility_observation(),
+            self.operation_live_observation(),
         )
     }
-}
-
-fn validate_live_resource(
-    reference: &WorthUiInstalledQueryBindingReference,
-    definition: &crate::WorthUiQueryViewDefinition,
-    installed_execution: &worth_query::facade::domain::WorthQueryInstalledDomainExecutionReceipt,
-    resource: WorthUiQueryLiveResource,
-) -> Result<WorthUiQueryLiveResource, WorthUiQueryLiveAdmissionStop> {
-    if resource.installed_authority() != &reference.installed_domain().handle().authority_witness()
-    {
-        return Err(WorthUiQueryLiveAdmissionStop::new(
-            WorthUiQueryLiveAdmissionDenial::InstalledAuthorityMismatch,
-            resource,
-        ));
-    }
-    if resource.definition() != definition {
-        return Err(WorthUiQueryLiveAdmissionStop::new(
-            WorthUiQueryLiveAdmissionDenial::ViewDefinitionMismatch,
-            resource,
-        ));
-    }
-    if !resource.matches_projection_resource(installed_execution) {
-        return Err(WorthUiQueryLiveAdmissionStop::new(
-            WorthUiQueryLiveAdmissionDenial::ProjectionResourceMismatch,
-            resource,
-        ));
-    }
-    Ok(resource)
 }

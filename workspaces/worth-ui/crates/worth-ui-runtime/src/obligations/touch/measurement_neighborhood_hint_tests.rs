@@ -41,7 +41,7 @@ fn touch_measurement_neighborhood_hint_only_projects_for_matching_node() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
                 21,

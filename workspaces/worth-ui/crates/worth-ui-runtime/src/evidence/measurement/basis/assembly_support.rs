@@ -8,7 +8,7 @@ use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence,
     UiMeasurementDependencyLineageEntry, UiMeasurementDependencyLineageKind,
     UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiMeasurementResult,
-    UiProjectionFactReceipt,
+    UiSettledQueryFactReceipt,
 };
 
 pub(super) fn assign_slot<'a, T>(
@@ -117,57 +117,8 @@ pub(super) fn host_result_compatibility(
     None
 }
 
-pub(super) fn query_receipt_compatibility(
-    receipt: &UiProjectionFactReceipt,
-    world_profile: &crate::graph::UiGraphWorldProfile,
-    declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-) -> Option<UiMeasurementGenerationCompatibility> {
-    if receipt.declaration_support_authority_generation()
-        != declaration_support_authority_generation
-    {
-        return Some(
-            UiMeasurementGenerationCompatibility::StaleQueryFactReceipt {
-                expected: declaration_support_authority_generation,
-                observed: receipt.declaration_support_authority_generation(),
-            },
-        );
-    }
-
-    if let crate::graph::UiGraphWorldProfile::InstalledQueryBasis { authority } = world_profile {
-        if !authority
-            .query_authority()
-            .shares_authority_with(receipt.query_authority())
-        {
-            return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
-                reason:
-                    crate::evidence::UiQueryWorldCompatibilityFailure::InstalledAuthorityMismatch,
-            });
-        }
-        return None;
-    }
-
-    let binds_world = match world_profile {
-        crate::graph::UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } => {
-            receipt.query_authority().binds_prerequisites(prerequisites)
-        }
-        _ => {
-            return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
-                reason:
-                    crate::evidence::UiQueryWorldCompatibilityFailure::QueryAuthorityUnavailable,
-            })
-        }
-    };
-    if !binds_world {
-        return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
-            reason: crate::evidence::UiQueryWorldCompatibilityFailure::SnapshotBasisMismatch,
-        });
-    }
-
-    None
-}
-
 pub(super) fn settled_query_receipt_compatibility(
-    receipt: &crate::evidence::UiSettledQueryFactReceipt,
+    receipt: &UiSettledQueryFactReceipt,
     world_profile: &crate::graph::UiGraphWorldProfile,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
 ) -> Option<UiMeasurementGenerationCompatibility> {
@@ -220,7 +171,7 @@ pub(super) fn child_intrinsic_query_compatibility(
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
 ) -> Option<UiMeasurementGenerationCompatibility> {
     evidence.query_projection_fact().and_then(|receipt| {
-        query_receipt_compatibility(
+        settled_query_receipt_compatibility(
             receipt,
             world_profile,
             declaration_support_authority_generation,

@@ -8,9 +8,13 @@ use worth_ui::facade::{
     runtime::WorthUiFrameBoundary,
 };
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
-use worth_ui_query_binding::compatibility::managed_live::{
-    WorthUiInstalledLiveQueryView, WorthUiQueryLiveCloseOutcome, WorthUiQueryLiveOpenOutcome,
-    WorthUiQueryLiveResource, WorthUiQueryLiveRetirement, WorthUiQueryLiveRetirementCloseOutcome,
+use worth_ui_query_binding::{
+    WorthUiCollectionAllocationPolicy, WorthUiInstalledLiveQueryView,
+    WorthUiOperationLiveCloseOutcome, WorthUiOperationLiveOpenRequest,
+    WorthUiOperationLiveResource, WorthUiOperationLiveRetirement,
+    WorthUiOperationLiveRetirementCloseOutcome, WorthUiQueryAllocationDetail,
+    WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
+    WorthUiQueryInspectionRelevance, WorthUiQueryViewShape,
 };
 
 pub(crate) fn prepare_catalog(
@@ -76,16 +80,10 @@ pub(super) fn admit_active_resource(
     workspace: &mut runtime::WorthQueryWorkspace,
 ) {
     let resource = open_resource(view, workspace);
-    let read = resource
-        .read(workspace)
-        .unwrap_or_else(|_| panic!("active live read stopped"));
-    let projection = resource.project(&read, domain::project_facts().entity_identities());
     let mut admitted = false;
     let completion = session.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
-            admitted = source
-                .admit_managed_live_compatibility_and_submit(resource, projection)
-                .is_ok();
+            admitted = source.admit_operation_live(resource).is_ok();
         });
     });
     drop(completion.into_completion());
@@ -98,12 +96,8 @@ pub(super) fn admit_candidate_resource(
     workspace: &mut runtime::WorthQueryWorkspace,
 ) {
     let resource = open_resource(view, workspace);
-    let read = resource
-        .read(workspace)
-        .unwrap_or_else(|_| panic!("candidate live read stopped"));
-    let projection = resource.project(&read, domain::project_facts().entity_identities());
     candidate
-        .admit_candidate_managed_live_compatibility_projection(resource, projection)
+        .admit_candidate_operation_live(resource)
         .expect("candidate owns its Query resource before publication");
 }
 
@@ -120,36 +114,35 @@ pub(super) fn assert_visible_query_execution(session: &mut WorthUiActiveApplicat
         .expect("visible Query frame executes");
 }
 
-pub(super) fn open_resource(
+pub(crate) fn open_resource(
     view: &WorthUiInstalledLiveQueryView,
     workspace: &mut runtime::WorthQueryWorkspace,
-) -> WorthUiQueryLiveResource {
-    match view
-        .open_using(domain::current(), workspace)
-        .expect("installed authority matches")
-    {
-        WorthUiQueryLiveOpenOutcome::Opened(resource) => resource,
-        WorthUiQueryLiveOpenOutcome::Stopped(stopped) => {
-            panic!("live resource open stopped: {stopped:?}")
-        }
-    }
+) -> WorthUiOperationLiveResource {
+    view.open_operation(operation_live_request(), workspace)
+        .unwrap_or_else(|stopped| panic!("live resource open stopped: {stopped:?}"))
+}
+
+pub(crate) fn assert_active_operation_live_resource(session: &WorthUiActiveApplicationSession) {
+    let residue = session.inspect_query_state_residue();
+    assert_eq!(residue.scanned_live_resources(), 1);
+    assert!(residue.is_clean());
 }
 
 pub(super) fn close(
-    resource: WorthUiQueryLiveResource,
+    resource: WorthUiOperationLiveResource,
     workspace: &mut runtime::WorthQueryWorkspace,
 ) {
     assert!(matches!(
         resource.close(workspace),
-        WorthUiQueryLiveCloseOutcome::Closed(_)
+        WorthUiOperationLiveCloseOutcome::Closed(_)
     ));
 }
 
-pub(super) fn close_retirement(
-    retirement: WorthUiQueryLiveRetirement,
+pub(crate) fn close_retirement(
+    retirement: WorthUiOperationLiveRetirement,
     workspace: &mut runtime::WorthQueryWorkspace,
 ) {
-    let WorthUiQueryLiveRetirementCloseOutcome::Closed(receipt) = retirement.close(workspace)
+    let WorthUiOperationLiveRetirementCloseOutcome::Closed(receipt) = retirement.close(workspace)
     else {
         panic!("retired Query resource must close")
     };
@@ -158,11 +151,23 @@ pub(super) fn close_retirement(
         .query_close_receipts()
         .next()
         .expect("Query owns the exact close proof");
-    assert_eq!(
-        query_receipt
-            .close_receipt()
-            .disposal_work()
-            .lifecycle_closeout_count(),
-        1
-    );
+    assert!(query_receipt.owner_terminal());
+    assert_eq!(query_receipt.counters().close_completions, 1);
+}
+
+fn operation_live_request() -> WorthUiOperationLiveOpenRequest {
+    WorthUiOperationLiveOpenRequest::new(
+        WorthUiQueryConsumerRequirements::new(
+            domain::WorthQueryConsumerBoundaryRequirements {
+                presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
+                allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
+            },
+            WorthUiQueryAllocationDetail::BorrowedFactSlice,
+            WorthUiQueryViewShape::Collection,
+            WorthUiQueryDenialPresentation::StructuredStatus,
+            WorthUiQueryInspectionRelevance::Relevant,
+        ),
+        domain::WorthQueryCollectionWindowBreadth::new(1, 0, 0, 1).unwrap(),
+        WorthUiCollectionAllocationPolicy::PreserveMounted,
+    )
 }

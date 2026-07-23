@@ -7,15 +7,12 @@ use worth_query::facade::domain;
 use super::conditional_node_contract::{dependency, dependency_for_role, node};
 use super::installed_operation_fixture::{
     conditional_workflow_workspace, conditional_workspace, correspondence_bridge,
-    ConditionalModelGraph, GeometryDomain, ReadFamily, ReadVertex, WorkflowRead,
+    fixture_record_identity, ConditionalModelGraph, GeometryDomain, ReadFamily, ReadVertex,
+    WorkflowRead,
 };
 
 fn geometry_node_location() -> domain::WorthQueryConditionalNodeLocation {
     domain::WorthQueryConditionalNodeLocation::operation("geometry").unwrap()
-}
-
-fn source_record_identity() -> worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts {
-    worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(0, 0, 1)
 }
 
 #[test]
@@ -31,8 +28,10 @@ fn installed_operation_and_exact_graph_participation_mint_the_candidate() {
     )
     .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let operation = workspace
-        .operation(&installed_domain, ReadVertex, ReadFamily)
+    let operating_world = workspace.observe_operating_world().unwrap();
+    let operation = operating_world
+        .family(ReadFamily)
+        .bind(&installed_domain, ReadVertex)
         .unwrap();
     let graph = workspace
         .graph_participation(ConditionalModelGraph)
@@ -67,7 +66,7 @@ fn installed_operation_and_exact_graph_participation_mint_the_candidate() {
             geometry_node_location(),
             0,
             &graph,
-            Some(source_record_identity()),
+            Some(fixture_record_identity()),
             vec![target.clone()],
         )
         .unwrap();
@@ -84,7 +83,7 @@ fn installed_operation_and_exact_graph_participation_mint_the_candidate() {
             geometry_node_location(),
             1,
             &graph,
-            Some(source_record_identity()),
+            Some(fixture_record_identity()),
             vec![target],
         ),
         Err(denial) if denial.kind()
@@ -93,7 +92,7 @@ fn installed_operation_and_exact_graph_participation_mint_the_candidate() {
 }
 
 #[test]
-fn query_facade_installs_correspondence_without_claiming_bound_operation_authority() {
+fn bound_query_facade_installs_correspondence_with_operation_authority() {
     let workspace = conditional_workspace(
         "installed-correspondence-owner",
         node(
@@ -104,8 +103,10 @@ fn query_facade_installs_correspondence_without_claiming_bound_operation_authori
     )
     .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let operation = workspace
-        .operation(&installed_domain, ReadVertex, ReadFamily)
+    let operating_world = workspace.observe_operating_world().unwrap();
+    let operation = operating_world
+        .family(ReadFamily)
+        .bind(&installed_domain, ReadVertex)
         .unwrap();
     let graph_participation = workspace
         .graph_participation(ConditionalModelGraph)
@@ -137,7 +138,7 @@ fn query_facade_installs_correspondence_without_claiming_bound_operation_authori
             geometry_node_location(),
             0,
             &graph_participation,
-            Some(source_record_identity()),
+            Some(fixture_record_identity()),
             vec![target],
         )
         .unwrap();
@@ -149,7 +150,7 @@ fn query_facade_installs_correspondence_without_claiming_bound_operation_authori
             geometry_node_location(),
             0,
             &graph_participation,
-            Some(source_record_identity()),
+            Some(fixture_record_identity()),
             &mut graph_binding,
         )
     else {
@@ -193,7 +194,11 @@ fn foreign_runtime_graph_participation_denies_before_bridge_admission() {
     )
     .unwrap();
     let domain = first.domain(GeometryDomain).unwrap();
-    let operation = first.operation(&domain, ReadVertex, ReadFamily).unwrap();
+    let operating_world = first.observe_operating_world().unwrap();
+    let operation = operating_world
+        .family(ReadFamily)
+        .bind(&domain, ReadVertex)
+        .unwrap();
     let foreign_graph = second.graph_participation(ConditionalModelGraph).unwrap();
 
     assert!(matches!(
@@ -201,7 +206,7 @@ fn foreign_runtime_graph_participation_denies_before_bridge_admission() {
             geometry_node_location(),
             0,
             &foreign_graph,
-            Some(source_record_identity()),
+            Some(fixture_record_identity()),
             Vec::new(),
         ),
         Err(denial) if denial.kind()
@@ -297,8 +302,10 @@ fn conditional_role_and_attachment_are_one_installed_meaning() {
         conditional_workflow_workspace("conditional-workflow-stage", stage_node.clone())
             .expect("workflow-stage conditional installs through the ordinary package path");
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let operation = workspace
-        .operation(&installed_domain, WorkflowRead, ReadFamily)
+    let operating_world = workspace.observe_operating_world().unwrap();
+    let operation = operating_world
+        .family(ReadFamily)
+        .bind(&installed_domain, WorkflowRead)
         .unwrap();
     let domain::WorthQueryOperationWorkflowContract::Declared(workflow) =
         &operation.definition().semantics().workflow

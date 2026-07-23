@@ -19,9 +19,8 @@ fn five_relationships_are_distinct_pair_bound_decisions() {
     )
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
-    let basis = observation_basis();
-    let subject = bind(&workspace, &installed, basis.clone());
-    let candidate = bind(&workspace, &installed, basis);
+    let subject = bind(&workspace, &installed);
+    let candidate = bind(&workspace, &installed);
 
     subject.same_installation_with(&candidate).unwrap();
     subject.replacement_with(&candidate).unwrap();
@@ -42,16 +41,8 @@ fn five_relationships_are_distinct_pair_bound_decisions() {
 fn foreign_runtime_is_denied_before_operational_work() {
     let owner = workspace("operation-compatibility-owner", false).unwrap();
     let foreign = workspace("operation-compatibility-foreign", false).unwrap();
-    let owner_bound = bind(
-        &owner,
-        &owner.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
-    let foreign_bound = bind(
-        &foreign,
-        &foreign.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
+    let owner_bound = bind(&owner, &owner.domain(GeometryDomain).unwrap());
+    let foreign_bound = bind(&foreign, &foreign.domain(GeometryDomain).unwrap());
 
     let denial = owner_bound
         .same_installation_with(&foreign_bound)
@@ -70,7 +61,10 @@ fn a_wrong_basis_is_rejected_before_a_bound_capability_can_exist() {
     let workspace = workspace("operation-compatibility-basis", false).unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let denial = match workspace
-        .operating_world(branch_basis())
+        .observe_branch_operating_world(
+            worth_query::facade::installed::WorthQueryBranchHeadIdentity::new("branch-a").unwrap(),
+        )
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
     {
@@ -89,13 +83,13 @@ fn a_wrong_basis_is_rejected_before_a_bound_capability_can_exist() {
 fn rebuilt_indexes_do_not_change_the_authority_oracle() {
     let mut workspace = workspace("operation-compatibility-rebuild", false).unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
-    let before = bind(&workspace, &installed, observation_basis());
+    let before = bind(&workspace, &installed);
     assert!(workspace
         .verify_domain_execution_index_rebuild()
         .is_equivalent());
     let report = workspace.rebuild_conditional_execution_index();
     assert!(report.exact_index_parity());
-    let after = bind(&workspace, &installed, observation_basis());
+    let after = bind(&workspace, &installed);
 
     before.same_installation_with(&after).unwrap();
     before.compatible_basis_with(&after).unwrap();
@@ -107,7 +101,7 @@ fn rebind_requires_a_stale_subject_and_current_same_runtime_successor() {
         .controlled_workspace("operation-compatibility-rebind")
         .unwrap();
     let prior_domain = controlled.domain(GeometryDomain).unwrap();
-    let subject = bind(&controlled, &prior_domain, observation_basis());
+    let subject = bind(&controlled, &prior_domain);
     let same_generation_receipt = controlled
         .rebind_domain(prior_domain.rebind_request())
         .unwrap()
@@ -127,7 +121,7 @@ fn rebind_requires_a_stale_subject_and_current_same_runtime_successor() {
         .rebind_domain(prior_domain.rebind_request())
         .unwrap()
         .into_parts();
-    let candidate = bind(&controlled, &current_domain, observation_basis());
+    let candidate = bind(&controlled, &current_domain);
     assert_eq!(
         subject
             .rebind_with(&candidate, same_generation_receipt)
@@ -138,11 +132,7 @@ fn rebind_requires_a_stale_subject_and_current_same_runtime_successor() {
     subject.rebind_with(&candidate, receipt.clone()).unwrap();
 
     let foreign = workspace("operation-compatibility-rebind-foreign", false).unwrap();
-    let foreign_bound = bind(
-        &foreign,
-        &foreign.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
+    let foreign_bound = bind(&foreign, &foreign.domain(GeometryDomain).unwrap());
     let denial = subject.rebind_with(&foreign_bound, receipt).unwrap_err();
     assert_eq!(
         denial.kind(),
@@ -163,14 +153,14 @@ fn conditional_rebind_reinstalls_through_successor_owners() {
     )
     .unwrap();
     let prior_domain = controlled.domain(GeometryDomain).unwrap();
-    let subject = bind(&controlled, &prior_domain, observation_basis());
+    let subject = bind(&controlled, &prior_domain);
 
     controlled.advance_domain_installation_generation().unwrap();
     let (current_domain, receipt) = controlled
         .rebind_domain(prior_domain.rebind_request())
         .unwrap()
         .into_parts();
-    let candidate = bind(&controlled, &current_domain, observation_basis());
+    let candidate = bind(&controlled, &current_domain);
 
     let stale_denial = subject.same_installation_with(&candidate).unwrap_err();
     assert_eq!(
@@ -182,7 +172,7 @@ fn conditional_rebind_reinstalls_through_successor_owners() {
     let rebind = subject.rebind_with(&candidate, receipt).unwrap();
     assert_conditional_continuity_work(rebind.counters());
 
-    let current_peer = bind(&controlled, &current_domain, observation_basis());
+    let current_peer = bind(&controlled, &current_domain);
     let affinity = candidate.same_installation_with(&current_peer).unwrap();
     assert_conditional_affinity_work(affinity.counters());
 }
@@ -207,16 +197,8 @@ fn one_field_conditional_drift_returns_the_exact_owner_dimension() {
         ),
     )
     .unwrap();
-    let left_bound = bind(
-        &left,
-        &left.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
-    let right_bound = bind(
-        &right,
-        &right.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
+    let left_bound = bind(&left, &left.domain(GeometryDomain).unwrap());
+    let right_bound = bind(&right, &right.domain(GeometryDomain).unwrap());
 
     let denial = left_bound.compatible_basis_with(&right_bound).unwrap_err();
     assert_eq!(
@@ -243,7 +225,6 @@ fn one_field_conditional_drift_returns_the_exact_owner_dimension() {
 fn bind(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
-    basis: foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     ReadVertex,
@@ -251,32 +232,11 @@ fn bind(
     foundation::ObservationLaneWitness,
 > {
     workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-fn branch_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .branch_head("branch-a", true)
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }
 
 fn assert_conditional_continuity_work(counters: domain::WorthQueryCompatibilityCounters) {

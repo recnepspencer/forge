@@ -9,9 +9,6 @@ pub(crate) enum UiQueryAllocationPurpose {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum UiQueryAllocationSourceKey {
-    ManagedLiveCompatibility(
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityIndexKey,
-    ),
     SettledSnapshot(super::super::UiSettledQueryFactKey),
 }
 
@@ -25,16 +22,10 @@ pub(crate) struct UiQueryAllocationTargetMapping {
 
 impl UiQueryAllocationTargetMapping {
     pub(super) fn from_admitted_receipt(
-        receipt: &crate::evidence::UiProjectionFactReceipt,
+        receipt: &crate::evidence::UiSettledQueryFactReceipt,
         target: UiGraphNodeIdentity,
     ) -> Self {
-        Self::from_parts(
-            UiQueryAllocationSourceKey::ManagedLiveCompatibility(
-                receipt.authority_index_key().clone(),
-            ),
-            receipt.consumed_fact_families(),
-            target,
-        )
+        Self::from_settled_receipt(receipt, target)
     }
 
     pub(super) fn from_settled_receipt(
@@ -100,21 +91,12 @@ impl UiQueryAllocationTargetMapping {
 impl UiQueryAllocationSourceKey {
     pub(crate) fn identity_digest(&self) -> u64 {
         match self {
-            Self::ManagedLiveCompatibility(key) => key.identity_digest(),
             Self::SettledSnapshot(key) => {
                 crate::declaration::stable_text_digest(key.view_binding_id().as_str())
                     ^ crate::declaration::stable_text_digest(key.query_binding_identity())
                         .rotate_left(29)
             }
         }
-    }
-
-    pub(crate) fn from_managed_live_compatibility(
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-    ) -> Result<Self, worth_ui_query_binding::compatibility::managed_live::WorthUiQueryMeasurementFactReceiptError>{
-        authority
-            .authority_index_key()
-            .map(Self::ManagedLiveCompatibility)
     }
 
     pub(crate) fn from_settled_fact(

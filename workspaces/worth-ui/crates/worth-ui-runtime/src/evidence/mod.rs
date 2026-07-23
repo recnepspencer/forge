@@ -43,12 +43,6 @@ pub(crate) use measurement::dependency::UiMeasurementDependencyMapEntry;
 pub(crate) use measurement::host_measurement_request_shape_digest;
 #[cfg(test)]
 pub(crate) use measurement::measurement_result_identity_digest;
-pub(crate) use measurement::{
-    admit_declared_measurement_projection_fact_receipt,
-    project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
-    project_measurement_inspection_view, UiHostMeasurementAuthorityWitness,
-    UiHostMeasurementResultInput,
-};
 pub use measurement::{
     admit_measurement_basis, certify_measurement_basis_determinism,
     certify_measurement_basis_determinism_for_active_host,
@@ -65,8 +59,12 @@ pub use measurement::{
     UiMeasurementGenerationCompatibility, UiMeasurementNeighborhoodClassHint, UiMeasurementResult,
     UiMeasurementRoundingPosture, UiMeasurementSiblingResizeSupport,
     UiMeasurementSiblingResizeSupportSource, UiMeasurementUnitPosture, UiMeasurementValue,
-    UiProjectionFactReceipt, UiProjectionFactReceiptDenial, UiQueryWorldCompatibilityFailure,
-    UiSettledQueryFactReceipt,
+    UiQueryWorldCompatibilityFailure, UiSettledQueryFactReceipt, UiSettledQueryFactReceiptDenial,
+};
+pub(crate) use measurement::{
+    project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
+    project_measurement_inspection_view, UiHostMeasurementAuthorityWitness,
+    UiHostMeasurementResultInput,
 };
 pub(crate) use obligation::UiInspectionObligationReasonProjectionInput;
 pub use obligation::{

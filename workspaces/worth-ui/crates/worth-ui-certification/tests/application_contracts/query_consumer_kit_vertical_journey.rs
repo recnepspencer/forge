@@ -1,15 +1,20 @@
 use worth_foundational::facade::{AspectValue, CanonicalF32};
-use worth_query::facade::domain;
-use worth_ui::facade::query_binding::{
-    WorthUiQueryAllocationDetail, WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
-    WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+use worth_query::facade::{domain, runtime::WorthQueryWorkspace};
+use worth_ui::facade::{
+    app::WorthUiActiveApplicationSession,
+    query_binding::{
+        WorthUiInstalledQueryBindingReference, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+        WorthUiSettledSnapshotFact, WorthUiSettledSnapshotProjection,
+    },
+    runtime::WorthUiQueryLaneFactLink,
 };
 use worth_ui_query_binding::{
     WorthUiQueryInspection, WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionRelevance,
 };
 
 use crate::query_consumer_kit_workspace::{
-    installed_measurement_workspace, measurement_value_path, observation_basis,
+    installed_measurement_workspace, interactive_borrowed_collection_requirements,
+    measurement_value_path,
 };
 use crate::query_replacement_lifecycle::scenario::{
     snapshot_application, submission, FIRST_VIEW, NEXT_COMPONENT, SECOND_VIEW,
@@ -17,7 +22,7 @@ use crate::query_replacement_lifecycle::scenario::{
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 
 #[test]
-fn public_file_authored_application_consumes_exact_query_progression_into_runtime() {
+fn ui_binding_and_runtime_converge_with_the_exact_query_projection() {
     let mut workspace = installed_measurement_workspace("public-query-binding-journey");
     let installed = workspace
         .worth_ui()
@@ -28,44 +33,68 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
     let successor_view = installed
         .measurement_view(SECOND_VIEW)
         .expect("the installed domain derives one successor view");
+    let view_identity = view.definition().identity().clone();
+    let successor_identity = successor_view.definition().identity().clone();
     let app = snapshot_application(view, successor_view);
     assert_eq!(app.capabilities().view_bindings().len(), 2);
     assert!(app.graph().node_count() > 0);
     let installed_reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new(FIRST_VIEW).unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&view_identity, WorthUiQueryViewShape::Collection)
         .expect("the file-authored binding resolves its installed operation reference");
     let successor_reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new(SECOND_VIEW).unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&successor_identity, WorthUiQueryViewShape::Collection)
         .expect("the successor binding resolves its installed operation reference");
-    let settled = installed_reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+    let settled = settle_reference(&installed_reference, &mut workspace);
+    assert_query_projection(&settled);
+    let expected_fact = settled.fact().clone();
+    let mut session = app.launch().expect("the exact Query generation launches");
+    let fact_link = session
+        .query_fact_link(FIRST_VIEW)
+        .expect("the active plan exposes one generation-owned fact link");
+
+    admit_current_projection(&mut session, settled, &fact_link, &expected_fact);
+    activate_successor_projection(&mut session, &successor_reference, &mut workspace);
+    assert_successor_projection(&mut session, &fact_link);
+    let _shutdown = session.shutdown();
+}
+
+fn settle_reference(
+    reference: &WorthUiInstalledQueryBindingReference,
+    workspace: &mut WorthQueryWorkspace,
+) -> WorthUiSettledSnapshotProjection {
+    reference
+        .enter_snapshot_attempt(workspace)
         .expect("the application reference enters the exact Query world")
-        .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
-            domain::WorthQueryConsumerBoundaryRequirements {
-                presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
-                allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
-            },
-            WorthUiQueryAllocationDetail::BorrowedFactSlice,
-            WorthUiQueryViewShape::Collection,
-            WorthUiQueryDenialPresentation::StructuredStatus,
-            WorthUiQueryInspectionRelevance::Relevant,
-        ))
+        .prepare_snapshot_consumer(interactive_borrowed_collection_requirements())
         .expect("Query mints the one consumer contract")
-        .execute(&mut workspace)
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()
         .consume(domain::project_facts().display_field(measurement_value_path()))
         .unwrap()
         .settle()
-        .unwrap();
+        .unwrap()
+}
+
+fn assert_query_projection(settled: &WorthUiSettledSnapshotProjection) {
     assert_eq!(settled.fact().projected_measurement_fact_count(), 1);
+    assert_eq!(
+        settled.fact().result_state(),
+        settled.exact_query_projection().result_state()
+    );
+    assert_eq!(
+        settled.fact().result_state(),
+        domain::WorthQueryOperationResultState::Ready
+    );
+    assert_eq!(
+        settled.fact().warning_count(),
+        settled.exact_query_projection().warnings().len()
+            + settled
+                .exact_query_projection()
+                .projection_warnings()
+                .map_or(0, |warnings| warnings.warning_kinds().len())
+    );
     let query_counters = settled.counters();
     assert_eq!(query_counters.runtime_authority_checks, 1);
     assert_eq!(query_counters.input_contract_checks, 1);
@@ -86,7 +115,7 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
         WorthUiQueryInspectionRelevance::Relevant,
         WorthUiQueryInspectionEvidencePolicy::Rich,
     );
-    assert!(std::ptr::eq(inspection.exact_projection(), &settled));
+    assert!(std::ptr::eq(inspection.exact_projection(), settled));
     assert_eq!(inspection.counters().rich_evidence_section_count(), 1);
     assert_eq!(
         measurement_facts
@@ -104,11 +133,19 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
             .scalar(),
         Some(&AspectValue::Float32(CanonicalF32::from_f32(240.0)))
     );
-    let expected_fact = settled.fact().clone();
-    let mut session = app.launch().expect("the exact Query generation launches");
-    let fact_link = session
-        .query_fact_link(FIRST_VIEW)
-        .expect("the active plan exposes one generation-owned fact link");
+}
+
+fn admit_current_projection(
+    session: &mut WorthUiActiveApplicationSession,
+    settled: WorthUiSettledSnapshotProjection,
+    fact_link: &WorthUiQueryLaneFactLink,
+    expected_fact: &WorthUiSettledSnapshotFact,
+) {
+    let expected_extent = expected_fact
+        .measurement_facts()
+        .expect("the expected fact retains the admitted measurement subset")
+        .observations()[0]
+        .extent();
     let mut admitted_fact = None;
     let mut frame_ingress = None;
     let completion = session.execute_framework_turn(|turn| {
@@ -135,6 +172,11 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
         admitted_fact.query_binding_identity(),
         expected_fact.query_binding_identity()
     );
+    assert_eq!(admitted_fact.result_state(), expected_fact.result_state());
+    assert_eq!(
+        admitted_fact.measurement_facts().unwrap().observations()[0].extent(),
+        expected_extent
+    );
     assert_eq!(
         admitted_fact
             .source_generation()
@@ -146,16 +188,26 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
     assert_eq!(frame_ingress.counters().retained_fact_resolution_count(), 1);
     assert_eq!(frame_ingress.counters().allocation_submission_count(), 1);
     assert!(frame_ingress.gateway().submission().is_some());
+    assert_active_query_residue(session);
+}
+
+fn assert_active_query_residue(session: &WorthUiActiveApplicationSession) {
     let active_scan = session.inspect_query_state_residue();
     assert!(active_scan.query_installed());
     assert_eq!(active_scan.scanned_query_bindings(), 2);
     assert_eq!(active_scan.scanned_plan_query_links(), 1);
     assert_eq!(active_scan.scanned_settled_snapshots(), 1);
     assert_eq!(active_scan.scanned_live_resources(), 0);
-    assert_eq!(active_scan.managed_live_subsystem_construction_count(), 0);
-    assert_eq!(active_scan.managed_live_succession_operation_count(), 0);
+    assert_eq!(active_scan.operation_live_subsystem_construction_count(), 0);
+    assert_eq!(active_scan.operation_live_succession_operation_count(), 0);
     assert!(active_scan.is_clean());
+}
 
+fn activate_successor_projection(
+    session: &mut WorthUiActiveApplicationSession,
+    successor_reference: &WorthUiInstalledQueryBindingReference,
+    workspace: &mut WorthQueryWorkspace,
+) {
     let prior_generation = session.generation_identity().clone();
     let mut prepared = session
         .prepare_replacement(submission(
@@ -166,30 +218,7 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
         ))
         .expect("the changed real file source prepares through the public session");
     prepared
-        .admit_candidate_settled_query_projection(
-            successor_reference
-                .enter_snapshot_attempt(&workspace, observation_basis())
-                .unwrap()
-                .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
-                    domain::WorthQueryConsumerBoundaryRequirements {
-                        presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
-                        allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
-                    },
-                    WorthUiQueryAllocationDetail::BorrowedFactSlice,
-                    WorthUiQueryViewShape::Collection,
-                    WorthUiQueryDenialPresentation::StructuredStatus,
-                    WorthUiQueryInspectionRelevance::Relevant,
-                ))
-                .unwrap()
-                .execute(&mut workspace)
-                .unwrap()
-                .publish()
-                .unwrap()
-                .consume(domain::project_facts().display_field(measurement_value_path()))
-                .unwrap()
-                .settle()
-                .unwrap(),
-        )
+        .admit_candidate_settled_query_projection(settle_reference(successor_reference, workspace))
         .expect("the successor candidate owns its independent exact Query settlement");
     let catalog = admit_candidate_catalog(&session, &mut prepared);
     let lowered = session
@@ -203,7 +232,7 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
     let pending = session
         .stage_prepared_replacement(lowered)
         .expect("the changed application stages");
-    let boundary = crate::query_replacement_lifecycle::support::activation_boundary(&mut session);
+    let boundary = crate::query_replacement_lifecycle::support::activation_boundary(session);
     let cutover = session
         .activate_prepared_replacement(pending, catalog, boundary, None)
         .expect("the public replacement transaction succeeds")
@@ -213,8 +242,13 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
     assert_eq!(cutover.active_generation(), session.generation_identity());
     assert!(cutover.publication().generation_is_coherent());
     assert!(cutover.publication().host_is_coherent());
-    assert!(cutover.managed_live_compatibility_retirement().is_empty());
+    assert!(cutover.operation_live_retirement().is_empty());
+}
 
+fn assert_successor_projection(
+    session: &mut WorthUiActiveApplicationSession,
+    predecessor_link: &WorthUiQueryLaneFactLink,
+) {
     let successor_link = session
         .query_fact_link(SECOND_VIEW)
         .expect("the successor plan carries the candidate settlement link");
@@ -227,7 +261,7 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
                     .submit_settled(&successor_link)
                     .expect("the successor resolves the one preserved settlement"),
             );
-            stale_denial = query.submit_settled(&fact_link).err();
+            stale_denial = query.submit_settled(predecessor_link).err();
         });
     });
     drop(completion.into_completion());
@@ -246,5 +280,4 @@ fn public_file_authored_application_consumes_exact_query_progression_into_runtim
     assert_eq!(successor_scan.scanned_settled_snapshots(), 1);
     assert_eq!(successor_scan.scanned_plan_query_links(), 1);
     assert!(successor_scan.is_clean());
-    let _shutdown = session.shutdown();
 }

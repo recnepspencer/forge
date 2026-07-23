@@ -6,7 +6,6 @@ use crate::admission::{
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::verdict::UiObligationDispatchStopPosture;
 use worth_ui_host_contract::WorthUiHostCapabilityPosture;
-use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture;
 
 use super::{
     dispatch_execution::UiObligationDispatchExecution, UiObligationDispatchEntry,
@@ -185,32 +184,25 @@ fn supported_plan_stop_posture(
         obligation.family()
             == crate::obligations::catalog::UiObligationFamily::QueryBindingRequirement
     }) {
-        let Some(query_prerequisites) = target.query_prerequisites() else {
-            return UiObligationDispatchStopPosture::Unsupported;
-        };
-
-        return match query_prerequisites.basis_posture() {
-            WorthUiQueryBasisPosture::GraphAligned => UiObligationDispatchStopPosture::None,
-            WorthUiQueryBasisPosture::WrongWorldProjection
-            | WorthUiQueryBasisPosture::RebindRequired => {
+        return match target.query_basis() {
+            UiAdmissionQueryBasis::GraphAligned => UiObligationDispatchStopPosture::None,
+            UiAdmissionQueryBasis::WrongWorldProjection | UiAdmissionQueryBasis::RebindRequired => {
                 UiObligationDispatchStopPosture::WrongQueryBasis {
                     required: UiAdmissionQueryBasis::GraphAligned,
                     observed: target.query_basis(),
                 }
             }
-            WorthUiQueryBasisPosture::StaleReceipt => UiObligationDispatchStopPosture::Stale {
+            UiAdmissionQueryBasis::StaleReceipt => UiObligationDispatchStopPosture::Stale {
                 required: UiAdmissionQueryBasis::GraphAligned,
                 observed: target.query_basis(),
                 evidence: crate::admission::UiAdmissionStaleEvidence::QueryReceiptExpired,
             },
-            WorthUiQueryBasisPosture::AmbiguousSources => {
-                UiObligationDispatchStopPosture::Ambiguous {
-                    required_query_basis: Some(UiAdmissionQueryBasis::GraphAligned),
-                    observed_query_basis: Some(target.query_basis()),
-                    required_host_capability: None,
-                    observed_host_capability: None,
-                }
-            }
+            UiAdmissionQueryBasis::AmbiguousSources => UiObligationDispatchStopPosture::Ambiguous {
+                required_query_basis: Some(UiAdmissionQueryBasis::GraphAligned),
+                observed_query_basis: Some(target.query_basis()),
+                required_host_capability: None,
+                observed_host_capability: None,
+            },
         };
     }
 

@@ -8,7 +8,6 @@ use super::installed_operation_fixture::{
 
 #[test]
 fn conditional_no_change_or_deferral_cannot_claim_fresh_lineage() {
-    let basis = mutation_basis();
     let mut workspace = reverted_conditional_lineage_workflow_workspace(
         "conditional-lineage-reverted",
         stage_node(),
@@ -16,7 +15,7 @@ fn conditional_no_change_or_deferral_cannot_claim_fresh_lineage() {
     .unwrap();
 
     assert!(matches!(
-        bind(&workspace, basis).reexecute(intent(), &mut workspace),
+        bind(&workspace).reexecute(intent(), &mut workspace),
         TransitionOutcome::Deferred(
             domain::WorthQueryWorkflowReexecutionStop::ConditionalDeferred { stage_identity, .. }
         ) if stage_identity == "publish"
@@ -56,7 +55,6 @@ fn stage_node() -> domain::WorthQueryPortableConditionalNodeDeclaration {
 
 fn bind(
     workspace: &runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     WorkflowRead,
@@ -65,7 +63,8 @@ fn bind(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(basis)
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap()
@@ -80,14 +79,4 @@ fn intent() -> domain::WorthQueryNormalizedWorkflowIntent {
         Stage::new("publish", Value::Text("join".into())),
     ])
     .unwrap()
-}
-
-fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
 }

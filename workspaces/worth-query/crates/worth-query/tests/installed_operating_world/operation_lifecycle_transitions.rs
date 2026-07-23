@@ -315,7 +315,8 @@ fn promote(
 fn settle(workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace) -> SettledProjection {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -329,15 +330,4 @@ fn settle(workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace) -> 
         .unwrap()
         .settle()
         .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

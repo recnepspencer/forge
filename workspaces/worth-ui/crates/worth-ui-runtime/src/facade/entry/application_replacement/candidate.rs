@@ -47,17 +47,11 @@ impl WorthUiPreparedApplicationReplacement {
         self.next_app.declaration_artifacts()
     }
 
-    pub fn admit_candidate_managed_live_compatibility_projection(
+    pub fn admit_candidate_operation_live(
         &mut self,
-        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
-    ) -> Result<
-        (),
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
-    > {
-        self.candidate_query_binding
-            .admit_live(resource, outcome)
-            .map(drop)
+        resource: worth_ui_query_binding::WorthUiOperationLiveResource,
+    ) -> Result<(), worth_ui_query_binding::WorthUiOperationLiveAdmissionStop> {
+        self.candidate_query_binding.admit_operation_live(resource)
     }
 
     pub fn commit_candidate_mounted_layout_admissions(

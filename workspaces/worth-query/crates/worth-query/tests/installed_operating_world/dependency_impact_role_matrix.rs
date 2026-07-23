@@ -19,14 +19,14 @@ fn every_role_is_compiled_from_real_operation_or_execution_evidence() {
         vec![LineageEvidenceScenario::SingularSuccessor],
     )
     .unwrap();
-    let lineage_trace =
-        super::operation_lineage::execute(&mut lineage, super::operation_lineage::mutation_basis());
+    let lineage_trace = super::operation_lineage::execute(&mut lineage);
     let mut roles = compiled_roles(lineage_trace.semantic_aspect_dependency_closure().unwrap());
 
     let mut mutation = mutation_workflow_workspace("dependency-impact-role-invariant").unwrap();
     let installed = mutation.domain(GeometryDomain).unwrap();
     let mutation_trace = mutation
-        .operating_world(super::dependency_impact::mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(MutationFamily)
         .bind(&installed, WorkflowMutation)
         .unwrap()
@@ -214,19 +214,9 @@ fn bind_collection(
     foundation::ObservationLaneWitness,
 > {
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ImpactCollectionRead)
         .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

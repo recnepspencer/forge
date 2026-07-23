@@ -88,12 +88,24 @@ pub(crate) struct QueryAudienceContract {
     #[serde(default)]
     pub(crate) certification_package: Option<String>,
     #[serde(default)]
+    pub(crate) certification_authority_packages: Vec<String>,
+    #[serde(default)]
+    pub(crate) certification_consumers: Vec<String>,
+    #[serde(default)]
     pub(crate) internal_packages: Vec<String>,
+    #[serde(default)]
+    pub(crate) facade_surfaces: Vec<QueryFacadeSurfaceConfig>,
     pub(crate) audiences: Vec<QueryAudienceFacadeConfig>,
 }
 
 fn default_query_workspace() -> String {
     ".".to_owned()
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct QueryFacadeSurfaceConfig {
+    pub(crate) label: String,
+    pub(crate) source: String,
 }
 
 /// One audience facade row: package identity, legal bands, and repair guidance.

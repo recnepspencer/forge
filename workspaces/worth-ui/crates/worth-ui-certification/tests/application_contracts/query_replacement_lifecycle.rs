@@ -1,9 +1,7 @@
-use worth_query::facade::domain;
 use worth_ui::facade::app::WorthUiApplicationCutoverDenial;
 use worth_ui::facade::app::{WorthUiPlanRegionTransition, WorthUiVirtualizedPlanAvailability};
 use worth_ui::facade::query_binding::WorthUiQueryWorkspaceExt;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
-use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveOpenOutcome;
 #[path = "query_replacement_lifecycle/mixed_real_lifecycle.rs"]
 mod mixed_real_lifecycle;
 #[path = "query_replacement_lifecycle/precommit_rollback.rs"]
@@ -46,7 +44,7 @@ fn public_semantic_no_op_preserves_the_exact_real_query_live_resource() {
     );
     let prime = lower_and_stage(&session, prepare_catalog(&session, prime));
     let prime = activate(&mut session, prime.0, prime.1);
-    assert!(prime.managed_live_compatibility_retirement().is_empty());
+    assert!(prime.operation_live_retirement().is_empty());
     let active_generation = session.generation_identity().clone();
     assert_visible_query_execution(&mut session);
 
@@ -69,13 +67,11 @@ fn public_semantic_no_op_preserves_the_exact_real_query_live_resource() {
     assert_eq!(session.generation_identity(), &active_generation);
     assert_eq!(no_op.work().activation_publication_count(), 0);
     assert_visible_query_execution(&mut session);
-    assert!(matches!(
-        first
-            .open_using(domain::current(), &mut workspace)
-            .expect("installed Query authority remains exact"),
-        WorthUiQueryLiveOpenOutcome::Stopped(_)
-    ));
-    let _ = session.shutdown();
+    assert_active_operation_live_resource(&session);
+    close_retirement(
+        session.shutdown().into_operation_live_retirement(),
+        &mut workspace,
+    );
     close(open_resource(&first, &mut workspace), &mut workspace);
 }
 
@@ -106,14 +102,9 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
     let cutover = activate(&mut session, preserve.0, preserve.1);
 
     assert_ne!(cutover.active_generation(), &initial_generation);
-    assert!(cutover.managed_live_compatibility_retirement().is_empty());
+    assert!(cutover.operation_live_retirement().is_empty());
     assert_visible_query_execution(&mut session);
-    assert!(matches!(
-        first
-            .open_using(domain::current(), &mut workspace)
-            .expect("installed authority remains current"),
-        WorthUiQueryLiveOpenOutcome::Stopped(_)
-    ));
+    assert_active_operation_live_resource(&session);
 
     let switch_submission = submission(
         "query-lifecycle-active",
@@ -124,19 +115,13 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
     let mut switch = prepare_catalog(&session, switch_submission);
     admit_candidate_resource(&mut switch.0, &second, &mut workspace);
     let switch = lower_and_stage(&session, switch);
-    let retirement =
-        activate(&mut session, switch.0, switch.1).into_managed_live_compatibility_retirement();
+    let retirement = activate(&mut session, switch.0, switch.1).into_operation_live_retirement();
 
     assert_eq!(retirement.len(), 1);
     assert_visible_query_execution(&mut session);
     close_retirement(retirement, &mut workspace);
     close(open_resource(&first, &mut workspace), &mut workspace);
-    assert!(matches!(
-        second
-            .open_using(domain::current(), &mut workspace)
-            .expect("successor authority remains current"),
-        WorthUiQueryLiveOpenOutcome::Stopped(_)
-    ));
+    assert_active_operation_live_resource(&session);
 
     let remove_submission = submission(
         "query-lifecycle-active",
@@ -145,8 +130,7 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
         session.capabilities(),
     );
     let remove = lower_and_stage(&session, prepare_catalog(&session, remove_submission));
-    let retirement =
-        activate(&mut session, remove.0, remove.1).into_managed_live_compatibility_retirement();
+    let retirement = activate(&mut session, remove.0, remove.1).into_operation_live_retirement();
 
     assert_eq!(retirement.len(), 1);
     assert_eq!(
@@ -155,7 +139,7 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
     );
     close_retirement(retirement, &mut workspace);
     close(open_resource(&second, &mut workspace), &mut workspace);
-    let _ = session.shutdown();
+    assert!(session.shutdown().operation_live_retirement().is_empty());
 }
 
 #[test]
@@ -203,14 +187,12 @@ fn denied_candidate_reaps_only_candidate_query_resources() {
     ));
 
     close(open_resource(&second, &mut workspace), &mut workspace);
-    assert!(matches!(
-        first
-            .open_using(domain::current(), &mut workspace)
-            .expect("predecessor authority remains current"),
-        WorthUiQueryLiveOpenOutcome::Stopped(_)
-    ));
+    assert_active_operation_live_resource(&session);
     assert_visible_query_execution(&mut session);
-    let _ = session.shutdown();
+    close_retirement(
+        session.shutdown().into_operation_live_retirement(),
+        &mut workspace,
+    );
 }
 
 #[test]
@@ -257,14 +239,12 @@ fn late_foreign_boundary_denial_releases_query_resource_when_retry_is_abandoned(
     assert_eq!(session.generation_identity(), &active_generation);
     drop(denial);
     close(open_resource(&second, &mut workspace), &mut workspace);
-    assert!(matches!(
-        first
-            .open_using(domain::current(), &mut workspace)
-            .expect("predecessor Query authority remains current"),
-        WorthUiQueryLiveOpenOutcome::Stopped(_)
-    ));
+    assert_active_operation_live_resource(&session);
     assert_visible_query_execution(&mut session);
-    let _ = session.shutdown();
+    close_retirement(
+        session.shutdown().into_operation_live_retirement(),
+        &mut workspace,
+    );
     let _ = foreign_session.shutdown();
 }
 
@@ -310,16 +290,11 @@ fn bounded_query_rebind_storm_retires_each_predecessor_resource_exactly_once() {
             transitions.len() <= 3,
             "Query replacement stays closure-bounded"
         );
-        let retirement = cutover.into_managed_live_compatibility_retirement();
+        let retirement = cutover.into_operation_live_retirement();
         assert_eq!(retirement.len(), 1);
         close_retirement(retirement, &mut workspace);
         assert_visible_query_execution(&mut session);
-        assert!(matches!(
-            next_view
-                .open_using(domain::current(), &mut workspace)
-                .expect("active successor remains installed"),
-            WorthUiQueryLiveOpenOutcome::Stopped(_)
-        ));
+        assert_active_operation_live_resource(&session);
     }
 
     let remove = submission(
@@ -330,7 +305,7 @@ fn bounded_query_rebind_storm_retires_each_predecessor_resource_exactly_once() {
     );
     let remove = lower_and_stage(&session, prepare_catalog(&session, remove));
     close_retirement(
-        activate(&mut session, remove.0, remove.1).into_managed_live_compatibility_retirement(),
+        activate(&mut session, remove.0, remove.1).into_operation_live_retirement(),
         &mut workspace,
     );
     let _ = session.shutdown();

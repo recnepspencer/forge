@@ -9,8 +9,11 @@ help: a similar name exists in the module
 1 - use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
 1 + use worth_query::facade::domain::WorthQueryCompensationCapability;
   |
-help: consider importing this struct instead
+help: consider importing one of these structs instead
   |
 1 - use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
 1 + use worth_query::facade::certification::WorthQueryCertificationReplayCapability;
+  |
+1 - use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
+1 + use worth_query_replay::facade::WorthQueryCertificationReplayCapability;
   |

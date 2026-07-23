@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation, read};
+use worth_query::facade::{domain, read};
 
 use super::installed_operation_fixture::{
     foreign_material_workspace, missing_read_execution_workspace, workspace, CountVertices,
@@ -11,7 +11,8 @@ fn public_bound_execution_projection_and_settlement_remain_one_chain() {
     let mut workspace = workspace("installed-progression", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -76,7 +77,8 @@ fn non_publishing_execution_is_a_terminal_typed_outcome() {
     let mut workspace = workspace("installed-terminal", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, CountVertices)
         .unwrap();
@@ -94,7 +96,8 @@ fn installed_parameter_contract_denies_before_graph_or_executor_work() {
     let mut workspace = workspace("installed-parameter-denial", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, CountVertices)
         .unwrap();
@@ -116,7 +119,8 @@ fn declared_primary_read_cannot_be_skipped_by_a_terminal_executor() {
     let mut workspace = missing_read_execution_workspace("installed-skipped-read").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, CountVertices)
         .unwrap();
@@ -138,7 +142,8 @@ fn foreign_workspace_denies_before_graph_or_executor_work() {
     let owner = workspace("installed-execution-owner", false).unwrap();
     let installed_domain = owner.domain(GeometryDomain).unwrap();
     let bound = owner
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -162,12 +167,14 @@ fn equivalent_but_distinct_bound_contract_cannot_splice_the_chain() {
     let mut workspace = workspace("installed-progression-splice", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let first = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
     let second = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -197,7 +204,8 @@ fn result_state_and_warning_postures_survive_through_settlement() {
         let mut workspace = workspace(&format!("installed-posture-{index}"), false).unwrap();
         let installed_domain = workspace.domain(GeometryDomain).unwrap();
         let bound = workspace
-            .operating_world(observation_basis())
+            .observe_operating_world()
+            .unwrap()
             .family(ReadFamily)
             .bind(&installed_domain, ReadVertex)
             .unwrap();
@@ -257,7 +265,8 @@ fn operation_failure(
     let mut workspace = workspace(name, false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -277,16 +286,14 @@ fn operation_failure(
 fn unsupported_primary_read_basis_denies_before_execution_work() {
     let workspace = workspace("installed-foreign-basis-material", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let branch_basis = foundation::basis_lifecycle()
-        .branch_head("branch:foreign-material", true)
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone();
     let denial = match workspace
-        .operating_world(branch_basis)
+        .observe_branch_operating_world(
+            worth_query::facade::installed::WorthQueryBranchHeadIdentity::new(
+                "branch:foreign-material",
+            )
+            .unwrap(),
+        )
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
     {
@@ -307,7 +314,8 @@ fn same_shaped_read_from_a_foreign_runtime_cannot_publish() {
     let mut workspace = foreign_material_workspace("foreign-runtime-material-owner").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let executed = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap()
@@ -318,15 +326,4 @@ fn same_shaped_read_from_a_foreign_runtime_cannot_publish() {
         executed.publish(),
         TransitionOutcome::Denied(domain::WorthQueryPublicationDenial::ExecutionMaterialMismatch)
     ));
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation, read};
+use worth_query::facade::{domain, read};
 
 mod provider_fixtures;
 
@@ -31,7 +31,7 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
     )
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
-    let world = workspace.operating_world(observation_basis());
+    let world = workspace.observe_operating_world().unwrap();
     let bound = world
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
@@ -44,7 +44,7 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
     assert_eq!(first.counters().conditional_decisions_delivered, 1);
     drop(first);
 
-    let world = workspace.operating_world(observation_basis());
+    let world = workspace.observe_operating_world().unwrap();
     let bound = world
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
@@ -91,7 +91,8 @@ fn unchanged_dependency_opens_live_continuity_without_new_semantic_output() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -148,7 +149,8 @@ fn unrequested_on_demand_node_defers_without_compute_or_query_work() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -201,7 +203,8 @@ fn temporal_wake_defers_without_compute_or_query_work() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -276,7 +279,8 @@ fn execute_changed(
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
 ) {
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap();
@@ -293,7 +297,8 @@ fn execute_unchanged(
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
 ) {
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap();
@@ -355,15 +360,4 @@ fn two_declarations_cannot_implicitly_share_one_signal_node() {
         panic!("implicit Signal-node sharing must reject runtime construction")
     };
     assert!(error.message().contains("SignalNodeAlreadyBound"));
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

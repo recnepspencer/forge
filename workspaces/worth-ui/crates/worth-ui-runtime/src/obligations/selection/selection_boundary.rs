@@ -320,13 +320,6 @@ fn prerequisite_evidence_refs(
     target: &crate::admission::UiAdmissionTarget,
 ) -> Box<[UiObligationPrerequisiteEvidenceRef]> {
     let mut refs = Vec::new();
-    if matches!(support_basis, UiObligationSupportBasis::QueryBinding) {
-        if let Some(query_prerequisites) = target.query_prerequisites() {
-            refs.push(UiObligationPrerequisiteEvidenceRef::Query(Box::new(
-                query_prerequisites.clone(),
-            )));
-        }
-    }
     if matches!(
         support_basis,
         UiObligationSupportBasis::HostCapability | UiObligationSupportBasis::ServiceUsage

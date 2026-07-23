@@ -1,5 +1,6 @@
 mod definition;
 mod executor;
+mod graph_read_operation;
 mod operation;
 
 pub(crate) use definition::snapshot_measurement_definition;
@@ -10,6 +11,7 @@ pub(crate) use executor::WorthUiPartialSnapshotMeasurementExecutor;
 pub(crate) use executor::WorthUiSnapshotMeasurementExecutor;
 #[cfg(test)]
 pub(crate) use executor::WorthUiSnapshotMeasurementValueAliasExecutor;
+pub(crate) use graph_read_operation::measurement_allocation_operation;
 pub use operation::{WorthUiSnapshotMeasurement, WorthUiSnapshotMeasurementFamily};
 
 pub(crate) const MEASUREMENT_ROOT: &str = "WorthUiMeasurement";

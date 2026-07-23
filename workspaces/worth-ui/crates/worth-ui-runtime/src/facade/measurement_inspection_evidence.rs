@@ -1,14 +1,15 @@
-use worth_ui_host_contract::WorthUiHostCapabilityReport;
-use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle;
-
 use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::UiMeasurementResult;
+use worth_ui_host_contract::WorthUiHostCapabilityReport;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiMeasurementInspectionEvidenceBundle {
     module_path: String,
     declaration_index: usize,
-    query_authority: Option<WorthUiQueryAuthorityHandle>,
+    settled_query_fact: Option<(
+        crate::capability::ViewBindingId,
+        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+    )>,
     host_capability_report: Option<WorthUiHostCapabilityReport>,
     host_measurement_results: Box<[UiMeasurementResult]>,
 }
@@ -23,14 +24,18 @@ impl UiMeasurementInspectionEvidenceBundle {
         Self {
             module_path: module_path.into(),
             declaration_index,
-            query_authority: None,
+            settled_query_fact: None,
             host_capability_report: None,
             host_measurement_results: Box::new([]),
         }
     }
 
-    pub fn with_query_authority(mut self, authority: WorthUiQueryAuthorityHandle) -> Self {
-        self.query_authority = Some(authority);
+    pub fn with_settled_query_fact(
+        mut self,
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: worth_ui_query_binding::WorthUiSettledSnapshotFact,
+    ) -> Self {
+        self.settled_query_fact = Some((view_binding_id, fact));
         self
     }
 
@@ -50,8 +55,13 @@ impl UiMeasurementInspectionEvidenceBundle {
         self
     }
 
-    pub(crate) fn query_authority(&self) -> Option<&WorthUiQueryAuthorityHandle> {
-        self.query_authority.as_ref()
+    pub(crate) fn settled_query_fact(
+        &self,
+    ) -> Option<&(
+        crate::capability::ViewBindingId,
+        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+    )> {
+        self.settled_query_fact.as_ref()
     }
 
     pub(crate) fn host_capability_report(&self) -> Option<&WorthUiHostCapabilityReport> {

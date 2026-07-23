@@ -1,8 +1,8 @@
 use std::fmt;
 
 use crate::{
-    WorthUiInstalledQueryDomain, WorthUiQueryViewDefinition, WorthUiQueryViewLifecycle,
-    WorthUiSnapshotMeasurement, WorthUiSnapshotMeasurementFamily,
+    WorthUiInstalledQueryDomain, WorthUiQueryViewDefinition, WorthUiSnapshotMeasurement,
+    WorthUiSnapshotMeasurementFamily,
 };
 
 /// Exact installed operation selected while an authored UI view enters the
@@ -16,7 +16,6 @@ pub(crate) struct WorthUiInstalledSnapshotOperationReference {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum WorthUiInstalledOperationReference {
     SnapshotMeasurement(WorthUiInstalledSnapshotOperationReference),
-    ManagedLiveCompatibility,
 }
 
 /// Compact binding-owned reference retained by Worth UI plan lowering.
@@ -37,19 +36,12 @@ impl WorthUiInstalledQueryBindingReference {
         installed_domain: WorthUiInstalledQueryDomain,
         definition: WorthUiQueryViewDefinition,
     ) -> Self {
-        let installed_operation = match definition.lifecycle() {
-            WorthUiQueryViewLifecycle::Snapshot => {
-                WorthUiInstalledOperationReference::SnapshotMeasurement(
-                    WorthUiInstalledSnapshotOperationReference {
-                        operation: WorthUiSnapshotMeasurement,
-                        family: WorthUiSnapshotMeasurementFamily,
-                    },
-                )
-            }
-            WorthUiQueryViewLifecycle::Live => {
-                WorthUiInstalledOperationReference::ManagedLiveCompatibility
-            }
-        };
+        let installed_operation = WorthUiInstalledOperationReference::SnapshotMeasurement(
+            WorthUiInstalledSnapshotOperationReference {
+                operation: WorthUiSnapshotMeasurement,
+                family: WorthUiSnapshotMeasurementFamily,
+            },
+        );
         Self {
             installed_domain,
             installed_operation,
@@ -69,10 +61,9 @@ impl WorthUiInstalledQueryBindingReference {
         &self.installed_domain
     }
 
-    pub(crate) fn snapshot_operation(&self) -> Option<WorthUiInstalledSnapshotOperationReference> {
+    pub(crate) fn snapshot_operation(&self) -> WorthUiInstalledSnapshotOperationReference {
         match self.installed_operation {
-            WorthUiInstalledOperationReference::SnapshotMeasurement(operation) => Some(operation),
-            WorthUiInstalledOperationReference::ManagedLiveCompatibility => None,
+            WorthUiInstalledOperationReference::SnapshotMeasurement(operation) => operation,
         }
     }
 }

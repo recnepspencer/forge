@@ -9,12 +9,11 @@ use super::operation_reexecution::intent;
 #[test]
 fn ordinary_publication_consumption_converges_without_receiving_replay_authority() {
     let mut workspace = workflow_workspace("replay-publication-parity").unwrap();
-    let basis = observation_basis();
-    let original_bound = bind(&workspace, basis.clone());
+    let original_bound = bind(&workspace);
     let (original_request, original_keys) =
         native_replay_request(original_bound.consumer_projection_contract().unwrap());
     let original = original_bound.reexecute(intent(), &mut workspace).unwrap();
-    let replay_bound = bind(&workspace, basis.clone());
+    let replay_bound = bind(&workspace);
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
@@ -23,7 +22,7 @@ fn ordinary_publication_consumption_converges_without_receiving_replay_authority
         &mut workspace,
     )
     .unwrap();
-    let ordinary_bound = bind(&workspace, basis);
+    let ordinary_bound = bind(&workspace);
     let (ordinary_request, ordinary_keys) =
         native_replay_request(ordinary_bound.consumer_projection_contract().unwrap());
     let ordinary = ordinary_bound.reexecute(intent(), &mut workspace).unwrap();
@@ -112,7 +111,6 @@ fn native_replay_request<D, O, F, L: foundation::BasisOperationLane>(
 
 fn bind(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     WorkflowRead,
@@ -121,19 +119,9 @@ fn bind(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

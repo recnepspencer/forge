@@ -104,12 +104,12 @@ mod tests {
         let view = installed
             .measurement_view("replacement.measurements")
             .expect("measurement view installs");
+        let view_identity = view.definition().identity().clone();
         WorthUiQueryBindingPlan::default()
             .register_view(view)
             .expect("view registers")
             .resolve_definition(
-                &worth_ui_query_binding::WorthUiQueryViewIdentity::new("replacement.measurements")
-                    .unwrap(),
+                &view_identity,
                 worth_ui_query_binding::WorthUiQueryViewShape::Collection,
             )
             .expect("reference resolves")

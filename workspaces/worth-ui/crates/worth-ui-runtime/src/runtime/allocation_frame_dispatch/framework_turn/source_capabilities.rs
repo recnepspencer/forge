@@ -64,19 +64,6 @@ impl WorthUiScrollOffsetTurnSource<'_> {
             .borrow()
             .acquire_host_scroll_projection(result.authority_witness(), receipt)
     }
-    pub fn acquire_query_owner(
-        &self,
-        query: &crate::evidence::UiProjectionFactReceipt,
-        allocation_receipt: &crate::runtime::UiAllocationReceipt,
-    ) -> Result<
-        crate::runtime::UiActivatedScrollOwner,
-        crate::runtime::UiScrollOwnerAcquisitionDenial,
-    > {
-        self.runtime
-            .allocation_invalidation_index
-            .borrow()
-            .acquire_query_scroll_projection(query.query_authority(), allocation_receipt)
-    }
     pub fn acquire_settled_query_owner(
         &self,
         query: &crate::evidence::UiSettledQueryFactReceipt,
@@ -232,16 +219,11 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         self.runtime.submit_settled_query_fact(link)
     }
 
-    pub fn admit_managed_live_compatibility_and_submit(
+    pub fn admit_operation_live(
         &mut self,
-        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
-    ) -> Result<
-        UiAllocationFrameGatewayOutcome,
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
-    > {
-        self.runtime
-            .admit_and_submit_live_query_projection(resource, outcome)
+        resource: worth_ui_query_binding::WorthUiOperationLiveResource,
+    ) -> Result<(), worth_ui_query_binding::WorthUiOperationLiveAdmissionStop> {
+        self.runtime.admit_operation_live(resource)
     }
 }
 

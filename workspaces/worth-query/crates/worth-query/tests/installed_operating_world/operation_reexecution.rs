@@ -21,10 +21,9 @@ fn replay_comparator_must_be_installed_before_any_replay_can_execute() {
 #[test]
 fn ordinary_reexecution_uses_installed_intent_and_mints_a_distinct_run() {
     let mut workspace = workflow_workspace("ordinary-reexecution").unwrap();
-    let basis = observation_basis();
-    let original_bound = bind(&workspace, basis.clone());
+    let original_bound = bind(&workspace);
     let original = original_bound.reexecute(intent(), &mut workspace).unwrap();
-    let replay_bound = bind(&workspace, basis);
+    let replay_bound = bind(&workspace);
     let reexecuted = replay_bound.reexecute(intent(), &mut workspace).unwrap();
 
     assert_ne!(original.identity(), reexecuted.identity());
@@ -47,14 +46,13 @@ fn ordinary_reexecution_uses_installed_intent_and_mints_a_distinct_run() {
 #[test]
 fn certification_replay_is_trace_bound_and_denies_foreign_basis_before_execution() {
     let mut workspace = workflow_workspace("certification-replay").unwrap();
-    let basis = observation_basis();
-    let original = bind(&workspace, basis.clone())
+    let original = bind(&workspace)
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
-        bind(&workspace, basis),
+        bind(&workspace),
         intent(),
         &mut workspace,
     )
@@ -89,7 +87,7 @@ fn certification_replay_is_trace_bound_and_denies_foreign_basis_before_execution
     );
 
     let foreign_workspace = workflow_workspace("foreign-certification-replay").unwrap();
-    let foreign_bound = bind(&foreign_workspace, observation_basis());
+    let foreign_bound = bind(&foreign_workspace);
     let denial = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
@@ -138,14 +136,13 @@ fn certification_replay_localizes_realized_conditional_path_drift() {
     .finish()
     .unwrap();
     let mut workspace = conditional_workflow_workspace("conditional-replay", node).unwrap();
-    let basis = observation_basis();
-    let original = bind(&workspace, basis.clone())
+    let original = bind(&workspace)
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
-        bind(&workspace, basis),
+        bind(&workspace),
         intent(),
         &mut workspace,
     );
@@ -163,10 +160,10 @@ fn certification_replay_localizes_realized_conditional_path_drift() {
 fn historical_replay_resolves_owner_evidence_for_the_exact_basis_pair() {
     let mut workspace = workflow_workspace("historical-certification-replay").unwrap();
     let historical_context = worth_query::facade::history::at(&workspace);
-    let original = bind(&workspace, observation_basis())
+    let original = bind(&workspace)
         .reexecute(intent(), &mut workspace)
         .unwrap();
-    let historical_bound = bind(&workspace, observation_basis());
+    let historical_bound = bind(&workspace);
     let admission = certification::admit_installed_historical_replay_basis(
         certification::issue_query_certification_replay_capability(),
         &original,
@@ -206,10 +203,10 @@ fn historical_replay_resolves_owner_evidence_for_the_exact_basis_pair() {
 fn historical_replay_refuses_to_simulate_an_unowned_reconstruction_path() {
     let mut workspace = workflow_workspace("historical-reconstruction-denial").unwrap();
     let historical_context = worth_query::facade::history::at(&workspace);
-    let original = bind(&workspace, observation_basis())
+    let original = bind(&workspace)
         .reexecute(intent(), &mut workspace)
         .unwrap();
-    let bound = bind(&workspace, observation_basis());
+    let bound = bind(&workspace);
 
     let denied = certification::admit_installed_historical_replay_basis(
         certification::issue_query_certification_replay_capability(),
@@ -233,10 +230,10 @@ fn historical_replay_refuses_to_simulate_an_unowned_reconstruction_path() {
 fn historical_replay_denies_when_the_retained_execution_substrate_has_drifted() {
     let mut workspace = workflow_workspace("historical-replay-drift").unwrap();
     let historical_context = worth_query::facade::history::at(&workspace);
-    let original = bind(&workspace, observation_basis())
+    let original = bind(&workspace)
         .reexecute(intent(), &mut workspace)
         .unwrap();
-    let replay_bound = bind(&workspace, observation_basis());
+    let replay_bound = bind(&workspace);
     let admission = certification::admit_installed_historical_replay_basis(
         certification::issue_query_certification_replay_capability(),
         &original,
@@ -269,7 +266,7 @@ fn historical_replay_denies_when_the_retained_execution_substrate_has_drifted() 
 #[test]
 fn retry_requires_installed_idempotence_and_never_reuses_attempt_identity() {
     let mut workspace = workflow_workspace("idempotent-stage-retry").unwrap();
-    let run = bind(&workspace, observation_basis())
+    let run = bind(&workspace)
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -312,7 +309,6 @@ pub(crate) fn intent() -> domain::WorthQueryNormalizedWorkflowIntent {
 
 fn bind(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     WorkflowRead,
@@ -321,19 +317,9 @@ fn bind(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

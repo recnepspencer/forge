@@ -1,3 +1,5 @@
+mod collection_delivery;
+mod collection_window;
 mod compatibility;
 mod conditional_execution;
 mod consumer_invalidation;
@@ -43,6 +45,8 @@ pub use package_installation_error::WorthQueryDomainPackageInstallationError;
 mod package_validation_matrix_tests;
 #[cfg(test)]
 mod tests;
+pub use collection_delivery::*;
+pub use collection_window::*;
 pub use compatibility::*;
 pub use conditional_execution::*;
 pub use consumer_invalidation::*;

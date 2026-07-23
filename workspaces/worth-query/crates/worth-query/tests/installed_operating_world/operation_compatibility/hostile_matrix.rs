@@ -6,7 +6,7 @@ use worth_query::facade::{domain, foundation};
 use super::super::installed_operation_fixture::{
     configured_runtime, support_dimension_workspace, GeometryDomain, ReadFamily, ReadVertex,
 };
-use fixture::{bind, no_primary_read_runtime};
+use fixture::{bind_branch, bind_current, no_primary_read_runtime};
 type BoundVertex = domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     ReadVertex,
@@ -24,8 +24,8 @@ fn all_five_relationship_oracles_are_stable_across_index_rebuild() {
         .controlled_workspace("compatibility-index-oracle")
         .unwrap();
     let prior_domain = controlled.domain(GeometryDomain).unwrap();
-    let subject = bind_read_vertex(&controlled, &prior_domain, observation_basis());
-    let candidate_before = bind_read_vertex(&controlled, &prior_domain, observation_basis());
+    let subject = bind_read_vertex(&controlled, &prior_domain);
+    let candidate_before = bind_read_vertex(&controlled, &prior_domain);
     let before = current_relationship_counters(&subject, &candidate_before);
 
     assert!(controlled
@@ -34,7 +34,7 @@ fn all_five_relationship_oracles_are_stable_across_index_rebuild() {
     assert!(controlled
         .rebuild_conditional_execution_index()
         .exact_index_parity());
-    let candidate_after = bind_read_vertex(&controlled, &prior_domain, observation_basis());
+    let candidate_after = bind_read_vertex(&controlled, &prior_domain);
     let after = current_relationship_counters(&subject, &candidate_after);
     assert_eq!(after, before);
     assert_current_success_costs(before);
@@ -44,7 +44,7 @@ fn all_five_relationship_oracles_are_stable_across_index_rebuild() {
         .rebind_domain(prior_domain.rebind_request())
         .unwrap()
         .into_parts();
-    let rebound_before = bind_read_vertex(&controlled, &current_domain, observation_basis());
+    let rebound_before = bind_read_vertex(&controlled, &current_domain);
     let rebind_before = subject
         .rebind_with(&rebound_before, receipt.clone())
         .unwrap()
@@ -56,7 +56,7 @@ fn all_five_relationship_oracles_are_stable_across_index_rebuild() {
     assert!(controlled
         .rebuild_conditional_execution_index()
         .exact_index_parity());
-    let rebound_after = bind_read_vertex(&controlled, &current_domain, observation_basis());
+    let rebound_after = bind_read_vertex(&controlled, &current_domain);
     let rebind_after = subject
         .rebind_with(&rebound_after, receipt)
         .unwrap()
@@ -76,8 +76,8 @@ fn same_runtime_wrong_basis_and_stale_lifecycle_deny_through_compatibility() {
         .controlled_workspace("compatibility-basis-lifecycle")
         .unwrap();
     let prior_domain = controlled.domain(GeometryDomain).unwrap();
-    let current = bind(&controlled, &prior_domain, observation_basis());
-    let branch = bind(&controlled, &prior_domain, branch_basis());
+    let current = bind_current(&controlled, &prior_domain);
+    let branch = bind_branch(&controlled, &prior_domain);
 
     let basis_denial = current.compatible_basis_with(&branch).unwrap_err();
     assert_eq!(
@@ -113,25 +113,14 @@ fn matching_reporting_material_cannot_cross_a_foreign_runtime() {
     let foreign = no_primary_read_runtime()
         .workspace("compatibility-collision")
         .unwrap();
-    let owner_bound = bind(
-        &owner,
-        &owner.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
-    let foreign_bound = bind(
-        &foreign,
-        &foreign.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
+    let owner_bound = bind_current(&owner, &owner.domain(GeometryDomain).unwrap());
+    let foreign_bound = bind_current(&foreign, &foreign.domain(GeometryDomain).unwrap());
 
     assert_eq!(
         owner_bound.definition().canonical_identity(),
         foreign_bound.definition().canonical_identity()
     );
-    assert_eq!(
-        owner_bound.basis().capability_digest(),
-        foreign_bound.basis().capability_digest()
-    );
+    assert_eq!(owner_bound.basis_identity(), foreign_bound.basis_identity());
     assert_ne!(
         owner_bound.binding_identity(),
         foreign_bound.binding_identity()
@@ -153,23 +142,20 @@ fn stale_and_current_lookalikes_cannot_claim_same_installation() {
         .controlled_workspace("compatibility-stale-collision")
         .unwrap();
     let prior_domain = controlled.domain(GeometryDomain).unwrap();
-    let stale = bind(&controlled, &prior_domain, observation_basis());
+    let stale = bind_current(&controlled, &prior_domain);
 
     controlled.advance_domain_installation_generation().unwrap();
     let (current_domain, _) = controlled
         .rebind_domain(prior_domain.rebind_request())
         .unwrap()
         .into_parts();
-    let current = bind(&controlled, &current_domain, observation_basis());
+    let current = bind_current(&controlled, &current_domain);
 
     assert_eq!(
         stale.definition().canonical_identity(),
         current.definition().canonical_identity()
     );
-    assert_eq!(
-        stale.basis().capability_digest(),
-        current.basis().capability_digest()
-    );
+    assert_eq!(stale.basis_identity(), current.basis_identity());
     let denial = stale.same_installation_with(&current).unwrap_err();
     assert_eq!(
         denial.kind(),
@@ -186,8 +172,8 @@ fn execution_sharing_stops_after_the_first_unsupported_profile() {
         .workspace("compatibility-sharing-short-circuit")
         .unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
-    let subject = bind(&workspace, &domain, observation_basis());
-    let candidate = bind(&workspace, &domain, observation_basis());
+    let subject = bind_current(&workspace, &domain);
+    let candidate = bind_current(&workspace, &domain);
 
     let denial = subject.execution_sharing_with(&candidate).unwrap_err();
     assert_eq!(
@@ -209,16 +195,8 @@ fn installation_owner_mismatch_category_survives_the_query_boundary() {
         domain::WorthQueryConsumerSupportPosture::Supported,
     )
     .unwrap();
-    let left = bind_read_vertex(
-        &plain,
-        &plain.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
-    let right = bind_read_vertex(
-        &sharing,
-        &sharing.domain(GeometryDomain).unwrap(),
-        observation_basis(),
-    );
+    let left = bind_read_vertex(&plain, &plain.domain(GeometryDomain).unwrap());
+    let right = bind_read_vertex(&sharing, &sharing.domain(GeometryDomain).unwrap());
 
     let denial = left.compatible_basis_with(&right).unwrap_err();
     assert_eq!(
@@ -285,7 +263,6 @@ fn assert_zero_forbidden_work(counters: domain::WorthQueryCompatibilityCounters)
 fn bind_read_vertex(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
-    basis: foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     ReadVertex,
@@ -293,30 +270,9 @@ fn bind_read_vertex(
     foundation::ObservationLaneWitness,
 > {
     workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-fn branch_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .branch_head("compatibility-branch", true)
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

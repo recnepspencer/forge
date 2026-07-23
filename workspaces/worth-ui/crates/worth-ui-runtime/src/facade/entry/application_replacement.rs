@@ -72,8 +72,7 @@ pub struct WorthUiApplicationCutoverReceipt {
     active_generation: WorthUiPreparedApplicationGenerationIdentity,
     plan_swap: crate::runtime::WorthUiPlanSwapReceipt,
     plan_decision: crate::runtime::WorthUiExecutablePlanDecision,
-    query_retirement:
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
+    query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
     allocation_catalog_successor: crate::runtime::UiAllocationCatalogSuccessorReceipt,
     publication: WorthUiApplicationPublicationObservation,
     reload_cost: Result<

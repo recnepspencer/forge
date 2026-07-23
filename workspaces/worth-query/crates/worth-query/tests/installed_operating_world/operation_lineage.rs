@@ -80,7 +80,7 @@ fn installed_lineage_is_executed_by_the_existing_identity_evolution_authority() 
     for (name, scenario, contract, expected_kind, expected_width) in cases {
         let mut workspace =
             lineage_workflow_workspace(name, contract, false, vec![scenario]).unwrap();
-        let trace = execute(&mut workspace, mutation_basis());
+        let trace = execute(&mut workspace);
         let report = trace.lineage_report().unwrap();
         let evidence = &report.evidence()[0];
 
@@ -185,7 +185,7 @@ fn generated_identity_naming_requires_the_exact_generated_target() {
         vec![LineageEvidenceScenario::GeneratedIdentity],
     )
     .unwrap();
-    let trace = execute(&mut workspace, mutation_basis());
+    let trace = execute(&mut workspace);
     let evidence = &trace.lineage_report().unwrap().evidence()[0];
     let naming = trace.stage_receipts()[3].effect_evidence()[0]
         .mutation_receipt()
@@ -226,7 +226,7 @@ fn executor_lineage_must_exist_and_match_an_executable_installed_contract() {
     )
     .unwrap();
     assert!(matches!(
-        bind(&missing, mutation_basis()).reexecute(intent(), &mut missing),
+        bind(&missing).reexecute(intent(), &mut missing),
         TransitionOutcome::Denied(domain::WorthQueryWorkflowReexecutionStop::Completion(denial))
             if denial.kind() == domain::WorthQueryWorkflowCompletionDenialKind::LineageEvidence
                 && denial.executed_effects().len() == 1
@@ -240,7 +240,7 @@ fn executor_lineage_must_exist_and_match_an_executable_installed_contract() {
     )
     .unwrap();
     assert!(matches!(
-        bind(&preserve, mutation_basis()).reexecute(intent(), &mut preserve),
+        bind(&preserve).reexecute(intent(), &mut preserve),
         TransitionOutcome::Denied(domain::WorthQueryWorkflowReexecutionStop::Advance(denial))
             if denial.kind() == &domain::WorthQueryWorkflowAdvanceDenialKind::LineageEvidence
     ));
@@ -252,7 +252,7 @@ fn executor_lineage_must_exist_and_match_an_executable_installed_contract() {
         vec![LineageEvidenceScenario::PreservedIdentity],
     )
     .unwrap();
-    let preserved_trace = execute(&mut preserved, mutation_basis());
+    let preserved_trace = execute(&mut preserved);
     assert_eq!(
         preserved_trace.lineage_report().unwrap().evidence()[0]
             .outcome()
@@ -261,7 +261,7 @@ fn executor_lineage_must_exist_and_match_an_executable_installed_contract() {
     );
 
     let mut detached_workspace = workflow_workspace("lineage-detached-trace").unwrap();
-    let detached = execute(&mut detached_workspace, mutation_basis());
+    let detached = execute(&mut detached_workspace);
     assert!(matches!(
         detached.admit_persistent_name(
             0,
@@ -283,7 +283,7 @@ fn persistent_naming_rejects_a_wrong_attachment_or_lineage_target() {
         vec![LineageEvidenceScenario::SingularSuccessor],
     )
     .unwrap();
-    let trace = execute(&mut workspace, mutation_basis());
+    let trace = execute(&mut workspace);
     let naming = trace
         .stage_receipts()
         .iter()
@@ -329,21 +329,17 @@ fn mutation_authority(label: &str) -> runtime::WorthQueryMutationAuthorityIdenti
 
 pub(super) fn execute(
     workspace: &mut runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness>,
 ) -> domain::WorthQueryCompletedWorkflowTrace<
     GeometryDomain,
     WorkflowRead,
     ReadFamily,
     foundation::MutationPreparationLaneWitness,
 > {
-    bind(workspace, basis)
-        .reexecute(intent(), workspace)
-        .unwrap()
+    bind(workspace).reexecute(intent(), workspace).unwrap()
 }
 
 pub(super) fn bind(
     workspace: &runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     WorkflowRead,
@@ -352,7 +348,8 @@ pub(super) fn bind(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(basis)
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap()
@@ -367,14 +364,4 @@ pub(super) fn intent() -> domain::WorthQueryNormalizedWorkflowIntent {
         Stage::new("publish", Value::Text("join".into())),
     ])
     .unwrap()
-}
-
-pub(super) fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
 }

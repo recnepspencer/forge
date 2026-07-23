@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation, read};
+use worth_query::facade::{domain, read};
 
 use super::conditional_node_contract::{conditional_node_result, dependency, GeometryCondition};
 use super::installed_operation_fixture::conditional_workspace::conditional_workspace_without_lowering;
@@ -25,7 +25,8 @@ fn changed_signal_decision_reenters_before_the_ordinary_executor() {
     let mut workspace = conditional_workspace("conditional-changed", node).unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, ReadVertex)
         .unwrap();
@@ -118,14 +119,15 @@ fn compute_receives_the_exact_bound_query_context() {
     .unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, ReadVertex)
         .unwrap();
     let expected = (
         bound.definition().canonical_identity().to_string(),
         bound.binding_identity().to_string(),
-        bound.basis().capability_digest().to_string(),
+        bound.basis_identity().to_string(),
     );
 
     bound
@@ -173,7 +175,8 @@ fn workflow_stage_retains_the_same_signal_decision_in_its_receipt() {
         conditional_workflow_workspace("conditional-workflow-execution", stage_node).unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, WorkflowRead)
         .unwrap()
@@ -233,7 +236,8 @@ fn suppressed_decision_runs_no_query_graph_or_domain_work() {
     .unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, ReadVertex)
         .unwrap();
@@ -276,7 +280,8 @@ fn reverted_clean_retains_compute_cost_but_mints_no_query_consequence() {
     .unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, ReadVertex)
         .unwrap();
@@ -362,15 +367,4 @@ fn domain_condition_node(identity: &str) -> domain::WorthQueryPortableConditiona
         domain::WorthQueryMaintenancePosture::LazyUntilObserved,
     )
     .unwrap()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

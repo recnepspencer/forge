@@ -14,12 +14,12 @@ pub use super::allocation_frame_dispatch::{
     UiAdmittedAllocationStreamIngress, UiAllocationFrameDispatchDenial,
     UiAllocationFrameDispatcherCounters, UiAllocationFrameDuplicateWitness,
     UiAllocationFrameGatewayOutcome, UiAllocationFrameIngressDescriptor,
-    UiAllocationFrameQuerySettlementPosture, UiAllocationFrameQueryWarningPosture,
-    UiAllocationFrameSourceFact, UiAllocationFrameSourceFactPosture,
-    UiAllocationFrameSubmissionOutcome, UiFrameworkTransitionPlanningCounters,
-    WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
-    WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters, WorthUiQueryFrameIngressDenial,
-    WorthUiQueryFrameIngressOutcome, WorthUiQueryProjectionTurnSource,
+    UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
+    UiAllocationFrameSourceFactPosture, UiAllocationFrameSubmissionOutcome,
+    UiFrameworkTransitionPlanningCounters, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
+    WorthUiFrameworkTurnExecution, WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters,
+    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome,
+    WorthUiQueryProjectionTurnSource,
 };
 pub(crate) use super::allocation_frame_dispatch::{
     UiAllocationFrameQueueDisposition, UiAllocationFrameReplacementTransition,
@@ -123,10 +123,9 @@ pub use super::stream_policy::{
     UiAllocationFrameResolutionDenial, UiAllocationIngressPolicyVerdict,
     UiAllocationIntermediatePolicyVerdict, UiAllocationInvalidationFamily,
     UiAllocationInvalidationIntent, UiAllocationInvalidationReferenceDenial,
-    UiAllocationPartialSettlementLaw, UiAllocationSourceOrderVerdict,
-    UiAllocationStreamCompositionCounters, UiAllocationStreamCompositionDenial,
-    UiAllocationStreamFamily, UiResolvedAllocationFramePlan, UiResolvedAllocationPolicyBranch,
-    UiResolvedAllocationStreamPolicy,
+    UiAllocationSourceOrderVerdict, UiAllocationStreamCompositionCounters,
+    UiAllocationStreamCompositionDenial, UiAllocationStreamFamily, UiResolvedAllocationFramePlan,
+    UiResolvedAllocationPolicyBranch, UiResolvedAllocationStreamPolicy,
 };
 pub(crate) use super::viewport_resize::UiViewportResizeCommitBasis;
 pub use super::viewport_resize::{

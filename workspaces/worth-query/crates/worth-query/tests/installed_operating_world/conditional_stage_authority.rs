@@ -37,8 +37,10 @@ fn workflow_stage_dependency_resolves_only_through_its_exact_stage_location() {
     .unwrap();
     let workspace = conditional_workflow_workspace("stage-authority", stage_node).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let operation = workspace
-        .operation(&installed_domain, WorkflowRead, ReadFamily)
+    let operating_world = workspace.observe_operating_world().unwrap();
+    let operation = operating_world
+        .family(ReadFamily)
+        .bind(&installed_domain, WorkflowRead)
         .unwrap();
     let graph = workspace
         .graph_participation(ConditionalModelGraph)

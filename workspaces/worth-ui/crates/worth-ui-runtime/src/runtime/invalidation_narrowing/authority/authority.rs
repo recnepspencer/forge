@@ -97,7 +97,6 @@ pub(super) struct UiHostInvalidationTargetMapping {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiInvalidationAuthorityLookupDenial {
-    QueryAuthorityNotIndexable,
     HostEvidenceGenerationMismatch,
     HostNormalizationAuthorityMismatch,
     AuthorityCounterExhausted,
@@ -168,17 +167,6 @@ impl UiAllocationInvalidationAuthority {
         crate::runtime::UiScrollOwnerAcquisitionDenial,
     > {
         self.scroll_bindings.projection_for_host(witness, receipt)
-    }
-    pub(crate) fn acquire_query_scroll_projection(
-        &self,
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-        allocation_receipt: &crate::runtime::UiAllocationReceipt,
-    ) -> Result<
-        crate::runtime::UiActivatedScrollOwner,
-        crate::runtime::UiScrollOwnerAcquisitionDenial,
-    > {
-        self.scroll_bindings
-            .projection_for_query(authority, allocation_receipt)
     }
     pub(crate) fn acquire_settled_query_scroll_projection(
         &self,
@@ -257,21 +245,6 @@ impl UiAllocationInvalidationAuthority {
             return Err(UiInvalidationAuthorityLookupDenial::HostEvidenceGenerationMismatch);
         }
         Err(UiInvalidationAuthorityLookupDenial::HostNormalizationAuthorityMismatch)
-    }
-
-    pub(crate) fn query_target(
-        &self,
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-    ) -> Result<UiInvalidationAuthorityLookup, UiInvalidationAuthorityLookupDenial> {
-        if !self.has_invalidation_contexts() {
-            return Ok(UiInvalidationAuthorityLookup {
-                target: None,
-                probes: 0,
-            });
-        }
-        let source_key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::from_managed_live_compatibility(authority)
-            .map_err(|_| UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable)?;
-        self.query_target_for_source(&source_key)
     }
 
     pub(crate) fn settled_query_target(

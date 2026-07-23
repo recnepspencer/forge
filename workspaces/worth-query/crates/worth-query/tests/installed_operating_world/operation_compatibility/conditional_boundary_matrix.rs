@@ -1,6 +1,6 @@
 use worth_query::facade::domain;
 
-use super::{bind, node, observation_basis};
+use super::{bind, node};
 use crate::suite::conditional_node_contract::dependency;
 use crate::suite::installed_operation_fixture::conditional_workspace::{
     ConditionalDonorWorkspaceScenario, ConditionalWorkspacePlacement,
@@ -80,16 +80,8 @@ fn portable_condition_trigger_and_temporal_drift_keep_exact_owner_dimensions() {
         let right =
             conditional_workspace(&format!("conditional-portable-right-{index}"), candidate)
                 .unwrap();
-        let left = bind(
-            &left,
-            &left.domain(GeometryDomain).unwrap(),
-            observation_basis(),
-        );
-        let right = bind(
-            &right,
-            &right.domain(GeometryDomain).unwrap(),
-            observation_basis(),
-        );
+        let left = bind(&left, &left.domain(GeometryDomain).unwrap());
+        let right = bind(&right, &right.domain(GeometryDomain).unwrap());
 
         let denial = left.compatible_basis_with(&right).unwrap_err();
         assert_eq!(
@@ -131,12 +123,12 @@ fn relationship_oracles_select_affinity_or_continuity_at_the_bridge_boundary() {
         })
         .unwrap();
     let installed = owner.domain(GeometryDomain).unwrap();
-    let subject = bind(&owner, &installed, observation_basis());
+    let subject = bind(&owner, &installed);
 
     owner
         .replace_conditional_lowerings_from::<GeometryDomain, ReadVertex, ReadFamily>(&donor)
         .unwrap();
-    let candidate = bind(&owner, &installed, observation_basis());
+    let candidate = bind(&owner, &installed);
 
     subject.compatible_basis_with(&candidate).unwrap();
     assert_query_correspondence_affinity(subject.same_installation_with(&candidate).unwrap_err());
@@ -166,12 +158,12 @@ fn provider_semantic_drift_is_preserved_through_continuity_and_affinity_denials(
         })
         .unwrap();
     let installed = owner.domain(GeometryDomain).unwrap();
-    let subject = bind(&owner, &installed, observation_basis());
+    let subject = bind(&owner, &installed);
 
     owner
         .replace_conditional_lowerings_from::<GeometryDomain, ReadVertex, ReadFamily>(&donor)
         .unwrap();
-    let candidate = bind(&owner, &installed, observation_basis());
+    let candidate = bind(&owner, &installed);
 
     let continuity = subject.compatible_basis_with(&candidate).unwrap_err();
     assert!(matches!(

@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation, read};
+use worth_query::facade::{domain, read};
 
 use super::installed_operation_fixture::{
     workflow_workspace, GeometryDomain, ReadFamily, WorkflowRead,
@@ -10,7 +10,8 @@ fn installed_dag_mints_one_query_owned_trace_and_publication() {
     let mut workspace = workflow_workspace("installed-workflow").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap();
@@ -124,7 +125,8 @@ fn incomplete_completion_denial_retains_exact_run_work_without_deeper_execution(
     let mut workspace = workflow_workspace("installed-workflow-incomplete").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -156,7 +158,8 @@ fn skipping_a_predecessor_denies_before_stage_executor_contact() {
     let mut workspace = workflow_workspace("installed-workflow-skip").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -185,7 +188,8 @@ fn duplicate_stage_advancement_denies_without_a_second_executor_contact() {
     let mut workspace = workflow_workspace("installed-workflow-duplicate-advance").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -218,7 +222,8 @@ fn copied_stage_label_is_only_a_candidate_and_cannot_invent_progression() {
     let mut workspace = workflow_workspace("installed-workflow-copied-stage-label").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -247,7 +252,8 @@ fn foreign_runtime_denies_stage_progression_before_executor_contact() {
     let mut owner = workflow_workspace("installed-workflow-owner").unwrap();
     let installed_domain = owner.domain(GeometryDomain).unwrap();
     let run = owner
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -286,7 +292,8 @@ fn complete_trace(name: &str, order: [&str; 2]) -> String {
     let mut workspace = workflow_workspace(name).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let mut run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -317,15 +324,4 @@ fn complete_trace(name: &str, order: [&str; 2]) -> String {
     .unwrap()
     .semantic_identity()
     .to_string()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

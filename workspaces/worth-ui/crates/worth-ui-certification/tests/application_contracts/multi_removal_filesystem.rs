@@ -13,6 +13,7 @@ use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::{
     admit_candidate_catalog, admit_candidate_catalog_with_removed_roots,
 };
+use worth_ui_certification::scenario::installed_query_world;
 use worth_ui_host_contract::{
     UiHostObservationValue, UiMeasurementRequest, UiMeasurementRequestFamily,
     UiPortalAnchorRectObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
@@ -161,14 +162,10 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
 fn builder() -> WorthUiBuilder {
     WorthUi::app()
         .with_host(MultiRemovalHost)
-        .with_graph_world_profile(
-            worth_ui::facade::graph::UiGraphWorldProfile::query_snapshot_basis(
-                worth_ui_query_binding::certification::worth_ui_query_snapshot_prerequisites(
-                    "multi-removal-filesystem",
-                    ["worth-ui.phase14", "filesystem", "multi-removal"],
-                ),
-            ),
-        )
+        .with_graph_world_profile(installed_query_world::settled_query_world_profile(
+            worth_ui::facade::registry::ViewBindingId::new("multi.removal.filesystem").unwrap(),
+            "worth-ui.phase14.filesystem.multi-removal",
+        ))
         .register_component(component(BASE))
         .register_component(component(FIRST))
         .register_component(component(SECOND))

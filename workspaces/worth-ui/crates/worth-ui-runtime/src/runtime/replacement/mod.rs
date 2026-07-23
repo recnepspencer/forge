@@ -2,7 +2,6 @@
 
 pub mod admission;
 pub mod candidate;
-pub mod compatibility;
 pub mod equivalence;
 #[cfg(test)]
 pub mod file_rust_replacement_parity;
@@ -10,6 +9,7 @@ pub mod impact;
 pub mod matching;
 pub mod narrowing;
 pub mod query_binding;
+pub mod query_succession;
 pub mod reconciliation;
 pub mod state_inventory;
 

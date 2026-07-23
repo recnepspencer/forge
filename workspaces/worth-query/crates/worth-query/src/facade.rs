@@ -11,6 +11,7 @@ mod exports_domain_capabilities;
 mod exports_foundation;
 mod exports_history;
 mod exports_inspection;
+mod exports_installed;
 mod exports_live_capability;
 mod exports_mutation;
 mod exports_policy;
@@ -21,6 +22,7 @@ mod exports_runtime_core;
 mod exports_runtime_phase_nine;
 mod exports_runtime_products;
 mod exports_workflow;
+mod installed_transitions;
 
 pub mod identity_authority {
     pub use crate::identity_authority::*;
@@ -199,6 +201,16 @@ pub mod domain {
 /// Common outcome navigation and declarative inspection capability.
 pub mod inspection {
     pub use super::exports_inspection::*;
+}
+
+/// Ordinary runtime-installed operation progression.
+///
+/// This is the discoverable consumer path after a host has installed domain
+/// packages and volatile providers. It exposes Query-owned transitions and
+/// descriptive inspection, but no package, provider, replay, or proof
+/// construction ingredients.
+pub mod installed {
+    pub use super::exports_installed::*;
 }
 
 pub mod runtime {

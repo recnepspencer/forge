@@ -126,14 +126,21 @@ pub(crate) fn discover_query_audience_packages(
     root: &Path,
     contract: &QueryAudienceContract,
 ) -> Result<Vec<Road1Package>, String> {
-    contract
+    let mut package_names = contract
         .audiences
         .iter()
-        .map(|audience| {
+        .map(|audience| audience.package.as_str())
+        .collect::<Vec<_>>();
+    if let Some(certification_package) = contract.certification_package.as_deref() {
+        package_names.push(certification_package);
+    }
+    package_names
+        .into_iter()
+        .map(|package_name| {
             let manifest_path = root
                 .join(&contract.workspace)
                 .join("crates")
-                .join(&audience.package)
+                .join(package_name)
                 .join("Cargo.toml");
             let canonical_manifest_path = fs::canonicalize(&manifest_path).map_err(|error| {
                 format!(
@@ -152,7 +159,7 @@ pub(crate) fn discover_query_audience_packages(
                 .ok_or_else(|| {
                     format!(
                         "cargo metadata omitted configured audience {}",
-                        audience.package
+                        package_name
                     )
                 })?;
             let dependencies = package

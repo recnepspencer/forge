@@ -151,6 +151,13 @@ impl WorthQueryInstalledLiveImpactClassifier {
         let mut roles = BTreeSet::new();
         let mut lookups = 0;
         let structural_floor = match mutation.kind() {
+            crate::memory_workspace::WorthQueryMutationKind::Deleted
+                if self
+                    .structural_roles
+                    .contains(&WorthQuerySemanticDependencyRole::SelectionOrMembership) =>
+            {
+                WorthQueryImpactClass::MembershipSplice
+            }
             crate::memory_workspace::WorthQueryMutationKind::Deleted => {
                 WorthQueryImpactClass::Retirement
             }

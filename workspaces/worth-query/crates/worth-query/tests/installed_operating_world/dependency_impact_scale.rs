@@ -15,8 +15,7 @@ fn binding_work_tracks_each_real_dependency_width_without_unrelated_scans() {
         vec![LineageEvidenceScenario::SingularSuccessor],
     )
     .unwrap();
-    let trace =
-        super::operation_lineage::execute(&mut lineage, super::operation_lineage::mutation_basis());
+    let trace = super::operation_lineage::execute(&mut lineage);
     let workflow = trace.semantic_aspect_dependency_closure().unwrap();
     let direct_d = direct.dependencies().len();
     let workflow_d = workflow.dependencies().len();

@@ -186,6 +186,14 @@ pub trait WorthQueryRuntimeBackend {
         target: &WorthQueryLiveArtifactTarget,
     ) -> Vec<WorthQueryEntity>;
 
+    fn collection_entity(
+        &self,
+        _collection: &str,
+        _identity: &WorthQueryEntityIdentity,
+    ) -> WorthQueryBackendEntityLookup {
+        WorthQueryBackendEntityLookup::Unsupported
+    }
+
     fn drain_live_patches_for_target(
         &mut self,
         target: &WorthQueryLiveArtifactTarget,
@@ -235,6 +243,13 @@ pub trait WorthQueryRuntimeBackend {
     ) -> Result<Option<Vec<WorthQueryGroupedBaselineMember>>, WorthQueryWorkspaceError> {
         Ok(None)
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum WorthQueryBackendEntityLookup {
+    Found(WorthQueryEntity),
+    Absent,
+    Unsupported,
 }
 
 pub trait WorthQueryRuntimeSchemaAdapter {

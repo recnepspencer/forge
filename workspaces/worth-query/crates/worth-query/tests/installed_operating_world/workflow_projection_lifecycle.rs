@@ -216,7 +216,8 @@ pub(super) fn settle_workflow(
 ) -> (SettledWorkflow, domain::WorthQueryNativeAccessKey) {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap();
@@ -384,15 +385,4 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRe
             )]),
         ))
     }
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

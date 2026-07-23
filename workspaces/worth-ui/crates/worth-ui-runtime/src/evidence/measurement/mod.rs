@@ -44,14 +44,13 @@ pub use inputs::{
 };
 pub(crate) use projection::UiSettledQueryFactKey;
 pub use projection::UiSettledQueryFactReceipt;
-pub(crate) use projection::{
-    admit_declared_measurement_projection_fact_receipt,
-    project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
-    project_measurement_inspection_view,
-};
 pub use projection::{
     consume_declared_measurement_projection_facts, consume_settled_query_measurement_fact,
-    UiProjectionFactReceipt, UiProjectionFactReceiptDenial,
+    UiSettledQueryFactReceiptDenial,
+};
+pub(crate) use projection::{
+    project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
+    project_measurement_inspection_view,
 };
 pub(crate) use result::UiHostMeasurementResultInput;
 pub use result::{UiCurrentMeasurementResult, UiMeasurementResult, UiMeasurementValue};
