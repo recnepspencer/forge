@@ -407,20 +407,13 @@ Debt is allowed only when all of the following are true:
 1. there is a specific blocker you can name precisely
 2. removing the blocker would require a genuinely major follow-on build rather
    than an ordinary scope expansion
-3. the real blocker fix is large enough that it would exceed roughly 3000 lines
-   of code in the current change program, even if that work belongs in another
-   crate
-4. the incomplete path is mechanically contained so callers cannot mistake it
+3. the incomplete path is mechanically contained so callers cannot mistake it
    for the finished ordinary lane
-5. the debt is attached to an explicit owner and follow-on milestone
-6. the tests and support surfaces make the incompleteness obvious
+4. the debt is attached to an explicit owner and follow-on milestone
+5. the tests and support surfaces make the incompleteness obvious
 
 If those conditions are not true, the correct move is not to mark debt. The
 correct move is to expand scope and keep building until the blocker is gone.
-
-The 3000-line threshold is not a budgeting suggestion. It is the bar for what
-counts as "major enough to defer." Anything meaningfully smaller than that is
-ordinary completion work and should be built now.
 
 A `ComplexityStatus::Debt` marker on a contract is honest only when it records
 a real blocked edge after the team has already built the strongest complete path
@@ -434,8 +427,8 @@ up as rigor. Avoid both.
 (which wastes time) or under-engineer and then "be honest about it." That is
 still wrong when the missing piece can be built now. The correct approach is:
 expand scope, even across crates, build the real blocker, and only mark debt
-when the blocker fix is so large that it crosses the major-work threshold of
-roughly 3000 lines of code. If you find yourself writing "for now,"
+when the blocker requires a genuinely separate major follow-on build. If you
+find yourself writing "for now,"
 "temporary," "fallback," "escape hatch," "explicit debt," or "deferred
 neighbor," stop and ask whether you should be widening the scope and building
 the missing foundation instead.
