@@ -1,6 +1,9 @@
 mod availability;
+mod graph;
 mod outcome;
-mod shard;
+mod route;
+mod wake;
+mod worker;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -20,7 +23,8 @@ pub use outcome::{
     PhysicalSignalConstructionFailure, PhysicalSignalDeltaApplicationFailure,
     PhysicalSignalObservation, PhysicalSignalRuntimeIdentity, PhysicalSignalShutdownOutcome,
 };
-use shard::PhysicalSignalShardOwner;
+use route::PhysicalSignalRouteOwner;
+use worker::PhysicalSignalGraphWorker;
 
 pub(in crate::physical_runtime) use availability::PhysicalSignalAdmissionStatus;
 
@@ -28,7 +32,7 @@ pub(in crate::physical_runtime) struct PhysicalWorkSignalOwner {
     runtime_identity: PhysicalSignalRuntimeIdentity,
     profile: PhysicalSignalProfileIdentity,
     bindings: Arc<PhysicalSignalAspectBindingSet>,
-    shards: Box<[PhysicalSignalShardOwner]>,
+    graph_worker: PhysicalSignalGraphWorker,
     admission_status: PhysicalSignalAdmissionStatus,
     certification_failure: AtomicBool,
     _lifecycle_generation: LifecycleGeneration,
@@ -42,21 +46,15 @@ impl PhysicalWorkSignalOwner {
         let runtime_identity = new_runtime_identity()?;
         let bindings = Arc::new(PhysicalSignalAspectBindingSet::install(profile));
         let profile = bindings.profile();
-        let shards = bindings
-            .bindings()
-            .iter()
-            .map(|binding| {
-                let route = binding.digest();
-                PhysicalSignalShardOwner::spawn(route, Arc::clone(&bindings))
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .into_boxed_slice();
+        let admission_status = PhysicalSignalAdmissionStatus::available();
+        let graph_worker =
+            PhysicalSignalGraphWorker::spawn(Arc::clone(&bindings), admission_status.clone())?;
         Ok(Self {
             runtime_identity,
             profile,
             bindings,
-            shards,
-            admission_status: PhysicalSignalAdmissionStatus::available(),
+            graph_worker,
+            admission_status,
             certification_failure: AtomicBool::new(false),
             _lifecycle_generation: lifecycle_generation,
         })
@@ -85,19 +83,13 @@ impl PhysicalWorkSignalOwner {
     ) -> Result<PhysicalSignalClockObservation, PhysicalSignalClockObservationFailure> {
         self.require_available()
             .map_err(|_| PhysicalSignalClockObservationFailure::OwnerUnavailable)?;
-        let mut current_tick = 0;
-        let mut last_advance_ordinal = 0;
-        for shard in &self.shards {
-            let basis = shard
-                .clock_basis()
-                .ok_or(PhysicalSignalClockObservationFailure::OwnerUnavailable)?;
-            current_tick = current_tick.max(basis.current_tick().get());
-            last_advance_ordinal =
-                last_advance_ordinal.max(basis.last_advance_ordinal().get());
-        }
+        let basis = self
+            .graph_worker
+            .clock_basis()
+            .ok_or(PhysicalSignalClockObservationFailure::OwnerUnavailable)?;
         Ok(PhysicalSignalClockObservation::new(
-            current_tick,
-            last_advance_ordinal,
+            basis.current_tick().get(),
+            basis.last_advance_ordinal().get(),
         ))
     }
 
@@ -107,10 +99,10 @@ impl PhysicalWorkSignalOwner {
     ) -> Result<(), PhysicalSignalDeltaApplicationFailure> {
         self.require_available()
             .map_err(|_| PhysicalSignalDeltaApplicationFailure::OwnerUnavailable)?;
-        let shard = self
-            .shard(delta.binding())
+        let route = self
+            .route(delta.binding())
             .ok_or(PhysicalSignalDeltaApplicationFailure::BindingNotInstalled)?;
-        shard.apply_delta(delta)
+        route.apply_delta(delta)
     }
 
     pub(in crate::physical_runtime) fn observation(
@@ -118,7 +110,10 @@ impl PhysicalWorkSignalOwner {
     ) -> Result<PhysicalSignalObservation, PhysicalSignalClockObservationFailure> {
         Ok(PhysicalSignalObservation::new(
             self.profile,
+            1,
             u16::try_from(self.bindings.len()).expect("Signal aspect capacity fits u16"),
+            u16::try_from(self.graph_worker.len())
+                .expect("Signal locality owner capacity fits u16"),
             crate::physical_runtime::work::PHYSICAL_ASYNC_CAPABILITIES.len() as u8,
             self.clock_observation()?,
         ))
@@ -133,7 +128,7 @@ impl PhysicalWorkSignalOwner {
     > {
         self.require_available()?;
         let route = admitted.authority().binding();
-        self.shard(route)
+        self.route(route)
             .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
             .request(admitted)
     }
@@ -168,9 +163,7 @@ impl PhysicalWorkSignalOwner {
 
     pub(in crate::physical_runtime) fn dispose(mut self) -> PhysicalSignalShutdownOutcome {
         self.admission_status.revoke();
-        for shard in &mut self.shards {
-            shard.stop();
-        }
+        self.graph_worker.stop();
         if self.certification_failure.load(Ordering::Acquire) {
             PhysicalSignalShutdownOutcome::OwnerRevoked
         } else {
@@ -181,7 +174,7 @@ impl PhysicalWorkSignalOwner {
     #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime) fn fail_worker_for_certification(&self) {
         self.certification_failure.store(true, Ordering::Release);
-        self.admission_status.revoke();
+        self.graph_worker.fail_for_certification();
     }
 
     fn revalidate_parts(
@@ -193,16 +186,16 @@ impl PhysicalWorkSignalOwner {
         crate::physical_runtime::PhysicalWorkReadiness,
         crate::physical_runtime::PhysicalWorkPreEffectDenial,
     > {
-        self.shard(route)
+        self.route(route)
             .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
             .revalidate(admitted, active)
     }
 
-    fn shard(
+    fn route(
         &self,
         route: PhysicalSignalAspectBindingDigest,
-    ) -> Option<&PhysicalSignalShardOwner> {
-        self.shards.iter().find(|shard| shard.route() == route)
+    ) -> Option<&PhysicalSignalRouteOwner> {
+        self.graph_worker.route(route)
     }
 
     fn require_available(

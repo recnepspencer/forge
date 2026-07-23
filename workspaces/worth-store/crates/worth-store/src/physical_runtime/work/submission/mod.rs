@@ -54,6 +54,16 @@ pub(in crate::physical_runtime) struct PhysicalWorkSubmissionOwner {
     observation: PhysicalWorkObservationOwner,
 }
 
+pub(in crate::physical_runtime) struct PhysicalWorkSubmissionFoundation {
+    pub(in crate::physical_runtime) store: StableStoreIdentity,
+    pub(in crate::physical_runtime) runtime: RuntimeIdentity,
+    pub(in crate::physical_runtime) generation: LifecycleGeneration,
+    pub(in crate::physical_runtime) lifecycle: Arc<LifecycleState>,
+    pub(in crate::physical_runtime) signal_profile: PhysicalSignalProfileIdentity,
+    pub(in crate::physical_runtime) bindings: Arc<PhysicalSignalAspectBindingSet>,
+    pub(in crate::physical_runtime) signal_admission: PhysicalSignalAdmissionStatus,
+}
+
 pub(in crate::physical_runtime) enum PhysicalWorkStopKind {
     Close,
     Abort,
@@ -84,26 +94,20 @@ pub(super) struct PhysicalSubmissionState {
 
 impl PhysicalWorkSubmissionOwner {
     pub(in crate::physical_runtime) fn new(
-        store: StableStoreIdentity,
-        runtime: RuntimeIdentity,
-        generation: LifecycleGeneration,
-        lifecycle: Arc<LifecycleState>,
-        signal_profile: PhysicalSignalProfileIdentity,
-        bindings: Arc<PhysicalSignalAspectBindingSet>,
-        signal_admission: PhysicalSignalAdmissionStatus,
+        foundation: PhysicalWorkSubmissionFoundation,
     ) -> Self {
-        let capacity = bindings.capacity();
+        let capacity = foundation.bindings.capacity();
         Self {
             shared: Arc::new(PhysicalSubmissionState {
                 accepting: AtomicBool::new(true),
                 terminal_published: AtomicBool::new(false),
-                store,
-                runtime,
-                generation,
-                lifecycle,
-                signal_admission,
-                signal_profile,
-                bindings,
+                store: foundation.store,
+                runtime: foundation.runtime,
+                generation: foundation.generation,
+                lifecycle: foundation.lifecycle,
+                signal_admission: foundation.signal_admission,
+                signal_profile: foundation.signal_profile,
+                bindings: foundation.bindings,
                 capacity,
                 next_operation: AtomicU64::new(1),
                 active_submissions: AtomicUsize::new(0),
@@ -301,14 +305,8 @@ fn submit(
         Ok(activity) => activity,
         Err(stale) => return TransitionOutcome::stale(stale).into(),
     };
-    if !shared.bindings.admits(
-        request.semantic_basis.aspect_identity(),
-        request.semantic_basis.binding_stamp(),
-    ) {
-        return TransitionOutcome::denied(
-            PhysicalWorkSubmissionDenial::SemanticContractNotInstalled,
-        )
-        .into();
+    if let Err(denial) = admit_submission_contracts(&shared, &request) {
+        return TransitionOutcome::denied(denial).into();
     }
     let scope_members = request.scope.coordinates().len();
     let semantic_bytes = request.semantic_basis.semantic_byte_width();
@@ -316,27 +314,10 @@ fn submit(
         Ok(reservation) => reservation,
         Err(deferred) => return TransitionOutcome::deferred(deferred).into(),
     };
-    let sequence =
-        match shared
-            .next_operation
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-                value.checked_add(1)
-            }) {
-            Ok(value) => NonZeroU64::new(value)
-                .expect("physical operation sequence starts at one and only increments"),
-            Err(_) => {
-                return TransitionOutcome::failed(
-                    PhysicalWorkSubmissionFailure::OperationIdentityExhausted,
-                )
-                .into()
-            }
-        };
-    let identity = PhysicalWorkIdentity::from_instance_owner(
-        shared.store,
-        shared.runtime,
-        PhysicalWorkGeneration::from_lifecycle(shared.generation),
-        PhysicalOperationIdentity::from_owner_sequence(sequence),
-    );
+    let identity = match allocate_operation_identity(&shared) {
+        Ok(identity) => identity,
+        Err(failure) => return TransitionOutcome::failed(failure).into(),
+    };
     let intent = match PhysicalWorkIntent::from_instance_owner(PhysicalWorkIntentParts {
         identity,
         operation: request.operation,
@@ -366,6 +347,41 @@ fn submit(
         signal_profile: shared.signal_profile,
     })
     .into()
+}
+
+fn admit_submission_contracts(
+    shared: &PhysicalSubmissionState,
+    request: &PhysicalWorkIntentRequest,
+) -> Result<(), PhysicalWorkSubmissionDenial> {
+    if !shared.bindings.admits(
+        request.semantic_basis.aspect_identity(),
+        request.semantic_basis.binding_stamp(),
+    ) {
+        return Err(PhysicalWorkSubmissionDenial::SemanticContractNotInstalled);
+    }
+    if !shared.bindings.admits_security(request.security) {
+        return Err(PhysicalWorkSubmissionDenial::SecurityAuthorityMismatch);
+    }
+    Ok(())
+}
+
+fn allocate_operation_identity(
+    shared: &PhysicalSubmissionState,
+) -> Result<PhysicalWorkIdentity, PhysicalWorkSubmissionFailure> {
+    let sequence = shared
+        .next_operation
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            value.checked_add(1)
+        })
+        .map_err(|_| PhysicalWorkSubmissionFailure::OperationIdentityExhausted)?;
+    let sequence = NonZeroU64::new(sequence)
+        .expect("physical operation sequence starts at one and only increments");
+    Ok(PhysicalWorkIdentity::from_instance_owner(
+        shared.store,
+        shared.runtime,
+        PhysicalWorkGeneration::from_lifecycle(shared.generation),
+        PhysicalOperationIdentity::from_owner_sequence(sequence),
+    ))
 }
 
 #[cfg(feature = "certification-test-authority")]

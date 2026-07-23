@@ -16,16 +16,19 @@ use super::fixture::{
 };
 
 #[test]
-fn disjoint_read_bindings_progress_through_independent_bounded_signal_owners() {
+fn disjoint_read_bindings_progress_through_one_graph_and_independent_bounded_routes() {
     let root = tempdir().unwrap();
     let (left_contract, left_identity, left_admission, witness) =
         admitted_named_contract("store.physical.work.left-read", 911, 1);
     let (right_contract, right_identity, right_admission, _) =
         admitted_named_contract("store.physical.work.right-read", 912, 1);
-    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        read_dependency(left_admission.clone()),
-        read_dependency(right_admission.clone()),
-    ])
+    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security_scope(witness),
+        [
+            read_dependency(left_admission.clone()),
+            read_dependency(right_admission.clone()),
+        ],
+    )
     .unwrap();
     let left_fact = projection_fact(
         &left_contract,
@@ -45,6 +48,18 @@ fn disjoint_read_bindings_progress_through_independent_bounded_signal_owners() {
     )
     .unwrap();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
+    let topology = serving.physical_signal_observation().unwrap();
+    assert_eq!(
+        topology.graph_owner_count(),
+        1,
+        "physical dependency truth must remain in one derived Signal graph"
+    );
+    assert_eq!(topology.aspect_binding_count(), 2);
+    assert_eq!(
+        topology.locality_owner_count(),
+        2,
+        "each admitted locality binding must own a distinct bounded Signal route"
+    );
     serving.apply_physical_aspect_delta(delta).unwrap();
     let left = admit_read(
         &serving,

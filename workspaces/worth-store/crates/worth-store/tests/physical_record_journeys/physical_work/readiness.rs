@@ -241,7 +241,19 @@ fn changed_dependency_revalidation_refreshes_the_exact_active_lineage_without_me
     };
     assert_eq!(refreshed.intent().identity().operation().get(), 1);
     assert_ne!(refreshed.signal_request(), active);
-    assert_eq!(active.generation().get(), 1);
+    assert_eq!(
+        refreshed.revalidated_from_signal_request(),
+        Some(active),
+        "Store must carry Signal's exact supersession lineage"
+    );
+    assert_eq!(
+        refreshed.signal_request().generation().get(),
+        active.generation().get() + 1
+    );
+    assert_eq!(
+        refreshed.signal_request().branch_epoch(),
+        active.branch_epoch()
+    );
     assert_eq!(serving.media_counters(), before);
     serving.close();
 }
@@ -273,7 +285,9 @@ fn signal_observation_is_bounded_and_contains_no_runtime_handles() {
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let observation = serving.physical_signal_observation().unwrap();
     assert_eq!(observation.profile(), expected_profile);
+    assert_eq!(observation.graph_owner_count(), 1);
     assert_eq!(observation.aspect_binding_count(), 1);
+    assert_eq!(observation.locality_owner_count(), 1);
     assert_eq!(observation.async_family_count(), 4);
     assert_eq!(observation.clock().current_tick(), 0);
     serving.close();

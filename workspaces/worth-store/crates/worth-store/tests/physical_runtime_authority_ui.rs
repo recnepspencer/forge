@@ -2,6 +2,7 @@
 fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
     let cases = trybuild::TestCases::new();
     cases.pass("tests/physical_runtime_authority/supported_admission.rs");
+    cases.pass("tests/physical_runtime_authority/supported_physical_work.rs");
     cases.compile_fail(
         "tests/physical_runtime_authority/runtime_duplication_and_reconstruction_are_sealed.rs",
     );

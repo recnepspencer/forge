@@ -16,14 +16,15 @@ use worth_store::physical_runtime::{
 };
 
 use super::fixture::{
-    admitted_contract, serving_from_initialization_with_work_profile, validated_value,
+    admitted_contract, security_scope, serving_from_initialization_with_work_profile,
+    validated_value,
 };
 
 #[test]
 fn an_installed_native_delta_routes_without_media_or_temporal_clock_effects() {
     let root = tempdir().unwrap();
     let (contract, identity, admission, witness) = admitted_contract(1);
-    let profile = PhysicalWorkProfileDeclaration::new([admission]).unwrap();
+    let profile = PhysicalWorkProfileDeclaration::new(security_scope(witness), [admission]).unwrap();
     let bindings = PhysicalSignalAspectBindingSet::from_profile(profile.clone());
     let delta = PhysicalWorkAspectDelta::from_boundary_fact(
         bindings.binding_for_slot(0).unwrap(),
@@ -48,11 +49,13 @@ fn an_installed_native_delta_routes_without_media_or_temporal_clock_effects() {
 #[test]
 fn a_valid_delta_from_another_binding_cannot_alias_the_same_signal_slot() {
     let root = tempdir().unwrap();
-    let (_, _, installed, _) = admitted_contract(1);
-    let installed_profile = PhysicalWorkProfileDeclaration::new([installed]).unwrap();
+    let (_, _, installed, installed_witness) = admitted_contract(1);
+    let installed_profile =
+        PhysicalWorkProfileDeclaration::new(security_scope(installed_witness), [installed])
+            .unwrap();
     let (foreign_contract, foreign_identity, foreign, foreign_witness) = admitted_contract(2);
     let foreign_bindings = PhysicalSignalAspectBindingSet::from_profile(
-        PhysicalWorkProfileDeclaration::new([foreign]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(security_scope(foreign_witness), [foreign]).unwrap(),
     );
     let foreign_delta = PhysicalWorkAspectDelta::from_boundary_fact(
         foreign_bindings.binding_for_slot(0).unwrap(),
@@ -85,7 +88,8 @@ fn wrong_revision_and_projection_only_facts_cannot_mint_deltas() {
     let (installed_contract, installed_identity, installed, installed_witness) =
         admitted_contract(1);
     let bindings = PhysicalSignalAspectBindingSet::from_profile(
-        PhysicalWorkProfileDeclaration::new([installed]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(security_scope(installed_witness), [installed])
+            .unwrap(),
     );
     let (foreign_contract, foreign_identity, _, foreign_witness) = admitted_contract(2);
     assert_eq!(
@@ -110,7 +114,11 @@ fn wrong_revision_and_projection_only_facts_cannot_mint_deltas() {
     .admit_projection_mask(AspectMask::<ProjectionMask>::whole_aspect())
     .unwrap();
     let projection_bindings = PhysicalSignalAspectBindingSet::from_profile(
-        PhysicalWorkProfileDeclaration::new([projection_only]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(
+            security_scope(installed_witness),
+            [projection_only],
+        )
+        .unwrap(),
     );
     assert_eq!(
         PhysicalWorkAspectDelta::from_boundary_fact(
@@ -130,16 +138,17 @@ fn wrong_revision_and_projection_only_facts_cannot_mint_deltas() {
 fn native_patch_delta_preserves_the_bound_partition_route() {
     let root = tempdir().unwrap();
     let (contract, identity, admission, witness) = admitted_contract(1);
-    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        PhysicalSignalAspectDeclaration::new(
+    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security_scope(witness),
+        [PhysicalSignalAspectDeclaration::new(
             admission,
             PhysicalSignalAspectRole::DependencyAndOutput,
         )
         .with_partition(PartitionSubscription::partition_and_detail(
             "artifact-7",
             "frame-2",
-        )),
-    ])
+        ))],
+    )
     .unwrap();
     let bindings = PhysicalSignalAspectBindingSet::from_profile(profile.clone());
     let patch = match aspects()
@@ -207,7 +216,7 @@ fn native_patch_delta_rejects_fields_outside_the_admitted_mutation_mask() {
     .with_mutation_mask(aspects().mutation_mask().fields(["admitted"]).unwrap())
     .unwrap();
     let bindings = PhysicalSignalAspectBindingSet::from_profile(
-        PhysicalWorkProfileDeclaration::new([admission]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [admission]).unwrap(),
     );
     let patch_mask = aspects().mutation_mask().fields(["foreign"]).unwrap();
     let patch = match aspects()

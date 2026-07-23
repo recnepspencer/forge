@@ -9,7 +9,8 @@ use worth_store::physical_runtime::{
 };
 
 use super::fixture::{
-    admitted_contract, alternative_physical_witness, serving_from_initialization_with_work_profile,
+    admitted_contract, alternative_physical_witness, security_scope, security_scope_from_authority,
+    serving_from_initialization_with_work_profile,
 };
 
 #[test]
@@ -20,9 +21,12 @@ fn inconsistent_capacity_profiles_have_no_construction_path() {
 
 #[test]
 fn duplicate_profile_contracts_are_rejected_before_signal_construction() {
-    let (_, _, admission, _) = admitted_contract(1);
+    let (_, _, admission, witness) = admitted_contract(1);
     assert!(matches!(
-        PhysicalWorkProfileDeclaration::new([admission.clone(), admission]),
+        PhysicalWorkProfileDeclaration::new(
+            security_scope(witness),
+            [admission.clone(), admission]
+        ),
         Err(worth_store::physical_runtime::PhysicalWorkProfileDenial::DuplicateAspectContract)
     ));
 }
@@ -36,32 +40,51 @@ fn profile_identity_is_canonical_across_contract_input_order() {
         ScalarAspectType::String,
         witness,
     );
-    let forward = PhysicalWorkProfileDeclaration::new([first.clone(), second.clone()]).unwrap();
-    let reversed = PhysicalWorkProfileDeclaration::new([second, first]).unwrap();
+    let security = security_scope(witness);
+    let forward =
+        PhysicalWorkProfileDeclaration::new(security, [first.clone(), second.clone()]).unwrap();
+    let reversed = PhysicalWorkProfileDeclaration::new(security, [second, first]).unwrap();
     assert_eq!(forward.identity(), reversed.identity());
 }
 
 #[test]
+fn profile_identity_includes_the_admitted_security_authority() {
+    let (_, _, admission, witness) = admitted_contract(1);
+    let local =
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [admission.clone()]).unwrap();
+    let foreign = PhysicalWorkProfileDeclaration::new(
+        security_scope_from_authority("store.physical.foreign_profile_authority", witness),
+        [admission],
+    )
+    .unwrap();
+
+    assert_ne!(local.identity(), foreign.identity());
+}
+
+#[test]
 fn binding_role_and_partition_are_canonical_profile_truth() {
-    let (_, _, admission, _) = admitted_contract(1);
+    let (_, _, admission, witness) = admitted_contract(1);
     let partitioned_admission = admission
         .clone()
         .admit_mutation_mask(AspectMask::<MutationMask>::whole_aspect())
         .unwrap();
-    let dependency = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        PhysicalSignalAspectDeclaration::new(
+    let security = security_scope(witness);
+    let dependency = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security,
+        [PhysicalSignalAspectDeclaration::new(
             admission.clone(),
             PhysicalSignalAspectRole::Dependency,
-        ),
-    ])
+        )],
+    )
     .unwrap();
-    let partitioned = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        PhysicalSignalAspectDeclaration::new(
+    let partitioned = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security,
+        [PhysicalSignalAspectDeclaration::new(
             partitioned_admission,
             PhysicalSignalAspectRole::DependencyAndOutput,
         )
-        .with_partition(PartitionSubscription::whole_partition("artifact-7")),
-    ])
+        .with_partition(PartitionSubscription::whole_partition("artifact-7"))],
+    )
     .unwrap();
     assert_ne!(dependency.identity(), partitioned.identity());
 
@@ -83,23 +106,26 @@ fn binding_role_and_partition_are_canonical_profile_truth() {
 
 #[test]
 fn work_family_scope_is_canonical_and_empty_scope_is_rejected() {
-    let (_, _, admission, _) = admitted_contract(1);
-    let all = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        PhysicalSignalAspectDeclaration::new(
+    let (_, _, admission, witness) = admitted_contract(1);
+    let security = security_scope(witness);
+    let all = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security,
+        [PhysicalSignalAspectDeclaration::new(
             admission.clone(),
             PhysicalSignalAspectRole::Dependency,
-        ),
-    ])
+        )],
+    )
     .unwrap();
-    let read_only = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        PhysicalSignalAspectDeclaration::new(
+    let read_only = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security,
+        [PhysicalSignalAspectDeclaration::new(
             admission.clone(),
             PhysicalSignalAspectRole::Dependency,
         )
         .for_families(PhysicalWorkSignalFamilySet::only(
             PhysicalWorkSignalFamily::ReadFault,
-        )),
-    ])
+        ))],
+    )
     .unwrap();
     assert_ne!(all.identity(), read_only.identity());
     assert_ne!(
@@ -113,10 +139,14 @@ fn work_family_scope_is_canonical_and_empty_scope_is_rejected() {
             .digest()
     );
     assert!(matches!(
-        PhysicalWorkProfileDeclaration::from_signal_aspects([
-            PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::Dependency,)
-                .for_families(PhysicalWorkSignalFamilySet::none())
-        ]),
+        PhysicalWorkProfileDeclaration::from_signal_aspects(
+            security,
+            [PhysicalSignalAspectDeclaration::new(
+                admission,
+                PhysicalSignalAspectRole::Dependency,
+            )
+            .for_families(PhysicalWorkSignalFamilySet::none())],
+        ),
         Err(worth_store::physical_runtime::PhysicalWorkProfileDenial::WorkFamilySetEmpty)
     ));
 }
@@ -124,11 +154,15 @@ fn work_family_scope_is_canonical_and_empty_scope_is_rejected() {
 #[test]
 fn partitioned_dependency_profile_initializes_the_real_signal_owner() {
     let root = tempdir().unwrap();
-    let (_, _, admission, _) = admitted_contract(1);
-    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::Dependency)
-            .with_partition(PartitionSubscription::whole_partition("artifact-7")),
-    ])
+    let (_, _, admission, witness) = admitted_contract(1);
+    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security_scope(witness),
+        [PhysicalSignalAspectDeclaration::new(
+            admission,
+            PhysicalSignalAspectRole::Dependency,
+        )
+        .with_partition(PartitionSubscription::whole_partition("artifact-7"))],
+    )
     .unwrap();
 
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
@@ -160,23 +194,26 @@ fn profile_identity_changes_with_exact_contract_shape_and_physical_witness() {
     .admit_projection_mask(AspectMask::<ProjectionMask>::whole_aspect())
     .unwrap();
     assert_ne!(
-        PhysicalWorkProfileDeclaration::new([string])
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [string])
             .unwrap()
             .identity(),
-        PhysicalWorkProfileDeclaration::new([integer])
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [integer])
             .unwrap()
             .identity()
     );
     assert_ne!(
-        PhysicalWorkProfileDeclaration::new([contract_admission(
-            "store.physical.work.lifecycle",
-            71,
-            ScalarAspectType::UInt64,
-            witness,
-        )])
+        PhysicalWorkProfileDeclaration::new(
+            security_scope(witness),
+            [contract_admission(
+                "store.physical.work.lifecycle",
+                71,
+                ScalarAspectType::UInt64,
+                witness,
+            )],
+        )
         .unwrap()
         .identity(),
-        PhysicalWorkProfileDeclaration::new([alternate_witness])
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [alternate_witness])
             .unwrap()
             .identity()
     );
@@ -196,14 +233,14 @@ fn signal_aspect_width_is_rejected_before_worker_construction() {
         })
         .collect::<Vec<_>>();
     assert!(matches!(
-        PhysicalWorkProfileDeclaration::new(contracts),
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), contracts),
         Err(worth_store::physical_runtime::PhysicalWorkProfileDenial::SignalAspectCapacityExceeded)
     ));
 }
 
 #[test]
 fn signal_aspect_capacity_denial_stops_consuming_the_profile_source() {
-    let (_, _, admission, _) = admitted_contract(1);
+    let (_, _, admission, witness) = admitted_contract(1);
     let hostile_unbounded_source =
         std::iter::repeat(admission)
             .enumerate()
@@ -216,7 +253,10 @@ fn signal_aspect_capacity_denial_stops_consuming_the_profile_source() {
             });
 
     assert!(matches!(
-        PhysicalWorkProfileDeclaration::new(hostile_unbounded_source),
+        PhysicalWorkProfileDeclaration::new(
+            security_scope(witness),
+            hostile_unbounded_source,
+        ),
         Err(worth_store::physical_runtime::PhysicalWorkProfileDenial::SignalAspectCapacityExceeded)
     ));
 }

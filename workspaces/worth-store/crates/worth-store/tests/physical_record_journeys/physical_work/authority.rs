@@ -15,7 +15,7 @@ use worth_store::physical_runtime::{
 };
 
 use super::fixture::{
-    admitted_contract, alternative_physical_witness, security_scope,
+    admitted_contract, alternative_physical_witness, security_scope, security_scope_from_authority,
     serving_from_initialization_with_work_profile, validated_value,
 };
 
@@ -64,9 +64,36 @@ fn request_security_scope_must_share_the_semantic_physical_witness() {
 }
 
 #[test]
+fn profile_security_authority_rejects_a_foreign_admitted_receipt_before_retention() {
+    let root = tempdir().unwrap();
+    let (contract, identity, admission, witness) = admitted_contract(1);
+    let fact = projection_fact(&contract, identity, witness, "foreign-security-authority");
+    let basis = PhysicalWorkSemanticBasis::projection(fact, admission.clone()).unwrap();
+    let request = PhysicalReadWorkRequest::new(
+        request_scope(),
+        basis,
+        security_scope_from_authority("store.physical.foreign_authority", witness),
+    )
+    .unwrap();
+    let serving = serving_from_initialization_with_work_profile(
+        root.path(),
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [admission]).unwrap(),
+    );
+
+    assert!(matches!(
+        serving
+            .physical_read_submission()
+            .submit(request)
+            .into_raw(),
+        TransitionOutcome::Denied(PhysicalWorkSubmissionDenial::SecurityAuthorityMismatch)
+    ));
+    assert_eq!(serving.close().work().declared(), 0);
+}
+
+#[test]
 fn installed_profile_rejects_an_exact_contract_from_another_physical_boundary() {
     let root = tempdir().unwrap();
-    let (contract, identity, installed, _) = admitted_contract(1);
+    let (contract, identity, installed, witness) = admitted_contract(1);
     let alternate_witness = alternative_physical_witness();
     let alternate =
         StoreAspectContractAdmission::new(identity.clone(), contract.clone(), alternate_witness)
@@ -81,7 +108,7 @@ fn installed_profile_rejects_an_exact_contract_from_another_physical_boundary() 
     .unwrap();
     let serving = serving_from_initialization_with_work_profile(
         root.path(),
-        PhysicalWorkProfileDeclaration::new([installed]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [installed]).unwrap(),
     );
     assert!(matches!(
         serving
@@ -284,7 +311,7 @@ fn installed_profile_rejects_a_different_valid_mutation_mask() {
     .unwrap();
     let serving = serving_from_initialization_with_work_profile(
         root.path(),
-        PhysicalWorkProfileDeclaration::new([installed]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [installed]).unwrap(),
     );
     assert!(matches!(
         serving

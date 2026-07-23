@@ -38,6 +38,7 @@ pub use progression::{
     AdmittedPhysicalWork, BlockedPhysicalWork, DispatchedPhysicalWork, PhysicalWorkReadiness,
     ReadyPhysicalWork, ResourceAdmittedPhysicalWork, SettledPhysicalWork,
 };
+pub(in crate::physical_runtime) use progression::PhysicalSignalReadinessEvidence;
 pub use request::{PhysicalMutationWorkRequest, PhysicalReadWorkRequest};
 pub use scheduler_demand::{
     PhysicalSchedulerDemand, PhysicalSchedulerDenial, PhysicalWorkScheduler,
@@ -63,5 +64,5 @@ pub(in crate::physical_runtime) use signal_declaration::{
 #[cfg(feature = "certification-test-authority")]
 pub use submission::CertificationPhysicalSubmissionPauseGate;
 pub(in crate::physical_runtime) use submission::{
-    PhysicalWorkStopKind, PhysicalWorkSubmissionOwner,
+    PhysicalWorkStopKind, PhysicalWorkSubmissionFoundation, PhysicalWorkSubmissionOwner,
 };

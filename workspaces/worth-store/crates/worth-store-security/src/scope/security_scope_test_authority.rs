@@ -88,8 +88,18 @@ pub fn admitted_store_internal_security_scope_for_io_qos_test() -> StoreAdmitted
 pub fn admitted_store_internal_security_scope_for_physical_witness_test(
     witness: StorePhysicalBoundaryWitness,
 ) -> StoreAdmittedSecurityScope {
-    let current_authority = require_current_store_authority(boundary_fact_with_witness(
+    admitted_store_internal_security_scope_for_named_physical_witness_test(
         "store.physical.test_instance",
+        witness,
+    )
+}
+
+pub fn admitted_store_internal_security_scope_for_named_physical_witness_test(
+    authority_key: &str,
+    witness: StorePhysicalBoundaryWitness,
+) -> StoreAdmittedSecurityScope {
+    let current_authority = require_current_store_authority(boundary_fact_with_witness(
+        authority_key,
         "test-current",
         witness,
     ));

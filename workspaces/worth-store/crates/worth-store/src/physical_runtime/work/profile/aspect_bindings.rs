@@ -27,6 +27,7 @@ pub enum PhysicalSignalBindingDenial {
 #[derive(Debug)]
 pub struct PhysicalSignalAspectBindingSet {
     profile: PhysicalSignalProfileIdentity,
+    security_authority: Option<[u8; 32]>,
     capacity: PhysicalWorkCapacity,
     bindings: Box<[PhysicalSignalAspectBinding]>,
 }
@@ -57,7 +58,7 @@ impl PhysicalSignalAspectBindingSet {
         declaration: PhysicalWorkProfileDeclaration,
     ) -> Self {
         let profile = declaration.identity();
-        let (aspects, capacity) = declaration.into_parts();
+        let (security_authority, aspects, capacity) = declaration.into_parts();
         let bindings = aspects
             .into_vec()
             .into_iter()
@@ -67,6 +68,7 @@ impl PhysicalSignalAspectBindingSet {
             .into_boxed_slice();
         Self {
             profile,
+            security_authority,
             capacity,
             bindings,
         }
@@ -113,6 +115,13 @@ impl PhysicalSignalAspectBindingSet {
     ) -> bool {
         self.binding_for_identity(identity)
             .is_some_and(|installed| installed.contract.binding_stamp() == binding)
+    }
+
+    pub(in crate::physical_runtime) fn admits_security(
+        &self,
+        receipt: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> bool {
+        self.security_authority == Some(receipt.authority_identity().fingerprint())
     }
 }
 
