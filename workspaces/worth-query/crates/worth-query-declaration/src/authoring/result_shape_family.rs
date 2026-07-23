@@ -48,3 +48,9 @@ impl<F: ResultShapeAuthoringFamily> ResultShapeBuilder<F> {
         })
     }
 }
+
+impl<F: ResultShapeAuthoringFamily> Default for ResultShapeBuilder<F> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

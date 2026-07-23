@@ -331,6 +331,16 @@ It owns:
 This road is first-class. `STEP` import is not a parser footnote; it is one of
 the main ways real models enter the system.
 
+Parsing, normalization, healing kernels, candidate-search evidence,
+transformation occurrences, and loss ledgers may progress as derived,
+single-semantic-world computation once Query's execution-grade domain
+computation substrate exists. Authoritative foreign-model admission and repair
+publication additionally consume the cross-runtime semantic-world basis,
+canonical change, versioned definition, identity/correspondence, topology/
+invariant, and governed-resolution authorities. This road must not invent
+temporary imported identity, repair approval, or durable resolution sessions
+while those foundations are unfinished.
+
 ### Road 10: Components And Assemblies
 
 This road owns the transition from raw geometry authoring to semantic
@@ -378,6 +388,14 @@ It owns:
 This road sits after components and packs because BIM systems are built out of
 semantic objects and shared regimes, not raw operator folklore.
 
+Single-basis routing, framing, consolidation, and solver work may proceed
+without collaboration branching when it produces derived candidates,
+search/convergence evidence, and ordinary proposed effects. Durable advisory or
+manual resolution, participant approval, deferral, supersession, carry-forward,
+and recovery consume the cross-runtime governed-resolution lifecycle. Physical
+consolidation, sewing, joining, or coalescing is a domain operation and must not
+be represented as semantic branch merge.
+
 ### Road 13: Assumptions
 
 This road owns context truth about what the model is being assumed to sit on or
@@ -394,6 +412,11 @@ It owns:
 This road is separate from policy because assumptions describe believed or
 declared world conditions, not the rules governing admission or interpretation.
 
+Assumption identity, version, scope, provenance, and measured, declared,
+inferred, defaulted, or unknown posture must be explicit before long-running
+branches can claim a complete semantic-world basis. Assumptions may never enter
+physics or resolution as ambient defaults.
+
 ### Road 14: Physics
 
 This road owns computation over the model under explicit scenarios.
@@ -407,6 +430,12 @@ It owns:
 
 This road is separate from assumptions because assumptions provide contextual
 truth while physics provides computational consequence.
+
+Physics solvers may use Query-managed single-basis convergence, candidate,
+resource, and reproducibility contracts before collaboration closes. Durable
+human review, approval, deferral, or carry-forward of physics-driven proposals
+uses the shared cross-runtime governed-resolution lifecycle rather than a
+physics-local session model.
 
 ### Road 15: Jurisdiction And Approval
 

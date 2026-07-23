@@ -111,7 +111,7 @@ fn assert_query_projection(settled: &WorthUiSettledSnapshotProjection) {
         CanonicalF32::from_f32(240.0)
     );
     let inspection = WorthUiQueryInspection::settled_projection(
-        &settled,
+        settled,
         WorthUiQueryInspectionRelevance::Relevant,
         WorthUiQueryInspectionEvidencePolicy::Rich,
     );
@@ -157,7 +157,7 @@ fn admit_current_projection(
             );
             frame_ingress = Some(
                 query
-                    .submit_settled(&fact_link)
+                    .submit_settled(fact_link)
                     .expect("the active generation resolves its retained fact link"),
             );
         });
@@ -220,7 +220,7 @@ fn activate_successor_projection(
     prepared
         .admit_candidate_settled_query_projection(settle_reference(successor_reference, workspace))
         .expect("the successor candidate owns its independent exact Query settlement");
-    let catalog = admit_candidate_catalog(&session, &mut prepared);
+    let catalog = admit_candidate_catalog(session, &mut prepared);
     let lowered = session
         .lower_prepared_replacement(*prepared)
         .expect("the changed application lowers");

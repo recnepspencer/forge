@@ -88,7 +88,7 @@ impl FieldPredicateState {
                             family: CanonicalPredicateFamily::ScalarMembership,
                             operand: CanonicalPredicateOperand::ScalarSet(intersection),
                         },
-                        existing.1.clone(),
+                        existing.1,
                         existing.2,
                     ));
                 } else {
@@ -114,20 +114,20 @@ impl FieldPredicateState {
     ) -> Result<Vec<ValidatedPredicateEntry>, ValidationFailureArtifact> {
         if let Some(eq) = &self.equality {
             apply_equality_constraints(
-                eq,
-                self.strongest_gt.as_ref(),
-                self.weakest_lt.as_ref(),
-                self.membership.as_ref(),
-                self.contains.as_slice(),
+                EqualityConstraints {
+                    equality: eq,
+                    strongest_gt: self.strongest_gt.as_ref(),
+                    weakest_lt: self.weakest_lt.as_ref(),
+                    membership: self.membership.as_ref(),
+                    contains: self.contains.as_slice(),
+                },
                 aspect,
                 field,
                 counters,
                 rejection_matrix,
             )?;
             return Ok(vec![ValidatedPredicateEntry::from_canonical(
-                &eq.0,
-                eq.1.clone(),
-                eq.2,
+                &eq.0, eq.1, eq.2,
             )]);
         }
 
@@ -205,18 +205,23 @@ impl FieldPredicateState {
     }
 }
 
+struct EqualityConstraints<'a> {
+    equality: &'a LegalPredicate,
+    strongest_gt: Option<&'a LegalPredicate>,
+    weakest_lt: Option<&'a LegalPredicate>,
+    membership: Option<&'a LegalPredicate>,
+    contains: &'a [LegalPredicate],
+}
+
 fn apply_equality_constraints(
-    equality: &LegalPredicate,
-    strongest_gt: Option<&LegalPredicate>,
-    weakest_lt: Option<&LegalPredicate>,
-    membership: Option<&LegalPredicate>,
-    contains: &[LegalPredicate],
+    constraints: EqualityConstraints<'_>,
     aspect: &str,
     field: &str,
     counters: &mut QueryValidationCounters,
     rejection_matrix: &mut ValidationRejectionMatrix,
 ) -> Result<(), ValidationFailureArtifact> {
-    if let Some(gt) = strongest_gt {
+    let equality = constraints.equality;
+    if let Some(gt) = constraints.strongest_gt {
         if scalar_operand(&equality.0).as_native() <= comparison_scalar(&gt.0) {
             return contradictory(
                 aspect,
@@ -228,7 +233,7 @@ fn apply_equality_constraints(
         }
     }
 
-    if let Some(lt) = weakest_lt {
+    if let Some(lt) = constraints.weakest_lt {
         if scalar_operand(&equality.0).as_native() >= comparison_scalar(&lt.0) {
             return contradictory(
                 aspect,
@@ -240,7 +245,7 @@ fn apply_equality_constraints(
         }
     }
 
-    if let Some(membership) = membership {
+    if let Some(membership) = constraints.membership {
         if !membership_values_set(&membership.0).contains(scalar_operand(&equality.0)) {
             return contradictory(
                 aspect,
@@ -256,7 +261,7 @@ fn apply_equality_constraints(
         worth_foundational::facade::InternedString::Raw(value),
     ) = scalar_operand(&equality.0).as_native()
     {
-        for contains_predicate in contains {
+        for contains_predicate in constraints.contains {
             if !value.contains(string_scalar(&contains_predicate.0)) {
                 return contradictory(
                     aspect,

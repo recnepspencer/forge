@@ -1,20 +1,20 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use worth_query_certification::facade::{
     canonical_hostile_matrix, certify_hostile_provider, certify_provider_pair,
     WorthQueryCertificationCounter, WorthQueryCertificationCounterSetDenial,
-    WorthQueryCertificationCounters, WorthQueryCertificationDenialEvidence,
-    WorthQueryCertificationFailure, WorthQueryCertificationHostileAttack,
-    WorthQueryCertificationJourneyCheckpoint as Checkpoint, WorthQueryCertificationObservation,
-    WorthQueryCertificationObservationDenial, WorthQueryCertificationProvider,
-    WorthQueryCertificationScenario, WorthQueryCertificationScenarioKind as Kind,
-    WorthQueryCertificationSuite, WorthQueryCertificationSuiteDenial,
-    WorthQueryHostileCertificationProvider,
+    WorthQueryCertificationCounters, WorthQueryCertificationFailure,
+    WorthQueryCertificationHostileAttack, WorthQueryCertificationJourneyCheckpoint as Checkpoint,
+    WorthQueryCertificationObservation, WorthQueryCertificationObservationDenial,
+    WorthQueryCertificationProvider, WorthQueryCertificationScenario,
+    WorthQueryCertificationScenarioKind as Kind, WorthQueryCertificationSuite,
+    WorthQueryCertificationSuiteDenial,
 };
+
+use crate::hostile_provider_fixture::HostileHarnessProvider;
 
 struct SemanticProviderFixture {
     identity: &'static str,
     drift: Option<&'static str>,
-    hostile_drift: Option<WorthQueryCertificationHostileAttack>,
 }
 
 impl SemanticProviderFixture {
@@ -22,7 +22,6 @@ impl SemanticProviderFixture {
         Self {
             identity,
             drift: None,
-            hostile_drift: None,
         }
     }
 }
@@ -51,31 +50,8 @@ impl WorthQueryCertificationProvider for SemanticProviderFixture {
     }
 }
 
-impl WorthQueryHostileCertificationProvider for SemanticProviderFixture {
-    fn provider_identity(&self) -> &str {
-        self.identity
-    }
-
-    fn attack(
-        &mut self,
-        attack: WorthQueryCertificationHostileAttack,
-    ) -> Result<WorthQueryCertificationDenialEvidence, String> {
-        let case = canonical_hostile_matrix()
-            .into_iter()
-            .find(|case| case.attack() == attack)
-            .expect("the generic registry is total");
-        if self.hostile_drift == Some(attack) {
-            return Ok(WorthQueryCertificationDenialEvidence::observed(
-                case.expected().boundary(),
-                WorthQueryCertificationCounters::default(),
-            ));
-        }
-        Ok(case.expected().clone())
-    }
-}
-
 #[test]
-fn query_owned_journey_wraps_two_distinct_provider_observations() {
+fn provider_pair_reports_semantics_and_real_journey_requirements_separately() {
     let suite = complete_suite();
     let mut first = SemanticProviderFixture::conforming("ui-reference-provider");
     let mut second = SemanticProviderFixture::conforming("ui-alternate-provider");
@@ -89,21 +65,25 @@ fn query_owned_journey_wraps_two_distinct_provider_observations() {
             "ui-alternate-provider".to_owned()
         ]
     );
-    let covered = report
+    let required = report
         .scenarios()
         .iter()
-        .flat_map(|scenario| scenario.journey_checkpoints().iter().copied())
+        .flat_map(|scenario| scenario.required_journey_checkpoints().iter().copied())
         .collect::<BTreeSet<_>>();
-    assert_eq!(covered, Checkpoint::ALL.into_iter().collect());
+    assert_eq!(required, Checkpoint::ALL.into_iter().collect());
 }
 
 #[test]
-fn canonical_hostile_runner_visits_every_registered_attack() {
-    let mut provider = SemanticProviderFixture::conforming("query-hostile-fixture");
+fn canonical_hostile_runner_invokes_every_registered_attack_once() {
+    let mut provider = HostileHarnessProvider::conforming("query-hostile-fixture");
     let report = certify_hostile_provider(&mut provider).unwrap();
     assert_eq!(
         report.hostile_case_count(),
         canonical_hostile_matrix().len()
+    );
+    assert_eq!(
+        provider.observed_attacks(),
+        WorthQueryCertificationHostileAttack::ALL
     );
 }
 
@@ -153,8 +133,10 @@ fn duplicate_counters_are_rejected_instead_of_silently_overwritten() {
 
 #[test]
 fn hostile_counter_drift_fails_even_when_the_denial_kind_matches() {
-    let mut second = SemanticProviderFixture::conforming("alternate");
-    second.hostile_drift = Some(WorthQueryCertificationHostileAttack::StaleGeneration);
+    let mut second = HostileHarnessProvider::with_counter_drift(
+        "alternate",
+        WorthQueryCertificationHostileAttack::StaleGeneration,
+    );
     assert!(matches!(
         certify_hostile_provider(&mut second),
         Err(WorthQueryCertificationFailure::HostileEvidenceMismatch {
@@ -179,16 +161,10 @@ fn hostile_registry_is_complete_unique_and_exactly_accounted() {
     );
     for case in matrix {
         assert_eq!(
-            case.expected()
-                .counters()
-                .value(WorthQueryCertificationCounter::BoundaryChecks),
-            1
-        );
-        assert_eq!(
-            case.expected()
-                .counters()
-                .value(WorthQueryCertificationCounter::AuthorityMints),
-            0
+            case.expected().counters().values(),
+            &BTreeMap::from([(WorthQueryCertificationCounter::BoundaryChecks, 1)]),
+            "{:?} must perform exactly one boundary check and no downstream work",
+            case.attack()
         );
     }
 }

@@ -67,18 +67,24 @@ domain-authored oracle:
 - exact semantic facts
 - exact structural counters
 
-Query derives the generic journey checkpoints from the eight scenario
-families and records them in the certification report, so providers and domains
-do not reconstruct that matrix. The aggregate suite covers
+Query derives the generic journey requirements from the eight scenario
+families and records them as requirements in the certification report, so
+providers and domains do not reconstruct that matrix. This parity report does
+not claim that returning semantic facts executed those checkpoints. Query's
+real public-facade integration suite proves the journey itself. The aggregate
+requirements cover
 operation resolution, installation, single-root entry, graph participation,
 multi-domain and multi-graph binding, workflow, re-execution, replay, reversal,
 publication, lineage, promotion, support, execution, consumption, native
 access, impact, sharing, lease, compatibility, invalidation, collection
 windows, and collection patches.
 
-`certify_hostile_provider` is separate. Query runs its canonical hostile matrix
-once through a Query-owned hostile-world adapter. Domain provider adapters do
-not reproduce the generic authority attack cross-product.
+`certify_hostile_provider` is the separate contract for a Query-owned
+hostile-world adapter. The runner's substitute test proves canonical dispatch
+and comparison sensitivity only;
+production denial behavior remains the responsibility of Query's real compile
+and runtime boundary suites. Domain provider adapters do not reproduce the
+generic authority attack cross-product.
 
 ## Static Enforcement
 

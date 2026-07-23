@@ -46,7 +46,7 @@ impl WorthQueryCertificationSuite {
         }
         let covered = scenarios
             .iter()
-            .flat_map(|scenario| scenario.journey_checkpoints().iter().copied())
+            .flat_map(|scenario| scenario.required_journey_checkpoints().iter().copied())
             .collect::<BTreeSet<_>>();
         let missing = WorthQueryCertificationJourneyCheckpoint::ALL
             .into_iter()

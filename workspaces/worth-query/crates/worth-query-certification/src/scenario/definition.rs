@@ -41,7 +41,7 @@ pub enum WorthQueryCertificationScenarioDenial {
 pub struct WorthQueryCertificationScenario {
     id: String,
     kind: WorthQueryCertificationScenarioKind,
-    journey_checkpoints: BTreeSet<Checkpoint>,
+    required_journey_checkpoints: BTreeSet<Checkpoint>,
     oracle: WorthQueryCertificationObservation,
 }
 
@@ -65,7 +65,7 @@ impl WorthQueryCertificationScenario {
         Ok(Self {
             id,
             kind,
-            journey_checkpoints: checkpoints(kind),
+            required_journey_checkpoints: required_checkpoints(kind),
             oracle,
         })
     }
@@ -78,8 +78,12 @@ impl WorthQueryCertificationScenario {
         self.kind
     }
 
-    pub fn journey_checkpoints(&self) -> &BTreeSet<Checkpoint> {
-        &self.journey_checkpoints
+    /// Query-owned journey requirements associated with this semantic family.
+    ///
+    /// These are requirements for the real facade certification suite, not
+    /// evidence that a semantic provider executed each checkpoint.
+    pub fn required_journey_checkpoints(&self) -> &BTreeSet<Checkpoint> {
+        &self.required_journey_checkpoints
     }
 
     pub fn oracle(&self) -> &WorthQueryCertificationObservation {
@@ -87,7 +91,7 @@ impl WorthQueryCertificationScenario {
     }
 }
 
-fn checkpoints(kind: WorthQueryCertificationScenarioKind) -> BTreeSet<Checkpoint> {
+fn required_checkpoints(kind: WorthQueryCertificationScenarioKind) -> BTreeSet<Checkpoint> {
     use Checkpoint::*;
     let values: &[Checkpoint] = match kind {
         WorthQueryCertificationScenarioKind::Workflow => &[

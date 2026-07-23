@@ -72,7 +72,7 @@ pub fn certify_provider_pair(
         reports.push(WorthQueryCertificationScenarioReport::new(
             scenario.id().to_owned(),
             scenario.kind(),
-            scenario.journey_checkpoints().clone(),
+            scenario.required_journey_checkpoints().clone(),
             first_observation.counters().clone(),
         ));
     }
