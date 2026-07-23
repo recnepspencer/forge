@@ -61,7 +61,7 @@ CONTEXT_FILES = [
     "_docs/coding_guidelines/composition_laws.md",
     "_docs/coding_guidelines/domain_structure_laws.md",
     "_docs/coding_guidelines/perf_laws.md",
-    "_docs/more_guidelines/dx_laws.md",
+    "_docs/coding_guidelines/dx_laws.md",
     "cad/docs/worthy-foundations/ROAD.md",
     "cad/docs/worthy-foundations/ARCHITECTURE.md",
     "cad/docs/worthy-foundations/GLOSSARY.md",

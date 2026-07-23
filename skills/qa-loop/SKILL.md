@@ -1,124 +1,76 @@
 ---
 name: qa-loop
-description: Run a WORTH-quality QA and correction loop on completed work. Use when reviewing a just-finished phase or implementation batch against the milestone spec and WORTH coding-guideline docs, producing findings-first feedback, fixing the findings, and repeating until no meaningful findings remain.
+description: Review and correct completed WORTH implementation work against its governing specification and causally relevant engineering laws. Use after a coherent implementation slice is complete to find substantive defects, fix root causes, verify corrections, and repeat until the work is genuinely complete.
 ---
 
 # QA Loop
 
-Use this skill after implementation work appears complete enough for hostile review.
+Attempt to falsify the implementation's claims. Report only evidence-backed
+defects; do not reward green checks or invent findings to appear rigorous.
 
-## Mandatory reading order
+## Establish authority
 
-Read these in this order before running the QA loop:
+Read the repository instructions, governing specification, changed files, and
+the coding laws relevant to the affected guarantees. Inspect adjacent producers,
+consumers, authority owners, persistence boundaries, and test support when they
+can invalidate the implementation's claims.
 
-1. `_docs/coding_guidelines/MENTALITY.md`
-2. `_docs/coding_guidelines/arch_laws.md`
-3. `_docs/coding_guidelines/composition_laws.md` if it is populated
-4. `_docs/coding_guidelines/domain_structure_laws.md`
-5. `_docs/coding_guidelines/perf_laws.md`
+## Build the risk map
 
-Then reread the governing milestone or implementation spec for the work under review.
+Identify:
 
-## Standard
+- what the implementation claims to accomplish
+- which invariants and authority boundaries it can affect
+- which failures would be expensive, silent, irreversible, or hard to detect
+- what evidence currently supports each material claim
 
-Review as a hostile engineer, not as a congratulatory assistant.
+Apply review lenses by causal relevance, not uniformly:
 
-The bar is production grade:
-- aerospace-grade
-- chip-simulator-grade
-- no MVP softness
-- no "good enough" closure
+- semantic and specification correctness
+- authority, security, privacy, and disclosure
+- architecture, lifecycle, state, and dependency direction
+- failure, cancellation, concurrency, recovery, and migration
+- performance and resource behavior
+- test and fixture honesty
+- composition and domain topology
+- public DX and operability
 
-Look for things that technically pass while violating the deeper intent of the milestone, the spirit of the architecture, or the proof obligations implied by the spec.
+Always classify security and performance relevance. Perform a deep pass only
+when the change exposes their corresponding threat or cost surface.
 
-## Scope of this skill
+## Review
 
-This skill is for implementation QA and correction.
+Trace real execution and failure paths. Look for violated invariants,
+unearned authority, hidden effects, incomplete lifecycle behavior, dishonest
+fallbacks, stale derived state, incompatible evolution, resource escape,
+fixture theatre, and implementation that satisfies wording while defeating
+intent.
 
-It should focus on:
-- implementation integrity
-- architectural integrity
-- domain correctness
-- performance posture
-- proof strength
-- obvious test omissions that block the work
+Prefer the smallest decisive evidence: source tracing, type and dependency
+inspection, targeted execution, adversarial tests, structural counters, or
+repository enforcement. Passing tests are evidence only for claims they
+honestly establish.
 
-This skill is not the dedicated final milestone adversarial test-audit pass. If the task is specifically to do the big end-of-milestone test review, that should be a separate step.
+## Findings
 
-## Required workflow
+Report findings before summaries. For each finding state:
 
-1. Read the mandatory guideline docs in the required order.
-2. Reread the governing spec.
-3. Perform a hostile review.
-4. Report findings first.
-5. Fix the findings.
-6. Reassess for remaining related weaknesses.
-7. Repeat until no meaningful findings remain.
+1. severity and affected guarantee
+2. concrete defect and evidence
+3. governing source or invariant
+4. required root-cause correction
+5. proof that would close the finding
 
-Do not stop at one review pass if real issues still exist.
+Do not report style preferences as correctness findings.
 
-## Required output discipline
+## Correct and repeat
 
-When reporting findings:
-- findings first
-- concrete, not vague
-- no celebration
-- no meta commentary about the workflow
+Fix root causes, not symptoms. Search the affected semantic family for the same
+defect, update tests and fixtures when the proof was weak, and run verification
+proportional to the changed guarantees. Rebuild the risk map after material
+corrections and continue until no meaningful findings remain.
 
-For each finding, state:
-1. what is wrong
-2. why it matters
-3. what authority it violates
-4. what correction is required
-
-## Canonical QA prompt
-
-Preserve this wording exactly when you use it internally as your review frame.
-
-```text
-Perform a brutal QA of this phase.
-
-Evaluate the phase against:
-- the implementation spec
-- `arch_laws.md`
-- `composition_laws.md`, if it is populated
-- `domain_structure_laws.md`
-- `perf_laws.md`
-- the spirit of the system vision, not merely literal checkbox compliance
-
-Assume the bar is production-grade. Look for implementation gaps, architectural dishonesty, hidden complexity, semantic weakness, proof weakness, performance blindness, shallow tests, and anything that technically passes while violating the deeper intent.
-
-Report findings first.
-
-For each finding, state:
-1. what is wrong
-2. why it matters
-3. what authority it violates
-4. what correction is required
-
-If there are no findings, say so explicitly only after genuinely hostile review.
-```
-
-## Canonical correction-loop prompt
-
-Preserve this wording exactly when you use it internally as your correction frame.
-
-```text
-Address these QA findings completely.
-
-Do not negotiate with them, work around them, or minimize them. Correct them in a way that preserves the governing architecture and improves the phase in substance, not appearance.
-
-After corrections, reassess whether any related weakness remains, including small but real ones. Then continue until the phase is ready for another hostile QA pass.
-```
-
-## Completion rule
-
-The QA loop is complete only when:
-- no meaningful findings remain
-- the work still matches the spec
-- the architecture still holds
-- domain correctness is intact
-- performance posture is honest
-- no obvious in-scope cleanup remains
-
-Do not declare victory early.
+Completion requires specification fidelity, preserved authority and
+correctness, honest relevant performance posture, credible test evidence,
+passing required enforcement, and no known in-scope defect hidden by the
+harness or review boundary.

@@ -16,7 +16,7 @@ this phase's scope paths, the relevant public APIs, and the project laws/context
 
 Read `_docs\coding_guidelines\MENTALITY.md` and
 `_docs\coding_guidelines\arch_laws.md` with special attention on every turn.
-Read `_docs\more_guidelines\dx_laws.md` when planning or changing public caller
+Read `_docs\coding_guidelines\dx_laws.md` when planning or changing public caller
 experience.
 
 ## JSON is progress state, not an evidence bundle
