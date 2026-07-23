@@ -5,6 +5,7 @@ use super::WorthServerCompatHttpRouteFamily;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthServerCompatibilityRequestInput {
     authenticated_principal_id: String,
+    admitted_transport_caller: Option<crate::WorthServerAdmittedTransportCaller>,
     tenant_id: String,
     workspace_id: String,
     branch_target: RawWorthServerCompatibilityBranchTarget,
@@ -25,6 +26,12 @@ impl WorthServerCompatibilityRequestInput {
 
     pub(crate) fn authenticated_principal_id(&self) -> &str {
         &self.authenticated_principal_id
+    }
+
+    pub(crate) fn admitted_transport_caller(
+        &self,
+    ) -> Option<&crate::WorthServerAdmittedTransportCaller> {
+        self.admitted_transport_caller.as_ref()
     }
 
     pub(crate) fn tenant_id(&self) -> &str {
@@ -75,6 +82,7 @@ impl WorthServerCompatibilityRequestInput {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthServerCompatibilityRequestInputBuilder {
     authenticated_principal_id: Option<String>,
+    admitted_transport_caller: Option<crate::WorthServerAdmittedTransportCaller>,
     tenant_id: Option<String>,
     workspace_id: Option<String>,
     branch_target: Option<RawWorthServerCompatibilityBranchTarget>,
@@ -92,6 +100,7 @@ impl Default for WorthServerCompatibilityRequestInputBuilder {
     fn default() -> Self {
         Self {
             authenticated_principal_id: None,
+            admitted_transport_caller: None,
             tenant_id: None,
             workspace_id: None,
             branch_target: Some(RawWorthServerCompatibilityBranchTarget::Main),
@@ -110,6 +119,16 @@ impl Default for WorthServerCompatibilityRequestInputBuilder {
 impl WorthServerCompatibilityRequestInputBuilder {
     pub fn with_authenticated_principal_id(mut self, value: impl Into<String>) -> Self {
         self.authenticated_principal_id = Some(value.into());
+        self
+    }
+
+    pub fn with_admitted_transport_caller(
+        mut self,
+        admitted_transport_caller: crate::WorthServerAdmittedTransportCaller,
+    ) -> Self {
+        self.authenticated_principal_id =
+            Some(admitted_transport_caller.principal_identity().to_string());
+        self.admitted_transport_caller = Some(admitted_transport_caller);
         self
     }
 
@@ -190,6 +209,7 @@ impl WorthServerCompatibilityRequestInputBuilder {
             authenticated_principal_id: self.authenticated_principal_id.ok_or(
                 WorthServerCompatibilityRequestInputError::MissingAuthenticatedPrincipalId,
             )?,
+            admitted_transport_caller: self.admitted_transport_caller,
             tenant_id: self
                 .tenant_id
                 .ok_or(WorthServerCompatibilityRequestInputError::MissingTenantId)?,

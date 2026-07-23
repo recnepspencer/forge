@@ -49,6 +49,7 @@ pub struct WorthQueryCanonicalDeclarationArtifact<
     canonical_entries: Vec<CanonicalBasisEntry>,
     canonical_basis_bundle: CanonicalBundleReadyArtifact,
     declaration_digest: CanonicalDerivedDigest,
+    declaration_meaning_digest: CanonicalDerivedDigest,
     version: WorthQueryDeclarationCanonicalizationVersion,
     _marker: std::marker::PhantomData<(D, I)>,
 }
@@ -69,6 +70,7 @@ where
             canonical_entries: self.canonical_entries.clone(),
             canonical_basis_bundle: self.canonical_basis_bundle.clone(),
             declaration_digest: self.declaration_digest.clone(),
+            declaration_meaning_digest: self.declaration_meaning_digest.clone(),
             version: self.version.clone(),
             _marker: std::marker::PhantomData,
         }
@@ -90,6 +92,7 @@ where
         canonical_entries: Vec<CanonicalBasisEntry>,
         canonical_basis_bundle: CanonicalBundleReadyArtifact,
         declaration_digest: CanonicalDerivedDigest,
+        declaration_meaning_digest: CanonicalDerivedDigest,
         version: WorthQueryDeclarationCanonicalizationVersion,
     ) -> Self {
         Self {
@@ -102,6 +105,7 @@ where
             canonical_entries,
             canonical_basis_bundle,
             declaration_digest,
+            declaration_meaning_digest,
             version,
             _marker: std::marker::PhantomData,
         }
@@ -153,6 +157,9 @@ where
         &self.declaration_digest
     }
 
+    pub fn declaration_meaning_digest(&self) -> &CanonicalDerivedDigest {
+        &self.declaration_meaning_digest
+    }
     pub fn version(&self) -> &WorthQueryDeclarationCanonicalizationVersion {
         &self.version
     }
@@ -203,7 +210,7 @@ where
         );
     }
 
-    let canonical_entries = declaration_entries(handle, &raw);
+    let (canonical_entries, declaration_meaning_entries) = declaration_entries(handle, &raw);
     let declaration_entry_loci = raw
         .canonical_entries()
         .iter()
@@ -211,24 +218,10 @@ where
         .collect::<Vec<_>>();
     let canonical_basis_bundle =
         canonical_basis_bundle_from_entries(&canonical_entries, version.foundational());
-
-    let algorithm = CanonicalDigestAlgorithmId::test_stable_fixture();
-    let digest_ready = match CanonicalDigestFrontDoor
-        .for_bundle(canonical_basis_bundle.clone(), algorithm)
-    {
-        TransitionOutcome::Success(ready) => ready,
-        TransitionOutcome::Denied(denial) => {
-            return Err(WorthQueryDeclarationCanonicalizationError::DigestDerivationDenied(denial))
-        }
-        _ => {
-            return Err(
-                WorthQueryDeclarationCanonicalizationError::DigestDerivationDenied(
-                    CanonicalDigestDerivationDenial::InputShapeMismatch,
-                ),
-            )
-        }
-    };
-    let declaration_digest = derive_canonical_digest(digest_ready);
+    let declaration_digest = derive_declaration_digest(canonical_basis_bundle.clone())?;
+    let declaration_meaning_digest = derive_declaration_digest(
+        canonical_basis_bundle_from_entries(&declaration_meaning_entries, version.foundational()),
+    )?;
 
     Ok(WorthQueryCanonicalDeclarationArtifact::new(
         handle.handle_identity_digest().to_string(),
@@ -240,8 +233,26 @@ where
         canonical_entries,
         canonical_basis_bundle,
         declaration_digest,
+        declaration_meaning_digest,
         version,
     ))
+}
+
+fn derive_declaration_digest(
+    basis_bundle: CanonicalBundleReadyArtifact,
+) -> Result<CanonicalDerivedDigest, WorthQueryDeclarationCanonicalizationError> {
+    let algorithm = CanonicalDigestAlgorithmId::test_stable_fixture();
+    match CanonicalDigestFrontDoor.for_bundle(basis_bundle, algorithm) {
+        TransitionOutcome::Success(ready) => Ok(derive_canonical_digest(ready)),
+        TransitionOutcome::Denied(denial) => {
+            Err(WorthQueryDeclarationCanonicalizationError::DigestDerivationDenied(denial))
+        }
+        _ => Err(
+            WorthQueryDeclarationCanonicalizationError::DigestDerivationDenied(
+                CanonicalDigestDerivationDenial::InputShapeMismatch,
+            ),
+        ),
+    }
 }
 
 fn canonical_basis_from_entries(
@@ -275,24 +286,18 @@ fn declaration_entries<D, I>(
         impl WorthQueryDomainOperatingContext<D>,
     >,
     raw: &WorthQueryRawDeclarationInput<D, I>,
-) -> Vec<CanonicalBasisEntry>
+) -> (Vec<CanonicalBasisEntry>, Vec<CanonicalBasisEntry>)
 where
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
 {
     let domain = CanonicalBasisDomain::Future("worth_query.declaration");
-    let mut entries = vec![
+    let mut meaning_entries = vec![
         text_entry(
             domain,
             "declaration.domain_key",
             CanonicalBasisEntryKind::Header,
             handle.domain_key(),
-        ),
-        text_entry(
-            domain,
-            "declaration.handle_identity_digest",
-            CanonicalBasisEntryKind::Identity,
-            handle.handle_identity_digest(),
         ),
         text_entry(
             domain,
@@ -321,12 +326,22 @@ where
             raw.declaration_taxonomy().grouped_posture().as_str(),
         ),
     ];
-    entries.extend(
+    meaning_entries.extend(
         raw.canonical_entries()
             .iter()
             .map(|entry| convert_entry(domain, entry)),
     );
-    entries
+    let mut authority_entries = meaning_entries.clone();
+    authority_entries.insert(
+        1,
+        text_entry(
+            domain,
+            "declaration.handle_identity_digest",
+            CanonicalBasisEntryKind::Identity,
+            handle.handle_identity_digest(),
+        ),
+    );
+    (authority_entries, meaning_entries)
 }
 
 fn convert_entry(

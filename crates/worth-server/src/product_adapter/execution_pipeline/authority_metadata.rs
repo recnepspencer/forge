@@ -19,7 +19,7 @@ pub(in crate::product_adapter) fn declaration_metadata(
             })?;
             Ok(
                 WorthServerOperationAuthorityMetadata::shared_read_with_support_posture(
-                    declaration.basis_kind().as_shared_read_basis_kind(),
+                    declaration.basis_kind().as_str(),
                     basis_digest,
                     declaration.operation_name(),
                     product_support_posture_label(declaration.support_snapshot().posture()),

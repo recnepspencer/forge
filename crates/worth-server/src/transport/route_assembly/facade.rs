@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::{
     CompatHttpSurfaceRoot, WorthServerCompatHttpRouteFamily, WorthServerCompatibilityFacade,
     WorthServerOperationFamily, WorthServerOperationInventory, WorthServerOperationRegistry,
-    WorthServerProductAdapterRegistry,
+    WorthServerProductAdapterRegistry, WorthServerProductReadTransport,
 };
 
 use super::{
@@ -104,16 +104,19 @@ impl WorthServerRouteAssembly {
 pub struct WorthServerOperationRouter {
     assembly: WorthServerRouteAssembly,
     compat_http: WorthServerCompatibilityFacade,
+    caller_admission: crate::transport::WorthServerTransportCallerAdmission,
 }
 
 impl WorthServerOperationRouter {
     pub(crate) fn new(
         assembly: WorthServerRouteAssembly,
         compat_http: WorthServerCompatibilityFacade,
+        caller_admission: crate::transport::WorthServerTransportCallerAdmission,
     ) -> Self {
         Self {
             assembly,
             compat_http,
+            caller_admission,
         }
     }
 
@@ -142,6 +145,12 @@ impl WorthServerOperationRouter {
                     })
             })
     }
+
+    pub(crate) fn caller_admission(
+        &self,
+    ) -> &crate::transport::WorthServerTransportCallerAdmission {
+        &self.caller_admission
+    }
 }
 
 fn append_declared_product_routes(
@@ -154,15 +163,29 @@ fn append_declared_product_routes(
     for declaration in product_adapter_registry.declarations() {
         let route = match declaration.operation_family() {
             WorthServerOperationFamily::ProductApplicationRead => {
-                require_route_family(
-                    compat_http_root,
-                    WorthServerCompatHttpRouteFamily::Read,
-                    declaration.operation_name(),
-                )?;
+                let (method, path, route_family) = match declaration.read_transport() {
+                    Some(WorthServerProductReadTransport::FlatQuery) => (
+                        "GET",
+                        format!("/compat/reads/{}", declaration.operation_name()),
+                        WorthServerCompatHttpRouteFamily::Read,
+                    ),
+                    Some(WorthServerProductReadTransport::StructuredQuery) => (
+                        "POST",
+                        format!("/compat/queries/{}", declaration.operation_name()),
+                        WorthServerCompatHttpRouteFamily::Query,
+                    ),
+                    None => {
+                        return Err(WorthServerRouteAssemblyError::OperationNameNotAdmitted {
+                            family: declaration.operation_family(),
+                            operation_name: declaration.operation_name().to_string(),
+                        })
+                    }
+                };
+                require_route_family(compat_http_root, route_family, declaration.operation_name())?;
                 WorthServerDeclaredRoute::new(
-                    "GET",
-                    format!("/compat/reads/{}", declaration.operation_name()),
-                    WorthServerCompatHttpRouteFamily::Read,
+                    method,
+                    path,
+                    route_family,
                     declaration.operation_family(),
                     declaration.operation_name(),
                     declaration.payload_schema_identity(),
@@ -237,18 +260,15 @@ fn append_session_coordination_routes(
         WorthServerCompatHttpRouteFamily::Mutation,
         "product_session.open_mutation",
     )?;
-    for operation_name in [
-        "product_session.open_preview",
-        "product_session.open_mutation",
-        "product_session.close",
-    ] {
+    for protocol in crate::product_session_coordination::product_session_protocol_declarations() {
+        let operation_name = protocol.operation_name();
         let route = WorthServerDeclaredRoute::new(
             "POST",
             format!("/compat/mutations/{operation_name}"),
             WorthServerCompatHttpRouteFamily::Mutation,
             WorthServerOperationFamily::ProductSessionCoordination,
             operation_name,
-            "worth-server-product-session.v1",
+            protocol.request_schema_identity(),
             "product-session",
         );
         require_unique_route(route_keys, route.method(), route.path())?;
@@ -276,6 +296,11 @@ fn require_route_family(
     match route_family {
         WorthServerCompatHttpRouteFamily::Read => Err(
             WorthServerRouteAssemblyError::MissingCompatReadRouteFamily {
+                operation_name: operation_name.to_string(),
+            },
+        ),
+        WorthServerCompatHttpRouteFamily::Query => Err(
+            WorthServerRouteAssemblyError::MissingCompatQueryRouteFamily {
                 operation_name: operation_name.to_string(),
             },
         ),

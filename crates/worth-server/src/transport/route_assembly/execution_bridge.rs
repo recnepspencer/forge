@@ -57,6 +57,13 @@ impl WorthServerRouteExecutionBridge {
         }
     }
 
+    pub fn operation_name(&self) -> Option<&str> {
+        match &self.route {
+            WorthServerRouteBridgeTarget::Semantic(route) => Some(route.operation_name()),
+            WorthServerRouteBridgeTarget::Operational(_) => None,
+        }
+    }
+
     pub fn execute(
         &self,
         request: WorthServerRouteTransportRequest,
@@ -98,6 +105,9 @@ impl WorthServerRouteExecutionBridge {
             .with_route_family(route.route_family())
             .with_method(route.method())
             .with_path(route.path());
+        if let Some(admitted_caller) = request.admitted_transport_caller() {
+            builder = builder.with_admitted_transport_caller(admitted_caller.clone());
+        }
         builder = match request.branch_target() {
             WorthServerRouteBranchTarget::Main => builder.with_main_branch(),
             WorthServerRouteBranchTarget::Branch { branch_id } => builder.with_branch_id(branch_id),
@@ -196,7 +206,7 @@ fn execute_semantic_route(
             }
             let operation = compat_http
                 .product_operations()
-                .execute(prepared_request, input)
+                .execute_product_protocol(prepared_request, input)
                 .map_err(|denial| {
                     WorthServerTransportDenial::new(
                         WorthServerTransportDenialCode::UnknownRoute,
@@ -240,7 +250,7 @@ fn execute_semantic_route(
             }
             let operation = compat_http
                 .product_operations()
-                .execute(prepared_request, input)
+                .execute_product_protocol(prepared_request, input)
                 .map_err(|denial| {
                     WorthServerTransportDenial::new(
                         WorthServerTransportDenialCode::UnknownRoute,

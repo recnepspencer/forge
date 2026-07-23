@@ -24,6 +24,7 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
             "runtime-hostile-certification-artifact"
         }
         WorthQueryEvidenceScope::RuntimeStateSnapshot => "runtime-state-snapshot",
+        WorthQueryEvidenceScope::AsyncResourceRequestIdentity => "async-resource-request-identity",
         WorthQueryEvidenceScope::WorkflowContextBinding => "workflow-context-binding",
         WorthQueryEvidenceScope::WorkflowMutationLowering => "workflow-mutation-lowering",
         WorthQueryEvidenceScope::SubscriptionActivationReceipt => "subscription-activation-receipt",

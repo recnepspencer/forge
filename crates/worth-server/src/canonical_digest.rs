@@ -19,6 +19,12 @@ impl WorthServerCanonicalDigestBuilder {
         self
     }
 
+    pub(crate) fn field_bytes(mut self, name: &str, value: &[u8]) -> Self {
+        self.append_component(name.as_bytes());
+        self.append_component(value);
+        self
+    }
+
     pub(crate) fn finish(self) -> String {
         hex_digest(self.hasher.finalize().as_slice())
     }

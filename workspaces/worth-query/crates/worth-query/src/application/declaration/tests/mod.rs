@@ -62,6 +62,10 @@ fn equivalent_declaration_authoring_paths_share_the_same_digest() {
     let _signal = left.signal_compatible();
     let _grouped = left.neighborhood_capable();
     assert_eq!(left.declaration_digest(), right.declaration_digest());
+    assert_eq!(
+        left.declaration_meaning_digest(),
+        right.declaration_meaning_digest()
+    );
 }
 
 #[test]
@@ -75,10 +79,14 @@ fn distinct_declaration_meaning_yields_distinct_digests() {
         .expect("quarter declaration should canonicalize");
 
     assert_ne!(midpoint.declaration_digest(), quarter.declaration_digest());
+    assert_ne!(
+        midpoint.declaration_meaning_digest(),
+        quarter.declaration_meaning_digest()
+    );
 }
 
 #[test]
-fn admitted_operating_world_changes_declaration_identity_when_meaning_depends_on_it() {
+fn admitted_operating_world_changes_authority_identity_not_portable_meaning() {
     let collaborative = admitted_handle(GeometryOperatingContext::collaborative());
     let restricted = admitted_handle(GeometryOperatingContext::restricted());
 
@@ -94,6 +102,10 @@ fn admitted_operating_world_changes_declaration_identity_when_meaning_depends_on
         right.handle_identity_digest()
     );
     assert_ne!(left.declaration_digest(), right.declaration_digest());
+    assert_eq!(
+        left.declaration_meaning_digest(),
+        right.declaration_meaning_digest()
+    );
 }
 
 #[test]

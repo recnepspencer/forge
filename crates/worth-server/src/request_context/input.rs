@@ -7,6 +7,7 @@ pub struct WorthServerRequestContextInput {
     surface_family: WorthServerSurfaceFamily,
     transport_class: WorthServerTransportClass,
     authenticated_principal_id: String,
+    admitted_transport_caller: Option<crate::WorthServerAdmittedTransportCaller>,
     tenant_id: String,
     workspace_id: String,
     branch_target: RawWorthServerBranchTarget,
@@ -28,6 +29,12 @@ impl WorthServerRequestContextInput {
 
     pub(crate) fn authenticated_principal_id(&self) -> &str {
         &self.authenticated_principal_id
+    }
+
+    pub(crate) fn admitted_transport_caller(
+        &self,
+    ) -> Option<&crate::WorthServerAdmittedTransportCaller> {
+        self.admitted_transport_caller.as_ref()
     }
 
     pub(crate) fn tenant_id(&self) -> &str {
@@ -52,6 +59,7 @@ pub struct WorthServerRequestContextInputBuilder {
     surface_family: Option<WorthServerSurfaceFamily>,
     transport_class: Option<WorthServerTransportClass>,
     authenticated_principal_id: Option<String>,
+    admitted_transport_caller: Option<crate::WorthServerAdmittedTransportCaller>,
     tenant_id: Option<String>,
     workspace_id: Option<String>,
     branch_target: Option<RawWorthServerBranchTarget>,
@@ -64,6 +72,7 @@ impl Default for WorthServerRequestContextInputBuilder {
             surface_family: None,
             transport_class: None,
             authenticated_principal_id: None,
+            admitted_transport_caller: None,
             tenant_id: None,
             workspace_id: None,
             branch_target: Some(RawWorthServerBranchTarget::Main),
@@ -88,6 +97,16 @@ impl WorthServerRequestContextInputBuilder {
         authenticated_principal_id: impl Into<String>,
     ) -> Self {
         self.authenticated_principal_id = Some(authenticated_principal_id.into());
+        self
+    }
+
+    pub fn with_admitted_transport_caller(
+        mut self,
+        admitted_transport_caller: crate::WorthServerAdmittedTransportCaller,
+    ) -> Self {
+        self.authenticated_principal_id =
+            Some(admitted_transport_caller.principal_identity().to_string());
+        self.admitted_transport_caller = Some(admitted_transport_caller);
         self
     }
 
@@ -141,6 +160,7 @@ impl WorthServerRequestContextInputBuilder {
             authenticated_principal_id: self
                 .authenticated_principal_id
                 .ok_or(WorthServerRequestContextInputError::MissingAuthenticatedPrincipalId)?,
+            admitted_transport_caller: self.admitted_transport_caller,
             tenant_id: self
                 .tenant_id
                 .ok_or(WorthServerRequestContextInputError::MissingTenantId)?,

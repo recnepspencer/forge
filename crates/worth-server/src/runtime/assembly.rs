@@ -12,8 +12,8 @@ use crate::{
     product_adapter::WorthServerProductAdapterRegistry,
     product_operation_contract::WorthServerStoredProductOperation,
     product_session::{
-        default_product_session_clock, WorthServerProductSessionClock,
-        WorthServerProductSessionRegistry,
+        default_product_session_clock, SharedProductSessionTerminationObserver,
+        WorthServerProductSessionClock, WorthServerProductSessionRegistry,
     },
     query_handoff::WorthServerQueryHandoffFacade,
     registration::WorthServerSurfaceRegistry,
@@ -24,6 +24,7 @@ use crate::{
         WorthServerSurfacesFacade,
     },
     transport::WorthServerRouteAssembly,
+    WorthServerTransportCallerVerifier,
 };
 
 #[derive(Debug)]
@@ -41,6 +42,7 @@ pub(crate) struct WorthServerRuntimeAssembly {
     route_assembly: WorthServerRouteAssembly,
     counters: Arc<WorthServerCounters>,
     product_session_registry: WorthServerProductSessionRegistry,
+    transport_caller_admission: crate::transport::WorthServerTransportCallerAdmission,
     compat_http_mutation_retry_store:
         Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>>,
     product_operation_retry_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
@@ -56,6 +58,8 @@ impl WorthServerRuntimeAssembly {
         route_assembly: WorthServerRouteAssembly,
         counters: Arc<WorthServerCounters>,
         product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
+        product_session_termination_observers: Vec<SharedProductSessionTerminationObserver>,
+        transport_caller_verifier: Option<Arc<dyn WorthServerTransportCallerVerifier>>,
     ) -> Self {
         let surfaces_facade = WorthServerSurfacesFacade::new(&surface_registry);
         let middleware_facade = WorthServerMiddlewareFacade::new(config.middleware().clone());
@@ -69,7 +73,10 @@ impl WorthServerRuntimeAssembly {
         let product_session_registry = WorthServerProductSessionRegistry::new(
             counters.clone(),
             product_session_clock.unwrap_or_else(default_product_session_clock),
+            product_session_termination_observers,
         );
+        let transport_caller_admission =
+            crate::transport::WorthServerTransportCallerAdmission::new(transport_caller_verifier);
         Self {
             config,
             surface_registry,
@@ -84,6 +91,7 @@ impl WorthServerRuntimeAssembly {
             route_assembly,
             counters,
             product_session_registry,
+            transport_caller_admission,
             compat_http_mutation_retry_store: Arc::new(Mutex::new(HashMap::new())),
             product_operation_retry_store: Arc::new(Mutex::new(HashMap::new())),
             compat_http_binary_ingress_store: Arc::new(Mutex::new(HashMap::new())),
@@ -140,6 +148,12 @@ impl WorthServerRuntimeAssembly {
 
     pub(crate) fn product_session_registry(&self) -> &WorthServerProductSessionRegistry {
         &self.product_session_registry
+    }
+
+    pub(crate) fn transport_caller_admission(
+        &self,
+    ) -> &crate::transport::WorthServerTransportCallerAdmission {
+        &self.transport_caller_admission
     }
 
     pub(crate) fn compat_http_mutation_retry_store(

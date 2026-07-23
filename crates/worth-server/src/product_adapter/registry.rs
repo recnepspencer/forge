@@ -59,7 +59,6 @@ impl WorthServerProductAdapterRegistry {
                     },
                 );
             }
-            let mut operation_rows = Vec::new();
             for declaration in registration.declarations() {
                 declaration.validate().map_err(|certification_error| {
                     WorthServerProductAdapterRegistryError::InvalidRegistration {
@@ -83,7 +82,6 @@ impl WorthServerProductAdapterRegistry {
                         },
                     );
                 }
-                operation_rows.push((operation_name.clone(), declaration.canonical_digest()));
                 operations_by_name.insert(
                     operation_name,
                     RegisteredProductOperation {
@@ -96,10 +94,12 @@ impl WorthServerProductAdapterRegistry {
                     },
                 );
             }
-            receipts.push(WorthServerProductAdapterRegistrationReceipt::new(
-                registration.adapter_label(),
-                operation_rows,
-            ));
+            receipts.push(
+                WorthServerProductAdapterRegistrationReceipt::project_expected(
+                    registration.adapter_label(),
+                    registration.declarations(),
+                ),
+            );
         }
         Ok(Self {
             receipts,

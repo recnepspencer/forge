@@ -303,8 +303,24 @@ impl WorthServerProductApplicationAdapter for EditorAdapter {
             .get("deny_reason")
             .and_then(Value::as_str)
         {
-            return Err(WorthServerProductAdapterExecutionError::denied(
-                WorthServerProductOperationDenial::new(reason_key, "product-owned refusal"),
+            let denial =
+                WorthServerProductOperationDenial::new(reason_key, "product-owned refusal");
+            let denial = if reason_key == "product_editor.stale_basis" {
+                denial.with_basis_mismatch("basis:6", "basis:7")
+            } else {
+                denial
+            };
+            return Err(WorthServerProductAdapterExecutionError::denied(denial));
+        }
+        if let Some(reason_key) = plan
+            .payload()
+            .body()
+            .get("failure_reason")
+            .and_then(Value::as_str)
+        {
+            return Err(WorthServerProductAdapterExecutionError::failed(
+                reason_key,
+                "product execution failed",
             ));
         }
         schema_bound_json::publish_schema_bound_json(

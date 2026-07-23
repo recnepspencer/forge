@@ -407,6 +407,7 @@ pub(crate) fn byte_class_for_request(
     }
     match route_family {
         WorthServerCompatHttpRouteFamily::Read
+        | WorthServerCompatHttpRouteFamily::Query
         | WorthServerCompatHttpRouteFamily::Mutation
         | WorthServerCompatHttpRouteFamily::Streaming => {
             WorthServerTransferByteClass::StructuredPayload

@@ -14,8 +14,9 @@ use worth_server::{
     WorthServerProductOperationBasisKind, WorthServerProductOperationDeclaration,
     WorthServerProductOperationErrorMaps, WorthServerProductOperationPayload,
     WorthServerProductOperationSuccess, WorthServerProductOperationSupportSnapshot,
-    WorthServerProductSessionClock, WorthServerQueryHandoffConfig, WorthServerRequestContextConfig,
-    WorthServerWorthNativeSession, WorthServerWorthNativeSessionInput,
+    WorthServerProductSessionClock, WorthServerProductSessionTerminationObserver,
+    WorthServerQueryHandoffConfig, WorthServerRequestContextConfig, WorthServerWorthNativeSession,
+    WorthServerWorthNativeSessionInput,
 };
 
 #[path = "../product_result/schema_bound_json.rs"]
@@ -28,12 +29,20 @@ pub use manual_clock::ManualProductSessionClock;
 pub fn build_server(
     registrations: Vec<WorthServerProductApplicationAdapterRegistration>,
 ) -> WorthServer {
-    build_server_with_clock(registrations, None)
+    build_server_with_clock_and_observers(registrations, None, Vec::new())
 }
 
 pub fn build_server_with_clock(
     registrations: Vec<WorthServerProductApplicationAdapterRegistration>,
     product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
+) -> WorthServer {
+    build_server_with_clock_and_observers(registrations, product_session_clock, Vec::new())
+}
+
+pub fn build_server_with_clock_and_observers(
+    registrations: Vec<WorthServerProductApplicationAdapterRegistration>,
+    product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
+    termination_observers: Vec<Arc<dyn WorthServerProductSessionTerminationObserver>>,
 ) -> WorthServer {
     let mut builder = WorthServer::builder()
         .with_config(base_config())
@@ -43,6 +52,9 @@ pub fn build_server_with_clock(
         .register_product_adapters(registrations);
     if let Some(product_session_clock) = product_session_clock {
         builder = builder.with_product_session_clock(product_session_clock);
+    }
+    for observer in termination_observers {
+        builder = builder.observe_product_session_termination(observer);
     }
     builder
         .build()

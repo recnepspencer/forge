@@ -8,6 +8,7 @@ use super::{WorthServerDurableProductMutationContract, WorthServerProductAuthori
 #[derive(Clone, Debug)]
 pub struct WorthServerAdmittedDurableProductMutation {
     operation_name: String,
+    principal_id: String,
     tenant_id: String,
     workspace_id: String,
     durable_contract: WorthServerDurableProductMutationContract,
@@ -28,6 +29,10 @@ impl WorthServerAdmittedDurableProductMutation {
         let plan = scheduled.plan();
         let request = plan.operation_admission().operation_request();
         let request_context = request.resolved_request_context().request_context();
+        let principal_id = request_context
+            .authenticated_principal()
+            .principal_id()
+            .to_string();
         let expected_basis_value = request.identity().basis_digest().ok_or_else(|| {
             missing_durable_attempt_contract(
                 "durable product mutation requires a canonical expected basis",
@@ -52,6 +57,7 @@ impl WorthServerAdmittedDurableProductMutation {
             .workspace_id()
             .to_string();
         let request_digest = durable_request_digest(
+            &principal_id,
             &tenant_id,
             &workspace_id,
             durable_contract,
@@ -60,9 +66,10 @@ impl WorthServerAdmittedDurableProductMutation {
             plan.declaration(),
         );
         let canonical_digest = crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
-            "worth-server-admitted-durable-product-mutation-v2",
+            "worth-server-admitted-durable-product-mutation-v3",
         )
         .field("operation", plan.declaration().operation_name())
+        .field("principal", &principal_id)
         .field("tenant", &tenant_id)
         .field("workspace", &workspace_id)
         .field("scope", durable_contract.authority_scope().value())
@@ -73,6 +80,7 @@ impl WorthServerAdmittedDurableProductMutation {
         .finish();
         Ok(Self {
             operation_name: plan.declaration().operation_name().to_string(),
+            principal_id,
             tenant_id,
             workspace_id,
             durable_contract: durable_contract.clone(),
@@ -88,6 +96,10 @@ impl WorthServerAdmittedDurableProductMutation {
 
     pub fn operation_name(&self) -> &str {
         &self.operation_name
+    }
+
+    pub fn principal_id(&self) -> &str {
+        &self.principal_id
     }
 
     pub fn tenant_id(&self) -> &str {
@@ -136,6 +148,7 @@ impl WorthServerAdmittedDurableProductMutation {
 }
 
 fn durable_request_digest(
+    principal_id: &str,
     tenant_id: &str,
     workspace_id: &str,
     durable_contract: &WorthServerDurableProductMutationContract,
@@ -144,8 +157,9 @@ fn durable_request_digest(
     declaration: &crate::WorthServerProductOperationDeclaration,
 ) -> String {
     crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
-        "worth-server-durable-product-request-v2",
+        "worth-server-durable-product-request-v3",
     )
+    .field("principal", principal_id)
     .field("tenant", tenant_id)
     .field("workspace", workspace_id)
     .field("scope", durable_contract.authority_scope().value())

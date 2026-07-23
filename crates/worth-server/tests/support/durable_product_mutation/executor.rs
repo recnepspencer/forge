@@ -6,7 +6,7 @@ use worth_server::{
     WorthServerDurableProductMutationConclusion, WorthServerDurableProductMutationExecution,
     WorthServerDurableProductMutationExecutor, WorthServerDurableProductMutationRecoveryHandle,
     WorthServerProductDurabilityCapability, WorthServerProductOperationBaseDigest,
-    WorthServerProductOperationSuccess,
+    WorthServerProductOperationDenial, WorthServerProductOperationSuccess,
 };
 
 use super::persistence_state::{
@@ -73,6 +73,14 @@ impl TestDurableProductExecutor {
 
     pub fn commit_count(&self) -> usize {
         self.state.commit_count.load(Ordering::Relaxed)
+    }
+
+    pub fn observed_attempts(&self) -> Vec<(String, String)> {
+        self.state
+            .observed_attempts
+            .lock()
+            .expect("observed durable attempts")
+            .clone()
     }
 
     pub fn advance_time(&self, seconds: u64) {
@@ -278,6 +286,29 @@ impl WorthServerDurableProductMutationExecutor for TestDurableProductExecutor {
         &self,
         attempt: &WorthServerAdmittedDurableProductMutation,
     ) -> WorthServerDurableProductMutationExecution {
+        self.state
+            .observed_attempts
+            .lock()
+            .expect("observed durable attempts")
+            .push((
+                attempt.principal_id().to_string(),
+                attempt.request_digest().to_string(),
+            ));
+        if let Some(reason_key) = attempt
+            .payload()
+            .body()
+            .get("reject_reason")
+            .and_then(Value::as_str)
+        {
+            return WorthServerDurableProductMutationExecution::after_basis_comparison(
+                WorthServerDurableProductMutationConclusion::Rejected(
+                    WorthServerProductOperationDenial::new(
+                        reason_key,
+                        "durable product mutation rejected",
+                    ),
+                ),
+            );
+        }
         self.execute_atomically(attempt)
     }
 

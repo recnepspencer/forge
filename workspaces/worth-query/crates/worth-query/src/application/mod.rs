@@ -44,7 +44,8 @@ pub use config::{
 pub use declaration::{
     WorthQueryAsyncDeclarationClause, WorthQueryAsyncDeclarationSupport,
     WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture,
-    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
+    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncResourceRequestIdentity,
+    WorthQueryAsyncResourceRequestIdentityError, WorthQueryAsyncSourceFamily,
     WorthQueryCanonicalDeclarationArtifact, WorthQueryCanonicalDeclarationComparison,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationCanonicalEntryKind,
     WorthQueryDeclarationCanonicalValue, WorthQueryDeclarationCanonicalizationError,

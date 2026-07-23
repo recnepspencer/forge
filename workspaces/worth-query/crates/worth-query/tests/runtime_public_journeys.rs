@@ -5,6 +5,7 @@
 #[allow(dead_code, unused_imports)]
 mod support;
 
+mod declaration_authority_backend;
 mod graph_composition_public_bridge;
 mod graph_composition_public_bridge_existing;
 mod in_memory_test_backend_facade;

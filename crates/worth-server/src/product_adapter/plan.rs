@@ -25,19 +25,27 @@ impl WorthServerLoweredProductOperationPlan {
         precondition_posture: WorthServerOperationPreconditionPosture,
         concurrency_class: WorthServerOperationConcurrencyClass,
     ) -> Self {
-        let canonical_digest = format!(
-            "worth-server-lowered-product-operation-plan-v1|identity={}|metadata={}|footprint={}|support={}|precondition={}|payload={}|concurrency={}",
+        let authority_metadata_digest = operation_admission.authority_metadata().canonical_digest();
+        let canonical_digest = crate::canonical_digest::WorthServerCanonicalDigestBuilder::new(
+            "worth-server-lowered-product-operation-plan-v1",
+        )
+        .field(
+            "identity",
             operation_admission
                 .operation_request()
                 .identity()
                 .canonical_digest(),
-            operation_admission.authority_metadata().canonical_digest(),
+        )
+        .field("metadata", &authority_metadata_digest)
+        .field(
+            "footprint",
             operation_admission.authority_footprint().canonical_digest(),
-            support_posture.canonical_digest(),
-            precondition_posture.canonical_digest(),
-            payload.envelope().canonical_digest(),
-            concurrency_label(&concurrency_class),
-        );
+        )
+        .field("support", support_posture.canonical_digest())
+        .field("precondition", precondition_posture.canonical_digest())
+        .field("payload", payload.envelope().canonical_digest())
+        .field("concurrency", concurrency_label(&concurrency_class))
+        .finish();
         Self {
             operation_admission,
             declaration,

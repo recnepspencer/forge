@@ -98,6 +98,19 @@ impl WorthServerProductOperationRuntime {
         )
     }
 
+    pub(crate) fn execute_from_product_protocol(
+        &self,
+        prepared_request: &WorthServerCompatibilityPreparedRequest,
+        input: WorthServerProductOperationInput,
+    ) -> Result<WorthServerCompletedProductOperation, WorthServerProductOperationSurfaceDenial>
+    {
+        let protocol_input = input.clone();
+        match self.execute_from_compat_http(prepared_request, input) {
+            Ok(operation) => Ok(operation),
+            Err(denial) => self.project_session_denial(prepared_request, &protocol_input, denial),
+        }
+    }
+
     pub fn execute_shared_read_batch_from_worth_native(
         &self,
         admission: &WorthServerAdmission,
@@ -211,6 +224,37 @@ impl WorthServerProductOperationRuntime {
             })
     }
 
+    fn project_session_denial(
+        &self,
+        prepared_request: &WorthServerCompatibilityPreparedRequest,
+        input: &WorthServerProductOperationInput,
+        denial: WorthServerProductOperationSurfaceDenial,
+    ) -> Result<WorthServerCompletedProductOperation, WorthServerProductOperationSurfaceDenial>
+    {
+        let Some(session_denial_code) = denial
+            .facts()
+            .and_then(WorthServerProductOperationSurfaceDenialFacts::session_denial_code)
+        else {
+            return Err(denial);
+        };
+        let (_, declaration) = self.resolve_declaration(input.operation_name())?;
+        let request = WorthServerOperationRequestFacade::new(self.operation_registry.clone())
+            .admit_from_compat_http_with_request_input(
+                prepared_request,
+                build_request_input(declaration, input),
+            )
+            .map_err(WorthServerProductOperationSurfaceDenial::from_request_denial)?;
+        let outcome = WorthServerProductOperationOutcome::Denied(
+            super::WorthServerProductOperationDenial::new(
+                session_denial_code.reason_key(),
+                denial.detail(),
+            )
+            .with_code(super::WorthServerProductOperationDenialCode::ProductSemantic),
+        );
+        let envelope = build_early_envelope(declaration.operation_name(), &request, &outcome);
+        Ok(WorthServerCompletedProductOperation::new(outcome, envelope))
+    }
+
     fn execute_resolved(
         &self,
         admission: &WorthServerAdmission,
@@ -308,7 +352,7 @@ impl WorthServerProductOperationRuntime {
             readiness.precondition_posture().clone(),
             readiness.concurrency_class(),
         );
-        let scheduled = WorthServerScheduledProductOperation::admit(plan)?;
+        let scheduled = WorthServerScheduledProductOperation::admit(plan, admitted_session)?;
         if let Some(durable_contract) = durable_contract {
             let executor = self
                 .adapter_registry

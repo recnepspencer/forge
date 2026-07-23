@@ -6,7 +6,7 @@ use crate::{
     WorthServerResolvedRequestContext,
 };
 
-use super::surface_lowering::lower_compat_http_request_input;
+use super::surface_lowering::{lower_browser_origin, lower_compat_http_request_input};
 use super::validation::{
     admit_identifier, admit_optional_token, canonicalize_product_basis_digest_if_needed,
     missing_family, missing_name, request_context_digest, validate_payload_envelope,
@@ -148,7 +148,8 @@ impl WorthServerOperationRequestFacade {
                 request.receipt().diagnostics_profile(),
                 request_context_digest(request.resolved_request_context()),
                 Some(prepared_request.request_contract().canonical_digest()),
-            ),
+            )
+            .with_browser_origin(lower_browser_origin(prepared_request)?),
         );
         Ok(request)
     }
@@ -252,7 +253,8 @@ impl WorthServerOperationRequestFacade {
                 request.receipt().diagnostics_profile(),
                 request_context_digest(request.resolved_request_context()),
                 Some(prepared_request.request_contract().canonical_digest()),
-            ),
+            )
+            .with_browser_origin(lower_browser_origin(prepared_request)?),
         ))
     }
 

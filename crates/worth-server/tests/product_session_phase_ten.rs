@@ -1,23 +1,174 @@
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc,
+    Arc, Barrier, Mutex,
 };
 
 use worth_server::{
     WorthServerProductOperationExecutionBoundary, WorthServerProductOperationInput,
     WorthServerProductOperationOutcome, WorthServerProductOperationSurfaceDenialCode,
     WorthServerProductSessionCreationRequest, WorthServerProductSessionDenialCode,
-    WorthServerProductSessionLifecycle,
+    WorthServerProductSessionLifecycle, WorthServerProductSessionTermination,
+    WorthServerProductSessionTerminationKind, WorthServerProductSessionTerminationObserver,
 };
 
 #[path = "support/product_session_phase_ten/fixture.rs"]
 pub mod fixture;
 
 use fixture::{
-    apply_payload, build_server, build_server_with_clock, direct_session,
-    prepared_product_mutation_request, prepared_product_read_request, prepared_session_request,
-    preview_payload, session_backed_editor_registration, ManualProductSessionClock,
+    apply_payload, build_server, build_server_with_clock, build_server_with_clock_and_observers,
+    direct_session, prepared_product_mutation_request, prepared_product_read_request,
+    prepared_session_request, preview_payload, session_backed_editor_registration,
+    ManualProductSessionClock,
 };
+
+#[derive(Debug, Default)]
+struct RecordingTerminationObserver {
+    events: Mutex<Vec<(String, WorthServerProductSessionTerminationKind)>>,
+}
+
+impl WorthServerProductSessionTerminationObserver for RecordingTerminationObserver {
+    fn observe_termination(&self, termination: &WorthServerProductSessionTermination) {
+        self.events.lock().expect("observer lock").push((
+            termination.session().identity().as_str().to_string(),
+            termination.kind(),
+        ));
+    }
+}
+
+#[test]
+fn product_session_termination_observers_receive_close_and_expiry_once() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let clock = Arc::new(ManualProductSessionClock::new(1_000));
+    let observer = Arc::new(RecordingTerminationObserver::default());
+    let server = build_server_with_clock_and_observers(
+        vec![session_backed_editor_registration(calls)],
+        Some(clock.clone()),
+        vec![observer.clone()],
+    );
+    let session = direct_session(&server, "workspace-42", "branch-9");
+    let expiring = session
+        .product_sessions()
+        .open_mutation(
+            WorthServerProductSessionCreationRequest::for_operation("product_editor.apply")
+                .with_basis_digest("basis:head")
+                .with_expiry_seconds(1),
+        )
+        .expect("expiring session should open");
+    let closing = session
+        .product_sessions()
+        .open_mutation(
+            WorthServerProductSessionCreationRequest::for_operation("product_editor.apply")
+                .with_basis_digest("basis:head"),
+        )
+        .expect("closing session should open");
+
+    clock.advance_millis(1_001);
+    let _ = session.product_operations().execute(
+        WorthServerProductOperationInput::new("product_editor.apply", apply_payload())
+            .with_basis_digest("basis:head")
+            .with_product_session_identity(expiring.identity().as_str()),
+    );
+    let _ = session.product_operations().execute(
+        WorthServerProductOperationInput::new("product_editor.apply", apply_payload())
+            .with_basis_digest("basis:head")
+            .with_product_session_identity(expiring.identity().as_str()),
+    );
+    session
+        .product_sessions()
+        .close(closing.identity())
+        .expect("session should close");
+    let repeated_close = session
+        .product_sessions()
+        .close(closing.identity())
+        .expect_err("closed sessions cannot terminate twice");
+    assert_eq!(
+        repeated_close.code(),
+        WorthServerProductSessionDenialCode::ClosedProductSession,
+    );
+    let expired_close = session
+        .product_sessions()
+        .close(expiring.identity())
+        .expect_err("expired sessions cannot transition to closed");
+    assert_eq!(
+        expired_close.code(),
+        WorthServerProductSessionDenialCode::ExpiredProductSession,
+    );
+
+    assert_eq!(
+        *observer.events.lock().expect("observer lock"),
+        vec![
+            (
+                expiring.identity().as_str().to_string(),
+                WorthServerProductSessionTerminationKind::Expired,
+            ),
+            (
+                closing.identity().as_str().to_string(),
+                WorthServerProductSessionTerminationKind::Closed,
+            ),
+        ]
+    );
+}
+
+#[test]
+fn concurrent_expiry_and_close_publish_one_terminal_outcome() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let clock = Arc::new(ManualProductSessionClock::new(1_000));
+    let observer = Arc::new(RecordingTerminationObserver::default());
+    let server = build_server_with_clock_and_observers(
+        vec![session_backed_editor_registration(calls)],
+        Some(clock.clone()),
+        vec![observer.clone()],
+    );
+    let session = direct_session(&server, "workspace-42", "branch-9");
+    let expiring = session
+        .product_sessions()
+        .open_mutation(
+            WorthServerProductSessionCreationRequest::for_operation("product_editor.apply")
+                .with_basis_digest("basis:head")
+                .with_expiry_seconds(1),
+        )
+        .expect("expiring session should open");
+    clock.advance_millis(1_001);
+
+    let barrier = Arc::new(Barrier::new(2));
+    let close_session = session.clone();
+    let close_identity = expiring.identity().clone();
+    let close_barrier = barrier.clone();
+    let close = std::thread::spawn(move || {
+        close_barrier.wait();
+        close_session.product_sessions().close(&close_identity)
+    });
+    let lookup_session = session.clone();
+    let lookup_identity = expiring.identity().as_str().to_string();
+    let lookup = std::thread::spawn(move || {
+        barrier.wait();
+        lookup_session.product_operations().execute(
+            WorthServerProductOperationInput::new("product_editor.apply", apply_payload())
+                .with_basis_digest("basis:head")
+                .with_product_session_identity(lookup_identity),
+        )
+    });
+
+    let close_denial = close
+        .join()
+        .expect("close worker should finish")
+        .expect_err("expired close should deny");
+    assert_eq!(
+        close_denial.code(),
+        WorthServerProductSessionDenialCode::ExpiredProductSession,
+    );
+    lookup
+        .join()
+        .expect("lookup worker should finish")
+        .expect_err("expired product operation should deny");
+    assert_eq!(
+        *observer.events.lock().expect("observer lock"),
+        vec![(
+            expiring.identity().as_str().to_string(),
+            WorthServerProductSessionTerminationKind::Expired,
+        )],
+    );
+}
 
 #[test]
 fn product_session_lifecycle_denies_expired_foreign_or_moved_sessions() {

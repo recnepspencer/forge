@@ -1,5 +1,6 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerTransportDenialCode {
+    CallerAdmissionDenied,
     MissingAuthenticatedPrincipalId,
     MissingTenantId,
     MissingWorkspaceId,

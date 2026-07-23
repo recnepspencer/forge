@@ -42,6 +42,7 @@ pub(super) struct DurableProductState {
     pub(super) now_seconds: AtomicU64,
     pub(super) concurrency_probe: Mutex<Option<TestConcurrencyProbe>>,
     pub(super) recovery_override: Mutex<Option<WorthServerDurableProductMutationCompletion>>,
+    pub(super) observed_attempts: Mutex<Vec<(String, String)>>,
 }
 
 pub(super) fn retention_deadline(

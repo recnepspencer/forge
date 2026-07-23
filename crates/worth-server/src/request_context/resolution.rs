@@ -35,6 +35,7 @@ pub(crate) fn resolve_request_context(
         .unwrap_or(config.default_diagnostics_profile());
     let principal_gate = resolve_authenticated_principal(
         input.authenticated_principal_id(),
+        input.admitted_transport_caller(),
         requested_or_default_profile,
     );
     let workspace_gate = resolve_workspace_target(
@@ -91,6 +92,7 @@ pub(crate) fn resolve_request_context(
 
 fn resolve_authenticated_principal(
     principal_id: &str,
+    admitted_transport_caller: Option<&crate::WorthServerAdmittedTransportCaller>,
     diagnostics_profile: DiagnosticRichnessProfile,
 ) -> PreConstructionGate<
     WorthServerAuthenticatedPrincipal,
@@ -105,8 +107,17 @@ fn resolve_authenticated_principal(
         ));
     }
 
+    if admitted_transport_caller.is_some_and(|caller| caller.principal_identity() != principal_id) {
+        return PreConstructionGate::denied(WorthServerRequestContextDenial::new(
+            WorthServerRequestContextDenialCode::InvalidAuthenticatedPrincipal,
+            diagnostics_profile,
+            "admitted transport caller does not match the authenticated principal identity",
+        ));
+    }
+
     PreConstructionGate::ready(WorthServerAuthenticatedPrincipal::new(
         principal_id.trim().to_owned(),
+        admitted_transport_caller.cloned(),
     ))
 }
 

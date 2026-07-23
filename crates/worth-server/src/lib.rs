@@ -14,6 +14,7 @@ mod config;
 mod declaration_intake;
 mod diagnostics;
 mod durable_product_mutation;
+mod external_resource;
 pub mod facade;
 pub mod middleware;
 mod operation_admission;
@@ -26,6 +27,7 @@ mod operation_scheduler;
 pub mod operator_evidence;
 mod product_adapter;
 mod product_operation_contract;
+mod product_protocol_catalog;
 mod product_result;
 mod product_session;
 mod product_session_coordination;
@@ -65,6 +67,18 @@ pub use durable_product_mutation::{
     WorthServerDurableProductMutationExecutor, WorthServerDurableProductMutationReceipt,
     WorthServerDurableProductMutationRecoveryHandle, WorthServerProductAuthorityScope,
     WorthServerProductDurabilityCapability, WorthServerProductIdempotencyRetention,
+};
+pub use external_resource::{
+    WorthServerAdmittedExternalResourceResult, WorthServerCompletedExternalResourceExecution,
+    WorthServerExternalResourceBudget, WorthServerExternalResourceExecutionBoundary,
+    WorthServerExternalResourceExecutionCounters, WorthServerExternalResourceExecutionDenial,
+    WorthServerExternalResourceExecutionDenialCode, WorthServerExternalResourceExecutionFailure,
+    WorthServerExternalResourceExecutionOutcome, WorthServerExternalResourceIntent,
+    WorthServerExternalResourceIntentBuilder, WorthServerExternalResourceIntentError,
+    WorthServerExternalResourcePlanDenial, WorthServerExternalResourcePlanDenialCode,
+    WorthServerExternalResourceResultAdmissionError, WorthServerExternalResourceTransport,
+    WorthServerExternalResourceTransportOutcome, WorthServerExternalResourceTransportResponse,
+    WorthServerLoweredExternalResourcePlan,
 };
 pub use facade::{WorthServer, WorthServerBuildError, WorthServerBuilder};
 pub use middleware::{
@@ -164,13 +178,18 @@ pub use product_adapter::{
     WorthServerProductOperationSuccess, WorthServerProductOperationSupportSnapshot,
     WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
     WorthServerProductOperationSurfaceDenialFacts, WorthServerProductPayloadSchemaValidator,
-    WorthServerProductSchedulerAdmission, WorthServerScheduledProductOperation,
+    WorthServerProductReadTransport, WorthServerProductSchedulerAdmission,
+    WorthServerScheduledProductOperation,
 };
 pub use product_operation_contract::{
     WorthServerProductIdempotencyConflict, WorthServerProductIdempotencyKey,
     WorthServerProductIdempotencyRecord, WorthServerProductOperationBaseDigest,
     WorthServerProductOperationRetryReceipt, WorthServerProductRebaseRequired,
     WorthServerProductSnapshotPrecondition, WorthServerProductStaleBasisDenial,
+};
+pub use product_protocol_catalog::{
+    WorthServerProductOperationProtocol, WorthServerProductProtocolCatalog,
+    WorthServerProductProtocolCatalogError, WorthServerProductSessionOperationProtocol,
 };
 pub use product_result::{
     WorthServerProductResultArtifact, WorthServerProductResultArtifactError,
@@ -186,7 +205,8 @@ pub use product_session::{
     WorthServerProductSessionDenial, WorthServerProductSessionDenialCode,
     WorthServerProductSessionExpiryPosture, WorthServerProductSessionIdentity,
     WorthServerProductSessionLifecycle, WorthServerProductSessionRegistry,
-    WorthServerSystemProductSessionClock,
+    WorthServerProductSessionTermination, WorthServerProductSessionTerminationKind,
+    WorthServerProductSessionTerminationObserver, WorthServerSystemProductSessionClock,
 };
 pub use product_session_coordination::{
     WorthServerCompletedProductSessionCoordination,
@@ -288,12 +308,15 @@ pub use surfaces::{
     WorthServerUploadTransferMode, WorthServerVerifiedBinaryIngress,
 };
 pub use transport::{
-    WorthServerDeclaredRoute, WorthServerOperationRouter, WorthServerOperationalRoute,
-    WorthServerOperationalRouteKind, WorthServerOperationalRouteOutcome,
-    WorthServerProjectedRouter, WorthServerRouteAssembly, WorthServerRouteAssemblyError,
-    WorthServerRouteBranchTarget, WorthServerRouteExecutionBridge,
+    WorthServerAdmittedTransportCaller, WorthServerDeclaredRoute, WorthServerOperationRouter,
+    WorthServerOperationalRoute, WorthServerOperationalRouteKind,
+    WorthServerOperationalRouteOutcome, WorthServerProjectedRouter, WorthServerRouteAssembly,
+    WorthServerRouteAssemblyError, WorthServerRouteBranchTarget, WorthServerRouteExecutionBridge,
     WorthServerRouteExecutionOutcome, WorthServerRouteInventory, WorthServerRouteInventoryRow,
-    WorthServerRouteTransportRequest, WorthServerTransportDenial, WorthServerTransportDenialCode,
+    WorthServerRouteTransportRequest, WorthServerTransportCallerAdmissionRequest,
+    WorthServerTransportCallerDenial, WorthServerTransportCallerVerification,
+    WorthServerTransportCallerVerifier, WorthServerTransportDenial, WorthServerTransportDenialCode,
+    WorthServerVerifiedTransportCaller,
 };
 pub use worth_native::{
     WorthServerDirectAsyncResultState, WorthServerDirectContextArtifact,

@@ -26,6 +26,7 @@ pub use certification::{
 pub use declaration::{
     WorthServerProductOperationAuthorityRequirement, WorthServerProductOperationBasisKind,
     WorthServerProductOperationDeclaration, WorthServerProductOperationSupportSnapshot,
+    WorthServerProductReadTransport,
 };
 pub use denial::{
     WorthServerProductOperationDenial, WorthServerProductOperationDenialCode,

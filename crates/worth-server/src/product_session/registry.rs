@@ -12,9 +12,10 @@ use super::{
     clock::WorthServerProductSessionClock,
     counters::WorthServerProductSessionCounterSnapshot,
     lifecycle_gate::{WorthServerProductSessionDenial, WorthServerProductSessionDenialCode},
-    WorthServerProductSession, WorthServerProductSessionCreationRequest,
-    WorthServerProductSessionExpiryPosture, WorthServerProductSessionIdentity,
-    WorthServerProductSessionLifecycle,
+    SharedProductSessionTerminationObserver, WorthServerProductSession,
+    WorthServerProductSessionCreationRequest, WorthServerProductSessionExpiryPosture,
+    WorthServerProductSessionIdentity, WorthServerProductSessionLifecycle,
+    WorthServerProductSessionTermination, WorthServerProductSessionTerminationKind,
 };
 
 #[derive(Clone, Debug)]
@@ -23,18 +24,21 @@ pub struct WorthServerProductSessionRegistry {
     next_identity: Arc<AtomicU64>,
     counters: Arc<WorthServerCounters>,
     clock: Arc<dyn WorthServerProductSessionClock>,
+    termination_observers: Arc<Vec<SharedProductSessionTerminationObserver>>,
 }
 
 impl WorthServerProductSessionRegistry {
     pub(crate) fn new(
         counters: Arc<WorthServerCounters>,
         clock: Arc<dyn WorthServerProductSessionClock>,
+        termination_observers: Vec<SharedProductSessionTerminationObserver>,
     ) -> Self {
         Self {
             records: Arc::new(Mutex::new(HashMap::new())),
             next_identity: Arc::new(AtomicU64::new(1)),
             counters,
             clock,
+            termination_observers: Arc::new(termination_observers),
         }
     }
 
@@ -70,8 +74,23 @@ impl WorthServerProductSessionRegistry {
         self.counters.increment_product_session_lookups_attempted();
         let mut records = self.records.lock().expect("product session registry lock");
         let session = records.get(identity).cloned()?;
+        let was_expired = matches!(
+            session.expiry_posture(),
+            WorthServerProductSessionExpiryPosture::Expired { .. }
+        );
         let refreshed = self.refresh_expiry(session);
+        let newly_expired = matches!(
+            refreshed.expiry_posture(),
+            WorthServerProductSessionExpiryPosture::Expired { .. }
+        ) && !was_expired;
         records.insert(identity.to_string(), refreshed.clone());
+        drop(records);
+        if newly_expired {
+            self.notify_termination(
+                refreshed.clone(),
+                WorthServerProductSessionTerminationKind::Expired,
+            );
+        }
         let _ = resolved_request_context;
         Some(refreshed)
     }
@@ -81,16 +100,16 @@ impl WorthServerProductSessionRegistry {
         identity: &str,
         resolved_request_context: &WorthServerResolvedRequestContext,
     ) -> Result<WorthServerProductSession, WorthServerProductSessionDenial> {
-        let session = self
-            .lookup(identity, resolved_request_context)
-            .ok_or_else(|| {
-                self.counters
-                    .increment_product_session_lookup_denied_missing();
-                WorthServerProductSessionDenial::new(
-                    WorthServerProductSessionDenialCode::UnknownProductSessionIdentity,
-                    format!("product session `{identity}` was not found"),
-                )
-            })?;
+        self.counters.increment_product_session_lookups_attempted();
+        let mut records = self.records.lock().expect("product session registry lock");
+        let session = records.get(identity).cloned().ok_or_else(|| {
+            self.counters
+                .increment_product_session_lookup_denied_missing();
+            WorthServerProductSessionDenial::new(
+                WorthServerProductSessionDenialCode::UnknownProductSessionIdentity,
+                format!("product session `{identity}` was not found"),
+            )
+        })?;
         if session.tenant_id()
             != resolved_request_context
                 .request_context()
@@ -109,24 +128,61 @@ impl WorthServerProductSessionRegistry {
                 format!("product session `{identity}` does not belong to this workspace"),
             ));
         }
+        let refreshed = self.refresh_expiry(session);
+        match refreshed.expiry_posture() {
+            WorthServerProductSessionExpiryPosture::Expired { .. } => {
+                let newly_expired = matches!(
+                    records
+                        .get(identity)
+                        .map(WorthServerProductSession::expiry_posture),
+                    Some(WorthServerProductSessionExpiryPosture::Active { .. })
+                );
+                records.insert(identity.to_string(), refreshed.clone());
+                drop(records);
+                self.counters
+                    .increment_product_session_lookup_denied_expired();
+                if newly_expired {
+                    self.notify_termination(
+                        refreshed,
+                        WorthServerProductSessionTerminationKind::Expired,
+                    );
+                }
+                return Err(WorthServerProductSessionDenial::new(
+                    WorthServerProductSessionDenialCode::ExpiredProductSession,
+                    format!("product session `{identity}` has expired"),
+                ));
+            }
+            WorthServerProductSessionExpiryPosture::Closed { .. } => {
+                drop(records);
+                self.counters
+                    .increment_product_session_lookup_denied_closed();
+                return Err(WorthServerProductSessionDenial::new(
+                    WorthServerProductSessionDenialCode::ClosedProductSession,
+                    format!("product session `{identity}` is closed"),
+                ));
+            }
+            WorthServerProductSessionExpiryPosture::Active { .. } => {}
+        }
         let closed_at_epoch_millis = self.clock.current_time_millis();
         let closed = WorthServerProductSession::new(super::WorthServerProductSessionParts {
-            identity: session.identity().clone(),
+            identity: refreshed.identity().clone(),
             lifecycle: WorthServerProductSessionLifecycle::Closed,
             expiry_posture: WorthServerProductSessionExpiryPosture::Closed {
                 closed_at_epoch_millis,
             },
-            operation_name: session.operation_name().to_string(),
-            tenant_id: session.tenant_id().to_string(),
-            workspace_id: session.workspace_id().to_string(),
-            branch_label: session.branch_label().to_string(),
-            basis_digest: session.basis_digest().map(str::to_string),
+            operation_name: refreshed.operation_name().to_string(),
+            tenant_id: refreshed.tenant_id().to_string(),
+            workspace_id: refreshed.workspace_id().to_string(),
+            branch_label: refreshed.branch_label().to_string(),
+            basis_digest: refreshed.basis_digest().map(str::to_string),
         });
-        self.records
-            .lock()
-            .expect("product session registry lock")
-            .insert(identity.to_string(), closed.clone());
+        records.insert(identity.to_string(), closed.clone());
+        drop(records);
         self.counters.increment_product_session_closes_recorded();
+        self.notify_termination(
+            closed.clone(),
+            WorthServerProductSessionTerminationKind::Closed,
+        );
         Ok(closed)
     }
 
@@ -266,5 +322,16 @@ impl WorthServerProductSessionRegistry {
             branch_label: session.branch_label().to_string(),
             basis_digest: session.basis_digest().map(str::to_string),
         })
+    }
+
+    fn notify_termination(
+        &self,
+        session: WorthServerProductSession,
+        kind: WorthServerProductSessionTerminationKind,
+    ) {
+        let termination = WorthServerProductSessionTermination::new(session, kind);
+        for observer in self.termination_observers.iter() {
+            observer.observe_termination(&termination);
+        }
     }
 }

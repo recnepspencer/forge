@@ -46,10 +46,15 @@ impl WorthServerCompatibilityPreparedRequest {
     pub fn request_context_digest(&self) -> String {
         let request_context = self.admission.request_context();
         format!(
-            "surface={:?};transport={:?};principal={};tenant={};workspace={};branch={:?};diagnostics={:?}",
+            "surface={:?};transport={:?};principal={};caller_receipt={};tenant={};workspace={};branch={:?};diagnostics={:?}",
             self.admission.resolved_request_context().surface_family(),
             self.admission.resolved_request_context().transport_class(),
             request_context.authenticated_principal().principal_id(),
+            request_context
+                .authenticated_principal()
+                .admitted_transport_caller()
+                .map(crate::WorthServerAdmittedTransportCaller::request_receipt)
+                .unwrap_or("caller-asserted"),
             request_context.workspace_target().tenant_id(),
             request_context.workspace_target().workspace_id(),
             request_context.branch_target(),
