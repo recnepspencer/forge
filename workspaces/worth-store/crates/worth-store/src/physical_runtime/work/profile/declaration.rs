@@ -17,15 +17,18 @@ pub enum PhysicalWorkProfileDenial {
 
 #[derive(Debug, Clone)]
 pub struct PhysicalWorkProfileDeclaration {
+    security_authority: Option<[u8; 32]>,
     aspects: Box<[PhysicalSignalAspectDeclaration]>,
     capacity: PhysicalWorkCapacity,
 }
 
 impl PhysicalWorkProfileDeclaration {
     pub fn new(
+        security: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
         source: impl IntoIterator<Item = StoreAspectContractAdmission>,
     ) -> Result<Self, PhysicalWorkProfileDenial> {
         Self::from_signal_aspects(
+            security,
             source
                 .into_iter()
                 .map(PhysicalSignalAspectDeclaration::from_contract),
@@ -33,6 +36,17 @@ impl PhysicalWorkProfileDeclaration {
     }
 
     pub fn from_signal_aspects(
+        security: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
+        source: impl IntoIterator<Item = PhysicalSignalAspectDeclaration>,
+    ) -> Result<Self, PhysicalWorkProfileDenial> {
+        Self::from_optional_security_authority(
+            Some(security.authority_identity().fingerprint()),
+            source,
+        )
+    }
+
+    fn from_optional_security_authority(
+        security_authority: Option<[u8; 32]>,
         source: impl IntoIterator<Item = PhysicalSignalAspectDeclaration>,
     ) -> Result<Self, PhysicalWorkProfileDenial> {
         let mut aspects = Vec::new();
@@ -71,6 +85,7 @@ impl PhysicalWorkProfileDeclaration {
             return Err(PhysicalWorkProfileDenial::DuplicateAspectContract);
         }
         Ok(Self {
+            security_authority,
             aspects: aspects.into_boxed_slice(),
             capacity: PhysicalWorkCapacity::default(),
         })
@@ -82,7 +97,7 @@ impl PhysicalWorkProfileDeclaration {
     }
 
     pub fn identity(&self) -> PhysicalSignalProfileIdentity {
-        profile_identity(&self.aspects, self.capacity)
+        profile_identity(self.security_authority, &self.aspects, self.capacity)
     }
 
     pub const fn contract_count(&self) -> usize {
@@ -94,13 +109,18 @@ impl PhysicalWorkProfileDeclaration {
 
     pub(in crate::physical_runtime) fn into_parts(
         self,
-    ) -> (Box<[PhysicalSignalAspectDeclaration]>, PhysicalWorkCapacity) {
-        (self.aspects, self.capacity)
+    ) -> (
+        Option<[u8; 32]>,
+        Box<[PhysicalSignalAspectDeclaration]>,
+        PhysicalWorkCapacity,
+    ) {
+        (self.security_authority, self.aspects, self.capacity)
     }
 }
 
 impl Default for PhysicalWorkProfileDeclaration {
     fn default() -> Self {
-        Self::new([]).expect("empty physical work profile is within Signal capacity")
+        Self::from_optional_security_authority(None, [])
+            .expect("empty physical work profile is within Signal capacity")
     }
 }

@@ -15,7 +15,7 @@ pub enum FoundationalPerformanceWorkClass {
 }
 
 pub fn foundational_performance_work_class_definitions(
-) -> [FoundationalPerformanceWorkClassDefinition; 7] {
+) -> [FoundationalPerformanceWorkClassDefinition; 8] {
     [
         FoundationalPerformancePrimitiveDefinition::new(
             FoundationalPerformanceWorkClass::AuthoritativeRead,

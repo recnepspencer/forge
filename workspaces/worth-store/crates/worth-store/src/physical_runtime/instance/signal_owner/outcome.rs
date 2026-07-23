@@ -55,6 +55,7 @@ pub enum PhysicalSignalClockObservationFailure {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalSignalDeltaApplicationFailure {
     BindingNotInstalled,
+    VersionExhausted,
     SignalMutationRejected,
     SignalEvaluationRejected,
     OwnerUnavailable,
@@ -63,7 +64,9 @@ pub enum PhysicalSignalDeltaApplicationFailure {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalSignalObservation {
     profile: crate::physical_runtime::PhysicalSignalProfileIdentity,
+    graph_owner_count: u8,
     aspect_binding_count: u16,
+    locality_owner_count: u16,
     async_family_count: u8,
     clock: PhysicalSignalClockObservation,
 }
@@ -71,13 +74,17 @@ pub struct PhysicalSignalObservation {
 impl PhysicalSignalObservation {
     pub(super) const fn new(
         profile: crate::physical_runtime::PhysicalSignalProfileIdentity,
+        graph_owner_count: u8,
         aspect_binding_count: u16,
+        locality_owner_count: u16,
         async_family_count: u8,
         clock: PhysicalSignalClockObservation,
     ) -> Self {
         Self {
             profile,
+            graph_owner_count,
             aspect_binding_count,
+            locality_owner_count,
             async_family_count,
             clock,
         }
@@ -89,6 +96,14 @@ impl PhysicalSignalObservation {
 
     pub const fn aspect_binding_count(self) -> u16 {
         self.aspect_binding_count
+    }
+
+    pub const fn graph_owner_count(self) -> u8 {
+        self.graph_owner_count
+    }
+
+    pub const fn locality_owner_count(self) -> u16 {
+        self.locality_owner_count
     }
 
     pub const fn async_family_count(self) -> u8 {

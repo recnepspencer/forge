@@ -164,12 +164,36 @@ fn disjoint_ready_work_admits_independently_and_a_denial_does_not_mutate_admitte
         .admit_physical_scheduler_capability(first_demand.queue_work().backend_requirement())
         .unwrap();
 
-    let first = serving
-        .admit_physical_scheduler_demand(first_demand, &backend, policy_receipt(budget))
-        .unwrap();
-    let second = serving
-        .admit_physical_scheduler_demand(second_demand, &backend, policy_receipt(budget))
-        .unwrap();
+    let start = std::sync::Barrier::new(3);
+    let (first, second) = std::thread::scope(|scope| {
+        let first_start = &start;
+        let second_start = &start;
+        let first_serving = &serving;
+        let second_serving = &serving;
+        let first_backend = &backend;
+        let second_backend = &backend;
+        let first = scope.spawn(move || {
+            first_start.wait();
+            first_serving.admit_physical_scheduler_demand(
+                first_demand,
+                first_backend,
+                policy_receipt(budget),
+            )
+        });
+        let second = scope.spawn(move || {
+            second_start.wait();
+            second_serving.admit_physical_scheduler_demand(
+                second_demand,
+                second_backend,
+                policy_receipt(budget),
+            )
+        });
+        start.wait();
+        (
+            first.join().unwrap().unwrap(),
+            second.join().unwrap().unwrap(),
+        )
+    });
     let first_identity = first.intent().identity();
     let second_identity = second.intent().identity();
     assert_ne!(first_identity, second_identity);

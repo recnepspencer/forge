@@ -33,6 +33,7 @@ impl PhysicalWorkSubmissionReceipt {
 pub enum PhysicalWorkSubmissionDenial {
     SemanticPostureMismatch,
     SecurityScopeWitnessMismatch,
+    SecurityAuthorityMismatch,
     SemanticContractNotInstalled,
     Declaration(PhysicalWorkDeclarationDenial),
 }

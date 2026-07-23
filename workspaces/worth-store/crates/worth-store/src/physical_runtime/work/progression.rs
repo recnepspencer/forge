@@ -29,11 +29,16 @@ pub struct BlockedPhysicalWork {
 
 pub struct ReadyPhysicalWork {
     admitted: AdmittedPhysicalWork,
-    signal_request: ResourceRequestHandle,
-    attempt: ResourceAttemptId,
-    capability_registry: ResourcePolicyDigest,
-    capability_bundle: ResourcePolicyDigest,
-    payload_contract: ResourcePayloadContractDigest,
+    signal: PhysicalSignalReadinessEvidence,
+}
+
+pub(in crate::physical_runtime) struct PhysicalSignalReadinessEvidence {
+    pub(in crate::physical_runtime) signal_request: ResourceRequestHandle,
+    pub(in crate::physical_runtime) revalidated_from: Option<ResourceRequestHandle>,
+    pub(in crate::physical_runtime) attempt: ResourceAttemptId,
+    pub(in crate::physical_runtime) capability_registry: ResourcePolicyDigest,
+    pub(in crate::physical_runtime) capability_bundle: ResourcePolicyDigest,
+    pub(in crate::physical_runtime) payload_contract: ResourcePayloadContractDigest,
 }
 
 pub struct ResourceAdmittedPhysicalWork {
@@ -158,20 +163,9 @@ impl BlockedPhysicalWork {
 impl ReadyPhysicalWork {
     pub(in crate::physical_runtime) fn new(
         admitted: AdmittedPhysicalWork,
-        signal_request: ResourceRequestHandle,
-        attempt: ResourceAttemptId,
-        capability_registry: ResourcePolicyDigest,
-        capability_bundle: ResourcePolicyDigest,
-        payload_contract: ResourcePayloadContractDigest,
+        signal: PhysicalSignalReadinessEvidence,
     ) -> Self {
-        Self {
-            admitted,
-            signal_request,
-            attempt,
-            capability_registry,
-            capability_bundle,
-            payload_contract,
-        }
+        Self { admitted, signal }
     }
 
     pub const fn intent(&self) -> &PhysicalWorkIntent {
@@ -183,37 +177,41 @@ impl ReadyPhysicalWork {
     }
 
     pub const fn signal_request(&self) -> ResourceRequestHandle {
-        self.signal_request
+        self.signal.signal_request
+    }
+
+    pub const fn revalidated_from_signal_request(&self) -> Option<ResourceRequestHandle> {
+        self.signal.revalidated_from
     }
 
     pub fn request_generation(&self) -> ResourceGeneration {
-        self.signal_request.generation()
+        self.signal.signal_request.generation()
     }
 
     pub fn request_epoch(&self) -> ResourceBranchEpoch {
-        self.signal_request.branch_epoch()
+        self.signal.signal_request.branch_epoch()
     }
 
     pub const fn request_attempt(&self) -> ResourceAttemptId {
-        self.attempt
+        self.signal.attempt
     }
 
     pub fn capability_registry_digest(&self) -> &str {
-        self.capability_registry.as_str()
+        self.signal.capability_registry.as_str()
     }
 
     pub fn capability_bundle_digest(&self) -> &str {
-        self.capability_bundle.as_str()
+        self.signal.capability_bundle.as_str()
     }
 
     pub fn payload_contract_digest(&self) -> &str {
-        self.payload_contract.as_str()
+        self.signal.payload_contract.as_str()
     }
 
     pub(in crate::physical_runtime) fn into_signal_parts(
         self,
     ) -> (AdmittedPhysicalWork, ResourceRequestHandle) {
-        (self.admitted, self.signal_request)
+        (self.admitted, self.signal.signal_request)
     }
 }
 

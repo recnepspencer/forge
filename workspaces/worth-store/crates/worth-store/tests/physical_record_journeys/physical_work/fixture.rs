@@ -21,9 +21,7 @@ use worth_store::physical_runtime::{
 use worth_store_contracts::ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY;
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
-use worth_store_security::{
-    StoreAuthorityBoundSecurityScopeReceipt,
-};
+use worth_store_security::StoreAuthorityBoundSecurityScopeReceipt;
 
 pub(super) fn serving_from_initialization_with_work_profile(
     root: &Path,
@@ -59,7 +57,9 @@ pub(super) fn work_fixture() -> (
     PhysicalMutationWorkRequest,
 ) {
     let (contract, identity, contract_admission, physical_witness) = admitted_contract(1);
-    let profile = PhysicalWorkProfileDeclaration::new([contract_admission.clone()]).unwrap();
+    let security = security_scope(physical_witness);
+    let profile =
+        PhysicalWorkProfileDeclaration::new(security, [contract_admission.clone()]).unwrap();
     let read_state = match aspects()
         .authoritative_state()
         .admit([validated_value(&contract, "read")])
@@ -90,7 +90,6 @@ pub(super) fn work_fixture() -> (
     .unwrap();
     let mutation_basis =
         PhysicalWorkSemanticBasis::mutation(patch_fact, contract_admission).unwrap();
-    let security = security_scope(physical_witness);
     let read_scope = PhysicalWorkScope::one(
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 8).unwrap(),
     );
@@ -113,7 +112,7 @@ pub(super) fn work_fixture() -> (
 pub(super) fn matching_aspect_delta(revision: u64, value: &str) -> PhysicalWorkAspectDelta {
     let (contract, identity, admission, witness) = admitted_contract(revision);
     let bindings = PhysicalSignalAspectBindingSet::from_profile(
-        PhysicalWorkProfileDeclaration::new([admission]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [admission]).unwrap(),
     );
     let state = match aspects()
         .authoritative_state()
@@ -141,22 +140,25 @@ pub(super) fn family_locality_fixture() -> (
         admitted_named_contract("store.physical.work.read-availability", 81, 1);
     let (write_contract, write_identity, write_admission, _) =
         admitted_named_contract("store.physical.work.write-eligibility", 82, 1);
-    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects([
-        PhysicalSignalAspectDeclaration::new(
-            read_admission.clone(),
-            PhysicalSignalAspectRole::Dependency,
-        )
-        .for_families(PhysicalWorkSignalFamilySet::only(
-            PhysicalWorkSignalFamily::ReadFault,
-        )),
-        PhysicalSignalAspectDeclaration::new(
-            write_admission.clone(),
-            PhysicalSignalAspectRole::DependencyAndOutput,
-        )
-        .for_families(PhysicalWorkSignalFamilySet::only(
-            PhysicalWorkSignalFamily::ExactWriteback,
-        )),
-    ])
+    let profile = PhysicalWorkProfileDeclaration::from_signal_aspects(
+        security_scope(witness),
+        [
+            PhysicalSignalAspectDeclaration::new(
+                read_admission.clone(),
+                PhysicalSignalAspectRole::Dependency,
+            )
+            .for_families(PhysicalWorkSignalFamilySet::only(
+                PhysicalWorkSignalFamily::ReadFault,
+            )),
+            PhysicalSignalAspectDeclaration::new(
+                write_admission.clone(),
+                PhysicalSignalAspectRole::DependencyAndOutput,
+            )
+            .for_families(PhysicalWorkSignalFamilySet::only(
+                PhysicalWorkSignalFamily::ExactWriteback,
+            )),
+        ],
+    )
     .unwrap();
     let read_state = match aspects()
         .authoritative_state()
@@ -246,7 +248,11 @@ pub(super) fn disjoint_mutation_fixture() -> (
         .unwrap()
     };
     (
-        PhysicalWorkProfileDeclaration::new([contract_admission]).unwrap(),
+        PhysicalWorkProfileDeclaration::new(
+            security_scope(physical_witness),
+            [contract_admission],
+        )
+        .unwrap(),
         request(8, basis.clone()),
         request(16, basis),
     )
@@ -313,6 +319,17 @@ pub(super) fn security_scope(
 ) -> StoreAuthorityBoundSecurityScopeReceipt {
     worth_store_security::admitted_store_internal_security_scope_for_physical_witness_test(witness)
         .authority_bound_receipt()
+}
+
+pub(super) fn security_scope_from_authority(
+    authority_key: &str,
+    witness: StorePhysicalBoundaryWitness,
+) -> StoreAuthorityBoundSecurityScopeReceipt {
+    worth_store_security::admitted_store_internal_security_scope_for_named_physical_witness_test(
+        authority_key,
+        witness,
+    )
+    .authority_bound_receipt()
 }
 
 pub(super) fn validated_value(

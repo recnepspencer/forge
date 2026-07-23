@@ -6,7 +6,10 @@ use crate::physical_runtime::{
         ServingHealth,
     },
     runtime::PhysicalRuntimeCore,
-    work::{PhysicalWorkAdmissionAuthority, PhysicalWorkSubmissionOwner},
+    work::{
+        PhysicalWorkAdmissionAuthority, PhysicalWorkSubmissionFoundation,
+        PhysicalWorkSubmissionOwner,
+    },
 };
 
 use super::{
@@ -50,15 +53,16 @@ impl PhysicalStoreInstanceParts {
                     })
                 }
             };
-        let work_submission = PhysicalWorkSubmissionOwner::new(
-            store_identity,
-            runtime_identity,
-            lifecycle_generation,
-            core.lifecycle_state(),
-            signal_owner.profile(),
-            signal_owner.bindings(),
-            signal_owner.admission_status(),
-        );
+        let work_submission =
+            PhysicalWorkSubmissionOwner::new(PhysicalWorkSubmissionFoundation {
+                store: store_identity,
+                runtime: runtime_identity,
+                generation: lifecycle_generation,
+                lifecycle: core.lifecycle_state(),
+                signal_profile: signal_owner.profile(),
+                bindings: signal_owner.bindings(),
+                signal_admission: signal_owner.admission_status(),
+            });
         let scheduler_admission = PhysicalSchedulerAdmissionOwner::new();
         let work_admission = PhysicalWorkAdmissionAuthority::from_qualified_instance(
             &media,
