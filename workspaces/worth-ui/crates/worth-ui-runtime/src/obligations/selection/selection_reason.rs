@@ -15,7 +15,7 @@ pub enum UiObligationWorldProfileClass {
     Diagnostic,
     HostObservation,
     TestCertification,
-    QuerySnapshotBasis,
+    SettledQueryBinding,
 }
 
 impl UiObligationWorldProfileClass {
@@ -29,9 +29,7 @@ impl UiObligationWorldProfileClass {
             UiGraphWorldProfile::Diagnostic { .. } => Self::Diagnostic,
             UiGraphWorldProfile::HostObservation { .. } => Self::HostObservation,
             UiGraphWorldProfile::TestCertification { .. } => Self::TestCertification,
-            UiGraphWorldProfile::QuerySnapshotBasis { .. } => Self::QuerySnapshotBasis,
-            UiGraphWorldProfile::InstalledQueryBasis { .. } => Self::QuerySnapshotBasis,
-            UiGraphWorldProfile::SettledQueryBinding { .. } => Self::QuerySnapshotBasis,
+            UiGraphWorldProfile::SettledQueryBinding { .. } => Self::SettledQueryBinding,
         }
     }
 }

@@ -1,11 +1,11 @@
 use crate::declaration::stable_text_digest;
 use crate::graph::UiGraphNodeIdentity;
 
-use crate::evidence::measurement::{UiMeasurementResult, UiProjectionFactReceipt};
+use crate::evidence::measurement::{UiMeasurementResult, UiSettledQueryFactReceipt};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum UiChildIntrinsicMeasurementSource {
-    QueryProjectionFact(UiProjectionFactReceipt),
+    SettledQueryFact(UiSettledQueryFactReceipt),
     HostMeasurementResult(UiMeasurementResult),
 }
 
@@ -23,8 +23,8 @@ impl UiChildIntrinsicMeasurementEvidence {
         }
         match (&self.source, &other.source) {
             (
-                UiChildIntrinsicMeasurementSource::QueryProjectionFact(left),
-                UiChildIntrinsicMeasurementSource::QueryProjectionFact(right),
+                UiChildIntrinsicMeasurementSource::SettledQueryFact(left),
+                UiChildIntrinsicMeasurementSource::SettledQueryFact(right),
             ) => left == right,
             (
                 UiChildIntrinsicMeasurementSource::HostMeasurementResult(left),
@@ -36,11 +36,11 @@ impl UiChildIntrinsicMeasurementEvidence {
 
     pub fn for_query_projection_fact(
         contributor_graph_node_identity: UiGraphNodeIdentity,
-        receipt: &UiProjectionFactReceipt,
+        receipt: &UiSettledQueryFactReceipt,
     ) -> Self {
         Self::new(
             contributor_graph_node_identity,
-            UiChildIntrinsicMeasurementSource::QueryProjectionFact(receipt.clone()),
+            UiChildIntrinsicMeasurementSource::SettledQueryFact(receipt.clone()),
         )
     }
 
@@ -58,9 +58,9 @@ impl UiChildIntrinsicMeasurementEvidence {
         self.contributor_graph_node_identity
     }
 
-    pub fn query_projection_fact(&self) -> Option<&UiProjectionFactReceipt> {
+    pub fn query_projection_fact(&self) -> Option<&UiSettledQueryFactReceipt> {
         match &self.source {
-            UiChildIntrinsicMeasurementSource::QueryProjectionFact(receipt) => Some(receipt),
+            UiChildIntrinsicMeasurementSource::SettledQueryFact(receipt) => Some(receipt),
             UiChildIntrinsicMeasurementSource::HostMeasurementResult(_) => None,
         }
     }
@@ -68,7 +68,7 @@ impl UiChildIntrinsicMeasurementEvidence {
     pub fn host_measurement_result(&self) -> Option<&UiMeasurementResult> {
         match &self.source {
             UiChildIntrinsicMeasurementSource::HostMeasurementResult(result) => Some(result),
-            UiChildIntrinsicMeasurementSource::QueryProjectionFact(_) => None,
+            UiChildIntrinsicMeasurementSource::SettledQueryFact(_) => None,
         }
     }
 
@@ -93,7 +93,7 @@ impl UiChildIntrinsicMeasurementEvidence {
 
 fn source_identity_digest(source: &UiChildIntrinsicMeasurementSource) -> u64 {
     match source {
-        UiChildIntrinsicMeasurementSource::QueryProjectionFact(receipt) => {
+        UiChildIntrinsicMeasurementSource::SettledQueryFact(receipt) => {
             stable_text_digest("worth-ui.child-intrinsic-measurement.query")
                 ^ receipt.observation_identity_digest().rotate_left(7)
                 ^ receipt

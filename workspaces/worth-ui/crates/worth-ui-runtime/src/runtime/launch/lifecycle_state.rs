@@ -107,20 +107,37 @@ impl WorthUiPendingActivation {
 }
 
 /// Receipt emitted when the runtime host is consumed during shutdown.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
+    query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
 }
 
 impl WorthUiRuntimeShutdownReceipt {
     pub(crate) fn new(
         final_frame_epoch: WorthUiRuntimeFrameEpoch,
         _queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
+        query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
     ) -> Self {
-        Self { final_frame_epoch }
+        Self {
+            final_frame_epoch,
+            query_retirement,
+        }
     }
 
     pub fn final_frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
         self.final_frame_epoch
+    }
+
+    pub fn operation_live_retirement(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiOperationLiveRetirement {
+        &self.query_retirement
+    }
+
+    pub fn into_operation_live_retirement(
+        self,
+    ) -> worth_ui_query_binding::WorthUiOperationLiveRetirement {
+        self.query_retirement
     }
 }

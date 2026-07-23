@@ -5,9 +5,8 @@ use worth_proof::TransitionOutcome;
 use worth_query::facade::domain;
 
 use super::{
-    configured_runtime_for_package, federated_package, graph_projection_material,
-    observation_basis, read_definition, FederatedRead, GeometryDomain, ReadFamily, RemoteA,
-    RemoteB,
+    configured_runtime_for_package, federated_package, graph_projection_material, read_definition,
+    FederatedRead, GeometryDomain, ReadFamily, RemoteA, RemoteB,
 };
 
 struct CrossCallProvider {
@@ -161,7 +160,8 @@ fn graph_receipt_from_another_exact_call_cannot_be_reused() {
             .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
@@ -197,14 +197,16 @@ fn graph_receipt_cannot_be_replayed_across_bound_capabilities() {
             .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap()
         .execute((), &mut workspace)
         .unwrap();
     let second = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();

@@ -1,13 +1,10 @@
 use worth_query::facade::domain;
-use worth_ui::facade::query_binding::{
-    WorthUiQueryAllocationDetail, WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
-    WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-};
-use worth_ui_query_binding::WorthUiQueryInspectionRelevance;
+use worth_ui::facade::query_binding::{WorthUiQueryViewShape, WorthUiQueryWorkspaceExt};
 
 use crate::query_consumer_kit_application::file_authored_two_query_view_app;
 use crate::query_consumer_kit_workspace::{
-    installed_measurement_workspace, measurement_value_path, observation_basis,
+    installed_measurement_workspace, interactive_borrowed_collection_requirements,
+    measurement_value_path,
 };
 
 #[test]
@@ -22,26 +19,16 @@ fn settled_projection_cannot_enter_through_another_query_binding_link() {
     let secondary = installed
         .measurement_view("inspector.secondary")
         .expect("the secondary view installs");
+    let measurements_identity = measurements.definition().identity().clone();
+    let secondary_identity = secondary.definition().identity().clone();
     let app = file_authored_two_query_view_app(measurements.clone(), secondary);
     let measurements_reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new("inspector.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&measurements_identity, WorthUiQueryViewShape::Collection)
         .expect("the application resolves the measurements operation reference");
     let settled = measurements_reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .expect("the measurements attempt enters Query")
-        .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
-            domain::WorthQueryConsumerBoundaryRequirements {
-                presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
-                allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
-            },
-            WorthUiQueryAllocationDetail::BorrowedFactSlice,
-            WorthUiQueryViewShape::Collection,
-            WorthUiQueryDenialPresentation::StructuredStatus,
-            WorthUiQueryInspectionRelevance::Relevant,
-        ))
+        .prepare_snapshot_consumer(interactive_borrowed_collection_requirements())
         .expect("Query admits the consumer")
         .execute(&mut workspace)
         .unwrap()
@@ -54,7 +41,7 @@ fn settled_projection_cannot_enter_through_another_query_binding_link() {
 
     let mut session = app.launch().expect("the two-binding application launches");
     let wrong_link = session
-        .query_fact_link("inspector.secondary")
+        .query_fact_link(secondary_identity.as_str())
         .expect("the second binding owns an active fact link");
     let mut denial = None;
     let completion = session.execute_framework_turn(|turn| {

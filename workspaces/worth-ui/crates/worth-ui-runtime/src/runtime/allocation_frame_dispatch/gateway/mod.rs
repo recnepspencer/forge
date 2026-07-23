@@ -3,7 +3,6 @@ mod durable_resize;
 mod host_measurement;
 mod interaction;
 mod outcome;
-mod query_projection;
 mod query_settled_fact;
 mod source_fact;
 mod state;
@@ -17,15 +16,14 @@ pub(crate) use durable_resize::WorthUiDurableResizeSubmission;
 pub(crate) use host_measurement::WorthUiHostMeasurementSubmission;
 pub(crate) use interaction::WorthUiInteractionSubmission;
 pub use outcome::UiAllocationFrameGatewayOutcome;
-pub(crate) use query_projection::WorthUiQueryProjectionSubmission;
 pub(crate) use query_settled_fact::WorthUiQuerySettledFactSubmission;
 pub use query_settled_fact::{
     WorthUiQueryFrameIngressCounters, WorthUiQueryFrameIngressDenial,
     WorthUiQueryFrameIngressOutcome,
 };
 pub use source_fact::{
-    UiAllocationFrameQuerySettlementPosture, UiAllocationFrameQueryWarningPosture,
-    UiAllocationFrameSourceFact, UiAllocationFrameSourceFactPosture,
+    UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
+    UiAllocationFrameSourceFactPosture,
 };
 pub(crate) use state::UiAllocationFrameGatewayState;
 

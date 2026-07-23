@@ -1,19 +1,18 @@
-use worth_query::facade::{domain, foundation, runtime};
+use worth_query::facade::{domain, runtime};
 use worth_ui::facade::app::{
     WorthUiAllocationCatalogActivationDenial, WorthUiApplicationCutoverDenial,
 };
 use worth_ui::facade::query_binding::{
-    WorthUiInstalledQueryBindingReference, WorthUiQueryAllocationDetail,
-    WorthUiQueryBindingSuccessionDenial, WorthUiQueryConsumerRequirements,
-    WorthUiQueryDenialPresentation, WorthUiQueryViewIdentity, WorthUiQueryViewShape,
-    WorthUiQueryWorkspaceExt, WorthUiSettledSnapshotFact, WorthUiSettledSnapshotProjection,
+    WorthUiInstalledQueryBindingReference, WorthUiQueryBindingSuccessionDenial,
+    WorthUiQueryViewShape, WorthUiQueryWorkspaceExt, WorthUiSettledSnapshotFact,
+    WorthUiSettledSnapshotProjection,
 };
-use worth_ui_query_binding::WorthUiQueryInspectionRelevance;
 
 use super::scenario::{
     installed_workspace, snapshot_application, submission, FIRST_VIEW, NEXT_COMPONENT, SECOND_VIEW,
 };
 use super::support::{activate, lower_and_stage, prepare_catalog};
+use crate::query_consumer_kit_workspace::interactive_borrowed_collection_requirements;
 
 #[test]
 fn public_changed_replacement_preserves_the_active_exact_settlement() {
@@ -25,12 +24,10 @@ fn public_changed_replacement_preserves_the_active_exact_settlement() {
     let second = installed
         .measurement_view(SECOND_VIEW)
         .expect("second installed view");
+    let first_identity = first.definition().identity().clone();
     let app = snapshot_application(first, second);
     let reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new(FIRST_VIEW).expect("view identity"),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&first_identity, WorthUiQueryViewShape::Collection)
         .expect("application retains the installed operation reference");
     let mut session = app.launch().expect("Query application launch");
 
@@ -61,7 +58,7 @@ fn public_changed_replacement_preserves_the_active_exact_settlement() {
         .expect("candidate independently owns a complete settled projection");
     let pending = lower_and_stage(&session, candidate);
     let cutover = activate(&mut session, pending.0, pending.1);
-    assert!(cutover.managed_live_compatibility_retirement().is_empty());
+    assert!(cutover.operation_live_retirement().is_empty());
 
     let successor_refresh = admit_active_settlement(
         &mut session,
@@ -82,12 +79,10 @@ fn installation_turnover_after_lowering_denies_before_publication() {
     let second = installed
         .measurement_view(SECOND_VIEW)
         .expect("second installed view");
+    let first_identity = first.definition().identity().clone();
     let app = snapshot_application(first, second);
     let reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new(FIRST_VIEW).expect("view identity"),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&first_identity, WorthUiQueryViewShape::Collection)
         .expect("application retains the installed operation reference");
     let mut session = app.launch().expect("Query application launch");
     admit_active_settlement(
@@ -161,18 +156,9 @@ pub(super) fn settle_snapshot(
     workspace: &mut runtime::WorthQueryWorkspace,
 ) -> WorthUiSettledSnapshotProjection {
     reference
-        .enter_snapshot_attempt(workspace, observation_basis())
+        .enter_snapshot_attempt(workspace)
         .expect("snapshot attempt enters exact world")
-        .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
-            domain::WorthQueryConsumerBoundaryRequirements {
-                presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
-                allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
-            },
-            WorthUiQueryAllocationDetail::BorrowedFactSlice,
-            WorthUiQueryViewShape::Collection,
-            WorthUiQueryDenialPresentation::StructuredStatus,
-            WorthUiQueryInspectionRelevance::Relevant,
-        ))
+        .prepare_snapshot_consumer(interactive_borrowed_collection_requirements())
         .expect("Query mints the consumer contract")
         .execute(workspace)
         .unwrap()
@@ -187,15 +173,4 @@ pub(super) fn settle_snapshot(
 fn assert_coordinates(fact: &WorthUiSettledSnapshotFact, generation: u64, order: u64) {
     assert_eq!(fact.source_generation().unwrap().as_u64(), generation);
     assert_eq!(fact.source_order().unwrap().as_u64(), order);
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

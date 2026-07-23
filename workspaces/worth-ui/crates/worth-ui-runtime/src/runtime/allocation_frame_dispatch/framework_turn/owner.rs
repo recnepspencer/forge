@@ -217,18 +217,11 @@ impl WorthUiRuntime {
         ))
     }
 
-    pub(super) fn admit_and_submit_live_query_projection(
+    pub(super) fn admit_operation_live(
         &mut self,
-        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
-    ) -> Result<
-        UiAllocationFrameGatewayOutcome,
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
-    > {
-        let settlement = self.query_binding.admit_live(resource, outcome)?;
-        Ok(self
-            .query_projection_submission()
-            .submit_query_projection_settlement(settlement))
+        resource: worth_ui_query_binding::WorthUiOperationLiveResource,
+    ) -> Result<(), worth_ui_query_binding::WorthUiOperationLiveAdmissionStop> {
+        self.query_binding.admit_operation_live(resource)
     }
 
     pub(super) fn admit_and_submit_interaction(
@@ -277,14 +270,6 @@ impl WorthUiRuntime {
         &self,
     ) -> super::super::gateway::WorthUiHostMeasurementSubmission {
         super::super::gateway::WorthUiHostMeasurementSubmission::new(
-            self.allocation_frame_scheduler.mailbox(),
-        )
-    }
-
-    pub(in crate::runtime::allocation_frame_dispatch) fn query_projection_submission(
-        &self,
-    ) -> super::super::gateway::WorthUiQueryProjectionSubmission {
-        super::super::gateway::WorthUiQueryProjectionSubmission::new(
             self.allocation_frame_scheduler.mailbox(),
         )
     }

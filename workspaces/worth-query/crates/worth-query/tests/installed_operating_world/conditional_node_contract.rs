@@ -3,7 +3,7 @@ use worth_foundational::facade::{
     AspectKey, AspectMask, AspectValue, CanonicalF64, CanonicalFieldPath, FieldDeclaration,
     FieldKey, FieldRequirement, ProjectionMask, ScalarAspectType, StructAspectShape,
 };
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 use worth_relational::facade::schema::{AspectBinding, RelationalAspectChangeKind};
 
 use super::installed_operation_fixture::{
@@ -55,7 +55,8 @@ fn installed_conditional_meaning_binds_only_after_exact_lowering_is_present() {
     .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .expect("the fixture installs the exact Phase 10 lowering before binding");
@@ -107,7 +108,7 @@ pub(super) fn representative_nodes() -> Vec<domain::WorthQueryPortableConditiona
             )
             .unwrap(),
             domain::WorthQueryConditionalTrigger::DependencyChange,
-            domain::WorthQueryMaintenancePosture::EagerOnEligibleInvalidation,
+            domain::WorthQueryMaintenancePosture::LazyUntilObserved,
         ),
     ]
 }
@@ -280,15 +281,4 @@ pub(super) fn identity_contract() -> AspectContract {
 
 pub(super) fn identity_mask() -> AspectMask<ProjectionMask> {
     AspectMask::new([CanonicalFieldPath::single(FieldKey::new("id").unwrap())])
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

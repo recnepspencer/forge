@@ -1,5 +1,5 @@
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::runtime;
+use worth_query::facade::{domain, runtime};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui::facade::query_binding::{
@@ -19,8 +19,7 @@ use worth_ui::facade::registry::{
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiWatchedCandidateSubmission,
 };
-use worth_ui_query_binding::certification::worth_ui_query_snapshot_prerequisites;
-use worth_ui_query_binding::compatibility::managed_live::WorthUiInstalledLiveQueryView;
+use worth_ui_query_binding::WorthUiInstalledLiveQueryView;
 
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -143,28 +142,44 @@ pub(super) fn installed_workspace(label: &str) -> runtime::WorthQueryWorkspace {
         .expect("identity aspect")
         .aspect("measurement.value", "measurement.value")
         .expect("measurement aspect");
-    worth_ui_query_binding::install_worth_ui_test_operation_executors(
+    worth_ui_query_binding::install_worth_ui_test_operation_executors(operation_live_support(
         in_memory_test_runtime()
             .with_schema(schema)
             .domain_package(worth_ui_domain_package()),
-    )
+    ))
     .workspace(label)
     .expect("installed Query workspace")
+}
+
+fn operation_live_support(
+    builder: worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder,
+) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
+    [
+        domain::WorthQueryConsumerSupportDimension::Live,
+        domain::WorthQueryConsumerSupportDimension::Sharing,
+        domain::WorthQueryConsumerSupportDimension::Invalidation,
+        domain::WorthQueryConsumerSupportDimension::DependencyImpact,
+        domain::WorthQueryConsumerSupportDimension::CollectionDelivery,
+    ]
+    .into_iter()
+    .fold(builder, |builder, dimension| {
+        builder.consumer_support_posture(
+            dimension,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+    })
 }
 
 fn builder(
     first: WorthUiInstalledQueryView,
     second: WorthUiInstalledQueryView,
 ) -> worth_ui::facade::app::WorthUiBuilder {
+    let graph_world = worth_ui::facade::graph::UiGraphWorldProfile::settled_query_view(
+        worth_ui::facade::registry::ViewBindingId::new(FIRST_VIEW).unwrap(),
+        &first,
+    );
     WorthUi::app()
-        .with_graph_world_profile(
-            worth_ui::facade::graph::UiGraphWorldProfile::query_snapshot_basis(
-                worth_ui_query_snapshot_prerequisites(
-                    "query-replacement-lifecycle",
-                    ["worth-ui.phase8", "query", "replacement"],
-                ),
-            ),
-        )
+        .with_graph_world_profile(graph_world)
         .register_component(component(ACTIVE_COMPONENT))
         .register_component(component(NEXT_COMPONENT))
         .register_mosaic_region_kind(

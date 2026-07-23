@@ -28,6 +28,7 @@ pub(super) struct WorthQuerySharedProjectionLeaseBasis {
     lease: WorthQuerySharedProjectionLeaseIdentity,
     source_identity: String,
     binding_identity: String,
+    collection_delivery_contract_identity: Option<String>,
     capability_identity: u64,
     capability_generation: crate::domain_installation::WorthQueryBoundCapabilityGeneration,
 }
@@ -43,6 +44,7 @@ pub(crate) struct WorthQuerySharedProjectionLeaseReadmission<'a> {
     pub(crate) lease: WorthQuerySharedProjectionLeaseIdentity,
     pub(crate) source_identity: &'a str,
     pub(crate) binding_identity: &'a str,
+    pub(crate) collection_delivery_contract_identity: Option<&'a str>,
     pub(crate) capability_identity: u64,
     pub(crate) capability_generation:
         crate::domain_installation::WorthQueryBoundCapabilityGeneration,
@@ -95,6 +97,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySharedLiveProjectionLease<D, O, F
             lease: token.lease(),
             source_identity: source.identity().to_string(),
             binding_identity: bound.binding_identity().to_string(),
+            collection_delivery_contract_identity: source.collection_delivery_contract_identity(),
             capability_identity: bound.capability_identity(),
             capability_generation,
         };
@@ -224,6 +227,9 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySharedLiveProjectionLease<D, O, F
             lease: basis.lease,
             source_identity: &basis.source_identity,
             binding_identity: &basis.binding_identity,
+            collection_delivery_contract_identity: basis
+                .collection_delivery_contract_identity
+                .as_deref(),
             capability_identity: basis.capability_identity,
             capability_generation: basis.capability_generation,
             closure: self.snapshot().semantic_aspect_dependency_closure(),

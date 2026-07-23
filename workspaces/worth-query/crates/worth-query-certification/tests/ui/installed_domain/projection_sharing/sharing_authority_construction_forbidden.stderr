@@ -2,7 +2,10 @@ error[E0432]: unresolved import `worth_query::facade::domain::WorthQueryAdmitted
  --> tests/ui/installed_domain/projection_sharing/sharing_authority_construction_forbidden.rs:1:5
   |
 1 | use worth_query::facade::domain::WorthQueryAdmittedProjectionSharing;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryAdmittedProjectionSharing` in `facade::domain`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------------------------------
+  |     |                            |
+  |     |                            help: a similar name exists in the module: `WorthQueryAdmittedCollectionWindow`
+  |     no `WorthQueryAdmittedProjectionSharing` in `facade::domain`
 
 error[E0603]: module `runtime` is private
  --> tests/ui/installed_domain/projection_sharing/sharing_authority_construction_forbidden.rs:2:18

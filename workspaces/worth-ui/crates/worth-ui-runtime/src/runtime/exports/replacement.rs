@@ -11,13 +11,6 @@ pub use crate::runtime::replacement::candidate::{
     WorthUiCandidateAuthoringLane, WorthUiCandidateDependencyMetadata, WorthUiReplacementCandidate,
     WorthUiReplacementCandidateBasis, WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
 };
-pub use crate::runtime::replacement::compatibility::managed_live::{
-    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
-    WorthUiQueryBindingPreservationReceipt, WorthUiQueryBindingRebindReason,
-    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters,
-    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
-    WorthUiQueryLiveRebindPlanDenial, WorthUiQueryRebindRequiredSurface,
-};
 pub use crate::runtime::replacement::equivalence::{
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonCounters,
     WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeArtifactComparisonOutcome,
@@ -56,6 +49,13 @@ pub use crate::runtime::replacement::query_binding::{
     WorthUiQueryBindingComparisonEntry, WorthUiQueryBindingComparisonOutcome,
     WorthUiQueryBindingIdentity, WorthUiQueryBindingUiRequirements,
     WorthUiQueryBindingUiRequirementsDriftFamily,
+};
+pub use crate::runtime::replacement::query_succession::{
+    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
+    WorthUiQueryBindingPreservationReceipt, WorthUiQueryBindingRebindReason,
+    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters,
+    WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan,
+    WorthUiQueryLiveRebindPlanDenial, WorthUiQueryRebindRequiredSurface,
 };
 pub use crate::runtime::replacement::reconciliation::{
     WorthUiAdmittedDurableResizeInput, WorthUiAdmittedDurableResizeSourceFact,

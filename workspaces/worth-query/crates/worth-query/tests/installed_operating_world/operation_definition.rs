@@ -27,27 +27,27 @@ fn declaration_order_converges_to_one_installed_operation_meaning() {
 
     let direct_domain = direct.domain(GeometryDomain).unwrap();
     let reversed_domain = reversed.domain(GeometryDomain).unwrap();
-    let direct_operation = direct
-        .operation(&direct_domain, ReadVertex, ReadFamily)
+    let direct_world = direct.observe_operating_world().unwrap();
+    let reversed_world = reversed.observe_operating_world().unwrap();
+    let direct_operation = direct_world
+        .family(ReadFamily)
+        .bind(&direct_domain, ReadVertex)
         .unwrap();
-    let reversed_operation = reversed
-        .operation(&reversed_domain, ReadVertex, ReadFamily)
+    let reversed_operation = reversed_world
+        .family(ReadFamily)
+        .bind(&reversed_domain, ReadVertex)
         .unwrap();
     assert_eq!(
         direct_operation.definition(),
         reversed_operation.definition()
     );
     assert_eq!(
-        direct_operation.lookup_counters(),
-        domain::WorthQueryInstalledDomainOperationLookupCounters {
-            authority_checks: 1,
-            indexed_operation_lookups: 1,
-            graph_binding_lookups: 1,
-            graph_bindings_retained: 0,
-            package_content_scans: 0,
-            planning_steps: 0,
-            lower_runtime_contacts: 0,
-        }
+        (
+            direct_operation.binding_counters().authority_checks,
+            direct_operation.binding_counters().operation_lookups,
+            direct_operation.binding_counters().graph_binding_lookups,
+        ),
+        (1, 1, 1)
     );
 }
 
@@ -133,8 +133,10 @@ fn rebuilt_execution_index_preserves_operation_authority_and_exact_shape() {
     assert_eq!(report.operation_required_domain_count(), 0);
 
     let installed_domain = world.domain(GeometryDomain).unwrap();
-    let operation = world
-        .operation(&installed_domain, ReadVertex, ReadFamily)
+    let operating_world = world.observe_operating_world().unwrap();
+    let operation = operating_world
+        .family(ReadFamily)
+        .bind(&installed_domain, ReadVertex)
         .unwrap();
     assert_eq!(operation.definition().identity().name(), "read-vertex");
 }
@@ -156,24 +158,25 @@ fn one_field_semantic_drift_rejects_the_package_atomically() {
 fn marker_lookalike_misses_one_index_without_later_work() {
     let world = workspace("operation-marker-lookalike", false).unwrap();
     let domain = world.domain(GeometryDomain).unwrap();
-    let denial = world
-        .operation(&domain, ReadVertexLookalike, ReadFamily)
-        .unwrap_err();
+    let operating_world = world.observe_operating_world().unwrap();
+    let denial = match operating_world
+        .family(ReadFamily)
+        .bind(&domain, ReadVertexLookalike)
+    {
+        Ok(_) => panic!("lookalike operation marker must not bind"),
+        Err(denial) => denial,
+    };
     assert_eq!(
         denial.kind(),
-        domain::WorthQueryInstalledDomainOperationLookupDenialKind::OperationNotInstalled
+        domain::WorthQueryOperationBindingDenialKind::OperationNotInstalled
     );
     assert_eq!(
-        denial.counters(),
-        domain::WorthQueryInstalledDomainOperationLookupCounters {
-            authority_checks: 1,
-            indexed_operation_lookups: 1,
-            graph_binding_lookups: 0,
-            graph_bindings_retained: 0,
-            package_content_scans: 0,
-            planning_steps: 0,
-            lower_runtime_contacts: 0,
-        }
+        (
+            denial.counters().authority_checks,
+            denial.counters().operation_lookups,
+            denial.counters().planning_steps,
+        ),
+        (1, 1, 0)
     );
 }
 
@@ -182,16 +185,20 @@ fn foreign_domain_authority_denies_before_operation_lookup() {
     let owner = workspace("operation-owner", false).unwrap();
     let foreign = workspace("operation-foreign", false).unwrap();
     let foreign_domain = foreign.domain(GeometryDomain).unwrap();
-    let denial = owner
-        .operation(&foreign_domain, ReadVertex, ReadFamily)
-        .unwrap_err();
+    let operating_world = owner.observe_operating_world().unwrap();
+    let denial = match operating_world
+        .family(ReadFamily)
+        .bind(&foreign_domain, ReadVertex)
+    {
+        Ok(_) => panic!("foreign domain authority must not bind"),
+        Err(denial) => denial,
+    };
     assert_eq!(
         denial.kind(),
-        domain::WorthQueryInstalledDomainOperationLookupDenialKind::DomainAuthority
+        domain::WorthQueryOperationBindingDenialKind::DomainAuthority
     );
-    assert_eq!(denial.counters().indexed_operation_lookups, 0);
+    assert_eq!(denial.counters().operation_lookups, 0);
     assert_eq!(denial.counters().planning_steps, 0);
-    assert_eq!(denial.counters().lower_runtime_contacts, 0);
 }
 
 #[test]

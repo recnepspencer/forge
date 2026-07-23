@@ -4,7 +4,7 @@ use worth_query::facade::foundation::ConsumedNativeValueView;
 
 use crate::{
     WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceOrder,
-    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactSettlement,
+    WorthUiQueryMeasurementFactObservation,
 };
 
 /// Read-only sharing of one exact Query-owned settlement at the UI plan edge.
@@ -22,21 +22,9 @@ enum WorthUiQueryViewExecutionEvidenceRepresentation {
         reference: crate::WorthUiInstalledQueryBindingReference,
         fact: Arc<crate::WorthUiSettledSnapshotFact>,
     },
-    ManagedLiveCompatibility(Arc<WorthUiQueryMeasurementFactSettlement>),
 }
 
 impl WorthUiQueryViewExecutionEvidenceReference {
-    pub(crate) fn from_managed_live_compatibility(
-        settlement: Arc<WorthUiQueryMeasurementFactSettlement>,
-    ) -> Self {
-        Self {
-            representation:
-                WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                    settlement,
-                ),
-        }
-    }
-
     pub(crate) fn from_settled_snapshot(
         reference: crate::WorthUiInstalledQueryBindingReference,
         fact: Arc<crate::WorthUiSettledSnapshotFact>,
@@ -54,9 +42,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot {
                 reference, ..
             } => reference.definition(),
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.definition(),
         }
     }
 
@@ -65,9 +50,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => fact
                 .measurement_facts()
                 .map_or(&[], |facts| facts.observations()),
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.receipt().observations(),
         }
     }
 
@@ -76,12 +58,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
                 fact.native_fact_count()
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => {
-                let facts = settlement.receipt().query_authority().authority().facts();
-                facts.display_fields().len() + facts.derived_fields().len()
-            }
         }
     }
 
@@ -89,17 +65,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
         match &self.representation {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
                 fact.native_fact(index)
-            }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => {
-                let facts = settlement.receipt().query_authority().authority().facts();
-                facts
-                    .display_fields()
-                    .iter()
-                    .chain(facts.derived_fields())
-                    .nth(index)
-                    .map(|fact| fact.native_value())
             }
         }
     }
@@ -113,9 +78,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
                         .as_u64(),
                 )
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.allocation_source_generation(),
         }
     }
 
@@ -128,9 +90,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
                         .as_u64(),
                 )
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.allocation_source_order(),
         }
     }
 
@@ -139,9 +98,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
                 fact.is_partial()
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.is_partial(),
         }
     }
 
@@ -150,12 +106,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot {
                 reference, ..
             } => reference.definition().digest().as_u64(),
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement
-                .allocation_source_identity()
-                .authority_index_key()
-                .identity_digest(),
         };
         basis
             ^ self.source_generation().as_u64().rotate_left(17)

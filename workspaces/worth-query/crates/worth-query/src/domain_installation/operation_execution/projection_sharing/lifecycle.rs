@@ -43,6 +43,16 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySharedProjectionDisposalStop<D, O
     pub fn into_lease(self) -> WorthQuerySharedLiveProjectionLease<D, O, F, L> {
         self.lease
     }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        WorthQuerySharedLiveProjectionLease<D, O, F, L>,
+        WorthQueryRuntimeError,
+        crate::runtime::WorthQuerySharedLeaseReleaseCounters,
+    ) {
+        (self.lease, self.error, self.counters)
+    }
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQuerySharedLiveProjectionLease<D, O, F, L> {

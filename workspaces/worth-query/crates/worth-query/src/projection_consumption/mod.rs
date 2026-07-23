@@ -39,7 +39,6 @@ pub(crate) use certification::{
     intent_admission_admitted_projection_declaration,
     intent_admission_warning_projection_declaration,
 };
-pub(crate) use consumed::ConsumedNativeLayoutProof;
 pub use consumed::{
     ConsumedContinuityAuthorityIdentity, ConsumedEffectContinuityFact, ConsumedEntityIdentityFact,
     ConsumedFieldValueFact, ConsumedMembershipFact, ConsumedNativeRefinementDenial,
@@ -47,9 +46,10 @@ pub use consumed::{
     ConsumedSourceReferenceFact, ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact,
     ProjectionFactExtractionCounters,
 };
+pub(crate) use consumed::{ConsumedNativeLayoutProof, ConsumedNativeValue};
 #[cfg(test)]
 pub(crate) use consumed::{
-    ConsumedNativeValue, ConsumedProjectionContractProvenance, ConsumedProjectionFactInventory,
+    ConsumedProjectionContractProvenance, ConsumedProjectionFactInventory,
     ConsumedProjectionSourceTruth,
 };
 #[cfg(test)]

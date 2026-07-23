@@ -38,18 +38,6 @@ impl UiGraphTouchAuthority<'_> {
         self,
     ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
         match self.snapshot.world_profile() {
-            UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } => {
-                Ok(UiGraphTouchOriginWitness::query_basis(
-                    UiGraphTouchOriginReceipt::query_fact_change(prerequisites),
-                    prerequisites.as_ref().clone(),
-                ))
-            }
-            UiGraphWorldProfile::InstalledQueryBasis { authority } => {
-                Ok(UiGraphTouchOriginWitness::installed_query_basis(
-                    UiGraphTouchOriginReceipt::installed_query_fact_change(authority),
-                    authority.clone(),
-                ))
-            }
             UiGraphWorldProfile::SettledQueryBinding {
                 view_binding_id,
                 query_binding_identity,

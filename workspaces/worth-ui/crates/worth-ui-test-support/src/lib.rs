@@ -7,8 +7,8 @@ pub use worth_ui_runtime::certification_support::{
     launch_empty_runtime_for_certification, planning_pair_for_certification_suite,
     runtime_origin_fixture, with_activation_precommit_interruption, UiDeclaredMeasurementMode,
     UiMeasurementAdmissionPosture, UiMeasurementCapabilityGateReason,
-    UiMeasurementUnsupportedReason, UiQueryMeasurementBasisAuthority,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
+    UiMeasurementUnsupportedReason, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
     WorthUiActivationPrecommitStage, WorthUiTouchOriginCertificationFixture,
     WorthUiTouchOriginFixtureVariant,
 };

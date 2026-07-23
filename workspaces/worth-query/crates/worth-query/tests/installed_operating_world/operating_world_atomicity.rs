@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
     mixed_mutation_workflow_runtime, GeometryDomain, MutationFamily, WorkflowMutation,
@@ -60,7 +60,8 @@ fn primary_and_separate_mutation_requires_declared_compensation() {
     let uncompensated = runtime(false, Arc::clone(&contacts), "mixed-uncompensated");
     let installed = uncompensated.domain(GeometryDomain).unwrap();
     let denial = match uncompensated
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(MutationFamily)
         .bind(&installed, WorkflowMutation)
     {
@@ -76,7 +77,8 @@ fn primary_and_separate_mutation_requires_declared_compensation() {
     let compensated = runtime(true, Arc::clone(&contacts), "mixed-compensated");
     let installed = compensated.domain(GeometryDomain).unwrap();
     let bound = compensated
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(MutationFamily)
         .bind(&installed, WorkflowMutation)
         .unwrap();
@@ -118,14 +120,4 @@ fn atomic_definition() -> domain::WorthQueryGraphParticipationDefinition<RemoteG
             failure: domain::WorthQueryGraphFailureTopology::BoundaryFailure,
         },
     )
-}
-
-fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
 }

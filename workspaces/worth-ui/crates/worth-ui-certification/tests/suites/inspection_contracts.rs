@@ -1,7 +1,5 @@
 //! Semantic integration suite. Individual responsibilities remain in named child modules.
 
-#[path = "../ai_inspection_foreign_evidence_runtime.rs"]
-mod ai_inspection_foreign_evidence_runtime;
 #[path = "../ai_inspection_runtime.rs"]
 mod ai_inspection_runtime;
 #[path = "../aspect_evidence_lookup_runtime.rs"]

@@ -149,6 +149,9 @@ fn budget_kind_digest(kind: FoundationalPerformanceBudgetKind) -> u64 {
 fn work_class_digest(work_class: FoundationalPerformanceWorkClass) -> u64 {
     stable_text_digest(match work_class {
         FoundationalPerformanceWorkClass::AuthoritativeMutation => "work.authoritative_mutation",
+        FoundationalPerformanceWorkClass::AuthoritativeObservation => {
+            "work.authoritative_observation"
+        }
         FoundationalPerformanceWorkClass::ValidationPlanning => "work.validation_planning",
         FoundationalPerformanceWorkClass::PublicationDelivery => "work.publication_delivery",
         FoundationalPerformanceWorkClass::ReplayReconstruction => "work.replay_reconstruction",

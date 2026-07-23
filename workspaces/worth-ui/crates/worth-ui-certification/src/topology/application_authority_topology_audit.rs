@@ -7,15 +7,15 @@ const ORDINARY_AUTHORITY_LANES: &[(&str, &str)] = &[
     ),
     (
         "crates/worth-ui-runtime/src/facade/entry/app.rs",
-        "    pub fn launch(\n",
+        "pub fn launch(",
     ),
     (
         "crates/worth-ui-runtime/src/facade/host_session_authority.rs",
-        "    pub(crate) fn activate(\n",
+        "pub(crate) fn activate(",
     ),
     (
         "crates/worth-ui-runtime/src/facade/entry/application_replacement.rs",
-        "    pub fn activate_prepared_replacement(\n",
+        "pub fn activate_prepared_replacement(",
     ),
 ];
 

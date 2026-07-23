@@ -127,7 +127,12 @@ fn observe_candidate(
 ) -> Result<ConstitutionSnapshots, String> {
     let mut governed_packages = road_packages.to_vec();
     governed_packages.extend(discover_query_audience_packages(root, query_audience)?);
-    ConstitutionSnapshots::observe(&governed_packages)
+    let configured_surfaces = query_audience
+        .facade_surfaces
+        .iter()
+        .map(|surface| (surface.label.clone(), root.join(&surface.source)))
+        .collect::<Vec<_>>();
+    ConstitutionSnapshots::observe(&governed_packages, &configured_surfaces)
 }
 
 fn snapshot_observation_diagnostic(message: String) -> Diagnostic {

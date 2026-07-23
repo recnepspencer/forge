@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
     mutation_workflow_workspace, workflow_workspace, GeometryDomain, MutationFamily, ReadFamily,
@@ -12,7 +12,8 @@ fn workflow_effect_uses_real_mutation_authority_and_retains_its_receipt() {
     let initial_snapshot = workspace.snapshot_identity().clone();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let observation_denial = match workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(MutationFamily)
         .bind(&installed_domain, WorkflowMutation)
     {
@@ -27,7 +28,8 @@ fn workflow_effect_uses_real_mutation_authority_and_retains_its_receipt() {
     assert_eq!(observation_denial.counters().graph_participation_lookups, 0);
 
     let bound = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(MutationFamily)
         .bind(&installed_domain, WorkflowMutation)
         .unwrap();
@@ -71,7 +73,8 @@ fn failure_after_effect_retains_the_query_executed_partial_outcome() {
     let initial_snapshot = workspace.snapshot_identity().clone();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(MutationFamily)
         .bind(&installed_domain, WorkflowMutation)
         .unwrap()
@@ -135,7 +138,8 @@ fn workflow_stage_cannot_skip_its_declared_primary_read() {
     let mut workspace = workflow_workspace("workflow-skipped-read").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -196,7 +200,8 @@ fn failing_stage_denial(name: &str, input: &str) -> domain::WorthQueryWorkflowAd
     let mut workspace = workflow_workspace(name).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let run = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -216,25 +221,4 @@ fn failing_stage_denial(name: &str, input: &str) -> domain::WorthQueryWorkflowAd
         TransitionOutcome::Failed(denial) => denial,
         _ => panic!("failing stage did not produce an execution failure"),
     }
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
 }

@@ -171,7 +171,7 @@ impl<'a> WorthUiMeasurementInspectionBoundary<'a> {
         ) {
             match query_outcome {
                 QueryMeasurementInspectionOutcome::Receipt(receipt) => {
-                    evidence_inputs.push(MeasurementEvidenceInput::query_projection_fact(&receipt));
+                    evidence_inputs.push(MeasurementEvidenceInput::settled_query_fact(&receipt));
                 }
                 QueryMeasurementInspectionOutcome::Denial(denial_posture, failure_source) => {
                     return MeasurementInspectionOutcome::Denial(denial_posture, failure_source);

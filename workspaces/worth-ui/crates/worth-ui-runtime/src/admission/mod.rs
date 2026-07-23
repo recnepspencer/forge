@@ -20,7 +20,7 @@ pub use support::{
 };
 pub(crate) use support::{UiMeasurementAdmissionInput, UiQueryMeasurementEligibilityInput};
 pub use support::{
-    UiQueryMeasurementBasisAuthority, UiQueryMeasurementEligibility,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
+    UiQueryMeasurementEligibility, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
 };
 pub use support::{UiSupportPosture, UiSupportReason, UiSupportSnapshot};

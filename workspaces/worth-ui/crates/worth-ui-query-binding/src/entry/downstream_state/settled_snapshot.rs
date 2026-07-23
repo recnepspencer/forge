@@ -216,32 +216,4 @@ impl WorthUiSettledSnapshotRetention {
             slot
         }
     }
-
-    #[cfg(test)]
-    pub(super) fn rebuild_index(&mut self) {
-        self.index.clear();
-        self.vacant_slots.clear();
-        self.next_order = 0;
-        for (slot, projection) in self.slots.iter().enumerate() {
-            let Some(projection) = projection else {
-                self.vacant_slots.push(slot);
-                continue;
-            };
-            self.index.insert(
-                projection
-                    .installed_reference()
-                    .definition()
-                    .identity()
-                    .clone(),
-                slot,
-            );
-            self.next_order = self.next_order.max(
-                projection
-                    .fact()
-                    .source_order()
-                    .expect("retained settlements carry source coordinates")
-                    .as_u64(),
-            );
-        }
-    }
 }

@@ -17,6 +17,29 @@ pub(crate) fn validate_query_audience_rules(
     let mut diagnostics = Vec::new();
 
     for package in packages {
+        if let Some(certification_package) = &contract.certification_package {
+            if package
+                .dependencies
+                .iter()
+                .any(|dependency| dependency == certification_package)
+                && !contract
+                    .certification_consumers
+                    .iter()
+                    .any(|owner| owner == &package.name)
+            {
+                diagnostics.push(Diagnostic::with_legal_home(
+                    DiagnosticCode::Bc3002WrongQueryAudience,
+                    &package.name,
+                    format!(
+                        "package may not depend on cold Query certification `{certification_package}`"
+                    ),
+                    format!(
+                        "tools/boundary-check/config/road1.toml [rule_contracts.query_audience.certification_consumers]; configured owners: {}",
+                        render_bands(&contract.certification_consumers)
+                    ),
+                ));
+            }
+        }
         let Ok(source_name) = parse_crate_name(&package.name) else {
             continue;
         };
@@ -165,10 +188,16 @@ mod tests {
             workspace: "workspaces/worth-query".into(),
             engine_package: "worth-query".into(),
             certification_package: Some("worth-query-certification".into()),
+            certification_authority_packages: vec![
+                "worth-query-host".into(),
+                "worth-query-replay".into(),
+            ],
+            certification_consumers: vec!["worth-cert-workflows".into()],
             internal_packages: vec![
                 "worth-query-declaration".into(),
                 "worth-query-installation".into(),
             ],
+            facade_surfaces: Vec::new(),
             audiences: [
                 ("worth-query-decl", &["entry", "cert"][..]),
                 ("worth-query-host", &["entry", "cert"][..]),
@@ -203,5 +232,52 @@ mod tests {
                 "workspaces/worth-query/crates/worth-query-{facade}/src/facade.rs"
             )));
         }
+    }
+
+    #[test]
+    fn cold_certification_dependency_is_explicitly_owner_gated() {
+        let contract = contract();
+        let denied = Road1Package {
+            name: "worth-cert-replay".into(),
+            dependencies: vec!["worth-query-certification".into()],
+            manifest_path: "Cargo.toml".into(),
+        };
+        assert!(validate_query_audience_rules(&[denied], &contract)
+            .iter()
+            .any(|diagnostic| diagnostic.code() == DiagnosticCode::Bc3002WrongQueryAudience));
+
+        let admitted = Road1Package {
+            name: "worth-cert-workflows".into(),
+            dependencies: vec!["worth-query-certification".into()],
+            manifest_path: "Cargo.toml".into(),
+        };
+        assert!(validate_query_audience_rules(&[admitted], &contract).is_empty());
+    }
+
+    #[test]
+    fn replay_audience_is_denied_across_every_ordinary_consumer_band() {
+        let contract = contract();
+        for band in [
+            "entry", "derived", "app", "ui", "resolver", "solver", "pack",
+        ] {
+            let package = Road1Package {
+                name: format!("worth-{band}-phase-twenty-six"),
+                dependencies: vec!["worth-query-replay".into()],
+                manifest_path: "Cargo.toml".into(),
+            };
+            let diagnostics = validate_query_audience_rules(&[package], &contract);
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code() == DiagnosticCode::Bc3002WrongQueryAudience),
+                "{band} must not import replay"
+            );
+        }
+        let cert = Road1Package {
+            name: "worth-cert-workflows".into(),
+            dependencies: vec!["worth-query-replay".into()],
+            manifest_path: "Cargo.toml".into(),
+        };
+        assert!(validate_query_audience_rules(&[cert], &contract).is_empty());
     }
 }

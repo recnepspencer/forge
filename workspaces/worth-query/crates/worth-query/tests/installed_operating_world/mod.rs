@@ -52,6 +52,7 @@ mod operation_progression;
 mod operation_reexecution;
 mod operation_sharing;
 mod operation_sharing_admission;
+mod public_facade_dx;
 mod workflow_effect_execution;
 mod workflow_graph_installation;
 mod workflow_parallel_progression;

@@ -18,7 +18,7 @@ impl UiMeasurementEvidenceIndex {
     ) -> Self {
         let mut index = Self::default();
         for (position, input) in inputs.iter().enumerate() {
-            if let Some(receipt) = input.as_query_projection_fact() {
+            if let Some(receipt) = input.as_settled_query_fact() {
                 let mapping = super::UiQueryAllocationTargetMapping::from_admitted_receipt(
                     receipt,
                     query_target,

@@ -126,7 +126,7 @@ pub(crate) fn denied_measurement_basis(label: &str) -> UiMeasurementBasis {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
         ],
@@ -165,7 +165,7 @@ pub(crate) fn admitted_query_measurement_basis(label: &str) -> UiMeasurementBasi
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),

@@ -16,11 +16,9 @@ use worth_ui::facade::registry::{
     MosaicStateTruthPosture, MosaicViewportConstraint, NamedMeasurementDefinition,
     NamedMeasurementToken, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
-    ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingId,
 };
-use worth_ui_query_binding::certification::{
-    worth_ui_query_snapshot_prerequisites, WorthUiInstalledQueryTestFixture,
-};
+use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
 
 pub(crate) const CURRENT_COMPONENT: &str = "workspace.component.authority_current";
 pub(crate) const CANDIDATE_COMPONENT: &str = "workspace.component.authority_candidate";
@@ -51,11 +49,9 @@ where
 {
     WorthUi::app()
         .with_host(host)
-        .with_graph_world_profile(UiGraphWorldProfile::query_snapshot_basis(
-            worth_ui_query_snapshot_prerequisites(
-                "authority-closure",
-                ["worth-ui.phase14", "application", "authority-closure"],
-            ),
+        .with_graph_world_profile(UiGraphWorldProfile::settled_query_view(
+            ViewBindingId::new(QUERY_BINDING).expect("valid Query view binding id"),
+            &query.installed_view(),
         ))
         .register_component(component(CURRENT_COMPONENT))
         .register_component(component(CANDIDATE_COMPONENT))

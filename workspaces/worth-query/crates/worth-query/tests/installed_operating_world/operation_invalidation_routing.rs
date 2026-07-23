@@ -241,16 +241,8 @@ fn settle_installed_ordering(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(
-            foundation::basis_lifecycle()
-                .current_head()
-                .for_observation()
-                .unwrap()
-                .admit()
-                .unwrap()
-                .capability()
-                .clone(),
-        )
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ImpactCollectionRead)
         .unwrap();

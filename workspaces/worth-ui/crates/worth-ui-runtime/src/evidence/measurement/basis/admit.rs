@@ -71,7 +71,7 @@ pub fn admit_measurement_basis(
         declaration_support_authority_generation,
         selected
             .query_receipt
-            .map(super::assembly::SelectedQueryReceipt::declaration_support_authority_generation),
+            .map(|receipt| receipt.declaration_support_authority_generation()),
         selected.host_capability_report,
         [
             selected.host_results.text_intrinsic_size,

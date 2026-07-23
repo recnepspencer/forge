@@ -6,13 +6,18 @@ impl WorthUiActiveApplicationSession {
         self.app.admission()
     }
 
-    pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
+    pub fn admit_query_measurement_eligibility_for_touch_from_settled_fact(
         &self,
         touch: &crate::obligations::touch::UiGraphTouchDescriptor,
-        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
     ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
         self.app
-            .admit_query_measurement_eligibility_for_touch_from_query_authority(touch, authority)
+            .admit_query_measurement_eligibility_for_touch_from_settled_fact(
+                touch,
+                view_binding_id,
+                fact,
+            )
     }
 
     pub fn try_query_touch_for_node(

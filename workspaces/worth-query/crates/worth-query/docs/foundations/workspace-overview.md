@@ -54,7 +54,8 @@ Stable runtime-backed entry points:
 - `workspace.admit_public_api_family(...)`
 - `workspace.downstream_delivery(...)`
 - `workspace.domain(DomainMarker)`
-- `workspace.operating_world(admitted_basis)`
+- `workspace.observe_operating_world()` or
+  `workspace.prepare_mutation_operating_world()`
 - `.family(FamilyMarker).bind(&installed_domain, OperationMarker)`
 
 The public support and mutation-surface contracts define the runtime story.

@@ -1,15 +1,14 @@
 use std::sync::OnceLock;
 
 use worth_foundational::facade::{
-    AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
-    AspectKey, AspectMask, CanonicalFieldPath, FieldDeclaration, FieldKey, FieldRequirement,
-    ProjectionMask, ScalarAspectType, StructAspectShape,
+    AspectContract, AspectKey, AspectMask, CanonicalFieldPath, FieldKey, ProjectionMask,
+    ScalarAspectType,
 };
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, foundation, read, runtime};
 use worth_query_declaration::facade::authoring::{
     AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField,
-    CollectionQueryBuilder, CollectionResultShapeBuilder, RootEntityKey,
+    CollectionQueryBuilder, CollectionResultShapeBuilder, OrderingSelector, RootEntityKey,
 };
 use worth_query_declaration::facade::binding::QueryBindingDescriptor;
 use worth_query_declaration::facade::canonicalization::canonicalize_request;
@@ -18,10 +17,13 @@ use super::samples::{matrix_aspect_key, matrix_contract, matrix_value, MATRIX_AS
 use super::world_scale::add_unrelated_domains;
 use crate::suite::installed_operation_fixture::{semantic_closure, GeometryDomain, ReadFamily};
 
+#[path = "fixture/identity_contract.rs"]
+mod identity_contract;
+
 pub(super) const COLLECTION: &str = "NativeMatrix";
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct NativeMatrixRead;
+pub(crate) struct NativeMatrixRead;
 
 impl domain::WorthQueryExecutableDomainOperation<GeometryDomain, ReadFamily> for NativeMatrixRead {
     type Input = ();
@@ -63,7 +65,7 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, NativeMatrixRead,
     }
 }
 
-pub(super) fn matrix_workspace(
+pub(crate) fn matrix_workspace(
     name: &str,
     row_count: usize,
     unrelated_domains: bool,
@@ -78,6 +80,22 @@ pub(super) fn matrix_workspace_with_values(
     name: &str,
     values: &[worth_foundational::facade::StructAspectValue],
     unrelated_domains: bool,
+) -> runtime::WorthQueryWorkspace {
+    matrix_workspace_with_lookup(name, values, unrelated_domains, true)
+}
+
+pub(super) fn matrix_workspace_without_collection_lookup(
+    name: &str,
+    values: &[worth_foundational::facade::StructAspectValue],
+) -> runtime::WorthQueryWorkspace {
+    matrix_workspace_with_lookup(name, values, false, false)
+}
+
+fn matrix_workspace_with_lookup(
+    name: &str,
+    values: &[worth_foundational::facade::StructAspectValue],
+    unrelated_domains: bool,
+    collection_entity_lookup_supported: bool,
 ) -> runtime::WorthQueryWorkspace {
     let contract = matrix_contract(1);
     let semantics = matrix_semantics(contract.clone());
@@ -95,7 +113,7 @@ pub(super) fn matrix_workspace_with_values(
     let schema = WorthQueryTestBackendSchema::single_collection(COLLECTION)
         .aspect_contract(contract)
         .unwrap()
-        .aspect_contract(identity_contract())
+        .aspect_contract(identity_contract::identity_contract())
         .unwrap()
         .native_aspect_mapping(
             runtime::WorthQueryAspectTouch::whole_aspect(matrix_aspect_key()),
@@ -113,6 +131,30 @@ pub(super) fn matrix_workspace_with_values(
     let mut builder = in_memory_test_runtime()
         .with_schema(schema)
         .domain_package(package)
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::Continuation,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::CollectionDelivery,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::Sharing,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::Invalidation,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::DependencyImpact,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
+        .consumer_support_posture(
+            domain::WorthQueryConsumerSupportDimension::Live,
+            domain::WorthQueryConsumerSupportPosture::Supported,
+        )
         .domain_operation_executor(
             GeometryDomain,
             NativeMatrixRead,
@@ -122,26 +164,40 @@ pub(super) fn matrix_workspace_with_values(
     if unrelated_domains {
         builder = add_unrelated_domains(builder);
     }
+    if !collection_entity_lookup_supported {
+        builder = builder.without_collection_entity_lookup();
+    }
     let mut workspace = builder.workspace(name).unwrap();
     for (row, value) in values.iter().enumerate() {
-        workspace
-            .insert(COLLECTION, |mutation| {
-                mutation
-                    .set_aspect(
-                        runtime::WorthQueryAspectTouch::whole_aspect(matrix_aspect_key()),
-                        value.clone(),
-                    )
-                    .set_aspect(
-                        runtime::WorthQueryAspectTouch::aspect_field_path(
-                            AspectKey::new("identity").unwrap(),
-                            CanonicalFieldPath::single(FieldKey::new("id").unwrap()),
-                        ),
-                        format!("matrix-row-{row:04}"),
-                    )
-            })
-            .unwrap();
+        insert_matrix_value(&mut workspace, row, value.clone());
     }
     workspace
+}
+
+pub(crate) fn insert_matrix_value(
+    workspace: &mut runtime::WorthQueryWorkspace,
+    row: usize,
+    value: worth_foundational::facade::StructAspectValue,
+) -> foundation::WorthQueryEntityIdentity {
+    workspace
+        .insert(COLLECTION, |mutation| {
+            mutation
+                .set_aspect(
+                    runtime::WorthQueryAspectTouch::whole_aspect(matrix_aspect_key()),
+                    value,
+                )
+                .set_aspect(
+                    runtime::WorthQueryAspectTouch::aspect_field_path(
+                        AspectKey::new("identity").unwrap(),
+                        CanonicalFieldPath::single(FieldKey::new("id").unwrap()),
+                    ),
+                    format!("matrix-row-{row:04}"),
+                )
+        })
+        .unwrap()
+        .deltas()[0]
+        .entity_identity()
+        .clone()
 }
 
 pub(super) fn bind(
@@ -154,22 +210,11 @@ pub(super) fn bind(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, NativeMatrixRead)
         .unwrap()
-}
-
-pub(super) fn observation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }
 
 pub(super) fn matrix_read_declaration() -> &'static read::WorthQueryReadDeclaration {
@@ -178,32 +223,41 @@ pub(super) fn matrix_read_declaration() -> &'static read::WorthQueryReadDeclarat
         read::declare(|builder| {
             builder.local_collection(
                 COLLECTION,
-                read::QuerySchemaView::new("native-matrix-v1", schema_fields(), []),
+                read::QuerySchemaView::new("native-matrix-v1", declaration_schema_fields(), []),
                 |query| {
                     schema_fields()
                         .into_iter()
-                        .fold(query, |query, field| {
-                            query.project(
-                                read::AspectFieldSelector::new(
+                        .fold(
+                            query
+                                .project(read::AspectFieldSelector::new("identity", "id").unwrap()),
+                            |query, field| {
+                                query.project(
+                                    read::AspectFieldSelector::new(
+                                        MATRIX_ASPECT,
+                                        field.field_name().as_str(),
+                                    )
+                                    .unwrap(),
+                                )
+                            },
+                        )
+                        .order_by(read::OrderingSelector::ascending(MATRIX_ASPECT, "f15").unwrap())
+                },
+                |shape| {
+                    schema_fields().into_iter().fold(
+                        shape.field(
+                            read::AuthoredResultShapeField::new("identity", "id", "id").unwrap(),
+                        ),
+                        |shape, field| {
+                            shape.field(
+                                read::AuthoredResultShapeField::new(
                                     MATRIX_ASPECT,
+                                    field.field_name().as_str(),
                                     field.field_name().as_str(),
                                 )
                                 .unwrap(),
                             )
-                        })
-                        .order_by(read::OrderingSelector::ascending(MATRIX_ASPECT, "f15").unwrap())
-                },
-                |shape| {
-                    schema_fields().into_iter().fold(shape, |shape, field| {
-                        shape.field(
-                            read::AuthoredResultShapeField::new(
-                                MATRIX_ASPECT,
-                                field.field_name().as_str(),
-                                field.field_name().as_str(),
-                            )
-                            .unwrap(),
-                        )
-                    })
+                        },
+                    )
                 },
             )
         })
@@ -216,33 +270,29 @@ fn matrix_canonical_bundle(
     let query = schema_fields()
         .into_iter()
         .fold(
-            CollectionQueryBuilder::new(RootEntityKey::new(COLLECTION).unwrap()),
+            CollectionQueryBuilder::new(RootEntityKey::new(COLLECTION).unwrap())
+                .project(AspectFieldSelector::new("identity", "id").unwrap()),
             |query, field| {
                 query.project(
                     AspectFieldSelector::new(MATRIX_ASPECT, field.field_name().as_str()).unwrap(),
                 )
             },
         )
-        .order_by(
-            worth_query_declaration::facade::authoring::OrderingSelector::ascending(
-                MATRIX_ASPECT,
-                "f15",
-            )
-            .unwrap(),
-        );
-    let shape =
-        schema_fields()
-            .into_iter()
-            .fold(CollectionResultShapeBuilder::new(), |shape, field| {
-                shape.field(
-                    AuthoredResultShapeField::new(
-                        MATRIX_ASPECT,
-                        field.field_name().as_str(),
-                        field.field_name().as_str(),
-                    )
-                    .unwrap(),
+        .order_by(OrderingSelector::ascending(MATRIX_ASPECT, "f15").unwrap());
+    let shape = schema_fields().into_iter().fold(
+        CollectionResultShapeBuilder::new()
+            .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap()),
+        |shape, field| {
+            shape.field(
+                AuthoredResultShapeField::new(
+                    MATRIX_ASPECT,
+                    field.field_name().as_str(),
+                    field.field_name().as_str(),
                 )
-            });
+                .unwrap(),
+            )
+        },
+    );
     canonicalize_request(
         AuthoredQueryBundleRequest::for_ordinary_read(
             query.build().unwrap().into_raw(),
@@ -276,20 +326,22 @@ pub(super) fn matrix_semantics(
             semantic_reads: vec![native_projection],
         }],
     };
-    semantics.collection =
-        domain::WorthQueryOperationCollectionContract::Collection {
-            row_identity_field: domain::WorthQueryOperationCollectionField::from_dotted(&format!(
-                "{MATRIX_ASPECT}.f15"
-            ))
-            .expect("valid collection field"),
-            ordering_fields: vec![domain::WorthQueryOperationCollectionField::from_dotted(
-                &format!("{MATRIX_ASPECT}.f15"),
-            )
-            .expect("valid collection field")],
-            grouping: domain::WorthQueryOperationGroupingContract::Ungrouped,
-            window: domain::WorthQueryOperationWindowPolicy::CompleteCollection,
-            continuation: domain::WorthQueryOperationContinuationPosture::NotRequired,
-        };
+    semantics.collection = domain::WorthQueryOperationCollectionContract::Collection {
+        row_identity_field: domain::WorthQueryOperationCollectionField::from_dotted("identity.id")
+            .expect("valid collection identity field"),
+        ordering_fields: vec![domain::WorthQueryOperationCollectionField::new(
+            matrix_aspect_key(),
+            CanonicalFieldPath::single(FieldKey::new("f15").unwrap()),
+        )],
+        grouping: domain::WorthQueryOperationGroupingContract::Ungrouped,
+        window: domain::WorthQueryOperationWindowPolicy::ContinuationBounded,
+        continuation: domain::WorthQueryOperationContinuationPosture::LiveCursor,
+    };
+    semantics.support.continuation = domain::WorthQuerySupportRequirement::Required;
+    semantics.support.collection_delivery = domain::WorthQuerySupportRequirement::Required;
+    semantics.support.sharing = domain::WorthQuerySupportRequirement::Required;
+    semantics.support.invalidation = domain::WorthQuerySupportRequirement::Required;
+    semantics.support.dependency_impact = domain::WorthQuerySupportRequirement::Required;
     semantics.lowering.family = "native-matrix-read-v1".into();
     semantics
 }
@@ -312,27 +364,20 @@ fn schema_fields() -> Vec<read::SchemaFieldView> {
         .collect()
 }
 
+fn declaration_schema_fields() -> Vec<read::SchemaFieldView> {
+    let mut fields = vec![read::SchemaFieldView::new(
+        read::AspectName::new("identity").unwrap(),
+        read::FieldName::new("id").unwrap(),
+        ScalarAspectType::String,
+    )];
+    fields.extend(schema_fields());
+    fields
+}
+
 fn domain_identity<D>(name: &str) -> domain::WorthQueryDomainIdentityDeclaration<D> {
     domain::WorthQueryDomainIdentityDeclaration::new(
         domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
         domain::WorthQueryDomainIdentityName::new(name).unwrap(),
         domain::WorthQueryDomainSemanticVersion::new(1, 0),
-    )
-}
-
-fn identity_contract() -> AspectContract {
-    AspectContract::struct_aspect(
-        AspectKey::new("identity").unwrap(),
-        AspectIdentity(0x9150_1002),
-        AspectContractRevision(1),
-        StructAspectShape::new([FieldDeclaration::new(
-            FieldKey::new("id").unwrap(),
-            ScalarAspectType::String,
-            FieldRequirement::Required,
-            AbsenceLaw::Required,
-            AspectEvolutionPolicy::ExplicitBreakRequired,
-        )
-        .unwrap()])
-        .unwrap(),
     )
 }

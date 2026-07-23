@@ -35,6 +35,7 @@ pub struct WorthQueryConsumerInvalidationAuthority {
     lease: WorthQuerySharedProjectionLeaseIdentity,
     source_identity: String,
     binding_identity: String,
+    collection_delivery_contract_identity: Option<String>,
     _owner_identity:
         QuerySignalInvalidationAuthorityIdentity<Arc<str>, QuerySignalInvalidationIdentityKind>,
 }
@@ -51,6 +52,12 @@ impl WorthQueryConsumerInvalidationAuthority {
                 "worth_query_consumer_invalidation_authority_v1".into(),
                 format!("source:{}", readmission.source_identity),
                 format!("binding:{}", readmission.binding_identity),
+                format!(
+                    "collection-delivery:{}",
+                    readmission
+                        .collection_delivery_contract_identity
+                        .unwrap_or("not-declared")
+                ),
                 format!("owner-generation:{}", readmission.owner.generation()),
                 format!("lease-generation:{}", readmission.lease.generation()),
             ])),
@@ -66,6 +73,9 @@ impl WorthQueryConsumerInvalidationAuthority {
             lease: readmission.lease,
             source_identity: readmission.source_identity.to_string(),
             binding_identity: readmission.binding_identity.to_string(),
+            collection_delivery_contract_identity: readmission
+                .collection_delivery_contract_identity
+                .map(str::to_string),
             _owner_identity: owner_identity,
         }
     }
@@ -108,6 +118,10 @@ impl WorthQueryConsumerInvalidationAuthority {
         &self.binding_identity
     }
 
+    pub(crate) fn collection_delivery_contract_identity(&self) -> Option<&str> {
+        self.collection_delivery_contract_identity.as_deref()
+    }
+
     pub fn is_same_current_authority_as(&self, candidate: &Self) -> bool {
         self.runtime_authority == candidate.runtime_authority
             && self.installation_generation == candidate.installation_generation
@@ -118,6 +132,8 @@ impl WorthQueryConsumerInvalidationAuthority {
             && self.lease == candidate.lease
             && self.source_identity == candidate.source_identity
             && self.binding_identity == candidate.binding_identity
+            && self.collection_delivery_contract_identity
+                == candidate.collection_delivery_contract_identity
     }
 
     pub(crate) fn readmits(
@@ -136,6 +152,8 @@ impl WorthQueryConsumerInvalidationAuthority {
             && self.lease == readmission.lease
             && self.source_identity == readmission.source_identity
             && self.binding_identity == readmission.binding_identity
+            && self.collection_delivery_contract_identity.as_deref()
+                == readmission.collection_delivery_contract_identity
     }
 }
 

@@ -88,7 +88,7 @@ fn measurement_inspection_view_preserves_generation_mismatch() {
         worth_ui_inspection::UiEvidenceAuthorityGeneration::new(4),
         &policy,
         &[
-            MeasurementEvidenceInput::query_projection_fact(&projection_receipt),
+            MeasurementEvidenceInput::settled_query_fact(&projection_receipt),
             MeasurementEvidenceInput::host_capability_report(&host_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
         ],
@@ -144,7 +144,7 @@ fn measurement_inspection_view_materializes_successful_basis_lineage() {
         worth_ui_inspection::UiEvidenceAuthorityGeneration::new(5),
         &policy,
         &[
-            MeasurementEvidenceInput::query_projection_fact(&projection_receipt),
+            MeasurementEvidenceInput::settled_query_fact(&projection_receipt),
             MeasurementEvidenceInput::host_capability_report(&host_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),

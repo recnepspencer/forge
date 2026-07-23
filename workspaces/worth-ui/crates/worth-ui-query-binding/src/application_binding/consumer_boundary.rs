@@ -1,8 +1,9 @@
-use worth_query::facade::domain::{
+use worth_query::facade::foundation::ObservationLaneWitness;
+use worth_query::facade::installed::operation::{
     WorthQueryConsumerBoundary, WorthQueryConsumerBoundaryRequirements,
     WorthQueryConsumerProjectionContractDenial,
 };
-use worth_query::facade::foundation::ObservationLaneWitness;
+use worth_query::facade::installed::WorthQueryOperationBindingDenial;
 
 use super::{WorthUiBoundSnapshotMeasurement, WorthUiQueryOperatingWorldGateway};
 use crate::WorthUiQueryViewShape;
@@ -103,7 +104,7 @@ pub enum WorthUiSnapshotConsumerPreparationDenial {
         installed: WorthUiQueryViewShape,
         requested: WorthUiQueryViewShape,
     },
-    Binding(worth_query::facade::domain::WorthQueryOperationBindingDenial),
+    Binding(WorthQueryOperationBindingDenial),
     ConsumerContract(WorthQueryConsumerProjectionContractDenial),
 }
 
@@ -123,7 +124,7 @@ pub struct WorthUiPreparedSnapshotConsumer {
     requirements: WorthUiQueryConsumerRequirements,
 }
 
-impl WorthUiQueryOperatingWorldGateway<'_, ObservationLaneWitness> {
+impl WorthUiQueryOperatingWorldGateway<'_> {
     pub fn prepare_snapshot_consumer(
         self,
         requirements: WorthUiQueryConsumerRequirements,
@@ -165,7 +166,7 @@ impl WorthUiPreparedSnapshotConsumer {
 
     pub fn query_contract(
         &self,
-    ) -> &worth_query::facade::domain::WorthQueryConsumerProjectionContract<
+    ) -> &worth_query::facade::installed::operation::WorthQueryConsumerProjectionContract<
         crate::WorthUiDomainEntry,
         crate::WorthUiSnapshotMeasurement,
         crate::WorthUiSnapshotMeasurementFamily,

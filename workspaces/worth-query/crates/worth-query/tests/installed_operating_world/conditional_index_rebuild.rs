@@ -1,4 +1,4 @@
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use super::conditional_node_contract::node;
 use super::installed_operation_fixture::{
@@ -16,7 +16,8 @@ fn rebuilt_conditional_lookup_retains_the_exact_installed_authority() {
 
     let installed = workspace.domain(GeometryDomain).unwrap();
     let before_rebuild = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -27,7 +28,8 @@ fn rebuilt_conditional_lookup_retains_the_exact_installed_authority() {
     assert!(report.exact_index_parity());
 
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -49,15 +51,4 @@ fn rebuilt_conditional_lookup_retains_the_exact_installed_authority() {
     );
     assert_eq!(executed.counters().conditional_compute_contacts, 1);
     assert_eq!(executed.counters().executor_contacts, 1);
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

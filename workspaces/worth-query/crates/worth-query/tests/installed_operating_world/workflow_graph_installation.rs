@@ -1,5 +1,3 @@
-use worth_query::facade::foundation;
-
 use super::installed_operation_fixture::{
     invalid_workflow_workspace, mismatched_workflow_determinism_workspace,
     mismatched_workflow_lowering_workspace, reversed_workflow_workspace, workflow_workspace,
@@ -96,7 +94,8 @@ fn installed_graph(name: &str, reversed: bool) -> Vec<String> {
     .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
@@ -107,15 +106,4 @@ fn installed_graph(name: &str, reversed: bool) -> Vec<String> {
         .iter()
         .map(|stage| stage.identity().to_string())
         .collect()
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

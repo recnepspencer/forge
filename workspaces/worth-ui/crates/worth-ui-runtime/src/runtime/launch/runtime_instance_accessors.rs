@@ -56,7 +56,12 @@ impl WorthUiRuntime {
 
     pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
         let queue_disposition = self.shutdown_allocation_frame_dispatcher();
-        WorthUiRuntimeShutdownReceipt::new(self.active.frame_epoch(), queue_disposition)
+        let query_retirement = self.query_binding.into_operation_live_retirement();
+        WorthUiRuntimeShutdownReceipt::new(
+            self.active.frame_epoch(),
+            queue_disposition,
+            query_retirement,
+        )
     }
 
     #[cfg(test)]

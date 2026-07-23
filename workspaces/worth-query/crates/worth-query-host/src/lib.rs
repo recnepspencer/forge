@@ -5,12 +5,16 @@
 //! installed-domain namespaces without adding another executable authority.
 //!
 //! ```
-//! use worth_query_host::facade::{domain, runtime};
+//! use worth_query_host::facade::{domain, installed, runtime};
 //! # fn _host_surface(
 //! #     builder: runtime::WorthQueryRuntimeBuilder,
 //! #     package: domain::WorthQueryDomainPackage<impl domain::WorthQueryDomainEntryMarker>,
 //! # ) {
-//! #     let _ = (builder, package);
+//! #     let _ = (
+//! #         builder,
+//! #         package,
+//! #         std::any::TypeId::of::<installed::operation::WorthQueryOperationResultState>(),
+//! #     );
 //! # }
 //! ```
 

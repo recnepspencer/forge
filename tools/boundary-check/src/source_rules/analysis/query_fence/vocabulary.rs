@@ -87,7 +87,10 @@ mod tests {
             workspace: ".".into(),
             engine_package: "worth-query".into(),
             certification_package: None,
+            certification_authority_packages: Vec::new(),
+            certification_consumers: Vec::new(),
             internal_packages: Vec::new(),
+            facade_surfaces: Vec::new(),
             audiences: vec![QueryAudienceFacadeConfig {
                 package: "worth-query-decl".into(),
                 label: "declaration".into(),

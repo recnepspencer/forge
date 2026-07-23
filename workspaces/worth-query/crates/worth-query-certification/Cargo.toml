@@ -8,12 +8,17 @@ description = "Cold compiler and hostile certification for WORTH Query."
 publish = false
 
 [dependencies]
-worth-query.workspace = true
+worth-query-host.workspace = true
+worth-query-replay.workspace = true
 
 [dev-dependencies]
 trybuild.workspace = true
 worth-foundational.workspace = true
+worth-query.workspace = true
 worth-proof.workspace = true
+worth-relational.workspace = true
+worth-runtime-bridge.workspace = true
+worth-signal.workspace = true
 
 [[test]]
 name = "compile_certification"

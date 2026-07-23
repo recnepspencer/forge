@@ -33,7 +33,7 @@ fn graph_measurement_neighborhood_hint_stays_basis_derived_and_node_local() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
                 11,
@@ -91,7 +91,7 @@ fn graph_measurement_neighborhood_hint_identity_changes_when_dependency_map_chan
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&stable_font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&narrow_viewport),
@@ -104,7 +104,7 @@ fn graph_measurement_neighborhood_hint_identity_changes_when_dependency_map_chan
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&stable_font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&wide_viewport),

@@ -5,7 +5,8 @@ use crate::admission::{
     UiSupportSnapshot,
 };
 use crate::declaration::{
-    UiDeclarationArtifact, UiDeclarationSupportRowSchemaKind, UiDeclaredPostureApplicability,
+    UiDeclarationArtifact, UiDeclarationSupportRow, UiDeclarationSupportRowSchemaKind,
+    UiDeclaredPostureApplicability,
 };
 use crate::evidence::UiEvidenceAuthorityGeneration;
 use crate::graph::{UiGraphNodeRecord, UiGraphSnapshot};
@@ -36,93 +37,42 @@ impl<'a> UiAdmissionBoundary<'a> {
     }
 
     pub fn support_snapshot(&self, target: &UiAdmissionTarget) -> UiSupportSnapshot {
-        let family = UiAdmissionFamily::TouchMeaning;
+        UiSupportSnapshot::new(target.clone(), self.touch_support_posture(target))
+    }
+
+    fn touch_support_posture(&self, target: &UiAdmissionTarget) -> UiSupportPosture {
         if target.world().graph_world_profile() != self.graph_snapshot.world_profile() {
-            return UiSupportSnapshot::new(
-                target.clone(),
-                UiSupportPosture::WrongWorld {
-                    family,
-                    expected: UiAdmissionWorld::from_graph_world_profile(
-                        self.graph_snapshot.world_profile().clone(),
-                    ),
-                    observed: target.world().clone(),
-                },
-            );
+            return UiSupportPosture::WrongWorld {
+                family: UiAdmissionFamily::TouchMeaning,
+                expected: UiAdmissionWorld::from_graph_world_profile(
+                    self.graph_snapshot.world_profile().clone(),
+                ),
+                observed: target.world().clone(),
+            };
         }
-
         let Some(node_record) = self.graph_node_record(target) else {
-            return UiSupportSnapshot::new(
-                target.clone(),
-                UiSupportPosture::Unsupported {
-                    family,
-                    reason: UiSupportReason::TargetOutsideAdmissionBoundary,
-                    world: target.world().clone(),
-                },
+            return unsupported_touch_posture(
+                target,
+                UiSupportReason::TargetOutsideAdmissionBoundary,
             );
         };
-        let declaration_identity = node_record.declaration_identity();
-        let Some(artifact) = self.support_artifact(declaration_identity) else {
-            return UiSupportSnapshot::new(
-                target.clone(),
-                UiSupportPosture::Unsupported {
-                    family,
-                    reason: UiSupportReason::MissingDeclarationSupportEvidence,
-                    world: target.world().clone(),
-                },
+        let Some(row) = self.touch_support_row(node_record.declaration_identity()) else {
+            return unsupported_touch_posture(
+                target,
+                UiSupportReason::MissingDeclarationSupportEvidence,
             );
         };
-        let Ok(snapshot) = artifact.support_snapshot() else {
-            return UiSupportSnapshot::new(
-                target.clone(),
-                UiSupportPosture::Unsupported {
-                    family,
-                    reason: UiSupportReason::MissingDeclarationSupportEvidence,
-                    world: target.world().clone(),
-                },
-            );
-        };
-        let Some(row) = snapshot.row(UiDeclarationSupportRowSchemaKind::TouchMeaning) else {
-            return UiSupportSnapshot::new(
-                target.clone(),
-                UiSupportPosture::Unsupported {
-                    family,
-                    reason: UiSupportReason::MissingDeclarationSupportEvidence,
-                    world: target.world().clone(),
-                },
-            );
-        };
+        declared_touch_support_posture(target, row)
+    }
 
-        let posture = match row.unsupported_posture() {
-            Some(unsupported_posture) => UiSupportPosture::Deferred {
-                family,
-                expected_in: unsupported_posture.expected_in(),
-                world: target.world().clone(),
-            },
-            None => match row.applicability() {
-                UiDeclaredPostureApplicability::DiagnosticOnly => UiSupportPosture::DiagnosticOnly {
-                    family,
-                    world: target.world().clone(),
-                },
-                UiDeclaredPostureApplicability::Required
-                | UiDeclaredPostureApplicability::Optional => UiSupportPosture::Supported {
-                    family,
-                    world: target.world().clone(),
-                },
-                UiDeclaredPostureApplicability::NotApplicable => UiSupportPosture::Unsupported {
-                    family,
-                    reason: UiSupportReason::TouchMeaningNotApplicable,
-                    world: target.world().clone(),
-                },
-                UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted =>
-                    UiSupportPosture::Deferred {
-                        family,
-                        expected_in: crate::declaration::UiDeclarationSupportMilestoneExpectation::Milestone32,
-                        world: target.world().clone(),
-                    },
-            },
-        };
-
-        UiSupportSnapshot::new(target.clone(), posture)
+    fn touch_support_row(
+        &self,
+        declaration_identity: &crate::declaration::UiDeclarationIdentity,
+    ) -> Option<&UiDeclarationSupportRow> {
+        self.support_artifact(declaration_identity)?
+            .support_snapshot()
+            .ok()?
+            .row(UiDeclarationSupportRowSchemaKind::TouchMeaning)
     }
 
     pub fn admit(&self, target: UiAdmissionTarget) -> UiAdmissionDecision {
@@ -146,153 +96,22 @@ impl<'a> UiAdmissionBoundary<'a> {
     }
 
     fn legality_outcome(&self, target: &UiAdmissionTarget) -> UiAdmissionOutcome {
-        let ordinary_lane_cost = required_lane_cost(target);
-        if !target
-            .selection_budget()
-            .admits_lane_cost(ordinary_lane_cost)
-        {
-            return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                Some(target.graph_node_identity()),
-                None,
-                UiLegalityReason::BudgetExceeded {
-                    budget: target.selection_budget(),
-                    attempted_lane_cost: ordinary_lane_cost,
-                },
-            ));
+        if let Some(denial) = selection_budget_denial(target) {
+            return denial;
         }
         let node_record = self
             .graph_node_record(target)
             .expect("support-gated admission targets must resolve inside the local graph snapshot");
         let Some(artifact) = self.declaration_artifact(node_record.declaration_identity()) else {
-            return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                Some(node_record.graph_node_identity()),
-                Some(node_record.declaration_identity().clone()),
-                UiLegalityReason::Stale {
-                    required: UiAdmissionQueryBasis::GraphAligned,
-                    observed: UiAdmissionQueryBasis::StaleReceipt,
-                    evidence: UiAdmissionStaleEvidence::DeclarationArtifactMissing,
-                },
-            ));
+            return missing_declaration_artifact_denial(&node_record);
         };
-
-        if node_record.attachment_posture().query_binding_attached() {
-            let Some(query_prerequisites) = target.query_prerequisites() else {
-                return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                    Some(node_record.graph_node_identity()),
-                    Some(artifact.identity().clone()),
-                    UiLegalityReason::MissingQueryPrerequisiteEvidence,
-                ));
-            };
-
-            match query_prerequisites.basis_posture() {
-                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::WrongWorldProjection => {
-                    return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                        Some(node_record.graph_node_identity()),
-                        Some(artifact.identity().clone()),
-                        UiLegalityReason::WrongQueryBasis {
-                            required: UiAdmissionQueryBasis::GraphAligned,
-                            observed: target.query_basis(),
-                        },
-                    ));
-                }
-                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::RebindRequired => {
-                    return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                        Some(node_record.graph_node_identity()),
-                        Some(artifact.identity().clone()),
-                        UiLegalityReason::RebindRequired {
-                            required: UiAdmissionQueryBasis::GraphAligned,
-                            observed: target.query_basis(),
-                        },
-                    ));
-                }
-                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::StaleReceipt => {
-                    return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                        Some(node_record.graph_node_identity()),
-                        Some(artifact.identity().clone()),
-                        UiLegalityReason::Stale {
-                            required: UiAdmissionQueryBasis::GraphAligned,
-                            observed: target.query_basis(),
-                            evidence: UiAdmissionStaleEvidence::QueryReceiptExpired,
-                        },
-                    ));
-                }
-                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::AmbiguousSources => {
-                    return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                        Some(node_record.graph_node_identity()),
-                        Some(artifact.identity().clone()),
-                        UiLegalityReason::Ambiguous {
-                            required_query_basis: Some(UiAdmissionQueryBasis::GraphAligned),
-                            observed_query_basis: Some(target.query_basis()),
-                            required_host_capability: None,
-                            observed_host_capability: None,
-                        },
-                    ));
-                }
-                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::GraphAligned => {}
-            }
+        if let Some(denial) = query_basis_denial(target, &node_record, artifact) {
+            return denial;
         }
-
-        if node_record.attachment_posture().service_usage_attached() {
-            let Some(host_capability_report) = target.host_capability_report() else {
-                return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                    Some(node_record.graph_node_identity()),
-                    Some(artifact.identity().clone()),
-                    UiLegalityReason::MissingHostCapabilityReport,
-                ));
-            };
-
-            match host_capability_report.posture() {
-                worth_ui_host_contract::WorthUiHostCapabilityPosture::Missing => {
-                    return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                        Some(node_record.graph_node_identity()),
-                        Some(artifact.identity().clone()),
-                        UiLegalityReason::WrongHostCapability {
-                            required: UiAdmissionHostCapability::Available,
-                            observed: target.host_capability(),
-                        },
-                    ));
-                }
-                worth_ui_host_contract::WorthUiHostCapabilityPosture::Ambiguous => {
-                    return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
-                        Some(node_record.graph_node_identity()),
-                        Some(artifact.identity().clone()),
-                        UiLegalityReason::Ambiguous {
-                            required_query_basis: None,
-                            observed_query_basis: None,
-                            required_host_capability: Some(UiAdmissionHostCapability::Available),
-                            observed_host_capability: Some(target.host_capability()),
-                        },
-                    ));
-                }
-                worth_ui_host_contract::WorthUiHostCapabilityPosture::DiagnosticOnly
-                | worth_ui_host_contract::WorthUiHostCapabilityPosture::Available => {}
-            }
+        if let Some(denial) = host_capability_denial(target, &node_record, artifact) {
+            return denial;
         }
-
-        if node_record.attachment_posture().query_binding_attached() {
-            return UiAdmissionOutcome::AdmittedWithAdvisory(
-                UiLegalityDecision::admitted_with_advisory(
-                    node_record.graph_node_identity(),
-                    artifact.identity().clone(),
-                    UiLegalityReason::QueryBindingRequiresLaterRuntimeLane,
-                ),
-            );
-        }
-
-        if node_record.attachment_posture().service_usage_attached() {
-            return UiAdmissionOutcome::AdmittedWithAdvisory(
-                UiLegalityDecision::admitted_with_advisory(
-                    node_record.graph_node_identity(),
-                    artifact.identity().clone(),
-                    UiLegalityReason::ServiceUsageRequiresLaterRuntimeLane,
-                ),
-            );
-        }
-
-        UiAdmissionOutcome::Admitted(UiLegalityDecision::admitted(
-            node_record.graph_node_identity(),
-            artifact.identity().clone(),
-        ))
+        admitted_legality_outcome(&node_record, artifact)
     }
 
     pub(super) fn graph_node_record(
@@ -326,6 +145,185 @@ impl<'a> UiAdmissionBoundary<'a> {
 
 const fn required_lane_cost(_target: &UiAdmissionTarget) -> u8 {
     1
+}
+
+fn unsupported_touch_posture(
+    target: &UiAdmissionTarget,
+    reason: UiSupportReason,
+) -> UiSupportPosture {
+    UiSupportPosture::Unsupported {
+        family: UiAdmissionFamily::TouchMeaning,
+        reason,
+        world: target.world().clone(),
+    }
+}
+
+fn declared_touch_support_posture(
+    target: &UiAdmissionTarget,
+    row: &UiDeclarationSupportRow,
+) -> UiSupportPosture {
+    let family = UiAdmissionFamily::TouchMeaning;
+    let world = target.world().clone();
+    if let Some(unsupported_posture) = row.unsupported_posture() {
+        return UiSupportPosture::Deferred {
+            family,
+            expected_in: unsupported_posture.expected_in(),
+            world,
+        };
+    }
+    match row.applicability() {
+        UiDeclaredPostureApplicability::DiagnosticOnly => {
+            UiSupportPosture::DiagnosticOnly { family, world }
+        }
+        UiDeclaredPostureApplicability::Required | UiDeclaredPostureApplicability::Optional => {
+            UiSupportPosture::Supported { family, world }
+        }
+        UiDeclaredPostureApplicability::NotApplicable => UiSupportPosture::Unsupported {
+            family,
+            reason: UiSupportReason::TouchMeaningNotApplicable,
+            world,
+        },
+        UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted => {
+            UiSupportPosture::Deferred {
+                family,
+                expected_in:
+                    crate::declaration::UiDeclarationSupportMilestoneExpectation::Milestone32,
+                world,
+            }
+        }
+    }
+}
+
+fn selection_budget_denial(target: &UiAdmissionTarget) -> Option<UiAdmissionOutcome> {
+    let attempted_lane_cost = required_lane_cost(target);
+    (!target
+        .selection_budget()
+        .admits_lane_cost(attempted_lane_cost))
+    .then(|| {
+        UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
+            Some(target.graph_node_identity()),
+            None,
+            UiLegalityReason::BudgetExceeded {
+                budget: target.selection_budget(),
+                attempted_lane_cost,
+            },
+        ))
+    })
+}
+
+fn missing_declaration_artifact_denial(node_record: &UiGraphNodeRecord) -> UiAdmissionOutcome {
+    UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
+        Some(node_record.graph_node_identity()),
+        Some(node_record.declaration_identity().clone()),
+        UiLegalityReason::Stale {
+            required: UiAdmissionQueryBasis::GraphAligned,
+            observed: UiAdmissionQueryBasis::StaleReceipt,
+            evidence: UiAdmissionStaleEvidence::DeclarationArtifactMissing,
+        },
+    ))
+}
+
+fn query_basis_denial(
+    target: &UiAdmissionTarget,
+    node_record: &UiGraphNodeRecord,
+    artifact: &UiDeclarationArtifact,
+) -> Option<UiAdmissionOutcome> {
+    if !node_record.attachment_posture().query_binding_attached() {
+        return None;
+    }
+    let reason = match target.query_basis() {
+        UiAdmissionQueryBasis::WrongWorldProjection => UiLegalityReason::WrongQueryBasis {
+            required: UiAdmissionQueryBasis::GraphAligned,
+            observed: target.query_basis(),
+        },
+        UiAdmissionQueryBasis::RebindRequired => UiLegalityReason::RebindRequired {
+            required: UiAdmissionQueryBasis::GraphAligned,
+            observed: target.query_basis(),
+        },
+        UiAdmissionQueryBasis::StaleReceipt => UiLegalityReason::Stale {
+            required: UiAdmissionQueryBasis::GraphAligned,
+            observed: target.query_basis(),
+            evidence: UiAdmissionStaleEvidence::QueryReceiptExpired,
+        },
+        UiAdmissionQueryBasis::AmbiguousSources => UiLegalityReason::Ambiguous {
+            required_query_basis: Some(UiAdmissionQueryBasis::GraphAligned),
+            observed_query_basis: Some(target.query_basis()),
+            required_host_capability: None,
+            observed_host_capability: None,
+        },
+        UiAdmissionQueryBasis::GraphAligned => return None,
+    };
+    Some(legality_denial(node_record, artifact, reason))
+}
+
+fn host_capability_denial(
+    target: &UiAdmissionTarget,
+    node_record: &UiGraphNodeRecord,
+    artifact: &UiDeclarationArtifact,
+) -> Option<UiAdmissionOutcome> {
+    if !node_record.attachment_posture().service_usage_attached() {
+        return None;
+    }
+    let reason = match target.host_capability_report() {
+        None => UiLegalityReason::MissingHostCapabilityReport,
+        Some(report) => match report.posture() {
+            worth_ui_host_contract::WorthUiHostCapabilityPosture::Missing => {
+                UiLegalityReason::WrongHostCapability {
+                    required: UiAdmissionHostCapability::Available,
+                    observed: target.host_capability(),
+                }
+            }
+            worth_ui_host_contract::WorthUiHostCapabilityPosture::Ambiguous => {
+                UiLegalityReason::Ambiguous {
+                    required_query_basis: None,
+                    observed_query_basis: None,
+                    required_host_capability: Some(UiAdmissionHostCapability::Available),
+                    observed_host_capability: Some(target.host_capability()),
+                }
+            }
+            worth_ui_host_contract::WorthUiHostCapabilityPosture::DiagnosticOnly
+            | worth_ui_host_contract::WorthUiHostCapabilityPosture::Available => return None,
+        },
+    };
+    Some(legality_denial(node_record, artifact, reason))
+}
+
+fn legality_denial(
+    node_record: &UiGraphNodeRecord,
+    artifact: &UiDeclarationArtifact,
+    reason: UiLegalityReason,
+) -> UiAdmissionOutcome {
+    UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
+        Some(node_record.graph_node_identity()),
+        Some(artifact.identity().clone()),
+        reason,
+    ))
+}
+
+fn admitted_legality_outcome(
+    node_record: &UiGraphNodeRecord,
+    artifact: &UiDeclarationArtifact,
+) -> UiAdmissionOutcome {
+    let advisory = if node_record.attachment_posture().query_binding_attached() {
+        Some(UiLegalityReason::QueryBindingRequiresLaterRuntimeLane)
+    } else if node_record.attachment_posture().service_usage_attached() {
+        Some(UiLegalityReason::ServiceUsageRequiresLaterRuntimeLane)
+    } else {
+        None
+    };
+    match advisory {
+        Some(reason) => {
+            UiAdmissionOutcome::AdmittedWithAdvisory(UiLegalityDecision::admitted_with_advisory(
+                node_record.graph_node_identity(),
+                artifact.identity().clone(),
+                reason,
+            ))
+        }
+        None => UiAdmissionOutcome::Admitted(UiLegalityDecision::admitted(
+            node_record.graph_node_identity(),
+            artifact.identity().clone(),
+        )),
+    }
 }
 
 #[cfg(test)]

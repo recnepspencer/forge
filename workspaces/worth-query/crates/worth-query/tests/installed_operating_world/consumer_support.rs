@@ -1,4 +1,4 @@
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
     configured_runtime, support_dimension_workspace, workspace, GeometryDomain, ReadFamily,
@@ -10,13 +10,14 @@ fn bound_projection_mints_one_query_owned_support_contract() {
     let workspace = workspace("consumer-support", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
     let contract = bound.consumer_projection_contract().unwrap();
     assert_eq!(contract.binding_identity(), bound.binding_identity());
-    assert_eq!(contract.basis_identity(), bound.basis().capability_digest());
+    assert_eq!(contract.basis_identity(), bound.basis_identity());
     assert_eq!(
         contract.canonical_operation_identity(),
         bound.definition().canonical_identity()
@@ -91,7 +92,8 @@ fn runtime_support_truth_drifts_to_a_dimension_specific_query_denial() {
         .unwrap();
         let installed_domain = workspace.domain(GeometryDomain).unwrap();
         let bound = workspace
-            .operating_world(observation_basis())
+            .observe_operating_world()
+            .unwrap()
             .family(ReadFamily)
             .bind(&installed_domain, ReadVertex)
             .unwrap();
@@ -123,7 +125,8 @@ fn basis_support_drift_denies_before_other_dimension_admission() {
         .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -151,12 +154,14 @@ fn equivalent_runtime_paths_and_rebuilt_indexes_preserve_support_truth() {
     let direct_domain = direct.domain(GeometryDomain).unwrap();
     let rebuilt_domain = rebuilt.domain(GeometryDomain).unwrap();
     let direct_bound = direct
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&direct_domain, ReadVertex)
         .unwrap();
     let rebuilt_bound = rebuilt
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&rebuilt_domain, ReadVertex)
         .unwrap();
@@ -199,7 +204,8 @@ fn foundational_support_projection_preserves_exact_descriptive_support() {
         .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -233,15 +239,4 @@ fn foundational_support_projection_preserves_exact_descriptive_support() {
             .support_posture(),
         worth_foundational::facade::SupportPostureProfile::SupportReady
     );
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

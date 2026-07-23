@@ -79,7 +79,8 @@ Identity and denial contracts on the ordinary path are also explicit:
 - `runtime::WorthQueryRuntime::builder().domain_package(...)`
 - `runtime::WorthQueryRuntimeBuilder::domain_operation_executor(...)`
 - `workspace.domain(DomainMarker)`
-- `workspace.operating_world(admitted_basis)`
+- `workspace.observe_operating_world()` or
+  `workspace.prepare_mutation_operating_world()`
 - `.family(FamilyMarker).bind(&installed_domain, OperationMarker)`
 - `bound.consumer_projection_contract()`
 - `bound.execute(input, &mut workspace)`
@@ -235,7 +236,9 @@ Downstream runtimes should not recreate:
   `WorthQueryLowerRuntimeBoundaryEnvelopeSource` when a flow accepts any real
   boundary source
 - an operation registry beside the installed domain package
-- an operation-family runtime root beside `workspace.operating_world(...)`
+- an operation-family runtime root issued by
+  `workspace.observe_operating_world()` or
+  `workspace.prepare_mutation_operating_world()`
 - a workflow stage ledger beside the Query-minted workflow run
 - a consumer support mirror beside the bound consumer projection contract
 - conditional eligibility, threshold, trigger, or meaningful-change decisions

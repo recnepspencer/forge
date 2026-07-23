@@ -28,10 +28,10 @@ pub use framework_turn::{
 };
 pub(crate) use gateway::UiAllocationFrameGatewayState;
 pub use gateway::{
-    UiAllocationFrameGatewayOutcome, UiAllocationFrameQuerySettlementPosture,
-    UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
-    UiAllocationFrameSourceFactPosture, WorthUiQueryFrameIngressCounters,
-    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome,
+    UiAllocationFrameGatewayOutcome, UiAllocationFrameQueryWarningPosture,
+    UiAllocationFrameSourceFact, UiAllocationFrameSourceFactPosture,
+    WorthUiQueryFrameIngressCounters, WorthUiQueryFrameIngressDenial,
+    WorthUiQueryFrameIngressOutcome,
 };
 #[cfg(test)]
 pub(crate) use gateway::{

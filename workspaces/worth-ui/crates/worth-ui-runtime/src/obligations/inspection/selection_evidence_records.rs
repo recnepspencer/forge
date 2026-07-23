@@ -7,7 +7,6 @@ use crate::obligations::inspection::{
 use crate::obligations::prerequisites::UiObligationPrerequisiteEvidenceRef;
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::touch::UiGraphTouchDescriptor;
-use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 
 pub(crate) fn selected_obligation_evidence_records(
     selected: &UiSelectedObligationSet,
@@ -29,10 +28,6 @@ pub(crate) fn selected_obligation_evidence_records(
                 denial_posture: None,
                 selection_reasons: obligation.selection_reasons().to_vec().into_boxed_slice(),
                 prerequisite_sources: prerequisite_sources_from_refs(
-                    obligation.prerequisite_evidence_refs(),
-                )
-                .into_boxed_slice(),
-                query_prerequisite_evidence: query_prerequisite_evidence_from_refs(
                     obligation.prerequisite_evidence_refs(),
                 )
                 .into_boxed_slice(),
@@ -73,10 +68,6 @@ pub(crate) fn not_selected_obligation_evidence_record(
         selection_reasons,
         prerequisite_sources: prerequisite_sources_from_refs(prerequisite_evidence_refs)
             .into_boxed_slice(),
-        query_prerequisite_evidence: query_prerequisite_evidence_from_refs(
-            prerequisite_evidence_refs,
-        )
-        .into_boxed_slice(),
         non_selection_reason: Some(non_selection_reason),
         legality_reason: None,
     })
@@ -86,30 +77,14 @@ pub(crate) fn prerequisite_sources_from_target(
     target: &UiAdmissionTarget,
 ) -> Vec<UiObligationEvidencePrerequisiteSource> {
     let mut sources = Vec::new();
-    if let Some(query) = target.query_prerequisites() {
+    if target.query_basis() == crate::admission::UiAdmissionQueryBasis::GraphAligned {
         sources.push(UiObligationEvidencePrerequisiteSource::QueryBasis);
         sources.push(UiObligationEvidencePrerequisiteSource::QueryProjectionConsumption);
-        if query.inspection_lane()
-            == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryInspectionLane::WorkspaceInspect
-        {
-            sources.push(UiObligationEvidencePrerequisiteSource::QueryInspection);
-        }
-        if query.causal_explanation_lane()
-            == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
-        {
-            sources.push(UiObligationEvidencePrerequisiteSource::QueryCausalExplanation);
-        }
     }
     if target.host_capability_report().is_some() {
         sources.push(UiObligationEvidencePrerequisiteSource::HostCapability);
     }
     sources
-}
-
-pub(crate) fn query_prerequisite_evidence_from_target(
-    target: &UiAdmissionTarget,
-) -> Vec<WorthUiQueryPrerequisiteEvidence> {
-    target.query_prerequisites().into_iter().cloned().collect()
 }
 
 pub(crate) fn prerequisite_sources_from_refs(
@@ -118,33 +93,10 @@ pub(crate) fn prerequisite_sources_from_refs(
     let mut sources = Vec::new();
     for reference in refs {
         match reference {
-            UiObligationPrerequisiteEvidenceRef::Query(evidence) => {
-                sources.push(UiObligationEvidencePrerequisiteSource::QueryBasis);
-                sources.push(UiObligationEvidencePrerequisiteSource::QueryProjectionConsumption);
-                if evidence.inspection_lane()
-                    == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryInspectionLane::WorkspaceInspect
-                {
-                    sources.push(UiObligationEvidencePrerequisiteSource::QueryInspection);
-                }
-                if evidence.causal_explanation_lane()
-                    == worth_ui_query_binding::compatibility::managed_live::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
-                {
-                    sources.push(UiObligationEvidencePrerequisiteSource::QueryCausalExplanation);
-                }
-            }
             UiObligationPrerequisiteEvidenceRef::Host(_) => {
                 sources.push(UiObligationEvidencePrerequisiteSource::HostCapability);
             }
         }
     }
     sources
-}
-
-pub(crate) fn query_prerequisite_evidence_from_refs(
-    refs: &[UiObligationPrerequisiteEvidenceRef],
-) -> Vec<WorthUiQueryPrerequisiteEvidence> {
-    refs.iter()
-        .filter_map(UiObligationPrerequisiteEvidenceRef::query)
-        .cloned()
-        .collect()
 }

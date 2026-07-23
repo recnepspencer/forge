@@ -6,7 +6,7 @@ static QUERY_OWNED_ROOT_COUNTER: std::sync::atomic::AtomicUsize =
     std::sync::atomic::AtomicUsize::new(0);
 
 #[test]
-fn consumer_residue_registry_covers_all_phase_nine_classes() {
+fn consumer_residue_registry_covers_all_governed_classes() {
     let classes = worth_query_consumer_residue_registry()
         .iter()
         .map(|row| row.class())
@@ -46,6 +46,19 @@ fn consumer_residue_registry_covers_all_phase_nine_classes() {
         WorthQueryConsumerResidueClass::CallerSuppliedOperationRegistry,
         WorthQueryConsumerResidueClass::QueryPhaseMaterializerImport,
         WorthQueryConsumerResidueClass::ConsumerSemanticDomainAdapter,
+        WorthQueryConsumerResidueClass::LocalQueryOperationRegistry,
+        WorthQueryConsumerResidueClass::LocalQueryDependencyGraph,
+        WorthQueryConsumerResidueClass::LocalQueryRecomputePolicy,
+        WorthQueryConsumerResidueClass::LocalQuerySharingRegistry,
+        WorthQueryConsumerResidueClass::LocalQuerySupportMirror,
+        WorthQueryConsumerResidueClass::LocalQueryInvalidationMirror,
+        WorthQueryConsumerResidueClass::LocalQueryBasisCompatibilityMirror,
+        WorthQueryConsumerResidueClass::LocalQueryPatchPosture,
+        WorthQueryConsumerResidueClass::RawChangeDataCaptureInterpretation,
+        WorthQueryConsumerResidueClass::RawSignalImport,
+        WorthQueryConsumerResidueClass::RawRuntimeBridgeImport,
+        WorthQueryConsumerResidueClass::LocalQueryConditionEvaluator,
+        WorthQueryConsumerResidueClass::OrphanQueryLifecycleJoin,
     ] {
         assert!(
             classes.contains(&required),

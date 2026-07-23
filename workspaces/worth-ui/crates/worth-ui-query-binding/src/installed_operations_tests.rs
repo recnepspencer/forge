@@ -15,8 +15,11 @@ use crate::installed_domain::{
 };
 use crate::{
     worth_ui_domain_package, WorthUiQueryBindingPlan, WorthUiQueryOperationAttemptDenial,
-    WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+    WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
 };
+
+#[path = "installed_operations_tests/reference_convergence.rs"]
+mod reference_convergence;
 
 #[test]
 fn installed_snapshot_identity_converges_and_semantic_drift_changes_it() {
@@ -94,11 +97,12 @@ fn registered_snapshot_and_recording_workflow_execute_real_query_mechanics() {
         .worth_ui()
         .expect("Worth UI domain should install");
     let recording = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(WorthUiMeasurementRecordingFamily)
         .bind(installed.handle(), WorthUiMeasurementRecording)
         .expect("measurement recording should bind")
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             IDENTIFY_STAGE,
@@ -134,7 +138,8 @@ fn registered_snapshot_and_recording_workflow_execute_real_query_mechanics() {
     assert!(recorded_touches.contains(&&aspect_touch("measurement.value")));
 
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(WorthUiSnapshotMeasurementFamily)
         .bind(installed.handle(), WorthUiSnapshotMeasurement)
         .expect("snapshot measurement should bind");
@@ -172,11 +177,12 @@ fn recording_workflow_rejects_invalid_value_without_a_partial_write() {
         .unwrap();
     let installed = workspace.worth_ui().unwrap();
     let run = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(WorthUiMeasurementRecordingFamily)
         .bind(installed.handle(), WorthUiMeasurementRecording)
         .unwrap()
-        .start_workflow()
+        .start_workflow(&mut workspace)
         .unwrap()
         .advance(
             IDENTIFY_STAGE,
@@ -208,21 +214,19 @@ fn gateway_rejects_a_foreign_world_before_binding_or_execution() {
         .expect("owner domain should install")
         .measurement_view("dashboard.measurements")
         .expect("snapshot view should only validate UI declaration meaning");
+    let view_identity = view.definition().identity().clone();
     let reference = WorthUiQueryBindingPlan::default()
         .register_view(view)
         .expect("owner view should register")
-        .resolve_definition(
-            &WorthUiQueryViewIdentity::new("dashboard.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_definition(&view_identity, WorthUiQueryViewShape::Collection)
         .expect("registered definition should resolve");
 
     assert!(matches!(
-        reference.enter_snapshot_attempt(&foreign, observation_basis()),
+        reference.enter_snapshot_attempt(&foreign),
         Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch)
     ));
     let bound = reference
-        .enter_snapshot_attempt(&owner, observation_basis())
+        .enter_snapshot_attempt(&owner)
         .expect("exact owner world should admit")
         .bind_snapshot()
         .expect("gateway should bind the installed snapshot operation");
@@ -242,7 +246,8 @@ fn base_builder() -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRu
         .domain_package(worth_ui_domain_package())
 }
 
-fn installed_builder() -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
+pub(crate) fn installed_builder(
+) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
     install_worth_ui_test_operation_executors(base_builder())
 }
 
@@ -290,12 +295,13 @@ fn drifted_installed_builder_with_package(
         )
 }
 
-fn bound_snapshot(
+pub(crate) fn bound_snapshot(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
 ) -> crate::WorthUiBoundSnapshotMeasurement<foundation::ObservationLaneWitness> {
     let installed = workspace.worth_ui().unwrap();
     workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(WorthUiSnapshotMeasurementFamily)
         .bind(installed.handle(), WorthUiSnapshotMeasurement)
         .unwrap()
@@ -324,28 +330,7 @@ fn settled_identity_count(
         .len()
 }
 
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
-}
-
-fn aspect_touch(value: &str) -> worth_query::facade::runtime::WorthQueryAspectTouch {
+pub(crate) fn aspect_touch(value: &str) -> worth_query::facade::runtime::WorthQueryAspectTouch {
     worth_query::facade::runtime::WorthQueryAspectTouch::from_authoring_ingress_text(value)
         .expect("static Worth UI aspect touch must admit")
 }

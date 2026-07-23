@@ -1,9 +1,10 @@
-use worth_query::facade::{read, runtime};
+use worth_query::facade::runtime;
 
 use crate::{
-    compatibility::managed_live::declaration::WorthUiManagedLiveDeclarationExt,
-    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiQueryLiveOpenError,
-    WorthUiQueryLiveOpenOutcome, WorthUiQueryViewDefinition, WorthUiQueryViewLifecycle,
+    operation_live::open_operation_live_resource, WorthUiInstalledQueryBindingReference,
+    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiOperationLiveOpenError,
+    WorthUiOperationLiveOpenRequest, WorthUiOperationLiveResource, WorthUiQueryViewDefinition,
+    WorthUiQueryViewLifecycle,
 };
 
 /// Installed live view. Query-owned managed-resource operations are added on
@@ -30,24 +31,16 @@ impl WorthUiInstalledLiveQueryView {
         self.registration.installed_domain()
     }
 
-    pub fn open_using(
+    pub fn open_operation(
         &self,
-        context: impl Into<read::WorthQueryReadContextDeclaration>,
+        request: WorthUiOperationLiveOpenRequest,
         workspace: &mut runtime::WorthQueryWorkspace,
-    ) -> Result<WorthUiQueryLiveOpenOutcome, WorthUiQueryLiveOpenError> {
-        let declaration = self
-            .installed_domain()
-            .handle()
-            .live_measurements(self.definition().identity().as_str())
-            .map_err(WorthUiQueryLiveOpenError::Declaration)?;
-        declaration
-            .using(context)
-            .open(workspace)
-            .map(|outcome| {
-                WorthUiQueryLiveOpenOutcome::from_query(self.definition().clone(), outcome)
-            })
-            .map_err(Box::new)
-            .map_err(WorthUiQueryLiveOpenError::InstalledAuthority)
+    ) -> Result<WorthUiOperationLiveResource, WorthUiOperationLiveOpenError> {
+        let reference = WorthUiInstalledQueryBindingReference::new(
+            self.installed_domain().clone(),
+            self.definition().clone(),
+        );
+        open_operation_live_resource(reference, request, workspace)
     }
 }
 

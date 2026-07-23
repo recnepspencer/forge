@@ -606,6 +606,11 @@ dependencies = [
  "worth-foundational",
  "worth-proof",
  "worth-query",
+ "worth-query-host",
+ "worth-query-replay",
+ "worth-relational",
+ "worth-runtime-bridge",
+ "worth-signal",
 ]
 
 [[package]]

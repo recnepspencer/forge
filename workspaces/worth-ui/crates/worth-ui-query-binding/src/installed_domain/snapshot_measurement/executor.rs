@@ -145,6 +145,7 @@ fn installed_read_declaration() -> &'static read::WorthQueryReadDeclaration {
                     query
                         .project(selector("identity", "id"))
                         .project(selector("measurement", "value"))
+                        .order_by(read::OrderingSelector::ascending("identity", "id").unwrap())
                 },
                 |shape| {
                     shape
@@ -169,6 +170,7 @@ fn installed_value_alias_read_declaration() -> &'static read::WorthQueryReadDecl
                     query
                         .project(selector("identity", "id"))
                         .project(selector("measurement", "value"))
+                        .order_by(read::OrderingSelector::ascending("identity", "id").unwrap())
                 },
                 |shape| {
                     shape

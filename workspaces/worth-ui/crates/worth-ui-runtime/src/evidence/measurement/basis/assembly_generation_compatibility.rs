@@ -1,7 +1,7 @@
-use super::assembly::{SelectedEvidence, SelectedQueryReceipt};
+use super::assembly::SelectedEvidence;
 use super::assembly_support::{
     child_intrinsic_host_compatibility, child_intrinsic_query_compatibility,
-    host_result_compatibility, query_receipt_compatibility, settled_query_receipt_compatibility,
+    host_result_compatibility, settled_query_receipt_compatibility,
 };
 use crate::evidence::UiMeasurementGenerationCompatibility;
 use crate::graph::UiGraphWorldProfile;
@@ -14,22 +14,11 @@ impl SelectedEvidence<'_> {
         declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     ) -> UiMeasurementGenerationCompatibility {
         if let Some(receipt) = self.query_receipt {
-            let compatibility = match receipt {
-                SelectedQueryReceipt::ManagedLiveCompatibility(receipt) => {
-                    query_receipt_compatibility(
-                        receipt,
-                        world_profile,
-                        declaration_support_authority_generation,
-                    )
-                }
-                SelectedQueryReceipt::SettledSnapshot(receipt) => {
-                    settled_query_receipt_compatibility(
-                        receipt,
-                        world_profile,
-                        declaration_support_authority_generation,
-                    )
-                }
-            };
+            let compatibility = settled_query_receipt_compatibility(
+                receipt,
+                world_profile,
+                declaration_support_authority_generation,
+            );
             if let Some(compatibility) = compatibility {
                 return compatibility;
             }

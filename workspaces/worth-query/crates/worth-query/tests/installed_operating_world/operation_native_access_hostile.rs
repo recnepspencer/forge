@@ -7,8 +7,7 @@ use super::installed_operation_fixture::{
     workspace, GeometryDomain, ReadExecutionInput, ReadFamily, ReadVertex,
 };
 use fixture::{
-    assert_request_denial, collection_workspace, id_field, native_id_request, observation_basis,
-    CollectionRead,
+    assert_request_denial, collection_workspace, id_field, native_id_request, CollectionRead,
 };
 
 #[test]
@@ -21,7 +20,8 @@ fn direct_access_indexes_display_and_derived_values_across_committed_rows() {
     }
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, CollectionRead)
         .unwrap();
@@ -82,7 +82,8 @@ fn request_builder_denials_retain_contract_and_requested_field_context() {
     let workspace = workspace("installed-native-request-denials", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -103,7 +104,8 @@ fn request_builder_denials_retain_contract_and_requested_field_context() {
     );
 
     let unknown_bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -123,7 +125,8 @@ fn request_builder_denials_retain_contract_and_requested_field_context() {
     );
 
     let duplicate_bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -157,12 +160,14 @@ fn capability_denial_retains_exact_native_source_and_projection_context() {
         .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let owner = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
     let foreign = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();

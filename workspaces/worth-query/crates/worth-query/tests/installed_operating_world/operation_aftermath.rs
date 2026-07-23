@@ -12,12 +12,11 @@ use super::operation_aftermath_support::*;
 fn compensation_is_a_new_bound_operation_with_a_proof_carrying_relation() {
     let mut workspace =
         aftermath_workspace("aftermath-compensation", AftermathContract::Compensation).unwrap();
-    let basis = mutation_basis();
-    let original = bind_original(&workspace, basis.clone())
+    let original = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let original_identity = original.identity().to_owned();
-    let candidate = bind_candidate(&workspace, basis);
+    let candidate = bind_candidate(&workspace);
     let capability = match original.admit_aftermath(candidate) {
         domain::WorthQueryAftermathAdmission::Compensation(capability) => capability,
         _ => panic!("installed compensation was not admitted"),
@@ -73,8 +72,7 @@ fn compensation_is_a_new_bound_operation_with_a_proof_carrying_relation() {
 fn exact_inverse_has_its_own_typed_surface_and_exact_postcondition() {
     let mut workspace =
         aftermath_workspace("aftermath-exact", AftermathContract::ExactInverse).unwrap();
-    let basis = mutation_basis();
-    let original = bind_original(&workspace, basis.clone())
+    let original = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let original_entity = original.stage_receipts()[0].effect_evidence()[0]
@@ -83,7 +81,7 @@ fn exact_inverse_has_its_own_typed_surface_and_exact_postcondition() {
         .target_entity_identity()
         .unwrap()
         .clone();
-    let candidate = bind_candidate(&workspace, basis);
+    let candidate = bind_candidate(&workspace);
     let capability = match original.admit_aftermath(candidate) {
         domain::WorthQueryAftermathAdmission::ExactInverse(capability) => capability,
         _ => panic!("installed exact inverse was not admitted"),
@@ -132,13 +130,12 @@ fn exact_inverse_has_its_own_typed_surface_and_exact_postcondition() {
 fn aftermath_admission_rejects_foreign_runtime_and_wrong_operation() {
     let mut workspace =
         aftermath_workspace("aftermath-scope", AftermathContract::Compensation).unwrap();
-    let basis = mutation_basis();
-    let original = bind_original(&workspace, basis.clone())
+    let original = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let foreign =
         aftermath_workspace("aftermath-foreign", AftermathContract::Compensation).unwrap();
-    let foreign_candidate = bind_candidate(&foreign, mutation_basis());
+    let foreign_candidate = bind_candidate(&foreign);
     assert!(matches!(
         original.admit_aftermath(foreign_candidate),
         domain::WorthQueryAftermathAdmission::Denied {
@@ -147,7 +144,7 @@ fn aftermath_admission_rejects_foreign_runtime_and_wrong_operation() {
         }
     ));
 
-    let mismatched_basis_candidate = bind_candidate(&workspace, branch_mutation_basis());
+    let mismatched_basis_candidate = bind_branch_candidate(&workspace);
     assert!(matches!(
         original.admit_aftermath(mismatched_basis_candidate),
         domain::WorthQueryAftermathAdmission::Denied {
@@ -156,7 +153,7 @@ fn aftermath_admission_rejects_foreign_runtime_and_wrong_operation() {
         }
     ));
 
-    let wrong_candidate = bind_original(&workspace, basis);
+    let wrong_candidate = bind_original(&workspace);
     assert!(matches!(
         original.admit_aftermath(wrong_candidate),
         domain::WorthQueryAftermathAdmission::Denied {
@@ -195,11 +192,10 @@ fn false_business_postcondition_cannot_mint_an_aftermath_relation() {
         AftermathContract::FalsePostcondition,
     )
     .unwrap();
-    let basis = mutation_basis();
-    let original = bind_original(&workspace, basis.clone())
+    let original = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
-    let capability = match original.admit_aftermath(bind_candidate(&workspace, basis)) {
+    let capability = match original.admit_aftermath(bind_candidate(&workspace)) {
         domain::WorthQueryAftermathAdmission::Compensation(capability) => capability,
         _ => panic!("installed compensation was not admitted"),
     };
@@ -231,11 +227,10 @@ fn candidate_failure_after_effect_retains_original_stop_and_recovery_truth() {
         AftermathContract::CandidateFailureAfterEffect,
     )
     .unwrap();
-    let basis = mutation_basis();
-    let original = bind_original(&workspace, basis.clone())
+    let original = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
-    let capability = match original.admit_aftermath(bind_candidate(&workspace, basis)) {
+    let capability = match original.admit_aftermath(bind_candidate(&workspace)) {
         domain::WorthQueryAftermathAdmission::Compensation(capability) => capability,
         _ => panic!("installed compensation was not admitted"),
     };
@@ -271,14 +266,13 @@ fn reconstructed_inverse_target_is_rejected_before_effect_or_relation() {
         AftermathContract::WrongInverseTarget,
     )
     .unwrap();
-    let basis = mutation_basis();
-    let _decoy = bind_original(&workspace, basis.clone())
+    let _decoy = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
-    let original = bind_original(&workspace, basis.clone())
+    let original = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
-    let capability = match original.admit_aftermath(bind_candidate(&workspace, basis)) {
+    let capability = match original.admit_aftermath(bind_candidate(&workspace)) {
         domain::WorthQueryAftermathAdmission::ExactInverse(capability) => capability,
         _ => panic!("installed exact inverse was not admitted"),
     };
@@ -303,7 +297,8 @@ fn provisional_discard_consumes_only_an_effect_free_provisional_trace() {
     let mut workspace = provisional_workflow_workspace("provisional-discard").unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let trace = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(AftermathFamily)
         .bind(&installed, ProvisionalWorkflow)
         .unwrap()

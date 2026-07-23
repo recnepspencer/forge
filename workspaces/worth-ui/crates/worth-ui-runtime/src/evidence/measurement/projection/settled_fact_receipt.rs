@@ -7,7 +7,7 @@ use crate::declaration::{
 use crate::evidence::shared::query_measurement_fact_family_digest::query_measurement_fact_family_set_digest;
 
 use super::fact_receipt::UiProjectionFactObservation;
-use super::UiProjectionFactReceiptDenial;
+use super::UiSettledQueryFactReceiptDenial;
 
 /// Exact UI-owned key for one retained ordinary Query settlement source.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -136,10 +136,10 @@ pub fn consume_settled_query_measurement_fact(
     measurement_policy: &crate::declaration::UiDeclaredMeasurementPolicyPosture,
     view_binding_id: crate::capability::ViewBindingId,
     fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
-) -> Result<UiSettledQueryFactReceipt, UiProjectionFactReceiptDenial> {
+) -> Result<UiSettledQueryFactReceipt, UiSettledQueryFactReceiptDenial> {
     let dependencies =
         crate::declaration::declared_query_measurement_dependencies(measurement_policy)
-            .ok_or(UiProjectionFactReceiptDenial::NoQueryMeasurementDependencies)?;
+            .ok_or(UiSettledQueryFactReceiptDenial::NoQueryMeasurementDependencies)?;
     admit_declared_measurement_settled_query_fact(
         declaration_identity,
         declaration_support_authority_generation,
@@ -155,10 +155,10 @@ fn admit_declared_measurement_settled_query_fact(
     dependencies: UiDeclaredMeasurementQueryDependencySet,
     view_binding_id: crate::capability::ViewBindingId,
     fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
-) -> Result<UiSettledQueryFactReceipt, UiProjectionFactReceiptDenial> {
+) -> Result<UiSettledQueryFactReceipt, UiSettledQueryFactReceiptDenial> {
     let batch = fact
         .measurement_facts()
-        .map_err(UiProjectionFactReceiptDenial::SettledFactObservation)?;
+        .map_err(UiSettledQueryFactReceiptDenial::SettledFactObservation)?;
     let consumed_fact_families = batch
         .observations()
         .iter()
@@ -171,10 +171,12 @@ fn admit_declared_measurement_settled_query_fact(
         .filter(|family| !consumed_fact_families.contains(family))
         .collect::<Vec<_>>();
     if !missing.is_empty() {
-        return Err(UiProjectionFactReceiptDenial::MissingRequiredFactFamilies {
-            required: dependencies.fact_families().to_vec().into_boxed_slice(),
-            consumed: consumed_fact_families.into_boxed_slice(),
-        });
+        return Err(
+            UiSettledQueryFactReceiptDenial::MissingRequiredFactFamilies {
+                required: dependencies.fact_families().to_vec().into_boxed_slice(),
+                consumed: consumed_fact_families.into_boxed_slice(),
+            },
+        );
     }
     let observations = batch
         .observations()

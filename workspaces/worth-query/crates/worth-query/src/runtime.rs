@@ -303,6 +303,9 @@ mod runtime_reads_programs;
 mod runtime_session_lowering;
 
 pub use read_composition_row_selection::worth_query_materialized_relation_field_key;
+pub(crate) use read_composition_row_selection::{
+    canonical_ordering_key, row_matches_predicates, WorthQueryCanonicalOrderingKey,
+};
 mod runtime_sessions;
 mod runtime_unified_inspection_intents;
 mod runtime_write_intents;
@@ -362,7 +365,7 @@ pub use backend::{
     runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationBoundaryReceipt,
     SignalInvalidationRoutingReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationReceipt, WorthQueryBackendInspectionError,
+    SubscriptionActivationReceipt, WorthQueryBackendEntityLookup, WorthQueryBackendInspectionError,
     WorthQueryBackendInspectionErrorKind, WorthQueryBackendMergeAuthority,
     WorthQueryBridgeBackedRuntimeBackend, WorthQueryIntentAuthorityAdapter,
     WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,

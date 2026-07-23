@@ -37,6 +37,19 @@ pub enum WorthQueryConsumerResidueClass {
     CallerSuppliedOperationRegistry,
     QueryPhaseMaterializerImport,
     ConsumerSemanticDomainAdapter,
+    LocalQueryOperationRegistry,
+    LocalQueryDependencyGraph,
+    LocalQueryRecomputePolicy,
+    LocalQuerySharingRegistry,
+    LocalQuerySupportMirror,
+    LocalQueryInvalidationMirror,
+    LocalQueryBasisCompatibilityMirror,
+    LocalQueryPatchPosture,
+    RawChangeDataCaptureInterpretation,
+    RawSignalImport,
+    RawRuntimeBridgeImport,
+    LocalQueryConditionEvaluator,
+    OrphanQueryLifecycleJoin,
 }
 
 impl WorthQueryConsumerResidueClass {
@@ -85,6 +98,19 @@ impl WorthQueryConsumerResidueClass {
             Self::CallerSuppliedOperationRegistry => "caller-supplied-operation-registry",
             Self::QueryPhaseMaterializerImport => "query-phase-materializer-import",
             Self::ConsumerSemanticDomainAdapter => "consumer-semantic-domain-adapter",
+            Self::LocalQueryOperationRegistry => "local-query-operation-registry",
+            Self::LocalQueryDependencyGraph => "local-query-dependency-graph",
+            Self::LocalQueryRecomputePolicy => "local-query-recompute-policy",
+            Self::LocalQuerySharingRegistry => "local-query-sharing-registry",
+            Self::LocalQuerySupportMirror => "local-query-support-mirror",
+            Self::LocalQueryInvalidationMirror => "local-query-invalidation-mirror",
+            Self::LocalQueryBasisCompatibilityMirror => "local-query-basis-compatibility-mirror",
+            Self::LocalQueryPatchPosture => "local-query-patch-posture",
+            Self::RawChangeDataCaptureInterpretation => "raw-change-data-capture-interpretation",
+            Self::RawSignalImport => "raw-signal-import",
+            Self::RawRuntimeBridgeImport => "raw-runtime-bridge-import",
+            Self::LocalQueryConditionEvaluator => "local-query-condition-evaluator",
+            Self::OrphanQueryLifecycleJoin => "orphan-query-lifecycle-join",
         }
     }
 
