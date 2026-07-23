@@ -10,6 +10,8 @@ use crate::data::temporal::{TemporalDuration, TemporalPreviousValueReference};
 pub struct AsyncNodeRequestIntent {
     inner: ResourceRequestIntent,
     previous_value_reference: Option<TemporalPreviousValueReference>,
+    #[serde(default)]
+    require_clean_dependencies: bool,
 }
 
 impl AsyncNodeRequestIntent {
@@ -17,6 +19,7 @@ impl AsyncNodeRequestIntent {
         Self {
             inner: ResourceRequestIntent::new(ResourceNodeId::from_node(node)),
             previous_value_reference: None,
+            require_clean_dependencies: false,
         }
     }
 
@@ -27,6 +30,7 @@ impl AsyncNodeRequestIntent {
                 deadline,
             ),
             previous_value_reference: None,
+            require_clean_dependencies: false,
         }
     }
 
@@ -50,6 +54,15 @@ impl AsyncNodeRequestIntent {
         self.previous_value_reference.as_ref()
     }
 
+    pub fn requires_clean_dependencies(&self) -> bool {
+        self.require_clean_dependencies
+    }
+
+    pub(crate) fn require_clean_dependencies(mut self) -> Self {
+        self.require_clean_dependencies = true;
+        self
+    }
+
     pub(crate) fn into_resource_intent(self) -> ResourceRequestIntent {
         self.inner
     }
@@ -59,6 +72,8 @@ impl AsyncNodeRequestIntent {
 pub struct AsyncNodeRevalidationIntent {
     inner: ResourceRevalidationIntent,
     previous_value_reference: Option<TemporalPreviousValueReference>,
+    #[serde(default)]
+    require_clean_dependencies: bool,
 }
 
 impl AsyncNodeRevalidationIntent {
@@ -66,6 +81,7 @@ impl AsyncNodeRevalidationIntent {
         Self {
             inner: ResourceRevalidationIntent::new(ResourceNodeId::from_node(node)),
             previous_value_reference: None,
+            require_clean_dependencies: false,
         }
     }
 
@@ -79,6 +95,7 @@ impl AsyncNodeRevalidationIntent {
                 expected_active,
             ),
             previous_value_reference: None,
+            require_clean_dependencies: false,
         }
     }
 
@@ -89,6 +106,7 @@ impl AsyncNodeRevalidationIntent {
                 deadline,
             ),
             previous_value_reference: None,
+            require_clean_dependencies: false,
         }
     }
 
@@ -114,6 +132,15 @@ impl AsyncNodeRevalidationIntent {
 
     pub fn previous_value_reference(&self) -> Option<&TemporalPreviousValueReference> {
         self.previous_value_reference.as_ref()
+    }
+
+    pub fn requires_clean_dependencies(&self) -> bool {
+        self.require_clean_dependencies
+    }
+
+    pub(crate) fn require_clean_dependencies(mut self) -> Self {
+        self.require_clean_dependencies = true;
+        self
     }
 
     pub(crate) fn into_resource_intent(self) -> ResourceRevalidationIntent {

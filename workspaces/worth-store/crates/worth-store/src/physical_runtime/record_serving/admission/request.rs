@@ -1,6 +1,7 @@
 use super::super::{
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
 };
+use crate::physical_runtime::PhysicalWorkProfileDeclaration;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalRecordResidencyPolicy {
@@ -141,6 +142,7 @@ pub struct PhysicalRecordInitialization {
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) residency: PhysicalRecordResidencyPolicy,
+    pub(in crate::physical_runtime::record_serving) work_profile: PhysicalWorkProfileDeclaration,
 }
 
 impl PhysicalRecordInitialization {
@@ -154,11 +156,17 @@ impl PhysicalRecordInitialization {
             placement,
             access,
             residency: PhysicalRecordResidencyPolicy::default(),
+            work_profile: PhysicalWorkProfileDeclaration::default(),
         }
     }
 
     pub const fn with_residency_policy(mut self, policy: PhysicalRecordResidencyPolicy) -> Self {
         self.residency = policy;
+        self
+    }
+
+    pub fn with_physical_work_profile(mut self, profile: PhysicalWorkProfileDeclaration) -> Self {
+        self.work_profile = profile;
         self
     }
 }
@@ -167,6 +175,7 @@ pub struct PhysicalRecordOpen {
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) residency: PhysicalRecordResidencyPolicy,
+    pub(in crate::physical_runtime::record_serving) work_profile: PhysicalWorkProfileDeclaration,
 }
 
 impl PhysicalRecordOpen {
@@ -175,11 +184,17 @@ impl PhysicalRecordOpen {
             format,
             access,
             residency: PhysicalRecordResidencyPolicy::default(),
+            work_profile: PhysicalWorkProfileDeclaration::default(),
         }
     }
 
     pub const fn with_residency_policy(mut self, policy: PhysicalRecordResidencyPolicy) -> Self {
         self.residency = policy;
+        self
+    }
+
+    pub fn with_physical_work_profile(mut self, profile: PhysicalWorkProfileDeclaration) -> Self {
+        self.work_profile = profile;
         self
     }
 }

@@ -20,4 +20,12 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
     cases.compile_fail(
         "tests/physical_runtime_authority/physical_receipt_construction_is_sealed.rs",
     );
+    cases.compile_fail("tests/physical_runtime_authority/physical_work_identity_is_sealed.rs");
+    cases.compile_fail("tests/physical_runtime_authority/physical_work_progression_is_sealed.rs");
+    cases.compile_fail(
+        "tests/physical_runtime_authority/untyped_physical_work_basis_is_rejected.rs",
+    );
+    cases.compile_fail(
+        "tests/physical_runtime_authority/borrowed_physical_work_submission_is_rejected.rs",
+    );
 }

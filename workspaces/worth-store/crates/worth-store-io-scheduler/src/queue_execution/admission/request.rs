@@ -1,24 +1,29 @@
-use worth_foundational::{FoundationalPerformanceBudgetKind, FoundationalPolicyAdmissionReceipt};
+use worth_foundational::{
+    FoundationalPerformanceBudgetKind, FoundationalPolicyAdmissionReceipt,
+};
 
 use crate::{IoResourceUnitKind, IoSchedulerBackendCapabilityAdmission};
 use crate::{
     IoSchedulerBackendCapabilityRequirement, SecureIoOperation, SecureIoPreservationDenial,
 };
 
-use super::{QueueExecutionAdmissionDenial, QueueExecutionReadyPlan, QueueWorkDeclaration};
+use super::{
+    QueueExecutionAdmissionDenial, QueueExecutionReadyPlan, QueuePolicyAdmissionReceipt,
+    QueueWorkDeclaration,
+};
 
 #[derive(Clone, Debug)]
 pub struct QueueExecutionAdmissionRequest<'a> {
     work: QueueWorkDeclaration,
     backend: &'a IoSchedulerBackendCapabilityAdmission,
-    policy_receipt: FoundationalPolicyAdmissionReceipt,
+    policy_receipt: QueuePolicyAdmissionReceipt,
 }
 
 impl<'a> QueueExecutionAdmissionRequest<'a> {
     pub fn new(
         work: QueueWorkDeclaration,
         backend: &'a IoSchedulerBackendCapabilityAdmission,
-        policy_receipt: FoundationalPolicyAdmissionReceipt,
+        policy_receipt: QueuePolicyAdmissionReceipt,
     ) -> Self {
         Self {
             work,
@@ -31,6 +36,11 @@ impl<'a> QueueExecutionAdmissionRequest<'a> {
 pub fn admit_queue_execution_plan(
     request: QueueExecutionAdmissionRequest<'_>,
 ) -> Result<QueueExecutionReadyPlan, QueueExecutionAdmissionDenial> {
+    if request.policy_receipt.work() != request.work {
+        return Err(QueueExecutionAdmissionDenial::PolicyReceiptContextMismatch {
+            expected_work: super::policy_receipt::expected_work_class(request.work),
+        });
+    }
     let budget = request.work.requested_budget();
     if budget.is_empty() {
         return Err(QueueExecutionAdmissionDenial::MissingQueueWorkBudget);
@@ -77,12 +87,13 @@ pub fn admit_queue_execution_plan(
         });
     }
     require_secure_io_preservation(&request)?;
-    require_policy_receipt(&request.policy_receipt, budget)?;
+    require_policy_receipt(request.policy_receipt.foundational(), budget)?;
+    let policy_receipt = request.policy_receipt.into_foundational();
     Ok(super::AdmittedQueueExecutionPlan::new(
         request.work,
         request.backend.profile(),
         request.backend.evidence_class(),
-        request.policy_receipt,
+        policy_receipt,
         grouping_basis,
         budget,
     )

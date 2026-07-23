@@ -16,13 +16,37 @@ pub(crate) struct Road1Config {
     pub(crate) law_substrates: Vec<LawSubstrateConfig>,
     #[serde(default)]
     pub(crate) dependency_denials: Vec<DependencyDenialConfig>,
+    #[serde(default)]
+    pub(crate) dependency_target_allowlists: Vec<DependencyTargetAllowlistConfig>,
+    #[serde(default)]
+    pub(crate) source_identifier_denials: Vec<SourceIdentifierDenialConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct DependencyDenialConfig {
     pub(crate) workspace_manifest: String,
     pub(crate) sources: Vec<String>,
+    #[serde(default)]
+    pub(crate) source_prefixes: Vec<String>,
     pub(crate) forbidden_targets: Vec<String>,
+    #[serde(default)]
+    pub(crate) forbidden_target_prefixes: Vec<String>,
+    pub(crate) guidance: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct DependencyTargetAllowlistConfig {
+    pub(crate) workspace_manifest: String,
+    pub(crate) governed_source_prefixes: Vec<String>,
+    pub(crate) target: String,
+    pub(crate) allowed_sources: Vec<String>,
+    pub(crate) guidance: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct SourceIdentifierDenialConfig {
+    pub(crate) root: String,
+    pub(crate) forbidden_identifiers: Vec<String>,
     pub(crate) guidance: String,
 }
 

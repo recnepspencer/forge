@@ -13,7 +13,7 @@ use worth_store::physical_runtime::{PhysicalScheduledWritebackOutcome, ServingPh
 use worth_store_buffer_pool::BufferPoolQueueGroupingScope;
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_io_scheduler::{
-    admit_queue_execution_plan, admit_secure_io_scope_for_scheduler,
+    admit_queue_execution_plan, admit_queue_policy_receipt, admit_secure_io_scope_for_scheduler,
     admit_security_scope_for_scheduler, lower_buffer_pool_queue_declaration,
     BackgroundResourceBudget, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
     QueueExecutionReadyPlan, SecureIoOperation, SecureIoPostureRequirement,
@@ -111,10 +111,11 @@ fn writeback_plan(
     )
     .unwrap();
     let work = work.with_secure_io_scope(secure_io);
+    let policy = admit_queue_policy_receipt(work, policy_receipt(work.requested_budget())).unwrap();
     admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(work.requested_budget()),
+        policy,
     ))
     .unwrap()
 }
@@ -132,7 +133,7 @@ fn policy_receipt(
         .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
         .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
         .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
-        .include_work(FoundationalPerformanceWorkClass::ValidationPlanning)
+        .include_work(FoundationalPerformanceWorkClass::AuthoritativeMutation)
         .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
         .finish()
         .unwrap();

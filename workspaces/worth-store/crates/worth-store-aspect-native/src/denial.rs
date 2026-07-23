@@ -5,4 +5,7 @@ pub enum StoreAspectNativeDenial {
     IdentityMismatch,
     LocatorIdentityMismatch,
     PhysicalAuthorityScopeMismatch(PhysicalAuthorityScope),
+    ProjectionMaskNotAdmitted,
+    MutationMaskNotAdmitted,
+    DiagnosticMaskNotAdmitted,
 }

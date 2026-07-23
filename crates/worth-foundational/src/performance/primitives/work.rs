@@ -4,6 +4,7 @@ use super::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FoundationalPerformanceWorkClass {
+    AuthoritativeRead,
     AuthoritativeMutation,
     AuthoritativeObservation,
     ValidationPlanning,
@@ -16,6 +17,12 @@ pub enum FoundationalPerformanceWorkClass {
 pub fn foundational_performance_work_class_definitions(
 ) -> [FoundationalPerformanceWorkClassDefinition; 7] {
     [
+        FoundationalPerformancePrimitiveDefinition::new(
+            FoundationalPerformanceWorkClass::AuthoritativeRead,
+            "authoritative_read",
+            "ordinary authoritative reads from the current admitted basis",
+            "planning, mutation, publication, replay, or reconstruction",
+        ),
         FoundationalPerformancePrimitiveDefinition::new(
             FoundationalPerformanceWorkClass::AuthoritativeMutation,
             "authoritative_mutation",

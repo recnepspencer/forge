@@ -5,20 +5,18 @@ use super::super::{
 };
 
 #[derive(Debug)]
-pub(in crate::physical_runtime::record_serving) struct ServingHealth {
+pub(in crate::physical_runtime) struct ServingHealth {
     inspection_required: AtomicBool,
 }
 
 impl ServingHealth {
-    pub(in crate::physical_runtime::record_serving) const fn new(
-        inspection_required: bool,
-    ) -> Self {
+    pub(in crate::physical_runtime) const fn new(inspection_required: bool) -> Self {
         Self {
             inspection_required: AtomicBool::new(inspection_required),
         }
     }
 
-    pub(in crate::physical_runtime::record_serving) fn requires_inspection(&self) -> bool {
+    pub(in crate::physical_runtime) fn requires_inspection(&self) -> bool {
         self.inspection_required.load(Ordering::Acquire)
     }
 

@@ -65,6 +65,8 @@ pub struct ServingShutdownOutcome<Terminal> {
     media: MediaShutdownOutcome<Terminal>,
     records: RecordServingTerminalObservation,
     residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
+    work: crate::physical_runtime::PhysicalWorkShutdownObservation,
+    signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
 }
 
 impl<Terminal> ServingShutdownOutcome<Terminal> {
@@ -72,11 +74,15 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
         media: MediaShutdownOutcome<Terminal>,
         records: RecordServingTerminalObservation,
         residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
+        work: crate::physical_runtime::PhysicalWorkShutdownObservation,
+        signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
     ) -> Self {
         Self {
             media,
             records,
             residency,
+            work,
+            signal,
         }
     }
 
@@ -94,5 +100,13 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
 
     pub const fn residency(&self) -> worth_store_buffer_pool::PhysicalResidencyShutdown {
         self.residency
+    }
+
+    pub const fn work(&self) -> &crate::physical_runtime::PhysicalWorkShutdownObservation {
+        &self.work
+    }
+
+    pub const fn signal(&self) -> crate::physical_runtime::PhysicalSignalShutdownOutcome {
+        self.signal
     }
 }

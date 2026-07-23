@@ -85,6 +85,36 @@ pub fn admitted_store_internal_security_scope_for_io_qos_test() -> StoreAdmitted
     )
 }
 
+pub fn admitted_store_internal_security_scope_for_physical_witness_test(
+    witness: StorePhysicalBoundaryWitness,
+) -> StoreAdmittedSecurityScope {
+    let current_authority = require_current_store_authority(boundary_fact_with_witness(
+        "store.physical.test_instance",
+        "test-current",
+        witness,
+    ));
+    let authenticity = StoreAuthenticityRequirement::not_required();
+    let expectation = StoreSecurityScopeAdmissionExpectation::new(
+        StoreKeyScope::StoreManagedRoot,
+        StoreTenantScope::StoreInternal,
+        authenticity,
+        StoreCustodyPosture::InternalStoreCustody,
+    );
+    let request = StoreSecurityScopeAdmissionRequest::new(
+        &current_authority,
+        StoreKeyScope::StoreManagedRoot,
+        StoreKeyVersionPosture::Current,
+        StoreTenantScope::StoreInternal,
+        authenticity,
+        StoreCustodyPosture::InternalStoreCustody,
+        expectation,
+    );
+    match admit_store_security_scope(request) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("test security scope should admit through production path: {outcome:?}"),
+    }
+}
+
 pub fn admitted_security_scope_for_identity_for_test(
     identity: crate::StoreSecurityScopeIdentity,
 ) -> StoreAdmittedSecurityScope {
@@ -214,6 +244,14 @@ fn current_authority(identity_key: &str, value: &str) -> StoreCurrentAuthorityWi
 }
 
 fn boundary_fact(identity_key: &str, value: &str) -> StoreAspectBoundaryFact {
+    boundary_fact_with_witness(identity_key, value, physical_witness())
+}
+
+fn boundary_fact_with_witness(
+    identity_key: &str,
+    value: &str,
+    witness: StorePhysicalBoundaryWitness,
+) -> StoreAspectBoundaryFact {
     let key = aspect_key(identity_key);
     let contract = scalar_string_contract(key.clone());
     let admitted_state = match aspects()
@@ -226,7 +264,7 @@ fn boundary_fact(identity_key: &str, value: &str) -> StoreAspectBoundaryFact {
 
     StoreAspectBoundaryFact::from_admitted_state(
         StoreAspectIdentity::from_aspect_key(key),
-        StoreAspectAuthorityInput::new(admitted_state, physical_witness()),
+        StoreAspectAuthorityInput::new(admitted_state, witness),
     )
     .expect("Store boundary fact should admit matching identity")
 }

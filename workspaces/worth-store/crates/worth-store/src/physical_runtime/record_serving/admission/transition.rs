@@ -15,6 +15,7 @@ pub(in crate::physical_runtime) fn initialize(
     runtime: MediaOwnedPhysicalRuntime,
     request: PhysicalRecordInitialization,
 ) -> RecordStoreInitializationOutcome {
+    let work_profile = request.work_profile.clone();
     if let Err(reason) = request
         .residency
         .preflight_format(request.format, request.access)
@@ -67,7 +68,7 @@ pub(in crate::physical_runtime) fn initialize(
         frame_ports.loader(),
         bootstrap,
     ) {
-        Ok(state) => initialize_serving(runtime, state, frame_ports),
+        Ok(state) => initialize_serving(runtime, state, frame_ports, work_profile),
         Err(BootstrapTransitionFailure::Denied(reason)) => initialization_failed(
             runtime,
             RecordBootstrapFailure::PublishedRootReadmission(reason),
@@ -87,6 +88,7 @@ pub(in crate::physical_runtime) fn open(
     runtime: MediaOwnedPhysicalRuntime,
     request: PhysicalRecordOpen,
 ) -> RecordStoreOpenOutcome {
+    let work_profile = request.work_profile.clone();
     if let Err(reason) = request
         .residency
         .preflight_format(request.format, request.access)
@@ -123,7 +125,7 @@ pub(in crate::physical_runtime) fn open(
         frame_ports.loader(),
         bootstrap,
     ) {
-        Ok(state) => open_serving(runtime, state, frame_ports),
+        Ok(state) => open_serving(runtime, state, frame_ports, work_profile),
         Err(failure) => open_failure(runtime, failure),
     }
 }
@@ -132,38 +134,46 @@ fn initialize_serving(
     runtime: MediaOwnedPhysicalRuntime,
     state: super::super::RecordServingState,
     frame_ports: super::super::residency::frame_ports::RecordFramePorts,
+    work_profile: crate::physical_runtime::PhysicalWorkProfileDeclaration,
 ) -> RecordStoreInitializationOutcome {
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
     core.progress_to_record_serving();
-    TransitionOutcome::success(ServingPhysicalRuntime::from_admission(
+    match ServingPhysicalRuntime::from_admission(
         termination,
         media,
         core,
         state,
         frontier,
         frame_ports,
-    ))
-    .into()
+        work_profile,
+    ) {
+        Ok(serving) => TransitionOutcome::success(serving).into(),
+        Err(failure) => TransitionOutcome::failed(failure).into(),
+    }
 }
 
 fn open_serving(
     runtime: MediaOwnedPhysicalRuntime,
     state: super::super::RecordServingState,
     frame_ports: super::super::residency::frame_ports::RecordFramePorts,
+    work_profile: crate::physical_runtime::PhysicalWorkProfileDeclaration,
 ) -> RecordStoreOpenOutcome {
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
     core.progress_to_record_serving();
-    TransitionOutcome::success(ServingPhysicalRuntime::from_admission(
+    match ServingPhysicalRuntime::from_admission(
         termination,
         media,
         core,
         state,
         frontier,
         frame_ports,
-    ))
-    .into()
+        work_profile,
+    ) {
+        Ok(serving) => TransitionOutcome::success(serving).into(),
+        Err(failure) => TransitionOutcome::failed(failure).into(),
+    }
 }
 
 fn open_failure(

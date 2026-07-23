@@ -91,6 +91,17 @@ async completion; it is not crash authority and is not the semantic Signal
 graph. The Part II adapter knows both public contract families and owns only
 their join.
 
+The future branch-concurrency law sharpens that boundary. Part II may plan or
+queue several mutations for one branch, but Relational permits exactly one
+mutation at a time to own active branch-write authority for a branch-head
+generation. Different branches may own that authority concurrently, and
+shared global authority coordinates independently. Part I must make this
+possible without learning branch identity: it exposes independently borrowable
+physical submission capabilities, exact physical scopes, generation-fenced
+operation identities, bounded read capabilities, and exact effect fate. A
+branch name, branch generation, semantic writer token, or caller-declared lane
+is never a physical disjointness proof.
+
 ## Governing Summaries
 
 - `MENTALITY.md` protects hard-problem-first foundations. The strongest
@@ -212,6 +223,26 @@ leaving ordinary iteration so expensive that broad verification is avoided.
    lifecycle. The I/O scheduler admits scarce resources and the executor
    performs effects. Neither may create a second operation registry, settle
    authority from counters, or bypass the physical owner.
+17. Part I owns no branch registry, branch queue, branch-head generation,
+    semantic writer lease, MVCC conflict decision, or global semantic
+    authority. Those are Part II Relational concerns even when physical work
+    originated from a branch mutation.
+18. The physical Store must admit concurrent work from independently held
+    submission capabilities when exact physical scopes and admitted resource
+    policy permit it. It must not impose a permanent whole-Store mutation
+    borrow merely because the future semantic owner permits one writer per
+    branch generation.
+19. Every mutating physical submission carries a Store-owned operation
+    identity, Store-incarnation fence, exact physical effect scope, durability
+    request, and terminal fate of proven no effect, completed effect, or
+    indeterminate effect. Part II may correlate that evidence with a semantic
+    mutation; Part I never decides whether a branch head advances, releases,
+    or remains fenced.
+20. Shared physical coordination such as root publication, WAL barriers,
+    allocation metadata, or namespace mutation is declared as physical scope
+    and scheduled by the physical owners. It is not a surrogate for Part II's
+    shared global semantic authority, and neither authority may be inferred
+    from the other.
 
 ## Non-Fake Physical Acceptance Test Contract
 
@@ -461,6 +492,14 @@ reconstruction is underway.
   other supplied representations rather than discovered bytes
 - a preserve, refactor, connect-later, quarantine, or delete decision for every
   duplicate runtime, fake backend, test-only oracle, and mechanism island
+- explicit identification of any physical type or path that currently claims
+  branch identity, semantic writer admission, MVCC visibility, Query planning,
+  semantic recovery readmission, or global semantic authority, plus a delete,
+  relocate-to-Part-II, or narrow-to-physical-fact disposition
+- a runtime-integration gap column for each physical owner, recording whether
+  it contributes a stable branch-agnostic capability/evidence surface or still
+  forces whole-runtime borrowing, raw internal access, supplied heap truth, or
+  semantic knowledge into a future adapter
 - a C.3 through C.13 blocker assignment in the same CSV so the audit does not
   become a second planning authority
 - no generated semantic reachability map, source hash hierarchy, readiness
@@ -505,7 +544,9 @@ reconstruction is underway.
 verified production path or an explicit unearned classification, every real
 writer has been reverse-traced to its actual caller class, dishonest promotion
 is mechanically unavailable outside the audit, and later specs can name the
-exact owner seam they must connect without guessing from vocabulary.
+exact owner seam they must connect without guessing from vocabulary. Every
+semantic-authority claim found below the future adapter boundary must also have
+an explicit deletion, relocation, or physical-fact narrowing milestone.
 
 ## C.3: Sealed Physical Runtime Authority And Lifecycle
 
@@ -536,6 +577,10 @@ immutable capability status, never by heap-backed implementations returning
   close/abort/crashed lifecycle
 - independently borrowable or cloneable read-only handles only where cloning
   does not duplicate mutation, publication, recovery, or allocation authority
+- lifecycle and observation capabilities shaped so a future composition root
+  can hold Query/Relational authority independently; C.3 owns neither a
+  semantic writer token nor a whole-Store borrow that future reads and
+  unrelated physical submissions must share
 - exhaustive ownership of only the root-admission, lifecycle, observation,
   managed-resource, capability-status, and diagnostic responsibilities that
   C.3 actually installs
@@ -628,9 +673,11 @@ and portable evidence vocabulary only after stronger Store-owned facts exist.
 - a stable store-root namespace with versioned identity, lock/ownership file,
   directory roles, temporary/staged/publication names, and no ambiguous residue
   discovery
-- process-level exclusive mutation ownership or an explicitly stronger
-  admitted multi-process design; read-only and offline access posture is
-  separate
+- process-level exclusive ownership of the physical store root or an explicitly
+  stronger admitted multi-process media design; this root/media exclusion is
+  not branch-write authority and must still permit independent in-process
+  physical submissions through later Store capabilities; read-only and offline
+  access posture is separate
 - storage-boundary operation context sufficient for fault scheduling and exact
   counters without giving the harness mutation authority above I/O
 - durable create, replace, rename, and directory-publication protocols tied to
@@ -726,6 +773,10 @@ production store, reopen input, or whole-store transport.
 - explicit removal of production `persisted_layout()` round trips and replay-
   artifact reopen
 - exact page, byte, allocation, manifest, record-id, copy, and scan counters
+- bounded physical read and mutation surfaces whose borrows can be held
+  independently once C.5.1 installs submission authority; a record operation
+  may identify physical artifacts and ranges but cannot accept branch identity
+  or semantic writer authority
 - a typed handoff to C.6 naming `FrameLoadPort`, `CandidateFrameSet`, and
   `CandidateFramePublicationPort`, while Store retains root publication
 
@@ -795,12 +846,29 @@ work, dependency, scheduling, settlement, observation, or evidence carrier.
 It is permitted only at an explicitly named external compatibility ingress or
 terminal projection edge, never as authority.
 
+C.5.1 is intentionally branch- and MVCC-agnostic. It supplies the lower half
+of future multi-branch execution: independently borrowable, incarnation-fenced
+physical submission capabilities; exact artifact, range, security, durability,
+and coordination scopes; and terminal effect fate. It must not install a
+Store-owned branch writer table, branch-labelled queue, semantic generation
+lease, or global mutation lock. The future adapter correlates a physical result
+with its semantic mutation, and Relational alone advances, releases, or fences
+active branch-write authority.
+
 ### Must Ship
 
 - one Store-owned physical instance composition with exhaustive construction,
   close, abort, unexpected-drop, and inspection propagation for physical
   authority, the physical Signal owner, scheduler admission, executor access,
   serving health, and managed work
+- independently borrowable physical read and mutation-submission capabilities
+  whose retained handles are fenced by Store incarnation and capability
+  generation without duplicating settlement, publication, recovery, or media
+  authority
+- Store-owned physical operation identities and exact physical scopes carried
+  through declaration, readiness, scheduling, dispatch, backend effect,
+  settlement, observation, and recovery disposition; upstream correlation is
+  metadata only and cannot widen scope or grant concurrency
 - one audited binding from Store physical-work declarations into Worth Signal's
   existing async-node and resource request lifecycle; Store-specific identity,
   generation, artifact/security scope, effect class, settlement owner, and
@@ -825,6 +893,9 @@ terminal projection edge, never as authority.
 - exact cancellation, supersession, timeout, late-completion, stale-generation,
   partial-effect, indeterminate-effect, and health-revocation behavior; once an
   effect may have begun, consumer cancellation cannot erase its settlement
+- terminal settlement evidence that distinguishes proven no effect, completed
+  effect, and indeterminate effect so Part II can correlate fate without Store
+  deciding semantic publication or branch-writer progression
 - reuse of Worth Signal's existing resource cancellation, retry, revalidation,
   supersession, timeout, completion, diagnostics, and retention laws wherever
   their semantics match; a missing domain-neutral capability is added once to
@@ -845,6 +916,9 @@ terminal projection edge, never as authority.
   cannot import Signal, raw media/backend effects cannot bypass the Store
   executor, and external consumers cannot construct Signal completions or
   physical settlement receipts
+- source and type gates proving Store has no branch-head, MVCC, semantic writer,
+  or branch-labelled concurrency vocabulary and proving two independently held
+  mutation capabilities can submit physically disjoint work concurrently
 - deletion or non-production quarantine of duplicate physical runtimes,
   background envelopes, async registries, pending maps, callback effect routes,
   polling loops, queue lifecycle state machines, certification-only owners, and
@@ -889,8 +963,11 @@ the same slice, together with obsolete features and dependencies.
   record operations through its physical Signal, scheduler, executor, and C.4
   media path where those boundaries apply.
 - **Initial world:** a real C.5 store with multiple pages and segments; bounded
-  scheduler capacity; disjoint reads; one append; one delayed effect; one
-  cancellable pre-dispatch request; and named effect-boundary yieldpoints.
+  scheduler capacity; two independently held mutation-submission capabilities;
+  disjoint reads; physically disjoint appends; one root-publication conflict;
+  one delayed effect; one cancellable pre-dispatch request; and named effect-
+  boundary yieldpoints. The workload uses opaque upstream correlations, never
+  branch labels as scheduling input.
 - **Execution:** submit work concurrently, reorder completions, deny one resource
   request, cancel before and after dispatch, inject one short/partial effect,
   attempt close with work in every lifecycle state, terminate the process, and
@@ -903,9 +980,11 @@ the same slice, together with obsolete features and dependencies.
 - **Assertions:** exactly one effect occurs per dispatched identity; no denied
   or safely cancelled request reaches media; late completion cannot settle a
   newer generation; partial effects revoke the declared health boundary;
-  disjoint work can progress concurrently; close leaves no unclassified
-  managed work; and fresh reopen reconstructs work from physical truth rather
-  than a serialized Signal graph.
+  physically disjoint submissions can progress concurrently; shared root work
+  coordinates only at its declared physical scope; no whole-Store mutation
+  borrow serializes unrelated work; close leaves no unclassified managed work;
+  and fresh reopen reconstructs work from physical truth rather than a
+  serialized Signal graph.
 - **Controlled defects:** perform a filesystem effect inside Signal evaluation,
   settle from a scheduler counter, dispatch through a raw backend handle, and
   retain a duplicate pending registry. Effect-boundary, authority, dependency,
@@ -914,8 +993,9 @@ the same slice, together with obsolete features and dependencies.
   callback-owned settlement, mock-only resource completion, serialized Signal
   state used as recovery authority, raw Signal aspect slots used as semantic
   identity, collapsed Foundational mask modes, internal JSON control/semantic
-  envelopes, or source scans without production-path execution cannot close
-  this milestone.
+  envelopes, a Store-owned branch writer registry, a branch-labelled physical
+  queue, a global physical submission lock, or source scans without production-
+  path execution cannot close this milestone.
 
 ### Closeout Gate
 
@@ -923,8 +1003,10 @@ the same slice, together with obsolete features and dependencies.
 physical work lifecycle, Signal is demonstrably derived and effect-free, the
 scheduler is only resource authority, exact backend outcomes are the only route
 to settlement, shutdown leaves no unclassified work, lower mechanisms remain
-Signal-agnostic, and every duplicate production authority or dead competing
-path has been deleted or mechanically quarantined.
+Signal-agnostic, independent physical submission capabilities preserve
+disjoint concurrency without semantic branch knowledge, and every duplicate
+production authority or dead competing path has been deleted or mechanically
+quarantined.
 
 ## C.6: Buffer Pool And Bounded Physical Access Join
 
@@ -963,6 +1045,9 @@ remain outside Part I.
 - exact resident-byte, allocation, pin, dirty, fault, hit, eviction, copy,
   writeback, and denial counters
 - compile-time prevention of record views outliving their frame authority
+- adapter-consumable bounded physical read leases and pressure evidence that
+  reveal basis, generation, bytes, and retry posture without treating cached
+  frames as semantic residency or allowing Part II to reach into pool internals
 
 ### Non-Fake Acceptance Setup
 
@@ -992,7 +1077,9 @@ remain outside Part I.
 
 `C.6` closes only when all ordinary file-backed record access is mediated by
 bounded residency, stores materially larger than memory remain operational,
-and frame-lifetime and budget claims are mechanically falsifiable.
+frame-lifetime and budget claims are mechanically falsifiable, and the bounded
+read surface can be consumed without transferring pool or semantic-residency
+authority.
 
 ## C.7: WAL, Checkpoint, Root Publication, And Acknowledgment Join
 
@@ -1009,7 +1096,9 @@ acknowledgment. WAL and publication owners decide ordering and durability;
 physical Signal derives dependency readiness, the scheduler admits resources,
 and the executor performs the exact effects. A physical write acknowledgment
 means exactly the declared physical durability boundary was reached under the
-admitted backend profile.
+admitted backend profile. It does not serialize semantic mutations, advance a
+branch head, release a branch writer, or confer shared global semantic
+authority.
 
 ### Must Ship
 
@@ -1018,6 +1107,10 @@ admitted backend profile.
   root publication, namespace durability, and physical acknowledgment
 - canonical WAL frame and transaction identities bound to exact physical
   effects and idempotency keys
+- preservation of the C.5.1 physical operation identity and exact submitted
+  scope across grouping, WAL ordering, root publication, acknowledgment, and
+  indeterminate fate; group commit may share barriers but cannot merge caller
+  identities or invent semantic commit order
 - WAL-before-data enforcement and typed barriers for backend capability tiers
 - group-commit-compatible batching without changing individual mutation
   identity or allowing premature acknowledgment
@@ -1027,6 +1120,9 @@ admitted backend profile.
   recovery
 - explicit indeterminate physical outcome when failure occurs after possible
   durability but before the caller can observe completion
+- sealed physical settlement receipts sufficient for a future adapter to
+  correlate proven no effect, completed effect, or indeterminate effect with
+  its own mutation while remaining incapable of deciding branch progression
 - exact frames, bytes, fsyncs, directory syncs, page writes, pageLSNs,
   checkpoints, root swaps, grouped mutations, and acknowledgment counters
 - dependency edges for WAL-before-data, barriers, checkpoints, and root
@@ -1067,7 +1163,9 @@ admitted backend profile.
 `C.7` closes only when one real production write progression owns every
 physical durability edge and no acknowledgment can be manufactured without
 the exact file, directory, ordering, and root-publication effects required by
-its backend profile.
+its backend profile. Its receipts must remain physical facts: no C.7 type or
+transition may advance a branch, release a semantic writer, or impose semantic
+serialization across operations that merely share a durability barrier.
 
 ## C.8: Fresh-Process Recovery And Reopen
 
@@ -1081,7 +1179,9 @@ WAL tail, pages, and manifests after real process death.
 Recovery decides physical source precedence and reconstructs physical current
 state. It does not readmit Query, Relational, Signal, or Bridge authority. It
 may produce typed physical truth and handoff evidence for later Part II
-readmission.
+readmission. Recovery resolves physical operation fate by Store identity; it
+does not know which branch submitted the work or whether Relational may admit a
+successor writer.
 
 ### Must Ship
 
@@ -1093,11 +1193,18 @@ readmission.
   publication handling, and closed-work quiescence
 - exact resolution of acknowledged, unacknowledged-not-durable, durable-but-
   unacknowledged, and indeterminate physical operations
+- recovery reconciliation indexed by stable physical operation identity and
+  Store incarnation, returning the weakest exact fate rather than promoting an
+  unresolved effect to success or no-effect
 - new runtime identity and fresh handles after every recovery
 - recovery time/work bounded by checkpoint interval, tail, and damaged scope,
   not total store size
 - post-recovery checkpoint/root cleanup policy that preserves evidence until
   current truth is safely published
+- a narrow recovery handoff exposing verified physical roots, bounded access
+  capabilities, reconciled physical operation fates, and unsupported or
+  quarantined scope; no semantic checkpoint, branch head, or writer lease is
+  reconstructed here
 - exact bootstrap bytes, manifests, WAL frames, page redo, skipped redo,
   rejected tails, residue denials, and recovery allocation counters
 
@@ -1119,7 +1226,9 @@ readmission.
 - **Assertions:** recovered record/model parity, new process and runtime
   identities, deterministic classification for identical bytes, exact
   acknowledged/indeterminate outcomes, bounded tail work, and disagreement
-  visibility between runtime and verifier.
+  visibility between runtime and verifier. Every submitted physical identity
+  resolves to exact fate or remains explicitly indeterminate; no branch or
+  semantic-writer state is reconstructed.
 - **Controlled defect:** preserve one writer registry across restart or ignore
   pageLSN during redo. Crash-isolation or redo predicates must fail and
   localize separately.
@@ -1132,7 +1241,8 @@ readmission.
 
 `C.8` closes only when a killed writer can be replaced by a genuinely fresh
 process that reconstructs one deterministic physical truth from persisted
-authority alone inside declared memory and recovery-work bounds.
+authority alone inside declared memory and recovery-work bounds, and exposes
+exact physical reconciliation without making a semantic readmission decision.
 
 ## C.9: Physical Integrity, Corruption Localization, And Offline Truth
 
@@ -1147,7 +1257,9 @@ enter logical or recovery interpretation.
 Integrity owns physical validity and localization. Recovery owns source
 precedence. Artifact owners decide whether damaged derived material can be
 rebuilt. The offline verifier is read-only observation and cannot mint current
-runtime or repair authority.
+runtime or repair authority. Integrity reports artifact facts; it does not
+decide semantic visibility, branch health, Query readmission, or whether a
+logical mutation may be retried.
 
 ### Must Ship
 
@@ -1166,6 +1278,10 @@ runtime or repair authority.
   state, quarantined region, unsupported version, unknown, and indeterminate
 - verifier/runtime disagreement as explicit evidence rather than hidden
   reconciliation
+- typed integrity evidence stable enough to cross the future adapter boundary:
+  exact artifact identity, generation, damaged range, authority/derivation
+  class, quarantine posture, and physical recovery options without semantic
+  policy conclusions
 - exact checked, failed, skipped-decode, quarantined, rebuildable, unknown,
   and bytes-read counters
 
@@ -1199,6 +1315,8 @@ runtime or repair authority.
 `C.9` closes only when every current physical authority family is rejected or
 localized before semantic use when damaged, and an independent read-only
 process can disagree with live recovery without sharing its authority path.
+Its verdict remains physical evidence for later semantic policy, not that
+policy itself.
 
 ## C.10: Stable Reads, Scheduled I/O, And Maintenance Interference
 
@@ -1215,12 +1333,19 @@ This is physical isolation and I/O coordination, not semantic MVCC. It evolves
 the C.5.1 scheduler's resource policy; it does not create another scheduler,
 async lifecycle, completion registry, or effect route. A physical read plan
 proves that referenced bytes remain stable; it does not decide which semantic
-version a user may observe.
+version a user may observe. Physical concurrency is derived from exact artifact,
+range, publication, reclaim, and resource scopes. Branch labels and semantic
+writer generations are neither accepted inputs nor substitutes for those
+proofs.
 
 ### Must Ship
 
 - stable read plans bound to exact roots, generations, physical references,
   security scope, and lease lifetime
+- physical work-scope intersection and disjointness proofs carried into the
+  scheduler so independent submissions may overlap when safe while shared root,
+  allocator, WAL, or namespace work coordinates only at the exact physical
+  authority it touches
 - real latch/epoch/hazard or equivalent protection integrated with C.5 pages,
   C.6 frames, C.7 root publication, and C.8 recovery
 - copy-on-write maintenance publication with protected-old-generation
@@ -1232,6 +1357,9 @@ version a user may observe.
   work classes with explicit cost and interference posture
 - typed stale-plan retry/rejection, deadlock prevention or detection,
   starvation bounds, and unsupported-QoS outcomes
+- explicit separation between Store-owned shared physical coordination and
+  future Relational-owned shared global semantic authority; neither token,
+  queue, or lock may be reused as proof of the other
 - exact latch, lease, retry, blocked-reclaim, queue, yield, sync-delay,
   foreground-wait, and maintenance-debt counters
 
@@ -1263,7 +1391,9 @@ version a user may observe.
 
 `C.10` closes only when readers and real maintenance interleave over persisted
 bytes without unstable visibility, and foreground/background cost is governed
-and explained at the actual I/O boundary.
+and explained at the actual I/O boundary. Physically disjoint submissions must
+not acquire a global mutation lock, and shared physical coordination must not
+be represented as branch or global semantic authority.
 
 ## C.11: Layout, Index, And Native Blob Adoption
 
@@ -1278,13 +1408,17 @@ sidecar paths.
 Layout and indexes are derived physical access structures unless explicitly
 classified otherwise. Blobs may be authoritative artifacts, but chunk
 placement and dedupe indexes do not redefine blob identity. Query pushdown and
-semantic graph traversal remain Part II.
+semantic graph traversal remain Part II. Semantic liveness, retention, tenant
+policy, key policy, and blob meaning arrive later as admitted proofs or requests;
+Part I may enforce their physical scope and execute their effects but may not
+derive or decide them.
 
 ### Must Ship
 
 - artifact-family registry binding each admitted family to physical layout,
   source authority, access operations, rebuild basis, format version,
-  integrity class, retention, and recovery participation
+  integrity class, physical retention mechanics, and recovery participation;
+  semantic retention and liveness remain external inputs
 - B-tree and LSM point/range/prefix/scan paths over C.5 pages and C.6 residency
   with C.10 stable plans and scheduling
 - deterministic index rebuild and corruption fallback whose cost and support
@@ -1293,8 +1427,13 @@ semantic graph traversal remain Part II.
   integrity, lease, C.5.1 work, scheduling, and recovery boundaries
 - constant-memory streaming ingest/read/verify/export/import and interrupted
   ingest recovery
-- dedupe, collision, reachability, orphan, tier, tenant/key scope, and reclaim
-  policies with exact physical effects
+- collision handling plus physically scoped dedupe, reachability traversal,
+  orphan classification, tier movement, and reclaim execution with exact
+  effects; semantic liveness, tenant/key authorization, retention, and reclaim
+  permission must be presented by their future authority rather than inferred
+  from physical absence or age. Store may independently reclaim residue proven
+  to belong only to a failed/aborted physical operation or rebuildable physical
+  derivation when that proof is complete
 - broad-scan denial where an admitted indexed path is required
 - exact page touches, probes, ranges, amplification, chunk bytes, resident
   bytes, copies, dedupe, reachability, and reclaim counters
@@ -1306,13 +1445,13 @@ semantic graph traversal remain Part II.
 - **Initial world:** indexed data and a blob each materially larger than the
   memory budget, repeated content for dedupe, at least two segments, and one
   active reader lease during rewrite/reclaim.
-- **Execution:** ingest, point/range query, stream ranges, interrupt and resume
-  blob ingest, corrupt derived index and one chunk, rebuild, rewrite layout,
-  attempt reclaim, crash, and fresh-process reopen.
+- **Execution:** ingest, perform physical point lookup and range scan, stream
+  ranges, interrupt and resume blob ingest, corrupt derived index and one chunk,
+  rebuild, rewrite layout, attempt reclaim, crash, and fresh-process reopen.
 - **Independent observation:** canonical key/value and blob-digest models are
   built from the input generator; offline traversal measures pages, chunks,
   roots, reachability, and orphan sets without using runtime access APIs.
-- **Assertions:** semantic byte parity, constant-memory slope, exact access and
+- **Assertions:** input-model byte parity, constant-memory slope, exact access and
   amplification counters, rebuild parity, corruption localization, safe lease
   preservation, dedupe scope honesty, and no sidecar or whole-object path.
 - **Controlled defect:** hide a full blob materialization and separately accept
@@ -1326,7 +1465,9 @@ semantic graph traversal remain Part II.
 
 `C.11` closes only when every retained S.8/S.7 access and blob mechanism runs
 through the one reconstructed platform with bounded memory, recoverable
-publication, and destroy/rebuild honesty for derived structures.
+publication, and destroy/rebuild honesty for derived structures. Physical
+reclaim must consume admitted liveness/retention proof rather than inventing
+semantic reachability from its own artifact graph.
 
 ## C.12: Formal Protocol Rebinding To Executable Owner Transitions
 
@@ -1340,14 +1481,17 @@ publication transitions.
 
 Formal models define finite checked law; production owners execute and decide;
 certification observes correspondence. Model actions, copied ids, and checked
-verdicts do not become runtime authority.
+verdicts do not become runtime authority. C.12 models only transitions with a
+production physical owner in this reconstruction sequence. Semantic commit,
+branch admission, MVCC visibility, recovery readmission, Query pushdown, and
+replication remain outside its model authority.
 
 ### Must Ship
 
 - complete state/action mapping from C.7 through C.11 owner transitions to the
   required WAL/checkpoint, recovery-source, stable-read/reclaim,
-  compaction/publication, quarantine/readmission, import, and replication
-  models
+  compaction/publication, physical quarantine/recovery admission, and physical
+  import models
 - removal or rejection of modeled states with no production owner outcome and
   production outcomes with no modeled case where the roadmap requires coverage
 - explicit backend, atomicity, durability, clock, scheduling, and bounded-state
@@ -1357,6 +1501,10 @@ verdicts do not become runtime authority.
 - executed-trace lifting back into model actions without allowing trace
   observations to authorize production
 - controlled weakened-transition variants for each model family
+- explicit negative mapping proving that branch writers, semantic generations,
+  global semantic authority, Query visibility, and replica meaning have no
+  C.12 production witness and therefore cannot be smuggled in as modeled
+  physical actions
 - exact mapping, action, invariant, deadlock, bound, counterexample, and
   localization evidence
 
@@ -1386,7 +1534,8 @@ verdicts do not become runtime authority.
 
 `C.12` closes only when S.9 checked law corresponds exactly to the real
 reconstructed transitions and controlled divergence is detected and localized
-from either side.
+from either side, with no modeled branch, semantic commit, Query, or replication
+transition promoted in advance of its production owner.
 
 ## C.13: Physical-Foundation Recertification And S.10 Re-entry
 
@@ -1400,7 +1549,9 @@ S.10.
 
 This milestone adds no new physical feature. It is the correction courtroom
 and source cutover. S.10, S.11, S.12, and Part II retain their own future
-closeout obligations.
+closeout obligations. C.13 may certify the physical facade shape that those
+programs consume; it cannot issue Part II semantic readiness or pre-authorize
+branch, Query, or replica behavior.
 
 ### Must Ship
 
@@ -1411,18 +1562,29 @@ closeout obligations.
   paths, and shadow authority discovered by the program
 - dependency checks proving ordinary product paths reach only the canonical
   runtime facade and physical owners depend in the admitted direction
+- a runtime-integration handoff matrix proving the public physical facade
+  exposes independently borrowable bounded reads, independently borrowable
+  generation-fenced mutation submission, exact physical scope, exact terminal
+  and recovery fate, capability negotiation, lifecycle/drainage, and pressure
+  evidence while exporting no Query, Relational, branch, MVCC, or semantic
+  writer vocabulary
 - cross-milestone hostile execution combining real writes, stores larger than
   memory, checkpoint/WAL recovery, corruption, stable readers, scheduled
   maintenance, index rebuild, and blob streaming
 - mutation-sensitivity aggregate covering acknowledgment inversion, live-state
   reuse, checksum bypass, generation bypass, reclaim-with-live-lease,
   scheduler bypass, broad scan, full materialization, derived-authority
-  promotion, and model/owner drift
+  promotion, model/owner drift, accidental whole-Store submission
+  serialization, and branch-label-based physical admission
 - reproducible source, binary, format, backend, harness, and profile-bound
   evidence bundle
 - typed `S10PhysicalPlatformReadiness` or equivalently responsibility-named
   handoff whose private construction requires every restored claim and whose
   payload exposes the exact S.10 owner ports
+- a non-authoritative Part II compatibility report bound to the same facade and
+  evidence, carried forward through S.10 through S.12 rather than a second
+  runtime or readiness token; it records whether the lower contracts required
+  by the runtime-integration roadmap remain available and branch-agnostic
 - explicit list of remaining non-platform-grade or unsupported capability
   profiles; no unnamed debt
 
@@ -1434,7 +1596,8 @@ closeout obligations.
 - **Initial world:** real store at least eight times the memory budget with
   pages, extents, checkpoints, WAL tail, B-tree/LSM indexes, multi-segment
   blobs, derived and authoritative artifacts, and declared backend assumptions.
-- **Execution:** foreground reads/writes continue during checkpoint, scrub,
+- **Execution:** foreground reads/writes from multiple independent submission
+  capabilities continue during checkpoint, scrub,
   rewrite, reclaim, index rebuild, and blob streaming; inject crash and
   corruption at declared seams; start a fresh recovery process; run offline
   verification; repeat controlled mutants.
@@ -1444,7 +1607,10 @@ closeout obligations.
   runtime heap state.
 - **Assertions:** all restored S.1 through S.9 predicates, exact resource and
   interference counters, deterministic recovery, independent classification,
-  zero forbidden paths, full mutation localization, and evidence freshness.
+  zero forbidden paths, concurrent progress for disjoint physical submissions,
+  exact coordination for shared physical scope, absence of semantic branch
+  authority below the adapter boundary, full mutation localization, and
+  evidence freshness.
 - **Controlled defects:** all named aggregate mutants must fail the specific
   predicate and no unrelated green lane may mask that failure.
 - **Forbidden substitutes:** combining milestone receipts without rerunning the
@@ -1489,12 +1655,27 @@ ordinary CI status. C.2 closes through manually resolved two-direction traces,
 reproducible narrow probes where needed, and code-level denial of false claims,
 as defined by its engineering spec.
 
+Every C.3 through C.13 spec also inherits the Part I/Part II handoff law in
+`Relationship To The Two Store Roadmaps` and Product Decision Lock items 17
+through 20. Each spec must name (a) the exact physical authority it installs,
+(b) the branch-agnostic facade or evidence it contributes to later integration,
+and (c) the semantic, branch, MVCC, Query, or global-authority decision it is
+forbidden to make. A generic statement that integration happens later is not a
+boundary proof.
+
 ## Must Preserve
 
 - Physical Store owns byte survival and physical access.
 - Physical format remains meaning about bytes, not the owner of media effects.
 - Relational remains semantic MVCC, visibility, branch, and transaction
   authority.
+- Part II Relational remains the sole owner of active branch-write admission:
+  many submissions may be planned or queued, exactly one mutation may own a
+  branch-head generation at a time, different branches may write concurrently,
+  and shared global semantic authority coordinates independently.
+- Physical Store remains branch-agnostic and exposes concurrent submission,
+  exact physical scope, durability, settlement, and recovery fate rather than
+  branch queues, semantic writer leases, or semantic commit decisions.
 - Query remains the future ordinary domain-facing language through Part II.
 - semantic Signal and Runtime Bridge retain derived and causal authority in
   Part II; physical Signal owns only reconstructible physical-work derivation
@@ -1517,6 +1698,9 @@ The reconstruction program emits:
 - real physical artifact manifests
 - physical-work authority, lifecycle, dependency, and duplicate-path deletion
   evidence
+- runtime-integration facade evidence for independent physical capabilities,
+  disjoint-scope concurrency, exact effect fate, and absence of semantic branch
+  authority
 - bounded-memory and allocation evidence
 - durability and crash-boundary evidence
 - fresh-process recovery and determinism evidence
@@ -1539,6 +1723,9 @@ The reconstruction program emits:
 - C.5.1 follows C.5 and precedes C.6 through C.11 because every later physical
   owner must enter one work, scheduling, execution, settlement, and shutdown
   topology rather than grow its own background runtime.
+- C.6 through C.12 extend C.5.1's branch-agnostic physical contracts; none may
+  replace them with a whole-Store mutation borrow, branch-labelled lane,
+  semantic admission table, or milestone-local adapter.
 - C.6 precedes greater-than-memory recovery and access claims.
 - C.7 precedes C.8 because recovery must consume one real durability law.
 - C.8 precedes C.9 operational classification because corruption evidence must
@@ -1564,6 +1751,13 @@ This roadmap is complete only when Worth Store can honestly say:
 - one physical Store instance owns operation lifecycle through one disposable,
   effect-free physical Signal graph and one scheduler/executor boundary, with
   no duplicate work authority or raw effect path
+- independent, incarnation-fenced physical capabilities admit disjoint work
+  concurrently, coordinate shared physical scope exactly, and report proven
+  no-effect, completed, or indeterminate fate without learning branch identity
+- the public physical facade gives Part II everything needed to correlate
+  physical work while leaving active branch-write admission, branch-head
+  advancement, MVCC visibility, and shared global semantic authority entirely
+  above Store
 - ordinary access is buffer-pool bounded for stores larger than memory
 - WAL, page, checkpoint, root publication, and acknowledgment form one durable
   progression

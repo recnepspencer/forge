@@ -7,6 +7,11 @@ Specialized physical authority remains the only source of operation truth;
 one private Worth Signal instance derives physical dependency readiness and
 owns generic async-resource lifecycle; the existing I/O scheduler admits scarce
 resources; and one Store-owned executor is the only route to real media effects.
+The instance exposes independently borrowable, generation-fenced physical
+submission authority so a future Store-backed Query runtime can run at most one
+active Relational writer per branch generation at a time across many branches
+without adding a global physical writer lock or teaching Store what a semantic
+branch means.
 
 ## Why This Milestone Exists
 
@@ -16,6 +21,10 @@ plans, backend queue completion, publication stages, and lifecycle-local state.
 C.6 through C.11 would multiply those seams into competing background runtimes
 unless one work topology exists first. C.5.1 installs that topology, migrates
 the current production path into it, and deletes every superseded authority.
+Part II later assigns branch truth and active branch-write authority to
+Relational. C.5.1 must make that composition possible by preserving concurrent
+physical submission, exact locality, generation fencing, and terminal effect
+fate while remaining completely branch- and MVCC-agnostic.
 
 ## Governing Summaries
 
@@ -34,6 +43,13 @@ the current production path into it, and deletes every superseded authority.
 - The reconstruction roadmap places C.5.1 after real C.5 artifacts and before
   C.6 because buffer, WAL, recovery, maintenance, layout, and blob work must all
   enter one physical work topology.
+- The runtime-integration roadmap requires many branches to hold independent
+  active Relational writer authority while exactly one mutation at a time owns
+  a given branch-head generation. C.5.1 protects the lower half of that future
+  join:
+  independently borrowable physical submission, proof-carrying physical
+  locality, and exact settlement, with no Store-owned branch registry or
+  semantic writer admission.
 - Worth Signal Milestone A already owns deterministic temporal gates, wake
   ordering, timeout/retry timing, previous-value access, and frontier-bounded
   temporal work. Store must consume that clock and wake substrate rather than
@@ -55,8 +71,9 @@ the current production path into it, and deletes every superseded authority.
 
 The completed milestone must survive this single joined condition:
 
-> One real Store concurrently serves disjoint record reads, an append batch, a
-> dirty-frame writeback, a resource-denied request, a pre-dispatch cancellation,
+> One real Store concurrently serves disjoint record reads, two independently
+> submitted disjoint append preparations, a dirty-frame writeback, a resource-
+> denied request, a pre-dispatch cancellation,
 > a post-dispatch cancellation, an intentionally reordered late completion,
 > and an injected partial filesystem effect while shutdown begins. Exactly one
 > physical operation identity follows each admitted request; no safely denied
@@ -88,6 +105,7 @@ carrier.
 | Aspect-local invalidation and dependency routing | private `worth-signal` `Aspect`/`AspectMask` slots derived from an admitted Store binding | aspect meaning, value authority, mutation legality |
 | Governed phase progression | `worth-proof` witnesses and outcomes | ids, labels, digests, generic marker traits |
 | Shared boundary nouns | `worth-foundational` where meaning truly crosses owners | Store-local hot state and private typestates |
+| Future branch truth and active branch-write authority | Relational through the Part II Store-Query composition, outside C.5.1 | physical Store, physical Signal, scheduler, backend, branch labels |
 
 ## Product Decision Lock
 
@@ -169,6 +187,21 @@ carrier.
     aspect-native; their content is not forced through `AspectValue` or JSON.
     The prohibition is against JSON-shaped internal control/semantic state,
     not against storing arbitrary user bytes.
+28. C.5.1 owns no branch identity, branch-head generation, MVCC conflict, or
+    semantic writer registry. Those remain future Relational authority; a
+    branch label, upstream correlation id, or caller-declared lane cannot grant
+    physical parallelism or bypass artifact, security, durability, and
+    scheduler coordination.
+29. Independently borrowable physical submission handles may coexist and issue
+    disjoint work concurrently. They are generation-fenced capabilities over
+    one physical Store instance, not logical writer leases, and no handle may
+    retain or clone the whole instance merely to obtain concurrency.
+30. Physical work identity, exact effect fate, recovery disposition, and
+    settlement must be sufficient for the future adapter to correlate the
+    physical result with its semantic mutation and for Relational alone to
+    decide whether branch-write authority advances, releases, or remains
+    fenced. Store does not make that semantic decision and consumer cancellation
+    cannot erase the physical evidence on which it depends.
 
 ## API Surface Rule
 
@@ -254,8 +287,10 @@ let reader = serving.records();
 let session = reader.open(locator, limits)?;
 
 // Target C.5.1 surface: independently borrowable submission authority.
-let submissions = serving.record_submission();
-let outcome = submissions.append_batch(batch, placement)?;
+let first_submission = serving.record_submission();
+let second_submission = serving.record_submission();
+let first_outcome = first_submission.append_batch(first_batch, placement)?;
+let second_outcome = second_submission.append_batch(second_batch, placement)?;
 
 let shutdown = serving.close();
 ```
@@ -451,8 +486,12 @@ localization message. At minimum the campaign must kill:
 - retaining a second generic lifecycle map beside Signal;
 - retrying a physical effect after physical settlement because derived Signal
   completion rolled back;
-- reintroducing `records_mut` as the global mutation lock; and
-- allowing a C.6 caller to create a second pending registry or scheduler.
+- reintroducing `records_mut` as the global mutation lock;
+- allowing a C.6 caller to create a second pending registry or scheduler;
+- adding a Store-owned branch writer registry or branch-labelled physical
+  submission queue;
+- accepting a branch, workspace, or caller lane label as physical disjointness
+  or scheduler-admission proof.
 
 ### Forbidden Substitutes
 
@@ -463,6 +502,8 @@ localization message. At minimum the campaign must kill:
 - JSON fixtures passed directly into Store work admission, Signal payload
   correlation, scheduler demand, executor commands, settlement, or evidence
   assembly;
+- semantic branch identities, writer leases, or MVCC conflict objects injected
+  into C.5.1 as physical work or concurrency authority;
 - sleep-based race claims without named yieldpoints and a bounded deadline;
 - giant policy/value Cartesian matrices in place of the three joined
   courtrooms; and
@@ -486,6 +527,9 @@ lane; those bytes cannot be readmitted as certification or runtime authority.
 - one consuming physical-work progression from declaration through exact
   physical settlement;
 - migrated C.5 read and publication paths using that progression;
+- independently borrowable, generation-fenced physical read and mutation
+  submission capabilities that permit disjoint progress without carrying
+  branch, MVCC, or semantic writer authority;
 - bounded cancellation, retry, shutdown, and observation semantics;
 - a narrow C.6 handoff that makes a second runtime mechanically unnecessary;
 - deletion and dependency gates for every superseded production path; and
@@ -506,14 +550,22 @@ lane; those bytes cannot be readmitted as certification or runtime authority.
   authority, with Signal aspects remaining derived routing slots and JSON
   confined to explicit external compatibility/terminal projection;
 - the scheduler's role as resource admission and ordering, never effect or
-  settlement authority; and
-- the backend's role as exact physical effect owner beneath Store composition.
+  settlement authority;
+- the backend's role as exact physical effect owner beneath Store composition;
+  and
+- future Relational ownership of branch truth and exactly one active writer per
+  branch-head generation at a time; C.5.1 supplies physical concurrency and
+  settlement evidence only and cannot pre-empt that policy with Store-local
+  branch state.
 
 ## Acceptance Evidence
 
 - every phase's focused unit and integration tests;
 - compile-fail authority tests for raw Signal, scheduler, residency, executor,
   backend, and settlement construction;
+- compile-fail and dependency tests proving physical Store work cannot import,
+  infer, or mint branch/MVCC writer authority, plus concurrency tests proving
+  multiple physical submission handles do not require a whole-instance lock;
 - feature-tree, dependency-direction, public-surface, dead-code, and deletion
   gates;
 - strict Clippy with all targets/features and zero warnings;
@@ -566,6 +618,9 @@ already be proven to compete with it.
 - one private `PhysicalStoreInstanceParts` exhaustive construction packet
 - one responsibility-named physical-instance facade; retain
   `ServingPhysicalRuntime` if that remains the honest name
+- independently borrowable physical read and mutation submission capabilities
+  whose construction is lifecycle-generation-bound and does not borrow or
+  clone the complete physical instance
 - one import/dependency gate permitting the Store composition owner, and no
   lower mechanism crate, to depend on `worth-signal`
 - one composition-only aspect bridge: `worth-store` may depend on both
@@ -593,8 +648,16 @@ already be proven to compete with it.
 - Compile-fail fixtures must prove product crates cannot construct raw backend
   owners, scheduler backend completions, buffer-pool claims, or a second
   physical runtime authority.
+- Compile-fail and dependency fixtures must prove the physical instance exposes
+  no branch-head mutation, branch writer, MVCC conflict, or semantic publication
+  authority; those concepts may appear only in future Query/Relational and
+  integration-side contracts, never the physical Store facade.
 - A production-path reachability test must prove initialize, open, record read,
   append, writeback, close, and abort all enter the same physical instance.
+- Two independently acquired mutation submission handles must coexist, submit
+  disjoint physical preparation concurrently, and become stale together when
+  their lifecycle generation closes; acquiring them must not clone media,
+  executor, scheduler, Signal, or root-publication ownership.
 
 **Engineering decisions**
 
@@ -665,6 +728,10 @@ backend boundaries without allowing those mechanisms to reconstruct authority.
 - Do not encode semantic basis as JSON, an untyped key/value map, raw
   `AspectValue`, or a Signal `AspectMask`. Native Foundational validation and
   Store physical-witness admission precede work admission.
+- Do not add branch identity, branch-head generation, MVCC visibility,
+  semantic writer generation, or caller lane labels to physical work authority.
+  The future adapter retains semantic correlation and consumes Store settlement;
+  Store admits concurrency only from exact physical scope and capability.
 
 **Test requirements**
 
@@ -676,6 +743,9 @@ backend boundaries without allowing those mechanisms to reconstruct authority.
   every mismatched transition before effects.
 - Batch cardinality tests must prove one batch identity retains its exact member
   set and cannot be partially substituted by scalar child work.
+- A branch-shaped string, opaque upstream correlation, or caller-declared lane
+  must be unable to change `PhysicalWorkIdentity`, construct
+  `PhysicalWorkConcurrencyScope`, widen locality, or admit parallel execution.
 
 **Engineering decisions**
 
@@ -727,6 +797,9 @@ progression before work can be admitted.
 - `PhysicalStoreShutdownOutcome` extending current serving shutdown evidence
   with declared, ready, queued, dispatched, settling, terminal, and residual
   work posture
+- generation-fenced physical submission capabilities whose retained handles
+  can submit only while the owning instance admits work and whose existence
+  does not prevent consuming close or keep mutation owners alive
 
 **Warnings**
 
@@ -748,6 +821,9 @@ progression before work can be admitted.
 - Retained observation and request handles must reject after lifecycle
   generation advances, while a fresh reopened instance receives distinct
   runtime and Signal identities.
+- Retained physical submission handles must neither block close nor authorize
+  post-close work; close evidence must classify every work identity they
+  admitted before the generation fence advanced.
 
 **Engineering decisions**
 
@@ -1278,6 +1354,9 @@ abandoning a request cannot abandon possible filesystem truth.
   backend effect did not begin.
 - Post-dispatch cancellation must not release payload buffers, artifact leases,
   scheduler grants, or settlement state required by the in-flight operation.
+- Post-dispatch cancellation must not emit a no-effect posture or otherwise
+  suggest to a future semantic owner that its branch-write authority may be
+  released before physical settlement classifies the effect.
 - Retry is legal only for `NoEffect` or an explicitly idempotent exact effect
   with known recovery disposition.
 - Timeout and retry timing must use Signal's Milestone A clock and temporal
@@ -1297,6 +1376,10 @@ abandoning a request cannot abandon possible filesystem truth.
 - A stale attempt or superseded generation must be rejected even when its
   payload length, scheduler binding, and artifact coordinate match current
   work.
+- For every cancellation/timeout race, the terminal physical outcome must
+  distinguish proven no effect, settled effect, and indeterminate effect so a
+  future adapter can carry exact evidence into Relational's release, advance,
+  or fence transition without consulting Signal lifecycle state.
 - Deterministic clock advancement must reproduce timeout and retry outcomes
   without sleeps. Replacing Signal time with wall-clock or scheduler elapsed
   time must fail a named mutant while producing no physical effect.
@@ -1344,6 +1427,9 @@ independence rather than a runtime-wide mutable borrow or registry lock.
   dispatched-effect obligations, never generic lifecycle/history state
 - `PhysicalWorkConcurrencyScope`, lowered from artifact/range and security
   identity rather than caller labels
+- independently borrowable physical submission capabilities that can feed the
+  bounded command arena concurrently without owning a global queue or
+  serializing through one mutable physical-instance borrow
 - exact active, blocked, ready, queued, dispatched, settling, and terminal work
   counters split by work family and pressure class
 - one bounded completion batch path using
@@ -1360,6 +1446,11 @@ independence rather than a runtime-wide mutable borrow or registry lock.
   ownership; move consuming packets and share only true multi-observer state.
 - Queue grouping must preserve operation identity and may not group different
   security, durability, recovery-ordering, or writeback-policy scopes.
+- A branch label, semantic writer token, upstream queue name, or opaque
+  correlation value is not a physical disjointness proof. C.5.1 must neither
+  accept one as `PhysicalWorkConcurrencyScope` nor build a Store-local branch
+  writer registry; the future adapter lowers already-authorized semantic work
+  into exact physical scope while retaining branch authority above Store.
 - C.10 owns full starvation and QoS closure; C.5.1 must still provide bounded
   progress and honest backpressure now.
 
@@ -1368,6 +1459,10 @@ independence rather than a runtime-wide mutable borrow or registry lock.
 - At least two disjoint reads and two disjoint writes must progress while one
   unrelated request is blocked and one queue budget is exhausted; exact
   counters must show no global serialization.
+- The disjoint writes must be submitted through independently acquired
+  physical mutation capabilities. Replacing those capabilities with a global
+  physical submission lock, or accepting a caller branch/lane label as their
+  independence proof, must fail a named structural mutant.
 - Opposing same-artifact mutations must serialize at the artifact coordination
   boundary without blocking a disjoint artifact operation.
 - Scale tests must demonstrate lookup and completion work proportional to the
@@ -1382,6 +1477,11 @@ independence rather than a runtime-wide mutable borrow or registry lock.
 **Engineering decisions**
 
 - Parallelism derives from declared physical locality and scheduler capacity.
+- Future one-writer-per-branch-generation-at-a-time policy composes above this
+  boundary:
+  Relational decides which semantic mutation is active, while Store remains
+  capable of concurrent physical work from different branches and honest
+  coordination wherever their physical or global scopes overlap.
 - Physical command storage is bounded by admitted capacity. Generic in-flight
   lifecycle, retained history, and diagnostics remain in Signal's already
   separated hot/cold/projection stores and never retain physical authority.
@@ -1494,6 +1594,9 @@ order that assumes no operation is in flight.
 - close reconciliation that consumes `ResourceRuntimeSummary` plus the bounded
   physical command/effect-obligation arena and refuses clean close if either
   owner has an unmatched live identity
+- terminal work evidence preserving proven-no-effect, completed, and
+  indeterminate recovery disposition for every admitted mutation so downstream
+  semantic recovery never has to infer writer-fence fate from shutdown timing
 
 **Warnings**
 
@@ -1518,6 +1621,10 @@ order that assumes no operation is in flight.
 - Kill a process during each close phase, start a fresh executable, and prove
   C.5 reopen reaches the same physically allowed world without receiving work
   or Signal state.
+- Crash with a mutation in each pre-effect, dispatched, settled, and
+  indeterminate posture; fresh physical recovery must classify enough exact
+  fate for a future semantic layer to reacquire, advance, or retain its own
+  branch-generation fence without importing physical Signal state.
 - Retained request, scheduler, executor, Signal, and observer handles must be
   unusable after their owning generation is consumed.
 - Run close with maximal Signal lifecycle-history retention and diagnostics
@@ -1662,6 +1769,11 @@ replacement through the same work progression and eliminate the global
 - narrow root-publication owner as the only serialized mutation boundary;
   preparation, payload materialization, and disjoint artifact work remain
   independently admissible
+- physical publication outcome and recovery disposition that remain exactly
+  correlated to the submitting `PhysicalWorkIdentity`, allowing a future
+  adapter to correlate physical fate with its semantic mutation and Relational
+  to settle its separately owned writer generation without exposing branch
+  authority to Store
 - current scheduled writeback folded into the general executor/settlement path;
   the special-case orchestration type is removed when no longer needed
 
@@ -1669,6 +1781,10 @@ replacement through the same work progression and eliminate the global
 
 - Removing the global mutable borrow does not permit concurrent root
   publication without ordering; serialize the smallest true authority.
+- Do not replace the global mutable borrow with a Store-owned branch lock table,
+  branch-labelled submission lane, or semantic writer lease. Physical root,
+  allocation, artifact, and scheduler coordination must remain named by the
+  physical authority actually shared.
 - Manifest and catalog ordering remains C.5 truth and cannot be inferred from
   Signal dependencies or scheduler completion.
 - `RecordPublicationStage` remains physical publication typestate. Signal's
@@ -1684,9 +1800,10 @@ replacement through the same work progression and eliminate the global
 
 **Test requirements**
 
-- Two disjoint append preparations must progress concurrently and converge
-  through legal root publication order; overlapping publication must not lose
-  either batch or expose a partial root.
+- Two disjoint append preparations submitted through separate physical mutation
+  capabilities must progress concurrently and converge through legal root
+  publication order; overlapping publication must not lose either batch or
+  expose a partial root.
 - Crash or fault injection at every C.5 publication edge must preserve the
   existing exact `Published`, `Unpublished`, or `Indeterminate` world fate after
   migration.
@@ -1705,6 +1822,11 @@ replacement through the same work progression and eliminate the global
   internal work progression and exposes honest orchestration cost.
 - Mutation concurrency stops at the narrowest real physical authority:
   artifact coordination, allocation frontier, or root publication.
+- The future single active writer per branch generation at a time is a semantic
+  admission rule above Store. C.5.1 deliberately permits multiple physical
+  mutation capabilities because different branches, maintenance, writeback,
+  and other admitted work must share one physical instance without global
+  serialization.
 - One canonical publication outcome remains the source for all derived Signal,
   scheduler, diagnostic, and future WAL consumers.
 
@@ -1752,6 +1874,10 @@ make its return mechanically difficult.
   ordinary physical runtime, scheduler, residency, backend, settlement, and
   evidence-construction modules; only explicitly named external compatibility
   ingress and terminal projection modules are allowlisted
+- dependency/source gate forbidding Query, Relational, branch-head, MVCC, and
+  semantic writer authority from the physical Store instance while preserving
+  an adapter-consumable facade for submission identity, exact physical scope,
+  settlement, and recovery disposition
 
 **Warnings**
 
@@ -1780,6 +1906,9 @@ make its return mechanically difficult.
   settlement route, Store-local timer/retry/policy registry, legacy resource-
   node construction, raw backend dispatch, or old special writeback route and
   be localized mechanically.
+- A Store-local branch writer map, branch-labelled physical queue, or branch
+  token accepted as physical disjointness proof must fail the dependency/source
+  gates and a focused compile-fail or mutant proof.
 - Strict all-target/all-feature Clippy, dead-code/unused-dependency checks, and
   touched-file structural QA must be clean.
 
@@ -1824,6 +1953,10 @@ expose only the typed seams required for C.6 buffer-pool completion.
   whose private construction requires canonical frame-load, dirty/writeback,
   candidate-publication, scheduler-demand, executor, settlement, and lifecycle
   contracts
+- a narrow future-integration handoff through the ordinary physical Store
+  facade: independently borrowable submission capability, generation-fenced
+  physical work identity, exact physical concurrency scope, terminal settlement
+  and recovery disposition, and no branch/MVCC/semantic writer vocabulary
 - machine-readable `PhysicalWorkCourtroomEvidence` bound to source, binary,
   Store, runtime generation, backend profile, seed, schedule, process ids,
   artifact manifest, counters, oracle, and mutant localization
@@ -1842,7 +1975,8 @@ expose only the typed seams required for C.6 buffer-pool completion.
 **Test requirements**
 
 - **Courtroom A — lifecycle maelstrom:** on one real Store, concurrently run
-  disjoint reads, two append preparations, exact writeback, resource denial,
+  disjoint reads, two append preparations through independent physical mutation
+  capabilities, exact writeback, resource denial,
   pre/post-dispatch cancellation, timeout/retry, completion reordering, and
   shutdown. Drive timeout and retry using `ClockAdvanceRequest`; attach the
   selected lifecycle/policy families through
@@ -1852,7 +1986,9 @@ expose only the typed seams required for C.6 buffer-pool completion.
   while disjoint slices remain untouched. A serial authority model fixes legal
   outcomes before execution;
   exact media and work counters prove one effect per dispatch, zero global
-  serialization of disjoint work, and no Store-local async state machine.
+  serialization of disjoint work, and no Store-local async or branch-writer
+  state machine. A caller branch/lane label must be unable to widen the physical
+  concurrency scope or alter scheduling.
 - **Courtroom B — hostile physical truth:** a writer process is killed at named
   points before dispatch, during a short write, after exact write before
   scheduler settlement, during publication, and during shutdown. A fresh
@@ -1872,8 +2008,9 @@ expose only the typed seams required for C.6 buffer-pool completion.
   serialized Signal state used for reopen, Store-local timer/retry/policy
   registries, legacy resource-node construction, lifecycle duplication,
   raw Signal-slot semantic authority, Foundational mask substitution,
-  aspect/partition broadening, internal JSON carriers, and physical effect retry
-  after derived Signal completion rollback.
+  aspect/partition broadening, internal JSON carriers, physical effect retry
+  after derived Signal completion rollback, a Store-owned branch writer
+  registry, and branch-label-based physical disjointness.
 
 **Engineering decisions**
 
@@ -1882,6 +2019,11 @@ expose only the typed seams required for C.6 buffer-pool completion.
   expected truth, and at least one fresh process.
 - C.6 may add residency policy and frame lifecycle only by implementing the
   handoff; it may not add another async or I/O runtime.
+- Part II may bind its Relational branch-write authority to submitted physical
+  work only through the adapter's transactional join over the ordinary Store
+  facade and exact settlement evidence; the adapter may correlate, but only
+  Relational may advance, release, or fence branch-write authority. Part II may
+  not push branch ownership into C.5.1 or replace the physical work topology.
 
 **Open questions**
 

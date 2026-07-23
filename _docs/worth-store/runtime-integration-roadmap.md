@@ -127,7 +127,11 @@ The joined runtime must survive this hostile condition:
 > mutating branches while one-shot reads, live views, subscriptions, bulk work,
 > background maintenance, replication, schema evolution, and operator recovery
 > run concurrently. At minimum, five users read branch A, five users read branch
-> B, two writers submit on branch A, and two writers submit on branch B while
+> B, two mutations submit on branch A, and two mutations submit on branch B.
+> Same-branch submissions may be planned or queued concurrently, but exactly
+> one mutation at a time owns active branch-write authority for a branch-head
+> generation;
+> branch A and branch B may each have one active writer concurrently while
 > crashes are injected before durability, after durability but before semantic
 > publication, after publication but before acknowledgment, and during restart.
 > Every completed Query operation must retain canonical meaning, every admitted
@@ -151,6 +155,9 @@ The runtime has failed if it:
   have a recoverable relationship
 - serializes independent branch work through one runtime-wide mutex, mutable
   backend borrow, submission queue, or copied snapshot registry
+- admits two live active writers for one branch-head generation, lets queued
+  same-branch work emit mutation effects, or releases a writer fence from an
+  indeterminate outcome before recovery resolves it
 - treats different branches as automatically disjoint when a global invariant,
   index, quota, or authority surface is shared
 - lets physical WAL ordering become unnecessary semantic serialization
@@ -188,35 +195,45 @@ Part II freezes these decisions:
 9. Different branches may prepare and execute concurrently when the lowered
    plan carries sufficient disjointness proof. Shared authority coordinates at
    the narrowest real boundary.
-10. Same-branch writers may prepare concurrently, but publication revalidates
-    against the current head and returns typed conflict rather than losing an
-    update.
-11. Governed public transitions consume concrete platform authority witnesses
+10. Same-branch mutation submissions may be planned or queued concurrently,
+    but exactly one mutation at a time owns active branch-write authority for
+    one branch-head generation. The authority is Relational-owned, sealed,
+    generation-bound, non-cloneable, and consumed into publication, a proven
+    no-effect release, or an indeterminate recovery fence. A later same-branch
+    submission acquires authority only after the prior mutation reaches one of
+    those terminal postures and revalidates or replans against the then-current
+    head.
+11. Different branches may own active branch-write authority concurrently.
+    Branch-local ownership does not itself prove their work independent: before
+    parallel execution, lowered plans and global indexes, uniqueness, quotas,
+    cross-branch invariants, physical ordering, and other shared authority
+    coordinate independently at their narrowest real boundary.
+12. Governed public transitions consume concrete platform authority witnesses
     and proofs. A caller-defined generic marker, persisted receipt, digest, or
     projected identity cannot authorize progression.
-12. Query-owned and runtime-local artifacts remain in their strongest owning
+13. Query-owned and runtime-local artifacts remain in their strongest owning
     types. Foundational vocabulary is used at real shared boundaries, not as a
     universal internal envelope or second runtime model.
-13. Ordinary platform and product entry code reaches the runtime through
+14. Ordinary platform and product entry code reaches the runtime through
     `worth-query-decl` and `worth-query-host`, never by importing Query core or
     the Store integration crate directly.
-14. Query replay and reconstruction surfaces remain certification-only.
+15. Query replay and reconstruction surfaces remain certification-only.
     Operational Store restart consumes the runtime's dedicated recovery and
     readmission contracts; it does not route ordinary service through
     `worth-query-replay`.
-15. This roadmap is ordered by implementation dependency, not by the repository
+16. This roadmap is ordered by implementation dependency, not by the repository
     containing each edit. A milestone may require changes in Query, Relational,
     Bridge, Signal, Foundational, or Proof when those changes are prerequisites
     for the one Store-backed runtime.
-16. Store-gated execution, durable Query artifacts, and blob-backed delivery
+17. Store-gated execution, durable Query artifacts, and blob-backed delivery
     are implemented and closed here. Query retains canonical semantic contracts
     and runtime-backed proof, but does not carry a duplicate Store implementation
     sequence.
-17. The Query runtime's semantic Signal instance and the physical Store's
+18. The Query runtime's semantic Signal instance and the physical Store's
     physical Signal instance have separate owners, identities, lifecycles, node
     vocabularies, and recovery posture. They communicate only through adapter
     contracts and neither imports the other's nodes or completion handles.
-18. Format, backend, residency, WAL, recovery, isolation, integrity, layout,
+19. Format, backend, residency, WAL, recovery, isolation, integrity, layout,
     and blob mechanism crates remain ignorant of Query and semantic Signal.
     Part II consumes the physical Store facade; it does not reach through it to
     raw mechanisms or physical Signal state.
@@ -388,8 +405,24 @@ surface.
   before the Store-backed implementation is admitted, proving the seam belongs
   to Query rather than being a Store-only adapter shape
 - preserve one deterministic public submission contract while allowing the
-  backend to lower admitted work into branch-scoped preparation lanes instead
-  of one globally serialized execution lane
+  backend to plan or queue multiple same-branch submissions without treating
+  queued work as active mutation authority or forcing different branches
+  through one globally serialized execution lane
+- a move-owned `PlannedBranchMutation` or equivalently precise non-authority
+  packet carrying the requested branch basis and lowered read, write, conflict,
+  invalidation, locality, and shared-authority footprints; planning and queueing
+  this packet grants no mutation or publication authority
+- a Relational-owned, sealed, move-only active branch-write authority bound to
+  runtime identity, branch identity, observed branch-head generation, and
+  writer generation; at most one such authority may be live per branch-head
+  generation at a time while different branches may hold theirs concurrently
+- a Relational branch-writer admission owner with direct branch-identity lookup
+  and generation fencing rather than one runtime-wide submission mutex or FIFO;
+  queued plans carry no mutation or publication authority
+- consuming terminal progression for active branch-write authority: successful
+  publication advances the branch generation, proven no-effect releases the
+  current generation for fresh admission, and indeterminate durability or
+  publication fences new writers until recovery resolves the branch fate
 - explicit compatibility map from Query Milestones 9.7, 9.10, 9.11, 9.12, and
   9.13 into the provider contracts this roadmap consumes
 - a Store-backed Query backend contract implemented outside Query core
@@ -431,6 +464,11 @@ surface.
   execution authority
 - concurrency-shape proof that two read handles and two submission handles can
   exist without a global mutable backend borrow
+- a deterministic two-branch proof must queue two mutations for branch A and
+  two for branch B, admit exactly one active branch writer for each branch,
+  prove A and B progress concurrently, and prove neither queued same-branch
+  mutation can prepare authoritative truth, lower mutation-bearing physical
+  work, or publish; basis-pinned planning reads remain independently admissible
 - lifecycle proof that adding a managed runtime subsystem breaks every
   incomplete construction and fork site
 - residue proof that no parallel Store runtime or local pseudo-Query API exists
@@ -439,8 +477,10 @@ surface.
 
 Milestone 1 is not closed until Query can host the future Store-backed backend
 through autonomous authority handles, branch-disjoint work is not forced
-through one execution borrow, absent mode remains clean, and a runtime-wide
-lock or duplicate Relational instance cannot satisfy the public contract.
+through one execution borrow, at most one writer is active per branch generation
+at a time through compiler- and runtime-enforced authority without a global
+writer lock, absent mode remains clean, and a runtime-wide lock or duplicate
+Relational instance cannot satisfy the public contract.
 
 ## Milestone 2: Semantic-To-Physical Integration Spine
 
@@ -546,6 +586,8 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
 
   ```text
   AdmittedQueryMutation
+    -> PlannedBranchMutation
+    -> BranchWriteAdmittedMutation
     -> PreparedRelationalCommit
     -> LoweredPhysicalCommit
     -> DurablyPersistedCommit
@@ -558,15 +600,22 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
   Store proof vocabulary
 - private constructors so no phase can be skipped or synthesized from ids,
   digests, receipts, or labels
+- `PlannedBranchMutation` may be constructed and queued concurrently with other
+  same-branch plans but carries no active writer or publication authority
+- `BranchWriteAdmittedMutation` consumes the Relational-owned active
+  branch-write authority for the exact branch-head generation; a planned or
+  queued mutation cannot construct `PreparedRelationalCommit`, lower Store
+  mutation work, or enter durability
 - canonical commit envelope, version identity, branch identity, parent basis,
-  mutation identity, and idempotency identity
+  active writer generation, mutation identity, and idempotency identity
 - physical lowering through the physical Store facade into its C.5.1 work
   topology and Part I WAL/page/checkpoint contracts, never raw mechanisms
 - Store durability receipt bound to exact prepared semantic content
 - Relational publication that consumes the durability proof
 - group-commit-compatible durability without changing semantic commit identity
 - typed `Indeterminate` result with recovery handle where a client cannot know
-  whether an unacknowledged durable commit published
+  whether an unacknowledged durable commit published; this posture retains the
+  branch-generation fence so a later writer cannot overtake unresolved truth
 - retry deduplication returning the original canonical result
 - the first Store-backed Query read after fresh-process recovery
 
@@ -582,6 +631,10 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
 - crash matrix at every progression edge
 - exact acknowledgment proof for every supported backend capability tier
 - duplicate-request proof across fresh-process restart
+- same-branch queue proof that only the active generation owner can reach
+  preparation or durability, and that publication, proven no-effect, and
+  indeterminate outcomes respectively advance, release, or retain the branch
+  fence
 - in-memory runtime versus Store-backed canonical-result parity
 - controlled defect proving acknowledgment-before-durability is detected
 
@@ -670,11 +723,13 @@ does not grant parallel authority.
 
 ### Adversarial Constraint
 
-Five readers on branch A, five readers on branch B, two simultaneous writers on
-branch A, and two simultaneous writers on branch B must make progress while
-some reads fault cold data from Store, foreground reads remain basis-stable,
-branch-local disjoint writes avoid global serialization, overlapping same-
-branch writes cannot lose updates, and shared global authority coordinates
+Five readers on branch A, five readers on branch B, two concurrent mutation
+submissions on branch A, and two on branch B must make progress while exactly
+one mutation per branch-head generation owns active branch-write authority at a
+time.
+Branch A and branch B must write concurrently while their queued same-branch
+successors remain non-authoritative, some reads fault cold data from Store,
+foreground reads remain basis-stable, and shared global authority coordinates
 explicitly.
 
 ### Must Ship
@@ -684,11 +739,17 @@ explicitly.
 - proof-bearing parallel admission for structurally disjoint work
 - Relational-authorized `worth-proof` disjointness evidence, with no
   caller-mintable or branch-label-only substitute
-- branch-scoped submission lanes and generation-bound branch-head publication
+- branch-scoped planning and queueing lanes whose entries cannot mint active
+  mutation or publication authority
+- generation-bound active branch-write admission with exactly one move-owned
+  live authority per branch-head generation at a time and independent ownership
+  across branches
 - concurrent preparation and validation across independent branches
-- same-branch concurrent preparation with publication-time revalidation
+- same-branch successor revalidation or replanning after the active writer
+  advances or releases the branch generation
 - typed outcomes for conflict, rebase required, retryable head drift,
-  indeterminate durability, and unavailable parallel admission
+  branch writer busy, indeterminate branch fence, and unavailable parallel
+  admission
 - explicit shared-authority footprints for global indexes, uniqueness,
   cross-branch invariants, tenant quotas, and other real coordination points
 - physical group commit and total WAL ordering that do not serialize semantic
@@ -696,12 +757,17 @@ explicitly.
 - branch-local Signal invalidation and live-resource maintenance after durable
   publication
 - exact counters for admitted parallelism, denied parallelism, revalidation,
-  branch-head contention, physical coordination, and global coordination
+  active branch-writer acquisition, branch-writer busy denial, indeterminate
+  branch fencing, branch-head contention, physical coordination, and global
+  coordination
 
 ### Must Preserve
 
 - existing readers continue observing their pinned pre-commit basis
 - new readers observe only completely published heads
+- planned or queued same-branch submissions own no active mutation authority,
+  and an indeterminate writer prevents successor admission until recovery
+  resolves its exact publication fate
 - different branches do not imply disjointness when shared authority exists
 - same-branch conflicts never become last-writer-wins folklore
 - maintenance cannot revoke a protected physical or semantic read basis
@@ -710,7 +776,11 @@ explicitly.
 
 - the named ten-reader/four-writer two-branch scenario under deterministic
   schedule permutation
-- same-branch disjoint-write convergence and overlapping-write conflict proof
+- same-branch queue permutation proving exactly one active writer, generation-
+  ordered successor admission, and revalidation or replanning against the
+  predecessor's published head
+- sabotage proof that cloning an active branch writer, admitting two writers
+  for one generation, or letting queued work lower mutation effects is rejected
 - different-branch shared-global-index coordination proof
 - no-global-lock structural audit and contention-slope test
 - crash injection during concurrent group commit and branch-head publication
@@ -722,8 +792,10 @@ explicitly.
 
 Milestone 5 is not closed until independent branches demonstrate real
 concurrent progress, stable readers never block on ordinary writers, conflicts
-localize to the authority actually shared, and the monolithic mutable backend
-cannot reappear as a hidden serialization boundary.
+localize to the authority actually shared, exactly one mutation owns active
+write authority per branch generation at a time, and neither a monolithic
+mutable backend nor a global writer queue can reappear as a hidden serialization
+boundary.
 
 ## Milestone 6: Runtime Residency, Drainage, Cleanup, And Rehydration
 
@@ -755,7 +827,8 @@ authorized durable deletion.
 ### Must Ship
 
 - a complete residency inventory distinguishing at least:
-  - transaction-local and undurable write state
+  - planned or queued branch submissions without write authority
+  - active generation-bound branch writers and undurable write state
   - Relational authoritative working state and reconstructible historical state
   - pinned published bases and generation leases
   - semantic Signal derived evaluation state
@@ -1601,8 +1674,13 @@ its components—earns the claimed operating envelope.
 ### Scenario A: Two-Branch Interactive Concurrency Under Crash
 
 - five readers remain pinned to branch A and five to branch B
-- two writers submit concurrently to each branch
-- each branch receives both disjoint and overlapping writes
+- two mutations submit concurrently to each branch
+- exactly one mutation per branch-head generation owns active branch-write
+  authority at a time, while branch A and branch B may each write concurrently
+- the queued same-branch successor cannot prepare authoritative truth or emit
+  mutation effects until the active writer publishes, proves no effect, or is
+  resolved from an indeterminate recovery fence; basis-pinned planning reads
+  remain legal
 - a global uniqueness/index obligation makes one cross-branch pair coordinate
 - live views and subscriptions exist on both branches
 - group commit, branch-head publication, Signal routing, and Query completion
@@ -1697,7 +1775,11 @@ Part II is complete only when Worth Store can honestly say:
 - one Relational authority owns MVCC truth per runtime identity
 - Query read, submission, lifecycle, and inspection authorities are autonomous
 - independent branches make concurrent progress without a global backend lock
-- same-branch overlap produces typed conflict rather than lost update
+- exactly one mutation at a time owns active branch-write authority per
+  branch-head generation; same-branch successors remain planned or queued until
+  fresh admission against the resulting head
+- indeterminate mutation fate fences successor admission until recovery, while
+  shared global authority coordinates independently of branch ownership
 - every acknowledged Query mutation survives and every indeterminate mutation
   has a recovery path
 - Store-backed reads remain basis-exact and bounded for data larger than memory

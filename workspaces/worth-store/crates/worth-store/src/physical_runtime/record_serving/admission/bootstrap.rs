@@ -16,12 +16,11 @@ pub(in crate::physical_runtime) struct PhysicalRecordBootstrapOwner {
 }
 
 pub(in crate::physical_runtime) struct RecordServingState {
-    pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
-    pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
-    pub(in crate::physical_runtime::record_serving) current_root: DurablePhysicalRootManifest,
-    pub(in crate::physical_runtime::record_serving) publication_residue:
-        RecordPublicationResidueObservation,
-    pub(in crate::physical_runtime::record_serving) free_space: DurableFreeSpaceManifestHeader,
+    pub(in crate::physical_runtime) format: AdmittedPhysicalRecordFormat,
+    pub(in crate::physical_runtime) access: AdmittedRecordAccessPolicy,
+    pub(in crate::physical_runtime) current_root: DurablePhysicalRootManifest,
+    pub(in crate::physical_runtime) publication_residue: RecordPublicationResidueObservation,
+    pub(in crate::physical_runtime) free_space: DurableFreeSpaceManifestHeader,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -126,6 +125,7 @@ pub enum RecordBootstrapFailure {
     PublishedRootReadmission(RecordBootstrapDenial),
     PublishedRootStale(RecordServingStaleReason),
     PublishedRootRebindRequired(RecordServingRebindReason),
+    SignalConstruction(crate::physical_runtime::PhysicalSignalConstructionFailure),
 }
 
 pub(in crate::physical_runtime::record_serving) enum BootstrapTransitionFailure {

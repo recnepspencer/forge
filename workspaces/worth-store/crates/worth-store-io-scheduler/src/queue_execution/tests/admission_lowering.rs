@@ -26,7 +26,7 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
     let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(budget),
+        policy_receipt(work),
     ))
     .expect("matching queue work should lower to an admitted execution plan");
 
@@ -69,7 +69,7 @@ fn producer_declaration_lowers_through_scheduler_admission() {
     let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(work.requested_budget()),
+        policy_receipt(work),
     ))
     .expect("lowered producer work should admit through scheduler");
 
@@ -134,7 +134,7 @@ fn grouping_mismatch_is_a_typed_admission_denial() {
     let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
         work,
         &backend,
-        policy_receipt(budget),
+        policy_receipt(work),
     ))
     .expect_err("durability mismatch must not silently batch");
 

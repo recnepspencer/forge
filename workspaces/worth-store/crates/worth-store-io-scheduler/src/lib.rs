@@ -72,16 +72,17 @@ pub use interference_accounting::{
     LatencyEnvelopeAssessment, LatencyEnvelopeAssessmentStatus, LatencyEnvelopeClaim,
 };
 pub use queue_execution::{
-    admit_queue_execution_plan, execute_grouped_ready_queue_plans, execute_ready_queue_plan,
+    admit_queue_execution_plan, admit_queue_policy_receipt, execute_grouped_ready_queue_plans, execute_ready_queue_plan,
     group_ready_queue_pair, lower_background_queue_lease, lower_buffer_pool_queue_declaration,
-    lower_wal_queue_declaration, queue_execution_lowering_authority, AdmittedQueueExecutionPlan,
-    ExecutedQueueEvidence, QueueBackpressureCause, QueueDurabilityClass, QueueExecutedPlan,
-    QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueExecutionBackpressured,
-    QueueExecutionCounterSnapshot, QueueExecutionDenied, QueueExecutionLoweringAuthority,
-    QueueExecutionOutcome, QueueExecutionPlanBinding, QueueExecutionProgression,
-    QueueExecutionReadyPlan, QueueExecutionReplayIdentity, QueueExecutionViolation,
-    QueueGroupedReadyPlans, QueueGroupingBasis, QueueGroupingDenial, QueueGroupingOutcome,
-    QueueGroupingRejected, QueueReadAheadBasis, QueueRecoveryOrdering, QueueWorkClass,
+    lower_physical_foreground_work, lower_wal_queue_declaration,
+    queue_execution_lowering_authority, AdmittedQueueExecutionPlan, ExecutedQueueEvidence,
+    QueueBackpressureCause, QueueDurabilityClass, QueueExecutedPlan, QueueExecutionAdmissionDenial,
+    QueueExecutionAdmissionRequest, QueueExecutionBackpressured, QueueExecutionCounterSnapshot,
+    QueueExecutionDenied, QueueExecutionLoweringAuthority, QueueExecutionOutcome,
+    QueueExecutionPlanBinding, QueueExecutionProgression, QueueExecutionReadyPlan,
+    QueueExecutionReplayIdentity, QueueExecutionViolation, QueueGroupedReadyPlans,
+    QueueGroupingBasis, QueueGroupingDenial, QueueGroupingOutcome, QueueGroupingRejected,
+    QueueLocalityIdentity, QueueLocalityRelation, QueuePolicyAdmissionReceipt, QueueReadAheadBasis, QueueRecoveryOrdering, QueueWorkClass,
     QueueWorkDeclaration, QueueWriteBackBasis, QueueWritebackPolicy,
 };
 pub use resource_envelope::{IoQueueResourceEnvelope, IoQueueResourceEnvelopeDenial};
