@@ -9,6 +9,8 @@ use worth_store_physical_backend::FilesystemAccessPosture;
 
 #[path = "physical_media_journeys/child_dispatch.rs"]
 mod child_dispatch;
+#[path = "physical_media_journeys/hard_link_confinement.rs"]
+mod hard_link_confinement;
 #[path = "physical_media_journeys/mutation_contention.rs"]
 mod mutation_contention;
 #[path = "physical_media_journeys/namespace_discovery.rs"]
@@ -257,6 +259,10 @@ fn lease_release_is_linearized_against_a_second_process() {
     let media_observer = media.observer();
     let close = std::thread::spawn(move || media.close());
     gate.wait_until_reached();
+    assert!(matches!(
+        media_observer.snapshot(),
+        Err(ObservationError::Stale { .. })
+    ));
     run_contender(&root, "deferred");
     gate.release();
     assert!(matches!(

@@ -1,7 +1,10 @@
-error[E0451]: field `rows` of struct `WorthUiExecutionLaneSupport` is private
- --> tests/ui/runtime_authority/fail/execution_lane_support_fields_not_public.rs:5:9
+error[E0432]: unresolved import `worth_ui::facade::WorthUiExecutionLaneSupport`
+ --> tests/ui/runtime_authority/fail/execution_lane_support_fields_not_public.rs:1:5
   |
-4 |     let _support = WorthUiExecutionLaneSupport {
-  |                    --------------------------- in this type
-5 |         rows: Default::default(),
-  |         ^^^^ private field
+1 | use worth_ui::facade::WorthUiExecutionLaneSupport;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiExecutionLaneSupport` in `facade`
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_ui_runtime::facade::WorthUiExecutionLaneSupport;
+  |             ++++++++

@@ -1,12 +1,10 @@
-error: cannot construct `WorthUiReloadFailure` with struct literal syntax due to private fields
- --> tests/ui/runtime_reload_failure/fail/reload_failure_fields_not_public.rs:4:13
+error[E0432]: unresolved import `worth_ui::facade::WorthUiReloadFailure`
+ --> tests/ui/runtime_reload_failure/fail/reload_failure_fields_not_public.rs:1:5
   |
-4 |     let _ = WorthUiReloadFailure {};
-  |             ^^^^^^^^^^^^^^^^^^^^
+1 | use worth_ui::facade::WorthUiReloadFailure;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiReloadFailure` in `facade`
   |
-  = note: private fields `denial`, `preservation_receipt`, `failed_activation_report` and `counters` that were not provided
-help: you might have meant to use the `new` associated function
+help: consider importing this struct instead
   |
-4 -     let _ = WorthUiReloadFailure {};
-4 +     let _ = WorthUiReloadFailure::new(_, _, _, _);
-  |
+1 | use worth_ui_runtime::facade::WorthUiReloadFailure;
+  |             ++++++++

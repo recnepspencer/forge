@@ -7,8 +7,10 @@ use crate::catalog::TestCatalog;
 use crate::classification::CiTestLane;
 use crate::product::{smoke_cases, TestProduct};
 
+mod offline_observer_build;
 mod structural_product;
 
+use offline_observer_build::offline_observer_build;
 use structural_product::structural;
 
 #[derive(Debug, Clone)]
@@ -37,6 +39,9 @@ impl TestPlan {
             TestProduct::Owner { package } => owner(package, catalog, workspace_root)?,
             TestProduct::Smoke => smoke(catalog, workspace_root)?,
             TestProduct::Ui => integration_lane(CiTestLane::Ui, None, catalog, workspace_root)?,
+            TestProduct::Mutants => {
+                return Err("mutation campaigns execute outside the ordinary test plan".into())
+            }
             TestProduct::Ci {
                 lane: selected,
                 shard,
@@ -102,7 +107,10 @@ fn apply_ci_profiles(units: &mut [TestExecutionUnit]) {
                     "ci-test".into(),
                 ],
             );
-        } else if unit.arguments.first().is_some_and(|value| value == "test") {
+        } else if matches!(
+            unit.arguments.first().map(String::as_str),
+            Some("test" | "build")
+        ) {
             unit.arguments
                 .splice(1..1, ["--profile".into(), "ci-test".into()]);
         }
@@ -332,13 +340,21 @@ fn integration_lane(
         ]);
     }
 
-    Ok(vec![TestExecutionUnit::cargo(
+    let tests = TestExecutionUnit::cargo(
         format!("{selected}::nextest"),
         format!("Cargo targets classified as {selected}"),
         workspace_root,
         arguments,
         None,
-    )])
+    );
+    if targets
+        .iter()
+        .any(|target| target.package == "worth-store" && target.name == "physical_record_journeys")
+    {
+        Ok(vec![offline_observer_build(workspace_root), tests])
+    } else {
+        Ok(vec![tests])
+    }
 }
 
 fn owner_ci(workspace_root: &Path) -> Vec<TestExecutionUnit> {

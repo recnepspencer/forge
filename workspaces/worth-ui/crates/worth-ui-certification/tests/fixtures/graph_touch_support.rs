@@ -90,7 +90,9 @@ pub fn query_snapshot_world_profile(
     )
     .expect("runtime current snapshot basis should resolve");
 
-    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+    let prerequisites =
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteBoundary::new(
+        )
         .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
         .expect("query prerequisites should admit");
     UiGraphWorldProfile::query_snapshot_basis(prerequisites)

@@ -1,8 +1,12 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, ComponentAccessibilitySupport, ComponentChildPolicy,
-    ComponentDescriptor, ComponentExecutionLane, ComponentFocusSupport, ComponentId,
-    ComponentPropSchema, ComponentStateOwnership, ThemeColorValue, ThemeTokenDescriptor,
-    ThemeTokenFamily, ThemeTokenSource, ThemeTokenValue, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        ComponentAccessibilitySupport, ComponentChildPolicy, ComponentDescriptor,
+        ComponentExecutionLane, ComponentFocusSupport, ComponentId, ComponentPropSchema,
+        ComponentStateOwnership, ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily,
+        ThemeTokenSource, ThemeTokenValue,
+    },
 };
 
 use super::theme_token_assertions::{assert_diagnostic_codes, assert_registered_theme_token_ids};

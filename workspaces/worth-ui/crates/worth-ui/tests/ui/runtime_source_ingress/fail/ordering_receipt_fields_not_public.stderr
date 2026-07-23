@@ -1,17 +1,12 @@
-error[E0451]: fields `provider_id`, `source_revision_digest`, `event_burst_digest`, `debounce_policy_digest`, `sequence` and `receipt_digest` of struct `WorthUiCandidateOrderingReceipt` are private
-  --> tests/ui/runtime_source_ingress/fail/ordering_receipt_fields_not_public.rs:5:9
-   |
- 4 |     let _receipt = WorthUiCandidateOrderingReceipt {
-   |                    ------------------------------- in this type
- 5 |         provider_id: String::from("provider"),
-   |         ^^^^^^^^^^^ private field
- 6 |         source_revision_digest: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
- 7 |         event_burst_digest: 2,
-   |         ^^^^^^^^^^^^^^^^^^ private field
- 8 |         debounce_policy_digest: 3,
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         sequence: 4,
-   |         ^^^^^^^^ private field
-10 |         receipt_digest: 5,
-   |         ^^^^^^^^^^^^^^ private field
+error[E0432]: unresolved import `worth_ui::facade::WorthUiCandidateOrderingReceipt`
+ --> tests/ui/runtime_source_ingress/fail/ordering_receipt_fields_not_public.rs:1:5
+  |
+1 | use worth_ui::facade::WorthUiCandidateOrderingReceipt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiCandidateOrderingReceipt` in `facade`
+  |
+help: consider importing one of these structs instead
+  |
+1 | use worth_ui::facade::source::WorthUiCandidateOrderingReceipt;
+  |                       ++++++++
+1 | use worth_ui_runtime::facade::WorthUiCandidateOrderingReceipt;
+  |             ++++++++

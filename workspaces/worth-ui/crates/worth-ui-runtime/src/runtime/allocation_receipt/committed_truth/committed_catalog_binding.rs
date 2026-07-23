@@ -107,7 +107,7 @@ pub(crate) struct UiCommittedAllocationCatalogActivation {
     identity_digest: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiCommittedAllocationCatalogActivationRow {
     binding: UiCommittedAllocationCatalogBinding,
     measurement_basis: std::rc::Rc<crate::evidence::UiMeasurementBasis>,
@@ -294,6 +294,9 @@ impl UiCommittedPortalActivationSource {
 }
 
 impl UiCommittedAllocationCatalogActivationRow {
+    pub(crate) fn scope(&self) -> crate::evidence::UiAllocationNeighborhoodScope {
+        crate::evidence::UiAllocationNeighborhoodScope::from_neighborhood(self.neighborhood())
+    }
     pub(crate) fn measurement_basis(&self) -> &crate::evidence::UiMeasurementBasis {
         &self.measurement_basis
     }

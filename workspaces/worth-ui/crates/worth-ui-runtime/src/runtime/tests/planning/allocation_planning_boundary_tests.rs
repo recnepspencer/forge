@@ -1,34 +1,16 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis, allocation_planning,
-    changed_measurement_basis, denied_measurement_basis, planning_graph_authority,
+    admitted_measurement_basis, allocation_planning, changed_measurement_basis,
+    denied_measurement_basis, planning_graph_authority,
 };
 use crate::evidence::{UiEvidenceAuthorityKind, UiEvidenceFamily, UiEvidenceMaterializedDetail};
-use crate::runtime::{
-    WorthUiAllocationPlanningDenialReason, WorthUiExecutionPlanInput, WorthUiPlanLoweringBasis,
-};
 
 #[test]
-fn equivalent_measurement_basis_and_plan_input_converge_on_one_planning_identity() {
+fn equivalent_candidate_projection_and_measurement_converge_on_one_planning_identity() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
-    let left_basis = admitted_measurement_basis("allocation.left");
-    let left_neighborhood = admitted_allocation_neighborhood("allocation.left");
-    let right_basis = admitted_measurement_basis("allocation.left");
-    let right_neighborhood = admitted_allocation_neighborhood("allocation.left");
-    let left = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input.clone(),
-        &left_basis,
-        &left_neighborhood,
-    );
-    let right = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input,
-        &right_basis,
-        &right_neighborhood,
-    );
+    let left = allocation_planning(&runtime, &pending, "allocation.left");
+    let right = allocation_planning(&runtime, &pending, "allocation.left");
 
     assert!(left.is_admitted());
     assert!(right.is_admitted());
@@ -133,19 +115,29 @@ fn denied_measurement_basis_still_materializes_inspectable_planning_output() {
         inspection.cost().counters().measurement_basis_read_count(),
         1
     );
-    assert_eq!(inspection.cost().counters().lowering_read_count(), 0);
+    assert_eq!(
+        inspection
+            .cost()
+            .counters()
+            .candidate_projection_read_count(),
+        0
+    );
 }
 
 #[test]
-fn handle_allocation_must_consume_planning_not_raw_plan_input() {
+fn handle_allocation_requires_post_commit_lowering_authority() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
-    let planning = allocation_planning(&runtime, &plan_input, "allocation.handles");
+    let planning = allocation_planning(&runtime, &pending, "allocation.handles");
+    let committed_input = runtime
+        .detached_allocation_receipt_for_test(&planning)
+        .lowering_input()
+        .expect("committed receipt admits lowering");
+    let authority = runtime
+        .execution_plan_lowering_authority_from_committed_input_for_test(pending, committed_input)
+        .expect("exact candidate and committed projection seal lowering authority");
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(authority.facts())
         .expect("handle allocation succeeds");
 
     assert_eq!(
@@ -155,90 +147,21 @@ fn handle_allocation_must_consume_planning_not_raw_plan_input() {
 }
 
 #[test]
-fn denied_plan_lowering_still_materializes_typed_planning_denial() {
+fn stale_pending_activation_denies_before_allocation_planning() {
     let inputs = activation_staging_inputs();
     let (mut runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
     let measurement_basis = admitted_measurement_basis("allocation.lowering");
-    let neighborhood = admitted_allocation_neighborhood("allocation.lowering");
-    let planning = runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input,
-        &measurement_basis,
-        &neighborhood,
-    );
+    let planning = allocation_planning(&runtime, &pending, "allocation.lowering");
     runtime.advance_frame_epoch_for_test();
 
     let (snapshot, selected) = planning_graph_authority("allocation.lowering", "operator:stack");
-    let denied = runtime.plan_allocation(
-        runtime
-            .admit_planning_lane_input(&pending, &snapshot, measurement_basis.clone(), &selected)
-            .expect("stale-frame scenario admits through graph authority"),
-    );
-    let inspection = runtime.inspect_allocation_planning(&denied);
+    let denial = runtime
+        .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+        .expect_err("stale pending activation denies before planning work");
 
     assert!(planning.is_admitted());
-    assert!(!denied.is_admitted());
-    assert!(inspection.denial().is_some());
-    assert!(inspection
-        .denial()
-        .and_then(|denial| denial.plan_lowering_denial())
-        .is_some());
-    assert_eq!(
-        inspection.cost().counters().measurement_basis_read_count(),
-        1
-    );
-    assert_eq!(inspection.cost().counters().lowering_read_count(), 0);
-}
-
-#[test]
-fn mismatched_lowering_input_is_denied_at_planning_boundary() {
-    let inputs = activation_staging_inputs();
-    let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(&pending)
-        .expect("plan input prepares");
-    let mut tampered_nodes = plan_input.node_inputs().to_vec();
-    tampered_nodes[0] = tampered_nodes[0]
-        .clone()
-        .with_identity_basis_for_test("allocation.mismatch.tampered");
-    let tampered = WorthUiExecutionPlanInput::new(
-        WorthUiPlanLoweringBasis::new(
-            plan_input.basis().active_artifact_digest(),
-            plan_input.basis().candidate_artifact_digest(),
-            plan_input.basis().frame_epoch(),
-            plan_input.basis().staged_node_classification_count(),
-            plan_input.basis().staged_reconciliation_receipt_count(),
-            plan_input.basis().staged_query_rebind_entry_count(),
-        ),
-        plan_input.context().clone(),
-        tampered_nodes,
-        plan_input.counters(),
-    );
-    let denied = runtime.plan_allocation_for_pending_and_lowered_input_for_test(
-        &pending,
-        tampered,
-        &admitted_measurement_basis("allocation.mismatch"),
-        &admitted_allocation_neighborhood("allocation.mismatch"),
-    );
-    let inspection = runtime.inspect_allocation_planning(&denied);
-
-    assert!(!denied.is_admitted());
-    let denial = inspection.denial().expect("planning denial expected");
-    assert_eq!(
-        denial.reason(),
-        WorthUiAllocationPlanningDenialReason::LoweringAdmissionMismatch
-    );
-    let mismatch = denial.lowering_mismatch().expect("mismatch payload");
-    assert_eq!(mismatch.expected(), mismatch.observed());
-    assert_ne!(
-        mismatch.expected_witness_digest(),
-        mismatch.observed_witness_digest()
-    );
-    assert_eq!(
-        inspection.cost().counters().measurement_basis_read_count(),
-        1
-    );
-    assert_eq!(inspection.cost().counters().lowering_read_count(), 1);
+    assert!(matches!(
+        denial,
+        crate::runtime::planning::WorthUiPlanningLaneAdmissionDenial::StalePendingActivation { .. }
+    ));
 }

@@ -4,8 +4,10 @@ mod application_artifact;
 mod authority;
 mod declaration_source_identity;
 mod generation_identity;
+mod generation_witness;
 mod host_session_plan;
 mod launch_admission;
+mod lowering_authority;
 mod query_binding_plan_identity;
 #[cfg(test)]
 mod tests;
@@ -16,5 +18,7 @@ pub use authority::WorthUiPreparedApplicationAuthority;
 pub(crate) use authority::WorthUiPreparedApplicationAuthorityInput;
 pub use declaration_source_identity::WorthUiPreparedDeclarationSourceIdentity;
 pub use generation_identity::WorthUiPreparedApplicationGenerationIdentity;
+pub(crate) use generation_witness::WorthUiPreparedApplicationGenerationWitness;
 pub use host_session_plan::WorthUiHostSessionPlan;
 pub(crate) use launch_admission::WorthUiPreparedLaunchAdmission;
+pub(crate) use lowering_authority::WorthUiPreparedApplicationLoweringAuthority;

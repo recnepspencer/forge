@@ -1,31 +1,77 @@
 use super::plan_topology_test_support::*;
 use crate::runtime::{
-    WorthUiChildRangeHandle, WorthUiEguiBoundaryContact, WorthUiEguiBoundaryInput,
-    WorthUiExecutionPlanInput, WorthUiPlanNodeInputFamily, WorthUiPlanTopologyDenialReason,
+    WorthUiChildRangeHandle, WorthUiExecutionPlanInput, WorthUiPlanNodeInputFamily,
+    WorthUiPlanTopologyDenialReason,
 };
 
 #[test]
-fn equivalent_plan_inputs_assemble_equivalent_topology() {
-    let (_, _, left_planning, left_handles) = topology_fixture();
-    let (_, _, right_planning, right_handles) = topology_fixture();
-    let left = assemble(&left_planning, &left_handles);
-    let right = assemble(&right_planning, &right_handles);
+fn equivalent_plan_inputs_preserve_semantics_without_sharing_handle_authority() {
+    let (left_runtime, left_input, left_planning, left_handles) = topology_fixture();
+    let (_, right_input, right_planning, right_handles) = topology_fixture();
+    let left = assemble(&left_planning, &left_input, &left_handles);
+    let right = assemble(&right_planning, &right_input, &right_handles);
 
-    assert_eq!(left.handle_receipt(), right.handle_receipt());
-    assert_eq!(left.topology(), right.topology());
+    assert_eq!(
+        left.handle_receipt().basis_digest(),
+        right.handle_receipt().basis_digest()
+    );
+    assert_ne!(
+        left.handle_receipt().arena_identity(),
+        right.handle_receipt().arena_identity()
+    );
+    assert_eq!(
+        left_runtime.digest_execution_plan(&left),
+        left_runtime.digest_execution_plan(&right)
+    );
+    for (left_node, right_node) in left
+        .topology()
+        .traversal_order()
+        .iter()
+        .zip(right.topology().traversal_order())
+    {
+        assert_eq!(left_node.family(), right_node.family());
+        assert_eq!(
+            left_node.runtime_handle().plan_index(),
+            right_node.runtime_handle().plan_index()
+        );
+        assert_ne!(left_node.runtime_handle(), right_node.runtime_handle());
+    }
     assert_eq!(left.lane_partitions(), right.lane_partitions());
     assert_eq!(left.lookup_index(), right.lookup_index());
     assert_eq!(left.counters(), right.counters());
 }
 
 #[test]
+fn initial_construction_receipt_includes_every_full_plan_pass() {
+    let (_, plan_input, planning, allocation) = topology_fixture();
+    let plan = assemble(&planning, &plan_input, &allocation);
+    let construction = plan.construction_counters();
+
+    assert_eq!(
+        construction.handle_allocation(),
+        allocation.counters(),
+        "handle construction must not disappear from the plan cost receipt"
+    );
+    assert_eq!(construction.topology(), plan.counters());
+    assert_eq!(
+        construction.regional_storage(),
+        plan.region_storage_counters()
+    );
+    assert_eq!(
+        construction.full_candidate_node_visit_count(),
+        plan_input.node_inputs().len() * 4,
+        "initial lowering, admission, handle materialization, and flat reconstruction remain explicit"
+    );
+}
+
+#[test]
 fn plan_topology_assembly_rejects_missing_child_or_lane_links() {
-    let (_, _plan_input, planning, allocation) = topology_fixture();
+    let (_, plan_input, planning, allocation) = topology_fixture();
     let mut runtime_handles = allocation.runtime_handles().to_vec();
     runtime_handles.pop();
     let broken = allocation_with_runtime_handles(&allocation, runtime_handles);
 
-    let denial = assemble_err(&planning, &broken);
+    let denial = assemble_err(&planning, &plan_input, &broken);
 
     assert_eq!(
         denial.reason(),
@@ -38,7 +84,7 @@ fn plan_topology_assembly_rejects_missing_child_or_lane_links() {
 #[test]
 fn frame_traversal_uses_plan_topology_without_artifact_tree_scan() {
     let (_, plan_input, planning, allocation) = topology_fixture();
-    let plan = assemble(&planning, &allocation);
+    let plan = assemble(&planning, &plan_input, &allocation);
     let counters = plan.counters();
 
     assert_eq!(
@@ -108,16 +154,16 @@ fn frame_traversal_uses_plan_topology_without_artifact_tree_scan() {
 fn plan_topology_rejects_missing_child_range_handles() {
     let (_, plan_input, _, _) = topology_fixture();
     let plan_input = plan_input_with_first_child_range_family(plan_input);
-    let allocation_planning = topology_planning(&plan_input, "plan-topology.missing-child-range");
-    let allocation = allocate_handles(&allocation_planning);
-    assert!(!allocation.child_range_handles().is_empty());
+    let allocation_planning = topology_planning("plan-topology.missing-child-range");
+    let allocation = allocate_handles(&allocation_planning, &plan_input);
+    assert!(allocation.child_range_handles().next().is_some());
     let broken = allocation_with_child_ranges(&allocation, Vec::new());
 
-    let denial = assemble_err(&allocation_planning, &broken);
+    let denial = assemble_err(&allocation_planning, &plan_input, &broken);
 
     assert_eq!(
         denial.reason(),
-        WorthUiPlanTopologyDenialReason::MissingChildOrLaneLink
+        WorthUiPlanTopologyDenialReason::MissingRuntimeHandle
     );
     assert_eq!(denial.counters().denial_count(), 1);
 }
@@ -126,18 +172,22 @@ fn plan_topology_rejects_missing_child_range_handles() {
 fn plan_topology_rejects_orphaned_child_range_handles() {
     let (_, plan_input, _, _) = topology_fixture();
     let plan_input = plan_input_with_first_child_range_family(plan_input);
-    let allocation_planning = topology_planning(&plan_input, "plan-topology.orphaned-child-range");
-    let allocation = allocate_handles(&allocation_planning);
-    let mut child_ranges = allocation.child_range_handles().to_vec();
-    child_ranges[0] =
-        WorthUiChildRangeHandle::new(u32::MAX, allocation.receipt().plan_generation());
+    let allocation_planning = topology_planning("plan-topology.orphaned-child-range");
+    let allocation = allocate_handles(&allocation_planning, &plan_input);
+    let mut child_ranges = allocation.child_range_handles().collect::<Vec<_>>();
+    let exemplar = child_ranges[0];
+    child_ranges[0] = WorthUiChildRangeHandle::new(
+        u32::MAX,
+        exemplar.slot_generation(),
+        exemplar.arena_identity(),
+    );
     let broken = allocation_with_child_ranges(&allocation, child_ranges);
 
-    let denial = assemble_err(&allocation_planning, &broken);
+    let denial = assemble_err(&allocation_planning, &plan_input, &broken);
 
     assert_eq!(
         denial.reason(),
-        WorthUiPlanTopologyDenialReason::OrphanedChildRangeHandle
+        WorthUiPlanTopologyDenialReason::RuntimeHandleOutOfBounds
     );
     assert_eq!(denial.counters().denial_count(), 1);
 }
@@ -165,82 +215,14 @@ fn plan_input_with_first_child_range_family(
 fn plan_topology_rejects_missing_declared_region_structure() {
     let (_, plan_input, _, _) = topology_fixture();
     let broken_input = plan_input_without_first_region_structure(plan_input);
-    let broken_planning =
-        topology_planning(&broken_input, "plan-topology.missing-region-structure");
-    let broken_allocation = allocate_handles(&broken_planning);
+    let broken_planning = topology_planning("plan-topology.missing-region-structure");
+    let broken_allocation = allocate_handles(&broken_planning, &broken_input);
 
-    let denial = assemble_err(&broken_planning, &broken_allocation);
+    let denial = assemble_err(&broken_planning, &broken_input, &broken_allocation);
 
     assert_eq!(
         denial.reason(),
         WorthUiPlanTopologyDenialReason::MissingRegionStructure
     );
     assert_eq!(denial.counters().denial_count(), 1);
-}
-
-#[test]
-fn egui_boundary_contact_is_plan_declared_not_ambient() {
-    let (_, plan_input, planning, allocation) = topology_fixture();
-    let plan = assemble(&planning, &allocation);
-    let egui_nodes = plan
-        .topology()
-        .traversal_order()
-        .iter()
-        .filter(|node| node.egui_boundary().is_some())
-        .count();
-
-    assert!(egui_nodes > 0);
-    assert_eq!(plan.counters().egui_boundary_count(), egui_nodes);
-    assert_eq!(plan.counters().ambient_egui_access_count(), 0);
-    assert!(plan
-        .topology()
-        .traversal_order()
-        .iter()
-        .filter_map(|node| node.egui_boundary())
-        .all(|boundary| boundary.contacts() == expected_contacts(boundary.input())));
-
-    let broken_input = plan_input_without_first_egui_boundary(plan_input);
-    let broken_planning = topology_planning(&broken_input, "plan-topology.missing-egui-boundary");
-    let broken_allocation = allocate_handles(&broken_planning);
-    let denial = assemble_err(&broken_planning, &broken_allocation);
-    assert_eq!(
-        denial.reason(),
-        WorthUiPlanTopologyDenialReason::MissingEguiBoundaryDeclaration
-    );
-}
-
-fn expected_contacts(input: WorthUiEguiBoundaryInput) -> &'static [WorthUiEguiBoundaryContact] {
-    match input {
-        WorthUiEguiBoundaryInput::Component => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Ui,
-            WorthUiEguiBoundaryContact::Response,
-            WorthUiEguiBoundaryContact::Id,
-            WorthUiEguiBoundaryContact::Input,
-            WorthUiEguiBoundaryContact::FrameTiming,
-        ],
-        WorthUiEguiBoundaryInput::Surface => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Ui,
-            WorthUiEguiBoundaryContact::LayoutAllocation,
-            WorthUiEguiBoundaryContact::PaintSubmission,
-            WorthUiEguiBoundaryContact::MemoryStateBridge,
-            WorthUiEguiBoundaryContact::FrameTiming,
-        ],
-        WorthUiEguiBoundaryInput::QueryBinding => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Response,
-            WorthUiEguiBoundaryContact::Input,
-            WorthUiEguiBoundaryContact::MemoryStateBridge,
-        ],
-        WorthUiEguiBoundaryInput::Token => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::PaintSubmission,
-        ],
-        WorthUiEguiBoundaryInput::Diagnostics => &[
-            WorthUiEguiBoundaryContact::Context,
-            WorthUiEguiBoundaryContact::Ui,
-            WorthUiEguiBoundaryContact::FrameTiming,
-        ],
-    }
 }

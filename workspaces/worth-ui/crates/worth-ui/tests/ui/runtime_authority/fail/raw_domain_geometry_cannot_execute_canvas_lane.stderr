@@ -1,14 +1,25 @@
-error[E0599]: no function or associated item named `from_domain_geometry` found for struct `WorthUiSpatialHitTestPlan` in the current scope
- --> tests/ui/runtime_authority/fail/raw_domain_geometry_cannot_execute_canvas_lane.rs:4:44
+error[E0432]: unresolved import `worth_ui::facade::WorthUiSpatialHitTestRequest`
+ --> tests/ui/runtime_authority/fail/raw_domain_geometry_cannot_execute_canvas_lane.rs:1:5
   |
-4 |     let _plan = WorthUiSpatialHitTestPlan::from_domain_geometry("solid-brep-face-17");
-  |                                            ^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiSpatialHitTestPlan`
+1 | use worth_ui::facade::WorthUiSpatialHitTestRequest;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiSpatialHitTestRequest` in `facade`
   |
-note: if you're trying to build a new `WorthUiSpatialHitTestPlan`, consider using `WorthUiSpatialHitTestPlan::for_viewport_point` which returns `WorthUiSpatialHitTestPlan`
- --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/../canvas_spatial_lane/hit_test_plan.rs
+help: consider importing one of these structs instead
   |
-  | /     pub fn for_viewport_point(
-  | |         lane_handle: WorthUiLaneHandle,
-  | |         viewport_point: WorthUiSpatialViewportPoint,
-  | |     ) -> Self {
-  | |_____________^
+1 | use worth_ui::facade::runtime::WorthUiSpatialHitTestRequest;
+  |                       +++++++++
+1 | use worth_ui_runtime::facade::WorthUiSpatialHitTestRequest;
+  |             ++++++++
+
+error[E0432]: unresolved import `worth_ui::facade::WorthUiCanvasSpatialFrameTarget`
+ --> tests/ui/runtime_authority/fail/raw_renderer_pointer_cannot_execute_canvas_lane.rs
+  |
+  | use worth_ui::facade::WorthUiCanvasSpatialFrameTarget;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiCanvasSpatialFrameTarget` in `facade`
+  |
+help: consider importing one of these structs instead
+  |
+1 | use worth_ui::facade::runtime::WorthUiCanvasSpatialFrameTarget;
+  |                       +++++++++
+1 | use worth_ui_runtime::facade::WorthUiCanvasSpatialFrameTarget;
+  |             ++++++++

@@ -17,7 +17,7 @@ use crate::facade::{
     prepared_application_authority::{
         WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationGenerationIdentity,
     },
-    registry::CapabilitySnapshot,
+    registry::snapshot::CapabilitySnapshot,
     retained_obligation_registry::WorthUiRetainedObligationRegistry,
     runtime_handoff::{WorthUiRuntime, WorthUiRuntimeLaunchDenial},
 };
@@ -75,6 +75,19 @@ impl WorthUiApp {
         self.prepared.capabilities()
     }
 
+    /// Resolve the compact installed-operation reference retained for one
+    /// registered Query view. The returned reference can enter Query only
+    /// through the attempt-scoped operating-world gateway.
+    pub fn resolve_query_view(
+        &self,
+        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        shape: worth_ui_query_binding::WorthUiQueryViewShape,
+    ) -> Option<worth_ui_query_binding::WorthUiInstalledQueryBindingReference> {
+        self.prepared
+            .query_binding_plan()
+            .resolve_definition(identity, shape)
+    }
+
     /// Inspect the canonical declaration artifacts admitted during app freeze.
     pub fn declaration_artifacts(&self) -> &[UiDeclarationArtifact] {
         self.prepared.declaration_artifacts()
@@ -98,7 +111,7 @@ impl WorthUiApp {
     pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
         &self,
         touch: &UiGraphTouchDescriptor,
-        authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
         self.admission()
             .admit_query_measurement_eligibility_for_touch_from_query_authority(touch, authority)
@@ -206,14 +219,14 @@ impl WorthUiApp {
     ) -> Result<crate::facade::entry::WorthUiActiveApplicationSession, WorthUiRuntimeLaunchDenial>
     {
         let admission = self.prepared.admit_launch(diagnostic_policy)?;
-        let (runtime, host_session_plan) = WorthUiRuntime::launch_prepared(
+        let (runtime, host_session) = WorthUiRuntime::launch_prepared(
             admission,
             Rc::clone(&self.retained_allocation_planning_evidence),
         )?;
         Ok(crate::facade::entry::WorthUiActiveApplicationSession::new(
             self,
             runtime,
-            host_session_plan,
+            host_session,
         ))
     }
 
@@ -224,13 +237,32 @@ impl WorthUiApp {
         &self,
         launch: WorthUiRuntimeLaunch,
     ) -> Result<WorthUiRuntime, WorthUiRuntimeLaunchDenial> {
-        WorthUiRuntime::launch(
+        let artifact_digest = launch.candidate_artifact_digest.unwrap_or_else(|| {
+            crate::source::WorthUiArtifactDigestor::digest(
+                launch.artifact.as_ref(),
+                crate::source::WorthUiArtifactEquivalenceBasis::semantic(),
+            )
+        });
+        let lowering_authority = self
+            .prepared
+            .lowering_authority()
+            .synthetic_launch_for_certification(Rc::clone(&launch.artifact), artifact_digest);
+        let initial_allocation_commit = self.prepared.initial_allocation_commit(artifact_digest)?;
+        let host_session =
+            crate::facade::WorthUiHostSessionAuthority::activate(self.prepared.host_session_plan())
+                .map_err(|_| WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted)?;
+        let runtime = WorthUiRuntime::launch(
             launch,
-            self.prepared.generation_identity().clone(),
+            lowering_authority,
+            initial_allocation_commit,
             self.prepared.capabilities().digest(),
             Rc::clone(&self.retained_allocation_planning_evidence),
-            self.prepared.query_binding_plan().activate(),
-        )
+            self.prepared
+                .query_binding_plan()
+                .prepare_downstream_state(),
+            host_session.plan_binding(),
+        )?;
+        Ok(runtime)
     }
 
     pub(crate) fn retained_obligation_registry(&self) -> &WorthUiRetainedObligationRegistry {

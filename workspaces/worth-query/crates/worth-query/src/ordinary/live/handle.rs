@@ -23,6 +23,12 @@ impl WorthQueryManagedLiveHandle {
         self.view().name()
     }
 
+    pub(crate) fn resource_identity(&self) -> &crate::WorthQueryEvidenceIdentity {
+        self.view()
+            .subscription_installation()
+            .installation_identity()
+    }
+
     pub fn read(
         &self,
         workspace: &mut WorthQueryWorkspace,

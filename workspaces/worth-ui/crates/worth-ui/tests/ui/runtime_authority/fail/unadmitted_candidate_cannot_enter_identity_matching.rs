@@ -1,5 +1,7 @@
 use worth_ui::facade::{
-    WorthUiReplacementCandidate, WorthUiRuntime, WorthUiRuntimeImpactNarrowing,
+    WorthUiReplacementCandidate,
+    WorthUiRuntimeImpactNarrowing,
+    runtime::WorthUiRuntime,
 };
 
 fn cannot_match_unadmitted_candidate(

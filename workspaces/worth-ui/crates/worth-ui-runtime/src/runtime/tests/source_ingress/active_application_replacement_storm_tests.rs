@@ -19,7 +19,7 @@ fn active_application_storm_never_exposes_mixed_generation_truth() {
     for step in 0..STORM_STEP_COUNT {
         let prior_generation = session.generation_identity().clone();
         match step % 4 {
-            0 => assert_equivalent_noop(&session, active_component, step),
+            0 => assert_equivalent_candidate_discard(&session, active_component, step),
             1 | 3 => assert_malformed_source_denial(&session, step),
             2 => {
                 active_component = alternate_component(active_component);
@@ -34,7 +34,7 @@ fn active_application_storm_never_exposes_mixed_generation_truth() {
     }
 }
 
-fn assert_equivalent_noop(
+fn assert_equivalent_candidate_discard(
     session: &crate::facade::WorthUiActiveApplicationSession,
     active_component: &str,
     step: usize,
@@ -46,10 +46,14 @@ fn assert_equivalent_noop(
             active_component,
         ))
         .expect("equivalent storm candidate should admit");
-    assert!(matches!(
-        outcome,
-        crate::facade::WorthUiApplicationReplacementPreparation::NoOp(_)
-    ));
+    let prepared = outcome;
+    let lowered = session
+        .lower_prepared_replacement(*prepared)
+        .expect("equivalent storm candidate continues through lowering");
+    let pending = session
+        .stage_prepared_replacement(lowered)
+        .expect("equivalent storm candidate reaches staged authority");
+    drop(pending);
 }
 
 fn assert_malformed_source_denial(
@@ -59,7 +63,7 @@ fn assert_malformed_source_denial(
     let source_name = format!("active-storm-invalid-{step}");
     let provider = WorthUiSourceProvider::in_memory(source_name.clone())
         .with_file("app/main.wui", "component MissingBrace {");
-    let mut source = session.source_ingress(provider).start();
+    let mut source = session.source_event_ingress(provider).start();
     let denial = source
         .ingest([WorthUiWatcherEvent::provider_revision(source_name)])
         .expect("malformed material should still debounce")
@@ -86,10 +90,7 @@ fn publish_structural_replacement(
             next_component,
         ))
         .expect("structural storm candidate should prepare");
-    let crate::facade::WorthUiApplicationReplacementPreparation::Prepared(mut prepared) = outcome
-    else {
-        panic!("alternating component identities must require replacement");
-    };
+    let mut prepared = outcome;
     let catalog = admit_candidate_catalog(&mut prepared);
     let lowered = session
         .lower_prepared_replacement(*prepared)
@@ -103,9 +104,20 @@ fn publish_structural_replacement(
         .into_execution()
         .expect("storm boundary turn should complete")
         .into_activation_boundary();
-    session
+    let cutover = session
         .activate_prepared_replacement(pending, catalog, boundary, None)
         .unwrap_or_else(|denial| panic!("storm cutover {step} should publish: {denial:?}"));
+    let cutover = cutover
+        .into_activation()
+        .expect("storm candidates change executable meaning");
+    assert!(cutover.managed_live_compatibility_retirement().is_empty());
+    assert_eq!(
+        cutover
+            .allocation_catalog_successor()
+            .counters()
+            .carried_row_visits(),
+        0
+    );
 }
 
 fn assert_coherent_active_projections(

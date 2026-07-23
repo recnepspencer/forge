@@ -1,21 +1,20 @@
 use worth_ui::facade::{
-    WorthUiComponentHandle, WorthUiHandlePlanGeneration, WorthUiRuntimeHandleAllocationReceipt,
+    WorthUiComponentHandle, WorthUiRuntimeHandleAllocationReceipt, WorthUiRuntimeHandleLocator,
 };
 
 fn main() {
-    let generation = generation_from_public_option(None);
+    let locator = locator_from_public_option(None);
     let old_handle = WorthUiComponentHandle {
-        plan_index: 0,
-        plan_generation: generation,
+        locator,
     };
     let _receipt = WorthUiRuntimeHandleAllocationReceipt {
         basis_digest: 2,
-        plan_generation: old_handle.plan_generation(),
+        arena_identity: old_handle.arena_identity(),
     };
 }
 
-fn generation_from_public_option(
-    generation: Option<WorthUiHandlePlanGeneration>,
-) -> WorthUiHandlePlanGeneration {
-    generation.expect("test fixture never runs")
+fn locator_from_public_option(
+    locator: Option<WorthUiRuntimeHandleLocator>,
+) -> WorthUiRuntimeHandleLocator {
+    locator.expect("test fixture never runs")
 }

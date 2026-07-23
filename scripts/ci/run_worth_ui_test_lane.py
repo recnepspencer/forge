@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import subprocess
@@ -28,6 +29,7 @@ CERTIFICATION_TARGETS = (
     "obligation_contracts",
     "topology_contracts",
 )
+FULL_LANE_WORKERS = 2
 
 
 def cargo(*arguments: str) -> list[str]:
@@ -58,20 +60,23 @@ def platform_check_commands() -> list[list[str]]:
     return [cargo("check", "--workspace", "--all-targets", "--all-features")]
 
 
-def compile_contract_commands() -> list[list[str]]:
+def filesystem_contract_commands() -> list[list[str]]:
     return [
         cargo(
             "test",
             "--all-features",
             "-p",
-            "worth-ui",
-            "-p",
             "worth-ui-certification",
-            "-p",
-            "worth-ui-host-contract",
             "--test",
-            "compile_contracts",
+            "application_contracts",
+            "filesystem_",
         )
+    ]
+
+
+def compile_contract_commands() -> list[list[str]]:
+    return [
+        [sys.executable, str(ROOT / "scripts/ci/run_worth_ui_compile_contracts.py")]
     ]
 
 
@@ -83,7 +88,12 @@ def certification_commands() -> list[list[str]]:
 
 
 def dependency_contract_commands() -> list[list[str]]:
-    target = ROOT / "workspaces/worth-ui/target/dependency-contracts"
+    configured_target = os.environ.get("CARGO_TARGET_DIR")
+    target = (
+        Path(configured_target)
+        if configured_target
+        else ROOT / "workspaces/worth-ui/target/dependency-contracts"
+    )
     return [
         [
             "cargo",
@@ -98,7 +108,18 @@ def dependency_contract_commands() -> list[list[str]]:
 
 def full_commands() -> list[list[str]]:
     return [
-        cargo("test", "--workspace", "--all-features"),
+        cargo(
+            "test",
+            "--workspace",
+            "--all-features",
+            "--lib",
+            "--bins",
+            "--examples",
+        ),
+        *fast_commands()[1:],
+        *certification_commands(),
+        *compile_contract_commands(),
+        *documentation_commands(),
         *dependency_contract_commands(),
     ]
 
@@ -116,6 +137,8 @@ def commands_for(lane: str) -> list[list[str]]:
         return dependency_contract_commands()
     if lane == "platform-check":
         return platform_check_commands()
+    if lane == "filesystem-contract":
+        return filesystem_contract_commands()
     if lane == "full":
         return full_commands()
     raise ValueError(f"unknown lane: {lane}")
@@ -132,6 +155,7 @@ def parse_args() -> argparse.Namespace:
             "hostile-certification",
             "dependency-contract",
             "platform-check",
+            "filesystem-contract",
             "full",
         ),
     )
@@ -166,7 +190,11 @@ def compiler_cache_stats() -> dict[str, Any] | None:
     }
 
 
-def write_report(lane: str, outcomes: list[dict[str, Any]]) -> None:
+def write_report(
+    lane: str,
+    outcomes: list[dict[str, Any]],
+    total_duration_seconds: float | None = None,
+) -> None:
     configured_directory = os.environ.get("WORTH_UI_LANE_REPORT_DIR")
     if configured_directory is None:
         return
@@ -181,8 +209,14 @@ def write_report(lane: str, outcomes: list[dict[str, Any]]) -> None:
         "platform": sys.platform,
         "success": all(outcome["exit_code"] == 0 for outcome in outcomes),
         "total_duration_seconds": round(
-            sum(float(outcome["duration_seconds"]) for outcome in outcomes), 3
+            total_duration_seconds
+            if total_duration_seconds is not None
+            else sum(float(outcome["duration_seconds"]) for outcome in outcomes),
+            3,
         ),
+        "execution_posture": "bounded_parallel_independent_proof_families"
+        if lane == "full"
+        else "sequential",
         "commands": outcomes,
         "compiler_cache": compiler_cache_stats(),
     }
@@ -193,34 +227,56 @@ def write_report(lane: str, outcomes: list[dict[str, Any]]) -> None:
 def main() -> int:
     args = parse_args()
     commands = commands_for(args.lane)
+    if args.print_only:
+        for command in commands:
+            print("[worth-ui-test-lane]", subprocess.list2cmdline(command), flush=True)
+        return 0
+    if args.lane == "full":
+        return run_parallel_full_lane(commands)
+
     outcomes: list[dict[str, Any]] = []
     for command in commands:
-        rendered = subprocess.list2cmdline(command)
-        print("[worth-ui-test-lane]", rendered, flush=True)
-        if not args.print_only:
-            started = time.perf_counter()
-            try:
-                result = subprocess.run(command, cwd=ROOT, env=os.environ.copy(), check=False)
-                exit_code = result.returncode
-                error = None
-            except OSError as execution_error:
-                exit_code = 127
-                error = str(execution_error)
-            outcomes.append(
-                {
-                    "argv": command,
-                    "command": rendered,
-                    "duration_seconds": round(time.perf_counter() - started, 3),
-                    "exit_code": exit_code,
-                    "error": error,
-                }
-            )
-            if exit_code != 0:
-                write_report(args.lane, outcomes)
-                return exit_code
-    if not args.print_only:
-        write_report(args.lane, outcomes)
+        print("[worth-ui-test-lane]", subprocess.list2cmdline(command), flush=True)
+        outcome = run_command(command)
+        outcomes.append(outcome)
+        if outcome["exit_code"] != 0:
+            write_report(args.lane, outcomes)
+            return int(outcome["exit_code"])
+    write_report(args.lane, outcomes)
     return 0
+
+
+def run_parallel_full_lane(commands: list[list[str]]) -> int:
+    started = time.perf_counter()
+    for command in commands:
+        print("[worth-ui-test-lane]", subprocess.list2cmdline(command), flush=True)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=FULL_LANE_WORKERS) as executor:
+        outcomes = list(executor.map(run_command, commands))
+    duration = time.perf_counter() - started
+    write_report("full", outcomes, duration)
+    return next(
+        (int(outcome["exit_code"]) for outcome in outcomes if outcome["exit_code"] != 0),
+        0,
+    )
+
+
+def run_command(command: list[str]) -> dict[str, Any]:
+    rendered = subprocess.list2cmdline(command)
+    started = time.perf_counter()
+    try:
+        result = subprocess.run(command, cwd=ROOT, env=os.environ.copy(), check=False)
+        exit_code = result.returncode
+        error = None
+    except OSError as execution_error:
+        exit_code = 127
+        error = str(execution_error)
+    return {
+        "argv": command,
+        "command": rendered,
+        "duration_seconds": round(time.perf_counter() - started, 3),
+        "exit_code": exit_code,
+        "error": error,
+    }
 
 
 if __name__ == "__main__":

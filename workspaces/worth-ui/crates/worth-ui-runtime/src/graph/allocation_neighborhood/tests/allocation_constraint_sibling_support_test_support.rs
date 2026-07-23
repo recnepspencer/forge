@@ -39,7 +39,7 @@ pub(super) fn mosaic_peer_app_with_contracts(
     .freeze()
     .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
-        .source_ingress(source_provider)
+        .source_event_ingress(source_provider)
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(package_name)])
         .expect("source-backed mosaic provider should debounce to one candidate batch")

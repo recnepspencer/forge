@@ -1,5 +1,5 @@
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
-use worth_ui_query_binding::WorthUiQueryAuthorityHandle;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle;
 
 use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::UiMeasurementResult;

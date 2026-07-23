@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    path::{Component, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use super::{
@@ -19,6 +19,8 @@ pub enum DeclaredStoreRootDenialKind {
     Empty,
     Relative,
     LexicallyAmbiguous,
+    WindowsDeviceNamespace,
+    WindowsVerbatimNamespace,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,6 +39,8 @@ impl fmt::Display for DeclaredStoreRootDenialKind {
             Self::Empty => "the path is empty",
             Self::Relative => "the path is not absolute",
             Self::LexicallyAmbiguous => "the path contains `.` or `..` components",
+            Self::WindowsDeviceNamespace => "Windows device namespace roots are not admitted",
+            Self::WindowsVerbatimNamespace => "Windows verbatim namespace roots are not admitted",
         };
         formatter.write_str(reason)
     }
@@ -141,6 +145,8 @@ fn admit_with_runtime_identity_source(
 fn validate_declared_store_root(path: PathBuf) -> Result<DeclaredStoreRoot, AdmissionError> {
     let kind = if path.as_os_str().is_empty() {
         Some(DeclaredStoreRootDenialKind::Empty)
+    } else if let Some(kind) = disallowed_windows_namespace(&path) {
+        Some(kind)
     } else if path.is_relative() {
         Some(DeclaredStoreRootDenialKind::Relative)
     } else if path
@@ -162,6 +168,27 @@ fn validate_declared_store_root(path: PathBuf) -> Result<DeclaredStoreRoot, Admi
         }
         None => Ok(DeclaredStoreRoot::from_validated_path(path)),
     }
+}
+
+#[cfg(windows)]
+fn disallowed_windows_namespace(path: &Path) -> Option<DeclaredStoreRootDenialKind> {
+    use std::path::Prefix;
+
+    let Component::Prefix(prefix) = path.components().next()? else {
+        return None;
+    };
+    match prefix.kind() {
+        Prefix::DeviceNS(_) => Some(DeclaredStoreRootDenialKind::WindowsDeviceNamespace),
+        Prefix::Verbatim(_) | Prefix::VerbatimDisk(_) | Prefix::VerbatimUNC(_, _) => {
+            Some(DeclaredStoreRootDenialKind::WindowsVerbatimNamespace)
+        }
+        Prefix::Disk(_) | Prefix::UNC(_, _) => None,
+    }
+}
+
+#[cfg(not(windows))]
+const fn disallowed_windows_namespace(_path: &Path) -> Option<DeclaredStoreRootDenialKind> {
+    None
 }
 
 struct AdmissionAssemblyGuard {
@@ -209,6 +236,31 @@ mod tests {
         ];
 
         for (path, expected_kind) in cases {
+            assert!(matches!(
+                PhysicalRuntimeAdmission::new(path),
+                Err(AdmissionError::InvalidDeclaredStoreRoot { kind, .. })
+                    if kind == expected_kind
+            ));
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn declared_root_validation_rejects_device_and_verbatim_namespaces() {
+        for (path, expected_kind) in [
+            (
+                PathBuf::from(r"\\.\C:\worth-store"),
+                DeclaredStoreRootDenialKind::WindowsDeviceNamespace,
+            ),
+            (
+                PathBuf::from(r"\\?\C:\worth-store"),
+                DeclaredStoreRootDenialKind::WindowsVerbatimNamespace,
+            ),
+            (
+                PathBuf::from(r"\\?\UNC\server\share\worth-store"),
+                DeclaredStoreRootDenialKind::WindowsVerbatimNamespace,
+            ),
+        ] {
             assert!(matches!(
                 PhysicalRuntimeAdmission::new(path),
                 Err(AdmissionError::InvalidDeclaredStoreRoot { kind, .. })

@@ -1,4 +1,7 @@
-use worth_ui::facade::{CapabilityDiagnosticCode, SnapshotReferenceViolationKind, WorthUi};
+use worth_ui::facade::{
+    app::WorthUi,
+    diagnostics::{CapabilityDiagnosticCode, SnapshotReferenceViolationKind},
+};
 
 use super::snapshot_assertions::{diagnostic_codes, violation_kinds};
 use super::snapshot_fixtures::{

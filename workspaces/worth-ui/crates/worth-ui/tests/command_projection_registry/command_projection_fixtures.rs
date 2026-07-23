@@ -1,4 +1,4 @@
-use worth_ui::facade::{
+use worth_ui::facade::registry::{
     CommandCategory, CommandDescriptor, CommandId, CommandProjectionCommandReference,
     CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface,
     MosaicPlacementAction, MosaicPlacementConflictBehavior, MosaicPlacementEligibility,

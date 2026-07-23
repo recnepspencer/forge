@@ -1,24 +1,23 @@
 use super::assembly_support::{
-    assign_slot, basis_source_denial, child_intrinsic_host_compatibility,
-    child_intrinsic_query_compatibility, host_result_compatibility, ownership_posture_denial,
-    push_child_intrinsic_lineage, push_host_lineage, query_receipt_compatibility,
+    assign_slot, basis_source_denial, ownership_posture_denial, push_child_intrinsic_lineage,
+    push_host_lineage,
 };
 use super::{
-    denial::UiMeasurementBasisDenial, UiMeasurementBasisPosture, UiMeasurementEvidenceSlot,
+    denial::UiMeasurementBasisDenial, HostResultSlots, UiMeasurementBasisPosture,
+    UiMeasurementEvidenceSlot,
 };
 use crate::declaration::UiDeclaredMeasurementBasisRequirementSet;
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence, UiMeasurementDependencyLineage,
     UiMeasurementDependencyLineageEntry, UiMeasurementDependencyLineageKind,
-    UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiMeasurementResult,
-    UiProjectionFactReceipt,
+    UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiProjectionFactReceipt,
+    UiSettledQueryFactReceipt,
 };
-use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 pub(super) struct SelectedEvidence<'a> {
-    pub query_receipt: Option<&'a UiProjectionFactReceipt>,
+    pub query_receipt: Option<SelectedQueryReceipt<'a>>,
     pub host_capability_report: Option<&'a WorthUiHostCapabilityReport>,
     pub host_results: HostResultSlots<'a>,
     pub child_intrinsic_measurements: Vec<&'a UiChildIntrinsicMeasurementEvidence>,
@@ -26,15 +25,12 @@ pub(super) struct SelectedEvidence<'a> {
     conflicting_slot: Option<UiMeasurementEvidenceSlot>,
 }
 
-#[derive(Clone, Copy, Default)]
-pub(super) struct HostResultSlots<'a> {
-    pub text_intrinsic_size: Option<&'a UiMeasurementResult>,
-    pub font_metrics: Option<&'a UiMeasurementResult>,
-    pub native_control_intrinsic_size: Option<&'a UiMeasurementResult>,
-    pub viewport_extent: Option<&'a UiMeasurementResult>,
-    pub portal_anchor_rect: Option<&'a UiMeasurementResult>,
-    pub scroll_container_viewport: Option<&'a UiMeasurementResult>,
+#[derive(Clone, Copy, PartialEq)]
+pub(super) enum SelectedQueryReceipt<'a> {
+    ManagedLiveCompatibility(&'a UiProjectionFactReceipt),
+    SettledSnapshot(&'a UiSettledQueryFactReceipt),
 }
+
 impl<'a> SelectedEvidence<'a> {
     pub(super) fn from_inputs(
         requirements: &UiDeclaredMeasurementBasisRequirementSet,
@@ -63,12 +59,15 @@ impl<'a> SelectedEvidence<'a> {
         for input in evidence_inputs {
             if let Some(receipt) = input.as_query_projection_fact() {
                 if requirements.requires_query_projection_receipt() {
-                    assign_slot(
-                        &mut selected.query_receipt,
+                    selected.assign_query_receipt(SelectedQueryReceipt::ManagedLiveCompatibility(
                         receipt,
-                        &mut selected.conflicting_slot,
-                        UiMeasurementEvidenceSlot::QueryProjectionFactReceipt,
-                    );
+                    ));
+                }
+                continue;
+            }
+            if let Some(receipt) = input.as_settled_query_fact() {
+                if requirements.requires_query_projection_receipt() {
+                    selected.assign_query_receipt(SelectedQueryReceipt::SettledSnapshot(receipt));
                 }
                 continue;
             }
@@ -157,89 +156,25 @@ impl<'a> SelectedEvidence<'a> {
         selected
     }
 
-    pub(super) fn generation_compatibility(
-        &self,
-        world_profile: &UiGraphWorldProfile,
-        declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-    ) -> UiMeasurementGenerationCompatibility {
-        if let Some(receipt) = self.query_receipt {
-            if let Some(compatibility) = query_receipt_compatibility(
-                receipt,
-                world_profile,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
+    fn assign_query_receipt(&mut self, receipt: SelectedQueryReceipt<'a>) {
+        if self.query_receipt.is_none() {
+            self.query_receipt = Some(receipt);
+        } else if self.conflicting_slot.is_none() {
+            self.conflicting_slot = Some(UiMeasurementEvidenceSlot::QueryProjectionFactReceipt);
         }
-        if let Some(report) = self.host_capability_report {
-            if let Some(compatibility) = host_result_compatibility(
-                self.host_results.text_intrinsic_size,
-                report,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
-            if let Some(compatibility) = host_result_compatibility(
-                self.host_results.font_metrics,
-                report,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
-            if let Some(compatibility) = host_result_compatibility(
-                self.host_results.native_control_intrinsic_size,
-                report,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
-            if let Some(compatibility) = host_result_compatibility(
-                self.host_results.viewport_extent,
-                report,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
-            if let Some(compatibility) = host_result_compatibility(
-                self.host_results.portal_anchor_rect,
-                report,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
-            if let Some(compatibility) = host_result_compatibility(
-                self.host_results.scroll_container_viewport,
-                report,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
-        }
-        for evidence in &self.child_intrinsic_measurements {
-            if let Some(compatibility) = child_intrinsic_query_compatibility(
-                evidence,
-                world_profile,
-                declaration_support_authority_generation,
-            ) {
-                return compatibility;
-            }
-            if let Some(report) = self.host_capability_report {
-                if let Some(compatibility) = child_intrinsic_host_compatibility(
-                    evidence,
-                    report,
-                    declaration_support_authority_generation,
-                ) {
-                    return compatibility;
-                }
-            }
-        }
-        UiMeasurementGenerationCompatibility::Compatible
     }
 
     pub(super) fn admitted_inputs(&self) -> Box<[MeasurementEvidenceInput]> {
         let mut inputs = Vec::new();
         if let Some(receipt) = self.query_receipt {
-            inputs.push(MeasurementEvidenceInput::query_projection_fact(receipt));
+            inputs.push(match receipt {
+                SelectedQueryReceipt::ManagedLiveCompatibility(receipt) => {
+                    MeasurementEvidenceInput::query_projection_fact(receipt)
+                }
+                SelectedQueryReceipt::SettledSnapshot(receipt) => {
+                    MeasurementEvidenceInput::settled_query_fact(receipt)
+                }
+            });
         }
         if let Some(report) = self.host_capability_report {
             inputs.push(MeasurementEvidenceInput::host_capability_report(report));
@@ -263,10 +198,20 @@ impl<'a> SelectedEvidence<'a> {
     pub(super) fn dependency_lineage(&self) -> UiMeasurementDependencyLineage {
         let mut entries = Vec::new();
         if let Some(receipt) = self.query_receipt {
+            let (identity_digest, generation) = match receipt {
+                SelectedQueryReceipt::ManagedLiveCompatibility(receipt) => (
+                    receipt.observation_identity_digest(),
+                    receipt.declaration_support_authority_generation().as_u64(),
+                ),
+                SelectedQueryReceipt::SettledSnapshot(receipt) => (
+                    receipt.observation_identity_digest(),
+                    receipt.declaration_support_authority_generation().as_u64(),
+                ),
+            };
             entries.push(UiMeasurementDependencyLineageEntry::new(
                 UiMeasurementDependencyLineageKind::QueryScrollContentExtent,
-                receipt.observation_identity_digest(),
-                receipt.declaration_support_authority_generation().as_u64(),
+                identity_digest,
+                generation,
             ));
         }
         push_host_lineage(
@@ -397,5 +342,16 @@ impl<'a> SelectedEvidence<'a> {
             );
         }
         None
+    }
+}
+
+impl SelectedQueryReceipt<'_> {
+    pub(super) fn declaration_support_authority_generation(self) -> UiEvidenceAuthorityGeneration {
+        match self {
+            Self::ManagedLiveCompatibility(receipt) => {
+                receipt.declaration_support_authority_generation()
+            }
+            Self::SettledSnapshot(receipt) => receipt.declaration_support_authority_generation(),
+        }
     }
 }

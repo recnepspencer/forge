@@ -1,11 +1,7 @@
-use std::path::Path;
-
 use cap_fs_ext::DirExt;
-use cap_std::ambient_authority;
 use cap_std::fs::Dir;
-use same_file::Handle as FileIdentityHandle;
 use worth_store_physical_format::store_namespace::{
-    NamespaceEntryType, StoreNamespaceClassification, StoreNamespaceRelativeRole,
+    NamespaceEntryType, StoreNamespaceRelativeRole,
 };
 
 use super::{
@@ -22,6 +18,7 @@ pub struct AdmittedStoreNamespace {
     publication_parent: Option<Dir>,
     store_root_publication_required: bool,
     root_parent_publication_required: bool,
+    admission_effect_fate: super::owner_admission_effect::MediaOwnerAdmissionEffectFate,
     next_handle_generation: u64,
 }
 
@@ -34,7 +31,7 @@ impl AdmittedStoreNamespace {
         &self.root
     }
 
-    fn from_opened_directory(
+    pub(super) fn from_opened_directory(
         directory: Dir,
         boundary: &super::fault_interposition::MediaFaultInterposer,
     ) -> Result<Self, NamespaceConfinementDenial> {
@@ -56,99 +53,28 @@ impl AdmittedStoreNamespace {
             publication_parent: None,
             store_root_publication_required: false,
             root_parent_publication_required: false,
+            admission_effect_fate:
+                super::owner_admission_effect::MediaOwnerAdmissionEffectFate::DeniedBeforeEffect,
             next_handle_generation: 2,
         })
     }
 
-    pub(super) fn create_or_open(
-        root: &Path,
-        boundary: &super::fault_interposition::MediaFaultInterposer,
-    ) -> Result<Self, NamespaceConfinementDenial> {
-        let name = root.file_name().ok_or_else(|| {
-            NamespaceConfinementDenial::structural(
-                NamespaceConfinementDenialKind::MissingParentPublicationBoundary,
-            )
-        })?;
-        let parent_path = root
-            .parent()
-            .filter(|path| !path.as_os_str().is_empty())
-            .unwrap_or_else(|| Path::new("."));
-        let publication_parent =
-            boundary_io_call(boundary, super::MediaOperationRole::OpenRootParent, || {
-                Dir::open_ambient_dir(parent_path, ambient_authority())
-            })
-            .map_err(|error| NamespaceConfinementDenial::from_io(&error))?;
-        let root_was_absent = match boundary_io_call(
-            boundary,
-            super::MediaOperationRole::InspectNamespaceEntry,
-            || publication_parent.symlink_metadata(name),
-        ) {
-            Ok(metadata) if metadata.file_type().is_symlink() => {
-                return Err(NamespaceConfinementDenial::structural(
-                    NamespaceConfinementDenialKind::LinkLikeEntry,
-                ));
-            }
-            Ok(metadata) if !metadata.is_dir() => {
-                return Err(NamespaceConfinementDenial::structural(
-                    NamespaceConfinementDenialKind::EntryTypeMismatch,
-                ));
-            }
-            Ok(_) => false,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                match boundary_io_call(boundary, super::MediaOperationRole::CreateDirectory, || {
-                    publication_parent.create_dir(name)
-                }) {
-                    Ok(()) => true,
-                    Err(create_error)
-                        if create_error.kind() == std::io::ErrorKind::AlreadyExists =>
-                    {
-                        false
-                    }
-                    Err(create_error) => {
-                        return Err(NamespaceConfinementDenial::from_io(&create_error));
-                    }
-                }
-            }
-            Err(error) => return Err(NamespaceConfinementDenial::from_io(&error)),
-        };
-        let directory =
-            boundary_io_call(boundary, super::MediaOperationRole::OpenDirectory, || {
-                publication_parent.open_dir_nofollow(name)
-            })
-            .map_err(|error| NamespaceConfinementDenial::from_io(&error))?;
-        require_opened_root_identity(root, &directory, boundary)?;
-        let classification = if root_was_absent {
-            StoreNamespaceClassification::AbsentEligible
-        } else {
-            super::namespace_root_inventory::classify_opened_root(&directory, boundary)?
-        };
-        let initialize_scaffold = matches!(
-            classification,
-            StoreNamespaceClassification::AbsentEligible
-                | StoreNamespaceClassification::EmptyEligible
-                | StoreNamespaceClassification::IncompleteScaffold { .. }
-        );
-        if let StoreNamespaceClassification::Initialized { identity, .. } = classification {
-            boundary.bind_store(identity);
-        }
-        if !(initialize_scaffold
-            || matches!(
-                classification,
-                StoreNamespaceClassification::Initialized { .. }
-            ))
-        {
-            return Err(NamespaceConfinementDenial::structural(
-                classification_denial_kind(&classification),
-            ));
-        }
-        let mut namespace = Self::from_opened_directory(directory, boundary)?;
-        namespace.publication_parent = Some(publication_parent);
-        if initialize_scaffold {
-            namespace.create_fixed_scaffold(boundary)?;
-        }
-        namespace.store_root_publication_required = true;
-        namespace.root_parent_publication_required = true;
-        Ok(namespace)
+    pub(super) const fn admission_effect_fate(
+        &self,
+    ) -> super::owner_admission_effect::MediaOwnerAdmissionEffectFate {
+        self.admission_effect_fate
+    }
+
+    pub(super) fn complete_admission(
+        mut self,
+        publication_parent: Dir,
+        effect_fate: super::owner_admission_effect::MediaOwnerAdmissionEffectFate,
+    ) -> Self {
+        self.publication_parent = Some(publication_parent);
+        self.store_root_publication_required = true;
+        self.root_parent_publication_required = true;
+        self.admission_effect_fate = effect_fate;
+        self
     }
     pub(super) fn open_directory(
         &mut self,
@@ -244,49 +170,6 @@ impl AdmittedStoreNamespace {
         self.root_parent_publication_required
     }
 
-    fn create_fixed_scaffold(
-        &self,
-        boundary: &super::fault_interposition::MediaFaultInterposer,
-    ) -> Result<(), NamespaceConfinementDenial> {
-        for role in [
-            StoreNamespaceRelativeRole::NamespaceDirectory,
-            StoreNamespaceRelativeRole::FamiliesDirectory,
-            StoreNamespaceRelativeRole::StagingDirectory,
-        ] {
-            let path = role.components()[0];
-            match boundary_io_call(
-                boundary,
-                super::MediaOperationRole::InspectNamespaceEntry,
-                || self.root.directory().symlink_metadata(path),
-            ) {
-                Ok(metadata) => require_directory_metadata(metadata)?,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                    match boundary_io_call(
-                        boundary,
-                        super::MediaOperationRole::CreateDirectory,
-                        || self.root.directory().create_dir(path),
-                    ) {
-                        Ok(()) => {}
-                        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                            let metadata = boundary_io_call(
-                                boundary,
-                                super::MediaOperationRole::InspectNamespaceEntry,
-                                || self.root.directory().symlink_metadata(path),
-                            )
-                            .map_err(|error| NamespaceConfinementDenial::from_io(&error))?;
-                            require_directory_metadata(metadata)?;
-                        }
-                        Err(error) => {
-                            return Err(NamespaceConfinementDenial::from_io(&error));
-                        }
-                    }
-                }
-                Err(error) => return Err(NamespaceConfinementDenial::from_io(&error)),
-            }
-        }
-        Ok(())
-    }
-
     fn issue_handle_generation(&mut self) -> Result<u64, NamespaceConfinementDenial> {
         let generation = self.next_handle_generation;
         self.next_handle_generation = generation.checked_add(1).ok_or_else(|| {
@@ -296,73 +179,6 @@ impl AdmittedStoreNamespace {
         })?;
         Ok(generation)
     }
-}
-
-fn classification_denial_kind(
-    classification: &StoreNamespaceClassification,
-) -> NamespaceConfinementDenialKind {
-    match classification {
-        StoreNamespaceClassification::IncompleteScaffold { .. } => {
-            NamespaceConfinementDenialKind::NamespaceIncomplete
-        }
-        StoreNamespaceClassification::UnsupportedVersion(_) => {
-            NamespaceConfinementDenialKind::NamespaceVersionUnsupported
-        }
-        StoreNamespaceClassification::Damaged(_) => {
-            NamespaceConfinementDenialKind::NamespaceDamaged
-        }
-        StoreNamespaceClassification::Ambiguous(_) => {
-            NamespaceConfinementDenialKind::NamespaceAmbiguous
-        }
-        StoreNamespaceClassification::ContendedCompatible { .. }
-        | StoreNamespaceClassification::AbsentEligible
-        | StoreNamespaceClassification::EmptyEligible
-        | StoreNamespaceClassification::Initialized { .. } => {
-            NamespaceConfinementDenialKind::NamespaceNotAdmissible
-        }
-    }
-}
-
-fn require_directory_metadata(
-    metadata: cap_std::fs::Metadata,
-) -> Result<(), NamespaceConfinementDenial> {
-    if metadata.file_type().is_symlink() {
-        return Err(NamespaceConfinementDenial::structural(
-            NamespaceConfinementDenialKind::LinkLikeEntry,
-        ));
-    }
-    if !metadata.is_dir() {
-        return Err(NamespaceConfinementDenial::structural(
-            NamespaceConfinementDenialKind::EntryTypeMismatch,
-        ));
-    }
-    Ok(())
-}
-
-fn require_opened_root_identity(
-    root: &Path,
-    directory: &Dir,
-    boundary: &super::fault_interposition::MediaFaultInterposer,
-) -> Result<(), NamespaceConfinementDenial> {
-    let (opened, current) = boundary_io_call(
-        boundary,
-        super::MediaOperationRole::ValidateRootIdentity,
-        || {
-            let opened = directory
-                .try_clone()
-                .map(Dir::into_std_file)
-                .and_then(FileIdentityHandle::from_file)?;
-            let current = FileIdentityHandle::from_path(root)?;
-            Ok((opened, current))
-        },
-    )
-    .map_err(|error| NamespaceConfinementDenial::from_io(&error))?;
-    if opened != current {
-        return Err(NamespaceConfinementDenial::structural(
-            NamespaceConfinementDenialKind::RootIdentityChanged,
-        ));
-    }
-    Ok(())
 }
 
 pub(super) fn boundary_io_call<T>(

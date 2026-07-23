@@ -8,6 +8,7 @@ mod identity_seeded;
 mod import_graph;
 #[cfg(test)]
 mod inspection;
+mod lexical;
 mod lower;
 mod module;
 mod package;
@@ -77,6 +78,7 @@ pub(crate) use inspection::{
     WorthUiArtifactNodeInspection, WorthUiArtifactProvenanceMap, WorthUiArtifactSourceOrigin,
     WorthUiQueryInspectionLink, WorthUiQueryInspectionLinkRole,
 };
+pub(crate) use lexical::{tokenize_module_source, WorthUiSourceToken, WorthUiSourceTokenKind};
 pub(crate) use lower::WorthUiRustAuthoredToArtifactInputLowerer;
 pub(crate) use lower::{
     WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyMetrics,
@@ -116,7 +118,7 @@ pub(crate) use parse::{
     WorthUiParseDiagnostic, WorthUiParseDiagnosticCode, WorthUiParseReport, WorthUiParsedBlockBody,
     WorthUiParsedBlockDeclaration, WorthUiParsedImportDeclaration, WorthUiParsedSourceDeclaration,
     WorthUiParsedSourceModule, WorthUiParsedSourcePackage, WorthUiParsedTokenDeclaration,
-    WorthUiSourceParser, WorthUiSourceSpan, WorthUiSourceToken, WorthUiSourceTokenKind,
+    WorthUiSourceParser, WorthUiSourceSpan,
 };
 #[cfg(test)]
 pub(crate) use resolved::WorthUiResolvedArtifactInputEquivalentShape;

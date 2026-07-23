@@ -151,7 +151,7 @@ fn is_allowed_planning_owner(relative: &Path) -> bool {
     normalized == "runtime/host.rs"
         || normalized == "runtime/launch/planning_transition.rs"
         || normalized == "runtime/planning/plan_allocation.rs"
-        || normalized.starts_with("runtime/allocation_planning/")
+        || normalized.starts_with("runtime/planning/allocation_planning/")
 }
 
 fn is_test_file(relative: &Path) -> bool {
@@ -181,10 +181,10 @@ mod tests {
     fn planning_owner_allowlist_is_narrow() {
         assert!(is_allowed_planning_owner(Path::new("runtime/host.rs")));
         assert!(is_allowed_planning_owner(Path::new(
-            "runtime/allocation_planning/planner.rs"
+            "runtime/planning/allocation_planning/planner.rs"
         )));
         assert!(!is_allowed_planning_owner(Path::new(
-            "runtime/plan_topology/assembler.rs"
+            "runtime/planning/plan_topology/assembler.rs"
         )));
     }
 

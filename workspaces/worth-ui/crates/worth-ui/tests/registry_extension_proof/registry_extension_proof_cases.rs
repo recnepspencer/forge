@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use worth_ui::facade::{CapabilityDiagnosticCode, RegistryFamily};
+use worth_ui::facade::diagnostics::CapabilityDiagnosticCode;
+use worth_ui::facade::support::RegistryFamily;
 
 use super::facade_exposure_assertions::{
     assert_every_family_has_facade_exposure_decision,
@@ -91,7 +92,7 @@ fn unknown_or_omitted_registry_family_reported() {
 }
 
 fn duplicate_diagnostic_counts_by_family(
-    diagnostics: &[worth_ui::facade::CapabilityRegistrationDiagnostic],
+    diagnostics: &[worth_ui::facade::diagnostics::CapabilityRegistrationDiagnostic],
 ) -> BTreeMap<RegistryFamily, usize> {
     let mut counts = BTreeMap::new();
     for diagnostic in diagnostics {

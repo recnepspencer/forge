@@ -80,7 +80,7 @@ fn ambiguous_node_replacement_denied_before_reconciliation() {
 }
 
 #[test]
-fn lane_change_classified_separately_from_structural_move() {
+fn lane_change_classified_separately_from_structural_replacement() {
     let app = identity_match_app();
     let active = artifact_from_nodes([(
         "app/main.wui",
@@ -104,7 +104,7 @@ fn lane_change_classified_separately_from_structural_move() {
     let structural_narrowing = narrowing_for(&identity_report);
     let moved_plan = runtime
         .classify_node_replacements(&structural_impact, &structural_narrowing, &identity_report)
-        .expect("structural move classifies");
+        .expect("representation-only relocation classifies");
 
     let (lane_runtime, lane_admitted, lane_identity_narrowing) =
         runtime_and_narrowing(&app, active, moved_candidate);
@@ -119,13 +119,14 @@ fn lane_change_classified_separately_from_structural_move() {
 
     assert_eq!(
         moved_plan.transition_for_identity("surface:stable"),
-        Some(WorthUiNodeLifecycleTransition::Move)
+        Some(WorthUiNodeLifecycleTransition::Replace)
     );
     assert_eq!(
         lane_plan.transition_for_identity("surface:stable"),
         Some(WorthUiNodeLifecycleTransition::LaneChange)
     );
-    assert_eq!(moved_plan.counters().moved_node_count(), 1);
+    assert_eq!(moved_plan.counters().moved_node_count(), 0);
+    assert_eq!(moved_plan.counters().replaced_node_count(), 1);
     assert_eq!(lane_plan.counters().lane_changed_node_count(), 1);
 }
 

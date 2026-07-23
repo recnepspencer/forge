@@ -1,7 +1,10 @@
 use worth_ui::facade::{
-    TaskPresentationCancellationPosture, TaskPresentationDescriptor,
-    TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationLifecyclePosture,
-    TaskPresentationProjectionEligibility, TaskPresentationRuntimeAuthorityPosture, WorthUi,
+    app::WorthUi,
+    registry::{
+        TaskPresentationCancellationPosture, TaskPresentationDescriptor,
+        TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationLifecyclePosture,
+        TaskPresentationProjectionEligibility, TaskPresentationRuntimeAuthorityPosture,
+    },
 };
 
 use super::task_presentation_assertions::assert_registered_task_presentation_ids;

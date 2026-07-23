@@ -11,7 +11,10 @@ pub enum MediaShutdownOutcome<Terminal> {
 }
 
 impl<Terminal> MediaShutdownOutcome<Terminal> {
-    pub(super) fn new(terminal: Terminal, release: OwnershipReleaseOutcome) -> Self {
+    pub(in crate::physical_runtime) fn new(
+        terminal: Terminal,
+        release: OwnershipReleaseOutcome,
+    ) -> Self {
         match release {
             OwnershipReleaseOutcome::Released => Self::Released(terminal),
             release @ OwnershipReleaseOutcome::ReleaseUnconfirmed { .. } => {

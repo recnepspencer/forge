@@ -1,7 +1,10 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, CommandId, ComponentId,
-    SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass,
-    ViewBindingId, WorthUi,
+    app::WorthUi,
+    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
+    registry::{
+        CommandId, ComponentId, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
+        SurfaceStateClass, ViewBindingId,
+    },
 };
 
 #[test]

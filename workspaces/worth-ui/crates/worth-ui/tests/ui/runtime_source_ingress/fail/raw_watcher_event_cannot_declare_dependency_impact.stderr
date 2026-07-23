@@ -1,5 +1,12 @@
-error[E0599]: no method named `dependency_impact` found for struct `WorthUiWatcherEvent` in the current scope
- --> tests/ui/runtime_source_ingress/fail/raw_watcher_event_cannot_declare_dependency_impact.rs:4:65
+error[E0432]: unresolved import `worth_ui::facade::WorthUiWatcherEvent`
+ --> tests/ui/runtime_source_ingress/fail/raw_watcher_event_cannot_declare_dependency_impact.rs:1:5
   |
-4 |     let _impact = WorthUiWatcherEvent::modified("app/main.wui").dependency_impact();
-  |                                                                 ^^^^^^^^^^^^^^^^^ method not found in `WorthUiWatcherEvent`
+1 | use worth_ui::facade::WorthUiWatcherEvent;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiWatcherEvent` in `facade`
+  |
+help: consider importing one of these structs instead
+  |
+1 | use worth_ui::facade::source::WorthUiWatcherEvent;
+  |                       ++++++++
+1 | use worth_ui_runtime::facade::WorthUiWatcherEvent;
+  |             ++++++++

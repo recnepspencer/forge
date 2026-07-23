@@ -109,7 +109,8 @@ fn contains_anonymous_intrinsic_evidence(measurement_basis: &UiMeasurementBasis)
         .evidence_inputs()
         .iter()
         .any(|input| match input {
-            MeasurementEvidenceInput::QueryProjectionFact(_) => true,
+            MeasurementEvidenceInput::QueryProjectionFact(_)
+            | MeasurementEvidenceInput::SettledQueryFact(_) => true,
             MeasurementEvidenceInput::HostMeasurementResult(result) => matches!(
                 result.evidence_category(),
                 crate::evidence::UiMeasurementEvidenceCategory::TextIntrinsicSize

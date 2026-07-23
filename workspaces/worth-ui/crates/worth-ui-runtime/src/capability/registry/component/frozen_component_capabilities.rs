@@ -79,9 +79,23 @@ fn fold_component_descriptor(accumulator: u64, descriptor: &ComponentDescriptor)
         fold_bytes(with_tokens, b"command_binding_slots"),
         |basis, command_id| fold_list_item(basis, command_id.as_str()),
     );
-    fold_bytes(
+    let with_lane = fold_bytes(
         with_commands,
         descriptor.execution_lane().as_str().as_bytes(),
+    );
+    let with_canvas = fold_bytes(
+        with_lane,
+        &descriptor
+            .canvas_spatial_contract()
+            .map_or(0, super::ComponentCanvasSpatialContract::digest_basis)
+            .to_le_bytes(),
+    );
+    fold_bytes(
+        with_canvas,
+        &descriptor
+            .realtime_overlay_contract()
+            .map_or(0, super::ComponentRealtimeOverlayContract::digest_basis)
+            .to_le_bytes(),
     )
 }
 

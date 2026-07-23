@@ -44,6 +44,7 @@ pub(crate) fn resident_frame_table(
         admitted,
         ResidentFrameTableCapacity::frames(frame_count).unwrap(),
     )
+    .unwrap()
 }
 
 pub(crate) fn load_request(

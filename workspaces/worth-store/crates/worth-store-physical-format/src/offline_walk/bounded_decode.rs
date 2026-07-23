@@ -1,5 +1,4 @@
 use std::io::Read;
-use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
@@ -67,24 +66,6 @@ impl BoundedPhysicalArtifactObservation {
     }
 }
 
-pub fn verify_bounded_root_manifest_artifact(
-    path: &Path,
-    expected: RootPublicationCell,
-    expected_bytes: u64,
-    expected_digest: [u8; 32],
-    max_buffer_bytes: usize,
-) -> Result<VerifiedRootManifestArtifact, BoundedPhysicalArtifactDenial> {
-    let mut file = open_exact_file(path, expected_bytes)?;
-    verify_bounded_root_manifest_artifact_from_reader(
-        &mut file,
-        expected_bytes,
-        expected,
-        expected_bytes,
-        expected_digest,
-        max_buffer_bytes,
-    )
-}
-
 pub fn verify_bounded_root_manifest_artifact_from_reader(
     reader: &mut impl Read,
     actual_bytes: u64,
@@ -117,24 +98,6 @@ pub fn verify_bounded_root_manifest_artifact_from_reader(
     })
 }
 
-pub fn verify_bounded_page_artifact(
-    path: &Path,
-    expected: PageGenerationCell,
-    expected_bytes: u64,
-    expected_digest: [u8; 32],
-    max_buffer_bytes: usize,
-) -> Result<BoundedPhysicalArtifactObservation, BoundedPhysicalArtifactDenial> {
-    let mut file = open_exact_file(path, expected_bytes)?;
-    verify_bounded_page_artifact_from_reader(
-        &mut file,
-        expected_bytes,
-        expected,
-        expected_bytes,
-        expected_digest,
-        max_buffer_bytes,
-    )
-}
-
 pub fn verify_bounded_page_artifact_from_reader(
     reader: &mut impl Read,
     actual_bytes: u64,
@@ -155,24 +118,6 @@ pub fn verify_bounded_page_artifact_from_reader(
                 .map(|report| report.witness())
                 .map_err(BoundedPhysicalArtifactDenial::HeaderDecode)
         },
-    )
-}
-
-pub fn verify_bounded_extent_artifact(
-    path: &Path,
-    expected: ExtentGenerationCell,
-    expected_bytes: u64,
-    expected_digest: [u8; 32],
-    max_buffer_bytes: usize,
-) -> Result<BoundedPhysicalArtifactObservation, BoundedPhysicalArtifactDenial> {
-    let mut file = open_exact_file(path, expected_bytes)?;
-    verify_bounded_extent_artifact_from_reader(
-        &mut file,
-        expected_bytes,
-        expected,
-        expected_bytes,
-        expected_digest,
-        max_buffer_bytes,
     )
 }
 
@@ -262,24 +207,6 @@ fn verify_header_framed_artifact(
         decoder_allocation_bytes: chunk_bytes as u64,
         peak_buffer_bytes: (header_bytes + chunk_bytes) as u64,
     })
-}
-
-fn open_exact_file(
-    path: &Path,
-    expected_bytes: u64,
-) -> Result<std::fs::File, BoundedPhysicalArtifactDenial> {
-    let file = std::fs::File::open(path).map_err(BoundedPhysicalArtifactDenial::Io)?;
-    let actual = file
-        .metadata()
-        .map_err(BoundedPhysicalArtifactDenial::Io)?
-        .len();
-    if actual != expected_bytes {
-        return Err(BoundedPhysicalArtifactDenial::LengthMismatch {
-            expected: expected_bytes,
-            actual,
-        });
-    }
-    Ok(file)
 }
 
 fn require_length(expected: u64, actual: u64) -> Result<(), BoundedPhysicalArtifactDenial> {

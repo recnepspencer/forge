@@ -1,7 +1,6 @@
 use crate::runtime::{
     WorthUiArtifactToPlanProvenance, WorthUiExecutionPlanInput, WorthUiPlanNodeInput,
-    WorthUiPlanNodeInputFamily, WorthUiPlanProvenanceSource, WorthUiQueryBindingIdentity,
-    WorthUiQueryBindingPosture, WorthUiQueryInspectionLinks, WorthUiQueryRebindRequiredSurface,
+    WorthUiPlanNodeInputFamily, WorthUiPlanProvenanceSource, WorthUiQueryInspectionLinks,
 };
 
 pub(super) fn expected_provenance_for_node_input(
@@ -33,27 +32,12 @@ fn expected_query_links_for_node_input(
     node_input: &WorthUiPlanNodeInput,
 ) -> Option<WorthUiQueryInspectionLinks> {
     let identity = node_input.query_binding_identity()?.clone();
-    let posture = node_input.query_binding_posture()?;
-    Some(expected_query_links_from_posture(
+    let settled_fact_link = node_input.query_settled_fact_link()?.clone();
+    Some(WorthUiQueryInspectionLinks::from_settled_fact_link(
         identity,
-        posture,
+        settled_fact_link,
         node_input.query_preservation_receipt(),
-        node_input.query_required_surfaces().to_vec(),
     ))
-}
-
-fn expected_query_links_from_posture(
-    identity: WorthUiQueryBindingIdentity,
-    posture: &WorthUiQueryBindingPosture,
-    preservation_receipt: Option<crate::runtime::WorthUiQueryBindingPreservationReceipt>,
-    required_surfaces: Vec<WorthUiQueryRebindRequiredSurface>,
-) -> WorthUiQueryInspectionLinks {
-    WorthUiQueryInspectionLinks::from_query_posture(
-        identity,
-        posture.clone(),
-        preservation_receipt,
-        required_surfaces,
-    )
 }
 
 fn expected_capability_reference_for_node_input(
@@ -78,7 +62,8 @@ fn expected_capability_reference_for_node_input(
 fn expected_provenance_source_for_node_input(
     node_input: &WorthUiPlanNodeInput,
 ) -> WorthUiPlanProvenanceSource {
-    if node_input.query_binding_identity().is_some() && node_input.query_binding_posture().is_some()
+    if node_input.query_binding_identity().is_some()
+        && node_input.query_settled_fact_link().is_some()
     {
         return WorthUiPlanProvenanceSource::QueryBinding;
     }
@@ -93,8 +78,7 @@ fn expected_provenance_source_for_family(
             WorthUiPlanProvenanceSource::ComponentLoweringHook
         }
         WorthUiPlanNodeInputFamily::LanePartitionRef => WorthUiPlanProvenanceSource::LaneBoundary,
-        WorthUiPlanNodeInputFamily::DiagnosticsRef
-        | WorthUiPlanNodeInputFamily::EguiBoundaryRef => WorthUiPlanProvenanceSource::Diagnostics,
+        WorthUiPlanNodeInputFamily::DiagnosticsRef => WorthUiPlanProvenanceSource::Diagnostics,
         WorthUiPlanNodeInputFamily::RenderResourceRef => {
             WorthUiPlanProvenanceSource::RenderResource
         }

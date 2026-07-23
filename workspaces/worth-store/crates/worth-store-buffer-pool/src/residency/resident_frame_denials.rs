@@ -47,6 +47,8 @@ impl ResidentFrameDenial {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResidentFrameDenialKind {
     TableCapacityIsZero,
+    TableMetadataBudgetExceeded,
+    TableAllocationFailed,
     FrameSizeIsZero,
     FrameSizeOverflow,
     HeaderOwnerMismatch,
@@ -62,6 +64,7 @@ pub enum ResidentFrameDenialKind {
     ResidentPayloadWitnessMismatch,
     ResidentPayloadLengthMismatch,
     ResidentBytesNotAdmitted,
+    ResidentByteAllocationFailed,
     ResidentFramePinned,
     PinnedPageBudgetExceeded,
     DirtyPageBudgetExceeded,

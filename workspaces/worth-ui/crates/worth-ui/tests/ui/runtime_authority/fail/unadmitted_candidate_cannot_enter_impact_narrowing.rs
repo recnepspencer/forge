@@ -1,5 +1,7 @@
 use worth_ui::facade::{
-    WorthUiReplacementCandidate, WorthUiReplacementImpactClassification, WorthUiRuntime,
+    WorthUiReplacementCandidate,
+    WorthUiReplacementImpactClassification,
+    runtime::WorthUiRuntime,
 };
 
 fn main() {

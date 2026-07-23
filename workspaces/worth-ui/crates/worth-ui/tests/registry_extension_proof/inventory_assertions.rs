@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
-use worth_ui::facade::{RegistryFamily, RegistryFamilyInventoryAudit, SnapshotFreezeReport};
+use worth_ui::facade::diagnostics::SnapshotFreezeReport;
+use worth_ui::facade::support::{RegistryFamily, RegistryFamilyInventoryAudit};
 
 pub(crate) fn assert_registry_inventory_names_are_unique() {
     let inventory_names = registry_inventory_names();

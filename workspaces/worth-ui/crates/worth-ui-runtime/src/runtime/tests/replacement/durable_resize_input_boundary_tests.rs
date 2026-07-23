@@ -8,8 +8,8 @@ use super::durable_state_reconciliation_test_support::{
     deterministic_reconciliation_inputs, lane_change_inputs, splitter_replace_inputs,
 };
 use super::identity_match_graph_test_support::{
-    artifact_from_nodes, component_node, identity_match_app, runtime_and_narrowing,
-    splitter_surface_node_with_authored_provenance_digest,
+    artifact_from_nodes, component, component_node, identity_match_app, runtime_and_narrowing,
+    splitter_surface_node_with_authored_provenance_digest, surface,
 };
 use super::node_replacement_classification_test_support::{narrowing_for, no_op_impact_for};
 
@@ -188,6 +188,64 @@ pub(crate) fn splitter_pending_activation_with_provenance(
             ),
         ],
     )]);
+    pending_splitter_activation(app, active)
+}
+
+pub(crate) fn splitter_pending_activation_with_query_view_and_provenance(
+    view: worth_ui_query_binding::WorthUiInstalledQueryView,
+    authored_provenance_digest: u64,
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    crate::runtime::WorthUiPendingActivation,
+    u64,
+) {
+    let binding_id = view.definition().identity().as_str().to_owned();
+    let app = crate::facade::WorthUi::app()
+        .register_component(component("workspace.component.dashboard"))
+        .register_component(component("workspace.component.panel"))
+        .register_surface(surface(
+            "workspace.surface.main",
+            "workspace.component.dashboard",
+        ))
+        .register_surface(surface(
+            "workspace.surface.secondary",
+            "workspace.component.dashboard",
+        ))
+        .register_query_view(view)
+        .expect("installed Query view registers for the splitter fixture")
+        .freeze()
+        .expect("Query-bound splitter application should prepare");
+    let query_artifact =
+        super::query_binding_comparison_test_support::query_artifact(&app, &binding_id);
+    let query_node = query_artifact
+        .node_for_identity_basis(&binding_id)
+        .expect("Query-bound splitter fixture resolves its binding row")
+        .clone();
+    let active = artifact_from_nodes([(
+        "app/main.wui",
+        vec![
+            component_node("component:dashboard", 0),
+            splitter_surface_node_with_authored_provenance_digest(
+                "surface:main",
+                "workspace.surface.main",
+                "workspace.sizing.splitter.main",
+                1,
+                authored_provenance_digest,
+            ),
+            query_node,
+        ],
+    )]);
+    pending_splitter_activation(app, active)
+}
+
+fn pending_splitter_activation(
+    app: crate::facade::WorthUiApp,
+    active: crate::source::WorthUiArtifact,
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    crate::runtime::WorthUiPendingActivation,
+    u64,
+) {
     let candidate = active.clone();
     let (runtime, admitted, narrowing) = runtime_and_narrowing(&app, active, candidate);
     let identity_report = runtime
@@ -210,11 +268,6 @@ pub(crate) fn splitter_pending_activation_with_provenance(
     let query_rebind = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowed, &admitted)
         .expect("query rebind plan succeeds");
-    let lowering_input = runtime.prepare_pending_execution_plan_lowering_input(
-        &node_plan,
-        &reconciliation,
-        &query_rebind,
-    );
     let pending = runtime
         .stage_replacement_activation(
             admitted,
@@ -224,7 +277,6 @@ pub(crate) fn splitter_pending_activation_with_provenance(
             crate::runtime::WorthUiActivationStagingPlans::new(
                 Some(&reconciliation),
                 Some(&query_rebind),
-                Some(&lowering_input),
             ),
         )
         .expect("pending activation stages");

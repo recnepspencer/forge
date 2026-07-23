@@ -7,6 +7,7 @@ mod lifecycle;
 mod media_evidence;
 mod media_ownership;
 mod observation;
+mod record_serving;
 mod resource_lifecycle;
 mod root_admission;
 mod runtime;
@@ -23,13 +24,15 @@ pub use lifecycle::LifecycleGeneration;
 pub use media_ownership::{
     FilesystemMediaAdmission, MediaAdmissionDeferred, MediaAdmissionDenial,
     MediaAdmissionInspectionCause, MediaAdmissionInspectionRequired, MediaAdmissionOutcome,
-    MediaAdmissionRebindRequired, MediaAdmissionStale, MediaOwnedPhysicalRuntime,
-    MediaShutdownOutcome, PhysicalMediaObservation, PhysicalMediaObserver,
+    MediaAdmissionRebindRequired, MediaAdmissionStale, MediaOwnedObservationPhase,
+    MediaOwnedPhysicalRuntime, MediaShutdownOutcome, PhysicalMediaObservation,
+    PhysicalMediaObserver, RecordServingObservationPhase,
 };
 pub use observation::{
     LifecycleObservation, ObservationError, ObservationHandle, RootAdmissionObservation,
     RuntimeObservation,
 };
+pub use record_serving::*;
 pub use runtime::AdmittedPhysicalRuntime;
 pub use shutdown::{AbortedRuntime, ClosedRuntime};
 

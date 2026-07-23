@@ -14,7 +14,7 @@ use worth_ui_dsl::{
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
-use worth_ui_query_binding::{
+use worth_ui_query_binding::compatibility::managed_live::{
     WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane,
     WorthUiQueryInspectionLane, WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
     WorthUiQueryProjectionConsumptionLane,

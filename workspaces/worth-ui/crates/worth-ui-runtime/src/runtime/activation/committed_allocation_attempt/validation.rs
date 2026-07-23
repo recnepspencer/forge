@@ -1,7 +1,7 @@
 use crate::runtime::{
-    WorthUiActivationGateCounters, WorthUiExecutionPlan, WorthUiExecutionPlanDigest,
-    WorthUiExecutionPlanInput, WorthUiLaneParityReport, WorthUiPendingActivation,
-    WorthUiRuntimeFrameEpoch, WorthUiRuntimeHandleAllocation,
+    WorthUiActivationGateCounters, WorthUiExecutionPlanDigest, WorthUiExecutionPlanInput,
+    WorthUiLaneParityReport, WorthUiPendingActivation, WorthUiRuntimeFrameEpoch,
+    WorthUiRuntimeHandleAllocation,
 };
 
 #[derive(Debug, PartialEq)]
@@ -31,7 +31,7 @@ impl UiCommittedAllocationValidation {
         handle_allocation: &WorthUiRuntimeHandleAllocation,
         committed_activation: crate::runtime::UiCommittedAllocationActivationAttempt,
         invalidation_authority: &crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-        candidate_plan: &WorthUiExecutionPlan,
+        candidate_bundle: &crate::runtime::active::WorthUiSealedExecutionPlanBundle,
         lane_parity_report: Option<&WorthUiLaneParityReport>,
     ) -> Result<Self, super::UiCommittedAllocationActivationDenial> {
         let super::UiCommittedAllocationActivationAttempt {
@@ -40,13 +40,23 @@ impl UiCommittedAllocationValidation {
             committed,
             activation,
             identity,
+            affected_predecessor_scopes,
         } = committed_activation;
+        if crate::runtime::activation::certification_precommit_interruption(
+            "activation input validation",
+        ) {
+            return Err(super::UiCommittedAllocationActivationDenial::preparation(
+                identity,
+                super::UiCommittedAllocationActivationCounters::default(),
+                super::UiCommittedAllocationActivationDenialReason::CommitResourceUnavailable,
+            ));
+        }
         let facts = super::input_validation::validate_activation_inputs(
             &pending_activation,
             plan_input,
             handle_allocation,
             &catalog,
-            candidate_plan,
+            candidate_bundle,
             lane_parity_report,
         )
         .map_err(|denial| {
@@ -85,6 +95,15 @@ impl UiCommittedAllocationValidation {
                 ),
             );
         }
+        if crate::runtime::activation::certification_precommit_interruption(
+            "portal binding validation",
+        ) {
+            return Err(super::UiCommittedAllocationActivationDenial::preparation(
+                attempt_identity,
+                activation_counters,
+                super::UiCommittedAllocationActivationDenialReason::CommitResourceUnavailable,
+            ));
+        }
         if let Err(denial) = activation.validate_portal_bindings() {
             return Err(super::UiCommittedAllocationActivationDenial::preparation(
                 attempt_identity,
@@ -92,8 +111,12 @@ impl UiCommittedAllocationValidation {
                 super::UiCommittedAllocationActivationDenialReason::PortalBinding(denial),
             ));
         }
-        let catalog_transition =
-            invalidation_authority.seal_catalog_transition(&catalog, activation, identity);
+        let catalog_transition = invalidation_authority.seal_catalog_transition(
+            &catalog,
+            activation,
+            identity,
+            affected_predecessor_scopes,
+        );
         Ok(Self {
             attempt_identity,
             activation_counters,

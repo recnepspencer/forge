@@ -56,10 +56,11 @@ pub(crate) fn admitted_split_planning_admissions(
     admitted_planning_admissions(label, count, "operator:split")
 }
 
-pub(crate) fn admitted_scroll_planning_admissions_from_settlement(
+pub(crate) fn admitted_scroll_planning_admissions_from_settled_fact(
     label: &str,
     count: usize,
-    settlement: &worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement,
+    view_binding_id: &str,
+    fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
 ) -> (
     UiGraphSnapshot,
     Vec<(UiMeasurementBasis, UiSelectedObligationSet)>,
@@ -68,8 +69,10 @@ pub(crate) fn admitted_scroll_planning_admissions_from_settlement(
         label,
         count,
         "operator:scroll",
-        Some(UiGraphWorldProfile::installed_query_basis(
-            settlement.basis_authority().clone(),
+        Some(UiGraphWorldProfile::settled_query_binding(
+            crate::capability::ViewBindingId::new(view_binding_id)
+                .expect("catalog Query binding identity"),
+            fact.query_binding_identity(),
         )),
         |ordinal, identity, target, app, capability, generation| {
             if ordinal == 0 {
@@ -91,14 +94,13 @@ pub(crate) fn admitted_scroll_planning_admissions_from_settlement(
             let outer_viewport =
                 host_result_viewport_extent(960 + ordinal as u64, capability, generation);
             let policy = scroll_owner_policy();
-            let dependencies = crate::declaration::declared_query_measurement_dependencies(&policy)
-                .expect("scroll policy declares Query measurement dependencies");
-            let query = crate::evidence::admit_declared_measurement_projection_fact_receipt(
+            let query = crate::evidence::consume_settled_query_measurement_fact(
                 identity.clone(),
                 generation,
-                dependencies,
-                settlement.resolution_mode(),
-                settlement.receipt().clone(),
+                &policy,
+                crate::capability::ViewBindingId::new(view_binding_id)
+                    .expect("catalog Query binding identity"),
+                fact,
             )
             .expect("installed scroll content-total Query fact admits");
             admit_measurement_basis(
@@ -111,7 +113,7 @@ pub(crate) fn admitted_scroll_planning_admissions_from_settlement(
                     MeasurementEvidenceInput::host_capability_report(capability),
                     MeasurementEvidenceInput::host_measurement_result(&outer_viewport),
                     MeasurementEvidenceInput::host_measurement_result(&viewport),
-                    MeasurementEvidenceInput::query_projection_fact(&query),
+                    MeasurementEvidenceInput::settled_query_fact(&query),
                 ],
             )
         },

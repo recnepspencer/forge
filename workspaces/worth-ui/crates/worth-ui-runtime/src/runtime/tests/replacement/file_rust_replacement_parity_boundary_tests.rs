@@ -123,7 +123,7 @@ fn rust_authored_candidate_cannot_inject_active_plan_nodes_directly() {
         rust_report.authoring_lane(),
         WorthUiCandidateAuthoringLane::RustAuthored
     );
-    assert!(rust_report.plan_node_count() > 0);
+    assert_eq!(rust_report.plan_node_count(), 0);
     assert_eq!(rust_report.counters().rust_active_plan_injection_count(), 0);
     assert_eq!(
         rust_report.counters().rust_direct_handle_injection_count(),

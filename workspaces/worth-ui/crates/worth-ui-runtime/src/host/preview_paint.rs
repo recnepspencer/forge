@@ -1,11 +1,12 @@
 /// Move-only preview input; committed execution cannot consume it.
 ///
 /// ```compile_fail
-/// use worth_ui_runtime::facade::runtime_handoff::{UiHostPreviewPaintInput, WorthUiExecutionLaneInput};
-/// fn forbidden(input: &UiHostPreviewPaintInput) { let _ = WorthUiExecutionLaneInput::new(input); }
+/// use worth_ui_runtime::facade::host_observation::UiHostPreviewPaintInput;
+/// use worth_ui_runtime::facade::runtime_handoff::WorthUiExecutionPlanInput;
+/// fn forbidden(input: &UiHostPreviewPaintInput) { let _ = WorthUiExecutionPlanInput::new(input); }
 /// ```
 /// ```compile_fail
-/// use worth_ui_runtime::facade::runtime_handoff::UiHostPreviewPaintInput;
+/// use worth_ui_runtime::facade::host_observation::UiHostPreviewPaintInput;
 /// fn move_only(input: UiHostPreviewPaintInput) { let _ = input.clone(); }
 /// ```
 #[derive(Debug)]

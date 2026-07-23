@@ -24,7 +24,7 @@ impl UiAllocationInvalidationAuthority {
 
     pub(crate) fn scroll_query_target(
         &self,
-        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
     ) -> Result<UiScrollInvalidationAuthorityLookup<'_>, UiScrollInvalidationAuthorityLookupDenial>
     {
         let (bindings, probes) =
@@ -34,6 +34,14 @@ impl UiAllocationInvalidationAuthority {
                     |(reason, probes)| UiScrollInvalidationAuthorityLookupDenial { reason, probes },
                 )?;
         Ok(UiScrollInvalidationAuthorityLookup { bindings, probes })
+    }
+
+    pub(crate) fn scroll_settled_query_target(
+        &self,
+        source_key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
+    ) -> UiScrollInvalidationAuthorityLookup<'_> {
+        let (bindings, probes) = self.scroll_bindings.settled_query_extent(source_key);
+        UiScrollInvalidationAuthorityLookup { bindings, probes }
     }
 }
 

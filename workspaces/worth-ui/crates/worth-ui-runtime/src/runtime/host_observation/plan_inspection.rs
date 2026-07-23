@@ -3,9 +3,8 @@ use crate::evidence::{
 };
 use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
-    UiAllocationCandidate, WorthUiAllocationPlanning, WorthUiExecutionPlan,
-    WorthUiExecutionPlanDigest, WorthUiExecutionPlanEquivalence, WorthUiExecutionPlanInspection,
-    WorthUiPlanInspectionDenial, WorthUiRuntimeInspectionAiHarness,
+    UiAllocationCandidate, WorthUiExecutionPlan, WorthUiExecutionPlanDigest,
+    WorthUiExecutionPlanEquivalence, WorthUiRuntimeInspectionAiHarness,
 };
 use worth_ui_inspection::{UiEvidenceRichness, UiInspectionQuery};
 
@@ -16,7 +15,7 @@ use super::inspection_assembly::{
 
 impl WorthUiRuntime {
     pub fn digest_execution_plan(&self, plan: &WorthUiExecutionPlan) -> WorthUiExecutionPlanDigest {
-        crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::digest(plan).0
+        crate::runtime::planning::plan_equivalence::WorthUiExecutionPlanDigestor::digest(plan).0
     }
 
     pub fn compare_execution_plans(
@@ -24,17 +23,22 @@ impl WorthUiRuntime {
         previous: &WorthUiExecutionPlan,
         next: &WorthUiExecutionPlan,
     ) -> WorthUiExecutionPlanEquivalence {
-        crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor::compare(previous, next)
+        crate::runtime::planning::plan_equivalence::WorthUiExecutionPlanDigestor::compare(
+            previous, next,
+        )
     }
 
-    pub fn inspect_execution_plan(
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn inspect_execution_plan(
         &self,
         plan: &WorthUiExecutionPlan,
-        allocation_planning: &WorthUiAllocationPlanning,
-    ) -> Result<WorthUiExecutionPlanInspection, WorthUiPlanInspectionDenial> {
-        crate::runtime::plan_inspection::WorthUiExecutionPlanInspector::inspect(
-            plan,
-            allocation_planning,
+        authority: &crate::runtime::planning::WorthUiExecutionPlanLoweringFacts,
+    ) -> Result<
+        crate::runtime::WorthUiExecutionPlanInspection,
+        crate::runtime::WorthUiPlanInspectionDenial,
+    > {
+        crate::runtime::planning::plan_inspection::WorthUiExecutionPlanInspector::inspect(
+            plan, authority,
         )
     }
 

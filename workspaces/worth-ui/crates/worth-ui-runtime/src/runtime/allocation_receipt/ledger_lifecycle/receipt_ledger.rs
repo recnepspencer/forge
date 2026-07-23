@@ -17,6 +17,7 @@ impl UiAllocationReceiptLedger {
             state: RefCell::new(UiAllocationReceiptLedgerState::initial(runtime_generation)),
         }
     }
+
     pub(super) fn prepare_selected_mode(
         &self,
         mode: super::replan_commit_mode::UiAllocationReplanCommitMode<'_>,

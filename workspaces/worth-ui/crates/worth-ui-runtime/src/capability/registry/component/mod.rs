@@ -14,7 +14,10 @@ pub use component_descriptor::ComponentDescriptor;
 pub use component_prop_schema::ComponentPropSchema;
 pub(crate) use component_registry::ComponentRegistry;
 pub use component_rendering_contracts::{
-    ComponentAccessibilitySupport, ComponentExecutionLane, ComponentFocusSupport,
+    ComponentAccessibilitySupport, ComponentCanvasSpatialContract, ComponentExecutionLane,
+    ComponentFocusSupport, ComponentRealtimeOverlayContract,
+    ComponentRealtimeOverlayContractDenial, ComponentRealtimeOverlayContractDenialReason,
+    ComponentRealtimeOverlayPriority,
 };
 pub use component_state_ownership::ComponentStateOwnership;
 pub use frozen_component_capabilities::FrozenComponentCapabilities;

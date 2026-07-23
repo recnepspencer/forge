@@ -1,6 +1,10 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, MosaicStateOwnerIdentity, MosaicStatePersistencePolicy,
-    MosaicStateReplacementRule, MosaicStateTruthPosture, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        MosaicStateOwnerIdentity, MosaicStatePersistencePolicy, MosaicStateReplacementRule,
+        MosaicStateTruthPosture,
+    },
 };
 
 use super::state_assertions::assert_diagnostic_codes;
@@ -73,7 +77,7 @@ fn derived_runtime_state_is_admitted_without_authority_claim() {
         .register_mosaic_state_slot(
             complete_state_slot(
                 "workspace.state.derived_focus",
-                worth_ui::facade::MosaicStateSlotKind::focused_region(),
+                worth_ui::facade::registry::MosaicStateSlotKind::focused_region(),
             )
             .with_truth_posture(
                 MosaicStateTruthPosture::derived_from_authoritative_runtime_truth(),
@@ -137,7 +141,7 @@ fn assert_authoritative_truth_rejected(posture: MosaicStateTruthPosture) {
         .register_mosaic_state_slot(
             complete_state_slot(
                 "workspace.state.authoritative_truth",
-                worth_ui::facade::MosaicStateSlotKind::selection_token(),
+                worth_ui::facade::registry::MosaicStateSlotKind::selection_token(),
             )
             .with_truth_posture(posture),
         )

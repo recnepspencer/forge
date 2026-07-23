@@ -12,7 +12,9 @@ pub enum UiAllocationFrameSourceLane {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiAllocationFrameSourceIdentity {
     Numeric(u64),
-    Query(worth_ui_query_binding::WorthUiQueryAllocationSourceIdentity),
+    Query(
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAllocationSourceIdentity,
+    ),
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -77,7 +79,8 @@ impl UiAllocationFrameSourceIdentity {
 
     pub fn query_authority_index_key(
         &self,
-    ) -> Option<&worth_ui_query_binding::WorthUiQueryAuthorityIndexKey> {
+    ) -> Option<&worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityIndexKey>
+    {
         match self {
             Self::Query(value) => Some(value.authority_index_key()),
             Self::Numeric(_) => None,
@@ -90,7 +93,7 @@ impl UiAllocationFrameSourceIdentity {
     }
 
     pub(in crate::runtime::allocation_frame_dispatch) fn from_query(
-        value: worth_ui_query_binding::WorthUiQueryAllocationSourceIdentity,
+        value: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAllocationSourceIdentity,
     ) -> Self {
         Self::Query(value)
     }

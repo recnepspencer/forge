@@ -20,6 +20,7 @@ pub enum NamespaceConfinementDenialKind {
     ReservedDeviceName,
     NonPortableComponent,
     LinkLikeEntry,
+    MultipleLinks,
     EntryTypeMismatch,
     RootIdentityChanged,
     AuthorityMismatch,

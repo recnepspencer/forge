@@ -1,6 +1,9 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, IconColorSupport, IconDescriptor, IconFamily, IconSizeSupport,
-    IconSourceDescriptor, WorthUi,
+    app::WorthUi,
+    diagnostics::CapabilityDiagnosticCode,
+    registry::{
+        IconColorSupport, IconDescriptor, IconFamily, IconSizeSupport, IconSourceDescriptor,
+    },
 };
 
 use super::icon_assertions::assert_diagnostic_codes;

@@ -1,9 +1,12 @@
 use crate::{
-    AllocationClassKind, ExtentMembership, ExtentRecordAppendRequest, ExtentRecordDenialKind,
-    PhysicalBinaryEncodingWitness, PhysicalExtentId, PhysicalExtentRecordAuthority,
-    PhysicalFrameKind, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
-    PhysicalPageId, PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalReferenceDenialKind,
-    PhysicalReferenceKind, PhysicalSegmentId, RecordPlacementClass, PHYSICAL_HEADER_LENGTH,
+    decode_extent_chunk, encode_extent_chunk, AllocationClassKind, ExtentChunkCoordinate,
+    ExtentFrameDenial, ExtentMembership, ExtentRecordAppendRequest, ExtentRecordDenialKind,
+    PersistedRecordIdentity, PhysicalBinaryEncodingWitness, PhysicalExtentId,
+    PhysicalExtentRecordAuthority, PhysicalFrameKind, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
+    PhysicalRecordFormatDeclaration, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalReferenceDenialKind, PhysicalReferenceKind, PhysicalSegmentId, RecordPlacementClass,
+    PHYSICAL_HEADER_LENGTH,
 };
 
 #[test]
@@ -98,6 +101,31 @@ fn stale_extent_generation_denies_before_extent_record_decode() {
     );
     assert_eq!(denial.counters().extent_validation_count(), 1);
     assert_eq!(denial.counters().stale_generation_rejection_count(), 1);
+}
+
+#[test]
+fn durable_extent_decode_rejects_a_stale_placement_generation() {
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let current_cell = generations
+        .record_extent_cell(extent(20))
+        .with_extent_generation(generation(6));
+    let stale_cell = generations
+        .record_extent_cell(extent(20))
+        .with_extent_generation(generation(5));
+    let record = PersistedRecordIdentity::new([9; 16], 1).unwrap();
+    let stale = ExtentChunkCoordinate::new(record, stale_cell, 7, 0, 1).unwrap();
+    let current = ExtentChunkCoordinate::new(record, current_cell, 7, 0, 1).unwrap();
+    let bytes = encode_extent_chunk(
+        PhysicalRecordFormatDeclaration::builder().admit().unwrap(),
+        stale,
+        b"payload",
+    )
+    .unwrap();
+
+    let denial =
+        decode_extent_chunk(&bytes, current).expect_err("C5_PREDICATE:placement-generation");
+
+    assert_eq!(denial, ExtentFrameDenial::GenerationMismatch);
 }
 
 #[test]

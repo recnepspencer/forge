@@ -1,37 +1,40 @@
-use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_measurement_basis, allocation_planning, planning_graph_authority,
+    admitted_measurement_basis, independent_allocation_planning, planning_graph_authority,
 };
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::plan_equivalence_topology_test_support::execution_plan_with_topology;
-use super::query_binding_comparison_test_support::{query_artifact, standard_query_app};
+use super::query_binding_comparison_test_support::{
+    fresh_standard_query_app, query_artifact, standard_query_app,
+};
 use super::replacement_impact_test_support::admitted_candidate;
 use crate::facade::WorthUiApp;
 use crate::runtime::WorthUiPendingActivation;
 use crate::runtime::{
-    WorthUiExecutionPlan, WorthUiExecutionPlanInput, WorthUiPlanChildRange,
-    WorthUiPlanExecutionLane, WorthUiPlanLanePartition, WorthUiPlanNode,
-    WorthUiPlanNodeInputFamily, WorthUiPlanReuseClassification, WorthUiPlanTopology,
-    WorthUiRenderResourceRef, WorthUiRuntime, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch,
+    WorthUiExecutablePlanDecisionKind, WorthUiExecutionPlan, WorthUiExecutionPlanInput,
+    WorthUiPlanChildRange, WorthUiPlanExecutionLane, WorthUiPlanLanePartition, WorthUiPlanNode,
+    WorthUiPlanNodeInputFamily, WorthUiPlanTopology, WorthUiRenderResourceRef, WorthUiRuntime,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch,
 };
 
 #[test]
-fn same_runtime_meaning_has_same_digest_and_reuse_classification() {
-    let (left_runtime, left_plan) = execution_plan_fixture();
-    let (_, right_plan) = execution_plan_fixture();
+fn equal_definitions_from_independent_query_installations_are_not_reusable() {
+    let (left_runtime, left_plan) = execution_plan_fixture_with_fresh_query_installation();
+    let (_, right_plan) = execution_plan_fixture_with_fresh_query_installation();
+
+    assert_ne!(
+        left_plan.handle_receipt().arena_identity(),
+        right_plan.handle_receipt().arena_identity(),
+        "independent runtime sessions must own distinct handle arenas"
+    );
 
     let equivalence = left_runtime.compare_execution_plans(&left_plan, &right_plan);
 
     assert_eq!(equivalence.previous_digest(), equivalence.next_digest());
     assert_eq!(
-        equivalence.reuse_classification(),
-        WorthUiPlanReuseClassification::Reusable
+        equivalence.decision_kind(),
+        WorthUiExecutablePlanDecisionKind::RebuildRequired
     );
-    assert_eq!(
-        equivalence.counters().plan_node_digest_count(),
-        left_plan.topology().traversal_order().len()
-            + right_plan.topology().traversal_order().len()
-    );
+    assert_eq!(equivalence.counters().plan_node_digest_count(), 0);
     assert_eq!(equivalence.counters().artifact_tree_scan_count(), 0);
     assert_eq!(
         equivalence.counters().pointer_identity_comparison_count(),
@@ -39,35 +42,53 @@ fn same_runtime_meaning_has_same_digest_and_reuse_classification() {
     );
 }
 
+fn execution_plan_fixture_with_fresh_query_installation() -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiExecutionPlan,
+) {
+    let (runtime, plan_input, planning, allocation) =
+        super::plan_topology_test_support::topology_fixture_with_app(fresh_standard_query_app());
+    let plan = super::plan_topology_test_support::assemble(&planning, &plan_input, &allocation);
+    (runtime, plan)
+}
+
 #[test]
 fn lane_or_handle_meaning_change_changes_equivalence() {
     let (runtime, stable_plan) = execution_plan_fixture();
     let (changed_runtime, changed_input) =
         plan_input_with_first_family(WorthUiPlanNodeInputFamily::TokenStyle);
-    let changed_planning =
-        allocation_planning(&changed_runtime, &changed_input, "plan-equivalence.changed");
+    let changed_planning = independent_allocation_planning("plan-equivalence.changed");
     let changed_receipt = changed_runtime
         .commit_allocation_candidate_for_test(changed_planning)
         .expect("independently admitted changed meaning commits");
+    let changed_facts = changed_runtime.execution_plan_lowering_facts_below_authority_for_test(
+        changed_receipt
+            .lowering_input()
+            .expect("changed receipt admits execution lowering"),
+        changed_input,
+    );
     let changed_allocation = changed_runtime
-        .allocate_runtime_handles(&changed_receipt)
+        .allocate_runtime_handles(&changed_facts)
         .expect("changed handles allocate");
-    let changed_lowering_input = changed_receipt
-        .lowering_input()
-        .expect("changed receipt admits execution lowering");
     let changed_plan = changed_runtime
-        .assemble_execution_plan_topology(&changed_lowering_input, &changed_allocation)
+        .assemble_execution_plan_topology(&changed_facts, &changed_allocation)
         .expect("changed topology assembles");
 
     let equivalence = runtime.compare_execution_plans(&stable_plan, &changed_plan);
 
     assert_eq!(
-        equivalence.reuse_classification(),
-        WorthUiPlanReuseClassification::RebuildRequired
+        equivalence.decision_kind(),
+        WorthUiExecutablePlanDecisionKind::RebuildRequired
     );
     assert_ne!(
-        equivalence.previous_digest().basis().handle_receipt(),
-        equivalence.next_digest().basis().handle_receipt()
+        equivalence
+            .previous_digest()
+            .basis()
+            .executable_shape_fingerprint(),
+        equivalence
+            .next_digest()
+            .basis()
+            .executable_shape_fingerprint()
     );
 }
 
@@ -85,13 +106,13 @@ fn diagnostic_policy_does_not_change_plan_digest() {
     assert_eq!(minimal_digest, rich_digest);
     assert_eq!(equivalence.counters().diagnostic_policy_read_count(), 0);
     assert_eq!(
-        equivalence.reuse_classification(),
-        WorthUiPlanReuseClassification::Reusable
+        equivalence.decision_kind(),
+        WorthUiExecutablePlanDecisionKind::ExactSemanticNoOp
     );
 }
 
 #[test]
-fn same_artifact_different_lane_partition_changes_digest() {
+fn reconstructive_lane_partition_tampering_cannot_override_regional_equivalence() {
     let (runtime, plan) = execution_plan_fixture();
     let repartitioned = plan_with_first_node_moved_to_next_lane(&plan);
 
@@ -105,8 +126,8 @@ fn same_artifact_different_lane_partition_changes_digest() {
         repartitioned_digest.basis().executable_shape_fingerprint()
     );
     assert_eq!(
-        equivalence.reuse_classification(),
-        WorthUiPlanReuseClassification::RebuildRequired
+        equivalence.decision_kind(),
+        WorthUiExecutablePlanDecisionKind::ExactSemanticNoOp
     );
     assert_eq!(equivalence.counters().artifact_tree_scan_count(), 0);
 }
@@ -122,13 +143,12 @@ fn plan_equivalence_digest_covers_lookup_egui_and_render_surfaces() {
         plan.lookup_index().entry_count()
     );
     assert_eq!(basis.lane_partition_count(), plan.lane_partitions().len());
-    assert!(basis.egui_boundary_count() > 0);
-    assert_eq!(equivalence.counters().lookup_index_digest_count(), 2);
+    assert_eq!(equivalence.counters().lookup_index_digest_count(), 0);
     assert_eq!(equivalence.counters().equivalence_comparison_count(), 1);
 }
 
 #[test]
-fn same_receipt_with_added_child_range_topology_changes_digest() {
+fn reconstructive_child_range_tampering_cannot_override_regional_equivalence() {
     let (runtime, plan) = execution_plan_fixture();
     let changed_topology = plan_with_added_child_range_topology(&plan);
 
@@ -137,18 +157,18 @@ fn same_receipt_with_added_child_range_topology_changes_digest() {
     let equivalence = runtime.compare_execution_plans(&plan, &changed_topology);
 
     assert_eq!(
-        original_digest.basis().handle_receipt(),
-        changed_digest.basis().handle_receipt()
+        original_digest.basis().plan_node_count(),
+        changed_digest.basis().plan_node_count()
     );
     assert_ne!(original_digest, changed_digest);
     assert_eq!(
-        equivalence.reuse_classification(),
-        WorthUiPlanReuseClassification::RebuildRequired
+        equivalence.decision_kind(),
+        WorthUiExecutablePlanDecisionKind::ExactSemanticNoOp
     );
 }
 
 #[test]
-fn render_resource_ref_meaning_change_changes_digest() {
+fn reconstructive_render_ref_tampering_cannot_override_regional_equivalence() {
     let (runtime, plan) = execution_plan_fixture();
     let changed_render_ref = plan_with_first_node_render_resource_ref_changed(&plan);
 
@@ -162,8 +182,8 @@ fn render_resource_ref_meaning_change_changes_digest() {
         original_digest.basis().render_resource_ref_count() + 1
     );
     assert_eq!(
-        equivalence.reuse_classification(),
-        WorthUiPlanReuseClassification::RebuildRequired
+        equivalence.decision_kind(),
+        WorthUiExecutablePlanDecisionKind::ExactSemanticNoOp
     );
 }
 
@@ -171,9 +191,9 @@ fn execution_plan_fixture() -> (
     crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiExecutionPlan,
 ) {
-    let inputs = activation_staging_inputs();
-    let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan = assemble_plan_from_pending_activation(&runtime, pending);
+    let (runtime, plan_input, planning, allocation) =
+        super::plan_topology_test_support::topology_fixture();
+    let plan = super::plan_topology_test_support::assemble(&planning, &plan_input, &allocation);
     (runtime, plan)
 }
 
@@ -183,11 +203,7 @@ fn plan_input_with_first_family(
     crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiExecutionPlanInput,
 ) {
-    let inputs = activation_staging_inputs();
-    let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
+    let (runtime, plan_input, _, _) = super::plan_topology_test_support::topology_fixture();
     let mut node_inputs = plan_input.node_inputs().to_vec();
     let index = node_inputs
         .iter()
@@ -253,11 +269,6 @@ fn stage_query_replacement_for_policy_runtime(
     let query_rebind_plan = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)
         .expect("query rebind planning succeeds");
-    let pending_input = runtime.prepare_pending_execution_plan_lowering_input(
-        &node_plan,
-        &reconciliation_plan,
-        &query_rebind_plan,
-    );
     runtime
         .stage_replacement_activation(
             admitted,
@@ -267,7 +278,6 @@ fn stage_query_replacement_for_policy_runtime(
             crate::runtime::WorthUiActivationStagingPlans::new(
                 Some(&reconciliation_plan),
                 Some(&query_rebind_plan),
-                Some(&pending_input),
             ),
         )
         .expect("activation staging succeeds")
@@ -277,6 +287,9 @@ fn assemble_plan_from_pending_activation(
     runtime: &WorthUiRuntime,
     pending: WorthUiPendingActivation,
 ) -> WorthUiExecutionPlan {
+    let plan_input = runtime
+        .prepare_execution_plan_input(&pending)
+        .expect("plan input prepares after candidate staging");
     let measurement_basis = admitted_measurement_basis("plan-equivalence.fixture");
     let (snapshot, selected) =
         planning_graph_authority("plan-equivalence.fixture", "operator:stack");
@@ -285,14 +298,12 @@ fn assemble_plan_from_pending_activation(
             .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
             .expect("equivalence planning admits through graph authority"),
     );
+    let facts = runtime.detached_execution_plan_lowering_facts_for_test(&planning, plan_input);
     let allocation = runtime
-        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
+        .allocate_runtime_handles(&facts)
         .expect("handles allocate");
     runtime
-        .assemble_execution_plan_topology(
-            &runtime.detached_allocation_lowering_input_for_test(&planning),
-            &allocation,
-        )
+        .assemble_execution_plan_topology(&facts, &allocation)
         .expect("topology assembles")
 }
 
@@ -321,8 +332,7 @@ fn plan_with_first_node_moved_to_next_lane(plan: &WorthUiExecutionPlan) -> Worth
     };
     partitions[source] = WorthUiPlanLanePartition::new(alternate_lane, indexes);
 
-    WorthUiExecutionPlan::new(
-        plan.handle_receipt(),
+    plan.with_test_parts(
         plan.topology().clone(),
         partitions,
         plan.lookup_index().clone(),
@@ -360,7 +370,6 @@ fn plan_node_with_child_range(
         node.family(),
         child_range,
         node.region_structure(),
-        node.egui_boundary().cloned(),
         node.render_resource_ref(),
     )
 }
@@ -374,16 +383,12 @@ fn plan_with_first_node_render_resource_ref_changed(
         .position(|node| node.render_resource_ref().is_none())
         .expect("fixture has a plan node without a render-resource ref");
     let node = traversal_order[node_index].clone();
-    let render_ref = WorthUiRenderResourceRef::new(
-        node.runtime_handle().plan_index(),
-        plan.handle_receipt().plan_generation(),
-    );
+    let render_ref = WorthUiRenderResourceRef::new(node.runtime_handle().locator());
     traversal_order[node_index] = WorthUiPlanNode::new(
         node.runtime_handle(),
         node.family(),
         node.child_range(),
         node.region_structure(),
-        node.egui_boundary().cloned(),
         Some(render_ref),
     );
     execution_plan_with_topology(

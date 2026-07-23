@@ -21,7 +21,10 @@ workspace, and register the view with the UI application.
 - `WorthUiInstalledQueryDomain::measurement_view(...)`
 - `WorthUiInstalledQueryDomain::live_measurement_view(...)`
 - `WorthUi::app().register_query_view(...)`
-- `WorthUiInstalledQueryView::read()` and `WorthUiInstalledQueryView::project(...)`
+- `WorthUiInstalledSnapshotQueryView::read()` and
+  `WorthUiInstalledSnapshotQueryView::project(...)`
+- `WorthUiInstalledLiveQueryView::open_using(...)`
+- `WorthUiQueryLiveResource::read(...)`, `project(...)`, and `close(...)`
 - `WorthUiApp::launch()`
 - `WorthUiActiveApplicationSession::execute_framework_turn(...)`
 
@@ -48,22 +51,31 @@ authority.
 
 ## How It Executes
 
+Registration is shared, but execution deliberately splits by lifecycle:
+
 ```text
 Query runtime installs the Worth UI domain package
 -> application resolves the installed Worth UI domain
 -> application derives and registers an installed view
 -> the prepared application launches one active application session
--> the installed view executes a Query read
--> the same view wraps the Query projection outcome
--> the active session's framework turn admits the outcome
--> worth-ui-query-binding refines native measurement facts
--> allocation consumes the opaque settlement
+
+snapshot view
+-> read -> run -> snapshot projection
+-> framework turn admit_and_submit
+
+live view
+-> open_using -> Query-owned live resource
+-> resource read -> live projection
+-> framework turn admit_live_and_submit(resource, projection)
+-> active binding retains the resource until retirement, shutdown, or explicit close
 ```
 
-Snapshot and live views follow the same path. Their lifecycle is part of the
-installed view definition, not a UI-side flag. Query remains responsible for
+`WorthUiInstalledQueryView` is the common registration envelope. It intentionally
+does not expose snapshot reads or live opens. The lifecycle-specific types keep
+those operations unambiguous at compile time. Query remains responsible for
 live-resource activation, maintenance, recovery, and disposal; Worth UI only
-coordinates the admitted binding with its application lifecycle.
+admits the resource and projection atomically and coordinates retirement with
+the active application lifecycle.
 
 ## Small Example
 
@@ -107,13 +119,15 @@ use worth_query::facade::{
 };
 use worth_ui::facade::{
     app::WorthUiActiveApplicationSession,
-    query_binding::{WorthUiInstalledQueryView, WorthUiQueryProjectionOutcome},
+    query_binding::{
+        WorthUiInstalledSnapshotQueryView, WorthUiQuerySnapshotProjectionOutcome,
+    },
 };
 
 fn measurement_projection(
     workspace: &mut WorthQueryWorkspace,
-    view: &WorthUiInstalledQueryView,
-) -> WorthUiQueryProjectionOutcome {
+    view: &WorthUiInstalledSnapshotQueryView,
+) -> WorthUiQuerySnapshotProjectionOutcome {
     let completion = view
         .read()
         .expect("declare the installed read")
@@ -140,7 +154,7 @@ fn measurement_projection(
 
 fn submit_projection(
     session: &mut WorthUiActiveApplicationSession,
-    outcome: WorthUiQueryProjectionOutcome,
+    outcome: WorthUiQuerySnapshotProjectionOutcome,
 ) {
     let mut submission = None;
     let _completion = session.execute_framework_turn(|turn| {
@@ -154,10 +168,19 @@ fn submit_projection(
 }
 ```
 
-The Query completion remains authoritative. `WorthUiQueryProjectionOutcome`
+The Query completion remains authoritative. `WorthUiQuerySnapshotProjectionOutcome`
 preserves it together with the installed UI definition. The framework turn
 settles and submits it; application code never reconstructs a basis digest or
 converts the native value through a representation format.
+
+For a live view, call `open_using(...)`, read and project through the returned
+`WorthUiQueryLiveResource`, then pass both the resource and
+`WorthUiQueryLiveProjectionOutcome` to `admit_live_and_submit(...)` in the same
+framework turn. Do not submit the projection separately: the resource is the
+Query-owned lifecycle authority that the active binding must retain. Successful
+replacement returns exact retirement authority for removed or superseded live
+resources; close it against the owning Query workspace and preserve typed stop
+outcomes rather than treating disposal as a boolean.
 
 The active application session is intentional. It keeps Query submission,
 application generation, graph/allocation authority, host session, inspection,
@@ -171,7 +194,8 @@ workflow.
 - Pair installed views with graph touches when projected facts can invalidate a
   mounted neighborhood.
 - Snapshot views provide one completed projection. Live views add Query-owned
-  activation and disposal while preserving the same UI registration grammar.
+  activation, retention, retirement, and disposal while preserving the same UI
+  registration grammar.
 - Allocation consumes binding-owned settlements. Host measurement remains a
   separate runtime source and cannot impersonate Query authority.
 
@@ -194,8 +218,12 @@ fact-family labels.
 - Do not copy Query status, basis, result shape, or live posture into UI enums.
 - Do not hash reporting text or digest strings to recreate operational identity.
 - Do not stringify native projection values and parse them again for allocation.
-- Do not split `WorthUiQueryProjectionOutcome` into locally trusted basis,
-  receipt, fact, support, source-label, or digest fields.
+- Do not split either lifecycle-specific projection outcome into locally trusted
+  basis, receipt, fact, support, source-label, or digest fields.
+- Do not route snapshot execution through a live resource or live execution
+  through the snapshot read path.
+- Do not drop a nonempty live retirement merely because plan publication
+  succeeded; consume its exact Query close receipts.
 - Do not implement live-view activation, subscription, recovery, or disposal in
   the UI runtime.
 - Do not import Query into `worth-ui-runtime`; translation belongs only in
@@ -205,6 +233,9 @@ fact-family labels.
 
 - The current public domain package exposes Worth UI measurement snapshot and
   live views.
+- Virtualized execution consumes already-admitted visible ranges. Collection
+  cursor policy, pagination, and general live-patch product semantics remain
+  outside the current surface.
 - Measurement refinement currently admits canonical `Float32` values for the
   declared measurement field and preserves Query denial for absent or
   unsupported native shapes.

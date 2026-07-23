@@ -1,4 +1,4 @@
-use worth_ui::facade::{CapabilityDiagnosticCode, WorthUi};
+use worth_ui::facade::{app::WorthUi, diagnostics::CapabilityDiagnosticCode};
 
 use super::theme_token_assertions::assert_diagnostic_codes;
 use super::theme_token_fixtures::alias_theme_token;

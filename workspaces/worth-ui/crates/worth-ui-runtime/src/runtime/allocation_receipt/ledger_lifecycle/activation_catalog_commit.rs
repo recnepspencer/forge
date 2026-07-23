@@ -96,6 +96,8 @@ impl UiAllocationReceiptLedger {
                         )
                     })?;
             let committed = previous.clone();
+            let allocation_changed = !active_catalog_semantically_matches(&successor, &committed);
+            retain_only_active_catalog(&mut successor, &committed, replay_key);
             return Ok(crate::runtime::UiCommittedAllocationActivationAttempt::new(
                 catalog,
                 UiAllocationCatalogLedgerTransition {
@@ -103,6 +105,7 @@ impl UiAllocationReceiptLedger {
                     successor,
                     outcome: previous,
                     durable_reconciliation: reconciliation.clone(),
+                    operational_meaning_changed: replacement || allocation_changed,
                 },
                 committed,
                 activation,
@@ -194,6 +197,17 @@ impl UiAllocationReceiptLedger {
                 super::UiAllocationReceiptCommitDenial::EvidenceCounterExhausted,
             )
         })?;
+        let has_runtime_consequences = !outcome
+            .transaction()
+            .consequences()
+            .scroll_owned()
+            .is_empty()
+            || !outcome
+                .transaction()
+                .consequences()
+                .portal_anchors()
+                .is_empty();
+        let allocation_changed = !active_catalog_semantically_matches(&successor, &outcome);
         let activation = super::UiCommittedAllocationCatalogActivation::seal(
             candidates,
             outcome.catalog_bindings(),
@@ -203,21 +217,9 @@ impl UiAllocationReceiptLedger {
                 super::UiAllocationReceiptCommitDenial::catalog_activation(denial),
             )
         })?;
-        for receipt in outcome.receipts() {
-            successor.committed_by_scope.insert(
-                UiAllocationNeighborhoodScope::from_neighborhood(
-                    receipt.committed_allocation().allocation_neighborhood(),
-                ),
-                receipt.clone(),
-            );
-        }
         successor.next_transaction_generation = transaction.transaction_generation();
         successor.latest_frame_epoch = Some(frame_epoch);
-        successor
-            .completed_transactions
-            .entry(replay_key)
-            .or_default()
-            .push(outcome.clone());
+        retain_only_active_catalog(&mut successor, &outcome, replay_key);
         let committed = outcome.clone();
         Ok(crate::runtime::UiCommittedAllocationActivationAttempt::new(
             catalog,
@@ -226,9 +228,49 @@ impl UiAllocationReceiptLedger {
                 successor,
                 outcome,
                 durable_reconciliation: reconciliation.clone(),
+                operational_meaning_changed: replacement
+                    || allocation_changed
+                    || has_runtime_consequences,
             },
             committed,
             activation,
         ))
     }
+}
+
+fn active_catalog_semantically_matches(
+    predecessor: &super::ledger_state::UiAllocationReceiptLedgerState,
+    committed: &UiCommittedAllocationReplan,
+) -> bool {
+    predecessor.committed_by_scope.len() == committed.receipts().len()
+        && committed.receipts().iter().all(|candidate| {
+            let scope = UiAllocationNeighborhoodScope::from_neighborhood(
+                candidate.committed_allocation().allocation_neighborhood(),
+            );
+            predecessor
+                .committed_by_scope
+                .get(&scope)
+                .is_some_and(|active| active.operationally_matches(candidate))
+        })
+}
+
+fn retain_only_active_catalog(
+    successor: &mut super::ledger_state::UiAllocationReceiptLedgerState,
+    committed: &UiCommittedAllocationReplan,
+    replay_key: u64,
+) {
+    successor.committed_by_scope = Default::default();
+    for receipt in committed.receipts() {
+        successor.committed_by_scope.insert(
+            UiAllocationNeighborhoodScope::from_neighborhood(
+                receipt.committed_allocation().allocation_neighborhood(),
+            ),
+            receipt.clone(),
+        );
+    }
+    successor.completed_transactions.clear();
+    successor
+        .completed_transactions
+        .insert(replay_key, vec![committed.clone()]);
+    successor.denied_transactions.clear();
 }

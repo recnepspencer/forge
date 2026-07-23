@@ -185,7 +185,7 @@ impl<'a> UiAdmissionBoundary<'a> {
             };
 
             match query_prerequisites.basis_posture() {
-                worth_ui_query_binding::WorthUiQueryBasisPosture::WrongWorldProjection => {
+                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::WrongWorldProjection => {
                     return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
                         Some(node_record.graph_node_identity()),
                         Some(artifact.identity().clone()),
@@ -195,7 +195,7 @@ impl<'a> UiAdmissionBoundary<'a> {
                         },
                     ));
                 }
-                worth_ui_query_binding::WorthUiQueryBasisPosture::RebindRequired => {
+                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::RebindRequired => {
                     return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
                         Some(node_record.graph_node_identity()),
                         Some(artifact.identity().clone()),
@@ -205,7 +205,7 @@ impl<'a> UiAdmissionBoundary<'a> {
                         },
                     ));
                 }
-                worth_ui_query_binding::WorthUiQueryBasisPosture::StaleReceipt => {
+                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::StaleReceipt => {
                     return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
                         Some(node_record.graph_node_identity()),
                         Some(artifact.identity().clone()),
@@ -216,7 +216,7 @@ impl<'a> UiAdmissionBoundary<'a> {
                         },
                     ));
                 }
-                worth_ui_query_binding::WorthUiQueryBasisPosture::AmbiguousSources => {
+                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::AmbiguousSources => {
                     return UiAdmissionOutcome::Denied(UiLegalityDecision::denied(
                         Some(node_record.graph_node_identity()),
                         Some(artifact.identity().clone()),
@@ -228,7 +228,7 @@ impl<'a> UiAdmissionBoundary<'a> {
                         },
                     ));
                 }
-                worth_ui_query_binding::WorthUiQueryBasisPosture::GraphAligned => {}
+                worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisPosture::GraphAligned => {}
             }
         }
 

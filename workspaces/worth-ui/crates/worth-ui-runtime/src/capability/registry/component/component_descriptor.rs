@@ -17,6 +17,8 @@ pub struct ComponentDescriptor {
     theme_token_dependencies: Vec<ThemeTokenId>,
     command_binding_slots: Vec<CommandId>,
     execution_lane: ComponentExecutionLane,
+    canvas_spatial_contract: Option<super::ComponentCanvasSpatialContract>,
+    realtime_overlay_contract: Option<super::ComponentRealtimeOverlayContract>,
 }
 
 impl ComponentDescriptor {
@@ -36,6 +38,8 @@ impl ComponentDescriptor {
             theme_token_dependencies: Vec::new(),
             command_binding_slots: Vec::new(),
             execution_lane: ComponentExecutionLane::Passive,
+            canvas_spatial_contract: None,
+            realtime_overlay_contract: None,
         }
     }
 
@@ -54,6 +58,8 @@ impl ComponentDescriptor {
             theme_token_dependencies: Vec::new(),
             command_binding_slots: Vec::new(),
             execution_lane: ComponentExecutionLane::Passive,
+            canvas_spatial_contract: None,
+            realtime_overlay_contract: None,
         }
     }
 
@@ -72,6 +78,8 @@ impl ComponentDescriptor {
             theme_token_dependencies: Vec::new(),
             command_binding_slots: Vec::new(),
             execution_lane: ComponentExecutionLane::Passive,
+            canvas_spatial_contract: None,
+            realtime_overlay_contract: None,
         }
     }
 
@@ -97,6 +105,32 @@ impl ComponentDescriptor {
 
     pub fn with_execution_lane(mut self, execution_lane: ComponentExecutionLane) -> Self {
         self.execution_lane = execution_lane;
+        if execution_lane != ComponentExecutionLane::CanvasSpatial {
+            self.canvas_spatial_contract = None;
+        }
+        if execution_lane != ComponentExecutionLane::RealtimeOverlay {
+            self.realtime_overlay_contract = None;
+        }
+        self
+    }
+
+    pub fn with_canvas_spatial_contract(
+        mut self,
+        contract: super::ComponentCanvasSpatialContract,
+    ) -> Self {
+        self.execution_lane = ComponentExecutionLane::CanvasSpatial;
+        self.canvas_spatial_contract = Some(contract);
+        self.realtime_overlay_contract = None;
+        self
+    }
+
+    pub fn with_realtime_overlay_contract(
+        mut self,
+        contract: super::ComponentRealtimeOverlayContract,
+    ) -> Self {
+        self.execution_lane = ComponentExecutionLane::RealtimeOverlay;
+        self.canvas_spatial_contract = None;
+        self.realtime_overlay_contract = Some(contract);
         self
     }
 
@@ -134,5 +168,13 @@ impl ComponentDescriptor {
 
     pub fn execution_lane(&self) -> ComponentExecutionLane {
         self.execution_lane
+    }
+
+    pub fn canvas_spatial_contract(&self) -> Option<super::ComponentCanvasSpatialContract> {
+        self.canvas_spatial_contract
+    }
+
+    pub fn realtime_overlay_contract(&self) -> Option<super::ComponentRealtimeOverlayContract> {
+        self.realtime_overlay_contract
     }
 }

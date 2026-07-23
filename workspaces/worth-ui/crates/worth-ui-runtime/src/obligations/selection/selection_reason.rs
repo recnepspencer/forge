@@ -31,6 +31,7 @@ impl UiObligationWorldProfileClass {
             UiGraphWorldProfile::TestCertification { .. } => Self::TestCertification,
             UiGraphWorldProfile::QuerySnapshotBasis { .. } => Self::QuerySnapshotBasis,
             UiGraphWorldProfile::InstalledQueryBasis { .. } => Self::QuerySnapshotBasis,
+            UiGraphWorldProfile::SettledQueryBinding { .. } => Self::QuerySnapshotBasis,
         }
     }
 }

@@ -1,13 +1,9 @@
 use std::borrow::Borrow;
 
-use crate::runtime::allocation_planning::WorthUiAllocationPlanningAdmission;
-use crate::runtime::equivalence::WorthUiRuntimeArtifactComparator;
-use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputPreparer;
+use crate::runtime::planning::execution_plan_input::WorthUiExecutionPlanInputPreparer;
 use crate::runtime::{
     UiAllocationCandidate, WorthUiAdmittedReplacementCandidate, WorthUiComponentLoweringHook,
     WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringDenial,
-    WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
-    WorthUiRuntimeEquivalenceBasis,
 };
 
 use super::runtime_instance::WorthUiRuntime;
@@ -25,15 +21,17 @@ impl WorthUiRuntime {
                 candidate,
             ) {
                 Ok(candidate) => candidate,
-                Err(candidate) => return crate::runtime::UiAllocationReceiptCommitOutcome::Denied(
-                    Box::new(crate::runtime::UiAllocationReceiptCommitDenial::CandidatePlanningDenied(
-                        Box::new(
+                Err(candidate) => {
+                    let report =
                         crate::runtime::UiAllocationReceiptDenialReport::candidate_planning_denied(
                             &candidate,
+                        );
+                    return crate::runtime::UiAllocationReceiptCommitOutcome::Denied(Box::new(
+                        crate::runtime::UiAllocationReceiptCommitDenial::CandidatePlanningDenied(
+                            Box::new(report),
                         ),
-                        ),
-                    )),
-                ),
+                    ));
+                }
             };
         self.allocation_receipt_ledger
             .commit_non_portal_receipt_law_candidate(candidate)
@@ -61,46 +59,57 @@ impl WorthUiRuntime {
             .expect("freshly committed test receipt must admit execution lowering")
     }
 
-    pub(crate) fn plan_allocation_for_lowered_input_for_test(
-        &self,
-        plan_input: WorthUiExecutionPlanInput,
-        measurement_basis: &crate::evidence::UiMeasurementBasis,
-        allocation_neighborhood: &crate::evidence::UiAllocationNeighborhood,
-    ) -> UiAllocationCandidate {
-        crate::runtime::planning::candidate_from_test_planning(
-            crate::runtime::allocation_planning::WorthUiAllocationPlanner::plan_from_lowered_input(
-                WorthUiAllocationPlanningAdmission::from_execution_plan_input(
-                    &plan_input,
-                    measurement_basis
-                        .admit_allocation_constraint_basis(allocation_neighborhood)
-                        .expect("constraint basis should admit in lowered-input test path"),
-                    None,
-                ),
-                plan_input,
-            ),
-        )
-    }
-
-    pub(crate) fn plan_allocation_for_pending_and_lowered_input_for_test<P>(
+    pub(crate) fn prepare_execution_plan_input<P>(
         &self,
         pending_activation: P,
-        plan_input: WorthUiExecutionPlanInput,
-        measurement_basis: &crate::evidence::UiMeasurementBasis,
-        allocation_neighborhood: &crate::evidence::UiAllocationNeighborhood,
-    ) -> UiAllocationCandidate
+    ) -> Result<WorthUiExecutionPlanInput, WorthUiPlanLoweringDenial>
     where
         P: Borrow<WorthUiPendingActivation>,
     {
-        crate::runtime::planning::candidate_from_test_planning(
-            crate::runtime::allocation_planning::WorthUiAllocationPlanner::plan_from_lowered_input(
-                WorthUiAllocationPlanningAdmission::from_pending_activation(
-                    pending_activation.borrow(),
-                    measurement_basis
-                        .admit_allocation_constraint_basis(allocation_neighborhood)
-                        .expect("constraint basis should admit in pending-lowered-input test path"),
-                ),
-                plan_input,
-            ),
+        WorthUiExecutionPlanInputPreparer::prepare(
+            pending_activation.borrow(),
+            self.active.frame_epoch(),
+            &[],
+            self.active_application_lowering_authority
+                .query_binding_plan(),
+        )
+    }
+
+    pub(crate) fn detached_execution_plan_lowering_facts_for_test(
+        &self,
+        candidate: &UiAllocationCandidate,
+        plan_input: WorthUiExecutionPlanInput,
+    ) -> crate::runtime::planning::WorthUiExecutionPlanLoweringFacts {
+        self.execution_plan_lowering_facts_below_authority_for_test(
+            self.detached_allocation_lowering_input_for_test(candidate),
+            plan_input,
+        )
+    }
+
+    pub(crate) fn execution_plan_lowering_authority_from_committed_input_for_test(
+        &self,
+        pending_activation: WorthUiPendingActivation,
+        committed_input: crate::runtime::UiCommittedAllocationLoweringInput,
+    ) -> Result<
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthority,
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthorityDenial,
+    > {
+        crate::runtime::planning::WorthUiExecutionPlanLoweringAuthority::seal(
+            pending_activation,
+            committed_input,
+            self.active.frame_epoch(),
+        )
+    }
+
+    pub(crate) fn execution_plan_lowering_facts_below_authority_for_test(
+        &self,
+        committed_input: crate::runtime::UiCommittedAllocationLoweringInput,
+        plan_input: WorthUiExecutionPlanInput,
+    ) -> crate::runtime::planning::WorthUiExecutionPlanLoweringFacts {
+        crate::runtime::planning::facts_below_authority(
+            self.active_application_lowering_authority.clone(),
+            committed_input,
+            plan_input,
         )
     }
 
@@ -116,16 +125,23 @@ impl WorthUiRuntime {
             pending_activation.borrow(),
             self.active.frame_epoch(),
             component_hooks,
+            self.active_application_lowering_authority
+                .query_binding_plan(),
         )
     }
 
-    pub(crate) fn compare_admitted_replacement_with_basis_for_test(
+    pub(crate) fn prepare_reconstructive_plan_input_for_test(
         &self,
         admitted: &WorthUiAdmittedReplacementCandidate,
-        runtime_basis: WorthUiRuntimeEquivalenceBasis,
-    ) -> Result<WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial> {
-        WorthUiRuntimeArtifactComparator::for_active_artifact(self.active.active_artifact())
-            .with_runtime_basis_for_test(runtime_basis)
-            .compare_admitted(admitted)
+        component_hooks: &[WorthUiComponentLoweringHook],
+    ) -> WorthUiExecutionPlanInput {
+        WorthUiExecutionPlanInputPreparer::prepare_launch_with_component_hooks(
+            admitted.artifact_bundle().artifact(),
+            admitted.artifact_bundle().artifact_digest(),
+            self.active.frame_epoch(),
+            self.active_application_lowering_authority
+                .query_binding_plan(),
+            component_hooks,
+        )
     }
 }

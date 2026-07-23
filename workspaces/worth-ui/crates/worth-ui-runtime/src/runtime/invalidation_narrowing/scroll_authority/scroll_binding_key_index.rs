@@ -73,6 +73,25 @@ impl BindingKeyIndex {
             .insert(DiagnosticKey::from_key(&receipt), receipt.clone());
         self.exact.insert(receipt, row)
     }
+    pub(super) fn remove(
+        &mut self,
+        key: &crate::runtime::UiScrollReceiptActivationKey,
+    ) -> Option<UiAdmittedScrollInvalidationBinding> {
+        let removed = self.exact.remove(key)?;
+        self.diagnostic.remove(&DiagnosticKey::from_key(key));
+        let receipt = ReceiptDiagnosticKey(key.receipt_identity().clone());
+        if let Some(keys) = self.by_receipt.get_mut(&receipt) {
+            keys.retain(|candidate| candidate != key);
+            if keys.is_empty() {
+                self.by_receipt.remove(&receipt);
+            }
+        }
+        Some(removed)
+    }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.exact.is_empty()
+    }
     pub(super) fn classify(
         &self,
         requested: &crate::runtime::UiScrollReceiptActivationKey,

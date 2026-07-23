@@ -2,6 +2,7 @@
 pub enum UiCommittedAllocationActivationDenialReason {
     Validation(crate::runtime::WorthUiActivationGateDenial),
     GraphPredecessorMismatch,
+    DerivedIndexDiverged,
     LedgerPredecessorMismatch,
     ScrollBinding(crate::runtime::UiScrollOwnerCatalogDenialReport),
     PortalBinding(crate::runtime::UiPortalActivationBindingDenial),

@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface,
+    registry::{CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface},
 };
 
 fn main() {

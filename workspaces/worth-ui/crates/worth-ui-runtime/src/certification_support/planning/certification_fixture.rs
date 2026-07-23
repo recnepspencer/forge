@@ -2,7 +2,7 @@ use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::declaration::UiDeclaredMeasurementBasisSource;
 use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
-use crate::runtime::candidate::rust_authored_replacement_candidate;
+use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiPendingActivation,
     WorthUiReplacementCause, WorthUiRuntime, WorthUiRuntimeLaunch,
@@ -225,11 +225,6 @@ fn stage_pending_activation(
     let query_rebind = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)
         .expect("suite query rebind succeeds");
-    let pending_input = runtime.prepare_pending_execution_plan_lowering_input(
-        &node_plan,
-        &reconciliation,
-        &query_rebind,
-    );
     runtime
         .stage_replacement_activation(
             admitted,
@@ -239,7 +234,6 @@ fn stage_pending_activation(
             crate::runtime::WorthUiActivationStagingPlans {
                 reconciliation_plan: Some(&reconciliation),
                 query_rebind_plan: Some(&query_rebind),
-                pending_execution_plan_lowering_input: Some(&pending_input),
             },
         )
         .expect("suite activation staging succeeds")

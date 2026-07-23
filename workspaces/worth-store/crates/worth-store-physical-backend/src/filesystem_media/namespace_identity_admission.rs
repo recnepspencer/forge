@@ -5,9 +5,9 @@ use worth_store_physical_format::store_namespace::{
 };
 
 use super::{
-    FilesystemMediaOwner, MediaOwnerIdentity, MediaQualificationFailure, NamespaceFileOpenResult,
-    PositionedReadRequest, PositionedReadResult, StagedNamespaceFile, StagedNamespaceFileOutcome,
-    StagedNamespaceSynchronizationOutcome, StagedNamespaceWriteOutcome,
+    FilesystemMediaOwner, MediaOwnerIdentity, MediaQualificationPostOwnershipCause,
+    NamespaceFileOpenResult, PositionedReadRequest, PositionedReadResult, StagedNamespaceFile,
+    StagedNamespaceFileOutcome, StagedNamespaceSynchronizationOutcome, StagedNamespaceWriteOutcome,
 };
 
 pub(super) struct AdmittedStoreIdentity {
@@ -27,7 +27,7 @@ impl AdmittedStoreIdentity {
 
 pub(super) fn admit_store_identity(
     owner: &FilesystemMediaOwner,
-) -> Result<AdmittedStoreIdentity, MediaQualificationFailure> {
+) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause> {
     let path = owner.identity_record_path();
     match owner.open_existing(&path).into_result() {
         NamespaceFileOpenResult::Opened { handle, .. } => {
@@ -67,7 +67,7 @@ pub(super) fn admit_store_identity(
 
 fn reconcile_identity_publication(
     owner: &FilesystemMediaOwner,
-) -> Result<(), MediaQualificationFailure> {
+) -> Result<(), MediaQualificationPostOwnershipCause> {
     if !matches!(
         owner.synchronize_directory_publication(owner.namespace_directory()),
         super::DirectoryPublicationSynchronizationOutcome::Synchronized(_)
@@ -91,7 +91,7 @@ fn reconcile_identity_publication(
 
 fn publish_store_identity(
     owner: &FilesystemMediaOwner,
-) -> Result<AdmittedStoreIdentity, MediaQualificationFailure> {
+) -> Result<AdmittedStoreIdentity, MediaQualificationPostOwnershipCause> {
     let proposed = ProposedStoreIdentity::from_nonzero_bytes(random_nonzero(owner)?)
         .ok_or_else(|| identity_publication(owner))?;
     let attempt = NamespaceInitializationAttempt::from_nonzero_bytes(random_nonzero(owner)?)
@@ -123,7 +123,9 @@ fn publish_store_identity(
     }
 }
 
-fn random_nonzero(owner: &FilesystemMediaOwner) -> Result<[u8; 16], MediaQualificationFailure> {
+fn random_nonzero(
+    owner: &FilesystemMediaOwner,
+) -> Result<[u8; 16], MediaQualificationPostOwnershipCause> {
     loop {
         let mut bytes = [0_u8; 16];
         getrandom::fill(&mut bytes).map_err(|_| identity_publication(owner))?;
@@ -133,14 +135,10 @@ fn random_nonzero(owner: &FilesystemMediaOwner) -> Result<[u8; 16], MediaQualifi
     }
 }
 
-fn identity_read(owner: &FilesystemMediaOwner) -> MediaQualificationFailure {
-    MediaQualificationFailure::IdentityRead {
-        counters: Box::new(owner.counters()),
-    }
+fn identity_read(_: &FilesystemMediaOwner) -> MediaQualificationPostOwnershipCause {
+    MediaQualificationPostOwnershipCause::IdentityRead
 }
 
-fn identity_publication(owner: &FilesystemMediaOwner) -> MediaQualificationFailure {
-    MediaQualificationFailure::IdentityPublication {
-        counters: Box::new(owner.counters()),
-    }
+fn identity_publication(_: &FilesystemMediaOwner) -> MediaQualificationPostOwnershipCause {
+    MediaQualificationPostOwnershipCause::IdentityPublication
 }

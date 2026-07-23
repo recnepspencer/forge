@@ -6,14 +6,12 @@ use super::worth_ui_source_parser_expectations::{
     unexpected_token_diagnostic, TokenExpectation,
 };
 use super::worth_ui_source_token_stream::WorthUiSourceTokenStream;
-use super::worth_ui_source_tokenizer::tokenize_module_source;
-
 use crate::source::{
-    WorthUiParseDiagnostic, WorthUiParseDiagnosticCode, WorthUiParseReport, WorthUiParsedBlockBody,
-    WorthUiParsedBlockDeclaration, WorthUiParsedImportDeclaration, WorthUiParsedSourceDeclaration,
-    WorthUiParsedSourceModule, WorthUiParsedSourcePackage, WorthUiParsedTokenDeclaration,
-    WorthUiSourceModuleId, WorthUiSourceModuleRecord, WorthUiSourcePackage, WorthUiSourceSpan,
-    WorthUiSourceToken, WorthUiSourceTokenKind,
+    tokenize_module_source, WorthUiParseDiagnostic, WorthUiParseDiagnosticCode, WorthUiParseReport,
+    WorthUiParsedBlockBody, WorthUiParsedBlockDeclaration, WorthUiParsedImportDeclaration,
+    WorthUiParsedSourceDeclaration, WorthUiParsedSourceModule, WorthUiParsedSourcePackage,
+    WorthUiParsedTokenDeclaration, WorthUiSourceModuleId, WorthUiSourceModuleRecord,
+    WorthUiSourcePackage, WorthUiSourceSpan, WorthUiSourceToken, WorthUiSourceTokenKind,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -52,7 +50,7 @@ impl WorthUiSourceParser {
 fn parse_source_module(
     module_record: &WorthUiSourceModuleRecord,
 ) -> Result<WorthUiParsedSourceModule, Vec<WorthUiParseDiagnostic>> {
-    let tokens = tokenize_module_source(module_record)?;
+    let tokens = tokenize_module_source(module_record.module_id(), module_record.source_text())?;
     let declarations = parse_module_declarations(
         module_record.module_id(),
         module_record.source_text().len(),

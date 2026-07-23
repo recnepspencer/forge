@@ -370,6 +370,7 @@ fn install_graph_authority_fixture(
     context: super::UiAllocationInvalidationAdmissionContext,
 ) {
     let transition = authority.graph_replan.seal_activation_transition(vec![(
+        crate::evidence::UiAllocationNeighborhoodScope::from_neighborhood(&context.neighborhood),
         context.neighborhood.identity().clone(),
         context.neighborhood.graph_snapshot_authority_digest(),
         context.planning_identity_digest(),
@@ -378,6 +379,6 @@ fn install_graph_authority_fixture(
     assert!(authority
         .graph_replan
         .apply_activation_transition(&transition));
-    authority.active_contexts = vec![context.commit()];
+    authority.install_fixture_context(context.commit());
     authority.rebuild_indexes();
 }

@@ -1,6 +1,8 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, CapabilityRegistrationReport,
-    FrozenIconCapabilities,
+    diagnostics::{
+        CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, CapabilityRegistrationReport,
+    },
+    registry::FrozenIconCapabilities,
 };
 
 pub(crate) fn assert_registered_icon_ids(registry: &FrozenIconCapabilities, expected_ids: &[&str]) {

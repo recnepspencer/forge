@@ -19,6 +19,13 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
     fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
         WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless())
     }
+
+    fn consume_output(
+        &self,
+        _output: &worth_ui_host_contract::WorthUiHostOutputEnvelope,
+    ) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
+        worth_ui_host_contract::WorthUiHostOutputDisposition::Consumed
+    }
 }
 
 fn main() {

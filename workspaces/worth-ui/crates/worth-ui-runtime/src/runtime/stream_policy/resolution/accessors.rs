@@ -16,77 +16,11 @@ impl UiResolvedAllocationFramePlan {
     pub fn frame_epoch(&self) -> crate::runtime::UiAllocationFrameEpoch {
         self.receipt().epoch()
     }
-    pub fn families(&self) -> &[UiAllocationStreamFamily] {
-        self.receipt().families()
-    }
     pub fn invalidations(&self) -> &[UiAllocationInvalidationIntent] {
         self.receipt().invalidations()
     }
     pub fn policy(&self) -> UiResolvedAllocationStreamPolicy {
         self.receipt().policy()
-    }
-    pub fn identity(&self) -> &UiAllocationFramePlanIdentity {
-        &self.identity
-    }
-    pub fn intermediate_policy_verdicts(
-        &self,
-    ) -> &[crate::runtime::UiAllocationIntermediatePolicyVerdict] {
-        self.receipt().intermediate()
-    }
-    pub fn policy_branches(&self) -> &[crate::runtime::UiResolvedAllocationPolicyBranch] {
-        self.receipt().branches()
-    }
-    pub fn order_verdicts(&self) -> &[UiAllocationSourceOrderVerdict] {
-        self.receipt().order_verdicts()
-    }
-    pub fn duplicate_posture(&self) -> UiAllocationDuplicatePosture<'_> {
-        UiAllocationDuplicatePosture {
-            witness: self.receipt().duplicate_witness(),
-        }
-    }
-    pub fn cadence_verdict(&self) -> UiAllocationFrameCadenceVerdict {
-        self.receipt().cadence()
-    }
-    pub fn invalidation_ingress_key(
-        &self,
-        invalidation: &UiAllocationInvalidationIntent,
-    ) -> Result<&UiAllocationFrameIngressKey, UiAllocationInvalidationReferenceDenial> {
-        let ingress_ref = invalidation.ingress_ref();
-        let plan_epoch = self.frame_epoch();
-        if ingress_ref.epoch() != plan_epoch {
-            return Err(
-                UiAllocationInvalidationReferenceDenial::FrameEpochMismatch {
-                    plan: plan_epoch,
-                    invalidation: ingress_ref.epoch(),
-                },
-            );
-        }
-        let ordinal = usize::from(ingress_ref.ordinal());
-        let owned_invalidation = self.invalidations().get(ordinal).ok_or(
-            UiAllocationInvalidationReferenceDenial::MissingCanonicalIngress {
-                ordinal: ingress_ref.ordinal(),
-                ingress_count: self.receipt().ingress_keys().len() as u16,
-            },
-        )?;
-        if !std::ptr::eq(owned_invalidation, invalidation) {
-            return Err(
-                UiAllocationInvalidationReferenceDenial::ForeignPlanInvalidation {
-                    plan: plan_epoch,
-                    invalidation: ingress_ref.epoch(),
-                    ordinal: ingress_ref.ordinal(),
-                },
-            );
-        }
-        Ok(&self.receipt().ingress_keys()[ordinal])
-    }
-    pub fn counters(&self) -> UiAllocationFrameResolutionCounters {
-        self.counters
-    }
-    pub fn evidence(&self) -> &UiAllocationStreamPolicyEvidenceOutcome {
-        &self.identity.evidence
-    }
-    pub fn ingress_policy_verdicts(&self) -> &[UiAllocationIngressPolicyVerdict] {
-        self.receipt().ingress_policy_verdicts()
     }
 }
 

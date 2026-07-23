@@ -87,6 +87,8 @@ impl ObservationHandle {
             },
             ObservedLifecyclePhase::Admitted
             | ObservedLifecyclePhase::MediaOwned
+            | ObservedLifecyclePhase::RecordServing
+            | ObservedLifecyclePhase::Terminating
             | ObservedLifecyclePhase::Aborted => ObservationError::Stale {
                 runtime_identity: self.runtime_identity,
                 observed_generation: self.observed_generation,

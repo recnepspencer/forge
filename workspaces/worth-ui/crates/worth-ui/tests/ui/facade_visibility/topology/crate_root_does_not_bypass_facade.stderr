@@ -8,11 +8,11 @@ error[E0432]: unresolved imports `worth_ui::CommandDescriptor`, `worth_ui::Comma
   |                no `CommandDescriptor` in the root
   |
   = help: consider importing one of these structs instead:
-          worth_ui::facade::CommandDescriptor
+          worth_ui::facade::registry::CommandDescriptor
           worth_ui_runtime::facade::registry::CommandDescriptor
   = help: consider importing one of these structs instead:
-          worth_ui::facade::CommandId
+          worth_ui::facade::registry::CommandId
           worth_ui_runtime::facade::registry::CommandId
   = help: consider importing one of these structs instead:
-          worth_ui::facade::WorthUi
+          worth_ui::facade::app::WorthUi
           worth_ui_runtime::facade::WorthUi

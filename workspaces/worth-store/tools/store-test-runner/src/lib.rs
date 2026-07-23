@@ -2,6 +2,7 @@ mod arguments;
 mod catalog;
 mod classification;
 mod execution;
+mod mutation_campaign;
 #[cfg(test)]
 mod physical_writer_gate;
 mod plan;
@@ -19,6 +20,19 @@ pub fn run_from_environment() -> Result<(), String> {
 }
 
 fn run(arguments: Arguments, workspace_root: &Path) -> Result<(), String> {
+    if matches!(arguments.product, product::TestProduct::Mutants) {
+        if arguments.report.is_some() {
+            return Err(
+                "mutants emits one evidence record per mutation; --report is not supported".into(),
+            );
+        }
+        return mutation_campaign::run(
+            workspace_root,
+            arguments.list,
+            arguments.mutant,
+            arguments.first_mutant,
+        );
+    }
     let catalog = TestCatalog::load(workspace_root)?;
     let plan = plan::TestPlan::build(&arguments.product, &catalog, workspace_root)?;
 

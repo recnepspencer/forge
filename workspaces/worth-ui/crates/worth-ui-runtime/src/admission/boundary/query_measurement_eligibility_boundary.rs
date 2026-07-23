@@ -10,7 +10,7 @@ use crate::evidence::{
     admit_declared_measurement_projection_fact_receipt, UiProjectionFactReceipt,
     UiProjectionFactReceiptDenial,
 };
-use worth_ui_query_binding::{
+use worth_ui_query_binding::compatibility::managed_live::{
     WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryMeasurementFactReceiptError,
     WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
 };
@@ -213,6 +213,9 @@ impl<'a> UiAdmissionBoundary<'a> {
                 },
                 None,
             )),
+            Err(UiProjectionFactReceiptDenial::SettledFactObservation(_)) => {
+                unreachable!("legacy Query authority admission cannot observe a settled fact")
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::runtime::frame_activation_gate::gate_receipt::WorthUiActivationGateReceiptParts;
+use crate::runtime::activation::frame_activation_gate::gate_receipt::WorthUiActivationGateReceiptParts;
 use crate::runtime::{
     WorthUiActivationGateCounters, WorthUiActivationGateDenial, WorthUiActivationGateDenialReason,
     WorthUiActivationGateReceipt, WorthUiActiveRuntimeObservation, WorthUiFrameBoundary,
@@ -12,9 +12,11 @@ pub(super) fn validate_frame_boundary(
     ready: &UiCommittedAllocationValidation,
     boundary: WorthUiFrameBoundary,
     runtime_frame_epoch: WorthUiRuntimeFrameEpoch,
+    runtime_host_session: crate::facade::WorthUiHostSessionIdentity,
 ) -> Result<WorthUiActivationGateReceipt, WorthUiActivationGateDenial> {
     let mut counters = ready.counters();
     reject_unsafe_boundary(ready, boundary, &mut counters)?;
+    reject_foreign_session_boundary(ready, boundary, runtime_host_session, &mut counters)?;
     reject_stale_or_future_boundary(ready, boundary, &mut counters)?;
     reject_boundary_runtime_mismatch(ready, boundary, runtime_frame_epoch, &mut counters)?;
     Ok(WorthUiActivationGateReceipt::new(
@@ -38,6 +40,25 @@ pub(super) fn validate_frame_boundary(
             counters,
         },
     ))
+}
+
+fn reject_foreign_session_boundary(
+    ready: &UiCommittedAllocationValidation,
+    boundary: WorthUiFrameBoundary,
+    runtime_host_session: crate::facade::WorthUiHostSessionIdentity,
+    counters: &mut WorthUiActivationGateCounters,
+) -> Result<(), WorthUiActivationGateDenial> {
+    counters.record_boundary_check();
+    if boundary.host_session() == runtime_host_session {
+        Ok(())
+    } else {
+        Err(denial(
+            ready,
+            boundary,
+            WorthUiActivationGateDenialReason::ForeignFrameBoundarySession,
+            *counters,
+        ))
+    }
 }
 
 fn reject_unsafe_boundary(

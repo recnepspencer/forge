@@ -1,4 +1,4 @@
-use worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryMeasurementFactSettlement;
 
 use super::super::framework_turn::UiAllocationFrameIngressMailbox;
 use super::{
@@ -7,7 +7,7 @@ use super::{
 };
 use std::cell::RefCell;
 use std::rc::Rc;
-use worth_ui_query_binding::WorthUiQueryProjectionWarningKind;
+use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryProjectionWarningKind;
 
 /// Submission-only capability for an admitted Query projection settlement.
 ///

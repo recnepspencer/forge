@@ -2,7 +2,7 @@ use crate::capability::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
 };
 use crate::facade::entry::{WorthUi, WorthUiApp};
-use crate::facade::registry::{
+use crate::facade::registry::descriptor::{
     ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass,
 };
@@ -24,7 +24,7 @@ pub enum WorthUiTouchOriginFixtureVariant {
 pub(super) fn touch_runtime_app() -> WorthUiApp {
     let support_app = touch_runtime_support_app();
     let submission = launch_runtime(&support_app, empty_runtime_artifact(&support_app))
-        .source_ingress(touch_runtime_graph_source_provider())
+        .source_event_ingress(touch_runtime_graph_source_provider())
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(
             touch_runtime_graph_provider_revision(),
@@ -70,7 +70,7 @@ pub(super) fn replacement_candidate(
     app: &WorthUiApp,
     variant: WorthUiTouchOriginFixtureVariant,
 ) -> crate::runtime::WorthUiReplacementCandidate {
-    crate::runtime::candidate::rust_authored_replacement_candidate(
+    crate::runtime::replacement::candidate::rust_authored_replacement_candidate(
         runtime_origin_artifact(app, variant),
         app.capabilities().digest(),
         crate::runtime::WorthUiReplacementCause::rust_authored_input_change(

@@ -8,6 +8,8 @@ use crate::source::{
     WorthUiSourcePackageReport,
 };
 
+use super::worth_ui_source_import_path_scanner::scan_top_level_import_paths;
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct WorthUiSourcePackageLoader {
     workspace_root: PathBuf,
@@ -32,7 +34,6 @@ pub(crate) struct WorthUiValidatedSourcePackagePlan {
 struct PendingModuleRegistration {
     relative_path: PathBuf,
     source_text: String,
-    import_paths: Vec<PathBuf>,
 }
 
 #[derive(Clone, Debug)]
@@ -57,29 +58,6 @@ impl WorthUiSourcePackageLoader {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn register_module(mut self, relative_path: impl Into<PathBuf>) -> Self {
-        self.registrations
-            .push(PendingModuleRegistration::without_source(
-                relative_path.into(),
-            ));
-        self
-    }
-
-    #[cfg(test)]
-    pub(crate) fn register_module_with_imports(
-        mut self,
-        relative_path: impl Into<PathBuf>,
-        import_paths: impl IntoIterator<Item = impl Into<PathBuf>>,
-    ) -> Self {
-        self.registrations
-            .push(PendingModuleRegistration::without_source_with_imports(
-                relative_path.into(),
-                import_paths.into_iter().map(Into::into).collect(),
-            ));
-        self
-    }
-
     pub(crate) fn register_module_with_source(
         mut self,
         relative_path: impl Into<PathBuf>,
@@ -89,22 +67,6 @@ impl WorthUiSourcePackageLoader {
             .push(PendingModuleRegistration::with_source(
                 relative_path.into(),
                 source_text.into(),
-            ));
-        self
-    }
-
-    #[cfg(test)]
-    pub(crate) fn register_module_with_imports_and_source(
-        mut self,
-        relative_path: impl Into<PathBuf>,
-        import_paths: impl IntoIterator<Item = impl Into<PathBuf>>,
-        source_text: impl Into<String>,
-    ) -> Self {
-        self.registrations
-            .push(PendingModuleRegistration::with_source_and_imports(
-                relative_path.into(),
-                source_text.into(),
-                import_paths.into_iter().map(Into::into).collect(),
             ));
         self
     }
@@ -233,11 +195,12 @@ fn validate_registered_module_identities(
             continue;
         }
 
+        let import_paths = scan_top_level_import_paths(&module_id, &registration.source_text);
         registered_modules.push(WorthUiRegisteredSourceModule {
             module_id,
             relative_path: registration.relative_path,
             source_text: registration.source_text,
-            import_paths: registration.import_paths,
+            import_paths,
         });
     }
 
@@ -357,42 +320,10 @@ fn canonical_module_relative_path(module_id: &WorthUiSourceModuleId) -> PathBuf 
 }
 
 impl PendingModuleRegistration {
-    #[cfg(test)]
-    fn without_source(relative_path: PathBuf) -> Self {
-        Self {
-            relative_path,
-            source_text: String::new(),
-            import_paths: Vec::new(),
-        }
-    }
-
-    #[cfg(test)]
-    fn without_source_with_imports(relative_path: PathBuf, import_paths: Vec<PathBuf>) -> Self {
-        Self {
-            relative_path,
-            source_text: String::new(),
-            import_paths,
-        }
-    }
-
     fn with_source(relative_path: PathBuf, source_text: String) -> Self {
         Self {
             relative_path,
             source_text,
-            import_paths: Vec::new(),
-        }
-    }
-
-    #[cfg(test)]
-    fn with_source_and_imports(
-        relative_path: PathBuf,
-        source_text: String,
-        import_paths: Vec<PathBuf>,
-    ) -> Self {
-        Self {
-            relative_path,
-            source_text,
-            import_paths,
         }
     }
 }

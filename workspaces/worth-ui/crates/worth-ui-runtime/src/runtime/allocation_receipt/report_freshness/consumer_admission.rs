@@ -7,6 +7,7 @@ pub enum UiAllocationFreshnessConsumptionDenial {
     StaleReceiptOutsideAdmittedLag,
 }
 
+#[cfg(test)]
 pub fn admit_host_paint(
     report: &UiAllocationReceiptReport,
 ) -> Result<(), UiAllocationFreshnessConsumptionDenial> {

@@ -1,6 +1,9 @@
 use worth_ui::facade::{
-    PluginCapabilityPermission, PluginContributionFamily, PluginSlotDescriptor,
-    PluginSlotDiagnostics, PluginSlotOrdering, PluginSlotSupportPosture, WorthUi,
+    app::WorthUi,
+    registry::{
+        PluginCapabilityPermission, PluginContributionFamily, PluginSlotDescriptor,
+        PluginSlotDiagnostics, PluginSlotOrdering, PluginSlotSupportPosture,
+    },
 };
 
 use super::plugin_slot_assertions::assert_registered_plugin_slot_ids;

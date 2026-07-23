@@ -1,3 +1,19 @@
+pub use worth_ui_runtime::facade::application::{
+    UiAllocationCatalogDeltaCounters, UiAllocationCatalogRowDisposition,
+    UiAllocationCatalogRowTransition, UiAllocationCatalogSuccessorReceipt,
+    WorthUiExecutablePlanDecision, WorthUiExecutablePlanDecisionKind,
+    WorthUiExecutablePlanEquivalenceDenial, WorthUiNoOpProvenancePosture, WorthUiNoOpQueryPosture,
+    WorthUiOrdinaryFrameTarget, WorthUiOrdinaryPlanAvailability, WorthUiOrdinaryPlanSummary,
+    WorthUiOrdinaryPlanSummaryDenial, WorthUiOrdinaryPlanSummaryRequest,
+    WorthUiOrdinarySummaryTarget, WorthUiOrdinaryTouchBreadth,
+    WorthUiPlanEquivalenceEvidenceReference, WorthUiPlanEquivalenceSummary,
+    WorthUiPlanRegionStorageCounters, WorthUiPlanRegionTransition, WorthUiReloadCostContext,
+    WorthUiReloadLoweringCounterReceipt, WorthUiReloadLoweringFoundationalEvidence,
+    WorthUiSemanticNoOpReceipt, WorthUiSemanticNoOpWork, WorthUiVirtualizedDataFrameTarget,
+    WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummary,
+    WorthUiVirtualizedPlanSummaryDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
+    WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
+};
 pub use worth_ui_runtime::facade::entry::WorthUiQueryViewRegistrationError;
 pub use worth_ui_runtime::facade::lifecycle::{
     WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
@@ -9,12 +25,17 @@ pub use worth_ui_runtime::facade::prepared_application_authority::{
 };
 pub use worth_ui_runtime::facade::{
     WorthUi, WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity,
-    WorthUiActiveFrameworkTurnCompletion, WorthUiActiveInspectionReceipt, WorthUiApp,
-    WorthUiAppBuilder, WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
-    WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementNoOp,
-    WorthUiApplicationReplacementPreparation, WorthUiApplicationReplacementPreparationDenial,
-    WorthUiApplicationReplacementStagingDenial, WorthUiBuilder, WorthUiCandidateInspectionReceipt,
-    WorthUiHostMeasurementCapability, WorthUiHostMeasurementSessionInput,
-    WorthUiHostSessionIdentity, WorthUiLoweredApplicationReplacement,
-    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
+    WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveFrameworkTurnCompletion,
+    WorthUiActiveFrameworkTurnExecution, WorthUiActiveInspectionReceipt,
+    WorthUiActiveOrdinaryFrameCompletion, WorthUiActiveRealtimeFrameCompletion,
+    WorthUiActiveVirtualizedDataFrameCompletion, WorthUiAllocationCatalogActivationDenial,
+    WorthUiApp, WorthUiAppBuilder, WorthUiApplicationCutoverDenial,
+    WorthUiApplicationCutoverReceipt, WorthUiApplicationReplacementLoweringDenial,
+    WorthUiApplicationReplacementOutcome, WorthUiApplicationReplacementPreparationDenial,
+    WorthUiApplicationReplacementStagingDenial, WorthUiApplicationSemanticNoOpReceipt,
+    WorthUiBuilder, WorthUiCandidateInspectionReceipt, WorthUiHostMeasurementCapability,
+    WorthUiHostMeasurementSessionInput, WorthUiHostSessionIdentity,
+    WorthUiLoweredApplicationReplacement, WorthUiPendingApplicationCutover,
+    WorthUiPreparedApplicationReplacement, WorthUiReplacementCandidateSummary,
+    WorthUiReplacementPlannedCostEnvelope,
 };

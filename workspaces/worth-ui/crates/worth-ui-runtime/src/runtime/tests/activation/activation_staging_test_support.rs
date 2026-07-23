@@ -4,27 +4,58 @@ use crate::facade::WorthUiApp;
 use crate::runtime::{
     WorthUiActivationStagingDenial, WorthUiActivationStagingPlans,
     WorthUiAdmittedReplacementCandidate, WorthUiDurableStateReconciliationPlan,
-    WorthUiNodeReplacementPlan, WorthUiPendingActivation, WorthUiPendingExecutionPlanLoweringInput,
-    WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification,
-    WorthUiRuntimeImpactNarrowing,
+    WorthUiNodeReplacementPlan, WorthUiPendingActivation, WorthUiQueryLiveRebindPlan,
+    WorthUiReplacementImpactClassification, WorthUiRuntimeImpactNarrowing,
 };
 
 fn staging_plans<'a>(
     reconciliation_plan: Option<&'a WorthUiDurableStateReconciliationPlan>,
     query_rebind_plan: Option<&'a WorthUiQueryLiveRebindPlan>,
-    pending_execution_plan_lowering_input: Option<&'a WorthUiPendingExecutionPlanLoweringInput>,
 ) -> WorthUiActivationStagingPlans<'a> {
-    WorthUiActivationStagingPlans::new(
-        reconciliation_plan,
-        query_rebind_plan,
-        pending_execution_plan_lowering_input,
-    )
+    WorthUiActivationStagingPlans::new(reconciliation_plan, query_rebind_plan)
 }
 
 pub(crate) fn activation_staging_inputs() -> ActivationStagingInputs {
     let app = standard_query_app();
-    let active = query_artifact(&app, "workspace.view_binding.selection");
-    let candidate = query_artifact(&app, "workspace.view_binding.selection");
+    activation_staging_inputs_for(app)
+}
+
+pub(crate) fn activation_staging_inputs_with_installed_query_view(
+    view: worth_ui_query_binding::WorthUiInstalledQueryView,
+) -> ActivationStagingInputs {
+    let binding_id = view.definition().identity().as_str().to_owned();
+    let app = crate::facade::WorthUi::app()
+        .register_query_view(view)
+        .expect("installed Query view registers for activation")
+        .freeze()
+        .expect("Query-bound activation application prepares");
+    activation_staging_inputs_for_bindings(app, &binding_id, &binding_id)
+}
+
+pub(crate) fn activation_staging_inputs_with_query_change() -> ActivationStagingInputs {
+    let app = standard_query_app();
+    activation_staging_inputs_for_bindings(
+        app,
+        "workspace.view_binding.selection",
+        "workspace.view_binding.detail",
+    )
+}
+
+pub(super) fn activation_staging_inputs_for(app: WorthUiApp) -> ActivationStagingInputs {
+    activation_staging_inputs_for_bindings(
+        app,
+        "workspace.view_binding.selection",
+        "workspace.view_binding.selection",
+    )
+}
+
+fn activation_staging_inputs_for_bindings(
+    app: WorthUiApp,
+    active_binding_id: &str,
+    candidate_binding_id: &str,
+) -> ActivationStagingInputs {
+    let active = query_artifact(&app, active_binding_id);
+    let candidate = query_artifact(&app, candidate_binding_id);
     let runtime = super::replacement_impact_test_support::launch_runtime(&app, active);
     let admitted =
         super::replacement_impact_test_support::admitted_candidate(&app, &runtime, candidate);
@@ -55,13 +86,6 @@ pub(crate) fn activation_staging_inputs() -> ActivationStagingInputs {
     let query_rebind_plan = runtime
         .plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)
         .expect("query rebind planning succeeds");
-    let pending_execution_plan_lowering_input = runtime
-        .prepare_pending_execution_plan_lowering_input(
-            &node_plan,
-            &reconciliation_plan,
-            &query_rebind_plan,
-        );
-
     ActivationStagingInputs {
         app,
         runtime,
@@ -71,7 +95,6 @@ pub(crate) fn activation_staging_inputs() -> ActivationStagingInputs {
         node_plan,
         reconciliation_plan,
         query_rebind_plan,
-        pending_execution_plan_lowering_input,
     }
 }
 
@@ -84,11 +107,18 @@ pub(crate) struct ActivationStagingInputs {
     pub(super) node_plan: WorthUiNodeReplacementPlan,
     pub(super) reconciliation_plan: WorthUiDurableStateReconciliationPlan,
     pub(super) query_rebind_plan: WorthUiQueryLiveRebindPlan,
-    pub(super) pending_execution_plan_lowering_input: WorthUiPendingExecutionPlanLoweringInput,
 }
 
 impl ActivationStagingInputs {
-    pub(super) fn into_app_runtime_and_pending(
+    pub(crate) fn reconstructive_plan_input(
+        &self,
+        component_hooks: &[crate::runtime::WorthUiComponentLoweringHook],
+    ) -> crate::runtime::WorthUiExecutionPlanInput {
+        self.runtime
+            .prepare_reconstructive_plan_input_for_test(&self.admitted, component_hooks)
+    }
+
+    pub(crate) fn into_app_runtime_and_pending(
         self,
     ) -> (
         WorthUiApp,
@@ -105,7 +135,6 @@ impl ActivationStagingInputs {
                 staging_plans(
                     Some(&self.reconciliation_plan),
                     Some(&self.query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
                 ),
             )
             .expect("activation staging succeeds");
@@ -128,7 +157,6 @@ impl ActivationStagingInputs {
                 staging_plans(
                     Some(&self.reconciliation_plan),
                     Some(&self.query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
                 ),
             )
             .expect("activation staging succeeds");
@@ -145,26 +173,9 @@ impl ActivationStagingInputs {
                 staging_plans(
                     Some(&self.reconciliation_plan),
                     Some(&self.query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
                 ),
             )
             .expect("activation staging succeeds")
-    }
-
-    pub(super) fn stage_denial(self) -> WorthUiActivationStagingDenial {
-        self.runtime
-            .stage_replacement_activation(
-                self.admitted,
-                &self.impact,
-                &self.narrowing,
-                &self.node_plan,
-                staging_plans(
-                    Some(&self.reconciliation_plan),
-                    Some(&self.query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
-                ),
-            )
-            .expect_err("activation staging denies")
     }
 
     pub(super) fn stage_without_reconciliation(self) -> WorthUiActivationStagingDenial {
@@ -174,11 +185,7 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                staging_plans(
-                    None,
-                    Some(&self.query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
-                ),
+                staging_plans(None, Some(&self.query_rebind_plan)),
             )
             .expect_err("missing reconciliation denies")
     }
@@ -190,11 +197,7 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                staging_plans(
-                    Some(&self.reconciliation_plan),
-                    None,
-                    Some(&self.pending_execution_plan_lowering_input),
-                ),
+                staging_plans(Some(&self.reconciliation_plan), None),
             )
             .expect_err("missing query rebind denies")
     }
@@ -209,11 +212,7 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                staging_plans(
-                    Some(reconciliation_plan),
-                    Some(&self.query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
-                ),
+                staging_plans(Some(reconciliation_plan), Some(&self.query_rebind_plan)),
             )
             .expect_err("stale reconciliation denies")
     }
@@ -228,11 +227,7 @@ impl ActivationStagingInputs {
                 &self.impact,
                 &self.narrowing,
                 &self.node_plan,
-                staging_plans(
-                    Some(&self.reconciliation_plan),
-                    Some(query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
-                ),
+                staging_plans(Some(&self.reconciliation_plan), Some(query_rebind_plan)),
             )
             .expect_err("stale query rebind denies")
     }
@@ -250,44 +245,8 @@ impl ActivationStagingInputs {
                 staging_plans(
                     Some(&self.reconciliation_plan),
                     Some(&self.query_rebind_plan),
-                    Some(&self.pending_execution_plan_lowering_input),
                 ),
             )
             .expect_err("stale node plan denies")
-    }
-
-    pub(super) fn stage_without_plan_lowering_input(self) -> WorthUiActivationStagingDenial {
-        self.runtime
-            .stage_replacement_activation(
-                self.admitted,
-                &self.impact,
-                &self.narrowing,
-                &self.node_plan,
-                staging_plans(
-                    Some(&self.reconciliation_plan),
-                    Some(&self.query_rebind_plan),
-                    None,
-                ),
-            )
-            .expect_err("missing plan lowering input denies")
-    }
-
-    pub(super) fn stage_with_plan_lowering_input(
-        self,
-        input: &WorthUiPendingExecutionPlanLoweringInput,
-    ) -> WorthUiActivationStagingDenial {
-        self.runtime
-            .stage_replacement_activation(
-                self.admitted,
-                &self.impact,
-                &self.narrowing,
-                &self.node_plan,
-                staging_plans(
-                    Some(&self.reconciliation_plan),
-                    Some(&self.query_rebind_plan),
-                    Some(input),
-                ),
-            )
-            .expect_err("stale plan lowering input denies")
     }
 }

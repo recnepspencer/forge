@@ -1,6 +1,5 @@
 use worth_ui::facade::{
-    CommandId, ComponentId, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
-    SurfaceStateClass,
+    registry::{CommandId, ComponentId, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass},
 };
 
 fn main() {

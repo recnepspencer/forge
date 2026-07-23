@@ -24,15 +24,29 @@ impl UiMeasurementBasis {
 }
 
 impl UiGraphSnapshot {
+    pub(crate) fn participates_in_allocation_planning(
+        &self,
+        identity: crate::graph::UiGraphNodeIdentity,
+    ) -> bool {
+        let Some(node) = self
+            .lookup()
+            .graph_node(identity)
+            .map(|lookup| lookup.value())
+        else {
+            return false;
+        };
+        let layout = node
+            .participation_posture()
+            .axis(crate::graph::UiGraphParticipationAxis::Layout);
+        super::membership::layout_participates_in_planning(self, identity, layout)
+    }
+
     pub(crate) fn allocation_planning_node_identities(
         &self,
     ) -> impl Iterator<Item = crate::graph::UiGraphNodeIdentity> + '_ {
         self.nodes().iter().filter_map(|node| {
             let identity = node.graph_node_identity();
-            let layout = node
-                .participation_posture()
-                .axis(crate::graph::UiGraphParticipationAxis::Layout);
-            super::membership::layout_participates_in_planning(self, identity, layout)
+            self.participates_in_allocation_planning(identity)
                 .then_some(identity)
         })
     }

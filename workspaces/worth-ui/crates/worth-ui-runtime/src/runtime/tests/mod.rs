@@ -6,13 +6,15 @@ pub(crate) mod support;
 mod activation_staging_boundary_tests;
 #[path = "activation/activation_staging_test_support.rs"]
 pub(crate) mod activation_staging_test_support;
+#[path = "source_ingress/active_application_replacement_tests.rs"]
+mod active_application_cutover_tests;
 #[path = "source_ingress/active_application_evidence_authority_tests.rs"]
 mod active_application_evidence_authority_tests;
 #[path = "source_ingress/active_application_launch_tests.rs"]
 mod active_application_launch_tests;
 #[path = "source_ingress/active_application_replacement_storm_tests.rs"]
 mod active_application_replacement_storm_tests;
-#[path = "source_ingress/active_application_replacement_tests.rs"]
+#[path = "source_ingress/active_application_replacement_authority_tests.rs"]
 mod active_application_replacement_tests;
 #[path = "source_ingress/active_application_session_test_support.rs"]
 pub(crate) mod active_application_session_test_support;
@@ -36,18 +38,20 @@ mod allocation_planning_inspection_boundary_tests;
 pub(crate) mod allocation_planning_test_support;
 #[path = "planning/allocation_truth_boundary_tests.rs"]
 mod allocation_truth_boundary_tests;
+#[path = "source_ingress/application_semantic_no_op_tests.rs"]
+mod application_semantic_no_op_tests;
 #[path = "replacement/artifact_equivalence_boundary_tests.rs"]
 mod artifact_equivalence_boundary_tests;
 #[path = "replacement/candidate_admission_boundary_tests.rs"]
 mod candidate_admission_boundary_tests;
 #[path = "source_ingress/candidate_composition_preparation_tests.rs"]
 mod candidate_composition_preparation_tests;
-#[path = "execution/canvas_spatial_lane_boundary_tests.rs"]
-mod canvas_spatial_lane_boundary_tests;
-#[path = "execution/canvas_spatial_lane_test_support.rs"]
-mod canvas_spatial_lane_test_support;
+#[path = "planning/canvas_spatial_region_reuse_tests.rs"]
+mod canvas_spatial_region_reuse_tests;
 #[path = "activation/committed_allocation_activation_boundary_tests.rs"]
 mod committed_allocation_activation_boundary_tests;
+#[path = "planning/complete_equivalence_schema_tests.rs"]
+mod complete_equivalence_schema_tests;
 #[path = "replacement/dependency_impact_narrowing_boundary_tests.rs"]
 mod dependency_impact_narrowing_boundary_tests;
 #[path = "replacement/dependency_impact_narrowing_test_support.rs"]
@@ -92,6 +96,8 @@ mod lane_admission_fixture;
 mod lane_change_activation_test_support;
 #[path = "execution/lane_frame_cost_certification_boundary_tests.rs"]
 mod lane_frame_cost_certification_boundary_tests;
+#[path = "execution/lane_frame_cost_certification_canvas_fixture.rs"]
+mod lane_frame_cost_certification_canvas_fixture;
 #[path = "execution/lane_frame_cost_certification_scale_fixture.rs"]
 mod lane_frame_cost_certification_scale_fixture;
 #[path = "execution/lane_frame_cost_certification_test_support.rs"]
@@ -102,8 +108,12 @@ mod lane_meaning_parity_boundary_tests;
 mod lane_meaning_parity_test_support;
 #[path = "lifecycle/lifecycle_path_parity.rs"]
 mod lifecycle_path_parity;
+#[path = "replacement/managed_live_compatibility_boundary_tests.rs"]
+mod managed_live_compatibility_boundary_tests;
 #[path = "execution/measurement_boundary_tests.rs"]
 mod measurement_boundary_tests;
+#[path = "source_ingress/multi_removal_activation_tests.rs"]
+mod multi_removal_activation_tests;
 #[path = "replacement/node_replacement_classification_boundary_tests.rs"]
 mod node_replacement_classification_boundary_tests;
 #[path = "replacement/node_replacement_classification_test_support.rs"]
@@ -112,6 +122,10 @@ mod node_replacement_classification_test_support;
 mod ordinary_lane_boundary_tests;
 #[path = "execution/ordinary_lane_test_support.rs"]
 mod ordinary_lane_test_support;
+#[path = "planning/ordinary_owner_bundle_scale_tests.rs"]
+mod ordinary_owner_bundle_scale_tests;
+#[path = "planning/ordinary_plan_structure_hostile_tests.rs"]
+mod ordinary_plan_structure_hostile_tests;
 #[path = "activation/phase_10_scroll_owned_activation_tests.rs"]
 mod phase_10_scroll_owned_activation_tests;
 #[path = "activation/phase_11_portal_anchored_allocation_tests.rs"]
@@ -128,6 +142,8 @@ mod plan_equivalence_topology_test_support;
 mod plan_inspection_boundary_tests;
 #[path = "planning/plan_inspection_expected_provenance.rs"]
 mod plan_inspection_expected_provenance;
+#[path = "planning/plan_region_storage_boundary_tests.rs"]
+mod plan_region_storage_boundary_tests;
 #[path = "planning/plan_topology_boundary_tests.rs"]
 mod plan_topology_boundary_tests;
 #[path = "planning/plan_topology_identity_boundary_tests.rs"]
@@ -140,18 +156,22 @@ pub(crate) mod production_catalog_activation_test_support;
 mod query_binding_comparison_boundary_tests;
 #[path = "replacement/query_binding_comparison_test_support.rs"]
 mod query_binding_comparison_test_support;
-#[path = "replacement/query_live_rebind_boundary_tests.rs"]
-mod query_live_rebind_boundary_tests;
+#[path = "replacement/query_topology_impact_boundary_tests.rs"]
+mod query_topology_impact_boundary_tests;
 #[path = "execution/realtime_overlay_lane_boundary_tests.rs"]
 mod realtime_overlay_lane_boundary_tests;
-#[path = "execution/realtime_overlay_lane_pending_activation_fixture.rs"]
-mod realtime_overlay_lane_pending_activation_fixture;
 #[path = "execution/realtime_overlay_lane_test_support.rs"]
 mod realtime_overlay_lane_test_support;
-#[path = "execution/realtime_overlay_plan_input_fixture.rs"]
-mod realtime_overlay_plan_input_fixture;
+#[path = "activation/regional_activation_failure_tests.rs"]
+mod regional_activation_failure_tests;
+#[path = "activation/regional_activation_test_support.rs"]
+mod regional_activation_test_support;
+#[path = "activation/regional_activation_transaction_tests.rs"]
+mod regional_activation_transaction_tests;
 #[path = "execution/reload_counter_boundary_tests.rs"]
 mod reload_counter_boundary_tests;
+#[path = "execution/reload_counter_test_support.rs"]
+mod reload_counter_test_support;
 #[path = "host_observation/reload_failure_boundary_tests.rs"]
 mod reload_failure_boundary_tests;
 #[path = "host_observation/reload_failure_test_support.rs"]
@@ -168,14 +188,14 @@ mod replacement_impact_boundary_tests;
 pub(crate) mod replacement_impact_test_support;
 #[path = "diagnostics/runtime_diagnostics_boundary_tests.rs"]
 mod runtime_diagnostics_boundary_tests;
-#[path = "diagnostics/runtime_diagnostics_family_coverage_tests.rs"]
-mod runtime_diagnostics_family_coverage_tests;
 #[path = "diagnostics/runtime_diagnostics_projection_boundary_tests.rs"]
 mod runtime_diagnostics_projection_boundary_tests;
 #[path = "diagnostics/runtime_diagnostics_projection_test_support.rs"]
 mod runtime_diagnostics_projection_test_support;
 #[path = "source_ingress/source_backed_graph_identity_boundary_tests.rs"]
 mod source_backed_graph_identity_boundary_tests;
+#[path = "source_ingress/source_backed_package_boundary_test_support.rs"]
+mod source_backed_package_boundary_test_support;
 #[path = "source_ingress/source_backed_package_boundary_tests.rs"]
 mod source_backed_package_boundary_tests;
 #[path = "source_ingress/source_ingress_boundary_test_support.rs"]

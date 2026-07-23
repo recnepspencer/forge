@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
 use same_file::Handle as StableFileHandle;
@@ -13,12 +13,25 @@ const MUTATION_SEQUENCE_SWEEP_INTERVAL: usize = 64;
 /// handle closes.
 #[derive(Debug, Default)]
 pub(super) struct FileMutationSequences {
-    entries: Mutex<HashMap<StableFileHandle, Weak<Mutex<()>>>>,
+    entries: Mutex<HashMap<StableFileHandle, SequenceEntry>>,
     opens_since_sweep: AtomicUsize,
+    next_ordinal: AtomicU64,
+}
+
+#[derive(Debug)]
+struct SequenceEntry {
+    ordinal: u64,
+    sequence: Weak<Mutex<()>>,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct FileMutationSequence {
+    ordinal: u64,
+    sequence: Arc<Mutex<()>>,
 }
 
 impl FileMutationSequences {
-    pub(super) fn for_file(&self, file: &std::fs::File) -> std::io::Result<Arc<Mutex<()>>> {
+    pub(super) fn for_file(&self, file: &std::fs::File) -> std::io::Result<FileMutationSequence> {
         let identity = StableFileHandle::from_file(file.try_clone()?)?;
         let mut entries = self
             .entries
@@ -27,14 +40,55 @@ impl FileMutationSequences {
         if self.opens_since_sweep.fetch_add(1, Ordering::Relaxed) % MUTATION_SEQUENCE_SWEEP_INTERVAL
             == MUTATION_SEQUENCE_SWEEP_INTERVAL - 1
         {
-            entries.retain(|_, sequence| sequence.strong_count() > 0);
+            entries.retain(|_, entry| entry.sequence.strong_count() > 0);
         }
-        if let Some(sequence) = entries.get(&identity).and_then(std::sync::Weak::upgrade) {
-            return Ok(sequence);
+        if let Some((ordinal, sequence)) = entries.get(&identity).and_then(|entry| {
+            std::sync::Weak::upgrade(&entry.sequence).map(|sequence| (entry.ordinal, sequence))
+        }) {
+            return Ok(FileMutationSequence { ordinal, sequence });
         }
         let sequence = Arc::new(Mutex::new(()));
-        entries.insert(identity, Arc::downgrade(&sequence));
-        Ok(sequence)
+        let ordinal = self.next_ordinal.fetch_add(1, Ordering::Relaxed);
+        entries.insert(
+            identity,
+            SequenceEntry {
+                ordinal,
+                sequence: Arc::downgrade(&sequence),
+            },
+        );
+        Ok(FileMutationSequence { ordinal, sequence })
+    }
+}
+
+impl FileMutationSequence {
+    pub(super) fn lock(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.sequence
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    pub(super) fn with_ordered_pair<T>(
+        first: &Self,
+        second: Option<&Self>,
+        effect: impl FnOnce() -> T,
+    ) -> T {
+        let Some(second) = second else {
+            let _first = first.lock();
+            return effect();
+        };
+        if Arc::ptr_eq(&first.sequence, &second.sequence) {
+            let _shared = first.lock();
+            return effect();
+        }
+        if first.ordinal < second.ordinal {
+            let _first = first.lock();
+            let _second = second.lock();
+            effect()
+        } else {
+            let _second = second.lock();
+            let _first = first.lock();
+            effect()
+        }
     }
 }
 
@@ -71,8 +125,8 @@ mod tests {
             .expect("first alias sequence");
         let second_sequence = sequences.for_file(&second).expect("second sequence");
 
-        let _held = first_sequence.lock().expect("hold first sequence");
-        assert!(first_alias_sequence.try_lock().is_err());
-        assert!(second_sequence.try_lock().is_ok());
+        let _held = first_sequence.lock();
+        assert!(first_alias_sequence.sequence.try_lock().is_err());
+        assert!(second_sequence.sequence.try_lock().is_ok());
     }
 }

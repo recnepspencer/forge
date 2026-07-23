@@ -23,13 +23,13 @@ pub(crate) struct WorthUiActiveRuntimeState {
 
 impl WorthUiActiveRuntimeState {
     pub(crate) fn new(
-        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
         active_artifact: WorthUiActiveArtifact,
         active_plan: WorthUiActiveExecutionPlan,
         snapshot_digest: CapabilitySnapshotDigest,
         frame_epoch: WorthUiRuntimeFrameEpoch,
         diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
     ) -> Self {
+        let generation_identity = active_plan.generation_identity().clone();
         Self {
             generation_identity,
             active_artifact,
@@ -43,15 +43,7 @@ impl WorthUiActiveRuntimeState {
     }
 
     pub(crate) fn observation(&self) -> WorthUiActiveRuntimeObservation {
-        WorthUiActiveRuntimeObservation::new(
-            self.generation_identity.clone(),
-            self.active_artifact.digest().raw(),
-            self.active_plan.digest().as_u64(),
-            self.snapshot_digest.as_u64(),
-            self.lifecycle,
-            self.status,
-            self.frame_epoch,
-        )
+        WorthUiActiveRuntimeObservation::from_active_state(self)
     }
 
     pub(crate) fn active_artifact(&self) -> &WorthUiActiveArtifact {
@@ -65,15 +57,34 @@ impl WorthUiActiveRuntimeState {
         &self.generation_identity
     }
 
-    pub(crate) fn bind_application_generation(
-        &mut self,
-        generation_identity: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
-    ) {
-        self.generation_identity = generation_identity;
+    pub(crate) fn active_plan(&self) -> WorthUiActiveExecutionPlan {
+        self.active_plan.clone()
     }
 
-    pub(crate) fn active_plan(&self) -> WorthUiActiveExecutionPlan {
+    pub(crate) fn active_plan_ref(&self) -> &WorthUiActiveExecutionPlan {
+        &self.active_plan
+    }
+
+    pub(crate) fn handle_arena_identity(&self) -> crate::runtime::WorthUiHandleArenaIdentity {
+        self.active_plan.handle_arena_identity()
+    }
+
+    pub(crate) fn active_plan_shares_lowering_identity_with(
+        &self,
+        identity: &crate::runtime::planning::WorthUiExecutionPlanLoweringIdentity,
+    ) -> bool {
+        self.active_plan.shares_lowering_identity_with(identity)
+    }
+
+    pub(crate) fn predecessor_region_proof(
+        &self,
+        authority: &crate::runtime::planning::WorthUiExecutionPlanLoweringFacts,
+    ) -> Result<
+        crate::runtime::planning::plan_topology::WorthUiPredecessorRegionProof,
+        crate::runtime::planning::plan_topology::WorthUiPredecessorRegionProofDenial,
+    > {
         self.active_plan
+            .predecessor_region_proof(self.active_artifact.digest().raw(), authority)
     }
 
     pub(crate) fn snapshot_digest(&self) -> CapabilitySnapshotDigest {
@@ -93,22 +104,27 @@ impl WorthUiActiveRuntimeState {
     }
 
     pub(crate) fn replacement_successor(
-        prior: &Self,
         active_artifact: WorthUiActiveArtifact,
         active_plan: WorthUiActiveExecutionPlan,
         snapshot_digest: CapabilitySnapshotDigest,
         frame_epoch: WorthUiRuntimeFrameEpoch,
+        diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
     ) -> Self {
+        let generation_identity = active_plan.generation_identity().clone();
         Self {
-            generation_identity: prior.generation_identity.clone(),
+            generation_identity,
             active_artifact,
             active_plan,
             snapshot_digest,
             lifecycle: WorthUiRuntimeLifecycle::Active,
             status: WorthUiRuntimeActivationStatus::Active,
             frame_epoch,
-            diagnostic_policy: prior.diagnostic_policy,
+            diagnostic_policy,
         }
+    }
+
+    pub(crate) fn diagnostic_policy(&self) -> WorthUiRuntimeDiagnosticPolicy {
+        self.diagnostic_policy
     }
 
     pub(crate) fn apply_allocation_frame_epoch_assignment(

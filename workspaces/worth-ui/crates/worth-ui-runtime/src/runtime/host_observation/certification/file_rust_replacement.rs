@@ -1,4 +1,4 @@
-use crate::runtime::file_rust_replacement_parity::WorthUiFileRustReplacementPipelineReportParts;
+use crate::runtime::replacement::file_rust_replacement_parity::WorthUiFileRustReplacementPipelineReportParts;
 use crate::runtime::tests::allocation_planning_test_support::admitted_planning_admission;
 use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
@@ -133,12 +133,6 @@ impl WorthUiRuntime {
                 )
             })?;
 
-        let lowering_input = self.prepare_pending_execution_plan_lowering_input(
-            &node_plan,
-            &reconciliation,
-            &query_rebind,
-        );
-
         counters.record_activation_stage();
         let pending = self
             .stage_replacement_activation(
@@ -149,7 +143,6 @@ impl WorthUiRuntime {
                 crate::runtime::WorthUiActivationStagingPlans::new(
                     Some(&reconciliation),
                     Some(&query_rebind),
-                    Some(&lowering_input),
                 ),
             )
             .map_err(|_| {
@@ -185,20 +178,17 @@ impl WorthUiRuntime {
             .activate_admitted_allocation_catalog_with_boundary_source(
                 pending,
                 admitted_catalog,
-                |runtime, allocation_receipt, candidate_plan, _planning| {
-                    let lowering_input = allocation_receipt
-                        .lowering_input()
-                        .map_err(crate::runtime::WorthUiAllocationCatalogActivationDenial::Freshness)?;
+                |runtime, _allocation_receipt, candidate_plan, lowering_facts| {
                     let lane_admission = runtime
                         .admit_execution_lanes(
-                            &lowering_input,
+                            lowering_facts,
                             &WorthUiExecutionLaneSupport::platform_default(),
                         )
                         .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::CertificationBoundary("lane admission"))?;
                     candidate_plan_digest =
                         runtime.digest_execution_plan(candidate_plan).raw();
                     lane_support_digest = lane_admission.support_digest();
-                    plan_node_count = candidate_plan.topology().traversal_order().len();
+                    plan_node_count = candidate_plan.region_count();
                     Ok((boundary, None))
                 },
             )

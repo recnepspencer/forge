@@ -1,4 +1,6 @@
-use worth_ui::facade::{CapabilityDiagnosticCode, RawLayoutMeasurementForDiagnostics};
+use worth_ui::facade::{
+    diagnostics::CapabilityDiagnosticCode, registry::RawLayoutMeasurementForDiagnostics,
+};
 
 use super::app_fixtures::{
     minimal_app_builder, minimal_command_descriptor, minimal_illegal_mosaic_placement_policy,

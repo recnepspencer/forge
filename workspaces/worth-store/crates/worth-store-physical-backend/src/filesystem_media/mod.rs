@@ -2,6 +2,9 @@ mod admission;
 mod admission_operation_contracts;
 mod admitted_namespace;
 mod allocation;
+mod artifact_mutation_coordinator;
+mod artifact_tree;
+mod artifact_tree_effects;
 mod capability_profile;
 mod capability_qualification;
 #[cfg(feature = "certification-test-authority")]
@@ -16,6 +19,7 @@ mod directory_synchronization;
 mod durable_deletion;
 mod failure_context;
 mod fault_interposition;
+mod fault_schedule;
 #[cfg(any(test, feature = "certification-test-authority"))]
 mod fault_schedule_validation;
 mod file_handle;
@@ -26,8 +30,10 @@ mod logical_length;
 mod media_owner;
 mod metadata;
 mod mutation_lock_file;
+mod mutation_owner_publication;
 mod mutation_ownership;
 mod named_file_identity;
+mod namespace_admission;
 mod namespace_confinement;
 mod namespace_identity_admission;
 mod namespace_publication;
@@ -38,11 +44,13 @@ mod operation_contract;
 mod operation_counters;
 mod operation_role_metric;
 mod outcome;
+mod owner_admission_effect;
 mod owner_local_identity;
 mod pause_gate;
 mod positioned_io;
 mod positioned_read;
 mod positioned_transfer;
+mod profile_candidate_consistency;
 mod profile_observation;
 mod publication_summary;
 mod qualification_basis;
@@ -62,6 +70,13 @@ pub use admitted_namespace::AdmittedStoreNamespace;
 pub use allocation::{
     AllocationRequest, MediaAllocationMode, MediaAllocationObservation, MediaAllocationOutcome,
     MediaAllocationResult, MediaPhysicalAllocationPosture,
+};
+pub use artifact_tree::{
+    ArtifactRangeWriteDurability, ArtifactRangeWriteDurabilityRequirement,
+    ArtifactRangeWriteOutcome, ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFailureKind,
+    ArtifactTreeFile, ArtifactTreeMedia, ArtifactTreeNewFile, ArtifactTreePathDenial,
+    CompletedArtifactRangeWrite, CompletedScheduledArtifactRangeWrite,
+    IndeterminateArtifactRangeWrite, ScheduledArtifactRangeWriteOutcome,
 };
 pub use capability_profile::{
     CapabilityProfileError, CapabilitySupport, FilesystemBackendProfile, FilesystemLocation,
@@ -87,7 +102,7 @@ pub use durable_deletion::{
 pub use failure_context::{
     MediaCausalBoundary, MediaFailureContext, MediaOsCode, MediaOsCodeFamily, MediaPathRole,
 };
-pub use fault_interposition::{
+pub use fault_schedule::{
     MediaFaultDirective, MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial,
 };
 pub use file_handle::{
@@ -141,7 +156,8 @@ pub use qualification_basis::RootProfileQualificationBasis;
 pub use qualification_basis_drift::MediaQualificationBasisDrift;
 pub use qualification_outcome::{
     MediaQualificationDeferred, MediaQualificationDenial, MediaQualificationFailure,
-    MediaQualificationRebindRequired, MediaQualificationStale,
+    MediaQualificationPostOwnershipCause, MediaQualificationRebindRequired,
+    MediaQualificationStale,
 };
 pub use qualification_report::RootProfileQualificationReport;
 pub use qualification_request::{
@@ -172,6 +188,7 @@ pub use transfer::{
 /// it does not own or promote the Store runtime phase that consumes this
 /// outcome.
 #[doc(hidden)]
+#[cfg(feature = "store-runtime-owner")]
 pub fn qualify_filesystem_media(
     request: FilesystemQualificationRequest,
 ) -> AdmittedFilesystemMedia {

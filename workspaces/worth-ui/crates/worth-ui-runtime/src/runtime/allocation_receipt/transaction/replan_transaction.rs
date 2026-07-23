@@ -28,6 +28,50 @@ pub enum UiAllocationReplanTransactionDenial {
 }
 
 impl UiAllocationReplanTransaction {
+    pub(crate) fn for_catalog_removal_activation(
+        removed: Box<[UiAllocationNeighborhoodIdentity]>,
+        overlap_disposition: crate::graph::UiReplanOverlapDisposition,
+        runtime_generation: u64,
+        transaction_generation: u64,
+        frame_epoch: crate::runtime::UiAllocationFrameEpoch,
+    ) -> Result<Self, UiAllocationReplanTransactionDenial> {
+        let Some(primary) = removed.first().cloned() else {
+            return Err(UiAllocationReplanTransactionDenial::EmptyNeighborhoodSet);
+        };
+        if removed
+            .iter()
+            .enumerate()
+            .any(|(index, identity)| removed[..index].contains(identity))
+        {
+            return Err(UiAllocationReplanTransactionDenial::DuplicateNeighborhood);
+        }
+        let cardinality = u16::try_from(removed.len())
+            .map_err(|_| UiAllocationReplanTransactionDenial::CardinalityMismatch)?;
+        Ok(Self {
+            frame_ingress_keys: Box::new([]),
+            stream_families: vec![
+                crate::runtime::UiAllocationStreamFamily::HostMeasurementReplacement,
+            ]
+            .into_boxed_slice(),
+            invalidation_families: vec![
+                crate::runtime::UiAllocationInvalidationFamily::HostMeasurementResultReplacement,
+            ]
+            .into_boxed_slice(),
+            ingress_policy_verdicts: Box::new([]),
+            primary_neighborhood: primary,
+            widen_reasons: vec![None; removed.len()].into_boxed_slice(),
+            ordered_neighborhoods: removed,
+            expected_generations: Box::new([]),
+            frame_epoch,
+            policy: crate::runtime::stream_policy::replacement_activation_policy(cardinality),
+            overlap_disposition,
+            root_posture: crate::graph::UiReplanRootPosture::NotRoot,
+            transaction_generation,
+            runtime_generation,
+            consequences: Default::default(),
+        })
+    }
+
     pub(crate) fn for_replacement_activation(
         candidates: &[super::UiAllocationCandidate],
         runtime_generation: u64,

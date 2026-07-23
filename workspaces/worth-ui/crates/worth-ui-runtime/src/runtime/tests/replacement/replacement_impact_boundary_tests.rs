@@ -169,7 +169,7 @@ fn comparison_from_different_active_basis_rejected_before_impact_classification(
 }
 
 #[test]
-fn unsupported_impact_denied_without_mutating_active_state() {
+fn import_insertion_classifies_as_bounded_structure_without_mutating_active_state() {
     let app = WorthUi::app()
         .freeze()
         .expect("application preparation should succeed");
@@ -185,17 +185,18 @@ fn unsupported_impact_denied_without_mutating_active_state() {
         .compare_admitted_replacement(&candidate)
         .expect("candidate compares before broad impact denial");
 
-    let denial = runtime
+    let classification = runtime
         .classify_replacement_impact(&comparison, &candidate)
-        .expect_err("broad impact without durable-state receipts denies");
+        .expect("one structural import insertion has exact bounded scope");
 
     assert!(matches!(
-        denial.unsupported_impact(),
-        Some(WorthUiUnsupportedReplacementImpact::MissingDurableStateReceipts { .. })
+        classification.impact(),
+        WorthUiReplacementImpact::StructuralReplacement(scope)
+            if scope.impacted_handle_count() == 1
     ));
     assert_eq!(runtime.inspect_active(), active_before);
     assert_eq!(runtime.last_valid(), last_valid_before);
-    assert_eq!(denial.counters().plan_lowering_attempts(), 0);
+    assert_eq!(classification.counters().plan_lowering_attempts(), 0);
 }
 
 #[test]

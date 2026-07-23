@@ -44,7 +44,10 @@ fn pinned_page_lease_produces_access_policy_lifecycle_proof() {
     let pinned = lease.pin().unwrap();
     let proof = pinned.access_policy_lifecycle_proof();
 
-    assert_eq!(proof.kind(), AccessPolicyBufferLifecycleKind::PinnedS2Lease);
+    assert_eq!(
+        proof.kind(),
+        AccessPolicyBufferLifecycleKind::PinnedPhysicalLease
+    );
     let _ = pinned.unpin().unwrap();
 }
 
@@ -178,6 +181,7 @@ fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameT
         admitted,
         ResidentFrameTableCapacity::frames(frame_count).unwrap(),
     )
+    .unwrap()
 }
 
 fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {

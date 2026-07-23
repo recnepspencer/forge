@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    RuntimeOutcomeFamily, RuntimeOutcomeProjectionDescriptor, RuntimeOutcomeProjectionId,
+    registry::{RuntimeOutcomeFamily, RuntimeOutcomeProjectionDescriptor, RuntimeOutcomeProjectionId},
 };
 
 fn main() {

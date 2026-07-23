@@ -1,6 +1,5 @@
 pub mod admission;
 pub mod app;
-mod compat;
 pub mod declaration;
 pub mod diagnostics;
 pub mod dsl;
@@ -19,8 +18,3 @@ mod runtime_handoff {}
 pub mod runtime;
 pub mod source;
 pub mod support;
-
-pub use compat::*;
-pub use inspection::{UiAuthoredSourceProvenanceRef, UiInspectionDeclarationIdentity};
-pub use support::*;
-pub use worth_ui_runtime::facade::runtime_exports::*;

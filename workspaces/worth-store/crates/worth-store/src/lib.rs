@@ -1,8 +1,10 @@
 #![forbid(unsafe_code)]
 
-//! The ordinary facade exposes a sealed lifecycle-only physical runtime while
-//! the physical foundation is under reconstruction. It owns a declared root
-//! in-process, but it does not open media or expose physical operations.
+//! The ordinary facade progresses one sealed runtime from declared-root
+//! admission through qualified filesystem ownership and durable record
+//! serving. Product callers receive phase-typed lifecycle, record, and
+//! observation capabilities; raw filesystem and private placement authority
+//! remain behind their owning boundaries.
 //!
 //! ```compile_fail
 //! use worth_store::physical_format::InMemoryPhysicalFormatModel;
@@ -55,7 +57,7 @@ pub mod contracts {
 
 pub mod physical_format {
     pub use worth_store_physical_format::{
-        PhysicalExtentId, PhysicalGeneration, PhysicalPageId, PhysicalReference, PhysicalSegmentId,
+        PhysicalExtentId, PhysicalGeneration, PhysicalPageId, PhysicalSegmentId,
     };
 }
 
@@ -77,5 +79,5 @@ pub use worth_store_contracts::{
 };
 
 pub use worth_store_physical_format::{
-    PhysicalExtentId, PhysicalGeneration, PhysicalPageId, PhysicalReference, PhysicalSegmentId,
+    PhysicalExtentId, PhysicalGeneration, PhysicalPageId, PhysicalSegmentId,
 };

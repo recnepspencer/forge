@@ -8,11 +8,11 @@ error[E0432]: unresolved imports `worth_ui::CommandId`, `worth_ui::ComponentId`,
   |                no `CommandId` in the root
   |
   = help: consider importing one of these structs instead:
-          worth_ui::facade::CommandId
+          worth_ui::facade::registry::CommandId
           worth_ui_runtime::facade::registry::CommandId
   = help: consider importing one of these structs instead:
-          worth_ui::facade::ComponentId
+          worth_ui::facade::registry::ComponentId
           worth_ui_runtime::facade::registry::ComponentId
   = help: consider importing one of these structs instead:
-          worth_ui::facade::SurfaceId
+          worth_ui::facade::registry::SurfaceId
           worth_ui_runtime::facade::registry::SurfaceId

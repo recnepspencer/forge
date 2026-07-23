@@ -3,8 +3,10 @@ use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct UiAllocationReceiptLedgerState {
-    pub(super) committed_by_scope:
-        BTreeMap<UiAllocationNeighborhoodScope, super::UiAllocationReceipt>,
+    pub(super) committed_by_scope: crate::runtime::persistent_index::UiPersistentOrdMap<
+        UiAllocationNeighborhoodScope,
+        super::UiAllocationReceipt,
+    >,
     pub(super) completed_transactions: BTreeMap<u64, Vec<super::UiCommittedAllocationReplan>>,
     pub(super) denied_transactions: BTreeMap<
         u64,
@@ -23,7 +25,7 @@ pub(super) struct UiAllocationReceiptLedgerState {
 impl UiAllocationReceiptLedgerState {
     pub(super) fn initial(runtime_generation: u64) -> Self {
         Self {
-            committed_by_scope: BTreeMap::new(),
+            committed_by_scope: Default::default(),
             completed_transactions: BTreeMap::new(),
             denied_transactions: BTreeMap::new(),
             latest_frame_epoch: None,
@@ -41,6 +43,7 @@ pub(crate) struct UiAllocationCatalogLedgerTransition {
     pub(super) successor: UiAllocationReceiptLedgerState,
     pub(super) outcome: super::UiCommittedAllocationReplan,
     pub(super) durable_reconciliation: crate::runtime::WorthUiDurableStateReconciliationPlan,
+    pub(super) operational_meaning_changed: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -63,6 +66,13 @@ impl UiAllocationCatalogLedgerLineage {
 }
 
 impl UiAllocationCatalogLedgerTransition {
+    pub(crate) fn predecessor_receipt(
+        &self,
+        scope: &crate::evidence::UiAllocationNeighborhoodScope,
+    ) -> Option<&super::UiAllocationReceipt> {
+        self.predecessor.committed_by_scope.get(scope)
+    }
+
     pub(crate) fn committed_outcome(&self) -> &super::UiCommittedAllocationReplan {
         &self.outcome
     }
@@ -79,5 +89,35 @@ impl UiAllocationCatalogLedgerTransition {
         &self,
     ) -> &crate::runtime::WorthUiDurableStateReconciliationPlan {
         &self.durable_reconciliation
+    }
+
+    pub(crate) fn operational_meaning_unchanged(&self) -> bool {
+        !self.operational_meaning_changed
+    }
+
+    pub(crate) fn successor_allocation_identity_digest(&self, projection_digest: u64) -> u64 {
+        self.successor.truth_revision.revision().rotate_left(17)
+            ^ self.successor.committed_by_scope.len().rotate_left(31) as u64
+            ^ projection_digest.rotate_left(43)
+    }
+
+    pub(crate) fn apply_successor_delta(
+        &mut self,
+        affected: &[crate::evidence::UiAllocationNeighborhoodScope],
+        changed: &[super::UiAllocationReceipt],
+    ) {
+        let mut complete = self.predecessor.committed_by_scope.clone();
+        for scope in affected {
+            complete.remove(scope);
+        }
+        for receipt in changed {
+            complete.insert(
+                crate::evidence::UiAllocationNeighborhoodScope::from_neighborhood(
+                    receipt.committed_allocation().allocation_neighborhood(),
+                ),
+                receipt.clone(),
+            );
+        }
+        self.successor.committed_by_scope = complete;
     }
 }

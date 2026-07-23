@@ -10,7 +10,7 @@ pub(crate) fn lower_file_submission<const N: usize>(
     snapshot: &crate::capability::CapabilitySnapshot,
 ) -> crate::runtime::WorthUiWatchedCandidateSubmission {
     let mut session = runtime_from_artifact(empty_artifact())
-        .source_ingress(provider)
+        .source_event_ingress(provider)
         .start();
     session
         .ingest(events)

@@ -8,6 +8,7 @@ mod inspection_receipt;
 mod inspection_receipt_tests;
 #[cfg(test)]
 pub(crate) mod query_context_test_support;
+mod settled_fact_receipt;
 #[cfg(test)]
 pub(crate) mod variant_test_support;
 
@@ -20,3 +21,6 @@ pub(crate) use inspection_receipt::{
     project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
     project_measurement_inspection_view,
 };
+pub use settled_fact_receipt::consume_settled_query_measurement_fact;
+pub(crate) use settled_fact_receipt::UiSettledQueryFactKey;
+pub use settled_fact_receipt::UiSettledQueryFactReceipt;

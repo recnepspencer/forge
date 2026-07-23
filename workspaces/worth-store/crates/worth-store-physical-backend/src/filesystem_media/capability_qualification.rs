@@ -13,6 +13,7 @@ pub(super) fn qualify_backend_claims(
     profile: &super::FilesystemBackendProfile,
 ) -> Result<
     (
+        crate::AdmittedBackendCapabilityWitness,
         crate::BackendCapabilityClaimWitness,
         crate::BackendCapabilityClaimWitness,
         crate::BackendCapabilityClaimWitness,
@@ -61,6 +62,7 @@ pub(super) fn qualify_backend_claims(
         )?;
     let evidence = CapabilityEvidenceClass::EstablishedByFilesystemAdmission;
     Ok((
+        admitted,
         admitted.require(BackendCapabilityKind::BufferedFile, evidence)?,
         admitted.require(BackendCapabilityKind::Fsync, evidence)?,
         admitted.require(BackendCapabilityKind::DirectorySync, evidence)?,

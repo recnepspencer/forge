@@ -1,4 +1,7 @@
-use worth_ui::facade::{WorthUiAdmittedReplacementCandidate, WorthUiRuntime};
+use worth_ui::facade::{
+    WorthUiAdmittedReplacementCandidate,
+    runtime::WorthUiRuntime,
+};
 
 fn attempt(host: WorthUiRuntime, admitted: WorthUiAdmittedReplacementCandidate) {
     let _ = host.prepare_execution_plan_input(admitted);

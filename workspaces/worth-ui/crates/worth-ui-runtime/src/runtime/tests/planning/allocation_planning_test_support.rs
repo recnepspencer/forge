@@ -18,7 +18,7 @@ use crate::facade::{WorthUi, WorthUiApp};
 use crate::graph::UiGraphNodeIdentity;
 use crate::graph::UiGraphSnapshot;
 use crate::obligations::selection::UiSelectedObligationSet;
-use crate::runtime::{UiAllocationCandidate, WorthUiExecutionPlanInput, WorthUiRuntime};
+use crate::runtime::{UiAllocationCandidate, WorthUiPendingActivation, WorthUiRuntime};
 
 pub(crate) fn admitted_measurement_basis(label: &str) -> UiMeasurementBasis {
     measurement_basis_with_font_seed(label, 100, admitted_operator_token())
@@ -133,6 +133,15 @@ pub(crate) fn denied_measurement_basis(label: &str) -> UiMeasurementBasis {
     )
 }
 
+pub(crate) fn admitted_allocation_neighborhood(label: &str) -> UiAllocationNeighborhood {
+    let measurement_basis = admitted_measurement_basis(label);
+    let (app, root_node) = planning_graph_fixture(label, admitted_operator_token());
+    let snapshot = snapshot_after_layout_admission_support(&app, &[root_node]);
+    measurement_basis
+        .admit_allocation_neighborhood_from_graph(&snapshot)
+        .expect("allocation neighborhood should admit from graph")
+}
+
 pub(crate) fn admitted_query_measurement_basis(label: &str) -> UiMeasurementBasis {
     let (app, root_node) = planning_graph_fixture(label, admitted_operator_token());
     let generation = UiEvidenceAuthorityGeneration::new(17);
@@ -164,37 +173,45 @@ pub(crate) fn admitted_query_measurement_basis(label: &str) -> UiMeasurementBasi
     )
 }
 
-pub(crate) fn admitted_allocation_neighborhood(label: &str) -> UiAllocationNeighborhood {
-    admitted_neighborhood_for(
+/// Canonical allocation planning fixture. Executable-plan inputs deliberately
+/// cannot participate in this phase.
+pub(crate) fn allocation_planning(
+    runtime: &WorthUiRuntime,
+    pending_activation: &WorthUiPendingActivation,
+    label: &str,
+) -> UiAllocationCandidate {
+    allocation_planning_with_operator(
+        runtime,
+        pending_activation,
         label,
-        admitted_measurement_basis(label),
         admitted_operator_token(),
     )
 }
 
-pub(crate) fn changed_allocation_neighborhood(label: &str) -> UiAllocationNeighborhood {
-    admitted_neighborhood_for(
-        label,
-        changed_measurement_basis(label),
-        changed_operator_token(),
+pub(crate) fn allocation_planning_with_operator(
+    runtime: &WorthUiRuntime,
+    pending_activation: &WorthUiPendingActivation,
+    label: &str,
+    operator_token: &str,
+) -> UiAllocationCandidate {
+    let (measurement_basis, graph_snapshot, selected_obligations) =
+        admitted_planning_admission(label, operator_token);
+    runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(
+                pending_activation,
+                &graph_snapshot,
+                measurement_basis,
+                &selected_obligations,
+            )
+            .expect("allocation fixture must admit through candidate projection authority"),
     )
 }
 
-/// Unit-test helper for lowered-input planning parity checks only (`cfg(test)`).
-/// Cross-crate certification must use `plan_allocation` with real pending activations.
-pub(crate) fn allocation_planning(
-    runtime: &WorthUiRuntime,
-    plan_input: &WorthUiExecutionPlanInput,
-    label: &str,
-) -> UiAllocationCandidate {
-    let measurement_basis = admitted_measurement_basis(label);
-    let allocation_neighborhood =
-        admitted_neighborhood_for(label, measurement_basis.clone(), admitted_operator_token());
-    runtime.plan_allocation_for_lowered_input_for_test(
-        plan_input.clone(),
-        &measurement_basis,
-        &allocation_neighborhood,
-    )
+pub(crate) fn independent_allocation_planning(label: &str) -> UiAllocationCandidate {
+    let inputs = super::activation_staging_test_support::activation_staging_inputs();
+    let (runtime, pending_activation) = inputs.into_runtime_and_pending();
+    allocation_planning(&runtime, &pending_activation, label)
 }
 
 fn measurement_basis_with_font_seed(
@@ -231,18 +248,6 @@ fn measurement_basis_with_authority_generation(
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
         ],
     )
-}
-
-fn admitted_neighborhood_for(
-    label: &str,
-    measurement_basis: UiMeasurementBasis,
-    operator_token: &str,
-) -> UiAllocationNeighborhood {
-    let (app, root_node) = planning_graph_fixture(label, operator_token);
-    let snapshot = snapshot_after_layout_admission_support(&app, &[root_node]);
-    measurement_basis
-        .admit_allocation_neighborhood_from_graph(&snapshot)
-        .expect("allocation neighborhood should admit from graph")
 }
 
 fn declaration_identity_from_app(app: &WorthUiApp) -> UiDeclarationIdentity {

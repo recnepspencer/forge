@@ -1,13 +1,12 @@
+use super::reload_counter_test_support::{
+    admission_counters, complete_receipt, impact_counters, plan_lowering_counters,
+    query_rebind_counters,
+};
 use super::{
-    WorthUiCandidateAdmissionCounters, WorthUiDurableStateReconciliationCounters,
-    WorthUiExecutionPlanEquivalenceCounters, WorthUiFrameCostCounter, WorthUiIdentityMatchCounters,
-    WorthUiImpactLookupCounters, WorthUiMeasurementBoundary, WorthUiMeasurementCertificationDenial,
-    WorthUiMeasurementQueryEvidenceKind, WorthUiPlanLoweringCounters, WorthUiPlanTopologyCounters,
-    WorthUiQueryLiveRebindCounters, WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus,
-    WorthUiReloadCounterBoundary, WorthUiReloadCounterBoundaryDenialReason,
-    WorthUiReloadCounterStopStage, WorthUiReloadLoweringFoundationalBridge,
-    WorthUiRuntimeArtifactComparisonCounters, WorthUiRuntimeCounterFamily,
-    WorthUiRuntimeHandleAllocationCounters,
+    WorthUiDurableStateReconciliationCounters, WorthUiFrameCostCounter, WorthUiMeasurementBoundary,
+    WorthUiMeasurementCertificationDenial, WorthUiReloadCounterBoundary,
+    WorthUiReloadCounterBoundaryDenialReason, WorthUiReloadCounterStopStage,
+    WorthUiReloadLoweringFoundationalBridge, WorthUiRuntimeCounterFamily,
 };
 
 #[test]
@@ -75,61 +74,34 @@ fn invalid_candidate_emits_admission_and_preservation_counters() {
 }
 
 #[test]
-fn reload_counter_detects_repeated_query_support_rediscovery() {
-    let denial = WorthUiReloadCounterBoundary::reload_completed()
+fn zero_work_phase_does_not_fabricate_a_counter_packet() {
+    let receipt = WorthUiReloadCounterBoundary::reload_completed()
         .record_admission_counters(admission_counters())
-        .record_carried_query_support_receipt(query_support_receipt())
-        .record_query_rebind_counters(query_rebind_counters())
-        .record_query_support_rediscovery()
+        .record_reconciliation_counters(WorthUiDurableStateReconciliationCounters::default())
         .seal()
-        .expect_err("Query support posture must be carried, not rediscovered");
+        .expect("real admission work remains a valid receipt");
 
+    assert_eq!(receipt.packets().len(), 1);
     assert_eq!(
-        denial.reason(),
-        WorthUiReloadCounterBoundaryDenialReason::RepeatedQuerySupportRediscovery
+        receipt.packets()[0].family(),
+        WorthUiRuntimeCounterFamily::ReloadCandidateAdmission
     );
+    let certified = receipt
+        .certify()
+        .expect("the compact receipt passes Worth UI certification");
+    WorthUiReloadLoweringFoundationalBridge::lower(&certified)
+        .expect("no synthetic zero packet reaches Foundational");
 }
 
 #[test]
-fn query_rebind_counter_receipt_requires_carried_query_evidence() {
-    let denial = WorthUiReloadCounterBoundary::reload_completed()
-        .record_query_rebind_counters(query_rebind_counters())
-        .seal()
-        .expect_err("Query-bound counter packets must bind carried Query receipt evidence");
-
-    assert_eq!(
-        denial.reason(),
-        WorthUiReloadCounterBoundaryDenialReason::MissingCarriedQueryEvidence
-    );
-}
-
-#[test]
-fn query_rebind_counter_receipt_carries_query_evidence_independent_of_builder_order() {
+fn query_rebind_counter_receipt_records_real_work_without_a_fake_support_receipt() {
     let receipt = WorthUiReloadCounterBoundary::reload_completed()
         .record_query_rebind_counters(query_rebind_counters())
-        .record_carried_query_support_receipt(query_support_receipt())
         .seal()
-        .expect("carried Query evidence must bind even when recorded after query counters");
+        .expect("Query rebind work is measured without reconstructing Query authority");
 
-    let query_packet = receipt
-        .packets()
-        .iter()
-        .find(|packet| packet.family() == WorthUiRuntimeCounterFamily::QueryRebindPlanning)
-        .expect("query rebind packet should be present");
-
-    assert_eq!(
-        receipt.carried_query_contract_identities(),
-        &[query_support_receipt().contract_identity().as_u64()]
-    );
-    assert_eq!(query_packet.query_evidence().len(), 1);
-    assert_eq!(
-        query_packet.query_evidence()[0].kind(),
-        WorthUiMeasurementQueryEvidenceKind::SubscriptionSelectionDiagnostics
-    );
-    assert_eq!(
-        query_packet.query_evidence()[0].evidence_digest(),
-        query_support_receipt().contract_identity().as_u64()
-    );
+    assert_eq!(receipt.packets().len(), 1);
+    assert!(receipt.packets()[0].query_evidence().is_empty());
 }
 
 #[test]
@@ -279,117 +251,4 @@ fn complete_reload_counter_receipt_lowers_to_foundational_evidence() {
         evidence.counter_rows().len() == evidence.counter_specs().len()
             && evidence.canonical_basis_entry_count() > 0
     }));
-}
-
-fn complete_receipt(
-) -> Result<super::WorthUiReloadLoweringCounterReceipt, super::WorthUiReloadCounterBoundaryDenial> {
-    WorthUiReloadCounterBoundary::reload_completed()
-        .record_admission_counters(admission_counters())
-        .record_artifact_comparison_counters(artifact_comparison_counters())
-        .record_impact_narrowing_counters(impact_counters())
-        .record_identity_match_counters(identity_counters())
-        .record_reconciliation_counters(reconciliation_counters())
-        .record_carried_query_support_receipt(query_support_receipt())
-        .record_query_rebind_counters(query_rebind_counters())
-        .record_plan_lowering_counters(plan_lowering_counters())
-        .record_plan_assembly_counters(
-            handle_allocation_counters(),
-            topology_counters(),
-            plan_equivalence_counters(),
-        )
-        .seal()
-}
-
-fn admission_counters() -> WorthUiCandidateAdmissionCounters {
-    let mut counters = WorthUiCandidateAdmissionCounters::default();
-    counters.record_candidate_proof_check();
-    counters.record_snapshot_compatibility_check();
-    counters.record_runtime_posture_check();
-    counters.record_query_support_check();
-    counters
-}
-
-fn artifact_comparison_counters() -> WorthUiRuntimeArtifactComparisonCounters {
-    let mut counters = WorthUiRuntimeArtifactComparisonCounters::default();
-    counters.record_artifact_comparison();
-    counters
-}
-
-fn impact_counters() -> WorthUiImpactLookupCounters {
-    let mut counters = WorthUiImpactLookupCounters::default();
-    counters.record_impact_classification_consumed();
-    counters.record_dependency_metadata_read();
-    counters.record_module_impact_lookup();
-    counters.record_subtree_impact_lookup();
-    counters.record_runtime_hook_lookup();
-    counters.record_subtree_digest_lookup();
-    counters
-}
-
-fn identity_counters() -> WorthUiIdentityMatchCounters {
-    let mut counters = WorthUiIdentityMatchCounters::default();
-    counters.record_active_node_indexed();
-    counters.record_candidate_node_indexed();
-    counters.record_stable_seed_lookup();
-    counters.record_match_emitted();
-    counters
-}
-
-fn reconciliation_counters() -> WorthUiDurableStateReconciliationCounters {
-    let mut counters = WorthUiDurableStateReconciliationCounters::default();
-    counters.record_family();
-    counters.record_node();
-    counters.record_query_posture_required();
-    counters
-}
-
-fn query_rebind_counters() -> WorthUiQueryLiveRebindCounters {
-    let mut counters = WorthUiQueryLiveRebindCounters::default();
-    counters.record_preserved_binding_for_test();
-    counters
-}
-
-fn query_support_receipt() -> WorthUiQuerySupportReceipt {
-    WorthUiQuerySupportReceipt::for_test(
-        WorthUiQuerySupportStatus::Supported,
-        "reload-counter-boundary",
-    )
-}
-
-fn plan_lowering_counters() -> WorthUiPlanLoweringCounters {
-    let mut counters = WorthUiPlanLoweringCounters::default();
-    counters.record_epoch_verification();
-    counters.record_readiness_verification();
-    counters.record_staged_node_input();
-    counters.record_query_binding_input();
-    counters.record_reconciliation_receipts(1);
-    counters.record_component_hook_input();
-    counters
-}
-
-fn handle_allocation_counters() -> WorthUiRuntimeHandleAllocationCounters {
-    let mut counters = WorthUiRuntimeHandleAllocationCounters::default();
-    counters.record_plan_node_input();
-    counters.record_component_handle();
-    counters.record_command_handle();
-    counters.record_token_handle();
-    counters.record_collision_check();
-    counters
-}
-
-fn topology_counters() -> WorthUiPlanTopologyCounters {
-    let mut counters = WorthUiPlanTopologyCounters::default();
-    counters.record_plan_node_input();
-    counters.record_topology_node();
-    counters.record_lookup_entry();
-    counters.record_validation();
-    counters
-}
-
-fn plan_equivalence_counters() -> WorthUiExecutionPlanEquivalenceCounters {
-    let mut counters = WorthUiExecutionPlanEquivalenceCounters::default();
-    counters.record_plan_digest();
-    counters.record_plan_node_digest();
-    counters.record_equivalence_comparison();
-    counters
 }

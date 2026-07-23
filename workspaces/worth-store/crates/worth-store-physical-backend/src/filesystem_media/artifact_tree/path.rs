@@ -1,0 +1,133 @@
+const MAX_ARTIFACT_TREE_DEPTH: usize = 8;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::filesystem_media) enum ArtifactTreeRoot {
+    Families,
+    Staging,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactTreeDirectory {
+    pub(in crate::filesystem_media) root: ArtifactTreeRoot,
+    pub(in crate::filesystem_media) components: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactTreeFile {
+    pub(in crate::filesystem_media) directory: ArtifactTreeDirectory,
+    pub(in crate::filesystem_media) file_name: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArtifactTreePathDenial {
+    EmptyComponent,
+    SpecialComponent,
+    EmbeddedSeparator,
+    AlternateDataStream,
+    NonPortableComponent,
+    ReservedDeviceName,
+    ExcessiveDepth,
+}
+
+impl ArtifactTreeDirectory {
+    pub fn families() -> Self {
+        Self {
+            root: ArtifactTreeRoot::Families,
+            components: Vec::new(),
+        }
+    }
+
+    pub fn staging() -> Self {
+        Self {
+            root: ArtifactTreeRoot::Staging,
+            components: Vec::new(),
+        }
+    }
+
+    pub fn child(&self, component: &str) -> Result<Self, ArtifactTreePathDenial> {
+        validate_component(component)?;
+        if self.components.len() >= MAX_ARTIFACT_TREE_DEPTH {
+            return Err(ArtifactTreePathDenial::ExcessiveDepth);
+        }
+        let mut components = self.components.clone();
+        components.push(component.to_owned());
+        Ok(Self {
+            root: self.root,
+            components,
+        })
+    }
+
+    pub fn file(&self, component: &str) -> Result<ArtifactTreeFile, ArtifactTreePathDenial> {
+        validate_component(component)?;
+        Ok(ArtifactTreeFile {
+            directory: self.clone(),
+            file_name: component.to_owned(),
+        })
+    }
+
+    pub(in crate::filesystem_media) fn coordination_key(&self) -> String {
+        let root = match self.root {
+            ArtifactTreeRoot::Families => "families",
+            ArtifactTreeRoot::Staging => "staging",
+        };
+        if self.components.is_empty() {
+            return root.to_owned();
+        }
+        format!("{root}/{}", self.components.join("/"))
+    }
+}
+
+impl ArtifactTreeFile {
+    pub(in crate::filesystem_media) fn coordination_key(&self) -> String {
+        format!("{}/{}", self.directory.coordination_key(), self.file_name)
+    }
+}
+
+pub(in crate::filesystem_media) fn validate_component(
+    component: &str,
+) -> Result<(), ArtifactTreePathDenial> {
+    if component.is_empty() {
+        return Err(ArtifactTreePathDenial::EmptyComponent);
+    }
+    if matches!(component, "." | "..") {
+        return Err(ArtifactTreePathDenial::SpecialComponent);
+    }
+    if component.contains(['/', '\\']) {
+        return Err(ArtifactTreePathDenial::EmbeddedSeparator);
+    }
+    if component.contains(':') {
+        return Err(ArtifactTreePathDenial::AlternateDataStream);
+    }
+    if component.ends_with(['.', ' ']) || component.chars().any(char::is_control) {
+        return Err(ArtifactTreePathDenial::NonPortableComponent);
+    }
+    let stem = component.split('.').next().unwrap_or(component);
+    if matches!(
+        stem.to_ascii_uppercase().as_str(),
+        "CON"
+            | "PRN"
+            | "AUX"
+            | "NUL"
+            | "COM1"
+            | "COM2"
+            | "COM3"
+            | "COM4"
+            | "COM5"
+            | "COM6"
+            | "COM7"
+            | "COM8"
+            | "COM9"
+            | "LPT1"
+            | "LPT2"
+            | "LPT3"
+            | "LPT4"
+            | "LPT5"
+            | "LPT6"
+            | "LPT7"
+            | "LPT8"
+            | "LPT9"
+    ) {
+        return Err(ArtifactTreePathDenial::ReservedDeviceName);
+    }
+    Ok(())
+}

@@ -1,4 +1,4 @@
-use worth_ui::facade::CapabilitySupportId;
+use worth_ui::facade::support::CapabilitySupportId;
 
 struct FakeCapabilityId;
 

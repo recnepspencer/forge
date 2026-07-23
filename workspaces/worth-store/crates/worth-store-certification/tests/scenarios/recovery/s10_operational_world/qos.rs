@@ -5,7 +5,6 @@ use worth_foundational::{
     FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
     FoundationalPerformanceWorkClass, FoundationalPolicyAdmissionReceipt,
 };
-use worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 use worth_store_certification::courtroom::operational_recovery::S10OperationalQosEvidence;
 use worth_store_certification::S6LatencyInterferenceEvidence;
 use worth_store_contracts::QueueProducerResourceShape;
@@ -51,7 +50,8 @@ pub fn operational_qos() -> S10OperationalQosEvidence {
 fn admitted_read_ahead_plan() -> QueueExecutionReadyPlan {
     let reservation = admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = BufferPoolQueueExecutionDeclaration::read_ahead(
+    let producer = worth_store_test_support::read_ahead_declaration_for_real_pool(
+        reservation.security_scope_identity(),
         7,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())

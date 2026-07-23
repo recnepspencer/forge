@@ -1,11 +1,11 @@
 use super::{
     WorthUiHostSessionPlan, WorthUiPreparedApplicationArtifact,
     WorthUiPreparedApplicationArtifactPosture, WorthUiPreparedApplicationGenerationIdentity,
-    WorthUiPreparedDeclarationSourceIdentity,
+    WorthUiPreparedApplicationLoweringAuthority, WorthUiPreparedDeclarationSourceIdentity,
 };
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationAuthoredEvidenceIndex};
 use crate::facade::lifecycle::{build_graph_evidence_indexes, WorthUiFacadeLifecycleBootstrap};
-use crate::facade::registry::CapabilitySnapshot;
+use crate::facade::registry::snapshot::CapabilitySnapshot;
 use crate::graph::{UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, UiGraphSnapshot};
 use std::rc::Rc;
 
@@ -29,6 +29,7 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
 /// be extracted or independently launched.
 pub struct WorthUiPreparedApplicationAuthority {
     generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    lowering_authority: WorthUiPreparedApplicationLoweringAuthority,
     capability_snapshot: Rc<CapabilitySnapshot>,
     canonical_artifact: WorthUiPreparedApplicationArtifact,
     declaration_source_identity: WorthUiPreparedDeclarationSourceIdentity,
@@ -71,8 +72,24 @@ impl WorthUiPreparedApplicationAuthority {
             &query_binding_plan,
             &host_session_plan,
         );
+        let source_artifact_authority = canonical_artifact
+            .runtime_artifact_authority()
+            .map(|(artifact, _)| artifact);
+        let lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(
+            generation_identity.clone(),
+            match &canonical_artifact {
+                WorthUiPreparedApplicationArtifact::SourceBacked { basis, .. } => Some(*basis),
+                WorthUiPreparedApplicationArtifact::DeclarationAuthored(_) => None,
+            },
+            source_artifact_authority,
+            graph_snapshot.authority_identity(),
+            Rc::clone(&capability_snapshot),
+            query_binding_plan.clone(),
+            host_session_plan.clone(),
+        );
         Self {
             generation_identity,
+            lowering_authority,
             capability_snapshot,
             canonical_artifact,
             declaration_source_identity,
@@ -131,6 +148,17 @@ impl WorthUiPreparedApplicationAuthority {
             &self.query_binding_plan,
             &self.host_session_plan,
         );
+        self.lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(
+            self.generation_identity.clone(),
+            self.source_backed_candidate_basis(),
+            self.canonical_artifact
+                .runtime_artifact_authority()
+                .map(|(artifact, _)| artifact),
+            self.graph_snapshot.authority_identity(),
+            Rc::clone(&self.capability_snapshot),
+            self.query_binding_plan.clone(),
+            self.host_session_plan.clone(),
+        );
     }
 
     pub(crate) fn lifecycle(&self) -> &WorthUiFacadeLifecycleBootstrap {
@@ -151,6 +179,10 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub(crate) fn query_binding_plan(&self) -> &worth_ui_query_binding::WorthUiQueryBindingPlan {
         &self.query_binding_plan
+    }
+
+    pub(crate) fn lowering_authority(&self) -> WorthUiPreparedApplicationLoweringAuthority {
+        self.lowering_authority.clone()
     }
 
     pub(crate) fn capability_authority(&self) -> Rc<CapabilitySnapshot> {
@@ -187,14 +219,43 @@ impl WorthUiPreparedApplicationAuthority {
             self.canonical_artifact.runtime_artifact_authority().ok_or(
                 crate::runtime::WorthUiRuntimeLaunchDenial::PreparedApplicationHasNoRuntimeArtifact,
             )?;
+        let initial_allocation_commit = self.initial_allocation_commit(artifact_digest)?;
         Ok(super::WorthUiPreparedLaunchAdmission {
-            generation_identity: self.generation_identity.clone(),
+            lowering_authority: self.lowering_authority(),
+            initial_allocation_commit,
             artifact,
             artifact_digest,
             snapshot_digest: self.capability_snapshot.digest(),
             diagnostic_policy,
-            query_binding: self.query_binding_plan.activate(),
+            query_binding: self.query_binding_plan.prepare_downstream_state(),
             host_session_plan: self.host_session_plan.clone(),
+        })
+    }
+
+    pub(crate) fn initial_allocation_commit(
+        &self,
+        artifact_digest: crate::source::WorthUiArtifactDigest,
+    ) -> Result<
+        crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit,
+        crate::runtime::WorthUiRuntimeLaunchDenial,
+    > {
+        let projection =
+            crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection::seal(
+                crate::runtime::WorthUiRuntimeFrameEpoch::initial(),
+                artifact_digest.raw(),
+                self.graph_snapshot.authority_identity(),
+            );
+        crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit::commit(
+            &self.graph_snapshot,
+            projection,
+        )
+        .map_err(|denial| match denial {
+            crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommitDenial::CandidateGraphAuthorityMismatch => {
+                crate::runtime::WorthUiRuntimeLaunchDenial::InitialAllocationGraphAuthorityMismatch
+            }
+            crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommitDenial::ActiveAllocationObligations { node_count } => {
+                crate::runtime::WorthUiRuntimeLaunchDenial::InitialAllocationObligationsUnsettled { node_count }
+            }
         })
     }
 

@@ -143,5 +143,3 @@ artifact, orchestration, grouping, and recovery model.
 - [Lower-runtime capability routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Contributions hub](./domain-capabilities/contributions/README.md)
 - Choosers: [live vs subscription](./domain-capabilities/choosing/live-view-vs-subscription.md), [inspection vs cross-runtime explanation](./domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md), [projection vs inspection](./domain-capabilities/choosing/projection-consumption-vs-inspection.md)
-
-

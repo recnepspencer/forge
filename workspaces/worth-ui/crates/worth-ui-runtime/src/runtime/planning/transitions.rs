@@ -19,6 +19,10 @@ pub enum WorthUiPlanningLaneInputDenial {
 pub enum WorthUiPlanningLaneAdmissionDenial {
     AllocationNeighborhood(UiAllocationNeighborhoodDenial),
     BasisNeighborhoodMismatch,
+    StalePendingActivation {
+        active_frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch,
+        pending_frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch,
+    },
 }
 
 impl From<UiAllocationNeighborhoodDenial> for WorthUiPlanningLaneAdmissionDenial {

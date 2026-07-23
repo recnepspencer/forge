@@ -135,7 +135,7 @@ fn resident_frame_table() -> ResidentFrameTable {
             .with_budget(budget)
             .admit()
             .unwrap();
-    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(2).unwrap())
+    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(2).unwrap()).unwrap()
 }
 
 fn algorithm_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {

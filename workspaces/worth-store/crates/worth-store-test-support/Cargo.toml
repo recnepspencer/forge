@@ -39,6 +39,7 @@ certification-world = [
     "dep:worth-store-blob-chunks",
     "dep:worth-store-io-scheduler",
     "dep:worth-store-physical-certification",
+    "worth-store-physical-integrity/legacy-certification-models",
 ]
 
 [dependencies]

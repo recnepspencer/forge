@@ -1,4 +1,4 @@
-use worth_ui::facade::{VisibleStateBindingDeclaration, WorthUi};
+use worth_ui::facade::{app::WorthUi, registry::VisibleStateBindingDeclaration};
 
 use super::view_binding_assertions::assert_registered_view_binding_ids;
 use super::view_binding_fixtures::{

@@ -7,7 +7,6 @@ fn main() {
         child_range_digest_count: 1,
         lane_partition_digest_count: 1,
         lookup_index_digest_count: 1,
-        egui_boundary_digest_count: 1,
         render_resource_digest_count: 1,
         equivalence_comparison_count: 1,
         artifact_tree_scan_count: 0,

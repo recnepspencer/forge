@@ -53,7 +53,7 @@ fn admitted_identity_and_live_owner_must_share_one_capability_basis() {
     )
     .unwrap();
     let profile = super::super::profile_observation::observe_profile(
-        &parent.path().join("b"),
+        owner_b.root_directory_handle(),
         owner_b.boundary(),
     )
     .unwrap();

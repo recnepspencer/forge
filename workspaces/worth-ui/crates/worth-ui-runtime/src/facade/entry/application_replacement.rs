@@ -1,15 +1,25 @@
 use super::{WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity, WorthUiApp};
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 
-pub enum WorthUiApplicationReplacementPreparation {
-    Prepared(Box<WorthUiPreparedApplicationReplacement>),
-    NoOp(WorthUiApplicationReplacementNoOp),
-}
+#[cfg(test)]
+#[path = "application_replacement_exact_authority_tests.rs"]
+mod application_replacement_exact_authority_tests;
+
+mod basis;
+mod candidate;
+mod publication_observation;
+mod receipt;
+mod retry;
+
+pub use candidate::{WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope};
+pub use publication_observation::WorthUiApplicationPublicationObservation;
 
 pub struct WorthUiPreparedApplicationReplacement {
     next_app: WorthUiApp,
     admitted: crate::runtime::WorthUiAdmittedReplacementCandidate,
     basis: WorthUiPreparedApplicationReplacementBasis,
+    candidate_query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    candidate_graph_changed_nodes: std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -18,6 +28,8 @@ pub(crate) struct WorthUiPreparedApplicationReplacementBasis {
     next_generation: WorthUiPreparedApplicationGenerationIdentity,
     candidate_basis: crate::runtime::WorthUiReplacementCandidateBasis,
     graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
+    candidate_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
 }
 
 pub struct WorthUiCandidateInspectionReceipt {
@@ -30,24 +42,58 @@ pub struct WorthUiLoweredApplicationReplacement {
     next_app: WorthUiApp,
     lowering: crate::runtime::WorthUiReplacementLoweringReady,
     basis: WorthUiPreparedApplicationReplacementBasis,
+    candidate_query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    candidate_graph_changed_nodes: std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
+    reload_cost_seed: crate::runtime::WorthUiReloadCostSeed,
+    active_generation: WorthUiPreparedApplicationGenerationIdentity,
 }
 
 pub struct WorthUiPendingApplicationCutover {
     next_app: WorthUiApp,
     pending_activation: crate::runtime::WorthUiPendingActivation,
     basis: WorthUiPreparedApplicationReplacementBasis,
+    candidate_query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    candidate_graph_changed_nodes: std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
+    reload_cost_seed: crate::runtime::WorthUiReloadCostSeed,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthUiApplicationReplacementNoOp {
-    active_generation: WorthUiPreparedApplicationGenerationIdentity,
-    candidate_basis: crate::runtime::WorthUiReplacementCandidateBasis,
+/// Candidate ownership returned when a transient frame boundary cannot admit
+/// publication yet.
+#[must_use = "a denied frame-boundary cutover remains retryable"]
+pub struct WorthUiApplicationCutoverRetry {
+    pending: WorthUiPendingApplicationCutover,
+    admitted_delta: crate::graph::UiAdmittedAllocationCatalogDelta,
+    lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
 }
 
+#[must_use = "application cutover receipts may carry Query resources requiring explicit retirement"]
 pub struct WorthUiApplicationCutoverReceipt {
     prior_generation: WorthUiPreparedApplicationGenerationIdentity,
     active_generation: WorthUiPreparedApplicationGenerationIdentity,
     plan_swap: crate::runtime::WorthUiPlanSwapReceipt,
+    plan_decision: crate::runtime::WorthUiExecutablePlanDecision,
+    query_retirement:
+        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement,
+    allocation_catalog_successor: crate::runtime::UiAllocationCatalogSuccessorReceipt,
+    publication: WorthUiApplicationPublicationObservation,
+    reload_cost: Result<
+        crate::runtime::WorthUiReloadLoweringCounterReceipt,
+        crate::runtime::WorthUiReloadCounterBoundaryDenial,
+    >,
+}
+
+pub struct WorthUiApplicationSemanticNoOpReceipt {
+    receipt: crate::runtime::WorthUiSemanticNoOpReceipt,
+    reload_cost: Result<
+        crate::runtime::WorthUiReloadLoweringCounterReceipt,
+        crate::runtime::WorthUiReloadCounterBoundaryDenial,
+    >,
+}
+
+#[must_use = "replacement outcomes distinguish authority-preserving no-op from publication"]
+pub enum WorthUiApplicationReplacementOutcome {
+    SemanticNoOp(Box<WorthUiApplicationSemanticNoOpReceipt>),
+    Activated(Box<WorthUiApplicationCutoverReceipt>),
 }
 
 #[derive(Debug)]
@@ -73,6 +119,11 @@ pub enum WorthUiApplicationReplacementStagingDenial {
 pub enum WorthUiApplicationCutoverDenial {
     ForeignActiveApplicationSession,
     PreparedApplicationGraphMismatch,
+    PreparedApplicationAuthorityMismatch,
+    FrameBoundaryUnavailable {
+        reason: crate::runtime::WorthUiActivationGateDenialReason,
+        retry: Box<WorthUiApplicationCutoverRetry>,
+    },
     Activation(crate::runtime::WorthUiAllocationCatalogActivationDenial),
 }
 
@@ -81,7 +132,7 @@ impl WorthUiActiveApplicationSession {
         &self,
         submission: crate::runtime::WorthUiWatchedCandidateSubmission,
     ) -> Result<
-        WorthUiApplicationReplacementPreparation,
+        Box<WorthUiPreparedApplicationReplacement>,
         WorthUiApplicationReplacementPreparationDenial,
     > {
         let (next_authority, candidate) =
@@ -90,25 +141,12 @@ impl WorthUiActiveApplicationSession {
                 submission,
             )
             .map_err(WorthUiApplicationReplacementPreparationDenial::Preparation)?;
-        let candidate_basis = candidate.basis();
         let admitted = crate::runtime::WorthUiCandidateAdmission::for_active_basis(
             self.runtime.replacement_admission_basis(),
         )
         .admit(candidate)
         .map_err(WorthUiApplicationReplacementPreparationDenial::Admission)?;
         let next_app = WorthUiApp::from_prepared_authority(next_authority);
-        let active = self.runtime.inspect_active();
-        if candidate_basis.artifact_digest().raw() == active.artifact_digest()
-            && next_app.prepared_authority().declaration_source_identity()
-                == self.app.prepared_authority().declaration_source_identity()
-        {
-            return Ok(WorthUiApplicationReplacementPreparation::NoOp(
-                WorthUiApplicationReplacementNoOp {
-                    active_generation: self.generation_identity().clone(),
-                    candidate_basis,
-                },
-            ));
-        }
         let Some(basis) = WorthUiPreparedApplicationReplacementBasis::bind(
             self.session_identity(),
             &next_app,
@@ -118,13 +156,16 @@ impl WorthUiActiveApplicationSession {
                 WorthUiApplicationReplacementPreparationDenial::PreparedApplicationBindingMismatch,
             );
         };
-        Ok(WorthUiApplicationReplacementPreparation::Prepared(
-            Box::new(WorthUiPreparedApplicationReplacement {
-                next_app,
-                admitted,
-                basis,
-            }),
-        ))
+        Ok(Box::new(WorthUiPreparedApplicationReplacement {
+            candidate_query_binding: next_app
+                .prepared_authority()
+                .query_binding_plan()
+                .prepare_downstream_state(),
+            next_app,
+            admitted,
+            basis,
+            candidate_graph_changed_nodes: Default::default(),
+        }))
     }
 
     pub fn lower_prepared_replacement(
@@ -148,14 +189,26 @@ impl WorthUiActiveApplicationSession {
                 WorthUiApplicationReplacementLoweringDenial::ForeignActiveApplicationSession,
             );
         }
+        let candidate_application_authority =
+            prepared.next_app.prepared_authority().lowering_authority();
         let lowering = self
             .runtime
-            .prepare_application_replacement_lowering(prepared.admitted, configure)
+            .prepare_application_replacement_lowering(
+                prepared.admitted,
+                candidate_application_authority,
+                &prepared.candidate_query_binding,
+                configure,
+            )
             .map_err(WorthUiApplicationReplacementLoweringDenial::Lowering)?;
+        let reload_cost_seed = lowering.reload_cost_seed();
         Ok(WorthUiLoweredApplicationReplacement {
             next_app: prepared.next_app,
             lowering,
             basis: prepared.basis,
+            candidate_query_binding: prepared.candidate_query_binding,
+            candidate_graph_changed_nodes: prepared.candidate_graph_changed_nodes,
+            reload_cost_seed,
+            active_generation: self.generation_identity().clone(),
         })
     }
 
@@ -176,202 +229,164 @@ impl WorthUiActiveApplicationSession {
             next_app: lowered.next_app,
             pending_activation,
             basis: lowered.basis,
+            candidate_query_binding: lowered.candidate_query_binding,
+            candidate_graph_changed_nodes: lowered.candidate_graph_changed_nodes,
+            reload_cost_seed: lowered.reload_cost_seed,
         })
     }
 
     pub fn activate_prepared_replacement(
         &mut self,
         pending: WorthUiPendingApplicationCutover,
-        admitted_catalog: crate::graph::UiAdmittedAllocationCatalogBasisSet,
+        admitted_delta: crate::graph::UiAdmittedAllocationCatalogDelta,
         boundary: crate::runtime::WorthUiFrameBoundary,
         lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
-    ) -> Result<WorthUiApplicationCutoverReceipt, WorthUiApplicationCutoverDenial> {
+    ) -> Result<WorthUiApplicationReplacementOutcome, WorthUiApplicationCutoverDenial> {
         if !pending.basis.admits_session(self.session_identity()) {
             return Err(WorthUiApplicationCutoverDenial::ForeignActiveApplicationSession);
         }
+        if let Some(reason) = retryable_boundary_denial(self, &pending, boundary) {
+            return Err(WorthUiApplicationCutoverDenial::FrameBoundaryUnavailable {
+                reason,
+                retry: Box::new(WorthUiApplicationCutoverRetry {
+                    pending,
+                    admitted_delta,
+                    lane_parity_report,
+                }),
+            });
+        }
         let prior_generation = self.generation_identity().clone();
-        let active_generation = pending.basis.next_generation().clone();
-        debug_assert_eq!(pending.next_app.generation_identity(), &active_generation);
-        if !pending.basis.admits_catalog(&admitted_catalog) {
+        let reload_cost_seed = pending.reload_cost_seed;
+        if !pending.basis.admits_catalog_delta(&admitted_delta) {
             return Err(WorthUiApplicationCutoverDenial::PreparedApplicationGraphMismatch);
         }
-        let plan_swap = self
+        let candidate_application_authority = pending
+            .pending_activation
+            .candidate_application_authority()
+            .clone();
+        let active_generation = candidate_application_authority
+            .generation_identity()
+            .clone();
+        debug_assert_eq!(pending.basis.next_generation(), &active_generation);
+        debug_assert_eq!(pending.next_app.generation_identity(), &active_generation);
+        if !pending
+            .basis
+            .admits_application_authority(&candidate_application_authority)
+        {
+            return Err(WorthUiApplicationCutoverDenial::PreparedApplicationAuthorityMismatch);
+        }
+        let publication = self
             .runtime
-            .activate_admitted_allocation_catalog_at_frame_boundary(
+            .activate_admitted_allocation_catalog_delta_with_query_binding(
                 pending.pending_activation,
-                admitted_catalog,
-                boundary,
-                lane_parity_report,
+                crate::runtime::UiAllocationCatalogDeltaActivationInput {
+                    admitted_delta,
+                    active_graph: self.app.graph_snapshot().clone(),
+                    graph_changed_nodes: pending.candidate_graph_changed_nodes,
+                    boundary,
+                    lane_parity_report,
+                    candidate_query_binding: pending.candidate_query_binding,
+                    successor_planning_authority: std::rc::Rc::clone(
+                        pending.next_app.retained_planning_authority(),
+                    ),
+                    application_publication:
+                        crate::runtime::WorthUiPreparedApplicationPublication::new(
+                            &mut self.app,
+                            pending.next_app,
+                        ),
+                },
             )
             .map_err(WorthUiApplicationCutoverDenial::Activation)?;
-        self.runtime
-            .bind_active_application_generation(active_generation.clone());
-        self.runtime
-            .bind_retained_allocation_planning_evidence(std::rc::Rc::clone(
-                pending.next_app.retained_planning_authority(),
-            ));
-        self.app = pending.next_app;
-        Ok(WorthUiApplicationCutoverReceipt {
-            prior_generation,
-            active_generation,
-            plan_swap,
-        })
-    }
-}
-
-impl WorthUiApplicationReplacementNoOp {
-    pub fn active_generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.active_generation
-    }
-
-    pub fn candidate_basis(&self) -> crate::runtime::WorthUiReplacementCandidateBasis {
-        self.candidate_basis
-    }
-}
-
-impl WorthUiPreparedApplicationReplacement {
-    /// Borrow the candidate graph without promoting it to active truth.
-    pub fn candidate_graph(&self) -> crate::graph::UiGraphAuthority<'_> {
-        self.next_app.graph()
-    }
-
-    pub fn candidate_declaration_artifacts(&self) -> &[crate::declaration::UiDeclarationArtifact] {
-        self.next_app.declaration_artifacts()
-    }
-
-    /// Advance candidate graph authority only after mounted-receipt transitions
-    /// minted by that candidate graph have been re-admitted at its boundary.
-    pub fn commit_candidate_mounted_layout_admissions(
-        &mut self,
-        transitions: Vec<crate::graph::UiGraphMountedReceiptTransition>,
-    ) -> Result<(), crate::graph::UiGraphMountedLayoutAdmissionDenial> {
-        let committed = self
-            .candidate_graph()
-            .commit_mounted_layout_admissions(transitions)?;
-        self.next_app.advance_prepared_graph(committed);
-        self.basis.rebind_graph(&self.next_app);
-        Ok(())
-    }
-
-    /// Enter candidate-scoped obligation admission without touching the active
-    /// application's admission authority.
-    pub fn candidate_admission(&self) -> crate::admission::UiAdmissionBoundary<'_> {
-        self.next_app.admission()
-    }
-
-    pub fn try_candidate_query_touch_for_node(
-        &self,
-        graph_node_identity: crate::graph::UiGraphNodeIdentity,
-    ) -> Result<
-        crate::obligations::touch::UiGraphTouchDescriptor,
-        crate::obligations::touch::UiGraphTouchDenial,
-    > {
-        self.next_app.try_query_touch_for_node(graph_node_identity)
-    }
-
-    /// Seal one complete allocation catalog against the candidate graph that
-    /// will become active. A catalog admitted by any other graph cannot cross
-    /// the later cutover boundary.
-    pub fn admit_candidate_allocation_catalog(
-        &self,
-        entries: Vec<(
-            crate::evidence::UiMeasurementBasis,
-            crate::obligations::selection::UiSelectedObligationSet,
-        )>,
-    ) -> Result<
-        crate::graph::UiAdmittedAllocationCatalogBasisSet,
-        crate::graph::UiAllocationCatalogBasisAdmissionDenial,
-    > {
-        self.next_app
-            .graph_snapshot()
-            .admit_allocation_catalog_basis_set(entries)
-    }
-
-    pub fn inspect_candidate(
-        &self,
-        query: worth_ui_inspection::UiInspectionQuery,
-    ) -> WorthUiCandidateInspectionReceipt {
-        WorthUiCandidateInspectionReceipt {
-            generation_identity: self.next_app.generation_identity().clone(),
-            candidate_basis: self.admitted.candidate().basis(),
-            receipt: self.next_app.inspect(query),
+        match publication {
+            crate::runtime::WorthUiQueryAwarePlanOutcome::SemanticNoOp(receipt) => {
+                debug_assert_eq!(receipt.active_generation(), &prior_generation);
+                debug_assert_eq!(receipt.candidate_generation(), &active_generation);
+                let reload_cost = reload_cost_seed.finish(
+                    prior_generation,
+                    active_generation,
+                    receipt.equivalence().previous_fingerprint(),
+                    receipt.candidate_construction(),
+                    receipt.equivalence(),
+                );
+                Ok(WorthUiApplicationReplacementOutcome::SemanticNoOp(
+                    Box::new(WorthUiApplicationSemanticNoOpReceipt {
+                        receipt: *receipt,
+                        reload_cost,
+                    }),
+                ))
+            }
+            crate::runtime::WorthUiQueryAwarePlanOutcome::Activated(publication) => {
+                let (plan_swap, query_retirement, plan_decision, allocation_catalog_successor) =
+                    publication.into_parts();
+                let publication = WorthUiApplicationPublicationObservation::capture(
+                    &self.app,
+                    &self.runtime,
+                    &self.host_session,
+                );
+                let reload_cost = reload_cost_seed.finish(
+                    prior_generation.clone(),
+                    active_generation.clone(),
+                    plan_swap.previous_active_plan_digest(),
+                    publication
+                        .runtime()
+                        .cross_lane_bundle()
+                        .construction_counters(),
+                    plan_decision
+                        .summary()
+                        .expect("an activated plan decision carries comparison evidence"),
+                );
+                Ok(WorthUiApplicationReplacementOutcome::Activated(Box::new(
+                    WorthUiApplicationCutoverReceipt {
+                        prior_generation,
+                        active_generation,
+                        plan_swap,
+                        plan_decision,
+                        query_retirement,
+                        allocation_catalog_successor: allocation_catalog_successor
+                            .expect("public application replacement always uses a catalog delta"),
+                        publication,
+                        reload_cost,
+                    },
+                )))
+            }
         }
     }
 
-    pub fn expand_candidate_evidence_ref(
-        &self,
-        evidence_ref: crate::evidence::UiEvidenceRef,
-        requested_richness: worth_ui_inspection::UiEvidenceRichness,
-    ) -> crate::evidence::UiEvidenceExpansion {
-        self.next_app
-            .expand_evidence_ref(evidence_ref, requested_richness)
+    /// Lets transaction tests retain the exact production-staged pending
+    /// authority while inspecting denial behavior below the public cutover.
+    #[cfg(test)]
+    pub(crate) fn into_runtime_and_pending_after_staging_for_test(
+        self,
+        pending: WorthUiPendingApplicationCutover,
+    ) -> (
+        crate::runtime::WorthUiRuntime,
+        crate::runtime::WorthUiPendingActivation,
+    ) {
+        assert!(pending.basis.admits_session(self.session_identity()));
+        (self.runtime, pending.pending_activation)
     }
 }
 
-impl WorthUiPreparedApplicationReplacementBasis {
-    fn bind(
-        origin_session: WorthUiActiveApplicationSessionIdentity,
-        next_app: &WorthUiApp,
-        admitted: &crate::runtime::WorthUiAdmittedReplacementCandidate,
-    ) -> Option<Self> {
-        let candidate_basis = admitted.candidate().basis();
-        (next_app
-            .prepared_authority()
-            .source_backed_candidate_basis()
-            == Some(candidate_basis))
-        .then(|| Self {
-            origin_session,
-            next_generation: next_app.generation_identity().clone(),
-            candidate_basis,
-            graph_authority_identity: next_app
-                .prepared_authority()
-                .graph_snapshot()
-                .authority_identity(),
-        })
+fn retryable_boundary_denial(
+    session: &WorthUiActiveApplicationSession,
+    pending: &WorthUiPendingApplicationCutover,
+    boundary: crate::runtime::WorthUiFrameBoundary,
+) -> Option<crate::runtime::WorthUiActivationGateDenialReason> {
+    if !boundary.is_safe_to_activate() {
+        return Some(crate::runtime::WorthUiActivationGateDenialReason::UnsafeFrameBoundary);
     }
-
-    fn admits_session(&self, session: WorthUiActiveApplicationSessionIdentity) -> bool {
-        self.origin_session == session
+    if boundary.host_session() != session.host_session_identity() {
+        return Some(
+            crate::runtime::WorthUiActivationGateDenialReason::ForeignFrameBoundarySession,
+        );
     }
-
-    fn rebind_graph(&mut self, next_app: &WorthUiApp) {
-        self.next_generation = next_app.generation_identity().clone();
-        self.graph_authority_identity = next_app.graph_snapshot().authority_identity();
+    let readiness_epoch = pending.pending_activation.frame_epoch();
+    if boundary.frame_epoch() < readiness_epoch {
+        return Some(crate::runtime::WorthUiActivationGateDenialReason::StaleFrameEpoch);
     }
-
-    pub(crate) fn next_generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.next_generation
+    if boundary.frame_epoch() > readiness_epoch {
+        return Some(crate::runtime::WorthUiActivationGateDenialReason::FutureFrameEpochMismatch);
     }
-
-    fn admits_catalog(&self, catalog: &crate::graph::UiAdmittedAllocationCatalogBasisSet) -> bool {
-        self.graph_authority_identity == catalog.graph_authority_identity()
-    }
-}
-
-impl WorthUiCandidateInspectionReceipt {
-    pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.generation_identity
-    }
-
-    pub fn candidate_basis(&self) -> crate::runtime::WorthUiReplacementCandidateBasis {
-        self.candidate_basis
-    }
-
-    pub fn receipt(&self) -> &crate::facade::inspection_bridge::UiInspectionReceipt {
-        &self.receipt
-    }
-}
-
-impl WorthUiApplicationCutoverReceipt {
-    pub fn prior_generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.prior_generation
-    }
-
-    pub fn active_generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.active_generation
-    }
-
-    pub fn plan_swap(&self) -> &crate::runtime::WorthUiPlanSwapReceipt {
-        &self.plan_swap
-    }
+    (boundary.frame_epoch() != session.runtime.frame_epoch())
+        .then_some(crate::runtime::WorthUiActivationGateDenialReason::BoundaryFrameEpochMismatch)
 }

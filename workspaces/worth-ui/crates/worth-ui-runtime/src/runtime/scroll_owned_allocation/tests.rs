@@ -61,7 +61,7 @@ fn query_extent_owner_is_acquired_from_admitted_receipt() {
     let mut host_owner = None;
     let _ = runtime.execute_framework_turn(|turn| {
         turn.scroll_offset(|source| {
-            owner = source.acquire_query_owner(&query, &receipt).ok();
+            owner = source.acquire_settled_query_owner(&query, &receipt).ok();
             host_owner = source.acquire_host_owner(&result, &receipt).ok();
         });
     });
@@ -96,7 +96,7 @@ fn unrelated_committed_receipt_cannot_smuggle_host_or_query_ownership() {
     let _ = runtime.execute_framework_turn(|turn| {
         turn.scroll_offset(|source| {
             host = Some(source.acquire_host_owner(&result, &unrelated_receipt));
-            query_owner = Some(source.acquire_query_owner(&query, &unrelated_receipt));
+            query_owner = Some(source.acquire_settled_query_owner(&query, &unrelated_receipt));
         });
     });
     assert_eq!(

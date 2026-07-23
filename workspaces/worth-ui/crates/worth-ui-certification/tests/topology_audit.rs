@@ -8,12 +8,13 @@ use worth_ui::facade::inspection::{
 };
 use worth_ui_certification::topology::{
     audit_consumers_route_inspection_through_worth_ui_facade, audit_evidence_family_storage_homes,
-    audit_host_egui_dependency_boundary,
+    audit_host_egui_dependency_boundary, audit_host_output_plan_encapsulation,
     audit_inspection_crate_does_not_export_runtime_owned_evidence_surface,
     audit_inspection_future_artifact_seed_topology, audit_inspection_public_module_names,
     audit_inspection_public_module_role_purity, audit_no_cross_crate_deep_imports,
     audit_non_dsl_crates_do_not_reach_dsl_internals, audit_phase3_lifecycle_public_surface,
     audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational,
+    audit_product_lifecycle_facade,
     audit_public_inspection_facades_do_not_export_family_local_records,
     audit_public_surfaces_do_not_recreate_query_owned_lanes,
     audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option,
@@ -62,6 +63,28 @@ fn host_egui_boundary_audit_rejects_known_bad_runtime_import_fixture() {
         "worth-ui-host-egui",
         "reaches worth-ui-runtime internals",
     );
+}
+
+#[test]
+fn canonical_plan_and_product_facades_keep_host_output_encapsulated() {
+    let violations = audit_host_output_plan_encapsulation(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn product_lifecycle_facade_exposes_observation_not_plan_authority() {
+    let violations = audit_product_lifecycle_facade(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn host_output_encapsulation_audit_rejects_known_plan_and_facade_leaks() {
+    let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
+        topology_negative_fixture_root("host_output_plan_leak"),
+    );
+    let violations = audit_host_output_plan_encapsulation(&inventory);
+    assert_has_violation(&violations, "egui_plan_leak.rs", "egui-specific meaning");
+    assert_has_violation(&violations, "runtime.rs", "owned execution plan");
 }
 
 #[test]

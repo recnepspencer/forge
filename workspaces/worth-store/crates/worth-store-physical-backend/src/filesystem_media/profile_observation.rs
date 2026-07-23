@@ -4,13 +4,17 @@ use std::path::Path;
 use sha2::{Digest, Sha256};
 
 use super::capability_profile::ObservedFilesystemProfile;
-use super::{
-    qualification_basis::RootProfileBinding, CapabilitySupport, FilesystemBackendProfile,
-    FilesystemLocation, MediaCapability, MediaQualificationDenial,
-};
+use super::{CapabilitySupport, FilesystemBackendProfile, FilesystemLocation, MediaCapability};
+
+mod admission_policy;
+mod root_binding;
+
+pub(super) use admission_policy::deny_profile;
+pub(super) use root_binding::derive as profile_binding;
+pub use root_binding::filesystem_media_build_identity;
 
 pub(super) fn observe_profile(
-    root: &Path,
+    root: &super::NamespaceDirectoryHandle,
     boundary: &super::fault_interposition::MediaFaultInterposer,
 ) -> Result<FilesystemBackendProfile, std::io::ErrorKind> {
     let attempt = boundary.begin(super::MediaOperationRole::ObserveRootProfile, 0);
@@ -18,7 +22,7 @@ pub(super) fn observe_profile(
         attempt.denied();
         return Err(error.kind());
     }
-    match observe_profile_at_root(root) {
+    match observe_profile_at_handle(root) {
         Ok(profile) => {
             attempt.completed(0);
             Ok(profile)
@@ -41,11 +45,38 @@ pub(super) fn observe_admission_profile(
             .filter(|parent| parent.exists())
             .unwrap_or(root)
     };
-    observe_profile(target, boundary)
+    observe_ambient_profile(target, boundary)
 }
 
-fn observe_profile_at_root(root: &Path) -> Result<FilesystemBackendProfile, std::io::ErrorKind> {
+fn observe_ambient_profile(
+    root: &Path,
+    boundary: &super::fault_interposition::MediaFaultInterposer,
+) -> Result<FilesystemBackendProfile, std::io::ErrorKind> {
+    let attempt = boundary.begin(super::MediaOperationRole::ObserveRootProfile, 0);
+    if let Some(error) = attempt.fail_before_error() {
+        attempt.denied();
+        return Err(error.kind());
+    }
+    match observe_profile_at_path(root) {
+        Ok(profile) => {
+            attempt.completed(0);
+            Ok(profile)
+        }
+        Err(kind) => {
+            attempt.denied();
+            Err(kind)
+        }
+    }
+}
+
+fn observe_profile_at_path(root: &Path) -> Result<FilesystemBackendProfile, std::io::ErrorKind> {
     let canonical = root.canonicalize().map_err(|error| error.kind())?;
+    let directory = cap_std::fs::Dir::open_ambient_dir(&canonical, cap_std::ambient_authority())
+        .map_err(|error| error.kind())?;
+    let file = directory.into_std_file();
+    let metadata = file.metadata().map_err(|error| error.kind())?;
+    let root_identity = opened_root_identity(&file, &metadata)?;
+    let volume_identity = opened_volume_identity(&file, &metadata)?;
     let disks = sysinfo::Disks::new_with_refreshed_list();
     let disk = disks
         .list()
@@ -54,9 +85,6 @@ fn observe_profile_at_root(root: &Path) -> Result<FilesystemBackendProfile, std:
         .max_by_key(|disk| disk.mount_point().components().count())
         .ok_or(std::io::ErrorKind::NotFound)?;
     let filesystem_type = disk.file_system().to_string_lossy().into_owned();
-    let root_identity = digest_file_id(file_id::get_file_id(&canonical).map_err(|e| e.kind())?);
-    let mount_identity = file_id::get_file_id(disk.mount_point()).map_err(|error| error.kind())?;
-    let volume_identity = digest_file_id(mount_identity);
     let allocation_granularity =
         NonZeroU64::new(fs4::allocation_granularity(&canonical).map_err(|error| error.kind())?)
             .ok_or(std::io::ErrorKind::InvalidData)?;
@@ -86,122 +114,169 @@ fn observe_profile_at_root(root: &Path) -> Result<FilesystemBackendProfile, std:
     ))
 }
 
-pub(super) fn deny_profile(
-    profile: &FilesystemBackendProfile,
-    counters: super::MediaCounterSnapshot,
-) -> Option<MediaQualificationDenial> {
-    let counters = || Box::new(counters);
-    if profile.location() == FilesystemLocation::Remote {
-        return Some(MediaQualificationDenial::RemoteFilesystem {
-            counters: counters(),
-        });
-    }
-    if profile.location() == FilesystemLocation::Unknown {
-        return Some(MediaQualificationDenial::UnknownFilesystem {
-            counters: counters(),
-        });
-    }
-    if profile.is_removable() {
-        return Some(MediaQualificationDenial::RemovableFilesystem {
-            counters: counters(),
-        });
-    }
-    if profile.is_read_only() {
-        return Some(MediaQualificationDenial::ReadOnlyFilesystem {
-            counters: counters(),
-        });
-    }
-    let filesystem = profile.filesystem_type().to_ascii_lowercase();
-    if filesystem.is_empty() {
-        return Some(MediaQualificationDenial::UnknownFilesystem {
-            counters: counters(),
-        });
-    }
-    if filesystem.contains("fuse") || filesystem == "9p" {
-        return Some(MediaQualificationDenial::UserspaceFilesystem {
-            filesystem: filesystem.into_boxed_str(),
-            counters: counters(),
-        });
-    }
-    None
-}
-
-pub(super) fn profile_binding(
-    profile: &FilesystemBackendProfile,
-    access_contract: super::FilesystemAccessContract,
-) -> RootProfileBinding {
-    let support = super::MediaCapability::ALL.map(|capability| match profile.support(capability) {
-        CapabilitySupport::Supported => 1,
-        CapabilitySupport::Unsupported => 2,
-        CapabilitySupport::Indeterminate => 3,
+fn observe_profile_at_handle(
+    root: &super::NamespaceDirectoryHandle,
+) -> Result<FilesystemBackendProfile, std::io::ErrorKind> {
+    let file = root
+        .directory()
+        .try_clone()
+        .map(cap_std::fs::Dir::into_std_file)
+        .map_err(|error| error.kind())?;
+    let metadata = file.metadata().map_err(|error| error.kind())?;
+    let root_identity = opened_root_identity(&file, &metadata)?;
+    let volume_identity = opened_volume_identity(&file, &metadata)?;
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let mut matches = disks.list().iter().filter(|disk| {
+        mount_volume_identity(disk.mount_point())
+            .is_some_and(|candidate| candidate == volume_identity)
     });
-    let location = match profile.location() {
-        FilesystemLocation::Local => 1,
-        FilesystemLocation::Remote => 2,
-        FilesystemLocation::Unknown => 3,
+    let disk = matches.next().ok_or(std::io::ErrorKind::NotFound)?;
+    super::profile_candidate_consistency::require_material_agreement(
+        mount_profile_key(disk)?,
+        matches
+            .map(mount_profile_key)
+            .collect::<Result<Vec<_>, _>>()?,
+    )?;
+    let filesystem_type = disk.file_system().to_string_lossy().into_owned();
+    let allocation_granularity = NonZeroU64::new(
+        fs4::allocation_granularity(disk.mount_point()).map_err(|error| error.kind())?,
+    )
+    .ok_or(std::io::ErrorKind::InvalidData)?;
+    let support = MediaCapability::ALL.map(|capability| match capability {
+        MediaCapability::MemoryMap
+        | MediaCapability::DirectIo
+        | MediaCapability::SparseAllocation
+        | MediaCapability::EagerAllocation => CapabilitySupport::Unsupported,
+        _ => CapabilitySupport::Supported,
+    });
+    let location = if is_remote_path(disk.mount_point(), &filesystem_type) {
+        FilesystemLocation::Remote
+    } else {
+        FilesystemLocation::Local
     };
-    let access = match access_contract {
-        super::FilesystemAccessContract::CoordinatedServiceAccount => 1,
-    };
-    let profile_digest = digest_parts(&[
-        profile.filesystem_type().as_bytes(),
-        &profile.allocation_granularity().get().to_le_bytes(),
-        &[
+    Ok(FilesystemBackendProfile::from_root_observation(
+        ObservedFilesystemProfile {
+            support_by_capability: support,
+            root_identity,
+            volume_identity,
+            filesystem_type: filesystem_type.into_boxed_str(),
+            allocation_granularity,
             location,
-            profile.is_removable() as u8,
-            profile.is_read_only() as u8,
-            access,
-        ],
-        &support,
-    ]);
-    RootProfileBinding {
-        contract_version: super::qualification_basis::qualification_contract_version(),
-        root_identity: profile.root_identity(),
-        volume_identity: profile.volume_identity(),
-        profile_digest,
-        backend_build_identity: filesystem_media_build_identity(),
-        access_contract,
-    }
+            removable: disk.is_removable(),
+            read_only: disk.is_read_only(),
+        },
+    ))
 }
 
-/// Digest of the concrete media implementation sources and build posture.
-/// It is rerun-binding evidence only and grants no operational authority.
-pub fn filesystem_media_build_identity() -> [u8; 32] {
-    let encoded = env!("WORTH_STORE_MEDIA_BUILD_ID").as_bytes();
-    let mut identity = [0_u8; 32];
-    for (index, pair) in encoded.chunks_exact(2).enumerate() {
-        identity[index] = decode_hex(pair[0]) << 4 | decode_hex(pair[1]);
-    }
-    identity
+fn mount_profile_key(
+    disk: &sysinfo::Disk,
+) -> Result<(Box<str>, u64, bool, bool), std::io::ErrorKind> {
+    let granularity =
+        fs4::allocation_granularity(disk.mount_point()).map_err(|error| error.kind())?;
+    Ok((
+        disk.file_system()
+            .to_string_lossy()
+            .into_owned()
+            .into_boxed_str(),
+        granularity,
+        disk.is_removable(),
+        disk.is_read_only(),
+    ))
 }
 
-fn decode_hex(byte: u8) -> u8 {
-    match byte {
-        b'0'..=b'9' => byte - b'0',
-        b'a'..=b'f' => byte - b'a' + 10,
-        _ => unreachable!("build identity is emitted as lowercase hexadecimal"),
-    }
+#[cfg(unix)]
+fn opened_root_identity(
+    _file: &std::fs::File,
+    metadata: &std::fs::Metadata,
+) -> Result<[u8; 32], std::io::ErrorKind> {
+    use std::os::unix::fs::MetadataExt;
+    Ok(digest_parts(&[
+        &metadata.dev().to_le_bytes(),
+        &metadata.ino().to_le_bytes(),
+    ]))
+}
+
+#[cfg(windows)]
+fn opened_root_identity(
+    file: &std::fs::File,
+    _metadata: &std::fs::Metadata,
+) -> Result<[u8; 32], std::io::ErrorKind> {
+    let handle = winapi_util::Handle::from_file(file.try_clone().map_err(|error| error.kind())?);
+    let info = winapi_util::file::information(&handle).map_err(|error| error.kind())?;
+    let volume = info.volume_serial_number();
+    Ok(digest_parts(&[
+        &volume.to_le_bytes(),
+        &info.file_index().to_le_bytes(),
+    ]))
+}
+
+#[cfg(unix)]
+fn opened_volume_identity(
+    _file: &std::fs::File,
+    metadata: &std::fs::Metadata,
+) -> Result<[u8; 32], std::io::ErrorKind> {
+    use std::os::unix::fs::MetadataExt;
+    Ok(digest_parts(&[&metadata.dev().to_le_bytes()]))
+}
+
+#[cfg(windows)]
+fn opened_volume_identity(
+    file: &std::fs::File,
+    _metadata: &std::fs::Metadata,
+) -> Result<[u8; 32], std::io::ErrorKind> {
+    let handle = winapi_util::Handle::from_file(file.try_clone().map_err(|error| error.kind())?);
+    let info = winapi_util::file::information(&handle).map_err(|error| error.kind())?;
+    let volume = info.volume_serial_number();
+    Ok(digest_parts(&[&volume.to_le_bytes()]))
+}
+
+#[cfg(unix)]
+fn mount_volume_identity(path: &Path) -> Option<[u8; 32]> {
+    let identity = file_id::get_file_id(path).ok()?;
+    let volume = match identity {
+        file_id::FileId::Inode { device_id, .. } => device_id,
+        file_id::FileId::LowRes {
+            volume_serial_number,
+            ..
+        } => u64::from(volume_serial_number),
+        file_id::FileId::HighRes {
+            volume_serial_number,
+            ..
+        } => volume_serial_number,
+    };
+    Some(digest_parts(&[&volume.to_le_bytes()]))
+}
+
+#[cfg(windows)]
+fn mount_volume_identity(path: &Path) -> Option<[u8; 32]> {
+    let directory = cap_std::fs::Dir::open_ambient_dir(path, cap_std::ambient_authority()).ok()?;
+    let handle = winapi_util::Handle::from_file(directory.into_std_file());
+    let info = winapi_util::file::information(&handle).ok()?;
+    let volume = info.volume_serial_number();
+    Some(digest_parts(&[&volume.to_le_bytes()]))
 }
 
 fn path_is_on_mount(path: &Path, mount: &Path) -> bool {
     #[cfg(windows)]
     {
-        let normalize = |value: &Path| {
+        let normalize_components = |value: &Path| {
             value
-                .as_os_str()
-                .to_string_lossy()
-                .trim_start_matches(r"\\?\")
-                .replace('/', "\\")
-                .to_ascii_lowercase()
+                .components()
+                .map(|component| {
+                    component
+                        .as_os_str()
+                        .to_string_lossy()
+                        .trim_start_matches(r"\\?\")
+                        .to_ascii_lowercase()
+                })
+                .collect::<Vec<_>>()
         };
-        normalize(path).starts_with(&normalize(mount))
+        let path = normalize_components(path);
+        let mount = normalize_components(mount);
+        mount.len() <= path.len() && path[..mount.len()] == mount
     }
     #[cfg(not(windows))]
     path.starts_with(mount)
-}
-
-fn digest_file_id(identity: file_id::FileId) -> [u8; 32] {
-    digest_parts(&[format!("{identity:?}").as_bytes()])
 }
 
 fn digest_parts(parts: &[&[u8]]) -> [u8; 32] {
