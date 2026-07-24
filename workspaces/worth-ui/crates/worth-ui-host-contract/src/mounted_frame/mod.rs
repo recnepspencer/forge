@@ -13,8 +13,8 @@ pub use assembly::{
 pub use identity::{
     UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountIncarnation,
     UiMountedContractIdentityExhaustion, UiMountedFrameIdentity, UiMountedInstanceIdentity,
-    UiMountedNodeReceiptIdentity, UiMountedPresentationAttemptIdentity, UiSemanticSurfaceIdentity,
-    UiSurfaceBindingGeneration,
+    UiMountedNodeReceiptIdentity, UiMountedNodeReceiptIssuer, UiMountedPresentationAttemptIdentity,
+    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
 };
 pub use presentation::{
     UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,

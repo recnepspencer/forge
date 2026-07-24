@@ -12,6 +12,28 @@ use crate::mounting::{
 };
 
 impl UiMountedIdentityState {
+    pub(crate) fn admit_prepared_frame_authority(
+        &self,
+        frame: UiPreparedMountedFrame,
+    ) -> Result<
+        super::UiAuthorityAdmittedMountedFrame,
+        crate::mounting::UiMountedPresentationAdmissionRejection,
+    > {
+        let contract = frame.reuse_contract();
+        let basis_is_current = contract.host_session() == self.host_session_identity.as_u64()
+            && contract.graph_world() == self.world_identity.diagnostic_value()
+            && contract.mounted_semantic_revision() == self.semantic_revision
+            && contract.surface_binding_revision() == self.binding_revision;
+        if basis_is_current {
+            Ok(super::UiAuthorityAdmittedMountedFrame::new(frame))
+        } else {
+            Err(crate::mounting::UiMountedPresentationAdmissionRejection::new(
+                frame,
+                crate::mounting::UiMountedPresentationAdmissionDenial::PreparedFrameBasisChanged,
+            ))
+        }
+    }
+
     pub(in crate::mounting) fn has_published_frame(&self) -> bool {
         self.current_publication.is_some()
     }
@@ -28,30 +50,30 @@ impl UiMountedIdentityState {
     pub(in crate::mounting) fn prepare_frame_candidate(
         &self,
     ) -> Result<UiMountedIdentityFrameCandidate, UiMountedIdentityDenial> {
+        self.prepare_frame_candidate_for(self.mounted_instance_membership.clone())
+    }
+
+    pub(in crate::mounting) fn prepare_frame_candidate_for(
+        &self,
+        presented_instances: crate::runtime::persistent_index::UiPersistentOrdSet<
+            UiMountedInstanceIdentity,
+        >,
+    ) -> Result<UiMountedIdentityFrameCandidate, UiMountedIdentityDenial> {
         let frame = UiMountedFrameIdentity::mint_unbound()
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
-        let mut receipts = std::collections::BTreeMap::new();
-        for identity in &self.visible_order {
-            receipts.insert(
-                *identity,
-                UiMountedFrameIdentityView::new(
-                    frame,
-                    *identity,
-                    UiMountedNodeReceiptIdentity::mint_unbound()
-                        .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?,
-                ),
-            );
-        }
-        Ok(UiMountedIdentityFrameCandidate { frame, receipts })
+        let receipt_basis =
+            super::super::UiMountedNodeReceiptBasis::mint(frame, presented_instances)
+                .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
+        Ok(UiMountedIdentityFrameCandidate { receipt_basis })
     }
 
     pub(in crate::mounting) fn publish_frame_candidate(
         &mut self,
         candidate: UiMountedIdentityFrameCandidate,
     ) {
-        let UiMountedIdentityFrameCandidate { frame, receipts } = candidate;
+        let frame = candidate.frame();
         self.current_frame = Some(frame);
-        self.current_receipts = receipts;
+        self.current_receipt_basis = Some(candidate.receipt_basis);
         self.current_projection = None;
         self.current_manifest = None;
         self.current_core = None;
@@ -68,11 +90,13 @@ impl UiMountedIdentityState {
         let (candidate, manifest, core, reuse_contract) = frame.into_publication_parts();
         self.current_manifest = Some(manifest);
         self.current_core = Some(core);
-        let (projection, identity_candidate) = candidate.into_parts();
-        let UiMountedIdentityFrameCandidate { frame, receipts } = identity_candidate;
+        let (projection, identity_candidate, projection_changes) = candidate.into_parts();
+        let frame = identity_candidate.frame();
+        let committed = self.commit_projection_changes(&projection_changes);
+        debug_assert!(committed);
         self.presented_frames.publish(presented_basis);
         self.current_frame = Some(frame);
-        self.current_receipts = receipts;
+        self.current_receipt_basis = Some(identity_candidate.receipt_basis);
         self.current_projection = Some(projection);
         self.current_publication = Some(receipt);
         self.current_reuse_contract = Some(reuse_contract);
@@ -88,11 +112,13 @@ impl UiMountedIdentityState {
         let (candidate, manifest, core, reuse_contract) = frame.into_publication_parts();
         self.current_manifest = Some(manifest);
         self.current_core = Some(core);
-        let (projection, identity_candidate) = candidate.into_parts();
-        let UiMountedIdentityFrameCandidate { frame, receipts } = identity_candidate;
+        let (projection, identity_candidate, projection_changes) = candidate.into_parts();
+        let frame = identity_candidate.frame();
+        let committed = self.commit_projection_changes(&projection_changes);
+        debug_assert!(committed);
         self.presented_frames.reconcile_current(presented_basis);
         self.current_frame = Some(frame);
-        self.current_receipts = receipts;
+        self.current_receipt_basis = Some(identity_candidate.receipt_basis);
         self.current_projection = Some(projection);
         self.current_publication = Some(receipt);
         self.current_reuse_contract = Some(reuse_contract);
@@ -103,8 +129,12 @@ impl UiMountedIdentityState {
         replacements: &[super::super::UiMountedSurfaceReconciliationBinding],
         protocol: worth_ui_host_contract::UiHostProtocolAgreement,
         capability_report: &worth_ui_host_contract::WorthUiHostCapabilityReport,
-    ) -> Result<UiPreparedMountedFrame, UiMountedIdentityDenial> {
+    ) -> Result<super::UiAuthorityAdmittedMountedFrame, UiMountedIdentityDenial> {
         if replacements.is_empty() {
+            return Err(UiMountedIdentityDenial::ReconciliationBasisMismatch);
+        }
+        let projection_changes = self.projection_change_snapshot();
+        if projection_changes.has_semantic_changes() {
             return Err(UiMountedIdentityDenial::ReconciliationBasisMismatch);
         }
         let replacement_views = replacements
@@ -148,11 +178,14 @@ impl UiMountedIdentityState {
         let candidate = super::super::UiProjectedMountedFrameCandidate {
             frame: projection,
             identity_candidate: UiMountedIdentityFrameCandidate {
-                frame: current_core.frame(),
-                receipts: self.current_receipts.clone(),
+                receipt_basis: self
+                    .current_receipt_basis
+                    .clone()
+                    .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?,
             },
+            projection_changes,
         };
-        UiPreparedMountedFrame::admit(
+        let frame = UiPreparedMountedFrame::admit(
             candidate,
             self.current_publication
                 .as_ref()
@@ -172,7 +205,8 @@ impl UiMountedIdentityState {
                     capability_report.profile_identity_digest(),
                 ),
         )
-        .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)
+        .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)?;
+        Ok(super::UiAuthorityAdmittedMountedFrame::new(frame))
     }
 
     pub(crate) fn publication_receipt(&self) -> Option<&UiMountedFramePublicationReceipt> {
@@ -211,29 +245,6 @@ impl UiMountedIdentityState {
         let contract = self.current_reuse_contract.as_ref()?;
         (contract == witness.contract() && receipt == witness.publication())
             .then(|| receipt.clone())
-    }
-
-    pub(in crate::mounting) fn projection_identity_view(
-        &self,
-        candidate: &UiMountedIdentityFrameCandidate,
-    ) -> UiMountedIdentityView {
-        let mounted_instances = self
-            .visible_order
-            .iter()
-            .filter_map(|identity| {
-                self.instances.get(identity).map(|record| {
-                    UiMountedInstanceIdentityView::new(*identity, record.basis.clone())
-                })
-            })
-            .collect();
-        let surface_bindings = self.bindings.values().map(|record| record.view).collect();
-        let frame_receipts = candidate.receipts.values().copied().collect();
-        UiMountedIdentityView::new(
-            mounted_instances,
-            surface_bindings,
-            Some(candidate.frame),
-            frame_receipts,
-        )
     }
 
     pub(in crate::mounting) fn audience_for(
@@ -283,10 +294,11 @@ impl UiMountedIdentityState {
         receipt: UiMountedNodeReceiptIdentity,
     ) -> Result<(), UiMountedIdentityDenial> {
         let current = self
-            .current_receipts
-            .get(&instance)
+            .current_receipt_basis
+            .as_ref()
+            .and_then(|basis| basis.receipt_for(instance))
             .ok_or(UiMountedIdentityDenial::NodeReceiptNotCurrent)?;
-        (current.node_receipt_identity() == receipt)
+        (current == receipt)
             .then_some(())
             .ok_or(UiMountedIdentityDenial::NodeReceiptNotCurrent)
     }
@@ -313,7 +325,17 @@ impl UiMountedIdentityState {
             })
             .collect();
         let surface_bindings = self.bindings.values().map(|record| record.view).collect();
-        let frame_receipts = self.current_receipts.values().copied().collect();
+        let frame_receipts = self
+            .current_receipt_basis
+            .as_ref()
+            .into_iter()
+            .flat_map(|basis| {
+                let frame = basis.frame();
+                basis.receipts().map(move |(instance, receipt)| {
+                    UiMountedFrameIdentityView::new(frame, instance, receipt)
+                })
+            })
+            .collect();
         UiMountedIdentityView::new(
             mounted_instances,
             surface_bindings,

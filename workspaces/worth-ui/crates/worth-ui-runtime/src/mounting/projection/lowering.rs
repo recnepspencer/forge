@@ -15,6 +15,10 @@ pub(crate) struct UiPreparedMountedProjection {
     canvas: Option<(crate::runtime::WorthUiCanvasSpatialFrameReceipt, u64)>,
     realtime: Option<crate::runtime::WorthUiRealtimeFrameReceipt>,
     preview: Option<UiMountedPreviewProjectionInput>,
+    projected_instances: crate::runtime::persistent_index::UiPersistentOrdSet<
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+    >,
+    projection_changes: super::super::UiMountedProjectionChangeSnapshot,
     counters: super::super::UiMountStageCounters,
 }
 
@@ -64,6 +68,7 @@ pub struct UiProjectedMountedFrameCandidate {
     pub(in crate::mounting) frame: UiMountedProjectionFrame,
     pub(in crate::mounting) identity_candidate:
         super::super::identity_state::UiMountedIdentityFrameCandidate,
+    pub(in crate::mounting) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
 }
 
 impl UiProjectedMountedFrameCandidate {
@@ -76,15 +81,8 @@ impl UiProjectedMountedFrameCandidate {
         true
     }
 
-    pub(crate) fn presented_receipts(
-        &self,
-    ) -> impl Iterator<
-        Item = (
-            worth_ui_host_contract::UiMountedInstanceIdentity,
-            worth_ui_host_contract::UiMountedNodeReceiptIdentity,
-        ),
-    > + '_ {
-        self.identity_candidate.presented_receipts()
+    pub(crate) fn presented_receipt_basis(&self) -> &super::super::UiMountedNodeReceiptBasis {
+        self.identity_candidate.receipt_basis()
     }
 
     pub(crate) fn into_parts(
@@ -92,8 +90,9 @@ impl UiProjectedMountedFrameCandidate {
     ) -> (
         UiMountedProjectionFrame,
         super::super::identity_state::UiMountedIdentityFrameCandidate,
+        super::super::UiMountedProjectionChangeSnapshot,
     ) {
-        (self.frame, self.identity_candidate)
+        (self.frame, self.identity_candidate, self.projection_changes)
     }
 }
 
@@ -140,17 +139,11 @@ impl UiPreparedMountedProjection {
         state: &super::super::UiMountedIdentityState,
     ) -> Result<UiProjectedMountedFrameCandidate, UiMountedProjectionDenial> {
         self.validate_capacity()?;
-        let identity_candidate = state.prepare_frame_candidate()?;
-        let identity_view = state.projection_identity_view(&identity_candidate);
-        let frame_receipts = identity_view
-            .frame_receipts()
-            .iter()
-            .map(|receipt| (receipt.mounted_instance_identity(), *receipt))
-            .collect::<BTreeMap<_, _>>();
+        let identity_candidate = state.prepare_frame_candidate_for(self.projected_instances)?;
         let nodes = self
             .nodes
             .into_iter()
-            .map(|draft| draft.materialize(&frame_receipts))
+            .map(|draft| draft.materialize(identity_candidate.receipt_basis()))
             .collect::<Result<Vec<_>, UiMountedProjectionDenial>>()?;
         let mut frame = UiMountedProjectionFrame::new(
             identity_candidate.frame(),
@@ -177,6 +170,7 @@ impl UiPreparedMountedProjection {
         Ok(UiProjectedMountedFrameCandidate {
             frame,
             identity_candidate,
+            projection_changes: self.projection_changes,
         })
     }
 
@@ -205,16 +199,20 @@ pub(crate) fn prepare_projection(
         plan_digest: input.plan_digest,
     };
     let identity_view = state.view();
-    let nodes = identity_view
-        .mounted_instances()
-        .iter()
-        .filter(|instance| {
-            input
-                .requested_surfaces
-                .contains(&instance.basis().semantic_surface_identity())
-        })
-        .map(|instance| lowering.lower(instance))
-        .collect::<Result<Vec<_>, UiMountedProjectionDenial>>()?;
+    let mut nodes = Vec::new();
+    let mut projected_instances = crate::runtime::persistent_index::UiPersistentOrdSet::<
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+    >::default();
+    for instance in identity_view.mounted_instances().iter().filter(|instance| {
+        input
+            .requested_surfaces
+            .contains(&instance.basis().semantic_surface_identity())
+    }) {
+        let draft = lowering.lower(instance)?;
+        let inserted = projected_instances.insert(draft.mounted_instance);
+        debug_assert!(inserted);
+        nodes.push(draft);
+    }
     let surfaces = identity_view
         .surface_bindings()
         .iter()
@@ -255,6 +253,8 @@ pub(crate) fn prepare_projection(
         canvas: None,
         realtime: None,
         preview: input.preview,
+        projected_instances,
+        projection_changes: state.projection_change_snapshot(),
         counters,
     })
 }
@@ -294,15 +294,11 @@ impl UiMountedNodeLoweringContext<'_, '_> {
 impl UiMountedProjectionNodeDraft {
     fn materialize(
         self,
-        identities: &BTreeMap<
-            worth_ui_host_contract::UiMountedInstanceIdentity,
-            super::super::UiMountedFrameIdentityView,
-        >,
+        identities: &super::super::UiMountedNodeReceiptBasis,
     ) -> Result<UiMountedProjectionNodeRecord, UiMountedProjectionDenial> {
         let identity = identities
-            .get(&self.mounted_instance)
-            .ok_or(UiMountedProjectionDenial::ForeignMountIncarnation)?
-            .node_receipt_identity();
+            .receipt_for(self.mounted_instance)
+            .ok_or(UiMountedProjectionDenial::ForeignMountIncarnation)?;
         Ok(UiMountedProjectionNodeRecord {
             receipt: UiMountedNodeReceipt::from_input(UiMountedNodeReceiptInput {
                 identity,

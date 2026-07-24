@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeSet, VecDeque};
 
 use worth_ui_host_contract::{
     UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
@@ -12,7 +12,7 @@ const EXPIRED_PRESENTED_FRAME_IDENTITY_LIMIT: usize = 64;
 struct UiPresentedFrameBasis {
     frame: UiMountedFrameIdentity,
     bindings: BTreeSet<UiSurfaceBindingGeneration>,
-    receipts: BTreeMap<UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity>,
+    receipts: super::UiMountedNodeReceiptBasis,
 }
 
 pub(crate) struct UiPreparedPresentedFrameBasis(UiPresentedFrameBasis);
@@ -43,12 +43,12 @@ impl UiMountedPresentedFrameRetention {
     pub(crate) fn prepare(
         frame: UiMountedFrameIdentity,
         bindings: &[UiSurfaceBindingGeneration],
-        receipts: impl Iterator<Item = (UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity)>,
+        receipts: super::UiMountedNodeReceiptBasis,
     ) -> UiPreparedPresentedFrameBasis {
         UiPreparedPresentedFrameBasis(UiPresentedFrameBasis {
             frame,
             bindings: bindings.iter().copied().collect(),
-            receipts: receipts.collect(),
+            receipts,
         })
     }
 
@@ -108,9 +108,9 @@ impl UiMountedPresentedFrameRetention {
             (Some(instance), Some(receipt)) => {
                 let expected = basis
                     .receipts
-                    .get(&instance)
+                    .receipt_for(instance)
                     .ok_or(UiPresentedFrameBasisDenial::InstanceNotPresented)?;
-                (*expected == receipt)
+                (expected == receipt)
                     .then_some(relation)
                     .ok_or(UiPresentedFrameBasisDenial::NodeReceiptMismatch)
             }

@@ -146,6 +146,10 @@ impl UiMountedFrameReuseContract {
         self.graph_world
     }
 
+    pub(in crate::mounting) const fn host_session(&self) -> u64 {
+        self.host_session
+    }
+
     pub const fn plan_digest(&self) -> u64 {
         self.plan_digest
     }

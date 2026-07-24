@@ -173,30 +173,32 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
             frame,
         } = *self;
         let capability_report = session.host_session.capability_report().clone();
-        let admission =
-            match session
-                .mounted_presentation
-                .admit(frame, &capability_report, deadline, now)
-            {
-                Ok(admission) => admission,
-                Err(rejection) => {
-                    let denial = rejection.denial();
-                    session
-                        .host_observations
-                        .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                    return WorthUiMountedApplicationReplacementOutcome::AdmissionDenied(
-                        WorthUiMountedReplacementAdmissionDenial {
-                            denial,
-                            replacement: Box::new(Self {
-                                session,
-                                application,
-                                mounted_successor,
-                                frame: rejection.into_frame(),
-                            }),
-                        },
-                    );
-                }
-            };
+        let admission = match session.mounted_presentation.admit_current(
+            &mounted_successor,
+            frame,
+            &capability_report,
+            deadline,
+            now,
+        ) {
+            Ok(admission) => admission,
+            Err(rejection) => {
+                let denial = rejection.denial();
+                session
+                    .host_observations
+                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
+                return WorthUiMountedApplicationReplacementOutcome::AdmissionDenied(
+                    WorthUiMountedReplacementAdmissionDenial {
+                        denial,
+                        replacement: Box::new(Self {
+                            session,
+                            application,
+                            mounted_successor,
+                            frame: rejection.into_frame(),
+                        }),
+                    },
+                );
+            }
+        };
         let publication = crate::mounting::UiMountedFramePublicationCandidate::reserve(
             &admission,
             session.mounted_identity.view().current_frame(),

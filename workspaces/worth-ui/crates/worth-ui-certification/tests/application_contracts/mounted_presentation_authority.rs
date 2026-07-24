@@ -3,6 +3,31 @@ use super::mounted_application_lifecycle::in_flight_presentation_world::prepared
 use super::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 
 #[test]
+fn prepared_frame_cannot_publish_after_mounted_authority_changes() {
+    let host = ScriptedPresentationHost::default();
+    let (mut session, _) = mounted_session(host.clone(), "presentation-authority-stale-frame", 1);
+    let mounted_instance = session.inspect_mounted_identity().mounted_instances()[0].identity();
+    let frame = prepared(&mut session);
+    session.unmount_instance(mounted_instance).unwrap();
+
+    let outcome = session.present_prepared_mounted_frame(
+        frame,
+        worth_ui::facade::mounted::UiPresentationDeadline::at_tick(10),
+        0,
+    );
+    match outcome {
+        worth_ui::facade::mounted::UiMountedFrameOutcome::AdmissionDenied(rejection) => {
+            assert_eq!(
+                rejection.denial(),
+                worth_ui::facade::mounted::UiMountedPresentationAdmissionDenial::PreparedFrameBasisChanged
+            );
+        }
+        _ => panic!("stale mounted authority must deny before presentation"),
+    }
+    assert_eq!(host.presentation_calls(), 0);
+}
+
+#[test]
 fn runtime_session_authority_isolates_shared_adapter_resources() {
     let host = ScriptedPresentationHost::default();
     let (first, _) = mounted_session(host.clone(), "presentation-authority-first", 1);

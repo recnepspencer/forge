@@ -1,0 +1,52 @@
+use worth_ui_host_contract::{
+    UiMountedContractIdentityExhaustion, UiMountedFrameIdentity, UiMountedInstanceIdentity,
+    UiMountedNodeReceiptIdentity, UiMountedNodeReceiptIssuer,
+};
+
+#[derive(Clone)]
+pub(crate) struct UiMountedNodeReceiptBasis {
+    issuer: UiMountedNodeReceiptIssuer,
+    presented_instances:
+        crate::runtime::persistent_index::UiPersistentOrdSet<UiMountedInstanceIdentity>,
+}
+
+impl UiMountedNodeReceiptBasis {
+    pub(crate) fn mint(
+        frame: UiMountedFrameIdentity,
+        presented_instances: crate::runtime::persistent_index::UiPersistentOrdSet<
+            UiMountedInstanceIdentity,
+        >,
+    ) -> Result<Self, UiMountedContractIdentityExhaustion> {
+        Ok(Self {
+            issuer: UiMountedNodeReceiptIssuer::mint_for(frame)?,
+            presented_instances,
+        })
+    }
+
+    pub(crate) fn frame(&self) -> UiMountedFrameIdentity {
+        self.issuer.frame_identity()
+    }
+
+    pub(crate) fn receipt_for(
+        &self,
+        mounted_instance: UiMountedInstanceIdentity,
+    ) -> Option<UiMountedNodeReceiptIdentity> {
+        self.presented_instances
+            .contains_with_probes(&mounted_instance)
+            .0
+            .then(|| self.issuer.receipt_for(mounted_instance))
+    }
+
+    pub(crate) fn receipts(
+        &self,
+    ) -> impl Iterator<Item = (UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity)> + '_ {
+        self.presented_instances
+            .iter()
+            .copied()
+            .map(|instance| (instance, self.issuer.receipt_for(instance)))
+    }
+
+    pub(crate) fn remove(&mut self, mounted_instance: UiMountedInstanceIdentity) {
+        self.presented_instances.remove_with_work(&mounted_instance);
+    }
+}

@@ -66,7 +66,7 @@ impl UiMountedFrameReconciliationCandidate {
         let presented_basis = super::retention::UiMountedPresentedFrameRetention::prepare(
             receipt.frame(),
             receipt.bindings(),
-            admission.frame().presented_receipts(),
+            admission.frame().presented_receipt_basis().clone(),
         );
         Self {
             replacements: replacements.to_vec().into_boxed_slice(),
@@ -126,7 +126,7 @@ impl UiMountedFramePublicationCandidate {
         let presented_basis = super::retention::UiMountedPresentedFrameRetention::prepare(
             admission.frame().canonical_core().frame(),
             receipt.bindings(),
-            admission.frame().presented_receipts(),
+            admission.frame().presented_receipt_basis().clone(),
         );
         Self {
             receipt,

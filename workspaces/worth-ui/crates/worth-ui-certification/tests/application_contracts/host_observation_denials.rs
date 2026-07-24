@@ -1,7 +1,4 @@
-use worth_ui::facade::mounted::{
-    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
-    UiSurfaceBindingGeneration,
-};
+use worth_ui::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBindingGeneration};
 use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationCanonicalCore, UiHostObservationCanonicalCoreInput,
     UiHostObservationIngressDenial, UiHostObservationIntegrity, UiHostObservationLoss,
@@ -19,6 +16,9 @@ use worth_ui_host_contract::{
 use super::host_observation_fixture::{batch, pointer, report, source};
 use super::mounted_application_lifecycle::published_mounted_world::published_observation_world;
 
+#[path = "host_observation_denials/receipt_forgery.rs"]
+mod receipt_forgery;
+
 struct CanonicalCorruptionCase {
     label: &'static str,
     mutate: fn(UiHostObservationBatch) -> UiHostObservationBatch,
@@ -31,7 +31,7 @@ fn foreign_duplicate_instance_and_shutdown_reports_have_typed_effect_free_outcom
     assert_foreign_session();
     assert_foreign_binding();
     assert_unknown_frame();
-    assert_out_of_range_instance();
+    receipt_forgery::assert_receipt_coordinate_denials();
     assert_reordered_sequence();
     assert_duplicate_suppression();
     assert_post_shutdown_ingress();
@@ -167,30 +167,6 @@ fn assert_unknown_frame() {
         vec![report(1, pointer(1, 10), &unknown)],
     );
     assert_denial(&mut world, raw, UiHostObservationReportDenial::UnknownFrame);
-}
-
-fn assert_out_of_range_instance() {
-    let mut world = published_observation_world("observation-foreign-instance");
-    let raw_report = UiHostObservationReport::new(
-        UiHostObservationSequence::new(1),
-        UiHostObservationTimeBasis::HostMonotonicTick(1),
-        UiHostObservationPayload::Focus { focused: true },
-    )
-    .with_mounted_basis(UiHostObservationMountedBasis::new(
-        UiMountedInstanceIdentity::mint_unbound().unwrap(),
-        UiMountedNodeReceiptIdentity::mint_unbound().unwrap(),
-    ));
-    let raw = batch(
-        source(&world.session, world.binding, &world.current),
-        (1, 1),
-        UiHostObservationLoss::Complete,
-        vec![raw_report],
-    );
-    assert_denial(
-        &mut world,
-        raw,
-        UiHostObservationReportDenial::MountedInstanceNotPresented,
-    );
 }
 
 fn assert_duplicate_suppression() {

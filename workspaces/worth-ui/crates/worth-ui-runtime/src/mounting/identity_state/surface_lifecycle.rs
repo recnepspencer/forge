@@ -80,6 +80,8 @@ impl UiMountedIdentityState {
             request.semantic_surface_identity(),
             SurfaceBindingRecord { view, request },
         );
+        self.pending_projection_changes
+            .mark_changed_surface(request.semantic_surface_identity());
         self.binding_revision = candidate.successor_binding_revision;
         view
     }
@@ -112,13 +114,15 @@ impl UiMountedIdentityState {
         debug_assert!(removed.is_some_and(|record| record.request == candidate.record.request));
         if !candidate.preserve_published_frame {
             self.current_frame = None;
-            self.current_receipts.clear();
+            self.current_receipt_basis = None;
             self.current_projection = None;
             self.current_manifest = None;
             self.current_core = None;
             self.current_publication = None;
             self.current_reuse_contract = None;
         }
+        self.pending_projection_changes
+            .mark_removed_surface(candidate.semantic_surface);
         self.binding_revision = candidate.successor_binding_revision;
         candidate.semantic_surface
     }

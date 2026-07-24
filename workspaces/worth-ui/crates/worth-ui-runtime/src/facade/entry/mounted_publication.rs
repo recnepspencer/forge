@@ -14,18 +14,20 @@ impl WorthUiActiveApplicationSession {
         now: u64,
     ) -> UiMountedFrameOutcome {
         let capability_report = self.host_session.capability_report().clone();
-        let admission =
-            match self
-                .mounted_presentation
-                .admit(frame, &capability_report, deadline, now)
-            {
-                Ok(admission) => admission,
-                Err(rejection) => {
-                    self.host_observations
-                        .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                    return UiMountedFrameOutcome::AdmissionDenied(rejection);
-                }
-            };
+        let admission = match self.mounted_presentation.admit_current(
+            &self.mounted_identity,
+            frame,
+            &capability_report,
+            deadline,
+            now,
+        ) {
+            Ok(admission) => admission,
+            Err(rejection) => {
+                self.host_observations
+                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
+                return UiMountedFrameOutcome::AdmissionDenied(rejection);
+            }
+        };
         let reservation = UiMountedFramePublicationCandidate::reserve(
             &admission,
             self.mounted_identity.view().current_frame(),

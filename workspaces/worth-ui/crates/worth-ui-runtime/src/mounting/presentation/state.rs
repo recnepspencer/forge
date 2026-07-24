@@ -55,6 +55,7 @@ pub enum UiMountedPresentationAdmissionDenial {
     CoordinatorShuttingDown,
     CapacityExceeded,
     DeadlineExpired,
+    PreparedFrameBasisChanged,
     CapabilityGenerationChanged(UiSurfaceBindingGeneration),
     CapabilityProfileChanged(UiSurfaceBindingGeneration),
     BindingRequiresReconciliation(UiSurfaceBindingGeneration),
@@ -104,7 +105,7 @@ impl UiMountedPresentationAdmission {
 }
 
 impl UiMountedPresentationAdmissionRejection {
-    pub(super) fn new(
+    pub(crate) fn new(
         frame: UiPreparedMountedFrame,
         denial: UiMountedPresentationAdmissionDenial,
     ) -> Self {
