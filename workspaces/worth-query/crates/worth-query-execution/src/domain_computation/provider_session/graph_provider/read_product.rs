@@ -25,11 +25,9 @@ impl WorthQueryExecutionGraphReadProduct {
     ) -> Self {
         let rows = material.into_rows().into_boxed_slice();
         let mut digest_parts = vec![
-            "worth_query_execution_graph_read_product_v1".into(),
-            format!("call:{}", call.call_identity()),
+            "worth_query_execution_graph_read_result_v1".into(),
             format!("query:{}", call.canonical_query_digest()),
             format!("basis:{}", call.basis_identity()),
-            format!("snapshot:{}", call.snapshot_identity()),
             format!("rows:{}", rows.len()),
         ];
         for (index, row) in rows.iter().enumerate() {

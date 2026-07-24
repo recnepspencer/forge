@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use worth_query::facade::domain;
 
-use super::graph_projection_material;
+use super::graph_read_material;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct RemoteA;
@@ -122,10 +122,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for SelectiveProvider {
         if self.fail_at == Some(FailAt::Project) {
             Err(domain::WorthQueryGraphProviderFailure::new("project"))
         } else {
-            Ok(call.projected(
+            call.projected(
                 "project",
-                graph_projection_material("graph-provider-execution-projection"),
-            ))
+                graph_read_material("graph-provider-execution-projection"),
+            )
         }
     }
 

@@ -198,7 +198,7 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
     fn contact_commit_group(
         &mut self,
         authority: std::sync::Arc<InstalledGraphCommitAuthority>,
-        roles: &mut Vec<String>,
+        roles: &mut [String],
     ) -> Result<(), WorthQueryBoundExecutionDenial> {
         roles.sort();
         self.counters.graph_provider_contacts += 1;
@@ -207,7 +207,7 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
             self.bound.definition().canonical_identity(),
             self.bound.binding_identity(),
             &authority,
-            roles.clone(),
+            roles.to_vec(),
             self.resources,
             self.resource_evidence,
             self.provider_session,

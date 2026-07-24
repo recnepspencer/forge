@@ -60,7 +60,6 @@ pub use domain_evidence::{
     EvidenceRead, EvidenceScenario, EvidenceWorkflowMode,
 };
 pub(crate) use execution_resources::resource_admission_workspace;
-pub use executors::graph_projection_material;
 use executors::{
     CountVerticesExecutor, FederatedReadExecutor, ReadVertexExecutor,
     UnderstatedFederatedReadExecutor,

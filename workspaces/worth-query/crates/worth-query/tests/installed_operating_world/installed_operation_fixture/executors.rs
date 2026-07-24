@@ -12,14 +12,6 @@ pub(super) use workflow::{
     MismatchedWorkflowDeterminismExecutor, MismatchedWorkflowStageExecutor, WorkflowStageExecutor,
 };
 
-pub fn graph_projection_material(label: &str) -> runtime::WorthQueryReadResult {
-    let mut projection_workspace =
-        super::workspace(label, false).expect("projection runtime installs");
-    execute_reconstructed_read_for_sabotage(&mut projection_workspace)
-        .expect("graph adapter projection executes through Query")
-        .into_result()
-}
-
 #[derive(Clone, Copy)]
 pub(super) struct ReadVertexExecutor;
 

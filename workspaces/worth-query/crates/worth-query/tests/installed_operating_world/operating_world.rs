@@ -2,10 +2,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use worth_query::facade::domain;
 
+use super::graph_read_material::graph_read_material;
 use super::installed_operation_fixture::{
     configured_runtime_for_package, federated_package, federated_touch_package,
-    graph_projection_material, required_domain_runtime, workspace, FederatedRead, GeometryDomain,
-    ReadFamily, ReadVertex,
+    required_domain_runtime, workspace, FederatedRead, GeometryDomain, ReadFamily, ReadVertex,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -39,10 +39,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for Provider {
     ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
     {
         self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.projected(
+        call.projected(
             "provider-projection",
-            graph_projection_material("operating-world-graph-projection"),
-        ))
+            graph_read_material("operating-world-graph-projection"),
+        )
     }
     fn touch_effect(
         &self,

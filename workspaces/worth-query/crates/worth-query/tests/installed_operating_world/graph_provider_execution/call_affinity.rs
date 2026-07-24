@@ -5,7 +5,7 @@ use worth_proof::TransitionOutcome;
 use worth_query::facade::domain;
 
 use super::{
-    configured_runtime_for_package, federated_package, graph_projection_material, read_definition,
+    configured_runtime_for_package, federated_package, graph_read_material, read_definition,
     FederatedRead, GeometryDomain, ReadFamily, RemoteA, RemoteB,
 };
 
@@ -38,10 +38,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for ReplayedCallProvider
     {
         let mut retained = self.retained.lock().unwrap();
         let minting_call = retained.get_or_insert_with(|| call.clone());
-        Ok(minting_call.projected(
+        minting_call.projected(
             "replayed-call-projection",
-            graph_projection_material("replayed-call-projection"),
-        ))
+            graph_read_material("replayed-call-projection"),
+        )
     }
 
     fn touch_effect(
@@ -73,10 +73,7 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for CurrentCallProvider 
         call: &domain::WorthQueryGraphProviderCall,
     ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
     {
-        Ok(call.projected(
-            "projection",
-            graph_projection_material("current-call-projection"),
-        ))
+        call.projected("projection", graph_read_material("current-call-projection"))
     }
 
     fn touch_effect(
@@ -119,16 +116,16 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for CrossCallProvider {
             let foreign = retained
                 .as_ref()
                 .expect("the first graph call was retained");
-            Ok(foreign.projected(
+            foreign.projected(
                 "cross-call-projection",
-                graph_projection_material("cross-call-projection"),
-            ))
+                graph_read_material("cross-call-projection"),
+            )
         } else {
             *retained = Some(call.clone());
-            Ok(call.projected(
+            call.projected(
                 "first-projection",
-                graph_projection_material("first-call-projection"),
-            ))
+                graph_read_material("first-call-projection"),
+            )
         }
     }
 

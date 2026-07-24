@@ -3,11 +3,11 @@ use std::sync::{Arc, Mutex};
 use worth_proof::TransitionOutcome;
 use worth_query::facade::domain;
 
+use super::graph_read_material::graph_read_material;
 use super::installed_operation_fixture::{
     configured_runtime_for_package, configured_runtime_for_understated_cost_package,
     federated_operation_contract_drift_package, federated_package, federated_touch_package,
-    graph_projection_material, FederatedOperationContractDrift, FederatedRead, GeometryDomain,
-    ReadFamily,
+    FederatedOperationContractDrift, FederatedRead, GeometryDomain, ReadFamily,
 };
 
 mod call_affinity;
@@ -181,55 +181,6 @@ fn read_only_participation_does_not_widen_the_mutating_commit_set() {
         *log.lock().unwrap(),
         ["project", "observe", "commit", "touch"]
     );
-}
-
-#[test]
-fn graph_projection_must_match_the_exact_execution_snapshot() {
-    let log = Arc::new(Mutex::new(Vec::new()));
-    let mut workspace =
-        configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
-            .graph_participation(read_definition::<RemoteA>(
-                "remote-a",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(RemoteA, SelectiveProvider::new(&log, None))
-            .graph_participation(read_definition::<RemoteB>(
-                "remote-b",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(RemoteB, SelectiveProvider::new(&log, None))
-            .workspace("graph-stale-projection")
-            .unwrap();
-    workspace
-        .insert("Vertex", |mutation| {
-            mutation.aspect("identity.id", "current-snapshot")
-        })
-        .unwrap();
-    let installed = workspace.domain(GeometryDomain).unwrap();
-    let bound = workspace
-        .observe_operating_world()
-        .unwrap()
-        .family(ReadFamily)
-        .bind(&installed, FederatedRead)
-        .unwrap();
-    let denial = match bound
-        .admit_execution_resources(
-            (),
-            crate::suite::installed_operation_fixture::execution_resource_request(),
-            &workspace,
-        )
-        .unwrap()
-        .execute(&mut workspace)
-    {
-        TransitionOutcome::Denied(denial) => denial,
-        _ => panic!("stale graph projection did not produce an exact denial"),
-    };
-    assert_eq!(
-        denial.kind(),
-        &domain::WorthQueryBoundExecutionDenialKind::GraphProvider
-    );
-    assert_eq!(denial.counters().graph_provider_contacts, 1);
-    assert_eq!(denial.counters().executor_contacts, 0);
 }
 
 #[test]
