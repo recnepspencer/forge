@@ -50,6 +50,15 @@ impl WorthQueryWorkflowValue {
             }
         }
     }
+
+    pub fn domain_evidence_occurrence_identity(&self) -> String {
+        crate::identity::hash_parts(&[
+            "worth_query_workflow_output_occurrence_v1".into(),
+            crate::domain_installation::operation_identity_basis::workflow_semantic_value_material(
+                &self.semantic_value(),
+            ),
+        ])
+    }
 }
 
 impl WorthQueryWorkflowSemanticValue {

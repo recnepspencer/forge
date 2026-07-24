@@ -241,6 +241,7 @@ pub struct WorthQueryWorkflowStageReceipt {
     pub(super) execution_snapshot: crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
     pub(crate) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
+    pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
 }
 
 #[derive(Debug)]
@@ -369,5 +370,8 @@ impl WorthQueryWorkflowStageReceipt {
         &self,
     ) -> &[crate::domain_installation::WorthQueryConditionalProvenance] {
         &self.conditional
+    }
+    pub fn domain_evidence(&self) -> Option<&super::WorthQueryAdmittedDomainEvidence> {
+        self.domain_evidence.as_ref()
     }
 }

@@ -7,6 +7,8 @@ pub(crate) struct WorthQueryInstalledWorkflowArtifactContracts {
         Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>,
     output:
         Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>,
+    evidence:
+        Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>,
 }
 
 impl WorthQueryInstalledWorkflowArtifactContracts {
@@ -22,6 +24,13 @@ impl WorthQueryInstalledWorkflowArtifactContracts {
     ) -> Option<&Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>
     {
         self.output.as_ref()
+    }
+
+    pub(crate) fn evidence(
+        &self,
+    ) -> Option<&Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>
+    {
+        self.evidence.as_ref()
     }
 }
 
@@ -45,12 +54,37 @@ pub(crate) fn compile_workflow_artifact_contracts(
                 portable_index,
                 "workflow output artifact contract must be installed",
             );
+            let evidence =
+                installed_evidence_contract(owner, &stage.semantics().evidence, portable_index);
             (
                 stage.identity().to_owned(),
-                WorthQueryInstalledWorkflowArtifactContracts { input, output },
+                WorthQueryInstalledWorkflowArtifactContracts {
+                    input,
+                    output,
+                    evidence,
+                },
             )
         })
         .collect()
+}
+
+fn installed_evidence_contract(
+    owner: &str,
+    evidence: &worth_query_installation::facade::WorthQueryDomainEvidenceContract,
+    portable_index: &worth_query_installation::facade::WorthQueryInstalledPackageIndex,
+) -> Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>> {
+    let worth_query_installation::facade::WorthQueryDomainEvidenceContract::InstalledArtifact(
+        reference,
+    ) = evidence
+    else {
+        return None;
+    };
+    Some(installed_reference(
+        owner,
+        reference,
+        portable_index,
+        "workflow evidence artifact contract must be installed",
+    ))
 }
 
 fn installed_contract(
@@ -65,6 +99,20 @@ fn installed_contract(
     else {
         return None;
     };
+    Some(installed_reference(
+        owner,
+        reference,
+        portable_index,
+        message,
+    ))
+}
+
+fn installed_reference(
+    owner: &str,
+    reference: &worth_query_installation::facade::WorthQueryArtifactContractReference,
+    portable_index: &worth_query_installation::facade::WorthQueryInstalledPackageIndex,
+    message: &'static str,
+) -> Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority> {
     let authority = portable_index
         .artifact_contract(
             owner,
@@ -76,5 +124,5 @@ fn installed_contract(
     portable_index
         .validate_artifact_contract(&authority)
         .expect("newly minted workflow artifact authority must validate");
-    Some(Arc::new(authority))
+    Arc::new(authority)
 }

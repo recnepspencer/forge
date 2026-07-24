@@ -167,7 +167,7 @@ impl WorthQueryRuntime {
         let domain_marker = std::any::TypeId::of::<D>();
         let operation_marker = std::any::TypeId::of::<O>();
         let family_marker = std::any::TypeId::of::<F>();
-        let (authority, workflow_graph) = self
+        let resolved = self
             .installed_domain_execution_index()
             .domain_operation_authority(domain_marker, operation_marker, family_marker)
             .ok_or_else(WorthQueryInstalledDomainOperationLookupDenial::operation_not_installed)?;
@@ -178,8 +178,9 @@ impl WorthQueryRuntime {
         let graph_bindings_retained = graph_bindings.len();
         Ok(WorthQueryInstalledDomainOperation::mint(
             handle.authority_arc(),
-            authority,
-            workflow_graph,
+            resolved.authority,
+            resolved.workflow_graph,
+            resolved.evidence_contract,
             graph_bindings,
             crate::domain_installation::WorthQueryInstalledDomainOperationLookupCounters {
                 authority_checks: 1,

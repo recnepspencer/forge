@@ -42,6 +42,19 @@ pub(super) fn validate_workflow_artifact_closure(
 ) -> Result<(), WorthQueryPortablePackageValidationDenial> {
     for operation in operations {
         let operation_slot = operation.identity().slot();
+        if matches!(
+            &operation.semantics().workflow,
+            WorthQueryOperationWorkflowContract::Declared(_)
+        ) && !matches!(
+            &operation.semantics().evidence,
+            WorthQueryDomainEvidenceContract::NotRequired
+        ) {
+            return Err(
+                WorthQueryPortablePackageValidationDenial::invalid_domain_operation(format!(
+                    "{operation_slot}:workflow-operation-evidence-requires-stage-declaration"
+                )),
+            );
+        }
         validate_evidence_reference(
             contracts,
             &operation_slot,

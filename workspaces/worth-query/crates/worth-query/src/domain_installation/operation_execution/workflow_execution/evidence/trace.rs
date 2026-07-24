@@ -159,6 +159,14 @@ fn stage_semantic_part(receipt: &WorthQueryWorkflowStageReceipt) -> String {
             ),
         ),
         (
+            "stage.domain_evidence",
+            receipt
+                .domain_evidence()
+                .map(super::WorthQueryAdmittedDomainEvidence::replay_meaning)
+                .map(|meaning| meaning.semantic_material())
+                .unwrap_or_else(|| "not-required".into()),
+        ),
+        (
             "stage.graph",
             canonical_indexed_operation_material(
                 "stage.graph.receipt",

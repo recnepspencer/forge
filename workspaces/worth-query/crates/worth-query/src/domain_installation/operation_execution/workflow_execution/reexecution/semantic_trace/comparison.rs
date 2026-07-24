@@ -70,6 +70,8 @@ fn stage_divergence(
         Some(D::ResultState { stage })
     } else if !noise.diagnostic_warnings && original.warnings != candidate.warnings {
         Some(D::Diagnostic { stage })
+    } else if !domain_evidence_eq(&original.domain_evidence, &candidate.domain_evidence) {
+        Some(D::DomainEvidence { stage })
     } else if original.effects != candidate.effects {
         Some(D::Effect { stage })
     } else if original.invariants != candidate.invariants {
@@ -80,6 +82,17 @@ fn stage_divergence(
         Some(D::Lineage { stage })
     } else {
         None
+    }
+}
+
+fn domain_evidence_eq(
+    original: &Option<super::WorthQueryDomainEvidenceReplayMeaning>,
+    candidate: &Option<super::WorthQueryDomainEvidenceReplayMeaning>,
+) -> bool {
+    match (original, candidate) {
+        (None, None) => true,
+        (Some(original), Some(candidate)) => original.semantic_replay_eq(candidate),
+        _ => false,
     }
 }
 

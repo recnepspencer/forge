@@ -8,6 +8,8 @@ pub(crate) mod certification_replay;
 mod commit_execution;
 #[path = "direct_execution/consumption_progression.rs"]
 mod consumption_progression;
+#[path = "domain_evidence/mod.rs"]
+mod domain_evidence;
 #[path = "workflow_execution/reexecution/historical_replay.rs"]
 pub(crate) mod historical_replay;
 #[path = "direct_execution/input_contract.rs"]
@@ -109,6 +111,7 @@ pub(crate) use artifact_owner::{
     WorthQueryWorkflowArtifactRegistry,
 };
 pub use consumption_progression::*;
+pub use domain_evidence::*;
 pub use operation_input::*;
 pub use operation_output::*;
 pub use progression::*;

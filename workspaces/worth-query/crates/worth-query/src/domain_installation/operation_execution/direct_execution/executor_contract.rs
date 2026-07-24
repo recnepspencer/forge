@@ -56,6 +56,7 @@ pub struct WorthQueryOperationExecutionMaterial<T> {
     output: T,
     result_state: WorthQueryOperationResultState,
     warnings: Vec<WorthQueryOperationExecutionWarning>,
+    domain_evidence: Option<super::WorthQueryDomainEvidenceMaterial>,
 }
 
 impl<T> WorthQueryOperationExecutionMaterial<T> {
@@ -64,11 +65,20 @@ impl<T> WorthQueryOperationExecutionMaterial<T> {
             output,
             result_state,
             warnings: Vec::new(),
+            domain_evidence: None,
         }
     }
 
     pub fn with_warning(mut self, warning: WorthQueryOperationExecutionWarning) -> Self {
         self.warnings.push(warning);
+        self
+    }
+
+    pub fn with_domain_evidence(
+        mut self,
+        evidence: super::WorthQueryDomainEvidenceMaterial,
+    ) -> Self {
+        self.domain_evidence = Some(evidence);
         self
     }
 
@@ -78,8 +88,14 @@ impl<T> WorthQueryOperationExecutionMaterial<T> {
         T,
         WorthQueryOperationResultState,
         Vec<WorthQueryOperationExecutionWarning>,
+        Option<super::WorthQueryDomainEvidenceMaterial>,
     ) {
-        (self.output, self.result_state, self.warnings)
+        (
+            self.output,
+            self.result_state,
+            self.warnings,
+            self.domain_evidence,
+        )
     }
 }
 

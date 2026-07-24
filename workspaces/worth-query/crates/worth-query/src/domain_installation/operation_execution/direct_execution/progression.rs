@@ -191,7 +191,7 @@ where
                 }
             };
         counters.primary_read_contacts += primary_read_contacts;
-        let (output, result_state, warnings) = material.into_parts();
+        let (output, result_state, warnings, domain_evidence_material) = material.into_parts();
         counters.terminal_posture_checks += 1;
         if !self
             .definition()
@@ -210,6 +210,39 @@ where
             );
         }
         let output_identity = output.operation_output_identity();
+        let domain_evidence =
+            match super::admit_domain_evidence(super::WorthQueryDomainEvidenceAdmissionInput {
+                contract: self
+                    .operation()
+                    .evidence_contract()
+                    .map(std::sync::Arc::as_ref),
+                material: domain_evidence_material,
+                binding: super::WorthQueryDomainEvidenceBindingParts {
+                    operation_identity: self.definition().canonical_identity().to_owned(),
+                    binding_identity: self.binding_identity().to_owned(),
+                    run_identity: None,
+                    stage_identity: None,
+                    basis_identity: self.basis().capability_digest().to_owned(),
+                    execution_snapshot_identity: execution_snapshot
+                        .evidence_identity()
+                        .as_str()
+                        .to_owned(),
+                    output_occurrence_identity: output_identity.clone(),
+                },
+                ledger: None,
+            }) {
+                Ok(evidence) => evidence,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(
+                        WorthQueryBoundExecutionDenial::new(
+                            WorthQueryBoundExecutionDenialKind::DomainEvidence(denial.kind()),
+                            denial.subject(),
+                            counters,
+                        )
+                        .with_graph_receipts(graph_receipts),
+                    )
+                }
+            };
         let identity = direct_execution_receipt_identity(DirectExecutionIdentityInput {
             binding_identity: self.binding_identity(),
             capability_identity: self.capability_identity(),
@@ -219,12 +252,14 @@ where
             graph_receipts: &graph_receipts,
             output_identity: &output_identity,
             conditional: &conditional,
+            domain_evidence: domain_evidence.as_ref(),
         });
         let receipt = WorthQueryBoundExecutionReceipt {
             identity,
             binding_identity: self.binding_identity().into(),
             result_state,
             output_identity,
+            domain_evidence,
         };
         let phase_proof = mint_operation_phase_proof(
             receipt.identity().to_string(),

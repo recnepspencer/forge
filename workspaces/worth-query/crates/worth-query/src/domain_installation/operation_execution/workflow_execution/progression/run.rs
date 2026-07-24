@@ -69,6 +69,7 @@ pub struct WorthQueryWorkflowRun<D, O, F, L: BasisOperationLane> {
     pub(super) operation_conditional:
         Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
     pub(super) artifact_registry: crate::domain_installation::WorthQueryWorkflowArtifactRegistry,
+    pub(super) domain_evidence_ledger: super::WorthQueryDomainEvidenceAdmissionLedger,
 }
 
 struct DeclaredWorkflowRuntime {
@@ -187,6 +188,7 @@ where
             artifact_registry: crate::domain_installation::WorthQueryWorkflowArtifactRegistry::new(
                 identity,
             ),
+            domain_evidence_ledger: super::WorthQueryDomainEvidenceAdmissionLedger::default(),
         })
     }
 

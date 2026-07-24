@@ -46,8 +46,40 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         let invariant_outcomes = self.validate_invariants(stage, &input)?;
         self.validate_result_contracts(stage, &input)?;
         let output_semantics = input.material.output.semantic_value();
+        let output_occurrence_identity =
+            input.material.output.domain_evidence_occurrence_identity();
         let stage_counters = self.counters.delta_since(input.counters_before);
         self.validate_cost_contract(stage, stage_counters, &input)?;
+        let evidence_contract = self
+            .graph
+            .artifact_contracts(stage.identity())
+            .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::evidence)
+            .cloned();
+        let domain_evidence =
+            super::admit_domain_evidence(super::WorthQueryDomainEvidenceAdmissionInput {
+                contract: evidence_contract.as_deref(),
+                material: input.material.domain_evidence.take(),
+                binding: super::WorthQueryDomainEvidenceBindingParts {
+                    operation_identity: self.bound.definition().canonical_identity().to_owned(),
+                    binding_identity: self.bound.binding_identity().to_owned(),
+                    run_identity: Some(self.identity.clone()),
+                    stage_identity: Some(stage.identity().to_owned()),
+                    basis_identity: self.bound.basis().capability_digest().to_owned(),
+                    execution_snapshot_identity: input
+                        .execution_snapshot
+                        .evidence_identity()
+                        .as_str()
+                        .to_owned(),
+                    output_occurrence_identity,
+                },
+                ledger: Some(&mut self.domain_evidence_ledger),
+            })
+            .map_err(|denial| {
+                input.denial(
+                    self.counters,
+                    WorthQueryWorkflowAdvanceDenialKind::DomainEvidence(denial.kind()),
+                )
+            })?;
         Ok(WorthQueryAdmittedWorkflowStageEvidence {
             input: input.semantic_input,
             output: input.material.output,
@@ -62,6 +94,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             execution_snapshot: input.execution_snapshot,
             conditional: input.conditional,
             lineage: input.material.lineage,
+            domain_evidence,
         })
     }
 

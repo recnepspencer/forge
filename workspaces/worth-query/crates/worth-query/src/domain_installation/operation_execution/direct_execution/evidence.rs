@@ -37,6 +37,7 @@ pub struct WorthQueryBoundExecutionReceipt {
     pub(super) binding_identity: String,
     pub(super) result_state: WorthQueryOperationResultState,
     pub(super) output_identity: String,
+    pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
 }
 
 impl WorthQueryBoundExecutionReceipt {
@@ -51,6 +52,9 @@ impl WorthQueryBoundExecutionReceipt {
     }
     pub fn output_identity(&self) -> &str {
         &self.output_identity
+    }
+    pub fn domain_evidence(&self) -> Option<&super::WorthQueryAdmittedDomainEvidence> {
+        self.domain_evidence.as_ref()
     }
 }
 
@@ -114,6 +118,7 @@ pub enum WorthQueryBoundExecutionDenialKind {
     Executor(crate::domain_installation::WorthQueryOperationFailureClass),
     UndeclaredFailureClass(crate::domain_installation::WorthQueryOperationFailureClass),
     UndeclaredResultState,
+    DomainEvidence(super::WorthQueryDomainEvidenceAdmissionDenialKind),
     ConditionalExecution(worth_runtime_bridge::facade::BridgeConditionalDenialKind),
     ConditionalReentry(crate::domain_installation::WorthQueryConditionalAdmissionDenial),
 }

@@ -27,6 +27,7 @@ pub enum WorthQueryWorkflowAdvanceDenialKind {
     CostContract,
     OutputContract,
     TerminalContract,
+    DomainEvidence(super::WorthQueryDomainEvidenceAdmissionDenialKind),
     ParallelFrontierShape,
     NonDeterministicLowering,
     ParallelProviderMissing,

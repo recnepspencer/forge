@@ -86,6 +86,7 @@ pub struct WorthQueryWorkflowStageMaterial {
     effects: Vec<WorthQueryWorkflowEffectEvidence>,
     executed_effects: Vec<WorthQueryWorkflowEffectEvidence>,
     lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
+    domain_evidence: Option<super::WorthQueryDomainEvidenceMaterial>,
 }
 
 pub(crate) struct WorthQueryWorkflowStageMaterialParts {
@@ -96,6 +97,7 @@ pub(crate) struct WorthQueryWorkflowStageMaterialParts {
     pub(crate) effects: Vec<WorthQueryWorkflowEffectEvidence>,
     pub(crate) executed_effects: Vec<WorthQueryWorkflowEffectEvidence>,
     pub(crate) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
+    pub(crate) domain_evidence: Option<super::WorthQueryDomainEvidenceMaterial>,
 }
 
 impl WorthQueryWorkflowStageMaterial {
@@ -108,6 +110,7 @@ impl WorthQueryWorkflowStageMaterial {
             effects: Vec::new(),
             executed_effects: Vec::new(),
             lineage: Vec::new(),
+            domain_evidence: None,
         }
     }
 
@@ -136,6 +139,7 @@ impl WorthQueryWorkflowStageMaterial {
             effects: Vec::new(),
             executed_effects: Vec::new(),
             lineage: Vec::new(),
+            domain_evidence: None,
         }
     }
 
@@ -160,6 +164,14 @@ impl WorthQueryWorkflowStageMaterial {
         self
     }
 
+    pub fn with_domain_evidence(
+        mut self,
+        evidence: super::WorthQueryDomainEvidenceMaterial,
+    ) -> Self {
+        self.domain_evidence = Some(evidence);
+        self
+    }
+
     pub(crate) fn into_parts(self) -> WorthQueryWorkflowStageMaterialParts {
         WorthQueryWorkflowStageMaterialParts {
             output: self.output,
@@ -169,6 +181,7 @@ impl WorthQueryWorkflowStageMaterial {
             effects: self.effects,
             executed_effects: self.executed_effects,
             lineage: self.lineage,
+            domain_evidence: self.domain_evidence,
         }
     }
 

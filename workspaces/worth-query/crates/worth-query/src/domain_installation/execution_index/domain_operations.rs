@@ -12,6 +12,8 @@ pub(super) struct InstalledDomainOperation {
     pub(super) authority: Arc<WorthQueryInstalledDomainOperationAuthority>,
     pub(super) workflow_graph:
         Option<Arc<crate::domain_installation::WorthQueryInstalledWorkflowGraph>>,
+    pub(super) evidence_contract:
+        Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>,
 }
 
 pub(super) fn domain_operation_index(
@@ -36,6 +38,11 @@ pub(super) fn domain_operation_index(
             portable_index
                 .validate_domain_operation(&authority)
                 .expect("newly minted domain-operation authority must validate");
+            let evidence_contract = installed_evidence_contract(
+                &artifact.domain_owner,
+                &operation.definition().semantics().evidence,
+                portable_index,
+            );
             (
                 (
                     artifact.marker_type,
@@ -50,11 +57,37 @@ pub(super) fn domain_operation_index(
                             portable_index,
                         )
                         .map(Arc::new),
+                    evidence_contract,
                     authority: Arc::new(authority),
                 },
             )
         })
         .collect()
+}
+
+fn installed_evidence_contract(
+    owner: &str,
+    evidence: &worth_query_installation::facade::WorthQueryDomainEvidenceContract,
+    portable_index: &WorthQueryInstalledPackageIndex,
+) -> Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>> {
+    let worth_query_installation::facade::WorthQueryDomainEvidenceContract::InstalledArtifact(
+        reference,
+    ) = evidence
+    else {
+        return None;
+    };
+    let authority = portable_index
+        .artifact_contract(
+            owner,
+            reference.family().as_str(),
+            reference.schema_version(),
+            reference.protocol_version(),
+        )
+        .expect("operation evidence artifact contract must be installed");
+    portable_index
+        .validate_artifact_contract(&authority)
+        .expect("newly minted operation evidence authority must validate");
+    Some(Arc::new(authority))
 }
 
 pub(super) fn domain_operation_identity_parts(

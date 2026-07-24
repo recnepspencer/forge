@@ -17,6 +17,8 @@ pub(super) struct DirectExecutionIdentityInput<'a> {
     pub(super) graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
     pub(super) output_identity: &'a str,
     pub(super) conditional: &'a [WorthQueryConditionalProvenance],
+    pub(super) domain_evidence:
+        Option<&'a crate::domain_installation::WorthQueryAdmittedDomainEvidence>,
 }
 
 pub(super) fn direct_execution_receipt_identity(input: DirectExecutionIdentityInput<'_>) -> String {
@@ -60,6 +62,13 @@ pub(super) fn direct_execution_receipt_identity(input: DirectExecutionIdentityIn
         format!("warnings:{warning_evidence}"),
         format!("graph_evidence:{graph_evidence}"),
         format!("output:{}", input.output_identity),
+        format!(
+            "domain_evidence:{}",
+            input
+                .domain_evidence
+                .map(crate::domain_installation::WorthQueryAdmittedDomainEvidence::identity)
+                .unwrap_or("not-required")
+        ),
         format!(
             "conditional:{}",
             canonical_indexed_operation_material(

@@ -15,6 +15,8 @@ pub struct WorthQueryInstalledDomainOperation<D, O, F> {
     operation_authority:
         Arc<worth_query_installation::facade::WorthQueryInstalledDomainOperationAuthority>,
     workflow_graph: Option<Arc<super::super::WorthQueryInstalledWorkflowGraph>>,
+    evidence_contract:
+        Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>,
     graph_bindings: Vec<WorthQueryInstalledOperationGraphBinding>,
     lookup_counters: WorthQueryInstalledDomainOperationLookupCounters,
     marker: PhantomData<InstalledOperationMarker<D, O, F>>,
@@ -27,6 +29,9 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
             worth_query_installation::facade::WorthQueryInstalledDomainOperationAuthority,
         >,
         workflow_graph: Option<Arc<super::super::WorthQueryInstalledWorkflowGraph>>,
+        evidence_contract: Option<
+            Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>,
+        >,
         graph_bindings: Vec<WorthQueryInstalledOperationGraphBinding>,
         lookup_counters: WorthQueryInstalledDomainOperationLookupCounters,
     ) -> Self {
@@ -34,6 +39,7 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
             domain_authority,
             operation_authority,
             workflow_graph,
+            evidence_contract,
             graph_bindings,
             lookup_counters,
             marker: PhantomData,
@@ -149,6 +155,13 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
         &self,
     ) -> Option<&Arc<super::super::WorthQueryInstalledWorkflowGraph>> {
         self.workflow_graph.as_ref()
+    }
+
+    pub(crate) fn evidence_contract(
+        &self,
+    ) -> Option<&Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>
+    {
+        self.evidence_contract.as_ref()
     }
 }
 
