@@ -124,12 +124,12 @@ impl WorthUiSettledSnapshotInspection<'_> {
         self.relevance
     }
 
-    pub fn settlement_identity(&self) -> &str {
-        self.exact_projection.fact().settlement_identity()
+    pub fn settlement_reference(&self) -> &crate::WorthUiAdmittedQuerySettlementReference {
+        self.exact_projection.fact().settlement_reference()
     }
 
-    pub fn query_binding_identity(&self) -> &str {
-        self.exact_projection.fact().query_binding_identity()
+    pub fn binding_reference(&self) -> &crate::WorthUiAdmittedQueryBindingReference {
+        self.exact_projection.fact().binding_reference()
     }
 
     pub fn result_state(

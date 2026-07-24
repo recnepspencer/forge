@@ -11,6 +11,7 @@ pub enum UiGraphTouchDenial {
         declaration_identity: UiDeclarationIdentity,
     },
     QueryFactChangeUnavailableInCurrentWorld,
+    QueryBindingChangeUnavailableInCurrentWorld,
     OriginAuthorityUnavailable {
         origin_class: UiGraphTouchOriginClass,
     },

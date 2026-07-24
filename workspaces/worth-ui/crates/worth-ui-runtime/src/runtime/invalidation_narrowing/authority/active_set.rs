@@ -19,7 +19,6 @@ pub struct UiAllocationActivationCatalog {
 pub(crate) struct UiAllocationNeighborhoodCatalogTransition {
     transition: crate::graph::UiGraphNeighborhoodActivationTransition,
     activation: crate::runtime::allocation_receipt::UiCommittedAllocationCatalogActivation,
-    activation_identity: crate::runtime::UiCommittedAllocationActivationIdentity,
     affected_predecessor_scopes: Option<Box<[crate::evidence::UiAllocationNeighborhoodScope]>>,
 }
 
@@ -153,9 +152,7 @@ impl UiAllocationActivationCatalog {
 impl UiAllocationNeighborhoodCatalogTransition {
     pub(super) fn seal(
         authority: &crate::graph::UiGraphReplanAuthority,
-        _catalog: &UiAllocationActivationCatalog,
         activation: crate::runtime::allocation_receipt::UiCommittedAllocationCatalogActivation,
-        activation_identity: crate::runtime::UiCommittedAllocationActivationIdentity,
         affected_predecessor_scopes: Option<Box<[crate::evidence::UiAllocationNeighborhoodScope]>>,
     ) -> Self {
         let entries = activation
@@ -174,7 +171,6 @@ impl UiAllocationNeighborhoodCatalogTransition {
         Self {
             transition: authority.seal_activation_transition(entries),
             activation,
-            activation_identity,
             affected_predecessor_scopes,
         }
     }

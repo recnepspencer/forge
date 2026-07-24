@@ -7,12 +7,10 @@ pub(super) fn authority_drifts(
     installed_authority_drifts(
         active.installed_reference(),
         candidate.installed_reference(),
-        active
-            .settled()
-            .map(|settled| settled.query_binding_identity()),
+        active.settled().map(|settled| settled.binding_reference()),
         candidate
             .settled()
-            .map(|settled| settled.query_binding_identity()),
+            .map(|settled| settled.binding_reference()),
         active
             .exact_live_resource()
             .map(|evidence| evidence.installed_reference()),
@@ -22,8 +20,10 @@ pub(super) fn authority_drifts(
 fn installed_authority_drifts(
     active_reference: Option<&worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
     candidate_reference: Option<&worth_ui_query_binding::WorthUiInstalledQueryBindingReference>,
-    active_binding_identity: Option<&str>,
-    candidate_binding_identity: Option<&str>,
+    active_binding_reference: Option<&worth_ui_query_binding::WorthUiAdmittedQueryBindingReference>,
+    candidate_binding_reference: Option<
+        &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+    >,
     active_exact_live_reference: Option<
         &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
     >,
@@ -40,7 +40,7 @@ fn installed_authority_drifts(
     {
         drifts.push(WorthUiQueryBindingAuthorityDrift::InstallationCurrentness);
     }
-    let binding_identity_preserves = match (active_binding_identity, candidate_binding_identity) {
+    let binding_identity_preserves = match (active_binding_reference, candidate_binding_reference) {
         (Some(active), Some(candidate)) => active == candidate,
         (Some(_), None) => true,
         (None, None) => active_exact_live_reference == Some(active_reference),
@@ -63,8 +63,8 @@ mod tests {
             installed_authority_drifts(None, None, None, None, None),
             vec![WorthUiQueryBindingAuthorityDrift::InstalledAuthority]
         );
-        let active = reference("replacement-authority-active");
-        let foreign = reference("replacement-authority-foreign");
+        let active = reference("replacement-authority-equal-looking");
+        let foreign = reference("replacement-authority-equal-looking");
         assert_eq!(
             installed_authority_drifts(Some(&active), Some(&foreign), None, None, None),
             vec![WorthUiQueryBindingAuthorityDrift::InstalledAuthority]
@@ -74,11 +74,13 @@ mod tests {
     #[test]
     fn exact_current_authority_still_compares_query_minted_binding_identity() {
         let reference = reference("replacement-authority-exact");
+        let binding = binding_reference("replacement-binding-equal-looking");
+        let foreign_binding = binding_reference("replacement-binding-equal-looking");
         assert!(installed_authority_drifts(
             Some(&reference),
             Some(&reference),
-            Some("query-binding-a"),
-            Some("query-binding-a"),
+            Some(&binding),
+            Some(&binding),
             None,
         )
         .is_empty());
@@ -90,12 +92,20 @@ mod tests {
             installed_authority_drifts(
                 Some(&reference),
                 Some(&reference),
-                Some("query-binding-a"),
-                Some("query-binding-b"),
+                Some(&binding),
+                Some(&foreign_binding),
                 None,
             ),
             vec![WorthUiQueryBindingAuthorityDrift::BindingIdentity]
         );
+    }
+
+    fn binding_reference(
+        label: &str,
+    ) -> worth_ui_query_binding::WorthUiAdmittedQueryBindingReference {
+        let mut fixture =
+            worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture::new(label);
+        fixture.settle_snapshot().fact().binding_reference().clone()
     }
 
     fn reference(label: &str) -> worth_ui_query_binding::WorthUiInstalledQueryBindingReference {

@@ -16,6 +16,8 @@ mod committed_evidence;
 mod committed_lowering_input;
 #[path = "committed_truth/committed_receipt.rs"]
 mod committed_receipt;
+#[path = "ledger_lifecycle/completed_replay.rs"]
+mod completed_replay;
 #[path = "report_freshness/consumer_admission.rs"]
 mod consumer_admission;
 #[path = "transaction/denial.rs"]
@@ -123,8 +125,9 @@ pub use reuse_verdict::{
     UiAllocationLeafRemeasureWitness, UiAllocationReuseDenial, UiAllocationReuseVerdict,
 };
 pub use transaction_outcome::{
-    UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionCounters,
-    UiAllocationReplanTransactionOutcome, UiCommittedAllocationReplan,
+    UiAllocationAuthoritySuccessionDenial, UiAllocationReplanTransactionCommitDenial,
+    UiAllocationReplanTransactionCounters, UiAllocationReplanTransactionOutcome,
+    UiCommittedAllocationReplan,
 };
 #[cfg(test)]
 pub use truth_revision::UiAllocationAuthorityCounter;

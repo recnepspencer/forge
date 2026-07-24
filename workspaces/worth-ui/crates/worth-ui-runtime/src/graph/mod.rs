@@ -45,9 +45,11 @@ pub use admission::{
 
 // --- allocation neighborhood (graph → planning handoff; admission sealed pub(crate)) ---
 pub(crate) use allocation_neighborhood::select_replan_neighborhoods;
+pub(crate) use allocation_neighborhood::UiAdmittedReplanNeighborhood;
 pub(crate) use allocation_neighborhood::UiGraphNeighborhoodActivationTransition;
 pub(crate) use allocation_neighborhood::UiGraphReplanConsequences;
 pub(crate) use allocation_neighborhood::UiGraphReplanTransactionBasis;
+pub(crate) use allocation_neighborhood::UiQueryMeasurementReplanConsequence;
 pub use allocation_neighborhood::{
     UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationCatalogDelta,
     UiAdmittedAllocationInvalidationTargetSet, UiAdmittedReplanNeighborhoodSet,

@@ -81,6 +81,15 @@ impl crate::runtime::WorthUiRuntime {
         self.query_binding = binding;
     }
 
+    pub(crate) fn operation_live_change_observation_for_test(
+        &self,
+        reference: &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
+    ) -> worth_ui_query_binding::WorthUiOperationLiveChangeObservation {
+        self.query_binding
+            .operation_live_change_observation_for(reference)
+            .expect("test runtime retains the exact operation-live resource")
+    }
+
     pub(crate) fn query_fact_link_for_test(
         &self,
         binding_id: &str,

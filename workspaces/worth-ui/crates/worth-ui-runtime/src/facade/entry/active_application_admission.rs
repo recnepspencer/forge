@@ -11,13 +11,22 @@ impl WorthUiActiveApplicationSession {
         touch: &crate::obligations::touch::UiGraphTouchDescriptor,
         view_binding_id: crate::capability::ViewBindingId,
         fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
-    ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
-        self.app
-            .admit_query_measurement_eligibility_for_touch_from_settled_fact(
+    ) -> Result<
+        Option<crate::admission::UiQueryMeasurementEligibility>,
+        worth_ui_query_binding::WorthUiSettledSnapshotReadmissionDenial,
+    > {
+        let readmitted = self
+            .runtime
+            .query_binding
+            .readmit_settled_snapshot_fact(fact)?;
+        Ok(self
+            .app
+            .admission()
+            .admit_query_measurement_eligibility_for_touch_from_readmitted_fact(
                 touch,
                 view_binding_id,
-                fact,
-            )
+                readmitted,
+            ))
     }
 
     pub fn try_query_touch_for_node(

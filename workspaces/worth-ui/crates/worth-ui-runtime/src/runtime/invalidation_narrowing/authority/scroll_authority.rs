@@ -21,7 +21,9 @@ impl UiAllocationInvalidationAuthority {
         &self,
         source_key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
     ) -> UiScrollInvalidationAuthorityLookup<'_> {
-        let (bindings, probes) = self.scroll_bindings.settled_query_extent(source_key);
+        let (bindings, probes) = self
+            .scroll_bindings
+            .settled_query_binding_extent(source_key);
         UiScrollInvalidationAuthorityLookup { bindings, probes }
     }
 }

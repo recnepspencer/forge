@@ -1,11 +1,11 @@
 use worth_query::facade::foundation::ObservationLaneWitness;
 use worth_query::facade::installed::operation::{
-    WorthQueryConsumerBoundary, WorthQueryConsumerBoundaryRequirements,
-    WorthQueryConsumerProjectionContractDenial,
+    WorthQueryConsumerBoundaryRequirements, WorthQueryConsumerProjectionContractDenial,
 };
 use worth_query::facade::installed::WorthQueryOperationBindingDenial;
 
 use super::{WorthUiBoundSnapshotMeasurement, WorthUiQueryOperatingWorldGateway};
+use super::{WorthUiSnapshotNativeRequest, WorthUiSnapshotNativeRequestDenial};
 use crate::WorthUiQueryViewShape;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -104,8 +104,9 @@ pub enum WorthUiSnapshotConsumerPreparationDenial {
         installed: WorthUiQueryViewShape,
         requested: WorthUiQueryViewShape,
     },
-    Binding(WorthQueryOperationBindingDenial),
+    Binding(Box<WorthQueryOperationBindingDenial>),
     ConsumerContract(WorthQueryConsumerProjectionContractDenial),
+    NativeRequest(WorthUiSnapshotNativeRequestDenial),
 }
 
 /// One bound snapshot operation with its one Query-minted consumer contract.
@@ -115,12 +116,7 @@ pub enum WorthUiSnapshotConsumerPreparationDenial {
 pub struct WorthUiPreparedSnapshotConsumer {
     reference: crate::WorthUiInstalledQueryBindingReference,
     bound: WorthUiBoundSnapshotMeasurement<ObservationLaneWitness>,
-    consumer: WorthQueryConsumerBoundary<
-        crate::WorthUiDomainEntry,
-        crate::WorthUiSnapshotMeasurement,
-        crate::WorthUiSnapshotMeasurementFamily,
-        ObservationLaneWitness,
-    >,
+    native_request: WorthUiSnapshotNativeRequest,
     requirements: WorthUiQueryConsumerRequirements,
 }
 
@@ -146,33 +142,24 @@ impl WorthUiQueryOperatingWorldGateway<'_> {
             .consumer_projection_contract()
             .map_err(WorthUiSnapshotConsumerPreparationDenial::ConsumerContract)?
             .with_downstream_requirements(requirements.query_boundary());
+        let native_request = WorthUiSnapshotNativeRequest::from_consumer(consumer)
+            .map_err(WorthUiSnapshotConsumerPreparationDenial::NativeRequest)?;
         Ok(WorthUiPreparedSnapshotConsumer {
             reference,
             bound,
-            consumer,
+            native_request,
             requirements,
         })
     }
 }
 
 impl WorthUiPreparedSnapshotConsumer {
-    pub fn binding_identity(&self) -> &str {
-        self.bound.binding_identity()
+    pub fn installed_reference(&self) -> &crate::WorthUiInstalledQueryBindingReference {
+        &self.reference
     }
 
     pub fn query_boundary_requirements(&self) -> WorthQueryConsumerBoundaryRequirements {
-        self.consumer.downstream_requirements()
-    }
-
-    pub fn query_contract(
-        &self,
-    ) -> &worth_query::facade::installed::operation::WorthQueryConsumerProjectionContract<
-        crate::WorthUiDomainEntry,
-        crate::WorthUiSnapshotMeasurement,
-        crate::WorthUiSnapshotMeasurementFamily,
-        ObservationLaneWitness,
-    > {
-        self.consumer.query_contract()
+        self.requirements.query_boundary()
     }
 
     pub fn ui_requirements(&self) -> WorthUiQueryConsumerRequirements {
@@ -184,14 +171,14 @@ impl WorthUiPreparedSnapshotConsumer {
     ) -> (
         crate::WorthUiInstalledQueryBindingReference,
         WorthUiBoundSnapshotMeasurement<ObservationLaneWitness>,
-        WorthQueryConsumerBoundary<
-            crate::WorthUiDomainEntry,
-            crate::WorthUiSnapshotMeasurement,
-            crate::WorthUiSnapshotMeasurementFamily,
-            ObservationLaneWitness,
-        >,
+        WorthUiSnapshotNativeRequest,
         WorthUiQueryConsumerRequirements,
     ) {
-        (self.reference, self.bound, self.consumer, self.requirements)
+        (
+            self.reference,
+            self.bound,
+            self.native_request,
+            self.requirements,
+        )
     }
 }

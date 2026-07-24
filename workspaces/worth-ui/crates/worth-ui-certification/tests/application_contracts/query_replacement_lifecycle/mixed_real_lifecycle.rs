@@ -6,18 +6,22 @@ use worth_ui::facade::app::{
     WorthUiOrdinaryFrameTarget, WorthUiVirtualizedDataFrameTarget,
     WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
 };
-use worth_ui::facade::query_binding::WorthUiQueryWorkspaceExt;
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
     WorthUiWatchedCandidateSubmission,
 };
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_host_egui::WorthUiHostEgui;
-use worth_ui_query_binding::WorthUiInstalledLiveQueryView;
+use worth_ui_query_binding::{
+    WorthUiInstalledLiveQueryView, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+};
+
+mod query_patch;
 
 use super::scenario::{
-    application_with_submission_and_host, capability_application, installed_workspace,
-    ACTIVE_COMPONENT, FIRST_VIEW, NEXT_COMPONENT, SECOND_VIEW,
+    application_with_submission_and_host, capability_application,
+    installed_workspace_with_measurement_authority, ACTIVE_COMPONENT, FIRST_VIEW, NEXT_COMPONENT,
+    SECOND_VIEW,
 };
 use super::support::{
     activation_boundary, admit_active_resource, admit_candidate_resource, close, close_retirement,
@@ -38,7 +42,8 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         WorthUiFilesystemSourceWatcher::start(WorthUiFilesystemSourceProvider::new(watched.root()))
             .expect("the production watcher registers the real source tree");
 
-    let mut query_workspace = installed_workspace("mixed-real-lifecycle");
+    let (mut query_workspace, measurement) =
+        installed_workspace_with_measurement_authority("mixed-real-lifecycle");
     let installed = query_workspace
         .worth_ui()
         .expect("Worth UI domain installed");
@@ -48,7 +53,13 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("second installed view");
-    let capabilities = capability_application(first.clone(), second.clone());
+    let capabilities = capability_application(first.clone(), second.clone(), &mut query_workspace);
+    let first_reference = capabilities
+        .resolve_query_view(
+            first.definition().identity(),
+            WorthUiQueryViewShape::Collection,
+        )
+        .expect("the live capability application resolves its exact installed reference");
     let initial = watcher
         .take_initial_snapshot()
         .expect("the watcher owns the settled initial source")
@@ -60,10 +71,17 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         second.clone(),
         initial,
         WorthUiHostEgui::new(context.clone()),
+        &mut query_workspace,
     )
     .launch()
     .expect("the watcher-backed Query and egui application launches");
     admit_active_resource(&mut session, &first, &mut query_workspace);
+    query_patch::apply_real_live_patch(
+        &mut session,
+        &first_reference,
+        &measurement,
+        &mut query_workspace,
+    );
     execute_real_egui_frame(&context, &mut session, true);
 
     let launch_generation = session.generation_identity().clone();

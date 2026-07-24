@@ -108,10 +108,11 @@ impl MeasurementEvidenceInput {
     pub(crate) fn identity_digest(&self) -> u64 {
         match self {
             Self::SettledQueryFact(receipt) => {
+                let (binding_digest, settlement_digest) = receipt.reference_reporting_digests();
                 stable_text_digest("measurement-evidence-input:settled-query-fact")
                     ^ stable_text_digest(receipt.view_binding_id().as_str()).rotate_left(11)
-                    ^ stable_text_digest(receipt.query_binding_identity()).rotate_left(19)
-                    ^ stable_text_digest(receipt.settlement_identity()).rotate_left(29)
+                    ^ binding_digest.rotate_left(19)
+                    ^ settlement_digest.rotate_left(29)
                     ^ receipt.observation_identity_digest().rotate_left(37)
             }
             Self::HostMeasurementResult(result) => {

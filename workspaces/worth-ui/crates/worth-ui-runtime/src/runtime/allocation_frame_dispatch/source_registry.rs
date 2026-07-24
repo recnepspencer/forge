@@ -51,7 +51,7 @@ impl UiAllocationFrameSourceRegistry {
     ) -> Result<UiAllocationFrameSourceLease, UiAllocationFrameSourceAdmissionDenial> {
         let registration = UiAllocationFrameSourceRegistration {
             lane,
-            identity: identity.clone(),
+            identity,
             generation,
         };
         if self.slots.iter().any(|slot| {

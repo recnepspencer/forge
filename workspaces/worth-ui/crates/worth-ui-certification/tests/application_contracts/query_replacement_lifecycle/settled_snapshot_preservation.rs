@@ -1,8 +1,8 @@
-use worth_query::facade::{domain, runtime};
+use worth_query::facade::runtime;
 use worth_ui::facade::app::{
     WorthUiAllocationCatalogActivationDenial, WorthUiApplicationCutoverDenial,
 };
-use worth_ui::facade::query_binding::{
+use worth_ui_query_binding::{
     WorthUiInstalledQueryBindingReference, WorthUiQueryBindingSuccessionDenial,
     WorthUiQueryViewShape, WorthUiQueryWorkspaceExt, WorthUiSettledSnapshotFact,
     WorthUiSettledSnapshotProjection,
@@ -25,7 +25,7 @@ fn public_changed_replacement_preserves_the_active_exact_settlement() {
         .measurement_view(SECOND_VIEW)
         .expect("second installed view");
     let first_identity = first.definition().identity().clone();
-    let app = snapshot_application(first, second);
+    let app = snapshot_application(first, second, &mut workspace);
     let reference = app
         .resolve_query_view(&first_identity, WorthUiQueryViewShape::Collection)
         .expect("application retains the installed operation reference");
@@ -80,7 +80,7 @@ fn installation_turnover_after_lowering_denies_before_publication() {
         .measurement_view(SECOND_VIEW)
         .expect("second installed view");
     let first_identity = first.definition().identity().clone();
-    let app = snapshot_application(first, second);
+    let app = snapshot_application(first, second, &mut workspace);
     let reference = app
         .resolve_query_view(&first_identity, WorthUiQueryViewShape::Collection)
         .expect("application retains the installed operation reference");
@@ -134,7 +134,7 @@ pub(super) fn admit_active_settlement(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
     projection: WorthUiSettledSnapshotProjection,
     refresh: bool,
-) -> WorthUiSettledSnapshotFact {
+) -> std::sync::Arc<WorthUiSettledSnapshotFact> {
     let mut admitted = None;
     let completion = session.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
@@ -164,7 +164,7 @@ pub(super) fn settle_snapshot(
         .unwrap()
         .publish()
         .unwrap()
-        .consume(domain::project_facts().entity_identities())
+        .consume()
         .unwrap()
         .settle()
         .unwrap()

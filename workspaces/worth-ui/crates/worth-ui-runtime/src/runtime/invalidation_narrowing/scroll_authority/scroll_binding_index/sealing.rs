@@ -6,7 +6,8 @@ use super::super::{
     UiScrollInvalidationBindingDenial, UiScrollOwnerCatalogReceipt,
 };
 use super::{
-    freeze, BindingKeyIndex, HostWitness, QueryIndex, QueryKey, UiScrollInvalidationBindingIndex,
+    freeze, BindingKeyIndex, HostWitness, QueryBindingKey, QueryIndex, QueryKey,
+    UiScrollInvalidationBindingIndex,
 };
 
 impl UiScrollInvalidationBindingIndex {
@@ -41,6 +42,9 @@ impl UiScrollInvalidationBindingIndex {
 struct UiScrollBindingCatalogAssembly {
     host: BTreeMap<HostWitness, Vec<UiAdmittedScrollInvalidationBinding>>,
     query: BTreeMap<QueryKey, Vec<UiAdmittedScrollInvalidationBinding>>,
+    query_by_binding: BTreeMap<QueryBindingKey, Vec<UiAdmittedScrollInvalidationBinding>>,
+    query_binding_revisions:
+        BTreeMap<QueryBindingKey, worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference>,
     counters: UiScrollBindingCatalogCounters,
     activation_keys: Vec<crate::runtime::UiScrollReceiptActivationKey>,
 }
@@ -110,8 +114,25 @@ impl UiScrollBindingCatalogAssembly {
                 else {
                     return Err(UiScrollInvalidationBindingDenial::ContradictorySource);
                 };
+                let source_key = query_source.source_key();
+                let binding_key = source_key.binding_key();
+                if self
+                    .query_binding_revisions
+                    .get(&binding_key)
+                    .is_some_and(|revision| revision != source_key.settlement_reference())
+                {
+                    return Err(UiScrollInvalidationBindingDenial::ContradictorySource);
+                }
+                self.query_binding_revisions
+                    .entry(binding_key.clone())
+                    .or_insert_with(|| source_key.settlement_reference().clone());
                 self.query
-                    .entry(query_source.source_key().clone())
+                    .entry(source_key.clone())
+                    .or_default()
+                    .push(binding.clone());
+                bump(&mut self.counters.index_writes)?;
+                self.query_by_binding
+                    .entry(binding_key)
                     .or_default()
                     .push(binding);
             }
@@ -127,6 +148,10 @@ impl UiScrollBindingCatalogAssembly {
     ) -> Result<UiScrollInvalidationBindingIndex, UiScrollInvalidationBindingDenial> {
         let host = freeze(std::mem::take(&mut self.host), &mut self.counters)?;
         let query = freeze(std::mem::take(&mut self.query), &mut self.counters)?;
+        let query_by_binding = freeze(
+            std::mem::take(&mut self.query_by_binding),
+            &mut self.counters,
+        )?;
         let projection_contracts = collect_projection_contracts(&host, &query, &mut self.counters)?;
         let identity = UiScrollCatalogIdentity::new(
             source_identity_digest,
@@ -139,6 +164,7 @@ impl UiScrollBindingCatalogAssembly {
         Ok(UiScrollInvalidationBindingIndex {
             host,
             query,
+            query_by_binding,
             projection_contracts,
             catalog_receipt: Some(catalog_receipt),
         })

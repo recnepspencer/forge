@@ -146,16 +146,17 @@ pub(super) fn query_measurement_outcome_for_bundle(
         UiQueryMeasurementEligibilityPosture::Eligible { .. } => eligibility
             .projection_fact_receipt()
             .cloned()
+            .map(Box::new)
             .map(QueryMeasurementInspectionOutcome::Receipt),
         UiQueryMeasurementEligibilityPosture::StaleSettlement {
             expected_view_binding_id,
-            expected_query_binding_identity,
+            expected_binding_reference,
             observed,
             ..
         } => Some(QueryMeasurementInspectionOutcome::Compatibility(
             project_query_settlement_compatibility(
                 expected_view_binding_id,
-                expected_query_binding_identity,
+                expected_binding_reference,
                 observed,
             ),
         )),
@@ -233,7 +234,7 @@ fn query_measurement_eligibility_for_bundle(
 }
 
 pub(super) enum QueryMeasurementInspectionOutcome {
-    Receipt(UiSettledQueryFactReceipt),
+    Receipt(Box<UiSettledQueryFactReceipt>),
     Denial(
         UiInspectionMeasurementDenialPosture,
         Option<UiInspectionMeasurementFailureSource>,
@@ -243,7 +244,7 @@ pub(super) enum QueryMeasurementInspectionOutcome {
 
 fn project_query_settlement_compatibility(
     _expected_view_binding_id: &crate::capability::ViewBindingId,
-    _expected_query_binding_identity: &str,
+    _expected_binding_reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     _observed: &UiQueryMeasurementSourceIdentity,
 ) -> UiInspectionMeasurementGenerationCompatibility {
     UiInspectionMeasurementGenerationCompatibility::IncompatibleWorld {

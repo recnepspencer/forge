@@ -12,7 +12,9 @@ mod host_result_slots;
 #[cfg(test)]
 mod hostile_tests;
 mod identity;
+mod portal_measurement_successor;
 mod query_allocation_mapping;
+mod query_measurement_successor;
 #[cfg(test)]
 mod tests;
 
@@ -34,5 +36,6 @@ pub use denial::{UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
 use host_result_slots::HostResultSlots;
 use identity::UiMeasurementBasisIdentityInput;
 pub(crate) use query_allocation_mapping::{
-    UiQueryAllocationPurpose, UiQueryAllocationSourceKey, UiQueryAllocationTargetMapping,
+    UiQueryAllocationBindingKey, UiQueryAllocationPurpose, UiQueryAllocationSourceKey,
+    UiQueryAllocationTargetMapping,
 };

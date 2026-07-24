@@ -178,11 +178,11 @@ impl UiMeasurementBasis {
         &self.evidence_inputs
     }
 
-    pub(crate) fn query_allocation_mappings_for_source(
+    pub(crate) fn query_allocation_mappings_for_binding(
         &self,
-        source_key: &super::UiQueryAllocationSourceKey,
+        binding: &super::UiQueryAllocationBindingKey,
     ) -> &[super::UiQueryAllocationTargetMapping] {
-        self.evidence_index.query_mappings(source_key)
+        self.evidence_index.query_mappings_for_binding(binding)
     }
 
     pub(crate) fn host_measurement_result(

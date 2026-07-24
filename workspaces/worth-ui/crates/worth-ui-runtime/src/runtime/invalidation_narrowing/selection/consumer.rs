@@ -187,8 +187,8 @@ fn narrow_source(
             super::settled_query_fact::narrow_settled_query_fact(
                 ingress_key,
                 family,
-                &view_binding_id,
-                &fact,
+                view_binding_id,
+                fact,
                 ordinal,
                 authority,
                 counters,

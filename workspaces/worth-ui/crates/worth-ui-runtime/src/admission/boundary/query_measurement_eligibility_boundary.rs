@@ -11,12 +11,13 @@ use crate::evidence::{consume_settled_query_measurement_fact, UiSettledQueryFact
 use super::UiAdmissionBoundary;
 
 impl<'a> UiAdmissionBoundary<'a> {
-    pub fn admit_query_measurement_eligibility_for_touch_from_settled_fact(
+    pub(crate) fn admit_query_measurement_eligibility_for_touch_from_readmitted_fact(
         &self,
         touch: &crate::obligations::touch::UiGraphTouchDescriptor,
         view_binding_id: crate::capability::ViewBindingId,
-        fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        readmitted: worth_ui_query_binding::WorthUiReadmittedSettledSnapshotFact<'_>,
     ) -> Option<UiQueryMeasurementEligibility> {
+        let fact = readmitted.fact();
         let target = crate::admission::UiAdmissionTarget::graph_node(
             touch.target().graph_node_identity(),
             crate::admission::UiAdmissionWorld::from_graph_world_profile(
@@ -33,7 +34,7 @@ impl<'a> UiAdmissionBoundary<'a> {
         )
     }
 
-    pub fn admit_query_measurement_eligibility_from_settled_fact(
+    pub(crate) fn admit_query_measurement_eligibility_from_settled_fact(
         &self,
         _selected: &crate::obligations::selection::UiSelectedObligationSet,
         measurement_admission: &UiMeasurementAdmission,
@@ -67,7 +68,7 @@ impl<'a> UiAdmissionBoundary<'a> {
 
         let crate::graph::UiGraphWorldProfile::SettledQueryBinding {
             view_binding_id: expected_view_binding_id,
-            query_binding_identity: expected_query_binding_identity,
+            binding_reference: expected_binding_reference,
         } = target.world().graph_world_profile()
         else {
             return Some(admission(
@@ -82,14 +83,14 @@ impl<'a> UiAdmissionBoundary<'a> {
         let observed =
             UiQueryMeasurementSourceIdentity::from_settled_fact(view_binding_id.clone(), fact);
         if expected_view_binding_id != &view_binding_id
-            || expected_query_binding_identity.as_ref() != fact.query_binding_identity()
+            || expected_binding_reference != fact.binding_reference()
         {
             return Some(admission(
                 UiQueryMeasurementEligibilityPosture::StaleSettlement {
                     world: target.world().clone(),
                     expected_view_binding_id: expected_view_binding_id.clone(),
-                    expected_query_binding_identity: expected_query_binding_identity.clone(),
-                    observed,
+                    expected_binding_reference: expected_binding_reference.clone(),
+                    observed: Box::new(observed),
                 },
                 None,
             ));

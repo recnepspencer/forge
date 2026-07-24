@@ -1,11 +1,11 @@
 use worth_ui::facade::{
     app::{WorthUi, WorthUiQueryViewRegistrationError},
-    query_binding::{
-        WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryOperationAttemptDenial,
-        WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-    },
+    query_binding::WorthUiQueryBindingRegistrationDenialKind,
 };
 use worth_ui_dsl::UiDslSourceProvenance;
+use worth_ui_query_binding::{
+    WorthUiQueryOperationAttemptDenial, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+};
 
 use crate::query_consumer_kit_application::{
     query_bound_rust_submission, query_bound_submission, query_free_app,

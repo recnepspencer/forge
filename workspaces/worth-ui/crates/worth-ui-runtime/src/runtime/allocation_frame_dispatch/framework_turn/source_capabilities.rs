@@ -188,7 +188,7 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.runtime.admit_settled_query_projection(projection)
@@ -201,7 +201,7 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.runtime.refresh_settled_query_projection(projection)
@@ -224,6 +224,33 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         resource: worth_ui_query_binding::WorthUiOperationLiveResource,
     ) -> Result<(), worth_ui_query_binding::WorthUiOperationLiveAdmissionStop> {
         self.runtime.admit_operation_live(resource)
+    }
+
+    /// Stage one sealed UI collection consequence for atomic publication when
+    /// this framework turn succeeds.
+    ///
+    /// Query progression remains entirely inside `worth-ui-query-binding`.
+    /// Runtime receives only this WUI-owned artifact, and the predecessor
+    /// admitted consequence remains current until the enclosing callback
+    /// completes without unwinding.
+    pub fn admit_collection_change(
+        &mut self,
+        consequence: worth_ui_query_binding::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiCollectionChangeStagingReceipt,
+        worth_ui_query_binding::WorthUiCollectionChangeAdmissionStop,
+    > {
+        self.runtime.admit_operation_live_change(consequence)
+    }
+
+    pub fn refresh_operation_live(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveSourceRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveSourceRefreshStop,
+    > {
+        self.runtime.refresh_and_admit_operation_live(request)
     }
 }
 

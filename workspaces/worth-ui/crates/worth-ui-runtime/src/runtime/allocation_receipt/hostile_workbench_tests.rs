@@ -345,8 +345,8 @@ fn observe_completion(
                 }
                 crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial) => {
                     panic!(
-                        "hostile workbench transaction denied: {:?}",
-                        denial.evidence()
+                        "hostile workbench {stream:?}/{invalidation:?} transaction denied: {:?}",
+                        denial.evidence(),
                     )
                 }
             }

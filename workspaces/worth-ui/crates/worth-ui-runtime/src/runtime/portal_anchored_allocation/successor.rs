@@ -1,5 +1,6 @@
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiPortalAllocationPlanningBasis {
+    measurement_result: crate::evidence::UiMeasurementResult,
     observation: super::UiAdmittedPortalAnchorObservation,
     identity_transition: super::UiPortalAnchorIdentityTransition,
     prior_receipt_identity: crate::runtime::UiAllocationReceiptIdentity,
@@ -20,6 +21,7 @@ impl UiPortalAllocationPlanningBasis {
             return None;
         }
         let observation = movement.observation();
+        let measurement_result = movement.measurement_result().clone();
         let identity_transition = movement.identity_transition();
         let prior_receipt_identity = movement.receipt_identity().clone();
         let prior_receipt_generation = movement.receipt_generation();
@@ -28,6 +30,8 @@ impl UiPortalAllocationPlanningBasis {
             crate::declaration::stable_text_digest("worth-ui.portal-allocation-planning-basis")
                 ^ observation.identity().identity_digest().rotate_left(7)
                 ^ observation.evidence_generation().as_u64().rotate_left(17)
+                ^ crate::evidence::measurement_result_identity_digest(&measurement_result)
+                    .rotate_left(23)
                 ^ prior_receipt_generation
                     .planning_evidence_digest()
                     .rotate_left(29)
@@ -35,6 +39,7 @@ impl UiPortalAllocationPlanningBasis {
                 ^ prior_receipt_generation.identity_digest().rotate_left(43)
                 ^ neighborhood_identity_digest.rotate_left(53);
         Some(Self {
+            measurement_result,
             observation,
             identity_transition,
             prior_receipt_identity,
@@ -46,6 +51,9 @@ impl UiPortalAllocationPlanningBasis {
 
     pub fn observation(&self) -> super::UiAdmittedPortalAnchorObservation {
         self.observation
+    }
+    pub(crate) fn measurement_result(&self) -> &crate::evidence::UiMeasurementResult {
+        &self.measurement_result
     }
     pub fn identity_transition(&self) -> super::UiPortalAnchorIdentityTransition {
         self.identity_transition

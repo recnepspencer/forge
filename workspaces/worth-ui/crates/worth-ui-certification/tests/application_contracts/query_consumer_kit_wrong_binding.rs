@@ -1,10 +1,8 @@
-use worth_query::facade::domain;
-use worth_ui::facade::query_binding::{WorthUiQueryViewShape, WorthUiQueryWorkspaceExt};
+use worth_ui_query_binding::{WorthUiQueryViewShape, WorthUiQueryWorkspaceExt};
 
 use crate::query_consumer_kit_application::file_authored_two_query_view_app;
 use crate::query_consumer_kit_workspace::{
     installed_measurement_workspace, interactive_borrowed_collection_requirements,
-    measurement_value_path,
 };
 
 #[test]
@@ -34,7 +32,7 @@ fn settled_projection_cannot_enter_through_another_query_binding_link() {
         .unwrap()
         .publish()
         .unwrap()
-        .consume(domain::project_facts().display_field(measurement_value_path()))
+        .consume()
         .unwrap()
         .settle()
         .unwrap();

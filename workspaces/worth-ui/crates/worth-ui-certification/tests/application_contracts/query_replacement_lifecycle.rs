@@ -1,7 +1,7 @@
 use worth_ui::facade::app::WorthUiApplicationCutoverDenial;
 use worth_ui::facade::app::{WorthUiPlanRegionTransition, WorthUiVirtualizedPlanAvailability};
-use worth_ui::facade::query_binding::WorthUiQueryWorkspaceExt;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
+use worth_ui_query_binding::WorthUiQueryWorkspaceExt;
 #[path = "query_replacement_lifecycle/mixed_real_lifecycle.rs"]
 mod mixed_real_lifecycle;
 #[path = "query_replacement_lifecycle/precommit_rollback.rs"]
@@ -31,7 +31,7 @@ fn public_semantic_no_op_preserves_the_exact_real_query_live_resource() {
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("second live view");
-    let mut session = application(first.clone(), second)
+    let mut session = application(first.clone(), second, &mut workspace)
         .launch()
         .expect("Query application launch");
     admit_active_resource(&mut session, &first, &mut workspace);
@@ -85,7 +85,7 @@ fn public_cutover_preserves_and_retires_exact_real_query_resources() {
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("second live view");
-    let app = application(first.clone(), second.clone());
+    let app = application(first.clone(), second.clone(), &mut workspace);
     let mut session = app.launch().expect("Query application launch");
     admit_active_resource(&mut session, &first, &mut workspace);
     assert_visible_query_execution(&mut session);
@@ -152,7 +152,7 @@ fn denied_candidate_reaps_only_candidate_query_resources() {
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("second live view");
-    let app = application(first.clone(), second.clone());
+    let app = application(first.clone(), second.clone(), &mut workspace);
     let mut session = app.launch().expect("Query application launch");
     admit_active_resource(&mut session, &first, &mut workspace);
 
@@ -205,10 +205,10 @@ fn late_foreign_boundary_denial_releases_query_resource_when_retry_is_abandoned(
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("second live view");
-    let mut session = application(first.clone(), second.clone())
+    let mut session = application(first.clone(), second.clone(), &mut workspace)
         .launch()
         .expect("Query application launch");
-    let mut foreign_session = application(first.clone(), second.clone())
+    let mut foreign_session = application(first.clone(), second.clone(), &mut workspace)
         .launch()
         .expect("equal-looking foreign application launch");
     admit_active_resource(&mut session, &first, &mut workspace);
@@ -258,7 +258,7 @@ fn bounded_query_rebind_storm_retires_each_predecessor_resource_exactly_once() {
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("second view");
-    let mut session = application(first.clone(), second.clone())
+    let mut session = application(first.clone(), second.clone(), &mut workspace)
         .launch()
         .expect("Query application launch");
     admit_active_resource(&mut session, &first, &mut workspace);

@@ -1,22 +1,22 @@
 use super::WorthUiQueryViewIdentity;
 use crate::WorthUiQueryMeasurementFactFamily;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum WorthUiQueryViewLifecycle {
     Snapshot,
     Live,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum WorthUiQueryViewShape {
     Collection,
     Detail,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct WorthUiQueryViewDefinitionDigest(u64);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct WorthUiQueryViewDefinition {
     identity: WorthUiQueryViewIdentity,
     lifecycle: WorthUiQueryViewLifecycle,

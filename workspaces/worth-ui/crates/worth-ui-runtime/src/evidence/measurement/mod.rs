@@ -8,7 +8,6 @@ mod host_request_shape_digest;
 pub(crate) mod inputs;
 pub(crate) mod projection;
 mod result;
-#[cfg(test)]
 mod result_identity_digest;
 mod rounding_posture;
 mod unit_posture;
@@ -54,7 +53,6 @@ pub(crate) use projection::{
 };
 pub(crate) use result::UiHostMeasurementResultInput;
 pub use result::{UiCurrentMeasurementResult, UiMeasurementResult, UiMeasurementValue};
-#[cfg(test)]
 pub(crate) use result_identity_digest::measurement_result_identity_digest;
 pub use rounding_posture::UiMeasurementRoundingPosture;
 pub use unit_posture::UiMeasurementUnitPosture;

@@ -109,7 +109,7 @@ fn query_fact_touch_origins_deny_outside_query_world_before_touch_construction()
         authoritative_app
             .try_query_touch_for_node(graph_node_identity)
             .expect_err("authoritative world should deny query-fact touch origins"),
-        UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld
+        UiGraphTouchDenial::QueryBindingChangeUnavailableInCurrentWorld
     );
 }
 

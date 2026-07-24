@@ -114,6 +114,17 @@ impl UiAllocationInvalidationAdmissionContext {
         self
     }
 
+    pub(crate) fn with_replacement_lineage(
+        mut self,
+        impact: std::rc::Rc<crate::runtime::WorthUiReplacementImpactClassification>,
+        narrowing: std::rc::Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>,
+    ) -> Self {
+        self.replacement_impact = Some(impact);
+        self.impact_narrowing = Some(narrowing);
+        self.seal_graph_replan_targets();
+        self
+    }
+
     fn seal_graph_replan_targets(&mut self) {
         self.graph_replan_admission = crate::graph::UiGraphReplanAdmission::seal(
             &self.neighborhood,

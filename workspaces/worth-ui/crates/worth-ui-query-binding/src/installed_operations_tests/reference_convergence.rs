@@ -19,8 +19,8 @@ type QuerySettledSnapshot = installed::operation::WorthQuerySettledDomainProject
 fn ui_and_direct_consumers_converge_on_query_results_authority_and_counters() {
     let mut workspace = convergence_workspace();
     let reference = installed_reference(&workspace, "reference.convergence");
-    let (direct, operation_identity) = settle_headless(&mut workspace);
-    let ui = settle_ui(reference, &operation_identity, &mut workspace);
+    let (direct, _) = settle_headless(&mut workspace);
+    let ui = settle_ui(reference, &mut workspace);
     assert_exact_convergence(&ui, &direct);
 }
 
@@ -81,7 +81,6 @@ fn settle_headless(workspace: &mut runtime::WorthQueryWorkspace) -> (QuerySettle
 
 fn settle_ui(
     reference: crate::WorthUiInstalledQueryBindingReference,
-    operation_identity: &str,
     workspace: &mut runtime::WorthQueryWorkspace,
 ) -> WorthUiSettledSnapshotProjection {
     let ui_prepared = reference
@@ -89,16 +88,13 @@ fn settle_ui(
         .expect("UI enters the owner-issued Query world")
         .prepare_snapshot_consumer(requirements())
         .expect("UI consumer requirements admit");
-    assert_eq!(
-        ui_prepared.query_contract().canonical_operation_identity(),
-        operation_identity
-    );
+    assert_eq!(ui_prepared.installed_reference(), &reference);
     ui_prepared
         .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()
-        .consume(worth_query::facade::read::project_facts().display_field(measurement_value_path()))
+        .consume()
         .unwrap()
         .settle()
         .unwrap()
@@ -121,18 +117,7 @@ fn assert_exact_convergence(ui: &WorthUiSettledSnapshotProjection, direct: &Quer
     assert_eq!(direct.counters().publication_checks, 1);
     assert_eq!(direct.counters().consumption_contacts, 1);
     assert_eq!(
-        ui.exact_query_projection()
-            .authority()
-            .facts()
-            .display_fields()[0]
-            .native_value()
-            .scalar(),
-        direct.authority().facts().display_fields()[0]
-            .native_value()
-            .scalar()
-    );
-    assert_eq!(
-        ui.fact().measurement_facts().unwrap().observations()[0].extent(),
+        ui.fact().measurement_facts().observations()[0].extent(),
         CanonicalF32::from_f32(240.0)
     );
 }

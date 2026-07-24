@@ -261,6 +261,29 @@ fn terminal_resize_mutates_once_and_commits_one_receipt_per_turn() {
             .extent(),
         extent,
     );
+    let different_extent =
+        crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(321.0).unwrap();
+    let (not_replayed, unchanged_state, different_mutated) = runtime
+        .replay_admitted_durable_transaction_for_test(
+            &replay_selection,
+            input.identity_digest(),
+            different_extent,
+        );
+    assert!(matches!(
+        not_replayed,
+        crate::runtime::UiAllocationReplanTransactionOutcome::Denied(
+            crate::runtime::UiAllocationReplanTransactionCommitDenial::AdmittedGenerationSetChanged
+        )
+    ));
+    assert!(!different_mutated);
+    assert_eq!(
+        unchanged_state
+            .unwrap()
+            .committed_resize(input.identity_digest())
+            .unwrap()
+            .extent(),
+        extent,
+    );
 
     let repeated = runtime.execute_framework_turn(|turn| {
         turn.durable_resize(|source| {

@@ -3,7 +3,10 @@ mod installed_operation_reference;
 mod measurement_fact_family;
 mod measurement_fact_observation;
 mod operating_world_gateway;
+mod settled_authority;
 mod settled_measurement_fact;
+mod settled_readmission;
+mod snapshot_native_request;
 mod snapshot_outcomes;
 mod snapshot_progression;
 
@@ -23,9 +26,23 @@ pub use operating_world_gateway::{
     WorthUiBoundSnapshotMeasurement, WorthUiQueryOperatingWorldGateway,
     WorthUiQueryOperationAttemptDenial,
 };
+pub use settled_authority::{
+    WorthUiAdmittedQueryBindingKey, WorthUiAdmittedQueryBindingReference,
+    WorthUiAdmittedQuerySettlementReference, WorthUiAdmittedQuerySettlementTouchReference,
+};
 pub use settled_measurement_fact::{
-    WorthUiSettledMeasurementFactBatch, WorthUiSettledSnapshotFact,
-    WorthUiSettledSnapshotSourceGeneration, WorthUiSettledSnapshotSourceOrder,
+    WorthUiNativeAccessBindingCounters, WorthUiSettledMeasurementFactBatch,
+    WorthUiSettledSnapshotFact, WorthUiSettledSnapshotSourceGeneration,
+    WorthUiSettledSnapshotSourceOrder,
+};
+pub use settled_readmission::{
+    WorthUiReadmittedSettledSnapshotFact, WorthUiSettledSnapshotReadmissionDenial,
+};
+pub use snapshot_native_request::{
+    WorthUiNativeKeyResolutionCounters, WorthUiSnapshotNativeRequestDenial,
+};
+pub(crate) use snapshot_native_request::{
+    WorthUiSnapshotNativeAccess, WorthUiSnapshotNativeRequest,
 };
 pub use snapshot_outcomes::{
     WorthUiSnapshotConsumerExecutionOutcome, WorthUiSnapshotProjectionConsumptionOutcome,
@@ -34,5 +51,6 @@ pub use snapshot_outcomes::{
 pub use snapshot_progression::{
     WorthUiConsumedSnapshotProjection, WorthUiDeferredSnapshotConsumer,
     WorthUiExactSettledSnapshotEvidence, WorthUiExecutedSnapshotConsumer,
-    WorthUiPublishedSnapshotConsumer, WorthUiSettledSnapshotProjection,
+    WorthUiPublishedSnapshotConsumer, WorthUiSettledSnapshotDerivationStop,
+    WorthUiSettledSnapshotProjection,
 };

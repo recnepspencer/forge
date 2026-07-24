@@ -1,5 +1,5 @@
 use worth_query::facade::domain;
-use worth_ui::facade::query_binding::{
+use worth_ui_query_binding::{
     WorthUiQueryViewShape, WorthUiQueryWorkspaceExt, WorthUiSnapshotConsumerPreparationDenial,
 };
 

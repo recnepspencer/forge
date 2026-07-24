@@ -9,6 +9,7 @@ pub(in crate::runtime) struct UiPreparedAllocationLedgerTransition {
     pub(super) predecessor: super::ledger_state::UiAllocationReceiptLedgerState,
     pub(super) successor: super::ledger_state::UiAllocationReceiptLedgerState,
     pub(super) committed: super::UiCommittedAllocationReplan,
+    successor_candidates: Box<[crate::runtime::UiAllocationCandidate]>,
 }
 
 impl From<super::UiAllocationReplanTransactionOutcome> for UiAllocationLedgerPreparation {
@@ -22,16 +23,24 @@ impl UiPreparedAllocationLedgerTransition {
         predecessor: super::ledger_state::UiAllocationReceiptLedgerState,
         successor: super::ledger_state::UiAllocationReceiptLedgerState,
         committed: super::UiCommittedAllocationReplan,
+        successor_candidates: Vec<crate::runtime::UiAllocationCandidate>,
     ) -> Self {
         Self {
             predecessor,
             successor,
             committed,
+            successor_candidates: successor_candidates.into_boxed_slice(),
         }
     }
 
     pub(in crate::runtime) fn committed(&self) -> &super::UiCommittedAllocationReplan {
         &self.committed
+    }
+
+    pub(in crate::runtime) fn successor_candidates(
+        &self,
+    ) -> &[crate::runtime::UiAllocationCandidate] {
+        &self.successor_candidates
     }
 
     pub(in crate::runtime) fn with_committed(

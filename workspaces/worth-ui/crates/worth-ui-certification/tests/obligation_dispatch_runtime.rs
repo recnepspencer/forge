@@ -82,7 +82,7 @@ fn query_selected_obligations_lower_to_narrow_dispatch_without_widening_families
         .from_mounted_receipt_transition(
             graph
                 .touches()
-                .query_fact_change_receipt()
+                .query_binding_change_receipt()
                 .expect("query world should admit query receipt"),
             UiGraphTouchTiming::PostMutation,
             mounted_receipt_transition(&app, artifact),

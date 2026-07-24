@@ -882,8 +882,10 @@ Detailed spec: [milestone-3.9.1.md](./milestone-3.9.1.md)
 
 Status: Closed on 2026-07-21. Exact-source closing evidence records a 0.462 s
 targeted warm median, 8.070 s warm fast-lane median, and 80.738 s isolated cold
-compile-contract median. The bounded managed-live seam retains its explicit
-Query 9.14 Phase 17/19/23/24 exit trigger.
+compile-contract median. Query 9.14 has since satisfied the bounded
+managed-live seam's Phase 17/19/23/24 exit trigger. The dated amendment in the
+detailed spec preserves the historical boundary and routes the resulting
+cutover to Milestone 3.9.2.
 
 This corrective modernization slice follows the closed 3.9 execution-plan
 lifecycle and precedes mounted receipts, hot rebind, broader projection
@@ -955,13 +957,86 @@ formed.
 - boundary, agent-context, line-cap, workspace quality, and existing compile-
   contract gates pass without a new nested build or test-target explosion
 
+### Milestone 3.9.2: Query 9.14 Native Consumer and Identity Cutover
+
+Detailed spec: [milestone-3.9.2.md](./milestone-3.9.2.md)
+
+Status: Complete on 2026-07-23. Phases 1 through 7 are closed.
+
+This final pre-mount modernization slice follows Query 9.14 completion and
+precedes mounted receipts. It replaces Worth UI's remaining projection scans,
+positional native-fact copies, and printable Query identity decisions with the
+completed declaration-indexed native-access and owner-specific identity
+contracts. It also narrows the already-correct operation-native patch path into
+one sealed UI consequence boundary for later rebind and projection work.
+
+**Must ship**
+
+- a search-seeded, manually adjudicated subsystem inventory and boundary-edge
+  matrix; no grep-based migration sentinel
+- exact consumer-contract-derived native selections and
+  `WorthQueryNativeAccessKey` values carried through `consume_bound(...)`
+- `O(1)` settled and refreshed native access per admitted key and row, with no
+  whole-projection scan, positional copy, or local selector authority
+- separate sealed UI-local binding-authority and settlement references minted
+  only after the Query binding owner validates its exact retained source
+- graph, eligibility, fact, touch, allocation, replacement, planning, and
+  execution decisions free of printable Query identity authority
+- one retained Query settlement and one complete UI measurement consequence per
+  source revision, fanned out through compact generation-scoped references
+- the real Query live-owner, lease, invalidation-delta, compiled-impact,
+  collection-window, and patch path translated exactly once into a sealed
+  UI-owned change consequence without local Query-impact reconstruction
+- exact Query and UI counters plus real public lifecycle certification inside
+  existing compiled owners
+- a narrow facade and updated 3.9.1/3.10/3.12/3.13 documentary seam
+
+**Must preserve**
+
+- all closed 3.9 and 3.9.1 application, plan, allocation, filesystem,
+  replacement, host, cleanup, and frame-cost truths
+- Query-owned native access, operational identity, compatibility, lifecycle,
+  invalidation, row, ordering, window, patch, denial, and counter meaning
+- UI-owned authored binding, graph, measurement, source-coordinate, allocation,
+  dependency, invalidation-consequence, and presentation meaning
+- Query-free applications without dummy Query ceremony or cost
+- prior active truth on every stale input, denial, reset requirement, or
+  interrupted replacement
+- `worth-ui-query-binding` as the sole production Query importer
+- 3.10 ownership of mounted receipts and host observations, 3.12 ownership of
+  changed-fact/rebind planning, and 3.13 ownership of the broad projection
+  product substrate
+- existing compile-session and integration-target budgets
+
+**Acceptance evidence**
+
+- identical Query labels and native bytes from different runtimes,
+  installations, capabilities, generations, settlements, windows, or leases
+  cannot alias in any operational UI decision
+- adding unrelated projected fields does not increase the work for `k` declared
+  UI facts: Query reports exactly the admitted keyed accesses and zero fact,
+  row, or path scans
+- settlement refresh atomically replaces one UI consequence revision and
+  rejects predecessor fact, touch, and allocation evidence while stable
+  binding-slot plan links resolve the current consequence without relowering
+- one real operation-native patch produces one sealed UI consequence; stale,
+  foreign, duplicate, out-of-order, reset-required, and stopped-disposal cases
+  preserve prior truth at their owning boundary
+- Query artifacts and identity representations cannot reach host authority,
+  future mounted receipts, or downstream Query re-entry
+- boundary, agent-context, line-cap, format, clippy, workspace, compile-
+  contract, and certification gates pass without new build topology
+
 ### Milestone 3.10: Mounted Receipts and Host Contract
 
 This slice closes the host boundary: host code may render and observe, but may
 not own visible UI meaning. It extends/refines Milestone 3.9's minimal sealed
 host-output envelope into complete mounted-node and mounted-frame receipts; it
 must not introduce a parallel runtime-to-host output path or reopen active-plan
-ownership.
+ownership. It consumes only UI-owned graph, measurement, allocation, and
+presentation meaning admitted through 3.9.2; no Query key, settlement, patch,
+row handle, operational identity representation, or change consequence becomes
+a mounted or host authority artifact.
 
 **Must ship**
 
@@ -1009,7 +1084,10 @@ identity-backed runtime evidence instead of loose image bytes.
 ### Milestone 3.12: Observation Intake and Hot Rebind Planner
 
 This slice makes hot reload real as bounded rebind rather than renderer
-refresh.
+refresh. Query-backed changes enter only as the sealed UI source consequences
+admitted by 3.9.2's framework-turn boundary. This milestone classifies their
+affected UI scope and decides preservation or remounting; it does not reopen
+Query leases, deltas, rows, ordering, patches, or identity.
 
 **Must ship**
 
@@ -1044,7 +1122,10 @@ This slice broadens Milestone 2's declared binding references into a minimal
 runtime binding substrate, but not yet the full product surface richness of
 Milestone 6. Milestone 3.9 proves only plan/handle/visible-range execution for
 already-admitted opaque view references; 3.13 owns the broader UI projection
-facts, schema/view-shape posture, result-state, and invalidation semantics.
+facts, schema/view-shape posture, result-state, and invalidation semantics. It
+generalizes 3.9.2's contract-derived access and admitted-source pattern; it may
+not restore field scans, positional fact bags, printable Query identity, or raw
+Query patch types as a convenience layer.
 
 **Must ship**
 

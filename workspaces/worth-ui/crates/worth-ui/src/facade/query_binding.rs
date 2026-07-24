@@ -1,25 +1,13 @@
+//! Product-facing Query view declaration and registration.
+//!
+//! Query execution, settlement, native access, live leases, and patch
+//! translation remain owned by `worth-ui-query-binding`. The product facade
+//! exposes only the sealed capabilities needed to name and register UI intent.
+
 pub use worth_ui_runtime::facade::query_binding::{
-    install_worth_ui_operation_executors, worth_ui_domain_package,
-    worth_ui_native_aspect_contracts, WorthUiBoundSnapshotMeasurement,
-    WorthUiConsumedSnapshotProjection, WorthUiDeferredSnapshotConsumer,
-    WorthUiExactQueryArtifactInspection, WorthUiExecutedSnapshotConsumer,
-    WorthUiInstalledQueryBindingReference, WorthUiInstalledQueryDomain, WorthUiInstalledQueryView,
-    WorthUiInstalledSnapshotQueryView, WorthUiPreparedSnapshotConsumer,
-    WorthUiPublishedSnapshotConsumer, WorthUiQueryAllocationDetail,
+    WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView,
     WorthUiQueryBindingRegistrationDenial, WorthUiQueryBindingRegistrationDenialKind,
-    WorthUiQueryBindingSuccessionDenial, WorthUiQueryConsumerRequirements,
-    WorthUiQueryDenialPresentation, WorthUiQueryDomainRebindDenial,
-    WorthUiQueryDomainRebindDenialKind, WorthUiQueryDomainRebindNextAction,
-    WorthUiQueryDomainRebindReceipt, WorthUiQueryInstallationDenial,
-    WorthUiQueryInstallationDenialKind, WorthUiQueryMeasurementRefinementCounters,
-    WorthUiQueryOperationAttemptDenial, WorthUiQueryViewDeclarationDenial,
-    WorthUiQueryViewDefinition, WorthUiQueryViewExecutionEvidenceDenial,
-    WorthUiQueryViewExecutionEvidenceReference, WorthUiQueryViewIdentity,
+    WorthUiQueryViewDeclarationDenial, WorthUiQueryViewDefinition, WorthUiQueryViewIdentity,
     WorthUiQueryViewIdentityError, WorthUiQueryViewLifecycle, WorthUiQueryViewRegistration,
-    WorthUiQueryViewShape, WorthUiQueryWorkspaceExt, WorthUiSettledMeasurementFactBatch,
-    WorthUiSettledSnapshotFact, WorthUiSettledSnapshotInspection, WorthUiSettledSnapshotProjection,
-    WorthUiSettledSnapshotRichEvidence, WorthUiSettledSnapshotSourceGeneration,
-    WorthUiSettledSnapshotSourceOrder, WorthUiSnapshotConsumerExecutionOutcome,
-    WorthUiSnapshotConsumerPreparationDenial, WorthUiSnapshotProjectionConsumptionOutcome,
-    WorthUiSnapshotProjectionPublicationOutcome, WorthUiSnapshotProjectionSettlementOutcome,
+    WorthUiQueryViewShape,
 };

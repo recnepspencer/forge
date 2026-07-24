@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-use worth_query::facade::foundation::ConsumedNativeValueView;
-
 use crate::{
+    WorthUiAdmittedQueryBindingReference, WorthUiAdmittedQuerySettlementReference,
     WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceOrder,
     WorthUiQueryMeasurementFactObservation,
 };
 
 /// Read-only sharing of one exact Query-owned settlement at the UI plan edge.
 ///
-/// This reference deliberately exposes native values and compact coordinates,
-/// but no method can recover the retained consumed-projection authority.
+/// This reference exposes only UI-owned observations and compact coordinates;
+/// no method can recover Query native values or retained projection authority.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthUiQueryViewExecutionEvidenceReference {
     representation: WorthUiQueryViewExecutionEvidenceRepresentation,
@@ -47,24 +46,24 @@ impl WorthUiQueryViewExecutionEvidenceReference {
 
     pub fn observations(&self) -> &[WorthUiQueryMeasurementFactObservation] {
         match &self.representation {
-            WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => fact
-                .measurement_facts()
-                .map_or(&[], |facts| facts.observations()),
-        }
-    }
-
-    pub fn native_fact_count(&self) -> usize {
-        match &self.representation {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
-                fact.native_fact_count()
+                fact.measurement_facts().observations()
             }
         }
     }
 
-    pub fn native_fact(&self, index: usize) -> Option<ConsumedNativeValueView<'_>> {
+    pub fn binding_reference(&self) -> &WorthUiAdmittedQueryBindingReference {
         match &self.representation {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
-                fact.native_fact(index)
+                fact.binding_reference()
+            }
+        }
+    }
+
+    pub fn settlement_reference(&self) -> &WorthUiAdmittedQuerySettlementReference {
+        match &self.representation {
+            WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
+                fact.settlement_reference()
             }
         }
     }

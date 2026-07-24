@@ -51,7 +51,7 @@ fn settled_fact_for_label(lane_label: &str) -> worth_ui_query_binding::WorthUiSe
         .entry(lane_label.to_owned())
         .or_insert_with(|| {
             let mut fixture = WorthUiInstalledQueryTestFixture::new(lane_label);
-            fixture.settle_retained_fact()
+            fixture.clone_retained_fact_for_isolated_test()
         })
         .clone()
 }

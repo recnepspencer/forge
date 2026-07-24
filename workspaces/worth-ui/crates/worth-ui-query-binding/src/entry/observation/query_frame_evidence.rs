@@ -9,7 +9,6 @@ pub struct WorthUiQueryFrameEvidence {
     evidence_identity_digest: u64,
     source_generation: WorthUiQueryAllocationSourceGeneration,
     source_order: WorthUiQueryAllocationSourceOrder,
-    native_fact_count: usize,
     observation_count: usize,
     partial: bool,
 }
@@ -39,10 +38,7 @@ impl WorthUiQueryFrameEvidence {
             ),
             source_generation,
             source_order,
-            native_fact_count: fact.native_fact_count(),
-            observation_count: fact
-                .measurement_facts()
-                .map_or(0, |batch| batch.observations().len()),
+            observation_count: fact.measurement_facts().observations().len(),
             partial: fact.is_partial(),
         }
     }
@@ -57,10 +53,6 @@ impl WorthUiQueryFrameEvidence {
 
     pub fn source_order(self) -> WorthUiQueryAllocationSourceOrder {
         self.source_order
-    }
-
-    pub fn native_fact_count(self) -> usize {
-        self.native_fact_count
     }
 
     pub fn observation_count(self) -> usize {

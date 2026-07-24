@@ -116,6 +116,121 @@ fn callback_unwind_still_closes_and_pumps_the_turn() {
 }
 
 #[test]
+fn operation_live_publication_preserves_prior_truth_across_callback_unwind() {
+    let mut fixture = worth_ui_query_binding::certification::WorthUiOperationLiveTestFixture::new(
+        "framework-turn-operation-live",
+    );
+    let reference = fixture.reference().clone();
+    let binding = fixture.binding_plan().prepare_downstream_state();
+    let resource = fixture.open_resource();
+    let mut runtime = framework_from_artifact(empty_artifact());
+    runtime.install_query_binding_state_for_test(binding);
+
+    drop(runtime.execute_framework_turn(|turn| {
+        turn.query_projection(|source| {
+            source
+                .admit_operation_live(resource)
+                .expect("live resource belongs to the installed binding");
+        });
+    }));
+
+    fixture.update_measurement();
+    drop(runtime.execute_framework_turn(|turn| {
+        turn.query_projection(|source| {
+            let outcome = source
+                .refresh_operation_live(fixture.refresh_request())
+                .expect("first exact patch stages");
+            assert!(matches!(
+                outcome,
+                worth_ui_query_binding::WorthUiOperationLiveSourceRefreshOutcome::Staged(_)
+            ));
+        });
+    }));
+    let first = runtime.operation_live_change_observation_for_test(&reference);
+    assert_eq!(first.staged_change_count(), 0);
+    assert_eq!(first.admitted_change_count(), 1);
+
+    fixture.update_measurement();
+    let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _ = runtime.execute_framework_turn(|turn| {
+            turn.query_projection(|source| {
+                source
+                    .refresh_operation_live(fixture.refresh_request())
+                    .expect("second exact patch stages");
+            });
+            panic!("interrupt collection-change publication");
+        });
+    }));
+    assert!(unwind.is_err());
+    let interrupted = runtime.operation_live_change_observation_for_test(&reference);
+    assert_eq!(interrupted.staged_change_count(), 1);
+    assert_eq!(interrupted.admitted_change_count(), 1);
+
+    drop(runtime.execute_framework_turn(|_| {}));
+    let retried = runtime.operation_live_change_observation_for_test(&reference);
+    assert_eq!(retried.staged_change_count(), 0);
+    assert_eq!(retried.admitted_change_count(), 2);
+
+    let retirement = runtime.shutdown().into_operation_live_retirement();
+    let closed = fixture.close_retirement(retirement);
+    assert!(matches!(
+        closed,
+        worth_ui_query_binding::WorthUiOperationLiveRetirementCloseOutcome::Closed(_)
+    ));
+}
+
+#[test]
+fn denied_framework_transition_does_not_publish_operation_live_change() {
+    let mut fixture = worth_ui_query_binding::certification::WorthUiOperationLiveTestFixture::new(
+        "denied-turn-operation-live",
+    );
+    let reference = fixture.reference().clone();
+    let binding = fixture.binding_plan().prepare_downstream_state();
+    let resource = fixture.open_resource();
+    let mut runtime = framework_from_artifact(empty_artifact());
+    runtime.install_query_binding_state_for_test(binding);
+    drop(runtime.execute_framework_turn(|turn| {
+        turn.query_projection(|source| {
+            source.admit_operation_live(resource).unwrap();
+        });
+    }));
+
+    fixture.update_measurement();
+    let completion = runtime.execute_framework_turn(|turn| {
+        turn.query_projection(|source| {
+            source
+                .refresh_operation_live(fixture.refresh_request())
+                .expect("exact change stages before unrelated denial");
+        });
+        turn.interaction(|source| {
+            source
+                .admit_and_submit(
+                    UiGraphNodeIdentity::new(9_001),
+                    WorthUiTransientInteractionState::Hover,
+                )
+                .expect("unsupported posture enters stream classification");
+        });
+    });
+    assert!(matches!(
+        completion,
+        super::WorthUiFrameworkTurnCompletion::AllocationFrameResolutionDenied { .. }
+    ));
+    let denied = runtime.operation_live_change_observation_for_test(&reference);
+    assert_eq!(denied.staged_change_count(), 1);
+    assert_eq!(denied.admitted_change_count(), 0);
+
+    drop(runtime.execute_framework_turn(|_| {}));
+    let retried = runtime.operation_live_change_observation_for_test(&reference);
+    assert_eq!(retried.staged_change_count(), 0);
+    assert_eq!(retried.admitted_change_count(), 1);
+    let retirement = runtime.shutdown().into_operation_live_retirement();
+    assert!(matches!(
+        fixture.close_retirement(retirement),
+        worth_ui_query_binding::WorthUiOperationLiveRetirementCloseOutcome::Closed(_)
+    ));
+}
+
+#[test]
 fn policy_family_executors_cannot_reach_framework_clock_or_whole_runtime() {
     let executors = [
         include_str!("policy_execution/ordinary.rs"),

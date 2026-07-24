@@ -1,10 +1,10 @@
 use worth_ui::facade::app::{
     WorthUiApplicationCutoverDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
 };
-use worth_ui::facade::query_binding::{
-    WorthUiInstalledQueryBindingReference, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+use worth_ui_query_binding::{
+    WorthUiInstalledLiveQueryView, WorthUiInstalledQueryBindingReference, WorthUiQueryViewShape,
+    WorthUiQueryWorkspaceExt,
 };
-use worth_ui_query_binding::WorthUiInstalledLiveQueryView;
 use worth_ui_test_support::{
     with_activation_precommit_interruption, WorthUiActivationPrecommitStage,
 };
@@ -33,7 +33,8 @@ fn every_fallible_precommit_stage_reaps_candidate_live_state_and_preserves_exact
         .measurement_view(SNAPSHOT_VIEW)
         .expect("snapshot view");
     let snapshot_identity = snapshot.definition().identity().clone();
-    let app = mixed_live_snapshot_application(first.clone(), second.clone(), snapshot);
+    let app =
+        mixed_live_snapshot_application(first.clone(), second.clone(), snapshot, &mut workspace);
     let snapshot_reference = app
         .resolve_query_view(&snapshot_identity, WorthUiQueryViewShape::Collection)
         .expect("application retains the exact snapshot reference");

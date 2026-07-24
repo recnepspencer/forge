@@ -12,7 +12,7 @@ pub enum WorthUiOperationLiveAdmissionDenial {
 #[must_use = "a stopped admission retains the exact operation-live resource"]
 pub struct WorthUiOperationLiveAdmissionStop {
     denial: WorthUiOperationLiveAdmissionDenial,
-    resource: WorthUiOperationLiveResource,
+    resource: Box<WorthUiOperationLiveResource>,
 }
 
 impl WorthUiOperationLiveAdmissionStop {
@@ -20,7 +20,10 @@ impl WorthUiOperationLiveAdmissionStop {
         denial: WorthUiOperationLiveAdmissionDenial,
         resource: WorthUiOperationLiveResource,
     ) -> Self {
-        Self { denial, resource }
+        Self {
+            denial,
+            resource: Box::new(resource),
+        }
     }
 
     pub fn denial(&self) -> WorthUiOperationLiveAdmissionDenial {
@@ -28,7 +31,7 @@ impl WorthUiOperationLiveAdmissionStop {
     }
 
     pub fn into_resource(self) -> WorthUiOperationLiveResource {
-        self.resource
+        *self.resource
     }
 }
 

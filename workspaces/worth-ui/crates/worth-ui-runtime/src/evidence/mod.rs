@@ -41,7 +41,6 @@ pub use layout_operator::{
 #[cfg(test)]
 pub(crate) use measurement::dependency::UiMeasurementDependencyMapEntry;
 pub(crate) use measurement::host_measurement_request_shape_digest;
-#[cfg(test)]
 pub(crate) use measurement::measurement_result_identity_digest;
 pub use measurement::{
     admit_measurement_basis, certify_measurement_basis_determinism,

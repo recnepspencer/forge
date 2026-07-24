@@ -1,6 +1,6 @@
 use crate::runtime::UiAllocationInvalidationFamily;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum UiAllocationInvalidationTarget {
     Graph(crate::graph::UiAdmittedAllocationInvalidationTargetSet),
     ResizePreview {
@@ -9,9 +9,13 @@ pub enum UiAllocationInvalidationTarget {
     },
     SettledQueryFact {
         target: crate::graph::UiAdmittedAllocationInvalidationTargetSet,
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     },
     ScrollOwnedContentExtent {
         bindings: Box<[super::UiAdmittedScrollInvalidationBinding]>,
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     },
     HostMeasurement {
         evidence_generation: worth_ui_inspection::UiEvidenceAuthorityGeneration,
@@ -31,7 +35,7 @@ pub enum UiAllocationInvalidationTarget {
     },
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct UiNarrowedAllocationInvalidation {
     family: UiAllocationInvalidationFamily,
     target: UiAllocationInvalidationTarget,

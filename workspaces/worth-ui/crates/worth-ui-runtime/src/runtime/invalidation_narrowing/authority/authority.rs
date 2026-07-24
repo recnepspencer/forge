@@ -26,6 +26,10 @@ pub(crate) struct UiAllocationInvalidationAuthority {
         crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
         PersistentScopes,
     >,
+    pub(super) query_contexts_by_binding: crate::runtime::persistent_index::UiPersistentOrdMap<
+        crate::evidence::measurement::basis::UiQueryAllocationBindingKey,
+        PersistentScopes,
+    >,
     pub(super) host_targets_by_witness: crate::runtime::persistent_index::UiPersistentOrdMap<
         crate::evidence::UiHostMeasurementAuthorityWitness,
         UiHostInvalidationTargetMapping,
@@ -114,17 +118,6 @@ impl UiAllocationInvalidationAuthority {
         }
         self.portal_bindings.prepare_succession(committed)
     }
-    pub(in crate::runtime) fn commit_portal_binding_succession(
-        &mut self,
-        permit: &mut crate::runtime::allocation_frame_dispatch::UiAllocationTransactionAuthority,
-        prepared: super::UiPreparedPortalBindingSuccession,
-    ) {
-        debug_assert!(
-            prepared.predecessor_identity_digest() == self.portal_binding_identity_digest()
-        );
-        let _ = permit;
-        self.portal_bindings = prepared.successor;
-    }
     pub(crate) fn portal_binding_identity_digest(&self) -> u64 {
         self.portal_bindings.identity_digest()
     }
@@ -189,18 +182,18 @@ impl UiAllocationInvalidationAuthority {
 
     pub(crate) fn seal_catalog_transition(
         &self,
-        catalog: &super::UiAllocationActivationCatalog,
         activation: crate::runtime::allocation_receipt::UiCommittedAllocationCatalogActivation,
-        activation_identity: crate::runtime::UiCommittedAllocationActivationIdentity,
         affected_predecessor_scopes: Option<Box<[crate::evidence::UiAllocationNeighborhoodScope]>>,
     ) -> super::UiAllocationNeighborhoodCatalogTransition {
         super::UiAllocationNeighborhoodCatalogTransition::seal(
             &self.graph_replan,
-            catalog,
             activation,
-            activation_identity,
             affected_predecessor_scopes,
         )
+    }
+
+    pub(crate) fn active_catalog_identity_digest(&self) -> u64 {
+        self.graph_replan.active_identity_digest()
     }
 
     pub(crate) fn graph_target(
@@ -264,7 +257,8 @@ impl UiAllocationInvalidationAuthority {
                 probes: 0,
             });
         }
-        let Some(ordinals) = self.query_contexts.get(source_key) else {
+        let binding = source_key.binding_key();
+        let Some(ordinals) = self.query_contexts_by_binding.get(&binding) else {
             return Ok(UiInvalidationAuthorityLookup {
                 target: None,
                 probes: 1,
@@ -280,7 +274,7 @@ impl UiAllocationInvalidationAuthority {
                 .ok_or(UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted)?;
             for mapping in context
                 .basis
-                .query_allocation_mappings_for_source(source_key)
+                .query_allocation_mappings_for_binding(&binding)
             {
                 probes = probes
                     .checked_add(1)

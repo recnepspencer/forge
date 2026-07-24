@@ -111,12 +111,8 @@ impl UiCommittedAllocationValidation {
                 super::UiCommittedAllocationActivationDenialReason::PortalBinding(denial),
             ));
         }
-        let catalog_transition = invalidation_authority.seal_catalog_transition(
-            &catalog,
-            activation,
-            identity,
-            affected_predecessor_scopes,
-        );
+        let catalog_transition =
+            invalidation_authority.seal_catalog_transition(activation, affected_predecessor_scopes);
         Ok(Self {
             attempt_identity,
             activation_counters,

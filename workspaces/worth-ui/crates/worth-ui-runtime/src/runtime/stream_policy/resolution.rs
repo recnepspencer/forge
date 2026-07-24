@@ -333,12 +333,14 @@ fn denial_postures(
 fn classify(fact: &UiAllocationFrameSourceFact) -> Result<(UiAllocationStreamFamily, UiAllocationInvalidationFamily), UiAllocationFrameResolutionDenial> {
     Ok(match fact {
         UiAllocationFrameSourceFact::QuerySettledFact { fact, .. } => {
-            let carries_content_extent = fact.measurement_facts().is_ok_and(|batch| {
-                batch.observations().iter().any(|observation| {
+            let carries_content_extent = fact
+                .measurement_facts()
+                .observations()
+                .iter()
+                .any(|observation| {
                     observation.family()
                         == worth_ui_query_binding::WorthUiQueryMeasurementFactFamily::ScrollContentExtent
-                })
-            });
+                });
             let invalidation = if carries_content_extent {
                 UiAllocationInvalidationFamily::ContentExtentChange
             } else {

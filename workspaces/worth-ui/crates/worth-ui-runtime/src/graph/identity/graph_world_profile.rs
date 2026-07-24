@@ -1,4 +1,5 @@
 use crate::declaration::stable_text_digest;
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphSessionLabel(Box<str>);
@@ -63,7 +64,7 @@ pub enum UiGraphWorldProfile {
     },
     SettledQueryBinding {
         view_binding_id: crate::capability::ViewBindingId,
-        query_binding_identity: Box<str>,
+        binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     },
 }
 
@@ -94,30 +95,20 @@ impl UiGraphWorldProfile {
     pub fn test_certification(session_label: UiGraphSessionLabel) -> Self {
         Self::TestCertification { session_label }
     }
-    pub fn settled_query_view(
-        view_binding_id: crate::capability::ViewBindingId,
-        view: &worth_ui_query_binding::WorthUiInstalledQueryView,
-    ) -> Self {
-        Self::settled_query_binding(
-            view_binding_id,
-            view.definition().identity().as_str().to_owned(),
-        )
-    }
-
     pub fn settled_query_fact(
         view_binding_id: crate::capability::ViewBindingId,
         fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
     ) -> Self {
-        Self::settled_query_binding(view_binding_id, fact.query_binding_identity().to_owned())
+        Self::settled_query_binding(view_binding_id, fact.binding_reference())
     }
 
-    fn settled_query_binding(
+    pub fn settled_query_binding(
         view_binding_id: crate::capability::ViewBindingId,
-        query_binding_identity: impl Into<String>,
+        binding_reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     ) -> Self {
         Self::SettledQueryBinding {
             view_binding_id,
-            query_binding_identity: query_binding_identity.into().into_boxed_str(),
+            binding_reference: binding_reference.clone(),
         }
     }
 
@@ -147,10 +138,10 @@ impl UiGraphWorldProfile {
             }
             Self::SettledQueryBinding {
                 view_binding_id,
-                query_binding_identity,
+                binding_reference,
             } => {
                 stable_text_digest(view_binding_id.as_str())
-                    ^ stable_text_digest(query_binding_identity).rotate_left(29)
+                    ^ opaque_reference_digest(binding_reference).rotate_left(29)
             }
         }
     }
@@ -182,6 +173,14 @@ impl UiGraphWorldProfile {
             }
         }
     }
+}
+
+fn opaque_reference_digest(
+    reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    reference.hash(&mut hasher);
+    hasher.finish()
 }
 
 fn session_digest(role: &str, identity: &str) -> u64 {

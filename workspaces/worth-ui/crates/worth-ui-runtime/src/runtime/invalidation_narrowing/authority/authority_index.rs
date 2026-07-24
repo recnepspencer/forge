@@ -6,6 +6,10 @@ impl super::UiAllocationInvalidationAuthority {
             crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
             BTreeSet<crate::evidence::UiAllocationNeighborhoodScope>,
         >::new();
+        let mut query_by_binding = BTreeMap::<
+            crate::evidence::measurement::basis::UiQueryAllocationBindingKey,
+            BTreeSet<crate::evidence::UiAllocationNeighborhoodScope>,
+        >::new();
         let mut host_targets = BTreeMap::<
             crate::evidence::UiHostMeasurementAuthorityWitness,
             BTreeMap<crate::graph::UiGraphNodeIdentity, usize>,
@@ -30,6 +34,10 @@ impl super::UiAllocationInvalidationAuthority {
                     for (source, _) in context.basis.query_allocation_mappings() {
                         query
                             .entry(source.clone())
+                            .or_default()
+                            .insert(scope.clone());
+                        query_by_binding
+                            .entry(source.binding_key())
                             .or_default()
                             .insert(scope.clone());
                     }
@@ -64,6 +72,7 @@ impl super::UiAllocationInvalidationAuthority {
             }
         }
         self.query_contexts = freeze(query);
+        self.query_contexts_by_binding = freeze(query_by_binding);
         self.host_targets_by_witness = Default::default();
         for (witness, owners) in host_targets {
             self.host_targets_by_witness.insert(

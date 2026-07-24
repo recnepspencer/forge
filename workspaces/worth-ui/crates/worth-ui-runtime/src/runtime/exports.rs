@@ -48,9 +48,9 @@ pub use super::allocation_frame_dispatch::{
     UiAllocationFrameSourceGeneration,
 };
 pub use super::allocation_receipt::{
-    UiAllocationAnchorPosture, UiAllocationAxis, UiAllocationAxisAlignedBounds,
-    UiAllocationCandidate, UiAllocationCounterName, UiAllocationDenialFamily,
-    UiAllocationDurableSemanticState, UiAllocationEdgeReference,
+    UiAllocationAnchorPosture, UiAllocationAuthoritySuccessionDenial, UiAllocationAxis,
+    UiAllocationAxisAlignedBounds, UiAllocationCandidate, UiAllocationCounterName,
+    UiAllocationDenialFamily, UiAllocationDurableSemanticState, UiAllocationEdgeReference,
     UiAllocationFreshnessConsumptionDenial, UiAllocationGeometryKnowledge,
     UiAllocationPreviewCandidate, UiAllocationReceipt, UiAllocationReceiptCommitDenial,
     UiAllocationReceiptCommitOutcome, UiAllocationReceiptDenialReport,

@@ -1,5 +1,7 @@
 mod neighborhood_selection;
 mod portal_consequence;
+mod query_measurement_consequence;
+mod replan_locality;
 mod scroll_consequence;
 mod selector;
 
@@ -11,6 +13,8 @@ pub use neighborhood_selection::{
     UiReplanWidenReason,
 };
 pub(crate) use portal_consequence::UiPortalReplanConsequence;
+pub(crate) use query_measurement_consequence::UiQueryMeasurementReplanConsequence;
+pub use replan_locality::UiReplanLocalityProof;
 pub(crate) use scroll_consequence::UiScrollReplanConsequence;
 pub(crate) use selector::select_replan_neighborhoods;
 

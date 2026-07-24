@@ -16,7 +16,7 @@ fn active_virtualized_query_plan_contract() {
     let mut fixture = virtualized_data_fixture();
     equivalent_active_reference_and_range_produce_equivalent_receipts(&mut fixture);
     active_lane_classifies_row_and_grid_breadth(&mut fixture);
-    exact_query_native_value_reaches_the_active_plan_edge(&mut fixture);
+    exact_ui_measurement_consequence_reaches_the_active_plan_edge(&mut fixture);
     summary_is_budgeted_and_links_read_only_query_evidence(&fixture);
     active_frame_rejects_stale_or_absent_view_handles(&mut fixture);
 }
@@ -71,18 +71,15 @@ fn active_lane_classifies_row_and_grid_breadth(fixture: &mut VirtualizedDataFixt
     }
 }
 
-fn exact_query_native_value_reaches_the_active_plan_edge(fixture: &mut VirtualizedDataFixture) {
+fn exact_ui_measurement_consequence_reaches_the_active_plan_edge(
+    fixture: &mut VirtualizedDataFixture,
+) {
     let summary = fixture.summary();
     let summary_evidence = summary.evidence().expect("projection evidence is linked");
-    let native = summary_evidence
-        .native_fact(0)
-        .and_then(|value| value.scalar())
-        .expect("measurement projection retains a scalar native value");
-    assert!(matches!(
-        native,
-        worth_foundational::AspectValue::Float32(value)
-            if *value == worth_foundational::CanonicalF32::from_f32(240.0)
-    ));
+    assert_eq!(
+        summary_evidence.observations()[0].extent(),
+        worth_foundational::CanonicalF32::from_f32(240.0)
+    );
 
     let receipt = fixture
         .execute(summary.target(WorthUiVisibleRange::rows(0, 3).expect("range")))
@@ -91,7 +88,6 @@ fn exact_query_native_value_reaches_the_active_plan_edge(fixture: &mut Virtualiz
         receipt.evidence().evidence_identity_digest(),
         summary_evidence.evidence_identity_digest()
     );
-    assert_eq!(receipt.evidence().native_fact_count(), 1);
     assert_eq!(receipt.evidence().observation_count(), 1);
 }
 

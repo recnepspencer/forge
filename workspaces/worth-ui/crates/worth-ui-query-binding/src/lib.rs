@@ -5,7 +5,7 @@
 //! observation.
 
 mod application_binding;
-#[cfg(feature = "certification-construction")]
+#[cfg(any(test, feature = "certification-construction"))]
 pub mod certification;
 mod collection_delivery;
 mod declaration;
@@ -17,27 +17,42 @@ mod installed_domain;
 mod native_aspect_contracts;
 mod operation_live;
 #[cfg(test)]
+mod snapshot_derivation_denial_tests;
+#[cfg(test)]
 mod snapshot_progression_tests;
+#[cfg(test)]
+mod snapshot_refresh_isolation_tests;
 
 // Subsystem entry lane
 pub use application_binding::{
+    WorthUiAdmittedQueryBindingKey, WorthUiAdmittedQueryBindingReference,
+    WorthUiAdmittedQuerySettlementReference, WorthUiAdmittedQuerySettlementTouchReference,
     WorthUiBoundSnapshotMeasurement, WorthUiConsumedSnapshotProjection,
     WorthUiDeferredSnapshotConsumer, WorthUiExactSettledSnapshotEvidence,
     WorthUiExecutedSnapshotConsumer, WorthUiInstalledQueryBindingReference,
+    WorthUiNativeAccessBindingCounters, WorthUiNativeKeyResolutionCounters,
     WorthUiPreparedSnapshotConsumer, WorthUiPublishedSnapshotConsumer,
     WorthUiQueryAllocationDetail, WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
     WorthUiQueryInspectionRelevance, WorthUiQueryMeasurementFactFamily,
     WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactObservationError,
     WorthUiQueryMeasurementRefinementCounters, WorthUiQueryOperationAttemptDenial,
-    WorthUiSettledMeasurementFactBatch, WorthUiSettledSnapshotFact,
-    WorthUiSettledSnapshotProjection, WorthUiSettledSnapshotSourceGeneration,
-    WorthUiSettledSnapshotSourceOrder, WorthUiSnapshotConsumerExecutionOutcome,
-    WorthUiSnapshotConsumerPreparationDenial, WorthUiSnapshotProjectionConsumptionOutcome,
-    WorthUiSnapshotProjectionPublicationOutcome, WorthUiSnapshotProjectionSettlementOutcome,
+    WorthUiReadmittedSettledSnapshotFact, WorthUiSettledMeasurementFactBatch,
+    WorthUiSettledSnapshotDerivationStop, WorthUiSettledSnapshotFact,
+    WorthUiSettledSnapshotProjection, WorthUiSettledSnapshotReadmissionDenial,
+    WorthUiSettledSnapshotSourceGeneration, WorthUiSettledSnapshotSourceOrder,
+    WorthUiSnapshotConsumerExecutionOutcome, WorthUiSnapshotConsumerPreparationDenial,
+    WorthUiSnapshotProjectionConsumptionOutcome, WorthUiSnapshotProjectionPublicationOutcome,
+    WorthUiSnapshotProjectionSettlementOutcome,
 };
 pub use collection_delivery::{
-    WorthUiCollectionAllocationPolicy, WorthUiCollectionGraphMutation,
-    WorthUiCollectionMeasurementInvalidation, WorthUiCollectionPatchConsequences,
+    WorthUiCollectionAllocationEffect, WorthUiCollectionAllocationPolicy,
+    WorthUiCollectionChangeConsequence, WorthUiCollectionChangeCounters,
+    WorthUiCollectionChangeInspection, WorthUiCollectionChangeKind,
+    WorthUiCollectionChangeSourceReference, WorthUiCollectionContinuationPosture,
+    WorthUiCollectionGraphEffect, WorthUiCollectionIncrementalConsequence,
+    WorthUiCollectionMeasurementEffect, WorthUiCollectionQueryWorkInspection,
+    WorthUiCollectionResetConsequence, WorthUiCollectionResetReason,
+    WorthUiCollectionResultPosture, WorthUiCollectionRowReference, WorthUiCollectionWarningPosture,
 };
 pub use declaration::{
     WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView,
@@ -77,18 +92,21 @@ pub use installed_domain::{
 };
 pub use native_aspect_contracts::worth_ui_native_aspect_contracts;
 pub use operation_live::{
-    WorthUiExactOperationLiveResourceEvidence, WorthUiOperationLiveAdmissionDenial,
-    WorthUiOperationLiveAdmissionStop, WorthUiOperationLiveCloseOutcome,
+    WorthUiCollectionChangeAdmissionDenial, WorthUiCollectionChangeAdmissionStop,
+    WorthUiCollectionChangeHandoffRetryDenial, WorthUiCollectionChangePublicationReceipt,
+    WorthUiCollectionChangeStagingReceipt, WorthUiExactOperationLiveResourceEvidence,
+    WorthUiOperationLiveAdmissionDenial, WorthUiOperationLiveAdmissionStop,
+    WorthUiOperationLiveChangeObservation, WorthUiOperationLiveCloseOutcome,
     WorthUiOperationLiveCloseReceipt, WorthUiOperationLiveCloseStop,
     WorthUiOperationLiveObservation, WorthUiOperationLiveOpenError,
-    WorthUiOperationLiveOpenRequest, WorthUiOperationLiveRefreshError,
-    WorthUiOperationLiveRefreshOutcome, WorthUiOperationLiveResource,
+    WorthUiOperationLiveOpenRequest, WorthUiOperationLiveRefreshDenial,
+    WorthUiOperationLiveRefreshError, WorthUiOperationLiveRefreshOutcome,
+    WorthUiOperationLiveRefreshRequest, WorthUiOperationLiveResource,
     WorthUiOperationLiveRetirement, WorthUiOperationLiveRetirementCloseOutcome,
     WorthUiOperationLiveRetirementCloseReceipt, WorthUiOperationLiveRetirementStop,
+    WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
 };
 
-#[cfg(test)]
-mod collection_delivery_tests;
 #[cfg(test)]
 mod installed_operations_tests;
 #[cfg(test)]

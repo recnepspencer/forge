@@ -1,20 +1,14 @@
-use worth_foundational::facade::{AspectValue, CanonicalF32};
+use worth_foundational::facade::CanonicalF32;
 use worth_query::facade::{domain, runtime::WorthQueryWorkspace};
-use worth_ui::facade::{
-    app::WorthUiActiveApplicationSession,
-    query_binding::{
-        WorthUiInstalledQueryBindingReference, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-        WorthUiSettledSnapshotFact, WorthUiSettledSnapshotProjection,
-    },
-    runtime::WorthUiQueryLaneFactLink,
-};
+use worth_ui::facade::{app::WorthUiActiveApplicationSession, runtime::WorthUiQueryLaneFactLink};
 use worth_ui_query_binding::{
-    WorthUiQueryInspection, WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionRelevance,
+    WorthUiInstalledQueryBindingReference, WorthUiQueryInspection,
+    WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionRelevance, WorthUiQueryViewShape,
+    WorthUiQueryWorkspaceExt, WorthUiSettledSnapshotFact, WorthUiSettledSnapshotProjection,
 };
 
 use crate::query_consumer_kit_workspace::{
     installed_measurement_workspace, interactive_borrowed_collection_requirements,
-    measurement_value_path,
 };
 use crate::query_replacement_lifecycle::scenario::{
     snapshot_application, submission, FIRST_VIEW, NEXT_COMPONENT, SECOND_VIEW,
@@ -35,7 +29,7 @@ fn ui_binding_and_runtime_converge_with_the_exact_query_projection() {
         .expect("the installed domain derives one successor view");
     let view_identity = view.definition().identity().clone();
     let successor_identity = successor_view.definition().identity().clone();
-    let app = snapshot_application(view, successor_view);
+    let app = snapshot_application(view, successor_view, &mut workspace);
     assert_eq!(app.capabilities().view_bindings().len(), 2);
     assert!(app.graph().node_count() > 0);
     let installed_reference = app
@@ -52,7 +46,18 @@ fn ui_binding_and_runtime_converge_with_the_exact_query_projection() {
         .query_fact_link(FIRST_VIEW)
         .expect("the active plan exposes one generation-owned fact link");
 
-    admit_current_projection(&mut session, settled, &fact_link, &expected_fact);
+    let admitted_fact = admit_current_projection(&mut session, settled, &fact_link, &expected_fact);
+    let refreshed_projection = settle_reference(&installed_reference, &mut workspace);
+    assert_query_projection(&refreshed_projection);
+    let refreshed_fact = refresh_current_projection(&mut session, refreshed_projection, &fact_link);
+    assert_eq!(
+        refreshed_fact.binding_reference(),
+        admitted_fact.binding_reference()
+    );
+    assert_ne!(
+        refreshed_fact.settlement_reference(),
+        admitted_fact.settlement_reference()
+    );
     activate_successor_projection(&mut session, &successor_reference, &mut workspace);
     assert_successor_projection(&mut session, &fact_link);
     let _shutdown = session.shutdown();
@@ -71,7 +76,7 @@ fn settle_reference(
         .unwrap()
         .publish()
         .unwrap()
-        .consume(domain::project_facts().display_field(measurement_value_path()))
+        .consume()
         .unwrap()
         .settle()
         .unwrap()
@@ -79,19 +84,15 @@ fn settle_reference(
 
 fn assert_query_projection(settled: &WorthUiSettledSnapshotProjection) {
     assert_eq!(settled.fact().projected_measurement_fact_count(), 1);
-    assert_eq!(
-        settled.fact().result_state(),
-        settled.exact_query_projection().result_state()
-    );
+    assert_eq!(settled.fact().result_state(), settled.result_state());
     assert_eq!(
         settled.fact().result_state(),
         domain::WorthQueryOperationResultState::Ready
     );
     assert_eq!(
         settled.fact().warning_count(),
-        settled.exact_query_projection().warnings().len()
+        settled.execution_warnings().len()
             + settled
-                .exact_query_projection()
                 .projection_warnings()
                 .map_or(0, |warnings| warnings.warning_kinds().len())
     );
@@ -101,10 +102,7 @@ fn assert_query_projection(settled: &WorthUiSettledSnapshotProjection) {
     assert_eq!(query_counters.executor_contacts, 1);
     assert_eq!(query_counters.publication_checks, 1);
     assert_eq!(query_counters.consumption_contacts, 1);
-    let measurement_facts = settled
-        .fact()
-        .measurement_facts()
-        .expect("the settled Query fact derives the admitted UI measurement subset");
+    let measurement_facts = settled.fact().measurement_facts();
     assert_eq!(measurement_facts.observations().len(), 1);
     assert_eq!(
         measurement_facts.observations()[0].extent(),
@@ -123,16 +121,6 @@ fn assert_query_projection(settled: &WorthUiSettledSnapshotProjection) {
             .admitted_observation_count(),
         1
     );
-    assert_eq!(
-        settled
-            .exact_query_projection()
-            .authority()
-            .facts()
-            .display_fields()[0]
-            .native_value()
-            .scalar(),
-        Some(&AspectValue::Float32(CanonicalF32::from_f32(240.0)))
-    );
 }
 
 fn admit_current_projection(
@@ -140,12 +128,8 @@ fn admit_current_projection(
     settled: WorthUiSettledSnapshotProjection,
     fact_link: &WorthUiQueryLaneFactLink,
     expected_fact: &WorthUiSettledSnapshotFact,
-) {
-    let expected_extent = expected_fact
-        .measurement_facts()
-        .expect("the expected fact retains the admitted measurement subset")
-        .observations()[0]
-        .extent();
+) -> std::sync::Arc<WorthUiSettledSnapshotFact> {
+    let expected_extent = expected_fact.measurement_facts().observations()[0].extent();
     let mut admitted_fact = None;
     let mut frame_ingress = None;
     let completion = session.execute_framework_turn(|turn| {
@@ -165,30 +149,87 @@ fn admit_current_projection(
     drop(completion.into_completion());
     let admitted_fact = admitted_fact.expect("the framework turn returns the admitted UI fact");
     assert_eq!(
-        admitted_fact.settlement_identity(),
-        expected_fact.settlement_identity()
+        admitted_fact.settlement_reference(),
+        expected_fact.settlement_reference()
     );
     assert_eq!(
-        admitted_fact.query_binding_identity(),
-        expected_fact.query_binding_identity()
+        admitted_fact.binding_reference(),
+        expected_fact.binding_reference()
     );
     assert_eq!(admitted_fact.result_state(), expected_fact.result_state());
     assert_eq!(
-        admitted_fact.measurement_facts().unwrap().observations()[0].extent(),
+        admitted_fact.measurement_facts().observations()[0].extent(),
         expected_extent
     );
-    assert_eq!(
-        admitted_fact
-            .source_generation()
-            .map(|generation| generation.as_u64()),
-        Some(1)
-    );
+    assert_fact_coordinates(&admitted_fact, 1, 1);
     let frame_ingress = frame_ingress.expect("the requested settled fact entered the frame");
     assert_eq!(frame_ingress.counters().link_resolution_count(), 1);
     assert_eq!(frame_ingress.counters().retained_fact_resolution_count(), 1);
     assert_eq!(frame_ingress.counters().allocation_submission_count(), 1);
     assert!(frame_ingress.gateway().submission().is_some());
+    assert_gateway_coordinates(&frame_ingress, 1, 1);
     assert_active_query_residue(session);
+    admitted_fact
+}
+
+fn refresh_current_projection(
+    session: &mut WorthUiActiveApplicationSession,
+    settled: WorthUiSettledSnapshotProjection,
+    fact_link: &WorthUiQueryLaneFactLink,
+) -> std::sync::Arc<WorthUiSettledSnapshotFact> {
+    let mut refreshed_fact = None;
+    let mut frame_ingress = None;
+    let completion = session.execute_framework_turn(|turn| {
+        turn.query_projection(|query| {
+            refreshed_fact = Some(
+                query
+                    .refresh_settled(settled)
+                    .expect("the exact binding atomically replaces its settlement"),
+            );
+            frame_ingress = Some(
+                query
+                    .submit_settled(fact_link)
+                    .expect("the unchanged plan link resolves the refreshed settlement"),
+            );
+        });
+    });
+    drop(completion.into_completion());
+    let refreshed_fact = refreshed_fact.expect("the refresh returns the current UI fact");
+    assert_fact_coordinates(&refreshed_fact, 2, 2);
+    let frame_ingress = frame_ingress.expect("the refreshed fact entered the frame");
+    assert_eq!(frame_ingress.counters().link_resolution_count(), 1);
+    assert_eq!(frame_ingress.counters().retained_fact_resolution_count(), 1);
+    assert_eq!(frame_ingress.counters().allocation_submission_count(), 1);
+    assert!(frame_ingress.gateway().submission().is_some());
+    assert_gateway_coordinates(&frame_ingress, 2, 2);
+    assert_active_query_residue(session);
+    refreshed_fact
+}
+
+fn assert_fact_coordinates(fact: &WorthUiSettledSnapshotFact, generation: u64, order: u64) {
+    assert_eq!(
+        fact.source_generation()
+            .map(|coordinate| coordinate.as_u64()),
+        Some(generation)
+    );
+    assert_eq!(
+        fact.source_order().map(|coordinate| coordinate.as_u64()),
+        Some(order)
+    );
+}
+
+fn assert_gateway_coordinates(
+    frame_ingress: &worth_ui::facade::runtime::WorthUiQueryFrameIngressOutcome,
+    generation: u64,
+    order: u64,
+) {
+    let ingress = frame_ingress
+        .gateway()
+        .evidence()
+        .expect("successful allocation ingress carries admitted source evidence")
+        .ingress();
+    assert_eq!(ingress.key().source_generation().as_u64(), generation);
+    assert_eq!(ingress.key().source_order().as_u64(), order);
 }
 
 fn assert_active_query_residue(session: &WorthUiActiveApplicationSession) {

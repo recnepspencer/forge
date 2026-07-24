@@ -110,7 +110,7 @@ pub(crate) fn try_query_touch_for_node(
         .ok_or(UiGraphTouchDenial::UnknownGraphNode {
             graph_node_identity,
         })?;
-    let origin = graph.touches().query_fact_change_receipt()?;
+    let origin = graph.touches().query_binding_change_receipt()?;
 
     graph.touches().from_mounted_receipt_transition(
         origin,

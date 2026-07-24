@@ -42,7 +42,7 @@ fn origin_authority_cannot_be_remixed_onto_unrelated_graph_targets() {
     let query_origin = query_world
         .graph()
         .touches()
-        .query_fact_change_receipt()
+        .query_binding_change_receipt()
         .expect("query-backed world should admit query-change origin");
     let direct_query_touch = query_world.graph().touches().from_node(
         query_origin,
@@ -54,7 +54,7 @@ fn origin_authority_cannot_be_remixed_onto_unrelated_graph_targets() {
     assert!(matches!(
         direct_query_touch,
         Err(UiGraphTouchDenial::OriginDoesNotAuthorizeGraphNode {
-            origin_class: UiGraphTouchOriginClass::QueryFactChange,
+            origin_class: UiGraphTouchOriginClass::QueryBindingChange,
             ..
         })
     ));

@@ -252,21 +252,21 @@ impl<'a> UiGraphTouchAuthority<'a> {
             }
             UiGraphTouchOriginAuthority::SettledQueryBinding {
                 view_binding_id,
-                query_binding_identity,
+                binding_reference,
             } => {
                 let aligned = matches!(
                     self.snapshot.world_profile(),
                     UiGraphWorldProfile::SettledQueryBinding {
                         view_binding_id: current_view,
-                        query_binding_identity: current_query,
+                        binding_reference: current_binding,
                     } if current_view == view_binding_id
-                        && current_query == query_binding_identity
+                        && current_binding == binding_reference
                 );
                 if allow_mounted_receipt_transition_only
                     && aligned
                     && origin.receipt().authority_digest()
                         == crate::declaration::stable_text_digest(view_binding_id.as_str())
-                            ^ crate::declaration::stable_text_digest(query_binding_identity)
+                            ^ super::touch_origin::opaque_reference_digest(binding_reference)
                                 .rotate_left(29)
                 {
                     Ok(())

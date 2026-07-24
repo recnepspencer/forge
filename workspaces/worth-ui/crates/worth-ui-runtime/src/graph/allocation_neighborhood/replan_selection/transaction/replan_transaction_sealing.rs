@@ -8,10 +8,32 @@ impl super::UiGraphReplanAuthority {
         let mut counters = super::UiReplanNeighborhoodSelectionCounters::default();
         let mut targets = Vec::<&UiAdmittedAllocationInvalidationTarget>::new();
         let mut scroll_consequences = Vec::<super::UiScrollReplanConsequence>::new();
+        let mut query_consequences = Vec::<super::UiQueryMeasurementReplanConsequence>::new();
         let mut portal_consequences = Vec::<super::UiPortalReplanConsequence>::new();
         for invalidation in plan.narrowed_invalidations() {
             counters.visit()?;
             let causal_target_sets = target_sets_of(invalidation.target());
+            if let Some((view_binding_id, fact)) = query_source_of(invalidation.target()) {
+                for target in &causal_target_sets {
+                    let consequence = super::UiQueryMeasurementReplanConsequence::seal(
+                        target,
+                        view_binding_id.clone(),
+                        fact,
+                    )?;
+                    if let Some(existing) = query_consequences.iter().find(|existing| {
+                        existing.neighborhood_identity_digest()
+                            == consequence.neighborhood_identity_digest()
+                    }) {
+                        if existing != &consequence {
+                            return Err(
+                                super::UiReplanLocalityDenial::QueryMeasurementSuccessorDenied,
+                            );
+                        }
+                    } else {
+                        query_consequences.push(consequence);
+                    }
+                }
+            }
             for binding in scroll_bindings_of(invalidation.target()) {
                 let consequence = super::UiScrollReplanConsequence::seal(binding)?;
                 if let Some(existing) = scroll_consequences.iter().find(|existing| {
@@ -60,8 +82,33 @@ impl super::UiGraphReplanAuthority {
             root_posture,
             overlap_disposition,
             counters,
-            super::UiGraphReplanConsequences::seal(scroll_consequences, portal_consequences),
+            super::UiGraphReplanConsequences::seal(
+                scroll_consequences,
+                query_consequences,
+                portal_consequences,
+            ),
         ))
+    }
+}
+
+fn query_source_of(
+    target: &crate::runtime::UiAllocationInvalidationTarget,
+) -> Option<(
+    &crate::capability::ViewBindingId,
+    &worth_ui_query_binding::WorthUiSettledSnapshotFact,
+)> {
+    match target {
+        crate::runtime::UiAllocationInvalidationTarget::SettledQueryFact {
+            view_binding_id,
+            fact,
+            ..
+        }
+        | crate::runtime::UiAllocationInvalidationTarget::ScrollOwnedContentExtent {
+            view_binding_id,
+            fact,
+            ..
+        } => Some((view_binding_id, fact)),
+        _ => None,
     }
 }
 
@@ -319,7 +366,7 @@ fn targets_of(
     match target {
         crate::runtime::UiAllocationInvalidationTarget::Graph(target)
         | crate::runtime::UiAllocationInvalidationTarget::ResizePreview { target, .. }
-        | crate::runtime::UiAllocationInvalidationTarget::SettledQueryFact { target }
+        | crate::runtime::UiAllocationInvalidationTarget::SettledQueryFact { target, .. }
         | crate::runtime::UiAllocationInvalidationTarget::HostMeasurement { target, .. }
         | crate::runtime::UiAllocationInvalidationTarget::DurableResize { target, .. } => target,
         crate::runtime::UiAllocationInvalidationTarget::PortalAnchor { movement } => {

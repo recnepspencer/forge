@@ -47,6 +47,9 @@ pub(super) fn inspection_selection_reason(
                 UiGraphTouchOriginClass::DeclarationChange => {
                     UiInspectionTouchOriginClass::DeclarationChange
                 }
+                UiGraphTouchOriginClass::QueryBindingChange => {
+                    UiInspectionTouchOriginClass::QueryBindingChange
+                }
                 UiGraphTouchOriginClass::QueryFactChange => {
                     UiInspectionTouchOriginClass::QueryFactChange
                 }

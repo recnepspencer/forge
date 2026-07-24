@@ -168,6 +168,6 @@ fn operation_live_request() -> WorthUiOperationLiveOpenRequest {
             WorthUiQueryInspectionRelevance::Relevant,
         ),
         domain::WorthQueryCollectionWindowBreadth::new(1, 0, 0, 1).unwrap(),
-        WorthUiCollectionAllocationPolicy::PreserveMounted,
+        WorthUiCollectionAllocationPolicy::PreserveAdmittedRows,
     )
 }

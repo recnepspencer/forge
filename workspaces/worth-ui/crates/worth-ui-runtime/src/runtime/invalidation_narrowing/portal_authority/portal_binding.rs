@@ -103,6 +103,7 @@ impl UiAdmittedPortalInvalidationBinding {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiAdmittedPortalMovement {
     binding: UiAdmittedPortalInvalidationBinding,
+    measurement_result: crate::evidence::UiMeasurementResult,
     observation: crate::runtime::UiAdmittedPortalAnchorObservation,
     identity_transition: crate::runtime::UiPortalAnchorIdentityTransition,
     authority_probes: u16,
@@ -138,6 +139,7 @@ impl UiAdmittedPortalMovement {
         );
         Ok(Self {
             binding,
+            measurement_result: result.clone(),
             observation,
             identity_transition,
             authority_probes,
@@ -146,6 +148,9 @@ impl UiAdmittedPortalMovement {
 
     pub fn observation(&self) -> crate::runtime::UiAdmittedPortalAnchorObservation {
         self.observation
+    }
+    pub(crate) fn measurement_result(&self) -> &crate::evidence::UiMeasurementResult {
+        &self.measurement_result
     }
     pub fn identity_transition(&self) -> crate::runtime::UiPortalAnchorIdentityTransition {
         self.identity_transition

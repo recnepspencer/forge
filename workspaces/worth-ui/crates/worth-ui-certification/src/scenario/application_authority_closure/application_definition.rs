@@ -49,9 +49,9 @@ where
 {
     WorthUi::app()
         .with_host(host)
-        .with_graph_world_profile(UiGraphWorldProfile::settled_query_view(
+        .with_graph_world_profile(UiGraphWorldProfile::settled_query_binding(
             ViewBindingId::new(QUERY_BINDING).expect("valid Query view binding id"),
-            &query.installed_view(),
+            query.binding_reference(),
         ))
         .register_component(component(CURRENT_COMPONENT))
         .register_component(component(CANDIDATE_COMPONENT))

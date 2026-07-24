@@ -220,7 +220,10 @@ fn query_origin_and_world_are_explicit_on_the_ordinary_touch_path() {
         ["worth-ui.graph", "touch", "query"],
     ));
 
-    let denied = authoritative.graph().touches().query_fact_change_receipt();
+    let denied = authoritative
+        .graph()
+        .touches()
+        .query_binding_change_receipt();
     let query_touch = query_world
         .graph()
         .touches()
@@ -228,7 +231,7 @@ fn query_origin_and_world_are_explicit_on_the_ordinary_touch_path() {
             query_world
                 .graph()
                 .touches()
-                .query_fact_change_receipt()
+                .query_binding_change_receipt()
                 .expect(
                     "query-backed worlds should mint query touch receipts from basis authority",
                 ),
@@ -240,11 +243,11 @@ fn query_origin_and_world_are_explicit_on_the_ordinary_touch_path() {
 
     assert!(matches!(
         denied,
-        Err(UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld)
+        Err(UiGraphTouchDenial::QueryBindingChangeUnavailableInCurrentWorld)
     ));
     assert_eq!(
         query_touch.origin().class(),
-        UiGraphTouchOriginClass::QueryFactChange
+        UiGraphTouchOriginClass::QueryBindingChange
     );
     assert_eq!(
         query_touch.world().world_profile(),

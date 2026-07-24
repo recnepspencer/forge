@@ -24,4 +24,18 @@ impl UiAllocationReplanCommitMode<'_> {
             _ => None,
         }
     }
+
+    pub(super) fn admits_query_measurement_successor(
+        &self,
+        selected: &crate::evidence::UiAllocationNeighborhoodIdentity,
+    ) -> bool {
+        self.selection()
+            .transaction_basis()
+            .consequences()
+            .query_measurements()
+            .iter()
+            .any(|consequence| {
+                consequence.neighborhood_identity_digest() == selected.identity_digest()
+            })
+    }
 }

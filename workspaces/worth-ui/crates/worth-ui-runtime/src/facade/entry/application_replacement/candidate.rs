@@ -32,7 +32,7 @@ impl WorthUiPreparedApplicationReplacement {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.candidate_query_binding

@@ -28,7 +28,8 @@ impl WorthUiSettledSnapshotRetention {
         &mut self,
         mut projection: WorthUiSettledSnapshotProjection,
         reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<WorthUiSettledSnapshotFact, WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<std::sync::Arc<WorthUiSettledSnapshotFact>, WorthUiSettledSnapshotAdmissionStop>
+    {
         if projection.installed_reference() != reference {
             return Err(WorthUiSettledSnapshotAdmissionStop::new(
                 WorthUiSettledSnapshotAdmissionDenial::ForeignInstalledReference,
@@ -52,7 +53,7 @@ impl WorthUiSettledSnapshotRetention {
             crate::WorthUiSettledSnapshotSourceGeneration::new(1),
             crate::WorthUiSettledSnapshotSourceOrder::new(order),
         );
-        let fact = projection.fact().clone();
+        let fact = projection.shared_fact();
         let slot = self.insert_into_vacant_or_append(projection);
         self.index.insert(identity, slot);
         self.next_order = order;
@@ -63,7 +64,8 @@ impl WorthUiSettledSnapshotRetention {
         &mut self,
         mut projection: WorthUiSettledSnapshotProjection,
         reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<WorthUiSettledSnapshotFact, WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<std::sync::Arc<WorthUiSettledSnapshotFact>, WorthUiSettledSnapshotAdmissionStop>
+    {
         if projection.installed_reference() != reference {
             return Err(WorthUiSettledSnapshotAdmissionStop::new(
                 WorthUiSettledSnapshotAdmissionDenial::ForeignInstalledReference,
@@ -101,7 +103,7 @@ impl WorthUiSettledSnapshotRetention {
             crate::WorthUiSettledSnapshotSourceGeneration::new(generation),
             crate::WorthUiSettledSnapshotSourceOrder::new(order),
         );
-        let fact = projection.fact().clone();
+        let fact = projection.shared_fact();
         self.slots[slot] = Some(projection);
         self.next_order = order;
         Ok(fact)
@@ -215,5 +217,91 @@ impl WorthUiSettledSnapshotRetention {
             self.slots.push(Some(projection));
             slot
         }
+    }
+}
+
+#[cfg(test)]
+mod exhaustion_tests {
+    use super::WorthUiSettledSnapshotRetention;
+    use crate::{
+        WorthUiQueryBindingPlan, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+        WorthUiSettledSnapshotAdmissionDenial, WorthUiSettledSnapshotSourceGeneration,
+        WorthUiSettledSnapshotSourceOrder,
+    };
+
+    #[test]
+    fn source_order_exhaustion_preserves_the_exact_predecessor_projection() {
+        let mut workspace = crate::snapshot_refresh_isolation_tests::installed_workspace();
+        let (_plan, reference) = binding(&workspace);
+        let mut retention = WorthUiSettledSnapshotRetention::default();
+        let predecessor = retention
+            .admit(
+                crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace),
+                &reference,
+            )
+            .unwrap();
+        retention.next_order = u64::MAX;
+
+        let stop = retention
+            .refresh(
+                crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace),
+                &reference,
+            )
+            .expect_err("an exhausted owner order cannot publish a refresh");
+
+        assert_eq!(
+            stop.denial(),
+            WorthUiSettledSnapshotAdmissionDenial::SourceOrderExhausted
+        );
+        assert_eq!(retention.fact_for(&reference), Some(predecessor.as_ref()));
+    }
+
+    #[test]
+    fn source_generation_exhaustion_preserves_the_exact_predecessor_projection() {
+        let mut workspace = crate::snapshot_refresh_isolation_tests::installed_workspace();
+        let (_plan, reference) = binding(&workspace);
+        let mut predecessor =
+            crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace);
+        predecessor.attach_source_coordinates(
+            WorthUiSettledSnapshotSourceGeneration::new(u64::MAX),
+            WorthUiSettledSnapshotSourceOrder::new(1),
+        );
+        let predecessor_fact = predecessor.fact().clone();
+        let mut retention = WorthUiSettledSnapshotRetention::default();
+        retention.replace(predecessor);
+
+        let stop = retention
+            .refresh(
+                crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace),
+                &reference,
+            )
+            .expect_err("an exhausted source generation cannot publish a refresh");
+
+        assert_eq!(
+            stop.denial(),
+            WorthUiSettledSnapshotAdmissionDenial::SourceGenerationExhausted
+        );
+        assert_eq!(retention.fact_for(&reference), Some(&predecessor_fact));
+    }
+
+    fn binding(
+        workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
+    ) -> (
+        WorthUiQueryBindingPlan,
+        crate::WorthUiInstalledQueryBindingReference,
+    ) {
+        let view = workspace
+            .worth_ui()
+            .unwrap()
+            .measurement_view("dashboard.exhaustion")
+            .unwrap();
+        let identity = view.definition().identity().clone();
+        let plan = WorthUiQueryBindingPlan::default()
+            .register_view(view)
+            .unwrap();
+        let reference = plan
+            .resolve_definition(&identity, WorthUiQueryViewShape::Collection)
+            .unwrap();
+        (plan, reference)
     }
 }

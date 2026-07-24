@@ -1,9 +1,7 @@
 //! Runtime lifecycle lanes: launch → replacement → planning → activation → execution → host observation.
 
 pub(crate) mod activation;
-pub(crate) use activation::committed_allocation_attempt::{
-    UiCommittedAllocationActivationAttempt, UiCommittedAllocationActivationIdentity,
-};
+pub(crate) use activation::committed_allocation_attempt::UiCommittedAllocationActivationAttempt;
 pub(crate) use activation::UiAllocationCatalogDeltaActivationInput;
 pub(crate) use activation::WorthUiPreparedApplicationPublication;
 pub(crate) use activation::WorthUiQueryAwarePlanOutcome;

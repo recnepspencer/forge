@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
+    WorthUiAdmittedQueryBindingReference, WorthUiAdmittedQuerySettlementReference,
     WorthUiInstalledQueryBindingReference, WorthUiOperationLiveAdmissionDenial,
     WorthUiOperationLiveAdmissionStop, WorthUiOperationLiveResource, WorthUiQueryViewIdentity,
     WorthUiSettledSnapshotSourceGeneration, WorthUiSettledSnapshotSourceOrder,
@@ -18,7 +19,8 @@ pub struct WorthUiOperationLiveObservation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiExactOperationLiveResourceEvidence {
     installed_reference: WorthUiInstalledQueryBindingReference,
-    lease_identity: String,
+    binding_reference: WorthUiAdmittedQueryBindingReference,
+    settlement_reference: WorthUiAdmittedQuerySettlementReference,
 }
 
 #[derive(Default)]
@@ -28,6 +30,7 @@ pub(crate) struct WorthUiOperationLiveRetention {
     succession_operation_count: usize,
     next_source_generation: u64,
     next_source_order: u64,
+    staged_sources: BTreeSet<WorthUiQueryViewIdentity>,
 }
 
 impl std::fmt::Debug for WorthUiOperationLiveRetention {
@@ -97,6 +100,68 @@ impl WorthUiOperationLiveRetention {
         Ok(())
     }
 
+    pub(crate) fn refresh(
+        &mut self,
+        reference: &WorthUiInstalledQueryBindingReference,
+        workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    ) -> Result<crate::WorthUiOperationLiveRefreshOutcome, crate::WorthUiOperationLiveRefreshError>
+    {
+        let identity = reference.definition().identity().clone();
+        let resource = self.resources.get_mut(&identity).ok_or(
+            crate::WorthUiOperationLiveRefreshError::Ui(
+                crate::WorthUiOperationLiveRefreshDenial::ResourceNotRetained,
+            ),
+        )?;
+        resource.refresh(workspace)
+    }
+
+    pub(crate) fn admit_collection_change(
+        &mut self,
+        consequence: crate::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiCollectionChangeStagingReceipt,
+        crate::WorthUiCollectionChangeAdmissionStop,
+    > {
+        let identity = consequence
+            .installed_reference()
+            .definition()
+            .identity()
+            .clone();
+        let Some(resource) = self.resources.get_mut(&identity) else {
+            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::ResourceNotRetained,
+                consequence,
+            ));
+        };
+        let receipt = resource.admit_collection_change(consequence)?;
+        self.staged_sources.insert(identity);
+        Ok(receipt)
+    }
+
+    pub(crate) fn retry_collection_change_handoff(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        crate::WorthUiCollectionChangeConsequence,
+        crate::WorthUiCollectionChangeHandoffRetryDenial,
+    > {
+        self.resource(reference)
+            .ok_or(crate::WorthUiCollectionChangeHandoffRetryDenial::ResourceNotRetained)?
+            .retry_collection_change_handoff()
+    }
+
+    pub(crate) fn publish_staged(&mut self) -> crate::WorthUiCollectionChangePublicationReceipt {
+        let staged = std::mem::take(&mut self.staged_sources);
+        let mut published = 0;
+        for identity in staged {
+            let Some(resource) = self.resources.get_mut(&identity) else {
+                continue;
+            };
+            published += usize::from(resource.publish_staged_collection_change());
+        }
+        crate::WorthUiCollectionChangePublicationReceipt::new(published)
+    }
+
     pub(crate) fn exact_evidence(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
@@ -105,7 +170,8 @@ impl WorthUiOperationLiveRetention {
             .get(reference.definition().identity())
             .map(|resource| WorthUiExactOperationLiveResourceEvidence {
                 installed_reference: resource.installed_reference().clone(),
-                lease_identity: resource.lease_identity().to_owned(),
+                binding_reference: resource.fact().binding_reference().clone(),
+                settlement_reference: resource.fact().settlement_reference().clone(),
             })
     }
 
@@ -114,6 +180,14 @@ impl WorthUiOperationLiveRetention {
         reference: &WorthUiInstalledQueryBindingReference,
     ) -> Option<&WorthUiOperationLiveResource> {
         self.resources.get(reference.definition().identity())
+    }
+
+    pub(crate) fn collection_change_observation(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+    ) -> Option<crate::WorthUiOperationLiveChangeObservation> {
+        self.resource(reference)
+            .map(WorthUiOperationLiveResource::collection_change_observation)
     }
 
     pub(crate) fn take(
@@ -126,6 +200,7 @@ impl WorthUiOperationLiveRetention {
 
     pub(crate) fn drain_into(&mut self, retirement: &mut Vec<WorthUiOperationLiveResource>) {
         self.succession_operation_count += 1;
+        self.staged_sources.clear();
         retirement.extend(std::mem::take(&mut self.resources).into_values());
     }
 
@@ -140,6 +215,8 @@ impl WorthUiOperationLiveRetention {
             .map(|reference| reference.definition().identity())
             .collect::<BTreeSet<_>>();
         let resources = std::mem::take(&mut self.resources);
+        self.staged_sources
+            .retain(|identity| retained.contains(identity));
         for (identity, resource) in resources {
             if retained.contains(&identity) {
                 self.resources.insert(identity, resource);
@@ -158,6 +235,7 @@ impl WorthUiOperationLiveRetention {
             &mut other.next_source_generation,
         );
         std::mem::swap(&mut self.next_source_order, &mut other.next_source_order);
+        std::mem::swap(&mut self.staged_sources, &mut other.staged_sources);
     }
 
     pub(crate) fn observation(
@@ -205,7 +283,11 @@ impl WorthUiExactOperationLiveResourceEvidence {
         &self.installed_reference
     }
 
-    pub fn lease_identity(&self) -> &str {
-        &self.lease_identity
+    pub fn binding_reference(&self) -> &WorthUiAdmittedQueryBindingReference {
+        &self.binding_reference
+    }
+
+    pub fn settlement_reference(&self) -> &WorthUiAdmittedQuerySettlementReference {
+        &self.settlement_reference
     }
 }

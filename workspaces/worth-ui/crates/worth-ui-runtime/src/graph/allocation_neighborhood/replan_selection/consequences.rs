@@ -1,18 +1,22 @@
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct UiGraphReplanConsequences {
     scroll_owned: Box<[super::UiScrollReplanConsequence]>,
+    query_measurements: Box<[super::UiQueryMeasurementReplanConsequence]>,
     portal_anchors: Box<[super::UiPortalReplanConsequence]>,
 }
 
 impl UiGraphReplanConsequences {
     pub(crate) fn seal(
         mut scroll_owned: Vec<super::UiScrollReplanConsequence>,
+        mut query_measurements: Vec<super::UiQueryMeasurementReplanConsequence>,
         mut portal_anchors: Vec<super::UiPortalReplanConsequence>,
     ) -> Self {
         scroll_owned.sort_by_key(super::UiScrollReplanConsequence::identity_digest);
+        query_measurements.sort_by_key(super::UiQueryMeasurementReplanConsequence::identity_digest);
         portal_anchors.sort_by_key(super::UiPortalReplanConsequence::identity_digest);
         Self {
             scroll_owned: scroll_owned.into_boxed_slice(),
+            query_measurements: query_measurements.into_boxed_slice(),
             portal_anchors: portal_anchors.into_boxed_slice(),
         }
     }
@@ -25,6 +29,10 @@ impl UiGraphReplanConsequences {
         &self.scroll_owned
     }
 
+    pub(crate) fn query_measurements(&self) -> &[super::UiQueryMeasurementReplanConsequence] {
+        &self.query_measurements
+    }
+
     pub(crate) fn identity_digest(&self) -> u64 {
         let digest = self.scroll_owned.iter().fold(
             crate::declaration::stable_text_digest("worth-ui.graph-replan-consequences"),
@@ -32,6 +40,12 @@ impl UiGraphReplanConsequences {
                 digest.rotate_left(7) ^ consequence.identity_digest().rotate_left(29)
             },
         );
+        let digest = self
+            .query_measurements
+            .iter()
+            .fold(digest, |digest, consequence| {
+                digest.rotate_left(9) ^ consequence.identity_digest().rotate_left(31)
+            });
         self.portal_anchors
             .iter()
             .fold(digest, |digest, consequence| {

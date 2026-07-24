@@ -7,23 +7,9 @@ use crate::evidence::{
 };
 use crate::graph::{UiGraphGeneration, UiGraphNodeIdentity};
 
-use super::UiGraphNeighborhoodFootprint;
-
-#[derive(Clone, Debug)]
-pub(crate) struct UiAdmittedAllocationPlanReference {
-    planning_identity_digest: u64,
-    measurement_basis_generation: UiMeasurementBasisGeneration,
-    neighborhood_identity: UiAllocationNeighborhoodIdentity,
-    candidate: Rc<crate::runtime::UiAllocationCandidate>,
-}
-
-impl PartialEq for UiAdmittedAllocationPlanReference {
-    fn eq(&self, other: &Self) -> bool {
-        self.generation_key() == other.generation_key() && self.candidate == other.candidate
-    }
-}
-
-impl Eq for UiAdmittedAllocationPlanReference {}
+use super::{
+    UiAdmittedAllocationPlanReference, UiGraphNeighborhoodFootprint, UiReplanGenerationKey,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiAdmittedAllocationInvalidationTarget {
@@ -34,8 +20,10 @@ pub struct UiAdmittedAllocationInvalidationTarget {
     measurement_basis_generation: UiMeasurementBasisGeneration,
     allocation_plan: Option<UiAdmittedAllocationPlanReference>,
     pub(super) graph_membership_probes: u16,
-    replacement_impact: Option<Rc<crate::runtime::WorthUiReplacementImpactClassification>>,
-    impact_narrowing: Option<Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>>,
+    pub(in crate::graph::allocation_neighborhood) replacement_impact:
+        Option<Rc<crate::runtime::WorthUiReplacementImpactClassification>>,
+    pub(in crate::graph::allocation_neighborhood) impact_narrowing:
+        Option<Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>>,
     consequence: super::UiReplanWidenReason,
     disposition: UiGraphReplanTargetDisposition,
 }
@@ -62,30 +50,6 @@ struct UiAllocationInvalidationTargetAdmissionInput<'a> {
 pub(crate) enum UiGraphReplanTargetDisposition {
     LocalPrimaryEligible,
     RootPrimaryEligible,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct UiReplanGenerationKey {
-    pub(in crate::graph::allocation_neighborhood) neighborhood_identity:
-        UiAllocationNeighborhoodIdentity,
-    graph_generation: UiGraphGeneration,
-    measurement_basis_generation: UiMeasurementBasisGeneration,
-    pub(in crate::graph::allocation_neighborhood) planning_identity_digest: u64,
-}
-
-impl UiReplanGenerationKey {
-    pub(crate) fn identity_digest(&self) -> u64 {
-        self.neighborhood_identity.identity_digest()
-            ^ self.graph_generation.as_u64().rotate_left(11)
-            ^ self.measurement_basis_generation.raw().rotate_left(23)
-            ^ self.planning_identity_digest.rotate_left(37)
-    }
-
-    pub(in crate::graph::allocation_neighborhood) fn measurement_generation(
-        &self,
-    ) -> UiMeasurementBasisGeneration {
-        self.measurement_basis_generation
-    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -143,34 +107,6 @@ impl UiGraphReplanAdmission {
 
     pub(crate) fn targets(&self) -> impl Iterator<Item = &UiAdmittedAllocationInvalidationTarget> {
         self.targets.values()
-    }
-}
-
-impl UiAdmittedAllocationPlanReference {
-    pub(crate) fn from_candidate(candidate: crate::runtime::UiAllocationCandidate) -> Self {
-        Self {
-            planning_identity_digest: candidate.planning_identity_digest(),
-            measurement_basis_generation: candidate.measurement_basis().generation(),
-            neighborhood_identity: candidate.allocation_neighborhood().identity().clone(),
-            candidate: Rc::new(candidate),
-        }
-    }
-
-    pub(crate) fn candidate(&self) -> &crate::runtime::UiAllocationCandidate {
-        &self.candidate
-    }
-
-    pub(crate) fn planning_identity_digest(&self) -> u64 {
-        self.planning_identity_digest
-    }
-
-    pub(crate) fn generation_key(&self) -> UiReplanGenerationKey {
-        UiReplanGenerationKey {
-            neighborhood_identity: self.neighborhood_identity.clone(),
-            graph_generation: self.neighborhood_identity.graph_generation(),
-            measurement_basis_generation: self.measurement_basis_generation,
-            planning_identity_digest: self.planning_identity_digest,
-        }
     }
 }
 
@@ -259,6 +195,10 @@ impl UiAdmittedAllocationInvalidationTarget {
 }
 
 impl UiGraphReplanAuthority {
+    pub(crate) fn active_identity_digest(&self) -> u64 {
+        self.active_identity_digest
+    }
+
     pub(crate) fn replace<'a>(
         &mut self,
         targets: impl Iterator<Item = &'a UiAdmittedAllocationInvalidationTarget>,

@@ -146,7 +146,7 @@ impl UiGraphSnapshot {
     pub fn compare_to(&self, other: &Self) -> UiGraphSnapshotComparable {
         let generation_relation = self.generation.relation_to(other.generation);
         let kind = if self.declaration_authority_digest == other.declaration_authority_digest {
-            if self.world_profile.identity_digest() == other.world_profile.identity_digest() {
+            if self.world_profile == other.world_profile {
                 same_world_difference_kind(
                     self.snapshot_authority_digest,
                     other.snapshot_authority_digest,

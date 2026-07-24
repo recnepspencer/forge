@@ -28,7 +28,7 @@ pub enum UiAllocationFrameSourceFact {
     HostMeasurement(crate::host::UiAdmittedHostMeasurement),
     QuerySettledFact {
         view_binding_id: crate::capability::ViewBindingId,
-        fact: Box<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
+        fact: std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     },
     Interaction(crate::runtime::WorthUiAdmittedTransientInteraction),
     DurableResize(crate::runtime::WorthUiAdmittedDurableResizeSourceFact),

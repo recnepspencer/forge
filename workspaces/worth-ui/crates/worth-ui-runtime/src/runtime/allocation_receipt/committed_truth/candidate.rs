@@ -35,6 +35,21 @@ impl UiAllocationCandidate {
         self.replan_admission = Some(context);
     }
 
+    pub(crate) fn seal_replan_successor(
+        &mut self,
+        impact: std::rc::Rc<crate::runtime::WorthUiReplacementImpactClassification>,
+        narrowing: std::rc::Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>,
+    ) {
+        let admitted_candidate = self.clone();
+        let context =
+            crate::runtime::invalidation_narrowing::UiAllocationInvalidationAdmissionContext::from_planning_basis(
+                self.planning.basis(),
+            )
+            .with_allocation_candidate(admitted_candidate)
+            .with_replacement_lineage(impact, narrowing);
+        self.replan_admission = Some(context);
+    }
+
     pub(crate) fn replan_admission(
         &self,
     ) -> &crate::runtime::invalidation_narrowing::UiAllocationInvalidationAdmissionContext {

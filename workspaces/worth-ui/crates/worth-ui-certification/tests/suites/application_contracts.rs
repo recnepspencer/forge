@@ -54,6 +54,8 @@ mod query_consumer_kit_wrong_binding;
 mod query_domain_certification_scenarios;
 #[path = "../application_contracts/query_replacement_lifecycle.rs"]
 mod query_replacement_lifecycle;
+#[path = "../application_contracts/query_settlement_allocation_cost.rs"]
+mod query_settlement_allocation_cost;
 #[path = "../application_contracts/realtime_overlay_execution.rs"]
 mod realtime_overlay_execution;
 #[path = "../application_contracts/realtime_overlay_replacement.rs"]

@@ -19,8 +19,8 @@ pub enum UiQueryMeasurementUnsupportedQueryReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiQueryMeasurementSourceIdentity {
     view_binding_id: crate::capability::ViewBindingId,
-    query_binding_identity: Box<str>,
-    settlement_identity: Box<str>,
+    binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+    settlement_reference: worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -37,8 +37,8 @@ pub enum UiQueryMeasurementEligibilityPosture {
     StaleSettlement {
         world: UiAdmissionWorld,
         expected_view_binding_id: crate::capability::ViewBindingId,
-        expected_query_binding_identity: Box<str>,
-        observed: UiQueryMeasurementSourceIdentity,
+        expected_binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+        observed: Box<UiQueryMeasurementSourceIdentity>,
     },
     UnavailableFactFamilies {
         world: UiAdmissionWorld,
@@ -158,8 +158,8 @@ impl UiQueryMeasurementSourceIdentity {
     ) -> Self {
         Self {
             view_binding_id,
-            query_binding_identity: fact.query_binding_identity().into(),
-            settlement_identity: fact.settlement_identity().into(),
+            binding_reference: fact.binding_reference().clone(),
+            settlement_reference: fact.settlement_reference().clone(),
         }
     }
 
@@ -167,11 +167,15 @@ impl UiQueryMeasurementSourceIdentity {
         &self.view_binding_id
     }
 
-    pub fn query_binding_identity(&self) -> &str {
-        &self.query_binding_identity
+    pub fn binding_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference {
+        &self.binding_reference
     }
 
-    pub fn settlement_identity(&self) -> &str {
-        &self.settlement_identity
+    pub fn settlement_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference {
+        &self.settlement_reference
     }
 }

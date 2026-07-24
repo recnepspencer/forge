@@ -47,7 +47,7 @@ pub fn query_touch(app: &WorthUiApp) -> UiGraphTouchDescriptor {
         .from_mounted_receipt_transition(
             app.graph()
                 .touches()
-                .query_fact_change_receipt()
+                .query_binding_change_receipt()
                 .expect("query world should admit query receipt"),
             UiGraphTouchTiming::PostMutation,
             mounted_receipt_transition(app, artifact),

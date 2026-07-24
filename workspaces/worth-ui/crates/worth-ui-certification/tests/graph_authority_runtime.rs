@@ -136,10 +136,8 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
 
 #[test]
 fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
-    let alpha_world =
-        query_snapshot_world_profile("snapshot:alpha", ["worth-ui.graph", "authority", "alpha"]);
-    let beta_world =
-        query_snapshot_world_profile("snapshot:beta", ["worth-ui.graph", "authority", "beta"]);
+    let alpha_world = query_snapshot_world_profile("snapshot:equal-looking");
+    let beta_world = query_snapshot_world_profile("snapshot:equal-looking");
 
     let alpha = WorthUi::app()
         .with_graph_world_profile(alpha_world.clone())
@@ -271,13 +269,9 @@ fn unrelated_inserted_control_spec() -> UiDslSemanticArtifactSpec {
     .with_structural_token(UiDslStructuralToken::new("slot:header"))
 }
 
-fn query_snapshot_world_profile(
-    snapshot_label: &str,
-    schema_basis_parts: [&str; 3],
-) -> UiGraphWorldProfile {
-    let binding = schema_basis_parts.join(".").replace('-', "_");
+fn query_snapshot_world_profile(snapshot_label: &str) -> UiGraphWorldProfile {
     installed_query_world::settled_query_world_profile(
-        worth_ui::facade::registry::ViewBindingId::new(binding.clone()).unwrap(),
-        format!("{binding}.{snapshot_label}").replace('-', "_"),
+        worth_ui::facade::registry::ViewBindingId::new("workspace.binding.shared").unwrap(),
+        snapshot_label.replace('-', "_"),
     )
 }

@@ -1,8 +1,10 @@
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationIdentity};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiGraphTouchOriginClass {
     DeclarationChange,
+    QueryBindingChange,
     QueryFactChange,
     HostObservation,
     ServiceEvent,
@@ -24,14 +26,14 @@ impl UiGraphTouchOriginReceipt {
         }
     }
 
-    pub(crate) fn settled_query_fact_change(
+    pub(crate) fn settled_query_binding_change(
         view_binding_id: &crate::capability::ViewBindingId,
-        query_binding_identity: &str,
+        binding_reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     ) -> Self {
         Self {
-            class: UiGraphTouchOriginClass::QueryFactChange,
+            class: UiGraphTouchOriginClass::QueryBindingChange,
             authority_digest: crate::declaration::stable_text_digest(view_binding_id.as_str())
-                ^ crate::declaration::stable_text_digest(query_binding_identity).rotate_left(29),
+                ^ opaque_reference_digest(binding_reference).rotate_left(29),
         }
     }
 
@@ -94,13 +96,13 @@ impl UiGraphTouchOriginWitness {
     pub(crate) fn settled_query_binding(
         receipt: UiGraphTouchOriginReceipt,
         view_binding_id: crate::capability::ViewBindingId,
-        query_binding_identity: Box<str>,
+        binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     ) -> Self {
         Self {
             receipt,
             authority: UiGraphTouchOriginAuthority::SettledQueryBinding {
                 view_binding_id,
-                query_binding_identity,
+                binding_reference,
             },
         }
     }
@@ -139,9 +141,17 @@ pub(crate) enum UiGraphTouchOriginAuthority {
     },
     SettledQueryBinding {
         view_binding_id: crate::capability::ViewBindingId,
-        query_binding_identity: Box<str>,
+        binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     },
     AuthoredProvenanceDigests {
         digests: Vec<u64>,
     },
+}
+
+pub(super) fn opaque_reference_digest(
+    reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    reference.hash(&mut hasher);
+    hasher.finish()
 }

@@ -109,7 +109,7 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
         .from_mounted_receipt_transition(
             graph
                 .touches()
-                .query_fact_change_receipt()
+                .query_binding_change_receipt()
                 .expect("query world should admit query receipt"),
             UiGraphTouchTiming::PostMutation,
             mounted_receipt_transition(&app, artifact),
@@ -154,7 +154,9 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
         participation.selection_reasons(),
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
-            UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
+            UiObligationSelectionReason::TouchOriginClass(
+                UiGraphTouchOriginClass::QueryBindingChange,
+            ),
             UiObligationSelectionReason::WorldProfile(
                 UiObligationWorldProfileClass::SettledQueryBinding,
             ),
@@ -187,7 +189,9 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
         query_binding.selection_reasons(),
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
-            UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
+            UiObligationSelectionReason::TouchOriginClass(
+                UiGraphTouchOriginClass::QueryBindingChange,
+            ),
             UiObligationSelectionReason::WorldProfile(
                 UiObligationWorldProfileClass::SettledQueryBinding,
             ),
@@ -221,7 +225,9 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
         diagnostic.selection_reasons(),
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
-            UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
+            UiObligationSelectionReason::TouchOriginClass(
+                UiGraphTouchOriginClass::QueryBindingChange,
+            ),
             UiObligationSelectionReason::WorldProfile(
                 UiObligationWorldProfileClass::SettledQueryBinding,
             ),

@@ -80,13 +80,61 @@
     "worth-ui-certification:compile_contracts"
   ],
   "module_proof_replacements": {
+    "worth-ui-certification:admission_denial_topology_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/admission_topology_audit.rs",
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/query_reporting_projection_boundary.rs"
+    ],
+    "worth-ui-certification:admission_report_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/admission_support_runtime.rs"
+    ],
+    "worth-ui-certification:ai_inspection_foreign_evidence_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/ai_inspection_runtime.rs"
+    ],
+    "worth-ui-certification:inspection_boundary_purity_audit": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/inspection_contract_audit.rs"
+    ],
+    "worth-ui-certification:measurement_basis_determinism_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/measurement_admission_runtime.rs"
+    ],
     "worth-ui-certification:milestone_38_responsibility_topology": [
       "workspaces/worth-ui/crates/worth-ui-certification/tests/responsibility_directory_topology.rs",
       "workspaces/worth-ui/crates/worth-ui-certification/tests/query_reporting_projection_boundary.rs"
     ],
+    "worth-ui-certification:obligation_diagnostic_projection_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_requirement_posture_runtime.rs"
+    ],
+    "worth-ui-certification:obligation_dispatch_determinism_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_dispatch_runtime.rs"
+    ],
+    "worth-ui-certification:obligation_dispatch_prerequisite_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_dispatch_runtime.rs",
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_requirement_posture_runtime.rs"
+    ],
+    "worth-ui-certification:obligation_evidence_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_selected_membership_runtime.rs",
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_handoff_runtime.rs"
+    ],
+    "worth-ui-certification:obligation_handoff_determinism_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_handoff_runtime.rs"
+    ],
+    "worth-ui-certification:obligation_inspection_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_selected_membership_runtime.rs",
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_touch_isolation_runtime.rs"
+    ],
+    "worth-ui-certification:obligation_query_prerequisite_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_selection_matrix_runtime.rs",
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_dispatch_runtime.rs"
+    ],
+    "worth-ui-certification:obligation_verdict_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_dispatch_runtime.rs",
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/obligation_selection_rejection_runtime.rs"
+    ],
     "worth-ui-certification:query_binding_public_journey": [
       "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/query_consumer_kit_lifecycle.rs",
       "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/query_consumer_kit_vertical_journey.rs"
+    ],
+    "worth-ui-certification:query_measurement_eligibility_runtime": [
+      "workspaces/worth-ui/crates/worth-ui-certification/tests/measurement_admission_runtime.rs"
     ]
   },
   "packages": {

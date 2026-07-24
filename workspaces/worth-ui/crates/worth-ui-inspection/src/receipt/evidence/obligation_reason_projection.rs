@@ -28,6 +28,7 @@ pub enum UiInspectionTouchTargetClass {
 pub enum UiInspectionTouchOriginClass {
     DeclarationChange,
     QueryFactChange,
+    QueryBindingChange,
     HostObservation,
     ServiceEvent,
     IntentSubmission,

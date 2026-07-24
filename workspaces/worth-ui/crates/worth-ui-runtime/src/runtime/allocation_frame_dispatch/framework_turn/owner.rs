@@ -159,7 +159,7 @@ impl WorthUiRuntime {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.query_binding.admit_settled_snapshot(projection)
@@ -169,7 +169,7 @@ impl WorthUiRuntime {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.query_binding.refresh_settled_snapshot(projection)
@@ -201,9 +201,8 @@ impl WorthUiRuntime {
         }
         let fact = self
             .query_binding
-            .settled_snapshot_fact_for(active_link.installed_reference())
-            .map_err(crate::runtime::WorthUiQueryFrameIngressDenial::RetainedFact)?
-            .clone();
+            .settled_snapshot_fact_reference_for(active_link.installed_reference())
+            .map_err(crate::runtime::WorthUiQueryFrameIngressDenial::RetainedFact)?;
         counters.record_retained_fact_resolution();
         let gateway = self.query_settled_fact_submission().submit(
             link.plan_index(),
@@ -222,6 +221,47 @@ impl WorthUiRuntime {
         resource: worth_ui_query_binding::WorthUiOperationLiveResource,
     ) -> Result<(), worth_ui_query_binding::WorthUiOperationLiveAdmissionStop> {
         self.query_binding.admit_operation_live(resource)
+    }
+
+    pub(super) fn admit_operation_live_change(
+        &mut self,
+        consequence: worth_ui_query_binding::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiCollectionChangeStagingReceipt,
+        worth_ui_query_binding::WorthUiCollectionChangeAdmissionStop,
+    > {
+        self.query_binding.admit_operation_live_change(consequence)
+    }
+
+    pub(super) fn refresh_and_admit_operation_live(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveSourceRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveSourceRefreshStop,
+    > {
+        match self.query_binding.refresh_operation_live(request) {
+            Ok(worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome::NoSemanticDelivery) => {
+                Ok(
+                    worth_ui_query_binding::WorthUiOperationLiveSourceRefreshOutcome::NoSemanticDelivery,
+                )
+            }
+            Ok(worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome::Applied(
+                consequence,
+            )) => self
+                .admit_operation_live_change(consequence)
+                .map(worth_ui_query_binding::WorthUiOperationLiveSourceRefreshOutcome::Staged)
+                .map_err(|stop| {
+                    worth_ui_query_binding::WorthUiOperationLiveSourceRefreshStop::Publication(
+                        Box::new(stop),
+                    )
+                }),
+            Err(stop) => Err(
+                worth_ui_query_binding::WorthUiOperationLiveSourceRefreshStop::Progression(
+                    Box::new(stop),
+                ),
+            ),
+        }
     }
 
     pub(super) fn admit_and_submit_interaction(

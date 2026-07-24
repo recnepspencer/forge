@@ -6,8 +6,28 @@ cd "$ROOT_DIR"
 
 CAP=400
 ALLOWLIST="scripts/ci/workspace_rust_line_cap_allowlist.txt"
+SCOPE="${1:-workspace}"
 
-echo "[workspace-rust-line-caps] enforcing ${CAP}-line cap for tracked Rust files"
+case "$SCOPE" in
+  workspace)
+    PATHS=(
+      'crates/**/*.rs'
+      'workspaces/worth-query/crates/**/*.rs'
+      'workspaces/worth-ui/crates/**/*.rs'
+      'workspaces/worth-store/crates/**/*.rs'
+      'workspaces/worth-store/tools/**/*.rs'
+    )
+    ;;
+  worth-ui)
+    PATHS=('workspaces/worth-ui/crates/**/*.rs')
+    ;;
+  *)
+    echo "usage: $0 [workspace|worth-ui]" >&2
+    exit 2
+    ;;
+esac
+
+echo "[workspace-rust-line-caps] enforcing ${CAP}-line cap for ${SCOPE} Rust files"
 
 violations=0
 while read -r line_count file; do
@@ -23,12 +43,7 @@ while read -r line_count file; do
     fi
   fi
 done < <(
-  git ls-files -z \
-    'crates/**/*.rs' \
-    'workspaces/worth-query/crates/**/*.rs' \
-    'workspaces/worth-ui/crates/**/*.rs' \
-    'workspaces/worth-store/crates/**/*.rs' \
-    'workspaces/worth-store/tools/**/*.rs' \
+  git ls-files -z -- "${PATHS[@]}" \
     | while IFS= read -r -d '' file; do
         [[ -f "$file" ]] && printf '%s\0' "$file"
       done \

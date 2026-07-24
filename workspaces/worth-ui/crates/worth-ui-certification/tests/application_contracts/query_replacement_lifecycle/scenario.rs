@@ -1,11 +1,8 @@
+use worth_foundational::facade::{AspectValue, CanonicalF32};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::{domain, runtime};
+use worth_query::facade::{domain, foundation::WorthQueryEntityIdentity, runtime};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::host::WorthUiOperationalHostAdapter;
-use worth_ui::facade::query_binding::{
-    worth_ui_domain_package, worth_ui_native_aspect_contracts, WorthUiInstalledQueryView,
-    WorthUiInstalledSnapshotQueryView,
-};
 use worth_ui::facade::registry::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicChildRule,
@@ -20,6 +17,13 @@ use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiWatchedCandidateSubmission,
 };
 use worth_ui_query_binding::WorthUiInstalledLiveQueryView;
+use worth_ui_query_binding::{
+    worth_ui_domain_package, worth_ui_native_aspect_contracts, WorthUiInstalledQueryView,
+    WorthUiInstalledSnapshotQueryView,
+};
+use worth_ui_query_binding::{
+    WorthUiAdmittedQueryBindingReference, WorthUiQueryBindingPlan, WorthUiQueryViewShape,
+};
 
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -34,9 +38,17 @@ const SIZING: &str = "workspace.sizing.query_lifecycle";
 pub(super) fn application(
     first: WorthUiInstalledLiveQueryView,
     second: WorthUiInstalledLiveQueryView,
+    workspace: &mut runtime::WorthQueryWorkspace,
 ) -> worth_ui::facade::app::WorthUiApp {
-    let snapshot = capability_application(first.clone(), second.clone());
-    builder(first.into(), second.into())
+    let binding_reference = settled_binding_reference(first.clone().into(), workspace);
+    let snapshot = builder(
+        first.clone().into(),
+        second.clone().into(),
+        &binding_reference,
+    )
+    .freeze()
+    .expect("capability snapshot");
+    builder(first.into(), second.into(), &binding_reference)
         .with_candidate_submission(submission(
             "query-lifecycle-active",
             ACTIVE_COMPONENT,
@@ -50,8 +62,10 @@ pub(super) fn application(
 pub(super) fn capability_application(
     first: WorthUiInstalledLiveQueryView,
     second: WorthUiInstalledLiveQueryView,
+    workspace: &mut runtime::WorthQueryWorkspace,
 ) -> worth_ui::facade::app::WorthUiApp {
-    builder(first.into(), second.into())
+    let binding_reference = settled_binding_reference(first.clone().into(), workspace);
+    builder(first.into(), second.into(), &binding_reference)
         .freeze()
         .expect("capability snapshot")
 }
@@ -61,11 +75,13 @@ pub(super) fn application_with_submission_and_host<Host>(
     second: WorthUiInstalledLiveQueryView,
     submission: WorthUiWatchedCandidateSubmission,
     host: Host,
+    workspace: &mut runtime::WorthQueryWorkspace,
 ) -> worth_ui::facade::app::WorthUiApp
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
-    builder(first.into(), second.into())
+    let binding_reference = settled_binding_reference(first.clone().into(), workspace);
+    builder(first.into(), second.into(), &binding_reference)
         .with_host(host)
         .with_candidate_submission(submission)
         .freeze()
@@ -75,11 +91,17 @@ where
 pub(crate) fn snapshot_application(
     first: WorthUiInstalledSnapshotQueryView,
     second: WorthUiInstalledSnapshotQueryView,
+    workspace: &mut runtime::WorthQueryWorkspace,
 ) -> worth_ui::facade::app::WorthUiApp {
-    let snapshot = builder(first.clone().into(), second.clone().into())
-        .freeze()
-        .expect("snapshot capability application");
-    builder(first.into(), second.into())
+    let binding_reference = settled_binding_reference(first.clone().into(), workspace);
+    let snapshot = builder(
+        first.clone().into(),
+        second.clone().into(),
+        &binding_reference,
+    )
+    .freeze()
+    .expect("snapshot capability application");
+    builder(first.into(), second.into(), &binding_reference)
         .with_candidate_submission(submission(
             "query-snapshot-lifecycle-active",
             ACTIVE_COMPONENT,
@@ -94,13 +116,19 @@ pub(super) fn mixed_live_snapshot_application(
     first: WorthUiInstalledLiveQueryView,
     second: WorthUiInstalledLiveQueryView,
     snapshot: WorthUiInstalledSnapshotQueryView,
+    workspace: &mut runtime::WorthQueryWorkspace,
 ) -> worth_ui::facade::app::WorthUiApp {
-    let capabilities = builder(first.clone().into(), second.clone().into())
-        .register_query_view(snapshot.clone())
-        .expect("snapshot view registration")
-        .freeze()
-        .expect("mixed capability application");
-    builder(first.into(), second.into())
+    let binding_reference = settled_binding_reference(first.clone().into(), workspace);
+    let capabilities = builder(
+        first.clone().into(),
+        second.clone().into(),
+        &binding_reference,
+    )
+    .register_query_view(snapshot.clone())
+    .expect("snapshot view registration")
+    .freeze()
+    .expect("mixed capability application");
+    builder(first.into(), second.into(), &binding_reference)
         .register_query_view(snapshot)
         .expect("snapshot view registration")
         .with_candidate_submission(submission(
@@ -135,6 +163,12 @@ pub(crate) fn submission(
 }
 
 pub(super) fn installed_workspace(label: &str) -> runtime::WorthQueryWorkspace {
+    installed_workspace_with_measurement_authority(label).0
+}
+
+pub(super) fn installed_workspace_with_measurement_authority(
+    label: &str,
+) -> (runtime::WorthQueryWorkspace, WorthQueryEntityIdentity) {
     let schema = WorthQueryTestBackendSchema::single_collection("WorthUiMeasurement")
         .aspect_contracts(worth_ui_native_aspect_contracts())
         .expect("native contracts")
@@ -142,13 +176,41 @@ pub(super) fn installed_workspace(label: &str) -> runtime::WorthQueryWorkspace {
         .expect("identity aspect")
         .aspect("measurement.value", "measurement.value")
         .expect("measurement aspect");
-    worth_ui_query_binding::install_worth_ui_test_operation_executors(operation_live_support(
-        in_memory_test_runtime()
-            .with_schema(schema)
-            .domain_package(worth_ui_domain_package()),
-    ))
-    .workspace(label)
-    .expect("installed Query workspace")
+    let mut workspace =
+        worth_ui_query_binding::install_worth_ui_test_operation_executors(operation_live_support(
+            in_memory_test_runtime()
+                .with_schema(schema)
+                .domain_package(worth_ui_domain_package()),
+        ))
+        .workspace(label)
+        .expect("installed Query workspace");
+    let measurement = insert_measurement(&mut workspace);
+    (workspace, measurement)
+}
+
+fn insert_measurement(workspace: &mut runtime::WorthQueryWorkspace) -> WorthQueryEntityIdentity {
+    workspace
+        .insert("WorthUiMeasurement", |measurement| {
+            measurement
+                .set_aspect(
+                    runtime::WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")
+                        .expect("identity touch"),
+                    runtime::WorthQueryAuthoredAspectValue::string("query-lifecycle-measurement"),
+                )
+                .set_aspect(
+                    runtime::WorthQueryAspectTouch::from_authoring_ingress_text(
+                        "measurement.value",
+                    )
+                    .expect("measurement touch"),
+                    runtime::WorthQueryAuthoredAspectValue::native(AspectValue::Float32(
+                        CanonicalF32::from_f32(240.0),
+                    )),
+                )
+        })
+        .expect("real replacement-lifecycle measurement insertion")
+        .deltas()[0]
+        .entity_identity()
+        .clone()
 }
 
 fn operation_live_support(
@@ -173,10 +235,11 @@ fn operation_live_support(
 fn builder(
     first: WorthUiInstalledQueryView,
     second: WorthUiInstalledQueryView,
+    binding_reference: &WorthUiAdmittedQueryBindingReference,
 ) -> worth_ui::facade::app::WorthUiBuilder {
-    let graph_world = worth_ui::facade::graph::UiGraphWorldProfile::settled_query_view(
+    let graph_world = worth_ui::facade::graph::UiGraphWorldProfile::settled_query_binding(
         worth_ui::facade::registry::ViewBindingId::new(FIRST_VIEW).unwrap(),
-        &first,
+        binding_reference,
     );
     WorthUi::app()
         .with_graph_world_profile(graph_world)
@@ -221,6 +284,37 @@ fn builder(
         .expect("first Query view registration")
         .register_query_view(second)
         .expect("second Query view registration")
+}
+
+fn settled_binding_reference(
+    view: WorthUiInstalledQueryView,
+    workspace: &mut runtime::WorthQueryWorkspace,
+) -> WorthUiAdmittedQueryBindingReference {
+    let identity = view.definition().identity().clone();
+    let plan = WorthUiQueryBindingPlan::default()
+        .register_view(view)
+        .expect("scenario registers the real installed Query view");
+    let reference = plan
+        .resolve_definition(&identity, WorthUiQueryViewShape::Collection)
+        .expect("scenario resolves the registered Query view");
+    reference
+        .enter_snapshot_attempt(workspace)
+        .expect("scenario enters the exact Query world")
+        .prepare_snapshot_consumer(
+            crate::query_consumer_kit_workspace::interactive_borrowed_collection_requirements(),
+        )
+        .expect("scenario prepares the exact Query consumer")
+        .execute(workspace)
+        .unwrap()
+        .publish()
+        .unwrap()
+        .consume()
+        .unwrap()
+        .settle()
+        .unwrap()
+        .fact()
+        .binding_reference()
+        .clone()
 }
 
 fn component(identity: &str) -> ComponentDescriptor {

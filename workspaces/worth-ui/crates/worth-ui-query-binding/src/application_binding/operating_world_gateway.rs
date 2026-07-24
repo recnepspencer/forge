@@ -17,7 +17,7 @@ pub type WorthUiBoundSnapshotMeasurement<L> = installed::WorthQueryBoundDomainOp
 pub enum WorthUiQueryOperationAttemptDenial {
     Installation(WorthUiQueryInstallationDenial),
     InstalledDomainAuthorityMismatch,
-    OperatingWorld(installed::WorthQueryOperatingWorldEntryDenial),
+    OperatingWorld(Box<installed::WorthQueryOperatingWorldEntryDenial>),
 }
 
 /// One attempt-scoped entry into Query's installed operating world.
@@ -46,9 +46,9 @@ impl WorthUiInstalledQueryBindingReference {
             return Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch);
         }
         Ok(WorthUiQueryOperatingWorldGateway {
-            world: workspace
-                .observe_operating_world()
-                .map_err(WorthUiQueryOperationAttemptDenial::OperatingWorld)?,
+            world: workspace.observe_operating_world().map_err(|denial| {
+                WorthUiQueryOperationAttemptDenial::OperatingWorld(Box::new(denial))
+            })?,
             reference: self.clone(),
             operation,
         })
@@ -60,11 +60,14 @@ impl WorthUiQueryOperatingWorldGateway<'_> {
         self,
     ) -> Result<
         WorthUiBoundSnapshotMeasurement<ObservationLaneWitness>,
-        installed::WorthQueryOperationBindingDenial,
+        Box<installed::WorthQueryOperationBindingDenial>,
     > {
-        self.world.family(self.operation.family).bind(
-            self.reference.installed_domain().handle(),
-            self.operation.operation,
-        )
+        self.world
+            .family(self.operation.family)
+            .bind(
+                self.reference.installed_domain().handle(),
+                self.operation.operation,
+            )
+            .map_err(Box::new)
     }
 }

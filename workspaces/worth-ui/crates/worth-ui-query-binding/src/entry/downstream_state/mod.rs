@@ -1,3 +1,4 @@
+mod operation_live;
 mod reference_catalog;
 mod settled_snapshot;
 
@@ -8,9 +9,7 @@ use reference_catalog::WorthUiInstalledReferenceCatalog;
 use settled_snapshot::WorthUiSettledSnapshotRetention;
 
 use crate::{
-    WorthUiExactOperationLiveResourceEvidence, WorthUiInstalledQueryBindingReference,
-    WorthUiOperationLiveAdmissionDenial, WorthUiOperationLiveAdmissionStop,
-    WorthUiOperationLiveResource, WorthUiQueryViewExecutionEvidenceDenial,
+    WorthUiInstalledQueryBindingReference, WorthUiQueryViewExecutionEvidenceDenial,
     WorthUiQueryViewExecutionEvidenceReference, WorthUiQueryViewIdentity,
 };
 
@@ -47,7 +46,10 @@ impl WorthUiInstalledDownstreamQueryState {
     pub(super) fn admit_settled_snapshot(
         &mut self,
         projection: crate::WorthUiSettledSnapshotProjection,
-    ) -> Result<crate::WorthUiSettledSnapshotFact, crate::WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<
+        std::sync::Arc<crate::WorthUiSettledSnapshotFact>,
+        crate::WorthUiSettledSnapshotAdmissionStop,
+    > {
         let reference = projection.installed_reference().clone();
         if self.references.validate(&reference).is_err() {
             return Err(crate::WorthUiSettledSnapshotAdmissionStop::new(
@@ -61,7 +63,10 @@ impl WorthUiInstalledDownstreamQueryState {
     pub(super) fn refresh_settled_snapshot(
         &mut self,
         projection: crate::WorthUiSettledSnapshotProjection,
-    ) -> Result<crate::WorthUiSettledSnapshotFact, crate::WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<
+        std::sync::Arc<crate::WorthUiSettledSnapshotFact>,
+        crate::WorthUiSettledSnapshotAdmissionStop,
+    > {
         let reference = projection.installed_reference().clone();
         if self.references.validate(&reference).is_err() {
             return Err(crate::WorthUiSettledSnapshotAdmissionStop::new(
@@ -82,6 +87,42 @@ impl WorthUiInstalledDownstreamQueryState {
             .ok_or(WorthUiQueryViewExecutionEvidenceDenial::ProjectionNotAdmitted)
     }
 
+    pub(super) fn settled_snapshot_fact_reference_for(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        std::sync::Arc<crate::WorthUiSettledSnapshotFact>,
+        WorthUiQueryViewExecutionEvidenceDenial,
+    > {
+        self.validate_reference(reference)?;
+        self.settled_snapshot
+            .shared_fact_for(reference)
+            .ok_or(WorthUiQueryViewExecutionEvidenceDenial::ProjectionNotAdmitted)
+    }
+
+    pub(super) fn settlement_touch_reference_for(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        crate::WorthUiAdmittedQuerySettlementTouchReference,
+        WorthUiQueryViewExecutionEvidenceDenial,
+    > {
+        let fact = self.settled_snapshot_fact_for(reference)?;
+        Ok(crate::WorthUiAdmittedQuerySettlementTouchReference::mint(
+            fact,
+        ))
+    }
+
+    pub(super) fn readmits_settlement_touch_reference(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+        touch: &crate::WorthUiAdmittedQuerySettlementTouchReference,
+    ) -> Result<bool, WorthUiQueryViewExecutionEvidenceDenial> {
+        let fact = self.settled_snapshot_fact_for(reference)?;
+        Ok(fact.binding_reference() == touch.binding_reference()
+            && fact.settlement_reference() == touch.settlement_reference())
+    }
+
     pub(super) fn exact_settled_snapshot_evidence_for(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
@@ -91,32 +132,6 @@ impl WorthUiInstalledDownstreamQueryState {
     > {
         self.validate_reference(reference)?;
         Ok(self.settled_snapshot.exact_evidence_for(reference))
-    }
-
-    pub(super) fn admit_operation_live(
-        &mut self,
-        resource: WorthUiOperationLiveResource,
-    ) -> Result<(), WorthUiOperationLiveAdmissionStop> {
-        let reference = resource.installed_reference().clone();
-        if self.references.validate(&reference).is_err() {
-            return Err(WorthUiOperationLiveAdmissionStop::new(
-                WorthUiOperationLiveAdmissionDenial::ForeignInstalledReference,
-                resource,
-            ));
-        };
-        let Some(operation_live) = self.operation_live.as_mut() else {
-            return Err(WorthUiOperationLiveAdmissionStop::new(
-                WorthUiOperationLiveAdmissionDenial::ForeignInstalledReference,
-                resource,
-            ));
-        };
-        if operation_live.contains(&reference) {
-            return Err(WorthUiOperationLiveAdmissionStop::new(
-                WorthUiOperationLiveAdmissionDenial::DuplicateResource,
-                resource,
-            ));
-        }
-        operation_live.admit(resource)
     }
 
     pub(super) fn validate_reference(
@@ -180,86 +195,6 @@ impl WorthUiInstalledDownstreamQueryState {
         ))
     }
 
-    pub(super) fn exact_operation_live_resource_evidence_for(
-        &self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<
-        Option<WorthUiExactOperationLiveResourceEvidence>,
-        WorthUiQueryViewExecutionEvidenceDenial,
-    > {
-        self.validate_reference(reference)?;
-        Ok(self
-            .operation_live
-            .as_ref()
-            .and_then(|operation_live| operation_live.exact_evidence(reference)))
-    }
-
-    pub(super) fn retains_operation_live_resource_for(
-        &self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<bool, WorthUiQueryViewExecutionEvidenceDenial> {
-        self.exact_operation_live_resource_evidence_for(reference)
-            .map(|evidence| evidence.is_some())
-    }
-
-    pub(super) fn take_operation_live_resource(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Option<WorthUiOperationLiveResource> {
-        self.operation_live
-            .as_mut()
-            .and_then(|operation_live| operation_live.take(reference))
-    }
-
-    pub(super) fn replace_operation_live_resource(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-        resource: WorthUiOperationLiveResource,
-    ) -> Option<WorthUiOperationLiveResource> {
-        debug_assert_eq!(resource.installed_reference(), reference);
-        match self.operation_live.as_mut() {
-            Some(operation_live) => operation_live.insert(resource),
-            None if self.references.has_live_reference() => {
-                let mut operation_live = WorthUiOperationLiveRetention::default();
-                let displaced = operation_live.insert(resource);
-                self.operation_live = Some(operation_live);
-                displaced
-            }
-            None => Some(resource),
-        }
-    }
-
-    pub(super) fn drain_operation_live_resources_into(
-        &mut self,
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
-    ) {
-        if let Some(operation_live) = self.operation_live.as_mut() {
-            operation_live.drain_into(retirement);
-        }
-    }
-
-    pub(super) fn retain_only_operation_live_resources_for(
-        &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
-    ) {
-        if let Some(operation_live) = self.operation_live.as_mut() {
-            operation_live.retain_only(references, retirement);
-        }
-    }
-
-    pub(super) fn finish_operation_live_succession(
-        &mut self,
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
-    ) {
-        if self.references.has_live_reference() {
-            return;
-        }
-        if let Some(mut operation_live) = self.operation_live.take() {
-            operation_live.drain_into(retirement);
-        }
-    }
-
     pub(super) fn retain_only_settlements_for(
         &mut self,
         references: &[WorthUiInstalledQueryBindingReference],
@@ -279,14 +214,6 @@ impl WorthUiInstalledDownstreamQueryState {
         projection: crate::WorthUiSettledSnapshotProjection,
     ) {
         self.settled_snapshot.replace(projection);
-    }
-
-    pub(super) fn operation_live_observation(&self) -> crate::WorthUiOperationLiveObservation {
-        self.operation_live
-            .as_ref()
-            .map_or_else(Default::default, |operation_live| {
-                operation_live.observation(|reference| self.references.validate(reference).is_ok())
-            })
     }
 
     pub(super) fn query_state_observation(&self) -> crate::WorthUiRuntimeQueryStateObservation {

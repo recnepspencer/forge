@@ -6,9 +6,12 @@ use super::{
 use std::collections::BTreeMap;
 type HostWitness = crate::evidence::UiHostMeasurementAuthorityWitness;
 type QueryKey = crate::evidence::measurement::basis::UiQueryAllocationSourceKey;
+type QueryBindingKey = crate::evidence::measurement::basis::UiQueryAllocationBindingKey;
 use super::scroll_binding_key_index::BindingKeyIndex;
 use super::scroll_owner_acquisition::acquire_exact;
 type QueryIndex = crate::runtime::persistent_index::UiPersistentOrdMap<QueryKey, BindingKeyIndex>;
+type QueryBindingIndex =
+    crate::runtime::persistent_index::UiPersistentOrdMap<QueryBindingKey, BindingKeyIndex>;
 
 #[path = "scroll_binding_index/sealing.rs"]
 mod sealing;
@@ -18,6 +21,7 @@ pub(crate) struct UiScrollInvalidationBindingIndex {
     pub(super) host:
         crate::runtime::persistent_index::UiPersistentOrdMap<HostWitness, BindingKeyIndex>,
     pub(super) query: QueryIndex,
+    pub(super) query_by_binding: QueryBindingIndex,
     pub(super) projection_contracts: crate::runtime::persistent_index::UiPersistentOrdMap<
         crate::runtime::UiScrollProjectionOwnerIdentity,
         (
@@ -38,6 +42,12 @@ impl UiScrollInvalidationBindingIndex {
         key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
     ) -> (Option<&BindingKeyIndex>, u16) {
         (self.query.get(key), 1)
+    }
+    pub(super) fn settled_query_binding_extent(
+        &self,
+        key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
+    ) -> (Option<&BindingKeyIndex>, u16) {
+        (self.query_by_binding.get(&key.binding_key()), 1)
     }
     pub(crate) fn projection_for_host(
         &self,

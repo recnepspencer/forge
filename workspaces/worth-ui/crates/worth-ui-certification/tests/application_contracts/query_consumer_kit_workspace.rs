@@ -1,12 +1,11 @@
-use worth_foundational::facade::{AspectValue, CanonicalF32, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{AspectValue, CanonicalF32};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::foundation::ProjectionFactFieldPath;
 use worth_query::facade::runtime;
-use worth_ui::facade::query_binding::{
+use worth_ui_query_binding::{
     worth_ui_domain_package, worth_ui_native_aspect_contracts, WorthUiQueryAllocationDetail,
-    WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation, WorthUiQueryViewShape,
+    WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
+    WorthUiQueryInspectionRelevance, WorthUiQueryViewShape,
 };
-use worth_ui_query_binding::WorthUiQueryInspectionRelevance;
 
 pub(super) fn installed_measurement_workspace(label: &str) -> runtime::WorthQueryWorkspace {
     installed_measurement_workspace_with(label, false)
@@ -96,16 +95,6 @@ fn insert_measurement(workspace: &mut runtime::WorthQueryWorkspace) {
                 )
         })
         .expect("measurement insertion");
-}
-
-pub(super) fn measurement_value_path() -> ProjectionFactFieldPath {
-    ProjectionFactFieldPath::from_canonical_field_path(
-        CanonicalFieldPath::new([
-            FieldKey::new("measurement").expect("aspect path"),
-            FieldKey::new("value").expect("field path"),
-        ])
-        .expect("measurement path"),
-    )
 }
 
 pub(super) fn interactive_borrowed_collection_requirements() -> WorthUiQueryConsumerRequirements {

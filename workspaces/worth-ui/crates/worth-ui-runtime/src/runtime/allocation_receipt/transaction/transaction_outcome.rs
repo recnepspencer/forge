@@ -16,6 +16,7 @@ pub struct UiCommittedAllocationReplan {
     catalog_bindings: super::UiCommittedAllocationCatalogBindings,
     portal_binding_succession:
         Option<crate::runtime::invalidation_narrowing::UiPortalBindingSuccessionReceipt>,
+    scroll_binding_succession: Option<crate::runtime::UiScrollOwnerCatalogReceipt>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -23,6 +24,18 @@ pub enum UiAllocationReplanTransactionOutcome {
     Committed(UiCommittedAllocationReplan),
     Replayed(UiCommittedAllocationReplan),
     Denied(UiAllocationReplanTransactionCommitDenial),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiAllocationAuthoritySuccessionDenial {
+    CatalogCardinalityMismatch,
+    MissingReplanAdmission { ordinal: u16 },
+    ScrollAuthority { ordinal: u16 },
+    PortalAuthority { ordinal: u16 },
+    StalePredecessor,
+    DerivedIndexDiverged,
+    ScrollBinding,
+    PortalBinding,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -60,6 +73,7 @@ pub enum UiAllocationReplanTransactionCommitDenial {
     PortalBindingSuccession(
         crate::runtime::invalidation_narrowing::UiPortalBindingSuccessionDenial,
     ),
+    AllocationAuthoritySuccession(UiAllocationAuthoritySuccessionDenial),
     PortalCommitBind(super::UiPortalAllocationCommitBindDenial),
     DurableSemanticStateMissing,
     CatalogBindingMismatch,
@@ -122,6 +136,7 @@ impl UiCommittedAllocationReplan {
             evidence,
             catalog_bindings,
             portal_binding_succession: None,
+            scroll_binding_succession: None,
         })
     }
     pub fn transaction(&self) -> &super::UiAllocationReplanTransaction {
@@ -158,6 +173,18 @@ impl UiCommittedAllocationReplan {
         receipt: crate::runtime::invalidation_narrowing::UiPortalBindingSuccessionReceipt,
     ) -> Self {
         self.portal_binding_succession = Some(receipt);
+        self
+    }
+    pub fn scroll_binding_succession(
+        &self,
+    ) -> Option<&crate::runtime::UiScrollOwnerCatalogReceipt> {
+        self.scroll_binding_succession.as_ref()
+    }
+    pub(crate) fn with_scroll_binding_succession(
+        mut self,
+        receipt: crate::runtime::UiScrollOwnerCatalogReceipt,
+    ) -> Self {
+        self.scroll_binding_succession = Some(receipt);
         self
     }
     pub(super) fn with_viewport_evidence(

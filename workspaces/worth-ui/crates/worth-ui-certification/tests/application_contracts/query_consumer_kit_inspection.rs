@@ -1,15 +1,11 @@
-use worth_query::facade::domain;
-use worth_ui::facade::query_binding::{
-    WorthUiQueryOperationAttemptDenial, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-};
 use worth_ui_query_binding::{
     WorthUiQueryInspection, WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionRelevance,
+    WorthUiQueryOperationAttemptDenial, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
 };
 
 use crate::query_consumer_kit_application::file_authored_query_app;
 use crate::query_consumer_kit_workspace::{
     installed_measurement_workspace, interactive_borrowed_collection_requirements,
-    measurement_value_path,
 };
 
 #[test]
@@ -34,7 +30,7 @@ fn minimal_and_rich_inspection_share_one_exact_success_artifact() {
         .unwrap()
         .publish()
         .unwrap()
-        .consume(domain::project_facts().display_field(measurement_value_path()))
+        .consume()
         .unwrap()
         .settle()
         .unwrap();
@@ -49,7 +45,7 @@ fn minimal_and_rich_inspection_share_one_exact_success_artifact() {
         WorthUiQueryInspectionRelevance::Relevant,
         WorthUiQueryInspectionEvidencePolicy::Rich,
     );
-    assert_eq!(compact.settlement_identity(), rich.settlement_identity());
+    assert_eq!(compact.settlement_reference(), rich.settlement_reference());
     assert_eq!(compact.result_state(), rich.result_state());
     assert!(std::ptr::eq(compact.exact_projection(), &settled));
     assert!(std::ptr::eq(rich.exact_projection(), &settled));

@@ -78,7 +78,9 @@ fn runtime_timing(origin_class: UiGraphTouchOriginClass) -> UiGraphTouchTiming {
         UiGraphTouchOriginClass::ServiceEvent => UiGraphTouchTiming::PostMutation,
         UiGraphTouchOriginClass::IntentSubmission => UiGraphTouchTiming::PreMutation,
         UiGraphTouchOriginClass::DiagnosticOnly => UiGraphTouchTiming::DiagnosticProjection,
-        UiGraphTouchOriginClass::DeclarationChange | UiGraphTouchOriginClass::QueryFactChange => {
+        UiGraphTouchOriginClass::DeclarationChange
+        | UiGraphTouchOriginClass::QueryBindingChange
+        | UiGraphTouchOriginClass::QueryFactChange => {
             unreachable!("only runtime-origin classes are covered here")
         }
     }

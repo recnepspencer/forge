@@ -227,6 +227,33 @@ fn denial_parts(
         Denial::PortalBindingSuccession(_) | Denial::PortalCommitBind(_) => {
             (Family::PortalAnchor, None, None, None, None)
         }
+        Denial::AllocationAuthoritySuccession(denial) => {
+            use super::UiAllocationAuthoritySuccessionDenial as Authority;
+            match denial {
+                Authority::ScrollAuthority { ordinal } => (
+                    Family::UnsupportedScrollOwnership,
+                    Some(*ordinal),
+                    None,
+                    None,
+                    None,
+                ),
+                Authority::ScrollBinding => {
+                    (Family::ContradictoryScrollOwnership, None, None, None, None)
+                }
+                Authority::PortalAuthority { ordinal } => {
+                    (Family::BrokenPortalAnchor, Some(*ordinal), None, None, None)
+                }
+                Authority::PortalBinding => (Family::BrokenPortalAnchor, None, None, None, None),
+                Authority::MissingReplanAdmission { ordinal } => {
+                    (Family::SourceAuthority, Some(*ordinal), None, None, None)
+                }
+                Authority::CatalogCardinalityMismatch
+                | Authority::StalePredecessor
+                | Authority::DerivedIndexDiverged => {
+                    (Family::CatalogBinding, None, None, None, None)
+                }
+            }
+        }
         Denial::DurableSemanticStateMissing => {
             (Family::DurableSemanticState, None, None, None, None)
         }

@@ -14,7 +14,7 @@ pub struct UiAllocationInvalidationNarrowingCounters {
     materialized_host_target_sets: u16,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct UiNarrowedAllocationFramePlan {
     frame_identity: UiAllocationFramePlanIdentity,
     resolution_counters: crate::runtime::UiAllocationFrameResolutionCounters,

@@ -43,11 +43,8 @@ fn projection_fact_receipts_preserve_declaration_dependency_identity_for_basis_a
         receipt.consumed_fact_family_set_digest()
     );
     assert_eq!(receipt.view_binding_id(), &view_binding_id);
-    assert_eq!(
-        receipt.query_binding_identity(),
-        fact.query_binding_identity()
-    );
-    assert_eq!(receipt.settlement_identity(), fact.settlement_identity());
+    assert_eq!(receipt.binding_reference(), fact.binding_reference());
+    assert_eq!(receipt.settlement_reference(), fact.settlement_reference());
     assert_ne!(receipt.observation_identity_digest(), 0);
 }
 

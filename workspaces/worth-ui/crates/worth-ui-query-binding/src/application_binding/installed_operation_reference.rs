@@ -90,3 +90,9 @@ impl PartialEq for WorthUiInstalledQueryBindingReference {
 }
 
 impl Eq for WorthUiInstalledQueryBindingReference {}
+
+impl WorthUiInstalledQueryBindingReference {
+    pub(crate) fn authority_order(&self) -> usize {
+        self.installed_domain.authority_order()
+    }
+}

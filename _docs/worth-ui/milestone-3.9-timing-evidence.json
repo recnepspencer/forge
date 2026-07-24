@@ -95,8 +95,8 @@
     }
   },
   "closing": {
-    "captured_at": "2026-07-21T18:07:57.385502Z",
-    "git_commit": "3accf1a3984786472f6585d539e92f1593f771a0",
+    "captured_at": "2026-07-24T03:16:13.6520023+00:00",
+    "git_commit": "7771cc53c99f0dc1484751f49dd3edd39ff98048",
     "platform": "Microsoft Windows NT 10.0.26200.0",
     "cargo": "cargo 1.94.0 (85eff7c80 2026-01-15)",
     "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
@@ -114,82 +114,81 @@
         "workspaces/worth-ui",
         "scripts/ci"
       ],
-      "digest": "c97ded9bbaaaecd22fe2152814524884e568ec6a7e24b24c5288e8aea1f59bd1",
-      "file_count": 20478
+      "digest": "c82ea6c15c3ce8f88af52da87d06b060175bebcdf69a5bb178e225d18b1f6114",
+      "file_count": 20990
     },
-    "source_transition_digest": "07c20d4fb2a18348f5d639c32ac8ac3c3d401f4c8cac6518713b5419fc4a3542",
+    "source_transition_digest": "18cce0bfe1e265870baf006fd29afc76f9371433320129b3dcb661ecfbf0ea69",
     "environment": {
       "operating_system": "Microsoft Windows 11 Home",
       "processor": "AMD Ryzen 7 9700X 8-Core Processor",
       "physical_memory_bytes": 66145669120,
-      "worktree_state": "dirty milestone 3.9.1 post-QA closure working tree",
-      "isolated_target_root": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix"
+      "worktree_state": "dirty milestone 3.9.2 phases 1 through 7 closure working tree",
+      "isolated_target_root": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724"
     },
     "measurements": {
       "targeted_warm_ordinary": {
         "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-runtime --lib runtime::tests::active_application_replacement_tests::equal_digest_foreign_catalog_cannot_cross_candidate_graph_authority -- --exact --quiet",
         "classification": "warm",
         "target_directories": [
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target"
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [0.539, 0.459, 0.462],
-        "median_seconds": 0.462,
-        "comparison": "reviewed_budget_amendment"
+        "samples_seconds": [0.39, 0.391, 0.398],
+        "median_seconds": 0.391,
+        "comparison": "within_10_percent"
       },
       "warm_fast_lane": {
         "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py fast",
         "classification": "warm",
         "target_directories": [
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target"
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [8.07, 8.151, 8.002],
-        "median_seconds": 8.07,
+        "samples_seconds": [8.398, 8.106, 8.036],
+        "median_seconds": 8.106,
         "comparison": "within_10_percent"
       },
       "warm_application_contracts": {
         "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-certification --test application_contracts --quiet",
         "classification": "warm",
         "target_directories": [
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target"
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [17.088, 16.935, 16.188],
-        "median_seconds": 16.935,
+        "samples_seconds": [15.868, 17.496, 16.021],
+        "median_seconds": 16.021,
         "comparison": "reviewed_budget_amendment"
       },
       "cold_compile_contracts": {
         "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
         "classification": "cold",
         "target_directories": [
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\cold-compile-target-1",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\cold-compile-target-2",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\cold-compile-target-3"
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-compile-target-1",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-compile-target-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-compile-target-3"
         ],
-        "samples_seconds": [80.738, 83.883, 77.222],
-        "median_seconds": 80.738,
+        "samples_seconds": [63.707, 66.954, 64.527],
+        "median_seconds": 64.527,
         "comparison": "within_10_percent"
       },
       "warm_compile_contracts": {
         "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
         "classification": "warm",
         "target_directories": [
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.1-timing-closure-20260721-seamfix\\warm-target"
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [1.797, 1.79, 1.674],
-        "median_seconds": 1.79,
+        "samples_seconds": [1.953, 1.832, 1.582],
+        "median_seconds": 1.832,
         "comparison": "within_10_percent"
       }
     },
     "reviewed_budget_amendments": {
-      "targeted_warm_ordinary": "The exact production-authority test remains subsecond at a 0.462-second median despite the 861-test runtime binary; the representative warm fast lane remains the ordinary iteration measure and is 87.2 percent below the opening baseline.",
-      "warm_application_contracts": "Milestones 3.9 and 3.9.1 deliberately consolidate 51 real end-to-end filesystem, watcher, Query Consumer Kit, live-resource, egui, replacement, denial, multi-removal, and churn contracts into this one compiled target. The 16.935-second median is accepted for that materially stronger proof surface and remains separate from the ordinary fast lane."
+      "warm_application_contracts": "Milestones 3.9 through 3.9.2 deliberately consolidate 53 real end-to-end filesystem, watcher, Query Consumer Kit, live-resource, egui, replacement, denial, multi-removal, and churn contracts into one compiled target. The 16.021-second median is accepted for that materially stronger proof surface and remains separate from the 8.106-second ordinary fast lane."
     }
   },
   "protocol_notes": [

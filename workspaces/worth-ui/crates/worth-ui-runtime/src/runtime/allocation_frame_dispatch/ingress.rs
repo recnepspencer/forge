@@ -119,7 +119,7 @@ impl UiAllocationFrameIngressKey {
     }
 
     pub fn source_identity(&self) -> UiAllocationFrameSourceIdentity {
-        self.source_identity.clone()
+        self.source_identity
     }
 
     pub fn source_generation(&self) -> UiAllocationFrameSourceGeneration {
@@ -170,7 +170,7 @@ impl UiAllocationFrameSourceLease {
         UiAdmittedAllocationStreamIngress {
             source_lease: self.lease_identity,
             source_lane: self.source_lane,
-            source_identity: self.source_identity.clone(),
+            source_identity: self.source_identity,
             source_generation,
             identity,
             source_order,
@@ -187,7 +187,7 @@ impl UiAllocationFrameSourceLease {
     }
 
     pub fn source_identity(&self) -> UiAllocationFrameSourceIdentity {
-        self.source_identity.clone()
+        self.source_identity
     }
 
     pub fn source_generation(&self) -> UiAllocationFrameSourceGeneration {
@@ -265,7 +265,7 @@ impl UiAdmittedAllocationStreamIngress {
         Self {
             source_lease: lease.lease_identity,
             source_lane: lease.source_lane,
-            source_identity: lease.source_identity.clone(),
+            source_identity: lease.source_identity,
             source_generation: lease.source_generation,
             identity,
             source_order,
@@ -288,7 +288,7 @@ impl UiAdmittedAllocationStreamIngress {
     }
 
     pub fn source_identity(&self) -> UiAllocationFrameSourceIdentity {
-        self.source_identity.clone()
+        self.source_identity
     }
 
     pub fn source_generation(&self) -> UiAllocationFrameSourceGeneration {
@@ -310,7 +310,7 @@ impl UiAdmittedAllocationStreamIngress {
     pub fn key(&self) -> UiAllocationFrameIngressKey {
         UiAllocationFrameIngressKey {
             source_lane: self.source_lane,
-            source_identity: self.source_identity.clone(),
+            source_identity: self.source_identity,
             source_generation: self.source_generation,
             ingress_identity: self.identity,
             source_order: self.source_order,
@@ -335,7 +335,7 @@ impl Clone for UiAdmittedAllocationStreamIngress {
         Self {
             source_lease: self.source_lease,
             source_lane: self.source_lane,
-            source_identity: self.source_identity.clone(),
+            source_identity: self.source_identity,
             source_generation: self.source_generation,
             identity: self.identity,
             source_order: self.source_order,

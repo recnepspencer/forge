@@ -25,7 +25,7 @@ impl std::fmt::Debug for WorthUiOperationLiveRetirement {
 
 pub enum WorthUiOperationLiveRetirementCloseOutcome {
     Closed(WorthUiOperationLiveRetirementCloseReceipt),
-    Stopped(WorthUiOperationLiveRetirementStop),
+    Stopped(Box<WorthUiOperationLiveRetirementStop>),
 }
 
 pub struct WorthUiOperationLiveRetirementCloseReceipt {
@@ -64,13 +64,13 @@ impl WorthUiOperationLiveRetirement {
                     self.closed_receipts.push(receipt);
                 }
                 WorthUiOperationLiveCloseOutcome::Stopped(stop) => {
-                    return WorthUiOperationLiveRetirementCloseOutcome::Stopped(
+                    return WorthUiOperationLiveRetirementCloseOutcome::Stopped(Box::new(
                         WorthUiOperationLiveRetirementStop {
                             closed_receipts: self.closed_receipts,
-                            stopped: stop,
+                            stopped: *stop,
                             remaining: self.resources,
                         },
-                    );
+                    ));
                 }
             }
         }

@@ -134,7 +134,7 @@ pub(super) fn settled_query_receipt_compatibility(
     }
     let crate::graph::UiGraphWorldProfile::SettledQueryBinding {
         view_binding_id,
-        query_binding_identity,
+        binding_reference,
     } = world_profile
     else {
         return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
@@ -142,7 +142,7 @@ pub(super) fn settled_query_receipt_compatibility(
         });
     };
     if view_binding_id != receipt.view_binding_id()
-        || query_binding_identity.as_ref() != receipt.query_binding_identity()
+        || binding_reference != receipt.binding_reference()
     {
         return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
             reason: crate::evidence::UiQueryWorldCompatibilityFailure::InstalledAuthorityMismatch,
