@@ -18,6 +18,11 @@ struct ArtifactProbeInner {
     disposals: AtomicUsize,
     replacements: AtomicUsize,
     cancellations: AtomicUsize,
+    native_row_counts: AtomicUsize,
+    native_row_batches: AtomicUsize,
+    native_field_slices: AtomicUsize,
+    native_projections: AtomicUsize,
+    native_scalars: AtomicUsize,
     denials: Mutex<Vec<domain::WorthQueryArtifactDenialKind>>,
     lifecycle_snapshots: Mutex<Vec<domain::WorthQueryArtifactOwnerSnapshot>>,
     consumer_mode: Mutex<Option<String>>,
@@ -49,6 +54,26 @@ impl ArtifactProbe {
 
     pub fn cancellations(&self) -> usize {
         self.inner.cancellations.load(Ordering::SeqCst)
+    }
+
+    pub fn native_row_counts(&self) -> usize {
+        self.inner.native_row_counts.load(Ordering::SeqCst)
+    }
+
+    pub fn native_row_batches(&self) -> usize {
+        self.inner.native_row_batches.load(Ordering::SeqCst)
+    }
+
+    pub fn native_field_slices(&self) -> usize {
+        self.inner.native_field_slices.load(Ordering::SeqCst)
+    }
+
+    pub fn native_projections(&self) -> usize {
+        self.inner.native_projections.load(Ordering::SeqCst)
+    }
+
+    pub fn native_scalars(&self) -> usize {
+        self.inner.native_scalars.load(Ordering::SeqCst)
     }
 
     pub fn denials(&self) -> Vec<domain::WorthQueryArtifactDenialKind> {
@@ -119,6 +144,28 @@ impl ArtifactProbe {
 
     pub(super) fn observe_cancellation(&self) {
         self.inner.cancellations.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn observe_native_row_count(&self) {
+        self.inner.native_row_counts.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn observe_native_row_batch(&self) {
+        self.inner.native_row_batches.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn observe_native_field_slice(&self) {
+        self.inner
+            .native_field_slices
+            .fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn observe_native_projection(&self) {
+        self.inner.native_projections.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn observe_native_scalar(&self) {
+        self.inner.native_scalars.fetch_add(1, Ordering::SeqCst);
     }
 
     pub(super) fn observe_denial(&self, kind: domain::WorthQueryArtifactDenialKind) {

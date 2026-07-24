@@ -1,6 +1,7 @@
 use worth_query_installation::facade::WorthQueryArtifactBulkProjectionContract;
 
 use super::row_batch::with_borrowed_rows;
+use super::thread_bound::WorthQueryArtifactThreadBound;
 use super::{
     WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessAdmission,
     WorthQueryArtifactNativeAccessCounters, WorthQueryArtifactNativeAccessDenial,
@@ -40,7 +41,7 @@ impl<'a> WorthQueryArtifactChunkCursor<'a> {
             .request
             .chunk_rows()
             .min(self.row_count - self.next_row);
-        let value = with_borrowed_rows(
+        let outcome = with_borrowed_rows(
             &mut self.admission,
             self.next_row,
             width,
@@ -48,8 +49,13 @@ impl<'a> WorthQueryArtifactChunkCursor<'a> {
             consume,
         )?;
         self.admission.counters_mut().chunk_contacts += 1;
-        self.next_row += width;
-        Ok(Some(value))
+        if outcome.row_count == 0 {
+            return Err(provider_progress_denial(
+                self.admission.evidence().counters(),
+            ));
+        }
+        self.next_row += outcome.row_count;
+        Ok(Some(outcome.value))
     }
 
     pub fn evidence(&self) -> WorthQueryArtifactNativeAccessEvidence {
@@ -95,7 +101,14 @@ impl<'a> WorthQueryArtifactProjectedChunkCursor<'a> {
         let mut sink = WorthQueryArtifactProjectionSink::new(
             self.projection.destination_fields().to_vec(),
             width,
-        );
+            self.projection.destination_alignment(),
+        )
+        .map_err(|_| {
+            self.admission.denial(
+                super::WorthQueryArtifactNativeAccessDenialKind::AlignmentMismatch,
+                "declared projection alignment exceeds the bounded destination sink",
+            )
+        })?;
         let start_row = self.next_row;
         let projection_identity = self.request.projection_identity().to_owned();
         let projected_rows = self.admission.with_provider(|provider, session| {
@@ -114,6 +127,7 @@ impl<'a> WorthQueryArtifactProjectedChunkCursor<'a> {
         let value = consume(WorthQueryArtifactProjectedChunkView {
             start_row,
             sink: &sink,
+            _thread_bound: WorthQueryArtifactThreadBound::new(),
         });
         self.admission
             .counters_mut()
@@ -143,6 +157,7 @@ impl<'a> WorthQueryArtifactProjectedChunkCursor<'a> {
 pub struct WorthQueryArtifactProjectedChunkView<'a> {
     start_row: usize,
     sink: &'a WorthQueryArtifactProjectionSink,
+    _thread_bound: WorthQueryArtifactThreadBound,
 }
 
 impl WorthQueryArtifactProjectedChunkView<'_> {

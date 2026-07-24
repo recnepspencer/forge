@@ -15,6 +15,8 @@ mod contract;
 mod definitions;
 #[path = "artifact_workflow/executor.rs"]
 mod executor;
+#[path = "artifact_workflow/native_provider.rs"]
+mod native_provider;
 #[path = "artifact_workflow/provider.rs"]
 mod provider;
 

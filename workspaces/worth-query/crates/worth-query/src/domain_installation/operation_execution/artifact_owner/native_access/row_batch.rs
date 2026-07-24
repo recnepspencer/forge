@@ -1,15 +1,23 @@
 use worth_foundational::facade::{AspectKey, AspectShape};
 
+use super::thread_bound::WorthQueryArtifactThreadBound;
 use super::{
     WorthQueryArtifactNativeAccessAdmission, WorthQueryArtifactNativeAccessCounters,
     WorthQueryArtifactNativeAccessDenial, WorthQueryArtifactNativeFieldSlice,
     WorthQueryArtifactNativeValueView, WorthQueryArtifactProviderAccessDenial,
+    WorthQueryArtifactProviderFieldSlice,
 };
 
 pub struct WorthQueryArtifactBorrowedRowBatch<'a> {
     start_row: usize,
     row_count: usize,
-    columns: Vec<(AspectKey, WorthQueryArtifactNativeFieldSlice<'a>)>,
+    columns: Vec<(AspectKey, WorthQueryArtifactProviderFieldSlice<'a>)>,
+    _thread_bound: WorthQueryArtifactThreadBound,
+}
+
+pub(crate) struct WorthQueryArtifactBorrowedRowsOutcome<T> {
+    pub(crate) value: T,
+    pub(crate) row_count: usize,
 }
 
 pub(crate) fn with_borrowed_rows<T>(
@@ -18,10 +26,10 @@ pub(crate) fn with_borrowed_rows<T>(
     max_rows: usize,
     fields: &[AspectKey],
     consume: impl for<'view> FnOnce(WorthQueryArtifactBorrowedRowBatch<'view>) -> T,
-) -> Result<T, WorthQueryArtifactNativeAccessDenial> {
+) -> Result<WorthQueryArtifactBorrowedRowsOutcome<T>, WorthQueryArtifactNativeAccessDenial> {
     let layout = admission.native_contract().layout().clone();
     let requested = fields.to_vec();
-    let (value, increment) = admission.with_provider(|provider, session| {
+    let (value, row_count, increment) = admission.with_provider(|provider, session| {
         let batch = provider.borrow_rows(session, start_row, max_rows, &requested)?;
         let row_count = batch.row_count();
         let source_bytes = batch.source_bytes();
@@ -63,23 +71,25 @@ pub(crate) fn with_borrowed_rows<T>(
             consume(WorthQueryArtifactBorrowedRowBatch::new(
                 start_row, row_count, columns,
             )),
+            row_count,
             increment,
         ))
     })?;
     admission.counters_mut().accumulate(increment);
-    Ok(value)
+    Ok(WorthQueryArtifactBorrowedRowsOutcome { value, row_count })
 }
 
 impl<'a> WorthQueryArtifactBorrowedRowBatch<'a> {
     pub(crate) fn new(
         start_row: usize,
         row_count: usize,
-        columns: Vec<(AspectKey, WorthQueryArtifactNativeFieldSlice<'a>)>,
+        columns: Vec<(AspectKey, WorthQueryArtifactProviderFieldSlice<'a>)>,
     ) -> Self {
         Self {
             start_row,
             row_count,
             columns,
+            _thread_bound: WorthQueryArtifactThreadBound::new(),
         }
     }
 
@@ -99,7 +109,7 @@ impl<'a> WorthQueryArtifactBorrowedRowBatch<'a> {
         self.columns
             .iter()
             .find(|(candidate, _)| candidate == field)
-            .map(|(_, values)| *values)
+            .map(|(_, values)| WorthQueryArtifactNativeFieldSlice::from_provider(*values))
     }
 }
 

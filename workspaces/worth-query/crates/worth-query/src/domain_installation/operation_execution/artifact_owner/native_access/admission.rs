@@ -7,6 +7,7 @@ use worth_query_installation::facade::{
     WorthQueryInstalledArtifactContractAuthority,
 };
 
+use super::thread_bound::WorthQueryArtifactThreadBound;
 use super::{
     WorthQueryArtifactNativeAccessCounters, WorthQueryArtifactNativeAccessDenial,
     WorthQueryArtifactNativeAccessDenialKind as Kind, WorthQueryArtifactNativeAccessEvidence,
@@ -170,6 +171,7 @@ impl<'a> WorthQueryArtifactReaderAuthorityAdmission<'a> {
             requested_fields: fields.to_vec(),
             session,
             counters,
+            _thread_bound: WorthQueryArtifactThreadBound::new(),
         })
     }
 }
@@ -182,6 +184,7 @@ pub(crate) struct WorthQueryArtifactNativeAccessAdmission<'a> {
     requested_fields: Vec<AspectKey>,
     session: WorthQueryArtifactProviderAccessSession,
     counters: WorthQueryArtifactNativeAccessCounters,
+    _thread_bound: WorthQueryArtifactThreadBound,
 }
 
 impl WorthQueryArtifactNativeAccessAdmission<'_> {
@@ -193,8 +196,29 @@ impl WorthQueryArtifactNativeAccessAdmission<'_> {
         &self.session
     }
 
+    pub(crate) fn requested_fields(&self) -> &[AspectKey] {
+        &self.requested_fields
+    }
+
+    pub(crate) const fn counters(&self) -> WorthQueryArtifactNativeAccessCounters {
+        self.counters
+    }
+
     pub(crate) fn counters_mut(&mut self) -> &mut WorthQueryArtifactNativeAccessCounters {
         &mut self.counters
+    }
+
+    pub(crate) fn denial(
+        &self,
+        kind: Kind,
+        detail: &'static str,
+    ) -> WorthQueryArtifactNativeAccessDenial {
+        WorthQueryArtifactNativeAccessDenial::new(
+            kind,
+            Some(self.owner.binding().contract.contract().family().as_str()),
+            detail,
+            self.counters,
+        )
     }
 
     pub(crate) fn with_provider<T>(
@@ -204,6 +228,9 @@ impl WorthQueryArtifactNativeAccessAdmission<'_> {
             &WorthQueryArtifactProviderAccessSession,
         ) -> Result<T, WorthQueryArtifactProviderAccessDenial>,
     ) -> Result<T, WorthQueryArtifactNativeAccessDenial> {
+        if self.owner.created_thread() != std::thread::current().id() {
+            return Err(denial(self.owner, Kind::ForeignThread, self.counters));
+        }
         self.owner
             .validate_borrow_generation(self.borrowed.borrow_generation())
             .map_err(|artifact| {
@@ -215,6 +242,18 @@ impl WorthQueryArtifactNativeAccessAdmission<'_> {
                 )
             })?;
         self.counters.lifecycle_checks += 1;
+        self.counters.provider_session_checks += 1;
+        if self.session.identity() != self.owner.provider_access_session_identity()
+            || self.session.generation() != 1
+            || self.session.borrow_generation() != self.borrowed.borrow_generation()
+            || self.session.layout() != &self.native_contract.layout().reference()
+        {
+            return Err(denial(
+                self.owner,
+                Kind::ProviderSessionMismatch,
+                self.counters,
+            ));
+        }
         self.counters.provider_contacts += 1;
         let session = self.session.clone();
         let expected_layout = session.layout().clone();
@@ -222,8 +261,14 @@ impl WorthQueryArtifactNativeAccessAdmission<'_> {
             .owner
             .with_native_access_provider(|provider| {
                 self.counters.provider_session_checks += 1;
-                if provider.layout() != expected_layout {
+                let provider_layout = provider.layout();
+                if provider_layout.identity() != expected_layout.identity()
+                    || provider_layout.version() != expected_layout.version()
+                {
                     return Err(WorthQueryArtifactProviderAccessDenial::LayoutMismatch);
+                }
+                if provider_layout.alignment() != expected_layout.alignment() {
+                    return Err(WorthQueryArtifactProviderAccessDenial::AlignmentMismatch);
                 }
                 access(provider, &session)
             })
@@ -234,6 +279,9 @@ impl WorthQueryArtifactNativeAccessAdmission<'_> {
                     Kind::ProviderSessionMismatch
                 }
                 WorthQueryArtifactProviderAccessDenial::LayoutMismatch => Kind::LayoutMismatch,
+                WorthQueryArtifactProviderAccessDenial::AlignmentMismatch => {
+                    Kind::AlignmentMismatch
+                }
                 WorthQueryArtifactProviderAccessDenial::BoundsExceeded => Kind::BoundsExceeded,
                 WorthQueryArtifactProviderAccessDenial::ShapeMismatch => {
                     Kind::ProviderShapeMismatch
@@ -317,6 +365,9 @@ const fn denial_detail(kind: Kind) -> &'static str {
         Kind::FieldNotDeclared => "requested artifact field is not uniquely declared",
         Kind::FieldSliceDenied => "installed artifact contract denies this field slice",
         Kind::RowBatchDenied => "installed artifact contract denies borrowed row batches",
+        Kind::ProviderNativeProjectionRequired => {
+            "artifact field requires a declared provider-native projection"
+        }
         Kind::ChunkingDenied => "installed artifact contract denies this chunk bound",
         Kind::ProjectionDenied => "installed artifact contract denies this destination projection",
         Kind::ScalarFallbackDenied => "installed artifact contract denies scalar fallback",

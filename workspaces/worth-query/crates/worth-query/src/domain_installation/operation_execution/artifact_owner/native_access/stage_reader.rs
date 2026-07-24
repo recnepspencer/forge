@@ -44,12 +44,14 @@ impl<'a> WorthQueryStageArtifactReader<'a> {
         if contract.row_batch() != WorthQueryArtifactRowBatchPosture::Borrowed {
             return Err(self.authority.denial(Kind::RowBatchDenied));
         }
+        validate_direct_fields(contract, request.fields())
+            .map_err(|kind| self.authority.denial(kind))?;
         validate_chunk_bound(contract, request.max_rows())
             .map_err(|kind| self.authority.denial(kind))?;
         let mut admission =
             self.authority
                 .admit_access(self.handle, request.layout(), request.fields())?;
-        let value = with_borrowed_rows(
+        let outcome = with_borrowed_rows(
             &mut admission,
             request.start_row(),
             request.max_rows(),
@@ -57,7 +59,7 @@ impl<'a> WorthQueryStageArtifactReader<'a> {
             consume,
         )?;
         Ok(WorthQueryArtifactNativeAccessOutcome::new(
-            value,
+            outcome.value,
             admission.evidence(),
         ))
     }
@@ -107,6 +109,8 @@ impl<'a> WorthQueryStageArtifactReader<'a> {
         if contract.row_batch() != WorthQueryArtifactRowBatchPosture::Borrowed {
             return Err(self.authority.denial(Kind::RowBatchDenied));
         }
+        validate_direct_fields(contract, request.fields())
+            .map_err(|kind| self.authority.denial(kind))?;
         validate_chunk_bound(contract, request.chunk_rows())
             .map_err(|kind| self.authority.denial(kind))?;
         let admission =
@@ -150,6 +154,8 @@ impl<'a> WorthQueryStageArtifactReader<'a> {
         else {
             return Err(self.authority.denial(Kind::ScalarFallbackDenied));
         };
+        validate_direct_fields(self.authority.native_contract(), request.fields())
+            .map_err(|kind| self.authority.denial(kind))?;
         let admission =
             self.authority
                 .admit_access(self.handle, request.layout(), request.fields())?;
@@ -176,12 +182,11 @@ impl WorthQueryArtifactScalarFallbackSession<'_> {
         field: &AspectKey,
         consume: impl for<'view> FnOnce(WorthQueryArtifactNativeValueView<'view>) -> T,
     ) -> Result<T, WorthQueryArtifactNativeAccessDenial> {
-        if !self.admission.evidence().requested_fields().contains(field) {
+        if !self.admission.requested_fields().contains(field) {
             return Err(self.denial(Kind::FieldNotDeclared));
         }
         let amplified_limit = self
             .admission
-            .evidence()
             .requested_fields()
             .len()
             .saturating_mul(self.max_call_amplification);
@@ -199,10 +204,12 @@ impl WorthQueryArtifactScalarFallbackSession<'_> {
             else {
                 return Err(super::WorthQueryArtifactProviderAccessDenial::ShapeMismatch);
             };
-            if !value_matches_shape(value, contract.aspect().shape()) {
+            if !value.matches_shape(contract.aspect().shape()) {
                 return Err(super::WorthQueryArtifactProviderAccessDenial::ShapeMismatch);
             }
-            Ok(consume(value))
+            Ok(consume(WorthQueryArtifactNativeValueView::from_provider(
+                value,
+            )))
         })?;
         self.calls += 1;
         self.admission.counters_mut().scalar_calls += 1;
@@ -215,11 +222,9 @@ impl WorthQueryArtifactScalarFallbackSession<'_> {
     }
 
     fn denial(&self, kind: Kind) -> WorthQueryArtifactNativeAccessDenial {
-        WorthQueryArtifactNativeAccessDenial::new(
+        self.admission.denial(
             kind,
-            None,
             "scalar fallback request exceeds its installed contract",
-            self.admission.evidence().counters(),
         )
     }
 }
@@ -237,85 +242,25 @@ fn validate_chunk_bound(
     Ok(())
 }
 
-fn value_matches_shape(value: WorthQueryArtifactNativeValueView<'_>, shape: &AspectShape) -> bool {
-    use worth_foundational::facade::ScalarAspectType as Scalar;
-    matches!(
-        (value, shape),
-        (
-            WorthQueryArtifactNativeValueView::Null,
-            AspectShape::Scalar(Scalar::Null)
-        ) | (
-            WorthQueryArtifactNativeValueView::Bool(_),
-            AspectShape::Scalar(Scalar::Bool)
-        ) | (
-            WorthQueryArtifactNativeValueView::Int8(_),
-            AspectShape::Scalar(Scalar::Int8)
-        ) | (
-            WorthQueryArtifactNativeValueView::Int16(_),
-            AspectShape::Scalar(Scalar::Int16)
-        ) | (
-            WorthQueryArtifactNativeValueView::Int32(_),
-            AspectShape::Scalar(Scalar::Int32)
-        ) | (
-            WorthQueryArtifactNativeValueView::Int64(_),
-            AspectShape::Scalar(Scalar::Int64)
-        ) | (
-            WorthQueryArtifactNativeValueView::UInt8(_),
-            AspectShape::Scalar(Scalar::UInt8)
-        ) | (
-            WorthQueryArtifactNativeValueView::UInt16(_),
-            AspectShape::Scalar(Scalar::UInt16)
-        ) | (
-            WorthQueryArtifactNativeValueView::UInt32(_),
-            AspectShape::Scalar(Scalar::UInt32)
-        ) | (
-            WorthQueryArtifactNativeValueView::UInt64(_),
-            AspectShape::Scalar(Scalar::UInt64)
-        ) | (
-            WorthQueryArtifactNativeValueView::Float32(_),
-            AspectShape::Scalar(Scalar::Float32)
-        ) | (
-            WorthQueryArtifactNativeValueView::Float64(_),
-            AspectShape::Scalar(Scalar::Float64)
-        ) | (
-            WorthQueryArtifactNativeValueView::Decimal(_),
-            AspectShape::Scalar(Scalar::Decimal)
-        ) | (
-            WorthQueryArtifactNativeValueView::BigInt(_),
-            AspectShape::Scalar(Scalar::BigInt)
-        ) | (
-            WorthQueryArtifactNativeValueView::Rational(_),
-            AspectShape::Scalar(Scalar::Rational)
-        ) | (
-            WorthQueryArtifactNativeValueView::String(_),
-            AspectShape::Scalar(Scalar::String)
-        ) | (
-            WorthQueryArtifactNativeValueView::Bytes(_),
-            AspectShape::Scalar(Scalar::Bytes)
-        ) | (
-            WorthQueryArtifactNativeValueView::Uuid(_),
-            AspectShape::Scalar(Scalar::Uuid)
-        ) | (
-            WorthQueryArtifactNativeValueView::Date(_),
-            AspectShape::Scalar(Scalar::Date)
-        ) | (
-            WorthQueryArtifactNativeValueView::Time(_),
-            AspectShape::Scalar(Scalar::Time)
-        ) | (
-            WorthQueryArtifactNativeValueView::Timestamp(_),
-            AspectShape::Scalar(Scalar::Timestamp)
-        ) | (
-            WorthQueryArtifactNativeValueView::TimestampTz(_),
-            AspectShape::Scalar(Scalar::TimestampTz)
-        ) | (
-            WorthQueryArtifactNativeValueView::EntityRef(_),
-            AspectShape::Scalar(Scalar::EntityRef)
-        ) | (
-            WorthQueryArtifactNativeValueView::ContentRef(_),
-            AspectShape::Scalar(Scalar::ContentRef)
-        ) | (
-            WorthQueryArtifactNativeValueView::Struct(_),
-            AspectShape::Struct(_)
-        )
-    )
+fn validate_direct_fields(
+    contract: &worth_query_installation::facade::WorthQueryArtifactNativeAccessContract,
+    fields: &[AspectKey],
+) -> Result<(), Kind> {
+    for requested in fields {
+        let Some(field) = contract
+            .layout()
+            .fields()
+            .iter()
+            .find(|field| field.aspect().key() == requested)
+        else {
+            return Err(Kind::FieldNotDeclared);
+        };
+        if !matches!(
+            field.aspect().shape(),
+            AspectShape::Scalar(_) | AspectShape::Struct(_)
+        ) {
+            return Err(Kind::ProviderNativeProjectionRequired);
+        }
+    }
+    Ok(())
 }

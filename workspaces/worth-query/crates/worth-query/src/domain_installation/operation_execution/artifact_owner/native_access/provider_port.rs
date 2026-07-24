@@ -2,8 +2,8 @@ use worth_foundational::facade::{AspectKey, AspectValue};
 use worth_query_installation::facade::WorthQueryArtifactNativeLayoutReference;
 
 use super::{
-    WorthQueryArtifactNativeFieldSlice, WorthQueryArtifactNativeValueView,
     WorthQueryArtifactProjectionSink, WorthQueryArtifactProviderAccessSession,
+    WorthQueryArtifactProviderFieldSlice, WorthQueryArtifactProviderValueView,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -11,12 +11,11 @@ pub enum WorthQueryArtifactProviderAccessDenial {
     Unsupported,
     SessionMismatch,
     LayoutMismatch,
+    AlignmentMismatch,
     BoundsExceeded,
     ShapeMismatch,
     Failed,
 }
-
-pub type WorthQueryArtifactProviderFieldSlice<'a> = WorthQueryArtifactNativeFieldSlice<'a>;
 
 pub struct WorthQueryArtifactProviderBorrowedBatch<'a> {
     start_row: usize,
@@ -100,7 +99,8 @@ pub trait WorthQueryArtifactNativeAccessProvider: Send {
         _session: &WorthQueryArtifactProviderAccessSession,
         _row: usize,
         _field: &AspectKey,
-    ) -> Result<WorthQueryArtifactNativeValueView<'a>, WorthQueryArtifactProviderAccessDenial> {
+    ) -> Result<WorthQueryArtifactProviderValueView<'a>, WorthQueryArtifactProviderAccessDenial>
+    {
         Err(WorthQueryArtifactProviderAccessDenial::Unsupported)
     }
 }

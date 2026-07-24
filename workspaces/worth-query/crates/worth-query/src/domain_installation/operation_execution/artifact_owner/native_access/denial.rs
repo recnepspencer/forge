@@ -18,6 +18,7 @@ pub enum WorthQueryArtifactNativeAccessDenialKind {
     FieldNotDeclared,
     FieldSliceDenied,
     RowBatchDenied,
+    ProviderNativeProjectionRequired,
     ChunkingDenied,
     ProjectionDenied,
     ScalarFallbackDenied,

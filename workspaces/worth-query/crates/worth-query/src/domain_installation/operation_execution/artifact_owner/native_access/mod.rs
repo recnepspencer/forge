@@ -5,11 +5,14 @@ mod denial;
 mod evidence;
 mod field_slice;
 mod projection_sink;
+mod provider_field_slice;
 mod provider_port;
 mod provider_session;
+mod provider_value_view;
 mod request;
 mod row_batch;
 mod stage_reader;
+mod thread_bound;
 mod value_view;
 
 pub use chunk_cursor::{
@@ -21,11 +24,13 @@ pub use denial::{WorthQueryArtifactNativeAccessDenial, WorthQueryArtifactNativeA
 pub use evidence::{WorthQueryArtifactNativeAccessEvidence, WorthQueryArtifactNativeAccessOutcome};
 pub use field_slice::WorthQueryArtifactNativeFieldSlice;
 pub use projection_sink::WorthQueryArtifactProjectionSink;
+pub use provider_field_slice::WorthQueryArtifactProviderFieldSlice;
 pub use provider_port::{
     WorthQueryArtifactNativeAccessProvider, WorthQueryArtifactProviderAccessDenial,
-    WorthQueryArtifactProviderBorrowedBatch, WorthQueryArtifactProviderFieldSlice,
+    WorthQueryArtifactProviderBorrowedBatch,
 };
 pub use provider_session::WorthQueryArtifactProviderAccessSession;
+pub use provider_value_view::WorthQueryArtifactProviderValueView;
 pub use request::{
     WorthQueryArtifactChunkRequest, WorthQueryArtifactFieldSliceRequest,
     WorthQueryArtifactProjectedChunkRequest, WorthQueryArtifactRowBatchRequest,

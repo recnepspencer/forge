@@ -1,4 +1,5 @@
 use worth_foundational::facade::{AspectContract, AspectValue};
+use worth_query_installation::facade::WorthQueryArtifactNativeAlignment;
 
 use super::provider_port::value_matches_contract;
 use super::WorthQueryArtifactProviderAccessDenial;
@@ -7,16 +8,26 @@ pub struct WorthQueryArtifactProjectionSink {
     fields: Vec<AspectContract>,
     max_rows: usize,
     values: Vec<AspectValue>,
+    pending_row: Vec<AspectValue>,
 }
 
 impl WorthQueryArtifactProjectionSink {
-    pub(crate) fn new(fields: Vec<AspectContract>, max_rows: usize) -> Self {
+    pub(crate) fn new(
+        fields: Vec<AspectContract>,
+        max_rows: usize,
+        required_alignment: WorthQueryArtifactNativeAlignment,
+    ) -> Result<Self, WorthQueryArtifactProviderAccessDenial> {
         let value_capacity = max_rows.saturating_mul(fields.len());
-        Self {
+        let sink = Self {
+            pending_row: Vec::with_capacity(fields.len()),
             fields,
             max_rows,
             values: Vec::with_capacity(value_capacity),
+        };
+        if !sink.satisfies_alignment(required_alignment) {
+            return Err(WorthQueryArtifactProviderAccessDenial::AlignmentMismatch);
         }
+        Ok(sink)
     }
 
     pub fn push_row(
@@ -26,16 +37,20 @@ impl WorthQueryArtifactProjectionSink {
         if self.row_count() >= self.max_rows {
             return Err(WorthQueryArtifactProviderAccessDenial::BoundsExceeded);
         }
-        let values = values.into_iter().collect::<Vec<_>>();
-        if values.len() != self.fields.len()
-            || values
-                .iter()
-                .zip(&self.fields)
-                .any(|(value, contract)| !value_matches_contract(value, contract))
-        {
+        self.pending_row.clear();
+        for value in values {
+            let Some(contract) = self.fields.get(self.pending_row.len()) else {
+                return Err(WorthQueryArtifactProviderAccessDenial::ShapeMismatch);
+            };
+            if !value_matches_contract(&value, contract) {
+                return Err(WorthQueryArtifactProviderAccessDenial::ShapeMismatch);
+            }
+            self.pending_row.push(value);
+        }
+        if self.pending_row.len() != self.fields.len() {
             return Err(WorthQueryArtifactProviderAccessDenial::ShapeMismatch);
         }
-        self.values.extend(values);
+        self.values.extend(self.pending_row.drain(..));
         Ok(())
     }
 
@@ -59,6 +74,7 @@ impl WorthQueryArtifactProjectionSink {
     pub fn allocated_capacity_bytes(&self) -> usize {
         self.values
             .capacity()
+            .saturating_add(self.pending_row.capacity())
             .saturating_mul(std::mem::size_of::<AspectValue>())
     }
 
@@ -67,5 +83,12 @@ impl WorthQueryArtifactProjectionSink {
             .iter()
             .map(AspectValue::semantic_byte_width)
             .sum()
+    }
+
+    fn satisfies_alignment(&self, required: WorthQueryArtifactNativeAlignment) -> bool {
+        let bytes = required.bytes();
+        bytes <= std::mem::align_of::<AspectValue>()
+            && (self.values.as_ptr() as usize) % bytes == 0
+            && (self.pending_row.as_ptr() as usize) % bytes == 0
     }
 }

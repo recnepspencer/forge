@@ -107,6 +107,7 @@ impl WorthQueryArtifactNativeLayoutContract {
         WorthQueryArtifactNativeLayoutReference {
             identity: self.identity.clone(),
             version: self.version,
+            alignment: self.alignment,
         }
     }
 }
@@ -115,6 +116,7 @@ impl WorthQueryArtifactNativeLayoutContract {
 pub struct WorthQueryArtifactNativeLayoutReference {
     identity: WorthQueryArtifactNativeLayoutIdentity,
     version: WorthQueryArtifactNativeLayoutVersion,
+    alignment: WorthQueryArtifactNativeAlignment,
 }
 
 impl WorthQueryArtifactNativeLayoutReference {
@@ -124,5 +126,9 @@ impl WorthQueryArtifactNativeLayoutReference {
 
     pub const fn version(&self) -> WorthQueryArtifactNativeLayoutVersion {
         self.version
+    }
+
+    pub const fn alignment(&self) -> WorthQueryArtifactNativeAlignment {
+        self.alignment
     }
 }

@@ -46,6 +46,10 @@ pub(crate) fn validate_artifact_access_path(
                 .iter()
                 .any(|field| !fields.contains(field))
             || projection.destination_fields().is_empty()
+            || projection
+                .destination_fields()
+                .iter()
+                .any(|field| !matches!(field.shape(), AspectShape::Scalar(_)))
             || !valid_alignment(projection.destination_alignment().bytes())
         {
             return false;
