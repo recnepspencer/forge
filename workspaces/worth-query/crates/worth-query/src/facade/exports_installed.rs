@@ -16,15 +16,18 @@ pub use crate::domain_installation::{
 pub mod transition {
     pub use super::super::installed_transitions::{
         collection_capability, collection_window_admission, collection_window_resolution,
-        consumption, execution, publication, settlement, WorthQueryCollectionCapabilityTransition,
-        WorthQueryCollectionWindowTransition, WorthQueryConsumptionTransition,
-        WorthQueryExecutionTransition, WorthQueryPublicationTransition,
-        WorthQuerySettlementTransition,
+        consumption, execution, publication, resource_admission, settlement,
+        WorthQueryCollectionCapabilityTransition, WorthQueryCollectionWindowTransition,
+        WorthQueryConsumptionTransition, WorthQueryExecutionTransition,
+        WorthQueryPublicationTransition, WorthQueryResourceAdmissionStop,
+        WorthQueryResourceAdmissionTransition, WorthQuerySettlementTransition,
     };
 }
 
 pub mod operation {
     pub use crate::domain_installation::{
+        WorthQueryAdmittedDirectOperation, WorthQueryAdmittedExecutionResourcePlan,
+        WorthQueryAdmittedWorkflowOperation, WorthQueryAdmittedWorkflowResourcePlan,
         WorthQueryBoundExecutionDenial, WorthQueryBoundExecutionDenialKind,
         WorthQueryBoundExecutionReceipt, WorthQueryBoundProjectionRequest,
         WorthQueryConsumedDomainProjection, WorthQueryConsumerAllocationPosture,
@@ -32,7 +35,12 @@ pub mod operation {
         WorthQueryConsumerPresentationPosture, WorthQueryConsumerProjectionContract,
         WorthQueryConsumerProjectionContractDenial, WorthQueryConsumerSupportDimension,
         WorthQueryConsumerSupportPosture, WorthQueryDeferredDomainOperation,
-        WorthQueryDerivedPublicationReceipt, WorthQueryExecutedDomainOperation,
+        WorthQueryDerivedPublicationReceipt, WorthQueryDirectResourceAdmissionOutcome,
+        WorthQueryExecutedDomainOperation, WorthQueryExecutionProviderSession,
+        WorthQueryExecutionResourceAdmissionCounters, WorthQueryExecutionResourceAdmissionDenial,
+        WorthQueryExecutionResourceAdmissionDenialKind,
+        WorthQueryExecutionResourceAdmissionPosture, WorthQueryExecutionResourceAttemptEvidence,
+        WorthQueryExecutionResourceSupport, WorthQueryExecutionResourceSupportSnapshot,
         WorthQueryNativeAccessCounters, WorthQueryNativeAccessDenial,
         WorthQueryNativeAccessDenialKind, WorthQueryNativeAccessKey, WorthQueryNativeFieldAccess,
         WorthQueryNativeProjectionRequestDenial, WorthQueryNativeProjectionRequestDenialKind,
@@ -40,9 +48,15 @@ pub mod operation {
         WorthQueryOperationLineageContract, WorthQueryOperationResultState,
         WorthQueryProgressionDenial, WorthQueryProjectionRequestBuilder,
         WorthQueryPublicationDenial, WorthQueryPublishedDomainOperation,
-        WorthQuerySettledDomainProjection,
+        WorthQuerySettledDomainProjection, WorthQueryWorkflowResourceAdmissionOutcome,
     };
     pub use crate::ordinary::read::project_facts;
+    pub use worth_query_declaration::facade::domain_computation::{
+        WorthQueryCancellationSafePointFamily, WorthQueryExecutionDegradation,
+        WorthQueryExecutionMode, WorthQueryExecutionResourceRequest, WorthQueryResourceDimension,
+        WorthQueryResourceLimitRequest, WorthQuerySemanticScaleAxis,
+        WorthQuerySemanticScaleRequest,
+    };
 }
 
 pub mod observation {

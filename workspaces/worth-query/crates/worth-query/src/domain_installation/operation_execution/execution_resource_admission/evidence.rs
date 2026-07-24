@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest;
 use worth_query_installation::facade::{
     WorthQueryExecutionResourceEnvelope, WorthQueryExecutionStrategyContract,
     WorthQueryExecutionStrategyName,
@@ -20,6 +21,19 @@ pub struct WorthQueryExecutionResourceAdmissionCounters {
     pub provider_session_mints: usize,
 }
 
+impl WorthQueryExecutionResourceAdmissionCounters {
+    fn accumulate(&mut self, other: Self) {
+        self.runtime_authority_checks += other.runtime_authority_checks;
+        self.input_contract_checks += other.input_contract_checks;
+        self.execution_contract_checks += other.execution_contract_checks;
+        self.resource_contract_lookups += other.resource_contract_lookups;
+        self.support_snapshot_checks += other.support_snapshot_checks;
+        self.strategy_checks += other.strategy_checks;
+        self.envelope_dimension_checks += other.envelope_dimension_checks;
+        self.provider_session_mints += other.provider_session_mints;
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryExecutionResourceAdmissionPosture {
     Exact,
@@ -29,6 +43,7 @@ pub enum WorthQueryExecutionResourceAdmissionPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedExecutionResourcePlan {
     identity: Arc<str>,
+    request: Arc<WorthQueryExecutionResourceRequest>,
     request_identity: Arc<str>,
     envelope_identity: Arc<str>,
     envelope: Arc<WorthQueryExecutionResourceEnvelope>,
@@ -41,11 +56,12 @@ pub struct WorthQueryAdmittedExecutionResourcePlan {
 impl WorthQueryAdmittedExecutionResourcePlan {
     pub(crate) fn new(
         identity: String,
-        request_identity: String,
+        request: &WorthQueryExecutionResourceRequest,
         support_snapshot: WorthQueryExecutionResourceSupportSnapshot,
         strategy: WorthQueryExecutionStrategyContract,
         counters: WorthQueryExecutionResourceAdmissionCounters,
     ) -> Self {
+        let request_identity = request.canonical_identity();
         let envelope_identity = Arc::<str>::from(super::identity::admitted_envelope_identity(
             strategy.envelope(),
         ));
@@ -57,6 +73,7 @@ impl WorthQueryAdmittedExecutionResourcePlan {
         };
         Self {
             identity: identity.into(),
+            request: Arc::new(request.clone()),
             request_identity: request_identity.into(),
             envelope_identity,
             envelope,
@@ -73,6 +90,10 @@ impl WorthQueryAdmittedExecutionResourcePlan {
 
     pub fn request_identity(&self) -> &str {
         &self.request_identity
+    }
+
+    pub fn request(&self) -> &WorthQueryExecutionResourceRequest {
+        &self.request
     }
 
     pub fn envelope_identity(&self) -> &str {
@@ -185,6 +206,7 @@ pub struct WorthQueryAdmittedWorkflowResourcePlan {
     operation: WorthQueryAdmittedExecutionResourcePlan,
     stages: BTreeMap<String, Arc<WorthQueryAdmittedExecutionResourcePlan>>,
     identity: Arc<str>,
+    counters: WorthQueryExecutionResourceAdmissionCounters,
 }
 
 impl WorthQueryAdmittedWorkflowResourcePlan {
@@ -196,6 +218,10 @@ impl WorthQueryAdmittedWorkflowResourcePlan {
             .into_iter()
             .map(|(identity, plan)| (identity, Arc::new(plan)))
             .collect::<BTreeMap<_, _>>();
+        let mut counters = operation.counters();
+        for plan in stages.values() {
+            counters.accumulate(plan.counters());
+        }
         let identity = Arc::<str>::from(crate::identity::hash_parts(&[
             "worth_query_admitted_workflow_resource_plan_v1".into(),
             format!("operation:{}", operation.identity()),
@@ -212,6 +238,7 @@ impl WorthQueryAdmittedWorkflowResourcePlan {
             operation,
             stages,
             identity,
+            counters,
         }
     }
 
@@ -221,6 +248,16 @@ impl WorthQueryAdmittedWorkflowResourcePlan {
 
     pub fn operation(&self) -> &WorthQueryAdmittedExecutionResourcePlan {
         &self.operation
+    }
+
+    pub fn counters(&self) -> WorthQueryExecutionResourceAdmissionCounters {
+        self.counters
+    }
+
+    pub fn stages(&self) -> impl Iterator<Item = (&str, &WorthQueryAdmittedExecutionResourcePlan)> {
+        self.stages
+            .iter()
+            .map(|(identity, plan)| (identity.as_str(), plan.as_ref()))
     }
 
     pub fn stage(&self, identity: &str) -> Option<&WorthQueryAdmittedExecutionResourcePlan> {

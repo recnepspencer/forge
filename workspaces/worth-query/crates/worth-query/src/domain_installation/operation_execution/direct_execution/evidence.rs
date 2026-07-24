@@ -2,8 +2,6 @@ use crate::domain_installation::{WorthQueryGraphProviderCallKind, WorthQueryOper
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryOperationExecutionCounters {
-    pub runtime_authority_checks: usize,
-    pub input_contract_checks: usize,
     pub graph_provider_contacts: usize,
     pub primary_read_contacts: usize,
     pub executor_contacts: usize,

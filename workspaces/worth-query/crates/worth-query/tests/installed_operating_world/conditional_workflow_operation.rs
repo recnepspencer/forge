@@ -35,14 +35,14 @@ fn eligible_operation_condition_enters_the_run_before_any_stage_work() {
         .bind(&installed, WorkflowRead)
         .unwrap();
 
-    let run = bound
+    let admitted = bound
         .admit_workflow_resources(
             crate::suite::installed_operation_fixture::execution_resource_request(),
             &workspace,
         )
-        .unwrap()
-        .start_workflow(&mut workspace)
         .unwrap();
+    assert_eq!(admitted.resources().counters().runtime_authority_checks, 1);
+    let run = admitted.start_workflow(&mut workspace).unwrap();
 
     let context = captured.lock().unwrap().take().unwrap();
     assert_eq!(context.run_identity.as_deref(), Some(run.identity()));
@@ -53,7 +53,7 @@ fn eligible_operation_condition_enters_the_run_before_any_stage_work() {
         run.operation_conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::ComputedChanged
     );
-    assert_eq!(run.counters().runtime_authority_checks, 1);
+    assert_eq!(run.counters().runtime_authority_checks, 0);
     assert_eq!(run.counters().conditional_compute_contacts, 1);
     assert_eq!(run.counters().stage_admission_checks, 0);
     assert_eq!(run.counters().stage_executor_contacts, 0);

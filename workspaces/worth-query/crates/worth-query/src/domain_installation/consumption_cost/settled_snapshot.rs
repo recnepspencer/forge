@@ -42,6 +42,7 @@ impl WorthQueryConsumptionCostSnapshot {
         retain_lookup_rows(settled, &mut rows);
         retain_binding_rows(settled, &mut rows);
         retain_support_rows(settled, &mut rows);
+        retain_direct_resource_admission_rows(settled, &mut rows);
         retain_execution_rows(settled, &mut rows);
         retain_direct_domain_evidence_rows(settled, &mut rows);
         retain_dependency_rows(settled, &mut rows);
@@ -56,6 +57,7 @@ impl WorthQueryConsumptionCostSnapshot {
         retain_workflow_lookup_rows(settled, &mut rows);
         retain_workflow_binding_rows(settled, &mut rows);
         retain_workflow_support_rows(settled, &mut rows);
+        retain_workflow_resource_admission_rows(settled, &mut rows);
         retain_workflow_execution_rows(settled, &mut rows);
         retain_workflow_domain_evidence_rows(settled, &mut rows);
         if let Some(closure) = settled.trace().semantic_aspect_dependency_closure() {
@@ -112,6 +114,7 @@ macro_rules! retain_rows {
 
 mod direct_rows;
 mod domain_evidence_rows;
+mod resource_admission_rows;
 mod workflow_rows;
 
 use direct_rows::{
@@ -121,6 +124,9 @@ use direct_rows::{
 };
 use domain_evidence_rows::{
     retain_direct_domain_evidence_rows, retain_workflow_domain_evidence_rows,
+};
+use resource_admission_rows::{
+    retain_direct_resource_admission_rows, retain_workflow_resource_admission_rows,
 };
 use workflow_rows::{
     retain_workflow_binding_rows, retain_workflow_execution_rows, retain_workflow_lookup_rows,

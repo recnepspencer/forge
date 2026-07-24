@@ -44,53 +44,57 @@ fn one_root_binds_real_construct_boolean_transform_and_cross_domain_operations()
         ["auxiliary"]
     );
 
-    let construct_counters = construct
+    let construct = construct
         .admit_execution_resources(
             Default::default(),
             crate::suite::installed_operation_fixture::execution_resource_request(),
             &workspace,
         )
-        .unwrap()
-        .execute(&mut workspace)
-        .unwrap()
-        .counters();
-    let boolean_counters = boolean
+        .unwrap();
+    let construct_admission = construct.resources().counters();
+    let construct_counters = construct.execute(&mut workspace).unwrap().counters();
+    let boolean = boolean
         .admit_execution_resources(
             Default::default(),
             crate::suite::installed_operation_fixture::execution_resource_request(),
             &workspace,
         )
-        .unwrap()
-        .execute(&mut workspace)
-        .unwrap()
-        .counters();
-    let transform_counters = transform
+        .unwrap();
+    let boolean_admission = boolean.resources().counters();
+    let boolean_counters = boolean.execute(&mut workspace).unwrap().counters();
+    let transform = transform
         .admit_execution_resources(
             Default::default(),
             crate::suite::installed_operation_fixture::execution_resource_request(),
             &workspace,
         )
-        .unwrap()
-        .execute(&mut workspace)
-        .unwrap()
-        .counters();
-    let route_counters = route
+        .unwrap();
+    let transform_admission = transform.resources().counters();
+    let transform_counters = transform.execute(&mut workspace).unwrap().counters();
+    let route = route
         .admit_execution_resources(
             Default::default(),
             crate::suite::installed_operation_fixture::execution_resource_request(),
             &workspace,
         )
-        .unwrap()
-        .execute(&mut workspace)
-        .unwrap()
-        .counters();
+        .unwrap();
+    let route_admission = route.resources().counters();
+    let route_counters = route.execute(&mut workspace).unwrap().counters();
+    for counters in [
+        construct_admission,
+        boolean_admission,
+        transform_admission,
+        route_admission,
+    ] {
+        assert_eq!(counters.runtime_authority_checks, 1);
+        assert_eq!(counters.provider_session_mints, 1);
+    }
     for counters in [
         construct_counters,
         boolean_counters,
         transform_counters,
         route_counters,
     ] {
-        assert_eq!(counters.runtime_authority_checks, 1);
         assert_eq!(counters.executor_contacts, 1);
     }
 }

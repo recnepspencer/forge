@@ -329,6 +329,9 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
     pub fn counters(&self) -> WorthQueryWorkflowRunCounters {
         self.run.counters
     }
+    pub fn resources(&self) -> &crate::domain_installation::WorthQueryAdmittedWorkflowResourcePlan {
+        self.run.resources()
+    }
     pub fn lineage_report(
         &self,
     ) -> Option<&crate::domain_installation::WorthQueryTraceLineageReport> {

@@ -106,10 +106,7 @@ fn covers(
             .all(|(dimension, value)| value <= support.resource_ceiling(dimension))
         && admitted.mode() == support.mode()
         && admitted.cancellation_safe_point() == support.cancellation_safe_point()
-        && match admitted.degradation() {
-            None => true,
-            Some(degradation) => support.degradation() == Some(degradation),
-        }
+        && admitted.degradation() == support.degradation()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -162,5 +159,18 @@ impl WorthQueryExecutionResourceSupportSnapshot {
                 .graph_providers
                 .iter()
                 .all(|(_, support)| support.supports(strategy))
+    }
+
+    pub(crate) fn first_mismatch(
+        &self,
+        strategy: &WorthQueryExecutionStrategyContract,
+    ) -> Option<(Option<&str>, &WorthQueryExecutionResourceSupport)> {
+        if !self.executor.supports(strategy) {
+            return Some((None, &self.executor));
+        }
+        self.graph_providers
+            .iter()
+            .find(|(_, support)| !support.supports(strategy))
+            .map(|(role, support)| (Some(role.as_str()), support))
     }
 }

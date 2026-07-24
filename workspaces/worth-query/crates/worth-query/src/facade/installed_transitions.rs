@@ -3,10 +3,67 @@ use crate::domain_installation::{
     WorthQueryBoundCollection, WorthQueryBoundCollectionWindow, WorthQueryBoundExecutionDenial,
     WorthQueryBoundExecutionOutcome, WorthQueryConsumedDomainProjection,
     WorthQueryDeferredDomainOperation, WorthQueryExecutableDomainOperation,
-    WorthQueryExecutedDomainOperation, WorthQueryProgressionDenial, WorthQueryPublicationDenial,
-    WorthQueryPublishedDomainOperation, WorthQuerySettledDomainProjection,
+    WorthQueryExecutedDomainOperation, WorthQueryExecutionResourceAdmissionDenial,
+    WorthQueryProgressionDenial, WorthQueryPublicationDenial, WorthQueryPublishedDomainOperation,
+    WorthQuerySettledDomainProjection,
 };
 use worth_proof::TransitionOutcome;
+
+pub enum WorthQueryResourceAdmissionStop {
+    Denied(WorthQueryExecutionResourceAdmissionDenial),
+    Deferred(WorthQueryExecutionResourceAdmissionDenial),
+    Stale(WorthQueryExecutionResourceAdmissionDenial),
+    RebindRequired(WorthQueryExecutionResourceAdmissionDenial),
+    Failed(WorthQueryExecutionResourceAdmissionDenial),
+}
+
+pub enum WorthQueryResourceAdmissionTransition<T> {
+    Admitted(T),
+    Denied(WorthQueryExecutionResourceAdmissionDenial),
+    Deferred(WorthQueryExecutionResourceAdmissionDenial),
+    Stale(WorthQueryExecutionResourceAdmissionDenial),
+    RebindRequired(WorthQueryExecutionResourceAdmissionDenial),
+    Failed(WorthQueryExecutionResourceAdmissionDenial),
+}
+
+impl<T> WorthQueryResourceAdmissionTransition<T> {
+    pub fn into_result(self) -> Result<T, WorthQueryResourceAdmissionStop> {
+        match self {
+            Self::Admitted(value) => Ok(value),
+            Self::Denied(stop) => Err(WorthQueryResourceAdmissionStop::Denied(stop)),
+            Self::Deferred(stop) => Err(WorthQueryResourceAdmissionStop::Deferred(stop)),
+            Self::Stale(stop) => Err(WorthQueryResourceAdmissionStop::Stale(stop)),
+            Self::RebindRequired(stop) => {
+                Err(WorthQueryResourceAdmissionStop::RebindRequired(stop))
+            }
+            Self::Failed(stop) => Err(WorthQueryResourceAdmissionStop::Failed(stop)),
+        }
+    }
+}
+
+pub fn resource_admission<T>(
+    outcome: TransitionOutcome<
+        T,
+        WorthQueryExecutionResourceAdmissionDenial,
+        WorthQueryExecutionResourceAdmissionDenial,
+        WorthQueryExecutionResourceAdmissionDenial,
+        WorthQueryExecutionResourceAdmissionDenial,
+        WorthQueryExecutionResourceAdmissionDenial,
+    >,
+) -> WorthQueryResourceAdmissionTransition<T> {
+    match outcome {
+        TransitionOutcome::Success(value) => WorthQueryResourceAdmissionTransition::Admitted(value),
+        TransitionOutcome::Denied(value) => WorthQueryResourceAdmissionTransition::Denied(value),
+        TransitionOutcome::Deferred(value) => {
+            WorthQueryResourceAdmissionTransition::Deferred(value)
+        }
+        TransitionOutcome::Stale(value) => WorthQueryResourceAdmissionTransition::Stale(value),
+        TransitionOutcome::RebindRequired(value) => {
+            WorthQueryResourceAdmissionTransition::RebindRequired(value)
+        }
+        TransitionOutcome::Failed(value) => WorthQueryResourceAdmissionTransition::Failed(value),
+    }
+}
 
 pub enum WorthQueryExecutionTransition<D, O, F, L: BasisOperationLane, Output>
 where

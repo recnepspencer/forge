@@ -9,6 +9,7 @@ pub(crate) mod conditional_workspace;
 mod correspondence_bridge;
 mod count_vertices;
 mod domain_evidence;
+mod execution_resources;
 mod executors;
 mod federated_package;
 mod foreign_material;
@@ -58,6 +59,7 @@ pub use domain_evidence::{
     evidence_workflow_intent, evidence_workflow_workspace, evidence_workspace, EvidenceFamily,
     EvidenceRead, EvidenceScenario, EvidenceWorkflowMode,
 };
+pub(crate) use execution_resources::resource_admission_workspace;
 pub use executors::graph_projection_material;
 use executors::{
     CountVerticesExecutor, FederatedReadExecutor, ReadVertexExecutor,

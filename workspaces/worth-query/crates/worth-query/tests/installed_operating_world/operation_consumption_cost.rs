@@ -13,7 +13,7 @@ fn settled_snapshot_exports_exact_foundational_rows_without_mutating_operational
     let settled = settle(&mut workspace);
     let snapshot = settled.consumption_cost_snapshot();
     let before = operational_rows(&snapshot);
-    assert_eq!(snapshot.rows().len(), 103);
+    assert_eq!(snapshot.rows().len(), 109);
     assert_eq!(
         before.len(),
         snapshot.rows().len(),
@@ -118,8 +118,14 @@ fn expected_nonzero_rows() -> BTreeMap<&'static str, u64> {
         ("query.support.installation_generation_checks", 1),
         ("query.support.mint_guard_checks", 1),
         ("query.support.dimensions_evaluated", 15),
-        ("query.execution.runtime_authority_checks", 1),
-        ("query.execution.input_contract_checks", 1),
+        ("query.resource_admission.runtime_authority_checks", 1),
+        ("query.resource_admission.input_contract_checks", 1),
+        ("query.resource_admission.execution_contract_checks", 1),
+        ("query.resource_admission.resource_contract_lookups", 1),
+        ("query.resource_admission.support_snapshot_checks", 1),
+        ("query.resource_admission.strategy_checks", 1),
+        ("query.resource_admission.envelope_dimension_checks", 31),
+        ("query.resource_admission.provider_session_mints", 1),
         ("query.execution.primary_read_contacts", 1),
         ("query.execution.executor_contacts", 1),
         ("query.execution.terminal_posture_checks", 1),

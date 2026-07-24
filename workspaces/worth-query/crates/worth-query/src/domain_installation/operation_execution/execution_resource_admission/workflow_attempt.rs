@@ -82,15 +82,7 @@ where
         };
         let support = WorthQueryExecutionResourceSupportSnapshot::new(
             executor.resource_support.clone(),
-            self.graph_participations()
-                .iter()
-                .map(|participation| {
-                    (
-                        participation.role.clone(),
-                        participation.record.resource_support.clone(),
-                    )
-                })
-                .collect(),
+            Vec::new(),
         );
         let mut operation = match lower_execution_resource_plan(
             self.binding_identity(),
@@ -102,7 +94,12 @@ where
             Ok(plan) => plan,
             Err(denial) => return admission_denial_outcome(denial),
         };
-        let stages = match lower_stages(&self, &request, &executor.resource_support, counters) {
+        let stages = match lower_stages(
+            &self,
+            &request,
+            &executor.resource_support,
+            WorthQueryExecutionResourceAdmissionCounters::default(),
+        ) {
             Ok(stages) => stages,
             Err(denial) => return admission_denial_outcome(denial),
         };

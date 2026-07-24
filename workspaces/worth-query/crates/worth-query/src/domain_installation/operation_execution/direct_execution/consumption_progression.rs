@@ -325,6 +325,12 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySettledDomainProjection<D, O, F, 
         self.consumed.published.executed.counters()
     }
 
+    pub fn resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryAdmittedExecutionResourcePlan {
+        self.consumed.published.executed.resources()
+    }
+
     pub fn conditional_provenance(
         &self,
     ) -> &[crate::domain_installation::WorthQueryConditionalProvenance] {

@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, read};
+use worth_query::facade::{domain, installed, read};
 
 use super::installed_operation_fixture::{
     foreign_material_workspace, missing_read_execution_workspace, workspace, CountVertices,
@@ -105,7 +105,7 @@ fn non_publishing_execution_is_a_terminal_typed_outcome() {
 
 #[test]
 fn installed_parameter_contract_denies_before_graph_or_executor_work() {
-    let mut workspace = workspace("installed-parameter-denial", false).unwrap();
+    let workspace = workspace("installed-parameter-denial", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
         .observe_operating_world()
@@ -113,25 +113,23 @@ fn installed_parameter_contract_denies_before_graph_or_executor_work() {
         .family(ReadFamily)
         .bind(&installed_domain, CountVertices)
         .unwrap();
-    let denial = match bound
-        .admit_execution_resources(
-            CountVerticesInput { minimum: None },
-            crate::suite::installed_operation_fixture::execution_resource_request(),
-            &workspace,
-        )
-        .unwrap()
-        .execute(&mut workspace)
-    {
+    let denial = match bound.admit_execution_resources(
+        CountVerticesInput { minimum: None },
+        crate::suite::installed_operation_fixture::execution_resource_request(),
+        &workspace,
+    ) {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("missing required operation parameter did not produce an exact denial"),
     };
     assert_eq!(
         denial.kind(),
-        &domain::WorthQueryBoundExecutionDenialKind::InputContract
+        &installed::operation::WorthQueryExecutionResourceAdmissionDenialKind::InputContract
     );
     assert_eq!(denial.counters().input_contract_checks, 1);
-    assert_eq!(denial.counters().graph_provider_contacts, 0);
-    assert_eq!(denial.counters().executor_contacts, 0);
+    assert_eq!(denial.counters().execution_contract_checks, 0);
+    assert_eq!(denial.counters().resource_contract_lookups, 0);
+    assert_eq!(denial.counters().support_snapshot_checks, 0);
+    assert_eq!(denial.counters().provider_session_mints, 0);
 }
 
 #[test]
@@ -175,27 +173,25 @@ fn foreign_workspace_denies_before_graph_or_executor_work() {
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
-    let mut foreign = workspace("installed-execution-foreign", false).unwrap();
-    let denial = match bound
-        .admit_execution_resources(
-            ReadExecutionInput::default(),
-            crate::suite::installed_operation_fixture::execution_resource_request(),
-            &foreign,
-        )
-        .unwrap()
-        .execute(&mut foreign)
-    {
+    let foreign = workspace("installed-execution-foreign", false).unwrap();
+    let denial = match bound.admit_execution_resources(
+        ReadExecutionInput::default(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
+        &foreign,
+    ) {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("foreign runtime did not produce an exact denial"),
     };
     assert_eq!(
         denial.kind(),
-        &domain::WorthQueryBoundExecutionDenialKind::RuntimeAuthority(
+        &installed::operation::WorthQueryExecutionResourceAdmissionDenialKind::RuntimeAuthority(
             domain::WorthQueryDomainHandleDenialKind::ForeignRuntime,
         )
     );
-    assert_eq!(denial.counters().graph_provider_contacts, 0);
-    assert_eq!(denial.counters().executor_contacts, 0);
+    assert_eq!(denial.counters().runtime_authority_checks, 1);
+    assert_eq!(denial.counters().input_contract_checks, 0);
+    assert_eq!(denial.counters().resource_contract_lookups, 0);
+    assert_eq!(denial.counters().provider_session_mints, 0);
 }
 
 #[test]

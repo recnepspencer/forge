@@ -33,6 +33,7 @@ pub(crate) fn lower_execution_resource_plan(
             fitting.push(strategy);
         }
     }
+    fitting.sort_by_key(|strategy| strategy.envelope().degradation().is_some());
     for strategy in &fitting {
         counters.support_snapshot_checks += 1;
         if support.supports(strategy) {
@@ -41,7 +42,7 @@ pub(crate) fn lower_execution_resource_plan(
                 admitted_plan_identity(binding_identity, &request_identity, &support, strategy);
             return Ok(WorthQueryAdmittedExecutionResourcePlan::new(
                 identity,
-                request_identity,
+                request,
                 support,
                 (*strategy).clone(),
                 counters,
@@ -51,28 +52,7 @@ pub(crate) fn lower_execution_resource_plan(
     if let Some(strategy) = fitting.first() {
         return Err(support_mismatch(strategy, &support, counters));
     }
-    if contract.strategies().iter().any(|strategy| {
-        strategy.envelope().mode() == WorthQueryExecutionMode::Asynchronous
-            && request
-                .scale()
-                .iter()
-                .all(|(axis, value)| value <= strategy.envelope().scale_ceiling(axis))
-            && request
-                .limits()
-                .iter()
-                .all(|(dimension, value)| value <= strategy.envelope().resource_ceiling(dimension))
-    }) {
-        return Err(WorthQueryExecutionResourceAdmissionDenial::new(
-            Kind::AsyncExecutionRequired,
-            "the bounded request requires a declared asynchronous strategy",
-            counters,
-        ));
-    }
-    Err(WorthQueryExecutionResourceAdmissionDenial::new(
-        Kind::ResourceCeilingExceeded,
-        "no installed strategy admits every requested scale and resource dimension",
-        counters,
-    ))
+    Err(classify_request_mismatch(contract, request, counters))
 }
 
 fn support_mismatch(
@@ -81,27 +61,128 @@ fn support_mismatch(
     counters: WorthQueryExecutionResourceAdmissionCounters,
 ) -> WorthQueryExecutionResourceAdmissionDenial {
     let required = strategy.provider_requirements();
-    let actual = support.executor();
+    let Some((role, actual)) = support.first_mismatch(strategy) else {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::Backpressured,
+            "resource support changed after strategy evaluation",
+            counters,
+        );
+    };
+    let subject = role.map_or("executor".to_owned(), |role| format!("graph role `{role}`"));
     let (kind, detail) = if actual.provider() != required.provider() {
         (
             Kind::DifferentProviderRequired,
-            "installed provider family does not support the admitted strategy",
+            format!("{subject} requires a different provider family"),
         )
     } else if actual.access_product() != required.access_product() {
         (
             Kind::DifferentAccessProductRequired,
-            "installed access product does not support the admitted strategy",
+            format!("{subject} requires a different access-product family"),
         )
     } else if actual.allocator() != required.allocator() {
         (
             Kind::DifferentAllocatorRequired,
-            "installed allocator family does not support the admitted strategy",
+            format!("{subject} requires a different allocator family"),
+        )
+    } else if actual.envelope().mode() != strategy.envelope().mode() {
+        (
+            Kind::ExecutionModeUnsupported,
+            format!("{subject} does not support the strategy execution mode"),
+        )
+    } else if actual.envelope().cancellation_safe_point()
+        != strategy.envelope().cancellation_safe_point()
+    {
+        (
+            Kind::CancellationSafePointUnsupported,
+            format!("{subject} does not support the strategy cancellation safe point"),
+        )
+    } else if actual.envelope().degradation() != strategy.envelope().degradation() {
+        (
+            Kind::DegradationPostureUnsupported,
+            format!("{subject} does not support the strategy degradation posture"),
         )
     } else {
         (
             Kind::Backpressured,
-            "provider support is currently below the strategy envelope",
+            format!("{subject} capacity is currently below the strategy envelope"),
         )
     };
     WorthQueryExecutionResourceAdmissionDenial::new(kind, detail, counters)
+}
+
+fn classify_request_mismatch(
+    contract: &WorthQueryExecutionResourceContract,
+    request: &WorthQueryExecutionResourceRequest,
+    counters: WorthQueryExecutionResourceAdmissionCounters,
+) -> WorthQueryExecutionResourceAdmissionDenial {
+    let capacity = contract
+        .strategies()
+        .iter()
+        .filter(|strategy| request_fits_capacity(request, strategy))
+        .collect::<Vec<_>>();
+    if capacity.is_empty() {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::ResourceCeilingExceeded,
+            "no installed strategy admits every requested scale and resource dimension",
+            counters,
+        );
+    }
+    let safe_point = capacity
+        .into_iter()
+        .filter(|strategy| {
+            request.cancellation_safe_point() == strategy.envelope().cancellation_safe_point()
+        })
+        .collect::<Vec<_>>();
+    if safe_point.is_empty() {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::CancellationSafePointUnsupported,
+            "no capacity-fitting strategy supports the requested cancellation safe point",
+            counters,
+        );
+    }
+    let degradation = safe_point
+        .into_iter()
+        .filter(|strategy| {
+            strategy
+                .envelope()
+                .degradation()
+                .is_none_or(|posture| request.degradations().contains(&posture))
+        })
+        .collect::<Vec<_>>();
+    if degradation.is_empty() {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::DegradationPostureUnsupported,
+            "capacity-fitting strategies require an unapproved named degradation",
+            counters,
+        );
+    }
+    if degradation
+        .iter()
+        .any(|strategy| strategy.envelope().mode() == WorthQueryExecutionMode::Asynchronous)
+    {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::AsyncExecutionRequired,
+            "the bounded request requires a declared asynchronous strategy",
+            counters,
+        );
+    }
+    WorthQueryExecutionResourceAdmissionDenial::new(
+        Kind::ExecutionModeUnsupported,
+        "no capacity-fitting strategy supports an allowed execution mode",
+        counters,
+    )
+}
+
+fn request_fits_capacity(
+    request: &WorthQueryExecutionResourceRequest,
+    strategy: &WorthQueryExecutionStrategyContract,
+) -> bool {
+    request
+        .scale()
+        .iter()
+        .all(|(axis, value)| value <= strategy.envelope().scale_ceiling(axis))
+        && request
+            .limits()
+            .iter()
+            .all(|(dimension, value)| value <= strategy.envelope().resource_ceiling(dimension))
 }
