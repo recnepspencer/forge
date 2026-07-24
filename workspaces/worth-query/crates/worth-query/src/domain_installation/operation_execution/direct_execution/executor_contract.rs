@@ -206,7 +206,10 @@ impl<'a> WorthQueryOperationExecutionContext<'a> {
         self.provider_session
     }
 
-    pub fn graph_projection(&self, role: &str) -> Option<&crate::runtime::WorthQueryReadResult> {
+    pub fn graph_projection(
+        &self,
+        role: &str,
+    ) -> Option<&super::WorthQueryExecutionGraphReadProduct> {
         self.graph_receipts
             .iter()
             .find(|receipt| {
@@ -214,7 +217,7 @@ impl<'a> WorthQueryOperationExecutionContext<'a> {
                     && receipt.kind()
                         == crate::domain_installation::WorthQueryGraphProviderCallKind::Project
             })
-            .and_then(super::WorthQueryBoundGraphExecutionReceipt::projection)
+            .and_then(super::WorthQueryBoundGraphExecutionReceipt::graph_read_product)
     }
 
     pub(crate) fn has_installed_read(&self) -> bool {

@@ -645,6 +645,7 @@ name = "worth-query-execution"
 version = "0.1.0"
 dependencies = [
  "sha2",
+ "worth-foundational",
  "worth-query-admission",
  "worth-query-declaration",
  "worth-query-installation",

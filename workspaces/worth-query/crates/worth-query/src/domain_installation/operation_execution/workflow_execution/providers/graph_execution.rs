@@ -16,6 +16,7 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
     stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
     resources: &super::WorthQueryAdmittedExecutionResourcePlan,
     resource_evidence: &super::WorthQueryExecutionResourceAttemptEvidence,
+    provider_session: &super::WorthQueryExecutionProviderSession,
     expected_snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
     counters: &mut WorthQueryWorkflowRunCounters,
 ) -> Result<Vec<WorthQueryBoundGraphExecutionReceipt>, WorthQueryWorkflowAdvanceDenial> {
@@ -56,6 +57,7 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
                 &scope_identity,
                 resources,
                 resource_evidence,
+                provider_session,
                 expected_snapshot,
                 *counters,
             )
@@ -91,6 +93,7 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
             roles.clone(),
             resources,
             resource_evidence,
+            provider_session,
         )
         .map_err(|denial| {
             WorthQueryWorkflowAdvanceDenial::new(
@@ -99,22 +102,7 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
             )
             .with_graph_receipts(receipts.clone())
         })?;
-        receipts.push(WorthQueryBoundGraphExecutionReceipt {
-            role: format!("commit({})", roles.join(",")),
-            kind: WorthQueryGraphProviderCallKind::CommitAdmission,
-            provider_receipt: receipt.provider_receipt().to_string(),
-            evidence_identity: crate::identity::hash_parts(&[
-                "worth_query_bound_graph_commit_evidence_v1".into(),
-                format!("operation:{}", bound.definition().canonical_identity()),
-                format!("binding:{}", bound.binding_identity()),
-                format!("scope:{scope_identity}"),
-                format!("roles:{}", roles.join(",")),
-                format!("resources:{}", resource_evidence.identity()),
-            ]),
-            projection: None,
-            commit_authority_identity: Some(authority.identity()),
-            commit_graph_roles: roles,
-        });
+        receipts.push(receipt);
     }
     for participation in touch_participations {
         counters.touch_effect_contacts += 1;
@@ -125,6 +113,7 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
             &scope_identity,
             resources,
             resource_evidence,
+            provider_session,
             expected_snapshot,
             *counters,
         )
@@ -141,6 +130,7 @@ fn contact<D, O, F, L: BasisOperationLane>(
     scope_identity: &str,
     resources: &super::WorthQueryAdmittedExecutionResourcePlan,
     resource_evidence: &super::WorthQueryExecutionResourceAttemptEvidence,
+    provider_session: &super::WorthQueryExecutionProviderSession,
     expected_snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
     counters: WorthQueryWorkflowRunCounters,
 ) -> Result<WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowAdvanceDenial> {
@@ -153,6 +143,7 @@ fn contact<D, O, F, L: BasisOperationLane>(
             expected_snapshot,
             resources,
             resource_evidence,
+            provider_session,
         },
         &mut Default::default(),
     )

@@ -1,7 +1,7 @@
 use crate::domain_installation::{
-    graph_participation::WorthQueryGraphCommitCallParts,
-    WorthQueryExecutionResourceAttemptEvidence, WorthQueryGraphCommitCall,
-    WorthQueryGraphProviderFailure, WorthQueryGraphProviderReceipt,
+    WorthQueryBoundGraphExecutionReceipt, WorthQueryExecutionProviderSession,
+    WorthQueryExecutionResourceAttemptEvidence, WorthQueryGraphCallScope,
+    WorthQueryGraphCommitCallSpec, WorthQueryGraphProviderFailure,
 };
 
 pub(super) fn contact_commit_provider(
@@ -12,20 +12,20 @@ pub(super) fn contact_commit_provider(
     graph_roles: Vec<String>,
     resources: &super::WorthQueryAdmittedExecutionResourcePlan,
     resource_evidence: &WorthQueryExecutionResourceAttemptEvidence,
-) -> Result<WorthQueryGraphProviderReceipt, WorthQueryGraphProviderFailure> {
-    let call = WorthQueryGraphCommitCall::new(WorthQueryGraphCommitCallParts {
-        scope_identity: scope_identity.to_string(),
-        operation_identity: operation_identity.to_string(),
-        binding_identity: binding_identity.to_string(),
-        graph_roles,
-        execution_resources: resource_evidence.clone(),
-        resource_envelope: resources.shared_envelope(),
-    });
+    provider_session: &WorthQueryExecutionProviderSession,
+) -> Result<WorthQueryBoundGraphExecutionReceipt, WorthQueryGraphProviderFailure> {
+    let call = provider_session
+        .bind_graph_commit_call(
+            WorthQueryGraphCommitCallSpec::new(
+                WorthQueryGraphCallScope::new(scope_identity, operation_identity, binding_identity),
+                graph_roles,
+                authority.identity(),
+            ),
+            resource_evidence,
+            resources.shared_envelope(),
+        )
+        .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))?;
     let receipt = authority.provider.admit_commit(&call)?;
-    if !receipt.binds_call(call.call_identity()) {
-        return Err(WorthQueryGraphProviderFailure::new(
-            "commit provider returned a receipt minted for another Query call",
-        ));
-    }
-    Ok(receipt)
+    call.admit_receipt(receipt)
+        .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
 }

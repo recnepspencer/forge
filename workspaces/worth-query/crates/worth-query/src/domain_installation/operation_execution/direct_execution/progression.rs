@@ -145,6 +145,7 @@ where
             &self.bound,
             self.resource_attempt.resources(),
             &resource_evidence,
+            self.resource_attempt.provider_session(),
             &execution_snapshot,
             &mut counters,
         ) {

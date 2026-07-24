@@ -37,8 +37,8 @@ pub(super) fn direct_execution_receipt_identity(input: DirectExecutionIdentityIn
                 (
                     "graph.projection",
                     receipt
-                        .projection()
-                        .map(|projection| projection.receipt().result_digest())
+                        .graph_read_product()
+                        .map(|projection| projection.result_digest())
                         .unwrap_or("not-projected")
                         .to_owned(),
                 ),

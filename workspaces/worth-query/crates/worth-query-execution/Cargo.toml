@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 sha2 = "0.10"
+worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-query-admission = { path = "../worth-query-admission" }
 worth-query-installation = { path = "../worth-query-installation" }
 

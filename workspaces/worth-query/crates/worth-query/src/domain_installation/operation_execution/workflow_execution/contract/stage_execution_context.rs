@@ -221,7 +221,10 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
         .ok_or(WorthQueryWorkflowStageLineageDenial::IdentityEvolutionOutcomeMismatch)
     }
 
-    pub fn graph_projection(&self, role: &str) -> Option<&crate::runtime::WorthQueryReadResult> {
+    pub fn graph_projection(
+        &self,
+        role: &str,
+    ) -> Option<&super::WorthQueryExecutionGraphReadProduct> {
         if !self
             .stage
             .semantics()
@@ -238,7 +241,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
                     && receipt.kind()
                         == crate::domain_installation::WorthQueryGraphProviderCallKind::Project
             })
-            .and_then(WorthQueryBoundGraphExecutionReceipt::projection)
+            .and_then(WorthQueryBoundGraphExecutionReceipt::graph_read_product)
     }
 
     pub fn execute_mutation(

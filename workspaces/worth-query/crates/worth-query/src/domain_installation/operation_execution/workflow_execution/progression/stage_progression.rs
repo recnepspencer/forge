@@ -181,6 +181,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             &stage,
             &resources,
             &resource_evidence,
+            self.resource_attempt.provider_session(),
             &graph_snapshot,
             &mut self.counters,
         )?;

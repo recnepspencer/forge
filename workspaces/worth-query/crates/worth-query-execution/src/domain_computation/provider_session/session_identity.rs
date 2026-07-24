@@ -3,6 +3,12 @@ use std::sync::Arc;
 
 use crate::execution_digest::hash_parts;
 
+use super::graph_provider::{
+    WorthQueryGraphCallBindingDenial, WorthQueryGraphCommitCall, WorthQueryGraphCommitCallSpec,
+    WorthQueryGraphProviderCall, WorthQueryGraphProviderCallSpec,
+};
+use super::WorthQueryExecutionResourceAttemptEvidence;
+
 static NEXT_PROVIDER_SESSION: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug)]
@@ -31,5 +37,27 @@ impl WorthQueryExecutionProviderSession {
 
     pub fn attempt_identity(&self) -> &str {
         &self.attempt_identity
+    }
+
+    pub fn bind_graph_provider_call(
+        &self,
+        spec: WorthQueryGraphProviderCallSpec,
+        execution_resources: &WorthQueryExecutionResourceAttemptEvidence,
+        resource_envelope: Arc<
+            worth_query_installation::facade::WorthQueryExecutionResourceEnvelope,
+        >,
+    ) -> Result<WorthQueryGraphProviderCall, WorthQueryGraphCallBindingDenial> {
+        WorthQueryGraphProviderCall::mint(self, spec, execution_resources, resource_envelope)
+    }
+
+    pub fn bind_graph_commit_call(
+        &self,
+        spec: WorthQueryGraphCommitCallSpec,
+        execution_resources: &WorthQueryExecutionResourceAttemptEvidence,
+        resource_envelope: Arc<
+            worth_query_installation::facade::WorthQueryExecutionResourceEnvelope,
+        >,
+    ) -> Result<WorthQueryGraphCommitCall, WorthQueryGraphCallBindingDenial> {
+        WorthQueryGraphCommitCall::mint(self, spec, execution_resources, resource_envelope)
     }
 }

@@ -45,7 +45,7 @@ fn envelope(limit: u64) -> WorthQueryExecutionResourceEnvelope {
     )
 }
 
-fn admitted_plan(binding: &str, limit: u64) -> WorthQueryAdmittedExecutionResourcePlan {
+pub(super) fn admitted_plan(binding: &str, limit: u64) -> WorthQueryAdmittedExecutionResourcePlan {
     let contract =
         WorthQueryExecutionResourceContract::declared([WorthQueryExecutionStrategyContract::new(
             WorthQueryExecutionStrategyName::new("bounded").unwrap(),

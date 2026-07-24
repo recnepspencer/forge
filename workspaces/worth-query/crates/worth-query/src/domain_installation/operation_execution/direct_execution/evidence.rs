@@ -1,4 +1,6 @@
-use crate::domain_installation::{WorthQueryGraphProviderCallKind, WorthQueryOperationResultState};
+use crate::domain_installation::WorthQueryOperationResultState;
+
+use super::WorthQueryBoundGraphExecutionReceipt;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryOperationExecutionCounters {
@@ -57,41 +59,6 @@ impl WorthQueryBoundExecutionReceipt {
     }
     pub fn execution_resources(&self) -> &super::WorthQueryExecutionResourceAttemptEvidence {
         &self.execution_resources
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct WorthQueryBoundGraphExecutionReceipt {
-    pub(super) role: String,
-    pub(super) kind: WorthQueryGraphProviderCallKind,
-    pub(super) provider_receipt: String,
-    pub(super) evidence_identity: String,
-    pub(super) projection: Option<Box<crate::runtime::WorthQueryReadResult>>,
-    pub(super) commit_authority_identity: Option<(u64, std::any::TypeId)>,
-    pub(super) commit_graph_roles: Vec<String>,
-}
-
-impl WorthQueryBoundGraphExecutionReceipt {
-    pub fn role(&self) -> &str {
-        &self.role
-    }
-    pub fn kind(&self) -> WorthQueryGraphProviderCallKind {
-        self.kind
-    }
-    pub fn evidence_identity(&self) -> &str {
-        &self.evidence_identity
-    }
-    pub(crate) fn projection(&self) -> Option<&crate::runtime::WorthQueryReadResult> {
-        self.projection.as_deref()
-    }
-    pub fn has_projection_material(&self) -> bool {
-        self.projection.is_some()
-    }
-    pub(crate) fn commit_authority_identity(&self) -> Option<(u64, std::any::TypeId)> {
-        self.commit_authority_identity
-    }
-    pub(crate) fn commit_graph_roles(&self) -> &[String] {
-        &self.commit_graph_roles
     }
 }
 

@@ -48,8 +48,8 @@ impl SemanticAspectDependencyCompilation {
                     call_kind: receipt.kind(),
                     evidence_identity: receipt.evidence_identity().to_owned(),
                     projection_result_digest: receipt
-                        .projection()
-                        .map(|projection| projection.receipt().result_digest().to_owned()),
+                        .graph_read_product()
+                        .map(|projection| projection.result_digest().to_owned()),
                     commit_graph_roles: receipt.commit_graph_roles().to_vec(),
                 },
             ));

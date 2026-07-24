@@ -203,8 +203,8 @@ fn graph_semantics(evidence: &WorthQueryAdmittedWorkflowStageEvidence) -> String
                 (
                     "graph.projection",
                     receipt
-                        .projection()
-                        .map(|projection| projection.receipt().result_digest())
+                        .graph_read_product()
+                        .map(|projection| projection.result_digest())
                         .unwrap_or("not-projected")
                         .into(),
                 ),

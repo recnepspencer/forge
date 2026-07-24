@@ -109,6 +109,10 @@ mod workflow_start_evidence;
 #[path = "workflow_execution/evidence/trace.rs"]
 mod workflow_trace;
 
+pub use worth_query_execution::facade::provider_session::{
+    WorthQueryBoundGraphExecutionReceipt, WorthQueryExecutionGraphReadProduct,
+};
+
 pub use artifact_owner::*;
 pub(crate) use artifact_owner::{
     WorthQueryArtifactProductionAuthority, WorthQueryArtifactProductionAuthorityParts,
