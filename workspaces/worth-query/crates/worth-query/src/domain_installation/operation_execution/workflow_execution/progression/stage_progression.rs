@@ -192,7 +192,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         );
         let material = self
             .executor
-            .execute(input, &context, workspace)
+            .execute(input, &context, &self.artifact_registry, workspace)
             .map_err(|failure| {
                 let class = failure.class().clone();
                 let kind = if stage.semantics().failure_classes.contains(&class) {

@@ -105,15 +105,9 @@ impl Drop for WorthQueryArtifactHandleCore {
             return;
         }
         match self.guard {
-            WorthQueryArtifactHandleGuard::Owner(generation) => {
+            WorthQueryArtifactHandleGuard::Owner(_) | WorthQueryArtifactHandleGuard::Lease(_) => {
                 self.owner
-                    .release_owner(generation, WorthQueryArtifactDisposition::Released, false)
-                    .expect("owned artifact handle cannot outlive an active borrow");
-            }
-            WorthQueryArtifactHandleGuard::Lease(generation) => {
-                self.owner
-                    .release_lease(generation, WorthQueryArtifactDisposition::Released)
-                    .expect("lease-backed artifact handle releases exactly one active lease");
+                    .release_guard_on_drop(self.guard, WorthQueryArtifactDisposition::Released);
             }
         }
     }

@@ -39,6 +39,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         for receipt in run.receipts.iter_mut().rev() {
             receipt.retire_artifact_output();
         }
+        run.artifact_registry.close_released();
         let mut trace = mint_completed_trace(run);
         match crate::domain_installation::dependency_impact::compile_workflow_semantic_aspect_dependencies(&trace) {
             Ok(dependency_closure) => trace.dependency_closure = Some(dependency_closure),

@@ -68,6 +68,7 @@ pub struct WorthQueryWorkflowRun<D, O, F, L: BasisOperationLane> {
     pub(super) authority_proof: Arc<WorthQueryWorkflowRunAuthorityProof>,
     pub(super) operation_conditional:
         Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
+    pub(super) artifact_registry: crate::domain_installation::WorthQueryWorkflowArtifactRegistry,
 }
 
 struct DeclaredWorkflowRuntime {
@@ -174,7 +175,7 @@ where
             bound: self,
             graph: declared_runtime.graph,
             executor: declared_runtime.executor,
-            identity,
+            identity: identity.clone(),
             completed: BTreeSet::new(),
             receipt_index: BTreeMap::new(),
             receipts: Vec::new(),
@@ -183,6 +184,9 @@ where
             active_parallel_admission: None,
             authority_proof,
             operation_conditional,
+            artifact_registry: crate::domain_installation::WorthQueryWorkflowArtifactRegistry::new(
+                identity,
+            ),
         })
     }
 

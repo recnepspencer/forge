@@ -14,6 +14,7 @@ pub enum WorthQueryArtifactDenialKind {
     BasisMismatch,
     ArtifactContractMismatch,
     PayloadOwnerMismatch,
+    StageExecutionMismatch,
     MovementForbidden,
     BorrowForbidden,
     LeaseForbidden,

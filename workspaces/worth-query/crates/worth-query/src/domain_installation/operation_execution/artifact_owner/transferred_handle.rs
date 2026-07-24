@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDisposition, WorthQueryArtifactHandleCore,
-    WorthQueryArtifactHandleGuard, WorthQueryArtifactSemanticProjection,
-    WorthQueryArtifactTraceMeaning, WorthQueryArtifactTransferAdmission,
-    WorthQueryBorrowedArtifactView, WorthQueryMoveOnlyArtifactHandle,
-    WorthQueryRetainedArtifactLease,
+    WorthQueryArtifactHandleGuard, WorthQueryArtifactOwnerSnapshot,
+    WorthQueryArtifactSemanticProjection, WorthQueryArtifactTraceMeaning,
+    WorthQueryArtifactTransferAdmission, WorthQueryBorrowedArtifactView,
+    WorthQueryMoveOnlyArtifactHandle, WorthQueryRetainedArtifactLease,
 };
 
 pub struct WorthQueryTransferredArtifactHandle {
@@ -38,6 +38,10 @@ impl WorthQueryTransferredArtifactHandle {
 
     pub fn semantic_projection(&self) -> &WorthQueryArtifactSemanticProjection {
         self.core.owner.semantic_projection()
+    }
+
+    pub fn owner_snapshot(&self) -> WorthQueryArtifactOwnerSnapshot {
+        self.core.owner.snapshot()
     }
 
     pub fn borrow(

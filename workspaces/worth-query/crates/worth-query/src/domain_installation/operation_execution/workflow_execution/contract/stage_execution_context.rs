@@ -26,6 +26,8 @@ pub struct WorthQueryWorkflowStageExecutionContext<'a> {
             worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
         >,
     >,
+    pub(super) artifact_production_authority:
+        Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>,
 }
 
 pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
@@ -63,6 +65,18 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
         predecessor_receipts: &'a [&'a WorthQueryWorkflowStageReceipt],
         authority: WorthQueryWorkflowStageExecutionAuthority<'a>,
     ) -> Self {
+        let artifact_production_authority =
+            authority.output_artifact_contract.as_ref().map(|contract| {
+                crate::domain_installation::WorthQueryArtifactProductionAuthority::mint(
+                    std::sync::Arc::clone(contract),
+                    std::sync::Arc::clone(&authority.domain_authority),
+                    operation_identity.to_owned(),
+                    binding_identity.to_owned(),
+                    run_identity.to_owned(),
+                    stage.identity().to_owned(),
+                    authority.identity_evolution_basis_identity.clone(),
+                )
+            });
         Self {
             operation_identity,
             binding_identity,
@@ -81,7 +95,17 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
             identity_evolution_basis_identity: authority.identity_evolution_basis_identity,
             domain_authority: authority.domain_authority,
             output_artifact_contract: authority.output_artifact_contract,
+            artifact_production_authority,
         }
+    }
+
+    pub(crate) fn artifact_production_authority(
+        &self,
+    ) -> Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>
+    {
+        self.artifact_production_authority
+            .as_ref()
+            .map(std::sync::Arc::clone)
     }
 
     pub fn operation_identity(&self) -> &str {

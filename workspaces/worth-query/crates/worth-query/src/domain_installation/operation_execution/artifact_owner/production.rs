@@ -1,5 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use std::sync::Arc;
+
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactDisposition,
     WorthQueryArtifactHandleCore, WorthQueryArtifactProductionAdmission,
@@ -16,24 +18,26 @@ impl WorthQueryMoveOnlyArtifactHandle {
     ) -> Result<Self, WorthQueryArtifactDenial> {
         validate_production(&admission, &prepared)?;
         let occurrence_ordinal = NEXT_ARTIFACT_OCCURRENCE.fetch_add(1, Ordering::Relaxed);
-        let contract = admission.contract.contract();
+        let authority = &admission.authority;
+        let contract = authority.contract.contract();
         let owner_identity = crate::identity::hash_parts(&[
             "worth_query_runtime_artifact_owner_v1".into(),
             format!(
                 "runtime:{}",
-                admission.domain_authority.runtime_authority().as_u64()
+                authority.domain_authority.runtime_authority().as_u64()
             ),
             format!(
                 "generation:{}",
                 admission
+                    .authority
                     .domain_authority
                     .installation_generation()
                     .ordinal()
             ),
-            format!("operation:{}", admission.operation_identity),
-            format!("binding:{}", admission.binding_identity),
-            format!("run:{}", admission.run_identity),
-            format!("stage:{}", admission.stage_identity),
+            format!("operation:{}", authority.operation_identity),
+            format!("binding:{}", authority.binding_identity),
+            format!("run:{}", authority.run_identity),
+            format!("stage:{}", authority.stage_identity),
             format!("contract:{}", contract.identity().as_str()),
             format!("occurrence-ordinal:{occurrence_ordinal}"),
         ]);
@@ -41,19 +45,19 @@ impl WorthQueryMoveOnlyArtifactHandle {
             "worth_query_artifact_occurrence_v1".into(),
             format!("owner:{owner_identity}"),
             format!("contract:{}", contract.identity().as_str()),
-            format!("run:{}", admission.run_identity),
-            format!("stage:{}", admission.stage_identity),
+            format!("run:{}", authority.run_identity),
+            format!("stage:{}", authority.stage_identity),
         ]);
-        let holder_stage = admission.stage_identity.clone();
+        let holder_stage = authority.stage_identity.clone();
         let owner = WorthQueryRuntimeArtifactOwner::register(
             WorthQueryRuntimeArtifactBinding {
-                contract: admission.contract,
-                domain_authority: admission.domain_authority,
-                operation_identity: admission.operation_identity,
-                binding_identity: admission.binding_identity,
-                run_identity: admission.run_identity,
-                producing_stage: admission.stage_identity,
-                basis_identity: admission.basis_identity,
+                contract: Arc::clone(&authority.contract),
+                domain_authority: Arc::clone(&authority.domain_authority),
+                operation_identity: authority.operation_identity.clone(),
+                binding_identity: authority.binding_identity.clone(),
+                run_identity: authority.run_identity.clone(),
+                producing_stage: authority.stage_identity.clone(),
+                basis_identity: authority.basis_identity.clone(),
                 provenance_identity: admission.evidence.provenance_identity().to_owned(),
                 dependency_identity: admission.evidence.dependency_identity().to_owned(),
                 owner_identity,
@@ -75,8 +79,10 @@ fn validate_production(
     admission: &WorthQueryArtifactProductionAdmission,
     prepared: &WorthQueryPreparedArtifactResource,
 ) -> Result<(), WorthQueryArtifactDenial> {
-    let contract = admission.contract.contract();
+    let authority = &admission.authority;
+    let contract = authority.contract.contract();
     if !admission
+        .authority
         .domain_authority
         .is_current_installation_generation()
     {
@@ -108,7 +114,7 @@ fn validate_production(
             "provider resource family differs from the installed artifact contract",
         ));
     }
-    if ownership.payload_owner() != Some(admission.contract.owner()) {
+    if ownership.payload_owner() != Some(authority.contract.owner()) {
         return Err(production_denial(
             WorthQueryArtifactDenialKind::PayloadOwnerMismatch,
             contract,
@@ -118,7 +124,7 @@ fn validate_production(
     if !contract
         .producer_roles()
         .iter()
-        .any(|role| role == &admission.stage_identity)
+        .any(|role| role == &authority.stage_identity)
     {
         return Err(production_denial(
             WorthQueryArtifactDenialKind::ProducerRoleNotInstalled,

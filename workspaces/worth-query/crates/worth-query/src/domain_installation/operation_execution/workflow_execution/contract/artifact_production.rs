@@ -8,7 +8,10 @@ impl WorthQueryWorkflowStageExecutionContext<'_> {
         crate::domain_installation::WorthQueryArtifactProductionAdmission,
         crate::domain_installation::WorthQueryArtifactDenial,
     > {
-        let contract = self.output_artifact_contract.as_ref().ok_or_else(|| {
+        let authority = self
+            .artifact_production_authority
+            .as_ref()
+            .ok_or_else(|| {
             crate::domain_installation::WorthQueryArtifactDenial::new(
                 crate::domain_installation::WorthQueryArtifactDenialKind::ArtifactContractNotInstalled,
                 None,
@@ -17,13 +20,7 @@ impl WorthQueryWorkflowStageExecutionContext<'_> {
         })?;
         Ok(
             crate::domain_installation::WorthQueryArtifactProductionAdmission::mint(
-                std::sync::Arc::clone(contract),
-                std::sync::Arc::clone(&self.domain_authority),
-                self.operation_identity.to_owned(),
-                self.binding_identity.to_owned(),
-                self.run_identity.to_owned(),
-                self.stage.identity().to_owned(),
-                self.identity_evolution_basis_identity.clone(),
+                std::sync::Arc::clone(authority),
                 evidence,
             ),
         )

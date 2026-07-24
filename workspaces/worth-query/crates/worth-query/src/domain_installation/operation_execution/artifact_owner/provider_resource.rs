@@ -60,6 +60,48 @@ impl<R: WorthQueryArtifactProviderResource> Drop for TypedArtifactProviderResour
     }
 }
 
+pub(crate) struct WorthQueryGuardedArtifactResource {
+    pub(crate) provider_family: &'static str,
+    resource: Option<Box<dyn WorthQueryErasedArtifactProviderResource>>,
+}
+
+impl WorthQueryGuardedArtifactResource {
+    pub(crate) fn new<R: WorthQueryArtifactProviderResource>(resource: R) -> Self {
+        let resource: Box<dyn WorthQueryErasedArtifactProviderResource> =
+            Box::new(TypedArtifactProviderResource {
+                resource: Some(resource),
+            });
+        Self {
+            provider_family: R::PROVIDER_FAMILY,
+            resource: Some(resource),
+        }
+    }
+
+    pub(crate) fn prepare(mut self) -> WorthQueryPreparedArtifactResource {
+        let resource = self
+            .resource
+            .take()
+            .expect("guarded artifact retains exactly one provider resource");
+        let semantic_projection =
+            WorthQueryArtifactSemanticProjection::new(resource.canonical_semantic_projection());
+        let retained_bytes = resource.retained_bytes();
+        WorthQueryPreparedArtifactResource {
+            provider_family: self.provider_family,
+            semantic_projection: Some(semantic_projection),
+            retained_bytes,
+            resource: Some(resource),
+        }
+    }
+}
+
+impl Drop for WorthQueryGuardedArtifactResource {
+    fn drop(&mut self) {
+        if let Some(resource) = self.resource.take() {
+            resource.dispose();
+        }
+    }
+}
+
 pub(crate) struct WorthQueryPreparedArtifactResource {
     pub(crate) provider_family: &'static str,
     semantic_projection: Option<WorthQueryArtifactSemanticProjection>,
@@ -68,22 +110,6 @@ pub(crate) struct WorthQueryPreparedArtifactResource {
 }
 
 impl WorthQueryPreparedArtifactResource {
-    pub(crate) fn prepare<R: WorthQueryArtifactProviderResource>(resource: R) -> Self {
-        let resource: Box<dyn WorthQueryErasedArtifactProviderResource> =
-            Box::new(TypedArtifactProviderResource {
-                resource: Some(resource),
-            });
-        let semantic_projection =
-            WorthQueryArtifactSemanticProjection::new(resource.canonical_semantic_projection());
-        let retained_bytes = resource.retained_bytes();
-        Self {
-            provider_family: R::PROVIDER_FAMILY,
-            semantic_projection: Some(semantic_projection),
-            retained_bytes,
-            resource: Some(resource),
-        }
-    }
-
     pub(crate) fn semantic_projection(&self) -> &WorthQueryArtifactSemanticProjection {
         self.semantic_projection
             .as_ref()

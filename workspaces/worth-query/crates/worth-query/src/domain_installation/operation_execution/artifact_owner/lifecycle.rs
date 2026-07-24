@@ -13,6 +13,7 @@ pub(super) struct WorthQueryRuntimeArtifactLifecycle {
     active_borrows: BTreeSet<u64>,
     next_lease_generation: u64,
     active_leases: BTreeSet<u64>,
+    close_requested: bool,
     disposed: bool,
     disposition: WorthQueryArtifactDisposition,
     counters: WorthQueryArtifactLifecycleCounters,
@@ -27,6 +28,7 @@ impl WorthQueryRuntimeArtifactLifecycle {
             active_borrows: BTreeSet::new(),
             next_lease_generation: 0,
             active_leases: BTreeSet::new(),
+            close_requested: false,
             disposed: false,
             disposition: WorthQueryArtifactDisposition::Produced,
             counters: WorthQueryArtifactLifecycleCounters {
@@ -136,16 +138,20 @@ impl WorthQueryRuntimeArtifactOwner {
     }
 
     pub(super) fn release_borrow(&self, generation: u64) -> Result<(), WorthQueryArtifactDenial> {
-        let mut state = self.lifecycle();
-        if !state.active_borrows.remove(&generation) {
-            return Err(self.denial(
-                WorthQueryArtifactDenialKind::StaleLifecycleGeneration,
-                "artifact borrow generation is no longer active",
-            ));
-        }
-        if state.active_borrows.is_empty() {
-            state.disposition = WorthQueryArtifactDisposition::Released;
-        }
+        let should_dispose = {
+            let mut state = self.lifecycle();
+            if !state.active_borrows.remove(&generation) {
+                return Err(self.denial(
+                    WorthQueryArtifactDenialKind::StaleLifecycleGeneration,
+                    "artifact borrow generation is no longer active",
+                ));
+            }
+            if state.active_borrows.is_empty() && !state.close_requested {
+                state.disposition = WorthQueryArtifactDisposition::Released;
+            }
+            mark_disposed_if_unowned(&mut state)
+        };
+        self.dispose_provider_if_required(should_dispose);
         Ok(())
     }
 
@@ -236,6 +242,51 @@ impl WorthQueryRuntimeArtifactOwner {
         Ok(should_dispose)
     }
 
+    pub(super) fn release_guard_on_drop(
+        &self,
+        guard: WorthQueryArtifactHandleGuard,
+        disposition: WorthQueryArtifactDisposition,
+    ) {
+        let should_dispose = {
+            let mut state = self.lifecycle();
+            if state.disposed {
+                return;
+            }
+            match guard {
+                WorthQueryArtifactHandleGuard::Owner(generation)
+                    if state.owner_active && state.owner_generation == generation =>
+                {
+                    state.owner_active = false;
+                    state.owner_generation += 1;
+                }
+                WorthQueryArtifactHandleGuard::Lease(generation)
+                    if state.active_leases.remove(&generation) => {}
+                _ => return,
+            }
+            if !state.close_requested {
+                state.disposition = disposition;
+            }
+            mark_disposed_if_unowned(&mut state)
+        };
+        self.dispose_provider_if_required(should_dispose);
+    }
+
+    pub(super) fn request_registry_close(&self, disposition: WorthQueryArtifactDisposition) {
+        let should_dispose = {
+            let mut state = self.lifecycle();
+            if state.disposed || state.close_requested {
+                return;
+            }
+            state.close_requested = true;
+            state.owner_active = false;
+            state.owner_generation += 1;
+            state.active_leases.clear();
+            state.disposition = disposition;
+            mark_disposed_if_unowned(&mut state)
+        };
+        self.dispose_provider_if_required(should_dispose);
+    }
+
     fn lifecycle(&self) -> std::sync::MutexGuard<'_, WorthQueryRuntimeArtifactLifecycle> {
         self.lifecycle
             .lock()
@@ -271,10 +322,10 @@ fn ensure_live(
     owner: &WorthQueryRuntimeArtifactOwner,
     state: &WorthQueryRuntimeArtifactLifecycle,
 ) -> Result<(), WorthQueryArtifactDenial> {
-    if state.disposed {
+    if state.disposed || state.close_requested {
         Err(owner.denial(
             WorthQueryArtifactDenialKind::AlreadyDisposed,
-            "artifact owner has already been disposed",
+            "artifact owner is disposed or closed by its workflow run",
         ))
     } else {
         Ok(())

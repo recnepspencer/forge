@@ -100,6 +100,9 @@ mod workflow_start_evidence;
 mod workflow_trace;
 
 pub use artifact_owner::*;
+pub(crate) use artifact_owner::{
+    WorthQueryArtifactProductionAuthority, WorthQueryWorkflowArtifactRegistry,
+};
 pub use consumption_progression::*;
 pub use operation_input::*;
 pub use operation_output::*;

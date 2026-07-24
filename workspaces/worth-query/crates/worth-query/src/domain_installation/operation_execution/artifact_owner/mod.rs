@@ -10,7 +10,9 @@ mod lifecycle;
 mod owner;
 mod production;
 mod production_admission;
+mod production_authority;
 mod provider_resource;
+mod registry;
 mod replacement;
 mod retained_lease;
 mod trace_meaning;
@@ -40,7 +42,10 @@ pub(crate) use installed_binding::{
 };
 use lifecycle::WorthQueryRuntimeArtifactLifecycle;
 pub(crate) use owner::{WorthQueryRuntimeArtifactBinding, WorthQueryRuntimeArtifactOwner};
+pub(crate) use production_authority::WorthQueryArtifactProductionAuthority;
 pub(crate) use provider_resource::{
-    WorthQueryErasedArtifactProviderResource, WorthQueryPreparedArtifactResource,
+    WorthQueryErasedArtifactProviderResource, WorthQueryGuardedArtifactResource,
+    WorthQueryPreparedArtifactResource,
 };
+pub(crate) use registry::WorthQueryWorkflowArtifactRegistry;
 pub(crate) use transfer::WorthQueryArtifactTransferAdmissionParts;

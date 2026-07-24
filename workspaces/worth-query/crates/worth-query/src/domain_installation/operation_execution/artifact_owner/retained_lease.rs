@@ -63,12 +63,10 @@ impl WorthQueryRetainedArtifactLease {
 impl Drop for WorthQueryRetainedArtifactLease {
     fn drop(&mut self) {
         if self.active {
-            self.owner
-                .release_lease(
-                    self.lease_generation,
-                    WorthQueryArtifactDisposition::Released,
-                )
-                .expect("retained artifact lease releases exactly one active generation");
+            self.owner.release_guard_on_drop(
+                super::WorthQueryArtifactHandleGuard::Lease(self.lease_generation),
+                WorthQueryArtifactDisposition::Released,
+            );
         }
     }
 }

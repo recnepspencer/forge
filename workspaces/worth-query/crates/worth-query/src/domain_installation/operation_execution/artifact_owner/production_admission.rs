@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use super::WorthQueryArtifactProductionAuthority;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryArtifactProductionEvidence {
     provenance_identity: String,
@@ -33,39 +35,17 @@ impl WorthQueryArtifactProductionEvidence {
 }
 
 pub struct WorthQueryArtifactProductionAdmission {
-    pub(super) contract:
-        Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>,
-    pub(super) domain_authority:
-        Arc<crate::domain_installation::WorthQueryInstalledDomainAuthority>,
-    pub(super) operation_identity: String,
-    pub(super) binding_identity: String,
-    pub(super) run_identity: String,
-    pub(super) stage_identity: String,
-    pub(super) basis_identity: String,
+    pub(crate) authority: Arc<WorthQueryArtifactProductionAuthority>,
     pub(super) evidence: WorthQueryArtifactProductionEvidence,
 }
 
 impl WorthQueryArtifactProductionAdmission {
     pub(crate) fn mint(
-        contract: Arc<
-            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
-        >,
-        domain_authority: Arc<crate::domain_installation::WorthQueryInstalledDomainAuthority>,
-        operation_identity: String,
-        binding_identity: String,
-        run_identity: String,
-        stage_identity: String,
-        basis_identity: String,
+        authority: Arc<WorthQueryArtifactProductionAuthority>,
         evidence: WorthQueryArtifactProductionEvidence,
     ) -> Self {
         Self {
-            contract,
-            domain_authority,
-            operation_identity,
-            binding_identity,
-            run_identity,
-            stage_identity,
-            basis_identity,
+            authority,
             evidence,
         }
     }
@@ -73,22 +53,22 @@ impl WorthQueryArtifactProductionAdmission {
     pub fn contract(
         &self,
     ) -> &worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority {
-        &self.contract
+        &self.authority.contract
     }
 
     pub fn operation_identity(&self) -> &str {
-        &self.operation_identity
+        &self.authority.operation_identity
     }
 
     pub fn run_identity(&self) -> &str {
-        &self.run_identity
+        &self.authority.run_identity
     }
 
     pub fn stage_identity(&self) -> &str {
-        &self.stage_identity
+        &self.authority.stage_identity
     }
 
     pub fn basis_identity(&self) -> &str {
-        &self.basis_identity
+        &self.authority.basis_identity
     }
 }
