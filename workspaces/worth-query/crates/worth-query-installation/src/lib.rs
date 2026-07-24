@@ -13,6 +13,7 @@ mod domain_operation;
 mod generation;
 mod installed_domain_operation;
 mod installed_graph_participation;
+mod installed_handle_denial;
 mod installed_index;
 mod installed_operation;
 mod package;
@@ -70,6 +71,9 @@ pub mod facade {
         WorthQueryInstalledDomainOperationAuthority,
     };
     pub use crate::installed_graph_participation::WorthQueryInstalledGraphParticipationAuthority;
+    pub use crate::installed_handle_denial::{
+        WorthQueryDomainHandleDenial, WorthQueryDomainHandleDenialKind,
+    };
     pub use crate::installed_index::{
         WorthQueryInstalledPackageAuthority, WorthQueryInstalledPackageIndex,
         WorthQueryInstalledPackageIndexCounters, WorthQueryInstalledPackageIndexDenial,

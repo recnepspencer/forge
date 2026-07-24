@@ -9,7 +9,7 @@ use worth_proof::TransitionOutcome;
 use worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest;
 
 use super::{
-    lower_execution_resource_plan, WorthQueryAdmittedWorkflowResourcePlan,
+    admit_execution_resource_plan, WorthQueryAdmittedWorkflowResourcePlan,
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAdmissionCounters,
     WorthQueryExecutionResourceAdmissionDenial,
     WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
@@ -81,17 +81,14 @@ where
             ));
         };
         let support = WorthQueryExecutionResourceSupportSnapshot::new(
-            super::WorthQueryExecutionResourceSupportSnapshotParts {
-                executor: executor.resource_support.clone(),
-                conditional_nodes: super::operation_conditional_supports(&self),
-                graph_providers: Vec::new(),
-                commit_providers: Vec::new(),
-                parallel_admission: self
-                    .workflow_parallel_admission_provider()
-                    .map(|provider| provider.resource_support().clone()),
-            },
+            executor.resource_support.clone(),
+            super::operation_conditional_supports(&self),
+            Vec::new(),
+            Vec::new(),
+            self.workflow_parallel_admission_provider()
+                .map(|provider| provider.resource_support().clone()),
         );
-        let mut operation = match lower_execution_resource_plan(
+        let mut operation = match admit_execution_resource_plan(
             self.binding_identity(),
             &self.definition().semantics().resources,
             &request,
@@ -155,7 +152,7 @@ fn lower_stages<D, O, F, L: BasisOperationLane>(
         .iter()
         .map(|stage| {
             let support = stage_support_snapshot(bound, stage, executor_support);
-            lower_execution_resource_plan(
+            admit_execution_resource_plan(
                 &format!("{}:{}", bound.binding_identity(), stage.identity()),
                 &stage.semantics().resources,
                 request,
@@ -186,23 +183,21 @@ fn stage_support_snapshot<D, O, F, L: BasisOperationLane>(
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
     WorthQueryExecutionResourceSupportSnapshot::new(
-        super::WorthQueryExecutionResourceSupportSnapshotParts {
-            executor: executor_support.clone(),
-            conditional_nodes: super::stage_conditional_supports(bound, stage.identity()),
-            graph_providers: bound
-                .graph_participations()
-                .iter()
-                .filter(|participation| roles.contains(participation.role.as_str()))
-                .map(|participation| {
-                    (
-                        participation.role.clone(),
-                        participation.record.resource_support.clone(),
-                    )
-                })
-                .collect(),
-            commit_providers: super::commit_supports_for_roles(bound, &touch_roles),
-            parallel_admission: None,
-        },
+        executor_support.clone(),
+        super::stage_conditional_supports(bound, stage.identity()),
+        bound
+            .graph_participations()
+            .iter()
+            .filter(|participation| roles.contains(participation.role.as_str()))
+            .map(|participation| {
+                (
+                    participation.role.clone(),
+                    participation.record.resource_support.clone(),
+                )
+            })
+            .collect(),
+        super::commit_supports_for_roles(bound, &touch_roles),
+        None,
     )
 }
 

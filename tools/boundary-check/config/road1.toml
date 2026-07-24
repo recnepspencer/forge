@@ -286,7 +286,11 @@ engine_package = "worth-query"
 certification_package = "worth-query-certification"
 certification_authority_packages = ["worth-query-host", "worth-query-replay"]
 certification_consumers = ["worth-ui-certification"]
-internal_packages = ["worth-query-declaration", "worth-query-installation"]
+internal_packages = [
+  "worth-query-declaration",
+  "worth-query-installation",
+  "worth-query-admission",
+]
 
 [[rule_contracts.query_audience.facade_surfaces]]
 label = "worth-query-host::installed"

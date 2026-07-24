@@ -280,7 +280,7 @@ fn relationship_proof_host_callback_is_forbidden_before_truth_touch() {
                     "manager",
                     admitted.bundle().policy_digest(),
                 ),
-                RelationshipProofDescriptor::host_callback_for_test("authz"),
+                RelationshipProofDescriptor::host_callback_forbidden("authz"),
             ],
             RelationshipProofBudget::bounded(2, 1),
         ),

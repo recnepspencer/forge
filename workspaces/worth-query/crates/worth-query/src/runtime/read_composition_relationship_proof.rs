@@ -199,7 +199,7 @@ mod tests {
         RawAuthoredResultShape, RootEntityKey,
     };
     use crate::policy_basis::PolicyTenantAdmissionFailureClass;
-    use crate::relationship_proof::{RelationshipProofCounters, RelationshipProofFailureClass};
+    use crate::relationship_proof::RelationshipProofFailureClass;
     use crate::runtime::{WorthQueryReadDenialKind, WorthQueryReadRelationshipProofDenialStage};
 
     fn canonical_query() -> crate::canonicalization::CanonicalQueryBundle {
@@ -212,14 +212,6 @@ mod tests {
             .build()
             .unwrap();
         GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap()
-    }
-
-    fn proof_error(failure_class: RelationshipProofFailureClass) -> RelationshipProofError {
-        RelationshipProofError::new(
-            failure_class,
-            "proof failure",
-            RelationshipProofCounters::default(),
-        )
     }
 
     #[test]
@@ -273,9 +265,9 @@ mod tests {
 
     #[test]
     fn relationship_proof_failures_map_to_structured_read_denial() {
-        let denial = relationship_proof_admission_denial(proof_error(
-            RelationshipProofFailureClass::UnboundedRecursiveWalk,
-        ));
+        let denial = relationship_proof_admission_denial(
+            RelationshipProofError::unbounded_recursive_walk("proof failure"),
+        );
 
         assert_eq!(
             denial.kind(),

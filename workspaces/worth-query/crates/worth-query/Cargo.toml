@@ -13,6 +13,7 @@ categories = ["data-structures", "science"]
 arc-swap = "1"
 worth-query-declaration = { path = "../worth-query-declaration" }
 worth-query-installation = { path = "../worth-query-installation" }
+worth-query-admission = { path = "../worth-query-admission" }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-relational = { path = "../../../../crates/worth-relational" }

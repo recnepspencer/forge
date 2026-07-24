@@ -590,12 +590,23 @@ dependencies = [
  "syn",
  "worth-foundational",
  "worth-proof",
+ "worth-query-admission",
  "worth-query-declaration",
  "worth-query-installation",
  "worth-relational",
  "worth-runtime-bridge",
  "worth-schema-graph",
  "worth-signal",
+]
+
+[[package]]
+name = "worth-query-admission"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+ "worth-foundational",
+ "worth-query-declaration",
+ "worth-query-installation",
 ]
 
 [[package]]

@@ -7,7 +7,7 @@ use worth_proof::TransitionOutcome;
 use worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest;
 
 use super::{
-    lower_execution_resource_plan, WorthQueryAdmittedExecutionResourcePlan,
+    admit_execution_resource_plan, WorthQueryAdmittedExecutionResourcePlan,
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAdmissionCounters,
     WorthQueryExecutionResourceAdmissionDenial,
     WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
@@ -116,7 +116,7 @@ where
             ));
         };
         let support = direct_support_snapshot(&self, &executor.resource_support);
-        let mut resources = match lower_execution_resource_plan(
+        let mut resources = match admit_execution_resource_plan(
             self.binding_identity(),
             &self.definition().semantics().resources,
             &request,
@@ -164,23 +164,21 @@ fn direct_support_snapshot<D, O, F, L: BasisOperationLane>(
         graph_roles.extend(touch_roles.iter().map(String::as_str));
     }
     WorthQueryExecutionResourceSupportSnapshot::new(
-        super::WorthQueryExecutionResourceSupportSnapshotParts {
-            executor: executor.clone(),
-            conditional_nodes: super::operation_conditional_supports(bound),
-            graph_providers: bound
-                .graph_participations()
-                .iter()
-                .filter(|participation| graph_roles.contains(participation.role.as_str()))
-                .map(|participation| {
-                    (
-                        participation.role.clone(),
-                        participation.record.resource_support.clone(),
-                    )
-                })
-                .collect(),
-            commit_providers: super::commit_supports_for_roles(bound, &graph_roles),
-            parallel_admission: None,
-        },
+        executor.clone(),
+        super::operation_conditional_supports(bound),
+        bound
+            .graph_participations()
+            .iter()
+            .filter(|participation| graph_roles.contains(participation.role.as_str()))
+            .map(|participation| {
+                (
+                    participation.role.clone(),
+                    participation.record.resource_support.clone(),
+                )
+            })
+            .collect(),
+        super::commit_supports_for_roles(bound, &graph_roles),
+        None,
     )
 }
 

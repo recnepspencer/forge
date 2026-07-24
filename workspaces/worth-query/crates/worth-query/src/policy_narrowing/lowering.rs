@@ -55,8 +55,8 @@ pub fn narrow_policy_query_with_budget(
         ));
     }
 
-    let cost_posture: Option<PolicyNarrowingCostPosture> =
-        admitted.bundle().policy_cost_posture().into();
+    let cost_posture =
+        PolicyNarrowingCostPosture::from_policy(admitted.bundle().policy_cost_posture());
     let Some(cost_posture) = cost_posture else {
         return Err(PolicyNarrowingError::new(
             PolicyNarrowingFailureClass::UnknownNarrowingCost,

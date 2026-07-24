@@ -20,18 +20,12 @@ impl PolicyNarrowingCostPosture {
             Self::NonDisclosingFieldUse => "non_disclosing_field_use",
         }
     }
-}
 
-impl From<PolicyCostPosture> for Option<PolicyNarrowingCostPosture> {
-    fn from(value: PolicyCostPosture) -> Self {
+    pub fn from_policy(value: PolicyCostPosture) -> Option<Self> {
         match value {
-            PolicyCostPosture::ConstantProof => Some(PolicyNarrowingCostPosture::ConstantProof),
-            PolicyCostPosture::BoundedRelationshipProof => {
-                Some(PolicyNarrowingCostPosture::BoundedRelationshipProof)
-            }
-            PolicyCostPosture::NonDisclosingFieldUse => {
-                Some(PolicyNarrowingCostPosture::NonDisclosingFieldUse)
-            }
+            PolicyCostPosture::ConstantProof => Some(Self::ConstantProof),
+            PolicyCostPosture::BoundedRelationshipProof => Some(Self::BoundedRelationshipProof),
+            PolicyCostPosture::NonDisclosingFieldUse => Some(Self::NonDisclosingFieldUse),
             PolicyCostPosture::UnknownCost | PolicyCostPosture::CrossTenantFanout => None,
         }
     }
