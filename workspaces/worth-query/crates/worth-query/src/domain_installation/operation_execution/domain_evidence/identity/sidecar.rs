@@ -4,11 +4,18 @@ use crate::domain_installation::operation_identity_basis::{
 use crate::identity::hash_parts;
 
 use super::super::super::{
-    WorthQueryAdmittedDomainEvidenceSidecar, WorthQueryCandidateRecord,
-    WorthQueryCandidateRecordDisposition, WorthQueryDecisionCausalParent, WorthQueryDecisionRecord,
-    WorthQueryTransformationRecord,
+    WorthQueryAdmittedDomainEvidenceSidecar, WorthQueryAdmittedStructuralCounter,
+    WorthQueryCandidateRecord, WorthQueryCandidateRecordDisposition,
+    WorthQueryDecisionCausalParent, WorthQueryDecisionRecord, WorthQueryTransformationRecord,
 };
 use super::vocabulary::{disposition_name, error_name};
+
+pub(super) fn counter_sidecar_digest(records: &[WorthQueryAdmittedStructuralCounter]) -> String {
+    hash_parts(&[canonical_indexed_operation_material(
+        "domain.evidence.optional-counter",
+        records.iter().map(super::core::counter_material),
+    )])
+}
 
 pub(super) fn decision_sidecar_digest(records: &[WorthQueryDecisionRecord]) -> String {
     hash_parts(&[canonical_indexed_operation_material(

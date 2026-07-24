@@ -27,9 +27,39 @@ fn dishonest_counter_search_and_loss_material_fail_receipt_admission_exactly() {
             domain::WorthQueryDomainEvidenceAdmissionDenialKind::CandidateSearchOverclaim,
         ),
         (
+            "domain-evidence-search-not-applicable",
+            EvidenceScenario::SearchNotApplicable,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::CandidateSearchOverclaim,
+        ),
+        (
+            "domain-evidence-search-no-feasible-selected",
+            EvidenceScenario::SearchNoFeasibleSelected,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::CandidateSearchOverclaim,
+        ),
+        (
+            "domain-evidence-search-all-feasible-rejected",
+            EvidenceScenario::SearchAllFeasibleRejected,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::CandidateSearchOverclaim,
+        ),
+        (
             "domain-evidence-loss-mismatch",
             EvidenceScenario::LossMismatch,
             domain::WorthQueryDomainEvidenceAdmissionDenialKind::TransformationSummaryMismatch,
+        ),
+        (
+            "domain-evidence-malformed-sidecars",
+            EvidenceScenario::MalformedSidecars,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::CandidateSidecarMismatch,
+        ),
+        (
+            "domain-evidence-malformed-transformation-sidecar",
+            EvidenceScenario::MalformedTransformationSidecar,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::TransformationSidecarMismatch,
+        ),
+        (
+            "domain-evidence-malformed-optional-counter",
+            EvidenceScenario::MalformedOptionalCounter,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::CounterMovedBackward,
         ),
     ];
 

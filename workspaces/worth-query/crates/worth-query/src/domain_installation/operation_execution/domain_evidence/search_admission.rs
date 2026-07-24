@@ -5,10 +5,10 @@ use worth_query_installation::facade::{
 };
 
 use super::{
-    WorthQueryCandidateIncumbentDisposition, WorthQueryCandidateRecord,
-    WorthQueryCandidateRecordDisposition, WorthQueryCandidateSearchSummary,
-    WorthQueryCandidateTerminationClass, WorthQueryDomainEvidenceAdmissionDenial,
-    WorthQueryDomainEvidenceAdmissionDenialKind,
+    WorthQueryCandidateFeasibilityClass, WorthQueryCandidateIncumbentDisposition,
+    WorthQueryCandidateRecord, WorthQueryCandidateRecordDisposition,
+    WorthQueryCandidateSearchSummary, WorthQueryCandidateTerminationClass,
+    WorthQueryDomainEvidenceAdmissionDenial, WorthQueryDomainEvidenceAdmissionDenialKind,
 };
 
 pub(super) fn admit_candidate_search(
@@ -55,6 +55,7 @@ fn validate_summary(
         || !portable(parts.universe.value())
         || !portable(parts.comparison_authority.value())
         || !termination_matches(&parts.completeness, parts.termination)
+        || !feasibility_matches_counts(summary)
         || !counts_are_coherent(summary)
     {
         return Err(denial(
@@ -63,6 +64,35 @@ fn validate_summary(
         ));
     }
     Ok(())
+}
+
+fn feasibility_matches_counts(summary: &WorthQueryCandidateSearchSummary) -> bool {
+    let parts = summary.parts();
+    use WorthQueryCandidateFeasibilityClass as Feasibility;
+    use WorthQueryCandidateIncumbentDisposition as Incumbent;
+    match parts.feasibility {
+        Feasibility::NotApplicable => false,
+        Feasibility::NoFeasibleCandidate => {
+            parts.rejected_count == parts.considered_count
+                && matches!(parts.incumbent, Incumbent::None | Incumbent::RejectedAll)
+        }
+        Feasibility::FeasibleCandidateFound => {
+            parts.considered_count > parts.rejected_count
+                && !matches!(
+                    parts.incumbent,
+                    Incumbent::NotApplicable | Incumbent::RejectedAll
+                )
+        }
+        Feasibility::AllConsideredFeasible => {
+            parts.considered_count > 0
+                && parts.rejected_count == 0
+                && !matches!(
+                    parts.incumbent,
+                    Incumbent::NotApplicable | Incumbent::RejectedAll
+                )
+        }
+        Feasibility::Unknown => parts.incumbent != Incumbent::NotApplicable,
+    }
 }
 
 fn counts_are_coherent(summary: &WorthQueryCandidateSearchSummary) -> bool {

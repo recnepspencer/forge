@@ -1,7 +1,8 @@
 use crate::domain_installation::{
     domain_evidence_binding_material, domain_evidence_core_material,
     domain_evidence_governance_material, WorthQueryAdmittedDomainEvidence,
-    WorthQueryCandidateRecord, WorthQueryDecisionRecord, WorthQueryTransformationRecord,
+    WorthQueryAdmittedStructuralCounter, WorthQueryCandidateRecord, WorthQueryDecisionRecord,
+    WorthQueryTransformationRecord,
 };
 use crate::identity::hash_parts;
 
@@ -9,6 +10,9 @@ use super::{CausalInspectionRedactionPolicy, WorthQueryDomainEvidenceInspectionS
 
 pub(super) fn inspection_copy_identity(
     source: &WorthQueryAdmittedDomainEvidence,
+    counter_sidecar: &WorthQueryDomainEvidenceInspectionSidecar<
+        WorthQueryAdmittedStructuralCounter,
+    >,
     decision_sidecar: &WorthQueryDomainEvidenceInspectionSidecar<WorthQueryDecisionRecord>,
     candidate_sidecar: &WorthQueryDomainEvidenceInspectionSidecar<WorthQueryCandidateRecord>,
     transformation_sidecar: &WorthQueryDomainEvidenceInspectionSidecar<
@@ -30,6 +34,7 @@ pub(super) fn inspection_copy_identity(
         ),
         format!("core:{}", domain_evidence_core_material(source.core())),
         format!("redaction:{}", redaction_policy.as_str()),
+        format!("counter-sidecar:{}", sidecar_material(counter_sidecar)),
         format!("decision-sidecar:{}", sidecar_material(decision_sidecar)),
         format!("candidate-sidecar:{}", sidecar_material(candidate_sidecar)),
         format!(

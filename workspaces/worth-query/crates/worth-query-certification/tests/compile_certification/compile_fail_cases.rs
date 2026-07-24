@@ -28,6 +28,7 @@ pub(crate) fn register(cases: &TestCases) {
         "tests/ui/installed_domain/consumer_invalidation/consequence_cannot_escape_current_workspace.rs",
         "tests/ui/installed_domain/consumer_invalidation/replay_capability_cannot_mint_delta.rs",
         "tests/ui/installed_domain/dependency_impact/raw_material_cannot_construct_authority.rs",
+        "tests/ui/installed_domain/domain_evidence/domain_evidence_cannot_mint_authority.rs",
         "tests/ui/installed_domain/projection_sharing/sharing_lease_is_move_only.rs",
         "tests/ui/installed_domain/projection_sharing/sharing_authority_construction_forbidden.rs",
         "tests/ui/installed_domain/projection_sharing/sharing_lease_constructor_private.rs",

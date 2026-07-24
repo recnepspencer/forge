@@ -112,6 +112,45 @@ fn unknown_and_cyclic_aggregate_relations_are_denied() {
 }
 
 #[test]
+fn optional_rows_cannot_shadow_required_foundation_roles() {
+    for (role, unit) in [
+        (
+            WorthQueryStructuralCounterRole::Bytes,
+            WorthQueryStructuralCounterUnit::Bytes,
+        ),
+        (
+            WorthQueryStructuralCounterRole::Elements,
+            WorthQueryStructuralCounterUnit::Elements,
+        ),
+        (
+            WorthQueryStructuralCounterRole::StructuralWork,
+            WorthQueryStructuralCounterUnit::Operations,
+        ),
+    ] {
+        let mut rows = counters(false, WorthQueryStructuralCounterUnit::Comparisons)
+            .rows()
+            .to_vec();
+        rows.push(schema(
+            "foundation-shadow",
+            role,
+            unit,
+            WorthQueryStructuralCounterAggregation::Independent,
+            WorthQueryStructuralCounterRequiredness::OptionalSidecar,
+            WorthQueryStructuralCounterReplayPosture::NotCompared,
+        ));
+        let denial = base_builder()
+            .counters(WorthQueryStructuralCounterContract::declare(rows))
+            .compatibility(active_compatibility())
+            .finish()
+            .unwrap_err();
+        assert_eq!(
+            denial.kind(),
+            WorthQueryArtifactContractValidationDenialKind::InvalidStructuralCounterContract
+        );
+    }
+}
+
+#[test]
 fn zero_version_decision_schema_is_denied() {
     let denial = base_builder()
         .decisions(WorthQueryDecisionRecordContract::declared([decision(

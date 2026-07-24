@@ -44,6 +44,7 @@ pub struct WorthQueryDomainEvidenceCertificationBundle {
     binding: WorthQueryDomainEvidenceBinding,
     governance: WorthQueryDomainEvidenceGovernance,
     core: WorthQueryDomainEvidenceCore,
+    counter_sidecar: WorthQueryDomainEvidenceCertificationSidecar,
     decision_sidecar: WorthQueryDomainEvidenceCertificationSidecar,
     candidate_sidecar: WorthQueryDomainEvidenceCertificationSidecar,
     transformation_sidecar: WorthQueryDomainEvidenceCertificationSidecar,
@@ -53,11 +54,13 @@ pub struct WorthQueryDomainEvidenceCertificationBundle {
 
 impl WorthQueryDomainEvidenceCertificationBundle {
     pub fn derive(source: &WorthQueryDomainEvidenceInspectionCopy) -> Self {
+        let counter_sidecar = digest_sidecar(source.counter_sidecar());
         let decision_sidecar = digest_sidecar(source.decision_sidecar());
         let candidate_sidecar = digest_sidecar(source.candidate_sidecar());
         let transformation_sidecar = digest_sidecar(source.transformation_sidecar());
         let identity = identity::certification_bundle_identity(
             source,
+            &counter_sidecar,
             &decision_sidecar,
             &candidate_sidecar,
             &transformation_sidecar,
@@ -69,6 +72,7 @@ impl WorthQueryDomainEvidenceCertificationBundle {
             binding: source.binding().clone(),
             governance: source.governance().clone(),
             core: source.core().clone(),
+            counter_sidecar,
             decision_sidecar,
             candidate_sidecar,
             transformation_sidecar,
@@ -103,6 +107,10 @@ impl WorthQueryDomainEvidenceCertificationBundle {
 
     pub fn core(&self) -> &WorthQueryDomainEvidenceCore {
         &self.core
+    }
+
+    pub const fn counter_sidecar(&self) -> &WorthQueryDomainEvidenceCertificationSidecar {
+        &self.counter_sidecar
     }
 
     pub const fn decision_sidecar(&self) -> &WorthQueryDomainEvidenceCertificationSidecar {

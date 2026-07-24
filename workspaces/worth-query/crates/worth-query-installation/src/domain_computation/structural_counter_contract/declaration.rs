@@ -162,7 +162,10 @@ impl WorthQueryStructuralCounterContract {
     ) -> &FoundationalPerformanceCounterName {
         self.rows
             .iter()
-            .find(|row| row.role == role)
+            .find(|row| {
+                row.role == role
+                    && row.requiredness == WorthQueryStructuralCounterRequiredness::RequiredCore
+            })
             .map(WorthQueryStructuralCounterSchema::name)
             .expect("validated artifact contracts retain required foundation counters")
     }

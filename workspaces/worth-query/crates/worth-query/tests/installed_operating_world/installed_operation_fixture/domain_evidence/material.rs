@@ -9,7 +9,13 @@ pub enum EvidenceScenario {
     BackwardCounter,
     ImpossibleAggregate,
     SearchOverclaim,
+    SearchNotApplicable,
+    SearchNoFeasibleSelected,
+    SearchAllFeasibleRejected,
     LossMismatch,
+    MalformedSidecars,
+    MalformedTransformationSidecar,
+    MalformedOptionalCounter,
     LedgerRegression,
     ReplayCoreDrift,
 }
@@ -90,7 +96,18 @@ fn evidence_material_with_window(
         material = material.counter(observation("work", work.initial, work.observed));
     }
     if scenario != EvidenceScenario::OmitSidecars {
-        material = material.with_sidecar(sidecars(output_occurrence_identity));
+        let optional = if scenario == EvidenceScenario::MalformedOptionalCounter {
+            CounterWindow::new(9, 8)
+        } else {
+            CounterWindow::new(0, 9)
+        };
+        material = material
+            .counter(observation(
+                "trace-events",
+                optional.initial,
+                optional.observed,
+            ))
+            .with_sidecar(sidecars(output_occurrence_identity, scenario));
     }
     material
 }
@@ -103,6 +120,28 @@ fn candidate_summary(scenario: EvidenceScenario) -> domain::WorthQueryCandidateS
             sample_identity: "sample-v1".into(),
         }
     };
+    let (feasibility, rejected_count, incumbent) = match scenario {
+        EvidenceScenario::SearchNotApplicable => (
+            domain::WorthQueryCandidateFeasibilityClass::NotApplicable,
+            1,
+            domain::WorthQueryCandidateIncumbentDisposition::Selected,
+        ),
+        EvidenceScenario::SearchNoFeasibleSelected => (
+            domain::WorthQueryCandidateFeasibilityClass::NoFeasibleCandidate,
+            1,
+            domain::WorthQueryCandidateIncumbentDisposition::Selected,
+        ),
+        EvidenceScenario::SearchAllFeasibleRejected => (
+            domain::WorthQueryCandidateFeasibilityClass::AllConsideredFeasible,
+            1,
+            domain::WorthQueryCandidateIncumbentDisposition::Selected,
+        ),
+        _ => (
+            domain::WorthQueryCandidateFeasibilityClass::FeasibleCandidateFound,
+            1,
+            domain::WorthQueryCandidateIncumbentDisposition::Selected,
+        ),
+    };
     domain::WorthQueryCandidateSearchSummary::from_parts(
         domain::WorthQueryCandidateSearchSummaryParts {
             universe: domain::WorthQueryDomainEvidenceValue::new("candidate-universe", "sample-v1"),
@@ -111,7 +150,7 @@ fn candidate_summary(scenario: EvidenceScenario) -> domain::WorthQueryCandidateS
             termination: domain::WorthQueryCandidateTerminationClass::SampleCompleted,
             completeness,
             feasibility_family: "candidate-feasibility".into(),
-            feasibility: domain::WorthQueryCandidateFeasibilityClass::FeasibleCandidateFound,
+            feasibility,
             comparison_authority: domain::WorthQueryDomainEvidenceValue::new(
                 "candidate-comparison",
                 "score-v1",
@@ -119,9 +158,9 @@ fn candidate_summary(scenario: EvidenceScenario) -> domain::WorthQueryCandidateS
             optimality: domain::WorthQueryCandidateOptimalityPosture::BestInDeclaredSample {
                 sample_identity: "sample-v1".into(),
             },
-            rejected_count: 1,
+            rejected_count,
             incumbent_family: "candidate-incumbent".into(),
-            incumbent: domain::WorthQueryCandidateIncumbentDisposition::Selected,
+            incumbent,
         },
     )
 }
@@ -152,7 +191,35 @@ fn transformation_summary(
     )
 }
 
-fn sidecars(output_occurrence_identity: &str) -> domain::WorthQueryDomainEvidenceSidecar {
+fn sidecars(
+    output_occurrence_identity: &str,
+    scenario: EvidenceScenario,
+) -> domain::WorthQueryDomainEvidenceSidecar {
+    let candidate_records = if scenario == EvidenceScenario::MalformedSidecars {
+        vec![domain::WorthQueryCandidateRecord::new(
+            "candidate-1",
+            domain::WorthQueryCandidateRecordDisposition::Rejected,
+        )]
+    } else {
+        vec![
+            domain::WorthQueryCandidateRecord::new(
+                "candidate-1",
+                domain::WorthQueryCandidateRecordDisposition::Rejected,
+            ),
+            domain::WorthQueryCandidateRecord::new(
+                "candidate-2",
+                domain::WorthQueryCandidateRecordDisposition::Incumbent,
+            ),
+        ]
+    };
+    let transformation_outputs = if scenario == EvidenceScenario::MalformedTransformationSidecar {
+        vec![output_occurrence_identity.to_owned()]
+    } else {
+        vec![
+            output_occurrence_identity.to_owned(),
+            "output-secondary".to_owned(),
+        ]
+    };
     domain::WorthQueryDomainEvidenceSidecar::new()
         .decision_records([domain::WorthQueryDecisionRecord::from_parts(
             domain::WorthQueryDecisionRecordParts {
@@ -168,19 +235,10 @@ fn sidecars(output_occurrence_identity: &str) -> domain::WorthQueryDomainEvidenc
                 recovery_relevant: false,
             },
         )])
-        .candidate_records([
-            domain::WorthQueryCandidateRecord::new(
-                "candidate-1",
-                domain::WorthQueryCandidateRecordDisposition::Rejected,
-            ),
-            domain::WorthQueryCandidateRecord::new(
-                "candidate-2",
-                domain::WorthQueryCandidateRecordDisposition::Incumbent,
-            ),
-        ])
+        .candidate_records(candidate_records)
         .transformation_records([domain::WorthQueryTransformationRecord::new(
             "source-1",
-            [output_occurrence_identity],
+            transformation_outputs,
             domain::WorthQueryTransformationDisposition::Normalized,
             domain::WorthQueryTransformationErrorPosture::Bounded,
         )])

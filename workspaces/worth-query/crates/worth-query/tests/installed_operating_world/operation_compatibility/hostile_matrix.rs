@@ -62,7 +62,7 @@ fn all_five_relationship_oracles_are_stable_across_index_rebuild() {
         .unwrap()
         .counters();
     assert_eq!(rebind_after, rebind_before);
-    assert_eq!(rebind_after.portable_contract_comparisons, 42);
+    assert_eq!(rebind_after.portable_contract_comparisons, 43);
     assert_eq!(rebind_after.canonical_comparisons, 5);
     assert_eq!(rebind_after.retained_authority_checks, 8);
     assert_eq!(rebind_after.portable_conditional_nodes_submitted, 0);
@@ -245,7 +245,7 @@ fn assert_current_success_costs(counters: [domain::WorthQueryCompatibilityCounte
     assert_eq!(counters[0].portable_variable_items_submitted, 0);
     assert_eq!(counters[0].canonical_comparisons, 0);
     for counters in &counters[1..] {
-        assert_eq!(counters.portable_contract_comparisons, 42);
+        assert_eq!(counters.portable_contract_comparisons, 43);
         assert_eq!(counters.canonical_comparisons, 5);
         assert!(counters.portable_variable_items_submitted > 0);
         assert_eq!(counters.portable_conditional_nodes_submitted, 0);

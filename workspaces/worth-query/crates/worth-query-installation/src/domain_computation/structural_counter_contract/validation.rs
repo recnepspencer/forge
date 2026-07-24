@@ -40,13 +40,10 @@ fn required_foundation_roles_are_exact(rows: &[super::WorthQueryStructuralCounte
     ]
     .into_iter()
     .all(|role| {
-        rows.iter()
-            .filter(|row| {
-                row.role() == role
-                    && row.requiredness() == WorthQueryStructuralCounterRequiredness::RequiredCore
-            })
-            .count()
-            == 1
+        let mut matching = rows.iter().filter(|row| row.role() == role);
+        matching.next().is_some_and(|row| {
+            row.requiredness() == WorthQueryStructuralCounterRequiredness::RequiredCore
+        }) && matching.next().is_none()
     })
 }
 

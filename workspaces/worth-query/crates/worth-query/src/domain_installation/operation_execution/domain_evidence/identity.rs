@@ -5,15 +5,17 @@ mod vocabulary;
 use crate::identity::hash_parts;
 
 use super::{
-    WorthQueryAdmittedDomainEvidenceSidecar, WorthQueryCandidateRecord, WorthQueryDecisionRecord,
-    WorthQueryDomainEvidenceBinding, WorthQueryDomainEvidenceCore,
-    WorthQueryDomainEvidenceGovernance, WorthQueryTransformationRecord,
+    WorthQueryAdmittedDomainEvidenceSidecar, WorthQueryAdmittedStructuralCounter,
+    WorthQueryCandidateRecord, WorthQueryDecisionRecord, WorthQueryDomainEvidenceBinding,
+    WorthQueryDomainEvidenceCore, WorthQueryDomainEvidenceGovernance,
+    WorthQueryTransformationRecord,
 };
 
 pub(super) fn domain_evidence_identity(
     contract_identity: &str,
     binding: &WorthQueryDomainEvidenceBinding,
     core: &WorthQueryDomainEvidenceCore,
+    counter_sidecar: &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryAdmittedStructuralCounter>,
     decision_sidecar: &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryDecisionRecord>,
     candidate_sidecar: &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryCandidateRecord>,
     transformation_sidecar: &WorthQueryAdmittedDomainEvidenceSidecar<
@@ -25,6 +27,10 @@ pub(super) fn domain_evidence_identity(
         format!("contract:{contract_identity}"),
         format!("binding:{}", core::binding_material(binding)),
         format!("core:{}", core::core_material(core)),
+        format!(
+            "counter_sidecar:{}",
+            sidecar::sidecar_material(counter_sidecar)
+        ),
         format!(
             "decision_sidecar:{}",
             sidecar::sidecar_material(decision_sidecar)
@@ -54,6 +60,10 @@ pub(crate) fn domain_evidence_governance_material(
     governance: &WorthQueryDomainEvidenceGovernance,
 ) -> String {
     core::governance_material(governance)
+}
+
+pub(super) fn counter_sidecar_digest(records: &[WorthQueryAdmittedStructuralCounter]) -> String {
+    sidecar::counter_sidecar_digest(records)
 }
 
 pub(super) fn decision_sidecar_digest(records: &[WorthQueryDecisionRecord]) -> String {

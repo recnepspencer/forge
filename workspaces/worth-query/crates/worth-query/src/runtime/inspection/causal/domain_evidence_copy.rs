@@ -2,9 +2,10 @@ mod identity;
 
 use crate::domain_installation::{
     WorthQueryAdmittedDomainEvidence, WorthQueryAdmittedDomainEvidenceSidecar,
-    WorthQueryCandidateRecord, WorthQueryDecisionRecord, WorthQueryDomainEvidenceAuthorityPosture,
-    WorthQueryDomainEvidenceBinding, WorthQueryDomainEvidenceCore,
-    WorthQueryDomainEvidenceGovernance, WorthQueryTransformationRecord,
+    WorthQueryAdmittedStructuralCounter, WorthQueryCandidateRecord, WorthQueryDecisionRecord,
+    WorthQueryDomainEvidenceAuthorityPosture, WorthQueryDomainEvidenceBinding,
+    WorthQueryDomainEvidenceCore, WorthQueryDomainEvidenceGovernance,
+    WorthQueryTransformationRecord,
 };
 
 use super::CausalInspectionRedactionPolicy;
@@ -51,6 +52,7 @@ pub struct WorthQueryDomainEvidenceInspectionCopy {
     binding: WorthQueryDomainEvidenceBinding,
     governance: WorthQueryDomainEvidenceGovernance,
     core: WorthQueryDomainEvidenceCore,
+    counter_sidecar: WorthQueryDomainEvidenceInspectionSidecar<WorthQueryAdmittedStructuralCounter>,
     decision_sidecar: WorthQueryDomainEvidenceInspectionSidecar<WorthQueryDecisionRecord>,
     candidate_sidecar: WorthQueryDomainEvidenceInspectionSidecar<WorthQueryCandidateRecord>,
     transformation_sidecar:
@@ -64,12 +66,14 @@ impl WorthQueryDomainEvidenceInspectionCopy {
         source: &WorthQueryAdmittedDomainEvidence,
         redaction_policy: CausalInspectionRedactionPolicy,
     ) -> Self {
+        let counter_sidecar = narrow_sidecar(source.counter_sidecar(), redaction_policy);
         let decision_sidecar = narrow_sidecar(source.decision_sidecar(), redaction_policy);
         let candidate_sidecar = narrow_sidecar(source.candidate_sidecar(), redaction_policy);
         let transformation_sidecar =
             narrow_sidecar(source.transformation_sidecar(), redaction_policy);
         let identity = identity::inspection_copy_identity(
             source,
+            &counter_sidecar,
             &decision_sidecar,
             &candidate_sidecar,
             &transformation_sidecar,
@@ -81,6 +85,7 @@ impl WorthQueryDomainEvidenceInspectionCopy {
             binding: source.binding().clone(),
             governance: source.governance().clone(),
             core: source.core().clone(),
+            counter_sidecar,
             decision_sidecar,
             candidate_sidecar,
             transformation_sidecar,
@@ -111,6 +116,12 @@ impl WorthQueryDomainEvidenceInspectionCopy {
 
     pub fn core(&self) -> &WorthQueryDomainEvidenceCore {
         &self.core
+    }
+
+    pub fn counter_sidecar(
+        &self,
+    ) -> &WorthQueryDomainEvidenceInspectionSidecar<WorthQueryAdmittedStructuralCounter> {
+        &self.counter_sidecar
     }
 
     pub fn decision_sidecar(

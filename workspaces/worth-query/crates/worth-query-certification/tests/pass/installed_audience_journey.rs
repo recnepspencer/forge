@@ -11,6 +11,10 @@ use worth_query_host::facade::{
     runtime::WorthQueryWorkspace,
 };
 use worth_query_replay::facade::WorthQueryCertificationReplayCounters;
+use worth_query::facade::{
+    certification as query_certification, domain as query_domain, foundation as query_foundation,
+    runtime as query_runtime,
+};
 
 struct ExampleFamily;
 
@@ -31,6 +35,18 @@ fn inspect_opaque_collection_artifacts(
 
 fn certification_entry(counters: WorthQueryCertificationReplayCounters) {
     let _ = counters;
+}
+
+fn carry_domain_evidence_without_promoting_authority(
+    authority: &query_foundation::WorthQueryConsumedProjectionAuthority,
+    admitted: &query_domain::WorthQueryAdmittedDomainEvidence,
+    inspection: &query_runtime::WorthQueryDomainEvidenceInspectionCopy,
+    certification: &query_certification::WorthQueryDomainEvidenceCertificationBundle,
+) {
+    let _ = authority;
+    let _ = admitted.authority_posture();
+    let _ = inspection.authority_posture();
+    let _ = certification.authority_posture();
 }
 
 fn consume_native_artifact<'a>(

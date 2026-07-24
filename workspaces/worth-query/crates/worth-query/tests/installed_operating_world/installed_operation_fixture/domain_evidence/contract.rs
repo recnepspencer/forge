@@ -236,6 +236,7 @@ fn counter_contract() -> domain::WorthQueryStructuralCounterContract {
             domain::WorthQueryStructuralCounterResetBoundary::Operation,
             domain::WorthQueryStructuralCounterReplayPosture::NonDecreasing,
         ),
+        optional_counter_schema(),
     ])
 }
 
@@ -258,6 +259,20 @@ fn counter_schema(
         reset,
         domain::WorthQueryStructuralCounterRequiredness::RequiredCore,
         replay,
+    )
+}
+
+fn optional_counter_schema() -> domain::WorthQueryStructuralCounterSchema {
+    domain::WorthQueryStructuralCounterSchema::new(
+        counter("trace-events"),
+        domain::WorthQueryStructuralCounterRole::DomainWork,
+        domain::WorthQueryStructuralCounterUnit::Iterations,
+        domain::WorthQueryStructuralCounterAggregation::Independent,
+        domain::WorthQueryStructuralCounterMonotonicity::NonDecreasing,
+        domain::WorthQueryStructuralCounterScope::ArtifactOccurrence,
+        domain::WorthQueryStructuralCounterResetBoundary::ArtifactOccurrence,
+        domain::WorthQueryStructuralCounterRequiredness::OptionalSidecar,
+        domain::WorthQueryStructuralCounterReplayPosture::NotCompared,
     )
 }
 

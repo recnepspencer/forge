@@ -49,8 +49,8 @@ pub(super) fn admit_counters(
                 observation.name().as_str(),
             )
         })?;
-        validate_observation(schema, &observation)?;
-        validate_aggregate(schema, &observation, &by_name)?;
+        validate_observation(schema, observation)?;
+        validate_aggregate(schema, observation, &by_name)?;
         admitted.push(WorthQueryAdmittedStructuralCounter::new(
             schema.clone(),
             observation.initial(),

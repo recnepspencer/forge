@@ -250,6 +250,7 @@ pub struct WorthQueryAdmittedDomainEvidence {
     binding: WorthQueryDomainEvidenceBinding,
     governance: WorthQueryDomainEvidenceGovernance,
     core: WorthQueryDomainEvidenceCore,
+    counter_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryAdmittedStructuralCounter>,
     decision_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryDecisionRecord>,
     candidate_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryCandidateRecord>,
     transformation_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryTransformationRecord>,
@@ -261,6 +262,8 @@ pub(super) struct WorthQueryAdmittedDomainEvidenceParts {
     pub(super) binding: WorthQueryDomainEvidenceBinding,
     pub(super) governance: WorthQueryDomainEvidenceGovernance,
     pub(super) core: WorthQueryDomainEvidenceCore,
+    pub(super) counter_sidecar:
+        WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryAdmittedStructuralCounter>,
     pub(super) decision_sidecar: WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryDecisionRecord>,
     pub(super) candidate_sidecar:
         WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryCandidateRecord>,
@@ -276,6 +279,7 @@ impl WorthQueryAdmittedDomainEvidence {
             binding: parts.binding,
             governance: parts.governance,
             core: parts.core,
+            counter_sidecar: parts.counter_sidecar,
             decision_sidecar: parts.decision_sidecar,
             candidate_sidecar: parts.candidate_sidecar,
             transformation_sidecar: parts.transformation_sidecar,
@@ -301,6 +305,12 @@ impl WorthQueryAdmittedDomainEvidence {
 
     pub fn core(&self) -> &WorthQueryDomainEvidenceCore {
         &self.core
+    }
+
+    pub fn counter_sidecar(
+        &self,
+    ) -> &WorthQueryAdmittedDomainEvidenceSidecar<WorthQueryAdmittedStructuralCounter> {
+        &self.counter_sidecar
     }
 
     pub fn decision_sidecar(

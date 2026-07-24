@@ -1,0 +1,53 @@
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/domain_evidence/domain_evidence_cannot_mint_authority.rs:13:44
+   |
+13 |     requires_consumed_projection_authority(admitted);
+   |     -------------------------------------- ^^^^^^^^ expected `&WorthQueryConsumedProjectionAuthority`, found `&WorthQueryAdmittedDomainEvidence`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected reference `&WorthQueryConsumedProjectionAuthority`
+              found reference `&WorthQueryAdmittedDomainEvidence`
+note: function defined here
+  --> tests/ui/installed_domain/domain_evidence/domain_evidence_cannot_mint_authority.rs:3:4
+   |
+ 3 | fn requires_consumed_projection_authority(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 4 |     _authority: &foundation::WorthQueryConsumedProjectionAuthority,
+   |     --------------------------------------------------------------
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/domain_evidence/domain_evidence_cannot_mint_authority.rs:14:44
+   |
+14 |     requires_consumed_projection_authority(inspection);
+   |     -------------------------------------- ^^^^^^^^^^ expected `&WorthQueryConsumedProjectionAuthority`, found `&WorthQueryDomainEvidenceInspectionCopy`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected reference `&WorthQueryConsumedProjectionAuthority`
+              found reference `&WorthQueryDomainEvidenceInspectionCopy`
+note: function defined here
+  --> tests/ui/installed_domain/domain_evidence/domain_evidence_cannot_mint_authority.rs:3:4
+   |
+ 3 | fn requires_consumed_projection_authority(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 4 |     _authority: &foundation::WorthQueryConsumedProjectionAuthority,
+   |     --------------------------------------------------------------
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/domain_evidence/domain_evidence_cannot_mint_authority.rs:15:44
+   |
+15 |     requires_consumed_projection_authority(certification);
+   |     -------------------------------------- ^^^^^^^^^^^^^ expected `&WorthQueryConsumedProjectionAuthority`, found `&...`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected reference `&WorthQueryConsumedProjectionAuthority`
+              found reference `&WorthQueryDomainEvidenceCertificationBundle`
+note: function defined here
+  --> tests/ui/installed_domain/domain_evidence/domain_evidence_cannot_mint_authority.rs:3:4
+   |
+ 3 | fn requires_consumed_projection_authority(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 4 |     _authority: &foundation::WorthQueryConsumedProjectionAuthority,
+   |     --------------------------------------------------------------

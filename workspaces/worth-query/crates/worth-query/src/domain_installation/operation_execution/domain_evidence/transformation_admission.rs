@@ -1,4 +1,8 @@
-use worth_query_installation::facade::WorthQueryTransformationEvidenceContract;
+use std::collections::BTreeSet;
+
+use worth_query_installation::facade::{
+    WorthQuerySourceOutputCorrespondence, WorthQueryTransformationEvidenceContract,
+};
 
 use super::{
     WorthQueryDomainEvidenceAdmissionDenial, WorthQueryDomainEvidenceAdmissionDenialKind,
@@ -58,6 +62,15 @@ fn validate_records(
     records: &[WorthQueryTransformationRecord],
 ) -> Result<(), WorthQueryDomainEvidenceAdmissionDenial> {
     let parts = summary.parts();
+    let sources = records
+        .iter()
+        .map(WorthQueryTransformationRecord::source_occurrence_identity)
+        .collect::<BTreeSet<_>>();
+    let outputs = records
+        .iter()
+        .flat_map(WorthQueryTransformationRecord::output_occurrence_identities)
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     let valid = !records.is_empty()
         && records.iter().all(|record| {
             portable(record.source_occurrence_identity())
@@ -69,18 +82,29 @@ fn validate_records(
                 && record.disposition() == parts.disposition
                 && record.error() == parts.error
         })
-        && records.iter().any(|record| {
-            record
-                .output_occurrence_identities()
-                .iter()
-                .any(|identity| identity == &parts.output_occurrence_identity)
-        });
+        && sources.contains(parts.source_occurrence.value())
+        && outputs.contains(parts.output_occurrence_identity.as_str())
+        && correspondence_matches(parts.correspondence, sources.len(), outputs.len());
     valid.then_some(()).ok_or_else(|| {
         denial(
             WorthQueryDomainEvidenceAdmissionDenialKind::TransformationSidecarMismatch,
             &parts.transformation_family,
         )
     })
+}
+
+fn correspondence_matches(
+    correspondence: WorthQuerySourceOutputCorrespondence,
+    source_count: usize,
+    output_count: usize,
+) -> bool {
+    match correspondence {
+        WorthQuerySourceOutputCorrespondence::OneToOne => source_count == 1 && output_count == 1,
+        WorthQuerySourceOutputCorrespondence::OneToMany => source_count == 1 && output_count > 1,
+        WorthQuerySourceOutputCorrespondence::ManyToOne => source_count > 1 && output_count == 1,
+        WorthQuerySourceOutputCorrespondence::ManyToMany => source_count > 1 && output_count > 1,
+        WorthQuerySourceOutputCorrespondence::Partial => true,
+    }
 }
 
 fn denial(

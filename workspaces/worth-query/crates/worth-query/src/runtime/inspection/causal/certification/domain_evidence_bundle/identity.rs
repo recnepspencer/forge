@@ -9,6 +9,7 @@ use super::WorthQueryDomainEvidenceCertificationSidecar;
 
 pub(super) fn certification_bundle_identity(
     source: &WorthQueryDomainEvidenceInspectionCopy,
+    counter_sidecar: &WorthQueryDomainEvidenceCertificationSidecar,
     decision_sidecar: &WorthQueryDomainEvidenceCertificationSidecar,
     candidate_sidecar: &WorthQueryDomainEvidenceCertificationSidecar,
     transformation_sidecar: &WorthQueryDomainEvidenceCertificationSidecar,
@@ -28,6 +29,7 @@ pub(super) fn certification_bundle_identity(
         ),
         format!("core:{}", domain_evidence_core_material(source.core())),
         format!("source-redaction:{}", source.redaction_policy().as_str()),
+        format!("counter-sidecar:{}", sidecar_material(counter_sidecar)),
         format!("decision-sidecar:{}", sidecar_material(decision_sidecar)),
         format!("candidate-sidecar:{}", sidecar_material(candidate_sidecar)),
         format!(

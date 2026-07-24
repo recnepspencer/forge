@@ -50,12 +50,17 @@ fn replay_compares_mandatory_core_and_ignores_policy_omitted_sidecars() {
         let original_evidence = stage_evidence(original.stage_receipts(), stage);
         let candidate_evidence = stage_evidence(candidate.stage_receipts(), stage);
         assert_eq!(original_evidence.core(), candidate_evidence.core());
+        assert!(original_evidence.counter_sidecar().records().is_some());
         assert!(original_evidence.decision_sidecar().records().is_some());
         assert!(original_evidence.candidate_sidecar().records().is_some());
         assert!(original_evidence
             .transformation_sidecar()
             .records()
             .is_some());
+        assert!(matches!(
+            candidate_evidence.counter_sidecar(),
+            domain::WorthQueryAdmittedDomainEvidenceSidecar::Omitted
+        ));
         assert!(matches!(
             candidate_evidence.decision_sidecar(),
             domain::WorthQueryAdmittedDomainEvidenceSidecar::Omitted

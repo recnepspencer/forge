@@ -59,20 +59,7 @@ pub(super) fn core_material(core: &WorthQueryDomainEvidenceCore) -> String {
             "counters",
             canonical_indexed_operation_material(
                 "domain.evidence.counter",
-                core.counters().iter().map(|counter| {
-                    canonical_operation_material(vec![
-                        ("name", counter.schema().name().as_str().into()),
-                        ("initial", counter.initial().to_string()),
-                        ("observed", counter.observed().to_string()),
-                        (
-                            "provider_certification",
-                            counter
-                                .provider_certification()
-                                .unwrap_or("not-required")
-                                .into(),
-                        ),
-                    ])
-                }),
+                core.counters().iter().map(counter_material),
             ),
         ),
         (
@@ -120,6 +107,23 @@ pub(super) fn core_material(core: &WorthQueryDomainEvidenceCore) -> String {
                 .unwrap_or_else(|| "not-applicable".into()),
         ),
         ("authority", "descriptive-only".into()),
+    ])
+}
+
+pub(super) fn counter_material(
+    counter: &super::super::WorthQueryAdmittedStructuralCounter,
+) -> String {
+    canonical_operation_material(vec![
+        ("name", counter.schema().name().as_str().into()),
+        ("initial", counter.initial().to_string()),
+        ("observed", counter.observed().to_string()),
+        (
+            "provider_certification",
+            counter
+                .provider_certification()
+                .unwrap_or("not-required")
+                .into(),
+        ),
     ])
 }
 
