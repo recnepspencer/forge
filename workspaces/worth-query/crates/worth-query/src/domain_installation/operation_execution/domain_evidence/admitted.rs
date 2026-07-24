@@ -81,6 +81,7 @@ impl WorthQueryDomainEvidenceBinding {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDomainEvidenceGovernance {
+    audiences: Vec<String>,
     classification: WorthQueryArtifactClassification,
     redaction: WorthQueryArtifactRedactionPosture,
     retention: RetentionDeliveryProfile,
@@ -93,12 +94,17 @@ impl WorthQueryDomainEvidenceGovernance {
         contract: &worth_query_installation::facade::WorthQueryArtifactGovernanceContract,
     ) -> Self {
         Self {
+            audiences: contract.audiences().to_vec(),
             classification: contract.classification(),
             redaction: contract.redaction(),
             retention: contract.retention(),
             deletion: contract.deletion(),
             legal_hold: contract.legal_hold(),
         }
+    }
+
+    pub fn audiences(&self) -> &[String] {
+        &self.audiences
     }
 
     pub const fn classification(&self) -> WorthQueryArtifactClassification {

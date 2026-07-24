@@ -60,7 +60,9 @@ pub use causal::{
     DeniedQueryCausalInspectionArtifact, QueryCausalEvidenceReferenceArtifact,
     QueryCausalInspectionArtifact, QueryCausalTemporalAsyncExplanation,
     QueryCausalTemporalAsyncExplanationKind, QueryObservationReceipt,
-    QueryObservationReceiptFamily,
+    QueryObservationReceiptFamily, WorthQueryDomainEvidenceCertificationBundle,
+    WorthQueryDomainEvidenceCertificationSidecar, WorthQueryDomainEvidenceInspectionCopy,
+    WorthQueryDomainEvidenceInspectionSidecar,
 };
 #[cfg(test)]
 pub(in crate::runtime) use causal::{

@@ -31,6 +31,8 @@ mod domain_computation_canonical_identity_tests;
 #[cfg(test)]
 mod domain_computation_conflict_tests;
 #[cfg(test)]
+mod domain_computation_evidence_conflict_tests;
+#[cfg(test)]
 mod domain_computation_evidence_schema_tests;
 #[cfg(test)]
 mod domain_computation_evolution_tests;

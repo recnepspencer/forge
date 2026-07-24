@@ -8,6 +8,7 @@ mod conditional_workflow;
 pub(crate) mod conditional_workspace;
 mod correspondence_bridge;
 mod count_vertices;
+mod domain_evidence;
 mod executors;
 mod federated_package;
 mod foreign_material;
@@ -53,6 +54,7 @@ pub(super) use correspondence_bridge::{
     conditional_runtime_bridge_with_repeated_value_changes, correspondence_bridge,
 };
 pub use count_vertices::{CountVertices, CountVerticesInput};
+pub use domain_evidence::{evidence_workspace, EvidenceFamily, EvidenceRead, EvidenceScenario};
 pub use executors::graph_projection_material;
 use executors::{
     CountVerticesExecutor, FederatedReadExecutor, ReadVertexExecutor,

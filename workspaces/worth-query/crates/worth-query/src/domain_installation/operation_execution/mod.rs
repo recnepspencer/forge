@@ -112,6 +112,10 @@ pub(crate) use artifact_owner::{
 };
 pub use consumption_progression::*;
 pub use domain_evidence::*;
+pub(crate) use domain_evidence::{
+    domain_evidence_binding_material, domain_evidence_core_material,
+    domain_evidence_governance_material,
+};
 pub use operation_input::*;
 pub use operation_output::*;
 pub use progression::*;

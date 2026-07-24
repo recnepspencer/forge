@@ -39,5 +39,9 @@ pub use summary::{
 
 pub(crate) use admission::{admit_domain_evidence, WorthQueryDomainEvidenceAdmissionInput};
 pub(crate) use admitted::WorthQueryDomainEvidenceBindingParts;
+pub(crate) use identity::{
+    domain_evidence_binding_material, domain_evidence_core_material,
+    domain_evidence_governance_material,
+};
 pub(crate) use ledger::WorthQueryDomainEvidenceAdmissionLedger;
 pub(crate) use replay::WorthQueryDomainEvidenceReplayMeaning;

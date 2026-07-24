@@ -8,6 +8,7 @@ mod exports_certification;
 mod exports_comparison;
 mod exports_domain;
 mod exports_domain_capabilities;
+mod exports_domain_evidence;
 mod exports_foundation;
 mod exports_history;
 mod exports_inspection;
@@ -196,6 +197,7 @@ pub mod workflow {
 pub mod domain {
     pub use super::exports_domain::*;
     pub use super::exports_domain_capabilities::*;
+    pub use super::exports_domain_evidence::*;
 }
 
 /// Common outcome navigation and declarative inspection capability.
