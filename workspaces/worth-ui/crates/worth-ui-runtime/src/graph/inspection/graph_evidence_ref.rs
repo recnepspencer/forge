@@ -1,11 +1,11 @@
 use crate::declaration::{UiAspectName, UiDeclarationIdentity};
-use crate::graph::{UiGraphNodeIdentity, UiMountedReceiptIdentity};
+use crate::graph::{UiGraphMountEligibilityIdentity, UiGraphNodeIdentity};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiGraphEvidenceRef {
     GraphNode(UiGraphNodeIdentity),
     Declaration(UiDeclarationIdentity),
-    MountedReceipt(UiMountedReceiptIdentity),
+    MountEligibility(UiGraphMountEligibilityIdentity),
     Aspect(UiAspectName),
     Page(UiGraphNodeIdentity),
 }
@@ -14,7 +14,7 @@ pub enum UiGraphEvidenceRef {
 pub enum UiGraphEvidenceRefKind {
     GraphNode,
     Declaration,
-    MountedReceipt,
+    MountEligibility,
     Aspect,
     Page,
 }
@@ -24,7 +24,7 @@ impl UiGraphEvidenceRef {
         match self {
             Self::GraphNode(_) => UiGraphEvidenceRefKind::GraphNode,
             Self::Declaration(_) => UiGraphEvidenceRefKind::Declaration,
-            Self::MountedReceipt(_) => UiGraphEvidenceRefKind::MountedReceipt,
+            Self::MountEligibility(_) => UiGraphEvidenceRefKind::MountEligibility,
             Self::Aspect(_) => UiGraphEvidenceRefKind::Aspect,
             Self::Page(_) => UiGraphEvidenceRefKind::Page,
         }

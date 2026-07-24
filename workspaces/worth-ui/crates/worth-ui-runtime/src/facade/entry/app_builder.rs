@@ -1,10 +1,10 @@
 use crate::facade::entry::CapabilityRegistrationBuilder;
-use crate::facade::host_observation::WorthUiOperationalHostAdapter;
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::lifecycle::{
     prepare_application_authority, WorthUiApplicationPreparationDenial,
     WorthUiApplicationPreparationSource,
 };
+use crate::facade::measurement_exchange::WorthUiOperationalHostAdapter;
 use crate::facade::prepared_application_authority::WorthUiHostSessionPlan;
 use crate::facade::registry::descriptor::{
     CommandDescriptor, CommandProjectionDescriptor, ComponentDescriptor, IconDescriptor,
@@ -45,7 +45,7 @@ impl WorthUiBuilder {
                 WorthUiDslPackage::empty(),
             ),
             host_session_plan: WorthUiHostSessionPlan::prepare(
-                worth_ui_host_contract::WorthUiHeadlessHost,
+                crate::host::adapter::WorthUiHeadlessHost::default(),
             ),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
             runtime_instance_basis_admissions: Vec::new(),

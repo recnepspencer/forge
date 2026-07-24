@@ -7,8 +7,8 @@ pub(in crate::runtime::allocation_frame_dispatch::framework_turn) fn execute<'ru
     counters: super::super::UiFrameworkTransitionPlanningCounters,
 ) -> super::super::WorthUiFrameworkTurnCompletion<'runtime> {
     super::super::WorthUiFrameworkTurnCompletion::DragResizePreviewPending {
-        preview: super::super::WorthUiPendingPreviewPaint::new(
-            crate::host::seal_preview_paint_input(execution.preview),
+        preview: super::super::WorthUiPendingMountedPreviewProjection::new(
+            execution.preview,
             crate::runtime::allocation_receipt::UiPreviewPaintIsolationPort::new(ledger),
         ),
         durable: super::super::WorthUiPendingDurableResize::new(

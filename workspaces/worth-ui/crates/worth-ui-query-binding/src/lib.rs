@@ -22,6 +22,8 @@ mod snapshot_derivation_denial_tests;
 mod snapshot_progression_tests;
 #[cfg(test)]
 mod snapshot_refresh_isolation_tests;
+#[cfg(test)]
+mod succession_tests;
 
 // Subsystem entry lane
 pub use application_binding::{

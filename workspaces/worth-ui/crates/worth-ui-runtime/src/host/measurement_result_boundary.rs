@@ -1,4 +1,4 @@
-use worth_ui_host_contract::UiHostObservation;
+use worth_ui_host_contract::UiHostMeasurementObservation;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::evidence::{UiMeasurementEvidenceCategory, UiMeasurementResult};
@@ -6,7 +6,7 @@ use crate::evidence::{UiMeasurementEvidenceCategory, UiMeasurementResult};
 use super::{UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial};
 
 pub(crate) fn normalize_host_measurement_evidence(
-    observation: UiHostObservation,
+    observation: UiHostMeasurementObservation,
     evidence_generation: UiEvidenceAuthorityGeneration,
     normalization_context: UiHostMeasurementNormalizationContext,
 ) -> Result<UiMeasurementResult, UiHostMeasurementNormalizationDenial> {
@@ -23,10 +23,7 @@ pub(crate) fn normalize_host_measurement_evidence(
         super::result_construction::construct_measurement_result_from_host_observation(
             observation,
             evidence_generation,
-            normalization_context.unit_posture(),
-            normalization_context.coordinate_space(),
-            normalization_context.rounding_posture(),
-            normalization_context.assumption_profile(),
+            normalization_context,
         ),
     )
 }

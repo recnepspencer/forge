@@ -10,7 +10,7 @@ pub struct UiAllocationFrameReplacementTransition {
     queue_disposition: UiAllocationFrameQueueDisposition,
     successor_assignment: Option<UiAllocationFrameEpochAssignment>,
     denial: Option<UiAllocationFrameDispatchDenial>,
-    retry_state: UiAllocationFrameRetryState,
+    retry_state: Box<UiAllocationFrameRetryState>,
 }
 
 impl UiAllocationFrameReplacementTransition {
@@ -24,10 +24,11 @@ impl UiAllocationFrameReplacementTransition {
             queue_disposition,
             successor_assignment: Some(successor_assignment),
             denial: None,
-            retry_state,
+            retry_state: Box::new(retry_state),
         }
     }
 
+    #[cfg(test)]
     pub(in crate::runtime::allocation_frame_dispatch) fn denied(
         _seal_authority: &UiAllocationFrameSealAuthority,
         queue_disposition: UiAllocationFrameQueueDisposition,
@@ -38,7 +39,7 @@ impl UiAllocationFrameReplacementTransition {
             queue_disposition,
             successor_assignment: None,
             denial: Some(denial),
-            retry_state,
+            retry_state: Box::new(retry_state),
         }
     }
 
@@ -53,11 +54,8 @@ impl UiAllocationFrameReplacementTransition {
             .map(|assignment| assignment.epoch())
     }
 
-    pub(crate) fn successor_assignment(&self) -> Option<UiAllocationFrameEpochAssignment> {
-        self.successor_assignment
-    }
-
+    #[cfg(test)]
     pub(crate) fn retry_state(&self) -> UiAllocationFrameRetryState {
-        self.retry_state.clone()
+        self.retry_state.as_ref().clone()
     }
 }

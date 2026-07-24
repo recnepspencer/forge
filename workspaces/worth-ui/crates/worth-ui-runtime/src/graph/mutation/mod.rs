@@ -1,8 +1,8 @@
 mod graph_mutation_commit;
 mod graph_mutation_commit_result;
 mod graph_mutation_stage;
-mod mounted_layout_admission;
+mod mount_eligibility_admission;
 
 pub use graph_mutation_commit_result::{UiGraphMutationCommitDenial, UiGraphMutationCommitResult};
 pub(crate) use graph_mutation_stage::UiGraphMutationStage;
-pub use mounted_layout_admission::UiGraphMountedLayoutAdmissionDenial;
+pub use mount_eligibility_admission::UiGraphMountEligibilityAdmissionDenial;

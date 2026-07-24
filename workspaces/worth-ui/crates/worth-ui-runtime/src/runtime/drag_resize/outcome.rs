@@ -18,7 +18,6 @@ pub(crate) struct UiResizePreviewCandidate {
 pub(crate) struct UiResizePreviewOutcome {
     candidate: UiResizePreviewCandidate,
     counters: UiDragResizeCounters,
-    evidence: crate::evidence::UiDragResizeEvidence,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -79,15 +78,9 @@ impl UiResizePreviewOutcome {
             durable_mutations: 0,
             committed_receipts: 0,
         };
-        let evidence = crate::evidence::UiDragResizeEvidence::new(
-            crate::evidence::UiDragResizeStrategy::LatestWinsPerResolvedFrame,
-            plan.frame_epoch(),
-            counters,
-        );
         Ok(Self {
             candidate,
             counters,
-            evidence,
         })
     }
     pub(crate) fn preview_candidate(&self) -> &UiResizePreviewCandidate {
@@ -95,9 +88,6 @@ impl UiResizePreviewOutcome {
     }
     pub(crate) fn counters(&self) -> UiDragResizeCounters {
         self.counters
-    }
-    pub(crate) fn evidence(&self) -> &crate::evidence::UiDragResizeEvidence {
-        &self.evidence
     }
 }
 

@@ -178,6 +178,7 @@ pub(super) fn rebind_plan_with_inventory() -> (
         WorthUiNodeLifecycleTransition::Rebind,
         Some(WorthUiIdentityMatchNodeKind::Binding),
         Some(WorthUiIdentityMatchNodeKind::Binding),
+        false,
     );
     let inventory = platform_inventory(&runtime)
         .build_for_replacement(&plan)
@@ -198,6 +199,7 @@ pub(crate) fn splitter_replace_inputs() -> (
         WorthUiNodeLifecycleTransition::Replace,
         Some(WorthUiIdentityMatchNodeKind::Surface),
         Some(WorthUiIdentityMatchNodeKind::Surface),
+        true,
     );
     let inventory = platform_inventory(&runtime)
         .build_for_replacement(&plan)
@@ -228,6 +230,8 @@ pub(super) fn ambiguous_plan_with_inventory() -> (
                 candidate_kind: Some(WorthUiIdentityMatchNodeKind::Component),
                 active_durable_state_eligible: true,
                 candidate_durable_state_eligible: true,
+                active_has_restorable_splitter_state: false,
+                candidate_has_restorable_splitter_state: false,
                 active_resize_contract_id: None,
                 candidate_resize_contract_id: None,
                 active_resize_permission: None,
@@ -316,6 +320,7 @@ fn plan_from_single_transition(
     transition: WorthUiNodeLifecycleTransition,
     active_kind: Option<WorthUiIdentityMatchNodeKind>,
     candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
+    has_restorable_splitter_state: bool,
 ) -> WorthUiNodeReplacementPlan {
     let mut counters = WorthUiNodeReplacementCounters::default();
     counters.record_active_node_classified();
@@ -333,6 +338,8 @@ fn plan_from_single_transition(
                 candidate_kind,
                 active_durable_state_eligible: true,
                 candidate_durable_state_eligible: true,
+                active_has_restorable_splitter_state: has_restorable_splitter_state,
+                candidate_has_restorable_splitter_state: has_restorable_splitter_state,
                 active_resize_contract_id: None,
                 candidate_resize_contract_id: None,
                 active_resize_permission: None,

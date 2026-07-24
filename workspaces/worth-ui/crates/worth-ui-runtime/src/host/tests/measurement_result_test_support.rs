@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiFontMeasurementKey, UiFontMetricsObservation,
-    UiHostObservationValue, UiMeasurementRequest, UiMeasurementRequestFamily,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementRequestFamily,
     UiMeasurementRequestIdentity, UiPortalAnchorRectObservation,
     UiScrollContainerViewportObservation, UiTextBaselineMetricsObservation,
     UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest, UiViewportExtentObservation,
@@ -29,7 +29,10 @@ impl CountingAdapter {
 }
 
 impl WorthUiMeasurementHostAdapter for CountingAdapter {
-    fn observe_measurement(&self, request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         self.call_count.set(self.call_count.get() + 1);
         matching_observation_for(request.family())
     }
@@ -37,30 +40,32 @@ impl WorthUiMeasurementHostAdapter for CountingAdapter {
 
 pub(crate) fn matching_observation_for(
     family: UiMeasurementRequestFamily,
-) -> UiHostObservationValue {
+) -> UiHostMeasurementObservationValue {
     match family {
         UiMeasurementRequestFamily::TextIntrinsicSize => {
-            UiHostObservationValue::TextIntrinsicSize(UiTextIntrinsicSizeObservation {
+            UiHostMeasurementObservationValue::TextIntrinsicSize(UiTextIntrinsicSizeObservation {
                 width: 40.0,
                 height: 12.0,
             })
         }
         UiMeasurementRequestFamily::TextBaselineMetrics => {
-            UiHostObservationValue::TextBaselineMetrics(UiTextBaselineMetricsObservation {
-                ascent: 10.0,
-                descent: 2.0,
-                baseline: 9.0,
-            })
+            UiHostMeasurementObservationValue::TextBaselineMetrics(
+                UiTextBaselineMetricsObservation {
+                    ascent: 10.0,
+                    descent: 2.0,
+                    baseline: 9.0,
+                },
+            )
         }
         UiMeasurementRequestFamily::FontMetrics => {
-            UiHostObservationValue::FontMetrics(UiFontMetricsObservation {
+            UiHostMeasurementObservationValue::FontMetrics(UiFontMetricsObservation {
                 ascent: 10.0,
                 descent: 2.0,
                 line_gap: 1.0,
             })
         }
         UiMeasurementRequestFamily::NativeControlIntrinsicSize => {
-            UiHostObservationValue::NativeControlIntrinsicSize(
+            UiHostMeasurementObservationValue::NativeControlIntrinsicSize(
                 worth_ui_host_contract::UiNativeControlIntrinsicSizeObservation {
                     width: 80.0,
                     height: 24.0,
@@ -68,18 +73,18 @@ pub(crate) fn matching_observation_for(
             )
         }
         UiMeasurementRequestFamily::ViewportExtent => {
-            UiHostObservationValue::ViewportExtent(UiViewportExtentObservation {
+            UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
                 width: 100.0,
                 height: 50.0,
             })
         }
         UiMeasurementRequestFamily::DpiScaleFactor => {
-            UiHostObservationValue::DpiScaleFactor(UiDpiScaleFactorObservation {
+            UiHostMeasurementObservationValue::DpiScaleFactor(UiDpiScaleFactorObservation {
                 scale_factor: 2.0,
             })
         }
         UiMeasurementRequestFamily::PortalAnchorRect => {
-            UiHostObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
+            UiHostMeasurementObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
                 x: 1.0,
                 y: 2.0,
                 width: 3.0,
@@ -87,10 +92,12 @@ pub(crate) fn matching_observation_for(
             })
         }
         UiMeasurementRequestFamily::ScrollContainerViewport => {
-            UiHostObservationValue::ScrollContainerViewport(UiScrollContainerViewportObservation {
-                width: 120.0,
-                height: 60.0,
-            })
+            UiHostMeasurementObservationValue::ScrollContainerViewport(
+                UiScrollContainerViewportObservation {
+                    width: 120.0,
+                    height: 60.0,
+                },
+            )
         }
     }
 }

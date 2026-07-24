@@ -32,7 +32,7 @@ impl WorthUiCanvasSpatialPlanBuilder {
                 counters,
             ));
         }
-        if !host_binding.canvas_spatial_supported() {
+        if !host_binding.canvas_spatial_execution_supported() {
             counters.record_denial();
             return Err(WorthUiCanvasSpatialPlanDenial::new(
                 WorthUiCanvasSpatialPlanDenialReason::HostSupportMissing,

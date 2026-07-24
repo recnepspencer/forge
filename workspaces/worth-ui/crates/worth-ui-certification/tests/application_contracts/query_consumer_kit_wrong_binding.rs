@@ -42,14 +42,16 @@ fn settled_projection_cannot_enter_through_another_query_binding_link() {
         .query_fact_link(secondary_identity.as_str())
         .expect("the second binding owns an active fact link");
     let mut denial = None;
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|query| {
-            query
-                .admit_settled(settled)
-                .expect("the measurements settlement is retained under its own binding");
-            denial = query.submit_settled(&wrong_link).err();
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|query| {
+                query
+                    .admit_settled(settled)
+                    .expect("the measurements settlement is retained under its own binding");
+                denial = query.submit_settled(&wrong_link).err();
+            });
+        })
+        .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
 
     assert!(matches!(

@@ -12,7 +12,7 @@ use worth_ui_dsl::{
 };
 use worth_ui_runtime::facade::graph::{
     project_aspect_evidence_refs, UiAspectEvidenceLane, UiAspectEvidenceRefProjection,
-    UiAspectEvidenceSubjectKind, UiGraphNodeIdentity, UiMountedReceiptIdentity,
+    UiAspectEvidenceSubjectKind, UiGraphMountEligibilityIdentity, UiGraphNodeIdentity,
 };
 
 use super::{
@@ -86,10 +86,13 @@ pub fn expected_graph_node_digests(app: &WorthUiApp, module_paths: &[&str]) -> B
         .collect()
 }
 
-pub fn expected_mounted_receipt_digests(app: &WorthUiApp, module_paths: &[&str]) -> BTreeSet<u64> {
+pub fn expected_mount_eligibility_digests(
+    app: &WorthUiApp,
+    module_paths: &[&str],
+) -> BTreeSet<u64> {
     module_paths
         .iter()
-        .map(|path| mounted_receipt_identity(app, path).digest())
+        .map(|path| mount_eligibility_identity(app, path).digest())
         .collect()
 }
 
@@ -107,8 +110,8 @@ pub fn all_graph_node_digests(app: &WorthUiApp) -> Vec<u64> {
     .collect()
 }
 
-pub fn all_mounted_receipt_digests(app: &WorthUiApp) -> Vec<u64> {
-    expected_mounted_receipt_digests(
+pub fn all_mount_eligibility_digests(app: &WorthUiApp) -> Vec<u64> {
+    expected_mount_eligibility_digests(
         app,
         &[
             ALPHA_MODULE_PATH,
@@ -149,7 +152,7 @@ pub fn declaration_ref_digests(refs: &[worth_ui::facade::inspection::UiEvidenceR
 pub struct AspectNeighborhoodFacts {
     pub lanes: BTreeSet<UiAspectEvidenceLane>,
     pub graph_node_digests: BTreeSet<u64>,
-    pub mounted_receipt_digests: BTreeSet<u64>,
+    pub mount_eligibility_digests: BTreeSet<u64>,
     pub entries: BTreeSet<UiAspectEvidenceRefProjection>,
 }
 
@@ -157,7 +160,7 @@ pub fn aspect_neighborhood_facts_from_receipt(
     aspect_name: &str,
     receipt: &worth_ui::facade::inspection::UiInspectionReceipt,
     all_graph_node_digests: &[u64],
-    all_mounted_receipt_digests: &[u64],
+    all_mount_eligibility_digests: &[u64],
 ) -> AspectNeighborhoodFacts {
     let slice = receipt
         .evidence_slice()
@@ -166,7 +169,7 @@ pub fn aspect_neighborhood_facts_from_receipt(
         slice.refs(),
         aspect_name,
         all_graph_node_digests,
-        all_mounted_receipt_digests,
+        all_mount_eligibility_digests,
     );
 
     assert_eq!(
@@ -190,10 +193,10 @@ pub fn aspect_neighborhood_facts_from_receipt(
             })
             .map(|projection| projection.subject_digest())
             .collect(),
-        mounted_receipt_digests: projections
+        mount_eligibility_digests: projections
             .iter()
             .filter(|projection| {
-                projection.subject_kind() == UiAspectEvidenceSubjectKind::MountedReceipt
+                projection.subject_kind() == UiAspectEvidenceSubjectKind::MountEligibility
             })
             .map(|projection| projection.subject_digest())
             .collect(),
@@ -205,11 +208,11 @@ pub fn assert_membership(
     facts: &AspectNeighborhoodFacts,
     lane: UiAspectEvidenceLane,
     graph_node_digests: &BTreeSet<u64>,
-    mounted_receipt_digests: &BTreeSet<u64>,
+    mount_eligibility_digests: &BTreeSet<u64>,
 ) {
     assert_eq!(facts.lanes, BTreeSet::from([lane]));
     assert_eq!(facts.graph_node_digests, *graph_node_digests);
-    assert_eq!(facts.mounted_receipt_digests, *mounted_receipt_digests);
+    assert_eq!(facts.mount_eligibility_digests, *mount_eligibility_digests);
 }
 
 pub fn assert_lane_identity_distinctness(
@@ -284,11 +287,14 @@ fn graph_node_identity(app: &WorthUiApp, module_path: &str) -> UiGraphNodeIdenti
         .expect("declaration should admit one graph node")
 }
 
-fn mounted_receipt_identity(app: &WorthUiApp, module_path: &str) -> UiMountedReceiptIdentity {
+fn mount_eligibility_identity(
+    app: &WorthUiApp,
+    module_path: &str,
+) -> UiGraphMountEligibilityIdentity {
     app.graph()
         .lookup()
-        .mounted_receipt_slot_for_node(graph_node_identity(app, module_path))
-        .expect("graph node should own a mounted receipt slot")
+        .mount_eligibility_slot_for_node(graph_node_identity(app, module_path))
+        .expect("graph node should own a mount eligibility slot")
         .value()
-        .mounted_receipt_identity()
+        .mount_eligibility_identity()
 }

@@ -1,7 +1,7 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiInspectionCloseoutNonGoal {
     MeasurementEvidence,
-    MountedReceiptEvidence,
+    MountEligibilityEvidence,
     VisualSnapshotEvidence,
     ReplayEvidence,
     RendererLocalExplanation,

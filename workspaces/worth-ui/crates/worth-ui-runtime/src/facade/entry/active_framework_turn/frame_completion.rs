@@ -4,16 +4,14 @@ use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGen
 pub struct WorthUiActiveOrdinaryFrameCompletion<'execution> {
     generation_identity: &'execution WorthUiPreparedApplicationGenerationIdentity,
     receipt: crate::runtime::WorthUiOrdinaryLaneFrameReceipt,
-    output: worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    disposition: worth_ui_host_contract::WorthUiHostOutputDisposition,
+    basis: crate::runtime::WorthUiFrameExecutionBasis,
 }
 
 /// Compact virtualized execution result bound to the exact active generation.
 pub struct WorthUiActiveVirtualizedDataFrameCompletion<'execution> {
     generation_identity: &'execution WorthUiPreparedApplicationGenerationIdentity,
     receipt: crate::runtime::WorthUiVirtualizedDataFrameReceipt,
-    output: worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    disposition: worth_ui_host_contract::WorthUiHostOutputDisposition,
+    basis: crate::runtime::WorthUiFrameExecutionBasis,
 }
 
 /// Compact canvas execution result routed through the exact active host.
@@ -21,8 +19,7 @@ pub struct WorthUiActiveVirtualizedDataFrameCompletion<'execution> {
 pub struct WorthUiActiveCanvasSpatialFrameCompletion<'execution> {
     generation_identity: &'execution WorthUiPreparedApplicationGenerationIdentity,
     receipt: crate::runtime::WorthUiCanvasSpatialFrameReceipt,
-    output: worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    disposition: worth_ui_host_contract::WorthUiHostOutputDisposition,
+    basis: crate::runtime::WorthUiFrameExecutionBasis,
 }
 
 /// Compact realtime execution result routed through the exact active host.
@@ -30,8 +27,7 @@ pub struct WorthUiActiveCanvasSpatialFrameCompletion<'execution> {
 pub struct WorthUiActiveRealtimeFrameCompletion<'execution> {
     generation_identity: &'execution WorthUiPreparedApplicationGenerationIdentity,
     receipt: crate::runtime::WorthUiRealtimeFrameReceipt,
-    output: worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    disposition: worth_ui_host_contract::WorthUiHostOutputDisposition,
+    basis: crate::runtime::WorthUiFrameExecutionBasis,
 }
 
 macro_rules! frame_completion {
@@ -40,14 +36,12 @@ macro_rules! frame_completion {
             pub(super) fn new(
                 generation_identity: &'execution WorthUiPreparedApplicationGenerationIdentity,
                 receipt: $receipt,
-                output: worth_ui_host_contract::WorthUiHostOutputEnvelope,
-                disposition: worth_ui_host_contract::WorthUiHostOutputDisposition,
+                basis: crate::runtime::WorthUiFrameExecutionBasis,
             ) -> Self {
                 Self {
                     generation_identity,
                     receipt,
-                    output,
-                    disposition,
+                    basis,
                 }
             }
 
@@ -59,25 +53,15 @@ macro_rules! frame_completion {
                 &self.receipt
             }
 
-            pub fn output(&self) -> &worth_ui_host_contract::WorthUiHostOutputEnvelope {
-                &self.output
-            }
-
-            pub fn disposition(&self) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
-                self.disposition
-            }
-
             pub fn cost_receipt(
                 &self,
             ) -> Result<
                 crate::runtime::WorthUiFrameExecutionReceipt,
                 crate::runtime::WorthUiSteadyFrameCounterDenial,
             > {
-                crate::runtime::WorthUiSteadyFrameCounterBoundary::for_active_generation(
-                    self.output.generation(),
-                )
-                .$record(self.receipt.clone())
-                .seal()
+                crate::runtime::WorthUiSteadyFrameCounterBoundary::for_execution_basis(self.basis)
+                    .$record(self.receipt.clone())
+                    .seal()
             }
         }
     };

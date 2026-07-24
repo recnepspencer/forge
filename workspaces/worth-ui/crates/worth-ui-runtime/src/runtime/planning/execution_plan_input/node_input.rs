@@ -224,6 +224,10 @@ impl WorthUiPlanNodeInput {
         self.authored_provenance_digest
     }
 
+    pub(crate) fn mounted_projection_provenance_digest(&self) -> Option<u64> {
+        self.authored_provenance_digest
+    }
+
     pub fn transition(&self) -> Option<WorthUiNodeLifecycleTransition> {
         self.transition
     }

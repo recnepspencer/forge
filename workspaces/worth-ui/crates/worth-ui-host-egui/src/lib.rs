@@ -1,7 +1,10 @@
 mod adapter;
 mod translation;
 
-pub use adapter::WorthUiHostEgui;
+pub use adapter::{
+    UiEguiMountedParticipationPreparation, UiEguiMountedResourceHandle,
+    WorthUiEguiMountedProjectionPreparation, WorthUiEguiMountedResourceCache, WorthUiHostEgui,
+};
 pub use translation::{
     egui_dpi_scale_normalization_context, egui_font_metrics_normalization_context,
     egui_measurement_adapter_profile_digest, egui_measurement_assumption_profile,

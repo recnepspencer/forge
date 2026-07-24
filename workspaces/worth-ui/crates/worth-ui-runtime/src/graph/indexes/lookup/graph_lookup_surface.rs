@@ -4,9 +4,9 @@ use crate::graph::indexes::{
     UiGraphLookupFamily, UiGraphLookupReceipt,
 };
 use crate::graph::{
-    UiGraphMountedReceiptAuthorityRecord, UiGraphNodeIdentity, UiGraphNodeRecord,
-    UiGraphPageParticipationMember, UiGraphParticipationAxis, UiGraphSnapshot,
-    UiGraphTopologyRecord, UiMountedReceiptIdentity,
+    UiGraphMountEligibilityIdentity, UiGraphMountEligibilityRecord, UiGraphNodeIdentity,
+    UiGraphNodeRecord, UiGraphPageParticipationMember, UiGraphParticipationAxis, UiGraphSnapshot,
+    UiGraphTopologyRecord,
 };
 
 pub struct UiGraphLookupSurface<'a> {
@@ -168,33 +168,33 @@ impl<'a> UiGraphLookupSurface<'a> {
         )
     }
 
-    pub fn mounted_receipt_slot(
+    pub fn mount_eligibility_slot(
         self,
-        mounted_receipt_identity: UiMountedReceiptIdentity,
-    ) -> Option<UiGraphLookup<UiGraphMountedReceiptAuthorityRecord>> {
+        mount_eligibility_identity: UiGraphMountEligibilityIdentity,
+    ) -> Option<UiGraphLookup<UiGraphMountEligibilityRecord>> {
         self.snapshot
-            .mounted_receipts()
-            .slot(mounted_receipt_identity)
+            .mount_eligibilities()
+            .slot(mount_eligibility_identity)
             .map(|slot| {
                 UiGraphLookup::new(
-                    scalar(UiGraphLookupFamily::MountedReceiptSlot),
-                    UiGraphMountedReceiptAuthorityRecord::from(*slot),
+                    scalar(UiGraphLookupFamily::MountEligibilitySlot),
+                    UiGraphMountEligibilityRecord::from(*slot),
                 )
             })
     }
 
-    pub fn mounted_receipt_slot_for_node(
+    pub fn mount_eligibility_slot_for_node(
         self,
         graph_node_identity: UiGraphNodeIdentity,
-    ) -> Option<UiGraphLookup<UiGraphMountedReceiptAuthorityRecord>> {
+    ) -> Option<UiGraphLookup<UiGraphMountEligibilityRecord>> {
         self.snapshot
             .core_indexes()
-            .mounted_receipts()
-            .slot_for_node(self.snapshot.mounted_receipts(), graph_node_identity)
+            .mount_eligibilities()
+            .slot_for_node(self.snapshot.mount_eligibilities(), graph_node_identity)
             .map(|slot| {
                 UiGraphLookup::new(
-                    scalar(UiGraphLookupFamily::MountedReceiptSlot),
-                    UiGraphMountedReceiptAuthorityRecord::from(*slot),
+                    scalar(UiGraphLookupFamily::MountEligibilitySlot),
+                    UiGraphMountEligibilityRecord::from(*slot),
                 )
             })
     }

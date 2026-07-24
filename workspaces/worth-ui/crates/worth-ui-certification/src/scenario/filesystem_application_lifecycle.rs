@@ -8,8 +8,10 @@ use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
 
 use super::application_authority_closure::application_definition::{
     application_builder, application_builder_with_host, cross_lane_application_builder_with_host,
-    CANDIDATE_COMPONENT, CROSS_LANE_CANVAS, CROSS_LANE_REALTIME, CURRENT_COMPONENT,
-    IMPORTED_CANDIDATE_COMPONENT, IMPORTED_CURRENT_COMPONENT,
+    preview_application_builder_with_host, CANDIDATE_COMPONENT, CROSS_LANE_CANVAS,
+    CROSS_LANE_REALTIME, CURRENT_COMPONENT, IMPORTED_CANDIDATE_COMPONENT,
+    IMPORTED_CURRENT_COMPONENT, PREVIEW_COMPONENT, PREVIEW_REGION, PREVIEW_SCROLL_STATE_SLOT,
+    PREVIEW_SIZING, PREVIEW_STATE_SLOT, PREVIEW_SURFACE,
 };
 use super::application_authority_closure::authored_composition::{file_source, rust_submission};
 use super::application_authority_closure::candidate_catalog::admit_candidate_catalog;
@@ -53,6 +55,31 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn candidate_source_text() -> String {
         file_source(CANDIDATE_COMPONENT)
+    }
+
+    pub fn preview_source_text(include_successor: bool) -> String {
+        Self::resizable_surface_source_text(PREVIEW_STATE_SLOT, include_successor)
+    }
+
+    pub fn resizable_non_splitter_source_text(include_successor: bool) -> String {
+        Self::resizable_surface_source_text(PREVIEW_SCROLL_STATE_SLOT, include_successor)
+    }
+
+    fn resizable_surface_source_text(state_slot: &str, include_successor: bool) -> String {
+        let successor = if include_successor {
+            format!("component {CANDIDATE_COMPONENT} {{}}\n")
+        } else {
+            String::new()
+        };
+        format!(
+            "component {PREVIEW_COMPONENT} {{}}\n\
+             surface {PREVIEW_SURFACE} {{ region {PREVIEW_REGION} {{ sizing {PREVIEW_SIZING}; state {state_slot}; }} }}\n\
+             {successor}"
+        )
+    }
+
+    pub fn preview_sizing_contract_id() -> &'static str {
+        PREVIEW_SIZING
     }
 
     pub fn cross_lane_source_text() -> String {
@@ -108,6 +135,20 @@ impl FilesystemApplicationLifecycleScenario {
             .expect("filesystem-authored scenario application should prepare")
     }
 
+    pub fn prepare_preview_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        preview_application_builder_with_host(&self.query, host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored splitter preview application should prepare")
+    }
+
     pub fn cross_lane_capability_application<Host>(&self, host: Host) -> WorthUiApp
     where
         Host: WorthUiOperationalHostAdapter + 'static,
@@ -115,6 +156,15 @@ impl FilesystemApplicationLifecycleScenario {
         cross_lane_application_builder_with_host(&self.query, host)
             .freeze()
             .expect("cross-lane capabilities should prepare")
+    }
+
+    pub fn preview_capability_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        preview_application_builder_with_host(&self.query, host)
+            .freeze()
+            .expect("splitter preview capabilities should prepare")
     }
 
     pub fn scaled_canvas_capability_application<Host>(
@@ -173,6 +223,13 @@ impl FilesystemApplicationLifecycleScenario {
         self.query.settle_snapshot()
     }
 
+    pub fn close_query_retirement(
+        &mut self,
+        retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
+    ) -> worth_ui_query_binding::WorthUiOperationLiveRetirementCloseOutcome {
+        self.query.close_retirement(retirement)
+    }
+
     pub fn current_rust_submission(
         capabilities: &CapabilitySnapshot,
     ) -> WorthUiWatchedCandidateSubmission {
@@ -209,6 +266,7 @@ impl FilesystemApplicationLifecycleScenario {
             .expect("filesystem replacement should stage");
         let boundary = session
             .execute_framework_turn(|_| {})
+            .expect("no mounted presentation lease is active")
             .into_completion()
             .into_execution()
             .expect("empty turn should publish an activation boundary")

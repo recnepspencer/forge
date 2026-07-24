@@ -1,5 +1,5 @@
 use crate::declaration::stable_text_digest;
-use crate::graph::{UiGraphNodeIdentity, UiMountedReceiptIdentity};
+use crate::graph::{UiGraphMountEligibilityIdentity, UiGraphNodeIdentity};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiGraphTouchTargetClass {
@@ -13,7 +13,7 @@ pub enum UiGraphTouchTargetClass {
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiGraphTouchAttachmentLane {
-    MountedReceiptSlot,
+    MountEligibilitySlot,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -41,7 +41,7 @@ pub enum UiGraphTouchTarget {
     AttachmentLane {
         graph_node_identity: UiGraphNodeIdentity,
         attachment_lane: UiGraphTouchAttachmentLane,
-        mounted_receipt_identity: UiMountedReceiptIdentity,
+        mount_eligibility_identity: UiGraphMountEligibilityIdentity,
     },
 }
 
@@ -94,14 +94,14 @@ impl UiGraphTouchTarget {
         }
     }
 
-    pub(crate) fn mounted_receipt_slot(
+    pub(crate) fn mount_eligibility_slot(
         graph_node_identity: UiGraphNodeIdentity,
-        mounted_receipt_identity: UiMountedReceiptIdentity,
+        mount_eligibility_identity: UiGraphMountEligibilityIdentity,
     ) -> Self {
         Self::AttachmentLane {
             graph_node_identity,
-            attachment_lane: UiGraphTouchAttachmentLane::MountedReceiptSlot,
-            mounted_receipt_identity,
+            attachment_lane: UiGraphTouchAttachmentLane::MountEligibilitySlot,
+            mount_eligibility_identity,
         }
     }
 
@@ -193,12 +193,12 @@ impl UiGraphTouchTarget {
         }
     }
 
-    pub fn mounted_receipt_identity(&self) -> Option<UiMountedReceiptIdentity> {
+    pub fn mount_eligibility_identity(&self) -> Option<UiGraphMountEligibilityIdentity> {
         match self {
             Self::AttachmentLane {
-                mounted_receipt_identity,
+                mount_eligibility_identity,
                 ..
-            } => Some(*mounted_receipt_identity),
+            } => Some(*mount_eligibility_identity),
             _ => None,
         }
     }
@@ -248,12 +248,12 @@ impl UiGraphTouchTarget {
             Self::AttachmentLane {
                 graph_node_identity,
                 attachment_lane,
-                mounted_receipt_identity,
+                mount_eligibility_identity,
             } => {
                 stable_text_digest("graph-touch-target:attachment-lane")
                     ^ graph_node_identity.digest().rotate_left(7)
                     ^ (*attachment_lane as u64).rotate_left(13)
-                    ^ mounted_receipt_identity.digest().rotate_left(19)
+                    ^ mount_eligibility_identity.digest().rotate_left(19)
             }
         }
     }

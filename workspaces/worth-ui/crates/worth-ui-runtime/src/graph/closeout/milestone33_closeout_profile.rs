@@ -14,7 +14,7 @@ const MILESTONE33_CLOSED_SEMANTIC_LANES: &[UiGraphClosedSemanticLane] = &[
     UiGraphClosedSemanticLane::SlotOccupancyTopology,
     UiGraphClosedSemanticLane::PageRegionMosaicMembership,
     UiGraphClosedSemanticLane::ParticipationPosture,
-    UiGraphClosedSemanticLane::MountedReceiptAuthority,
+    UiGraphClosedSemanticLane::MountEligibility,
     UiGraphClosedSemanticLane::AspectIndexes,
     UiGraphClosedSemanticLane::BoundedLookup,
     UiGraphClosedSemanticLane::InspectionSupport,
@@ -47,13 +47,13 @@ const MILESTONE33_INSPECTION_TARGETS: &[UiGraphInspectionTargetKind] = &[
     UiGraphInspectionTargetKind::PageParticipation,
     UiGraphInspectionTargetKind::PublishedAspect,
     UiGraphInspectionTargetKind::ConsumedAspect,
-    UiGraphInspectionTargetKind::MountedReceipt,
+    UiGraphInspectionTargetKind::MountEligibility,
 ];
 
 const MILESTONE33_EVIDENCE_REFS: &[UiGraphEvidenceRefKind] = &[
     UiGraphEvidenceRefKind::GraphNode,
     UiGraphEvidenceRefKind::Declaration,
-    UiGraphEvidenceRefKind::MountedReceipt,
+    UiGraphEvidenceRefKind::MountEligibility,
     UiGraphEvidenceRefKind::Aspect,
     UiGraphEvidenceRefKind::Page,
 ];
@@ -66,7 +66,7 @@ const MILESTONE33_STOP_POINTS: &[UiGraphInspectionStopPoint] = &[
     UiGraphInspectionStopPoint::AttachmentPosture,
     UiGraphInspectionStopPoint::PublishedAspectIndex,
     UiGraphInspectionStopPoint::ConsumedAspectIndex,
-    UiGraphInspectionStopPoint::MountedReceiptAuthority,
+    UiGraphInspectionStopPoint::MountEligibility,
 ];
 
 pub(crate) const MILESTONE33_CLOSEOUT_PROFILE: UiGraphCloseoutReport = UiGraphCloseoutReport::new(

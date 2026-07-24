@@ -1,6 +1,6 @@
-use worth_ui_host_contract::{UiMeasurementRequest, UiNativeControlKind};
+use worth_ui_host_contract::{UiHostMeasurementRequest, UiNativeControlKind};
 
-pub(crate) fn host_measurement_request_shape_digest(request: &UiMeasurementRequest) -> u64 {
+pub(crate) fn host_measurement_request_shape_digest(request: &UiHostMeasurementRequest) -> u64 {
     let identity = request.identity().as_u64().rotate_left(7);
     let evidence = stable_text_digest(request.evidence_family().as_str()).rotate_left(13);
 

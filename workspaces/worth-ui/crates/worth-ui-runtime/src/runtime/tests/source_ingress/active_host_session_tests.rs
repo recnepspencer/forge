@@ -4,9 +4,7 @@ use worth_ui_host_contract::{
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
-use crate::runtime::tests::active_application_session_test_support::{
-    source_backed_component_session, source_backed_component_session_with_host,
-};
+use crate::runtime::tests::active_application_session_test_support::source_backed_component_session;
 
 #[test]
 fn configured_host_capability_is_stable_for_the_active_session() {
@@ -29,15 +27,17 @@ fn foreign_host_capability_denies_before_observation_or_source_ingress() {
     let mut second = source_backed_component_session();
     let mut denial = None;
 
-    let completion = second.execute_framework_turn(|turn| {
-        turn.host_measurement(|source| {
-            denial = Some(
-                source
-                    .collect_and_submit_capability(&capability, host_measurement_input())
-                    .expect_err("foreign capability must deny"),
-            );
-        });
-    });
+    let completion = second
+        .execute_framework_turn(|turn| {
+            turn.host_measurement(|source| {
+                denial = Some(
+                    source
+                        .collect_and_submit_capability(&capability, host_measurement_input())
+                        .expect_err("foreign capability must deny"),
+                );
+            });
+        })
+        .expect("no mounted presentation lease is active");
 
     assert_eq!(
         denial,
@@ -50,75 +50,6 @@ fn foreign_host_capability_denies_before_observation_or_source_ingress() {
             .expect("the framework turn reports its empty planning phase")
             .admitted_ingress_width(),
         0
-    );
-}
-
-#[test]
-fn headless_and_egui_hosts_share_session_lifecycle_without_claiming_equal_capabilities() {
-    let mut headless = source_backed_component_session();
-    let headless_capability = headless.host_measurement_capability();
-    let mut headless_denied = false;
-    let headless_completion = headless.execute_framework_turn(|turn| {
-        turn.host_measurement(|source| {
-            headless_denied = source
-                .collect_and_submit_capability(
-                    &headless_capability,
-                    host_measurement_input_for_report(headless_capability.capability_report()),
-                )
-                .is_err();
-        });
-    });
-    assert!(headless_denied);
-    assert_eq!(
-        headless_completion
-            .into_completion()
-            .planning_counters()
-            .expect("the denied turn reports its empty planning phase")
-            .admitted_ingress_width(),
-        0
-    );
-
-    let context = egui::Context::default();
-    context.begin_pass(egui::RawInput {
-        screen_rect: Some(egui::Rect::from_min_size(
-            egui::Pos2::ZERO,
-            egui::vec2(1280.0, 720.0),
-        )),
-        ..Default::default()
-    });
-    let mut egui = source_backed_component_session_with_host(
-        worth_ui_host_egui::WorthUiHostEgui::new(context.clone()),
-    );
-    let egui_capability = egui.host_measurement_capability();
-    let mut egui_admitted = None;
-    egui.execute_framework_turn(|turn| {
-        turn.host_measurement(|source| {
-            egui_admitted = Some(
-                source
-                    .collect_and_submit_capability(
-                        &egui_capability,
-                        host_measurement_input_for_report(egui_capability.capability_report()),
-                    )
-                    .expect("egui host evidence should enter the allocation gateway"),
-            );
-        });
-    });
-    let _ = context.end_pass();
-
-    assert_eq!(
-        egui_admitted
-            .expect("the host measurement source ran")
-            .counters()
-            .ingress_count(),
-        1
-    );
-    assert_ne!(
-        headless.host_session_identity(),
-        egui.host_session_identity()
-    );
-    assert_eq!(
-        egui_capability.session_identity(),
-        egui.host_session_identity()
     );
 }
 

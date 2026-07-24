@@ -136,15 +136,17 @@ pub(super) fn admit_active_settlement(
     refresh: bool,
 ) -> std::sync::Arc<WorthUiSettledSnapshotFact> {
     let mut admitted = None;
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|source| {
-            admitted = Some(if refresh {
-                source.refresh_settled(projection)
-            } else {
-                source.admit_settled(projection)
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|source| {
+                admitted = Some(if refresh {
+                    source.refresh_settled(projection)
+                } else {
+                    source.admit_settled(projection)
+                });
             });
-        });
-    });
+        })
+        .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
     admitted
         .expect("settlement source ran")

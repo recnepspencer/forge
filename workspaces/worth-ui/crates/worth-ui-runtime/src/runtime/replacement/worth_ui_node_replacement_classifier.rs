@@ -258,6 +258,9 @@ fn classify_matched_identities(
                 candidate_kind: Some(candidate_node.kind()),
                 active_durable_state_eligible: active_node.durable_state_eligible(),
                 candidate_durable_state_eligible: candidate_node.durable_state_eligible(),
+                active_has_restorable_splitter_state: active_node.has_restorable_splitter_state(),
+                candidate_has_restorable_splitter_state: candidate_node
+                    .has_restorable_splitter_state(),
                 active_resize_contract_id: active_node.resize_contract_id().cloned(),
                 candidate_resize_contract_id: candidate_node.resize_contract_id().cloned(),
                 active_resize_permission: active_node.resize_permission().cloned(),
@@ -347,6 +350,8 @@ fn classify_dropped_identities(
                 candidate_kind: None,
                 active_durable_state_eligible: active_node.durable_state_eligible(),
                 candidate_durable_state_eligible: false,
+                active_has_restorable_splitter_state: active_node.has_restorable_splitter_state(),
+                candidate_has_restorable_splitter_state: false,
                 active_resize_contract_id: active_node.resize_contract_id().cloned(),
                 candidate_resize_contract_id: None,
                 active_resize_permission: active_node.resize_permission().cloned(),
@@ -377,6 +382,9 @@ fn classify_created_identities(
                 candidate_kind: Some(candidate_node.kind()),
                 active_durable_state_eligible: false,
                 candidate_durable_state_eligible: candidate_node.durable_state_eligible(),
+                active_has_restorable_splitter_state: false,
+                candidate_has_restorable_splitter_state: candidate_node
+                    .has_restorable_splitter_state(),
                 active_resize_contract_id: None,
                 candidate_resize_contract_id: candidate_node.resize_contract_id().cloned(),
                 active_resize_permission: None,

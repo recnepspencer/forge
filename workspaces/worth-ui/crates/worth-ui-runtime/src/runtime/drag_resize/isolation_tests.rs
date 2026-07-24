@@ -18,12 +18,11 @@ fn same_frame_preview_is_isolated_before_terminal_commit() {
                 .unwrap();
         });
     });
-    let mut host = |geometry: crate::host::UiHostPreviewPaintGeometry<'_>| {
-        assert_eq!(geometry.extent(), preview_extent);
-        Ok(())
-    };
-    let resolved = completion.resolve_preview_paint(&mut host).unwrap();
-    let crate::runtime::UiPreviewPaintIsolationOutcome::Verified(isolation) = resolved.isolation()
+    let (transition, _) = completion.into_pending_mounted_preview().unwrap();
+    assert_eq!(transition.preview().extent(), preview_extent);
+    let before = transition.preview().capture_isolation_basis();
+    let resolved = transition.finish(before);
+    let crate::runtime::UiPreviewPaintIsolationOutcome::Verified(isolation) = resolved.isolation
     else {
         panic!("preview paint must preserve allocation truth")
     };
@@ -34,7 +33,7 @@ fn same_frame_preview_is_isolated_before_terminal_commit() {
     assert_eq!(isolation.durable_mutations(), 0);
     assert_eq!(isolation.committed_receipts(), 0);
     let durable = resolved
-        .follow_on()
+        .follow_on
         .durable_resize_outcome()
         .expect("verified preview isolation admits durable follow-on");
     assert_eq!(durable.extent(), durable_extent);
@@ -61,16 +60,17 @@ fn preview_verifies_before_delayed_durable_commit_denies_at_receipt_exhaustion()
                 .unwrap();
         });
     });
-    let mut host = |_geometry: crate::host::UiHostPreviewPaintGeometry<'_>| Ok(());
-    let resolved = completion.resolve_preview_paint(&mut host).unwrap();
-    let crate::runtime::UiPreviewPaintIsolationOutcome::Verified(isolation) = resolved.isolation()
+    let (transition, _) = completion.into_pending_mounted_preview().unwrap();
+    let before = transition.preview().capture_isolation_basis();
+    let resolved = transition.finish(before);
+    let crate::runtime::UiPreviewPaintIsolationOutcome::Verified(isolation) = resolved.isolation
     else {
         panic!("preview remains isolated")
     };
     assert_eq!(isolation.committed_receipts(), 0);
     assert_eq!(isolation.durable_mutations(), 0);
     let denial = resolved
-        .follow_on()
+        .follow_on
         .durable_resize_denial()
         .expect("delayed commit denies");
     let crate::runtime::UiAllocationReplanTransactionCommitDenial::AuthorityCounterExhausted(

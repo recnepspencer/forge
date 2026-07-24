@@ -2,7 +2,7 @@ use super::ordinary_lane_test_support::ordinary_lane_fixture;
 use super::realtime_overlay_lane_test_support::realtime_overlay_fixture;
 use super::virtualized_data_lane_test_support::virtualized_data_fixture;
 use super::{
-    WorthUiCanvasSpatialCounters, WorthUiFrameCostCounter,
+    WorthUiCanvasSpatialCounters, WorthUiFrameCostCounter, WorthUiFrameExecutionBasis,
     WorthUiFrameReportMaterializationBoundary, WorthUiLaneFrameReceiptKind,
     WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneCounters, WorthUiRealtimeFrameTarget,
     WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane, WorthUiRuntimeCounterFamily,
@@ -68,7 +68,7 @@ fn active_plan_digest_is_carried_by_every_frame_counter_packet() {
 #[test]
 fn foreign_generation_and_executor_overrun_deny_before_certification() {
     let receipt = complete_steady_frame_receipt(77);
-    let foreign = worth_ui_host_contract::WorthUiHostOutputGeneration::new(9, 8, 77, 6);
+    let foreign = WorthUiFrameExecutionBasis::new(9, 8, 77, 6);
     assert_eq!(
         receipt.clone().certify_for(foreign).unwrap_err().reason(),
         WorthUiSteadyFrameCounterDenialReason::ForeignGeneration

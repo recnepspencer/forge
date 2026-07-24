@@ -88,18 +88,32 @@ pub fn audit_lane_extension_authority(inventory: &WorkspaceSourceInventory) -> V
         .source(gate_path)
         .expect("activation gate source exists")
         .text();
-    if !gate.contains("prepare_regional_succession(query_changes)") {
+    let succession = audit_query_succession_calls(gate, gate_path);
+    if succession.regional_calls != 1 {
         violations.push(format!(
-            "{gate_path} does not constrain Query succession to changed regions"
+            "{gate_path} must invoke exactly one regional Query succession; found {}",
+            succession.regional_calls
         ));
     }
-    if gate.contains("installed_query_references()") {
+    if succession.full_calls != 0 {
+        violations.push(format!(
+            "{gate_path} invokes full Query succession during regional replacement"
+        ));
+    }
+    if succession.installed_reference_calls != 0 {
         violations.push(format!(
             "{gate_path} materializes the complete Query reference catalog during replacement"
         ));
     }
     violations.sort();
     violations
+}
+
+fn audit_query_succession_calls(source: &str, path: &str) -> QuerySuccessionCalls {
+    let syntax = syn::parse_file(source).unwrap_or_else(|error| panic!("{path} parses: {error}"));
+    let mut calls = QuerySuccessionCalls::default();
+    calls.visit_file(&syntax);
+    calls
 }
 
 fn audit_sealed_authority_source(
@@ -169,6 +183,13 @@ struct FrameDependencyVisitor {
     collect_call_count: usize,
 }
 
+#[derive(Default)]
+struct QuerySuccessionCalls {
+    regional_calls: usize,
+    full_calls: usize,
+    installed_reference_calls: usize,
+}
+
 impl<'ast> Visit<'ast> for FrameDependencyVisitor {
     fn visit_path(&mut self, path: &'ast syn::Path) {
         if let Some(identifier) = path
@@ -186,6 +207,18 @@ impl<'ast> Visit<'ast> for FrameDependencyVisitor {
     fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
         if call.method == "collect" {
             self.collect_call_count += 1;
+        }
+        syn::visit::visit_expr_method_call(self, call);
+    }
+}
+
+impl<'ast> Visit<'ast> for QuerySuccessionCalls {
+    fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
+        match call.method.to_string().as_str() {
+            "prepare_regional_succession" => self.regional_calls += 1,
+            "prepare_succession" => self.full_calls += 1,
+            "installed_query_references" => self.installed_reference_calls += 1,
+            _ => {}
         }
         syn::visit::visit_expr_method_call(self, call);
     }

@@ -1,7 +1,7 @@
 use crate::declaration::{UiAspectName, UiDeclarationIdentity};
 use crate::graph::{
-    UiGraphGeneration, UiGraphLookup, UiGraphLookupReceipt, UiGraphNodeIdentity,
-    UiGraphParticipationAxis, UiMountedReceiptIdentity,
+    UiGraphGeneration, UiGraphLookup, UiGraphLookupReceipt, UiGraphMountEligibilityIdentity,
+    UiGraphNodeIdentity, UiGraphParticipationAxis,
 };
 
 use super::UiGraphEvidenceRef;
@@ -22,7 +22,7 @@ pub enum UiGraphInspectionTarget {
     },
     PublishedAspect(UiAspectName),
     ConsumedAspect(UiAspectName),
-    MountedReceipt(UiMountedReceiptIdentity),
+    MountEligibility(UiGraphMountEligibilityIdentity),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -35,7 +35,7 @@ pub enum UiGraphInspectionTargetKind {
     PageParticipation,
     PublishedAspect,
     ConsumedAspect,
-    MountedReceipt,
+    MountEligibility,
 }
 
 impl UiGraphInspectionTarget {
@@ -49,7 +49,7 @@ impl UiGraphInspectionTarget {
             Self::PageParticipation { .. } => UiGraphInspectionTargetKind::PageParticipation,
             Self::PublishedAspect(_) => UiGraphInspectionTargetKind::PublishedAspect,
             Self::ConsumedAspect(_) => UiGraphInspectionTargetKind::ConsumedAspect,
-            Self::MountedReceipt(_) => UiGraphInspectionTargetKind::MountedReceipt,
+            Self::MountEligibility(_) => UiGraphInspectionTargetKind::MountEligibility,
         }
     }
 }

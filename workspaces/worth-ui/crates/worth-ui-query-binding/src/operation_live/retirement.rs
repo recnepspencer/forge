@@ -46,6 +46,13 @@ impl WorthUiOperationLiveRetirement {
         }
     }
 
+    pub(crate) fn with_resource_capacity(capacity: usize) -> Self {
+        Self {
+            resources: VecDeque::with_capacity(capacity),
+            closed_receipts: Vec::new(),
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.resources.len()
     }
@@ -79,6 +86,12 @@ impl WorthUiOperationLiveRetirement {
                 closed_receipts: self.closed_receipts,
             },
         )
+    }
+}
+
+impl Extend<WorthUiOperationLiveResource> for WorthUiOperationLiveRetirement {
+    fn extend<T: IntoIterator<Item = WorthUiOperationLiveResource>>(&mut self, resources: T) {
+        self.resources.extend(resources);
     }
 }
 

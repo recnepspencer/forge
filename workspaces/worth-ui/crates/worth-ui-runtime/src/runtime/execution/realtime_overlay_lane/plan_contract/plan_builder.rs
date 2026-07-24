@@ -32,7 +32,7 @@ impl WorthUiHudPlanBuilder {
                 counters,
             ));
         }
-        if !host_binding.realtime_overlay_supported() {
+        if !host_binding.realtime_overlay_execution_supported() {
             counters.record_denial();
             return Err(WorthUiHudPlanDenial::new(
                 WorthUiHudPlanDenialReason::HostSupportMissing,

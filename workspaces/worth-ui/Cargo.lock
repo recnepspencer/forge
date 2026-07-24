@@ -1691,6 +1691,7 @@ version = "0.1.0"
 dependencies = [
  "egui",
  "worth-ui-host-contract",
+ "worth-ui-runtime",
 ]
 
 [[package]]
@@ -1711,13 +1712,11 @@ dependencies = [
 name = "worth-ui-runtime"
 version = "0.1.0"
 dependencies = [
- "egui",
  "notify",
  "worth-foundational",
  "worth-proof",
  "worth-ui-dsl",
  "worth-ui-host-contract",
- "worth-ui-host-egui",
  "worth-ui-inspection",
  "worth-ui-query-binding",
 ]

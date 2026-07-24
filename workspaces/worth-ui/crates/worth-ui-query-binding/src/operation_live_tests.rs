@@ -4,11 +4,47 @@ use crate::{
     WorthUiCollectionMeasurementEffect, WorthUiCollectionResetReason,
     WorthUiOperationLiveCloseOutcome, WorthUiOperationLiveRefreshDenial,
     WorthUiOperationLiveRefreshError, WorthUiOperationLiveRefreshOutcome,
+    WorthUiQueryBindingSuccessionDenial,
 };
 
 mod cost;
 mod fixture;
 use fixture::LiveBindingFixture;
+
+#[test]
+fn unpublished_live_change_denies_succession_before_the_candidate_is_consumed() {
+    let mut fixture = LiveBindingFixture::new("worth-ui-succession-staged-change");
+    fixture.owner.update_measurement();
+    let consequence = match fixture.refresh().unwrap() {
+        WorthUiOperationLiveRefreshOutcome::Applied(consequence) => consequence,
+        WorthUiOperationLiveRefreshOutcome::NoSemanticDelivery => {
+            panic!("semantic measurement update produced no UI consequence")
+        }
+    };
+    fixture
+        .binding
+        .admit_operation_live_change(consequence)
+        .unwrap();
+    let candidate = fixture.owner.binding_plan().prepare_downstream_state();
+
+    let denial = match candidate.prepare_regional_succession(&fixture.binding, std::iter::empty()) {
+        Err(denial) => denial,
+        Ok(_) => panic!("unpublished active Query change cannot cross succession"),
+    };
+
+    assert_eq!(
+        denial,
+        WorthUiQueryBindingSuccessionDenial::UnpublishedLiveChanges
+    );
+    assert_eq!(
+        fixture
+            .binding
+            .publish_staged_operation_live_changes()
+            .published_change_count(),
+        1
+    );
+    fixture.close();
+}
 
 #[test]
 fn retained_binding_mints_and_publishes_one_ui_owned_live_change() {

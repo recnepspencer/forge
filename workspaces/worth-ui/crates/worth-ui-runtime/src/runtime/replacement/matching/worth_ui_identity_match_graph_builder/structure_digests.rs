@@ -50,6 +50,15 @@ pub(super) fn node_resize_shape_digest(node: &WorthUiArtifactNode) -> Option<u64
     Some(structure_shape_digest(structure))
 }
 
+pub(super) fn node_has_restorable_splitter_state(node: &WorthUiArtifactNode) -> bool {
+    node_structure(node).is_some_and(|structure| {
+        structure
+            .root_regions()
+            .iter()
+            .any(region_has_restorable_splitter_state)
+    })
+}
+
 fn node_structure(
     node: &WorthUiArtifactNode,
 ) -> Option<&crate::source::WorthUiMosaicStructureFacts> {
@@ -119,6 +128,32 @@ fn fold_region_shape(
             max_depth,
         );
     }
+}
+
+fn region_has_restorable_splitter_state(region: &crate::source::WorthUiMosaicRegionFacts) -> bool {
+    slot_is_restorable_splitter(region.state_slot().map(|(_, descriptor)| descriptor))
+        || region.mounts().iter().any(|mount| {
+            slot_is_restorable_splitter(mount.state_slot().map(|(_, descriptor)| descriptor))
+        })
+        || region
+            .child_regions()
+            .iter()
+            .any(region_has_restorable_splitter_state)
+}
+
+fn slot_is_restorable_splitter(
+    slot: Option<&crate::capability::MosaicStateSlotDescriptor>,
+) -> bool {
+    slot.is_some_and(|descriptor| {
+        descriptor.kind() == &crate::capability::MosaicStateSlotKind::splitter_position()
+            && matches!(
+                descriptor.persistence_policy(),
+                Some(
+                    crate::capability::MosaicStatePersistencePolicy::RestoreAcrossHotReload
+                        | crate::capability::MosaicStatePersistencePolicy::PersistAcrossRuntimeRestart
+                )
+            )
+    })
 }
 
 fn resize_permission_digest(permission: Option<&MosaicResizePermission>) -> u64 {

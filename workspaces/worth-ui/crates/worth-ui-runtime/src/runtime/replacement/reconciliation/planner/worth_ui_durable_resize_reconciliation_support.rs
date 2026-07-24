@@ -22,6 +22,8 @@ pub(super) fn splitter_resize_input_for_carry(
     family: &WorthUiDurableStateFamily,
 ) -> Option<WorthUiDurableResizeInputDisposition> {
     if !is_splitter_surface_family(classification, family)
+        || !classification.active_has_restorable_splitter_state()
+        || !classification.candidate_has_restorable_splitter_state()
         || !splitter_resize_shapes_match(classification)
     {
         return None;
@@ -91,6 +93,8 @@ fn is_splitter_surface_family(
 ) -> bool {
     family.id() == &WorthUiDurableStateFamilyId::SplitterPosition
         && classification_targets_splitter_surface(classification)
+        && (classification.active_has_restorable_splitter_state()
+            || classification.candidate_has_restorable_splitter_state())
 }
 
 fn splitter_resize_shapes_match(classification: &WorthUiNodeReplacementClassification) -> bool {

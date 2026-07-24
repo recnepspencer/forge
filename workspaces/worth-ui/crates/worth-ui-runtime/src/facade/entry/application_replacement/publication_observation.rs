@@ -13,21 +13,34 @@ pub struct WorthUiApplicationPublicationObservation {
     scheduler: crate::runtime::UiAllocationFrameDispatcherState,
 }
 
+pub(super) struct WorthUiApplicationPublicationPreparation<'a> {
+    pub(super) application_generation: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) successor_runtime: crate::runtime::WorthUiActiveRuntimeObservation,
+    pub(super) runtime: &'a crate::runtime::WorthUiRuntime,
+    pub(super) host: &'a crate::facade::WorthUiHostSessionAuthority,
+    pub(super) successor_scheduler: crate::runtime::UiAllocationFrameDispatcherState,
+}
+
 impl WorthUiApplicationPublicationObservation {
-    pub(super) fn capture(
-        application: &super::WorthUiApp,
-        runtime: &crate::runtime::WorthUiRuntime,
-        host: &crate::facade::WorthUiHostSessionAuthority,
+    pub(super) fn prepare_successor(
+        preparation: WorthUiApplicationPublicationPreparation<'_>,
     ) -> Self {
+        let WorthUiApplicationPublicationPreparation {
+            application_generation,
+            successor_runtime,
+            runtime,
+            host,
+            successor_scheduler,
+        } = preparation;
         Self {
-            application_generation: application.generation_identity().clone(),
-            runtime: runtime.inspect_active(),
+            application_generation,
+            runtime: successor_runtime,
             host_session: host.identity(),
             runtime_host_session: runtime.host_session_identity,
             plan_host_session: runtime.host_plan_binding.session_identity(),
             runtime_host_observation: runtime.host_observation_generation,
             plan_host_observation: runtime.host_plan_binding.observation_generation(),
-            scheduler: runtime.allocation_frame_dispatcher_state(),
+            scheduler: successor_scheduler,
         }
     }
 

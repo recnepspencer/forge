@@ -21,7 +21,7 @@ fn graph_closeout_report_enumerates_shipped_graph_lanes_and_explicit_non_goals()
         UiGraphClosedSemanticLane::DeclarationCorrespondence,
         UiGraphClosedSemanticLane::AttachmentPosture,
         UiGraphClosedSemanticLane::ParticipationPosture,
-        UiGraphClosedSemanticLane::MountedReceiptAuthority,
+        UiGraphClosedSemanticLane::MountEligibility,
         UiGraphClosedSemanticLane::AspectIndexes,
         UiGraphClosedSemanticLane::InspectionSupport,
     ] {
@@ -49,14 +49,14 @@ fn graph_closeout_report_enumerates_shipped_graph_lanes_and_explicit_non_goals()
         UiGraphInspectionTargetKind::GraphNode,
         UiGraphInspectionTargetKind::TopologyNode,
         UiGraphInspectionTargetKind::PageParticipation,
-        UiGraphInspectionTargetKind::MountedReceipt,
+        UiGraphInspectionTargetKind::MountEligibility,
     ] {
         assert!(inspection_support.target_kinds().contains(&target));
     }
 
     for evidence_ref in [
         UiGraphEvidenceRefKind::GraphNode,
-        UiGraphEvidenceRefKind::MountedReceipt,
+        UiGraphEvidenceRefKind::MountEligibility,
         UiGraphEvidenceRefKind::Aspect,
     ] {
         assert!(inspection_support
@@ -67,7 +67,7 @@ fn graph_closeout_report_enumerates_shipped_graph_lanes_and_explicit_non_goals()
     for stop_point in [
         UiGraphInspectionStopPoint::TopologyTruth,
         UiGraphInspectionStopPoint::ParticipationTruth,
-        UiGraphInspectionStopPoint::MountedReceiptAuthority,
+        UiGraphInspectionStopPoint::MountEligibility,
     ] {
         assert!(inspection_support.stop_points().contains(&stop_point));
     }
@@ -86,7 +86,7 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
             worth_ui::facade::graph::UiGraphAspectPublisherKind::GraphNode(node_identity) => {
                 Some(node_identity)
             }
-            worth_ui::facade::graph::UiGraphAspectPublisherKind::MountedReceiptSlot(_)
+            worth_ui::facade::graph::UiGraphAspectPublisherKind::MountEligibilitySlot(_)
             | worth_ui::facade::graph::UiGraphAspectPublisherKind::FutureReceipt => None,
         })
         .expect("published aspect should resolve one graph-owned publisher node");
@@ -110,15 +110,15 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
     let declaration_lookup = graph
         .lookup()
         .declaration_instances(node.declaration_identity());
-    let mounted_receipt_slot = graph
+    let mount_eligibility_slot = graph
         .lookup()
-        .mounted_receipt_slot_for_node(publisher)
-        .expect("graph handoff should resolve mounted receipt authority seed")
+        .mount_eligibility_slot_for_node(publisher)
+        .expect("graph handoff should resolve mount eligibility seed")
         .value();
-    let mounted_receipt_inspection = graph
+    let mount_eligibility_inspection = graph
         .inspection()
-        .inspect_mounted_receipt_slot(mounted_receipt_slot.mounted_receipt_identity())
-        .expect("graph handoff should inspect mounted receipt authority");
+        .inspect_mount_eligibility_slot(mount_eligibility_slot.mount_eligibility_identity())
+        .expect("graph handoff should inspect mount eligibility");
 
     assert_eq!(
         publisher_lookup.receipt().family(),
@@ -136,13 +136,13 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
         .value()
         .iter()
         .any(|member| member.member_node_identity() == publisher));
-    assert!(mounted_receipt_slot
-        .authority_seed()
-        .graph_owned_slot_reserved());
-    assert!(mounted_receipt_inspection
+    assert!(mount_eligibility_slot
+        .eligibility_seed()
+        .graph_eligibility_reserved());
+    assert!(mount_eligibility_inspection
         .evidence_refs()
         .iter()
-        .any(|evidence_ref| evidence_ref.kind() == UiGraphEvidenceRefKind::MountedReceipt));
+        .any(|evidence_ref| evidence_ref.kind() == UiGraphEvidenceRefKind::MountEligibility));
 }
 
 fn graph_closeout_app() -> worth_ui::facade::app::WorthUiApp {

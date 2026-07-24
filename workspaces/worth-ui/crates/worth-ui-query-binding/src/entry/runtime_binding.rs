@@ -209,13 +209,6 @@ impl WorthUiRuntimeQueryBinding {
         }
     }
 
-    pub(crate) fn swap_runtime_state_with(&mut self, other: &mut Self) {
-        let (Self::Installed(left), Self::Installed(right)) = (self, other) else {
-            return;
-        };
-        left.swap_retained_state_with(right);
-    }
-
     pub(crate) fn admits_reference(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
@@ -230,6 +223,13 @@ impl WorthUiRuntimeQueryBinding {
         match self {
             Self::QueryFree => true,
             Self::Installed(binding) => binding.installation_is_current(),
+        }
+    }
+
+    pub(crate) fn installed_references(&self) -> Vec<WorthUiInstalledQueryBindingReference> {
+        match self {
+            Self::QueryFree => Vec::new(),
+            Self::Installed(binding) => binding.installed_references().collect(),
         }
     }
 
@@ -276,10 +276,10 @@ impl WorthUiRuntimeQueryBinding {
 
     pub(crate) fn retain_only_settlements_for(
         &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
+        retained: &std::collections::BTreeSet<crate::WorthUiQueryViewIdentity>,
     ) {
         if let Self::Installed(binding) = self {
-            binding.retain_only_settlements_for(references);
+            binding.retain_only_settlements_for(retained);
         }
     }
 }

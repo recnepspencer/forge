@@ -8,18 +8,16 @@ pub use replacement::*;
 
 // --- launch ---
 pub use super::active::WorthUiActiveRuntimeObservation;
-#[cfg(test)]
-pub use super::allocation_frame_dispatch::WorthUiPreviewPaintFollowOn;
 pub use super::allocation_frame_dispatch::{
     UiAdmittedAllocationStreamIngress, UiAllocationFrameDispatchDenial,
     UiAllocationFrameDispatcherCounters, UiAllocationFrameDuplicateWitness,
     UiAllocationFrameGatewayOutcome, UiAllocationFrameIngressDescriptor,
     UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
     UiAllocationFrameSourceFactPosture, UiAllocationFrameSubmissionOutcome,
-    UiFrameworkTransitionPlanningCounters, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
-    WorthUiFrameworkTurnExecution, WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters,
-    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome,
-    WorthUiQueryProjectionTurnSource,
+    UiFrameworkTransitionPlanningCounters, UiFrameworkTransitionPlanningDenial,
+    WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
+    WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters, WorthUiQueryFrameIngressDenial,
+    WorthUiQueryFrameIngressOutcome, WorthUiQueryProjectionTurnSource,
 };
 pub(crate) use super::allocation_frame_dispatch::{
     UiAllocationFrameQueueDisposition, UiAllocationFrameReplacementTransition,
@@ -27,6 +25,9 @@ pub(crate) use super::allocation_frame_dispatch::{
 #[cfg(test)]
 pub(crate) use super::allocation_frame_dispatch::{
     WorthUiDurableResizeSubmission, WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission,
+};
+pub use super::allocation_frame_dispatch::{
+    WorthUiMountedPreviewFollowOn, WorthUiPendingMountedPreviewProjection,
 };
 #[cfg(test)]
 pub use super::launch::WorthUiRuntimeFrameworkLoop;
@@ -229,9 +230,9 @@ pub use super::execution::reload_counter_boundary::{
     WorthUiReloadCounterStopStage, WorthUiReloadLoweringFoundationalBridge,
 };
 pub use super::execution::steady_frame_counter_boundary::{
-    WorthUiCertifiedFrameExecutionReceipt, WorthUiFrameExecutionReceipt,
-    WorthUiFrameReportMaterializationBoundary, WorthUiFrameWorkScope, WorthUiLaneFrameReceipt,
-    WorthUiLaneFrameReceiptKind, WorthUiSteadyFrameCounterBoundary,
+    WorthUiCertifiedFrameExecutionReceipt, WorthUiFrameExecutionBasis,
+    WorthUiFrameExecutionReceipt, WorthUiFrameReportMaterializationBoundary, WorthUiFrameWorkScope,
+    WorthUiLaneFrameReceipt, WorthUiLaneFrameReceiptKind, WorthUiSteadyFrameCounterBoundary,
     WorthUiSteadyFrameCounterDenial, WorthUiSteadyFrameCounterDenialReason,
     WorthUiSteadyFrameCounters, WorthUiSteadyFrameFoundationalBridge,
     WorthUiSteadyFrameFoundationalEvidence, WorthUiSteadyFrameReportPlanner,

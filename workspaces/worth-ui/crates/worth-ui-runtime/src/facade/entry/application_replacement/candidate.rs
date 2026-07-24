@@ -54,18 +54,18 @@ impl WorthUiPreparedApplicationReplacement {
         self.candidate_query_binding.admit_operation_live(resource)
     }
 
-    pub fn commit_candidate_mounted_layout_admissions(
+    pub fn commit_candidate_mount_eligibility_admissions(
         &mut self,
-        transitions: Vec<crate::graph::UiGraphMountedReceiptTransition>,
-    ) -> Result<(), crate::graph::UiGraphMountedLayoutAdmissionDenial> {
+        transitions: Vec<crate::graph::UiGraphMountEligibilityTransition>,
+    ) -> Result<(), crate::graph::UiGraphMountEligibilityAdmissionDenial> {
         self.candidate_graph_changed_nodes.extend(
             transitions
                 .iter()
-                .map(|transition| transition.authority_record().graph_node_identity()),
+                .map(|transition| transition.eligibility_record().graph_node_identity()),
         );
         let committed = self
             .candidate_graph()
-            .commit_mounted_layout_admissions(transitions)?;
+            .commit_mount_eligibility_admissions(transitions)?;
         self.next_app.advance_prepared_graph(committed);
         self.basis.rebind_graph(&self.next_app);
         Ok(())

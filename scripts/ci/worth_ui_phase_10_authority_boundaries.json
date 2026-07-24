@@ -55,9 +55,13 @@
       "pattern": "UiPreparedCommittedAllocationActivation",
       "legacy": false,
       "authority_owner": "prepared allocation activation",
-      "rationale": "the move-only prepared activation is defined and consumed solely by the activation owner",
+      "rationale": "the move-only prepared activation is defined by the activation owner and carried through crate-private query-aware and application preparation until one total commit consumes it",
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 4
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 4,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/publication.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/query_aware_plan_outcome.rs": 2
       }
     },
     {
@@ -70,10 +74,11 @@
       "id": "invalidation_commit",
       "pattern": "commit_catalog_transition",
       "legacy": false,
-      "authority_owner": "invalidation catalog publication",
-      "rationale": "the prepared activation calls the sole catalog-owned publication method after all fallible preparation succeeds",
+      "authority_owner": "prepared invalidation catalog publication",
+      "rationale": "the activation and framework-turn transaction owners may consume an already-prepared catalog successor only at their respective infallible total-publication boundary",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_frame_dispatch/framework_turn/allocation_transaction.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog/catalog_transition.rs": 1
       }
     },
@@ -130,10 +135,7 @@
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/identity.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/publication.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/active_set.rs": 2,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/authority.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/mod.rs": 1
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/publication.rs": 1
       }
     },
     {
@@ -158,7 +160,7 @@
       "authority_owner": "scroll catalog successor construction",
       "rationale": "full rebuild and delta successor builders are the only owners that derive scroll catalog identity",
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index/sealing.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_catalog_delta.rs": 2
       }
     },
@@ -171,6 +173,7 @@
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/preflight.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/receipt.rs": 5,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_frame_dispatch/framework_turn/allocation_transaction.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/exports.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/catalog/catalog_transition.rs": 4,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/mod.rs": 1,
@@ -226,8 +229,9 @@
       "rationale": "full and delta portal/scroll index builders resolve structural targets from graph authority; no raw digest target is admitted",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/graph/allocation_neighborhood/replan_selection/transaction/replan_authority.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/authority/selection_certification.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/portal_authority/portal_binding_index.rs": 1,
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_binding_index/sealing.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/portal_authority/portal_catalog_delta.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/invalidation_narrowing/scroll_authority/scroll_catalog_delta.rs": 1
       }

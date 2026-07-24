@@ -32,6 +32,7 @@ pub(super) fn equal_visible_graph_evidence_cannot_cross_candidate_authority(
         .expect("origin candidate should stage");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("empty turn should expose an activation boundary")

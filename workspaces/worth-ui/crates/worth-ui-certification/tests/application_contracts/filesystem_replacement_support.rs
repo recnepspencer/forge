@@ -29,6 +29,7 @@ pub(super) fn activate_current_filesystem_candidate(
         .expect("lowered filesystem candidate should stage completely");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .unwrap_or_else(|_| panic!("replacement boundary turn should complete"))

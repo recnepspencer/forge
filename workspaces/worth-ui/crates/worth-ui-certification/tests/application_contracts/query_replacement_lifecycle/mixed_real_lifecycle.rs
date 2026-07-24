@@ -282,31 +282,27 @@ fn execute_real_egui_frame(
     session: &mut WorthUiActiveApplicationSession,
     query_expected: bool,
 ) {
-    let expected = session.inspect_runtime();
     let query_target = query_expected.then(|| visible_target(session));
-    let mut observed_generation = None;
     let native = context.run(raw_input(), |_| {
         let execution = session
             .execute_framework_turn(|_| {})
+            .expect("no mounted presentation lease is active")
             .into_execution()
             .unwrap_or_else(|_| panic!("egui framework turn"));
         let ordinary = execution
             .execute_ordinary_frame(WorthUiOrdinaryFrameTarget::root_shell())
             .expect("ordinary frame executes");
-        observed_generation = Some(ordinary.output().generation());
+        drop(ordinary);
         if let Some(target) = query_target {
             execution
                 .execute_virtualized_data_frame(target)
                 .expect("visible Query frame executes");
         }
     });
-    let observed = observed_generation.expect("egui receives a sealed output");
-    assert_eq!(
-        observed.active_artifact_digest(),
-        expected.artifact_digest()
+    assert!(
+        native.shapes.is_empty(),
+        "lane execution is receipt-only and cannot contact egui"
     );
-    assert_eq!(observed.active_plan_digest(), expected.active_plan_digest());
-    assert!(!native.shapes.is_empty());
 }
 
 fn visible_target(session: &WorthUiActiveApplicationSession) -> WorthUiVirtualizedDataFrameTarget {
@@ -322,6 +318,7 @@ fn assert_stale_query_target(
 ) {
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("stale-target framework turn"));
     assert!(execution.execute_virtualized_data_frame(target).is_err());

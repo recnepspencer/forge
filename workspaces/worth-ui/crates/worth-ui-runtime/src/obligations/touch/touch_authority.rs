@@ -1,7 +1,7 @@
 mod origin_receipts;
 
 use crate::graph::{
-    UiGraphMountedReceiptTransition, UiGraphNodeIdentity, UiGraphSnapshot, UiGraphTopologyRecord,
+    UiGraphMountEligibilityTransition, UiGraphNodeIdentity, UiGraphSnapshot, UiGraphTopologyRecord,
     UiGraphWorldProfile,
 };
 use crate::obligations::touch::{
@@ -147,30 +147,30 @@ impl<'a> UiGraphTouchAuthority<'a> {
         )
     }
 
-    pub fn from_mounted_receipt_transition(
+    pub fn from_mount_eligibility_transition(
         self,
         origin: UiGraphTouchOriginWitness,
         timing: UiGraphTouchTiming,
-        transition: UiGraphMountedReceiptTransition,
+        transition: UiGraphMountEligibilityTransition,
         aspects: UiGraphTouchAspects,
     ) -> Result<UiGraphTouchDescriptor, UiGraphTouchDenial> {
-        let graph_node_identity = transition.authority_record().graph_node_identity();
+        let graph_node_identity = transition.eligibility_record().graph_node_identity();
         let exact_slot = self
             .snapshot
-            .mounted_receipt_slot_for_node(graph_node_identity)
-            .is_some_and(|slot| transition.authority_record() == (*slot).into());
+            .mount_eligibility_slot_for_node(graph_node_identity)
+            .is_some_and(|slot| transition.eligibility_record() == (*slot).into());
         if transition.graph_authority_identity() != self.snapshot.authority_identity()
             || !exact_slot
         {
-            return Err(UiGraphTouchDenial::ForeignMountedReceiptTransition {
+            return Err(UiGraphTouchDenial::ForeignMountEligibilityTransition {
                 graph_node_identity,
             });
         }
         self.require_origin_graph_node(&origin, graph_node_identity, true)?;
         self.descriptor_from_target(
-            UiGraphTouchTarget::mounted_receipt_slot(
+            UiGraphTouchTarget::mount_eligibility_slot(
                 graph_node_identity,
-                transition.authority_record().mounted_receipt_identity(),
+                transition.eligibility_record().mount_eligibility_identity(),
             ),
             origin,
             timing,
@@ -230,7 +230,7 @@ impl<'a> UiGraphTouchAuthority<'a> {
         self,
         origin: &UiGraphTouchOriginWitness,
         graph_node_identity: UiGraphNodeIdentity,
-        allow_mounted_receipt_transition_only: bool,
+        allow_mount_eligibility_transition_only: bool,
     ) -> Result<(), UiGraphTouchDenial> {
         match origin.authority() {
             UiGraphTouchOriginAuthority::DeclarationInstances {
@@ -262,7 +262,7 @@ impl<'a> UiGraphTouchAuthority<'a> {
                     } if current_view == view_binding_id
                         && current_binding == binding_reference
                 );
-                if allow_mounted_receipt_transition_only
+                if allow_mount_eligibility_transition_only
                     && aligned
                     && origin.receipt().authority_digest()
                         == crate::declaration::stable_text_digest(view_binding_id.as_str())

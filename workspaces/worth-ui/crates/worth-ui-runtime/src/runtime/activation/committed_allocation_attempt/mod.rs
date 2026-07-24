@@ -29,6 +29,7 @@ pub use inspection::UiCommittedAllocationActivationInspection;
 #[cfg(test)]
 pub use inspection::UiCommittedAllocationActivationInspectionOutcome;
 use preflight::UiCommittedAllocationPreflightDenial;
+pub(crate) use prepared::UiPreparedCommittedAllocationActivation;
 use prepared::{UiCommittedAllocationCommitResources, UiCommittedAllocationSuccessors};
 pub(crate) use prior_valid_plan::WorthUiPriorValidPlan;
 pub use prior_valid_plan::WorthUiPriorValidPlanObservation;

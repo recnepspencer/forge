@@ -221,8 +221,8 @@
     "worth-ui-certification": {
       "inventory": "workspaces/worth-ui/crates/worth-ui-certification/tests/suites/compile_contract_cases.csv",
       "execution": "workspaces/worth-ui/crates/worth-ui-certification/tests/suites/compile_contract_execution.csv",
-      "inventory_count": 62,
-      "execution_count": 6,
+      "inventory_count": 63,
+      "execution_count": 7,
       "aggregation_groups": [
         {
           "name": "declaration_and_admission",

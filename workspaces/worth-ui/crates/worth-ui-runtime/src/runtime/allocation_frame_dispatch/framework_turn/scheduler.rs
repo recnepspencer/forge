@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::cell::RefMut;
 use std::rc::Rc;
 
 use crate::runtime::WorthUiRuntimeFrameEpoch;
@@ -25,23 +24,40 @@ pub(crate) struct UiAllocationFrameFrameworkScheduler {
     mailbox: Rc<RefCell<UiAllocationFrameIngressMailbox>>,
 }
 
-pub(in crate::runtime) struct UiPreparedFrameReplacementCommit<'scheduler> {
-    mailbox: RefMut<'scheduler, UiAllocationFrameIngressMailbox>,
+pub(in crate::runtime) struct UiPreparedFrameReplacementCommit {
+    mailbox: Rc<RefCell<UiAllocationFrameIngressMailbox>>,
+    expected_state: UiAllocationFrameDispatcherState,
     assignment: UiAllocationFrameEpochAssignment,
+    transition: Option<UiAllocationFrameReplacementTransition>,
+    successor: UiAllocationFrameIngressMailbox,
 }
 
-impl UiPreparedFrameReplacementCommit<'_> {
-    pub(in crate::runtime) fn commit_once(mut self) -> UiAllocationFrameReplacementTransition {
-        let transition = self.mailbox.dispatcher.pause_for_replacement();
-        self.mailbox
-            .dispatcher
-            .install_replacement_successor(&transition);
-        self.mailbox.gateways = UiAllocationFrameGatewayState::launch();
-        transition
+impl UiPreparedFrameReplacementCommit {
+    pub(in crate::runtime) fn commit_once(self) {
+        debug_assert!(self.transition.is_none());
+        let mut mailbox = self.mailbox.borrow_mut();
+        assert_eq!(
+            mailbox.dispatcher.state(),
+            self.expected_state,
+            "reserved frame-scheduler predecessor changed before total publication"
+        );
+        *mailbox = self.successor;
     }
 
     pub(in crate::runtime) fn assignment(&self) -> UiAllocationFrameEpochAssignment {
         self.assignment
+    }
+
+    pub(in crate::runtime) fn successor_state(&self) -> UiAllocationFrameDispatcherState {
+        self.successor.dispatcher.state()
+    }
+
+    pub(in crate::runtime) fn take_transition_for_receipt(
+        &mut self,
+    ) -> UiAllocationFrameReplacementTransition {
+        self.transition
+            .take()
+            .expect("prepared frame replacement owns one unbound transition")
     }
 }
 
@@ -81,15 +97,20 @@ impl UiAllocationFrameFrameworkScheduler {
 
     pub(in crate::runtime) fn prepare_replacement_commit(
         &self,
-    ) -> Result<UiPreparedFrameReplacementCommit<'_>, UiAllocationFrameDispatchDenial> {
-        let mailbox = self.mailbox.borrow_mut();
-        let assignment = mailbox
-            .dispatcher
-            .prepare_replacement_assignment()
-            .ok_or(UiAllocationFrameDispatchDenial::EpochExhausted)?;
+    ) -> Result<UiPreparedFrameReplacementCommit, UiAllocationFrameDispatchDenial> {
+        let mailbox = self.mailbox.borrow();
+        let expected_state = mailbox.dispatcher.state();
+        let (assignment, transition, successor_dispatcher) =
+            mailbox.dispatcher.prepare_replacement_successor()?;
         Ok(UiPreparedFrameReplacementCommit {
-            mailbox,
+            mailbox: Rc::clone(&self.mailbox),
+            expected_state,
             assignment,
+            transition: Some(transition),
+            successor: UiAllocationFrameIngressMailbox {
+                dispatcher: successor_dispatcher,
+                gateways: UiAllocationFrameGatewayState::launch(),
+            },
         })
     }
 

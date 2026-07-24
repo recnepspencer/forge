@@ -159,7 +159,7 @@ fn inspection_closeout_report_enumerates_milestone35_lanes_guarantees_and_non_go
         report.non_goals(),
         &[
             UiInspectionCloseoutNonGoal::MeasurementEvidence,
-            UiInspectionCloseoutNonGoal::MountedReceiptEvidence,
+            UiInspectionCloseoutNonGoal::MountEligibilityEvidence,
             UiInspectionCloseoutNonGoal::VisualSnapshotEvidence,
             UiInspectionCloseoutNonGoal::ReplayEvidence,
             UiInspectionCloseoutNonGoal::RendererLocalExplanation,

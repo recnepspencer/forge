@@ -31,7 +31,7 @@ impl WorthUiRuntime {
             host_session_plan,
         } = admission;
         let host_session = crate::facade::WorthUiHostSessionAuthority::activate(&host_session_plan)
-            .map_err(|_| WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted)?;
+            .map_err(host_session_launch_denial)?;
         let host_plan_binding = host_session.plan_binding();
         let runtime = Self::launch(
             WorthUiRuntimeLaunch {
@@ -148,6 +148,22 @@ impl WorthUiRuntime {
             durable_resize_source: Default::default(),
             scroll_offset_projection: Default::default(),
         })
+    }
+}
+
+fn host_session_launch_denial(
+    denial: crate::facade::WorthUiHostSessionActivationDenial,
+) -> WorthUiRuntimeLaunchDenial {
+    match denial {
+        crate::facade::WorthUiHostSessionActivationDenial::IdentityExhausted => {
+            WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted
+        }
+        crate::facade::WorthUiHostSessionActivationDenial::Protocol(denial) => {
+            WorthUiRuntimeLaunchDenial::HostProtocol(denial)
+        }
+        crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(denial) => {
+            WorthUiRuntimeLaunchDenial::HostMountedPresentationLease(denial)
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiScrollContainerViewportObservation,
     UiScrollContainerViewportRequest, WorthUiMeasurementHostAdapter,
 };
@@ -11,11 +11,16 @@ struct ScrollViewportAdapter {
 }
 
 impl WorthUiMeasurementHostAdapter for ScrollViewportAdapter {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
-        UiHostObservationValue::ScrollContainerViewport(UiScrollContainerViewportObservation {
-            width: self.width,
-            height: self.height,
-        })
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        UiHostMeasurementObservationValue::ScrollContainerViewport(
+            UiScrollContainerViewportObservation {
+                width: self.width,
+                height: self.height,
+            },
+        )
     }
 }
 

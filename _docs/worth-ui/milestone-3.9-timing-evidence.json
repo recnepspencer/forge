@@ -104,7 +104,8 @@
     "compiler_cache": "disabled (RUSTC_WRAPPER cleared)",
     "source_snapshot": {
       "algorithm": "sha256-path-and-git-blob-v1",
-      "kind": "working_tree",
+      "kind": "captured_working_tree",
+      "handoff_evidence": "_docs/worth-ui/milestone-3.10-test-cost-evidence.json",
       "scope": [
         "Cargo.toml",
         "Cargo.lock",

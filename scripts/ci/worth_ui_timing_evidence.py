@@ -152,11 +152,14 @@ def source_snapshot_violations(
             digest, file_count = git_commit_source_digest(
                 root, required_string(run_set, "git_commit"), scope
             )
+        elif kind == "captured_working_tree":
+            digest, file_count = captured_working_tree_handoff(root, snapshot)
         else:
             return [
                 Violation(
                     "timing-evidence-source",
-                    f"{label}.source_snapshot.kind must be working_tree or git_commit",
+                    f"{label}.source_snapshot.kind must be working_tree, "
+                    "git_commit, or captured_working_tree",
                 )
             ]
     except (OSError, subprocess.CalledProcessError, ValueError) as error:
@@ -182,6 +185,25 @@ def source_snapshot_violations(
             )
         )
     return violations
+
+
+def captured_working_tree_handoff(
+    root: Path, snapshot: dict[str, Any]
+) -> tuple[str, int]:
+    handoff_path = (root / required_string(snapshot, "handoff_evidence")).resolve()
+    if not handoff_path.is_relative_to(root.resolve()) or not handoff_path.is_file():
+        raise ValueError("captured working-tree handoff evidence is unavailable")
+    handoff = load_json(handoff_path)
+    opening = handoff.get("opening")
+    if not isinstance(opening, dict):
+        raise ValueError("captured working-tree handoff opening is missing")
+    handoff_snapshot = opening.get("source_snapshot")
+    if not isinstance(handoff_snapshot, dict):
+        raise ValueError("captured working-tree handoff source snapshot is missing")
+    for field in ("algorithm", "scope", "digest", "file_count"):
+        if handoff_snapshot.get(field) != snapshot.get(field):
+            raise ValueError(f"captured working-tree handoff {field} does not match")
+    return required_string(handoff_snapshot, "digest"), handoff_snapshot["file_count"]
 
 
 def filesystem_source_digest(root: Path, scope: list[str]) -> tuple[str, int]:

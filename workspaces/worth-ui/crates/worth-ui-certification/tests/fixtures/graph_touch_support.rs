@@ -48,10 +48,10 @@ pub fn graph_node_identity(
         .expect("declaration should admit one graph node")
 }
 
-pub fn mounted_receipt_transition(
+pub fn mount_eligibility_transition(
     app: &worth_ui::facade::app::WorthUiApp,
     artifact: &UiDeclarationArtifact,
-) -> worth_ui::facade::graph::UiGraphMountedReceiptTransition {
+) -> worth_ui::facade::graph::UiGraphMountEligibilityTransition {
     let graph = app.graph();
     let graph_node_identity = graph_node_identity(graph, artifact);
     let control_node = graph
@@ -61,7 +61,7 @@ pub fn mounted_receipt_transition(
         .value();
 
     graph
-        .mounted_receipt_transition_for_node(
+        .mount_eligibility_transition_for_node(
             graph_node_identity,
             control_node
                 .participation_posture()

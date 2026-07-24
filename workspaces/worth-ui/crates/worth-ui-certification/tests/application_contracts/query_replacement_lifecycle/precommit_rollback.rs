@@ -124,6 +124,7 @@ fn assert_query_rollback_at(
     assert_eq!(after.snapshot_digest(), prior_runtime.snapshot_digest());
     session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("predecessor turn remains executable"))
         .execute_virtualized_data_frame(prior_target)

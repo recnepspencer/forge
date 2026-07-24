@@ -1,13 +1,12 @@
 use worth_ui::facade::app::{WorthUiOrdinaryFrameTarget, WorthUiOrdinaryPlanSummaryRequest};
+use worth_ui::facade::host::WorthUiHeadlessHost;
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 
-use super::allocation_observing_host::AllocationObservingHost;
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
-use super::headless_output_observer::ObservingHeadlessHost;
 
 #[test]
-fn executor_and_envelope_allocations_exclude_host_translation() {
+fn receipt_only_executor_allocations_match_the_public_call() {
     let scenario = FilesystemApplicationLifecycleScenario::new("executor-allocation");
     let workspace = FilesystemContractWorkspace::new("executor-allocation");
     workspace.write(
@@ -22,10 +21,8 @@ fn executor_and_envelope_allocations_exclude_host_translation() {
         snapshot,
         capabilities.capabilities(),
     );
-    let (observing_host, host_observation) = ObservingHeadlessHost::new();
-    let (host, allocation_observation) = AllocationObservingHost::new(observing_host);
     let mut session = scenario
-        .prepare_application_with_host(submission, host)
+        .prepare_application_with_host(submission, WorthUiHeadlessHost)
         .launch()
         .expect("the filesystem-authored application should launch publicly");
     let targets = [
@@ -43,8 +40,10 @@ fn executor_and_envelope_allocations_exclude_host_translation() {
             .expect("the real source should contain every ordinary target")
             .frame_target()
     });
+    let expected_plan = session.inspect_runtime().active_plan_digest();
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| {
             panic!("an empty public framework turn should lend ordinary execution")
@@ -58,40 +57,26 @@ fn executor_and_envelope_allocations_exclude_host_translation() {
     let frame = frame
         .expect("the allocator observer should run the public call")
         .expect("the armed public ordinary frame call should execute");
-    let host_allocations = allocation_observation.last_allocation_count();
-    let executor_and_envelope_allocations = allocations
-        .count_total
-        .checked_sub(host_allocations)
-        .expect("nested host observation must be contained in the public call");
     let cost = frame
         .cost_receipt()
         .expect("the real completion should derive its generation-bound counter receipt");
     assert_eq!(
         cost.counters().executor_allocation_count(),
-        executor_and_envelope_allocations,
-        "executor accounting must reconcile after excluding host translation"
+        allocations.count_total,
+        "executor accounting must reconcile with the complete public lane call"
     );
-    assert_eq!(executor_and_envelope_allocations, 0);
-    assert_eq!(allocation_observation.call_count(), 1);
+    assert_eq!(allocations.count_total, 0);
     for target in targets {
         execution
             .execute_ordinary_frame(target)
             .expect("summary-discovered repeated execution should succeed");
     }
-    assert_eq!(cost.generation(), frame.output().generation());
+    assert_eq!(cost.basis().active_plan(), expected_plan);
     assert!(cost
         .lane_receipts()
         .iter()
         .all(|lane| lane.work_scope().is_within_request()));
     assert!(frame.receipt().touch().row_count() > 0);
-    assert_eq!(
-        host_observation.snapshot().call_count,
-        1 + targets.len() as u64
-    );
-    assert_eq!(
-        allocation_observation.call_count(),
-        1 + targets.len() as u64
-    );
     drop(frame);
     drop(execution);
     let _ = session.shutdown();

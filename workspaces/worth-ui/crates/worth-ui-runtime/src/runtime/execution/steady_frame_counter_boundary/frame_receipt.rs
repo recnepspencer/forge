@@ -7,7 +7,7 @@ use super::lane_frame_receipt::WorthUiLaneFrameReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiFrameExecutionReceipt {
-    generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
+    basis: super::WorthUiFrameExecutionBasis,
     active_plan_digest: u64,
     diagnostic_policy: WorthUiSteadyFrameDiagnosticPolicy,
     counters: WorthUiSteadyFrameCounters,
@@ -22,14 +22,14 @@ pub struct WorthUiCertifiedFrameExecutionReceipt {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiRenderCostReceipt {
-    generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
+    basis: super::WorthUiFrameExecutionBasis,
     active_plan_digest: u64,
     packets: Vec<WorthUiMeasurementCounterPacket>,
 }
 
 impl WorthUiFrameExecutionReceipt {
     pub(crate) fn new(
-        generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
+        basis: super::WorthUiFrameExecutionBasis,
         active_plan_digest: u64,
         diagnostic_policy: WorthUiSteadyFrameDiagnosticPolicy,
         counters: WorthUiSteadyFrameCounters,
@@ -37,7 +37,7 @@ impl WorthUiFrameExecutionReceipt {
         lane_receipts: Vec<WorthUiLaneFrameReceipt>,
     ) -> Self {
         Self {
-            generation,
+            basis,
             active_plan_digest,
             diagnostic_policy,
             counters,
@@ -50,8 +50,8 @@ impl WorthUiFrameExecutionReceipt {
         self.active_plan_digest
     }
 
-    pub fn generation(&self) -> worth_ui_host_contract::WorthUiHostOutputGeneration {
-        self.generation
+    pub fn basis(&self) -> super::WorthUiFrameExecutionBasis {
+        self.basis
     }
 
     pub fn diagnostic_policy(&self) -> WorthUiSteadyFrameDiagnosticPolicy {
@@ -79,9 +79,9 @@ impl WorthUiFrameExecutionReceipt {
 
     pub fn certify_for(
         self,
-        expected_generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
+        expected_basis: super::WorthUiFrameExecutionBasis,
     ) -> Result<WorthUiCertifiedFrameExecutionReceipt, WorthUiSteadyFrameCounterDenial> {
-        if self.generation != expected_generation {
+        if self.basis != expected_basis {
             return Err(WorthUiSteadyFrameCounterDenial::new(
                 WorthUiSteadyFrameCounterDenialReason::ForeignGeneration,
             ));
@@ -98,7 +98,7 @@ impl WorthUiFrameExecutionReceipt {
                 .map(|receipt| receipt.packet().clone()),
         );
         WorthUiRenderCostReceipt {
-            generation: self.generation,
+            basis: self.basis,
             active_plan_digest: self.active_plan_digest,
             packets,
         }
@@ -112,8 +112,8 @@ impl WorthUiCertifiedFrameExecutionReceipt {
 }
 
 impl WorthUiRenderCostReceipt {
-    pub fn generation(&self) -> worth_ui_host_contract::WorthUiHostOutputGeneration {
-        self.generation
+    pub fn basis(&self) -> super::WorthUiFrameExecutionBasis {
+        self.basis
     }
     pub fn active_plan_digest(&self) -> u64 {
         self.active_plan_digest
@@ -127,7 +127,7 @@ impl WorthUiRenderCostReceipt {
 fn validate_frame_receipt(
     receipt: &WorthUiFrameExecutionReceipt,
 ) -> Result<(), WorthUiSteadyFrameCounterDenial> {
-    if receipt.generation.active_plan_digest() != receipt.active_plan_digest {
+    if receipt.basis.active_plan() != receipt.active_plan_digest {
         return Err(WorthUiSteadyFrameCounterDenial::new(
             WorthUiSteadyFrameCounterDenialReason::ForeignGeneration,
         ));

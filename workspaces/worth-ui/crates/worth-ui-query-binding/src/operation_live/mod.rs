@@ -7,7 +7,9 @@ mod retention;
 mod retirement;
 
 pub use admission::{WorthUiOperationLiveAdmissionDenial, WorthUiOperationLiveAdmissionStop};
-pub(crate) use open::{open_operation_live_resource, settle_once};
+pub(crate) use open::open_operation_live_resource;
+#[cfg(any(test, feature = "certification-construction"))]
+pub(crate) use open::settle_once;
 pub use open::{WorthUiOperationLiveOpenError, WorthUiOperationLiveOpenRequest};
 pub use publication::{
     WorthUiCollectionChangeAdmissionDenial, WorthUiCollectionChangeAdmissionStop,
@@ -16,6 +18,7 @@ pub use publication::{
     WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
 };
 pub use refresh_request::WorthUiOperationLiveRefreshRequest;
+#[cfg(any(test, feature = "certification-construction"))]
 pub(crate) use resource::WorthUiOperationLiveSources;
 pub use resource::{
     WorthUiOperationLiveCloseOutcome, WorthUiOperationLiveCloseReceipt,

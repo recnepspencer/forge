@@ -132,20 +132,22 @@ fn admit_current_projection(
     let expected_extent = expected_fact.measurement_facts().observations()[0].extent();
     let mut admitted_fact = None;
     let mut frame_ingress = None;
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|query| {
-            admitted_fact = Some(
-                query
-                    .admit_settled(settled)
-                    .expect("runtime retains the exact settled projection once"),
-            );
-            frame_ingress = Some(
-                query
-                    .submit_settled(fact_link)
-                    .expect("the active generation resolves its retained fact link"),
-            );
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|query| {
+                admitted_fact = Some(
+                    query
+                        .admit_settled(settled)
+                        .expect("runtime retains the exact settled projection once"),
+                );
+                frame_ingress = Some(
+                    query
+                        .submit_settled(fact_link)
+                        .expect("the active generation resolves its retained fact link"),
+                );
+            });
+        })
+        .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
     let admitted_fact = admitted_fact.expect("the framework turn returns the admitted UI fact");
     assert_eq!(
@@ -179,20 +181,22 @@ fn refresh_current_projection(
 ) -> std::sync::Arc<WorthUiSettledSnapshotFact> {
     let mut refreshed_fact = None;
     let mut frame_ingress = None;
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|query| {
-            refreshed_fact = Some(
-                query
-                    .refresh_settled(settled)
-                    .expect("the exact binding atomically replaces its settlement"),
-            );
-            frame_ingress = Some(
-                query
-                    .submit_settled(fact_link)
-                    .expect("the unchanged plan link resolves the refreshed settlement"),
-            );
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|query| {
+                refreshed_fact = Some(
+                    query
+                        .refresh_settled(settled)
+                        .expect("the exact binding atomically replaces its settlement"),
+                );
+                frame_ingress = Some(
+                    query
+                        .submit_settled(fact_link)
+                        .expect("the unchanged plan link resolves the refreshed settlement"),
+                );
+            });
+        })
+        .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
     let refreshed_fact = refreshed_fact.expect("the refresh returns the current UI fact");
     assert_fact_coordinates(&refreshed_fact, 2, 2);
@@ -295,16 +299,18 @@ fn assert_successor_projection(
         .expect("the successor plan carries the candidate settlement link");
     let mut successor_ingress = None;
     let mut stale_denial = None;
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|query| {
-            successor_ingress = Some(
-                query
-                    .submit_settled(&successor_link)
-                    .expect("the successor resolves the one preserved settlement"),
-            );
-            stale_denial = query.submit_settled(predecessor_link).err();
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|query| {
+                successor_ingress = Some(
+                    query
+                        .submit_settled(&successor_link)
+                        .expect("the successor resolves the one preserved settlement"),
+                );
+                stale_denial = query.submit_settled(predecessor_link).err();
+            });
+        })
+        .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
     assert_eq!(
         stale_denial,

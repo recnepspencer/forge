@@ -28,19 +28,15 @@ impl WorthUiInstalledDownstreamQueryState {
     ) -> Self {
         let references = WorthUiInstalledReferenceCatalog::new(references);
         let has_live_reference = references.has_live_reference();
+        let operation_live = has_live_reference
+            .then(|| WorthUiOperationLiveRetention::for_identities(references.live_identities()));
+        let settled_snapshot =
+            WorthUiSettledSnapshotRetention::for_identities(references.identities());
         Self {
             references,
-            operation_live: has_live_reference.then(Default::default),
-            settled_snapshot: Default::default(),
+            operation_live,
+            settled_snapshot,
         }
-    }
-
-    pub(super) fn swap_retained_state_with(&mut self, other: &mut Self) {
-        match (&mut self.operation_live, &mut other.operation_live) {
-            (Some(left), Some(right)) => left.swap_with(right),
-            _ => std::mem::swap(&mut self.operation_live, &mut other.operation_live),
-        }
-        self.settled_snapshot.swap_with(&mut other.settled_snapshot);
     }
 
     pub(super) fn admit_settled_snapshot(
@@ -145,6 +141,12 @@ impl WorthUiInstalledDownstreamQueryState {
         self.references.installation_is_current()
     }
 
+    pub(super) fn installed_references(
+        &self,
+    ) -> impl ExactSizeIterator<Item = WorthUiInstalledQueryBindingReference> + '_ {
+        self.references.references()
+    }
+
     pub(super) fn execution_evidence_for(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
@@ -197,9 +199,9 @@ impl WorthUiInstalledDownstreamQueryState {
 
     pub(super) fn retain_only_settlements_for(
         &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
+        retained: &std::collections::BTreeSet<WorthUiQueryViewIdentity>,
     ) {
-        self.settled_snapshot.retain_only(references);
+        self.settled_snapshot.retain_only(retained);
     }
 
     pub(super) fn take_settled_snapshot(

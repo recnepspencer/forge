@@ -4,7 +4,7 @@ use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
     UiGraphAspectConsumerKind, UiGraphAspectPublisherKind, UiGraphLookupCostClass,
-    UiGraphLookupFamily, UiGraphNodeIdentity, UiMountedReceiptIdentity,
+    UiGraphLookupFamily, UiGraphMountEligibilityIdentity, UiGraphNodeIdentity,
 };
 use worth_ui_dsl::{
     UiDslAspectName, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -59,7 +59,7 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
     ]);
     let publisher_receipt_ids = publisher_node_ids
         .iter()
-        .map(|node_id| mounted_receipt_identity(graph, *node_id))
+        .map(|node_id| mount_eligibility_identity(graph, *node_id))
         .collect::<BTreeSet<_>>();
     let consumer_node_ids = BTreeSet::from([
         graph_node_identity(graph, first_consumer),
@@ -67,13 +67,14 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
     ]);
     let consumer_receipt_ids = consumer_node_ids
         .iter()
-        .map(|node_id| mounted_receipt_identity(graph, *node_id))
+        .map(|node_id| mount_eligibility_identity(graph, *node_id))
         .collect::<BTreeSet<_>>();
     let competing_publisher_node_id = graph_node_identity(graph, competing_publisher);
     let competing_publisher_receipt_id =
-        mounted_receipt_identity(graph, competing_publisher_node_id);
+        mount_eligibility_identity(graph, competing_publisher_node_id);
     let competing_consumer_node_id = graph_node_identity(graph, competing_consumer);
-    let competing_consumer_receipt_id = mounted_receipt_identity(graph, competing_consumer_node_id);
+    let competing_consumer_receipt_id =
+        mount_eligibility_identity(graph, competing_consumer_node_id);
 
     assert_eq!(
         published.receipt().family(),
@@ -156,7 +157,7 @@ fn publisher_graph_nodes(
         .iter()
         .filter_map(|publisher| match publisher.kind() {
             UiGraphAspectPublisherKind::GraphNode(node_id) => Some(node_id),
-            UiGraphAspectPublisherKind::MountedReceiptSlot(_)
+            UiGraphAspectPublisherKind::MountEligibilitySlot(_)
             | UiGraphAspectPublisherKind::FutureReceipt => None,
         })
         .collect()
@@ -164,11 +165,11 @@ fn publisher_graph_nodes(
 
 fn publisher_receipts(
     publishers: &[worth_ui::facade::graph::UiGraphAspectPublisher],
-) -> BTreeSet<UiMountedReceiptIdentity> {
+) -> BTreeSet<UiGraphMountEligibilityIdentity> {
     publishers
         .iter()
         .filter_map(|publisher| match publisher.kind() {
-            UiGraphAspectPublisherKind::MountedReceiptSlot(receipt_id) => Some(receipt_id),
+            UiGraphAspectPublisherKind::MountEligibilitySlot(receipt_id) => Some(receipt_id),
             UiGraphAspectPublisherKind::GraphNode(_)
             | UiGraphAspectPublisherKind::FutureReceipt => None,
         })
@@ -182,18 +183,18 @@ fn consumer_graph_nodes(
         .iter()
         .filter_map(|consumer| match consumer.kind() {
             UiGraphAspectConsumerKind::GraphNode(node_id) => Some(node_id),
-            UiGraphAspectConsumerKind::MountedReceiptSlot(_) => None,
+            UiGraphAspectConsumerKind::MountEligibilitySlot(_) => None,
         })
         .collect()
 }
 
 fn consumer_receipts(
     consumers: &[worth_ui::facade::graph::UiGraphAspectConsumer],
-) -> BTreeSet<UiMountedReceiptIdentity> {
+) -> BTreeSet<UiGraphMountEligibilityIdentity> {
     consumers
         .iter()
         .filter_map(|consumer| match consumer.kind() {
-            UiGraphAspectConsumerKind::MountedReceiptSlot(receipt_id) => Some(receipt_id),
+            UiGraphAspectConsumerKind::MountEligibilitySlot(receipt_id) => Some(receipt_id),
             UiGraphAspectConsumerKind::GraphNode(_) => None,
         })
         .collect()
@@ -212,16 +213,16 @@ fn graph_node_identity(
         .expect("declaration should admit one graph node")
 }
 
-fn mounted_receipt_identity(
+fn mount_eligibility_identity(
     graph: worth_ui::facade::graph::UiGraphAuthority<'_>,
     graph_node_identity: UiGraphNodeIdentity,
-) -> UiMountedReceiptIdentity {
+) -> UiGraphMountEligibilityIdentity {
     graph
         .lookup()
-        .mounted_receipt_slot_for_node(graph_node_identity)
-        .expect("mounted receipt slot should resolve for graph node")
+        .mount_eligibility_slot_for_node(graph_node_identity)
+        .expect("mount eligibility slot should resolve for graph node")
         .value()
-        .mounted_receipt_identity()
+        .mount_eligibility_identity()
 }
 
 fn artifact_from_file_provenance<'a>(

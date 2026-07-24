@@ -25,7 +25,7 @@ pub struct WorthUiExactOperationLiveResourceEvidence {
 
 #[derive(Default)]
 pub(crate) struct WorthUiOperationLiveRetention {
-    resources: BTreeMap<WorthUiQueryViewIdentity, WorthUiOperationLiveResource>,
+    resources: BTreeMap<WorthUiQueryViewIdentity, Option<WorthUiOperationLiveResource>>,
     resource_registration_count: usize,
     succession_operation_count: usize,
     next_source_generation: u64,
@@ -37,7 +37,10 @@ impl std::fmt::Debug for WorthUiOperationLiveRetention {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("WorthUiOperationLiveRetention")
-            .field("retained_resource_count", &self.resources.len())
+            .field(
+                "retained_resource_count",
+                &self.resources.values().flatten().count(),
+            )
             .field(
                 "resource_registration_count",
                 &self.resource_registration_count,
@@ -51,17 +54,42 @@ impl std::fmt::Debug for WorthUiOperationLiveRetention {
 }
 
 impl WorthUiOperationLiveRetention {
+    pub(crate) fn for_identities(
+        identities: impl IntoIterator<Item = WorthUiQueryViewIdentity>,
+    ) -> Self {
+        Self {
+            resources: identities
+                .into_iter()
+                .map(|identity| (identity, None))
+                .collect(),
+            ..Self::default()
+        }
+    }
+
     pub(crate) fn contains(&self, reference: &WorthUiInstalledQueryBindingReference) -> bool {
         self.resources
-            .contains_key(reference.definition().identity())
+            .get(reference.definition().identity())
+            .is_some_and(Option::is_some)
+    }
+
+    pub(crate) fn resource_count(&self) -> usize {
+        self.resources.values().flatten().count()
+    }
+
+    pub(crate) fn has_staged_changes(&self) -> bool {
+        !self.staged_sources.is_empty()
     }
 
     pub(crate) fn insert(
         &mut self,
         resource: WorthUiOperationLiveResource,
     ) -> Option<WorthUiOperationLiveResource> {
-        let identity = resource.definition().identity().clone();
-        let replaced = self.resources.insert(identity, resource);
+        let identity = resource.definition().identity();
+        let slot = self
+            .resources
+            .get_mut(identity)
+            .expect("installed live references have reserved resource slots");
+        let replaced = slot.replace(resource);
         if replaced.is_none() {
             self.resource_registration_count += 1;
         }
@@ -106,12 +134,13 @@ impl WorthUiOperationLiveRetention {
         workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
     ) -> Result<crate::WorthUiOperationLiveRefreshOutcome, crate::WorthUiOperationLiveRefreshError>
     {
-        let identity = reference.definition().identity().clone();
-        let resource = self.resources.get_mut(&identity).ok_or(
-            crate::WorthUiOperationLiveRefreshError::Ui(
+        let resource = self
+            .resources
+            .get_mut(reference.definition().identity())
+            .and_then(Option::as_mut)
+            .ok_or(crate::WorthUiOperationLiveRefreshError::Ui(
                 crate::WorthUiOperationLiveRefreshDenial::ResourceNotRetained,
-            ),
-        )?;
+            ))?;
         resource.refresh(workspace)
     }
 
@@ -127,7 +156,7 @@ impl WorthUiOperationLiveRetention {
             .definition()
             .identity()
             .clone();
-        let Some(resource) = self.resources.get_mut(&identity) else {
+        let Some(resource) = self.resources.get_mut(&identity).and_then(Option::as_mut) else {
             return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
                 crate::WorthUiCollectionChangeAdmissionDenial::ResourceNotRetained,
                 consequence,
@@ -154,7 +183,7 @@ impl WorthUiOperationLiveRetention {
         let staged = std::mem::take(&mut self.staged_sources);
         let mut published = 0;
         for identity in staged {
-            let Some(resource) = self.resources.get_mut(&identity) else {
+            let Some(resource) = self.resources.get_mut(&identity).and_then(Option::as_mut) else {
                 continue;
             };
             published += usize::from(resource.publish_staged_collection_change());
@@ -168,6 +197,7 @@ impl WorthUiOperationLiveRetention {
     ) -> Option<WorthUiExactOperationLiveResourceEvidence> {
         self.resources
             .get(reference.definition().identity())
+            .and_then(Option::as_ref)
             .map(|resource| WorthUiExactOperationLiveResourceEvidence {
                 installed_reference: resource.installed_reference().clone(),
                 binding_reference: resource.fact().binding_reference().clone(),
@@ -179,7 +209,9 @@ impl WorthUiOperationLiveRetention {
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
     ) -> Option<&WorthUiOperationLiveResource> {
-        self.resources.get(reference.definition().identity())
+        self.resources
+            .get(reference.definition().identity())
+            .and_then(Option::as_ref)
     }
 
     pub(crate) fn collection_change_observation(
@@ -195,47 +227,35 @@ impl WorthUiOperationLiveRetention {
         reference: &WorthUiInstalledQueryBindingReference,
     ) -> Option<WorthUiOperationLiveResource> {
         self.succession_operation_count += 1;
-        self.resources.remove(reference.definition().identity())
+        self.resources
+            .get_mut(reference.definition().identity())
+            .and_then(Option::take)
     }
 
-    pub(crate) fn drain_into(&mut self, retirement: &mut Vec<WorthUiOperationLiveResource>) {
+    pub(crate) fn drain_into(
+        &mut self,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
+    ) {
         self.succession_operation_count += 1;
         self.staged_sources.clear();
-        retirement.extend(std::mem::take(&mut self.resources).into_values());
+        retirement.extend(self.resources.values_mut().filter_map(Option::take));
     }
 
     pub(crate) fn retain_only(
         &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
+        retained: &BTreeSet<WorthUiQueryViewIdentity>,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
     ) {
         self.succession_operation_count += 1;
-        let retained = references
-            .iter()
-            .map(|reference| reference.definition().identity())
-            .collect::<BTreeSet<_>>();
-        let resources = std::mem::take(&mut self.resources);
         self.staged_sources
             .retain(|identity| retained.contains(identity));
-        for (identity, resource) in resources {
-            if retained.contains(&identity) {
-                self.resources.insert(identity, resource);
-            } else {
-                retirement.push(resource);
+        for (identity, resource) in &mut self.resources {
+            if !retained.contains(identity) {
+                if let Some(resource) = resource.take() {
+                    retirement.extend(std::iter::once(resource));
+                }
             }
         }
-    }
-
-    pub(crate) fn swap_with(&mut self, other: &mut Self) {
-        self.succession_operation_count += 1;
-        other.succession_operation_count += 1;
-        std::mem::swap(&mut self.resources, &mut other.resources);
-        std::mem::swap(
-            &mut self.next_source_generation,
-            &mut other.next_source_generation,
-        );
-        std::mem::swap(&mut self.next_source_order, &mut other.next_source_order);
-        std::mem::swap(&mut self.staged_sources, &mut other.staged_sources);
     }
 
     pub(crate) fn observation(
@@ -244,10 +264,11 @@ impl WorthUiOperationLiveRetention {
     ) -> WorthUiOperationLiveObservation {
         WorthUiOperationLiveObservation {
             subsystem_construction_count: 1,
-            retained_resource_count: self.resources.len(),
+            retained_resource_count: self.resources.values().flatten().count(),
             orphan_resource_count: self
                 .resources
                 .values()
+                .flatten()
                 .filter(|resource| !reference_is_valid(resource.installed_reference()))
                 .count(),
             resource_registration_count: self.resource_registration_count,

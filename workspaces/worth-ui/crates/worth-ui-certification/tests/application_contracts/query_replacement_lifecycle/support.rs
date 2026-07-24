@@ -68,6 +68,7 @@ pub(crate) fn activation_boundary(
 ) -> WorthUiFrameBoundary {
     session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .unwrap_or_else(|_| panic!("empty turn publishes an execution boundary"))
@@ -81,11 +82,13 @@ pub(super) fn admit_active_resource(
 ) {
     let resource = open_resource(view, workspace);
     let mut admitted = false;
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|source| {
-            admitted = source.admit_operation_live(resource).is_ok();
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|source| {
+                admitted = source.admit_operation_live(resource).is_ok();
+            });
+        })
+        .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
     assert!(admitted);
 }
@@ -108,6 +111,7 @@ pub(super) fn assert_visible_query_execution(session: &mut WorthUiActiveApplicat
     let target = summary.target(WorthUiVisibleRange::rows(0, 1).expect("visible range"));
     session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("empty turn executes"))
         .execute_virtualized_data_frame(target)

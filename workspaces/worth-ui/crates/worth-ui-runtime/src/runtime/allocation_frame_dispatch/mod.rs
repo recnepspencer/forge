@@ -17,15 +17,16 @@ pub(crate) use dispatcher::{
 };
 pub use epoch::UiAllocationFrameEpoch;
 pub(in crate::runtime) use framework_turn::UiPreparedFrameReplacementCommit;
-#[cfg(test)]
-pub use framework_turn::WorthUiPreviewPaintFollowOn;
 pub(crate) use framework_turn::{
     UiAllocationFrameFrameworkScheduler, UiPendingAllocationFrameHandoff,
+    UiPendingMountedPreviewTransition,
 };
 pub use framework_turn::{
-    UiFrameworkTransitionPlanningCounters, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
-    WorthUiFrameworkTurnExecution, WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
+    UiFrameworkTransitionPlanningCounters, UiFrameworkTransitionPlanningDenial,
+    WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
+    WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
 };
+pub use framework_turn::{WorthUiMountedPreviewFollowOn, WorthUiPendingMountedPreviewProjection};
 pub(crate) use gateway::UiAllocationFrameGatewayState;
 pub use gateway::{
     UiAllocationFrameGatewayOutcome, UiAllocationFrameQueryWarningPosture,

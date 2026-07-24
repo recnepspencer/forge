@@ -155,4 +155,11 @@ impl WorthUiInstalledQueryTestFixture {
             .expect("fixture settlement belongs to its installed binding plan");
         retained.as_ref().clone()
     }
+
+    pub fn close_retirement(
+        &mut self,
+        retirement: crate::WorthUiOperationLiveRetirement,
+    ) -> crate::WorthUiOperationLiveRetirementCloseOutcome {
+        retirement.close(&mut self.workspace)
+    }
 }

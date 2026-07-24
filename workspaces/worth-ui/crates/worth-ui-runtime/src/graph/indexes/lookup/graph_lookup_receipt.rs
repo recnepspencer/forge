@@ -11,7 +11,7 @@ pub enum UiGraphLookupFamily {
     PageParticipation,
     PublishedAspect,
     ConsumedAspect,
-    MountedReceiptSlot,
+    MountEligibilitySlot,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

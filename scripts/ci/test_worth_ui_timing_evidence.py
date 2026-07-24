@@ -25,6 +25,32 @@ class WorthUiTimingEvidenceTests(TestCase):
             violations = timing_evidence_violations(root, config)
             self.assertIn("timing-evidence-source", {item.rule for item in violations})
 
+    def test_captured_working_tree_requires_an_exact_successor_handoff(self) -> None:
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = {"timing_evidence": "timing.json"}
+            evidence = valid_timing_evidence(root)
+            evidence["closing"] = deepcopy(evidence["opening"])
+            evidence["closing"]["captured_at"] = "2026-07-18T00:00:01Z"
+            snapshot = evidence["closing"]["source_snapshot"]
+            snapshot["kind"] = "captured_working_tree"
+            snapshot["handoff_evidence"] = "successor.json"
+            digest = evidence["opening"]["source_snapshot"]["digest"]
+            evidence["closing"]["source_transition_digest"] = source_transition_digest(
+                digest, digest
+            )
+            for measurement in evidence["closing"]["measurements"].values():
+                measurement["comparison"] = "within_10_percent"
+            write_json(root / "successor.json", {"opening": deepcopy(evidence["opening"])})
+            write_json(root / "timing.json", evidence)
+            self.assertEqual(timing_evidence_violations(root, config), [])
+
+            successor = json.loads((root / "successor.json").read_text(encoding="utf-8"))
+            successor["opening"]["source_snapshot"]["digest"] = "foreign"
+            write_json(root / "successor.json", successor)
+            violations = timing_evidence_violations(root, config)
+            self.assertIn("timing-evidence-source", {item.rule for item in violations})
+
     def test_malformed_incomparable_and_unreviewed_regressions_are_rejected(self) -> None:
         with TemporaryDirectory() as temporary:
             root = Path(temporary)

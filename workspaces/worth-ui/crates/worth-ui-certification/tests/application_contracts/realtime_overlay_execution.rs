@@ -1,5 +1,8 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiBuilder};
-use worth_ui::facade::host::WorthUiHeadlessHost;
+use worth_ui::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
+};
 use worth_ui::facade::registry::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentRealtimeOverlayContract, ComponentRealtimeOverlayPriority, ComponentStateOwnership,
@@ -10,10 +13,8 @@ use worth_ui::facade::runtime::{
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementRequest, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiHostOutputDisposition,
-    WorthUiHostOutputEnvelope, WorthUiHostOutputLane, WorthUiHostOutputPayload,
-    WorthUiMeasurementHostAdapter, WorthUiOperationalHostAdapter,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -45,6 +46,7 @@ fn real_wui_realtime_overlay_executes_from_the_host_bound_active_plan() {
     let host_session_identity = session.host_session_identity().as_u64();
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("empty collection completes the framework turn"));
     let receipt = execution
@@ -61,21 +63,7 @@ fn real_wui_realtime_overlay_executes_from_the_host_bound_active_plan() {
         receipt.certification().host_session_identity(),
         host_session_identity
     );
-    assert_eq!(
-        receipt.disposition(),
-        WorthUiHostOutputDisposition::Consumed
-    );
-    assert_eq!(
-        receipt.output().receipt_reference().lane(),
-        WorthUiHostOutputLane::RealtimeOverlay
-    );
-    let output = match receipt.output().payload() {
-        WorthUiHostOutputPayload::RealtimeOverlay(output) => output,
-        _ => panic!("realtime execution must emit the realtime payload"),
-    };
-    assert_eq!(output.overlay_row_count(), 8);
-    assert_ne!(output.meaning_digest(), 0);
-    assert_ne!(receipt.output().receipt_reference().digest(), 0);
+    assert_ne!(receipt.touch_digest(), 0);
     drop(execution);
     let _ = session.shutdown();
     workspace.close();
@@ -104,6 +92,7 @@ fn foreign_renderer_surface_denies_inspection_and_execution_before_work() {
     );
     let execution = second
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("framework turn execution"));
     let denial = execution
@@ -145,7 +134,7 @@ fn over_budget_or_unsupported_host_denies_before_active_publication() {
 
     let host_workspace = FilesystemContractWorkspace::new("realtime-host-denial");
     let host_app = file_app(&host_workspace, &format!("component {HUD} {{}}\n"), || {
-        hud_builder_with_policy(8, 4, 16, MissingRealtimeHookHost)
+        hud_builder_with_policy(8, 4, 16, MissingRealtimeHookHost::default())
     });
     let host_denial = match host_app.launch() {
         Ok(_) => panic!("host without exact realtime hook support cannot publish"),
@@ -208,10 +197,12 @@ fn real_wui_declaration_reordering_preserves_realtime_plan_and_frame_work() {
 
     let left_execution = left
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("left framework turn"));
     let right_execution = right
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("right framework turn"));
     let left_receipt = left_execution
@@ -262,6 +253,7 @@ fn execute_scaled_target(
         .expect("scaled plan has a target");
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("framework turn execution"));
     let receipt = execution
@@ -355,11 +347,14 @@ fn file_app(
         .expect("file-authored application prepares")
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct MissingRealtimeHookHost;
 
 impl WorthUiMeasurementHostAdapter for MissingRealtimeHookHost {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         unreachable!("missing host capabilities deny before observation")
     }
 }
@@ -376,7 +371,13 @@ impl WorthUiOperationalHostAdapter for MissingRealtimeHookHost {
         ])
     }
 
-    fn consume_output(&self, _output: &WorthUiHostOutputEnvelope) -> WorthUiHostOutputDisposition {
-        WorthUiHostOutputDisposition::Consumed
+    fn release_host_session(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> UiHostSessionReleaseOutcome {
+        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
+            authority.host_session_identity(),
+            0,
+        ))
     }
 }

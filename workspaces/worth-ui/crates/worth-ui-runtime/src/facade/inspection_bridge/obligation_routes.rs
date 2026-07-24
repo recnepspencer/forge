@@ -98,7 +98,7 @@ pub(crate) fn try_query_touch_for_node(
         })?
         .value();
     let transition = graph
-        .mounted_receipt_transition_for_node(
+        .mount_eligibility_transition_for_node(
             graph_node_identity,
             control_node
                 .participation_posture()
@@ -112,7 +112,7 @@ pub(crate) fn try_query_touch_for_node(
         })?;
     let origin = graph.touches().query_binding_change_receipt()?;
 
-    graph.touches().from_mounted_receipt_transition(
+    graph.touches().from_mount_eligibility_transition(
         origin,
         UiGraphTouchTiming::PostMutation,
         transition,

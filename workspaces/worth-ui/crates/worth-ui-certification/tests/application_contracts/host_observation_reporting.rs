@@ -1,0 +1,319 @@
+use worth_ui::facade::mounted::{UiMountedFrameOutcome, UiPresentationDeadline};
+use worth_ui::facade::observation_report::{
+    UiHostObservationBatchDisposition, UiHostObservationDisposition, UiHostObservationFamily,
+    UiHostObservationFrameRelation, UiHostObservationLoss, UiHostObservationPayload,
+    UiHostObservationReport, UiHostObservationReportDenial, UiHostObservationReportOutcome,
+    UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
+};
+
+use super::host_observation_fixture::{batch, report, source};
+use super::mounted_application_lifecycle::in_flight_presentation_world::prepared;
+use super::mounted_application_lifecycle::published_mounted_world::{
+    publish, published_observation_world, PresentedObservationBasis,
+};
+use super::mounted_protocol_model::{model_terminal_state, AuthoredMechanicalReport};
+
+#[test]
+fn individual_and_host_coalesced_batches_share_terminal_mechanics_and_exact_replaced_range() {
+    let mut individual = published_observation_world("observation-individual");
+    let authored_trace = (1..=4)
+        .map(|sequence| {
+            AuthoredMechanicalReport::pointer_motion(
+                sequence,
+                i64::try_from(sequence * 10).unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let trace = authored_trace
+        .iter()
+        .map(|authored| {
+            report(
+                authored.sequence(),
+                authored.payload().clone(),
+                &individual.current,
+            )
+        })
+        .collect::<Vec<_>>();
+    let expected = model_terminal_state(&authored_trace);
+    let outcome = individual.session.validate_host_observation_batch(batch(
+        source(&individual.session, individual.binding, &individual.current),
+        (1, 4),
+        UiHostObservationLoss::Complete,
+        trace.clone(),
+    ));
+    let individual_validated = expect_validated(outcome);
+    assert_eq!(
+        individual_validated.disposition(),
+        UiHostObservationBatchDisposition::Complete
+    );
+    assert_eq!(
+        individual_validated
+            .reports()
+            .last()
+            .unwrap()
+            .report()
+            .payload(),
+        &expected.terminal_payload
+    );
+    assert_eq!(
+        individual_validated.reports().last().unwrap().disposition(),
+        UiHostObservationDisposition::Coalesced {
+            replaced: expected.replaced.unwrap()
+        }
+    );
+    assert_eq!(
+        individual.session.retained_host_observation_report_count(),
+        expected.retained_reports
+    );
+
+    let mut batched = published_observation_world("observation-host-coalesced");
+    let terminal = authored_trace.last().unwrap();
+    let survivor_identity = terminal
+        .payload()
+        .coalescing_identity()
+        .expect("authored pointer motion has a coalescing identity");
+    let survivor = report(
+        terminal.sequence(),
+        terminal.payload().clone(),
+        &batched.current,
+    );
+    let outcome = batched.session.validate_host_observation_batch(batch(
+        source(&batched.session, batched.binding, &batched.current),
+        (1, 4),
+        UiHostObservationLoss::Coalesced {
+            family: UiHostObservationFamily::PointerMotion,
+            replaced: range(1, 3),
+            survivor: survivor_identity,
+        },
+        vec![survivor],
+    ));
+    let batched_validated = expect_validated(outcome);
+    assert_eq!(
+        batched_validated.disposition(),
+        UiHostObservationBatchDisposition::Coalesced {
+            family: UiHostObservationFamily::PointerMotion,
+            replaced: range(1, 3),
+            survivor: survivor_identity,
+        }
+    );
+    assert_eq!(
+        batched_validated.reports()[0].report().payload(),
+        &expected.terminal_payload
+    );
+    assert_eq!(
+        batched_validated.reports()[0].disposition(),
+        UiHostObservationDisposition::Coalesced {
+            replaced: range(1, 3)
+        }
+    );
+    assert_eq!(batched.session.retained_host_observation_report_count(), 1);
+}
+
+#[test]
+fn current_retained_expired_rejected_never_presented_and_indeterminate_bases_are_distinct() {
+    let mut world = published_observation_world("observation-basis-current-retained");
+    let retained_batch = batch(
+        source(&world.session, world.binding, &world.predecessor),
+        (1, 1),
+        UiHostObservationLoss::Complete,
+        vec![report(
+            1,
+            UiHostObservationPayload::Focus { focused: true },
+            &world.predecessor,
+        )],
+    );
+    assert_eq!(
+        expect_validated(
+            world
+                .session
+                .validate_host_observation_batch(retained_batch)
+        )
+        .frame_relation(),
+        UiHostObservationFrameRelation::SupersededPresented
+    );
+    let current_batch = batch(
+        source(&world.session, world.binding, &world.current),
+        (2, 2),
+        UiHostObservationLoss::Complete,
+        vec![report(
+            2,
+            UiHostObservationPayload::Focus { focused: false },
+            &world.current,
+        )],
+    );
+    assert_eq!(
+        expect_validated(world.session.validate_host_observation_batch(current_batch))
+            .frame_relation(),
+        UiHostObservationFrameRelation::CurrentPresented
+    );
+
+    let mut expired = published_observation_world("observation-basis-expired");
+    for _ in 0..9 {
+        let instance = expired.current.instance;
+        expired.current = publish(&mut expired.session, &expired.host, instance);
+    }
+    let expired_batch = batch(
+        source(&expired.session, expired.binding, &expired.predecessor),
+        (1, 1),
+        UiHostObservationLoss::Complete,
+        vec![report(
+            1,
+            UiHostObservationPayload::Tick { tick: 1 },
+            &expired.predecessor,
+        )],
+    );
+    assert_denial(
+        expired
+            .session
+            .validate_host_observation_batch(expired_batch),
+        UiHostObservationReportDenial::ExpiredFrame,
+    );
+
+    assert_terminal_basis(
+        "observation-basis-rejected",
+        TerminalBasis::Rejected,
+        UiHostObservationReportDenial::RejectedFrame,
+    );
+    assert_terminal_basis(
+        "observation-basis-never-presented",
+        TerminalBasis::NeverPresented,
+        UiHostObservationReportDenial::NeverPresentedFrame,
+    );
+    assert_indeterminate_quarantine();
+}
+
+#[derive(Clone, Copy)]
+enum TerminalBasis {
+    Rejected,
+    NeverPresented,
+}
+
+fn assert_terminal_basis(
+    label: &str,
+    posture: TerminalBasis,
+    expected: UiHostObservationReportDenial,
+) {
+    let mut world = published_observation_world(label);
+    let frame = prepared(&mut world.session);
+    let frame_identity = frame.canonical_core().frame();
+    let outcome = match posture {
+        TerminalBasis::Rejected => {
+            world.host.push_rejected();
+            world.session.present_prepared_mounted_frame(
+                frame,
+                UiPresentationDeadline::at_tick(100),
+                0,
+            )
+        }
+        TerminalBasis::NeverPresented => world.session.present_prepared_mounted_frame(
+            frame,
+            UiPresentationDeadline::at_tick(0),
+            0,
+        ),
+    };
+    assert!(matches!(
+        (posture, outcome),
+        (
+            TerminalBasis::Rejected,
+            UiMountedFrameOutcome::RejectedBeforeEffects(_)
+        ) | (
+            TerminalBasis::NeverPresented,
+            UiMountedFrameOutcome::AdmissionDenied(_)
+        )
+    ));
+    let basis = PresentedObservationBasis {
+        frame: frame_identity,
+        instance: world.current.instance,
+        receipt: world.current.receipt,
+    };
+    let raw = UiHostObservationReport::new(
+        UiHostObservationSequence::new(1),
+        UiHostObservationTimeBasis::HostMonotonicTick(1),
+        UiHostObservationPayload::Tick { tick: 1 },
+    );
+    let terminal_batch = batch(
+        source(&world.session, world.binding, &basis),
+        (1, 1),
+        UiHostObservationLoss::Complete,
+        vec![raw],
+    );
+    assert_denial(
+        world
+            .session
+            .validate_host_observation_batch(terminal_batch),
+        expected,
+    );
+}
+
+fn assert_indeterminate_quarantine() {
+    let mut world = published_observation_world("observation-basis-indeterminate");
+    let frame = prepared(&mut world.session);
+    let frame_identity = frame.canonical_core().frame();
+    world.host.push_presentation(
+        worth_ui::facade::mounted::UiHostSurfacePresentationOutcome::PresentationIndeterminate,
+    );
+    assert!(matches!(
+        world.session.present_prepared_mounted_frame(
+            frame,
+            UiPresentationDeadline::at_tick(100),
+            0,
+        ),
+        UiMountedFrameOutcome::PresentationIndeterminate(_)
+    ));
+    let basis = PresentedObservationBasis {
+        frame: frame_identity,
+        instance: world.current.instance,
+        receipt: world.current.receipt,
+    };
+    let raw = UiHostObservationReport::new(
+        UiHostObservationSequence::new(1),
+        UiHostObservationTimeBasis::HostMonotonicTick(1),
+        UiHostObservationPayload::Tick { tick: 1 },
+    );
+    let indeterminate_batch = batch(
+        source(&world.session, world.binding, &basis),
+        (1, 1),
+        UiHostObservationLoss::Complete,
+        vec![raw],
+    );
+    let outcome = world
+        .session
+        .validate_host_observation_batch(indeterminate_batch.clone());
+    assert!(matches!(
+        outcome,
+        UiHostObservationReportOutcome::Quarantined(_)
+    ));
+    assert_eq!(world.session.quarantined_host_observation_batch_count(), 1);
+    assert!(matches!(
+        world
+            .session
+            .validate_host_observation_batch(indeterminate_batch),
+        UiHostObservationReportOutcome::Duplicate(_)
+    ));
+    assert_eq!(
+        world.session.quarantined_host_observation_batch_count(),
+        1,
+        "an exact replay cannot consume another quarantine slot"
+    );
+    assert_eq!(world.session.retained_host_observation_report_count(), 0);
+}
+
+fn expect_validated(
+    outcome: UiHostObservationReportOutcome,
+) -> worth_ui::facade::observation_report::UiValidatedHostObservationBatch {
+    match outcome {
+        UiHostObservationReportOutcome::Validated(batch) => batch,
+        other => panic!("expected validated batch, observed {other:?}"),
+    }
+}
+
+fn assert_denial(outcome: UiHostObservationReportOutcome, expected: UiHostObservationReportDenial) {
+    assert_eq!(outcome, UiHostObservationReportOutcome::Denied(expected));
+}
+
+fn range(first: u64, last: u64) -> UiHostObservationSequenceRange {
+    UiHostObservationSequenceRange::new(
+        UiHostObservationSequence::new(first),
+        UiHostObservationSequence::new(last),
+    )
+}

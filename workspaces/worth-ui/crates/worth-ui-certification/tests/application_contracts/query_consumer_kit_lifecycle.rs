@@ -56,11 +56,13 @@ fn public_framework_turn_atomically_admits_and_releases_a_real_query_live_resour
         crate::query_replacement_lifecycle::support::open_resource(&resource_view, &mut workspace);
     let mut admission = None;
 
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|query| {
-            admission = Some(query.admit_operation_live(resource));
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|query| {
+                admission = Some(query.admit_operation_live(resource));
+            });
+        })
+        .expect("no mounted presentation lease is active");
 
     drop(completion.into_completion());
     admission

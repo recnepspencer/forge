@@ -84,6 +84,7 @@ fn public_replacement_retires_and_remints_exact_renderer_surface_generation() {
 
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("successor execution turn"));
     let denial = execution

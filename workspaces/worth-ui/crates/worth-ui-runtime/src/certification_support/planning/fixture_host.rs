@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
     UiScrollContainerViewportObservation, UiScrollContainerViewportRequest,
     UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest, WorthUiHostCapability,
@@ -27,7 +27,7 @@ pub(super) fn host_text_intrinsic_result(
     report: &WorthUiHostCapabilityReport,
     generation: UiEvidenceAuthorityGeneration,
 ) -> UiMeasurementResult {
-    let request = UiMeasurementRequest::text_intrinsic_size(
+    let request = UiHostMeasurementRequest::text_intrinsic_size(
         UiMeasurementRequestIdentity::new(request_seed),
         UiMeasurementEvidenceFamily::TextIntrinsicSize,
         UiTextIntrinsicSizeRequest::single_line(
@@ -39,7 +39,7 @@ pub(super) fn host_text_intrinsic_result(
     .expect("suite text request should admit");
     measurement_result_from_request(
         &request,
-        UiHostObservationValue::TextIntrinsicSize(UiTextIntrinsicSizeObservation {
+        UiHostMeasurementObservationValue::TextIntrinsicSize(UiTextIntrinsicSizeObservation {
             width: 240.0,
             height: 48.0,
         }),
@@ -53,7 +53,7 @@ pub(super) fn host_scroll_viewport_result(
     report: &WorthUiHostCapabilityReport,
     generation: UiEvidenceAuthorityGeneration,
 ) -> UiMeasurementResult {
-    let request = UiMeasurementRequest::scroll_container_viewport(
+    let request = UiHostMeasurementRequest::scroll_container_viewport(
         UiMeasurementRequestIdentity::new(request_seed),
         UiMeasurementEvidenceFamily::ScrollContainerViewport,
         UiScrollContainerViewportRequest::new(55),
@@ -62,10 +62,12 @@ pub(super) fn host_scroll_viewport_result(
     .expect("suite scroll request should admit");
     measurement_result_from_request(
         &request,
-        UiHostObservationValue::ScrollContainerViewport(UiScrollContainerViewportObservation {
-            width: 120.0,
-            height: 60.0,
-        }),
+        UiHostMeasurementObservationValue::ScrollContainerViewport(
+            UiScrollContainerViewportObservation {
+                width: 120.0,
+                height: 60.0,
+            },
+        ),
         generation,
         report,
     )
@@ -76,7 +78,7 @@ pub(super) fn host_portal_anchor_result(
     report: &WorthUiHostCapabilityReport,
     generation: UiEvidenceAuthorityGeneration,
 ) -> UiMeasurementResult {
-    let request = UiMeasurementRequest::portal_anchor_rect(
+    let request = UiHostMeasurementRequest::portal_anchor_rect(
         UiMeasurementRequestIdentity::new(request_seed),
         UiMeasurementEvidenceFamily::PortalAnchorRect,
         UiPortalAnchorRectRequest::new(66),
@@ -85,7 +87,7 @@ pub(super) fn host_portal_anchor_result(
     .expect("suite portal request should admit");
     measurement_result_from_request(
         &request,
-        UiHostObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
+        UiHostMeasurementObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
             x: 12.0,
             y: 24.0,
             width: 120.0,
@@ -97,8 +99,8 @@ pub(super) fn host_portal_anchor_result(
 }
 
 fn measurement_result_from_request(
-    request: &UiMeasurementRequest,
-    value: UiHostObservationValue,
+    request: &UiHostMeasurementRequest,
+    value: UiHostMeasurementObservationValue,
     generation: UiEvidenceAuthorityGeneration,
     report: &WorthUiHostCapabilityReport,
 ) -> UiMeasurementResult {
@@ -122,16 +124,19 @@ fn measurement_result_from_request(
 }
 
 struct SuiteValueStubAdapter {
-    value: UiHostObservationValue,
+    value: UiHostMeasurementObservationValue,
 }
 
 impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for SuiteValueStubAdapter {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         self.value.clone()
     }
 }
 
-fn suite_host_need_from_request(request: &UiMeasurementRequest) -> UiHostMeasurementNeed {
+fn suite_host_need_from_request(request: &UiHostMeasurementRequest) -> UiHostMeasurementNeed {
     match request.family() {
         worth_ui_host_contract::UiMeasurementRequestFamily::TextIntrinsicSize => {
             UiHostMeasurementNeed::TextIntrinsicSize(
@@ -160,7 +165,7 @@ fn suite_host_need_from_request(request: &UiMeasurementRequest) -> UiHostMeasure
 }
 
 fn suite_normalization_context_for_request(
-    request: &UiMeasurementRequest,
+    request: &UiHostMeasurementRequest,
     assumption_profile: UiHostMeasurementAssumptionProfile,
 ) -> UiHostMeasurementNormalizationContext {
     match request.family() {

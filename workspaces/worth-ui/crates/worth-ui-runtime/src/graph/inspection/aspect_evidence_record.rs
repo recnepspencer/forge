@@ -20,7 +20,7 @@ pub enum UiAspectEvidenceLane {
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiAspectEvidenceSubjectKind {
     GraphNode,
-    MountedReceipt,
+    MountEligibility,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -66,9 +66,9 @@ impl UiAspectEvidenceRefProjection {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiAspectEvidenceRecordKind {
     PublishedGraphNode(u64),
-    PublishedMountedReceipt(u64),
+    PublishedMountEligibility(u64),
     ConsumedGraphNode(u64),
-    ConsumedMountedReceipt(u64),
+    ConsumedMountEligibility(u64),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,21 +89,25 @@ impl UiAspectEvidenceRecord {
                 canonical_label,
                 graph_node_digest,
             ),
-            UiAspectEvidenceRecordKind::PublishedMountedReceipt(receipt_digest) => aspect_identity(
-                "aspect:published:mounted-receipt",
-                canonical_label,
-                receipt_digest,
-            ),
+            UiAspectEvidenceRecordKind::PublishedMountEligibility(receipt_digest) => {
+                aspect_identity(
+                    "aspect:published:mount-eligibility",
+                    canonical_label,
+                    receipt_digest,
+                )
+            }
             UiAspectEvidenceRecordKind::ConsumedGraphNode(graph_node_digest) => aspect_identity(
                 "aspect:consumed:graph-node",
                 canonical_label,
                 graph_node_digest,
             ),
-            UiAspectEvidenceRecordKind::ConsumedMountedReceipt(receipt_digest) => aspect_identity(
-                "aspect:consumed:mounted-receipt",
-                canonical_label,
-                receipt_digest,
-            ),
+            UiAspectEvidenceRecordKind::ConsumedMountEligibility(receipt_digest) => {
+                aspect_identity(
+                    "aspect:consumed:mount-eligibility",
+                    canonical_label,
+                    receipt_digest,
+                )
+            }
         };
 
         Self {
@@ -137,7 +141,7 @@ pub fn project_aspect_evidence_ref(
     evidence_ref: UiEvidenceRef,
     canonical_label: &str,
     graph_node_digests: &[u64],
-    mounted_receipt_digests: &[u64],
+    mount_eligibility_digests: &[u64],
 ) -> Option<UiAspectEvidenceRefProjection> {
     if evidence_ref.family() != UiEvidenceFamily::Aspect {
         return None;
@@ -165,22 +169,22 @@ pub fn project_aspect_evidence_ref(
         }
     }
 
-    for mounted_receipt_digest in mounted_receipt_digests {
+    for mount_eligibility_digest in mount_eligibility_digests {
         for (kind, lane) in [
             (
-                UiAspectEvidenceRecordKind::PublishedMountedReceipt(*mounted_receipt_digest),
+                UiAspectEvidenceRecordKind::PublishedMountEligibility(*mount_eligibility_digest),
                 UiAspectEvidenceLane::Published,
             ),
             (
-                UiAspectEvidenceRecordKind::ConsumedMountedReceipt(*mounted_receipt_digest),
+                UiAspectEvidenceRecordKind::ConsumedMountEligibility(*mount_eligibility_digest),
                 UiAspectEvidenceLane::Consumed,
             ),
         ] {
             if evidence_ref.identity() == identity_for_kind(canonical_label, kind) {
                 return Some(UiAspectEvidenceRefProjection::new(
                     lane,
-                    UiAspectEvidenceSubjectKind::MountedReceipt,
-                    *mounted_receipt_digest,
+                    UiAspectEvidenceSubjectKind::MountEligibility,
+                    *mount_eligibility_digest,
                     evidence_ref.identity().digest(),
                 ));
             }
@@ -194,7 +198,7 @@ pub fn project_aspect_evidence_refs(
     refs: &[UiEvidenceRef],
     canonical_label: &str,
     graph_node_digests: &[u64],
-    mounted_receipt_digests: &[u64],
+    mount_eligibility_digests: &[u64],
 ) -> BTreeSet<UiAspectEvidenceRefProjection> {
     refs.iter()
         .filter_map(|evidence_ref| {
@@ -202,7 +206,7 @@ pub fn project_aspect_evidence_refs(
                 *evidence_ref,
                 canonical_label,
                 graph_node_digests,
-                mounted_receipt_digests,
+                mount_eligibility_digests,
             )
         })
         .collect()
@@ -218,8 +222,8 @@ fn identity_for_kind(
             canonical_label,
             graph_node_digest,
         ),
-        UiAspectEvidenceRecordKind::PublishedMountedReceipt(receipt_digest) => aspect_identity(
-            "aspect:published:mounted-receipt",
+        UiAspectEvidenceRecordKind::PublishedMountEligibility(receipt_digest) => aspect_identity(
+            "aspect:published:mount-eligibility",
             canonical_label,
             receipt_digest,
         ),
@@ -228,8 +232,8 @@ fn identity_for_kind(
             canonical_label,
             graph_node_digest,
         ),
-        UiAspectEvidenceRecordKind::ConsumedMountedReceipt(receipt_digest) => aspect_identity(
-            "aspect:consumed:mounted-receipt",
+        UiAspectEvidenceRecordKind::ConsumedMountEligibility(receipt_digest) => aspect_identity(
+            "aspect:consumed:mount-eligibility",
             canonical_label,
             receipt_digest,
         ),

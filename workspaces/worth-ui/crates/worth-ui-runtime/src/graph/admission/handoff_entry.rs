@@ -1,9 +1,9 @@
 use crate::declaration::UiDeclarationGraphHandoff;
 use crate::graph::{
     UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphCoreIndexContributionSeed,
-    UiGraphMountedReceiptAuthoritySeed, UiGraphNodeInstantiationEntry,
-    UiGraphNodeInstantiationInput, UiGraphParentResolutionClaim, UiGraphParticipationSeed,
-    UiGraphTopologySeed, UiGraphTopologySeedInput, UiRepeatedInstanceBasis,
+    UiGraphMountEligibilitySeed, UiGraphNodeInstantiationEntry, UiGraphNodeInstantiationInput,
+    UiGraphParentResolutionClaim, UiGraphParticipationSeed, UiGraphTopologySeed,
+    UiGraphTopologySeedInput, UiRepeatedInstanceBasis,
 };
 
 pub(super) fn construct_instantiation_entry(
@@ -44,7 +44,7 @@ pub(super) fn construct_instantiation_entry(
             handoff.query_binding().admitted().is_some(),
             handoff.service_usage().admitted().is_some(),
         ),
-        mounted_receipt_seed: UiGraphMountedReceiptAuthoritySeed::reserved(),
+        mount_eligibility_seed: UiGraphMountEligibilitySeed::reserved(),
         core_index_contribution_seed: UiGraphCoreIndexContributionSeed::authoritative(),
     })
 }

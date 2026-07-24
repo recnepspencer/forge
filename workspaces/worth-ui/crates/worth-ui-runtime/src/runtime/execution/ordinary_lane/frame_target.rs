@@ -59,31 +59,6 @@ impl WorthUiOrdinaryFrameTarget {
         self.kind
     }
 
-    pub(crate) fn host_output_target(
-        self,
-    ) -> worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget {
-        match self.kind {
-            WorthUiOrdinaryFrameTargetKind::RootShell => {
-                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::RootShell
-            }
-            WorthUiOrdinaryFrameTargetKind::Component(_) => {
-                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::Component
-            }
-            WorthUiOrdinaryFrameTargetKind::ChildRange(_) => {
-                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::ChildRange
-            }
-            WorthUiOrdinaryFrameTargetKind::Command(_) => {
-                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::Command
-            }
-            WorthUiOrdinaryFrameTargetKind::TokenSupport(_) => {
-                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::TokenSupport
-            }
-            WorthUiOrdinaryFrameTargetKind::StateSlot(_) => {
-                worth_ui_host_contract::WorthUiOrdinaryHostOutputTarget::StateSlot
-            }
-        }
-    }
-
     pub const fn is_command(self) -> bool {
         matches!(self.kind, WorthUiOrdinaryFrameTargetKind::Command(_))
     }

@@ -100,6 +100,7 @@ fn publish_structural_replacement(
         .expect("storm candidate should stage");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("storm boundary turn should complete")

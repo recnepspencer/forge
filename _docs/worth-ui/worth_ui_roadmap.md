@@ -1029,6 +1029,8 @@ one sealed UI consequence boundary for later rebind and projection work.
 
 ### Milestone 3.10: Mounted Receipts and Host Contract
 
+Detailed spec: [milestone-3.10.md](./milestone-3.10.md)
+
 This slice closes the host boundary: host code may render and observe, but may
 not own visible UI meaning. It extends/refines Milestone 3.9's minimal sealed
 host-output envelope into complete mounted-node and mounted-frame receipts; it
@@ -1036,24 +1038,100 @@ must not introduce a parallel runtime-to-host output path or reopen active-plan
 ownership. It consumes only UI-owned graph, measurement, allocation, and
 presentation meaning admitted through 3.9.2; no Query key, settlement, patch,
 row handle, operational identity representation, or change consequence becomes
-a mounted or host authority artifact.
+a mounted or host authority artifact. One prepared frame is complete across all
+participating execution lanes and surface bindings before effects begin;
+runtime publication is atomic, while native multi-surface effects retain honest
+rejection-before-effects, in-flight, complete-presentation, and indeterminate
+outcomes. Application replacement does not become current until complete
+presentation is followed by the matching infallible runtime publication.
 
 **Must ship**
 
 - `UiMountedNodeReceipt`
 - `UiMountedFrameReceipt`
+- mounted-instance identity distinct from graph-node identity, including
+  zero-to-many graph-node cardinality and remount incarnation
+- separate semantic-surface, host-surface, surface-binding-generation,
+  mounted-instance, and frame-scoped receipt identities
+- typed known-empty host-surface registration baselines for honest first-frame
+  recovery
+- one cross-lane, multi-surface prepared-frame and publication lifecycle
 - mounted receipt facts for paint intent, clip/layer, allocation box, input
   participation, focus participation, hit-test participation, accessibility,
   motion projection, and diagnostic projection
-- host contract for viewport, pointer, keyboard, focus, scroll, time/tick, and
-  text-measurement observations
+- specialized compact storage for canvas, realtime, and other high-volume
+  batches rather than one generic receipt per primitive
+- typed rejection-before-effects, bounded in-flight, complete-presentation,
+  publication, unchanged-reuse, and presentation-indeterminate outcomes
+- explicit reconciliation that restores known host presentation truth without
+  pretending native rollback
+- replacement publication, mounted indexes, and bounded retention tied to the
+  exact application, graph world, plan, allocation, host session, surface set,
+  and frame generation
+- host contract for viewport, pointer, keyboard, text/IME, focus, scroll,
+  time/tick, and text-measurement observations
+- bounded, non-reentrant, generation-aware raw and structurally validated host
+  report batches; Milestone 3.12 retains ownership of semantic observation
+  admission and rebind planning
+- real egui translation and an honest headless recorder through the same sealed
+  host contract
+- egui executes only effect families completely defined by mounted receipts;
+  count-only or appearance-incomplete paint is rejected before effects rather
+  than synthesized, while Milestone 3.16 retains visual appearance ownership
+- independent authored, deterministic model, headless-transcript, egui-native,
+  zero-effect-denial, and public-publication oracles inside the existing
+  consolidated test owners; scripted host fault injection remains protocol
+  evidence rather than a claim of real native effects
+- explicit host-protocol and per-artifact schema identity, version negotiation,
+  compatibility windows, and reject-before-effects posture
+- named initial, delta, surface-specific, adapter, unchanged, retained,
+  rejected, and observation cost evidence
+
+**Must preserve**
+
+- one canonical runtime-to-host presentation path; the minimal envelope,
+  lane-local presentation, and direct preview-paint paths do not survive as
+  compatibility lanes
+- host ownership of native mechanics without host ownership of visibility,
+  enabledness, validity, layout, semantic focus, hit testing, accessibility,
+  motion, diagnostics, application lifecycle, or Query meaning
+- predecessor complete truth on every denial before native effects and an
+  explicit distinction between current runtime truth and known host
+  presentation truth when effects become indeterminate
+- Query-free applications without dummy Query ceremony or Query-derived cost
+- existing consolidated integration targets, two-session compile contracts,
+  ordinary fast-lane posture, zero flake retries, and no test-only runtime path
+- Milestone 3.11 ownership of visual snapshots, Milestone 3.12 ownership of
+  semantic observation admission, Milestone 3.13 ownership of broad Query
+  projection, and Milestones 3.14 through 3.16 ownership of intent, services,
+  and appearance
 
 **Acceptance evidence**
 
-- egui adapter renders only mounted receipts
-- egui adapter reports observations only
+- one real framework turn combining ordinary, virtualized, canvas, and
+  realtime work across multiple surfaces reaches only complete presentation,
+  rejection before effects, bounded in-flight work, or an explicit blocked
+  indeterminate outcome
+- egui consumes only mounted receipts and reports only native mechanics it
+  actually executed through the bounded report boundary; incomplete paint
+  produces typed denial and no synthetic shapes
+- reorder preserves a live semantic mounted instance, while actual
+  unmount/remount creates a distinct incarnation
+- failed replacement or pre-effect host denial preserves one coherent
+  predecessor application/plan/allocation/mounted-frame truth
+- retained-predecessor reports remain distinguishable from foreign,
+  never-presented, duplicate, reordered, overflowing, reentrant, or
+  indeterminate-basis reports, and none mutates semantic UI truth in 3.10
+- deterministic identity, presentation, publication, and report traces agree
+  with an independent model, while real filesystem, watcher, headless, and egui
+  scenarios separately prove their production boundaries without test-only
+  runtime paths or retries
+- steady projection work is bounded by changed semantic instances, affected
+  indexes, honest batch granules, and affected surface-specific work; unchanged
+  work is constant only through an exact carried reuse witness
 - host cannot receive authored declarations directly
-- host cannot decide visible/disabled/valid/layout meaning
+- host cannot decide visible/disabled/valid/layout meaning or recover Query,
+  graph, plan, allocation, or publication authority from its sealed view
 
 ### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 

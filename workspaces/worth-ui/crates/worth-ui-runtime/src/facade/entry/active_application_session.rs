@@ -16,6 +16,20 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) app: WorthUiApp,
     pub(super) runtime: WorthUiRuntime,
     pub(super) host_session: crate::facade::WorthUiHostSessionAuthority,
+    pub(super) mounted_identity: crate::mounting::UiMountedIdentityState,
+    pub(super) mounted_presentation: crate::mounting::UiMountedPresentationCoordinator,
+    pub(super) mounted_publication_reservations: std::collections::BTreeMap<
+        worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
+        crate::mounting::UiMountedFramePublicationCandidate,
+    >,
+    pub(super) mounted_reconciliation_reservations: std::collections::BTreeMap<
+        worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
+        crate::mounting::UiMountedFrameReconciliationCandidate,
+    >,
+    pub(super) host_observations:
+        crate::host_exchange::observation_report_validation::UiHostObservationReportValidation,
+    pub(super) host_measurements:
+        crate::host_exchange::measurement_admission::UiHostMeasurementAdmission,
 }
 
 /// Inspection evidence bound to the exact generation currently executing.
@@ -29,15 +43,25 @@ impl WorthUiActiveApplicationSession {
         app: WorthUiApp,
         runtime: WorthUiRuntime,
         host_session: crate::facade::WorthUiHostSessionAuthority,
-    ) -> Self {
+    ) -> Result<Self, crate::runtime::WorthUiRuntimeLaunchDenial> {
         let identity =
             WorthUiActiveApplicationSessionIdentity::from_host_session(host_session.identity());
-        Self {
+        let mounted_identity = crate::mounting::UiMountedIdentityState::new(
+            host_session.identity(),
+        )
+        .map_err(|_| crate::runtime::WorthUiRuntimeLaunchDenial::MountedIdentityExhausted)?;
+        Ok(Self {
             identity,
             app,
             runtime,
             host_session,
-        }
+            mounted_identity,
+            mounted_presentation: crate::mounting::UiMountedPresentationCoordinator::default(),
+            mounted_publication_reservations: std::collections::BTreeMap::new(),
+            mounted_reconciliation_reservations: std::collections::BTreeMap::new(),
+            host_observations: Default::default(),
+            host_measurements: Default::default(),
+        })
     }
 
     pub fn session_identity(&self) -> WorthUiActiveApplicationSessionIdentity {
@@ -83,17 +107,30 @@ impl WorthUiActiveApplicationSession {
     pub fn execute_framework_turn(
         &mut self,
         collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
-    ) -> WorthUiActiveFrameworkTurnCompletion<'_> {
-        let generation_identity = self.generation_identity().clone();
-        let host_session_identity = self.host_session.identity();
-        let host_adapter = self.host_session.output_adapter();
-        let completion = self.runtime.execute_framework_turn(collect_sources);
-        WorthUiActiveFrameworkTurnCompletion {
-            generation_identity,
-            host_session_identity,
-            host_adapter,
-            completion,
+    ) -> Result<
+        WorthUiActiveFrameworkTurnCompletion<'_>,
+        crate::mounting::UiMountedPublicationLeaseDenial,
+    > {
+        if self.mounted_presentation.has_active_attempt() {
+            return Err(crate::mounting::UiMountedPublicationLeaseDenial::PresentationInFlight);
         }
+        let generation_identity = self.generation_identity().clone();
+        let graph = self.app.graph();
+        let active_plan_digest = self.runtime.active.active_plan_ref().digest().as_u64();
+        let host_session_identity = self.host_session.identity();
+        let completion = self.runtime.execute_framework_turn(collect_sources);
+        Ok(WorthUiActiveFrameworkTurnCompletion {
+            generation_identity,
+            graph,
+            active_plan_digest,
+            host_session_identity,
+            completion,
+            mounted_identity: &mut self.mounted_identity,
+            host_session: &self.host_session,
+            mounted_presentation: &mut self.mounted_presentation,
+            mounted_publication_reservations: &mut self.mounted_publication_reservations,
+            host_observations: &mut self.host_observations,
+        })
     }
 
     pub fn ordinary_plan_availability(&self) -> crate::runtime::WorthUiOrdinaryPlanAvailability {
@@ -215,8 +252,28 @@ impl WorthUiActiveApplicationSession {
         self.host_session.measurement_capability()
     }
 
-    pub fn shutdown(self) -> WorthUiRuntimeShutdownReceipt {
-        self.runtime.shutdown()
+    pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
+        let (mounted_presentation, outcomes) = self
+            .mounted_presentation
+            .shutdown(self.host_session.effect_port());
+        for outcome in outcomes {
+            let _ = self.finish_mounted_presentation(outcome);
+        }
+        assert!(
+            self.mounted_publication_reservations.is_empty(),
+            "shutdown resolves every retained mounted publication reservation"
+        );
+        assert!(
+            self.mounted_reconciliation_reservations.is_empty(),
+            "shutdown resolves every retained mounted reconciliation reservation"
+        );
+        self.host_observations.shutdown();
+        self.host_measurements.shutdown();
+        let host_session_release = self.host_session.release_adapter_session();
+        self.runtime
+            .shutdown()
+            .bind_mounted_presentation(mounted_presentation)
+            .bind_host_session_release(host_session_release)
     }
 }
 

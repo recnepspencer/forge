@@ -36,9 +36,9 @@ impl UiGraphParticipationSeed {
             ),
             axis(
                 UiGraphParticipationStatus::Deferred,
-                UiGraphParticipationReasonSource::MountedReceiptAuthority,
+                UiGraphParticipationReasonSource::MountEligibility,
                 UiGraphParticipationReasonCode::MountedAxisAwaitsRuntimeMutation,
-                UiGraphParticipationEvidenceHandle::MountedReceiptAuthoritySeed,
+                UiGraphParticipationEvidenceHandle::MountEligibilitySeed,
             ),
             deferred_axis(UiGraphParticipationAxis::Visible),
             deferred_axis(UiGraphParticipationAxis::Layout),

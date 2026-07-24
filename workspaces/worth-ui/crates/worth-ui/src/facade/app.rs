@@ -23,6 +23,12 @@ pub use worth_ui_runtime::facade::prepared_application_authority::{
     WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationGenerationIdentity,
     WorthUiPreparedDeclarationSourceIdentity,
 };
+pub use worth_ui_runtime::facade::runtime_handoff::{
+    UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionOutcome,
+    UiFrameworkTransitionPlanningDenial, UiPreviewPaintIsolationOutcome, UiResizeLogicalExtent,
+    UiResizePreviewSample, WorthUiFrameworkTurnCompletion, WorthUiMountedPreviewFollowOn,
+    WorthUiPendingMountedPreviewProjection,
+};
 pub use worth_ui_runtime::facade::{
     WorthUi, WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity,
     WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveFrameworkTurnCompletion,
@@ -35,7 +41,15 @@ pub use worth_ui_runtime::facade::{
     WorthUiApplicationReplacementStagingDenial, WorthUiApplicationSemanticNoOpReceipt,
     WorthUiBuilder, WorthUiCandidateInspectionReceipt, WorthUiHostMeasurementCapability,
     WorthUiHostMeasurementSessionInput, WorthUiHostSessionIdentity,
-    WorthUiLoweredApplicationReplacement, WorthUiPendingApplicationCutover,
-    WorthUiPreparedApplicationReplacement, WorthUiReplacementCandidateSummary,
-    WorthUiReplacementPlannedCostEnvelope,
+    WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
+    WorthUiMountedApplicationReplacementOutcome, WorthUiMountedLaneProjectionDenial,
+    WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
+    WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
+    WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
+    WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
+    WorthUiMountedReplacementPreparationOutcome, WorthUiPendingApplicationCutover,
+    WorthUiPendingMountedPreview, WorthUiPreparedApplicationReplacement,
+    WorthUiPreparedMountedApplicationReplacement, WorthUiPreparedMountedPreview,
+    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
+    WorthUiResolvedMountedPreview,
 };

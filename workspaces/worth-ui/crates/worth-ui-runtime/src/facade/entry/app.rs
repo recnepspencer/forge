@@ -211,11 +211,7 @@ impl WorthUiApp {
             admission,
             Rc::clone(&self.retained_allocation_planning_evidence),
         )?;
-        Ok(crate::facade::entry::WorthUiActiveApplicationSession::new(
-            self,
-            runtime,
-            host_session,
-        ))
+        crate::facade::entry::WorthUiActiveApplicationSession::new(self, runtime, host_session)
     }
 
     /// Certification-only launch seam for subsystem tests that construct a
@@ -238,7 +234,17 @@ impl WorthUiApp {
         let initial_allocation_commit = self.prepared.initial_allocation_commit(artifact_digest)?;
         let host_session =
             crate::facade::WorthUiHostSessionAuthority::activate(self.prepared.host_session_plan())
-                .map_err(|_| WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted)?;
+                .map_err(|denial| match denial {
+                    crate::facade::WorthUiHostSessionActivationDenial::IdentityExhausted => {
+                        WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted
+                    }
+                    crate::facade::WorthUiHostSessionActivationDenial::Protocol(denial) => {
+                        WorthUiRuntimeLaunchDenial::HostProtocol(denial)
+                    }
+                    crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(
+                        denial,
+                    ) => WorthUiRuntimeLaunchDenial::HostMountedPresentationLease(denial),
+                })?;
         let runtime = WorthUiRuntime::launch(
             launch,
             lowering_authority,

@@ -53,7 +53,7 @@ fn query_and_host_plan_drift_change_identity_without_capability_drift() {
         .freeze()
         .expect("headless app should prepare");
     let egui = WorthUi::app()
-        .with_host(EguiPlanAdapter)
+        .with_host(EguiPlanAdapter::default())
         .freeze()
         .expect("egui app should prepare");
 
@@ -72,18 +72,19 @@ fn query_and_host_plan_drift_change_identity_without_capability_drift() {
     assert_ne!(headless.generation_identity(), egui.generation_identity());
 }
 
+#[derive(Default)]
 struct EguiPlanAdapter;
 
 impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for EguiPlanAdapter {
     fn observe_measurement(
         &self,
-        _request: &worth_ui_host_contract::UiMeasurementRequest,
-    ) -> worth_ui_host_contract::UiHostObservationValue {
+        _request: &worth_ui_host_contract::UiHostMeasurementRequest,
+    ) -> worth_ui_host_contract::UiHostMeasurementObservationValue {
         unreachable!("prepared identity test never enters native observation")
     }
 }
 
-impl worth_ui_host_contract::WorthUiOperationalHostAdapter for EguiPlanAdapter {
+impl crate::host::adapter::WorthUiOperationalHostAdapter for EguiPlanAdapter {
     fn operational_host_contract(&self) -> worth_ui_host_contract::WorthUiHostContract {
         worth_ui_host_contract::WorthUiHostContract::egui()
     }
@@ -94,11 +95,16 @@ impl worth_ui_host_contract::WorthUiOperationalHostAdapter for EguiPlanAdapter {
         ])
     }
 
-    fn consume_output(
+    fn release_host_session(
         &self,
-        _output: &worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    ) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
-        worth_ui_host_contract::WorthUiHostOutputDisposition::Consumed
+        authority: &crate::host::adapter::UiHostAdapterSessionAuthority,
+    ) -> crate::host::adapter::UiHostSessionReleaseOutcome {
+        crate::host::adapter::UiHostSessionReleaseOutcome::Released(
+            crate::host::adapter::UiHostSessionReleaseReceipt::released(
+                authority.host_session_identity(),
+                0,
+            ),
+        )
     }
 }
 

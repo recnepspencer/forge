@@ -145,7 +145,7 @@ impl WorthUiRuntimeQueryBinding {
 
     pub(crate) fn drain_operation_live_resources_into(
         &mut self,
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
     ) {
         if let Self::Installed(binding) = self {
             binding.drain_operation_live_resources_into(retirement);
@@ -154,20 +154,34 @@ impl WorthUiRuntimeQueryBinding {
 
     pub(crate) fn retain_only_operation_live_resources_for(
         &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
+        retained: &std::collections::BTreeSet<crate::WorthUiQueryViewIdentity>,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
     ) {
         if let Self::Installed(binding) = self {
-            binding.retain_only_operation_live_resources_for(references, retirement);
+            binding.retain_only_operation_live_resources_for(retained, retirement);
         }
     }
 
     pub(crate) fn finish_operation_live_succession(
         &mut self,
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
     ) {
         if let Self::Installed(binding) = self {
             binding.finish_operation_live_succession(retirement);
+        }
+    }
+
+    pub(crate) fn operation_live_resource_count(&self) -> usize {
+        match self {
+            Self::QueryFree => 0,
+            Self::Installed(binding) => binding.operation_live_resource_count(),
+        }
+    }
+
+    pub(crate) fn has_staged_operation_live_changes(&self) -> bool {
+        match self {
+            Self::QueryFree => false,
+            Self::Installed(binding) => binding.has_staged_operation_live_changes(),
         }
     }
 }

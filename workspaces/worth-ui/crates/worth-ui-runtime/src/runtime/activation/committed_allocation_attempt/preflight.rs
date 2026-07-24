@@ -31,14 +31,9 @@ pub(crate) struct UiPreflightedCommittedAllocationTransaction {
     structural_reuse: crate::runtime::WorthUiPlanRegionalEvidence,
 }
 
-pub(crate) struct UiCommitTruthResources<'runtime> {
+pub(crate) struct UiCommitTruthResources {
     transaction: UiPreflightedCommittedAllocationTransaction,
-    ledger_commit:
-        crate::runtime::allocation_receipt::UiPreparedAllocationCatalogLedgerCommit<'runtime>,
-    invalidation: std::cell::RefMut<
-        'runtime,
-        crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-    >,
+    ledger_commit: crate::runtime::allocation_receipt::UiPreparedAllocationCatalogLedgerCommit,
 }
 
 pub(super) fn preflight_committed_allocation(
@@ -121,21 +116,16 @@ impl UiPreflightedCommittedAllocationTransaction {
         self.counters
     }
 
-    pub(crate) fn acquire_truth_resources<'runtime>(
+    pub(crate) fn acquire_truth_resources(
         self,
-        ledger: &'runtime crate::runtime::allocation_receipt::UiAllocationReceiptLedger,
-        invalidation: std::cell::RefMut<
-            'runtime,
-            crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-        >,
-    ) -> Result<UiCommitTruthResources<'runtime>, Box<Self>> {
+        ledger: &crate::runtime::allocation_receipt::UiAllocationReceiptLedger,
+    ) -> Result<UiCommitTruthResources, Box<Self>> {
         let Some(ledger_commit) = ledger.prepare_catalog_commit(&self.ledger_transition) else {
             return Err(Box::new(self));
         };
         Ok(UiCommitTruthResources {
             transaction: self,
             ledger_commit,
-            invalidation,
         })
     }
 
@@ -170,22 +160,18 @@ impl UiPreflightedCommittedAllocationTransaction {
     }
 }
 
-impl<'runtime> UiCommitTruthResources<'runtime> {
+impl UiCommitTruthResources {
     pub(crate) fn seal(
         self,
         scroll_catalog_evidence: crate::runtime::UiScrollCatalogSwapEvidence,
         invalidation_transition: crate::runtime::invalidation_narrowing::UiPreparedInvalidationCatalogTransition,
     ) -> (
         UiCommittedAllocationSuccessors,
-        crate::runtime::allocation_receipt::UiPreparedAllocationCatalogLedgerCommit<'runtime>,
-        std::cell::RefMut<
-            'runtime,
-            crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
-        >,
+        crate::runtime::allocation_receipt::UiPreparedAllocationCatalogLedgerCommit,
     ) {
         let prepared = self
             .transaction
             .seal(scroll_catalog_evidence, invalidation_transition);
-        (prepared, self.ledger_commit, self.invalidation)
+        (prepared, self.ledger_commit)
     }
 }

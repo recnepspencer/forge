@@ -8,7 +8,7 @@ use worth_ui::facade::graph::{
 mod graph_touch_support;
 
 use graph_touch_support::{
-    control_artifact, graph_node_identity, mosaic_artifact, mounted_receipt_transition,
+    control_artifact, graph_node_identity, mosaic_artifact, mount_eligibility_transition,
     query_snapshot_world_profile, region_artifact, touch_app,
 };
 
@@ -16,7 +16,7 @@ use graph_touch_support::{
 fn equivalent_touches_converge_to_one_canonical_descriptor() {
     let app = touch_app(UiGraphWorldProfile::authoritative());
     let graph = app.graph();
-    let transition = mounted_receipt_transition(&app, control_artifact(&app));
+    let transition = mount_eligibility_transition(&app, control_artifact(&app));
     let origin = graph
         .touches()
         .declaration_change_receipt(control_artifact(&app))
@@ -24,7 +24,7 @@ fn equivalent_touches_converge_to_one_canonical_descriptor() {
 
     let left = graph
         .touches()
-        .from_mounted_receipt_transition(
+        .from_mount_eligibility_transition(
             origin.clone(),
             UiGraphTouchTiming::PostMutation,
             transition,
@@ -35,7 +35,7 @@ fn equivalent_touches_converge_to_one_canonical_descriptor() {
         .expect("equivalent touch facts should admit one canonical descriptor");
     let right = graph
         .touches()
-        .from_mounted_receipt_transition(
+        .from_mount_eligibility_transition(
             origin,
             UiGraphTouchTiming::PostMutation,
             transition,
@@ -68,19 +68,19 @@ fn equivalent_touches_converge_to_one_canonical_descriptor() {
 fn coarse_or_contradictory_touch_construction_denies_before_selection() {
     let app = touch_app(UiGraphWorldProfile::authoritative());
     let graph = app.graph();
-    let transition = mounted_receipt_transition(&app, control_artifact(&app));
+    let transition = mount_eligibility_transition(&app, control_artifact(&app));
     let origin = graph
         .touches()
         .declaration_change_receipt(control_artifact(&app))
         .expect("declaration-backed origin should exist");
 
-    let missing_aspects = graph.touches().from_mounted_receipt_transition(
+    let missing_aspects = graph.touches().from_mount_eligibility_transition(
         origin.clone(),
         UiGraphTouchTiming::PostMutation,
         transition,
         UiGraphTouchAspects::new(),
     );
-    let contradictory = graph.touches().from_mounted_receipt_transition(
+    let contradictory = graph.touches().from_mount_eligibility_transition(
         origin,
         UiGraphTouchTiming::PostMutation,
         transition,
@@ -227,7 +227,7 @@ fn query_origin_and_world_are_explicit_on_the_ordinary_touch_path() {
     let query_touch = query_world
         .graph()
         .touches()
-        .from_mounted_receipt_transition(
+        .from_mount_eligibility_transition(
             query_world
                 .graph()
                 .touches()
@@ -236,7 +236,7 @@ fn query_origin_and_world_are_explicit_on_the_ordinary_touch_path() {
                     "query-backed worlds should mint query touch receipts from basis authority",
                 ),
             UiGraphTouchTiming::PostMutation,
-            mounted_receipt_transition(&query_world, control_artifact(&query_world)),
+            mount_eligibility_transition(&query_world, control_artifact(&query_world)),
             UiGraphTouchAspects::new().query_binding(UiGraphTouchAspectPosture::Invalidated),
         )
         .expect("query-backed touch should admit in query world");

@@ -2,9 +2,9 @@ use crate::declaration::stable_text_digest;
 use crate::graph::{
     UiGraphAuthorityIdentity, UiGraphAxisParticipation, UiGraphCoreIndexes,
     UiGraphDeclarationCorrespondence, UiGraphGeneration, UiGraphGenerationRelation,
-    UiGraphMountedReceiptAuthoritySeedStore, UiGraphMountedReceiptMutation,
-    UiGraphMountedReceiptSlot, UiGraphMountedReceiptTransition, UiGraphNode, UiGraphNodeIdentity,
-    UiGraphSnapshotComparable, UiGraphTopology, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
+    UiGraphMountEligibilityMutation, UiGraphMountEligibilitySlot, UiGraphMountEligibilityStore,
+    UiGraphMountEligibilityTransition, UiGraphNode, UiGraphNodeIdentity, UiGraphSnapshotComparable,
+    UiGraphTopology, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -16,7 +16,7 @@ pub struct UiGraphSnapshot {
     snapshot_authority_digest: u64,
     nodes: Vec<UiGraphNode>,
     topology: UiGraphTopology,
-    mounted_receipts: UiGraphMountedReceiptAuthoritySeedStore,
+    mount_eligibilities: UiGraphMountEligibilityStore,
     core_indexes: UiGraphCoreIndexes,
 }
 
@@ -26,7 +26,7 @@ impl UiGraphSnapshot {
         world_profile: UiGraphWorldProfile,
         nodes: Vec<UiGraphNode>,
         topology: UiGraphTopology,
-        mounted_receipts: UiGraphMountedReceiptAuthoritySeedStore,
+        mount_eligibilities: UiGraphMountEligibilityStore,
         core_indexes: UiGraphCoreIndexes,
     ) -> Self {
         let declaration_correspondence = core_indexes.declaration_correspondence();
@@ -37,7 +37,7 @@ impl UiGraphSnapshot {
             &world_profile,
             &nodes,
             &topology,
-            &mounted_receipts,
+            &mount_eligibilities,
             declaration_authority_digest,
         );
 
@@ -49,7 +49,7 @@ impl UiGraphSnapshot {
             snapshot_authority_digest,
             nodes,
             topology,
-            mounted_receipts,
+            mount_eligibilities,
             core_indexes,
         }
     }
@@ -70,8 +70,8 @@ impl UiGraphSnapshot {
         &self.topology
     }
 
-    pub(crate) fn mounted_receipts(&self) -> &UiGraphMountedReceiptAuthoritySeedStore {
-        &self.mounted_receipts
+    pub(crate) fn mount_eligibilities(&self) -> &UiGraphMountEligibilityStore {
+        &self.mount_eligibilities
     }
 
     pub(crate) fn core_indexes(&self) -> &UiGraphCoreIndexes {
@@ -86,13 +86,13 @@ impl UiGraphSnapshot {
         self.authority_identity
     }
 
-    pub(crate) fn mounted_receipt_slot_for_node(
+    pub(crate) fn mount_eligibility_slot_for_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,
-    ) -> Option<&UiGraphMountedReceiptSlot> {
+    ) -> Option<&UiGraphMountEligibilitySlot> {
         self.core_indexes
-            .mounted_receipts()
-            .slot_for_node(&self.mounted_receipts, graph_node_identity)
+            .mount_eligibilities()
+            .slot_for_node(&self.mount_eligibilities, graph_node_identity)
     }
 
     pub fn node_count(&self) -> usize {
@@ -108,37 +108,37 @@ impl UiGraphSnapshot {
             .graph_node_ids_for_authored_provenance(authored_provenance_digest)
     }
 
-    pub fn mounted_receipt_slot_count(&self) -> usize {
-        self.mounted_receipts.slots().len()
+    pub fn mount_eligibility_slot_count(&self) -> usize {
+        self.mount_eligibilities.slots().len()
     }
 
-    pub fn mounted_receipt_mutation_for_node(
+    pub fn mount_eligibility_mutation_for_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,
-        prior_mounted_axis_participation: UiGraphAxisParticipation,
-        next_mounted_axis_participation: UiGraphAxisParticipation,
-    ) -> Option<UiGraphMountedReceiptMutation> {
-        self.mounted_receipt_transition_for_node(
+        prior_eligibility: UiGraphAxisParticipation,
+        next_eligibility: UiGraphAxisParticipation,
+    ) -> Option<UiGraphMountEligibilityMutation> {
+        self.mount_eligibility_transition_for_node(
             graph_node_identity,
-            prior_mounted_axis_participation,
-            next_mounted_axis_participation,
+            prior_eligibility,
+            next_eligibility,
         )
-        .map(UiGraphMountedReceiptMutation::from_transition)
+        .map(UiGraphMountEligibilityMutation::from_transition)
     }
 
-    pub fn mounted_receipt_transition_for_node(
+    pub fn mount_eligibility_transition_for_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,
-        prior_mounted_axis_participation: UiGraphAxisParticipation,
-        next_mounted_axis_participation: UiGraphAxisParticipation,
-    ) -> Option<UiGraphMountedReceiptTransition> {
-        self.mounted_receipt_slot_for_node(graph_node_identity)
+        prior_eligibility: UiGraphAxisParticipation,
+        next_eligibility: UiGraphAxisParticipation,
+    ) -> Option<UiGraphMountEligibilityTransition> {
+        self.mount_eligibility_slot_for_node(graph_node_identity)
             .and_then(|slot| {
-                UiGraphMountedReceiptTransition::from_slot_axis_transition(
+                UiGraphMountEligibilityTransition::from_slot_axis_transition(
                     self.authority_identity(),
                     *slot,
-                    prior_mounted_axis_participation,
-                    next_mounted_axis_participation,
+                    prior_eligibility,
+                    next_eligibility,
                 )
             })
     }
@@ -202,7 +202,7 @@ fn snapshot_authority_digest(
     world_profile: &UiGraphWorldProfile,
     nodes: &[UiGraphNode],
     topology: &UiGraphTopology,
-    mounted_receipts: &UiGraphMountedReceiptAuthoritySeedStore,
+    mount_eligibilities: &UiGraphMountEligibilityStore,
     declaration_authority_digest: u64,
 ) -> u64 {
     nodes.iter().fold(
@@ -210,7 +210,7 @@ fn snapshot_authority_digest(
             ^ generation.as_u64().rotate_left(5)
             ^ declaration_authority_digest.rotate_left(17)
             ^ topology.identity_digest().rotate_left(23)
-            ^ mounted_receipts.identity_digest().rotate_left(31)
+            ^ mount_eligibilities.identity_digest().rotate_left(31)
             ^ world_profile.identity_digest().rotate_left(29),
         |digest, node| digest.rotate_left(7) ^ node.authority_digest(),
     )
@@ -244,7 +244,7 @@ mod tests {
             UiGraphWorldProfile::authoritative(),
             initial.nodes().to_vec(),
             initial.topology().clone(),
-            initial.mounted_receipts().clone(),
+            initial.mount_eligibilities().clone(),
             initial.core_indexes().clone(),
         );
 

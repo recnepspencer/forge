@@ -17,7 +17,9 @@ fn launch_and_ordinary_frame_bind_runtime_and_inspection_to_one_generation() {
         UiInspectionTarget::product_root(),
         UiInspectionScope::graph(),
     ));
-    let completion = session.execute_framework_turn(|_| {});
+    let completion = session
+        .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active");
     let completion_generation = completion.generation_identity().clone();
     drop(completion);
 
@@ -78,7 +80,9 @@ fn query_free_and_installed_query_apps_share_the_active_session_lifecycle() {
         .expect("Query-installed source app should launch");
 
     let query_generation = query_installed.generation_identity().clone();
-    let completion = query_installed.execute_framework_turn(|_| {});
+    let completion = query_installed
+        .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active");
     let completion_generation = completion.generation_identity().clone();
     drop(completion);
 

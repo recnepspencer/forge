@@ -16,6 +16,9 @@ pub struct WorthUiRuntimeLaunch {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiRuntimeLaunchDenial {
     HostSessionIdentityExhausted,
+    HostProtocol(worth_ui_host_contract::UiHostProtocolDenial),
+    HostMountedPresentationLease(worth_ui_host_contract::UiMountedPresentationLeaseDenial),
+    MountedIdentityExhausted,
     PreparedApplicationHasNoRuntimeArtifact,
     InitialAllocationGraphAuthorityMismatch,
     InitialAllocationObligationsUnsettled {

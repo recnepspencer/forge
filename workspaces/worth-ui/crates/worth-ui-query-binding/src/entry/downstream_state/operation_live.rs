@@ -155,19 +155,13 @@ impl WorthUiInstalledDownstreamQueryState {
         debug_assert_eq!(resource.installed_reference(), reference);
         match self.operation_live.as_mut() {
             Some(operation_live) => operation_live.insert(resource),
-            None if self.references.has_live_reference() => {
-                let mut operation_live = WorthUiOperationLiveRetention::default();
-                let displaced = operation_live.insert(resource);
-                self.operation_live = Some(operation_live);
-                displaced
-            }
             None => Some(resource),
         }
     }
 
     pub(crate) fn drain_operation_live_resources_into(
         &mut self,
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
     ) {
         if let Some(operation_live) = self.operation_live.as_mut() {
             operation_live.drain_into(retirement);
@@ -176,17 +170,17 @@ impl WorthUiInstalledDownstreamQueryState {
 
     pub(crate) fn retain_only_operation_live_resources_for(
         &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
+        retained: &std::collections::BTreeSet<crate::WorthUiQueryViewIdentity>,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
     ) {
         if let Some(operation_live) = self.operation_live.as_mut() {
-            operation_live.retain_only(references, retirement);
+            operation_live.retain_only(retained, retirement);
         }
     }
 
     pub(crate) fn finish_operation_live_succession(
         &mut self,
-        retirement: &mut Vec<WorthUiOperationLiveResource>,
+        retirement: &mut impl Extend<WorthUiOperationLiveResource>,
     ) {
         if self.references.has_live_reference() {
             return;
@@ -202,5 +196,17 @@ impl WorthUiInstalledDownstreamQueryState {
             .map_or_else(Default::default, |operation_live| {
                 operation_live.observation(|reference| self.references.validate(reference).is_ok())
             })
+    }
+
+    pub(crate) fn operation_live_resource_count(&self) -> usize {
+        self.operation_live
+            .as_ref()
+            .map_or(0, WorthUiOperationLiveRetention::resource_count)
+    }
+
+    pub(crate) fn has_staged_operation_live_changes(&self) -> bool {
+        self.operation_live
+            .as_ref()
+            .is_some_and(WorthUiOperationLiveRetention::has_staged_changes)
     }
 }

@@ -1,7 +1,7 @@
 //! Host observation lane transitions: freeze → observe → normalize → admit.
 
 use worth_ui_host_contract::{
-    UiHostObservation, UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity,
+    UiHostMeasurementObservation, UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity,
     WorthUiHostCapabilityReport, WorthUiMeasurementHostAdapter,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
@@ -46,13 +46,13 @@ pub(crate) fn observe_host_measurement<A: WorthUiMeasurementHostAdapter + ?Sized
     evidence_family: UiMeasurementEvidenceFamily,
     need: UiHostMeasurementNeed,
     capability_report: &WorthUiHostCapabilityReport,
-) -> Result<UiHostObservation, UiHostMeasurementEvidenceDenial> {
+) -> Result<UiHostMeasurementObservation, UiHostMeasurementEvidenceDenial> {
     request_host_measurement(adapter, identity, evidence_family, need, capability_report)
         .map_err(UiHostMeasurementEvidenceDenial::Execution)
 }
 
 pub(crate) fn normalize_host_observation(
-    observation: UiHostObservation,
+    observation: UiHostMeasurementObservation,
     evidence_generation: UiEvidenceAuthorityGeneration,
     normalization_context: UiHostMeasurementNormalizationContext,
 ) -> Result<UiMeasurementResult, UiHostMeasurementEvidenceDenial> {

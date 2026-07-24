@@ -18,6 +18,8 @@ use super::{
 mod equivalence;
 #[path = "storage_lane_contract.rs"]
 mod lane_contract;
+#[path = "mounted_projection.rs"]
+mod mounted_projection;
 #[path = "storage_mutation.rs"]
 mod mutation;
 #[path = "successor_region_count.rs"]

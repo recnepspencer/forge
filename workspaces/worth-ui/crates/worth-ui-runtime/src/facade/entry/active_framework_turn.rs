@@ -1,33 +1,40 @@
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 use crate::runtime::WorthUiFrameworkTurnCompletion;
 
-use super::active_host_output_handoff::consume_active_host_output;
-
 mod frame_completion;
-mod host_output_projection;
+mod mounted_projection;
 
 pub use frame_completion::{
     WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveOrdinaryFrameCompletion,
     WorthUiActiveRealtimeFrameCompletion, WorthUiActiveVirtualizedDataFrameCompletion,
 };
-use host_output_projection::{
-    canvas_spatial_output, ordinary_output, realtime_output, virtualized_data_output,
-};
+pub use mounted_projection::WorthUiMountedLaneProjectionDenial;
 
 /// One framework-turn result bound to the active application generation.
 pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) graph: crate::graph::UiGraphAuthority<'session>,
+    pub(super) active_plan_digest: u64,
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
-    pub(super) host_adapter: &'session dyn worth_ui_host_contract::WorthUiOperationalHostAdapter,
     pub(super) completion: WorthUiFrameworkTurnCompletion<'session>,
+    pub(super) mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
+    pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
+    pub(super) mounted_presentation:
+        &'session mut crate::mounting::UiMountedPresentationCoordinator,
+    pub(super) mounted_publication_reservations: &'session mut std::collections::BTreeMap<
+        worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
+        crate::mounting::UiMountedFramePublicationCandidate,
+    >,
+    pub(super) host_observations: &'session mut crate::host_exchange::observation_report_validation::UiHostObservationReportValidation,
 }
 
 /// Executable framework-turn authority lent by one active application session.
 pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    graph: crate::graph::UiGraphAuthority<'session>,
     host_session_identity: crate::facade::WorthUiHostSessionIdentity,
-    host_adapter: &'session dyn worth_ui_host_contract::WorthUiOperationalHostAdapter,
     execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
+    mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
 }
 
 impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
@@ -44,22 +51,35 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
     ) -> Result<WorthUiActiveFrameworkTurnExecution<'session>, Box<Self>> {
         let Self {
             generation_identity,
+            graph,
+            active_plan_digest,
             host_session_identity,
-            host_adapter,
             completion,
+            mounted_identity,
+            host_session,
+            mounted_presentation,
+            mounted_publication_reservations,
+            host_observations,
         } = self;
         match completion.into_execution() {
             Ok(execution) => Ok(WorthUiActiveFrameworkTurnExecution {
                 generation_identity,
+                graph,
                 host_session_identity,
-                host_adapter,
                 execution,
+                mounted_identity,
             }),
             Err(completion) => Err(Box::new(Self {
                 generation_identity,
+                graph,
+                active_plan_digest,
                 host_session_identity,
-                host_adapter,
                 completion: *completion,
+                mounted_identity,
+                host_session,
+                mounted_presentation,
+                mounted_publication_reservations,
+                host_observations,
             })),
         }
     }
@@ -90,13 +110,10 @@ impl WorthUiActiveFrameworkTurnExecution<'_> {
         crate::runtime::WorthUiOrdinaryLaneFrameDenial,
     > {
         let receipt = self.execution.execute_active_ordinary_frame(target)?;
-        let output = ordinary_output(self.host_output_generation(), target, &receipt);
-        let disposition = self.consume_output(&output);
         Ok(WorthUiActiveOrdinaryFrameCompletion::new(
             &self.generation_identity,
             receipt,
-            output,
-            disposition,
+            self.frame_execution_basis(),
         ))
     }
 
@@ -108,13 +125,10 @@ impl WorthUiActiveFrameworkTurnExecution<'_> {
         crate::runtime::WorthUiCanvasSpatialFrameDenial,
     > {
         let receipt = self.execution.execute_active_canvas_spatial_frame(target)?;
-        let output = canvas_spatial_output(self.host_output_generation(), target, &receipt);
-        let disposition = self.consume_output(&output);
         Ok(WorthUiActiveCanvasSpatialFrameCompletion::new(
             &self.generation_identity,
             receipt,
-            output,
-            disposition,
+            self.frame_execution_basis(),
         ))
     }
 
@@ -124,13 +138,10 @@ impl WorthUiActiveFrameworkTurnExecution<'_> {
     ) -> Result<WorthUiActiveRealtimeFrameCompletion<'_>, crate::runtime::WorthUiRealtimeFrameDenial>
     {
         let receipt = self.execution.execute_active_realtime_frame(target)?;
-        let output = realtime_output(self.host_output_generation(), &receipt);
-        let disposition = self.consume_output(&output);
         Ok(WorthUiActiveRealtimeFrameCompletion::new(
             &self.generation_identity,
             receipt,
-            output,
-            disposition,
+            self.frame_execution_basis(),
         ))
     }
 
@@ -144,25 +155,15 @@ impl WorthUiActiveFrameworkTurnExecution<'_> {
         let receipt = self
             .execution
             .execute_active_virtualized_data_frame(target)?;
-        let output = virtualized_data_output(self.host_output_generation(), &receipt);
-        let disposition = self.consume_output(&output);
         Ok(WorthUiActiveVirtualizedDataFrameCompletion::new(
             &self.generation_identity,
             receipt,
-            output,
-            disposition,
+            self.frame_execution_basis(),
         ))
     }
 
-    fn consume_output(
-        &self,
-        output: &worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    ) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
-        consume_active_host_output(self.host_adapter, self.host_output_generation(), output)
-    }
-
-    fn host_output_generation(&self) -> worth_ui_host_contract::WorthUiHostOutputGeneration {
-        worth_ui_host_contract::WorthUiHostOutputGeneration::new(
+    fn frame_execution_basis(&self) -> crate::runtime::WorthUiFrameExecutionBasis {
+        crate::runtime::WorthUiFrameExecutionBasis::new(
             self.host_session_identity.as_u64(),
             self.execution.active_artifact_digest(),
             self.execution.active_plan_digest(),

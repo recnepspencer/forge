@@ -218,6 +218,10 @@ impl WorthUiExecutionPlan {
         self.region_store.family_count(family)
     }
 
+    pub(crate) fn mounted_projection_rows(&self) -> Vec<(u64, u32)> {
+        self.region_store.mounted_projection_rows()
+    }
+
     pub(crate) fn regional_family_semantic_digest(
         &self,
         family: crate::runtime::WorthUiPlanNodeInputFamily,

@@ -16,14 +16,15 @@ pub(super) fn apply_real_live_patch(
 ) {
     update_measurement(measurement, workspace);
     let mut refresh = None;
-    let completion =
-        session.execute_framework_turn(|turn| {
+    let completion = session
+        .execute_framework_turn(|turn| {
             turn.query_projection(|source| {
                 refresh = Some(source.refresh_operation_live(
                     WorthUiOperationLiveRefreshRequest::new(reference, workspace),
                 ));
             });
-        });
+        })
+        .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
     let WorthUiOperationLiveSourceRefreshOutcome::Staged(staging) = refresh
         .expect("the Query source runs")

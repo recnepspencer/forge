@@ -95,15 +95,17 @@ impl VirtualizedDataFixture {
             .query_fact_link("inspector.measurements")
             .expect("active plan retains the Query fact link");
         let mut admission = None;
-        let completion = session.execute_framework_turn(|turn| {
-            turn.query_projection(|source| {
-                admission = Some(
-                    source
-                        .admit_settled(projection)
-                        .map(|_| source.submit_settled(&fact_link)),
-                );
-            });
-        });
+        let completion = session
+            .execute_framework_turn(|turn| {
+                turn.query_projection(|source| {
+                    admission = Some(
+                        source
+                            .admit_settled(projection)
+                            .map(|_| source.submit_settled(&fact_link)),
+                    );
+                });
+            })
+            .expect("no mounted presentation lease is active");
         drop(completion.into_completion());
         admission
             .expect("projection source executes")
@@ -122,7 +124,10 @@ impl VirtualizedDataFixture {
         &mut self,
         target: WorthUiVirtualizedDataFrameTarget,
     ) -> Result<WorthUiVirtualizedDataFrameReceipt, WorthUiVirtualizedDataFrameDenial> {
-        let completion = self.session.execute_framework_turn(|_| {});
+        let completion = self
+            .session
+            .execute_framework_turn(|_| {})
+            .expect("no mounted presentation lease is active");
         let execution = match completion.into_execution() {
             Ok(execution) => execution,
             Err(_) => panic!("no-ingress framework turn yields execution"),

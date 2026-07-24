@@ -3,9 +3,10 @@
 pub(crate) mod activation;
 pub(crate) use activation::committed_allocation_attempt::UiCommittedAllocationActivationAttempt;
 pub(crate) use activation::UiAllocationCatalogDeltaActivationInput;
+pub(crate) use activation::WorthUiPreparedApplicationPlanSwap;
 pub(crate) use activation::WorthUiPreparedApplicationPublication;
-pub(crate) use activation::WorthUiQueryAwarePlanOutcome;
 mod active;
+pub(crate) use active::WorthUiActiveExecutionPlan;
 mod allocation_catalog_successor;
 mod allocation_frame_dispatch;
 pub use allocation_catalog_successor::{
@@ -36,7 +37,9 @@ mod viewport_resize;
 pub use drag_resize::*;
 pub use scroll_owned_allocation::*;
 
+pub(crate) use allocation_frame_dispatch::UiPendingMountedPreviewTransition;
 pub(crate) use allocation_receipt::project_allocation_preview;
+pub(crate) use allocation_receipt::UiAllocationTruthRevision;
 pub(crate) use allocation_receipt::UiCommittedAllocationCatalogActivationRow;
 pub(crate) use allocation_receipt::UiCommittedScrollActivationSource;
 pub use exports::*;

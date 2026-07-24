@@ -17,7 +17,7 @@ impl UiGraphParticipationStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiGraphParticipationReasonSource {
     GraphInstantiation,
-    MountedReceiptAuthority,
+    MountEligibility,
     ReservedRuntimeMutation,
     ParticipationMutation,
     AttachmentPosture,
@@ -47,7 +47,7 @@ pub enum UiGraphParticipationReasonCode {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiGraphParticipationEvidenceHandle {
     InstantiationPlan,
-    MountedReceiptAuthoritySeed,
+    MountEligibilitySeed,
     ReservedRuntimeMutationLane,
     ParticipationMutation,
     QueryBindingAttachment,
@@ -177,7 +177,7 @@ fn status_label(status: UiGraphParticipationStatus) -> &'static str {
 fn source_label(source: UiGraphParticipationReasonSource) -> &'static str {
     match source {
         UiGraphParticipationReasonSource::GraphInstantiation => "graph-instantiation",
-        UiGraphParticipationReasonSource::MountedReceiptAuthority => "mounted-receipt-authority",
+        UiGraphParticipationReasonSource::MountEligibility => "mount-eligibility",
         UiGraphParticipationReasonSource::ReservedRuntimeMutation => "reserved-runtime-mutation",
         UiGraphParticipationReasonSource::ParticipationMutation => "participation-mutation",
         UiGraphParticipationReasonSource::AttachmentPosture => "attachment-posture",
@@ -225,9 +225,7 @@ fn reason_label(reason: UiGraphParticipationReasonCode) -> &'static str {
 fn evidence_label(handle: UiGraphParticipationEvidenceHandle) -> &'static str {
     match handle {
         UiGraphParticipationEvidenceHandle::InstantiationPlan => "instantiation-plan",
-        UiGraphParticipationEvidenceHandle::MountedReceiptAuthoritySeed => {
-            "mounted-receipt-authority-seed"
-        }
+        UiGraphParticipationEvidenceHandle::MountEligibilitySeed => "mount-eligibility-seed",
         UiGraphParticipationEvidenceHandle::ReservedRuntimeMutationLane => {
             "reserved-runtime-mutation-lane"
         }

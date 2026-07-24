@@ -7,11 +7,13 @@ mod entry {}
 mod evidence {}
 pub mod graph;
 pub mod host;
-mod host_observation {}
 pub mod inspection;
+pub mod measurement_exchange;
 mod inspection_bridge {}
 mod lifecycle {}
+pub mod mounted;
 pub mod obligations;
+pub mod observation_report;
 pub mod query_binding;
 pub mod registry;
 mod runtime_handoff {}

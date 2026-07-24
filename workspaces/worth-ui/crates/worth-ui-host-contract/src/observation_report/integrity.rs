@@ -1,0 +1,91 @@
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiHostObservationIntegrity(u64);
+
+impl UiHostObservationIntegrity {
+    pub fn derive(
+        core: super::UiHostObservationCanonicalCore,
+        reports: &[super::UiHostObservationReport],
+    ) -> Self {
+        let contract = core.protocol().contract();
+        let identity = contract.identity().diagnostic_value();
+        let mut digest = (identity as u64) ^ ((identity >> 64) as u64);
+        for value in [
+            u64::from(contract.protocol().revision()),
+            u64::from(contract.observation().revision()),
+            core.host_session(),
+            core.binding().diagnostic_value(),
+            core.frame().diagnostic_value(),
+            core.sequences().first().value(),
+            core.sequences().last().value(),
+            u64::try_from(core.report_count()).unwrap_or(u64::MAX),
+            u64::try_from(core.byte_count()).unwrap_or(u64::MAX),
+            loss_digest(core.loss()),
+        ] {
+            digest = digest.rotate_left(11) ^ value.wrapping_mul(0x9e37_79b9_7f4a_7c15);
+        }
+        for report in reports {
+            digest = digest.rotate_left(7) ^ report.sequence().value();
+            digest = digest.rotate_left(7) ^ report.time_basis().diagnostic_value();
+            digest = digest.rotate_left(7) ^ report.payload().integrity_digest();
+            if let Some(basis) = report.mounted_basis() {
+                digest = digest.rotate_left(7) ^ basis.instance().diagnostic_value();
+                digest = digest.rotate_left(7) ^ basis.node_receipt().diagnostic_value();
+            }
+        }
+        Self(digest)
+    }
+
+    pub const fn from_untrusted(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub fn verifies(
+        self,
+        core: super::UiHostObservationCanonicalCore,
+        reports: &[super::UiHostObservationReport],
+    ) -> bool {
+        self == Self::derive(core, reports)
+    }
+
+    pub const fn diagnostic_value(self) -> u64 {
+        self.0
+    }
+}
+
+fn loss_digest(loss: super::UiHostObservationLoss) -> u64 {
+    match loss {
+        super::UiHostObservationLoss::Complete => 1,
+        super::UiHostObservationLoss::Coalesced {
+            family,
+            replaced,
+            survivor,
+        } => {
+            2 ^ (family as u64).rotate_left(5)
+                ^ replaced.first().value().rotate_left(11)
+                ^ replaced.last().value().rotate_left(17)
+                ^ coalescing_identity_digest(survivor).rotate_left(23)
+        }
+        super::UiHostObservationLoss::Overflow { family, affected } => {
+            3 ^ (family as u64).rotate_left(5)
+                ^ affected.first().value().rotate_left(11)
+                ^ affected.last().value().rotate_left(17)
+        }
+    }
+}
+
+const fn coalescing_identity_digest(identity: super::UiHostObservationCoalescingIdentity) -> u64 {
+    match identity {
+        super::UiHostObservationCoalescingIdentity::Family(family) => {
+            1 ^ (family as u64).rotate_left(7)
+        }
+        super::UiHostObservationCoalescingIdentity::PointerMotion {
+            pointer,
+            capture_epoch,
+            pressed_buttons,
+        } => {
+            2 ^ pointer.rotate_left(7)
+                ^ capture_epoch.rotate_left(19)
+                ^ pressed_buttons.rotate_left(31)
+        }
+    }
+}

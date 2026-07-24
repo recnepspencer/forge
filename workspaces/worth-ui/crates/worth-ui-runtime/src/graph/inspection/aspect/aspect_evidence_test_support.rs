@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use super::super::super::super::facade::{WorthUi, WorthUiApp, WorthUiDslPackage};
 use crate::graph::{
     project_aspect_evidence_refs, UiAspectEvidenceLane, UiAspectEvidenceRefProjection,
-    UiAspectEvidenceSubjectKind, UiGraphNodeIdentity, UiMountedReceiptIdentity,
+    UiAspectEvidenceSubjectKind, UiGraphMountEligibilityIdentity, UiGraphNodeIdentity,
 };
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
@@ -105,13 +105,13 @@ pub(super) fn expected_graph_node_digests(
         .collect()
 }
 
-pub(super) fn expected_mounted_receipt_digests(
+pub(super) fn expected_mount_eligibility_digests(
     app: &WorthUiApp,
     module_paths: &[&str],
 ) -> BTreeSet<u64> {
     module_paths
         .iter()
-        .map(|path| mounted_receipt_identity(app, path).digest())
+        .map(|path| mount_eligibility_identity(app, path).digest())
         .collect()
 }
 
@@ -129,8 +129,8 @@ pub(super) fn all_graph_node_digests(app: &WorthUiApp) -> Vec<u64> {
     .collect()
 }
 
-pub(super) fn all_mounted_receipt_digests(app: &WorthUiApp) -> Vec<u64> {
-    expected_mounted_receipt_digests(
+pub(super) fn all_mount_eligibility_digests(app: &WorthUiApp) -> Vec<u64> {
+    expected_mount_eligibility_digests(
         app,
         &[
             ALPHA_MODULE_PATH,
@@ -186,7 +186,7 @@ pub(super) fn assert_indexed_lookup(
 pub(super) struct AspectNeighborhoodFacts {
     pub(super) lanes: BTreeSet<UiAspectEvidenceLane>,
     pub(super) graph_node_digests: BTreeSet<u64>,
-    pub(super) mounted_receipt_digests: BTreeSet<u64>,
+    pub(super) mount_eligibility_digests: BTreeSet<u64>,
     pub(super) entries: BTreeSet<UiAspectEvidenceRefProjection>,
 }
 
@@ -194,7 +194,7 @@ pub(super) fn aspect_neighborhood_facts_from_receipt(
     aspect_name: &str,
     receipt: &crate::facade::inspection_bridge::UiInspectionReceipt,
     all_graph_node_digests: &[u64],
-    all_mounted_receipt_digests: &[u64],
+    all_mount_eligibility_digests: &[u64],
 ) -> AspectNeighborhoodFacts {
     aspect_neighborhood_facts(
         aspect_name,
@@ -203,7 +203,7 @@ pub(super) fn aspect_neighborhood_facts_from_receipt(
             .expect("query should return an evidence slice")
             .refs(),
         all_graph_node_digests,
-        all_mounted_receipt_digests,
+        all_mount_eligibility_digests,
     )
 }
 
@@ -211,13 +211,13 @@ pub(super) fn aspect_neighborhood_facts(
     aspect_name: &str,
     refs: &[crate::evidence::UiEvidenceRef],
     all_graph_node_digests: &[u64],
-    all_mounted_receipt_digests: &[u64],
+    all_mount_eligibility_digests: &[u64],
 ) -> AspectNeighborhoodFacts {
     let projections = project_aspect_evidence_refs(
         refs,
         aspect_name,
         all_graph_node_digests,
-        all_mounted_receipt_digests,
+        all_mount_eligibility_digests,
     );
 
     assert_eq!(
@@ -239,10 +239,10 @@ pub(super) fn aspect_neighborhood_facts(
             })
             .map(|projection| projection.subject_digest())
             .collect(),
-        mounted_receipt_digests: projections
+        mount_eligibility_digests: projections
             .iter()
             .filter(|projection| {
-                projection.subject_kind() == UiAspectEvidenceSubjectKind::MountedReceipt
+                projection.subject_kind() == UiAspectEvidenceSubjectKind::MountEligibility
             })
             .map(|projection| projection.subject_digest())
             .collect(),
@@ -254,7 +254,7 @@ pub(super) fn assert_membership(
     facts: &AspectNeighborhoodFacts,
     lane: UiAspectEvidenceLane,
     graph_node_digests: &BTreeSet<u64>,
-    mounted_receipt_digests: &BTreeSet<u64>,
+    mount_eligibility_digests: &BTreeSet<u64>,
 ) {
     assert_eq!(
         facts.lanes,
@@ -266,8 +266,8 @@ pub(super) fn assert_membership(
         "graph-node membership should stay exact",
     );
     assert_eq!(
-        facts.mounted_receipt_digests, *mounted_receipt_digests,
-        "mounted-receipt membership should stay exact",
+        facts.mount_eligibility_digests, *mount_eligibility_digests,
+        "mount-eligibility membership should stay exact",
     );
 }
 
@@ -319,13 +319,16 @@ fn graph_node_identity(app: &WorthUiApp, module_path: &str) -> UiGraphNodeIdenti
         .expect("declaration should admit one graph node")
 }
 
-fn mounted_receipt_identity(app: &WorthUiApp, module_path: &str) -> UiMountedReceiptIdentity {
+fn mount_eligibility_identity(
+    app: &WorthUiApp,
+    module_path: &str,
+) -> UiGraphMountEligibilityIdentity {
     app.graph()
         .lookup()
-        .mounted_receipt_slot_for_node(graph_node_identity(app, module_path))
-        .expect("graph node should own a mounted receipt slot")
+        .mount_eligibility_slot_for_node(graph_node_identity(app, module_path))
+        .expect("graph node should own a mount eligibility slot")
         .value()
-        .mounted_receipt_identity()
+        .mount_eligibility_identity()
 }
 
 pub(super) fn declaration_artifact_digests(app: &WorthUiApp, module_paths: &[&str]) -> Vec<u64> {

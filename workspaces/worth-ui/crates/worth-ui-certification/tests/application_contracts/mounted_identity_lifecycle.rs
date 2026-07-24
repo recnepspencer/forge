@@ -1,0 +1,215 @@
+use worth_ui::facade::mounted::{
+    UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedIdentityDenial, UiPresentationDeadline,
+};
+use worth_ui_host_contract::{UiMountedInstanceIdentity, UiSemanticSurfaceIdentity};
+
+use super::mounted_application_lifecycle::in_flight_presentation_world::{
+    mounted_session, prepared as prepared_frame,
+};
+use super::mounted_application_lifecycle::known_empty_surface_world::{
+    active_session, first_node, registered_surface,
+};
+use super::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
+use super::mounted_publication::{replacement_workspace, stage_replacement};
+
+#[test]
+fn zero_many_reorder_and_remount_preserve_only_lawful_identity() {
+    let mut session = active_session();
+    let surface = registered_surface(&mut session);
+    let node = first_node(&session);
+    assert!(session.mounted_instances_for(node).unwrap().is_empty());
+
+    let first = session.mount_instance(node, surface).unwrap();
+    let second = session.mount_instance(node, surface).unwrap();
+    let first_incarnation = incarnation(&session, first);
+    let second_incarnation = incarnation(&session, second);
+    assert_ne!(first_incarnation, second_incarnation);
+    assert_eq!(session.mounted_instances_for(node).unwrap().len(), 2);
+
+    let first_frame = session.advance_mounted_identity_frame().unwrap();
+    let first_receipts = receipt_ids(&session);
+    session.reorder_mounted_instances(&[second, first]).unwrap();
+    let reordered = session.inspect_mounted_identity();
+    assert_eq!(
+        reordered
+            .mounted_instances()
+            .iter()
+            .map(|entry| entry.identity())
+            .collect::<Vec<_>>(),
+        vec![second, first]
+    );
+    assert_eq!(incarnation(&session, first), first_incarnation);
+    let second_frame = session.advance_mounted_identity_frame().unwrap();
+    assert_ne!(first_frame, second_frame);
+    assert_ne!(first_receipts, receipt_ids(&session));
+
+    session.unmount_instance(first).unwrap();
+    let remounted = session.mount_instance(node, surface).unwrap();
+    assert_ne!(first, remounted);
+    assert_ne!(first_incarnation, incarnation(&session, remounted));
+    assert_eq!(
+        session.unmount_instance(first),
+        Err(UiMountedIdentityDenial::RetiredMountedInstance)
+    );
+}
+
+#[test]
+fn foreign_world_surface_and_binding_values_open_no_mounted_doors() {
+    let mut left = active_session();
+    let mut right = active_session();
+    let left_surface = registered_surface(&mut left);
+    let right_surface = registered_surface(&mut right);
+    let right_binding = right.inspect_mounted_identity().surface_bindings()[0];
+    let left_node = first_node(&left);
+    let right_node = first_node(&right);
+
+    assert_eq!(
+        left.mount_instance(right_node, left_surface),
+        Err(UiMountedIdentityDenial::ForeignGraphWorld)
+    );
+    assert_eq!(
+        left.mount_instance(left_node, right_surface),
+        Err(UiMountedIdentityDenial::UnknownSemanticSurface)
+    );
+    let right_instance = right.mount_instance(right_node, right_surface).unwrap();
+    assert_eq!(
+        left.unmount_instance(right_instance),
+        Err(UiMountedIdentityDenial::UnknownMountedInstance)
+    );
+    assert_eq!(
+        left.validate_current_surface_binding(right_binding.binding_generation()),
+        Err(UiMountedIdentityDenial::UnknownSurfaceBinding)
+    );
+
+    let left_instance = left.mount_instance(left_node, left_surface).unwrap();
+    let left_frame = left.advance_mounted_identity_frame().unwrap();
+    let left_receipt = receipt_ids(&left)[0];
+    let right_frame = right.advance_mounted_identity_frame().unwrap();
+    let right_receipt = receipt_ids(&right)[0];
+    assert!(left.validate_current_mounted_frame(left_frame).is_ok());
+    assert!(left
+        .validate_current_mounted_node_receipt(left_instance, left_receipt)
+        .is_ok());
+    assert_eq!(
+        left.validate_current_mounted_frame(right_frame),
+        Err(UiMountedIdentityDenial::FrameNotCurrent)
+    );
+    assert_eq!(
+        left.validate_current_mounted_node_receipt(left_instance, right_receipt),
+        Err(UiMountedIdentityDenial::NodeReceiptNotCurrent)
+    );
+    let unadmitted_instance = UiMountedInstanceIdentity::mint_unbound().unwrap();
+    assert_eq!(
+        left.unmount_instance(unadmitted_instance),
+        Err(UiMountedIdentityDenial::UnknownMountedInstance)
+    );
+    let unadmitted_surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+    assert_eq!(
+        left.mount_instance(left_node, unadmitted_surface),
+        Err(UiMountedIdentityDenial::UnknownSemanticSurface)
+    );
+}
+
+#[test]
+fn application_replacement_advances_the_world_and_preserves_uninterrupted_mounts() {
+    let host = ScriptedPresentationHost::default();
+    let (mut session, _) = mounted_session(host.clone(), "mounted-replacement", 1);
+    let surface =
+        session.inspect_mounted_identity().surface_bindings()[0].semantic_surface_identity();
+    let predecessor_node = first_node(&session);
+    let predecessor_instance = session.inspect_mounted_identity().mounted_instances()[0].identity();
+    host.push_presented();
+    let initial_frame = prepared_frame(&mut session);
+    assert!(matches!(
+        session.present_prepared_mounted_frame(
+            initial_frame,
+            UiPresentationDeadline::at_tick(10),
+            0,
+        ),
+        UiMountedFrameOutcome::Published(_)
+    ));
+
+    let workspace = replacement_workspace("mounted-replacement");
+    let (pending, catalog, boundary) = stage_replacement(&workspace, &mut session);
+    let prepared = match session
+        .prepare_mounted_replacement(
+            pending,
+            catalog,
+            boundary,
+            None,
+            UiMountedFrameRequest::all_bound_surfaces(),
+        )
+        .unwrap()
+    {
+        worth_ui::facade::app::WorthUiMountedReplacementPreparationOutcome::Prepared(value) => {
+            value
+        }
+        _ => panic!("changed application meaning requires activation"),
+    };
+    host.push_presented();
+    let (cutover, mounted) = match prepared.present(UiPresentationDeadline::at_tick(20), 1) {
+        worth_ui::facade::app::WorthUiMountedApplicationReplacementOutcome::Published {
+            application,
+            mounted,
+        } => (application, mounted),
+        _ => panic!("complete presentation publishes the changed application"),
+    };
+    assert_eq!(cutover.active_generation(), session.generation_identity());
+
+    assert_eq!(
+        session.mounted_instances_for(predecessor_node),
+        Err(UiMountedIdentityDenial::ForeignGraphWorld)
+    );
+    assert!(
+        session
+            .graph()
+            .node_identities()
+            .any(|identity| identity == predecessor_node.graph_node_identity()),
+        "the denial must come from the stale mounted world, not a missing graph node"
+    );
+    let successor_node = session
+        .mounted_graph_node(predecessor_node.graph_node_identity())
+        .expect("preserved semantic node receives a successor-world handle");
+    assert_eq!(
+        session
+            .mounted_instances_for(successor_node)
+            .unwrap()
+            .as_ref(),
+        &[predecessor_instance],
+        "uninterrupted semantic mounts survive graph-world replacement"
+    );
+    let current = session.inspect_mounted_identity();
+    assert_eq!(current.mounted_instances().len(), 1);
+    assert_eq!(current.current_frame(), Some(mounted.frame()));
+    assert_eq!(current.surface_bindings().len(), 1);
+    assert_eq!(
+        current.surface_bindings()[0].semantic_surface_identity(),
+        surface
+    );
+    drop(cutover);
+    workspace.close();
+}
+
+pub(super) fn incarnation(
+    session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
+    identity: worth_ui::facade::mounted::UiMountedInstanceIdentity,
+) -> worth_ui::facade::mounted::UiMountIncarnation {
+    session
+        .inspect_mounted_identity()
+        .mounted_instances()
+        .iter()
+        .find(|entry| entry.identity() == identity)
+        .unwrap()
+        .mount_incarnation()
+}
+
+pub(super) fn receipt_ids(
+    session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
+) -> Vec<worth_ui::facade::mounted::UiMountedNodeReceiptIdentity> {
+    session
+        .inspect_mounted_identity()
+        .frame_receipts()
+        .iter()
+        .map(|entry| entry.node_receipt_identity())
+        .collect()
+}

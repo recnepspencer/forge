@@ -1,14 +1,19 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::dsl::WorthUiDslPackage;
+use worth_ui::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiOperationalHostAdapter,
+};
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementRequest, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiMeasurementHostAdapter, WorthUiOperationalHostAdapter,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
 
+#[derive(Default)]
 struct AlternateHost;
 
 impl WorthUiMeasurementHostAdapter for AlternateHost {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(&self, _request: &UiHostMeasurementRequest) -> UiHostMeasurementObservationValue {
         unreachable!("headless configuration denies measurement construction")
     }
 }
@@ -22,17 +27,23 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
         WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless())
     }
 
-    fn consume_output(
+    fn release_host_session(
         &self,
-        _output: &worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    ) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
-        worth_ui_host_contract::WorthUiHostOutputDisposition::Consumed
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> UiHostSessionReleaseOutcome {
+        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
+            authority.host_session_identity(),
+            0,
+        ))
     }
 }
 
 fn main() {
-    let _ = WorthUi::app()
+    let app = WorthUi::app()
         .with_dsl_package(WorthUiDslPackage::named("certification.host"))
-        .with_host(AlternateHost)
-        .freeze().expect("application preparation should succeed");
+        .with_host(AlternateHost::default())
+        .freeze()
+        .expect("application preparation should succeed");
+    let session = app.launch().expect("active session claims the adapter lease");
+    let _ = session.shutdown();
 }

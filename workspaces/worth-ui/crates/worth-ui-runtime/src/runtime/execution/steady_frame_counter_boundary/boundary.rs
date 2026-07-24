@@ -21,7 +21,7 @@ pub struct WorthUiSteadyFrameCounterBoundary;
 
 #[derive(Clone, Debug)]
 pub struct WorthUiSteadyFrameCounterReceiptBuilder {
-    generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
+    basis: super::WorthUiFrameExecutionBasis,
     active_plan_digest: u64,
     diagnostic_policy: WorthUiSteadyFrameDiagnosticPolicy,
     capture_richness: WorthUiCounterCaptureRichness,
@@ -32,25 +32,28 @@ pub struct WorthUiSteadyFrameCounterReceiptBuilder {
 }
 
 impl WorthUiSteadyFrameCounterBoundary {
-    pub fn for_active_generation(
-        generation: worth_ui_host_contract::WorthUiHostOutputGeneration,
+    pub fn for_execution_basis(
+        basis: super::WorthUiFrameExecutionBasis,
     ) -> WorthUiSteadyFrameCounterReceiptBuilder {
-        WorthUiSteadyFrameCounterReceiptBuilder::new(generation)
+        WorthUiSteadyFrameCounterReceiptBuilder::new(basis)
     }
 
     #[cfg(test)]
     pub fn for_active_plan(active_plan_digest: u64) -> WorthUiSteadyFrameCounterReceiptBuilder {
-        WorthUiSteadyFrameCounterReceiptBuilder::new(
-            worth_ui_host_contract::WorthUiHostOutputGeneration::new(0, 0, active_plan_digest, 0),
-        )
+        WorthUiSteadyFrameCounterReceiptBuilder::new(super::WorthUiFrameExecutionBasis::new(
+            0,
+            0,
+            active_plan_digest,
+            0,
+        ))
     }
 }
 
 impl WorthUiSteadyFrameCounterReceiptBuilder {
-    pub(crate) fn new(generation: worth_ui_host_contract::WorthUiHostOutputGeneration) -> Self {
+    pub(crate) fn new(basis: super::WorthUiFrameExecutionBasis) -> Self {
         Self {
-            active_plan_digest: generation.active_plan_digest(),
-            generation,
+            active_plan_digest: basis.active_plan(),
+            basis,
             diagnostic_policy: WorthUiSteadyFrameDiagnosticPolicy::Minimal,
             capture_richness: WorthUiCounterCaptureRichness::Standard,
             counters: WorthUiSteadyFrameCounters::default(),
@@ -217,7 +220,7 @@ impl WorthUiSteadyFrameCounterReceiptBuilder {
             self.validate_lane_packet_matches_counters(receipt)?;
         }
         Ok(WorthUiFrameExecutionReceipt::new(
-            self.generation,
+            self.basis,
             self.active_plan_digest,
             self.diagnostic_policy,
             self.counters,

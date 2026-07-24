@@ -18,5 +18,5 @@ mod inspection_boundary_runtime;
 mod inspection_closeout_runtime;
 #[path = "../inspection_cost_runtime.rs"]
 mod inspection_cost_runtime;
-#[path = "../mounted_receipt_runtime.rs"]
-mod mounted_receipt_runtime;
+#[path = "../mount_eligibility_runtime.rs"]
+mod mount_eligibility_runtime;

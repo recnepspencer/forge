@@ -2,18 +2,12 @@
 
 #[path = "../admission_support_runtime.rs"]
 mod admission_support_runtime;
-#[path = "../application_contracts/allocation_observing_host.rs"]
-mod allocation_observing_host;
 #[path = "../application_contracts/canvas_spatial_execution.rs"]
 mod canvas_spatial_execution;
 #[path = "../application_contracts/canvas_spatial_replacement.rs"]
 mod canvas_spatial_replacement;
 #[path = "../application_contracts/cross_lane_bundle_execution.rs"]
 mod cross_lane_bundle_execution;
-#[path = "../application_contracts/egui_allocation_attribution.rs"]
-mod egui_allocation_attribution;
-#[path = "../application_contracts/egui_host_execution.rs"]
-mod egui_host_execution;
 #[path = "../application_contracts/executor_allocator_observation.rs"]
 mod executor_allocator_observation;
 #[path = "../facade_lifecycle_path_runtime.rs"]
@@ -26,10 +20,62 @@ mod filesystem_replacement_support;
 mod filesystem_source_acquisition;
 #[path = "../application_contracts/filesystem_watcher_settlement.rs"]
 mod filesystem_watcher_settlement;
-#[path = "../application_contracts/headless_host_execution.rs"]
-mod headless_host_execution;
-#[path = "../application_contracts/headless_output_observer.rs"]
-mod headless_output_observer;
+#[path = "../application_contracts/host_measurement_fixture.rs"]
+mod host_measurement_fixture;
+#[path = "../application_contracts/host_measurement_lifecycle.rs"]
+mod host_measurement_lifecycle;
+#[path = "../application_contracts/host_observation_denials.rs"]
+mod host_observation_denials;
+#[path = "../application_contracts/host_observation_fixture.rs"]
+mod host_observation_fixture;
+#[path = "../application_contracts/host_observation_overflow.rs"]
+mod host_observation_overflow;
+#[path = "../application_contracts/host_observation_pressure.rs"]
+mod host_observation_pressure;
+#[path = "../application_contracts/host_observation_reporting.rs"]
+mod host_observation_reporting;
+#[path = "../application_contracts/mounted_application_lifecycle/mod.rs"]
+mod mounted_application_lifecycle;
+#[path = "../application_contracts/mounted_egui_adapter.rs"]
+mod mounted_egui_adapter;
+#[path = "../application_contracts/mounted_frame_assembly.rs"]
+mod mounted_frame_assembly;
+#[path = "../application_contracts/mounted_headless_recorder.rs"]
+mod mounted_headless_recorder;
+#[path = "../application_contracts/mounted_host_protocol/mod.rs"]
+mod mounted_host_protocol;
+#[path = "../application_contracts/mounted_identity_capacity.rs"]
+mod mounted_identity_capacity;
+#[path = "../application_contracts/mounted_identity_convergence.rs"]
+mod mounted_identity_convergence;
+#[path = "../application_contracts/mounted_identity_lifecycle.rs"]
+mod mounted_identity_lifecycle;
+#[path = "../application_contracts/mounted_identity_model_trace.rs"]
+mod mounted_identity_model_trace;
+#[path = "../application_contracts/mounted_identity_surface_lifecycle.rs"]
+mod mounted_identity_surface_lifecycle;
+#[path = "../application_contracts/mounted_presentation.rs"]
+mod mounted_presentation;
+#[path = "../application_contracts/mounted_presentation_authority.rs"]
+mod mounted_presentation_authority;
+#[path = "../application_contracts/mounted_presentation_cleanup.rs"]
+mod mounted_presentation_cleanup;
+#[path = "../application_contracts/mounted_presentation_model_trace.rs"]
+mod mounted_presentation_model_trace;
+#[path = "../application_contracts/mounted_presentation_reconciliation.rs"]
+mod mounted_presentation_reconciliation;
+#[path = "../application_contracts/mounted_preview.rs"]
+mod mounted_preview;
+#[path = "../application_contracts/mounted_projection_contracts.rs"]
+mod mounted_projection_contracts;
+#[path = "../application_contracts/mounted_projection_geometry.rs"]
+mod mounted_projection_geometry;
+#[path = "../application_contracts/mounted_projection_parity.rs"]
+mod mounted_projection_parity;
+#[path = "../application_contracts/mounted_protocol_model/mod.rs"]
+mod mounted_protocol_model;
+#[path = "../application_contracts/mounted_publication.rs"]
+mod mounted_publication;
 #[path = "../application_contracts/multi_removal_filesystem.rs"]
 mod multi_removal_filesystem;
 #[path = "../application_contracts/public_application_lifecycle.rs"]

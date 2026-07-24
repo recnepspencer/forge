@@ -18,6 +18,15 @@ impl UiAllocationReceiptLedger {
         }
     }
 
+    pub(crate) fn mounted_projection_receipts(&self) -> Vec<super::UiAllocationReceipt> {
+        self.state
+            .borrow()
+            .committed_by_scope
+            .iter()
+            .map(|(_, receipt)| receipt.clone())
+            .collect()
+    }
+
     pub(super) fn prepare_selected_mode(
         &self,
         mode: super::replan_commit_mode::UiAllocationReplanCommitMode<'_>,

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::rc::Rc;
 
-use crate::facade::host_observation::{
+use crate::facade::host::{
     WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiHostKind,
     WorthUiOperationalHostAdapter,
 };
@@ -12,6 +12,7 @@ use worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration;
 #[derive(Clone)]
 pub struct WorthUiHostSessionPlan {
     contract: WorthUiHostContract,
+    protocol_contract: worth_ui_host_contract::UiHostProtocolContract,
     capability_report: WorthUiHostCapabilityReport,
     adapter: Rc<dyn WorthUiOperationalHostAdapter>,
 }
@@ -22,11 +23,13 @@ impl WorthUiHostSessionPlan {
         Adapter: WorthUiOperationalHostAdapter + 'static,
     {
         let contract = adapter.operational_host_contract();
+        let protocol_contract = adapter.operational_protocol_contract();
         let capability_report = adapter
             .operational_capability_report()
             .with_observation_generation(WorthUiHostCapabilityObservationGeneration::new(0));
         Self {
             contract,
+            protocol_contract,
             capability_report,
             adapter: Rc::new(adapter),
         }
@@ -40,6 +43,10 @@ impl WorthUiHostSessionPlan {
         &self.capability_report
     }
 
+    pub(crate) fn protocol_contract(&self) -> worth_ui_host_contract::UiHostProtocolContract {
+        self.protocol_contract
+    }
+
     pub(crate) fn adapter(&self) -> Rc<dyn WorthUiOperationalHostAdapter> {
         Rc::clone(&self.adapter)
     }
@@ -50,6 +57,7 @@ impl fmt::Debug for WorthUiHostSessionPlan {
         formatter
             .debug_struct("WorthUiHostSessionPlan")
             .field("contract", &self.contract)
+            .field("protocol_contract", &self.protocol_contract)
             .field("capability_report", &self.capability_report)
             .finish_non_exhaustive()
     }
@@ -57,7 +65,9 @@ impl fmt::Debug for WorthUiHostSessionPlan {
 
 impl PartialEq for WorthUiHostSessionPlan {
     fn eq(&self, other: &Self) -> bool {
-        self.contract == other.contract && self.capability_report == other.capability_report
+        self.contract == other.contract
+            && self.protocol_contract == other.protocol_contract
+            && self.capability_report == other.capability_report
     }
 }
 
