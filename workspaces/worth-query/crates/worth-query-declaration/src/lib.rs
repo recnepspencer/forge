@@ -11,6 +11,7 @@ mod binding;
 mod canonicalization;
 mod collection;
 mod diagnostics;
+mod domain_computation;
 mod identity;
 #[path = "canonical_authority.rs"]
 mod identity_authority;

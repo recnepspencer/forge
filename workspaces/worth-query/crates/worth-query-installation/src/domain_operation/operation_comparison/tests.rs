@@ -235,6 +235,7 @@ fn semantics(native_revision: u64, root: &str) -> WorthQueryDomainOperationSeman
             execution: WorthQueryOperationCostClass::Constant,
             result_width: WorthQueryOperationCostClass::Constant,
         },
+        resources: crate::domain_computation_workflow_test_support::resource_contract(),
         support: no_support(),
         lowering: WorthQueryOperationLoweringContract {
             family: "owner-comparison-test".into(),

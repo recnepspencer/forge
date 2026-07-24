@@ -78,6 +78,7 @@ pub(crate) struct GraphParticipationProviderRegistration {
     pub provider: Arc<dyn ErasedGraphParticipationProvider>,
     pub provider_identity: &'static str,
     pub commit_marker: Option<(TypeId, &'static str)>,
+    pub resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
 }
 
 #[derive(Default)]
@@ -128,6 +129,7 @@ impl WorthQueryPendingGraphParticipations {
         commit_marker: Option<(TypeId, &'static str)>,
     ) -> Self {
         let marker = TypeId::of::<G>();
+        let resource_support = provider.execution_resource_support();
         let registration = GraphParticipationProviderRegistration {
             provider: Arc::new(TypedGraphParticipationProvider::<G, P> {
                 provider,
@@ -135,6 +137,7 @@ impl WorthQueryPendingGraphParticipations {
             }),
             provider_identity: std::any::type_name::<P>(),
             commit_marker,
+            resource_support,
         };
         if self.providers.insert(marker, registration).is_some() && self.denial.is_none() {
             self.denial = Some(WorthQueryGraphParticipationInstallationDenial::new(
@@ -274,6 +277,7 @@ impl WorthQueryPendingGraphParticipations {
                     definition,
                     runtime_authority: runtime_authority.as_u64(),
                     provider: Arc::clone(&registration.provider),
+                    resource_support: registration.resource_support.clone(),
                     commit_authority: registration
                         .commit_marker
                         .and_then(|(marker, _)| commit_authorities.get(&marker).cloned()),
@@ -291,6 +295,7 @@ pub(crate) struct WorthQueryInstalledGraphParticipationRecord {
     pub definition: ErasedGraphParticipationDefinition,
     pub runtime_authority: u64,
     pub provider: Arc<dyn ErasedGraphParticipationProvider>,
+    pub resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
     pub commit_authority: Option<Arc<WorthQueryInstalledGraphCommitAuthority>>,
 }
 

@@ -36,6 +36,7 @@ pub(super) fn validate_domain_operation_meaning(
         return Err("duplicate-or-empty-required-domain-role");
     }
     validate_workflow(&semantics.workflow)?;
+    semantics.resources.validate()?;
     validate_conditional_nodes(&semantics.conditional_nodes)?;
     validate_conditional_graph_closure(semantics)?;
     validate_workflow_closure(semantics)?;

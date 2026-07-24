@@ -78,6 +78,7 @@ fn stage(
             domain::WorthQueryWorkflowCostRole::Execution,
             domain::WorthQueryWorkflowCostRole::ResultValidation,
         ],
+        resources: super::super::execution_resource_contract(),
         terminal_result_states: terminal
             .then_some(domain::WorthQueryOperationResultState::Ready)
             .into_iter()

@@ -29,6 +29,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, EvidenceRead, Evi
         Some(super::super::executors::installed_read_declaration())
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::execution_resource_support()
+    }
+
     fn execute(
         &self,
         _: (),

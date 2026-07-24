@@ -34,6 +34,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ReadVertex, ReadF
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
     }
@@ -61,6 +65,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ReadVertex, ReadF
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
     }
@@ -87,6 +95,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, CountVertices, Re
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
@@ -118,6 +130,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ReadVertex, ReadF
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(mismatched_read_declaration())
     }
@@ -144,6 +160,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ReadVertex, ReadF
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())

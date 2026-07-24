@@ -268,6 +268,8 @@ fn every_downstream_semantic_role_participates_in_atomic_installation() {
                         graph_read_roles: vec!["model".into()],
                         terminal_result_states: vec![domain::WorthQueryOperationResultState::Ready],
                         failure_classes: vec![domain::WorthQueryOperationFailureClass::Dependency],
+                        resources: super::installed_operation_fixture::execution_resource_contract(
+                        ),
                         ..Default::default()
                     })],
                 ),

@@ -226,6 +226,10 @@ impl WorthQueryGraphProviderFailure {
 }
 
 pub trait WorthQueryGraphParticipationProvider<G>: Send + Sync + 'static {
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
+
     fn observe(
         &self,
         call: &WorthQueryGraphProviderCall,

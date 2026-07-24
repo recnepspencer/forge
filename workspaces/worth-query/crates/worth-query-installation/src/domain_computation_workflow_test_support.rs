@@ -24,12 +24,14 @@ pub(crate) fn artifact_workflow(
     )
     .with_semantics(WorthQueryWorkflowStageSemantics {
         output: WorthQueryWorkflowValueContract::installed_artifact(reference.clone()),
+        resources: resource_contract(),
         ..WorthQueryWorkflowStageSemantics::default()
     });
     let consumer = WorthQueryPortableWorkflowStage::new("rank", ["collect"], true, false, [])
         .with_semantics(WorthQueryWorkflowStageSemantics {
             input: WorthQueryWorkflowValueContract::installed_artifact(reference),
             output: WorthQueryWorkflowValueContract::Bool,
+            resources: resource_contract(),
             terminal_result_states: vec![WorthQueryOperationResultState::Ready],
             ..WorthQueryWorkflowStageSemantics::default()
         });
@@ -75,12 +77,34 @@ fn semantics(
             execution: WorthQueryOperationCostClass::Constant,
             result_width: WorthQueryOperationCostClass::Constant,
         },
+        resources: resource_contract(),
         support: no_support(),
         lowering: WorthQueryOperationLoweringContract {
             family: "worth.routing.rank-candidates".into(),
             deterministic: true,
         },
     }
+}
+
+pub(crate) fn resource_contract() -> WorthQueryExecutionResourceContract {
+    WorthQueryExecutionResourceContract::declared([WorthQueryExecutionStrategyContract::new(
+        WorthQueryExecutionStrategyName::new("fixture-bounded").unwrap(),
+        WorthQueryExecutionResourceEnvelope::bounded(
+            1_000_000,
+            1_000_000,
+            worth_query_declaration::facade::domain_computation::WorthQueryExecutionMode::Synchronous,
+            worth_query_declaration::facade::domain_computation::WorthQueryCancellationSafePointFamily::new(
+                "fixture-chunk-boundary",
+            )
+            .unwrap(),
+        ),
+        WorthQueryExecutionProviderRequirements::new(
+            WorthQueryExecutionProviderFamily::new("fixture-provider").unwrap(),
+            WorthQueryExecutionAccessProductFamily::new("fixture-access").unwrap(),
+            WorthQueryExecutionAllocatorFamily::new("fixture-arena").unwrap(),
+        ),
+    )])
+    .unwrap()
 }
 
 fn no_support() -> WorthQueryOperationSupportRequirements {

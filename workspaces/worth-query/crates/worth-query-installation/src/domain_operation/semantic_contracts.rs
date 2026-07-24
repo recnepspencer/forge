@@ -26,6 +26,7 @@ pub struct WorthQueryDomainOperationSemanticClosure {
     pub projection_consumption: WorthQueryOperationProjectionConsumptionContract,
     pub terminal: WorthQueryOperationTerminalContract,
     pub cost: WorthQueryOperationCostContract,
+    pub resources: crate::domain_computation::WorthQueryOperationExecutionResourceContract,
     pub support: WorthQueryOperationSupportRequirements,
     pub lowering: WorthQueryOperationLoweringContract,
 }

@@ -18,6 +18,10 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowRead,
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const REPLAY_COMPARATOR_FAMILY: Option<&'static str> = Some("installed-workflow-exact-v1");
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::execution_resource_support()
+    }
+
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
     }
@@ -104,6 +108,10 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowRead,
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const REPLAY_COMPARATOR_FAMILY: Option<&'static str> = Some("installed-workflow-exact-v1");
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::execution_resource_support()
+    }
+
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
     }
@@ -148,6 +156,10 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowRead,
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::execution_resource_support()
+    }
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())

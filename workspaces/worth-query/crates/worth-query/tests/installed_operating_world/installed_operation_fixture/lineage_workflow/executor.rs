@@ -38,6 +38,10 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowRead,
         Some(lineage_read_declaration())
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::execution_resource_support()
+    }
+
     fn execute_stage(
         &self,
         input: domain::WorthQueryWorkflowValue,

@@ -88,6 +88,11 @@ fn hash_stage_semantics(hasher: &mut Sha256, semantics: &WorthQueryWorkflowStage
         "workflow-cost",
         semantics.cost_roles.iter().map(|role| role.as_str()),
     );
+    hash_text_field(
+        hasher,
+        "workflow-resources",
+        &semantics.resources.canonical_token(),
+    );
     for state in &semantics.terminal_result_states {
         hash_text_field(
             hasher,

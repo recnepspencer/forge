@@ -67,6 +67,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ImpactCollectionR
         })
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn execute(
         &self,
         _: (),

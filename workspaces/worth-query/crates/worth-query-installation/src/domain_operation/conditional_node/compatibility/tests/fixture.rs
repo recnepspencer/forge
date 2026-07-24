@@ -134,6 +134,7 @@ pub(super) fn operation_definition(
         .with_semantics(WorthQueryWorkflowStageSemantics {
             output: WorthQueryWorkflowValueContract::Bool,
             conditional_nodes: vec![stage_node],
+            resources: crate::domain_computation_workflow_test_support::resource_contract(),
             ..WorthQueryWorkflowStageSemantics::default()
         });
     let semantics = WorthQueryDomainOperationSemanticClosure {
@@ -177,6 +178,7 @@ pub(super) fn operation_definition(
             execution: WorthQueryOperationCostClass::DeclaredWidth,
             result_width: WorthQueryOperationCostClass::DeclaredWidth,
         },
+        resources: crate::domain_computation_workflow_test_support::resource_contract(),
         support: support(),
         lowering: WorthQueryOperationLoweringContract {
             family: "conditional-comparison-test".into(),

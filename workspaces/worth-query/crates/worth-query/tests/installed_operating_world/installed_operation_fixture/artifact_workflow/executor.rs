@@ -237,6 +237,10 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowRead,
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const REPLAY_COMPARATOR_FAMILY: Option<&'static str> = Some("artifact-workflow-exact-v1");
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::execution_resource_support()
+    }
+
     fn execute_stage(
         &self,
         input: domain::WorthQueryWorkflowValue,

@@ -126,6 +126,7 @@ pub(crate) struct WorthQueryInstalledWorkflowStageExecutor {
     executor: Arc<dyn ErasedWorkflowStageExecutor>,
     replay_comparator: Option<Arc<dyn ErasedReplaySemanticComparator>>,
     pub(crate) installed_read: Option<crate::ordinary::read::WorthQueryReadDeclaration>,
+    pub(crate) resource_support: super::WorthQueryExecutionResourceSupport,
 }
 
 struct WorkflowStageExecutorRegistration {
@@ -137,6 +138,7 @@ struct WorkflowStageExecutorRegistration {
     result_width_cost: crate::domain_installation::WorthQueryOperationCostClass,
     replay_comparator_family: Option<&'static str>,
     installed_read: Option<crate::ordinary::read::WorthQueryReadDeclaration>,
+    resource_support: super::WorthQueryExecutionResourceSupport,
 }
 
 impl WorthQueryInstalledWorkflowStageExecutor {
@@ -199,6 +201,7 @@ impl WorthQueryPendingWorkflowStageExecutors {
         let installed_read = executor
             .installed_read_declaration()
             .map(|declaration| declaration.clone_for_installed_execution());
+        let resource_support = executor.execution_resource_support();
         let typed = Arc::new(TypedWorkflowStageExecutor::<D, O, F, E> {
             executor: Arc::new(executor),
             marker: PhantomData,
@@ -212,6 +215,7 @@ impl WorthQueryPendingWorkflowStageExecutors {
             execution_cost: E::EXECUTION_COST,
             result_width_cost: E::RESULT_WIDTH_COST,
             replay_comparator_family: None,
+            resource_support,
         });
         self
     }
@@ -233,6 +237,7 @@ impl WorthQueryPendingWorkflowStageExecutors {
         let installed_read = executor
             .installed_read_declaration()
             .map(|declaration| declaration.clone_for_installed_execution());
+        let resource_support = executor.execution_resource_support();
         let typed = Arc::new(TypedWorkflowStageExecutor::<D, O, F, E> {
             executor: Arc::new(executor),
             marker: PhantomData,
@@ -246,6 +251,7 @@ impl WorthQueryPendingWorkflowStageExecutors {
             execution_cost: E::EXECUTION_COST,
             result_width_cost: E::RESULT_WIDTH_COST,
             replay_comparator_family: E::REPLAY_COMPARATOR_FAMILY,
+            resource_support,
         });
         self
     }
@@ -332,6 +338,7 @@ impl WorthQueryPendingWorkflowStageExecutors {
                             executor: registration.executor,
                             replay_comparator: registration.replay_comparator,
                             installed_read: registration.installed_read,
+                            resource_support: registration.resource_support,
                         }),
                     )
                 })

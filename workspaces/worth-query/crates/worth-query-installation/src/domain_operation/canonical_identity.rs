@@ -27,6 +27,11 @@ pub(super) fn canonical_operation_identity(
         &semantics.evidence.canonical_token(),
     );
     workflow_contract::hash_workflow_contract(&mut hasher, &semantics.workflow);
+    hash_text_field(
+        &mut hasher,
+        "operation-resources",
+        &semantics.resources.canonical_token(),
+    );
     lifecycle_and_support_contracts::hash_lifecycle_and_support_contracts(&mut hasher, semantics);
     format!("{:x}", hasher.finalize())
 }

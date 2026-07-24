@@ -142,6 +142,7 @@ pub struct WorthQueryWorkflowStageSemantics {
     pub effect_roles: Vec<super::WorthQueryOperationEffectFamily>,
     pub invariant_roles: Vec<String>,
     pub cost_roles: Vec<WorthQueryWorkflowCostRole>,
+    pub resources: crate::domain_computation::WorthQueryWorkflowStageExecutionResourceContract,
     pub terminal_result_states: Vec<super::WorthQueryOperationResultState>,
     pub failure_classes: Vec<super::WorthQueryOperationFailureClass>,
     pub conditional_nodes: Vec<super::WorthQueryPortableConditionalNodeDeclaration>,

@@ -207,6 +207,7 @@ fn one_stage_workflow(
             output: domain::WorthQueryWorkflowValueContract::Text,
             effect_roles,
             cost_roles,
+            resources: super::execution_resource_contract(),
             terminal_result_states: vec![domain::WorthQueryOperationResultState::Ready],
             failure_classes: vec![
                 domain::WorthQueryOperationFailureClass::InvalidInput,

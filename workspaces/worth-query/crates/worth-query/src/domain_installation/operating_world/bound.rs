@@ -141,6 +141,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
                 basis_identity: basis.capability_digest().into(),
                 graph_authority_identities,
                 required_domain_authority_identities,
+                resource_admission_identity: None,
             },
         );
         Self {

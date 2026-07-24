@@ -10,6 +10,8 @@ mod commit_execution;
 mod consumption_progression;
 #[path = "domain_evidence/mod.rs"]
 mod domain_evidence;
+#[path = "execution_resource_admission/mod.rs"]
+mod execution_resource_admission;
 #[path = "workflow_execution/reexecution/historical_replay.rs"]
 pub(crate) mod historical_replay;
 #[path = "direct_execution/input_contract.rs"]
@@ -116,6 +118,7 @@ pub(crate) use domain_evidence::{
     domain_evidence_binding_material, domain_evidence_core_material,
     domain_evidence_governance_material,
 };
+pub use execution_resource_admission::*;
 pub use operation_input::*;
 pub use operation_output::*;
 pub use progression::*;

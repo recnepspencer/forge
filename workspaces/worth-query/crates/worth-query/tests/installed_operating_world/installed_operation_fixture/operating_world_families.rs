@@ -71,6 +71,10 @@ where
         Some(super::executors::installed_read_declaration())
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn execute(
         &self,
         input: ReadExecutionInput,

@@ -246,6 +246,10 @@ pub trait WorthQueryDomainWorkflowStageExecutor<D, O, F>: Send + Sync + 'static 
         None
     }
 
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
+
     fn execute_stage(
         &self,
         input: WorthQueryWorkflowValue,

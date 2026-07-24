@@ -74,6 +74,7 @@ pub(crate) fn semantic_closure(
             execution: domain::WorthQueryOperationCostClass::DeclaredWidth,
             result_width: domain::WorthQueryOperationCostClass::DeclaredWidth,
         },
+        resources: execution_resource_contract(),
         support: domain::WorthQueryOperationSupportRequirements {
             live: domain::WorthQuerySupportRequirement::NotRequired,
             continuation: domain::WorthQuerySupportRequirement::NotRequired,
@@ -95,6 +96,51 @@ pub(crate) fn semantic_closure(
             deterministic: true,
         },
     }
+}
+
+pub(crate) fn execution_resource_request() -> domain::WorthQueryExecutionResourceRequest {
+    domain::WorthQueryExecutionResourceRequest::bounded(
+        1_000_000,
+        1_000_000,
+        cancellation_safe_point(),
+    )
+}
+
+pub(crate) fn execution_resource_contract() -> domain::WorthQueryExecutionResourceContract {
+    domain::WorthQueryExecutionResourceContract::declared([
+        domain::WorthQueryExecutionStrategyContract::new(
+            domain::WorthQueryExecutionStrategyName::new("fixture-bounded").unwrap(),
+            execution_resource_envelope(),
+            domain::WorthQueryExecutionProviderRequirements::new(
+                domain::WorthQueryExecutionProviderFamily::new("fixture-provider").unwrap(),
+                domain::WorthQueryExecutionAccessProductFamily::new("fixture-access").unwrap(),
+                domain::WorthQueryExecutionAllocatorFamily::new("fixture-arena").unwrap(),
+            ),
+        ),
+    ])
+    .unwrap()
+}
+
+pub(crate) fn execution_resource_support() -> domain::WorthQueryExecutionResourceSupport {
+    domain::WorthQueryExecutionResourceSupport::new(
+        domain::WorthQueryExecutionProviderFamily::new("fixture-provider").unwrap(),
+        domain::WorthQueryExecutionAccessProductFamily::new("fixture-access").unwrap(),
+        domain::WorthQueryExecutionAllocatorFamily::new("fixture-arena").unwrap(),
+        execution_resource_envelope(),
+    )
+}
+
+fn execution_resource_envelope() -> domain::WorthQueryExecutionResourceEnvelope {
+    domain::WorthQueryExecutionResourceEnvelope::bounded(
+        1_000_000,
+        1_000_000,
+        domain::WorthQueryExecutionMode::Synchronous,
+        cancellation_safe_point(),
+    )
+}
+
+fn cancellation_safe_point() -> domain::WorthQueryCancellationSafePointFamily {
+    domain::WorthQueryCancellationSafePointFamily::new("fixture-chunk-boundary").unwrap()
 }
 
 pub(crate) fn operation_identity_contract(revision: u64) -> AspectContract {

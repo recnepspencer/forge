@@ -49,6 +49,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, CollectionRead, R
         Some(collection_read_declaration())
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn execute(
         &self,
         _: (),

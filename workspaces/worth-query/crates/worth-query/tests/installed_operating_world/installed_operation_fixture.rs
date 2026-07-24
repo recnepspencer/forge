@@ -88,6 +88,7 @@ pub use operating_world_families::{
 };
 pub(super) use operation_semantics::{
     canonical_bundle, canonical_collection_bundle, canonical_ordered_collection_bundle,
+    execution_resource_contract, execution_resource_request, execution_resource_support,
     operation_identity_contract, semantic_closure,
 };
 pub use read_operation_types::{

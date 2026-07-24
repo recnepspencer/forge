@@ -56,6 +56,7 @@ pub(super) fn workflow_definition(
                         graph_read_roles: vec!["model".into()],
                         cost_roles: standard_cost_roles(true),
                         failure_classes: vec![domain::WorthQueryOperationFailureClass::Dependency],
+                        resources: super::super::execution_resource_contract(),
                         ..Default::default()
                     });
             stages
@@ -70,6 +71,7 @@ pub(super) fn workflow_definition(
                     cost_roles: standard_cost_roles(false),
                     terminal_result_states: vec![domain::WorthQueryOperationResultState::Ready],
                     failure_classes: vec![domain::WorthQueryOperationFailureClass::Dependency],
+                    resources: super::super::execution_resource_contract(),
                     ..Default::default()
                 }),
             );
@@ -119,6 +121,7 @@ pub(super) fn stage(
             .into_iter()
             .collect(),
         cost_roles: standard_cost_roles(produces_projection),
+        resources: super::super::execution_resource_contract(),
         terminal_result_states: terminal
             .then_some(domain::WorthQueryOperationResultState::Ready)
             .into_iter()

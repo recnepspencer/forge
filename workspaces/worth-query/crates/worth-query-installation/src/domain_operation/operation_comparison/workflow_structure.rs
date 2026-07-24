@@ -159,6 +159,7 @@ mod tests {
         .with_semantics(WorthQueryWorkflowStageSemantics {
             output: WorthQueryWorkflowValueContract::Bool,
             conditional_nodes: nodes,
+            resources: crate::domain_computation_workflow_test_support::resource_contract(),
             ..WorthQueryWorkflowStageSemantics::default()
         });
         WorthQueryOperationWorkflowContract::Declared(WorthQueryPortableWorkflowDefinition::new(

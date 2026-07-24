@@ -254,6 +254,10 @@ where
         None
     }
 
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
+
     fn execute(
         &self,
         input: O::Input,
