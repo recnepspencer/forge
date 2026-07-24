@@ -12,6 +12,7 @@ pub struct WorthQueryDomainOperationSemanticClosure {
     pub required_capabilities: Vec<WorthQueryOperationCapabilityRequirement>,
     pub required_domains: Vec<WorthQueryOperationRequiredDomainRole>,
     pub workflow: WorthQueryOperationWorkflowContract,
+    pub evidence: super::WorthQueryDomainEvidenceContract,
     pub conditional_nodes: Vec<super::WorthQueryPortableConditionalNodeDeclaration>,
     pub graph_reads: WorthQueryOperationGraphReadContract,
     pub touches: WorthQueryOperationTouchContract,

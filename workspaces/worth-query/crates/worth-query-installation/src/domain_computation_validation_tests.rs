@@ -147,11 +147,12 @@ fn declared_clone_or_serialization_is_an_honest_carriage_path() {
 #[test]
 fn structural_counter_stage_role_and_governance_dimensions_are_required() {
     let duplicate_counters = base_builder()
-        .counters(WorthQueryStructuralCounterContract::new(
+        .counters(WorthQueryStructuralCounterContract::required_foundation(
             counter("same"),
             counter("same"),
             counter("same"),
         ))
+        .decisions(WorthQueryDecisionRecordContract::not_required())
         .compatibility(active_compatibility())
         .finish()
         .unwrap_err();

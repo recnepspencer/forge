@@ -16,7 +16,7 @@ pub(super) fn validate(
     if !contract.carriage.is_coherent() {
         return Err(denial(contract, Kind::InvalidCarriageContract));
     }
-    if !contract.counters.names_are_distinct() {
+    if !contract.counters.is_valid() {
         return Err(denial(contract, Kind::InvalidStructuralCounterContract));
     }
     if contract.producer_roles.is_empty()

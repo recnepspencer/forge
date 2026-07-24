@@ -1,7 +1,7 @@
 use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::{
-    WorthQueryOperationWorkflowContract, WorthQueryPortableDomainOperationDefinition,
-    WorthQueryWorkflowValueContract,
+    WorthQueryDomainEvidenceContract, WorthQueryOperationWorkflowContract,
+    WorthQueryPortableDomainOperationDefinition, WorthQueryWorkflowValueContract,
 };
 
 use super::WorthQueryPortablePackageValidationDenial;
@@ -41,12 +41,25 @@ pub(super) fn validate_workflow_artifact_closure(
     contracts: &[WorthQueryPortableArtifactContract],
 ) -> Result<(), WorthQueryPortablePackageValidationDenial> {
     for operation in operations {
+        let operation_slot = operation.identity().slot();
+        validate_evidence_reference(
+            contracts,
+            &operation_slot,
+            &operation_slot,
+            &operation.semantics().evidence,
+        )?;
         let WorthQueryOperationWorkflowContract::Declared(workflow) =
             &operation.semantics().workflow
         else {
             continue;
         };
         for stage in workflow.stages() {
+            validate_evidence_reference(
+                contracts,
+                stage.identity(),
+                stage.identity(),
+                &stage.semantics().evidence,
+            )?;
             validate_stage_value(
                 contracts,
                 stage.identity(),
@@ -64,6 +77,29 @@ pub(super) fn validate_workflow_artifact_closure(
     Ok(())
 }
 
+fn validate_evidence_reference(
+    contracts: &[WorthQueryPortableArtifactContract],
+    subject: &str,
+    producer_role: &str,
+    evidence: &WorthQueryDomainEvidenceContract,
+) -> Result<(), WorthQueryPortablePackageValidationDenial> {
+    let WorthQueryDomainEvidenceContract::InstalledArtifact(reference) = evidence else {
+        return Ok(());
+    };
+    let contract = installed_contract(contracts, subject, reference)?;
+    contract
+        .producer_roles()
+        .iter()
+        .any(|role| role == producer_role)
+        .then_some(())
+        .ok_or_else(|| {
+            WorthQueryPortablePackageValidationDenial::invalid_domain_operation(format!(
+                "{subject}:evidence-producer-role-not-permitted:{}",
+                reference.family().as_str()
+            ))
+        })
+}
+
 fn validate_stage_value(
     contracts: &[WorthQueryPortableArtifactContract],
     stage_identity: &str,
@@ -73,19 +109,7 @@ fn validate_stage_value(
     let WorthQueryWorkflowValueContract::InstalledArtifact(reference) = value else {
         return Ok(());
     };
-    let contract = contracts
-        .iter()
-        .find(|contract| {
-            contract.family() == reference.family()
-                && contract.schema_version() == reference.schema_version()
-                && contract.protocol_version() == reference.protocol_version()
-        })
-        .ok_or_else(|| {
-            WorthQueryPortablePackageValidationDenial::invalid_domain_operation(format!(
-                "{stage_identity}:undeclared-artifact-contract:{}",
-                reference.family().as_str()
-            ))
-        })?;
+    let contract = installed_contract(contracts, stage_identity, reference)?;
     let admitted_roles = if direction == "producer" {
         contract.producer_roles()
     } else {
@@ -98,6 +122,26 @@ fn validate_stage_value(
         .ok_or_else(|| {
             WorthQueryPortablePackageValidationDenial::invalid_domain_operation(format!(
                 "{stage_identity}:artifact-{direction}-role-not-permitted:{}",
+                reference.family().as_str()
+            ))
+        })
+}
+
+fn installed_contract<'a>(
+    contracts: &'a [WorthQueryPortableArtifactContract],
+    subject: &str,
+    reference: &crate::domain_computation::WorthQueryArtifactContractReference,
+) -> Result<&'a WorthQueryPortableArtifactContract, WorthQueryPortablePackageValidationDenial> {
+    contracts
+        .iter()
+        .find(|contract| {
+            contract.family() == reference.family()
+                && contract.schema_version() == reference.schema_version()
+                && contract.protocol_version() == reference.protocol_version()
+        })
+        .ok_or_else(|| {
+            WorthQueryPortablePackageValidationDenial::invalid_domain_operation(format!(
+                "{subject}:undeclared-artifact-contract:{}",
                 reference.family().as_str()
             ))
         })

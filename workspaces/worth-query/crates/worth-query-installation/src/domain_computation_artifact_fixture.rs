@@ -72,6 +72,7 @@ pub(crate) fn valid_contract(
             "worth.routing.termination",
             "worth.routing.feasibility",
             "worth.routing.objective",
+            "worth.routing.incumbent",
         ),
         WorthQueryCandidateSearchPosture::ProvenTopK { count: 10 },
         WorthQueryCandidateOptimalityPosture::ProvenTopK { count: 10 },
@@ -85,11 +86,12 @@ pub(crate) fn valid_contract(
     .access_path(WorthQueryArtifactAccessPathContract::denied())
     .carriage(WorthQueryArtifactCarriageContract::move_only_provider_transfer())
     .lifecycle(lifecycle)
-    .counters(WorthQueryStructuralCounterContract::new(
+    .counters(WorthQueryStructuralCounterContract::required_foundation(
         counter("artifact-bytes"),
         counter("candidate-elements"),
         counter("comparison-work"),
     ))
+    .decisions(WorthQueryDecisionRecordContract::not_required())
     .governance(WorthQueryArtifactGovernanceContract::new(
         audiences,
         WorthQueryArtifactClassification::Restricted,
@@ -159,11 +161,12 @@ pub(crate) fn base_builder_with_versions(
     .access_path(WorthQueryArtifactAccessPathContract::denied())
     .carriage(WorthQueryArtifactCarriageContract::move_only_provider_transfer())
     .lifecycle(WorthQueryArtifactLifecycleContract::ArenaScoped)
-    .counters(WorthQueryStructuralCounterContract::new(
+    .counters(WorthQueryStructuralCounterContract::required_foundation(
         counter("bytes"),
         counter("elements"),
         counter("work"),
     ))
+    .decisions(WorthQueryDecisionRecordContract::not_required())
     .governance(WorthQueryArtifactGovernanceContract::new(
         ["internal"],
         WorthQueryArtifactClassification::Internal,

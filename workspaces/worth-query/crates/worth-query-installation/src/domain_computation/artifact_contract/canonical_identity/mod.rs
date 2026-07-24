@@ -42,6 +42,7 @@ pub(crate) fn canonical_artifact_contract_identity(
     semantic_postures::hash_transformation(&mut hash, &contract.transformation);
     crate::domain_computation::hash_artifact_access_path(&mut hash, &contract.access_path);
     carriage_and_governance::hash_carriage(&mut hash, contract);
+    crate::domain_computation::hash_decision_record_contract(&mut hash, &contract.decisions);
     carriage_and_governance::hash_governance(&mut hash, contract);
     carriage_and_governance::hash_compatibility(&mut hash, &contract.compatibility);
     for role in &contract.producer_roles {

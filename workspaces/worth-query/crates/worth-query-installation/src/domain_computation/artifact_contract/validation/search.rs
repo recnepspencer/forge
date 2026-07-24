@@ -16,6 +16,7 @@ pub(super) fn validate(
         search.termination_family(),
         search.feasibility_family(),
         search.comparison_family(),
+        search.incumbent_family(),
     ];
     let fields_match = match search.search_posture() {
         Posture::NotApplicable => declared_fields.iter().all(|field| field.is_none()),

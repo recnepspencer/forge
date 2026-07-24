@@ -82,6 +82,7 @@ pub(super) fn hash_search(hash: &mut Sha256, value: &WorthQueryCandidateSearchCo
     hash_optional(hash, "search-termination", value.termination_family());
     hash_optional(hash, "candidate-feasibility", value.feasibility_family());
     hash_optional(hash, "candidate-comparison", value.comparison_family());
+    hash_optional(hash, "candidate-incumbent", value.incumbent_family());
     match value.search_posture() {
         WorthQueryCandidateSearchPosture::NotApplicable => {
             hash_text_field(hash, "search-posture", "not-applicable")

@@ -50,6 +50,11 @@ fn hash_stage(hasher: &mut Sha256, stage: &WorthQueryPortableWorkflowStage) {
 fn hash_stage_semantics(hasher: &mut Sha256, semantics: &WorthQueryWorkflowStageSemantics) {
     hash_workflow_value(hasher, "workflow-input", &semantics.input);
     hash_workflow_value(hasher, "workflow-output", &semantics.output);
+    hash_text_field(
+        hasher,
+        "workflow-evidence",
+        &semantics.evidence.canonical_token(),
+    );
     hash_sequence(
         hasher,
         "workflow-required-domain",

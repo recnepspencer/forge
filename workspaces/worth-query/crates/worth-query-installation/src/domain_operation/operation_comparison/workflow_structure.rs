@@ -61,6 +61,7 @@ fn compare_stage_semantics(
 ) -> Result<(), MismatchEvidence> {
     require_equal(&left.input, &right.input, work)?;
     require_equal(&left.output, &right.output, work)?;
+    require_equal(&left.evidence, &right.evidence, work)?;
     work.submit_variable_items(
         left.required_domain_roles.len() + right.required_domain_roles.len(),
     );
@@ -142,7 +143,7 @@ mod tests {
         assert_ne!(left, right);
         let mut work = WorthQueryPortableOperationComparisonWork::default();
         assert!(compare_workflow_structure(&left, &right, &mut work).is_ok());
-        assert_eq!(work.owner_dimensions_inspected(), 18);
+        assert_eq!(work.owner_dimensions_inspected(), 19);
     }
 
     fn workflow(

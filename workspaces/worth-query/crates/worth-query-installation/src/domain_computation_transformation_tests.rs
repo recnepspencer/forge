@@ -9,7 +9,7 @@ fn every_transformation_semantic_dimension_changes_contract_identity() {
         1,
         WorthQueryTransformationOutcomeContract::new(
             WorthQuerySourceOutputCorrespondence::OneToMany,
-            WorthQueryTransformationDisposition::Split,
+            WorthQueryTransformationDisposition::Normalized,
             WorthQueryTransformationErrorPosture::Bounded,
             WorthQueryTransformationLossPosture::DeclaredLossy,
         ),
@@ -39,7 +39,7 @@ fn every_transformation_semantic_dimension_changes_contract_identity() {
             1,
             WorthQueryTransformationOutcomeContract::new(
                 WorthQuerySourceOutputCorrespondence::ManyToOne,
-                WorthQueryTransformationDisposition::Split,
+                WorthQueryTransformationDisposition::Normalized,
                 WorthQueryTransformationErrorPosture::Bounded,
                 WorthQueryTransformationLossPosture::DeclaredLossy,
             ),
@@ -50,7 +50,7 @@ fn every_transformation_semantic_dimension_changes_contract_identity() {
             1,
             WorthQueryTransformationOutcomeContract::new(
                 WorthQuerySourceOutputCorrespondence::OneToMany,
-                WorthQueryTransformationDisposition::Merged,
+                WorthQueryTransformationDisposition::Approximated,
                 WorthQueryTransformationErrorPosture::Bounded,
                 WorthQueryTransformationLossPosture::DeclaredLossy,
             ),
@@ -61,7 +61,7 @@ fn every_transformation_semantic_dimension_changes_contract_identity() {
             1,
             WorthQueryTransformationOutcomeContract::new(
                 WorthQuerySourceOutputCorrespondence::OneToMany,
-                WorthQueryTransformationDisposition::Split,
+                WorthQueryTransformationDisposition::Normalized,
                 WorthQueryTransformationErrorPosture::Estimated,
                 WorthQueryTransformationLossPosture::DeclaredLossy,
             ),
@@ -72,7 +72,7 @@ fn every_transformation_semantic_dimension_changes_contract_identity() {
             1,
             WorthQueryTransformationOutcomeContract::new(
                 WorthQuerySourceOutputCorrespondence::OneToMany,
-                WorthQueryTransformationDisposition::Split,
+                WorthQueryTransformationDisposition::Normalized,
                 WorthQueryTransformationErrorPosture::Bounded,
                 WorthQueryTransformationLossPosture::LossClassifiedByDomain,
             ),
@@ -87,7 +87,7 @@ fn every_transformation_semantic_dimension_changes_contract_identity() {
 fn standard_outcome() -> WorthQueryTransformationOutcomeContract {
     WorthQueryTransformationOutcomeContract::new(
         WorthQuerySourceOutputCorrespondence::OneToMany,
-        WorthQueryTransformationDisposition::Split,
+        WorthQueryTransformationDisposition::Normalized,
         WorthQueryTransformationErrorPosture::Bounded,
         WorthQueryTransformationLossPosture::DeclaredLossy,
     )

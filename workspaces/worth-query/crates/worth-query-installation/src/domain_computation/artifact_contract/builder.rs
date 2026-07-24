@@ -17,6 +17,7 @@ pub struct WorthQueryPortableArtifactContractBuilder {
     carriage: Option<WorthQueryArtifactCarriageContract>,
     lifecycle: Option<WorthQueryArtifactLifecycleContract>,
     counters: Option<WorthQueryStructuralCounterContract>,
+    decisions: Option<WorthQueryDecisionRecordContract>,
     governance: Option<WorthQueryArtifactGovernanceContract>,
     compatibility: Option<WorthQueryArtifactCompatibilityContract>,
     producer_roles: Vec<String>,
@@ -45,6 +46,7 @@ impl WorthQueryPortableArtifactContractBuilder {
             carriage: None,
             lifecycle: None,
             counters: None,
+            decisions: None,
             governance: None,
             compatibility: None,
             producer_roles: Vec::new(),
@@ -112,6 +114,11 @@ impl WorthQueryPortableArtifactContractBuilder {
         self
     }
 
+    pub fn decisions(mut self, value: WorthQueryDecisionRecordContract) -> Self {
+        self.decisions = Some(value);
+        self
+    }
+
     pub fn governance(mut self, value: WorthQueryArtifactGovernanceContract) -> Self {
         self.governance = Some(value);
         self
@@ -164,6 +171,7 @@ impl WorthQueryPortableArtifactContractBuilder {
             carriage: self.carriage.ok_or_else(|| missing("carriage"))?,
             lifecycle: self.lifecycle.ok_or_else(|| missing("lifecycle"))?,
             counters: self.counters.ok_or_else(|| missing("counters"))?,
+            decisions: self.decisions.ok_or_else(|| missing("decisions"))?,
             governance: self.governance.ok_or_else(|| missing("governance"))?,
             compatibility: self.compatibility.ok_or_else(|| missing("compatibility"))?,
             producer_roles: self.producer_roles,

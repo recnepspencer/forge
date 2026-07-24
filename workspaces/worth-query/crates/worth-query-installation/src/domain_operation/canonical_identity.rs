@@ -21,6 +21,11 @@ pub(super) fn canonical_operation_identity(
         &identity.version().to_string(),
     );
     input_and_graph_contracts::hash_input_and_graph_contracts(&mut hasher, semantics);
+    hash_text_field(
+        &mut hasher,
+        "operation-evidence",
+        &semantics.evidence.canonical_token(),
+    );
     workflow_contract::hash_workflow_contract(&mut hasher, &semantics.workflow);
     lifecycle_and_support_contracts::hash_lifecycle_and_support_contracts(&mut hasher, semantics);
     format!("{:x}", hasher.finalize())

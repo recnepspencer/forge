@@ -10,10 +10,12 @@ pub enum WorthQuerySourceOutputCorrespondence {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryTransformationDisposition {
     Preserved,
-    Replaced,
-    Split,
-    Merged,
-    Discarded,
+    Normalized,
+    Approximated,
+    Repaired,
+    Omitted,
+    Unsupported,
+    Quarantined,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

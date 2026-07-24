@@ -31,15 +31,112 @@ pub(super) fn hash_carriage(hash: &mut Sha256, contract: &WorthQueryPortableArti
         serialization_name(carriage.serialization()),
     );
     hash_text_field(hash, "lifecycle", lifecycle_name(contract.lifecycle));
-    for (label, counter) in [
-        ("byte-counter", contract.counters.byte_counter()),
-        ("element-counter", contract.counters.element_counter()),
-        (
-            "structural-counter",
-            contract.counters.structural_work_counter(),
-        ),
-    ] {
-        hash_text_field(hash, label, counter.as_str());
+    for counter in contract.counters.rows() {
+        hash_text_field(hash, "counter-name", counter.name().as_str());
+        hash_text_field(hash, "counter-role", counter_role_name(counter.role()));
+        hash_text_field(hash, "counter-unit", &counter_unit_name(counter.unit()));
+        hash_text_field(
+            hash,
+            "counter-aggregation",
+            counter_aggregation_name(counter.aggregation()),
+        );
+        for source in counter.aggregation().sources() {
+            hash_text_field(hash, "counter-aggregation-source", source.as_str());
+        }
+        hash_text_field(
+            hash,
+            "counter-monotonicity",
+            counter_monotonicity_name(counter.monotonicity()),
+        );
+        hash_text_field(hash, "counter-scope", counter_scope_name(counter.scope()));
+        hash_text_field(
+            hash,
+            "counter-reset",
+            counter_reset_name(counter.reset_boundary()),
+        );
+        hash_text_field(
+            hash,
+            "counter-requiredness",
+            counter_requiredness_name(counter.requiredness()),
+        );
+        hash_text_field(
+            hash,
+            "counter-replay",
+            counter_replay_name(counter.replay()),
+        );
+    }
+}
+
+fn counter_role_name(value: WorthQueryStructuralCounterRole) -> &'static str {
+    match value {
+        WorthQueryStructuralCounterRole::Bytes => "bytes",
+        WorthQueryStructuralCounterRole::Elements => "elements",
+        WorthQueryStructuralCounterRole::StructuralWork => "structural-work",
+        WorthQueryStructuralCounterRole::DomainWork => "domain-work",
+    }
+}
+
+fn counter_unit_name(value: &WorthQueryStructuralCounterUnit) -> String {
+    match value {
+        WorthQueryStructuralCounterUnit::Bytes => "bytes".into(),
+        WorthQueryStructuralCounterUnit::Elements => "elements".into(),
+        WorthQueryStructuralCounterUnit::Operations => "operations".into(),
+        WorthQueryStructuralCounterUnit::Comparisons => "comparisons".into(),
+        WorthQueryStructuralCounterUnit::Iterations => "iterations".into(),
+        WorthQueryStructuralCounterUnit::Neighborhoods => "neighborhoods".into(),
+        WorthQueryStructuralCounterUnit::Domain(identity) => format!("domain:{identity}"),
+    }
+}
+
+fn counter_aggregation_name(value: &WorthQueryStructuralCounterAggregation) -> &'static str {
+    match value {
+        WorthQueryStructuralCounterAggregation::Independent => "independent",
+        WorthQueryStructuralCounterAggregation::SumOf(_) => "sum-of",
+        WorthQueryStructuralCounterAggregation::MaximumOf(_) => "maximum-of",
+        WorthQueryStructuralCounterAggregation::MinimumOf(_) => "minimum-of",
+    }
+}
+
+fn counter_monotonicity_name(value: WorthQueryStructuralCounterMonotonicity) -> &'static str {
+    match value {
+        WorthQueryStructuralCounterMonotonicity::Unconstrained => "unconstrained",
+        WorthQueryStructuralCounterMonotonicity::NonDecreasing => "non-decreasing",
+    }
+}
+
+fn counter_scope_name(value: WorthQueryStructuralCounterScope) -> &'static str {
+    match value {
+        WorthQueryStructuralCounterScope::Operation => "operation",
+        WorthQueryStructuralCounterScope::Run => "run",
+        WorthQueryStructuralCounterScope::Stage => "stage",
+        WorthQueryStructuralCounterScope::Attempt => "attempt",
+        WorthQueryStructuralCounterScope::ArtifactOccurrence => "artifact-occurrence",
+    }
+}
+
+fn counter_reset_name(value: WorthQueryStructuralCounterResetBoundary) -> &'static str {
+    match value {
+        WorthQueryStructuralCounterResetBoundary::Operation => "operation",
+        WorthQueryStructuralCounterResetBoundary::Run => "run",
+        WorthQueryStructuralCounterResetBoundary::Stage => "stage",
+        WorthQueryStructuralCounterResetBoundary::Attempt => "attempt",
+        WorthQueryStructuralCounterResetBoundary::ArtifactOccurrence => "artifact-occurrence",
+    }
+}
+
+fn counter_requiredness_name(value: WorthQueryStructuralCounterRequiredness) -> &'static str {
+    match value {
+        WorthQueryStructuralCounterRequiredness::RequiredCore => "required-core",
+        WorthQueryStructuralCounterRequiredness::OptionalSidecar => "optional-sidecar",
+    }
+}
+
+fn counter_replay_name(value: WorthQueryStructuralCounterReplayPosture) -> &'static str {
+    match value {
+        WorthQueryStructuralCounterReplayPosture::Exact => "exact",
+        WorthQueryStructuralCounterReplayPosture::NonDecreasing => "non-decreasing",
+        WorthQueryStructuralCounterReplayPosture::ProviderCertified => "provider-certified",
+        WorthQueryStructuralCounterReplayPosture::NotCompared => "not-compared",
     }
 }
 

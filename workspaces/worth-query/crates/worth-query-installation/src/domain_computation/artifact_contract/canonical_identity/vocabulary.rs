@@ -105,10 +105,12 @@ pub(super) fn correspondence_name(value: WorthQuerySourceOutputCorrespondence) -
 pub(super) fn disposition_name(value: WorthQueryTransformationDisposition) -> &'static str {
     match value {
         WorthQueryTransformationDisposition::Preserved => "preserved",
-        WorthQueryTransformationDisposition::Replaced => "replaced",
-        WorthQueryTransformationDisposition::Split => "split",
-        WorthQueryTransformationDisposition::Merged => "merged",
-        WorthQueryTransformationDisposition::Discarded => "discarded",
+        WorthQueryTransformationDisposition::Normalized => "normalized",
+        WorthQueryTransformationDisposition::Approximated => "approximated",
+        WorthQueryTransformationDisposition::Repaired => "repaired",
+        WorthQueryTransformationDisposition::Omitted => "omitted",
+        WorthQueryTransformationDisposition::Unsupported => "unsupported",
+        WorthQueryTransformationDisposition::Quarantined => "quarantined",
     }
 }
 

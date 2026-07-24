@@ -30,6 +30,7 @@ pub(crate) fn semantic_closure(
         required_capabilities: Vec::new(),
         required_domains: Vec::new(),
         workflow: domain::WorthQueryOperationWorkflowContract::NotRequired,
+        evidence: domain::WorthQueryDomainEvidenceContract::not_required(),
         conditional_nodes: Vec::new(),
         graph_reads: domain::WorthQueryOperationGraphReadContract::Declared {
             roles: vec![domain::WorthQueryOperationGraphReadRole {

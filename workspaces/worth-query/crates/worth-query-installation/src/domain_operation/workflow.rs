@@ -135,6 +135,7 @@ impl WorthQueryPortableWorkflowStage {
 pub struct WorthQueryWorkflowStageSemantics {
     pub input: WorthQueryWorkflowValueContract,
     pub output: WorthQueryWorkflowValueContract,
+    pub evidence: super::WorthQueryDomainEvidenceContract,
     pub required_domain_roles: Vec<super::WorthQueryOperationRequiredDomainRole>,
     pub graph_read_roles: Vec<String>,
     pub touch_roles: Vec<String>,

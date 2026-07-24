@@ -214,6 +214,7 @@ fn semantics(native_revision: u64, root: &str) -> WorthQueryDomainOperationSeman
         required_capabilities: Vec::new(),
         required_domains: Vec::new(),
         workflow: WorthQueryOperationWorkflowContract::NotRequired,
+        evidence: WorthQueryDomainEvidenceContract::not_required(),
         conditional_nodes: Vec::new(),
         graph_reads: WorthQueryOperationGraphReadContract::NotRequired,
         touches: WorthQueryOperationTouchContract::NotRequired,

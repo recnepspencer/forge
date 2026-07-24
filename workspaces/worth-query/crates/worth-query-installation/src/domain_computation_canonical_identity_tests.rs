@@ -64,6 +64,7 @@ fn every_search_semantic_dimension_changes_contract_identity() {
                 termination,
                 feasibility,
                 comparison,
+                "incumbent",
             ),
             WorthQueryCandidateSearchPosture::ProvenTopK { count },
             WorthQueryCandidateOptimalityPosture::ProvenTopK { count },
@@ -133,6 +134,7 @@ fn every_search_semantic_dimension_changes_contract_identity() {
                 "termination",
                 "feasibility",
                 "comparison",
+                "incumbent",
             ),
             WorthQueryCandidateSearchPosture::Bounded {
                 bound_identity: bound.into(),

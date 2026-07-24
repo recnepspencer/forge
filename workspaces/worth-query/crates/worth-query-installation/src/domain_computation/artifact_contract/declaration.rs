@@ -10,8 +10,8 @@ use super::{
 use crate::domain_computation::{
     WorthQueryArtifactAccessPathContract, WorthQueryArtifactOccurrenceContract,
     WorthQueryArtifactReproducibilityContract, WorthQueryCandidateSearchContract,
-    WorthQueryConvergenceContract, WorthQueryStructuralCounterContract,
-    WorthQueryTransformationEvidenceContract,
+    WorthQueryConvergenceContract, WorthQueryDecisionRecordContract,
+    WorthQueryStructuralCounterContract, WorthQueryTransformationEvidenceContract,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,6 +31,7 @@ pub struct WorthQueryPortableArtifactContract {
     pub(crate) carriage: WorthQueryArtifactCarriageContract,
     pub(crate) lifecycle: WorthQueryArtifactLifecycleContract,
     pub(crate) counters: WorthQueryStructuralCounterContract,
+    pub(crate) decisions: WorthQueryDecisionRecordContract,
     pub(crate) governance: WorthQueryArtifactGovernanceContract,
     pub(crate) compatibility: WorthQueryArtifactCompatibilityContract,
     pub(crate) producer_roles: Vec<String>,
@@ -120,6 +121,10 @@ impl WorthQueryPortableArtifactContract {
 
     pub fn counters(&self) -> &WorthQueryStructuralCounterContract {
         &self.counters
+    }
+
+    pub fn decisions(&self) -> &WorthQueryDecisionRecordContract {
+        &self.decisions
     }
 
     pub fn governance(&self) -> &WorthQueryArtifactGovernanceContract {

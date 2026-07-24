@@ -83,11 +83,12 @@ fn candidate_contract() -> WorthQueryPortableArtifactContract {
     .access_path(WorthQueryArtifactAccessPathContract::denied())
     .carriage(WorthQueryArtifactCarriageContract::move_only_provider_transfer())
     .lifecycle(WorthQueryArtifactLifecycleContract::ArenaScoped)
-    .counters(WorthQueryStructuralCounterContract::new(
+    .counters(WorthQueryStructuralCounterContract::required_foundation(
         counter("bytes"),
         counter("elements"),
         counter("work"),
     ))
+    .decisions(WorthQueryDecisionRecordContract::not_required())
     .governance(WorthQueryArtifactGovernanceContract::new(
         ["workflow-internal"],
         WorthQueryArtifactClassification::Internal,

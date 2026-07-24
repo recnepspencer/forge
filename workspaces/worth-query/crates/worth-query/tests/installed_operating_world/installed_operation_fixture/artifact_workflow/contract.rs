@@ -73,11 +73,14 @@ pub fn candidate_contract() -> domain::WorthQueryPortableArtifactContract {
         domain::WorthQueryArtifactSerializationPosture::CanonicalProjectionOnly,
     ))
     .lifecycle(domain::WorthQueryArtifactLifecycleContract::Retained)
-    .counters(domain::WorthQueryStructuralCounterContract::new(
-        counter("artifact-bytes"),
-        counter("artifact-elements"),
-        counter("artifact-work"),
-    ))
+    .counters(
+        domain::WorthQueryStructuralCounterContract::required_foundation(
+            counter("artifact-bytes"),
+            counter("artifact-elements"),
+            counter("artifact-work"),
+        ),
+    )
+    .decisions(domain::WorthQueryDecisionRecordContract::not_required())
     .governance(domain::WorthQueryArtifactGovernanceContract::new(
         ["workflow-internal"],
         domain::WorthQueryArtifactClassification::Internal,

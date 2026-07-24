@@ -27,6 +27,7 @@ pub struct WorthQueryCandidateSearchEvidenceFamilies {
     termination: String,
     feasibility: String,
     comparison: String,
+    incumbent: String,
 }
 
 impl WorthQueryCandidateSearchEvidenceFamilies {
@@ -35,12 +36,14 @@ impl WorthQueryCandidateSearchEvidenceFamilies {
         termination: impl Into<String>,
         feasibility: impl Into<String>,
         comparison: impl Into<String>,
+        incumbent: impl Into<String>,
     ) -> Self {
         Self {
             universe: universe.into(),
             termination: termination.into(),
             feasibility: feasibility.into(),
             comparison: comparison.into(),
+            incumbent: incumbent.into(),
         }
     }
 }
@@ -103,6 +106,12 @@ impl WorthQueryCandidateSearchContract {
         self.evidence
             .as_ref()
             .map(|evidence| evidence.comparison.as_str())
+    }
+
+    pub fn incumbent_family(&self) -> Option<&str> {
+        self.evidence
+            .as_ref()
+            .map(|evidence| evidence.incumbent.as_str())
     }
 
     pub(crate) fn postures_are_coherent(&self) -> bool {

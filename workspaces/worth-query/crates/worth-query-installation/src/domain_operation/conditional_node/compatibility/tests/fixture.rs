@@ -146,6 +146,7 @@ pub(super) fn operation_definition(
         workflow: WorthQueryOperationWorkflowContract::Declared(
             WorthQueryPortableWorkflowDefinition::new("stage", [stage]),
         ),
+        evidence: WorthQueryDomainEvidenceContract::not_required(),
         conditional_nodes,
         graph_reads: WorthQueryOperationGraphReadContract::Declared {
             roles: vec![WorthQueryOperationGraphReadRole {

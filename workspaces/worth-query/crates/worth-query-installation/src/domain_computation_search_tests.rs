@@ -91,6 +91,7 @@ fn search(
             "termination",
             "feasibility",
             "comparison",
+            "incumbent",
         ),
         search,
         optimality,
